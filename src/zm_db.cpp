@@ -124,7 +124,7 @@ MYSQL_RES *zmDbRow::fetch( const char *query ) {
     result_set = NULL;
     Error("Error getting row from query %s. Error is %s", query, mysql_error( &dbconn ) );
   } else {
-    Debug(3, "Succes");
+    Debug(5, "Success");
   }
   return result_set;
 }

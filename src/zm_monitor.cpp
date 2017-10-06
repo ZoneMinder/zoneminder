@@ -35,6 +35,7 @@
 #endif // ZM_HAS_V4L
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
+#include "zm_remote_camera_nvsocket.h"
 #if HAVE_LIBAVFORMAT
 #include "zm_remote_camera_rtsp.h"
 #endif // HAVE_LIBAVFORMAT
@@ -2526,13 +2527,13 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   unsigned int id = atoi(dbrow[col]); col++;
   std::string name = dbrow[col]; col++;
   unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
-  unsigned int storage_id = atoi(dbrow[col]); col++;
+  unsigned int storage_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
   std::string type = dbrow[col]; col++;
   int function = atoi(dbrow[col]); col++;
   int enabled = atoi(dbrow[col]); col++;
   std::string linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
-  std::string device = dbrow[col]; col++;
+  std::string device = dbrow[col] ? dbrow[col] : ""; col++;
   int channel = atoi(dbrow[col]); col++;
   int format = atoi(dbrow[col]); col++;
 
@@ -2642,6 +2643,22 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 #else // ZM_HAS_V4L
     Fatal( "You must have video4linux libraries and headers installed to use local analog or USB cameras for monitor %d", id );
 #endif // ZM_HAS_V4L
+  } else if ( type == "NVSocket" ) {
+      camera = new RemoteCameraNVSocket(
+        id,
+        host.c_str(),
+        port.c_str(),
+        path.c_str(),
+        width,
+        height,
+        colours,
+        brightness,
+        contrast,
+        hue,
+        colour,
+        purpose==CAPTURE,
+        record_audio
+      );
   } else if ( type == "Remote" ) {
     if ( protocol == "http" ) {
       camera = new RemoteCameraHttp(

@@ -52,7 +52,7 @@ SET @s = (SELECT IF(
 	AND column_name = 'DefaultVideo'
 	) > 0,
 "SELECT 'Column DefaultVideo exists in Events'",
-"ALTER TABLE `Events` ADD `DefaultVideo` VARCHAR( 64 ) NOT NULL AFTER `AlarmFrames`"
+"ALTER TABLE `Events` ADD `DefaultVideo` VARCHAR( 64 ) NOT NULL default '' AFTER `AlarmFrames`"
 ));
 
 PREPARE stmt FROM @s;

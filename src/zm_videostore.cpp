@@ -125,7 +125,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #else
   video_out_stream =
-      avformat_new_stream(oc, reinterpret_cast<const AVCodec *>(video_in_ctx->codec));
+      avformat_new_stream(oc,(const AVCodec *)(video_in_ctx->codec));
   if (!video_out_stream) {
     Fatal("Unable to create video out stream\n");
   } else {
@@ -222,7 +222,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       Debug(3, "Got AAC");
 
       audio_out_stream =
-          avformat_new_stream(oc, reinterpret_cast<const AVCodec *>(audio_in_ctx->codec));
+          avformat_new_stream(oc, (const AVCodec *)(audio_in_ctx->codec));
       if (!audio_out_stream) {
         Error("Unable to create audio out stream\n");
         audio_out_stream = NULL;
@@ -279,12 +279,25 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     }
   }  // end if audio_in_stream
 
+
+  video_last_pts = 0;
+  video_last_dts = 0;
+  audio_last_pts = 0;
+  audio_last_dts = 0;
+  video_next_pts = 0;
+  video_next_dts = 0;
+  audio_next_pts = 0;
+  audio_next_dts = 0;
+}  // VideoStore::VideoStore
+
+bool VideoStore::open() {
   /* open the out file, if needed */
   if (!(out_format->flags & AVFMT_NOFILE)) {
     ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL);
     if (ret < 0) {
-      Fatal("Could not open out file '%s': %s\n", filename,
+      Error("Could not open out file '%s': %s\n", filename,
             av_make_error_string(ret).c_str());
+      return false;
     }
   }
 
@@ -310,18 +323,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   if (ret < 0) {
     Error("Error occurred when writing out file header to %s: %s\n",
           filename, av_make_error_string(ret).c_str());
+    return false;
   }
   if (opts) av_dict_free(&opts);
-
-  video_last_pts = 0;
-  video_last_dts = 0;
-  audio_last_pts = 0;
-  audio_last_dts = 0;
-  video_next_pts = 0;
-  video_next_dts = 0;
-  audio_next_pts = 0;
-  audio_next_dts = 0;
-}  // VideoStore::VideoStore
+  return true;
+}
 
 VideoStore::~VideoStore() {
   if (audio_out_codec) {

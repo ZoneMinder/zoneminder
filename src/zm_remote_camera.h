@@ -29,12 +29,13 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#define SOCKET_BUF_SIZE 8192
+
 //
 // Class representing 'remote' cameras, i.e. those which are
 // accessed over a network connection.
 //
-class RemoteCamera : public Camera
-{
+class RemoteCamera : public Camera {
 protected:
   std::string  protocol;
   std::string  host;
@@ -90,6 +91,7 @@ public:
   virtual int Capture( Image &image ) = 0;
   virtual int PostCapture() = 0;
   virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory )=0;
+  int Read( int fd, char*buf, int size );
 };
 
 #endif // ZM_REMOTE_CAMERA_H

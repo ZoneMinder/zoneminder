@@ -900,6 +900,21 @@ our @options = (
     category    => 'network',
   },
   {
+    name        =>  'ZM_MIN_STREAMING_PORT',
+    default     =>  '',
+    description =>  'Alternate port range to contact for streaming video.',
+    help        =>  q`
+    Due to browsers only wanting to open 6 connections, if you have more
+    than 6 monitors, you can have trouble viewing more than 6.  This setting
+    specified the beginning of a port range that will be used to contact ZM 
+    on.  Each monitor will use this value plus the Monitor Id to stream
+    content.  So a value of 2000 here will cause a stream for Monitor 1 to 
+    hit port 2001.  Please ensure that you configure apache appropriately 
+    to respond on these ports.`,
+    type  =>  $types{integer},
+    category  => 'network',
+  },
+  {
     name        => 'ZM_MIN_RTP_PORT',
     default     => '40200',
     description => 'Minimum port that ZoneMinder will listen for RTP traffic on',

@@ -32,13 +32,38 @@ if ( empty($_REQUEST['mode']) ) {
   $mode = validHtmlStr($_REQUEST['mode']);
 }
 
-$group = '';
-$groupSql = '';
-if ( !empty($_REQUEST['group']) ) {
-  $group = validInt($_REQUEST['group']);
-  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($group) );
-  $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
+$group_id = 0;
+if ( isset($_REQUEST['group']) ) { 
+  $group_id = $_REQUEST['group'];
+} else if ( isset($_COOKIE['zmGroup'] ) ) { 
+  $group_id = $_COOKIE['zmGroup'];
+} 
+
+$subgroup_id = 0;
+if ( isset($_REQUEST['subgroup']) ) { 
+  $subgroup_id = $_REQUEST['subgroup'];
+} else if ( isset($_COOKIE['zmSubGroup'] ) ) { 
+  $subgroup_id = $_COOKIE['zmSubGroup'];
+} 
+$groupIds = null;
+if ( $group_id ) {
+$groupIds = array();
+  if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($group_id) ) )
+    if ( $group['MonitorIds'] )
+      $groupIds = explode( ',', $group['MonitorIds'] );
+  if ( $subgroup_id ) {
+    if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($subgroup_id) ) )
+      if ( $group['MonitorIds'] )
+        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
+  } else {
+    foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
+      if ( $group['MonitorIds'] )
+        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
+  }
 }
+$groupSql = '';
+if ( $groupIds )
+  $groupSql = " and find_in_set( Id, '".implode( ',', $groupIds )."' )";
 
 $sql = "SELECT * FROM Monitors WHERE Function != 'None'$groupSql ORDER BY Sequence";
 $monitors = array();
@@ -53,38 +78,59 @@ foreach( dbFetchAll( $sql ) as $row ) {
   $monitors[] = new Monitor( $row );
 }
 
-$monitor = $monitors[$monIdx];
-$nextMid = $monIdx==(count($monitors)-1)?$monitors[0]->Id():$monitors[$monIdx+1]->Id();
-$montageWidth = $monitor->ScaledWidth();
-$montageHeight = $monitor->ScaledHeight();
-$widthScale = ($montageWidth*SCALE_BASE)/$monitor->Width();
-$heightScale = ($montageHeight*SCALE_BASE)/$monitor->Height();
-$scale = (int)(($widthScale<$heightScale)?$widthScale:$heightScale);
+if ( $monitors ) {
+  $monitor = $monitors[$monIdx];
+  $nextMid = $monIdx==(count($monitors)-1)?$monitors[0]->Id():$monitors[$monIdx+1]->Id();
+  $montageWidth = $monitor->ScaledWidth();
+  $montageHeight = $monitor->ScaledHeight();
+  $widthScale = ($montageWidth*SCALE_BASE)/$monitor->Width();
+  $heightScale = ($montageHeight*SCALE_BASE)/$monitor->Height();
+  $scale = (int)(($widthScale<$heightScale)?$widthScale:$heightScale);
+}
 
 noCacheHeaders();
-
-$focusWindow = true;
-
 xhtmlHeaders(__FILE__, translate('CycleWatch') );
 ?>
 <body>
   <div id="page">
+<?php echo $navbar = getNavBarHTML(); ?>
     <div id="header">
       <div id="headerButtons">
 <?php if ( $mode == "stream" ) { ?>
-        <a href="?view=<?php echo $view ?>&amp;mode=still&amp;group=<?php echo $group ?>&amp;mid=<?php echo $monitor->Id() ?>"><?php echo translate('Stills') ?></a>
+        <a href="?view=<?php echo $view ?>&amp;mode=still&amp;mid=<?php echo $monitor ? $monitor->Id() : '' ?>"><?php echo translate('Stills') ?></a>
 <?php } else { ?>
-        <a href="?view=<?php echo $view ?>&amp;mode=stream&amp;group=<?php echo $group ?>&amp;mid=<?php echo $monitor->Id() ?>"><?php echo translate('Stream') ?></a>
+        <a href="?view=<?php echo $view ?>&amp;mode=stream&amp;mid=<?php echo $monitor ? $monitor->Id() : '' ?>"><?php echo translate('Stream') ?></a>
 <?php } ?>
-        <a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a>
       </div>
-      <h2><?php echo translate('Cycle') ?> - <?php echo validHtmlStr($monitor->Name()) ?></h2>
+      <div class="controlHeader">
+        <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
+<?php
+  
+  $groups = array(0=>'All');
+  foreach ( Group::find_all( array('ParentId'=>null) ) as $Group ) { 
+    $groups[$Group->Id()] = $Group->Name();
+  } 
+  echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
+  $groups = array(0=>'All');
+  if ( $group_id ) { 
+    foreach ( Group::find_all( array('ParentId'=>$group_id) ) as $Group ) { 
+      $groups[$Group->Id()] = $Group->Name();
+    } 
+  } 
+  echo htmlSelect( 'subgroup', $groups, $subgroup_id, 'changeSubGroup(this);' );
+?>
+      </div>
     </div>
     <div id="content">
       <div id="imageFeed">
-      <?php echo getStreamHTML( $monitor, array( 'scale'=>$scale, 'mode'=>$mode ) ); ?>
+      <?php 
+        if ( $monitor ) {
+          echo getStreamHTML( $monitor, array( 'scale'=>$scale, 'mode'=>$mode ) );
+        } else {
+          echo "There are no monitors to view.";
+        }
+      ?>
       </div>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

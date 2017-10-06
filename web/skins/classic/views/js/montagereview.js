@@ -166,13 +166,12 @@ function drawSliderOnGraph(val) {
 
         // If we have data already saved first restore it from LAST time
 
-        if(typeof underSlider !== 'undefined')
-        {
+        if(typeof underSlider !== 'undefined') {
             ctx.putImageData(underSlider,underSliderX, 0, 0, 0, sliderWidth, sliderHeight);
             underSlider=undefined;
         }
-        if(liveMode==0)  // we get rid of the slider if we switch to live (since it may not be in the "right" place)
-        {
+        if ( liveMode == 0 ) {
+          // we get rid of the slider if we switch to live (since it may not be in the "right" place)
             // Now save where we are putting it THIS time
             underSlider=ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
             // And add in the slider'
@@ -183,13 +182,10 @@ function drawSliderOnGraph(val) {
             underSliderX=sliderX;
         }
         var o = $('scruboutput');
-        if(liveMode==1)
-        {
+        if(liveMode==1) {
             o.innerHTML="Live Feed @ " + (1000 / currentDisplayInterval).toFixed(1) + " fps";
             o.style.color="red";
-        }
-        else
-        {
+        } else {
             o.innerHTML=secs2dbstr(val);
             o.style.color="blue";
         }
@@ -293,16 +289,10 @@ function drawGraph()
     return;
 }
 
-function redrawScreen()
-{
-    if(fitMode==0) // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
-    {
-        for(var i=0; i<numMonitors; i++)
-            monitorCanvasObj[monitorPtr[i]].style.position="";
-        $('monitors').setStyle('height',"auto");
-    }
-    if(liveMode==1) // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
-    {
+function redrawScreen() {
+    if ( liveMode == 1 ) {
+    // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
+        $('DateTimeDiv').style.display="none";
         $('SpeedDiv').style.display="none";
         $('timelinediv').style.display="none";
         $('live').innerHTML="History";
@@ -311,9 +301,9 @@ function redrawScreen()
         $('panleft').style.display="none";
         $('panright').style.display="none";
 
-    }
-    else  // switch out of liveview mode
-    {
+    } else  {
+    // switch out of liveview mode
+        $('DateTimeDiv').style.display="inline";
         $('SpeedDiv').style.display="inline";
         $('SpeedDiv').style.display="inline-flex";
         $('timelinediv').style.display=null;
@@ -328,8 +318,7 @@ function redrawScreen()
         $('panright').style.display="inline-flex";
     }
 
-    if(fitMode==1)
-    {
+    if ( fitMode == 1 ) {
         $('ScaleDiv').style.display="none";
         $('fit').innerHTML="Scale";
         var vh=window.innerHeight;
@@ -339,9 +328,12 @@ function redrawScreen()
         $('monitors').setStyle('height',mh.toString() + "px");  // leave a small gap at bottom
         if(maxfit2($('monitors').getSize().x,$('monitors').getSize().y) == 0)   /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
             fitMode=1-fitMode;
-    }
-    else  // switch out of fit mode
-    {
+    } else {
+      // switch out of fit mode
+      // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
+        for( var i=0; i<numMonitors; i++ )
+            monitorCanvasObj[monitorPtr[i]].style.position="";
+        $('monitors').setStyle('height',"auto");
         $('ScaleDiv').style.display="inline";
         $('ScaleDiv').style.display="inline-flex";
         $('fit').innerHTML="Fit";
@@ -353,15 +345,13 @@ function redrawScreen()
 }
 
 
-function outputUpdate(val)
-{
-    drawSliderOnGraph(val);
-    for(var i=0; i<numMonitors; i++)
-    {
-            loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],val));
-    }
-    var currentTimeMS = new Date(val*1000);
-    currentTimeSecs=val;
+function outputUpdate(val) {
+  drawSliderOnGraph(val);
+  for(var i=0; i<numMonitors; i++) {
+    loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],val));
+  }
+  var currentTimeMS = new Date(val*1000);
+  currentTimeSecs=val;
 }
 
 
@@ -402,16 +392,18 @@ function mmove(event) {
   }
 }
 
-function secs2dbstr (s)
-{
-    var st = (new Date(s * 1000)).format("%Y-%m-%d %H:%M:%S");
-    return st;
+function secs2inputstr (s) {
+  var st = (new Date(s * 1000)).format("%Y-%m-%dT%H:%M:%S");
+  return st;
+}
+function secs2dbstr (s) {
+  var st = (new Date(s * 1000)).format("%Y-%m-%d %H:%M:%S");
+  return st;
 }
 
-function setFit(value)
-{
-    fitMode=value;
-    redrawScreen();
+function setFit(value) {
+  fitMode=value;
+  redrawScreen();
 }
 
 function showScale(newscale) // updates slider only
@@ -431,13 +423,12 @@ function setScale(newscale) // makes actual change
     currentScale=newscale;
 }
 
-function showSpeed(val) // updates slider only
-{
-    $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
+function showSpeed(val) {
+  // updates slider only
+  $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
 }
 
-function setSpeed(val)   // Note parameter is the index not the speed
-{
+function setSpeed(val) {  // Note parameter is the index not the speed
     var t;
     if(liveMode==1) return;  // we shouldn't actually get here but just in case
     currentSpeed=parseFloat(speeds[val]);
@@ -447,8 +438,7 @@ function setSpeed(val)   // Note parameter is the index not the speed
     if( timerInterval != currentDisplayInterval || currentSpeed == 0 )  timerFire(); // if the timer isn't firing we need to trigger it to update
 }
 
-function setLive(value)
-{
+function setLive(value) {
     liveMode=value;
     redrawScreen();
 }
@@ -459,19 +449,22 @@ function setLive(value)
 
 function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we can
   var now = new Date() / 1000;
-  var minStr="";
-  var maxStr="";
-  var currentStr="";
+  var minStr = "";
+  var maxStr = "";
+  var currentStr = "";
   if ( minSecs > 0 ) {
     if(maxSecs > now)
       maxSecs = parseInt(now);
-    maxStr="&maxTime=" + secs2dbstr(maxSecs);
+    maxStr="&maxTime=" + secs2inputstr(maxSecs);
+    $('maxTime').value = secs2inputstr(maxSecs);
   }
-  if ( maxSecs > 0 )
-    minStr="&minTime=" + secs2dbstr(minSecs);
+  if ( minSecs > 0 ) {
+    $('minTime').value = secs2inputstr(minSecs);
+    minStr="&minTime=" + secs2inputstr(minSecs);
+  }
   if ( maxSecs == 0 && minSecs == 0 ) {
-    minStr="&minTime=01/01/1950 12:00:00";
-    maxStr="&maxTime=12/31/2035 12:00:00";
+    minStr="&minTime=01/01/1950T12:00:00";
+    maxStr="&maxTime=12/31/2035T12:00:00";
   }
   var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
   if ( minSecs && maxSecs ) {
@@ -492,42 +485,42 @@ function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we c
     if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 )  // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
 
-  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + speeds[$j("#speedslider").value];
+  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
-}
+} // end function clickNav
 
-function lastHour() {
+function click_lastHour() {
   var now = new Date() / 1000;
   clicknav(now - 3600 + 1, now,1,0);
 }
-function lastEight() {
+function click_lastEight() {
   var now = new Date() / 1000;
   clicknav(now - 3600*8 + 1, now,1,0);
 }
-function zoomin() {
+function click_zoomin() {
   rangeTimeSecs = parseInt(rangeTimeSecs / 2);
   minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
   maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
   clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
 
-function zoomout() {
+function click_zoomout() {
   rangeTimeSecs = parseInt(rangeTimeSecs * 2);
   minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
   maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
   clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
-function panleft() {
+function click_panleft() {
   minTimeSecs = parseInt(minTimeSecs - rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
   clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
-function panright() {
+function click_panright() {
   minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
   clicknav(minTimeSecs,maxTimeSecs,1,0);
 }
-function allof() {
+function click_all_events() {
   clicknav(0,0,1,0);
 }
 function allnon() {
@@ -688,6 +681,10 @@ function clickMonitor(event,monId) {
   else
     showOneMonitor(monId);
   return;
+}
+
+function changeDateTime(e) {
+  e.form.submit();
 }
 
 // >>>>>>>>> Initialization that runs on window load by being at the bottom 

@@ -156,7 +156,6 @@ function changeSize() {
         src = src.replace(/height=[\.\d]+/i,'height='+height );
         src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
-
       }
       streamImg.style.width = width? width + "px" : null;
       streamImg.style.height = height ? height + "px" : null;
@@ -209,7 +208,6 @@ function changeScale() {
   Cookie.write( 'zmMontageWidth', '', { duration: 10*365 } );
   Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
 }
-
 
 var monitors = new Array();
 function initPage() {

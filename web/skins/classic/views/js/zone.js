@@ -496,16 +496,20 @@ function getStreamCmdResponse( respObj, respText ) {
     }
   } else {
     checkStreamForErrors("getStreamCmdResponse", respObj);//log them
-    // Try to reload the image stream.
-    var streamImg = document.getElementById('liveStream');
-    if ( streamImg )
-      streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    if ( ! streamPause ) {
+      // Try to reload the image stream.
+      var streamImg = $('liveStream'+monitorId);
+      if ( streamImg )
+        streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    }
   }
 
-  var streamCmdTimeout = statusRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
-    streamCmdTimeout = streamCmdTimeout/5;
-  streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
+  if ( ! streamPause ) {
+    var streamCmdTimeout = statusRefreshTimeout;
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+      streamCmdTimeout = streamCmdTimeout/5;
+    streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
+  }
 }
 
 var streamPause = false;
@@ -556,10 +560,12 @@ function getStatusCmdResponse( respObj, respText ) {
   } else
     checkStreamForErrors("getStatusCmdResponse", respObj);
 
-  var statusCmdTimeout = statusRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
-    statusCmdTimeout = statusCmdTimeout/5;
-  statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
+  if ( ! streamPause ) {
+    var statusCmdTimeout = statusRefreshTimeout;
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+      statusCmdTimeout = statusCmdTimeout/5;
+    statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
+  }
 }
 
 function statusCmdQuery() {

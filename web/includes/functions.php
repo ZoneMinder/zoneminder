@@ -538,7 +538,7 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
     $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
   else
     $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
-  $string = '<input class="btn btn-primary" type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
+  $string = '<input type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
   return( $string );
 }
 
@@ -557,6 +557,9 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
 
   $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
   foreach ( $contents as $value=>$text ) {
+  //for ( $i = 0; $i < count($contents); $i +=2 ) {
+    //$value = $contents[$i];
+    //$text = $contents[$i+1];
     $selected = is_array( $values ) ? in_array( $value, $values ) : $value==$values;
     $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
   }

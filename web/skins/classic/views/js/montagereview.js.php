@@ -1,7 +1,6 @@
 
 var currentScale=<?php echo $defaultScale?>;
 var liveMode=<?php echo $initialModeIsLive?>;
-console.log("Live mode?"+liveMode);
 var fitMode=<?php echo $fitMode?>;
 var currentSpeed=<?php echo $speeds[$speedIndex]?>;  // slider scale, which is only for replay and relative to real time
 var speedIndex=<?php echo $speedIndex?>;
@@ -18,7 +17,7 @@ var eId = [];
 var eStartSecs = [];
 var eEndSecs = [];
 var eventFrames = [];            // this is going to presume all frames equal durationlength
-var groupStr=<?php if($group=="") echo '""'; else echo "\"&group=$group\""; ?>;
+var groupStr=<?php echo $group_id ? "'&group=$group_id'" : '""'; ?>;
 
 <?php
 
@@ -178,8 +177,8 @@ foreach ( $monitors as $m ) {
     $numMonitors += 1;
 }
 echo "var numMonitors = $numMonitors;\n";
-echo "var minTimeSecs="     . $minTimeSecs . ";\n";
-echo "var maxTimeSecs="     . $maxTimeSecs . ";\n";
+echo "var minTimeSecs='"     . $minTimeSecs . "';\n";
+echo "var maxTimeSecs='"     . $maxTimeSecs . "';\n";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))
   echo "var currentTimeSecs=" . strtotime($defaultCurrentTime) . ";\n";

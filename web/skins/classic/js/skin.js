@@ -45,6 +45,10 @@ function newWindow( url, name, width, height ) {
 }
 
 function getPopupSize( tag, width, height ) {
+  if ( typeof popupSizes == 'undefined' ) {
+    Error( "Can't find any window sizes" );
+    return( { 'width': 0, 'height': 0 } );
+  }
   var popupSize = Object.clone( popupSizes[tag] );
   if ( !popupSize ) {
     Error( "Can't find window size for tag '"+tag+"'" );
@@ -83,7 +87,6 @@ function getPopupSize( tag, width, height ) {
     Warning( "Adjusting to minimum height ("+popupSize.minHeight+") when getting popup size for tag '"+tag+"' because calculated height is " + popupSize.height );
     popupSize.height = popupSize.minHeight;
   }
-  Debug( popupSize );
   return( popupSize );
 }
 
@@ -226,6 +229,14 @@ function submitTab( tab ) {
   form.submit();
 }
 
+function toggleCheckbox( element, name ) {
+    var form = element.form;
+    var checked = element.checked;
+    for (var i = 0; i < form.elements.length; i++)
+        if (form.elements[i].name.indexOf(name) == 0)
+          form.elements[i].checked = checked;
+}
+
 function configureDeleteButton( element ) {
   var form = element.form;
   var checked = element.checked;
@@ -292,4 +303,15 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
 	track['default'] = true;
 	track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
 	video.appendChild(track);
+}
+
+function changeGroup( e, depth ) {
+  var group_id = $('group'+depth).get('value');
+  Cookie.write( 'zmGroup'+depth, group_id, { duration: 10*365 } );
+  window.location = window.location;
+}
+function changeMonitor( e ) {
+  var monitor_id = e.value;
+  Cookie.write( 'zmMonitorId', monitor_id, { duration: 10*365 } );
+  window.location = window.location;
 }

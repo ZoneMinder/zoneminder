@@ -264,7 +264,8 @@ DROP TABLE IF EXISTS `Groups`;
 CREATE TABLE `Groups` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `MonitorIds` tinytext NOT NULL,
+  `ParentId` int(10) unsigned,
+  `MonitorIds` text NOT NULL,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -287,6 +288,31 @@ CREATE TABLE `Logs` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
+-- Table structure for table `Manufacturers`
+--
+
+DROP TABLE IF EXISTS `Manufacturers`;
+CREATE TABLE `Manufacturers` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`  varchar(64) NOT NULL,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY (`Name`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+--
+-- Table structure for table `Models`
+--
+
+DROP TABLE IF EXISTS `Models`;
+CREATE TABLE `Models` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`  varchar(64) NOT NULL,
+  `ManufacturerId` int(10),
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY (`ManufacturerId`,`Name`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+--
 -- Table structure for table `MonitorPresets`
 --
 
@@ -294,7 +320,7 @@ DROP TABLE IF EXISTS `MonitorPresets`;
 CREATE TABLE `MonitorPresets` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','NVSocket') NOT NULL default 'Local',
   `Device` tinytext,
   `Channel` tinytext,
   `Format` int(10) unsigned default NULL,

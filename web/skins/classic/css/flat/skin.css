@@ -94,17 +94,18 @@ label {
 
 input,textarea,select,button {
     border: 1px #ccc solid;
-    padding: 10px;
+    padding: 5px;
     border-radius: 2px;
     font-family: inherit;
     font-weight: 400;
     font-size: 100%;
     color: #333333;
 }
-
+/*
 input[type=text], input[type=password], input[type="url"], textarea, select {
     padding: 1px;
 }
+*/
 
 input.noborder {
     border: 0;

@@ -492,16 +492,13 @@ input[type=submit]:disabled {
 
 #consoleTable td, #consoleTable th {
     padding: 5px;
-    border-bottom: 2px solid #f2f2f2;
+    border-bottom: 1px solid #000000;
 }
 
 #consoleTable input[type=button] {
     margin-right: 3px !important;
 }
 
-#consoleTable tfoot {
-    background-color: #f2f2f2;
-}
 
 .navbar{
   margin-bottom: 0 !important;
@@ -535,5 +532,10 @@ input[type=submit]:disabled {
   margin-right: 0;
   margin-bottom: 20px;
   margin-left: 0;
+}
+
+
+.table-striped > tbody > tr:nth-of-type(2n+1) {
+  background: none;
 }
 

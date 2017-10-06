@@ -940,33 +940,27 @@ cinfo->out_color_space = JCS_RGB;
 // Multiple calling formats to permit inclusion (or not) of both quality_override and timestamp (exif), with suitable defaults.
 // Note quality=zero means default
 
-bool Image::WriteJpeg( const char *filename, int quality_override) const
-{
+bool Image::WriteJpeg(const char *filename, int quality_override) const {
   return Image::WriteJpeg(filename, quality_override, (timeval){0,0});
 }
-bool Image::WriteJpeg( const char *filename) const
-{
+bool Image::WriteJpeg(const char *filename) const {
   return Image::WriteJpeg(filename, 0, (timeval){0,0});
 }
-bool Image::WriteJpeg( const char *filename, struct timeval timestamp ) const
-{
-  return Image::WriteJpeg(filename,0,timestamp);
+bool Image::WriteJpeg(const char *filename, struct timeval timestamp) const {
+  return Image::WriteJpeg(filename, 0, timestamp);
 }
 
-bool Image::WriteJpeg( const char *filename, int quality_override, struct timeval timestamp  ) const
-{
-  if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 )
-  {
+bool Image::WriteJpeg( const char *filename, int quality_override, struct timeval timestamp  ) const {
+  if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 ) {
     Image temp_image( *this );
     temp_image.Colourise( ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
-    return( temp_image.WriteJpeg( filename, quality_override, timestamp) );
+    return temp_image.WriteJpeg(filename, quality_override, timestamp);
   }
   int quality = quality_override?quality_override:config.jpeg_file_quality;
 
   struct jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
 
-  if ( !cinfo )
-  {
+  if ( !cinfo ) {
     cinfo = writejpg_ccinfo[quality] = new jpeg_compress_struct;
     cinfo->err = jpeg_std_error( &jpg_err.pub );
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
@@ -975,8 +969,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
   }
 
   FILE *outfile;
-  if ( (outfile = fopen( filename, "wb" )) == NULL )
-  {
+  if ( (outfile = fopen( filename, "wb" )) == NULL ) {
     Error( "Can't open %s: %s", filename, strerror(errno) );
     return( false );
   }
@@ -996,11 +989,11 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
       {
 #ifdef JCS_EXTENSIONS
         cinfo->input_components = 4;
-        if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+        if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
           cinfo->in_color_space = JCS_EXT_BGRX;
-        } else if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+        } else if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
           cinfo->in_color_space = JCS_EXT_XRGB;
-        } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+        } else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
           cinfo->in_color_space = JCS_EXT_XBGR;
         } else {
           /* Assume RGBA */
@@ -1010,7 +1003,7 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
         Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
         jpeg_abort_compress( cinfo );
         fclose(outfile);
-        return(false);
+        return false;
 #endif
         break;
       }
@@ -1018,14 +1011,14 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
     default:
       {
         cinfo->input_components = 3;
-        if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+        if ( subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 #ifdef JCS_EXTENSIONS   
           cinfo->in_color_space = JCS_EXT_BGR;
 #else
           Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
           jpeg_abort_compress( cinfo );
           fclose(outfile);
-          return(false);                                          
+          return false;                                          
 #endif
         } else {
           /* Assume RGB */
@@ -1052,8 +1045,7 @@ cinfo->out_color_space = JCS_RGB;
   }
   // If we have a non-zero time (meaning a parameter was passed in), then form a simple exif segment with that time as DateTimeOriginal and SubsecTimeOriginal
   // No timestamp just leave off the exif section.
-  if(timestamp.tv_sec)
-  {
+  if ( timestamp.tv_sec ) {
 #define EXIFTIMES_MS_OFFSET 0x36   // three decimal digits for milliseconds
 #define EXIFTIMES_MS_LEN  0x03
 #define EXIFTIMES_OFFSET  0x3E   // 19 characters format '2015:07:21 13:14:45' not including quotes
@@ -1078,17 +1070,16 @@ cinfo->out_color_space = JCS_RGB;
 
   JSAMPROW row_pointer;  /* pointer to a single row */
   int row_stride = cinfo->image_width * colours; /* physical row width in buffer */
-  while ( cinfo->next_scanline < cinfo->image_height )
-  {
+  while ( cinfo->next_scanline < cinfo->image_height ) {
     row_pointer = &buffer[cinfo->next_scanline * row_stride];
     jpeg_write_scanlines( cinfo, &row_pointer, 1 );
   }
 
-  jpeg_finish_compress( cinfo );
+  jpeg_finish_compress(cinfo);
 
-  fclose( outfile );
+  fclose(outfile);
 
-  return( true );
+  return true;
 }
 
 bool Image::DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder)

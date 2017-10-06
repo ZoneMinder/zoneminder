@@ -2538,13 +2538,13 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   unsigned int id = atoi(dbrow[col]); col++;
   std::string name = dbrow[col]; col++;
   unsigned int server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
-  unsigned int storage_id = atoi(dbrow[col]); col++;
+  unsigned int storage_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
   std::string type = dbrow[col]; col++;
   int function = atoi(dbrow[col]); col++;
   int enabled = atoi(dbrow[col]); col++;
   std::string linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
-  std::string device = dbrow[col]; col++;
+  std::string device = dbrow[col] ? dbrow[col] : ""; col++;
   int channel = atoi(dbrow[col]); col++;
   int format = atoi(dbrow[col]); col++;
 

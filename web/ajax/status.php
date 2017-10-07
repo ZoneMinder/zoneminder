@@ -390,8 +390,8 @@ function getNearEvents() {
   $result['NextEventId'] = empty($nextEvent)?0:$nextEvent['Id'];
   $result['PrevEventStartTime'] = empty($prevEvent)?0:$prevEvent['StartTime'];
   $result['NextEventStartTime'] = empty($nextEvent)?0:$nextEvent['StartTime'];
-  $result['PrevEventDefVideoPath'] = empty($prevEvent)?0:(getEventDefaultVideoPath($prevEvent));
-  $result['NextEventDefVideoPath'] = empty($nextEvent)?0:(getEventDefaultVideoPath($nextEvent));
+  $result['PrevEventDefVideoPath'] = empty($prevEvent)?0:(getEventDefaultVideoPath($prevEvent['Id']));
+  $result['NextEventDefVideoPath'] = empty($nextEvent)?0:(getEventDefaultVideoPath($nextEvent['Id']));
   return( $result );
 }
 

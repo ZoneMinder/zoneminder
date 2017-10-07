@@ -17,6 +17,8 @@ int AnalysisThread::run() {
   monitor->UpdateAdaptiveSkip();
   last_analysis_update_time = time(0);
 
+  monitor->get_ref_image();
+
   while( !terminate ) {
     // Process the next image
     sigprocmask(SIG_BLOCK, &block_set, 0);

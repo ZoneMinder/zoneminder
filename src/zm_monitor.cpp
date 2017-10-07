@@ -419,13 +419,10 @@ Monitor::Monitor(
     trigger_data->trigger_showtext[0] = 0;
     shared_data->valid = true;
     video_store_data->recording = (struct timeval){0};
+    // Uh, why nothing?  Why not NULL?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
-
-  //} else if ( purpose == ANALYSIS ) {
-
-    //this->connect();
   }
 
   //if ( ( ! mem_ptr ) || ! shared_data->valid ) {
@@ -435,15 +432,6 @@ Monitor::Monitor(
     //}
   //}
 
-  // Will this not happen every time a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
-  // In my storage areas branch, I took this out.. and didn't notice any problems.
-  if ( false && !n_zones ) {
-    Debug( 1, "Monitor %s has no zones, adding one.", name );
-    n_zones = 1;
-    zones = new Zone *[1];
-    Coord coords[4] = { Coord( 0, 0 ), Coord( width-1, 0 ), Coord( width-1, height-1 ), Coord( 0, height-1 ) };
-    zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Polygon( sizeof(coords)/sizeof(*coords), coords ), RGB_RED, Zone::BLOBS );
-  }
   start_time = last_fps_time = time( 0 );
 
   event = 0;
@@ -455,23 +443,12 @@ Monitor::Monitor(
   //Set video recording flag for event start constructor and easy reference in code
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
 
-  //if ( purpose == ANALYSIS ) {
-if ( 0 ) {
-    while( shared_data->last_write_index == (unsigned int)image_buffer_count 
-         && shared_data->last_write_time == 0) {
-      Warning( "Waiting for capture daemon" );
-      sleep( 1 );
-    }
-    ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
+  n_linked_monitors = 0;
+  linked_monitors = 0;
 
-}
-    n_linked_monitors = 0;
-    linked_monitors = 0;
+  adaptive_skip = true;
 
-    adaptive_skip = true;
-
-    ReloadLinkedMonitors( p_linked_monitors );
-  //}
+  ReloadLinkedMonitors( p_linked_monitors );
 }
 
 bool Monitor::connect() {
@@ -551,33 +528,36 @@ bool Monitor::connect() {
     Debug(3,"Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
-    Debug(3, "Allocating %d image buffers", image_buffer_count );
-    image_buffer = new Snapshot[image_buffer_count];
-    for ( int i = 0; i < image_buffer_count; i++ ) {
-      image_buffer[i].timestamp = &(shared_timestamps[i]);
-      image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
-      image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-    }
-    if ( (deinterlacing & 0xff) == 4) {
-      /* Four field motion adaptive deinterlacing in use */
-      /* Allocate a buffer for the next image */
-      next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
-      next_buffer.timestamp = new struct timeval;
-    }
-  if ( ( purpose == ANALYSIS ) && analysis_fps ) {
-    // Size of pre event buffer must be greater than pre_event_count
-    // if alarm_frame_count > 1, because in this case the buffer contains
-    // alarmed images that must be discarded when event is created
-    pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
-    pre_event_buffer = new Snapshot[pre_event_buffer_count];
-    for ( int i = 0; i < pre_event_buffer_count; i++ ) {
-      pre_event_buffer[i].timestamp = new struct timeval;
-      pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
-    }
+
+  Debug(3, "Allocating %d image buffers", image_buffer_count );
+  image_buffer = new Snapshot[image_buffer_count];
+  for ( int i = 0; i < image_buffer_count; i++ ) {
+    image_buffer[i].timestamp = &(shared_timestamps[i]);
+    image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
+    image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-Debug(3, "Success connecting");
+  if ( (deinterlacing & 0xff) == 4) {
+    /* Four field motion adaptive deinterlacing in use */
+    /* Allocate a buffer for the next image */
+    next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+    next_buffer.timestamp = new struct timeval;
+  }
+  pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
+  //if ( ( purpose == ANALYSIS ) && analysis_fps ) {
+  // Size of pre event buffer must be greater than pre_event_count
+  // if alarm_frame_count > 1, because in this case the buffer contains
+  // alarmed images that must be discarded when event is created
+
+  // Couldn't we just make sure there is always enough frames in the ring buffer?
+  pre_event_buffer = new Snapshot[pre_event_buffer_count];
+  for ( int i = 0; i < pre_event_buffer_count; i++ ) {
+    pre_event_buffer[i].timestamp = new struct timeval;
+    pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+  }
+  //}
+  Debug(3, "Success connecting");
   return true;
-}
+} // Monitor::connect
 
 Monitor::~Monitor() {
   if ( timestamps ) {
@@ -606,17 +586,7 @@ Monitor::~Monitor() {
       delete image_buffer[i].image;
     }
     delete[] image_buffer;
-  } // end if mem_ptr
 
-  for ( int i = 0; i < n_zones; i++ ) {
-    delete zones[i];
-  }
-  delete[] zones;
-
-  delete camera;
-  delete storage;
-
-  if ( mem_ptr ) {
     if ( purpose == ANALYSIS ) {
       shared_data->state = state = IDLE;
       shared_data->last_read_index = image_buffer_count;
@@ -664,6 +634,14 @@ Monitor::~Monitor() {
     }
 #endif // ZM_MEM_MAPPED
   } // end if mem_ptr
+
+  for ( int i = 0; i < n_zones; i++ ) {
+    delete zones[i];
+  }
+  delete[] zones;
+
+  delete camera;
+  delete storage;
 }
 
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] ) {
@@ -702,7 +680,7 @@ int Monitor::GetImage( int index, int scale ) {
   if ( index < 0 || index > image_buffer_count ) {
     index = shared_data->last_write_index;
   }
-
+Debug(3, "GetImage");
   if ( index != image_buffer_count ) {
     Image *image;
     // If we are going to be modifying the snapshot before writing, then we need to copy it
@@ -711,7 +689,6 @@ int Monitor::GetImage( int index, int scale ) {
       Image *snap_image = snap->image;
 
       alarm_image.Assign( *snap_image );
-
 
       //write_image.Assign( *snap_image );
 
@@ -1263,12 +1240,15 @@ bool Monitor::Analyse() {
     Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
     
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
+Debug(9, "Trigger not oFF state is (%d)", trigger_data->trigger_state );
       unsigned int score = 0;
       if ( Ready() ) {
+Debug(9, "Ready");
         std::string cause;
         Event::StringSetMap noteSetMap;
 
         if ( trigger_data->trigger_state == TRIGGER_ON ) {
+
           score += trigger_data->trigger_score;
           if ( !event ) {
             if ( cause.length() )
@@ -1306,10 +1286,12 @@ bool Monitor::Analyse() {
           ref_image = *snap_image;
 
         } else if ( signal && Active() && (function == MODECT || function == MOCORD) ) {
+Debug(3, "signal and active and modtect");
           Event::StringSet zoneSet;
           int motion_score = last_motion_score;
           if ( !(image_count % (motion_frame_skip+1) ) ) {
             // Get new score.
+Debug(3,"before DetectMotion");
             motion_score = DetectMotion( *snap_image, zoneSet );
 
             Debug( 3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score );
@@ -1455,6 +1437,7 @@ bool Monitor::Analyse() {
           } // end if ! event
         }
         if ( score ) {
+Debug(9, "Score: (%d)", score );
           if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
             if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
               Info( "%s: %03d - Gone into alarm state", name, image_count );
@@ -1621,6 +1604,8 @@ bool Monitor::Analyse() {
             }
           }
         } // end if ! IDLE
+      } else {
+Debug(3,"Not ready?");
       }
     } else {
       if ( event ) {
@@ -1633,8 +1618,10 @@ bool Monitor::Analyse() {
 
     if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) ) {
       if ( state == ALARM ) {
+Debug(3, "blend1");
          ref_image.Blend( *snap_image, alarm_ref_blend_perc );
       } else {
+Debug(3, "blend2");
          ref_image.Blend( *snap_image, ref_blend_perc );
       }
     }
@@ -1647,7 +1634,9 @@ bool Monitor::Analyse() {
 
   if ( analysis_fps ) {
     // If analysis fps is set, add analysed image to dedicated pre event buffer
-    int pre_index = image_count%pre_event_buffer_count;
+Debug(3,"analysis fps (%d) (%d)", image_count, pre_event_buffer_count );
+    int pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
+Debug(3,"analysis fps pre_index(%d) = image_count(%d) %% pre_event_buffer_count(%d)", pre_index, image_count, pre_event_buffer_count );
     pre_event_buffer[pre_index].image->Assign(*snap->image);
     memcpy( pre_event_buffer[pre_index].timestamp, snap->timestamp, sizeof(struct timeval) );
   }
@@ -3280,4 +3269,17 @@ Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 Monitor::Snapshot *Monitor::getSnapshot() {
   return &image_buffer[ shared_data->last_write_index%image_buffer_count ];
+}
+
+// Wait for camera to get an image, and then assign it as the base reference image. So this should be done as the first task in the analysis thread startup.
+void Monitor::get_ref_image() {
+  while ( 
+      ( shared_data->last_write_index == (unsigned int)image_buffer_count )
+      &&
+      ( shared_data->last_write_time == 0 )
+      ) {
+    Warning( "Waiting for capture daemon" );
+    usleep( 100000 );
+  }
+  ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
 }

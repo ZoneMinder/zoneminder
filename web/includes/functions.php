@@ -1517,20 +1517,20 @@ function systemStats() {
     if ( $normalized_load <= 0.75 ) {
         $htmlLoad=$load;
     } elseif ( $normalized_load <= 0.9 ) {
-        $htmlLoad="<span style=\"color:orange;\">$load</span>";
+        $htmlLoad="<span class=\"warning\">$load</span>";
     } elseif ( $normalized_load <= 1.1 ) {
-        $htmlLoad="<span style=\"color:red;\">$load</span>";
+        $htmlLoad="<span class=\"error\">$load</span>";
     } else {
-        $htmlLoad="<span style=\"color:red;text-decoration:blink;\">$load</span>";
+        $htmlLoad="<span class=\"critical\">$load</span>";
     }
 
     # Colorize the disk space stat
     if ( $diskPercent < 98 ) {
         $htmlDiskPercent="$diskPercent%";
     } elseif ( $diskPercent <= 99 ) {
-        $htmlDiskPercent="<span style=\"color:orange;\">$diskPercent%</span>";
+        $htmlDiskPercent="<span class=\"warning\">$diskPercent%</span>";
     } else {
-        $htmlDiskPercent="<span style=\"color:red;text-decoration:blink;\">$diskPercent%</span>";
+        $htmlDiskPercent="<span class=\"error\">$diskPercent%</span>";
     }
 
     # Colorize the PATH_MAP (usually /dev/shm) stat
@@ -1538,12 +1538,12 @@ function systemStats() {
         if ( disk_free_space(ZM_PATH_MAP) > 209715200 ) { # have to always have at least 200MiB free
             $htmlPathMapPercent="$pathMapPercent%";
         } else {
-            $htmlPathMapPercent="<span style=\"color:orange;\">$pathMapPercent%</span>";
+            $htmlPathMapPercent="<span class=\"warning\">$pathMapPercent%</span>";
         }
     } elseif ( $pathMapPercent < 100 ) {
-        $htmlPathMapPercent="<span style=\"color:orange;\">$pathMapPercent%</span>";
+        $htmlPathMapPercent="<span class=\"warning\">$pathMapPercent%</span>";
     } else {
-        $htmlPathMapPercent="<span style=\"color:red;text-decoration:blink;\">$pathMapPercent%</span>";
+        $htmlPathMapPercent="<span class=\"critical\">$pathMapPercent%</span>";
     }
 
     $htmlString = translate('Load').": $htmlLoad - ".translate('Disk').": $htmlDiskPercent - ".ZM_PATH_MAP.": $htmlPathMapPercent";

@@ -46,7 +46,7 @@ $configSubFolder = ZM_CONFIG_SUBDIR;
 if ( is_dir($configSubFolder) ) {
   if ( is_readable($configSubFolder) ) {
     foreach ( glob("$configSubFolder/*.conf") as $filename ) {
-      error_log("processing $filename");
+      //error_log("processing $filename");
       $configvals = array_replace($configvals, process_configfile($filename) );
     }
   } else {

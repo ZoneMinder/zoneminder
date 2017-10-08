@@ -357,15 +357,15 @@ LocalCamera::LocalCamera(
   }   
 
 #if ZM_HAS_V4L2
-  if( v4l_version == 2 && palette == 0 ) {
+  if ( v4l_version == 2 && palette == 0 ) {
     /* Use automatic format selection */
     Debug(2,"Using automatic format selection");
     palette = AutoSelectFormat(colours);
-    if(palette == 0) {
+    if ( palette == 0 ) {
       Error("Automatic format selection failed. Falling back to YUYV");
       palette = V4L2_PIX_FMT_YUYV;
     } else {
-      if(capture) {
+      if ( capture ) {
         Info("Selected capture palette: %s (0x%02hhx%02hhx%02hhx%02hhx)", palette_desc, (palette>>24)&0xff, (palette>>16)&0xff, (palette>>8)&0xff, (palette)&0xff);
       }
     }
@@ -400,32 +400,32 @@ LocalCamera::LocalCamera(
     /* Try to find a match for the selected palette and target colourspace */
 
     /* RGB32 palette and 32bit target colourspace */
-    if(palette == V4L2_PIX_FMT_RGB32 && colours == ZM_COLOUR_RGB32) {
+    if ( palette == V4L2_PIX_FMT_RGB32 && colours == ZM_COLOUR_RGB32 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_ARGB;
 
       /* BGR32 palette and 32bit target colourspace */
-    } else if(palette == V4L2_PIX_FMT_BGR32 && colours == ZM_COLOUR_RGB32) {
+    } else if ( palette == V4L2_PIX_FMT_BGR32 && colours == ZM_COLOUR_RGB32 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_BGRA;
 
       /* RGB24 palette and 24bit target colourspace */
-    } else if(palette == V4L2_PIX_FMT_RGB24 && colours == ZM_COLOUR_RGB24) {
+    } else if ( palette == V4L2_PIX_FMT_RGB24 && colours == ZM_COLOUR_RGB24 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_RGB;
 
       /* BGR24 palette and 24bit target colourspace */
-    } else if(palette == V4L2_PIX_FMT_BGR24 && colours == ZM_COLOUR_RGB24) {
+    } else if ( palette == V4L2_PIX_FMT_BGR24 && colours == ZM_COLOUR_RGB24 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_BGR;
 
       /* Grayscale palette and grayscale target colourspace */
-    } else if(palette == V4L2_PIX_FMT_GREY && colours == ZM_COLOUR_GRAY8) {
+    } else if ( palette == V4L2_PIX_FMT_GREY && colours == ZM_COLOUR_GRAY8 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_NONE;
       /* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
     } else {
-      if( capture )
+      if ( capture )
 #if HAVE_LIBSWSCALE
         Info("No direct match for the selected palette (0x%02hhx%02hhx%02hhx%02hhx) and target colorspace (%02u). Format conversion is required, performance penalty expected",
             (capturePixFormat>>24)&0xff,((capturePixFormat>>16)&0xff),((capturePixFormat>>8)&0xff),((capturePixFormat)&0xff), colours);
@@ -436,26 +436,26 @@ LocalCamera::LocalCamera(
       /* Try using swscale for the conversion */
       conversion_type = 1; 
       Debug(2,"Using swscale for image conversion");
-      if(colours == ZM_COLOUR_RGB32) {
+      if ( colours == ZM_COLOUR_RGB32 ) {
         subpixelorder = ZM_SUBPIX_ORDER_RGBA;
         imagePixFormat = AV_PIX_FMT_RGBA;
-      } else if(colours == ZM_COLOUR_RGB24) {
+      } else if ( colours == ZM_COLOUR_RGB24 ) {
         subpixelorder = ZM_SUBPIX_ORDER_RGB;
         imagePixFormat = AV_PIX_FMT_RGB24;
-      } else if(colours == ZM_COLOUR_GRAY8) {
+      } else if ( colours == ZM_COLOUR_GRAY8 ) {
         subpixelorder = ZM_SUBPIX_ORDER_NONE;
         imagePixFormat = AV_PIX_FMT_GRAY8;
       } else {
         Panic("Unexpected colours: %u",colours);
       }
-      if( capture ) {
+      if ( capture ) {
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
-        if(!sws_isSupportedInput(capturePixFormat)) {
+        if ( !sws_isSupportedInput(capturePixFormat) ) {
           Error("swscale does not support the used capture format: 0x%02hhx%02hhx%02hhx%02hhx",
               (capturePixFormat>>24)&0xff,((capturePixFormat>>16)&0xff),((capturePixFormat>>8)&0xff),((capturePixFormat)&0xff));
           conversion_type = 2; /* Try ZM format conversions */
         }
-        if(!sws_isSupportedOutput(imagePixFormat)) {
+        if ( !sws_isSupportedOutput(imagePixFormat) ) {
           Error("swscale does not support the target format: 0x%02hhx%02hhx%02hhx%02hhx",
               (imagePixFormat>>24)&0xff,((imagePixFormat>>16)&0xff),((imagePixFormat>>8)&0xff),((imagePixFormat)&0xff));
           conversion_type = 2; /* Try ZM format conversions */
@@ -1179,7 +1179,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   int enum_fd;
 
   /* Open the device */
-  if ((enum_fd = open( device.c_str(), O_RDWR, 0 )) < 0) {
+  if ( (enum_fd = open( device.c_str(), O_RDWR, 0 )) < 0 ) {
     Error( "Automatic format selection failed to open video device %s: %s", device.c_str(), strerror(errno) );
     return selected_palette;
   }
@@ -1190,11 +1190,15 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   fmtinfo.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   // FIXME This will crash if there are more than 64 formats.
   while(vidioctl( enum_fd, VIDIOC_ENUM_FMT, &fmtinfo ) >= 0) {
+    if (nIndex >= 64 ) {
+      Error("More than 64 formats detected, can't handle that.");
+      break;
+    }
     /* Got a format. Copy it to the array */
     strcpy(fmt_desc[nIndex], (const char*)(fmtinfo.description));
     fmt_fcc[nIndex] = fmtinfo.pixelformat;
     
-    Debug(6, "Got format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %d",
+    Debug(3, "Got format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %d",
         fmt_desc[nIndex], (fmt_fcc[nIndex]>>24)&0xff, (fmt_fcc[nIndex]>>16)&0xff, (fmt_fcc[nIndex]>>8)&0xff, (fmt_fcc[nIndex])&0xff ,nIndex);
     
     /* Proceed to the next index */

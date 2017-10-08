@@ -434,15 +434,18 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
 
     static char event_file[PATH_MAX];
     snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
-    if ( monitor->GetOptSaveJPEGs() & 4) {
+    if ( monitor->GetOptSaveJPEGs() & 4 ) {
       //If this is the first frame, we should add a thumbnail to the event directory
-      if(frames == 10){
+      // ICON: We are working through the pre-event frames so this snapshot won't 
+      // neccessarily be of the motion.  But some events are less than 10 frames, 
+      // so I am changing this to 1, but we should overwrite it later with a better snapshot.
+      if ( frames == 1 ) {
         char snapshot_file[PATH_MAX];
         snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
         WriteFrameImage( images[i], *(timestamps[i]), snapshot_file );
       }
     }
-    if ( monitor->GetOptSaveJPEGs() & 1) {
+    if ( monitor->GetOptSaveJPEGs() & 1 ) {
       Debug( 1, "Writing pre-capture frame %d", frames );
       WriteFrameImage( images[i], *(timestamps[i]), event_file );
     }
@@ -463,7 +466,7 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     Debug( 1, "Adding %d/%d frames to DB", frameCount, n_frames );
     *(sql+strlen(sql)-2) = '\0';
     if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't insert frames: %s", mysql_error( &dbconn ) );
+      Error( "Can't insert frames: %s, sql was (%s)", mysql_error( &dbconn ), sql );
       exit( mysql_errno( &dbconn ) );
     }
     last_db_frame = frames;

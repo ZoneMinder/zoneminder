@@ -41,14 +41,18 @@ function initialAlarmCues () {
 
 function setAlarmCues (data) { 
   cueFrames = data.event.Frame;
-  alarmHtml = '<div class="alarmCue">' + renderAlarmCues() + '</div>';
-  $j(".vjs-progress-control").append(alarmHtml);
-  $j(".vjs-control-bar").addClass("vjs-zm");
+  alarmSpans = renderAlarmCues();
+  if ( vid ) {
+    $j(".vjs-progress-control").append('<div class="alarmCue">' + alarmSpans +  '</div>');
+    $j(".vjs-control-bar").addClass("vjs-zm");
+  } else {
+    $j("#alarmCueJpeg").html(alarmSpans);
+  }
 }
 
 function renderAlarmCues () {
   if (cueFrames) {
-    var cueRatio = $j("#videoobj").width() / (cueFrames[cueFrames.length - 1].Delta * 100);
+    var cueRatio = (vid ? $j("#videoobj").width() : $j("#progressBar").width()) / (cueFrames[cueFrames.length - 1].Delta * 100);//use videojs width or nph-zms width
     var minAlarm = Math.ceil(1/cueRatio);
     var spanTimeStart = 0;
     var spanTimeEnd = 0;
@@ -947,6 +951,7 @@ function initPage() {
   } else {
     streamCmdTimer = streamQuery.delay( 250 );
     eventQuery.pass( eventData.Id ).delay( 500 );
+    initialAlarmCues(); //call ajax+renderAlarmCues for nph-zms.  should be only call to initialAlarmCues
 
     if ( canStreamNative ) {
       var streamImg = $('imageFeed').getElement('img');

@@ -460,6 +460,7 @@ public:
 	inline void setStartupTime( time_t p_time ) {
 		shared_data->startup_time = p_time;
 	}
+  void get_ref_image();
 
   void actionReload();
   void actionEnable();

@@ -1181,6 +1181,7 @@ bool Monitor::Analyse() {
   struct timeval *timestamp = snap->timestamp;
   Image *snap_image = snap->image;
 
+  // This chunk o fcode is not analysis, so shouldn't be in here.  Move it up to whereever analyse is called
   if ( shared_data->action ) {
     // Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
     if ( shared_data->action & RELOAD ) {
@@ -1242,6 +1243,7 @@ bool Monitor::Analyse() {
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
 Debug(9, "Trigger not oFF state is (%d)", trigger_data->trigger_state );
       unsigned int score = 0;
+      // Ready means that we have captured the warmpup # of frames
       if ( Ready() ) {
 Debug(9, "Ready");
         std::string cause;
@@ -1418,6 +1420,7 @@ Debug(3,"before DetectMotion");
 
               if ( pre_event_images ) {
                 if ( analysis_fps ) {
+// This loop copies pre_vent_images, but what if we havn't gotten that many yet?
                   for ( int i = 0; i < pre_event_images; i++ ) {
                     timestamps[i] = pre_event_buffer[pre_index].timestamp;
                     images[i] = pre_event_buffer[pre_index].image;
@@ -1450,9 +1453,11 @@ Debug(9, "Score: (%d)", score );
                   // If analysis fps is set,
                   // compute the index for pre event images in the dedicated buffer
                   pre_index = image_count%pre_event_buffer_count;
+Debug(3, "Pre Index = (%d) = image_count(%d) %% pre_event_buffer_count (%d)", pre_index, image_count, pre_event_buffer_count );
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position
+                  // ICON: I think this is supposed to handle when we havn't recorded enough images.
                   while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
                     pre_index = (pre_index + 1)%pre_event_buffer_count;
                     // Slot is empty, removing image from counter
@@ -1618,10 +1623,8 @@ Debug(3,"Not ready?");
 
     if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) ) {
       if ( state == ALARM ) {
-Debug(3, "blend1");
          ref_image.Blend( *snap_image, alarm_ref_blend_perc );
       } else {
-Debug(3, "blend2");
          ref_image.Blend( *snap_image, ref_blend_perc );
       }
     }
@@ -1629,12 +1632,11 @@ Debug(3, "blend2");
   } // end if Enabled()
 
   shared_data->last_read_index = index % image_buffer_count;
-  //shared_data->last_read_time = image_buffer[index].timestamp->tv_sec;
   shared_data->last_read_time = now.tv_sec;
 
   if ( analysis_fps ) {
     // If analysis fps is set, add analysed image to dedicated pre event buffer
-Debug(3,"analysis fps (%d) (%d)", image_count, pre_event_buffer_count );
+Debug(3,"analysis fps image_count(%d) pre_event_buffer_count(%d)", image_count, pre_event_buffer_count );
     int pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
 Debug(3,"analysis fps pre_index(%d) = image_count(%d) %% pre_event_buffer_count(%d)", pre_index, image_count, pre_event_buffer_count );
     pre_event_buffer[pre_index].image->Assign(*snap->image);
@@ -2865,7 +2867,7 @@ int Monitor::Capture() {
     if ( (videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo() ) {
       //Warning("ZMC: Recording: %d", video_store_data->recording);
       captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file);
-    }else{
+    } else {
       /* Capture directly into image buffer, avoiding the need to memcpy() */
       captureResult = camera->Capture(*capture_image);
     }

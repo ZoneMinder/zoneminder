@@ -428,6 +428,11 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     if ( !timestamps[i]->tv_sec ) {
       Debug( 1, "Not adding pre-capture frame %d, zero timestamp", i );
       continue;
+    } else if ( timestamps[i]->tv_sec < 0 ) {
+      Warning( "Not adding pre-capture frame %d, negative timestamp", i );
+      continue;
+    } else {
+      Debug( 3, "Adding pre-capture frame %d, timestamp = (%d), start_time=(%d)", i, timestamps[i]->tv_sec, start_time.tv_sec );
     }
 
     frames++;

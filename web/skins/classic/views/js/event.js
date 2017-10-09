@@ -31,6 +31,88 @@ function vjsReplay(endTime) {
   });
 }
 
+$j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+
+var cueFrames = null; //make cueFrames availaible even if we don't send another ajax query
+
+function initialAlarmCues () {
+  $j.getJSON("api/events/"+eventData.Id+".json", setAlarmCues); //get frames data for alarmCues and inserts into html
+}
+
+function setAlarmCues (data) { 
+  cueFrames = data.event.Frame;
+  alarmHtml = '<div class="alarmCue">' + renderAlarmCues() + '</div>';
+  $j(".vjs-progress-control").append(alarmHtml);
+  $j(".vjs-control-bar").addClass("vjs-zm");
+}
+
+function renderAlarmCues () {
+  if (cueFrames) {
+    var cueRatio = $j("#videoobj").width() / (cueFrames[cueFrames.length - 1].Delta * 100);
+    var minAlarm = Math.ceil(1/cueRatio);
+    var spanTimeStart = 0;
+    var spanTimeEnd = 0;
+    var alarmed = 0;
+    var alarmHtml = "";
+    var pixSkewNone = 0;
+    var pixSkewAlarm = 0;
+    var skip = 0;
+    for (let i = 0; i < cueFrames.length; i++) {
+      skip = 0;
+      frame = cueFrames[i];
+      if (frame.Type == "Alarm" && alarmed == 0) { //From nothing to alarm.  End nothing and start alarm.
+        alarmed = 1;
+        if (frame.Delta == 0) continue;  //If event starts with an alarm or too few for a nonespan
+        spanTimeEnd = frame.Delta * 100;
+        spanTime = spanTimeEnd - spanTimeStart;
+        let pix = cueRatio * spanTime;
+        pixSkewNone += pix - Math.round(pix);//average out the rounding errors.
+        pix = Math.round(pix);
+        if ((pixSkewNone > 1 || pixSkewNone < -1) && pix + Math.round(pixSkewNone) > 0) { //add skew if it's a pixel and won't zero out span. 
+          pix += Math.round(pixSkewNone);
+          pixSkewNone = pixSkewNone - Math.round(pixSkewNone);
+        }
+        alarmHtml += '<span class="alarmCue noneCue" style="width: ' + pix + 'px;"></span>';
+        spanTimeStart = spanTimeEnd;
+      } else if (frame.Type !== "Alarm" && alarmed == 1) { //from alarm to nothing.  End alarm and start nothing.
+        futNone = 0;
+        indexPlus = i+1;
+        if (((frame.Delta * 100) - spanTimeStart) < minAlarm && indexPlus < cueFrames.length) continue; //alarm is too short and there is more event
+        while (futNone < minAlarm) { //check ahead to see if there's enough for a nonespan
+          if (indexPlus >= cueFrames.length) break; //check if end of event.
+          futNone = (cueFrames[indexPlus].Delta *100) - (frame.Delta *100);
+          if (cueFrames[indexPlus].Type == "Alarm") {
+            i = --indexPlus;
+            skip = 1;
+            break;
+          }
+          indexPlus++;
+        }
+        if (skip == 1) continue;  //javascript doesn't support continue 2;
+        spanTimeEnd = frame.Delta *100;
+        spanTime = spanTimeEnd - spanTimeStart;
+        alarmed = 0;
+        pix = cueRatio * spanTime;
+        pixSkewAlarm += pix - Math.round(pix);
+        pix = Math.round(pix);
+        if ((pixSkewAlarm > 1 || pixSkewAlarm < -1) && pix + Math.round(pixSkewAlarm) > 0) {
+          pix += Math.round(pixSkewAlarm);
+          pixSkewAlarm = pixSkewAlarm - Math.round(pixSkewAlarm);
+        }
+        alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+        spanTimeStart = spanTimeEnd;
+      } else if (frame.Type == "Alarm" && alarmed == 1 && i + 1 >= cueFrames.length) { //event ends on an alarm
+        spanTimeEnd = frame.Delta * 100;
+        spanTime = spanTimeEnd - spanTimeStart;
+        alarmed = 0;
+        pix = Math.round(cueRatio * spanTime);
+        alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+      }
+    }
+    return alarmHtml;
+  }
+}
+
 function setButtonState( element, butClass ) {
   if ( element ) {
     element.className = butClass;
@@ -841,6 +923,7 @@ function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if ( $('videoobj') ) {
     vid = videojs("videoobj");
+    initialAlarmCues(); //call ajax+renderAlarmCues after videojs is.  should be only call to initialAlarmCues
   }
   if ( vid ) {
 /*

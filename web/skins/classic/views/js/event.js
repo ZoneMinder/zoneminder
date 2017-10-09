@@ -128,16 +128,17 @@ function changeScale() {
   var baseHeight = eventData.Height;
   var newWidth = ( baseWidth * scale ) / SCALE_BASE;
   var newHeight = ( baseHeight * scale ) / SCALE_BASE;
-
-	if ( vid ) {
-    // Using video.js
-		vid.width = newWidth;
-		vid.height = newHeight;
-	} else {
+  if ( vid ) {
+  // Using video.js
+    $j("#videoobj").width(newWidth);
+    $j("#videoobj").height(newHeight);
+    $j("div.alarmCue").html(renderAlarmCues());//just re-render alarmCues.  skip ajax call
+    Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
+  } else {
     streamScale( scale );
-		var streamImg = document.getElementById('evtStream');
-		streamImg.style.width = newWidth + "px";
-		streamImg.style.height = newHeight + "px";
+    var streamImg = document.getElementById('evtStream');
+    streamImg.style.width = newWidth + "px";
+    streamImg.style.height = newHeight + "px";
     Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
   }
 }

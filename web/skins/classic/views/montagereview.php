@@ -70,6 +70,13 @@ if ( isset( $_REQUEST[$var] ) ) {
 }
 session_write_close();
 
+$monitor_id = 0;
+if ( isset( $_REQUEST['monitor_id'] ) ) {
+  $monitor_id = $_REQUEST['monitor_id'];
+} else if ( isset($_COOKIE['zmMonitorId']) ) {
+  $monitor_id = $_COOKIE['zmMonitorId'];
+}
+
 $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'" . ( $groupSql ? ' AND ' . $groupSql : '');
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
@@ -105,6 +112,11 @@ if ( ! empty( $user['MonitorIds'] ) ) {
   $eventsSql   .= ' AND M.Id IN ('.$user['MonitorIds'].')';
   $monitorsSql .= ' AND Id IN ('.$user['MonitorIds'].')';
   $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
+}
+if ( $monitor_id ) {
+  $monitorSql .= ' AND Id='.$monitor_id;
+  $eventsSql .= ' AND M.Id='.$monitor_id;
+  $frameSql   .= ' AND E.MonitorId='.$monitor_id;
 }
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
@@ -177,14 +189,14 @@ if ( isset($minTime) && isset($maxTime) ) {
 }
 $frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
 
-// This loads all monitors the user can see - even if we don't have data for one we still show all for switch to live.
 
 $monitors = array();
+$monitors_dropdown = array();
 $monitorsSql .= ' ORDER BY Sequence ASC';
-$index=0;
 foreach( dbFetchAll( $monitorsSql ) as $row ) {
-  $monitors[$index] = new Monitor( $row );
-  $index = $index + 1;
+  $Monitor = new Monitor( $row );
+  $monitors[] = $Monitor;
+  $monitors_dropdown[$Monitor->Id()] = $Monitor->Name();
 }
 
 // These are zoom ranges per visible monitor
@@ -200,6 +212,9 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
       <div id="headerControl">
         <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
         <?php echo $group_dropdowns; ?>
+      </span>
+      <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
+      <?php echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') ); ?>
       </span>
       <div id="DateTimeDiv">
         <input type="datetime-local" name="minTime" id="minTime" value="<?php echo preg_replace('/ /', 'T', $minTime ) ?>" onchange="changeDateTime(this);"> to 

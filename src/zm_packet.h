@@ -31,7 +31,9 @@ extern "C" {
 class ZMPacket {
   public:
   
-    AVPacket packet;
+    AVPacket  packet;   // Input packet, undecoded
+    AVFrame   *frame;    // Input image, decoded
+    Image     *image;   // Our internal image oject representing this frame
     struct timeval timestamp;
   public:
     AVPacket *av_packet() { return &packet; }

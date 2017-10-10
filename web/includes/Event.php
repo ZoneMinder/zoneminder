@@ -1,7 +1,7 @@
 <?php
 
 class Event {
-  public function __construct( $IdOrRow ) {
+  public function __construct( $IdOrRow = null ) {
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
@@ -19,15 +19,18 @@ class Event {
         Error("Unknown argument passed to Event Constructor ($IdOrRow)");
         return;
       }
-    } # end if isset($IdOrRow)
 
     if ( $row ) {
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
     } else {
-      Error('No row for Event ' . $IdOrRow );
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+      Error('No row for Event ' . $IdOrRow . " from $file:$line");
     }
+    } # end if isset($IdOrRow)
   } // end function __construct
 
   public function Storage() {
@@ -163,11 +166,11 @@ class Event {
   } // end function getStreamSrc
 
   function DiskSpace() {
-    if ( null == $this{'DiskSpace'} ) {
-      $this{'DiskSpace'} = folder_size( $this->Path() );
+    if ( null == $this->{'DiskSpace'} ) {
+      $this->{'DiskSpace'} = folder_size( $this->Path() );
       dbQuery( 'UPDATE Events SET DiskSpace=? WHERE Id=?', array( $this->{'DiskSpace'}, $this->{'Id'} ) );
     }
-    return $this{'DiskSpace'};
+    return $this->{'DiskSpace'};
   }
 
   function createListThumbnail( $overwrite=false ) {

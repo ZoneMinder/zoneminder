@@ -257,7 +257,7 @@ ZoneMinder requires Javascript. Please enable Javascript in your browser for thi
     array_push( $storage_areas, new Storage() );
   }
   $func =  function($S){ return '<span title="'.human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()).'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
-  $func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
+  #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>

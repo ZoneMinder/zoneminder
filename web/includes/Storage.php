@@ -9,6 +9,7 @@ class Storage {
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
 
 	if ( isset( $storage_cache[$IdOrRow] ) ) {
+Logger::Debug("Using cached Storage object for $IdOrRow");
 	  return $storage_cache[$IdOrRow];
 	} else {
         $row = dbFetchOne( 'SELECT * FROM Storage WHERE Id=?', NULL, array( $IdOrRow ) );
@@ -68,6 +69,7 @@ class Storage {
     $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage' );
     foreach ( $results as $row => $obj ) {
       $storage_areas[] = $obj;
+      $storage_cache[$obj->Id()] = $obj;
     }
     return $storage_areas;
   }

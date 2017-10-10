@@ -114,7 +114,7 @@ if ( ! empty( $user['MonitorIds'] ) ) {
   $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 if ( $monitor_id ) {
-  $monitorSql .= ' AND Id='.$monitor_id;
+  $monitorsSql .= ' AND Id='.$monitor_id;
   $eventsSql .= ' AND M.Id='.$monitor_id;
   $frameSql   .= ' AND E.MonitorId='.$monitor_id;
 }

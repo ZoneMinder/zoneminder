@@ -73,7 +73,7 @@ class Storage {
       return 0;
     }
       
-    $total = disk_total_space( $path );
+    $total = $this->disk_total_space();
     if ( ! $total ) {
       Error("disk_total_space returned false for " . $path );
       return 0;
@@ -84,6 +84,24 @@ class Storage {
     }
     $usage = round(($total - $free) / $total * 100);
     return $usage;
+  }
+  public function disk_total_space() {
+    if ( ! array_key_exists( 'disk_total_space', $this ) ) {
+      $this->{'disk_total_space'} = disk_total_space( $this->Path() );
+    }
+    return $this->{'disk_total_space'};
+  }
+  public function disk_used_space() {
+    # This isn't a function like this in php, so we have to add up the space used in each event.
+    if ( ! array_key_exists( 'disk_used_space', $this ) ) {
+      $used = 0;
+      foreach ( Event::find_all( array( 'StorageId'=>$this->Id() ) ) as $Event ) {
+        $used += $Event->DiskSpace();
+      }
+      
+      $this->{'disk_used_space'} = $used;
+    }
+    return $this->{'disk_used_space'};
   }
 }
 ?>

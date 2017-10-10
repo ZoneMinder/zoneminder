@@ -165,7 +165,7 @@ function getNavBarHTML() {
     $running = daemonCheck();
   $status = $running?translate('Running'):translate('Stopped');
   global $user;
-  global $bwArray;
+  global $bandwidth_options;
   global $view;
 ?>
 <noscript>
@@ -230,7 +230,7 @@ ZoneMinder requires Javascript. Please enable Javascript in your browser for thi
 	</div> <!-- End .container-fluid -->
 	<div class="container-fluid">
   <div class="pull-left">
-    <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
+    <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bandwidth_options[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
   </div>
   <div class="pull-right">
 	  <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
@@ -256,7 +256,7 @@ ZoneMinder requires Javascript. Please enable Javascript in your browser for thi
   if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
     array_push( $storage_areas, new Storage() );
   }
-  $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
+  $func =  function($S){ return '<span title="'.human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()).'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>

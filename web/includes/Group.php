@@ -87,7 +87,15 @@ public $defaults = array(
   }
 
   public function delete() {
-    dbQuery( 'DELETE FROM Groups WHERE Id = ?', array($this->{'Id'}) );
+    if ( array_key_exists( 'Id', $this ) ) {
+      dbQuery( 'DELETE FROM Groups WHERE Id = ?', array($this->{'Id'}) );
+      if ( isset($_COOKIE['zmGroup']) ) {
+        if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
+          unset( $_COOKIE['zmGroup'] );
+          setcookie( 'zmGroup', '', time()-3600*24*2 );
+        }
+      }
+    }
   } # end function delete()
 
   public function set( $data ) {
@@ -172,5 +180,6 @@ public $defaults = array(
     }
     return $groupSql;
   } # end public static function get_group_sql( $group_id )
+
 } # end class Group
 ?>

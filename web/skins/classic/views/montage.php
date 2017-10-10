@@ -102,9 +102,9 @@ $monitors = array();
 $monitors_dropdown = array( '' => 'All' );
 $sql = "SELECT * FROM Monitors WHERE Function != 'None'";
 if ( $groupSql ) { $sql .= ' AND ' . $groupSql; };
-if ( $monitor_id ) { $sql .= ' AND Id=?'.$monitor_id; };
+if ( $monitor_id ) { $sql .= ' AND Id='.$monitor_id; };
 
-$sql .= 'ORDER BY Sequence';
+$sql .= ' ORDER BY Sequence';
 foreach( dbFetchAll( $sql ) as $row ) {
   if ( !visibleMonitor( $row['Id'] ) ) {
     continue;

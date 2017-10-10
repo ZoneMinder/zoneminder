@@ -23,10 +23,9 @@ if ( !canView( 'Groups' ) ) {
   return;
 }
 
-  # This will end up with the group_id of the deepest selection
+# This will end up with the group_id of the deepest selection
 $group_id = 0;
 $max_depth = 0;
-
 
 $Groups = array();
 foreach ( Group::find_all( ) as $Group ) {
@@ -42,7 +41,6 @@ foreach ( $Groups as $id=>$Group ) {
   if ( $max_depth < $Group->depth() )
     $max_depth = $Group->depth();
 }
-Warning("Max depth $max_depth");
 xhtmlHeaders(__FILE__, translate('Groups') );
 ?>
 <body>
@@ -75,7 +73,7 @@ function group_line( $Group ) {
     $html .= validHtmlStr($Group->Name());
   }
   $html .= '</td><td class="colIds">'. monitorIdsToNames( $Group->MonitorIds(), 30 ).'</td>
-                <td class="colSelect"><input type="checkbox" name="gid" value="'. $Group->Id() .'" onclick="configureButtons(this);"/></td>
+                <td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" onclick="configureButtons(this);"/></td>
               </tr>
   ';
   if ( isset( $children[$Group->Id()] ) ) {
@@ -85,8 +83,9 @@ function group_line( $Group ) {
   }
   return $html;
 }
-foreach ( $children[null] as $Group )
-  echo group_line( $Group );
+if ( isset( $children[null] ) )
+  foreach ( $children[null] as $Group )
+    echo group_line( $Group );
 ?>
           </tbody>
         </table>

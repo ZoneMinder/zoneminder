@@ -165,6 +165,7 @@ class Event {
   function DiskSpace() {
     if ( null == $this{'DiskSpace'} ) {
       $this{'DiskSpace'} = folder_size( $this->Path() );
+      dbQuery( 'UPDATE Events SET DiskSpace=? WHERE Id=?', array( $this->{'DiskSpace'}, $this->{'Id'} ) );
     }
     return $this{'DiskSpace'};
   }

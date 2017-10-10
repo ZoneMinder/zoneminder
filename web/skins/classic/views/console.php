@@ -19,6 +19,11 @@
 //
 
 $servers = Server::find_all();
+$ServersById = array();
+foreach ( $servers as $S ) {
+  $ServersById[$S->Id()] = $S;
+}
+
 $storage_areas = Storage::find_all();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
@@ -252,7 +257,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php
   if ( count($servers) ) { ?>
-            <td class="colServer"><?php $Server = new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
+            <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
 <?php
   }
   $source = '';

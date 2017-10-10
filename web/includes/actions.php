@@ -614,6 +614,7 @@ Warning("Addterm");
           array( $_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ), $monitors ) );
       }
       $view = 'none';
+      $refreshParent = true;
     } else if ( $action == 'delete' ) {
       if ( !empty($_REQUEST['gid']) ) {
         if ( is_array( $_REQUEST['gid'] ) ) {

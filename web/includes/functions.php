@@ -2197,7 +2197,7 @@ function getStreamMode( ) {
 function folder_size($dir) {
     $size = 0;
     foreach (glob(rtrim($dir, '/').'/*', GLOB_NOSORT) as $each) {
-        $size += is_file($each) ? filesize($each) : folderSize($each);
+        $size += is_file($each) ? filesize($each) : folder_size($each);
     }
     return $size;
 } // end function folder_size

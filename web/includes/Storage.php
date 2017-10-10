@@ -1,14 +1,21 @@
 <?php
 require_once( 'database.php' );
+
+$storage_cache = array();
 class Storage {
   public function __construct( $IdOrRow = NULL ) {
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
+
+	if ( isset( $storage_cache[$IdOrRow] ) ) {
+	  return $storage_cache[$IdOrRow];
+	} else {
         $row = dbFetchOne( 'SELECT * FROM Storage WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
           Error("Unable to load Storage record for Id=" . $IdOrRow );
         }
+	}
       } elseif ( is_array( $IdOrRow ) ) {
         $row = $IdOrRow;
       }
@@ -17,6 +24,7 @@ class Storage {
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
+      $storage_cache[$IdOrRow] = $this;
     } else {
       $this->{'Name'} = '';
       $this->{'Path'} = '';

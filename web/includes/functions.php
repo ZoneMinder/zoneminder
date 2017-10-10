@@ -161,7 +161,10 @@ function generateAuthHash( $useRemoteAddr ) {
       }
       $auth = md5( $authKey );
       if ( session_status() == PHP_SESSION_NONE ) {
-        Warning("Session is not active. AuthHash will not be cached.");
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Warning("Session is not active. AuthHash will not be cached. called from $file:$line");
       }
       $_SESSION['AuthHash'] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = time();

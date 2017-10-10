@@ -219,6 +219,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
            <div class="progressBox" id="progressBox<?php echo $i ?>" title=""></div>
 <?php } ?>
         </div><!--progressBar-->
+        <div id="alarmCueJpeg" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"><?php renderAlarmCues ();?></div>
       </div><!--imageFeed-->
       </div>
 <?php } /*end if !DefaultVideo*/ ?>
@@ -264,5 +265,11 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
 } // end if Event exists
 ?>
   </div><!--page-->
+<!-- Alarm Cues on video.  -->
+<script type="text/javascript">
+  alarmHtml = '<div class="alarmCue">' + alarmHtml + '</div>'
+  $j(".vjs-progress-control").append(alarmHtml);
+  $j(".vjs-control-bar").addClass("vjs-zm");
+</script>
 </body>
 </html>

@@ -33,8 +33,14 @@ class Event {
     } # end if isset($IdOrRow)
   } // end function __construct
 
-  public function Storage() {
-    return new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+  public function Storage( $new = null ) {
+    if ( $new ) {
+      $this->{'Storage'} = $new;
+    }
+    if ( ! ( array_key_exists( 'Storage', $this ) or $this->{'Storage'} ) ) {
+      $this->{'Storage'} = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+    }
+    return $this->{'Storage'};
   }
 
   public function Monitor() {
@@ -166,7 +172,7 @@ class Event {
   } // end function getStreamSrc
 
   function DiskSpace() {
-    if ( null == $this->{'DiskSpace'} ) {
+    if ( null === $this->{'DiskSpace'} ) {
       $this->{'DiskSpace'} = folder_size( $this->Path() );
       dbQuery( 'UPDATE Events SET DiskSpace=? WHERE Id=?', array( $this->{'DiskSpace'}, $this->{'Id'} ) );
     }

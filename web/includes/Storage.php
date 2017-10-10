@@ -106,6 +106,7 @@ class Storage {
     if ( ! array_key_exists( 'disk_used_space', $this ) ) {
       $used = 0;
       foreach ( Event::find_all( array( 'StorageId'=>$this->Id() ) ) as $Event ) {
+        $Event->Storage( $this ); // Prevent further db hit
         $used += $Event->DiskSpace();
       }
       

@@ -292,7 +292,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
   }
 
   /* If the image does not contain a timestamp, add the timestamp */
-  if (!config.timestamp_on_capture) {
+  if ( !config.timestamp_on_capture ) {
     ts_image = *image;
     monitor->TimestampImage( &ts_image, &timestamp );
     frameimg = &ts_image;
@@ -304,7 +304,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
   unsigned int timeMS = (delta_time3.sec * delta_time3.prec) + delta_time3.fsec;
 
   /* Encode and write the frame */
-  if(videowriter->Encode(frameimg, timeMS) != 0) {
+  if ( videowriter->Encode(frameimg, timeMS) != 0 ) {
     Error("Failed encoding video frame");
   }
 

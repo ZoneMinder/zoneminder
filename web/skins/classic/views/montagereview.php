@@ -191,7 +191,7 @@ $frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.Monit
 
 
 $monitors = array();
-$monitors_dropdown = array();
+$monitors_dropdown = array( '' => 'All' );
 $monitorsSql .= ' ORDER BY Sequence ASC';
 foreach( dbFetchAll( $monitorsSql ) as $row ) {
   $Monitor = new Monitor( $row );

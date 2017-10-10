@@ -27,6 +27,7 @@ extern "C" {
 #ifdef __FreeBSD__
 #include <sys/time.h>
 #endif // __FreeBSD__
+#include "zm_image.h"
 
 class ZMPacket {
   public:

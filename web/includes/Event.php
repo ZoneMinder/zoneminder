@@ -163,7 +163,10 @@ class Event {
   } // end function getStreamSrc
 
   function DiskSpace() {
-    return folder_size( $this->Path() );
+    if ( null == $this{'DiskSpace'} ) {
+      $this{'DiskSpace'} = folder_size( $this->Path() );
+    }
+    return $this{'DiskSpace'};
   }
 
   function createListThumbnail( $overwrite=false ) {

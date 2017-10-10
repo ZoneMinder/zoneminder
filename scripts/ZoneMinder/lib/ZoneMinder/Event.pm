@@ -32,6 +32,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require Date::Manip;
+require File;
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -356,6 +357,17 @@ sub age {
     }
   }
   return $_[0]{age};
+}
+
+sub DiskUsage {
+  if ( @_ > 1 ) {
+    $_[0]{DiskUsage} = $_[1];
+  }
+  if ( ! defined $_[0]{DiskUsage} ) {
+    my $size = 0;
+    File::find( sub { $size += -f $_ ? -s _ : 0 }, $_[0]->Path() );
+    $_[0]{DiskUsage}  = $size;
+  }
 }
 
 1;

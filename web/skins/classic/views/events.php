@@ -215,7 +215,11 @@ makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event-
 ?>
               <td class="colThumbnail">
 <?php 
+	if ( file_exists( $event->Path().'/snapshot.jpg' ) ) {
+      $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid=snapshot&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
+} else {
       $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
+}
       $streamSrc = $event->getStreamSrc( array( 'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single') );
 
       $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt( $thumbData['Height'] ).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';

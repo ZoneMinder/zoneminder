@@ -59,21 +59,31 @@ $Event = null;
 $path = null;
 
 if ( empty($_REQUEST['path']) ) {
-  if ( ! empty($_REQUEST['fid']) ) {
-    $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
- 
-    if ( ! empty($_REQUEST['eid'] ) ) {
-      $Event = new Event( $_REQUEST['eid'] );
-      $Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
-      if ( ! $Frame ) {
-        Fatal("No Frame found for event(".$_REQUEST['eid'].") and frame id(".$_REQUEST['fid'].")");
-      }
-    } else {
+
+	if ( ! empty($_REQUEST['fid']) ) {
+		if ( $_REQUEST['fid'] == 'snapshot' ) {
+			$Event = new Event( $_REQUEST['eid'] );
+      $Frame = new Frame();
+      $Frame->FrameId('snapshot');
+			$path = $Event->Path().'/snapshot.jpg';
+Warning("Path to snapshot: $path");
+		} else {
+
+			$show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
+
+			if ( ! empty($_REQUEST['eid'] ) ) {
+				$Event = new Event( $_REQUEST['eid'] );
+				$Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
+				if ( ! $Frame ) {
+          Fatal("No Frame found for event(".$_REQUEST['eid'].") and frame id(".$_REQUEST['fid'].")");
+        }
+      } else {
 # If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
-      $Frame = new Frame( $_REQUEST['fid'] );
-      $Event = new Event( $Frame->EventId() );
+        $Frame = new Frame( $_REQUEST['fid'] );
+        $Event = new Event( $Frame->EventId() );
+      }
+      $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
     }
-    $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
     
   } else {
     Fatal("No Frame ID specified");

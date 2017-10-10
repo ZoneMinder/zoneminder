@@ -72,7 +72,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   unsigned int state_id = 0;
   zmDbRow dbrow;
-  if ( dbrow.fetch( "SELECT Id FROM States WHERE IsActive=1") ) {
+  if ( dbrow.fetch("SELECT Id FROM States WHERE IsActive=1") ) {
     state_id = atoi(dbrow[0]);
   }
 
@@ -174,6 +174,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   if ( monitor->GetOptVideoWriter() != 0 ) {
     snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
     snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );
+    Debug(1,"Writing video file to %s", video_file );
 
     /* X264 MP4 video writer */
     if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {

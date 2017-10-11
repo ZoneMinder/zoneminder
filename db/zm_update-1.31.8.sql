@@ -10,7 +10,7 @@ SET @s = (SELECT IF(
     AND column_name = 'DiskSpace'
     ) > 0,
 "SELECT 'Column DiskSpace exists in Events'",
-"ALTER TABLE Events ADD `DiskSpace` integer unsigned default null AFTER `Orientation`"
+"ALTER TABLE Events ADD `DiskSpace` bigint unsigned default null AFTER `Orientation`"
 ));
 
 PREPARE stmt FROM @s;

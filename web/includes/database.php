@@ -132,7 +132,7 @@ function dbQuery( $sql, $params=NULL ) {
     //else
     //Warning("SQL: $sql" );
   } catch(PDOException $e) {
-    Fatal( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."'" );
+    Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . implode(',',$params) );
   }
   return( $result );
 }

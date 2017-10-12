@@ -228,7 +228,7 @@ Event::~Event() {
   /* Close the video file */
   if ( videowriter != NULL ) {
     int nRet = videowriter->Close();
-    if(nRet != 0) {
+    if ( nRet != 0 ) {
       Error("Failed closing video stream");
     }
     delete videowriter;

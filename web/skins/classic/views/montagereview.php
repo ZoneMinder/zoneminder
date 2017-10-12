@@ -114,7 +114,7 @@ if ( ! empty( $user['MonitorIds'] ) ) {
   $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 if ( $monitor_id ) {
-  $monitorsSql .= ' AND Id='.$monitor_id;
+	$monitorsSql .= ' AND Id='.$monitor_id;
   $eventsSql .= ' AND M.Id='.$monitor_id;
   $frameSql   .= ' AND E.MonitorId='.$monitor_id;
 }
@@ -214,7 +214,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
         <?php echo $group_dropdowns; ?>
       </span>
       <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
-      <?php echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') ); ?>
+      <?php Group::get_monitors_dropdown( array( 'groupSql'=>$groupSql) ); ?>
       </span>
       <div id="DateTimeDiv">
         <input type="datetime-local" name="minTime" id="minTime" value="<?php echo preg_replace('/ /', 'T', $minTime ) ?>" onchange="changeDateTime(this);"> to 

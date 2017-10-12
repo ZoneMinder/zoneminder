@@ -29,6 +29,7 @@ class Storage {
     } else {
       $this->{'Name'} = '';
       $this->{'Path'} = '';
+      $this->{'Type'} = 'local';
     }
   }
 
@@ -105,7 +106,7 @@ class Storage {
     # This isn't a function like this in php, so we have to add up the space used in each event.
     if ( ! array_key_exists( 'disk_used_space', $this ) ) {
       $used = 0;
-			if ( $this->{'type'} == 's3' ) {
+			if ( $this->{'Type'} == 's3fs' ) {
 				foreach ( Event::find_all( array( 'StorageId'=>$this->Id() ) ) as $Event ) {
 					$Event->Storage( $this ); // Prevent further db hit
 					$used += $Event->DiskSpace();

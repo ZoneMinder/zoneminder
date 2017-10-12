@@ -37,7 +37,7 @@ class Event {
     if ( $new ) {
       $this->{'Storage'} = $new;
     }
-    if ( ! ( array_key_exists( 'Storage', $this ) or $this->{'Storage'} ) ) {
+    if ( ! ( array_key_exists( 'Storage', $this ) and $this->{'Storage'} ) ) {
       $this->{'Storage'} = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
     }
     return $this->{'Storage'};

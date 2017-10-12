@@ -106,15 +106,15 @@ class Storage {
     # This isn't a function like this in php, so we have to add up the space used in each event.
     if ( ! array_key_exists( 'disk_used_space', $this ) ) {
       $used = 0;
-			if ( $this->{'Type'} == 's3fs' ) {
-				foreach ( Event::find_all( array( 'StorageId'=>$this->Id() ) ) as $Event ) {
-					$Event->Storage( $this ); // Prevent further db hit
-					$used += $Event->DiskSpace();
-				}
-			} else { 
-				$path = $this->Path();
-				$used = disk_total_space( $path ) - disk_free_space( $path );;
-			}
+      if ( $this->{'Type'} == 's3fs' ) {
+	      foreach ( Event::find_all( array( 'StorageId'=>$this->Id() ) ) as $Event ) {
+		      $Event->Storage( $this ); // Prevent further db hit
+		      $used += $Event->DiskSpace();
+	      }
+      } else { 
+	      $path = $this->Path();
+	      $used = disk_total_space( $path ) - disk_free_space( $path );;
+      }
       $this->{'disk_used_space'} = $used;
     }
 		

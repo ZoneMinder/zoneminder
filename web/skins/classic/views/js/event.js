@@ -811,16 +811,19 @@ function drawProgressBar() {
 
   for ( var index = 0; index < cells_length; index += 1 ) {
     var cell = $( cells[index] );
-    if ( index == 0 ) 
-      cell.setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
-    else
-      cell.setStyles( { 'left': barWidth, 'width': cellWidth } );
+    function test (cell, index) {
+      if ( index == 0 )
+        cell.setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
+      else
+        cell.setStyles( { 'left': barWidth, 'width': cellWidth } );
 
-    var offset = parseInt( (index*eventData.Length)/cells_length );
-    cell.setProperty( 'title', '+'+secsToTime(offset)+'s' );
-    cell.removeEvent( 'click' );
-    cell.addEvent( 'click', function() { streamSeek( offset ); } );
-    barWidth += cell.getCoordinates().width;
+      var offset = parseInt( (index*eventData.Length)/cells_length );
+      cell.setProperty( 'title', '+'+secsToTime(offset)+'s' );
+      cell.removeEvents( 'click' );
+      cell.addEvent( 'click', function() { streamSeek( offset ); } );
+      barWidth += cell.getCoordinates().width;
+    }
+    test (cell, index);
   }
   $('progressBar').setStyle( 'width', barWidth );
   $('progressBar').removeClass( 'invisible' );

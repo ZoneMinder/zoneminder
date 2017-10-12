@@ -151,6 +151,9 @@ function changeScale() {
     var streamImg = document.getElementById('evtStream');
     streamImg.style.width = newWidth + "px";
     streamImg.style.height = newHeight + "px";
+    $j("#alarmCueJpeg").width(newWidth);
+    drawProgressBar();
+    $j("#alarmCueJpeg").html(renderAlarmCues());
     Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
   }
 }
@@ -804,8 +807,8 @@ function drawProgressBar() {
   var barWidth = 0;
   var cells = $('progressBar').getElements( 'div' );
   var cells_length = cells.length;
+  var cellWidth = parseInt( ((eventData.Width * $j('#scale').val()) / SCALE_BASE) / cells_length );
 
-  var cellWidth = parseInt( eventData.Width / cells_length );
   for ( var index = 0; index < cells_length; index += 1 ) {
     var cell = $( cells[index] );
     if ( index == 0 ) 

@@ -61,14 +61,13 @@ function setAlarmCues (data) {
 
 function renderAlarmCues () {
   if (cueFrames) {
-    var cueRatio = (vid ? $j("#videoobj").width() : $j("#progressBar").width()) / (cueFrames[cueFrames.length - 1].Delta * 100);//use videojs width or nph-zms width
+    var cueRatio = (vid ? $j("#videoobj").width() : $j("#evtStream").width()) / (cueFrames[cueFrames.length - 1].Delta * 100);//use videojs width or nph-zms width
     var minAlarm = Math.ceil(1/cueRatio);
     var spanTimeStart = 0;
     var spanTimeEnd = 0;
     var alarmed = 0;
     var alarmHtml = "";
-    var pixSkewNone = 0;
-    var pixSkewAlarm = 0;
+    var pixSkew = 0;
     var skip = 0;
     for (let i = 0; i < cueFrames.length; i++) {
       skip = 0;
@@ -79,11 +78,11 @@ function renderAlarmCues () {
         spanTimeEnd = frame.Delta * 100;
         spanTime = spanTimeEnd - spanTimeStart;
         let pix = cueRatio * spanTime;
-        pixSkewNone += pix - Math.round(pix);//average out the rounding errors.
+        pixSkew += pix - Math.round(pix);//average out the rounding errors.
         pix = Math.round(pix);
-        if ((pixSkewNone > 1 || pixSkewNone < -1) && pix + Math.round(pixSkewNone) > 0) { //add skew if it's a pixel and won't zero out span. 
-          pix += Math.round(pixSkewNone);
-          pixSkewNone = pixSkewNone - Math.round(pixSkewNone);
+        if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span. 
+          pix += Math.round(pixSkew);
+          pixSkew = pixSkew - Math.round(pixSkew);
         }
         alarmHtml += '<span class="alarmCue noneCue" style="width: ' + pix + 'px;"></span>';
         spanTimeStart = spanTimeEnd;
@@ -106,11 +105,11 @@ function renderAlarmCues () {
         spanTime = spanTimeEnd - spanTimeStart;
         alarmed = 0;
         pix = cueRatio * spanTime;
-        pixSkewAlarm += pix - Math.round(pix);
+        pixSkew += pix - Math.round(pix);
         pix = Math.round(pix);
-        if ((pixSkewAlarm > 1 || pixSkewAlarm < -1) && pix + Math.round(pixSkewAlarm) > 0) {
-          pix += Math.round(pixSkewAlarm);
-          pixSkewAlarm = pixSkewAlarm - Math.round(pixSkewAlarm);
+        if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) {
+          pix += Math.round(pixSkew);
+          pixSkew = pixSkew - Math.round(pixSkew);
         }
         alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
         spanTimeStart = spanTimeEnd;

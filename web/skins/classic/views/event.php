@@ -172,10 +172,9 @@ if ( $Event->DefaultVideo() ) {
         vjsReplay(<?php echo (strtotime($Event->StartTime()) + $Event->Length())*1000 ?>);
         </script>
 
-      <p id="replayAllCountDown"></p>
-      <p id="dvrControlsVjs" class="dvrControls">
-        <input type="button" value="&lt;+" id="prevBtnVjs" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
-        <input type="button" value="+&gt;" id="nextBtnVjs" title="<?php echo translate('Next') ?>" class="inactive" onclick="streamNext( true );"/>
+      <p id="dvrControls" class="dvrControls">
+        <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
+        <input type="button" value="+&gt;" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" onclick="streamNext( true );"/>
       </p>
 
 <?php

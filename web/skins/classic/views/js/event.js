@@ -11,18 +11,27 @@ function vjsReplay(endTime) {
           player.play();
           break;
         case 'all':
-//          nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
-          var gapDuration = (new Date().getTime()) + (nextEventStartTime.getTime() - endTime);
-          var x = setInterval(function() {
-            var now = new Date().getTime();
-            var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);;
-            $j("#replayAllCountDown").html(remainder + " to next event.");
-            if (remainder < 0) {
-              clearInterval(x);
-              streamNext( true );
+          if (nextEventId == 0) {
+            $j("#videoobj").html('<p class="vjsMessage">No more events</p>');
+          } else {
+            var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+            if (nextStartTime <= endTime) {
+             streamNext( true );
+             return;
             }
-          }, 1000);
-          break;
+            $j("#videoobj").html('<p class="vjsMessage"></p>');
+            var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+            var x = setInterval(function() {
+              var now = new Date().getTime();
+              var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
+              $j(".vjsMessage").html(remainder + ' to next event.');
+              if (remainder < 0) {
+                clearInterval(x);
+                streamNext( true );
+              }
+            }, 1000);
+          }
+            break;
         case 'gapless':
           streamNext( true );
           break;

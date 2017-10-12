@@ -261,7 +261,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
         $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join( '|', $skin_options );
         $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join( '|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ) );
-        $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = join( '|', $bandwidth_options );
+        $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
     }
 ?>
       <form name="optionsForm" class="form-horizontal" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -270,8 +270,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         <input type="hidden" name="action" value="options"/>
 <?php
     $configCat = $configCats[$tab];
-    foreach ( $configCat as $name=>$value )
-    {
+    foreach ( $configCat as $name=>$value ) {
         $shortName = preg_replace( '/^ZM_/', '', $name );
         $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
@@ -279,12 +278,15 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <label for="<?php echo $name ?>" class="col-sm-3 control-label"><?php echo $shortName ?></label>
               <div class="col-sm-6">
 <?php   
-        if ( $value['Type'] == "boolean" ) {
+        if ( $value['Type'] == 'boolean' ) {
 ?>
               <input type="checkbox" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
-        } elseif ( preg_match( "/\|/", $value['Hint'] ) ) {
+        } elseif ( is_array( $value['Hint'] ) ) {
+          echo htmlSelect( "newConfig[$name]", $value['Hint'], $value['Value'] );
+        } elseif ( preg_match( '/\|/', $value['Hint'] ) ) {
 ?>
+
 <?php
             $options = explode( '|', $value['Hint'] );
             if ( count( $options ) > 3 ) {
@@ -307,12 +309,12 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 <?php
             } else {
                 foreach ( $options as $option ) {
-                    if ( preg_match( '/^([^=]+)=(.+)$/', $option ) ) {
-                        $optionLabel = $matches[1];
-                        $optionValue = $matches[2];
-                    } else {
-                        $optionLabel = $optionValue = $option;
-                    }
+                  if ( preg_match( '/^([^=]+)=(.+)$/', $option ) ) {
+                    $optionLabel = $matches[1];
+                    $optionValue = $matches[2];
+                  } else {
+                    $optionLabel = $optionValue = $option;
+                  }
 ?>
                 <label>
                   <input type="radio" id="<?php echo $name.'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $optionValue ) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>

@@ -180,7 +180,6 @@ if ( $Event->DefaultVideo() ) {
 <?php
 }  // end if DefaultVideo
 ?>
-      </div><!--eventVideo-->
 <?php if (!$Event->DefaultVideo()) { ?>
       <div id="imageFeed">
 <?php
@@ -222,7 +221,8 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
       </div><!--imageFeed-->
       </div>
 <?php } /*end if !DefaultVideo*/ ?>
-<?php 
+      </div><!--eventVideo-->
+<?php
   if ( $Event->SaveJPEGs() & 3 ) { // frames or analysis
 ?>
       <div id="eventStills" class="hidden">

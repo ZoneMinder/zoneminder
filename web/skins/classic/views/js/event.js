@@ -44,8 +44,8 @@ $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
 
 var cueFrames = null; //make cueFrames availaible even if we don't send another ajax query
 
-function initialAlarmCues () {
-  $j.getJSON("api/events/"+eventData.Id+".json", setAlarmCues); //get frames data for alarmCues and inserts into html
+function initialAlarmCues (eventId) {
+  $j.getJSON("api/events/"+eventId+".json", setAlarmCues); //get frames data for alarmCues and inserts into html
 }
 
 function setAlarmCues (data) { 
@@ -183,6 +183,7 @@ function getCmdResponse( respObj, respText ) {
   var eventId = streamStatus.event;
   if ( eventId != lastEventId ) {
     eventQuery( eventId );
+    initialAlarmCues(eventId);  //zms uses this instead of a page reload, must call ajax+render
     lastEventId = eventId;
   }
   if ( streamStatus.paused == true ) {
@@ -936,7 +937,7 @@ function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if ( $('videoobj') ) {
     vid = videojs("videoobj");
-    initialAlarmCues(); //call ajax+renderAlarmCues after videojs is.  should be only call to initialAlarmCues
+    initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues after videojs is.  should be only call to initialAlarmCues on vjs streams
   }
   if ( vid ) {
 /*
@@ -959,7 +960,7 @@ function initPage() {
   } else {
     streamCmdTimer = streamQuery.delay( 250 );
     eventQuery.pass( eventData.Id ).delay( 500 );
-    initialAlarmCues(); //call ajax+renderAlarmCues for nph-zms.  should be only call to initialAlarmCues
+    initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues for nph-zms.  
 
     if ( canStreamNative ) {
       var streamImg = $('imageFeed').getElement('img');

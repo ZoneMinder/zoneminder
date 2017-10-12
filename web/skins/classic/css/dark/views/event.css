@@ -1,3 +1,11 @@
+.vjsMessage {
+    font-size: 2em;
+    line-height: 1.5;
+    color: white;
+    background-color: black;
+    display: inline-block;
+}
+
 .alarmCue {
     background-color: #222222;
     height: 1.5em;

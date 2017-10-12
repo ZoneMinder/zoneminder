@@ -294,19 +294,37 @@ function streamPrev( action ) {
   if ( action ) {
     if ( vid ) {
       location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
-      return;
+    } else {
+      if (PrevEventDefVideoPath.indexOf("view_video") >=0) {//if it uses videojs
+        location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      } else {
+        if ($j("#vjsMessage")) { //allow going back after deleting last event
+        location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+        } else {
+          streamReq.send( streamParms+"&command="+CMD_PREV );
+        }
+      }
     }
-    streamReq.send( streamParms+"&command="+CMD_PREV );
   }
 }
 
 function streamNext( action ) {
   if ( action ) {
-    if ( vid ) {
-      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    if (nextEventId == 0) {
+      //handles deleting last event.
+      let replaceStream = $j(vid ? "#videoobj" : "#evtStream");
+      replaceStream.replaceWith('<p class="vjsMessage" style="width:' + replaceStream.css("width") + '; height: ' + replaceStream.css("height") + ';line-height: ' + replaceStream.css("height") + ';">No more events</p>');
       return;
     }
-    streamReq.send( streamParms+"&command="+CMD_NEXT );
+    if ( vid ) {
+      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    } else {
+      if (NextEventDefVideoPath.indexOf("view_video") >=0) {
+        location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+      } else {
+        streamReq.send( streamParms+"&command="+CMD_NEXT );
+      }
+    }
   }
 }
 
@@ -407,8 +425,8 @@ function getNearEventsResponse( respObj, respText ) {
   if ( prevEventBtn ) prevEventBtn.disabled = !prevEventId;
   var nextEventBtn = $('nextEventBtn');
   if ( nextEventBtn ) nextEventBtn.disabled = !nextEventId;
-  if (prevEventId == 0) $j('#prevBtnVjs').prop('disabled', true).attr('class', 'unavail');
-  if (nextEventId == 0) $j('#nextBtnVjs').prop('disabled', true).attr('class', 'unavail');
+  $j('#prevBtn').prop('disabled', prevEventId == 0 ? true : false).attr('class', prevEventId == 0 ? 'unavail' : 'inactive');
+  $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 }
 
 var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );

@@ -194,6 +194,16 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_BANDWIDTH_DEFAULT',
+    default     => 'high',
+    description => 'Default setting for bandwidth profile used by web interface',
+    help        => q`The classic skin for ZoneMinder has different 
+      profiles to use for low medium or high bandwidth connections.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_LANG_DEFAULT',
     default     => 'en_gb',
     description => 'Default language used by web interface',

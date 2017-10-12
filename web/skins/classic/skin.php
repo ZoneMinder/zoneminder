@@ -19,6 +19,8 @@
 // 
 
 if ( empty($_COOKIE['zmBandwidth']) )
+    $_COOKIE['zmBandwidth'] = ZM_BANDWIDTH_DEFAULT;
+if ( empty($_COOKIE['zmBandwidth']) )
     $_COOKIE['zmBandwidth'] = "low";
 
 //ini_set( "magic_quotes_gpc", "Off" );

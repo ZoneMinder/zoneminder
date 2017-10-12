@@ -44,7 +44,7 @@ $scales = array(
     '12.5' => '1/8x',
 );
 
-$bwArray = array(
+$bandwidth_options = array(
     'high' => translate('High'),
     'medium' => translate('Medium'),
     'low' => translate('Low')

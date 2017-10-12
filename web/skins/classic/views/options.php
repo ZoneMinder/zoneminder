@@ -178,7 +178,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colMonitors"><?php echo validHtmlStr($row['Monitors']) ?></td>
               <td class="colGroups"><?php echo validHtmlStr($row['Groups']) ?></td>
               <td class="colSystem"><?php echo validHtmlStr($row['System']) ?></td>
-              <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bwArray[$row['MaxBandwidth']]:'&nbsp;' ?></td>
+              <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bandwidth_options[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?php echo $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
               <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
@@ -257,11 +257,11 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
       </form>
 <?php
 } else {
-    if ( $tab == "system" ) {
+    if ( $tab == 'system' ) {
         $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
         $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join( '|', $skin_options );
         $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join( '|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ) );
-
+        $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = join( '|', $bandwidth_options );
     }
 ?>
       <form name="optionsForm" class="form-horizontal" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">

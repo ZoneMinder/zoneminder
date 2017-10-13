@@ -21,12 +21,7 @@
  * Primary look and feel styles
  */
 
-html {
-  height: 100%;
-}
-
 body {
-  height: 100%;
     font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
     font-size: 13px;
     color: #333333;

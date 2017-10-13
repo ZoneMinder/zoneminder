@@ -182,13 +182,15 @@ function getCmdResponse( respObj, respText ) {
     streamCmdTimer = clearTimeout( streamCmdTimer );
 
   streamStatus = respObj.status;
+  if (streamStatus.progress > parseFloat(eventData.Length)) streamStatus.progress = parseFloat(eventData.Length); //Limit progress to reality
 
   var eventId = streamStatus.event;
-  if ( eventId != lastEventId ) {
+  if ( eventId != lastEventId && lastEventId != 0) { //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
     eventQuery( eventId );
     initialAlarmCues(eventId);  //zms uses this instead of a page reload, must call ajax+render
     lastEventId = eventId;
   }
+  if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
   if ( streamStatus.paused == true ) {
     $('modeValue').set( 'text', 'Paused' );
     $('rate').addClass( 'hidden' );

@@ -365,7 +365,7 @@ sub DiskUsage {
   }
   if ( ! defined $_[0]{DiskUsage} ) {
     my $size = 0;
-    File::Find::find( sub { $size += -f $_ ? -s _ : 0 }, $_[0]->Path() );
+    File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
     $_[0]{DiskUsage}  = $size;
   }
 }

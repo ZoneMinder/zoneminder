@@ -216,7 +216,7 @@ function getCmdResponse( respObj, respText ) {
       streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
   } // end if haev a new auth hash
 
-  streamCmdTimer = streamQuery.delay( streamTimeout );
+  streamCmdTimer = streamQuery.delay( streamTimeout ); //Timeout is refresh rate for progressBox and time display
 }
 
 var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
@@ -800,56 +800,29 @@ function videoEvent() {
   createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
 }
 
-// Called on each event load, because each event can be a different length.
+// Called on each event load because each event can be a different width
 function drawProgressBar() {
-  // Make it invisible so we don't see the update happen
-  $('progressBar').addClass( 'invisible' );
-  var barWidth = 0;
-  var cells = $('progressBar').getElements( 'div' );
-  var cells_length = cells.length;
-  var cellWidth = parseInt( ((eventData.Width * $j('#scale').val()) / SCALE_BASE) / cells_length );
-
-  for ( var index = 0; index < cells_length; index += 1 ) {
-    var cell = $( cells[index] );
-    function test (cell, index) {
-      if ( index == 0 )
-        cell.setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
-      else
-        cell.setStyles( { 'left': barWidth, 'width': cellWidth } );
-
-      var offset = parseInt( (index*eventData.Length)/cells_length );
-      cell.setProperty( 'title', '+'+secsToTime(offset)+'s' );
-      cell.removeEvents( 'click' );
-      cell.addEvent( 'click', function() { streamSeek( offset ); } );
-      barWidth += cell.getCoordinates().width;
-    }
-    test (cell, index);
-  }
-  $('progressBar').setStyle( 'width', barWidth );
-  $('progressBar').removeClass( 'invisible' );
+  var barWidth = (eventData.Width * $j('#scale').val()) / SCALE_BASE;
+  $j('#progressBar').css( 'width', barWidth );
 }
 
-// Changes the colour of the cells making up the completed progress bar
+// Shows current stream progress.
 function updateProgressBar() {
   if ( ! ( eventData && streamStatus ) ) {
     return;
   } // end if ! eventData && streamStatus
-  var cells = $('progressBar').getElements( 'div' );
-  var cells_length = cells.length;
-  var completeIndex = parseInt(((cells_length+1)*streamStatus.progress)/eventData.Length);
-  for ( var index = 0; index < cells_length; index += 1 ) {
-    var cell = $( cells[index] );
-    if ( index < completeIndex ) {
-      if ( !cell.hasClass( 'complete' ) ) {
-        cell.addClass( 'complete' );
-      }
-    } else {
-      if ( cell.hasClass( 'complete' ) ) {
-        cell.removeClass( 'complete' );
-      }
-    } // end if
-  } // end function
+  var curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+  $j("#progressBox").css('width', curWidth + '%');
 } // end function updateProgressBar()
+
+// Handles seeking when clicking on the progress bar.
+function progressBarSeek (){
+  $j('#progressBar').click(function(e){
+    var x = e.pageX - $j(this).offset().left;
+    var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    streamSeek (seekTime);
+  });
+}
 
 function handleClick( event ) {
   var target = event.target;
@@ -982,6 +955,7 @@ function initPage() {
     window.videoobj.load();
     streamPlay();    */
   } else {
+    progressBarSeek ();
     streamCmdTimer = streamQuery.delay( 250 );
     eventQuery.pass( eventData.Id ).delay( 500 );
     initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues for nph-zms.  

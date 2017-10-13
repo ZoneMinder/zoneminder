@@ -820,10 +820,11 @@ function handleClick( event ) {
   var x = event.page.x - $(target).getLeft();
   var y = event.page.y - $(target).getTop();
 
-  if ( event.shift )
-    streamPan( x, y );
-  else
-    streamZoomIn( x, y );
+  if (event.shift) {
+    streamPan(x, y);
+  } else {
+    streamZoomIn(x, y);
+  }
 }
 
 function setupListener() {

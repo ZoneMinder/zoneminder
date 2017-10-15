@@ -551,7 +551,7 @@ function maxfit2(divW, divH) {
 
   var borders=-1;
 
-  monitorPtr.sort(compSize);
+  //monitorPtr.sort(compSize); //Sorts monitors by size in viewport.  If enabled makes captions not line up with graphs.  
 
   while(1) {
     if( maxScale - minScale < 0.01 ) break;

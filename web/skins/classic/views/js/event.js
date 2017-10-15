@@ -171,12 +171,16 @@ var streamCmdTimer = null;
 
 var streamStatus = null;
 var lastEventId = 0;
+var zmsBroke = false; //Use alternate navigation if zms has crashed
 
 function getCmdResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getCmdResponse", respObj ) ) {
     console.log('Got an error from getCmdResponse');
+    var zmsBroke = true;
     return;
   }
+
+  zmsBroke = false;
 
   if ( streamCmdTimer )
     streamCmdTimer = clearTimeout( streamCmdTimer );
@@ -295,40 +299,25 @@ function streamFastRev( action ) {
   streamReq.send( streamParms+"&command="+CMD_FASTREV );
 }
 
-function streamPrev( action ) {
-  if ( action ) {
-    if ( vid ) {
+function streamPrev(action) {
+  if (action) {
+    if (vid || PrevEventDefVideoPath.indexOf("view_video") >=0 || $j("#vjsMessage").length || zmsBroke) { //handles this or prev being video.js, or end of events
       location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     } else {
-      if (PrevEventDefVideoPath.indexOf("view_video") >=0) {//if it uses videojs
-        location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
-      } else {
-        if ($j("#vjsMessage")) { //allow going back after deleting last event
-        location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
-        } else {
-          streamReq.send( streamParms+"&command="+CMD_PREV );
-        }
-      }
+      streamReq.send(streamParms+"&command="+CMD_PREV);
     }
   }
 }
 
-function streamNext( action ) {
-  if ( action ) {
-    if (nextEventId == 0) {
-      //handles deleting last event.
+function streamNext(action) {
+  if (action) {
+    if (nextEventId == 0) { //handles deleting last event.
       let replaceStream = $j(vid ? "#videoobj" : "#evtStream");
       replaceStream.replaceWith('<p class="vjsMessage" style="width:' + replaceStream.css("width") + '; height: ' + replaceStream.css("height") + ';line-height: ' + replaceStream.css("height") + ';">No more events</p>');
-      return;
-    }
-    if ( vid ) {
+    } else if (vid || NextEventDefVideoPath.indexOf("view_video") >=0 || zmsBroke) { //handles current or next switch to video.js
       location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     } else {
-      if (NextEventDefVideoPath.indexOf("view_video") >=0) {
-        location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
-      } else {
-        streamReq.send( streamParms+"&command="+CMD_NEXT );
-      }
+      streamReq.send( streamParms+"&command="+CMD_NEXT );
     }
   }
 }

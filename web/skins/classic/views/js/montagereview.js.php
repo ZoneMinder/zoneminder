@@ -177,13 +177,13 @@ foreach ( $monitors as $m ) {
     $numMonitors += 1;
 }
 echo "var numMonitors = $numMonitors;\n";
-echo "var minTimeSecs='"     . $minTimeSecs . "';\n";
-echo "var maxTimeSecs='"     . $maxTimeSecs . "';\n";
+echo "var minTimeSecs=parseInt("     . $minTimeSecs . ");\n";
+echo "var maxTimeSecs=parseInt("     . $maxTimeSecs . ");\n";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))
-  echo "var currentTimeSecs=" . strtotime($defaultCurrentTime) . ";\n";
+  echo "var currentTimeSecs=parseInt(" . strtotime($defaultCurrentTime) . ");\n";
 else
-  echo "var currentTimeSecs=" . ($minTimeSecs + $maxTimeSecs)/2 . ";\n";
+  echo "var currentTimeSecs=parseInt(" . ($minTimeSecs + $maxTimeSecs)/2 . ");\n";
 
 echo 'var speeds=[';
 for ($i=0; $i<count($speeds); $i++)

@@ -127,116 +127,119 @@ function loadImage2Monitor( monId, url ) {
 }
 function timerFire() {
   // See if we need to reschedule
-  if(currentDisplayInterval != timerInterval || currentSpeed == 0) {
+  if ( currentDisplayInterval != timerInterval || currentSpeed == 0 ) {
     // zero just turn off interrupts
     clearInterval(timerObj);
     timerInterval=currentDisplayInterval;
     if(currentSpeed>0 || liveMode!=0) timerObj=setInterval(timerFire,timerInterval);  // don't fire out of live mode if speed is zero
   }
 
-  if (liveMode) outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  else if (currentTimeSecs + playSecsperInterval >= maxTimeSecs) // beyond the end just stop
-  {
+  if ( liveMode ) {
+    outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
+  } else if (currentTimeSecs + playSecsperInterval >= maxTimeSecs) {
+    // beyond the end just stop
     setSpeed(0);
     outputUpdate(currentTimeSecs);
+  } else {
+    outputUpdate(currentTimeSecs + playSecsperInterval);
   }
-  else outputUpdate(currentTimeSecs + playSecsperInterval);
   return;
 }
 
+// val is seconds?
 function drawSliderOnGraph(val) {
-    var sliderWidth=10;
-    var sliderLineWidth=1;
-    var sliderHeight=cHeight;
+  var sliderWidth=10;
+  var sliderLineWidth=1;
+  var sliderHeight=cHeight;
 
-    if(liveMode==1) {
-        val=Math.floor( Date.now() / 1000);
+  if ( liveMode == 1 ) {
+    val = Math.floor( Date.now() / 1000);
+  }
+  // Set some sizes
+
+  var labelpx = Math.max( 6, Math.min( 20, parseInt(cHeight * timeLabelsFractOfRow / (numMonitors+1)) ) );
+  var labbottom = parseInt(cHeight * 0.2 / (numMonitors+1)).toString() + "px";  // This is positioning same as row labels below, but from bottom so 1-position
+  var labfont = labelpx + "px";  // set this like below row labels
+
+  if ( numMonitors > 0 ) {
+    // if we have no data to display don't do the slider itself 
+    var sliderX = parseInt( (val - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2);  // position left side of slider
+    if ( sliderX < 0 ) sliderX = 0;
+    if ( sliderX+sliderWidth > cWidth )
+      sliderX=cWidth-sliderWidth-1;
+
+    // If we have data already saved first restore it from LAST time
+
+    if ( typeof underSlider !== 'undefined' ) {
+      ctx.putImageData(underSlider,underSliderX, 0, 0, 0, sliderWidth, sliderHeight);
+      underSlider = undefined;
     }
-    // Set some sizes
-
-    var labelpx = Math.max( 6, Math.min( 20, parseInt(cHeight * timeLabelsFractOfRow / (numMonitors+1)) ) );
-    var labbottom=parseInt(cHeight * 0.2 / (numMonitors+1)).toString() + "px";  // This is positioning same as row labels below, but from bottom so 1-position
-    var labfont=labelpx + "px Georgia";  // set this like below row labels
-
-    if(numMonitors>0) {
-      // if we have no data to display don't do the slider itself 
-        var sliderX=parseInt( (val - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2);  // position left side of slider
-        if(sliderX < 0) sliderX=0;
-        if(sliderX+sliderWidth > cWidth) sliderX=cWidth-sliderWidth-1;
-
-        // If we have data already saved first restore it from LAST time
-
-        if(typeof underSlider !== 'undefined') {
-            ctx.putImageData(underSlider,underSliderX, 0, 0, 0, sliderWidth, sliderHeight);
-            underSlider=undefined;
-        }
-        if ( liveMode == 0 ) {
-          // we get rid of the slider if we switch to live (since it may not be in the "right" place)
-            // Now save where we are putting it THIS time
-            underSlider=ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
-            // And add in the slider'
-            ctx.lineWidth=sliderLineWidth;
-            ctx.strokeStyle='black';
-            // looks like strokes are on the outside (or could be) so shrink it by the line width so we replace all the pixels
-            ctx.strokeRect(sliderX+sliderLineWidth,sliderLineWidth,sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
-            underSliderX=sliderX;
-        }
-        var o = $('scruboutput');
-        if(liveMode==1) {
-            o.innerHTML="Live Feed @ " + (1000 / currentDisplayInterval).toFixed(1) + " fps";
-            o.style.color="red";
-        } else {
-            o.innerHTML=secs2dbstr(val);
-            o.style.color="blue";
-        }
-        o.style.position="absolute";
-        o.style.bottom=labbottom;
-        o.style.font=labfont;
-        // try to get length and then when we get too close to the right switch to the left
-        var len = o.offsetWidth;
-        var x;
-        if(sliderX > cWidth/2)
-            x=sliderX - len - 10;
-        else
-            x=sliderX + 10;
-        o.style.left=x.toString() + "px";
+    if ( liveMode == 0 ) {
+      // we get rid of the slider if we switch to live (since it may not be in the "right" place)
+      // Now save where we are putting it THIS time
+      underSlider = ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
+      // And add in the slider'
+      ctx.lineWidth = sliderLineWidth;
+      ctx.strokeStyle = 'black';
+      // looks like strokes are on the outside (or could be) so shrink it by the line width so we replace all the pixels
+      ctx.strokeRect(sliderX+sliderLineWidth,sliderLineWidth,sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
+      underSliderX = sliderX;
     }
-
-    // This displays (or not) the left/right limits depending on how close the slider is.
-    // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
-    // If this starts to collide increase some of the extra space
-
-    var o = $('scrubleft');
-    o.innerHTML=secs2dbstr(minTimeSecs);
+    var o = $('scruboutput');
+    if ( liveMode == 1 ) {
+      o.innerHTML = "Live Feed @ " + (1000 / currentDisplayInterval).toFixed(1) + " fps";
+      o.style.color = "red";
+    } else {
+      o.innerHTML = secs2dbstr(val);
+      o.style.color="blue";
+    }
     o.style.position="absolute";
-    o.style.bottom=labbottom;
-    o.style.font=labfont;
-    o.style.left="5px";
-    if(numMonitors==0)  // we need a len calculation if we skipped the slider
-        len = o.offsetWidth;
-    // If the slider will overlay part of this suppress (this is the left side)
-    if(len + 10 > sliderX || cWidth < len * 4 )  // that last check is for very narrow browsers
-        o.style.display="none";
+    o.style.bottom = labbottom;
+    o.style.font = labfont;
+    // try to get length and then when we get too close to the right switch to the left
+    var len = o.offsetWidth;
+    var x;
+    if(sliderX > cWidth/2)
+      x=sliderX - len - 10;
     else
-    {
-        o.style.display="inline";
-        o.style.display="inline-flex";  // safari won't take this but will just ignore
-    }
+      x=sliderX + 10;
+    o.style.left=x.toString() + "px";
+  }
 
-    var o = $('scrubright');
-    o.innerHTML=secs2dbstr(maxTimeSecs);
-    o.style.position="absolute";
-    o.style.bottom=labbottom;
-    o.style.font=labfont;
-    // If the slider will overlay part of this suppress (this is the right side)
-    o.style.left=(cWidth - len - 15).toString() + "px";
-    if(sliderX > cWidth - len - 20 || cWidth < len * 4 )
-        o.style.display="none";
-    else
-    {
-        o.style.display="inline";
-        o.style.display="inline-flex";
-    }
+  // This displays (or not) the left/right limits depending on how close the slider is.
+  // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
+  // If this starts to collide increase some of the extra space
+
+  var o = $('scrubleft');
+  o.innerHTML=secs2dbstr(minTimeSecs);
+  o.style.position="absolute";
+  o.style.bottom=labbottom;
+  o.style.font=labfont;
+  o.style.left="5px";
+  if(numMonitors==0)  // we need a len calculation if we skipped the slider
+    len = o.offsetWidth;
+  // If the slider will overlay part of this suppress (this is the left side)
+  if(len + 10 > sliderX || cWidth < len * 4 ) {
+    // that last check is for very narrow browsers
+    o.style.display="none";
+  } else {
+    o.style.display="inline";
+    o.style.display="inline-flex";  // safari won't take this but will just ignore
+  }
+
+  var o = $('scrubright');
+  o.innerHTML=secs2dbstr(maxTimeSecs);
+  o.style.position="absolute";
+  o.style.bottom=labbottom;
+  o.style.font=labfont;
+  // If the slider will overlay part of this suppress (this is the right side)
+  o.style.left=(cWidth - len - 15).toString() + "px";
+  if ( sliderX > cWidth - len - 20 || cWidth < len * 4 ) {
+    o.style.display="none";
+  } else {
+    o.style.display="inline";
+    o.style.display="inline-flex";
+  }
 }
 
 function drawGraph() {
@@ -250,8 +253,8 @@ function drawGraph() {
 
   canvas.height = cHeight;
 
-  if(eId.length==0) {
-        ctx.font="40px Georgia";
+  if ( eId.length == 0 ) {
+        ctx.font="40px";
         ctx.fillStyle="Black";
         ctx.globalAlpha=1;
         var t="No data found in range - choose differently";
@@ -349,14 +352,12 @@ function redrawScreen() {
     timerFire();  // force a fire in case it's not timing
 }
 
-
 function outputUpdate(val) {
   drawSliderOnGraph(val);
-  for(var i=0; i<numMonitors; i++) {
+  for ( var i=0; i < numMonitors; i++ ) {
     loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],val));
   }
-  var currentTimeMS = new Date(val*1000);
-  currentTimeSecs=val;
+  currentTimeSecs = parseInt(val);
 }
 
 
@@ -390,9 +391,9 @@ function mout(event)  {mouseisdown=false;} // if we go outside treat it as relea
 function tmove(event) {mouseisdown=true; mmove(event);}
 
 function mmove(event) {
-  if(mouseisdown) {
+  if ( mouseisdown ) {
     // only do anything if the mouse is depressed while on the sheet
-    var sec = minTimeSecs + rangeTimeSecs / event.target.width * event.target.relMouseCoords(event).x;
+    var sec = Math.floor(minTimeSecs + rangeTimeSecs / event.target.width * event.target.relMouseCoords(event).x);
     outputUpdate(sec);
   }
 }

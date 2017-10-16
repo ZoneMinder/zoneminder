@@ -142,7 +142,8 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 
         <hr/>
         <p>
-          <label for="filter[Name]"><?php echo translate('Name') ?></label><input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>"/>
+          <label for="filter[Name]"><?php echo translate('Name') ?></label>
+          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>"/>
         </p>
         <table id="fieldsTable" class="filterTable">
           <tbody>
@@ -245,7 +246,7 @@ for ( $i = 0; $i < count($terms); $i++ ) {
     } elseif ( $term['attr'] == 'StorageId' ) {
         $storageareas = array();
         $storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
-        foreach ( dbFetchAll( "SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC" ) as $storage ) {
+        foreach ( dbFetchAll( 'SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC' ) as $storage ) {
           $storageareas[$storage['Id']] = $storage['Name'];
         }
 ?>

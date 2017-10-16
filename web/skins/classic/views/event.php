@@ -85,10 +85,6 @@ parseSort();
 parseFilter( $_REQUEST['filter'] );
 $filterQuery = $_REQUEST['filter']['query'];
 
-$panelSections = 40;
-$panelSectionWidth = (int)ceil(reScale($Event->Width(),$scale)/$panelSections);
-$panelWidth = ($panelSections*$panelSectionWidth-1);
-
 $connkey = generateConnKey();
 
 $focusWindow = true;
@@ -195,6 +191,10 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   }
 } // end if stream method
 ?>
+        <div id="alarmCueJpeg" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"></div>
+        <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
+          <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+        </div><!--progressBar-->
         <p id="dvrControls" class="dvrControls">
           <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
           <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" disabled="disabled" onclick="streamFastRev( true );"/>
@@ -212,12 +212,6 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue"></span>s</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
         </div>
-        <div id="progressBar" class="invisible">
-<?php for ( $i = 0; $i < $panelSections; $i++ ) { ?>
-           <div class="progressBox" id="progressBox<?php echo $i ?>" title=""></div>
-<?php } ?>
-        </div><!--progressBar-->
-        <div id="alarmCueJpeg" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"></div>
       </div><!--imageFeed-->
       </div>
 <?php } /*end if !DefaultVideo*/ ?>

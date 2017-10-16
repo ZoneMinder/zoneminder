@@ -171,24 +171,30 @@ var streamCmdTimer = null;
 
 var streamStatus = null;
 var lastEventId = 0;
+var zmsBroke = false; //Use alternate navigation if zms has crashed
 
 function getCmdResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getCmdResponse", respObj ) ) {
     console.log('Got an error from getCmdResponse');
+    var zmsBroke = true;
     return;
   }
+
+  zmsBroke = false;
 
   if ( streamCmdTimer )
     streamCmdTimer = clearTimeout( streamCmdTimer );
 
   streamStatus = respObj.status;
+  if (streamStatus.progress > parseFloat(eventData.Length)) streamStatus.progress = parseFloat(eventData.Length); //Limit progress to reality
 
   var eventId = streamStatus.event;
-  if ( eventId != lastEventId ) {
+  if ( eventId != lastEventId && lastEventId != 0) { //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
     eventQuery( eventId );
     initialAlarmCues(eventId);  //zms uses this instead of a page reload, must call ajax+render
     lastEventId = eventId;
   }
+  if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
   if ( streamStatus.paused == true ) {
     $('modeValue').set( 'text', 'Paused' );
     $('rate').addClass( 'hidden' );
@@ -216,7 +222,7 @@ function getCmdResponse( respObj, respText ) {
       streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
   } // end if haev a new auth hash
 
-  streamCmdTimer = streamQuery.delay( streamTimeout );
+  streamCmdTimer = streamQuery.delay( streamTimeout ); //Timeout is refresh rate for progressBox and time display
 }
 
 var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
@@ -293,40 +299,25 @@ function streamFastRev( action ) {
   streamReq.send( streamParms+"&command="+CMD_FASTREV );
 }
 
-function streamPrev( action ) {
-  if ( action ) {
-    if ( vid ) {
+function streamPrev(action) {
+  if (action) {
+    if (vid || PrevEventDefVideoPath.indexOf("view_video") >=0 || $j("#vjsMessage").length || zmsBroke) { //handles this or prev being video.js, or end of events
       location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     } else {
-      if (PrevEventDefVideoPath.indexOf("view_video") >=0) {//if it uses videojs
-        location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
-      } else {
-        if ($j("#vjsMessage")) { //allow going back after deleting last event
-        location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
-        } else {
-          streamReq.send( streamParms+"&command="+CMD_PREV );
-        }
-      }
+      streamReq.send(streamParms+"&command="+CMD_PREV);
     }
   }
 }
 
-function streamNext( action ) {
-  if ( action ) {
-    if (nextEventId == 0) {
-      //handles deleting last event.
+function streamNext(action) {
+  if (action) {
+    if (nextEventId == 0) { //handles deleting last event.
       let replaceStream = $j(vid ? "#videoobj" : "#evtStream");
       replaceStream.replaceWith('<p class="vjsMessage" style="width:' + replaceStream.css("width") + '; height: ' + replaceStream.css("height") + ';line-height: ' + replaceStream.css("height") + ';">No more events</p>');
-      return;
-    }
-    if ( vid ) {
+    } else if (vid || NextEventDefVideoPath.indexOf("view_video") >=0 || zmsBroke) { //handles current or next switch to video.js
       location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     } else {
-      if (NextEventDefVideoPath.indexOf("view_video") >=0) {
-        location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
-      } else {
-        streamReq.send( streamParms+"&command="+CMD_NEXT );
-      }
+      streamReq.send( streamParms+"&command="+CMD_NEXT );
     }
   }
 }
@@ -800,66 +791,40 @@ function videoEvent() {
   createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
 }
 
-// Called on each event load, because each event can be a different length.
+// Called on each event load because each event can be a different width
 function drawProgressBar() {
-  // Make it invisible so we don't see the update happen
-  $('progressBar').addClass( 'invisible' );
-  var barWidth = 0;
-  var cells = $('progressBar').getElements( 'div' );
-  var cells_length = cells.length;
-  var cellWidth = parseInt( ((eventData.Width * $j('#scale').val()) / SCALE_BASE) / cells_length );
-
-  for ( var index = 0; index < cells_length; index += 1 ) {
-    var cell = $( cells[index] );
-    function test (cell, index) {
-      if ( index == 0 )
-        cell.setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
-      else
-        cell.setStyles( { 'left': barWidth, 'width': cellWidth } );
-
-      var offset = parseInt( (index*eventData.Length)/cells_length );
-      cell.setProperty( 'title', '+'+secsToTime(offset)+'s' );
-      cell.removeEvents( 'click' );
-      cell.addEvent( 'click', function() { streamSeek( offset ); } );
-      barWidth += cell.getCoordinates().width;
-    }
-    test (cell, index);
-  }
-  $('progressBar').setStyle( 'width', barWidth );
-  $('progressBar').removeClass( 'invisible' );
+  var barWidth = (eventData.Width * $j('#scale').val()) / SCALE_BASE;
+  $j('#progressBar').css( 'width', barWidth );
 }
 
-// Changes the colour of the cells making up the completed progress bar
+// Shows current stream progress.
 function updateProgressBar() {
   if ( ! ( eventData && streamStatus ) ) {
     return;
   } // end if ! eventData && streamStatus
-  var cells = $('progressBar').getElements( 'div' );
-  var cells_length = cells.length;
-  var completeIndex = parseInt(((cells_length+1)*streamStatus.progress)/eventData.Length);
-  for ( var index = 0; index < cells_length; index += 1 ) {
-    var cell = $( cells[index] );
-    if ( index < completeIndex ) {
-      if ( !cell.hasClass( 'complete' ) ) {
-        cell.addClass( 'complete' );
-      }
-    } else {
-      if ( cell.hasClass( 'complete' ) ) {
-        cell.removeClass( 'complete' );
-      }
-    } // end if
-  } // end function
+  var curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+  $j("#progressBox").css('width', curWidth + '%');
 } // end function updateProgressBar()
+
+// Handles seeking when clicking on the progress bar.
+function progressBarSeek (){
+  $j('#progressBar').click(function(e){
+    var x = e.pageX - $j(this).offset().left;
+    var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    streamSeek (seekTime);
+  });
+}
 
 function handleClick( event ) {
   var target = event.target;
   var x = event.page.x - $(target).getLeft();
   var y = event.page.y - $(target).getTop();
 
-  if ( event.shift )
-    streamPan( x, y );
-  else
-    streamZoomIn( x, y );
+  if (event.shift) {
+    streamPan(x, y);
+  } else {
+    streamZoomIn(x, y);
+  }
 }
 
 function setupListener() {
@@ -982,6 +947,7 @@ function initPage() {
     window.videoobj.load();
     streamPlay();    */
   } else {
+    progressBarSeek ();
     streamCmdTimer = streamQuery.delay( 250 );
     eventQuery.pass( eventData.Id ).delay( 500 );
     initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues for nph-zms.  

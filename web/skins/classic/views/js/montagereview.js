@@ -239,13 +239,18 @@ function drawSliderOnGraph(val) {
     }
 }
 
-function drawGraph()
-{
-    var divWidth=$('timelinediv').clientWidth
-    canvas.width = cWidth = divWidth;   // Let it float and determine width (it should be sized a bit smaller percentage of window)
-    canvas.height=cHeight = parseInt(window.innerHeight * 0.10);
-    if(eId.length==0)
-    {
+function drawGraph() {
+  var divWidth=$('timelinediv').clientWidth
+  canvas.width = cWidth = divWidth;   // Let it float and determine width (it should be sized a bit smaller percentage of window)
+  cHeight = parseInt(window.innerHeight * 0.10);
+  if ( cHeight < numMonitors * 20 ) {
+    cHeight = numMonitors * 20;
+    console.log( "Timeline height: " + cHeight );
+  }
+
+  canvas.height = cHeight;
+
+  if(eId.length==0) {
         ctx.font="40px Georgia";
         ctx.fillStyle="Black";
         ctx.globalAlpha=1;
@@ -412,15 +417,14 @@ function showScale(newscale) // updates slider only
     return;
 }
 
-function setScale(newscale) // makes actual change
-{
-    showScale(newscale);
-    for(var i=0; i<numMonitors; i++)
-    {
-        monitorCanvasObj[monitorPtr[i]].width=monitorWidth[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
-        monitorCanvasObj[monitorPtr[i]].height=monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
-    }
-    currentScale=newscale;
+function setScale(newscale) {
+  // makes actual change
+  showScale(newscale);
+  for(var i=0; i<numMonitors; i++) {
+    monitorCanvasObj[monitorPtr[i]].width=monitorWidth[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
+    monitorCanvasObj[monitorPtr[i]].height=monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
+  }
+  currentScale=newscale;
 }
 
 function showSpeed(val) {
@@ -429,18 +433,17 @@ function showSpeed(val) {
 }
 
 function setSpeed(val) {  // Note parameter is the index not the speed
-    var t;
-    if(liveMode==1) return;  // we shouldn't actually get here but just in case
-    currentSpeed=parseFloat(speeds[val]);
-    speedIndex=val;
-    playSecsperInterval = currentSpeed * currentDisplayInterval / 1000;
-    showSpeed(val);
-    if( timerInterval != currentDisplayInterval || currentSpeed == 0 )  timerFire(); // if the timer isn't firing we need to trigger it to update
+  if ( liveMode == 1 ) return;  // we shouldn't actually get here but just in case
+  currentSpeed=parseFloat(speeds[val]);
+  speedIndex = val;
+  playSecsperInterval = currentSpeed * currentDisplayInterval / 1000;
+  showSpeed(val);
+  if ( timerInterval != currentDisplayInterval || currentSpeed == 0 )  timerFire(); // if the timer isn't firing we need to trigger it to update
 }
 
 function setLive(value) {
-    liveMode=value;
-    redrawScreen();
+  liveMode=value;
+  redrawScreen();
 }
 
 
@@ -684,7 +687,20 @@ function clickMonitor(event,monId) {
 }
 
 function changeDateTime(e) {
-  e.form.submit();
+  var minStr = "&minTime="+($j('#minTime')[0].value);
+  var maxStr = "&maxTime="+($j('#maxTime')[0].value);
+
+  var liveStr="&live="+(liveMode?"1":"0");
+  var fitStr ="&fit="+(fitMode?"1":"0");
+
+  var zoomStr="";
+  for ( var i=0; i < numMonitors; i++ )
+    if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 )  // allow for some up/down changes and just treat as 1 of almost 1
+    zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
+
+  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
+  alert(uri);
+  window.location = uri;
 }
 
 // >>>>>>>>> Initialization that runs on window load by being at the bottom 
@@ -709,8 +725,9 @@ function initPage() {
   }
   drawGraph();
   setSpeed(speedIndex);
-  setFit(fitMode);  // will redraw 
-  setLive(liveMode);  // will redraw
+  //setFit(fitMode);  // will redraw 
+  //setLive(liveMode);  // will redraw
+  redrawScreen();
 }
 window.addEventListener("resize",redrawScreen);
 // Kick everything off

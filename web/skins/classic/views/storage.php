@@ -24,7 +24,7 @@ if ( !canEdit( 'System' ) ) {
 }
 
 if ( $_REQUEST['id'] ) {
-	if ( !($newStorage = dbFetchOne( 'SELECT * FROM Storage WHERE Id = ?', NULL, ARRAY($_REQUEST['id'])) ) ) {
+	if ( !($newStorage = dbFetchOne('SELECT * FROM Storage WHERE Id=?', NULL, ARRAY($_REQUEST['id'])) ) ) {
 		$view = 'error';
 		return;
 	}
@@ -32,7 +32,10 @@ if ( $_REQUEST['id'] ) {
 	$newStorage = array();
 	$newStorage['Name'] = translate('NewStorage');
 	$newStorage['Path'] = '';
+  $newStorage['Type'] = 'local';
 }
+
+$type_options = array( 'local' => translate('Local'), 's3fs' => translate('s3fs') );
 
 $focusWindow = true;
 
@@ -48,7 +51,7 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="object" value="storage"/>
         <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table id="contentTable" class="major">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Name') ?></th>
@@ -57,6 +60,10 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
             <tr>
               <th scope="row"><?php echo translate('Path') ?></th>
               <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage['Path'] ?>"/></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('Type') ?></th>
+              <td><?php echo htmlSelect( 'newStorage[Type]', $type_options, $newStorage['Type'] ); ?></td>
             </tr>
           </tbody>
         </table>

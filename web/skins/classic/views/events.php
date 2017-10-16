@@ -154,7 +154,7 @@ if ( $pagination ) {
           <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?php echo $page ?><?php echo $filterQuery ?>', 'zmFilter', 'filter' );"><?php echo translate('ShowFilterWindow') ?></a>
           <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?php echo $filterQuery ?>', 'zmTimeline', 'timeline' );"><?php echo translate('ShowTimeline') ?></a>
         </p>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table id="contentTable" class="major">
           <tbody>
 <?php
 $count = 0;
@@ -216,8 +216,10 @@ makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event-
               <td class="colThumbnail">
 <?php 
 	if ( file_exists( $event->Path().'/snapshot.jpg' ) ) {
+Warning("Using snapshot");
       $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid=snapshot&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
 } else {
+Warning("Not Using snapshot" . $event->Path().'/snapshot.jpg' );
       $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
 }
       $streamSrc = $event->getStreamSrc( array( 'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single') );

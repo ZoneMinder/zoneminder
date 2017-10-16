@@ -64,9 +64,9 @@ $groupSql = Group::get_group_sql( $group_id );
 
 session_start();
 foreach ( array('minTime','maxTime') as $var ) {
-if ( isset( $_REQUEST[$var] ) ) {
-  $_SESSION[$var] = $_REQUEST[$var];
-}
+  if ( isset( $_REQUEST[$var] ) ) {
+    $_SESSION[$var] = $_REQUEST[$var];
+  }
 }
 session_write_close();
 
@@ -191,12 +191,10 @@ $frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.Monit
 
 
 $monitors = array();
-$monitors_dropdown = array( '' => 'All' );
 $monitorsSql .= ' ORDER BY Sequence ASC';
 foreach( dbFetchAll( $monitorsSql ) as $row ) {
   $Monitor = new Monitor( $row );
   $monitors[] = $Monitor;
-  $monitors_dropdown[$Monitor->Id()] = $Monitor->Name();
 }
 
 // These are zoom ranges per visible monitor
@@ -214,7 +212,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
         <?php echo $group_dropdowns; ?>
       </span>
       <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
-      <?php Group::get_monitors_dropdown( array( 'groupSql'=>$groupSql) ); ?>
+      <?php Group::get_monitors_dropdown( $groupSql ? array( 'groupSql'=>$groupSql) : null ); ?>
       </span>
       <div id="DateTimeDiv">
         <input type="datetime-local" name="minTime" id="minTime" value="<?php echo preg_replace('/ /', 'T', $minTime ) ?>" onchange="changeDateTime(this);"> to 
@@ -236,7 +234,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
           <button type="button" id="zoomout"   onclick="click_zoomout();"          ><?php echo translate('Out -') ?></button>
           <button type="button" id="lasteight" onclick="click_lastEight();"        ><?php echo translate('8 Hour') ?></button>
           <button type="button" id="lasthour"  onclick="click_lastHour();"         ><?php echo translate('1 Hour') ?></button>
-          <button type="button" id="allof"     onclick="click_all_events();"            ><?php echo translate('All Events') ?></button>
+          <button type="button" id="allof"     onclick="click_all_events();"       ><?php echo translate('All Events') ?></button>
           <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
           <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
           <button type="button" id="panright"  onclick="click_panright();"         ><?php echo translate('Pan') ?> &gt;</button>
@@ -259,6 +257,5 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
 ?>
   </div>
   <p id="fps">evaluating fps</p>
-
 </div>
 <?php xhtmlFooter() ?>

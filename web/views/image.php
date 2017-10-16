@@ -75,8 +75,18 @@ Warning("Path to snapshot: $path");
 				$Event = new Event( $_REQUEST['eid'] );
 				$Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
 				if ( ! $Frame ) {
+          $previousBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId < ? AND Type='BULK'", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
+          $nextBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId > ? AND Type='BULK'", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
+          if ( $previousBulkFrame and $nextBulkFrame ) {
+            $Frame = new Frame( $previousBulkFrame );
+            $Frame->Id( $_REQUEST['fid'] );
+            $Frame->Delta( $previousBulkFrame['Delta'] + ( ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * ( $previousBulkFrame['Id']/$nextBulkFrame['Id'] ) ) );
+          } else {
           Fatal("No Frame found for event(".$_REQUEST['eid'].") and frame id(".$_REQUEST['fid'].")");
+          }
         }
+        // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
+
       } else {
 # If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
         $Frame = new Frame( $_REQUEST['fid'] );

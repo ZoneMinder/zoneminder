@@ -127,7 +127,7 @@ function loadImage2Monitor( monId, url ) {
 }
 function timerFire() {
   // See if we need to reschedule
-  if ( currentDisplayInterval != timerInterval || currentSpeed == 0 ) {
+  if ( currentDisplayInterval != timerInterval || currentSpeed == 0 ) {
     // zero just turn off interrupts
     clearInterval(timerObj);
     timerInterval=currentDisplayInterval;

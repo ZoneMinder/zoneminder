@@ -60,6 +60,7 @@ function saveFilter( element ) {
   var form = element.form;
 
   //form.target = 'zmFilter';
+  form.target = window.name;
   form.elements['action'].value = 'save';
   form.action = thisUrl + '?view=filter';
   form.submit();

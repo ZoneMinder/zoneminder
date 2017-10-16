@@ -9,7 +9,7 @@ SET @s = (SELECT IF(
     AND table_schema = DATABASE()
     AND column_name = 'Type'
     ) > 0,
-"SELECT 'Column Type already exists in Storages'",
+"SELECT 'Column Type already exists in Storage'",
 "ALTER TABLE Storage ADD `Type`  enum('local','s3fs') NOT NULL default 'local' AFTER `Name`"
 ));
 

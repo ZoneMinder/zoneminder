@@ -38,3 +38,7 @@
 input[type=range]::-ms-tooltip {
     display: none;
 }
+#timeline {
+    color: white;
+  font-size: 40px;
+}

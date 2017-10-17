@@ -252,7 +252,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
 <?php
   // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
   foreach ($monitors as $m) {
-    echo '<canvas width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:3px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
+    echo '<canvas width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:1px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
   }
 ?>
   </div>

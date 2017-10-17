@@ -359,7 +359,9 @@ if ( $event ) {
         $currEventSlots[$i]['count']++;
       }
     }
+
     if ( $event['MaxScore'] > 0 ) {
+      Warning("Has max Scoer");
       if ( $startIndex == $endIndex ) {
         $framesSql = 'SELECT FrameId,Score FROM Frames WHERE EventId = ? AND Score > 0 ORDER BY Score DESC LIMIT 1';
         $frame = dbFetchOne( $framesSql, NULL, array($event['Id']) );
@@ -447,7 +449,6 @@ foreach ( array_keys($monitorIds) as $monitorId ) {
     $maxHeight = $monitors[$monitorId]['Height'];
 }
 
-//print_r( $monEventSlots );
 // Optimise boxes
 foreach( array_keys($monEventSlots) as $monitorId ) {
   unset( $currEventSlots );
@@ -751,7 +752,7 @@ if ( $mode == 'overlay' ) {
   echo drawYGrid( $chart, $majYScale, 'majLabelY', 'majTickY', 'majGridY graphWidth' );
 }
 echo drawXGrid( $chart, $majXScale, 'majLabelX', 'majTickX', 'majGridX graphHeight', 'zoom graphHeight' );
-
+Warning("Mode: $mode");
 if ( $mode == 'overlay' ) {
 ?>
           <div id="activity" class="activitySize">

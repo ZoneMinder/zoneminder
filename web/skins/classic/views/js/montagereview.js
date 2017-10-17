@@ -5,7 +5,7 @@ function evaluateLoadTimes() {
   if ( liveMode != 1 && currentSpeed == 0 ) return;  // don't evaluate when we are not moving as we can do nothing really fast.
   for ( var i = 0; i < monitorIndex.length; i++ ) {
     if ( monitorName[i] > "" ) {
-      if ( monitorLoadEndTimems[i] ==0 ) return;   // if we have a monitor with no time yet just wait
+      if ( monitorLoadEndTimems[i] == 0 ) return;   // if we have a monitor with no time yet just wait
       if ( start == 0 || start > monitorLoadStartTimems[i] ) start = monitorLoadStartTimems[i];
       if ( end   == 0 || end   < monitorLoadEndTimems[i]   ) end   = monitorLoadEndTimems[i];
     }
@@ -17,7 +17,7 @@ function evaluateLoadTimes() {
     monitorLoadEndTimems[monId] = 0;
   }
   freeTimeLastIntervals[imageLoadTimesEvaluated++] = 1 - ((end - start)/currentDisplayInterval);
-  if( imageLoadTimesEvaluated < imageLoadTimesNeeded ) return;
+  if ( imageLoadTimesEvaluated < imageLoadTimesNeeded ) return;
   var avgFrac=0;
   for ( var i=0; i < imageLoadTimesEvaluated; i++ )
     avgFrac += freeTimeLastIntervals[i];
@@ -41,15 +41,17 @@ function evaluateLoadTimes() {
   $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 }
 
-function SetImageSource( monId, val ) {
+// time is seconds since epoch
+function SetImageSource( monId, time ) {
   if ( liveMode == 1 ) {
     return monitorImageObject[monId].src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
 
   } else {
     for ( var i=0, eIdlength = eId.length; i < eIdlength; i++ ) {
-      // Search for a match 
-      if ( eMonId[i] == monId && val >= eStartSecs[i] && val <= eEndSecs[i] ) {
-        var frame = parseInt((val - eStartSecs[i])/(eEndSecs[i]-eStartSecs[i])*eventFrames[i])+1;
+      // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
+      if ( eMonId[i] == monId && time >= eStartSecs[i] && time <= eEndSecs[i] ) {
+        var duration = eEndSecs[i]-eStartSecs[i];
+        var frame = parseInt((time - eStartSecs[i])/(duration)*eventFrames[i])+1;
         return "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
       }
     } // end for
@@ -216,10 +218,10 @@ function drawSliderOnGraph(val) {
   o.style.bottom=labbottom;
   o.style.font=labfont;
   o.style.left="5px";
-  if(numMonitors==0)  // we need a len calculation if we skipped the slider
+  if ( numMonitors == 0 )  // we need a len calculation if we skipped the slider
     len = o.offsetWidth;
   // If the slider will overlay part of this suppress (this is the left side)
-  if(len + 10 > sliderX || cWidth < len * 4 ) {
+  if ( len + 10 > sliderX || cWidth < len * 4 ) {
     // that last check is for very narrow browsers
     o.style.display="none";
   } else {
@@ -248,53 +250,52 @@ function drawGraph() {
   cHeight = parseInt(window.innerHeight * 0.10);
   if ( cHeight < numMonitors * 20 ) {
     cHeight = numMonitors * 20;
-    console.log( "Timeline height: " + cHeight );
   }
 
   canvas.height = cHeight;
 
   if ( eId.length == 0 ) {
-        ctx.font="40px";
-        ctx.fillStyle="Black";
-        ctx.globalAlpha=1;
-        var t="No data found in range - choose differently";
-        var l=ctx.measureText(t).width;
-        ctx.fillText(t,(cWidth - l)/2, cHeight-10);
-        underSlider=undefined;
-        return;
-    }
-    var rowHeight=parseInt(cHeight / (numMonitors + 1) );  // Leave room for a scale of some sort
-
-    // first fill in the bars for the events (not alarms)
-
-    for(var i=0; i<eId.length; i++)  // Display all we loaded
-    {
-        var x1=parseInt( (eStartSecs[i] - minTimeSecs) / rangeTimeSecs * cWidth) ;        // round low end down
-        var x2=parseInt( (eEndSecs[i]   - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round high end up to be sure consecutive ones connect
-        ctx.fillStyle=monitorColour[eMonId[i]];
-        ctx.globalAlpha = 0.2;    // light color for background
-        ctx.clearRect(x1,monitorIndex[eMonId[i]]*rowHeight,x2-x1,rowHeight);  // Erase any overlap so it doesn't look artificially darker
-        ctx.fillRect (x1,monitorIndex[eMonId[i]]*rowHeight,x2-x1,rowHeight);
-    }
-    for(var i=0; (i<fScore.length) && (maxScore>0); i++)  // Now put in scored frames (if any)
-    {
-        var x1=parseInt( (fTimeFromSecs[i] - minTimeSecs) / rangeTimeSecs * cWidth) ;        // round low end down
-        var x2=parseInt( (fTimeToSecs[i]   - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round up
-        if(x2-x1 < 2) x2=x1+2;    // So it is visible make them all at least this number of seconds wide
-        ctx.fillStyle=monitorColour[fMonId[i]];
-        ctx.globalAlpha = 0.4 + 0.6 * (1 - fScore[i]/maxScore);    // Background is scaled but even lowest is twice as dark as the background
-        ctx.fillRect(x1,monitorIndex[fMonId[i]]*rowHeight,x2-x1,rowHeight);
-    }
-    for(var i=0; i<numMonitors; i++)  // Note that this may be a sparse array
-    {
-        ctx.font= parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
-        ctx.fillStyle="Black";
-        ctx.globalAlpha=1;
-        ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight );  // This should roughly center font in row
-    }
-    underSlider=undefined;   // flag we don't have a slider cached
-    drawSliderOnGraph(currentTimeSecs);
+    ctx.globalAlpha=1;
+    ctx.font= "40px Georgia";
+    ctx.fillStyle="white";
+    var t="No data found in range - choose differently";
+    var l=ctx.measureText(t).width;
+    ctx.fillText(t,(cWidth - l)/2, cHeight-10);
+    underSlider=undefined;
     return;
+  }
+  var rowHeight=parseInt(cHeight / (numMonitors + 1) );  // Leave room for a scale of some sort
+
+  // first fill in the bars for the events (not alarms)
+
+  for(var i=0; i<eId.length; i++) {  // Display all we loaded
+
+    var x1=parseInt( (eStartSecs[i] - minTimeSecs) / rangeTimeSecs * cWidth) ;        // round low end down
+    var x2=parseInt( (eEndSecs[i]   - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round high end up to be sure consecutive ones connect
+    ctx.fillStyle=monitorColour[eMonId[i]];
+    ctx.globalAlpha = 0.2;    // light color for background
+    ctx.clearRect(x1,monitorIndex[eMonId[i]]*rowHeight,x2-x1,rowHeight);  // Erase any overlap so it doesn't look artificially darker
+    ctx.fillRect (x1,monitorIndex[eMonId[i]]*rowHeight,x2-x1,rowHeight);
+  }
+  for(var i=0; (i<fScore.length) && (maxScore>0); i++) {
+    // Now put in scored frames (if any)
+    var x1=parseInt( (fTimeFromSecs[i] - minTimeSecs) / rangeTimeSecs * cWidth) ;        // round low end down
+    var x2=parseInt( (fTimeToSecs[i]   - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round up
+    if(x2-x1 < 2) x2=x1+2;    // So it is visible make them all at least this number of seconds wide
+    ctx.fillStyle=monitorColour[fMonId[i]];
+    ctx.globalAlpha = 0.4 + 0.6 * (1 - fScore[i]/maxScore);    // Background is scaled but even lowest is twice as dark as the background
+    ctx.fillRect(x1,monitorIndex[fMonId[i]]*rowHeight,x2-x1,rowHeight);
+  }
+  for(var i=0; i<numMonitors; i++) {
+    // Note that this may be a sparse array
+    ctx.font= parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
+    ctx.fillStyle="white";
+    ctx.globalAlpha=1;
+    ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight );  // This should roughly center font in row
+  }
+  underSlider=undefined;   // flag we don't have a slider cached
+  drawSliderOnGraph(currentTimeSecs);
+  return;
 }
 
 function redrawScreen() {

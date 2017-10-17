@@ -1,3 +1,5 @@
+var date = new Date();
+
 function evaluateLoadTimes() {
   // Only consider it a completed event if we load ALL monitors, then zero all and start again
   var start=0;
@@ -370,11 +372,10 @@ function relMouseCoords(event){
     var canvasY = 0;
     var currentElement = this;
 
-    do{
+    do {
         totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
         totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
-    }
-    while(currentElement = currentElement.offsetParent)
+    } while(currentElement = currentElement.offsetParent);
 
     canvasX = event.pageX - totalOffsetX;
     canvasY = event.pageY - totalOffsetY;
@@ -413,8 +414,8 @@ function setFit(value) {
   redrawScreen();
 }
 
-function showScale(newscale) // updates slider only
-{
+function showScale(newscale) {
+ // updates slider only
     $('scaleslideroutput').innerHTML = parseFloat(newscale).toFixed(2).toString() + " x";
     return;
 }
@@ -452,13 +453,17 @@ function setLive(value) {
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // The section below are to reload this program with new parameters
 
-function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we can
-  var now = new Date() / 1000;
+function clicknav(minSecs,maxSecs,live) {// we use the current time if we can
+  
+  var now = date.getTime() / 1000;
+  var tz_difference = ( -1 * date.getTimezoneOffset() * 60 ) - server_utc_offset;
+  now -= tz_difference;
+
   var minStr = "";
   var maxStr = "";
   var currentStr = "";
   if ( minSecs > 0 ) {
-    if(maxSecs > now)
+    if ( maxSecs > now )
       maxSecs = parseInt(now);
     maxStr="&maxTime=" + secs2inputstr(maxSecs);
     $('maxTime').value = secs2inputstr(maxSecs);
@@ -492,44 +497,47 @@ function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we c
 
   var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
-} // end function clickNav
+} // end function clicknav
 
 function click_lastHour() {
-  var now = new Date() / 1000;
-  clicknav(now - 3600 + 1, now,1,0);
+  var now = date.getTime() / 1000;
+  now -= -1 * date.getTimezoneOffset() * 60;
+  now += server_utc_offset;
+  clicknav(now - 3599, now, 0);
 }
 function click_lastEight() {
-  var now = new Date() / 1000;
-  clicknav(now - 3600*8 + 1, now,1,0);
+  var now = date.getTime() / 1000;
+  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  clicknav(now - 3600*8 + 1, now,0);
 }
 function click_zoomin() {
   rangeTimeSecs = parseInt(rangeTimeSecs / 2);
   minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
   maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
-  clicknav(minTimeSecs,maxTimeSecs,1,0);
+  clicknav(minTimeSecs,maxTimeSecs,0);
 }
 
 function click_zoomout() {
   rangeTimeSecs = parseInt(rangeTimeSecs * 2);
   minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
   maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
-  clicknav(minTimeSecs,maxTimeSecs,1,0);
+  clicknav(minTimeSecs,maxTimeSecs,0);
 }
 function click_panleft() {
   minTimeSecs = parseInt(minTimeSecs - rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
-  clicknav(minTimeSecs,maxTimeSecs,1,0);
+  clicknav(minTimeSecs,maxTimeSecs,0);
 }
 function click_panright() {
   minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
-  clicknav(minTimeSecs,maxTimeSecs,1,0);
+  clicknav(minTimeSecs,maxTimeSecs,0);
 }
 function click_all_events() {
-  clicknav(0,0,1,0);
+  clicknav(0,0,0);
 }
 function allnon() {
-  clicknav(0,0,0,0);
+  clicknav(0,0,0);
 }
 /// >>>>>>>>>>>>>>>>> handles packing different size/aspect monitors on screen    <<<<<<<<<<<<<<<<<<<<<<<<
 

@@ -18,6 +18,7 @@ function evaluateLoadTimes() {
     monitorLoadStartTimems[monId] = 0;
     monitorLoadEndTimems[monId] = 0;
   }
+
   freeTimeLastIntervals[imageLoadTimesEvaluated++] = 1 - ((end - start)/currentDisplayInterval);
   if ( imageLoadTimesEvaluated < imageLoadTimesNeeded ) return;
   var avgFrac=0;
@@ -37,7 +38,7 @@ function evaluateLoadTimes() {
   else if (avgFrac >= 0.2)  currentDisplayInterval = (currentDisplayInterval * 1.50).toFixed(1);
   else if (avgFrac >= 0.1)  currentDisplayInterval = (currentDisplayInterval * 2.00).toFixed(1);
   else currentDisplayInterval                      = (currentDisplayInterval * 2.50).toFixed(1);
-  currentDisplayInterval=Math.min(Math.max(currentDisplayInterval, 30),10000);   // limit this from about 30fps to .1 fps
+  currentDisplayInterval = Math.min(Math.max(currentDisplayInterval, 30), 10000);   // limit this from about 30fps to .1 fps
   imageLoadTimesEvaluated=0;
   setSpeed(speedIndex);
   $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
@@ -54,6 +55,7 @@ function SetImageSource( monId, time ) {
       if ( eMonId[i] == monId && time >= eStartSecs[i] && time <= eEndSecs[i] ) {
         var duration = eEndSecs[i]-eStartSecs[i];
         var frame = parseInt((time - eStartSecs[i])/(duration)*eventFrames[i])+1;
+console.log("SetImageSource: " + time + " duration: " + duration + " frame: " + frame );
         return "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
       }
     } // end for
@@ -135,17 +137,18 @@ function timerFire() {
     // zero just turn off interrupts
     clearInterval(timerObj);
     timerInterval=currentDisplayInterval;
-    if(currentSpeed>0 || liveMode!=0) timerObj=setInterval(timerFire,timerInterval);  // don't fire out of live mode if speed is zero
+    if ( currentSpeed>0 || liveMode!=0 ) timerObj=setInterval(timerFire, timerInterval);  // don't fire out of live mode if speed is zero
   }
 
   if ( liveMode ) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
   } else if (currentTimeSecs + playSecsperInterval >= maxTimeSecs) {
     // beyond the end just stop
+console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else {
-    outputUpdate(currentTimeSecs + playSecsperInterval);
+    outputUpdate(playSecsperInterval + currentTimeSecs);
   }
   return;
 }
@@ -355,14 +358,13 @@ function redrawScreen() {
     timerFire();  // force a fire in case it's not timing
 }
 
-function outputUpdate(val) {
-  drawSliderOnGraph(val);
+function outputUpdate(time) {
+  drawSliderOnGraph(time);
   for ( var i=0; i < numMonitors; i++ ) {
-    loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],val));
+    loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],time));
   }
-  currentTimeSecs = parseInt(val);
+  currentTimeSecs = time;
 }
-
 
 /// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
 function relMouseCoords(event){
@@ -435,17 +437,18 @@ function showSpeed(val) {
   $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
 }
 
-function setSpeed(val) {  // Note parameter is the index not the speed
+function setSpeed( speed_index ) {
   if ( liveMode == 1 ) return;  // we shouldn't actually get here but just in case
-  currentSpeed=parseFloat(speeds[val]);
-  speedIndex = val;
-  playSecsperInterval = currentSpeed * currentDisplayInterval / 1000;
-  showSpeed(val);
+  currentSpeed = parseFloat(speeds[speed_index]);
+  speedIndex = speed_index;
+  playSecsperInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
+console.log("playSecsPerInterval: " + playSecsperInterval + " = currentspeed:" + currentSpeed + " * " + currentDisplayInterval + " /1000");
+  showSpeed(speed_index);
   if ( timerInterval != currentDisplayInterval || currentSpeed == 0 )  timerFire(); // if the timer isn't firing we need to trigger it to update
 }
 
 function setLive(value) {
-  liveMode=value;
+  liveMode = value;
   redrawScreen();
 }
 
@@ -455,7 +458,7 @@ function setLive(value) {
 
 function clicknav(minSecs,maxSecs,live) {// we use the current time if we can
   
-  var now = date.getTime() / 1000;
+  var now = Math.floor( date.getTime() / 1000 );
   var tz_difference = ( -1 * date.getTimezoneOffset() * 60 ) - server_utc_offset;
   now -= tz_difference;
 
@@ -500,15 +503,15 @@ function clicknav(minSecs,maxSecs,live) {// we use the current time if we can
 } // end function clicknav
 
 function click_lastHour() {
-  var now = date.getTime() / 1000;
+  var now = Math.floor( date.getTime() / 1000 );
   now -= -1 * date.getTimezoneOffset() * 60;
   now += server_utc_offset;
   clicknav(now - 3599, now, 0);
 }
 function click_lastEight() {
-  var now = date.getTime() / 1000;
+  var now = Math.floor( date.getTime() / 1000 );
   now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
-  clicknav(now - 3600*8 + 1, now,0);
+  clicknav(now - 3600*8 + 1, now, 0);
 }
 function click_zoomin() {
   rangeTimeSecs = parseInt(rangeTimeSecs / 2);
@@ -709,7 +712,6 @@ function changeDateTime(e) {
     zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
 
   var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
-  alert(uri);
   window.location = uri;
 }
 

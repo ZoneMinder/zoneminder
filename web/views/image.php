@@ -79,8 +79,8 @@ Warning("Path to snapshot: $path");
           $nextBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId > ? AND Type='BULK'", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
           if ( $previousBulkFrame and $nextBulkFrame ) {
             $Frame = new Frame( $previousBulkFrame );
-            $Frame->Id( $_REQUEST['fid'] );
-            $Frame->Delta( $previousBulkFrame['Delta'] + ( ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * ( $previousBulkFrame['Id']/$nextBulkFrame['Id'] ) ) );
+            $Frame->FrameId( $_REQUEST['fid'] );
+            $Frame->Delta( $previousBulkFrame['Delta'] + ( ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * ( $previousBulkFrame['FrameId']/$nextBulkFrame['FrameId'] ) ) );
           } else {
           Fatal("No Frame found for event(".$_REQUEST['eid'].") and frame id(".$_REQUEST['fid'].")");
           }

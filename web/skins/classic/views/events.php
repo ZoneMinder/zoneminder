@@ -158,6 +158,8 @@ if ( $pagination ) {
           <tbody>
 <?php
 $count = 0;
+$disk_space_total = 0;
+
 foreach ( $events as $event ) {
   if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
 ?>
@@ -174,7 +176,8 @@ foreach ( $events as $event ) {
               <th class="colAvgScore"><a href="<?php echo sortHeader( 'AvgScore' ) ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
               <th class="colMaxScore"><a href="<?php echo sortHeader( 'MaxScore' ) ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
 <?php
-    if ( ZM_WEB_EVENT_DISK_SPACE ) { ?>
+    if ( ZM_WEB_EVENT_DISK_SPACE ) {
+?>
               <th class="colDiskSpace"><a href="<?php echo sortHeader( 'DiskSpace' ) ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag( 'DiskSpace' ) ?></a></th>
 <?php
     }
@@ -206,6 +209,7 @@ makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event-
               <td class="colMaxScore"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->MaxScore() ) ?></td>
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
+    $disk_space_total += $event->DiskSpace();
 ?>
               <td class="colDiskSpace"><?php echo human_filesize( $event->DiskSpace() ) ?></td>
 <?php
@@ -248,6 +252,24 @@ Warning("Not Using snapshot" . $event->Path().'/snapshot.jpg' );
 }
 ?>
           </tbody>
+<?php
+  if ( ZM_WEB_EVENT_DISK_SPACE ) {
+?>
+           <tfoot>
+              <tr>
+              <td colspan="11">Totals:</td>
+              <td class="colDiskSpace"><?php echo human_filesize( $disk_space_total ) ?></td>
+<?php
+  if ( ZM_WEB_LIST_THUMBS ) {
+?><td></td>
+<?php
+}
+?>
+            </tr>
+          </tfoot>
+<?php
+  }
+?>
         </table>
 <?php
 if ( $pagination ) {

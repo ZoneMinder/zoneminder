@@ -57,8 +57,7 @@ behind.
 #include "zm_signal.h"
 #include "zm_monitor.h"
 
-void Usage()
-{
+void Usage() {
   fprintf( stderr, "zma -m <monitor_id>\n" );
   fprintf( stderr, "Options:\n" );
   fprintf( stderr, "  -m, --monitor <monitor_id>   : Specify which monitor to use\n" );
@@ -67,8 +66,7 @@ void Usage()
   exit( 0 );
 }
 
-int main( int argc, char *argv[] )
-{
+int main( int argc, char *argv[] ) {
   self = argv[0];
 
   srand( getpid() * time( 0 ) );
@@ -82,18 +80,15 @@ int main( int argc, char *argv[] )
     {0, 0, 0, 0}
   };
 
-  while (1)
-  {
+  while (1) {
     int option_index = 0;
 
     int c = getopt_long (argc, argv, "m:h:v", long_options, &option_index);
-    if (c == -1)
-    {
+    if ( c == -1 ) {
       break;
     }
 
-    switch (c)
-    {
+    switch (c) {
       case 'm':
         id = atoi(optarg);
         break;
@@ -110,8 +105,7 @@ int main( int argc, char *argv[] )
     }
   }
 
-  if (optind < argc)
-  {
+  if (optind < argc) {
     fprintf( stderr, "Extraneous options, " );
     while (optind < argc)
       printf ("%s ", argv[optind++]);
@@ -119,8 +113,7 @@ int main( int argc, char *argv[] )
     Usage();
   }
 
-  if ( id < 0 )
-  {
+  if ( id < 0 ) {
     fprintf( stderr, "Bogus monitor %d\n", id );
     Usage();
     exit( 0 );
@@ -137,8 +130,7 @@ int main( int argc, char *argv[] )
 
   Monitor *monitor = Monitor::Load( id, true, Monitor::ANALYSIS );
 
-  if ( monitor )
-  {
+  if ( monitor ) {
     Info( "In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled() );
 
     zmSetDefaultHupHandler();
@@ -154,43 +146,34 @@ int main( int argc, char *argv[] )
     monitor->UpdateAdaptiveSkip();
     last_analysis_update_time = time( 0 );
 
-    while( !zm_terminate )
-    {
+    while( !zm_terminate ) {
       // Process the next image
       sigprocmask( SIG_BLOCK, &block_set, 0 );
 
       // Some periodic updates are required for variable capturing framerate
-      if ( analysis_update_delay )
-      {
+      if ( analysis_update_delay ) {
         cur_time = time( 0 );
-        if ( (unsigned int)( cur_time - last_analysis_update_time ) > analysis_update_delay )
-        {
+        if ( (unsigned int)( cur_time - last_analysis_update_time ) > analysis_update_delay ) {
           analysis_rate = monitor->GetAnalysisRate();
           monitor->UpdateAdaptiveSkip();
           last_analysis_update_time = cur_time;
         }
       }
 
-      if ( !monitor->Analyse() )
-      {
+      if ( !monitor->Analyse() ) {
         usleep( monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE );
-      }
-      else if ( analysis_rate )
-      {
+      } else if ( analysis_rate ) {
         usleep( analysis_rate );
       }
 
-      if ( zm_reload )
-      {
+      if ( zm_reload ) {
         monitor->Reload();
         zm_reload = false;
       }
       sigprocmask( SIG_UNBLOCK, &block_set, 0 );
     }
     delete monitor;
-  }
-  else
-  {
+  } else {
     fprintf( stderr, "Can't find monitor with id of %d\n", id );
   }
   Image::Deinitialise();

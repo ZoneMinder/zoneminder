@@ -23,6 +23,15 @@ $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
+session_start();
+foreach ( array('ServerFilter','StorageFilter') as $var ) {
+  if ( isset( $_REQUEST[$var] ) ) {
+    $_SESSION[$var] = $_REQUEST[$var];
+  } else if ( isset( $_COOKIES[$var] ) ) {
+    $_SESSION[$var] = $_COOKIES[$var];
+  }
+}
+session_write_close();
 
 $storage_areas = Storage::find_all();
 $StorageById = array();
@@ -192,6 +201,24 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
 }
 ?>
 </span>
+<?php if ( count($ServersById) > 0 ) { ?>
+<span id="ServerFilter"><label><?php echo translate('Server')?>:</label>
+<?php
+echo htmlSelect( array_merge(array(''=>'All'), $ServersById ), $_SESSION['ServerFilter'], array('onchange'=>'changeFilter(this);') );
+?>
+</span>
+<?php 
+}
+if ( count($StorageById) > 0 ) { ?>
+<span id="StorageFilter"><label><?php echo translate('StorageFilter')?>:</label>
+<?php
+echo htmlSelect( array_merge(array(''=>'All'), $StorageById ), $_SESSION['StorageFilter'], array('onchange'=>'changeFilter(this);') );
+?>
+</span>
+<?php
+}
+?>
+    </div>
     </div>
 
     <div class="container-fluid">

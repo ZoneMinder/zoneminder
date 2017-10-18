@@ -2,6 +2,7 @@ var filterQuery = '<?php echo validJsStr($filterQuery) ?>';
 
 <?php
 $jsMonitors = array();
+
 $fields = array('Name', 'LabelFormat', 'SaveJPEGs', 'VideoWriter');
 foreach ( $monitors as $monitor ) {
   if ( !empty($monitorIds[$monitor['Id']]) ) {

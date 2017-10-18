@@ -58,10 +58,16 @@ class Storage {
   }
 
   public function __call( $fn, array $args= NULL){
-    if(isset($this->{$fn})){
+  if ( count( $args )  ) {
+      $this->{$fn} = $args[0];
+    }
+    if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
-#array_unshift($args, $this);
-#call_user_func_array( $this->{$fn}, $args);
+        
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Warning( "Unknown function call Storage->$fn from $file:$line" );
     }
   }
   public static function find_all() {

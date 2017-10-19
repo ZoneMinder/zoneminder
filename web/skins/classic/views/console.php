@@ -26,9 +26,17 @@ foreach ( $servers as $S ) {
 session_start();
 foreach ( array('ServerFilter','StorageFilter') as $var ) {
   if ( isset( $_REQUEST[$var] ) ) {
-    $_SESSION[$var] = $_REQUEST[$var];
-  } else if ( isset( $_COOKIES[$var] ) ) {
-    $_SESSION[$var] = $_COOKIES[$var];
+    if ( $_REQUEST[$var] != '' ) {
+      $_SESSION[$var] = $_REQUEST[$var];
+    } else {
+      unset( $_SESSION[$var] );
+    }
+  } else if ( isset( $_COOKIE[$var] ) ) {
+    if ( $_COOKIE[$var] != '' ) {
+      $_SESSION[$var] = $_COOKIE[$var];
+    } else {
+      unset($_SESSION[$var]);
+    }
   }
 }
 session_write_close();
@@ -151,7 +159,21 @@ $groupSql = Group::get_group_sql( $group_id );
   $maxHeight = 0;
   # Used to determine if the Cycle button should be made available
 
-  $monitors = dbFetchAll( 'SELECT * FROM Monitors'.($groupSql?' WHERE '.$groupSql:'').' ORDER BY Sequence ASC' );
+  $conditions = array();
+  $values = array();
+
+  if ( $groupSql )
+    $conditions[] = $groupSql;
+  if ( isset($_SESSION['ServerFilter']) ) {
+    $conditions[] = 'ServerId=?';
+    $values[] = $_SESSION['ServerFilter'];
+  }
+  if ( isset($_SESSION['StorageFilter']) ) {
+    $conditions[] = 'StorageId=?';
+    $values[] = $_SESSION['StorageFilter'];
+  }
+  $sql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
+  $monitors = dbFetchAll( $sql, null, $values );
   $displayMonitors = array();
   $monitors_dropdown = array(''=>'All');
 
@@ -204,15 +226,15 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
 <?php if ( count($ServersById) > 0 ) { ?>
 <span id="ServerFilter"><label><?php echo translate('Server')?>:</label>
 <?php
-echo htmlSelect( array_merge(array(''=>'All'), $ServersById ), $_SESSION['ServerFilter'], array('onchange'=>'changeFilter(this);') );
+echo htmlSelect( 'ServerFilter', array_merge(array(''=>'All'), $ServersById ), (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
 ?>
 </span>
 <?php 
 }
 if ( count($StorageById) > 0 ) { ?>
-<span id="StorageFilter"><label><?php echo translate('StorageFilter')?>:</label>
+<span id="StorageFilter"><label><?php echo translate('Storage')?>:</label>
 <?php
-echo htmlSelect( array_merge(array(''=>'All'), $StorageById ), $_SESSION['StorageFilter'], array('onchange'=>'changeFilter(this);') );
+echo htmlSelect( 'StorageFilter', array_merge(array(''=>'All'), $StorageById ), (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
 ?>
 </span>
 <?php

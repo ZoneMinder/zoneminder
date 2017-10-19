@@ -10,6 +10,8 @@ function Monitor( monitorData ) {
   this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
+  else
+    console.log("No auth_hash");
   this.streamCmdTimer = null;
 
   this.start = function( delay ) {
@@ -32,7 +34,7 @@ function Monitor( monitorData ) {
     if ( this.streamCmdTimer )
       this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
 
-    var stream = $j('#liveStream'+this.id );
+    var stream = $j('#liveStream'+this.id )[0];
     if ( respObj.result == 'Ok' ) {
       this.status = respObj.status;
       this.alarmState = this.status.state;
@@ -77,10 +79,12 @@ function Monitor( monitorData ) {
         }
       }
       if ( this.status.auth ) {
-        // Try to reload the image stream.
-        if ( stream )
-          stream.src = stream.src.replace( /auth=\w+/i, 'auth='+this.status.auth );
-        console.log("Changed auth to " + this.status.auth );
+        if ( this.status.auth != auth_hash ) {
+          // Try to reload the image stream.
+          if ( stream )
+            stream.src = stream.src.replace( /auth=\w+/i, 'auth='+this.status.auth );
+          console.log("Changed auth to " + this.status.auth );
+        }
       } // end if haev a new auth hash
     } else {
       console.error( respObj.message );

@@ -8,6 +8,8 @@ function Monitor( monitorData ) {
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
+  if ( auth_hash )
+    this.streamCmdParms += '&auth='+auth_hash;
   this.streamCmdTimer = null;
 
   this.start = function( delay ) {

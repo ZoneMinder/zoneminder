@@ -35,7 +35,7 @@ monitorData[monitorData.length] = {
 	'connKey': <?php echo $monitor->connKey() ?>, 
 	'width': <?php echo $monitor->Width() ?>,
 	'height':<?php echo $monitor->Height() ?>,
-  'server_url': '<?php echo $monitor->Server()->Url().$_SERVER['PHP_SELF'] ?>'
+  'server_url': '<?php echo $monitor->Server()->Url().(ZM_MIN_STREAMING_PORT?':'.(ZM_MIN_STREAMING_PORT+$monitor->Id()):'').$_SERVER['PHP_SELF'] ?>'
 };
 <?php
 }

@@ -77,17 +77,13 @@ void StreamBase::updateFrameRate( double fps )
   Debug( 3, "aEFPS:%.2f, aFM:%d", effective_fps, frame_mod );
 }
 
-bool StreamBase::checkCommandQueue()
-{
-  if ( sd >= 0 )
-  {
+bool StreamBase::checkCommandQueue() {
+  if ( sd >= 0 ) {
     CmdMsg msg;
     memset( &msg, 0, sizeof(msg) );
     int nbytes = recvfrom( sd, &msg, sizeof(msg), MSG_DONTWAIT, 0, 0 );
-    if ( nbytes < 0 )
-    {
-      if ( errno != EAGAIN )
-      {
+    if ( nbytes < 0 ) {
+      if ( errno != EAGAIN ) {
         Fatal( "recvfrom(), errno = %d, error = %s", errno, strerror(errno) );
       }
     }
@@ -95,11 +91,12 @@ bool StreamBase::checkCommandQueue()
     //{
       //Error( "Partial message received, expected %d bytes, got %d", sizeof(msg), nbytes );
     //}
-    else
-    {
+    else {
       processCommand( &msg );
       return( true );
     }
+  } else {
+    Warning("No sd in checkCommandQueue, comms not open?");
   }
   return( false );
 }

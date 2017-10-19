@@ -146,7 +146,7 @@ private:
 
   bool boolEnv( const std::string &name, bool defaultValue=false );
   int intEnv( const std::string &name, bool defaultValue=0 );
-  std::string strEnv( const std::string &name, const std::string defaultValue="" );
+  std::string strEnv( const std::string &name, const std::string &defaultValue="" );
   char *getTargettedEnv( const std::string &name );
 
   void loadEnv();

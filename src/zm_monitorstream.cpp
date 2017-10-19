@@ -565,6 +565,7 @@ void MonitorStream::runStream() {
     gettimeofday( &now, NULL );
 
     if ( connkey ) {
+Debug(2, "checking command Queue");
       while(checkCommandQueue()) {
         got_command = true;
       }
@@ -689,7 +690,7 @@ void MonitorStream::runStream() {
         } else {
           Warning( "Unable to store frame as shared memory invalid" );
         }
-      }
+      } // end if buffered playback
       frame_count++;
     }
     usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
@@ -702,7 +703,7 @@ void MonitorStream::runStream() {
       Error( "Terminating, last frame sent time %f secs more than maximum of %f", TV_2_FLOAT( now ) - last_frame_sent, max_secs_since_last_sent_frame );
       break;
     }
-  }
+  } // end while
   if ( buffered_playback ) {
     Debug( 1, "Cleaning swap files from %s", swap_path );
     struct stat stat_buf;

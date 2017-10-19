@@ -483,7 +483,7 @@ Monitor::Monitor(
 
     ReloadLinkedMonitors( p_linked_monitors );
   }
-}
+} // Monitor::Monitor
 
 bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose ); 

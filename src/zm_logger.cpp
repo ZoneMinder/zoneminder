@@ -271,7 +271,7 @@ int Logger::intEnv( const std::string &name, bool defaultValue ) {
   return( envPtr ? atoi( envPtr ) : defaultValue );
 }
 
-std::string Logger::strEnv( const std::string &name, const std::string defaultValue ) {
+std::string Logger::strEnv( const std::string &name, const std::string &defaultValue ) {
   const char *envPtr = getenv( name.c_str() );
   return( envPtr ? envPtr : defaultValue );
 }

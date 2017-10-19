@@ -37,11 +37,6 @@
 
 //#define USE_PREPARED_SQL 1
 
-bool Event::initialised = false;
-char Event::capture_file_format[PATH_MAX];
-char Event::analyse_file_format[PATH_MAX];
-char Event::general_file_format[PATH_MAX];
-char Event::video_file_format[PATH_MAX];
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 
 int Event::pre_alarm_count = 0;
@@ -56,8 +51,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   videoEvent( p_videoEvent ),
   videowriter( NULL )
 {
-  if ( !initialised )
-    Initialise();
 
   std::string notes;
   createNotes( notes );
@@ -173,7 +166,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
     snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
-    snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );
+    snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
     Debug(1,"Writing video file to %s", video_file );
 
     /* X264 MP4 video writer */
@@ -195,7 +188,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       }
 
       snprintf( timecodes_name, sizeof(timecodes_name), "%d-%s", id, "video.timecodes" );
-      snprintf( timecodes_file, sizeof(timecodes_file), video_file_format, path, timecodes_name );
+      snprintf( timecodes_file, sizeof(timecodes_file), staticConfig.video_file_format, path, timecodes_name );
 
       /* Create timecodes file */
       timecodes_fd = fopen(timecodes_file, "wb");
@@ -434,7 +427,7 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     frames++;
 
     static char event_file[PATH_MAX];
-    snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
+    snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
     if ( monitor->GetOptSaveJPEGs() & 4 ) {
       //If this is the first frame, we should add a thumbnail to the event directory
       // ICON: We are working through the pre-event frames so this snapshot won't 
@@ -485,9 +478,10 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   frames++;
 
   static char event_file[PATH_MAX];
-  snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
+  snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
 
   if ( monitor->GetOptSaveJPEGs() & 4 ) {
+    // Only snapshots
     //If this is the first frame, we should add a thumbnail to the event directory
     if ( frames == 10 ) {
       char snapshot_file[PATH_MAX];
@@ -510,6 +504,7 @@ Debug(3, "Writing video");
   DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
 
   FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
+  // < 0 means no motion detection is being done.
   if ( score < 0 )
     score = 0;
 
@@ -555,7 +550,7 @@ Debug(3, "Writing video");
       max_score = score;
 
     if ( alarm_image ) {
-      snprintf( event_file, sizeof(event_file), analyse_file_format, path, frames );
+      snprintf( event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames );
 
       Debug( 1, "Writing analysis frame %d", frames );
       if ( monitor->GetOptSaveJPEGs() & 2 ) {

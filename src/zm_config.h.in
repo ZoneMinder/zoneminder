@@ -22,6 +22,7 @@
 
 #include "config.h"
 #include "zm_config_defines.h"
+#include "zm.h"
 
 #include <string>
 
@@ -61,8 +62,7 @@ extern void zmLoadConfig();
 
 extern void process_configfile( char* configFile );
 
-struct StaticConfig
-{
+struct StaticConfig {
   std::string DB_HOST;
   std::string DB_NAME;
   std::string DB_USER;
@@ -83,20 +83,22 @@ struct StaticConfig
   std::string PATH_LOGS;
   std::string PATH_SWAP;
   std::string PATH_ARP;
+  char    capture_file_format[PATH_MAX];
+  char    analyse_file_format[PATH_MAX];
+  char    general_file_format[PATH_MAX];
+  char    video_file_format[PATH_MAX];
 };
 
 extern StaticConfig staticConfig;
 
-class ConfigItem
-{
+class ConfigItem {
 private:
   char *name;
   char *value;
   char *type;
 
   mutable enum { CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type;
-  mutable union
-  {
+  mutable union {
     bool boolean_value;
     int integer_value;
     double decimal_value;
@@ -113,26 +115,21 @@ public:
   double DecimalValue() const;
   const char *StringValue() const;
 
-  inline operator bool() const
-  {
+  inline operator bool() const {
     return( BooleanValue() );
   }
-  inline operator int() const
-  {
+  inline operator int() const {
     return( IntegerValue() );
   }
-  inline operator double() const
-  {
+  inline operator double() const {
     return( DecimalValue() );
   }
-  inline operator const char *() const
-  {
+  inline operator const char *() const {
     return( StringValue() );
   }
 };
 
-class Config
-{
+class Config {
 public:
   ZM_CFG_DECLARE_LIST
 

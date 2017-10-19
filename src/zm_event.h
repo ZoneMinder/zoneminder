@@ -52,13 +52,6 @@ class Event {
   friend class EventStream;
 
   protected:
-    static bool    initialised;
-    static char    capture_file_format[PATH_MAX];
-    static char    analyse_file_format[PATH_MAX];
-    static char    general_file_format[PATH_MAX];
-    static char    video_file_format[PATH_MAX];
-
-  protected:
     static int    sd;
 
   public:
@@ -79,7 +72,6 @@ class Event {
     static int pre_alarm_count;
     static PreAlarmData pre_alarm_data[MAX_PRE_ALARM_FRAMES];
 
-  protected:
     unsigned int  id;
     Monitor      *monitor;
     struct timeval  start_time;
@@ -98,22 +90,7 @@ class Event {
     char video_file[PATH_MAX];
     char timecodes_name[PATH_MAX];
     char timecodes_file[PATH_MAX];
-
-  protected:
     int        last_db_frame;
-
-  protected:
-    static void Initialise() {
-      if ( initialised )
-        return;
-
-      snprintf( capture_file_format, sizeof(capture_file_format), "%%s/%%0%dd-capture.jpg", config.event_image_digits );
-      snprintf( analyse_file_format, sizeof(analyse_file_format), "%%s/%%0%dd-analyse.jpg", config.event_image_digits );
-      snprintf( general_file_format, sizeof(general_file_format), "%%s/%%0%dd-%%s", config.event_image_digits );
-      snprintf( video_file_format, sizeof(video_file_format), "%%s/%%s");
-
-      initialised = true;
-    }
 
     void createNotes( std::string &notes );
 
@@ -121,7 +98,6 @@ class Event {
     static bool OpenFrameSocket( int );
     static bool ValidateFrameSocket( int );
 
-  public:
     Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent=false );
     ~Event();
 

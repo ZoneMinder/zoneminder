@@ -577,11 +577,10 @@ void EventStream::checkEventLoaded() {
 }
 
 Image * EventStream::getImage( ) {
-  Event::Initialise();
   static char filepath[PATH_MAX];
 
   Debug( 2, "EventStream::getImage path(%s) frame(%d)", event_data->path, curr_frame_id );
-  snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+  snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
   Debug( 2, "EventStream::getImage path(%s) ", filepath, curr_frame_id );
   Image *image = new Image( filepath );
   return image;
@@ -596,12 +595,12 @@ bool EventStream::sendFrame( int delta_us ) {
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.  If we are only saving analysis frames, then send that.
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
-    snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+    snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
   } else if ( monitor->GetOptSaveJPEGs() & 2 ) {
-    snprintf( filepath, sizeof(filepath), Event::analyse_file_format, event_data->path, curr_frame_id );
+    snprintf( filepath, sizeof(filepath), staticConfig.analyse_file_format, event_data->path, curr_frame_id );
     if ( stat( filepath, &filestat ) < 0 ) {
       Debug(1, "analyze file %s not found will try to stream from other", filepath);
-      snprintf( filepath, sizeof(filepath), Event::capture_file_format, event_data->path, curr_frame_id );
+      snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
       filepath[0] = 0;
     }
 
@@ -752,9 +751,6 @@ bool EventStream::sendFrame( int delta_us ) {
 }
 
 void EventStream::runStream() {
-  Event::Initialise();
-  Debug(3, "Initialized");
-
   openComms();
   Debug(3, "Comms open");
 

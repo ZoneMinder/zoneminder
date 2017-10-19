@@ -94,6 +94,11 @@ void zmLoadConfig() {
         Debug( 3, "Single server configuration assumed because no Server ID or Name was specified." );
     }
   }
+
+  snprintf( staticConfig.capture_file_format, sizeof(staticConfig.capture_file_format), "%%s/%%0%dd-capture.jpg", config.event_image_digits );
+  snprintf( staticConfig.analyse_file_format, sizeof(staticConfig.analyse_file_format), "%%s/%%0%dd-analyse.jpg", config.event_image_digits );
+  snprintf( staticConfig.general_file_format, sizeof(staticConfig.general_file_format), "%%s/%%0%dd-%%s", config.event_image_digits );
+  snprintf( staticConfig.video_file_format, sizeof(staticConfig.video_file_format), "%%s/%%s");
 }
 
 void process_configfile( char* configFile) {

@@ -19,7 +19,7 @@
 //
 
 $servers = Server::find_all();
-$ServersById = array();
+$ServersById = array(''=>'All');
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
@@ -42,7 +42,7 @@ foreach ( array('ServerFilter','StorageFilter') as $var ) {
 session_write_close();
 
 $storage_areas = Storage::find_all();
-$StorageById = array();
+$StorageById = array(''=>'All');
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
 }
@@ -226,7 +226,7 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
 <?php if ( count($ServersById) > 0 ) { ?>
 <span id="ServerFilter"><label><?php echo translate('Server')?>:</label>
 <?php
-echo htmlSelect( 'ServerFilter', array_merge(array(''=>'All'), $ServersById ), (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
+echo htmlSelect( 'ServerFilter', $ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
 ?>
 </span>
 <?php 
@@ -234,7 +234,7 @@ echo htmlSelect( 'ServerFilter', array_merge(array(''=>'All'), $ServersById ), (
 if ( count($StorageById) > 0 ) { ?>
 <span id="StorageFilter"><label><?php echo translate('Storage')?>:</label>
 <?php
-echo htmlSelect( 'StorageFilter', array_merge(array(''=>'All'), $StorageById ), (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
+echo htmlSelect( 'StorageFilter', $StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
 ?>
 </span>
 <?php
@@ -353,7 +353,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
         </tbody>
         <tfoot>
           <tr>
-            <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
+            <td class="colId"><?php echo count($displayMonitors) ?></td>
+            <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
               <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
               <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->

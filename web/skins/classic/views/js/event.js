@@ -429,10 +429,11 @@ function getEventResponse( respObj, respText ) {
   // Technically, events can be different sizes, so may need to update the size of the image, but it might be better to have it stay scaled...
   //var eventImg = $('eventImage');
   //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
-  if (vid) {
+  if (vid && CurEventDefVideoPath) {
     vid.src({type: 'video/mp4', src: CurEventDefVideoPath}); //Currently mp4 is all we use
     initialAlarmCues(eventData.Id);//ajax and render, new event
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
+    CurEventDefVideoPath = null;
   } else {
     drawProgressBar();
   }

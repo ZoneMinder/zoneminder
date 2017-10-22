@@ -924,11 +924,11 @@ function setupListener() {
 
 function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
-  if ( $('videoobj') ) {
+  if ($j('#videoobj').length) {
     vid = videojs("videoobj");
     initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues after videojs is.  should be only call to initialAlarmCues on vjs streams
   }
-  if ( vid ) {
+  if (vid) {
 /*
     setupListener();
       vid.removeAttribute("controls");

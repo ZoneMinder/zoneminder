@@ -36,12 +36,13 @@ if ( $user['MonitorIds'] ) {
 }
 $Monitor = $Event->Monitor();
 
-if ( isset( $_REQUEST['rate'] ) )
+if (isset($_REQUEST['rate'])) {
   $rate = validInt($_REQUEST['rate']);
-else
-  $rate = reScale( RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE );
+} else {
+  $rate = reScale(RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
+}
 
-if ( isset( $_REQUEST['scale'] ) ) {
+if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset( $_COOKIE['zmEventScale'.$Event->MonitorId()] ) ) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];

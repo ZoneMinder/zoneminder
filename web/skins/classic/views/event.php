@@ -192,7 +192,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   }
 } // end if stream method
 ?>
-        <div id="alarmCueJpeg" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"></div>
+        <div id="alarmCue" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"></div>
         <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->

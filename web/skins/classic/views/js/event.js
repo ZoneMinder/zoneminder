@@ -53,20 +53,15 @@ function initialAlarmCues (eventId) {
   $j.getJSON("api/events/"+eventId+".json", setAlarmCues); //get frames data for alarmCues and inserts into html
 }
 
-function setAlarmCues (data) { 
+function setAlarmCues (data) {
   cueFrames = data.event.Frame;
   alarmSpans = renderAlarmCues();
-  if ( vid ) {
-    $j(".vjs-progress-control").append('<div class="alarmCue">' + alarmSpans +  '</div>');
-    $j(".vjs-control-bar").addClass("vjs-zm");
-  } else {
-    $j("#alarmCueJpeg").html(alarmSpans);
-  }
+  $j(".alarmCue").html(alarmSpans);
 }
 
 function renderAlarmCues () {
   if (cueFrames) {
-    var cueRatio = (vid ? $j("#videoobj").width() : $j("#evtStream").width()) / (cueFrames[cueFrames.length - 1].Delta * 100);//use videojs width or nph-zms width
+    var cueRatio = (vid ? $j("#videoobj").width() : $j("#evtStream").width()) / (cueFrames[cueFrames.length - 1].Delta * 100);//use videojs width or zms width
     var minAlarm = Math.ceil(1/cueRatio);
     var spanTimeStart = 0;
     var spanTimeEnd = 0;
@@ -123,6 +118,7 @@ function renderAlarmCues () {
         spanTime = spanTimeEnd - spanTimeStart;
         alarmed = 0;
         pix = Math.round(cueRatio * spanTime);
+        if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
         alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
       }
     }
@@ -956,7 +952,6 @@ function initPage() {
     progressBarSeek ();
     streamCmdTimer = streamQuery.delay( 250 );
     eventQuery.pass( eventData.Id ).delay( 500 );
-    initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues for nph-zms.  
 
     if ( canStreamNative ) {
       var streamImg = $('imageFeed').getElement('img');

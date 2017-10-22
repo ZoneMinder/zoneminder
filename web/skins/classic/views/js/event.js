@@ -1,9 +1,10 @@
 var vid = null;
 
-function vjsReplay(endTime) {
-  var video = videojs('videoobj').ready(function(){
+function vjsReplay() {
+  vid.ready(function(){
     var player = this;
     player.on('ended', function() {
+      var endTime = (Date.parse(eventData.EndTime)).getTime();
       switch(replayMode.value) {
         case 'none':
           break;
@@ -12,19 +13,23 @@ function vjsReplay(endTime) {
           break;
         case 'all':
           if (nextEventId == 0) {
-            $j("#videoobj").html('<p class="vjsMessage">No more events</p>');
+            let overLaid = $j("#videoobj");
+            overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
           } else {
             var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
             if (nextStartTime <= endTime) {
              streamNext( true );
              return;
             }
-            $j("#videoobj").html('<p class="vjsMessage"></p>');
+            let overLaid = $j("#videoobj");
+            vid.pause();
+            overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
             var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+            let messageP = $j(".vjsMessage");
             var x = setInterval(function() {
               var now = new Date().getTime();
               var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
-              $j(".vjsMessage").html(remainder + ' to next event.');
+              messageP.html(remainder + ' to next event.');
               if (remainder < 0) {
                 clearInterval(x);
                 streamNext( true );
@@ -927,6 +932,7 @@ function initPage() {
   if ($j('#videoobj').length) {
     vid = videojs("videoobj");
     initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues after videojs is.  should be only call to initialAlarmCues on vjs streams
+    vjsReplay();
   }
   if (vid) {
 /*

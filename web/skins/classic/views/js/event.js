@@ -742,6 +742,7 @@ function getActResponse( respObj, respText ) {
     return;
 
   if ( respObj.refreshParent )
+    if (refreshParent == false) refreshParent = true;  //Bypass filter window redirect fix.
     refreshParentWindow();
 
   if ( respObj.refreshEvent )

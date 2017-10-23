@@ -140,13 +140,14 @@ function loadImage2Monitor( monId, url ) {
     if ( url == 'no data' ) {
       writeText(monId, 'No Data');
     } else {
-      writeText(monId, 'Loading...');
+      //writeText(monId, 'Loading...');
       monitorLoading[monId] = true;
       monitorLoadStartTimems[monId] = new Date().getTime();
       monitorImageObject[monId].src = url;  // starts a load but doesn't refresh yet, wait until ready
     }
   }
 }
+
 function timerFire() {
   // See if we need to reschedule
   if ( currentDisplayInterval != timerInterval || currentSpeed == 0 ) {

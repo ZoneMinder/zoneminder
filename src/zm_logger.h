@@ -56,8 +56,7 @@ public:
   typedef std::map<Level,std::string> StringMap;
   typedef std::map<Level,int> IntMap;
 
-  class Options
-  {
+  class Options {
   public:
     int mTermLevel;
     int mDatabaseLevel;
@@ -147,7 +146,7 @@ private:
 
   bool boolEnv( const std::string &name, bool defaultValue=false );
   int intEnv( const std::string &name, bool defaultValue=0 );
-  std::string strEnv( const std::string &name, const std::string defaultValue="" );
+  std::string strEnv( const std::string &name, const std::string &defaultValue="" );
   char *getTargettedEnv( const std::string &name );
 
   void loadEnv();
@@ -166,8 +165,7 @@ public:
   }
   Level level( Level=NOOPT );
 
-  bool debugOn()
-  {
+  bool debugOn() {
     return( mEffectiveLevel >= DEBUG1 );
   }
 
@@ -190,20 +188,16 @@ public:
 
 void logInit( const char *name, const Logger::Options &options=Logger::Options() );
 void logTerm();
-inline const std::string &logId()
-{
+inline const std::string &logId() {
   return( Logger::fetch()->id() );
 }
-inline Logger::Level logLevel()
-{
+inline Logger::Level logLevel() {
   return( Logger::fetch()->level() );
 }
-inline void logCapLevel( Logger::Level level )
-{
+inline void logCapLevel( Logger::Level level ) {
   Logger::fetch()->level( level );
 }
-inline Logger::Level logDebugging()
-{
+inline Logger::Level logDebugging() {
   return( Logger::fetch()->debugOn() );
 }
 

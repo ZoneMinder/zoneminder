@@ -11,24 +11,118 @@ function vjsReplay(endTime) {
           player.play();
           break;
         case 'all':
-//          nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
-          var gapDuration = (new Date().getTime()) + (nextEventStartTime.getTime() - endTime);
-          var x = setInterval(function() {
-            var now = new Date().getTime();
-            var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);;
-            $j("#replayAllCountDown").html(remainder + " to next event.");
-            if (remainder < 0) {
-              clearInterval(x);
-              streamNext( true );
+          if (nextEventId == 0) {
+            $j("#videoobj").html('<p class="vjsMessage">No more events</p>');
+          } else {
+            var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+            if (nextStartTime <= endTime) {
+             streamNext( true );
+             return;
             }
-          }, 1000);
-          break;
+            $j("#videoobj").html('<p class="vjsMessage"></p>');
+            var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+            var x = setInterval(function() {
+              var now = new Date().getTime();
+              var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
+              $j(".vjsMessage").html(remainder + ' to next event.');
+              if (remainder < 0) {
+                clearInterval(x);
+                streamNext( true );
+              }
+            }, 1000);
+          }
+            break;
         case 'gapless':
           streamNext( true );
           break;
       }
     });
   });
+}
+
+$j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+
+var cueFrames = null; //make cueFrames availaible even if we don't send another ajax query
+
+function initialAlarmCues (eventId) {
+  $j.getJSON("api/events/"+eventId+".json", setAlarmCues); //get frames data for alarmCues and inserts into html
+}
+
+function setAlarmCues (data) { 
+  cueFrames = data.event.Frame;
+  alarmSpans = renderAlarmCues();
+  if ( vid ) {
+    $j(".vjs-progress-control").append('<div class="alarmCue">' + alarmSpans +  '</div>');
+    $j(".vjs-control-bar").addClass("vjs-zm");
+  } else {
+    $j("#alarmCueJpeg").html(alarmSpans);
+  }
+}
+
+function renderAlarmCues () {
+  if (cueFrames) {
+    var cueRatio = (vid ? $j("#videoobj").width() : $j("#evtStream").width()) / (cueFrames[cueFrames.length - 1].Delta * 100);//use videojs width or nph-zms width
+    var minAlarm = Math.ceil(1/cueRatio);
+    var spanTimeStart = 0;
+    var spanTimeEnd = 0;
+    var alarmed = 0;
+    var alarmHtml = "";
+    var pixSkew = 0;
+    var skip = 0;
+    for (let i = 0; i < cueFrames.length; i++) {
+      skip = 0;
+      frame = cueFrames[i];
+      if (frame.Type == "Alarm" && alarmed == 0) { //From nothing to alarm.  End nothing and start alarm.
+        alarmed = 1;
+        if (frame.Delta == 0) continue;  //If event starts with an alarm or too few for a nonespan
+        spanTimeEnd = frame.Delta * 100;
+        spanTime = spanTimeEnd - spanTimeStart;
+        let pix = cueRatio * spanTime;
+        pixSkew += pix - Math.round(pix);//average out the rounding errors.
+        pix = Math.round(pix);
+        if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span. 
+          pix += Math.round(pixSkew);
+          pixSkew = pixSkew - Math.round(pixSkew);
+        }
+        alarmHtml += '<span class="alarmCue noneCue" style="width: ' + pix + 'px;"></span>';
+        spanTimeStart = spanTimeEnd;
+      } else if (frame.Type !== "Alarm" && alarmed == 1) { //from alarm to nothing.  End alarm and start nothing.
+        futNone = 0;
+        indexPlus = i+1;
+        if (((frame.Delta * 100) - spanTimeStart) < minAlarm && indexPlus < cueFrames.length) continue; //alarm is too short and there is more event
+        while (futNone < minAlarm) { //check ahead to see if there's enough for a nonespan
+          if (indexPlus >= cueFrames.length) break; //check if end of event.
+          futNone = (cueFrames[indexPlus].Delta *100) - (frame.Delta *100);
+          if (cueFrames[indexPlus].Type == "Alarm") {
+            i = --indexPlus;
+            skip = 1;
+            break;
+          }
+          indexPlus++;
+        }
+        if (skip == 1) continue;  //javascript doesn't support continue 2;
+        spanTimeEnd = frame.Delta *100;
+        spanTime = spanTimeEnd - spanTimeStart;
+        alarmed = 0;
+        pix = cueRatio * spanTime;
+        pixSkew += pix - Math.round(pix);
+        pix = Math.round(pix);
+        if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) {
+          pix += Math.round(pixSkew);
+          pixSkew = pixSkew - Math.round(pixSkew);
+        }
+        alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+        spanTimeStart = spanTimeEnd;
+      } else if (frame.Type == "Alarm" && alarmed == 1 && i + 1 >= cueFrames.length) { //event ends on an alarm
+        spanTimeEnd = frame.Delta * 100;
+        spanTime = spanTimeEnd - spanTimeStart;
+        alarmed = 0;
+        pix = Math.round(cueRatio * spanTime);
+        alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+      }
+    }
+    return alarmHtml;
+  }
 }
 
 function setButtonState( element, butClass ) {
@@ -46,16 +140,20 @@ function changeScale() {
   var baseHeight = eventData.Height;
   var newWidth = ( baseWidth * scale ) / SCALE_BASE;
   var newHeight = ( baseHeight * scale ) / SCALE_BASE;
-
-	if ( vid ) {
-    // Using video.js
-		vid.width = newWidth;
-		vid.height = newHeight;
-	} else {
+  if ( vid ) {
+  // Using video.js
+    $j("#videoobj").width(newWidth);
+    $j("#videoobj").height(newHeight);
+    $j("div.alarmCue").html(renderAlarmCues());//just re-render alarmCues.  skip ajax call
+    Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
+  } else {
     streamScale( scale );
-		var streamImg = document.getElementById('evtStream');
-		streamImg.style.width = newWidth + "px";
-		streamImg.style.height = newHeight + "px";
+    var streamImg = document.getElementById('evtStream');
+    streamImg.style.width = newWidth + "px";
+    streamImg.style.height = newHeight + "px";
+    $j("#alarmCueJpeg").width(newWidth);
+    drawProgressBar();
+    $j("#alarmCueJpeg").html(renderAlarmCues());
     Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
   }
 }
@@ -73,23 +171,30 @@ var streamCmdTimer = null;
 
 var streamStatus = null;
 var lastEventId = 0;
+var zmsBroke = false; //Use alternate navigation if zms has crashed
 
 function getCmdResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getCmdResponse", respObj ) ) {
     console.log('Got an error from getCmdResponse');
+    var zmsBroke = true;
     return;
   }
+
+  zmsBroke = false;
 
   if ( streamCmdTimer )
     streamCmdTimer = clearTimeout( streamCmdTimer );
 
   streamStatus = respObj.status;
+  if (streamStatus.progress > parseFloat(eventData.Length)) streamStatus.progress = parseFloat(eventData.Length); //Limit progress to reality
 
   var eventId = streamStatus.event;
-  if ( eventId != lastEventId ) {
+  if ( eventId != lastEventId && lastEventId != 0) { //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
     eventQuery( eventId );
+    initialAlarmCues(eventId);  //zms uses this instead of a page reload, must call ajax+render
     lastEventId = eventId;
   }
+  if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
   if ( streamStatus.paused == true ) {
     $('modeValue').set( 'text', 'Paused' );
     $('rate').addClass( 'hidden' );
@@ -117,7 +222,7 @@ function getCmdResponse( respObj, respText ) {
       streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
   } // end if haev a new auth hash
 
-  streamCmdTimer = streamQuery.delay( streamTimeout );
+  streamCmdTimer = streamQuery.delay( streamTimeout ); //Timeout is refresh rate for progressBox and time display
 }
 
 var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
@@ -194,23 +299,26 @@ function streamFastRev( action ) {
   streamReq.send( streamParms+"&command="+CMD_FASTREV );
 }
 
-function streamPrev( action ) {
-  if ( action ) {
-    if ( vid ) {
+function streamPrev(action) {
+  if (action) {
+    if (vid || PrevEventDefVideoPath.indexOf("view_video") >=0 || $j("#vjsMessage").length || zmsBroke) { //handles this or prev being video.js, or end of events
       location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
-      return;
+    } else {
+      streamReq.send(streamParms+"&command="+CMD_PREV);
     }
-    streamReq.send( streamParms+"&command="+CMD_PREV );
   }
 }
 
-function streamNext( action ) {
-  if ( action ) {
-    if ( vid ) {
+function streamNext(action) {
+  if (action) {
+    if (nextEventId == 0) { //handles deleting last event.
+      let replaceStream = $j(vid ? "#videoobj" : "#evtStream");
+      replaceStream.replaceWith('<p class="vjsMessage" style="width:' + replaceStream.css("width") + '; height: ' + replaceStream.css("height") + ';line-height: ' + replaceStream.css("height") + ';">No more events</p>');
+    } else if (vid || NextEventDefVideoPath.indexOf("view_video") >=0 || zmsBroke) { //handles current or next switch to video.js
       location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
-      return;
+    } else {
+      streamReq.send( streamParms+"&command="+CMD_NEXT );
     }
-    streamReq.send( streamParms+"&command="+CMD_NEXT );
   }
 }
 
@@ -311,8 +419,8 @@ function getNearEventsResponse( respObj, respText ) {
   if ( prevEventBtn ) prevEventBtn.disabled = !prevEventId;
   var nextEventBtn = $('nextEventBtn');
   if ( nextEventBtn ) nextEventBtn.disabled = !nextEventId;
-  if (prevEventId == 0) $j('#prevBtnVjs').prop('disabled', true).attr('class', 'unavail');
-  if (nextEventId == 0) $j('#nextBtnVjs').prop('disabled', true).attr('class', 'unavail');
+  $j('#prevBtn').prop('disabled', prevEventId == 0 ? true : false).attr('class', prevEventId == 0 ? 'unavail' : 'inactive');
+  $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 }
 
 var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
@@ -683,63 +791,40 @@ function videoEvent() {
   createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
 }
 
-// Called on each event load, because each event can be a different length.
+// Called on each event load because each event can be a different width
 function drawProgressBar() {
-  // Make it invisible so we don't see the update happen
-  $('progressBar').addClass( 'invisible' );
-  var barWidth = 0;
-  var cells = $('progressBar').getElements( 'div' );
-  var cells_length = cells.length;
-
-  var cellWidth = parseInt( eventData.Width / cells_length );
-  for ( var index = 0; index < cells_length; index += 1 ) {
-    var cell = $( cells[index] );
-    if ( index == 0 ) 
-      cell.setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
-    else
-      cell.setStyles( { 'left': barWidth, 'width': cellWidth } );
-
-    var offset = parseInt( (index*eventData.Length)/cells_length );
-    cell.setProperty( 'title', '+'+secsToTime(offset)+'s' );
-    cell.removeEvent( 'click' );
-    cell.addEvent( 'click', function() { streamSeek( offset ); } );
-    barWidth += cell.getCoordinates().width;
-  }
-  $('progressBar').setStyle( 'width', barWidth );
-  $('progressBar').removeClass( 'invisible' );
+  var barWidth = (eventData.Width * $j('#scale').val()) / SCALE_BASE;
+  $j('#progressBar').css( 'width', barWidth );
 }
 
-// Changes the colour of the cells making up the completed progress bar
+// Shows current stream progress.
 function updateProgressBar() {
   if ( ! ( eventData && streamStatus ) ) {
     return;
   } // end if ! eventData && streamStatus
-  var cells = $('progressBar').getElements( 'div' );
-  var cells_length = cells.length;
-  var completeIndex = parseInt(((cells_length+1)*streamStatus.progress)/eventData.Length);
-  for ( var index = 0; index < cells_length; index += 1 ) {
-    var cell = $( cells[index] );
-    if ( index < completeIndex ) {
-      if ( !cell.hasClass( 'complete' ) ) {
-        cell.addClass( 'complete' );
-      }
-    } else {
-      if ( cell.hasClass( 'complete' ) ) {
-        cell.removeClass( 'complete' );
-      }
-    } // end if
-  } // end function
+  var curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+  $j("#progressBox").css('width', curWidth + '%');
 } // end function updateProgressBar()
+
+// Handles seeking when clicking on the progress bar.
+function progressBarSeek (){
+  $j('#progressBar').click(function(e){
+    var x = e.pageX - $j(this).offset().left;
+    var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    streamSeek (seekTime);
+  });
+}
 
 function handleClick( event ) {
   var target = event.target;
   var x = event.page.x - $(target).getLeft();
   var y = event.page.y - $(target).getTop();
 
-  if ( event.shift )
-    streamPan( x, y );
-  else
-    streamZoomIn( x, y );
+  if (event.shift) {
+    streamPan(x, y);
+  } else {
+    streamZoomIn(x, y);
+  }
 }
 
 function setupListener() {
@@ -841,6 +926,7 @@ function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if ( $('videoobj') ) {
     vid = videojs("videoobj");
+    initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues after videojs is.  should be only call to initialAlarmCues on vjs streams
   }
   if ( vid ) {
 /*
@@ -861,8 +947,10 @@ function initPage() {
     window.videoobj.load();
     streamPlay();    */
   } else {
+    progressBarSeek ();
     streamCmdTimer = streamQuery.delay( 250 );
     eventQuery.pass( eventData.Id ).delay( 500 );
+    initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues for nph-zms.  
 
     if ( canStreamNative ) {
       var streamImg = $('imageFeed').getElement('img');

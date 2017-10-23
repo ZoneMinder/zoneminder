@@ -19,8 +19,30 @@
 //
 
 $servers = Server::find_all();
+$ServersById = array(''=>'All');
+foreach ( $servers as $S ) {
+  $ServersById[$S->Id()] = $S;
+}
+session_start();
+foreach ( array('ServerFilter','StorageFilter') as $var ) {
+  if ( isset( $_REQUEST[$var] ) ) {
+    if ( $_REQUEST[$var] != '' ) {
+      $_SESSION[$var] = $_REQUEST[$var];
+    } else {
+      unset( $_SESSION[$var] );
+    }
+  } else if ( isset( $_COOKIE[$var] ) ) {
+    if ( $_COOKIE[$var] != '' ) {
+      $_SESSION[$var] = $_COOKIE[$var];
+    } else {
+      unset($_SESSION[$var]);
+    }
+  }
+}
+session_write_close();
+
 $storage_areas = Storage::find_all();
-$StorageById = array();
+$StorageById = array(''=>'All');
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
 }
@@ -101,7 +123,6 @@ $navbar = getNavBarHTML();
 
 noCacheHeaders();
 
-$eventsView = ZM_WEB_EVENTS_VIEW;
 $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 $left_columns = 3;
 if ( count($servers) ) $left_columns += 1;
@@ -138,7 +159,21 @@ $groupSql = Group::get_group_sql( $group_id );
   $maxHeight = 0;
   # Used to determine if the Cycle button should be made available
 
-  $monitors = dbFetchAll( 'SELECT * FROM Monitors'.($groupSql?' WHERE '.$groupSql:'').' ORDER BY Sequence ASC' );
+  $conditions = array();
+  $values = array();
+
+  if ( $groupSql )
+    $conditions[] = $groupSql;
+  if ( isset($_SESSION['ServerFilter']) ) {
+    $conditions[] = 'ServerId=?';
+    $values[] = $_SESSION['ServerFilter'];
+  }
+  if ( isset($_SESSION['StorageFilter']) ) {
+    $conditions[] = 'StorageId=?';
+    $values[] = $_SESSION['StorageFilter'];
+  }
+  $sql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
+  $monitors = dbFetchAll( $sql, null, $values );
   $displayMonitors = array();
   $monitors_dropdown = array(''=>'All');
 
@@ -188,6 +223,24 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
 }
 ?>
 </span>
+<?php if ( count($ServersById) > 0 ) { ?>
+<span id="ServerFilter"><label><?php echo translate('Server')?>:</label>
+<?php
+echo htmlSelect( 'ServerFilter', $ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
+?>
+</span>
+<?php 
+}
+if ( count($StorageById) > 0 ) { ?>
+<span id="StorageFilter"><label><?php echo translate('Storage')?>:</label>
+<?php
+echo htmlSelect( 'StorageFilter', $StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
+?>
+</span>
+<?php
+}
+?>
+    </div>
     </div>
 
     <div class="container-fluid">
@@ -252,7 +305,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
 <?php
   if ( count($servers) ) { ?>
-            <td class="colServer"><?php $Server = new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
+            <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
 <?php
   }
   $source = '';
@@ -278,7 +331,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 
   for ( $i = 0; $i < count($eventCounts); $i++ ) {
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, $eventsView, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
 <?php
   }
 ?>
@@ -300,7 +353,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
         </tbody>
         <tfoot>
           <tr>
-            <td class="colLeftButtons" colspan="<?php echo $left_columns ?>">
+            <td class="colId"><?php echo count($displayMonitors) ?></td>
+            <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
               <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
               <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
@@ -312,7 +366,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
       for ( $i = 0; $i < count($eventCounts); $i++ ) {
         parseFilter( $eventCounts[$i]['filter'] );
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.$eventsView.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, $eventsView, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
+            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
 <?php
       }
 ?>

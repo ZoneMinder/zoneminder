@@ -132,6 +132,7 @@ public:
     memset( &loc_addr, 0, sizeof(loc_addr) );
     memset( &rem_sock_path, 0, sizeof(rem_sock_path) );
     memset( &rem_addr, 0, sizeof(rem_addr) );
+    memset( &sock_path_lock, 0, sizeof(sock_path_lock) );
 
     base_fps = 0.0;
     effective_fps = 0.0;

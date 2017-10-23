@@ -288,18 +288,19 @@ struct image_def image_def;
   return 0;
 }
 
-int RemoteCameraNVSocket::Capture( Image &image ) {
+ZMPacket * RemoteCameraNVSocket::Capture( Image &image ) {
   if ( SendRequest("GetNextImage") < 0 ) {
     Warning( "Unable to capture image, retrying" );
-    return( 1 );
+    return NULL;
   }
   if ( Read( sd, buffer, imagesize ) < imagesize ) {
     Warning( "Unable to capture image, retrying" );
-    return( 1 );
+    return NULL;
   }
 
   image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
-  return( 0 );
+  ZMPacket *packet = new ZMPacket( &image );
+  return packet;
 }
 
 int RemoteCameraNVSocket::PostCapture()

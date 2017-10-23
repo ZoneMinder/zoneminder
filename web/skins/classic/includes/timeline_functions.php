@@ -1,37 +1,30 @@
 <?php
 
-function getDateScale( $scales, $range, $minLines, $maxLines )
-{
-    foreach ( $scales as $scale )
-    {
+function getDateScale( $scales, $range, $minLines, $maxLines ) {
+    foreach ( $scales as $scale ) {
         $align = isset($scale['align'])?$scale['align']:1;
         $scaleRange = (int)($range/($scale['factor']*$align));
         //echo "S:".$scale['name'].", A:$align, SR:$scaleRange<br>";
-        if ( $scaleRange >= $minLines )
-        {
+        if ( $scaleRange >= $minLines ) {
             $scale['range'] = $scaleRange;
             break;
         }
     }
-    if ( !isset($scale['range']) )
-    {
+    if ( !isset($scale['range']) ) {
         $scale['range'] = (int)($range/($scale['factor']*$align));
     }
     $scale['divisor'] = 1;
-    while ( ($scale['range']/$scale['divisor']) > $maxLines )
-    {
+    while ( ($scale['range']/$scale['divisor']) > $maxLines ) {
         $scale['divisor']++;
     }
     $scale['lines'] = (int)($scale['range']/$scale['divisor']);
     return( $scale );
 }
 
-function getYScale( $range, $minLines, $maxLines )
-{
+function getYScale( $range, $minLines, $maxLines ) {
     $scale['range'] = $range;
     $scale['divisor'] = 1;
-    while ( $scale['range']/$scale['divisor'] > $maxLines )
-    {
+    while ( $scale['range']/$scale['divisor'] > $maxLines ) {
         $scale['divisor']++;
     }
     $scale['lines'] = (int)(($scale['range']-1)/$scale['divisor'])+1;
@@ -39,11 +32,9 @@ function getYScale( $range, $minLines, $maxLines )
     return( $scale );
 }
 
-function getSlotFrame( $slot )
-{
+function getSlotFrame( $slot ) {
     $slotFrame = isset($slot['frame'])?$slot['frame']['FrameId']:1;
-    if ( false && $slotFrame )
-    {
+    if ( false && $slotFrame ) {
         $slotFrame -= $monitor['PreEventCount'];
         if ( $slotFrame < 1 )
             $slotFrame = 1;
@@ -51,10 +42,8 @@ function getSlotFrame( $slot )
     return( $slotFrame );
 }
 
-function parseFilterToTree( $filter )
-{
-    if ( count($filter['terms']) > 0 )
-    {
+function parseFilterToTree( $filter ) {
+    if ( count($filter['terms']) > 0 ) {
         $postfixExpr = array();
         $postfixStack = array();
 
@@ -73,29 +62,19 @@ function parseFilterToTree( $filter )
             'or' => 4,
         );
 
-        for ( $i = 0; $i <= count($filter['terms']); $i++ )
-        {
-            if ( !empty($filter['terms'][$i]['cnj']) )
-            {
-                while( true )
-                {
-                    if ( !count($postfixStack) )
-                    {
+        for ( $i = 0; $i <= count($filter['terms']); $i++ ) {
+            if ( !empty($filter['terms'][$i]['cnj']) ) {
+                while( true ) {
+                    if ( !count($postfixStack) ) {
                         $postfixStack[] = array( 'type'=>"cnj", 'value'=>$filter['terms'][$i]['cnj'], 'sqlValue'=>$filter['terms'][$i]['cnj']);
                         break;
-                    }
-                    elseif ( $postfixStack[count($postfixStack)-1]['type'] == 'obr' )
-                    {
+                    } elseif ( $postfixStack[count($postfixStack)-1]['type'] == 'obr' ) {
                         $postfixStack[] = array( 'type'=>"cnj", 'value'=>$filter['terms'][$i]['cnj'], 'sqlValue'=>$filter['terms'][$i]['cnj']);
                         break;
-                    }
-                    elseif ( $priorities[$filter['terms'][$i]['cnj']] < $priorities[$postfixStack[count($postfixStack)-1]['value']] )
-                    {
+                    } elseif ( $priorities[$filter['terms'][$i]['cnj']] < $priorities[$postfixStack[count($postfixStack)-1]['value']] ) {
                         $postfixStack[] = array( 'type'=>"cnj", 'value'=>$filter['terms'][$i]['cnj'], 'sqlValue'=>$filter['terms'][$i]['cnj']);
                         break;
-                    }
-                    else
-                    {
+                    } else {
                         $postfixExpr[] = array_pop( $postfixStack );
                     }
                 }
@@ -157,23 +136,17 @@ function parseFilterToTree( $filter )
                         $sqlValue = $filter['terms'][$i]['attr'];
                         break;
                 }
-                if ( $dtAttr )
-                {
+                if ( $dtAttr ) {
                     $postfixExpr[] = array( 'type'=>"attr", 'value'=>$filter['terms'][$i]['attr'], 'sqlValue'=>$sqlValue, 'dtAttr'=>true );
-                }
-                else
-                {
+                } else {
                     $postfixExpr[] = array( 'type'=>"attr", 'value'=>$filter['terms'][$i]['attr'], 'sqlValue'=>$sqlValue );
                 }
             }
-            if ( isset($filter['terms'][$i]['op']) )
-            {
-                if ( empty($filter['terms'][$i]['op']) )
-                {
+            if ( isset($filter['terms'][$i]['op']) ) {
+                if ( empty($filter['terms'][$i]['op']) ) {
                     $filter['terms'][$i]['op' ]= '=';
                 }
-                switch ( $filter['terms'][$i]['op' ])
-                {
+                switch ( $filter['terms'][$i]['op' ]) {
                     case '=' :
                     case '!=' :
                     case '>=' :
@@ -195,36 +168,25 @@ function parseFilterToTree( $filter )
                         $sqlValue = 'not in (';
                         break;
                 }
-                while( true )
-                {
-                    if ( !count($postfixStack) )
-                    {
+                while( true ) {
+                    if ( !count($postfixStack) ) {
                         $postfixStack[] = array( 'type'=>"op", 'value'=>$filter['terms'][$i]['op'], 'sqlValue'=>$sqlValue );
                         break;
-                    }
-                    elseif ( $postfixStack[count($postfixStack)-1]['type'] == 'obr' )
-                    {
+                    } elseif ( $postfixStack[count($postfixStack)-1]['type'] == 'obr' ) {
                         $postfixStack[] = array( 'type'=>"op", 'value'=>$filter['terms'][$i]['op'], 'sqlValue'=>$sqlValue );
                         break;
-                    }
-                    elseif ( $priorities[$filter['terms'][$i]['op']] < $priorities[$postfixStack[count($postfixStack)-1]['value']] )
-                    {
+                    } elseif ( $priorities[$filter['terms'][$i]['op']] < $priorities[$postfixStack[count($postfixStack)-1]['value']] ) {
                         $postfixStack[] = array( 'type'=>"op", 'value'=>$filter['terms'][$i]['op'], 'sqlValue'=>$sqlValue );
                         break;
-                    }
-                    else
-                    {
+                    } else {
                         $postfixExpr[] = array_pop( $postfixStack );
                     }
                 }
             }
-            if ( isset($filter['terms'][$i]['val']) )
-            {
+            if ( isset($filter['terms'][$i]['val']) ) {
                 $valueList = array();
-                foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val' ]) ) as $value )
-                {
-                    switch ( $filter['terms'][$i]['attr'])
-                    {
+                foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val' ]) ) as $value ) {
+                    switch ( $filter['terms'][$i]['attr']) {
                         case 'MonitorName':
                         case 'Name':
                         case 'Cause':

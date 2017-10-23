@@ -69,7 +69,7 @@ void zmLoadConfig() {
 
       Debug( 1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str() );
       std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
-			zmDbRow dbrow;
+      zmDbRow dbrow;
       if ( dbrow.fetch( sql.c_str() ) ) {
         staticConfig.SERVER_ID = atoi(dbrow[0]);
       } else {
@@ -81,12 +81,12 @@ void zmLoadConfig() {
     Debug( 1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID );
     std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
     
-		zmDbRow dbrow;
-		if ( dbrow.fetch( sql.c_str() ) ) {
-			staticConfig.SERVER_NAME = std::string(dbrow[0]);
-		} else {
-			Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
-		}
+    zmDbRow dbrow;
+    if ( dbrow.fetch( sql.c_str() ) ) {
+      staticConfig.SERVER_NAME = std::string(dbrow[0]);
+    } else {
+      Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
+    }
 
     if ( staticConfig.SERVER_ID ) {
         Debug( 3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID );
@@ -94,6 +94,11 @@ void zmLoadConfig() {
         Debug( 3, "Single server configuration assumed because no Server ID or Name was specified." );
     }
   }
+
+  snprintf( staticConfig.capture_file_format, sizeof(staticConfig.capture_file_format), "%%s/%%0%dd-capture.jpg", config.event_image_digits );
+  snprintf( staticConfig.analyse_file_format, sizeof(staticConfig.analyse_file_format), "%%s/%%0%dd-analyse.jpg", config.event_image_digits );
+  snprintf( staticConfig.general_file_format, sizeof(staticConfig.general_file_format), "%%s/%%0%dd-%%s", config.event_image_digits );
+  snprintf( staticConfig.video_file_format, sizeof(staticConfig.video_file_format), "%%s/%%s");
 }
 
 void process_configfile( char* configFile) {

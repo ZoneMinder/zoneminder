@@ -87,7 +87,15 @@ public $defaults = array(
   }
 
   public function delete() {
-    dbQuery( 'DELETE FROM Groups WHERE Id = ?', array($this->{'Id'}) );
+    if ( array_key_exists( 'Id', $this ) ) {
+      dbQuery( 'DELETE FROM Groups WHERE Id = ?', array($this->{'Id'}) );
+      if ( isset($_COOKIE['zmGroup']) ) {
+        if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
+          unset( $_COOKIE['zmGroup'] );
+          setcookie( 'zmGroup', '', time()-3600*24*2 );
+        }
+      }
+    }
   } # end function delete()
 
   public function set( $data ) {
@@ -172,5 +180,34 @@ public $defaults = array(
     }
     return $groupSql;
   } # end public static function get_group_sql( $group_id )
+
+  public static function get_monitors_dropdown( $options = null ) {
+  $monitor_id = 0;
+  if ( isset( $_REQUEST['monitor_id'] ) ) {
+    $monitor_id = $_REQUEST['monitor_id'];
+  } else if ( isset($_COOKIE['zmMonitorId']) ) {
+    $monitor_id = $_COOKIE['zmMonitorId'];
+  }
+	  $sql = 'SELECT * FROM Monitors';
+	  if ( $options ) {
+		  $sql .= ' WHERE '. implode(' AND ', array(
+					  ( isset($options['groupSql']) ? $options['groupSql']:'')
+					  ) ).' ORDER BY Sequence ASC';
+	  }
+	  $monitors_dropdown = array(''=>'All');
+
+	foreach ( dbFetchAll( $sql ) as $monitor ) {
+    if ( !visibleMonitor( $monitor['Id'] ) ) {
+      continue;
+    }
+    $monitors_dropdown[$monitor['Id']] = $monitor['Name'];
+  }
+
+  echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') );
+  return $monitor_id;
+}
+
 } # end class Group
+
+
 ?>

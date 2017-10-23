@@ -672,7 +672,7 @@ switch ( $tab ) {
   case 'general' :
     {
 ?>
-          <tr><td><?php echo translate('Name') ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>" size="16"/></td></tr>
+          <tr class="Name"><td><?php echo translate('Name') ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>" /></td></tr>
           <tr><td><?php echo translate('Server') ?></td><td>
 <?php 
       $servers = array(''=>'None');

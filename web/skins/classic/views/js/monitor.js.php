@@ -50,7 +50,7 @@ monitorNames['<?php echo validJsStr($name) ?>'] = true;
 function validateForm( form ) {
   var errors = new Array();
 
-  if ( form.elements['newMonitor[Name]'].value.search( /[^\w- ]/ ) >= 0 )
+  if ( form.elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
     errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
   else if ( form.elements.mid.value == 0 && monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";

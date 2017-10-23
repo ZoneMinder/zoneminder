@@ -24,12 +24,29 @@
 
 using namespace std;
 
+ZMPacket::ZMPacket( ) {
+  keyframe = 0;
+  image = NULL;
+  frame = NULL;
+  av_init_packet( &packet );
+  gettimeofday( &timestamp, NULL );
+}
+
+ZMPacket::ZMPacket( Image *i ) {
+  keyframe = 1;
+  image = i;
+  frame = NULL;
+  av_init_packet( &packet );
+  gettimeofday( &timestamp, NULL );
+}
+
 ZMPacket::ZMPacket( AVPacket *p ) {
   av_init_packet( &packet );
   if ( zm_av_packet_ref( &packet, p ) < 0 ) {
     Error("error refing packet");
 	}
   gettimeofday( &timestamp, NULL );
+  keyframe = p->flags & AV_PKT_FLAG_KEY;
 }
 
 ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
@@ -38,6 +55,7 @@ ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
     Error("error refing packet");
 	}
   timestamp = *t;
+  keyframe = p->flags & AV_PKT_FLAG_KEY;
 }
 
 ZMPacket::~ZMPacket() {
@@ -45,5 +63,103 @@ ZMPacket::~ZMPacket() {
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {
+  Debug(4, "about to decode video" );
+
+  if ( frame ) {
+      Error("Already have a frame?");
+  } else {
+      frame = zm_av_frame_alloc();
+  }
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  int ret = avcodec_send_packet( ctx, &packet );
+  if ( ret < 0 ) {
+    Error( "Unable to send packet: %s", av_make_error_string( ret ) );
+      av_frame_free( &frame );
+    return 0;
+  }
+
+#if HAVE_AVUTIL_HWCONTEXT_H
+  if ( hwaccel ) {
+    ret = avcodec_receive_frame( ctx, hwFrame );
+    if ( ret < 0 ) {
+      Error( "Unable to receive frame: %s", av_make_error_string( ret ) );
+      av_frame_free( &frame );
+      return 0;
+    }
+    ret = av_hwframe_transfer_data(frame, hwFrame, 0);
+    if ( ret < 0 ) {
+      Error( "Unable to transfer frame: %s", av_make_error_string( ret ) );
+      av_frame_free( &frame );
+      return 0;
+    }
+  } else {
+#endif
+    ret = avcodec_receive_frame( ctx, frame );
+    if ( ret < 0 ) {
+      Error( "Unable to receive frame: %s", av_make_error_string( ret ) );
+      av_frame_free( &frame );
+      return 0;
+    }
+
+#if HAVE_AVUTIL_HWCONTEXT_H
+  }
+#endif
+
+# else
+  int frameComplete = 0;
+  ret = zm_avcodec_decode_video( ctx, frame, &frameComplete, &packet );
+  if ( ret < 0 ) {
+    Error( "Unable to decode frame at frame %s", av_make_error_string( ret ) );
+      av_frame_free( &frame );
+    return 0;
+  }
+  if ( ! frameComplete ) {
+    Debug(1, "incomplete frame?");
+      av_frame_free( &frame );
+    return 0;
+  }
+#endif
+  return 1;
+} // end ZMPacket::decode
+
+Image * ZMPacket::get_image( Image *i = NULL ) {
+
+  if ( ! frame ) {
+    Error("Can't get image without frame.. maybe need to decode first");
+    return NULL;
+  }
+
+  if ( ! image ) {
+    if ( ! i ) {
+      Error("Need a pre-allocated image buffer");
+      return NULL;
+    } 
+    image = i;
+  }
+  /* Request a writeable buffer of the target image */
+  uint8_t* directbuffer = image->WriteBuffer();
+  //uint8_t* directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+  if ( directbuffer == NULL ) {
+    Error("Failed requesting writeable buffer for the captured image.");
+    image = NULL;
+    return NULL;
+  }
+
+  colours = ZM_COLOUR_RGB32;
+  subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  AVFrame *mFrame = zm_av_frame_alloc();
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  av_image_fill_arrays(mframe->data, mframe->linesize, directbuffer, imagePixFormat, frame->width, frame->height, 1);
+#else
+  avpicture_fill( (AVPicture *)mframe, directbuffer, imagePixFormat, frame->width, frame->height);
+#endif
+  if (sws_scale(mConvertContext, frame->data, frame->linesize,
+        0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0) {
+    Fatal("Unable to convert raw format %u to target format %u",
+        mVideoCodecContext->pix_fmt, imagePixFormat);
+  }
+  av_frame_free( &mFrame );
+  return image;
 }
 

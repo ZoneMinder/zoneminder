@@ -88,9 +88,8 @@ public:
   virtual int Connect() = 0;
   virtual int Disconnect() = 0;
   virtual int PreCapture() = 0;
-  virtual int Capture( Image &image ) = 0;
+  virtual ZMPacket *Capture( Image &image ) = 0;
   virtual int PostCapture() = 0;
-  virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory )=0;
   int Read( int fd, char*buf, int size );
 };
 

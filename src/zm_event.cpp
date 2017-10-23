@@ -37,11 +37,6 @@
 
 //#define USE_PREPARED_SQL 1
 
-bool Event::initialised = false;
-char Event::capture_file_format[PATH_MAX];
-char Event::analyse_file_format[PATH_MAX];
-char Event::general_file_format[PATH_MAX];
-char Event::video_file_format[PATH_MAX];
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 
 int Event::pre_alarm_count = 0;
@@ -56,8 +51,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   videoEvent( p_videoEvent ),
   videowriter( NULL )
 {
-  if ( !initialised )
-    Initialise();
 
   std::string notes;
   createNotes( notes );
@@ -72,7 +65,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   unsigned int state_id = 0;
   zmDbRow dbrow;
-  if ( dbrow.fetch( "SELECT Id FROM States WHERE IsActive=1") ) {
+  if ( dbrow.fetch("SELECT Id FROM States WHERE IsActive=1") ) {
     state_id = atoi(dbrow[0]);
   }
 
@@ -173,7 +166,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
     snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
-    snprintf( video_file, sizeof(video_file), video_file_format, path, video_name );
+    snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
+    Debug(1,"Writing video file to %s", video_file );
 
     /* X264 MP4 video writer */
     if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
@@ -194,7 +188,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       }
 
       snprintf( timecodes_name, sizeof(timecodes_name), "%d-%s", id, "video.timecodes" );
-      snprintf( timecodes_file, sizeof(timecodes_file), video_file_format, path, timecodes_name );
+      snprintf( timecodes_file, sizeof(timecodes_file), staticConfig.video_file_format, path, timecodes_name );
 
       /* Create timecodes file */
       timecodes_fd = fopen(timecodes_file, "wb");
@@ -227,7 +221,7 @@ Event::~Event() {
   /* Close the video file */
   if ( videowriter != NULL ) {
     int nRet = videowriter->Close();
-    if(nRet != 0) {
+    if ( nRet != 0 ) {
       Error("Failed closing video stream");
     }
     delete videowriter;
@@ -291,7 +285,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
   }
 
   /* If the image does not contain a timestamp, add the timestamp */
-  if (!config.timestamp_on_capture) {
+  if ( !config.timestamp_on_capture ) {
     ts_image = *image;
     monitor->TimestampImage( &ts_image, &timestamp );
     frameimg = &ts_image;
@@ -303,7 +297,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
   unsigned int timeMS = (delta_time3.sec * delta_time3.prec) + delta_time3.fsec;
 
   /* Encode and write the frame */
-  if(videowriter->Encode(frameimg, timeMS) != 0) {
+  if ( videowriter->Encode(frameimg, timeMS) != 0 ) {
     Error("Failed encoding video frame");
   }
 
@@ -438,7 +432,7 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     frames++;
 
     static char event_file[PATH_MAX];
-    snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
+    snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
     if ( monitor->GetOptSaveJPEGs() & 4 ) {
       //If this is the first frame, we should add a thumbnail to the event directory
       // ICON: We are working through the pre-event frames so this snapshot won't 
@@ -489,9 +483,10 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   frames++;
 
   static char event_file[PATH_MAX];
-  snprintf( event_file, sizeof(event_file), capture_file_format, path, frames );
+  snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
 
   if ( monitor->GetOptSaveJPEGs() & 4 ) {
+    // Only snapshots
     //If this is the first frame, we should add a thumbnail to the event directory
     if ( frames == 10 ) {
       char snapshot_file[PATH_MAX];
@@ -514,6 +509,7 @@ Debug(3, "Writing video");
   DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
 
   FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
+  // < 0 means no motion detection is being done.
   if ( score < 0 )
     score = 0;
 
@@ -559,7 +555,7 @@ Debug(3, "Writing video");
       max_score = score;
 
     if ( alarm_image ) {
-      snprintf( event_file, sizeof(event_file), analyse_file_format, path, frames );
+      snprintf( event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames );
 
       Debug( 1, "Writing analysis frame %d", frames );
       if ( monitor->GetOptSaveJPEGs() & 2 ) {

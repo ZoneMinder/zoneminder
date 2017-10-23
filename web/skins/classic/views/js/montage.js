@@ -30,7 +30,7 @@ function Monitor( monitorData ) {
     if ( this.streamCmdTimer )
       this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
 
-    var stream = document.getElementById( "liveStream"+this.id );
+    var stream = $j('#liveStream'+this.id );
     if ( respObj.result == 'Ok' ) {
       this.status = respObj.status;
       this.alarmState = this.status.state;

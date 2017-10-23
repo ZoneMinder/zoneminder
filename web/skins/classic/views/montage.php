@@ -90,10 +90,21 @@ $group_dropdowns = ob_get_contents();
 ob_end_clean();
 
 $groupSql = Group::get_group_sql( $group_id );
+
+$monitor_id = 0;
+if ( isset( $_REQUEST['monitor_id'] ) ) {
+  $monitor_id = $_REQUEST['monitor_id'];
+} else if ( isset($_COOKIE['zmMonitorId']) ) {
+  $monitor_id = $_COOKIE['zmMonitorId'];
+}
+
 $monitors = array();
+$monitors_dropdown = array( '' => 'All' );
 $sql = "SELECT * FROM Monitors WHERE Function != 'None'";
 if ( $groupSql ) { $sql .= ' AND ' . $groupSql; };
-$sql .= 'ORDER BY Sequence';
+if ( $monitor_id ) { $sql .= ' AND Id='.$monitor_id; };
+
+$sql .= ' ORDER BY Sequence';
 foreach( dbFetchAll( $sql ) as $row ) {
   if ( !visibleMonitor( $row['Id'] ) ) {
     continue;
@@ -105,7 +116,8 @@ foreach( dbFetchAll( $sql ) as $row ) {
   if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
     $showControl = true;
   $row['connKey'] = generateConnKey();
-  $monitors[] = new Monitor( $row );
+  $Monitor = $monitors[] = new Monitor( $row );
+  $monitors_dropdown[$Monitor->Id()] = $Monitor->Name();
   if ( ! isset( $widths[$row['Width']] ) ) {
     $widths[$row['Width']] = $row['Width'];
   }
@@ -140,10 +152,11 @@ if ( $showZones ) {
       </div>
       <div id="headerControl">
         <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
-<?php
-echo $group_dropdowns;
-?>
+        <?php echo $group_dropdowns; ?>
         </span>
+      <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
+      <?php echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') ); ?>
+      </span>
         <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
         <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
         <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 

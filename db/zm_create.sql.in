@@ -207,6 +207,7 @@ CREATE TABLE `Events` (
   `Notes` text,
   `StateId` int(10) unsigned NOT NULL,
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
+  `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`Id`,`MonitorId`),
   KEY `MonitorId` (`MonitorId`),
   KEY `StartTime` (`StartTime`),
@@ -592,13 +593,14 @@ CREATE TABLE `Storage` (
 	`Id`	smallint(5) unsigned NOT NULL auto_increment,
 	`Path`	varchar(64)	NOT NULL default '',
 	`Name`	varchar(64) NOT NULL default '',
+	`Type`	enum('local','s3fs') NOT NULL default 'local',
 	PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default' );
+insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default', 'local' );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

@@ -315,3 +315,7 @@ function changeMonitor( e ) {
   Cookie.write( 'zmMonitorId', monitor_id, { duration: 10*365 } );
   window.location = window.location;
 }
+function changeFilter( e ) {
+  Cookie.write( e.name, e.value, { duration: 10*365 } );
+  window.location = window.location;
+}

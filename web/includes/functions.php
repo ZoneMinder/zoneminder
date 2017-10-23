@@ -161,7 +161,10 @@ function generateAuthHash( $useRemoteAddr ) {
       }
       $auth = md5( $authKey );
       if ( session_status() == PHP_SESSION_NONE ) {
-        Warning("Session is not active. AuthHash will not be cached.");
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Warning("Session is not active. AuthHash will not be cached. called from $file:$line");
       }
       $_SESSION['AuthHash'] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = time();
@@ -471,7 +474,7 @@ function getEventPath( $event ) {
 
 function getEventDefaultVideoPath( $event ) {
   $Event = new Event( $event );
-  return $Event->getStreamSrc( array( "mode=mpeg&format=h264" ) );
+  return $Event->getStreamSrc( array( "mode"=>"mpeg", "format"=>"h264" ) );
   //$Event->Path().'/'.$event['DefaultVideo'];
 }
 
@@ -557,10 +560,15 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
 
   $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
   foreach ( $contents as $value=>$text ) {
+    if ( is_array( $text ) )
+      $text = $text['Name'];
+    else if ( is_object( $text ) )
+      $text = $text->Name();
   //for ( $i = 0; $i < count($contents); $i +=2 ) {
     //$value = $contents[$i];
     //$text = $contents[$i+1];
-    $selected = is_array( $values ) ? in_array( $value, $values ) : $value==$values;
+    $selected = is_array( $values ) ? in_array( $value, $values ) : !strcmp($value, $values);
+    //Warning("Selected is $selected from $value and $values");
     $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
   }
   $html .= '</select>';
@@ -867,8 +875,17 @@ function zmcControl( $monitor, $mode=false ) {
   } else {
     $Server = new Server( $monitor['ServerId'] );
 
-    #$url = $Server->Url() . '/zm/api/monitors.json?auth='.generateAuthHash( $_SESSION['remoteAddr'] );
-    $url = $Server->Url() . '/zm/api/monitors.json?user='.$_SESSION['username'].'&pass='.$_SESSION['passwordHash'];
+    $url = $Server->Url() . '/zm/api/monitors/'.$monitor['Id'].'.json';
+    if ( ZM_OPT_USE_AUTH ) {
+      if ( ZM_AUTH_RELAY == 'hashed' ) {
+        $url .= '&auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+      } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+        $url = '&user='.$_SESSION['username'];
+        $url = '&pass='.$_SESSION['password'];
+      } elseif ( ZM_AUTH_RELAY == 'none' ) {
+        $url = '&user='.$_SESSION['username'];
+      }
+    }
     $data = array('Monitor[Function]' => $monitor['Function'] );
 
     // use key 'http' even if you send the request to https://...
@@ -2194,15 +2211,20 @@ function getStreamMode( ) {
 function folder_size($dir) {
     $size = 0;
     foreach (glob(rtrim($dir, '/').'/*', GLOB_NOSORT) as $each) {
-        $size += is_file($each) ? filesize($each) : folderSize($each);
+        $size += is_file($each) ? filesize($each) : folder_size($each);
     }
     return $size;
 } // end function folder_size
 
-function human_filesize($bytes, $decimals = 2) {
-  $sz = 'BKMGTP';
-  $factor = floor((strlen($bytes) - 1) / 3);
-  return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
+function human_filesize($size, $precision = 2) {
+    $units = array('B','kB','MB','GB','TB','PB','EB','ZB','YB');
+    $step = 1024;
+    $i = 0;
+    while (($size / $step) > 0.9) {
+        $size = $size / $step;
+        $i++;
+    }
+    return round($size, $precision).$units[$i];
 }
 
 function csrf_startup() {

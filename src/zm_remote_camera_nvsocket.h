@@ -68,7 +68,7 @@ bool p_record_audio );
   int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
   int GetResponse();
   int PreCapture();
-  int Capture( Image &image );
+  ZMPacket * Capture( Image &image );
   int PostCapture();
   int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
 };

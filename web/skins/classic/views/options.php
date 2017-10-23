@@ -178,7 +178,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colMonitors"><?php echo validHtmlStr($row['Monitors']) ?></td>
               <td class="colGroups"><?php echo validHtmlStr($row['Groups']) ?></td>
               <td class="colSystem"><?php echo validHtmlStr($row['System']) ?></td>
-              <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bwArray[$row['MaxBandwidth']]:'&nbsp;' ?></td>
+              <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bandwidth_options[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?php echo $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
               <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
@@ -199,10 +199,10 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="object" value="server"/>
-        <table id="contentTable" class="table table-striped" cellspacing="0">
+        <table id="contentTable" class="table table-striped">
           <thead>
             <tr>
-              <th class="colName"><?php echo translate('name') ?></th>
+              <th class="colName"><?php echo translate('Name') ?></th>
               <th class="colHostname"><?php echo translate('Hostname') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
 			</tr>
@@ -223,7 +223,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         </div>
       </form>
 <?php
-} else if ( $tab == "storage" ) { ?>
+} else if ( $tab == 'storage' ) { ?>
       <form name="storageForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -235,6 +235,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <th class="colId"><?php echo translate('Id') ?></th>
               <th class="colName"><?php echo translate('name') ?></th>
               <th class="colPath"><?php echo translate('path') ?></th>
+              <th class="colType"><?php echo translate('Type') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
 			</tr>
           </thead>
@@ -244,7 +245,8 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colId"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Id']), $canEdit ) ?></td>
               <td class="colName"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Name']), $canEdit ) ?></td>
               <td class="colPath"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Path']), $canEdit ) ?></td>
-              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colType"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Type']), $canEdit ) ?></td>
+              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton(this);"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
 			</tr>
 <?php } #end foreach Server ?>
           </tbody>
@@ -257,11 +259,11 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
       </form>
 <?php
 } else {
-    if ( $tab == "system" ) {
+    if ( $tab == 'system' ) {
         $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
         $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join( '|', $skin_options );
         $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join( '|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ) );
-
+        $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
     }
 ?>
       <form name="optionsForm" class="form-horizontal" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -270,8 +272,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         <input type="hidden" name="action" value="options"/>
 <?php
     $configCat = $configCats[$tab];
-    foreach ( $configCat as $name=>$value )
-    {
+    foreach ( $configCat as $name=>$value ) {
         $shortName = preg_replace( '/^ZM_/', '', $name );
         $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
@@ -279,12 +280,15 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <label for="<?php echo $name ?>" class="col-sm-3 control-label"><?php echo $shortName ?></label>
               <div class="col-sm-6">
 <?php   
-        if ( $value['Type'] == "boolean" ) {
+        if ( $value['Type'] == 'boolean' ) {
 ?>
               <input type="checkbox" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
-        } elseif ( preg_match( "/\|/", $value['Hint'] ) ) {
+        } elseif ( is_array( $value['Hint'] ) ) {
+          echo htmlSelect( "newConfig[$name]", $value['Hint'], $value['Value'] );
+        } elseif ( preg_match( '/\|/', $value['Hint'] ) ) {
 ?>
+
 <?php
             $options = explode( '|', $value['Hint'] );
             if ( count( $options ) > 3 ) {
@@ -307,12 +311,12 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 <?php
             } else {
                 foreach ( $options as $option ) {
-                    if ( preg_match( '/^([^=]+)=(.+)$/', $option ) ) {
-                        $optionLabel = $matches[1];
-                        $optionValue = $matches[2];
-                    } else {
-                        $optionLabel = $optionValue = $option;
-                    }
+                  if ( preg_match( '/^([^=]+)=(.+)$/', $option ) ) {
+                    $optionLabel = $matches[1];
+                    $optionValue = $matches[2];
+                  } else {
+                    $optionLabel = $optionValue = $option;
+                  }
 ?>
                 <label>
                   <input type="radio" id="<?php echo $name.'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $optionValue ) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>

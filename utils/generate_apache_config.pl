@@ -6,7 +6,7 @@ use Getopt::Long ();
 
 my $opts = {};
 Getopt::Long::GetOptions($opts, 'help', 'output=s',
-  'pid_file=s', 'db_port=s', 'db_name=s', 'db_host=s', 'db_user=s', 'db_pass=s',
+  'pid_file=s', 
   'min_port=s','max_port=s', 'debug=s',
   'server_name=s','error_log=s','protocol=s',
 );
@@ -100,5 +100,19 @@ if ( open( F, "> $$opts{output}" ) ) {
   die "Error opening $$opts{output}, Reason: $!";
 } # end if
 
+sub usage {
+	print "
+Usage: generate-apache-config.pl
+	--help			output this help.
+	--output=file the file to output the config to,
+  --min_port=		The starting port. port 80 or 443 will be added as appropriate depending on protocol.
+	--max_port=		The ending port.
+	--debug=				more verbose output
+  --server_name=[servername]
+	--error_log
+--protocol=[http|https] 		Whether to turn on https for this host. Will assume a letsencrypt setup for keys.
+";
+	exit 1;
+}
 1;
 __END__

@@ -13,6 +13,7 @@ extern "C"  {
 #if HAVE_LIBAVCODEC
 
 #include "zm_monitor.h"
+#include "zm_packet.h"
 
 class VideoStore {
 private:
@@ -76,13 +77,13 @@ public:
       const char *format_in,
       AVStream *video_in_stream,
       AVStream *audio_in_stream,
-      int64_t nStartTime,
       Monitor * p_monitor);
   bool  open();
 	~VideoStore();
 
   int writeVideoFramePacket( AVPacket *pkt );
   int writeAudioFramePacket( AVPacket *pkt );
+  int writePacket( ZMPacket *pkt );
 	void dumpPacket( AVPacket *pkt );
 };
 

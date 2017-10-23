@@ -33,7 +33,7 @@ extern "C" {
 
 VideoStore::VideoStore(const char *filename_in, const char *format_in,
                        AVStream *p_video_in_stream,
-                       AVStream *p_audio_in_stream, int64_t nStartTime,
+                       AVStream *p_audio_in_stream,
                        Monitor *monitor) {
   video_in_stream = p_video_in_stream;
   audio_in_stream = p_audio_in_stream;
@@ -671,6 +671,18 @@ void VideoStore::dumpPacket(AVPacket *pkt) {
            pkt->pts, pkt->dts, pkt->data, pkt->size, pkt->stream_index,
            pkt->flags, pkt->pos, pkt->duration);
   Debug(1, "%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
+}
+
+int VideoStore::writePacket( ZMPacket *ipkt ) {
+  if ( ipkt->stream_index == video_in_stream.index ) {
+    return writeVideoFramePacket( &ipkt.packet );
+  } else if ( ipkt->stream_index == audio_in_stream.index ) {
+    return writeAudioFramePacket( &ipkt.packet );
+  } else {
+    Error("Unknown stream type in packet (%d) out input video stream is (%d) and audio is (%d)",
+        ipkt->packet.stream_index, video_in_stream->index, ( audio_in_stream ? audio_in_stream->index : -1 )
+        );
+  }
 }
 
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {

@@ -48,11 +48,13 @@ function xhtmlHeaders( $file, $title ) {
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
 <?php
 if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
-  echo "<link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>";
-  echo "<link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>";
+  echo "<link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>\n";
+  echo "<link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>\n";
 } else {
-  echo '<link rel="icon" type="image/ico" href="graphics/favicon.ico"/>';
-  echo '<link rel="shortcut icon" href="graphics/favicon.ico"/>';
+  echo '
+  <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
+  <link rel="shortcut icon" href="graphics/favicon.ico"/>
+';
 }
 ?>
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
@@ -101,11 +103,13 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   } else if ( $title == 'Event' ) {
 ?>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
   <script src="skins/<?php echo $skin ?>/js/video.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
   }
+
   if ( $skinJsPhpFile ) {
 ?>
   <script type="text/javascript">
@@ -164,7 +168,7 @@ function getNavBarHTML() {
     $running = daemonCheck();
   $status = $running?translate('Running'):translate('Stopped');
   global $user;
-  global $bwArray;
+  global $bandwidth_options;
   global $view;
 ?>
 <noscript>
@@ -229,7 +233,7 @@ ZoneMinder requires Javascript. Please enable Javascript in your browser for thi
 	</div> <!-- End .container-fluid -->
 	<div class="container-fluid">
   <div class="pull-left">
-    <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
+    <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bandwidth_options[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
   </div>
   <div class="pull-right">
 	  <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
@@ -255,7 +259,8 @@ ZoneMinder requires Javascript. Please enable Javascript in your browser for thi
   if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
     array_push( $storage_areas, new Storage() );
   }
-  $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
+  $func =  function($S){ return '<span title="'.human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()).'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
+  #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>

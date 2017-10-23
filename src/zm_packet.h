@@ -28,18 +28,26 @@ extern "C" {
 #include <sys/time.h>
 #endif // __FreeBSD__
 
+#include "zm_image.h"
+
 class ZMPacket {
   public:
   
-    AVPacket packet;
-    AVFrame *frame;   // Theoretically only filled if needed.
+    int keyframe;
+    AVPacket  packet;   // Input packet, undecoded
+    AVFrame   *frame;    // Input image, decoded Theoretically only filled if needed.
+    Image     *image;   // Our internal image oject representing this frame
     struct timeval timestamp;
   public:
     AVPacket *av_packet() { return &packet; }
     AVFrame *av_frame() { return frame; }
+    Image *get_image( Image * );
+    int is_keyframe() { return keyframe; };
     int decode( AVCodecContext *ctx );
     ZMPacket( AVPacket *packet, struct timeval *timestamp );
     ZMPacket( AVPacket *packet );
+    ZMPacket( Image *image );
+    ZMPacket();
     ~ZMPacket();
 };
 

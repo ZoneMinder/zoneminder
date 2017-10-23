@@ -18,15 +18,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canEdit( 'System' ) ) {
+  $view = 'error';
+  return;
 }
 
 if ( $_REQUEST['id'] ) {
 	if ( !($newServer = dbFetchOne( 'SELECT * FROM Servers WHERE Id = ?', NULL, ARRAY($_REQUEST['id'])) ) ) {
-		$view = "error";
+		$view = 'error';
 		return;
 	}
 } else {
@@ -37,19 +36,19 @@ if ( $_REQUEST['id'] ) {
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Server')." - ".$newServer['Name'] );
+xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name'] );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Server')." - ".$newServer['Name'] ?></h2>
+      <h2><?php echo translate('Server').' - '.$newServer['Name'] ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this, <?php echo empty($newServer['Name'])?'true':'false' ?> )">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="object" value="server"/>
         <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>
-        <table id="contentTable" class="major" cellspacing="0">
+        <table id="contentTable" class="major">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Name') ?></th>
@@ -62,7 +61,7 @@ xhtmlHeaders(__FILE__, translate('Server')." - ".$newServer['Name'] );
           </tbody>
         </table>
         <div id="contentButtons">
-		<input type="hidden" name="action" value="Save"/>
+          <input type="hidden" name="action" value="Save"/>
           <input type="submit" value="<?php echo translate('Save') ?>"/>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>

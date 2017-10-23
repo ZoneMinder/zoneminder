@@ -95,14 +95,15 @@ protected:
 		double _1_m;
 
 		static int CompareYX( const void *p1, const void *p2 ) {
-			const Edge *e1 = (const Edge *)p1, *e2 = (const Edge *)p2;
+      // This is because these functions are passed to qsort
+			const Edge *e1 = reinterpret_cast<const Edge *>(p1), *e2 = reinterpret_cast<const Edge *>(p2);
 			if ( e1->min_y == e2->min_y )
 				return( int(e1->min_x - e2->min_x) );
 			else
 				return( int(e1->min_y - e2->min_y) );
 		}
 		static int CompareX( const void *p1, const void *p2 ) {
-			const Edge *e1 = (const Edge *)p1, *e2 = (const Edge *)p2;
+			const Edge *e1 = reinterpret_cast<const Edge *>(p1), *e2 = reinterpret_cast<const Edge *>(p2);
 			return( int(e1->min_x - e2->min_x) );
 		}
 	};
@@ -145,6 +146,7 @@ protected:
 	unsigned int size;
 	unsigned int subpixelorder;
 	unsigned long allocation;
+    _AVPIXELFORMAT      imagePixFormat;
 	uint8_t *buffer;
 	int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
 	int holdbuffer; /* Hold the buffer instead of replacing it with new one */
@@ -166,12 +168,32 @@ public:
 	inline unsigned int Colours() const { return( colours ); }
 	inline unsigned int SubpixelOrder() const { return( subpixelorder ); }
 	inline unsigned int Size() const { return( size ); }
+
+  inline unsigned int AVPixFormat() {
+    if ( ! imagePixFormat ) {
+      /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
+      if ( colours == ZM_COLOUR_RGB32 ) {
+        subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+        imagePixFormat = AV_PIX_FMT_RGBA;
+      } else if ( colours == ZM_COLOUR_RGB24 ) {
+        subpixelorder = ZM_SUBPIX_ORDER_RGB;
+        imagePixFormat = AV_PIX_FMT_RGB24;
+      } else if ( colours == ZM_COLOUR_GRAY8 ) {
+        subpixelorder = ZM_SUBPIX_ORDER_NONE;
+        imagePixFormat = AV_PIX_FMT_GRAY8;
+      };
+    }
+      return imagePixFormat;
+  }
+
 	
 	/* Internal buffer should not be modified from functions outside of this class */
 	inline const uint8_t* Buffer() const { return( buffer ); }
 	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return( &buffer[colours*((y*width)+x)] ); }
 	/* Request writeable buffer */
 	uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
+  // Is only acceptable on a pre-allocated buffer
+	uint8_t* WriteBuffer() { if ( holdbuffer ) return buffer; return NULL; };
 	
 	inline int IsBufferHeld() const { return holdbuffer; }
 	inline void HoldBuffer(int tohold) { holdbuffer = tohold; }

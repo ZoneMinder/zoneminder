@@ -63,13 +63,13 @@ RemoteCameraRtsp::RemoteCameraRtsp( unsigned int p_monitor_id, const std::string
   mConvertContext = NULL;
 #endif
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
-  if(colours == ZM_COLOUR_RGB32) {
+  if ( colours == ZM_COLOUR_RGB32 ) {
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
     imagePixFormat = AV_PIX_FMT_RGBA;
-  } else if(colours == ZM_COLOUR_RGB24) {
+  } else if ( colours == ZM_COLOUR_RGB24 ) {
     subpixelorder = ZM_SUBPIX_ORDER_RGB;
     imagePixFormat = AV_PIX_FMT_RGB24;
-  } else if(colours == ZM_COLOUR_GRAY8) {
+  } else if ( colours == ZM_COLOUR_GRAY8 ) {
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
     imagePixFormat = AV_PIX_FMT_GRAY8;
   } else {
@@ -219,7 +219,7 @@ int RemoteCameraRtsp::PrimeCapture() {
   mFrame = avcodec_alloc_frame();
 #endif
 
-  if(mRawFrame == NULL || mFrame == NULL)
+  if ( mRawFrame == NULL || mFrame == NULL )
     Fatal( "Unable to allocate frame(s)");
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
@@ -259,16 +259,17 @@ int RemoteCameraRtsp::PreCapture() {
   return( 0 );
 }
 
-int RemoteCameraRtsp::Capture( Image &image ) {
+ZMPacket * RemoteCameraRtsp::Capture( Image &image ) {
   AVPacket packet;
+  ZMPacket *zmpacket = NULL;
   uint8_t* directbuffer;
   int frameComplete = false;
   
   /* Request a writeable buffer of the target image */
   directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  if(directbuffer == NULL) {
+  if ( directbuffer == NULL ) {
     Error("Failed requesting writeable buffer for the captured image.");
-    return (-1);
+    return NULL;
   }
   
   while ( true ) {
@@ -284,19 +285,19 @@ int RemoteCameraRtsp::Capture( Image &image ) {
       if ( !buffer.size() )
         return( -1 );
 
-      if(mCodecContext->codec_id == AV_CODEC_ID_H264) {
+      if ( mCodecContext->codec_id == AV_CODEC_ID_H264 ) {
         // SPS and PPS frames should be saved and appended to IDR frames
         int nalType = (buffer.head()[3] & 0x1f);
         
         // SPS The SPS NAL unit contains parameters that apply to a series of consecutive coded video pictures
-        if(nalType == 7) {
+        if ( nalType == 7 ) {
           lastSps = buffer;
           continue;
-        } else if(nalType == 8) {
+        } else if ( nalType == 8 ) {
         // PPS The PPS NAL unit contains parameters that apply to the decoding of one or more individual pictures inside a coded video sequence
           lastPps = buffer;
           continue;
-        } else if(nalType == 5) {
+        } else if ( nalType == 5 ) {
         // IDR
           buffer += lastSps;
           buffer += lastPps;
@@ -337,10 +338,10 @@ int RemoteCameraRtsp::Capture( Image &image ) {
         avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height );
           
     #if HAVE_LIBSWSCALE
-        if(mConvertContext == NULL) {
+        if ( mConvertContext == NULL ) {
           mConvertContext = sws_getContext( mCodecContext->width, mCodecContext->height, mCodecContext->pix_fmt, width, height, imagePixFormat, SWS_BICUBIC, NULL, NULL, NULL );
 
-          if(mConvertContext == NULL)
+          if ( mConvertContext == NULL )
             Fatal( "Unable to create conversion context");
         }
       
@@ -352,18 +353,18 @@ int RemoteCameraRtsp::Capture( Image &image ) {
       
         frameCount++;
 
+        zm_packet = new ZMPacket( &packet, mFrame, &image );
       } /* frame complete */
        
+      
       zm_av_packet_unref( &packet );
     } /* getFrame() */
    
-    if(frameComplete)
-      return (0);
+    if ( frameComplete ) break;
   
   } // end while true
 
-  // can never get here.
-  return (0);
+  return zm_packet;
 }
 
 //Function to handle capture and store

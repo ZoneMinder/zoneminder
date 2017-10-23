@@ -1,7 +1,7 @@
 <?php
 
 class Event {
-  public function __construct( $IdOrRow ) {
+  public function __construct( $IdOrRow = null ) {
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
@@ -19,19 +19,28 @@ class Event {
         Error("Unknown argument passed to Event Constructor ($IdOrRow)");
         return;
       }
-    } # end if isset($IdOrRow)
 
     if ( $row ) {
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
     } else {
-      Error('No row for Event ' . $IdOrRow );
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+      Error('No row for Event ' . $IdOrRow . " from $file:$line");
     }
+    } # end if isset($IdOrRow)
   } // end function __construct
 
-  public function Storage() {
-    return new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+  public function Storage( $new = null ) {
+    if ( $new ) {
+      $this->{'Storage'} = $new;
+    }
+    if ( ! ( array_key_exists( 'Storage', $this ) and $this->{'Storage'} ) ) {
+      $this->{'Storage'} = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+    }
+    return $this->{'Storage'};
   }
 
   public function Monitor() {
@@ -39,10 +48,16 @@ class Event {
   }
 
   public function __call( $fn, array $args){
+  if ( count( $args )  ) {
+      $this->{$fn} = $args[0];
+    }
     if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
-#array_unshift($args, $this);
-#call_user_func_array( $this->{$fn}, $args);
+        
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Warning( "Unknown function call Event->$fn from $file:$line" );
     }
   }
 
@@ -163,7 +178,11 @@ class Event {
   } // end function getStreamSrc
 
   function DiskSpace() {
-    return folder_size( $this->Path() );
+    if ( null === $this->{'DiskSpace'} ) {
+      $this->{'DiskSpace'} = folder_size( $this->Path() );
+      dbQuery( 'UPDATE Events SET DiskSpace=? WHERE Id=?', array( $this->{'DiskSpace'}, $this->{'Id'} ) );
+    }
+    return $this->{'DiskSpace'};
   }
 
   function createListThumbnail( $overwrite=false ) {
@@ -316,6 +335,41 @@ class Event {
 
     return( $imageData );
   }
+
+  public static function find_all( $parameters = null, $options = null ) {
+    $filters = array();
+    $sql = 'SELECT * FROM Events ';
+    $values = array();
+
+    if ( $parameters ) {
+      $fields = array();
+      $sql .= 'WHERE ';
+      foreach ( $parameters as $field => $value ) {
+        if ( $value == null ) {
+          $fields[] = $field.' IS NULL';
+        } else if ( is_array( $value ) ) {
+          $func = function(){return '?';};
+          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $values += $value;
+
+        } else {
+          $fields[] = $field.'=?';
+          $values[] = $value;
+        }
+      }
+      $sql .= implode(' AND ', $fields );
+    }
+    if ( $options and isset($options['order']) ) {
+    $sql .= ' ORDER BY ' . $options['order'];
+    }
+    $result = dbQuery($sql, $values);
+    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Event');
+    foreach ( $results as $row => $obj ) {
+      $filters[] = $obj;
+    }
+    return $filters;
+  }
+
 
 } # end class
 

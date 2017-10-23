@@ -88,11 +88,8 @@ function get_children($Group) {
 
 $kids = get_children($newGroup);
 $kids[] = $newGroup->Id();
-function get_question_marks() {
-  return '?';
-}
 $options = array(''=>'None');
-foreach ( dbFetchAll( 'SELECT Id,Name from Groups WHERE Id NOT IN ('.implode(',',array_map('get_question_marks', $kids )).') ORDER BY Name', null, $kids ) as $option ) {
+foreach ( dbFetchAll( 'SELECT Id,Name from Groups WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids )).') ORDER BY Name', null, $kids ) as $option ) {
   $options[$option['Id']] = $option['Name'];
 }
 echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('onchange'=>'configureButtons(this);' ));

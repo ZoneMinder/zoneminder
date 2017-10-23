@@ -602,10 +602,10 @@ Warning("Addterm");
   }
 
   // Group edit actions
+# Should probably verify that each monitor id is a valid monitor, that we have access to. However at the moment, you have to have System permissions to do this
   if ( canEdit( 'Groups' ) ) {
     if ( $action == 'group' ) {
-# Should probably verfy that each monitor id is a valid monitor, that we have access to. HOwever at the moment, you have to have System permissions to do this
-      $monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? '' : implode(',', $_POST['newGroup']['MonitorIds'] );
+      $monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? '' : implode(',', $_POST['newGroup']['MonitorIds']);
       if ( !empty($_POST['gid']) ) {
         dbQuery( 'UPDATE Groups SET Name=?, ParentId=?, MonitorIds=? WHERE Id=?',
           array($_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ), $monitors, $_POST['gid']) );
@@ -614,18 +614,21 @@ Warning("Addterm");
           array( $_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ), $monitors ) );
       }
       $view = 'none';
-    }
-    if ( !empty($_REQUEST['gid']) && $action == 'delete' ) {
-      dbQuery( 'DELETE FROM Groups WHERE Id = ?', array($_REQUEST['gid']) );
-      if ( isset($_COOKIE['zmGroup']) ) {
-        if ( $_REQUEST['gid'] == $_COOKIE['zmGroup'] ) {
-          unset( $_COOKIE['zmGroup'] );
-          setcookie( 'zmGroup', '', time()-3600*24*2 );
-          $refreshParent = true;
+      $refreshParent = true;
+    } else if ( $action == 'delete' ) {
+      if ( !empty($_REQUEST['gid']) ) {
+        if ( is_array( $_REQUEST['gid'] ) ) {
+          foreach( $_REQUEST['gid'] as $gid ) {
+            $Group = new Group( $gid );
+            $Group->delete();
+          }
+        } else {
+          $Group = new Group( $_REQUEST['gid'] );
+          $Group->delete();
         }
       }
-    }
-    $refreshParent = true;
+      $refreshParent = true;
+    } # end if action
   } // end if can edit groups
 
   // System edit actions

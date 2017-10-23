@@ -131,16 +131,17 @@ void Logger::initialise( const std::string &id, const Options &options ) {
     this->id( id );
 
   std::string tempLogFile;
-  if ( options.mLogPath.size() ) {
-    mLogPath = options.mLogPath;
-    tempLogFile = mLogPath+"/"+mId+".log";
-  }
-  if ( options.mLogFile.size() )
-    tempLogFile = options.mLogFile;
-  else
-    tempLogFile = mLogPath+"/"+mId+".log";
+
   if ( (envPtr = getTargettedEnv( "LOG_FILE" )) )
     tempLogFile = envPtr;
+  else if ( options.mLogFile.size() )
+    tempLogFile = options.mLogFile;
+  else {
+    if ( options.mLogPath.size() ) {
+      mLogPath = options.mLogPath;
+    }
+    tempLogFile = mLogPath+"/"+mId+".log";
+  }
 
   Level tempLevel = INFO;
   Level tempTermLevel = mTermLevel;
@@ -270,7 +271,7 @@ int Logger::intEnv( const std::string &name, bool defaultValue ) {
   return( envPtr ? atoi( envPtr ) : defaultValue );
 }
 
-std::string Logger::strEnv( const std::string &name, const std::string defaultValue ) {
+std::string Logger::strEnv( const std::string &name, const std::string &defaultValue ) {
   const char *envPtr = getenv( name.c_str() );
   return( envPtr ? envPtr : defaultValue );
 }
@@ -560,7 +561,7 @@ void logInit( const char *name, const Logger::Options &options ) {
   if ( !Logger::smInstance )
     Logger::smInstance = new Logger();
   Logger::Options tempOptions = options;
-  tempOptions.mLogPath = staticConfig.PATH_LOGS.c_str();
+  tempOptions.mLogPath = staticConfig.PATH_LOGS;
   Logger::smInstance->initialise( name, tempOptions );
 }
 

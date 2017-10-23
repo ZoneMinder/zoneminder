@@ -64,11 +64,18 @@ $groupSql = Group::get_group_sql( $group_id );
 
 session_start();
 foreach ( array('minTime','maxTime') as $var ) {
-if ( isset( $_REQUEST[$var] ) ) {
-  $_SESSION[$var] = $_REQUEST[$var];
-}
+  if ( isset( $_REQUEST[$var] ) ) {
+    $_SESSION[$var] = $_REQUEST[$var];
+  }
 }
 session_write_close();
+
+$monitor_id = 0;
+if ( isset( $_REQUEST['monitor_id'] ) ) {
+  $monitor_id = $_REQUEST['monitor_id'];
+} else if ( isset($_COOKIE['zmMonitorId']) ) {
+  $monitor_id = $_COOKIE['zmMonitorId'];
+}
 
 $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'" . ( $groupSql ? ' AND ' . $groupSql : '');
 
@@ -105,6 +112,11 @@ if ( ! empty( $user['MonitorIds'] ) ) {
   $eventsSql   .= ' AND M.Id IN ('.$user['MonitorIds'].')';
   $monitorsSql .= ' AND Id IN ('.$user['MonitorIds'].')';
   $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
+}
+if ( $monitor_id ) {
+	$monitorsSql .= ' AND Id='.$monitor_id;
+  $eventsSql .= ' AND M.Id='.$monitor_id;
+  $frameSql   .= ' AND E.MonitorId='.$monitor_id;
 }
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
@@ -177,14 +189,12 @@ if ( isset($minTime) && isset($maxTime) ) {
 }
 $frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
 
-// This loads all monitors the user can see - even if we don't have data for one we still show all for switch to live.
 
 $monitors = array();
 $monitorsSql .= ' ORDER BY Sequence ASC';
-$index=0;
 foreach( dbFetchAll( $monitorsSql ) as $row ) {
-  $monitors[$index] = new Monitor( $row );
-  $index = $index + 1;
+  $Monitor = new Monitor( $row );
+  $monitors[] = $Monitor;
 }
 
 // These are zoom ranges per visible monitor
@@ -200,6 +210,9 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
       <div id="headerControl">
         <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
         <?php echo $group_dropdowns; ?>
+      </span>
+      <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
+      <?php Group::get_monitors_dropdown( $groupSql ? array( 'groupSql'=>$groupSql) : null ); ?>
       </span>
       <div id="DateTimeDiv">
         <input type="datetime-local" name="minTime" id="minTime" value="<?php echo preg_replace('/ /', 'T', $minTime ) ?>" onchange="changeDateTime(this);"> to 
@@ -221,7 +234,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
           <button type="button" id="zoomout"   onclick="click_zoomout();"          ><?php echo translate('Out -') ?></button>
           <button type="button" id="lasteight" onclick="click_lastEight();"        ><?php echo translate('8 Hour') ?></button>
           <button type="button" id="lasthour"  onclick="click_lastHour();"         ><?php echo translate('1 Hour') ?></button>
-          <button type="button" id="allof"     onclick="click_all_events();"            ><?php echo translate('All Events') ?></button>
+          <button type="button" id="allof"     onclick="click_all_events();"       ><?php echo translate('All Events') ?></button>
           <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
           <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
           <button type="button" id="panright"  onclick="click_panright();"         ><?php echo translate('Pan') ?> &gt;</button>
@@ -239,11 +252,10 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
 <?php
   // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
   foreach ($monitors as $m) {
-    echo '<canvas width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:3px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
+    echo '<canvas width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:1px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
   }
 ?>
   </div>
   <p id="fps">evaluating fps</p>
-
 </div>
 <?php xhtmlFooter() ?>

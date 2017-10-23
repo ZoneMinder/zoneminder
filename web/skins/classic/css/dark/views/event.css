@@ -1,3 +1,32 @@
+.vjsMessage {
+    font-size: 2em;
+    line-height: 1.5;
+    color: white;
+    background-color: black;
+    display: inline-block;
+}
+
+.alarmCue {
+    background-color: #222222;
+    height: 1.5em;
+    text-align: left;
+    margin: 0 auto 0 auto;
+}
+
+.alarmCue span {
+    background-color:red;
+    height: 1.5em;
+    display: inline-block;
+}
+
+span.noneCue {
+    background: none;
+}
+
+#eventVideo {
+    display: inline-block;
+}
+
 #dataBar {
     width: 100%;
     margin: 2px auto;
@@ -130,22 +159,14 @@
 
 #progressBar {
     position: relative;
-    border: 1px solid #666666;
-    height: 15px;
-    margin: 0 auto;
+    top: -1.5em;
+    height: 1.5em;
+    margin: 0 auto -1.5em auto;
 }
 
 #progressBar .progressBox {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    height: 15px;
-    background: #eeeeee;
-    border-left: 1px solid #999999;
-}
-
-#progressBar .complete {
-    background: #aaaaaa;
+    height: 1.5em;
+    background: rgba(170, 170, 170, .7);
 }
 
 #eventStills {
@@ -231,6 +252,10 @@
     width: 400px;
     height: 10px;
     background: #dddddd;
+}
+
+#eventVideo {
+display: inline-block;
 }
 
 #thumbsKnob {

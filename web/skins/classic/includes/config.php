@@ -44,16 +44,14 @@ $scales = array(
     '12.5' => '1/8x',
 );
 
-$bwArray = array(
+$bandwidth_options = array(
     'high' => translate('High'),
     'medium' => translate('Medium'),
     'low' => translate('Low')
 );
 
-switch ( $_COOKIE['zmBandwidth'] )
-{
-    case 'high' :
-    {
+switch ( $_COOKIE['zmBandwidth'] ) {
+    case 'high' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_H_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
         define( 'ZM_WEB_REFRESH_CYCLE', ZM_WEB_H_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
         define( 'ZM_WEB_REFRESH_IMAGE', ZM_WEB_H_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)
@@ -70,9 +68,7 @@ switch ( $_COOKIE['zmBandwidth'] )
         define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_H_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
         define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_H_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
         break;
-    }
-    case 'medium' : 
-    {
+    } case 'medium' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_M_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
         define( 'ZM_WEB_REFRESH_CYCLE', ZM_WEB_M_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
         define( 'ZM_WEB_REFRESH_IMAGE', ZM_WEB_M_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)
@@ -89,9 +85,7 @@ switch ( $_COOKIE['zmBandwidth'] )
         define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_M_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
         define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_M_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
         break;
-    }
-    case 'low' :
-    {
+    } case 'low' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_L_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
         define( 'ZM_WEB_REFRESH_CYCLE', ZM_WEB_L_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
         define( 'ZM_WEB_REFRESH_IMAGE', ZM_WEB_L_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)

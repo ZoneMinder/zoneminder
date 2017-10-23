@@ -1,13 +1,21 @@
 
+var server_utc_offset = <?php
+$TimeZone = new DateTimeZone( ini_get('date.timezone') );
+$now = new DateTime('now', $TimeZone);
+$offset = $TimeZone->getOffset($now);
+echo $offset . '; // ' . floor($offset / 3600) . ' hours ';
+?>
 var currentScale=<?php echo $defaultScale?>;
 var liveMode=<?php echo $initialModeIsLive?>;
 var fitMode=<?php echo $fitMode?>;
 var currentSpeed=<?php echo $speeds[$speedIndex]?>;  // slider scale, which is only for replay and relative to real time
 var speedIndex=<?php echo $speedIndex?>;
-var currentDisplayInterval=<?php echo $initialDisplayInterval?>;  // will be set based on performance, this is the display interval in milliseconds for history, and fps for live, and dynamically determined (in ms)
+
+// will be set based on performance, this is the display interval in milliseconds for history, and fps for live, and dynamically determined (in ms)
+var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
 var playSecsperInterval=1;         // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
-var timerObj;               // object to hold timer interval;
+var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
 var imageLoadTimesEvaluated=0;   // running count
 var imageLoadTimesNeeded=15;     // and how many we need
@@ -28,12 +36,12 @@ $maxTimeSecs = strtotime('1950-01-01 01:01:01');
 
 // This builds the list of events that are eligible from this range
 
-$index=0;
-$anyAlarms=false;
+$index = 0;
+$anyAlarms = false;
 
 $result = dbQuery( $eventsSql );
 if ( ! $result ) {
-  Fatal( "SQL-ERR");
+  Fatal('SQL-ERR');
   return;
 }
 
@@ -159,7 +167,7 @@ if ( $numMonitors > 0 ) $avgArea = $avgArea / $numMonitors;
 $numMonitors = 0;
 foreach ( $monitors as $m ) {
     echo "  monitorLoading["         . $m->Id() . "]=false;\n";
-    echo "  monitorImageURL["     . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
+    echo "  monitorImageURL["        . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
     echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
     echo "  monitorColour["          . $m->Id() . "]=\"" . $m->WebColour() . "\";\n";
     echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";
@@ -177,13 +185,13 @@ foreach ( $monitors as $m ) {
     $numMonitors += 1;
 }
 echo "var numMonitors = $numMonitors;\n";
-echo "var minTimeSecs='"     . $minTimeSecs . "';\n";
-echo "var maxTimeSecs='"     . $maxTimeSecs . "';\n";
+echo "var minTimeSecs=parseInt("     . $minTimeSecs . ");\n";
+echo "var maxTimeSecs=parseInt("     . $maxTimeSecs . ");\n";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))
-  echo "var currentTimeSecs=" . strtotime($defaultCurrentTime) . ";\n";
+  echo "var currentTimeSecs=parseInt(" . strtotime($defaultCurrentTime) . ");\n";
 else
-  echo "var currentTimeSecs=" . ($minTimeSecs + $maxTimeSecs)/2 . ";\n";
+  echo "var currentTimeSecs=parseInt(" . ($minTimeSecs + $maxTimeSecs)/2 . ");\n";
 
 echo 'var speeds=[';
 for ($i=0; $i<count($speeds); $i++)

@@ -19,7 +19,7 @@
 //
 
 $servers = Server::find_all();
-$ServersById = array(''=>'All');
+$ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
@@ -42,7 +42,7 @@ foreach ( array('ServerFilter','StorageFilter') as $var ) {
 session_write_close();
 
 $storage_areas = Storage::find_all();
-$StorageById = array(''=>'All');
+$StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
 }
@@ -194,6 +194,7 @@ $groupSql = Group::get_group_sql( $group_id );
     $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
   }
 
+  
   echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') );
 
   $cycleWidth = $maxWidth;
@@ -224,23 +225,22 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
 ?>
 </span>
 <?php if ( count($ServersById) > 0 ) { ?>
-<span id="ServerFilter"><label><?php echo translate('Server')?>:</label>
+<span class="ServerFilter"><label><?php echo translate('Server')?>:</label>
 <?php
-echo htmlSelect( 'ServerFilter', $ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
+echo htmlSelect( 'ServerFilter', array(''=>'All')+$ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
 ?>
 </span>
 <?php 
 }
 if ( count($StorageById) > 0 ) { ?>
-<span id="StorageFilter"><label><?php echo translate('Storage')?>:</label>
+<span class="StorageFilter"><label><?php echo translate('Storage')?>:</label>
 <?php
-echo htmlSelect( 'StorageFilter', $StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
+echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
 ?>
 </span>
 <?php
 }
 ?>
-    </div>
     </div>
 
     <div class="container-fluid">

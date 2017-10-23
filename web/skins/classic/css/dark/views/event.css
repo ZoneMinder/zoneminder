@@ -1,6 +1,10 @@
-.vjsMessage {
-    font-size: 2em;
-    line-height: 1.5;
+#content .vjsMessage {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    z-index: 10;
+    margin: 0;
+    font-size: 200%;
     color: white;
     background-color: black;
     display: inline-block;
@@ -95,6 +99,8 @@ span.noneCue {
 }
 
 #imageFeed {
+    display: inline-block;
+    position: relative;
     text-align: center;
 }
 
@@ -255,7 +261,8 @@ span.noneCue {
 }
 
 #eventVideo {
-display: inline-block;
+    display: inline-block;
+    position: relative;
 }
 
 #thumbsKnob {

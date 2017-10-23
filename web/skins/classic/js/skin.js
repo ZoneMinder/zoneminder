@@ -283,6 +283,17 @@ function convertLabelFormat(LabelFormat, monitorName){
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime){
+//This is a hacky way to handle changing the texttrack. If we ever upgrade vjs in a revamp replace this.  Old method preserved because it's the right way.
+  let cues = vid.textTracks()[0].cues();
+  let labelFormat = convertLabelFormat(LabelFormat, monitorName);
+  startTime = moment(startTime);
+
+  for (let i = 0; i <= duration; i++) {
+    cues[i] = {id: i, index: i, startTime: i, Ca: i+1, text: startTime.format(labelFormat)};
+    startTime.add(1, 's');
+  }
+}
+/*
 	var labelFormat = convertLabelFormat(LabelFormat, monitorName);
 	var webvttformat = 'HH:mm:ss.SSS', webvttdata="WEBVTT\n\n";
 
@@ -304,6 +315,7 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
 	track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
 	video.appendChild(track);
 }
+*/
 
 function changeGroup( e, depth ) {
   var group_id = $('group'+depth).get('value');

@@ -1,6 +1,15 @@
 <?php
 
 class Event {
+
+  private $fields = array(
+'Id',
+'Name',
+'MonitorId',
+'StorageId',
+'Name',
+'DiskSpace',
+);
   public function __construct( $IdOrRow = null ) {
     $row = NULL;
     if ( $IdOrRow ) {
@@ -370,6 +379,12 @@ class Event {
     return $filters;
   }
 
+  public function save( ) {
+    $sql = 'UPDATE Events SET '.implode(' AND', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
+    $values = array_map( function($field){return $this->{$field}}, $fields );
+    $values[] = $this->{'Id'};
+    dbQuery( $sql, NULL, $values );
+  }
 
 } # end class
 

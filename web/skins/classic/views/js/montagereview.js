@@ -114,6 +114,21 @@ function loadNoData( monId ) {
     console.log("No monId in loadNoData");
   }
 }
+function writeText( monId, text ) {
+  if ( monId ) {
+    var canvasCtx = monitorCanvasCtx[monId];
+    var canvasObj = monitorCanvasObj[monId];
+    //canvasCtx.fillStyle="white";
+    //canvasCtx.fillRect(0, 0, canvasObj.width, canvasObj.height);
+    var textSize=canvasObj.width * 0.15;
+    canvasCtx.font = "600 " + textSize.toString() + "px Arial";
+    canvasCtx.fillStyle="white";
+    var textWidth = canvasCtx.measureText(text).width;
+    canvasCtx.fillText(text,canvasObj.width/2 - textWidth/2,canvasObj.height/2);
+  } else {
+    console.log("No monId in loadNoData");
+  }
+}
 
 // Either draws the 
 function loadImage2Monitor( monId, url ) {
@@ -123,8 +138,9 @@ function loadImage2Monitor( monId, url ) {
   } else {
     if ( monitorImageObject[monId].src == url ) return;   // do nothing if it's the same
     if ( url == 'no data' ) {
-      loadNoData( monId );
+      writeText(monId, 'No Data');
     } else {
+      writeText(monId, 'Loading...');
       monitorLoading[monId] = true;
       monitorLoadStartTimems[monId] = new Date().getTime();
       monitorImageObject[monId].src = url;  // starts a load but doesn't refresh yet, wait until ready

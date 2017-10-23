@@ -741,6 +741,15 @@ INSERT INTO ZonePresets VALUES (5,'Best, low sensitivity','Active','Percent','Bl
 INSERT INTO ZonePresets VALUES (6,'Best, medium sensitivity','Active','Percent','Blobs',40,NULL,16,NULL,5,5,12,NULL,10,NULL,1,NULL,0,0);
 INSERT INTO ZonePresets VALUES (7,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL,0,0);
 
+CREATE TABLE Maps (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`      TEXT NOT NULL,
+  `Filename`  TEXT NOT NULL default '',
+  `NumCoords` tinyint(3) unsigned NOT NULL default '0',
+  `Coords` tinytext NOT NULL,
+  `ParentId`   int(1) unsigned,
+  PRIMARY KEY (`Id`)
+);
 --
 -- Apply the initial configuration
 --

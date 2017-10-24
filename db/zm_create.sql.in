@@ -457,6 +457,12 @@ CREATE TABLE `Servers` (
   `Hostname` TEXT,
   `Name` varchar(64) NOT NULL default '',
   `State_Id`	int(10) unsigned,
+  `Status` enum('Unknown','NotRunning','Running') NOT NULL default 'Unknown',
+  `Load` DECIMAL(5,1),
+  `TotalMem` bigint unsigned default null,
+  `FreeMem` bigint unsigned default null,
+  `TotalSwap` bigint  unsigned default null,
+  `FreeSwap` bigint unsigned default null, 
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

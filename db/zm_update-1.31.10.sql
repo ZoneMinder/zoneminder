@@ -17,10 +17,10 @@ EXECUTE stmt;
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
      AND table_name = 'Servers'
-     AND column_name = 'Load'
+     AND column_name = 'CpuLoad'
     ) > 0,
-"SELECT 'Column Load already exists in Servers'",
-"ALTER TABLE Servers ADD `Load` DECIMAL(5,1) default NULL AFTER `Status`"
+"SELECT 'Column CpuLoad already exists in Servers'",
+"ALTER TABLE Servers ADD `CpuLoad` DECIMAL(5,1) default NULL AFTER `Status`"
 ));
 
 PREPARE stmt FROM @s;
@@ -32,7 +32,7 @@ SET @s = (SELECT IF(
      AND column_name = 'TotalMem'
     ) > 0,
 "SELECT 'Column TotalMem already exists in Servers'",
-"ALTER TABLE Servers ADD `TotalMem` bigint unsigned default null AFTER `Load`"
+"ALTER TABLE Servers ADD `TotalMem` bigint unsigned default null AFTER `CpuLoad`"
 ));
 
 PREPARE stmt FROM @s;

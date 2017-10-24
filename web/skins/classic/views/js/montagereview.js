@@ -682,15 +682,17 @@ function showOneMonitor(monId) {
   // link out to the normal view of one event's data
   // We know the monitor, need to determine the event based on current time
   var url;
-  if ( liveMode != 0 )
+  if ( liveMode != 0 ) {
     url="?view=watch&mid=" + monId.toString();
-  else
+    createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
+  } else {
     for ( var i=0, len=eId.length; i<len; i++ ) {
       if ( eMonId[i] == monId && currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i] )
         url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
         break;
     }
-    createPopup(url, 'zmEvent', 'event', monitorWidth[eMonId[i]], monitorHeight[eMonId[i]]);
+    createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
+  }
 }
 
 function zoom(monId,scale) {

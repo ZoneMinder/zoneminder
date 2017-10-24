@@ -51,6 +51,7 @@ var popupSizes = {
     'monitorpreset':{ 'width': 440, 'height': 200 },
     'monitorprobe': { 'width': 500, 'height': 240 },
     'monitorselect':{ 'width': 160, 'height': 200 },
+    'monitors':      { 'width': 300, 'height': 640 },
     'montage':      { 'width': -1, 'height': -1 },
     'onvifprobe':   { 'width': 700, 'height': 550 },
     'optionhelp':   { 'width': 400, 'height': 320 },

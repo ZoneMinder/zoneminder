@@ -62,10 +62,30 @@ ob_end_clean();
 
 $groupSql = Group::get_group_sql( $group_id );
 
+$servers = Server::find_all();
+$ServersById = array();
+foreach ( $servers as $S ) {
+  $ServersById[$S->Id()] = $S;
+}
+$storage_areas = Storage::find_all();
+$StorageById = array();
+foreach ( $storage_areas as $S ) {
+  $StorageById[$S->Id()] = $S;
+}
 session_start();
-foreach ( array('minTime','maxTime') as $var ) {
+foreach ( array('minTime','maxTime','ServerFilter','StorageFilter') as $var ) {
   if ( isset( $_REQUEST[$var] ) ) {
-    $_SESSION[$var] = $_REQUEST[$var];
+    if ( $_REQUEST[$var] != '' ) {
+      $_SESSION[$var] = $_REQUEST[$var];
+    } else {
+      unset( $_SESSION[$var] );
+    }
+  } else if ( isset( $_COOKIE[$var] ) ) {
+    if ( $_COOKIE[$var] != '' ) {
+      $_SESSION[$var] = $_COOKIE[$var];
+    } else {
+      unset($_SESSION[$var]);
+    }
   }
 }
 session_write_close();
@@ -77,7 +97,19 @@ if ( isset( $_REQUEST['monitor_id'] ) ) {
   $monitor_id = $_COOKIE['zmMonitorId'];
 }
 
-$monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'" . ( $groupSql ? ' AND ' . $groupSql : '');
+  $conditions = array();
+  $values = array();
+
+  if ( $groupSql )
+    $conditions[] = $groupSql;
+  if ( isset($_SESSION['ServerFilter']) ) {
+    $conditions[] = 'ServerId=?';
+    $values[] = $_SESSION['ServerFilter'];
+  }
+  if ( isset($_SESSION['StorageFilter']) ) {
+    $conditions[] = 'StorageId=?';
+    $values[] = $_SESSION['StorageFilter'];
+  }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
@@ -111,10 +143,14 @@ $frameSql = '
 if ( ! empty( $user['MonitorIds'] ) ) {
   $eventsSql   .= ' AND M.Id IN ('.$user['MonitorIds'].')';
   $monitorsSql .= ' AND Id IN ('.$user['MonitorIds'].')';
+  $monitor_ids = explode(',',$user['MonitorIds']);
+  $conditions[] .= 'Id IN ('.array_map( function(){return '?';}, $monitor_ids ) . ')';
+    array_push( $values, $monitor_ids );
   $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 if ( $monitor_id ) {
-	$monitorsSql .= ' AND Id='.$monitor_id;
+  $conditions[] = 'Id=?';
+  $values[] = $monitor_id;
   $eventsSql .= ' AND M.Id='.$monitor_id;
   $frameSql   .= ' AND E.MonitorId='.$monitor_id;
 }
@@ -191,8 +227,8 @@ $frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.Monit
 
 
 $monitors = array();
-$monitorsSql .= ' ORDER BY Sequence ASC';
-foreach( dbFetchAll( $monitorsSql ) as $row ) {
+$monitorsSql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
+foreach( dbFetchAll( $monitorsSql, null, $values ) as $row ) {
   $Monitor = new Monitor( $row );
   $monitors[] = $Monitor;
 }
@@ -214,6 +250,25 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
       <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
       <?php Group::get_monitors_dropdown( $groupSql ? array( 'groupSql'=>$groupSql) : null ); ?>
       </span>
+<?php
+ if ( count($ServersById) > 0 ) { ?>
+<span class="ServerFilter"><label><?php echo translate('Server')?>:</label>
+<?php
+echo htmlSelect( 'ServerFilter', array(''=>'All')+$ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
+?>
+</span>
+<?php
+}
+if ( count($StorageById) > 0 ) { ?>
+<span class="StorageFilter"><label><?php echo translate('Storage')?>:</label>
+<?php
+echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
+?>
+</span>
+<?php
+}
+?>
+
       <div id="DateTimeDiv">
         <input type="datetime-local" name="minTime" id="minTime" value="<?php echo preg_replace('/ /', 'T', $minTime ) ?>" onchange="changeDateTime(this);"> to 
         <input type="datetime-local" name="maxTime" id="maxTime" value="<?php echo preg_replace('/ /', 'T', $maxTime ) ?>" onchange="changeDateTime(this);">

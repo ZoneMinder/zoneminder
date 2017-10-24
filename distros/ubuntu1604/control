@@ -60,7 +60,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libsoap-wsdl-perl
         ,libio-socket-multicast-perl
         ,libdigest-sha-perl
-        ,libsys-cpu-perl, libsys-meminfo-perl
+        ,libsys-cpu-perl, libsys-cpuload-perl, libsys-meminfo-perl
         ,libdata-uuid-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules

@@ -157,6 +157,16 @@ sub zmDbGetMonitors {
   return( \@monitors );
 }
 
+sub zmSQLExecute {
+  my $sql = shift;
+  
+  my $sth = $dbh->prepare_cached( $sql )
+    or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( @_ )
+    or croak( "Can't execute '$sql': ".$sth->errstr() );
+  return 1;
+}
+
 sub zmDbGetMonitor {
   zmDbConnect();
 

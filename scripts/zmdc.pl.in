@@ -70,6 +70,7 @@ use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
 use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+use Sys::CpuLoad;
 
 use autouse 'Pod::Usage'=>qw(pod2usage);
 #use Data::Dumper;
@@ -230,6 +231,7 @@ use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
 use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+use Sys::CpuLoad;
 #use Data::Dumper;
 
 use constant KILL_DELAY => 100*1000; # 1/10th of a second
@@ -263,12 +265,10 @@ sub run {
 
   dPrint( ZoneMinder::Logger::INFO, 'Socket should be open at ' .main::SOCK_FILE  );
   my $dbh = zmDbConnect(1);
-  dPrint( ZoneMinder::Logger::INFO, 'Connected to db' );
   socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
   unlink( main::SOCK_FILE ) or Error( 'Unable to unlink ' . main::SOCK_FILE .". Error message was: $!" ) if -e main::SOCK_FILE;
   bind( SERVER, $saddr ) or Fatal( "Can't bind to " . main::SOCK_FILE . ": $!" );
   listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
-
 
   $SIG{CHLD} = \&reaper;
   $SIG{INT} = \&shutdownAll;
@@ -284,11 +284,10 @@ sub run {
   while( 1 ) {
     if ( $Config{ZM_SERVER_ID} ) {
       $dbh = zmDbConnect() if ! $dbh->ping();
-      if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
-            'Running', &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
+      my @cpuload = Sys::CpuLoad::load();
+      if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
+            'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
         Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
-      } else {
-        Debug("Updated status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
       }
     }
     my $nfound = select( my $rout = $rin, undef, undef, $timeout );

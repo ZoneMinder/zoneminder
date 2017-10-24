@@ -266,6 +266,30 @@ Warning("Addterm");
     }
   }
 
+  if ( isset($_REQUEST['object']) and $_REQUEST['object'] == 'Monitor' ) {
+    if ( $action == 'save' ) {
+      foreach ( $_REQUEST['mids'] as $mid ) {
+        $mid = ValidInt( $mid );
+        if ( ! canEdit('Monitors', $mid ) ) {
+          Warning("Cannot edit monitor $mid");
+          continue;
+        }
+        $Monitor = new Monitor( $mid );
+        $Monitor->zmaControl('stop');
+        $Monitor->zmcControl('stop');
+        $Monitor->save( $_REQUEST['newMonitor'] );
+        if ($Monitor->Function() != 'None' ) {
+          $Monitor->zmcControl('start');
+          if ( $Monitor->Enabled() ) {
+            $Monitor->zmaControl('start');
+          }
+        }
+
+      } // end foreach mid
+      $refreshParent = true;
+    } // end if action == save
+  } // end if object is Monitor
+
   // Monitor edit actions, require a monitor id and edit permissions for that monitor
   if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
     $mid = validInt($_REQUEST['mid']);

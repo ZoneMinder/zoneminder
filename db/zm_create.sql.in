@@ -403,7 +403,7 @@ CREATE TABLE `Monitors` (
   `SectionLength` int(10) unsigned NOT NULL default '600',
   `FrameSkip` smallint(5) unsigned NOT NULL default '0',
   `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',
-  `AnalysisFPS` decimal(5,2) default NULL,
+  `AnalysisFPSLimit` decimal(5,2) default NULL,
   `AnalysisUpdateDelay` smallint(5) unsigned NOT NULL default '0',
   `MaxFPS` decimal(5,2) default NULL,
   `AlarmMaxFPS` decimal(5,2) default NULL,
@@ -426,6 +426,9 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
+`Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
+`zmcFPS`  DECIMAL(5,2) NOT NULL default 0,
+`zmaFPS` DECIMAL(5,2) NOT NULL default 0,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

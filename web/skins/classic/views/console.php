@@ -177,11 +177,29 @@ $groupSql = Group::get_group_sql( $group_id );
   $displayMonitors = array();
   $monitors_dropdown = array(''=>'All');
 
+  if ( $monitor_id ) {
+    $found_selected_monitor = false;
+
+    for ( $i = 0; $i < count($monitors); $i++ ) {
+      if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+        continue;
+      }
+      $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
+      if ( $monitors[$i]['Id'] == $monitor_id ) {
+        $found_selected_monitor = true;
+      }
+    }
+    if ( ! $found_selected_monitor ) {
+      $monitor_id = '';
+    }
+  }
   for ( $i = 0; $i < count($monitors); $i++ ) {
-    if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
+    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
       continue;
     }
-    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
+
+    if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
       continue;
     }
     if ( $monitors[$i]['Function'] != 'None' ) {
@@ -191,7 +209,6 @@ $groupSql = Group::get_group_sql( $group_id );
       if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
     }
     $displayMonitors[] = $monitors[$i];
-    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
   }
 
   

@@ -288,6 +288,7 @@ CREATE TABLE `Logs` (
   KEY `TimeKey` (`TimeKey`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
 --
 -- Table structure for table `Manufacturers`
 --

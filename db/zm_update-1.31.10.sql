@@ -73,3 +73,50 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'Status'
+    ) > 0,
+"SELECT 'Column Status already exists in Monitors'",
+"ALTER TABLE Monitors ADD `Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown' AFTER `Sequence`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'CaptureFPS'
+    ) > 0,
+"SELECT 'Column CaptureFPS already exists in Monitors'",
+"ALTER TABLE Monitors ADD `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0 AFTER `Status`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'AnalysisFPSLimit'
+    ) > 0,
+"SELECT 'Column AnalysisFPSLimit already exists in Monitors'",
+"ALTER TABLE Monitors CHANGE COLUMN `AnalysisFPS` `AnalysisFPSLimit` DECIMAL(5,2) default NULL"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'AnalysisFPS'
+    ) > 0,
+"SELECT 'Column AnalysisFPS already exists in Monitors'",
+"ALTER TABLE Monitors ADD `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0 AFTER `CaptureFPS`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;

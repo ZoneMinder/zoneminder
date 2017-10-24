@@ -227,10 +227,10 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
     $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['Query']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
     parseFilter( $filter );
-    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) as EventCount$j";
+    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
     $monitor['eventCounts'][$j]['filter'] = $filter;
   }
-  $sql = 'SELECt '.join($counts,', ').' from Events as E where MonitorId = ?';
+  $sql = 'SELECT '.join($counts,', ').' FROM Events as E where MonitorId = ?';
   $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
   if ( $counts )
     $displayMonitors[$i] = $monitor = array_merge( $monitor, $counts );
@@ -348,7 +348,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 
   for ( $i = 0; $i < count($eventCounts); $i++ ) {
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, 
+                $monitor['EventCount'.$i] . '<br/>' . human_filesize($monitor['DiskSpace'.$i]), canView( 'Events' ) ) ?></td>
 <?php
   }
 ?>

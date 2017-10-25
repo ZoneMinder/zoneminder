@@ -169,6 +169,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
     Debug(1,"Writing video file to %s", video_file );
 
+#if 0
     /* X264 MP4 video writer */
     if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
 #if ZM_HAVE_VIDEOWRITER_X264MP4
@@ -200,6 +201,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     /* No video object */
     videowriter = NULL;
   }
+#endif
 
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
@@ -232,7 +234,7 @@ Event::~Event() {
     timecodes_fd = NULL;
   }
 
-  snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
+  snprintf( sql, sizeof(sql), "UPDATE Events SET Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't update event: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
@@ -419,8 +421,8 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
   strncpy( sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql) );
   int frameCount = 0;
   for ( int i = start_frame; i < n_frames && i - start_frame < ZM_SQL_BATCH_SIZE; i++ ) {
-    if ( !timestamps[i]->tv_sec ) {
-      Debug( 1, "Not adding pre-capture frame %d, zero timestamp", i );
+    if ( timestamps[i]->tv_sec <= 0 ) {
+      Debug( 1, "Not adding pre-capture frame %d, zero or less than 0 timestamp", i );
       continue;
     } else if ( timestamps[i]->tv_sec < 0 ) {
       Warning( "Not adding pre-capture frame %d, negative timestamp", i );

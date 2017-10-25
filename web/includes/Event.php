@@ -1,6 +1,15 @@
 <?php
 
 class Event {
+
+  private $fields = array(
+'Id',
+'Name',
+'MonitorId',
+'StorageId',
+'Name',
+'DiskSpace',
+);
   public function __construct( $IdOrRow = null ) {
     $row = NULL;
     if ( $IdOrRow ) {
@@ -177,7 +186,10 @@ class Event {
     return( $streamSrc );
   } // end function getStreamSrc
 
-  function DiskSpace() {
+  function DiskSpace( $new='' ) {
+    if ( $new != '' ) {
+      $this->{'DiskSpace'} = $new;
+    }
     if ( null === $this->{'DiskSpace'} ) {
       $this->{'DiskSpace'} = folder_size( $this->Path() );
       dbQuery( 'UPDATE Events SET DiskSpace=? WHERE Id=?', array( $this->{'DiskSpace'}, $this->{'Id'} ) );
@@ -370,6 +382,13 @@ class Event {
     return $filters;
   }
 
+  public function save( ) {
+    
+    $sql = 'UPDATE Events SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $this->fields ) ) . ' WHERE Id=?';
+    $values = array_map( function($field){return $this->{$field};}, $this->fields );
+    $values[] = $this->{'Id'};
+    dbQuery( $sql, $values );
+  }
 
 } # end class
 

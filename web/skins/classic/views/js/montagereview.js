@@ -114,6 +114,21 @@ function loadNoData( monId ) {
     console.log("No monId in loadNoData");
   }
 }
+function writeText( monId, text ) {
+  if ( monId ) {
+    var canvasCtx = monitorCanvasCtx[monId];
+    var canvasObj = monitorCanvasObj[monId];
+    //canvasCtx.fillStyle="white";
+    //canvasCtx.fillRect(0, 0, canvasObj.width, canvasObj.height);
+    var textSize=canvasObj.width * 0.15;
+    canvasCtx.font = "600 " + textSize.toString() + "px Arial";
+    canvasCtx.fillStyle="white";
+    var textWidth = canvasCtx.measureText(text).width;
+    canvasCtx.fillText(text,canvasObj.width/2 - textWidth/2,canvasObj.height/2);
+  } else {
+    console.log("No monId in loadNoData");
+  }
+}
 
 // Either draws the 
 function loadImage2Monitor( monId, url ) {
@@ -123,14 +138,16 @@ function loadImage2Monitor( monId, url ) {
   } else {
     if ( monitorImageObject[monId].src == url ) return;   // do nothing if it's the same
     if ( url == 'no data' ) {
-      loadNoData( monId );
+      writeText(monId, 'No Data');
     } else {
+      //writeText(monId, 'Loading...');
       monitorLoading[monId] = true;
       monitorLoadStartTimems[monId] = new Date().getTime();
       monitorImageObject[monId].src = url;  // starts a load but doesn't refresh yet, wait until ready
     }
   }
 }
+
 function timerFire() {
   // See if we need to reschedule
   if ( currentDisplayInterval != timerInterval || currentSpeed == 0 ) {
@@ -665,15 +682,17 @@ function showOneMonitor(monId) {
   // link out to the normal view of one event's data
   // We know the monitor, need to determine the event based on current time
   var url;
-  if ( liveMode != 0 )
+  if ( liveMode != 0 ) {
     url="?view=watch&mid=" + monId.toString();
-  else
+    createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
+  } else {
     for ( var i=0, len=eId.length; i<len; i++ ) {
       if ( eMonId[i] == monId && currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i] )
         url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
         break;
     }
-    createPopup(url, 'zmEvent', 'event', monitorWidth[eMonId[i]], monitorHeight[eMonId[i]]);
+    createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
+  }
 }
 
 function zoom(monId,scale) {

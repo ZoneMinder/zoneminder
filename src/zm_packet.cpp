@@ -146,13 +146,11 @@ Image * ZMPacket::get_image( Image *i = NULL ) {
     return NULL;
   }
 
-  colours = ZM_COLOUR_RGB32;
-  subpixelorder = ZM_SUBPIX_ORDER_RGBA;
   AVFrame *mFrame = zm_av_frame_alloc();
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  av_image_fill_arrays(mframe->data, mframe->linesize, directbuffer, imagePixFormat, frame->width, frame->height, 1);
+  av_image_fill_arrays(mFrame->data, mFrame->linesize, directbuffer, imagePixFormat, frame->width, frame->height, 1);
 #else
-  avpicture_fill( (AVPicture *)mframe, directbuffer, imagePixFormat, frame->width, frame->height);
+  avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, frame->width, frame->height);
 #endif
   if (sws_scale(mConvertContext, frame->data, frame->linesize,
         0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0) {

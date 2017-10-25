@@ -19,7 +19,7 @@
 //
 
 $servers = Server::find_all();
-$ServersById = array(''=>'All');
+$ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
@@ -42,7 +42,7 @@ foreach ( array('ServerFilter','StorageFilter') as $var ) {
 session_write_close();
 
 $storage_areas = Storage::find_all();
-$StorageById = array(''=>'All');
+$StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
 }
@@ -177,11 +177,29 @@ $groupSql = Group::get_group_sql( $group_id );
   $displayMonitors = array();
   $monitors_dropdown = array(''=>'All');
 
+  if ( $monitor_id ) {
+    $found_selected_monitor = false;
+
+    for ( $i = 0; $i < count($monitors); $i++ ) {
+      if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+        continue;
+      }
+      $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
+      if ( $monitors[$i]['Id'] == $monitor_id ) {
+        $found_selected_monitor = true;
+      }
+    }
+    if ( ! $found_selected_monitor ) {
+      $monitor_id = '';
+    }
+  }
   for ( $i = 0; $i < count($monitors); $i++ ) {
-    if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
+    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
       continue;
     }
-    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
+
+    if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
       continue;
     }
     if ( $monitors[$i]['Function'] != 'None' ) {
@@ -191,9 +209,9 @@ $groupSql = Group::get_group_sql( $group_id );
       if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
     }
     $displayMonitors[] = $monitors[$i];
-    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
   }
 
+  
   echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') );
 
   $cycleWidth = $maxWidth;
@@ -209,10 +227,10 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
     $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['Query']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
     parseFilter( $filter );
-    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) as EventCount$j";
+    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
     $monitor['eventCounts'][$j]['filter'] = $filter;
   }
-  $sql = 'SELECt '.join($counts,', ').' from Events as E where MonitorId = ?';
+  $sql = 'SELECT '.join($counts,', ').' FROM Events as E where MonitorId = ?';
   $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
   if ( $counts )
     $displayMonitors[$i] = $monitor = array_merge( $monitor, $counts );
@@ -224,23 +242,22 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
 ?>
 </span>
 <?php if ( count($ServersById) > 0 ) { ?>
-<span id="ServerFilter"><label><?php echo translate('Server')?>:</label>
+<span class="ServerFilter"><label><?php echo translate('Server')?>:</label>
 <?php
-echo htmlSelect( 'ServerFilter', $ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
+echo htmlSelect( 'ServerFilter', array(''=>'All')+$ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
 ?>
 </span>
 <?php 
 }
 if ( count($StorageById) > 0 ) { ?>
-<span id="StorageFilter"><label><?php echo translate('Storage')?>:</label>
+<span class="StorageFilter"><label><?php echo translate('Storage')?>:</label>
 <?php
-echo htmlSelect( 'StorageFilter', $StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
+echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
 ?>
 </span>
 <?php
 }
 ?>
-    </div>
     </div>
 
     <div class="container-fluid">
@@ -331,7 +348,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 
   for ( $i = 0; $i < count($eventCounts); $i++ ) {
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, 
+                $monitor['EventCount'.$i] . '<br/>' . human_filesize($monitor['DiskSpace'.$i]), canView( 'Events' ) ) ?></td>
 <?php
   }
 ?>

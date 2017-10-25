@@ -113,7 +113,9 @@ class Storage {
     if ( ! array_key_exists( 'disk_used_space', $this ) ) {
       $used = 0;
       if ( $this->{'Type'} == 's3fs' ) {
-	      foreach ( Event::find_all( array( 'StorageId'=>$this->Id() ) ) as $Event ) {
+        $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
+
+	      foreach ( Event::find_all( array( 'StorageId'=>$this->Id(), 'DiskSpace'=>null ) ) as $Event ) {
 		      $Event->Storage( $this ); // Prevent further db hit
 		      $used += $Event->DiskSpace();
 	      }

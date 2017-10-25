@@ -271,8 +271,7 @@ void EventStream::processCommand( const CmdMsg *msg ) {
     case CMD_VARPLAY :
       {
         Debug( 1, "Got VARPLAY command" );
-        if ( paused )
-        {
+        if ( paused ) {
           // Clear paused flag
           paused = false;
         }

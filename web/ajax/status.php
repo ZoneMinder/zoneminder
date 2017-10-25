@@ -108,6 +108,7 @@ $statusData = array(
                 "elements" => array(
                   "Id" => array( "sql" => "Events.Id" ),
                   "MonitorId" => true,
+                  "MonitorName" => array("sql" => "(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)"),
                   "Name" => true,
                   "Cause" => true,
                   "StartTime" => true,

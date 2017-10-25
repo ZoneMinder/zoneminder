@@ -55,7 +55,7 @@ use bytes;
 # ==========================================================================
 
 # in useconds, not seconds.
-use constant MAX_CONNECT_DELAY => 10*1000*1000;
+use constant MAX_CONNECT_DELAY => 40;
 
 # ==========================================================================
 #
@@ -69,6 +69,9 @@ use POSIX;
 use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
+use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+use Sys::CpuLoad;
+
 use autouse 'Pod::Usage'=>qw(pod2usage);
 #use Data::Dumper;
 
@@ -140,12 +143,20 @@ foreach my $arg ( @ARGV ) {
   }
 }
 
+my $dbh = zmDbConnect();
+
 socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 
 my $saddr = sockaddr_un( SOCK_FILE );
 my $server_up = connect( CLIENT, $saddr );
 if ( ! $server_up ) {
-  # Server is not up.  Some commands can still be handled
+  if ( $Config{ZM_SERVER_ID} ) {
+    if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
+          'NotRunning', &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
+      Error("Failed Updating status of Server record to Not RUnning for Id=$Config{ZM_SERVER_ID}" . $dbh->errstr());
+    }
+  }
+# Server is not up.  Some commands can still be handled
   if ( $command eq 'logrot' ) {
     # If server is not running, then logrotate doesn't need to do anything.
     exit();
@@ -172,7 +183,7 @@ if ( ! $server_up ) {
     my $attempts = 0;
     while( !connect( CLIENT, $saddr ) ) {
       $attempts++;
-      Error("Waiting for zmdc.pl server process, attempt $attempts" );
+      Error("Waiting for zmdc.pl server process at " . SOCK_FILE.", attempt $attempts" );
       Fatal( "Can't connect: $!" ) if ($attempts > MAX_CONNECT_DELAY);
       usleep(200000);
     } # end while
@@ -219,6 +230,8 @@ use POSIX;
 use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
+use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+use Sys::CpuLoad;
 #use Data::Dumper;
 
 use constant KILL_DELAY => 100*1000; # 1/10th of a second
@@ -250,8 +263,10 @@ sub run {
 
   killAll( 1 );
 
+  dPrint( ZoneMinder::Logger::INFO, 'Socket should be open at ' .main::SOCK_FILE  );
+  my $dbh = zmDbConnect(1);
   socket( SERVER, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
-  unlink( main::SOCK_FILE ) or Error( 'Unable to unlink ' . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
+  unlink( main::SOCK_FILE ) or Error( 'Unable to unlink ' . main::SOCK_FILE .". Error message was: $!" ) if -e main::SOCK_FILE;
   bind( SERVER, $saddr ) or Fatal( "Can't bind to " . main::SOCK_FILE . ": $!" );
   listen( SERVER, SOMAXCONN ) or Fatal( "Can't listen: $!" );
 
@@ -265,8 +280,16 @@ sub run {
   vec( $rin, fileno(SERVER), 1 ) = 1;
   my $win = $rin;
   my $ein = $win;
-  my $timeout = 0.1;
+  my $timeout = 1;
   while( 1 ) {
+    if ( $Config{ZM_SERVER_ID} ) {
+      $dbh = zmDbConnect() if ! $dbh->ping();
+      my @cpuload = Sys::CpuLoad::load();
+      if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
+            'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
+        Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
+      }
+    }
     my $nfound = select( my $rout = $rin, undef, undef, $timeout );
     if ( $nfound > 0 ) {
       if ( vec( $rout, fileno(SERVER), 1 ) ) {
@@ -327,6 +350,12 @@ sub run {
       .strftime( '%y/%m/%d %H:%M:%S', localtime() )
       ."\n"
       );
+  if ( $Config{ZM_SERVER_ID} ) {
+    $dbh = zmDbConnect() if ! $dbh->ping();
+    if ( ! defined $dbh->do(q{UPDATE Servers SET Status='NotRunning' WHERE Id=?}, undef, $Config{ZM_SERVER_ID} ) ) {
+      Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
+    }
+  }
   unlink( main::SOCK_FILE ) or Error( 'Unable to unlink ' . main::SOCK_FILE .". Error message was: $!" ) if ( -e main::SOCK_FILE );
   unlink( ZM_PID ) or Error( 'Unable to unlink ' . ZM_PID .". Error message was: $!" ) if ( -e ZM_PID );
   exit();
@@ -393,7 +422,7 @@ sub start {
     sigprocmask( SIG_SETMASK, $sigset ) or Fatal( "Can't restore SIGCHLD: $!" );
   } elsif ( defined($cpid ) ) {
 # Force reconnection to the db.
-    zmDbConnect(1);
+    $dbh = zmDbConnect(1);
     logReinit();
 
     dPrint( ZoneMinder::Logger::INFO, "'".join( ' ', ( $daemon, @args ) )

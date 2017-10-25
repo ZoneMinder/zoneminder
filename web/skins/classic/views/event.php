@@ -36,14 +36,17 @@ if ( $user['MonitorIds'] ) {
 }
 $Monitor = $Event->Monitor();
 
-if ( isset( $_REQUEST['rate'] ) )
+if (isset($_REQUEST['rate'])) {
   $rate = validInt($_REQUEST['rate']);
-else
-  $rate = reScale( RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE );
+} else {
+  $rate = reScale(RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
+}
 
-if ( isset( $_REQUEST['scale'] ) ) {
+if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
-} else if ( isset( $_COOKIE['zmEventScale'.$Event->MonitorId()] ) ) {
+} else if (isset($_COOKIE['zmEventScaleAuto'])) { //If we're using scale to fit use it on all monitors
+  $scale = 'auto';
+} else if (isset($_COOKIE['zmEventScale'.$Event->MonitorId()])) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
   $scale = reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
@@ -153,20 +156,11 @@ if ( $Event->DefaultVideo() ) {
         <div id="videoFeed">
           <video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $Event->Width(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'>
           <source src="<?php echo $Event->getStreamSrc( array( 'mode'=>'mpeg','format'=>'h264' ) ); ?>" type="video/mp4">
+          <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default>
           Your browser does not support the video tag.
           </video>
         </div>
         <!--script>includeVideoJs();</script-->
-        <script type="text/javascript">
-        var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
-        var monitorName = "<?php echo validJsStr($Monitor->Name())?>";
-        var duration = <?php echo $Event->Length() ?>, startTime = '<?php echo $Event->StartTime() ?>';
-
-        addVideoTimingTrack(document.getElementById('videoobj'), LabelFormat, monitorName, duration, startTime);
-
-        nearEventsQuery( eventData.Id );
-        vjsReplay(<?php echo (strtotime($Event->StartTime()) + $Event->Length())*1000 ?>);
-        </script>
 
       <p id="dvrControls" class="dvrControls">
         <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
@@ -191,7 +185,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   }
 } // end if stream method
 ?>
-        <div id="alarmCueJpeg" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"></div>
+        <div id="alarmCue" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"></div>
         <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->

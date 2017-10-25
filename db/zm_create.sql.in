@@ -288,6 +288,7 @@ CREATE TABLE `Logs` (
   KEY `TimeKey` (`TimeKey`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
 --
 -- Table structure for table `Manufacturers`
 --
@@ -402,7 +403,7 @@ CREATE TABLE `Monitors` (
   `SectionLength` int(10) unsigned NOT NULL default '600',
   `FrameSkip` smallint(5) unsigned NOT NULL default '0',
   `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',
-  `AnalysisFPS` decimal(5,2) default NULL,
+  `AnalysisFPSLimit` decimal(5,2) default NULL,
   `AnalysisUpdateDelay` smallint(5) unsigned NOT NULL default '0',
   `MaxFPS` decimal(5,2) default NULL,
   `AlarmMaxFPS` decimal(5,2) default NULL,
@@ -425,6 +426,9 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
+`Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
+`zmcFPS`  DECIMAL(5,2) NOT NULL default 0,
+`zmaFPS` DECIMAL(5,2) NOT NULL default 0,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -457,6 +461,12 @@ CREATE TABLE `Servers` (
   `Hostname` TEXT,
   `Name` varchar(64) NOT NULL default '',
   `State_Id`	int(10) unsigned,
+  `Status` enum('Unknown','NotRunning','Running') NOT NULL default 'Unknown',
+  `Load` DECIMAL(5,1),
+  `TotalMem` bigint unsigned default null,
+  `FreeMem` bigint unsigned default null,
+  `TotalSwap` bigint  unsigned default null,
+  `FreeSwap` bigint unsigned default null, 
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -741,6 +751,15 @@ INSERT INTO ZonePresets VALUES (5,'Best, low sensitivity','Active','Percent','Bl
 INSERT INTO ZonePresets VALUES (6,'Best, medium sensitivity','Active','Percent','Blobs',40,NULL,16,NULL,5,5,12,NULL,10,NULL,1,NULL,0,0);
 INSERT INTO ZonePresets VALUES (7,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL,0,0);
 
+CREATE TABLE Maps (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`      TEXT NOT NULL,
+  `Filename`  TEXT NOT NULL default '',
+  `NumCoords` tinyint(3) unsigned NOT NULL default '0',
+  `Coords` tinytext NOT NULL,
+  `ParentId`   int(1) unsigned,
+  PRIMARY KEY (`Id`)
+);
 --
 -- Apply the initial configuration
 --

@@ -258,6 +258,17 @@ echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSIO
 <?php
 }
 ?>
+      <span class="StatusFilter"><label><?php echo translate('Status')?>:</label>
+<?php
+$status_options = array(
+    ''=>'All',
+    'Unknown' => translate('Unknown'),
+    'NotRunning' => translate('NotRunning'),
+    'Running' => translate('Running'),
+    );
+echo htmlSelect( 'StatusFilter', $status_options, ( isset($_SESSION['StatusFilter']) ? $_SESSION['StatusFilter'] : '' ), array('onchange'=>'changeFilter(this);') );
+?>
+      </span>
     </div>
 
     <div class="container-fluid">

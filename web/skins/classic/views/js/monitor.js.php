@@ -55,7 +55,7 @@ function validateForm( form ) {
   else if ( form.elements.mid.value == 0 && monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
 
-  if ( form.elements['newMonitor[AnalysisFPS]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPS]'].value) > 0 ) )
+  if ( form.elements['newMonitor[AnalysisFPSLimit]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPSLimit]'].value) > 0 ) )
     errors[errors.length] = "<?php echo translate('BadAnalysisFPS') ?>";
   if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
     errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";

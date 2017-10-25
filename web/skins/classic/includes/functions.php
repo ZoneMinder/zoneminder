@@ -194,9 +194,19 @@ ZoneMinder requires Javascript. Please enable Javascript in your browser for thi
 			<li><a href="?view=console"><?php echo translate('Console') ?></a></li>
 <?php if ( canView( 'System' ) ) { ?>
 			<li><a href="?view=options"><?php echo translate('Options') ?></a></li>
-			<li><?php if ( logToDatabase() > Logger::NOLOG ) { ?> <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></li>
-<?php } ?>
-<?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
+			<li>
+<?php
+  if ( logToDatabase() > Logger::NOLOG ) { 
+    if ( ! ZM_RUN_AUDIT ) {
+    # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
+     dbQuery("DELETE FROM Logs WHERE TimeKey < NOW()-to_days('".ZM_LOG_DATABASE_LIMIT."')");
+    }
+    echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
+  }
+} // end if canview(System)
+?></li>
+<?php
+if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
 <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>

@@ -125,7 +125,7 @@ sub Execute {
     push @results, $event;
   }
   $sth->finish();
-  Debug("Loaded " . @results . " events for filter $_[0]{Name} using query ($sql)");
+  Debug('Loaded ' . @results . " events for filter $_[0]{Name} using query ($sql)");
   return @results;
 }
 
@@ -147,38 +147,59 @@ sub Sql {
       foreach my $term ( @{$filter_expr->{terms}} ) {
 
         if ( exists($term->{cnj}) ) {
-          $self->{Sql} .= " ".$term->{cnj}." ";
+          $self->{Sql} .= ' '.$term->{cnj}." ";
         }
         if ( exists($term->{obr}) ) {
-          $self->{Sql} .= " ".str_repeat( "(", $term->{obr} )." ";
+          $self->{Sql} .= ' '.str_repeat( "(", $term->{obr} )." ";
         }
         my $value = $term->{val};
         my @value_list;
         if ( $term->{attr} ) {
           if ( $term->{attr} =~ /^Monitor/ ) {
             my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
-            $self->{Sql} .= "M.".$temp_attr_name;
+            $self->{Sql} .= 'M.'.$temp_attr_name;
           } elsif ( $term->{attr} =~ /^Server/ ) {
-            $self->{Sql} .= "M.".$term->{attr};
+            $self->{Sql} .= 'M.'.$term->{attr};
+
+# StartTime options
           } elsif ( $term->{attr} eq 'DateTime' ) {
-            $self->{Sql} .= "E.StartTime";
+            $self->{Sql} .= 'E.StartTime';
+          } elsif ( $term->{attr} eq 'StartDateTime' ) {
+            $self->{Sql} .= 'E.StartTime';
           } elsif ( $term->{attr} eq 'Date' ) {
-            $self->{Sql} .= "to_days( E.StartTime )";
+            $self->{Sql} .= 'to_days( E.StartTime )';
+          } elsif ( $term->{attr} eq 'StartDate' ) {
+            $self->{Sql} .= 'to_days( E.StartTime )';
           } elsif ( $term->{attr} eq 'Time' ) {
             $self->{Sql} .= "extract( hour_second from E.StartTime )";
           } elsif ( $term->{attr} eq 'Weekday' ) {
             $self->{Sql} .= "weekday( E.StartTime )";
+
+# EndTIme options
+          } elsif ( $term->{attr} eq 'EndDateTime' ) {
+            $self->{Sql} .= 'E.EndTime';
+          } elsif ( $term->{attr} eq 'EndDate' ) {
+            $self->{Sql} .= 'to_days( E.EndTime )';
+          } elsif ( $term->{attr} eq 'EndTime' ) {
+            $self->{Sql} .= "extract( hour_second from E.EndTime )";
+          } elsif ( $term->{attr} eq 'EndWeekday' ) {
+            $self->{Sql} .= "weekday( E.EndTime )";
+
+# 
+          } elsif ( $term->{attr} eq 'DiskSpace' ) {
+            $self->{Sql} .= 'E.DiskSpace';
+            $self->{HasDiskPercent} = !undef;
           } elsif ( $term->{attr} eq 'DiskPercent' ) {
-            $self->{Sql} .= "zmDiskPercent";
+            $self->{Sql} .= 'zmDiskPercent';
             $self->{HasDiskPercent} = !undef;
           } elsif ( $term->{attr} eq 'DiskBlocks' ) {
-            $self->{Sql} .= "zmDiskBlocks";
+            $self->{Sql} .= 'zmDiskBlocks';
             $self->{HasDiskBlocks} = !undef;
           } elsif ( $term->{attr} eq 'SystemLoad' ) {
-            $self->{Sql} .= "zmSystemLoad";
+            $self->{Sql} .= 'zmSystemLoad';
             $self->{HasSystemLoad} = !undef;
           } else {
-            $self->{Sql} .= "E.".$term->{attr};
+            $self->{Sql} .= 'E.'.$term->{attr};
           }
 
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
@@ -243,11 +264,11 @@ sub Sql {
           } elsif ( $term->{op} eq '!~' ) {
             $self->{Sql} .= " not in (".join( ",", @value_list ).")";
           } else {
-            $self->{Sql} .= " ".$term->{op}." $value";
+            $self->{Sql} .= ' '.$term->{op}." $value";
           }
         } # end if has an operator
         if ( exists($term->{cbr}) ) {
-          $self->{Sql} .= " ".str_repeat( ")", $term->{cbr} )." ";
+          $self->{Sql} .= ' '.str_repeat( ")", $term->{cbr} )." ";
         }
       } # end foreach term
     } # end if terms
@@ -284,7 +305,7 @@ sub Sql {
       push @auto_terms, "E.Executed = 0";
     }
     if ( @auto_terms ) {
-      $sql .= " and ( ".join( " or ", @auto_terms )." )";
+      $sql .= " and ( ".join( ' or ', @auto_terms )." )";
     }
     if ( !$filter_expr->{sort_field} ) {
       $filter_expr->{sort_field} = 'StartTime';
@@ -292,30 +313,34 @@ sub Sql {
     }
     my $sort_column = '';
     if ( $filter_expr->{sort_field} eq 'Id' ) {
-      $sort_column = "E.Id";
+      $sort_column = 'E.Id';
     } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
-      $sort_column = "M.Name";
+      $sort_column = 'M.Name';
     } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
-      $sort_column = "E.Name";
+      $sort_column = 'E.Name';
     } elsif ( $filter_expr->{sort_field} eq 'StartTime' ) {
-      $sort_column = "E.StartTime";
+      $sort_column = 'E.StartTime';
+    } elsif ( $filter_expr->{sort_field} eq 'EndTime' ) {
+      $sort_column = 'E.EndTime';
     } elsif ( $filter_expr->{sort_field} eq 'Secs' ) {
-      $sort_column = "E.Length";
+      $sort_column = 'E.Length';
     } elsif ( $filter_expr->{sort_field} eq 'Frames' ) {
-      $sort_column = "E.Frames";
+      $sort_column = 'E.Frames';
     } elsif ( $filter_expr->{sort_field} eq 'AlarmFrames' ) {
-      $sort_column = "E.AlarmFrames";
+      $sort_column = 'E.AlarmFrames';
     } elsif ( $filter_expr->{sort_field} eq 'TotScore' ) {
-      $sort_column = "E.TotScore";
+      $sort_column = 'E.TotScore';
     } elsif ( $filter_expr->{sort_field} eq 'AvgScore' ) {
-      $sort_column = "E.AvgScore";
+      $sort_column = 'E.AvgScore';
     } elsif ( $filter_expr->{sort_field} eq 'MaxScore' ) {
-      $sort_column = "E.MaxScore";
+      $sort_column = 'E.MaxScore';
+    } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
+      $sort_column = 'E.DiskSpace';
     } else {
-      $sort_column = "E.StartTime";
+      $sort_column = 'E.StartTime';
     }
-    my $sort_order = $filter_expr->{sort_asc}?"asc":"desc";
-    $sql .= " order by ".$sort_column." ".$sort_order;
+    my $sort_order = $filter_expr->{sort_asc}?'asc':'desc';
+    $sql .= ' order by '.$sort_column." ".$sort_order;
     if ( $filter_expr->{limit} ) {
       $sql .= " limit 0,".$filter_expr->{limit};
     }
@@ -325,7 +350,7 @@ sub Sql {
 } # end sub Sql
 
 sub getDiskPercent {
-  my $command = "df " . ($_[0] ? $_[0] : '.');
+  my $command = 'df ' . ($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)%/ms ) {
@@ -335,7 +360,7 @@ sub getDiskPercent {
 }
 
 sub getDiskBlocks {
-  my $command = "df .";
+  my $command = 'df .';
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {
@@ -345,7 +370,7 @@ sub getDiskBlocks {
 }
 
 sub getLoad {
-  my $command = "uptime .";
+  my $command = 'uptime .';
   my $uptime = qx( $command );
   my $load = -1;
   if ( $uptime =~ /load average:\s+([\d.]+)/ms ) {

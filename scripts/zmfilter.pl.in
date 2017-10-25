@@ -214,6 +214,7 @@ sub getFilters {
     or AutoMessage = 1
     or AutoExecute = 1
     or AutoDelete = 1
+    or UpdateDiskSpace = 1
     ) ORDER BY Name';
   my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );

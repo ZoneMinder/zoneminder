@@ -232,6 +232,7 @@ CREATE TABLE `Filters` (
   `AutoExecute` tinyint(3) unsigned NOT NULL default '0',
   `AutoExecuteCmd` tinytext,
   `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
+  `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
@@ -289,6 +290,7 @@ CREATE TABLE `Logs` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
+CREATE INDEX `Logs_Level_idx` ON `Logs` (`Level`);
 --
 -- Table structure for table `Manufacturers`
 --

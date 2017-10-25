@@ -140,6 +140,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if ( symlink( time_path, id_file ) < 0 )
       Error( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
   } else {
+    // Shallow Storage
     snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
 
     errno = 0;
@@ -200,8 +201,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   } else {
     /* No video object */
     videowriter = NULL;
-  }
 #endif
+  }
 
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 

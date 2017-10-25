@@ -108,7 +108,7 @@ int ZMPacket::decode( AVCodecContext *ctx ) {
 
 # else
   int frameComplete = 0;
-  ret = zm_avcodec_decode_video( ctx, frame, &frameComplete, &packet );
+  int ret = zm_avcodec_decode_video( ctx, frame, &frameComplete, &packet );
   if ( ret < 0 ) {
     Error( "Unable to decode frame at frame %s", av_make_error_string( ret ) );
       av_frame_free( &frame );

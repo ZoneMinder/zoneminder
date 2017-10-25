@@ -116,7 +116,7 @@ int cURLCamera::PreCapture() {
     return( 0 );
 }
 
-int cURLCamera::Capture( Image &image ) {
+ZMPacket * cURLCamera::Capture( Image &image ) {
   bool frameComplete = false;
 
   /* MODE_STREAM specific variables */
@@ -144,7 +144,7 @@ int cURLCamera::Capture( Image &image ) {
       nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
       if(nRet != 0) {
         Error("Failed waiting for available data condition variable: %s",strerror(nRet));
-        return -20;
+        return NULL;
       }
     }
 
@@ -257,7 +257,7 @@ int cURLCamera::Capture( Image &image ) {
         nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
         if(nRet != 0) {
           Error("Failed waiting for available data condition variable: %s",strerror(nRet));
-          return -18;
+          return NULL;
         }
         need_more_data = false;
       }
@@ -281,7 +281,7 @@ int cURLCamera::Capture( Image &image ) {
         nRet = pthread_cond_wait(&request_complete_cond,&shareddata_mutex);
         if(nRet != 0) {
           Error("Failed waiting for request complete condition variable: %s",strerror(nRet));
-          return -19;
+          return NULL;
         }
       }
     } else {
@@ -295,20 +295,15 @@ int cURLCamera::Capture( Image &image ) {
   unlock();
 
   if(!frameComplete)
-    return -1;
+    return NULL;
 
-  return 0;
+  ZMPacket * packet = new ZMPacket( &image );
+  return packet;
 }
 
 int cURLCamera::PostCapture() {
     // Nothing to do here
     return( 0 );
-}
-
-int cURLCamera::CaptureAndRecord( Image &image, struct timeval recording, char* event_directory ) {
-  Error("Capture and Record not implemented for the cURL camera type");
-  // Nothing to do here
-  return( 0 );
 }
 
 size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata) {

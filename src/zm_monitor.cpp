@@ -1378,12 +1378,12 @@ bool Monitor::Analyse() {
           if ( event ) {
             //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
             //snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-              Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
+              //Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
             
             if ( section_length ) {
               // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
               int section_mod = timestamp->tv_sec % section_length;
-              Debug( 3, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
+              Debug( 4, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
               if ( section_mod < last_section_mod ) {
                 //if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
                   //if ( state == TAPE ) {

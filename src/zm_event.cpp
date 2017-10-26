@@ -168,7 +168,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
     snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
     Debug(1,"Writing video file to %s", video_file );
-
+#if 0
     /* X264 MP4 video writer */
     if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
 #if ZM_HAVE_VIDEOWRITER_X264MP4
@@ -196,6 +196,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
         Error("Failed creating timecodes file");
       }
     }
+#endif
   } else {
     /* No video object */
     videowriter = NULL;

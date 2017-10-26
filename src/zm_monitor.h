@@ -432,6 +432,8 @@ public:
   int GetOptSaveJPEGs() const { return( savejpegspref ); }
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
+  const std::string &GetEncoderOptions() const { return( encoderparams ); }
+
   uint32_t GetLastEventId() const { return shared_data->last_event; }
   uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }

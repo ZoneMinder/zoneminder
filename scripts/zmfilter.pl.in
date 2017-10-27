@@ -259,6 +259,7 @@ sub checkFilter {
       ($filter->{AutoEmail}?', email':''),
       ($filter->{AutoMessage}?', message':''),
       ($filter->{AutoExecute}?', execute':''),
+      ($filter->{UpdateDiskSpace}?', update disk space':''),
       ' returned ' , scalar @Events , ' events',
       "\n",
       ) );
@@ -309,6 +310,12 @@ sub checkFilter {
         Error( "Unable toto delete event $event->{Id} as previous operations failed\n" );
       }
     } # end if AutoDelete
+    if ( $filter->{UpdateDiskSpace} ) {
+        my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+        $Event->DiskSpace(undef);
+        $Event->save();
+          
+    } # end if UpdateDiskSpace
   } # end foreach event
 }
 

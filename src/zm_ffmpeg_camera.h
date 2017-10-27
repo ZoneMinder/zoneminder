@@ -41,6 +41,7 @@ class FfmpegCamera : public Camera {
     std::string         mPath;
     std::string         mMethod;
     std::string         mOptions;
+    std::string         encoder_options;
 
     int frameCount;    
 

@@ -678,6 +678,8 @@ sub Dump {
   fetch()->logPrint( DEBUG, Data::Dumper->Dump( [ $var ], [ $label ] ) );
 }
 
+sub debug { fetch()->logPrint( DEBUG, @_ ); }
+
 sub Debug( @ ) {
   fetch()->logPrint( DEBUG, @_ );
 }
@@ -685,12 +687,22 @@ sub Debug( @ ) {
 sub Info( @ ) {
   fetch()->logPrint( INFO, @_ );
 }
+sub info {
+  fetch()->logPrint( INFO, @_ );
+}
+
 
 sub Warning( @ ) {
   fetch()->logPrint( WARNING, @_ );
 }
+sub warn {
+  fetch()->logPrint( WARNING, @_ );
+}
 
 sub Error( @ ) {
+  fetch()->logPrint( ERROR, @_ );
+}
+sub error {
   fetch()->logPrint( ERROR, @_ );
 }
 

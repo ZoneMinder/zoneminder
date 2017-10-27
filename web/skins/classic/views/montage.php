@@ -103,6 +103,35 @@ ob_end_clean();
 
 $groupSql = Group::get_group_sql( $group_id );
 
+$servers = Server::find_all();
+$ServersById = array();
+foreach ( $servers as $S ) {
+  $ServersById[$S->Id()] = $S;
+}
+session_start();
+foreach ( array('ServerFilter','StorageFilter') as $var ) {
+  if ( isset( $_REQUEST[$var] ) ) {
+    if ( $_REQUEST[$var] != '' ) {
+      $_SESSION[$var] = $_REQUEST[$var];
+    } else {
+      unset( $_SESSION[$var] );
+    }
+  } else if ( isset( $_COOKIE[$var] ) ) {
+    if ( $_COOKIE[$var] != '' ) {
+      $_SESSION[$var] = $_COOKIE[$var];
+    } else {
+      unset($_SESSION[$var]);
+    }
+  }
+}
+session_write_close();
+
+$storage_areas = Storage::find_all();
+$StorageById = array();
+foreach ( $storage_areas as $S ) {
+  $StorageById[$S->Id()] = $S;
+}
+
 $monitor_id = 0;
 if ( isset( $_REQUEST['monitor_id'] ) ) {
   $monitor_id = $_REQUEST['monitor_id'];
@@ -112,15 +141,46 @@ if ( isset( $_REQUEST['monitor_id'] ) ) {
 
 $monitors = array();
 $monitors_dropdown = array( '' => 'All' );
-$sql = "SELECT * FROM Monitors WHERE Function != 'None'";
-if ( $groupSql ) { $sql .= ' AND ' . $groupSql; };
-if ( $monitor_id ) { $sql .= ' AND Id='.$monitor_id; };
+  $conditions = array();
+  $values = array();
 
-$sql .= ' ORDER BY Sequence';
-foreach( dbFetchAll( $sql ) as $row ) {
+  if ( $groupSql )
+    $conditions[] = $groupSql;
+  if ( isset($_SESSION['ServerFilter']) ) {
+    $conditions[] = 'ServerId=?';
+    $values[] = $_SESSION['ServerFilter'];
+  }
+  if ( isset($_SESSION['StorageFilter']) ) {
+    $conditions[] = 'StorageId=?';
+    $values[] = $_SESSION['StorageFilter'];
+  }
+  $sql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
+  $monitor_rows = dbFetchAll( $sql, null, $values );
+
+  if ( $monitor_id ) {
+    $found_selected_monitor = false;
+
+    for ( $i = 0; $i < count($monitor_rows); $i++ ) {
+      if ( !visibleMonitor( $monitor_rows[$i]['Id'] ) ) {
+        continue;
+      }
+      $monitors_dropdown[$monitor_rows[$i]['Id']] = $monitor_rows[$i]['Name'];
+      if ( $monitor_rows[$i]['Id'] == $monitor_id ) {
+        $found_selected_monitor = true;
+      }
+    }
+    if ( ! $found_selected_monitor ) {
+      $monitor_id = '';
+    }
+  }
+
+$monitors = array();
+foreach( $monitor_rows as $row ) {
   if ( !visibleMonitor( $row['Id'] ) ) {
     continue;
   }
+  if ( $monitor_id and $row['Id'] != $monitor_id ) 
+    continue;
 
   $row['Scale'] = $scale;
   $row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
@@ -169,6 +229,23 @@ if ( $showZones ) {
       <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
       <?php echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') ); ?>
       </span>
+<?php if ( count($ServersById) > 0 ) { ?>
+<span class="ServerFilter"><label><?php echo translate('Server')?>:</label>
+<?php
+echo htmlSelect( 'ServerFilter', array(''=>'All')+$ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
+?>
+</span>
+<?php 
+}
+if ( count($StorageById) > 0 ) { ?>
+<span class="StorageFilter"><label><?php echo translate('Storage')?>:</label>
+<?php
+echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
+?>
+</span>
+<?php
+}
+?>
       <br/>
         <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
         <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>

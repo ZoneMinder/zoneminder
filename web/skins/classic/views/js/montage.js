@@ -87,8 +87,12 @@ function Monitor( monitorData ) {
     } else {
       console.error( respObj.message );
       // Try to reload the image stream.
-      if ( stream )
+      if ( stream ) {
+        console.log('Reloading stream: ' + stream.src );
         stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+      } else {
+        console.log( 'No stream to reload?' );
+      }
     }
     var streamCmdTimeout = statusRefreshTimeout;
     if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
@@ -147,7 +151,7 @@ console.log("applying " + style + ': ' + styles[style]);
   if ( ! layout ) {
     return;
   }
-  Cookie.write( 'zmMontageLayout', layout, { duration: 10*365 } );
+  Cookie.write( 'zmMontageLayout', layout_id, { duration: 10*365 } );
   if ( layout_id != 1 ) { // 'montage_freeform.css' ) {
     Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
     $('scale').set('value', '' );
@@ -264,6 +268,42 @@ function initPage() {
     monitors[i].start( delay );
   }
   selectLayout($('layout'));
+
+    $j('#monitors .monitorFrame').draggable({
+        cursor: 'crosshair',
+        revert: 'invalid'
+    });
+    
+    function toGrid(value) {
+        return Math.round(value / 80) * 80;
+    }
+    
+    $j('#monitors').droppable({
+        accept: '#monitors .monitorFrame',
+        drop: function(event, ui) {
+            //console.log(event);
+            $j(this).removeClass('border over');
+            $j(ui.draggable).detach().
+                appendTo($j(this).find('ul')).
+                draggable({
+                    containment: '.fw-content',
+                    cursor: 'help',
+                    grid: [ 80, 80 ]
+                }).
+                css({
+                    position: 'absolute', 
+                    left: toGrid(event.clientX - $j('#monitors').offset().left), 
+                    top: toGrid(event.clientY - $j('#monitors').offset().top)
+                });
+        },
+        over: function(event, elem) {
+            console.log('over');
+            $j(this).addClass('over');
+        },
+        out: function(event, elem) {
+            $j(this).removeClass('over');
+        }
+    });
 }
 
 // Kick everything off

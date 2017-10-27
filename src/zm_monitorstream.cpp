@@ -553,7 +553,7 @@ void MonitorStream::runStream() {
         Debug( 2, "Assigned temporary buffer" );
       }
     }
-  }
+  } // end if connkey  & playback_buffer
 
   float max_secs_since_last_sent_frame = 10.0; //should be > keep alive amount (5 secs)
   while ( !zm_terminate ) {

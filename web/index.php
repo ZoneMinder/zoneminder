@@ -34,7 +34,7 @@ if ( version_compare( phpversion(), '4.1.0', '<') ) {
 }
 
 // Useful debugging lines for mobile devices
-if ( false ) {
+if ( true ) {
   ob_start();
   phpinfo( INFO_VARIABLES );
   $fp = fopen( '/tmp/env.html', 'w' );

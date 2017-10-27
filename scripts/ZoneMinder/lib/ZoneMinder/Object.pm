@@ -48,6 +48,7 @@ use vars qw/ $AUTOLOAD $log $dbh/;
 *dbh = \$ZoneMinder::Database::dbh;
 
 my $debug = 1;
+use constant DEBUG_ALL=>0;
 
 sub new {
   my ( $parent, $id, $data ) = @_;

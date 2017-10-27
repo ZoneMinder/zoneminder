@@ -367,6 +367,7 @@ sub DiskSpace {
     my $size = 0;
     File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
     $_[0]{DiskSpace}  = $size;
+    Debug("DiskSpace for event  $_[0]{Id} Updated to $size bytes");
   }
 }
 

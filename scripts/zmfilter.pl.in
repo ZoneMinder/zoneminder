@@ -251,7 +251,8 @@ sub checkFilter {
   my $filter = shift;
 
   my @Events = $filter->Execute();
-  Info( join( "Checking filter '$filter->{Name}'",
+  Info( join( ' ', 
+        "Checking filter '$filter->{Name}'",
       ($filter->{AutoDelete}?', delete':''),
       ($filter->{AutoArchive}?', archive':''),
       ($filter->{AutoVideo}?', video':''),

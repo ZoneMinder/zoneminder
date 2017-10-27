@@ -259,6 +259,10 @@ sub Sql {
             $self->{Sql} .= " regexp $value";
           } elsif ( $term->{op} eq '!~' ) {
             $self->{Sql} .= " not regexp $value";
+          } elsif ( $term->{op} eq 'IS' ) {
+            $self->{Sql} .= " IS $value";
+          } elsif ( $term->{op} eq 'IS NOT' ) {
+            $self->{Sql} .= " IS NOT $value";
           } elsif ( $term->{op} eq '=[]' ) {
             $self->{Sql} .= " in (".join( ",", @value_list ).")";
           } elsif ( $term->{op} eq '!~' ) {
@@ -277,15 +281,15 @@ sub Sql {
       if ( $self->{AutoMessage} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
-        $sql .= " and ( ".$self->{Sql}." )";
+        $sql .= ' AND ( '.$self->{Sql}.' )';
       } else {
 # Only include closed events (events with valid EndTime)
-        $sql .= " where not isnull(E.EndTime) and ( ".$self->{Sql}." )";
+        $sql .= ' WHERE (E.EndTime IS NOT NULL) AND ( '.$self->{Sql}.' )';
       }
     }
     my @auto_terms;
     if ( $self->{AutoArchive} ) {
-      push @auto_terms, "E.Archived = 0";
+      push @auto_terms, 'E.Archived = 0';
     }
     # Don't do this, it prevents re-generation and concatenation.
     # If the file already exists, then the video won't be re-recreated

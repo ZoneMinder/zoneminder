@@ -1274,6 +1274,10 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case '![]' :
             $filter['sql'] .= ' not in ('.join( ',', $valueList ).')';
             break;
+          case 'IS' :
+            $filter['sql'] .= " IS $value";
+          case 'IS NOT' :
+            $filter['sql'] .= " IS NOT $value";
         }
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);

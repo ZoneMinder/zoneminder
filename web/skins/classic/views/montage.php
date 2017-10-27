@@ -23,6 +23,8 @@ if ( !canView('Stream') ) {
   return;
 }
 
+require_once('includes/MontageLayout.php');
+
 $showControl = false;
 $showZones = false;
 if ( isset( $_REQUEST['showZones'] ) ) {
@@ -59,6 +61,7 @@ if ( ! $scale )
 
 $focusWindow = true;
 
+/*
 $layouts = array(
   'montage_freeform.css' => translate('MtgDefault'),
   'montage_2wide.css' => translate('Mtg2widgrd'),
@@ -66,6 +69,15 @@ $layouts = array(
   'montage_4wide.css' => translate('Mtg4widgrd'),
   'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
 );
+foreach ( MontageLayout::find() as $Layout ) {
+  $layouts[$Layout->Id()] = $Layout->Name();
+}
+*/
+$layouts = MontageLayout::find(NULL, array('order'=>"lower('Name')"));
+$layoutsById = array();
+foreach ( $layouts as $l ) {
+  $layoutsById[$l->Id()] = $l->Name();
+}
 
 $layout = '';
 if ( isset($_COOKIE['zmMontageLayout']) )
@@ -141,11 +153,11 @@ if ( $showControl ) {
 }
 if ( $showZones ) {
 ?>
-        <a href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=0'; ?>">Hide Zones</a>
+        <a id="ShowZones" href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=0'; ?>">Hide Zones</a>
 <?php
 } else {
 ?>
-        <a href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=1'; ?>">Show Zones</a>
+        <a id="ShowZones" href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=1'; ?>">Show Zones</a>
 <?php
 }
 ?>
@@ -157,10 +169,14 @@ if ( $showZones ) {
       <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
       <?php echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') ); ?>
       </span>
+      <br/>
         <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
         <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
         <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 
-        <span id="layoutControl"><label for="layout"><?php echo translate('Layout') ?>:</label><?php echo htmlSelect( 'layout', $layouts, $layout, 'selectLayout(this);' )?></span>
+        <span id="layoutControl">
+          <label for="layout"><?php echo translate('Layout') ?>:</label>
+          <?php echo htmlSelect( 'layout', $layoutsById, $layout, 'selectLayout(this);' )?>
+        </span>
       </div>
     </div>
     <div id="content">

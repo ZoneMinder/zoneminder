@@ -1,12 +1,14 @@
 <?php
 
+require_once('database.php');
+
 class MontageLayout {
 
-private $defaults = array(
-  'Id' => null,
-  'Name' => '',
-  'Positions' => 0,
-);
+  private $defaults = array(
+    'Id' => null,
+    'Name' => '',
+    'Positions' => 0,
+  );
 
   public function __construct( $IdOrRow = NULL ) {
     if ( $IdOrRow ) {
@@ -68,7 +70,7 @@ private $defaults = array(
       }
     }
   }
-  public static function find_all( $parameters = null, $options = null ) {
+  public static function find( $parameters = null, $options = null ) {
     $filters = array();
     $sql = 'SELECT * FROM MontageLayouts ';
     $values = array();
@@ -95,9 +97,11 @@ private $defaults = array(
     $sql .= ' ORDER BY ' . $options['order'];
     }
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'MontageLayout');
-    foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
+    if ( $result ) {
+      $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'MontageLayout');
+      foreach ( $results as $row => $obj ) {
+        $filters[] = $obj;
+      }
     }
     return $filters;
   }

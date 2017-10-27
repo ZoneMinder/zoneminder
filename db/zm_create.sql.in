@@ -762,6 +762,14 @@ CREATE TABLE Maps (
   `ParentId`   int(1) unsigned,
   PRIMARY KEY (`Id`)
 );
+
+CREATE TABLE MontageLayouts (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`    TEXT  NOT NULL,
+  `Positions` JSON,
+  PRIMARY KEY (`Id`)
+);
+
 --
 -- Apply the initial configuration
 --

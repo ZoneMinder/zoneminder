@@ -361,13 +361,14 @@ sub age {
 
 sub DiskSpace {
   if ( @_ > 1 ) {
+    Debug("Cleared DiskSpace, was $_[0]{DiskSpace}");
     $_[0]{DiskSpace} = $_[1];
   }
   if ( ! defined $_[0]{DiskSpace} ) {
     my $size = 0;
     File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
-    $_[0]{DiskSpace}  = $size;
-    Debug("DiskSpace for event  $_[0]{Id} Updated to $size bytes");
+    $_[0]{DiskSpace} = $size;
+    Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
   }
 }
 

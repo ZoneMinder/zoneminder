@@ -153,7 +153,7 @@ sub save {
 	my $serial = eval '$'.$type.'::serial';
 	my @identified_by = eval '@'.$type.'::identified_by';
 
-	my $ac = sql::start_transaction( $local_dbh );
+	my $ac = ZoneMinder::Database::start_transaction( $local_dbh );
 	if ( ! $serial ) {
 		my $insert = $force_insert;
 		my %serial = eval '%'.$type.'::serial';
@@ -170,7 +170,7 @@ $log->debug("No serial") if $debug;
 					$where =~ s/\?/\%s/g;
 					$log->error("Error deleting: DELETE FROM $table WHERE " .  sprintf($where, map { defined $_ ? $_ : 'undef' } ( @$self{@identified_by}) ).'):' . $local_dbh->errstr);
 					$local_dbh->rollback();
-					sql::end_transaction( $local_dbh, $ac );
+					ZoneMinder::Database::end_transaction( $local_dbh, $ac );
 					return $local_dbh->errstr;
 				} elsif ( $debug ) {
 					$log->debug("SQL succesful DELETE FROM $table WHERE $where");
@@ -200,7 +200,7 @@ $log->debug("No serial") if $debug;
 				$command =~ s/\?/\%s/g;
 				$log->error('SQL statement execution failed: ('.sprintf($command, , map { defined $_ ? $_ : 'undef' } ( @sql{@keys}) ).'):' . $local_dbh->errstr);
 				$local_dbh->rollback();
-				sql::end_transaction( $local_dbh, $ac );
+				ZoneMinder::Database::end_transaction( $local_dbh, $ac );
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -215,7 +215,7 @@ $log->debug("No serial") if $debug;
 				$command =~ s/\?/\%s/g;
 				$log->error('SQL failed: ('.sprintf($command, , map { defined $_ ? $_ : 'undef' } ( @sql{@keys, @$fields{@identified_by}}) ).'):' . $local_dbh->errstr);
 				$local_dbh->rollback();
-				sql::end_transaction( $local_dbh, $ac );
+        ZoneMinder::Database::end_transaction( $local_dbh, $ac );
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -247,7 +247,7 @@ $log->debug("No serial") if $debug;
 				my $error = $local_dbh->errstr;
 				$log->error('SQL failed: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys}) ).'):' . $error);
 				$local_dbh->rollback();
-				sql::end_transaction( $local_dbh, $ac );
+        ZoneMinder::Database::end_transaction( $local_dbh, $ac );
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -264,7 +264,7 @@ $log->debug("No serial") if $debug;
 				$command =~ s/\?/\%s/g;
 				$log->error('SQL failed: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys}, @sql{@$fields{@identified_by}} ) ).'):' . $error) if $log;
 				$local_dbh->rollback();
-				sql::end_transaction( $local_dbh, $ac );
+        ZoneMinder::Database::end_transaction( $local_dbh, $ac );
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -273,7 +273,7 @@ $log->debug("No serial") if $debug;
 			} # end if
 		} # end if
 	} # end if
-	sql::end_transaction( $local_dbh, $ac );
+  ZoneMinder::Database::end_transaction( $local_dbh, $ac );
 	$self->load();
 	#if ( $$fields{id} ) {
 		#if ( ! $ZoneMinder::Object::cache{$type}{$$self{id}} ) {

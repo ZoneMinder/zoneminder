@@ -10,8 +10,6 @@ function Monitor( monitorData ) {
   this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
-  else
-    console.log("No auth_hash");
   this.streamCmdTimer = null;
 
   this.start = function( delay ) {
@@ -89,8 +87,12 @@ function Monitor( monitorData ) {
     } else {
       console.error( respObj.message );
       // Try to reload the image stream.
-      if ( stream )
+      if ( stream ) {
+        console.log('Reloading stream: ' + stream.src );
         stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+      } else {
+        console.log( 'No stream to reload?' );
+      }
     }
     var streamCmdTimeout = statusRefreshTimeout;
     if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
@@ -112,13 +114,45 @@ function Monitor( monitorData ) {
 }
 
 function selectLayout( element ) {
-  layout = $(element).get('value') 
-  var cssFile = skinPath+'/css/'+Cookie.read('zmCSS')+'/views/'+layout;
-  if ( $('dynamicStyles') )
-    $('dynamicStyles').destroy();
-  new Asset.css( cssFile, { id: 'dynamicStyles' } );
-  Cookie.write( 'zmMontageLayout', layout, { duration: 10*365 } );
-  if ( layout != 'montage_freeform.css' ) {
+  layout = $(element).get('value');
+
+  if ( layout_id = parseInt(layout) ) {
+    layout = layouts[layout];
+console.log("Have layout # " + layout_id);
+
+    for ( var i = 0; i < monitors.length; i++ ) {
+      monitor = monitors[i];
+      // Need to clear the current positioning, and apply the new
+
+      monitor_frame = $j('#monitorFrame'+monitor.id);
+      if ( ! monitor_frame ) {
+        console.log("Error finding frame for " + monitor.id );
+        continue;
+      }
+
+      // Apply default layout options, like float left
+      if ( layout.default ) {
+        styles = layout.default; 
+        for ( style in styles ) {
+console.log("applying " + style + ': ' + styles[style]);
+          monitor_frame.css(style, styles[style]); 
+        }
+      } // end if default styles
+
+      if ( layout[monitor.id] ) {
+        styles = layout[monitor.id]; 
+        for ( style in styles ) {
+console.log("applying " + style + ': ' + styles[style]);
+          monitor_frame.css(style, styles[style]); 
+        }
+      } // end if specific monitor style
+    } // end foreach monitor
+  }  // end if a stored layout
+  if ( ! layout ) {
+    return;
+  }
+  Cookie.write( 'zmMontageLayout', layout_id, { duration: 10*365 } );
+  if ( layout_id != 1 ) { // 'montage_freeform.css' ) {
     Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
     $('scale').set('value', '' );
     $('width').set('value', '');
@@ -152,6 +186,17 @@ function changeSize() {
 
   for ( var x = 0; x < monitors.length; x++ ) {
     var monitor = monitors[x];
+  
+    // Scale the frame
+      monitor_frame = $j('#monitorFrame'+monitor.id);
+      if ( ! monitor_frame ) {
+        console.log("Error finding frame for " + monitor.id );
+        continue;
+      }
+      if ( width )
+        monitor_frame.css('width',width+'px');
+      if ( height )
+        monitor_frame.css('height',height+'px');
     /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = $( 'liveStream'+monitor.id );
     if ( streamImg ) {
@@ -223,6 +268,42 @@ function initPage() {
     monitors[i].start( delay );
   }
   selectLayout($('layout'));
+
+    $j('#monitors .monitorFrame').draggable({
+        cursor: 'crosshair',
+        revert: 'invalid'
+    });
+    
+    function toGrid(value) {
+        return Math.round(value / 80) * 80;
+    }
+    
+    $j('#monitors').droppable({
+        accept: '#monitors .monitorFrame',
+        drop: function(event, ui) {
+            //console.log(event);
+            $j(this).removeClass('border over');
+            $j(ui.draggable).detach().
+                appendTo($j(this).find('ul')).
+                draggable({
+                    containment: '.fw-content',
+                    cursor: 'help',
+                    grid: [ 80, 80 ]
+                }).
+                css({
+                    position: 'absolute', 
+                    left: toGrid(event.clientX - $j('#monitors').offset().left), 
+                    top: toGrid(event.clientY - $j('#monitors').offset().top)
+                });
+        },
+        over: function(event, elem) {
+            console.log('over');
+            $j(this).addClass('over');
+        },
+        out: function(event, elem) {
+            $j(this).removeClass('over');
+        }
+    });
 }
 
 // Kick everything off

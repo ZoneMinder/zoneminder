@@ -31,12 +31,21 @@ var monitorData = new Array();
 foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = { 
-	'id': <?php echo $monitor->Id() ?>, 
-	'connKey': <?php echo $monitor->connKey() ?>, 
-	'width': <?php echo $monitor->Width() ?>,
-	'height':<?php echo $monitor->Height() ?>,
+  'id': <?php echo $monitor->Id() ?>, 
+  'connKey': <?php echo $monitor->connKey() ?>, 
+  'width': <?php echo $monitor->Width() ?>,
+  'height':<?php echo $monitor->Height() ?>,
   'server_url': '<?php echo $monitor->Server()->Url().(ZM_MIN_STREAMING_PORT?':'.(ZM_MIN_STREAMING_PORT+$monitor->Id()):'').$_SERVER['PHP_SELF'] ?>'
 };
 <?php
-}
+} // end foreach monitor
+?>
+layouts = new Array();
+layouts[0] = {}; // reserved, should hold which fields to clear when transitioning
+<?php
+foreach ( $layouts as $layout ) {
+?>
+layouts[<?php echo $layout->Id() ?>] = <?php echo $layout->Positions() ?>;
+<?php
+} // end foreach layout
 ?>

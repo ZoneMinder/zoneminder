@@ -40,6 +40,7 @@ class FfmpegCamera : public Camera {
     std::string         mPath;
     std::string         mMethod;
     std::string         mOptions;
+    std::string         encoder_options;
 
     int frameCount;    
 
@@ -51,7 +52,6 @@ class FfmpegCamera : public Camera {
     AVCodec             *mAudioCodec;
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
-    _AVPIXELFORMAT      imagePixFormat;
 
     bool hwaccel;
 #if HAVE_AVUTIL_HWCONTEXT_H
@@ -82,9 +82,6 @@ class FfmpegCamera : public Camera {
 #endif // HAVE_LIBAVFORMAT
 
 
-#if HAVE_LIBSWSCALE
-    struct SwsContext   *mConvertContext;
-#endif
 
     int64_t             startTime;
 

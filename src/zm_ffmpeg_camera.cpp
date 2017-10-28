@@ -113,22 +113,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mOpenStart = 0;
   mReopenThread = 0;
 
-#if HAVE_LIBSWSCALE  
-  mConvertContext = NULL;
-#endif
-  /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
-  if ( colours == ZM_COLOUR_RGB32 ) {
-    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-    imagePixFormat = AV_PIX_FMT_RGBA;
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
-    subpixelorder = ZM_SUBPIX_ORDER_RGB;
-    imagePixFormat = AV_PIX_FMT_RGB24;
-  } else if ( colours == ZM_COLOUR_GRAY8 ) {
-    subpixelorder = ZM_SUBPIX_ORDER_NONE;
-    imagePixFormat = AV_PIX_FMT_GRAY8;
-  } else {
-    Panic("Unexpected colours: %d",colours);
-  }
 } // end FFmpegCamera::FFmpegCamera
 
 FfmpegCamera::~FfmpegCamera() {
@@ -218,94 +202,6 @@ ZMPacket * FfmpegCamera::Capture( Image &image ) {
   }
   Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet.stream_index, packet.pts, packet.dts );
 
-#if 0
-    // What about audio stream? Maybe someday we could do sound detection...
-    if ( ( packet.stream_index == mVideoStreamId ) && ( keyframe || have_video_keyframe ) ) {
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      ret = avcodec_send_packet( mVideoCodecContext, &packet );
-      if ( ret < 0 ) {
-        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-        zm_av_packet_unref( &packet );
-        continue;
-      }
-
-#if HAVE_AVUTIL_HWCONTEXT_H
-      if ( hwaccel ) {
-        ret = avcodec_receive_frame( mVideoCodecContext, hwFrame );
-        if ( ret < 0 ) {
-          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-          zm_av_packet_unref( &packet );
-          continue;
-        }
-        ret = av_hwframe_transfer_data(mRawFrame, hwFrame, 0);
-        if (ret < 0) {
-          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Error( "Unable to transfer frame at frame %d: %s, continuing", frameCount, errbuf );
-          zm_av_packet_unref( &packet );
-          continue;
-        }
-      } else {
-#endif
-        ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
-        if ( ret < 0 ) {
-          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-          zm_av_packet_unref( &packet );
-          continue;
-        }
-
-#if HAVE_AVUTIL_HWCONTEXT_H
-      }
-#endif
-
-      frameComplete = 1;
-# else
-      ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
-      if ( ret < 0 ) {
-        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to decode frame at frame %d: %s, continuing", frameCount, errbuf );
-        zm_av_packet_unref( &packet );
-        continue;
-      }
-#endif
-
-      Debug( 4, "Decoded video packet at frame %d", frameCount );
-
-      if ( frameComplete ) {
-        Debug( 4, "Got frame %d", frameCount );
-
-        uint8_t* directbuffer;
-
-        /* Request a writeable buffer of the target image */
-        directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-        if ( directbuffer == NULL ) {
-          Error("Failed requesting writeable buffer for the captured image.");
-          return (-1);
-        }
-
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-        av_image_fill_arrays(mFrame->data, mFrame->linesize,
-            directbuffer, imagePixFormat, width, height, 1);
-#else
-        avpicture_fill( (AVPicture *)mFrame, directbuffer,
-            imagePixFormat, width, height);
-#endif
-
-#if HAVE_LIBSWSCALE
-        if ( sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0 )
-          Fatal("Unable to convert raw format %u to target format %u at frame %d", mVideoCodecContext->pix_fmt, imagePixFormat, frameCount);
-#else // HAVE_LIBSWSCALE
-        Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
-#endif // HAVE_LIBSWSCALE
-
-        frameCount++;
-      } // end if frameComplete
-    } else {
-      Debug( 4, "Different stream_index %d", packet.stream_index );
-    } // end if packet.stream_index == mVideoStreamId
-#endif
   zm_packet = new ZMPacket( &packet );
   zm_av_packet_unref( &packet );
   return zm_packet;
@@ -517,6 +413,18 @@ int FfmpegCamera::OpenFfmpeg() {
   }
   }
 
+  if ( mVideoCodecContext->codec_id != AV_CODEC_ID_H264 ) {
+#ifdef AV_CODEC_ID_H265
+    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
+      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
+    } else {
+#endif
+      Warning( "Input stream is not h264.  The stored event file may not be viewable in browser." );
+#ifdef AV_CODEC_ID_H265
+    }
+#endif
+  }
+
   if (mVideoCodecContext->hwaccel != NULL) {
     Debug(1, "HWACCEL in use");
   } else {
@@ -551,51 +459,11 @@ int FfmpegCamera::OpenFfmpeg() {
   // Allocate space for the native video frame
   mRawFrame = zm_av_frame_alloc();
 
-  // Allocate space for the converted video frame
-  mFrame = zm_av_frame_alloc();
-
-  if ( mRawFrame == NULL || mFrame == NULL )
+  if ( mRawFrame == NULL )
     Fatal( "Unable to allocate frame for %s", mPath.c_str() );
 
   Debug ( 1, "Allocated frames" );
 
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  int pSize = av_image_get_buffer_size( imagePixFormat, width, height,1 );
-#else
-  int pSize = avpicture_get_size( imagePixFormat, width, height );
-#endif
-
-  if ( (unsigned int)pSize != imagesize ) {
-    Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
-  }
-
-  Debug ( 1, "Validated imagesize" );
-
-#if HAVE_LIBSWSCALE
-  Debug ( 1, "Calling sws_isSupportedInput" );
-  if ( !sws_isSupportedInput(mVideoCodecContext->pix_fmt) ) {
-    Fatal("swscale does not support the codec format: %c%c%c%c", (mVideoCodecContext->pix_fmt)&0xff, ((mVideoCodecContext->pix_fmt >> 8)&0xff), ((mVideoCodecContext->pix_fmt >> 16)&0xff), ((mVideoCodecContext->pix_fmt >> 24)&0xff));
-  }
-
-  if ( !sws_isSupportedOutput(imagePixFormat) ) {
-    Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
-  }
-
-  mConvertContext = sws_getContext(mVideoCodecContext->width,
-      mVideoCodecContext->height,
-      mVideoCodecContext->pix_fmt,
-      width, height,
-      imagePixFormat, SWS_BICUBIC, NULL,
-      NULL, NULL);
-  if ( mConvertContext == NULL )
-    Fatal( "Unable to create conversion context for %s", mPath.c_str() );
-#else // HAVE_LIBSWSCALE
-  Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
-#endif // HAVE_LIBSWSCALE
-
-  if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
-    Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
-  }
 
   mCanCapture = true;
 
@@ -636,12 +504,6 @@ int FfmpegCamera::CloseFfmpeg() {
     mRawFrame = NULL;
   }
 
-#if HAVE_LIBSWSCALE
-  if ( mConvertContext ) {
-    sws_freeContext( mConvertContext );
-    mConvertContext = NULL;
-  }
-#endif
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
@@ -664,7 +526,7 @@ int FfmpegCamera::CloseFfmpeg() {
   }
 
   return 0;
-}
+} // end int FfmpegCamera::CloseFfmpeg()
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) { 
   Debug(3,"FfmpegInteruptCallback");
@@ -678,9 +540,9 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   }
 
   return 0;
-}
+} // end int FfmpegCamera::FfmpegInterruptCallback(void *ctx)
 
-void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
+void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx) {
   Debug(3,"FfmpegReopenThreadtCallback");
   if ( ctx == NULL ) return NULL;
 
@@ -702,6 +564,47 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
       return NULL;
     }
   }
-}
+} // end void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx)
 
+/*
+   Responsible for populating the decoded frame member of the zm_packet.
+*/
+Image * FfmpegCamera::decode( Image *i = NULL, _AVPIXELFORMAT imagePixFormat, struct SwsContext *mConvertContext ) {
+
+  if ( ! frame ) {
+    Error("Can't get image without frame.. maybe need to decode first");
+    return NULL;
+  }
+
+  if ( ! image ) {
+    if ( ! i ) {
+      Error("Need a pre-allocated image buffer");
+      return NULL;
+    } 
+    image = i;
+  }
+  /* Request a writeable buffer of the target image */
+  uint8_t* directbuffer = image->WriteBuffer();
+  //uint8_t* directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+  if ( directbuffer == NULL ) {
+    Error("Failed requesting writeable buffer for the captured image.");
+    image = NULL;
+    return NULL;
+  }
+
+  // mFrame is an intermediate. 
+  AVFrame *mFrame = zm_av_frame_alloc();
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+  av_image_fill_arrays(mFrame->data, mFrame->linesize, directbuffer, imagePixFormat, frame->width, frame->height, 1);
+#else
+  avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, frame->width, frame->height);
+#endif
+  if (sws_scale(mConvertContext, frame->data, frame->linesize,
+        0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0) {
+    Fatal("Unable to convert raw format %u to target format %u",
+        mVideoCodecContext->pix_fmt, imagePixFormat);
+  }
+  av_frame_free( &mFrame );
+  return image;
+}
 #endif // HAVE_LIBAVFORMAT

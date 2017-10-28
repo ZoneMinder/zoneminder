@@ -123,41 +123,4 @@ int ZMPacket::decode( AVCodecContext *ctx ) {
   return 1;
 } // end ZMPacket::decode
 
-Image * ZMPacket::get_image( Image *i = NULL ) {
-
-  if ( ! frame ) {
-    Error("Can't get image without frame.. maybe need to decode first");
-    return NULL;
-  }
-
-  if ( ! image ) {
-    if ( ! i ) {
-      Error("Need a pre-allocated image buffer");
-      return NULL;
-    } 
-    image = i;
-  }
-  /* Request a writeable buffer of the target image */
-  uint8_t* directbuffer = image->WriteBuffer();
-  //uint8_t* directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  if ( directbuffer == NULL ) {
-    Error("Failed requesting writeable buffer for the captured image.");
-    image = NULL;
-    return NULL;
-  }
-
-  AVFrame *mFrame = zm_av_frame_alloc();
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  av_image_fill_arrays(mFrame->data, mFrame->linesize, directbuffer, imagePixFormat, frame->width, frame->height, 1);
-#else
-  avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, frame->width, frame->height);
-#endif
-  if (sws_scale(mConvertContext, frame->data, frame->linesize,
-        0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0) {
-    Fatal("Unable to convert raw format %u to target format %u",
-        mVideoCodecContext->pix_fmt, imagePixFormat);
-  }
-  av_frame_free( &mFrame );
-  return image;
-}
 

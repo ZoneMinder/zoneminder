@@ -41,7 +41,7 @@ class ZMPacket {
   public:
     AVPacket *av_packet() { return &packet; }
     AVFrame *av_frame() { return frame; }
-    Image *get_image( Image * );
+    Image *get_image( Image *, _AVPIXELFORMAT imagePixFormat, struct SwsContext   *mConvertContext  );
     int is_keyframe() { return keyframe; };
     int decode( AVCodecContext *ctx );
     ZMPacket( AVPacket *packet, struct timeval *timestamp );

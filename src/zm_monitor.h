@@ -240,9 +240,15 @@ protected:
   bool            videoRecording;
 
   int savejpegspref;
+  int colours;
   VideoWriter videowriter;
   std::string encoderparams;
   std::vector<EncoderParameter_t> encoderparamsvec;
+    _AVPIXELFORMAT      imagePixFormat;
+  unsigned int  subpixelorder;
+#if HAVE_LIBSWSCALE
+    struct SwsContext   *mConvertContext;
+#endif
   bool      record_audio;      // Whether to store the audio that we receive
 
   int        brightness;        // The statically saved brightness of the camera
@@ -348,6 +354,7 @@ public:
     int p_orientation,
     unsigned int p_deinterlacing,
     int p_savejpegs,
+    int p_colours,
     VideoWriter p_videowriter,
     std::string p_encoderparams,
     bool  p_record_audio,
@@ -434,6 +441,7 @@ public:
   int GetOptSaveJPEGs() const { return( savejpegspref ); }
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
+  const std::string &GetEncoderOptions() const { return( encoderparams ); }
   uint32_t GetLastEventId() const { return shared_data->last_event_id; }
   uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }

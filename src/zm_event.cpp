@@ -168,7 +168,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
     snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
     Debug(1,"Writing video file to %s", video_file );
-
 #if 0
     /* X264 MP4 video writer */
     if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
@@ -200,8 +199,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   } else {
     /* No video object */
     videowriter = NULL;
-  }
 #endif
+  }
 
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
@@ -239,7 +238,7 @@ Event::~Event() {
     Error( "Can't update event: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
-}
+} // ~Event
 
 void Event::createNotes( std::string &notes ) {
   notes.clear();

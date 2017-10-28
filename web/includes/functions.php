@@ -1057,9 +1057,16 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
       $sortColumn = 'E.Cause';
       break;
     case 'DateTime' :
-      $_REQUEST['sort_field'] = 'StartTime';
+      $sortColumn = 'E.StartTime';
+      break;
+    case 'DiskSpace' :
+      $sortColumn = 'E.DiskSpace';
+      break;
     case 'StartTime' :
       $sortColumn = 'E.StartTime';
+      break;
+    case 'EndTime' :
+      $sortColumn = 'E.EndTime';
       break;
     case 'Length' :
       $sortColumn = 'E.Length';
@@ -1126,6 +1133,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'ServerId':
             $filter['sql'] .= 'M.ServerId';
             break;
+# Unspecified start or end, so assume start, this is to support legacy filters
           case 'DateTime':
             $filter['sql'] .= 'E.StartTime';
             break;
@@ -1138,8 +1146,35 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'Weekday':
             $filter['sql'] .= 'weekday( E.StartTime )';
             break;
+# Starting Time
+          case 'StartDateTime':
+            $filter['sql'] .= 'E.StartTime';
+            break;
+          case 'StartDate':
+            $filter['sql'] .= 'to_days( E.StartTime )';
+            break;
+          case 'StartTime':
+            $filter['sql'] .= 'extract( hour_second from E.StartTime )';
+            break;
+          case 'StartWeekday':
+            $filter['sql'] .= 'weekday( E.StartTime )';
+            break;
+# Ending Time
+          case 'EndDateTime':
+            $filter['sql'] .= 'E.EndTime';
+            break;
+          case 'EndDate':
+            $filter['sql'] .= 'to_days( E.EndTime )';
+            break;
+          case 'EndTime':
+            $filter['sql'] .= 'extract( hour_second from E.EndTime )';
+            break;
+          case 'EndWeekday':
+            $filter['sql'] .= 'weekday( E.EndTime )';
+            break;
           case 'Id':
           case 'Name':
+          case 'DiskSpace':
           case 'MonitorId':
           case 'StorageId':
           case 'Length':
@@ -1853,7 +1888,8 @@ function logState() {
       Logger::WARNING => array( ZM_LOG_ALERT_WAR_COUNT, ZM_LOG_ALARM_WAR_COUNT ),
       );
 
-  $sql = "select Level, count(Level) as LevelCount from Logs where Level < ".Logger::INFO." and TimeKey > unix_timestamp(now() - interval ".ZM_LOG_CHECK_PERIOD." second) group by Level order by Level asc";
+  # This is an expensive request, as it has to hit every row of the Logs Table
+  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
   $counts = dbFetchAll( $sql );
 
   foreach ( $counts as $count ) {

@@ -241,6 +241,7 @@ Monitor::Monitor(
   int p_orientation,
   unsigned int p_deinterlacing,
   int p_savejpegs,
+  int p_colours,
   VideoWriter p_videowriter,
   std::string p_encoderparams,
   bool p_record_audio,
@@ -280,6 +281,7 @@ Monitor::Monitor(
   orientation( (Orientation)p_orientation ),
   deinterlacing( p_deinterlacing ),
   savejpegspref( p_savejpegs ),
+  colours( p_colours ),
   videowriter( p_videowriter ),
   encoderparams( p_encoderparams ),
   record_audio( p_record_audio ),
@@ -336,6 +338,49 @@ Monitor::Monitor(
 
   /* Parse encoder parameters */
   ParseEncoderParameters(encoderparams.c_str(), &encoderparamsvec);
+#if HAVE_LIBSWSCALE  
+  mConvertContext = NULL;
+#endif
+  /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
+  if ( colours == ZM_COLOUR_RGB32 ) {
+    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+    imagePixFormat = AV_PIX_FMT_RGBA;
+  } else if ( colours == ZM_COLOUR_RGB24 ) {
+    subpixelorder = ZM_SUBPIX_ORDER_RGB;
+    imagePixFormat = AV_PIX_FMT_RGB24;
+  } else if ( colours == ZM_COLOUR_GRAY8 ) {
+    subpixelorder = ZM_SUBPIX_ORDER_NONE;
+    imagePixFormat = AV_PIX_FMT_GRAY8;
+  } else {
+    Panic("Unexpected colours: %d",colours);
+  }
+#if HAVE_LIBSWSCALE
+//FIXME, need to be able to query the camera input for what it is going to be getting, which needs to be called after the camera is open.
+  //Debug ( 1, "Calling sws_isSupportedInput" );
+  //if ( !sws_isSupportedInput(mVideoCodecContext->pix_fmt) ) {
+    //Fatal("swscale does not support the codec format: %c%c%c%c", (mVideoCodecContext->pix_fmt)&0xff, ((mVideoCodecContext->pix_fmt >> 8)&0xff), ((mVideoCodecContext->pix_fmt >> 16)&0xff), ((mVideoCodecContext->pix_fmt >> 24)&0xff));
+  //}
+
+  if ( !sws_isSupportedOutput(imagePixFormat) ) {
+    Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
+  }
+
+  // We don't know this yet, need to open the camera first.
+  //mConvertContext = sws_getContext(mVideoCodecContext->width,
+      //mVideoCodecContext->height,
+      //mVideoCodecContext->pix_fmt,
+      //width, height,
+      //imagePixFormat, SWS_BICUBIC, NULL,
+      //NULL, NULL);
+  //if ( mConvertContext == NULL )
+    //Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+#else // HAVE_LIBSWSCALE
+  //Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+#endif // HAVE_LIBSWSCALE
+
+  //if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
+    //Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
+  //}
 
   fps = 0.0;
   event_count = 0;
@@ -568,6 +613,12 @@ Monitor::~Monitor() {
     delete videoStore;
     videoStore = NULL;
   }
+#if HAVE_LIBSWSCALE
+  if ( mConvertContext ) {
+    sws_freeContext( mConvertContext );
+    mConvertContext = NULL;
+  }
+#endif
   if ( timestamps ) {
     delete[] timestamps;
     timestamps = 0;
@@ -1126,7 +1177,7 @@ bool Monitor::CheckSignal( const Image *image ) {
             return true;
         }
 
-      } else if(colours == ZM_COLOUR_RGB32) {
+      } else if ( colours == ZM_COLOUR_RGB32 ) {
         if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
           if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
             return true;
@@ -1359,12 +1410,12 @@ Debug(3,"before DetectMotion");
           if ( event ) {
             //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
             //snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-              Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
+              //Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
             
             if ( section_length ) {
               // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
               int section_mod = timestamp->tv_sec % section_length;
-              Debug( 3, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
+              Debug( 4, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
               if ( section_mod < last_section_mod ) {
                 //if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
                   //if ( state == TAPE ) {
@@ -1976,6 +2027,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
       orientation,
       deinterlacing,
       savejpegs,
+      colours,
       videowriter,
       encoderparams,
       record_audio,
@@ -2160,6 +2212,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       orientation,
       deinterlacing,
       savejpegs,
+      colours,
       videowriter,
       encoderparams,
       record_audio,
@@ -2309,6 +2362,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
       orientation,
       deinterlacing,
       savejpegs,
+      colours,
       videowriter,
       encoderparams,
       record_audio,
@@ -2468,6 +2522,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
       orientation,
       deinterlacing,
       savejpegs,
+      colours,
       videowriter,
       encoderparams,
       record_audio,
@@ -2795,6 +2850,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
     orientation,
     deinterlacing,
     savejpegs,
+    colours,
     videowriter,
     encoderparams,
     record_audio,

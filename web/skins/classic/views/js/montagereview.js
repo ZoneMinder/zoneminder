@@ -84,7 +84,11 @@ function imagedone( obj, monId, success ) {
   if ( ! success ) {
     // if we had a failrue queue up the no-data image
     //loadImage2Monitor(monId,"no data");  // leave the staged URL if there is one, just ignore it here.
-    loadNoData( monId );
+    if ( liveMode ) {
+      writeText( monId, "Camera Offline" );
+    } else {
+      writeText( monId, "No Data" );
+    }
   } else {
     if ( monitorLoadingStageURL[monId] == "" ) {
       console.log("Not showing image for " + monId );

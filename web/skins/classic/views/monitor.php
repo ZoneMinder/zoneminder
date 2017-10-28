@@ -122,7 +122,7 @@ if ( ! $monitor ) {
           'FrameSkip' => 0,
           'MotionFrameSkip' => 0,
           'EventPrefix' => 'Event-',
-          'AnalysisFPS' => '',
+          'AnalysisFPSLimit' => '',
           'AnalysisUpdateDelay' => 0,
           'MaxFPS' => '',
           'AlarmMaxFPS' => '',
@@ -170,8 +170,8 @@ if ( isset( $_REQUEST['newMonitor'] ) ) {
 }
 
 # What if it has less zeros?  This is not robust code.
-if ( $monitor->AnalysisFPS() == '0.00' )
-  $monitor->AnalysisFPS( '' );
+if ( $monitor->AnalysisFPSLimit() == '0.00' )
+  $monitor->AnalysisFPSLimit( '' );
 if ( $monitor->MaxFPS() == '0.00' )
   $monitor->MaxFPS( '' );
 if ( $monitor->AlarmMaxFPS() == '0.00' )
@@ -538,7 +538,7 @@ if ( $tab != 'general' ) {
       <input type="hidden" name="newMonitor[Enabled]" value="<?php echo validHtmlStr($monitor->Enabled()) ?>"/>
       <input type="hidden" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($monitor->RefBlendPerc()) ?>"/>
       <input type="hidden" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($monitor->AlarmRefBlendPerc()) ?>"/>
-      <input type="hidden" name="newMonitor[AnalysisFPS]" value="<?php echo validHtmlStr($monitor->AnalysisFPS()) ?>"/>
+      <input type="hidden" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>"/>
       <input type="hidden" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>"/>
       <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>"/>
 <?php
@@ -727,7 +727,7 @@ switch ( $tab ) {
             </select>
           </td>
         </tr>
-        <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPS]" value="<?php echo validHtmlStr($monitor->AnalysisFPS()) ?>" size="6"/></td></tr>
+        <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" size="6"/></td></tr>
 <?php
       if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
 ?>

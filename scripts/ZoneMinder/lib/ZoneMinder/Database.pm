@@ -220,7 +220,7 @@ sub end_transaction {
 #$openprint::log->debug("Called end_transaction from $caller : $line");
 	my ( $d, $ac ) = @_;
 if ( ! defined $ac ) {
-	$log->error("Undefined ac");
+	Error("Undefined ac");
 }
 	$d = $dbh if ! $d;
 	if ( $ac ) {

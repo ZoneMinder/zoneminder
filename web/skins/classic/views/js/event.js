@@ -759,6 +759,7 @@ function actQuery( action, parms ) {
 }
 
 function deleteEvent() {
+  vid ? vid.pause() : streamPause(); //Provides visual feedback that your click happened.
   actQuery( 'delete' );
   streamNext( true );
 }

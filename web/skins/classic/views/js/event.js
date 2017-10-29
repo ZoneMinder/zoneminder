@@ -472,7 +472,7 @@ function loadEventThumb( event, frame, loadImage ) {
     console.error( "No holder found for frame "+frame.FrameId );
     return;
   }
-  var img = new Asset.image( imagePrefix+frame.Image.imagePath,
+  var img = new Asset.image( imagePrefix+frame.EventId+"&fid="+frame.FrameId,
       {
       'onload': ( function( loadImage ) {
           thumbImg.setProperty( 'src', img.getProperty( 'src' ) );

@@ -129,7 +129,7 @@ function renderAlarmCues () {
 function setButtonState( element, butClass ) {
   if ( element ) {
     element.className = butClass;
-    element.disabled = (butClass != 'inactive');
+    element.disabled = (butClass != 'inactive' && (element.id == "pauseBtn" || element.id == "playBtn"));
   } else {
     console.log("Element was null in setButtonState");
   }
@@ -226,13 +226,11 @@ function getCmdResponse( respObj, respText ) {
   if ( streamStatus.paused == true ) {
     $('modeValue').set( 'text', 'Paused' );
     $('rate').addClass( 'hidden' );
-    streamPause( );
   } else {
     console.log('playing');
     $('modeValue').set( 'text', "Replay" );
     $('rateValue').set( 'text', streamStatus.rate );
     $('rate').removeClass( 'hidden' );
-    streamPlay( );
   }
   $('progressValue').set( 'text', secsToTime( parseInt(streamStatus.progress) ) );
   $('zoomValue').set( 'text', streamStatus.zoom );
@@ -257,6 +255,7 @@ var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_T
 
 function pauseClicked( ) {
   streamReq.send( streamParms+"&command="+CMD_PAUSE );
+  streamPause();
 }
 
 // Called when stream becomes paused, just updates the button status
@@ -271,12 +270,12 @@ function streamPause( ) {
 
 function playClicked( ) {
   streamReq.send( streamParms+"&command="+CMD_PLAY );
+  streamPlay();
 }
 
 function streamPlay( ) {
   setButtonState( $('pauseBtn'), 'inactive' );
-  if (streamStatus)
-    setButtonState( $('playBtn'), streamStatus.rate==1?'active':'inactive' );
+  setButtonState( $('playBtn'), 'active' );
   setButtonState( $('fastFwdBtn'), 'inactive' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
@@ -286,7 +285,7 @@ function streamPlay( ) {
 function streamFastFwd( action ) {
   setButtonState( $('pauseBtn'), 'inactive' );
   setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
+  setButtonState( $('fastFwdBtn'), 'active' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
   setButtonState( $('fastRevBtn'), 'inactive' );
@@ -294,27 +293,11 @@ function streamFastFwd( action ) {
 }
 
 function streamSlowFwd( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'unavail' );
-  setButtonState( $('slowFwdBtn'), 'active' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
-  setButtonState( $('fastRevBtn'), 'unavail' );
   streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
 }
 
 function streamSlowRev( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'unavail' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'active' );
-  setButtonState( $('fastRevBtn'), 'unavail' );
   streamReq.send( streamParms+"&command="+CMD_SLOWREV );
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
 }
 
 function streamFastRev( action ) {
@@ -323,8 +306,8 @@ function streamFastRev( action ) {
   setButtonState( $('fastFwdBtn'), 'inactive' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
   streamReq.send( streamParms+"&command="+CMD_FASTREV );
+  setButtonState( $('fastRevBtn'), 'active' );
 }
 
 function streamPrev(action) {
@@ -337,6 +320,7 @@ function streamPrev(action) {
       location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     } else {
       streamReq.send(streamParms+"&command="+CMD_PREV);
+      streamPlay();
     }
   }
 }
@@ -359,6 +343,7 @@ function streamNext(action) {
       location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     } else {
       streamReq.send(streamParms+"&command="+CMD_NEXT);
+      streamPlay();
     }
   }
 }

@@ -305,6 +305,20 @@ function initPage() {
         }
     });
 }
+function edit_layout(button) {
+  for ( var x = 0; x < monitors.length; x++ ) {
+    var monitor = monitors[x];
+  
+    // Scale the frame
+    monitor_frame = $j('#monitorFrame'+monitor.id);
+    if ( ! monitor_frame ) {
+      console.log("Error finding frame for " + monitor.id );
+      continue;
+    }
+    monitor_frame.css('float','none');
+    monitor_frame.css('position','absolute');
+  } // end foreach monitor
+}
 
 // Kick everything off
 window.addEvent( 'domready', initPage );

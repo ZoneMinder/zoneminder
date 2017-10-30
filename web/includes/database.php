@@ -128,9 +128,9 @@ function dbQuery( $sql, $params=NULL ) {
       $result = $dbConn->query( $sql );
     }
     if ( $params )
-      Warning("SQL: $sql" . implode(',',$params));
+      Warning("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount() );
     else
-      Warning("SQL: $sql" );
+      Warning("SQL: $sql: rows:" . $result->rowCount()  );
   } catch(PDOException $e) {
     Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . implode(',',$params) );
   }

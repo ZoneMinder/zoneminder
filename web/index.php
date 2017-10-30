@@ -113,7 +113,7 @@ if ( !file_exists( ZM_SKIN_PATH ) )
 $skinBase[] = $skin;
 
 $currentCookieParams = session_get_cookie_params(); 
-Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+//Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
 session_set_cookie_params( 
     $currentCookieParams['lifetime'], 
     $currentCookieParams['path'], 

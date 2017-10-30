@@ -140,7 +140,7 @@ function selectLayout( element ) {
       } // end if default styles
 
       if ( layout[monitor.id] ) {
-        styles = layout[monitor.id]; 
+        styles = layout[monitor.id].Positions; 
         for ( style in styles ) {
           monitor_frame.css(style, styles[style]); 
         }

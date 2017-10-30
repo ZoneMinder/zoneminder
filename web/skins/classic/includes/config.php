@@ -31,6 +31,7 @@ $rates = array(
 );
 
 $scales = array(
+    'auto' => translate('Scale to Fit'),
     '' => translate('Fixed Width/Height'),
     '400' => '4x',
     '300' => '3x',
@@ -43,6 +44,8 @@ $scales = array(
     '25' => '1/4x',
     '12.5' => '1/8x',
 );
+
+if (isset($_REQUEST['view'])) unset($scales[$_REQUEST['view'] == 'event' ? '' : 'auto']); //Remove the option we aren't using on montage or event
 
 $bandwidth_options = array(
     'high' => translate('High'),

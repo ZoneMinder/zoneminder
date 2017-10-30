@@ -177,11 +177,29 @@ $groupSql = Group::get_group_sql( $group_id );
   $displayMonitors = array();
   $monitors_dropdown = array(''=>'All');
 
+  if ( $monitor_id ) {
+    $found_selected_monitor = false;
+
+    for ( $i = 0; $i < count($monitors); $i++ ) {
+      if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+        continue;
+      }
+      $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
+      if ( $monitors[$i]['Id'] == $monitor_id ) {
+        $found_selected_monitor = true;
+      }
+    }
+    if ( ! $found_selected_monitor ) {
+      $monitor_id = '';
+    }
+  }
   for ( $i = 0; $i < count($monitors); $i++ ) {
-    if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
+    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
       continue;
     }
-    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
+
+    if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
       continue;
     }
     if ( $monitors[$i]['Function'] != 'None' ) {
@@ -191,7 +209,6 @@ $groupSql = Group::get_group_sql( $group_id );
       if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
     }
     $displayMonitors[] = $monitors[$i];
-    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
   }
 
   
@@ -210,10 +227,10 @@ for( $i = 0; $i < count($displayMonitors); $i += 1 ) {
   for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
     $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['Query']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
     parseFilter( $filter );
-    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) as EventCount$j";
+    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
     $monitor['eventCounts'][$j]['filter'] = $filter;
   }
-  $sql = 'SELECt '.join($counts,', ').' from Events as E where MonitorId = ?';
+  $sql = 'SELECT '.join($counts,', ').' FROM Events as E where MonitorId = ?';
   $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
   if ( $counts )
     $displayMonitors[$i] = $monitor = array_merge( $monitor, $counts );
@@ -241,6 +258,17 @@ echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSIO
 <?php
 }
 ?>
+      <span class="StatusFilter"><label><?php echo translate('Status')?>:</label>
+<?php
+$status_options = array(
+    ''=>'All',
+    'Unknown' => translate('Unknown'),
+    'NotRunning' => translate('NotRunning'),
+    'Running' => translate('Running'),
+    );
+echo htmlSelect( 'StatusFilter', $status_options, ( isset($_SESSION['StatusFilter']) ? $_SESSION['StatusFilter'] : '' ), array('onchange'=>'changeFilter(this);') );
+?>
+      </span>
     </div>
 
     <div class="container-fluid">
@@ -331,7 +359,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 
   for ( $i = 0; $i < count($eventCounts); $i++ ) {
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, $monitor['EventCount'.$i], canView( 'Events' ) ) ?></td>
+            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, 
+                $monitor['EventCount'.$i] . '<br/>' . human_filesize($monitor['DiskSpace'.$i]), canView( 'Events' ) ) ?></td>
 <?php
   }
 ?>
@@ -356,7 +385,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colId"><?php echo count($displayMonitors) ?></td>
             <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
               <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <input type="button" value="<?php echo translate('AddNewMonitor') ?>" onclick="location.href='index.php?view=add_monitors';"/>
+              <!--<input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>-->
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
               <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
               <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>

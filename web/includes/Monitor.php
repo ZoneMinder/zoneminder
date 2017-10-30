@@ -4,6 +4,17 @@ require_once( 'Server.php' );
 
 class Monitor {
 
+private $defaults = array(
+'Id' => null,
+'Name' => '',
+'StorageId' => 0,
+'ServerId' => 0,
+'Function' => 'None',
+'Enabled' => 1,
+'Width' => null,
+'Height' => null,
+'Orientation' => null,
+);
 private $control_fields = array(
   'Name' => '',
   'Type' => 'Local',
@@ -150,19 +161,20 @@ private $control_fields = array(
   public function Server() {
     return new Server( $this->{'ServerId'} );
   }
-  public function __call( $fn, array $args){
-    if ( count( $args )  ) {
+  public function __call($fn, array $args){
+    if ( count($args) ) {
       $this->{$fn} = $args[0];
     }
-    if ( array_key_exists( $fn, $this ) ) {
+    if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
         #array_unshift($args, $this);
         #call_user_func_array( $this->{$fn}, $args);
 		} else {
-      if ( array_key_exists( $fn, $this->control_fields ) ) {
+      if ( array_key_exists($fn, $this->control_fields) ) {
         return $this->control_fields{$fn};
+      } else if ( array_key_exists( $fn, $this->defaults ) ) {
+        return $this->defaults{$fn};
       } else {
-
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
@@ -206,14 +218,19 @@ private $control_fields = array(
     return( $streamSrc );
   } // end function getStreamSrc
 
-  public function Width() {
+  public function Width( $new = null ) {
+    if ( $new )
+      $this->{'Width'} = $new;
+
     if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
       return $this->{'Height'};
     }
     return $this->{'Width'};
   }
 
-  public function Height() {
+  public function Height( $new=null ) {
+    if ( $new )
+      $this->{'Height'} = $new;
     if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
       return $this->{'Width'};
     }
@@ -237,5 +254,121 @@ private $control_fields = array(
       }
     }
   }
-}
+  public static function find_all( $parameters = null, $options = null ) {
+    $filters = array();
+    $sql = 'SELECT * FROM Monitors ';
+    $values = array();
+
+    if ( $parameters ) {
+      $fields = array();
+      $sql .= 'WHERE ';
+      foreach ( $parameters as $field => $value ) {
+        if ( $value == null ) {
+          $fields[] = $field.' IS NULL';
+        } else if ( is_array( $value ) ) {
+          $func = function(){return '?';};
+          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $values += $value;
+
+        } else {
+          $fields[] = $field.'=?';
+          $values[] = $value;
+        }
+      }
+      $sql .= implode(' AND ', $fields );
+    }
+    if ( $options and isset($options['order']) ) {
+    $sql .= ' ORDER BY ' . $options['order'];
+    }
+    $result = dbQuery($sql, $values);
+    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Monitor');
+    foreach ( $results as $row => $obj ) {
+      $filters[] = $obj;
+    }
+    return $filters;
+  }
+  public function save( $new_values = null ) {
+
+
+    if ( $new_values ) {
+      foreach ( $new_values as $k=>$v ) {
+        $this->{$k} = $v;
+      }
+    }
+    
+    $sql = 'UPDATE Monitors SET '.implode(', ', array_map( function($field) {return $field.'=?';}, array_keys( $this->defaults ) ) ) . ' WHERE Id=?';
+    $values = array_map( function($field){return $this->{$field};}, $this->fields );
+    $values[] = $this->{'Id'};
+    dbQuery( $sql, $values );
+  } // end function save
+  function zmcControl( $mode=false ) {
+    if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$this->{'ServerId'} ) ) {
+      if ( $this->{'Type'} == 'Local' ) {
+        $zmcArgs = '-d '.$this->{'Device'};
+      } else {
+        $zmcArgs = '-m '.$this->{'Id'};
+      }
+
+      if ( $mode == 'stop' ) {
+        daemonControl( 'stop', 'zmc', $zmcArgs );
+      } else {
+        if ( $mode == 'restart' ) {
+          daemonControl( 'stop', 'zmc', $zmcArgs );
+        }
+        daemonControl( 'start', 'zmc', $zmcArgs );
+      }
+    } else {
+      $Server = $this->Server();
+
+      $url = $Server->Url() . '/zm/api/monitors/'.$this->{'Id'}.'.json';
+      if ( ZM_OPT_USE_AUTH ) {
+        if ( ZM_AUTH_RELAY == 'hashed' ) {
+          $url .= '&auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+        } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+          $url = '&user='.$_SESSION['username'];
+          $url = '&pass='.$_SESSION['password'];
+        } elseif ( ZM_AUTH_RELAY == 'none' ) {
+          $url = '&user='.$_SESSION['username'];
+        }
+      }
+      $data = array('Monitor[Function]' => $this->{'Function'} );
+
+      // use key 'http' even if you send the request to https://...
+      $options = array(
+          'http' => array(
+            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method'  => 'POST',
+            'content' => http_build_query($data)
+            )
+          );
+      $context  = stream_context_create($options);
+      $result = file_get_contents($url, false, $context);
+      if ($result === FALSE) { /* Handle error */ }
+    }
+  } // end function zmcControl
+  function zmaControl( $mode=false ) {
+    if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$this->{'ServerId'} ) ) {
+      if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
+        if ( ZM_OPT_CONTROL ) {
+          daemonControl( 'stop', 'zmtrack.pl', '-m '.$this->{'Id'} );
+        }
+        daemonControl( 'stop', 'zma', '-m '.$this->{'Id'} );
+      } else {
+        if ( $mode == 'restart' ) {
+          if ( ZM_OPT_CONTROL ) {
+            daemonControl( 'stop', 'zmtrack.pl', '-m '.$this->{'Id'} );
+          }
+          daemonControl( 'stop', 'zma', '-m '.$this->{'Id'} );
+        }
+        daemonControl( 'start', 'zma', '-m '.$this->{'Id'} );
+        if ( ZM_OPT_CONTROL && $this->{'Controllable'} && $this->{'TrackMotion'} && ( $this->{'Function'} == 'Modect' || $this->{'Function'} == 'Mocord' ) ) {
+          daemonControl( 'start', 'zmtrack.pl', '-m '.$this->{'Id'} );
+        }
+        if ( $mode == 'reload' ) {
+          daemonControl( 'reload', 'zma', '-m '.$this->{'Id'} );
+        }
+      }
+    } // end if we are on the recording server
+  }
+} // end class Monitor
 ?>

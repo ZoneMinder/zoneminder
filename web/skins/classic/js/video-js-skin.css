@@ -14,7 +14,7 @@
   font-size: .3em;
 }
 
-.vjs-default-skin.vjs-has-started.vjs-user-inactive.vjs-playing .vjs-control-bar.vjs-zm {
+.vjs-default-skin.vjs-has-started.vjs-user-inactive.vjs-playing .vjs-control-bar {
   visibility: visible;
   opacity: 1;
   bottom: -2em;

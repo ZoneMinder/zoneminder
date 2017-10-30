@@ -121,6 +121,8 @@ Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousB
         header('HTTP/1.0 404 Not Found');
         Fatal("Can't create frame images from video for this event (".$Event->DefaultVideo() );
       }
+      $Event->DiskSpace( null );
+      $Event->save();
     } else {
       header('HTTP/1.0 404 Not Found');
       Fatal("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );

@@ -221,6 +221,13 @@ int main(int argc, char *argv[]) {
   }
 
   Info("Starting Capture version %s", ZM_VERSION);
+  static char sql[ZM_SQL_SML_BUFSIZ];
+  for ( int i = 0; i < n_monitors; i ++ ) {
+    snprintf( sql, sizeof(sql), "UPDATE Monitors SET Status = 'Running' WHERE Id = '%d'", monitors[i]->Id() );
+    if ( mysql_query( &dbconn, sql ) ) {
+      Error( "Can't run query: %s", mysql_error( &dbconn ) );
+    }
+  }
 
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();

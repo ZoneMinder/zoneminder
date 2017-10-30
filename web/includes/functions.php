@@ -853,81 +853,17 @@ function daemonControl( $command, $daemon=false, $args=false ) {
 }
 
 function zmcControl( $monitor, $mode=false ) {
-  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
-    $row = NULL;
-    if ( $monitor['Type'] == 'Local' ) {
-      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Device = ?", NULL, array($monitor['Device']) );
-      $zmcArgs = '-d '.$monitor['Device'];
-    } else {
-      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Id = ?", NULL, array($monitor['Id']) );
-      $zmcArgs = '-m '.$monitor['Id'];
-    }
-    $activeCount = $row['ActiveCount'];
-
-    if ( (!$activeCount) || ($mode == 'stop') ) {
-      daemonControl( 'stop', 'zmc', $zmcArgs );
-    } else {
-      if ( $mode == 'restart' ) {
-        daemonControl( 'stop', 'zmc', $zmcArgs );
-      }
-      daemonControl( 'start', 'zmc', $zmcArgs );
-    }
-  } else {
-    $Server = new Server( $monitor['ServerId'] );
-
-    $url = $Server->Url() . '/zm/api/monitors/'.$monitor['Id'].'.json';
-    if ( ZM_OPT_USE_AUTH ) {
-      if ( ZM_AUTH_RELAY == 'hashed' ) {
-        $url .= '&auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
-      } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-        $url = '&user='.$_SESSION['username'];
-        $url = '&pass='.$_SESSION['password'];
-      } elseif ( ZM_AUTH_RELAY == 'none' ) {
-        $url = '&user='.$_SESSION['username'];
-      }
-    }
-    $data = array('Monitor[Function]' => $monitor['Function'] );
-
-    // use key 'http' even if you send the request to https://...
-    $options = array(
-        'http' => array(
-          'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-          'method'  => 'POST',
-          'content' => http_build_query($data)
-          )
-        );
-    $context  = stream_context_create($options);
-    $result = file_get_contents($url, false, $context);
-    if ($result === FALSE) { /* Handle error */ }
-  }
+  $Monitor = new Monitor( $monitor );
+  return $Monitor->zmcControl($mode);
 }
 
 function zmaControl( $monitor, $mode=false ) {
   if ( !is_array( $monitor ) ) {
+    $monitor = 
     $monitor = dbFetchOne( 'select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?', NULL, array($monitor) );
   }
-  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
-    if ( !$monitor || $monitor['Function'] == 'None' || $monitor['Function'] == 'Monitor' || $mode == 'stop' ) {
-      if ( ZM_OPT_CONTROL ) {
-        daemonControl( 'stop', 'zmtrack.pl', '-m '.$monitor['Id'] );
-      }
-      daemonControl( 'stop', 'zma', '-m '.$monitor['Id'] );
-    } else {
-      if ( $mode == 'restart' ) {
-        if ( ZM_OPT_CONTROL ) {
-          daemonControl( 'stop', 'zmtrack.pl', '-m '.$monitor['Id'] );
-        }
-        daemonControl( 'stop', 'zma', '-m '.$monitor['Id'] );
-      }
-      daemonControl( 'start', 'zma', '-m '.$monitor['Id'] );
-      if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) ) {
-        daemonControl( 'start', 'zmtrack.pl', '-m '.$monitor['Id'] );
-      }
-      if ( $mode == 'reload' ) {
-        daemonControl( 'reload', 'zma', '-m '.$monitor['Id'] );
-      }
-    }
-  } // end if we are on the recording server
+  $Monitor = new Monitor( $monitor );
+  $Monitor->zmaControl($mode);
 }
 
 function initDaemonStatus() {
@@ -1121,9 +1057,16 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
       $sortColumn = 'E.Cause';
       break;
     case 'DateTime' :
-      $_REQUEST['sort_field'] = 'StartTime';
+      $sortColumn = 'E.StartTime';
+      break;
+    case 'DiskSpace' :
+      $sortColumn = 'E.DiskSpace';
+      break;
     case 'StartTime' :
       $sortColumn = 'E.StartTime';
+      break;
+    case 'EndTime' :
+      $sortColumn = 'E.EndTime';
       break;
     case 'Length' :
       $sortColumn = 'E.Length';
@@ -1190,6 +1133,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'ServerId':
             $filter['sql'] .= 'M.ServerId';
             break;
+# Unspecified start or end, so assume start, this is to support legacy filters
           case 'DateTime':
             $filter['sql'] .= 'E.StartTime';
             break;
@@ -1202,8 +1146,35 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'Weekday':
             $filter['sql'] .= 'weekday( E.StartTime )';
             break;
+# Starting Time
+          case 'StartDateTime':
+            $filter['sql'] .= 'E.StartTime';
+            break;
+          case 'StartDate':
+            $filter['sql'] .= 'to_days( E.StartTime )';
+            break;
+          case 'StartTime':
+            $filter['sql'] .= 'extract( hour_second from E.StartTime )';
+            break;
+          case 'StartWeekday':
+            $filter['sql'] .= 'weekday( E.StartTime )';
+            break;
+# Ending Time
+          case 'EndDateTime':
+            $filter['sql'] .= 'E.EndTime';
+            break;
+          case 'EndDate':
+            $filter['sql'] .= 'to_days( E.EndTime )';
+            break;
+          case 'EndTime':
+            $filter['sql'] .= 'extract( hour_second from E.EndTime )';
+            break;
+          case 'EndWeekday':
+            $filter['sql'] .= 'weekday( E.EndTime )';
+            break;
           case 'Id':
           case 'Name':
+          case 'DiskSpace':
           case 'MonitorId':
           case 'StorageId':
           case 'Length':
@@ -1303,6 +1274,10 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case '![]' :
             $filter['sql'] .= ' not in ('.join( ',', $valueList ).')';
             break;
+          case 'IS' :
+            $filter['sql'] .= " IS $value";
+          case 'IS NOT' :
+            $filter['sql'] .= " IS NOT $value";
         }
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);
@@ -1917,7 +1892,8 @@ function logState() {
       Logger::WARNING => array( ZM_LOG_ALERT_WAR_COUNT, ZM_LOG_ALARM_WAR_COUNT ),
       );
 
-  $sql = "select Level, count(Level) as LevelCount from Logs where Level < ".Logger::INFO." and TimeKey > unix_timestamp(now() - interval ".ZM_LOG_CHECK_PERIOD." second) group by Level order by Level asc";
+  # This is an expensive request, as it has to hit every row of the Logs Table
+  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
   $counts = dbFetchAll( $sql );
 
   foreach ( $counts as $count ) {

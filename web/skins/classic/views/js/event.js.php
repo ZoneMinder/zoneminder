@@ -30,13 +30,18 @@ var eventData = {
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
-    Length: '<?php echo $Event->Length() ?>'
+    Length: '<?php echo $Event->Length() ?>',
+    StartTime: '<?php echo $Event->StartTime() ?>',
+    EndTime: '<?php echo $Event->EndTime() ?>',
+    MonitorName: '<?php echo $Monitor->Name() ?>'
 };
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
-var scale = <?php echo $scale ?>;
+var scale = "<?php echo $scale ?>";
+var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
+
 var canEditEvents = <?php echo canEdit( 'Events' )?'true':'false' ?>;
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 

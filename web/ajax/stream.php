@@ -44,7 +44,7 @@ switch ( $_REQUEST['command'] ) {
 $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'s.sock';
 $max_socket_tries = 10;
 while ( !file_exists($remSockFile) && $max_socket_tries-- ) { //sometimes we are too fast for our own good, if it hasn't been setup yet give it a second.
-  usleep(200000);
+  usleep(2000000);
 }
 
 if ( !file_exists($remSockFile) ) {

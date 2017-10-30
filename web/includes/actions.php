@@ -23,6 +23,28 @@
 // credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
 
 
+function do_request($method, $url, $data=array(), $optional_headers = null) {
+  global $php_errormsg;
+
+  $params = array('http' => array(
+        'method' => $method,
+        'content' => $data
+        ));
+  if ($optional_headers !== null) {
+    $params['http']['header'] = $optional_headers;
+  }
+  $ctx = stream_context_create($params);
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if (!$fp) {
+    throw new Exception("Problem with $url, $php_errormsg");
+  }
+  $response = @stream_get_contents($fp);
+  if ($response === false) {
+    throw new Exception("Problem reading data from $url, $php_errormsg");
+  }
+  return $response;
+}
+
 function do_post_request($url, $data, $optional_headers = null) {
   $params = array('http' => array(
         'method' => 'POST',
@@ -148,6 +170,7 @@ Warning("Addterm");
           $sql .= ', AutoExecute = '. ( !empty($_REQUEST['filter']['AutoExecute']) ? 1 : 0);
           $sql .= ', AutoExecuteCmd = '.dbEscape($_REQUEST['filter']['AutoExecuteCmd']);
           $sql .= ', AutoDelete = '. ( !empty($_REQUEST['filter']['AutoDelete']) ? 1 : 0);
+          $sql .= ', UpdateDiskSpace = '. ( !empty($_REQUEST['filter']['UpdateDiskSpace']) ? 1 : 0);
           $sql .= ', Background = '. ( !empty($_REQUEST['filter']['Background']) ? 1 : 0);
           $sql .= ', Concurrent  = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
 
@@ -265,6 +288,30 @@ Warning("Addterm");
       }
     }
   }
+
+  if ( isset($_REQUEST['object']) and $_REQUEST['object'] == 'Monitor' ) {
+    if ( $action == 'save' ) {
+      foreach ( $_REQUEST['mids'] as $mid ) {
+        $mid = ValidInt( $mid );
+        if ( ! canEdit('Monitors', $mid ) ) {
+          Warning("Cannot edit monitor $mid");
+          continue;
+        }
+        $Monitor = new Monitor( $mid );
+        $Monitor->zmaControl('stop');
+        $Monitor->zmcControl('stop');
+        $Monitor->save( $_REQUEST['newMonitor'] );
+        if ($Monitor->Function() != 'None' ) {
+          $Monitor->zmcControl('start');
+          if ( $Monitor->Enabled() ) {
+            $Monitor->zmaControl('start');
+          }
+        }
+
+      } // end foreach mid
+      $refreshParent = true;
+    } // end if action == save
+  } // end if object is Monitor
 
   // Monitor edit actions, require a monitor id and edit permissions for that monitor
   if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {

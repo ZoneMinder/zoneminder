@@ -59,20 +59,6 @@ if ( isset( $_REQUEST['scale'] ) ) {
 if ( ! $scale ) 
   $scale = 100;
 
-$focusWindow = true;
-
-/*
-$layouts = array(
-  'montage_freeform.css' => translate('MtgDefault'),
-  'montage_2wide.css' => translate('Mtg2widgrd'),
-  'montage_3wide.css' => translate('Mtg3widgrd'),
-  'montage_4wide.css' => translate('Mtg4widgrd'),
-  'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
-);
-foreach ( MontageLayout::find() as $Layout ) {
-  $layouts[$Layout->Id()] = $Layout->Name();
-}
-*/
 $layouts = MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
 foreach ( $layouts as $l ) {
@@ -83,15 +69,23 @@ $layout = '';
 if ( isset($_COOKIE['zmMontageLayout']) )
   $layout = $_COOKIE['zmMontageLayout'];
 
+session_start();
 $options = array();
-if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] )
-  $options['width'] = $_COOKIE['zmMontageWidth'];
-else
+if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] ) {
+  $_SESSION['zmMontageWidth'] = $options['width'] = $_COOKIE['zmMontageWidth'];
+} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
+  $options['width'] = $_SESSION['zmMontageWidth'];
+} else
   $options['width'] = '';
+
 if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
-  $options['height'] = $_COOKIE['zmMontageHeight'];
+  $_SESSION['zmMontageHeight'] = $options['height'] = $_COOKIE['zmMontageHeight'];
+else if ( isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight'] )
+  $options['height'] = $_SESSION['zmMontageHeight'];
 else
   $options['height'] = '';
+session_write_close();
+
 if ( $scale ) 
   $options['scale'] = $scale;
 
@@ -102,6 +96,9 @@ ob_end_clean();
 
 $monitors = array();
 foreach( $displayMonitors as &$row ) {
+  if ( $row['Function'] == 'None' )
+    continue;
+
   $row['Scale'] = $scale;
   $row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
 
@@ -143,15 +140,24 @@ if ( $showZones ) {
       </div>
       <?php echo $filterbar ?>
       <div id="sizeControl">
-        <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
-        <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
-        <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 
-        <span id="layoutControl">
-          <label for="layout"><?php echo translate('Layout') ?>:</label>
-          <?php echo htmlSelect( 'layout', $layoutsById, $layout, 'selectLayout(this);' )?>
-        </span>
-        <input type="button" value="<?php echo translate('EditLayout') ?>" onclick="edit_layout(this);"/>
-        <input type="button" value="<?php echo translate('SaveLayout') ?>" onclick="save_layout(this);"/>
+        <form action="index.php?view=montage" method="post">
+          <input type="hidden" name="object" value="MontageLayout"/>
+
+          <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
+          <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
+          <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 
+          <span id="layoutControl">
+            <label for="layout"><?php echo translate('Layout') ?>:</label>
+            <?php echo htmlSelect( 'zmMontageLayout', $layoutsById, $layout, array( 'onchange'=>'selectLayout(this);', 'id'=>'zmMontageLayout') ); ?>
+          </span>
+          <input type="hidden" name="Positions"/>
+          <input type="button" id="EditLayout" value="<?php echo translate('EditLayout') ?>" onclick="edit_layout(this);"/>
+          <span id="SaveLayout" style="display:none;">
+            <input type="text" name="Name" placeholder="Enter new name for layout if desired" />
+            <input type="button" name="action" value="<?php echo translate('Save') ?>" onclick="save_layout(this);"/>
+            <input type="button" value="Cancel" onclick="cancel_layout(this);"/>
+          </span>
+        </form>
       </div>
     </div>
     <div id="content">
@@ -160,7 +166,7 @@ if ( $showZones ) {
 foreach ( $monitors as $monitor ) {
   $connkey = $monitor->connKey(); // Minor hack
 ?>
-        <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
+  <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>" style="<?php echo $options['width'] ? 'width:'.$options['width'].'px;':''?>">
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
             <?php 
@@ -201,16 +207,13 @@ foreach ( $monitors as $monitor ) {
                   $row['Coords'] = pointsToCoords( $row['Points'] );
                   $row['AreaCoords'] = preg_replace( '/\s+/', ',', $row['Coords'] );
                   $zones[] = $row;
-                }
-
+                } // end foreach Zone
 ?>
 
             <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: <?php echo $width ?>px; height: <?php echo $height ?>px;">
             <?php
             foreach( array_reverse($zones) as $zone ) {
-              ?>
-                <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" />
-                <?php
+                echo '<polygon points="'. $zone['AreaCoords'] .'" class="'. $zone['Type'].'" />';
             } // end foreach zone
 ?>
   Sorry, your browser does not support inline SVG

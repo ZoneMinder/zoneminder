@@ -45,7 +45,7 @@ layouts[0] = {}; // reserved, should hold which fields to clear when transitioni
 <?php
 foreach ( $layouts as $layout ) {
 ?>
-layouts[<?php echo $layout->Id() ?>] = <?php echo $layout->Positions() ?>;
+layouts[<?php echo $layout->Id() ?>] = <?php echo json_encode( $layout ) ?>;
 <?php
 } // end foreach layout
 ?>

@@ -111,10 +111,17 @@ class MontageLayout {
         $this->{$k} = $v;
       }
     }
-    
-    $sql = 'UPDATE MontageLayouts SET '.implode(', ', array_map( function($field) {return $field.'=?';}, array_keys( $this->defaults ) ) ) . ' WHERE Id=?';
-    $values = array_map( function($field){return $this->{$field};}, $this->fields );
-    $values[] = $this->{'Id'};
+
+    $fields = array_keys( $this->defaults );
+    $values = null; 
+    if ( $this->{'Id'} ) {
+      $sql = 'UPDATE MontageLayouts SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
+      $values = array_map( function($field){return $this->{$field};}, $fields );
+      $values[] = $this->{'Id'};
+    } else {
+      $sql = 'INSERT INTO MontageLayouts ('.implode( ',', $fields ).') VALUES ('.implode(',',array_map( function(){return '?';}, $fields ) ).')';
+      $values = array_map( function($field){return $this->{$field};}, $fields );
+    }
     dbQuery( $sql, $values );
   } // end function save
 

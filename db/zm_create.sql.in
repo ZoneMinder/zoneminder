@@ -776,6 +776,8 @@ INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('3 Wide', '{ "default":{
 INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('4 Wide', '{ "default":{"float":"left", "width":"24.5%"} }' );
 INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('5 Wide', '{ "default":{"float":"left", "width":"19%"} }' );
 
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('Fixed', '{ "default":{"float":"none", "position":"absolute"} }' );
+
 --
 -- Apply the initial configuration
 --

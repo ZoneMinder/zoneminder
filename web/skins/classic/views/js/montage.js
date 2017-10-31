@@ -32,7 +32,7 @@ function Monitor( monitorData ) {
     if ( this.streamCmdTimer )
       this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
 
-    var stream = $j('#liveStream'+this.id )[0];
+    var stream = $j('#liveStream'+this.id)[0];
     if ( respObj.result == 'Ok' ) {
       this.status = respObj.status;
       this.alarmState = this.status.state;
@@ -81,9 +81,10 @@ function Monitor( monitorData ) {
           // Try to reload the image stream.
           if ( stream )
             stream.src = stream.src.replace( /auth=\w+/i, 'auth='+this.status.auth );
-          console.log("Changed auth to " + this.status.auth );
+          console.log("Changed auth from " + auth_hash + " to " + this.status.auth );
+          auth_hash = this.status.auth;
         }
-      } // end if haev a new auth hash
+      } // end if have a new auth hash
     } else {
       console.error( respObj.message );
       // Try to reload the image stream.
@@ -93,7 +94,7 @@ function Monitor( monitorData ) {
       } else {
         console.log( 'No stream to reload?' );
       }
-    }
+    } // end if Ok or not
     var streamCmdTimeout = statusRefreshTimeout;
     if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
       streamCmdTimeout = streamCmdTimeout/5;
@@ -114,11 +115,11 @@ function Monitor( monitorData ) {
 }
 
 function selectLayout( element ) {
-  layout = $(element).get('value');
+  layout = $j(element).val();
 
   if ( layout_id = parseInt(layout) ) {
     layout = layouts[layout];
-console.log("Have layout # " + layout_id);
+    console.log(layout);
 
     for ( var i = 0; i < monitors.length; i++ ) {
       monitor = monitors[i];
@@ -131,20 +132,23 @@ console.log("Have layout # " + layout_id);
       }
 
       // Apply default layout options, like float left
-      if ( layout.default ) {
-        styles = layout.default; 
+      if ( layout.Positions['default'] ) {
+        styles = layout.Positions['default']; 
         for ( style in styles ) {
-console.log("applying " + style + ': ' + styles[style]);
           monitor_frame.css(style, styles[style]); 
         }
+      } else {
+        console.log("No default styles to apply" + layout.Positions);
       } // end if default styles
 
-      if ( layout[monitor.id] ) {
-        styles = layout[monitor.id]; 
+      if ( layout.Positions['mId'+monitor.id] ) {
+        styles = layout.Positions['mId'+monitor.id]; 
         for ( style in styles ) {
-console.log("applying " + style + ': ' + styles[style]);
           monitor_frame.css(style, styles[style]); 
+          console.log("Applying " + style + ' : ' + styles[style] );
         }
+      } else {
+        console.log("No Monitor styles to apply");
       } // end if specific monitor style
     } // end foreach monitor
   }  // end if a stored layout
@@ -152,7 +156,7 @@ console.log("applying " + style + ': ' + styles[style]);
     return;
   }
   Cookie.write( 'zmMontageLayout', layout_id, { duration: 10*365 } );
-  if ( layout_id != 1 ) { // 'montage_freeform.css' ) {
+  if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
     Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
     $('scale').set('value', '' );
     $('width').set('value', '');
@@ -260,51 +264,84 @@ function changeScale() {
   Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
 }
 
+function toGrid(value) {
+  return Math.round(value / 80) * 80;
+}
+
+function getOffset( el ) {
+      var _x = 0;
+      var _y = 0;
+      while( el && !isNaN( el.offsetLeft ) && !isNaN( el.offsetTop ) ) {
+                _x += el.offsetLeft - el.scrollLeft;
+                _y += el.offsetTop - el.scrollTop;
+                el = el.offsetParent;
+            }
+      return { top: _y, left: _x };
+}
+
+// Makes monitorFrames draggable.
+function edit_layout(button) {
+  console.log("edit click");
+
+  for ( var x = 0; x < monitors.length; x++ ) {
+    var monitor = monitors[x];
+  
+    // Scale the frame
+    monitor_frame = $j('#monitorFrame'+monitor.id);
+    if ( ! monitor_frame ) {
+      console.log("Error finding frame for " + monitor.id );
+      continue;
+    }
+    var position = getOffset( monitor_frame );
+    monitor_frame.css('float','none');
+    monitor_frame.css('position','absolute');
+    monitor_frame.css('top', position.top+'px' );
+    monitor_frame.css('left', position.left+'px' );
+  } // end foreach monitor
+
+  $j('#monitors .monitorFrame').draggable({
+    cursor: 'crosshair',
+    //revert: 'invalid'
+  });
+  $j('#SaveLayout').show();
+  $j('#EditLayout').hide();
+} // end function edit_layout
+
+function save_layout(button) {
+  var form=button.form;
+  var Positions = {};
+  for ( var i = 0; i < monitors.length; i++ ) {
+    var monitor = monitors[i];
+    monitor_frame = $j('#monitorFrame'+monitor.id);
+
+    Positions['mId'+monitor.id] = { 
+      width: monitor_frame.css('width'),
+      height: monitor_frame.css('height'),
+      top: monitor_frame.css('top'),
+      bottom: monitor_frame.css('bottom'),
+      left: monitor_frame.css('left'),
+      right: monitor_frame.css('right'),
+      position: monitor_frame.css('position'),
+      float: monitor_frame.css('float'),
+    };
+  } // end foreach monitor
+  form.Positions.value = JSON.stringify( Positions );
+  form.submit();
+}
+function cancel_layout(button) {
+  $j('#SaveLayout').hide();
+  $j('#EditLayout').show();
+}
+
 var monitors = new Array();
 function initPage() {
   for ( var i = 0; i < monitorData.length; i++ ) {
-    monitors[i] = new Monitor( monitorData[i] );
-    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    monitors[i].start( delay );
+    monitors[i] = new Monitor(monitorData[i]);
+    var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
+    console.log("delay: " + delay);
+    monitors[i].start(delay);
   }
-  selectLayout($('layout'));
-
-    $j('#monitors .monitorFrame').draggable({
-        cursor: 'crosshair',
-        revert: 'invalid'
-    });
-    
-    function toGrid(value) {
-        return Math.round(value / 80) * 80;
-    }
-    
-    $j('#monitors').droppable({
-        accept: '#monitors .monitorFrame',
-        drop: function(event, ui) {
-            //console.log(event);
-            $j(this).removeClass('border over');
-            $j(ui.draggable).detach().
-                appendTo($j(this).find('ul')).
-                draggable({
-                    containment: '.fw-content',
-                    cursor: 'help',
-                    grid: [ 80, 80 ]
-                }).
-                css({
-                    position: 'absolute', 
-                    left: toGrid(event.clientX - $j('#monitors').offset().left), 
-                    top: toGrid(event.clientY - $j('#monitors').offset().top)
-                });
-        },
-        over: function(event, elem) {
-            console.log('over');
-            $j(this).addClass('over');
-        },
-        out: function(event, elem) {
-            $j(this).removeClass('over');
-        }
-    });
+  selectLayout('#zmMontageLayout');
 }
-
 // Kick everything off
 window.addEvent( 'domready', initPage );

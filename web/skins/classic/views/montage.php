@@ -59,20 +59,6 @@ if ( isset( $_REQUEST['scale'] ) ) {
 if ( ! $scale ) 
   $scale = 100;
 
-$focusWindow = true;
-
-/*
-$layouts = array(
-  'montage_freeform.css' => translate('MtgDefault'),
-  'montage_2wide.css' => translate('Mtg2widgrd'),
-  'montage_3wide.css' => translate('Mtg3widgrd'),
-  'montage_4wide.css' => translate('Mtg4widgrd'),
-  'montage_3wide50enlarge.css' => translate('Mtg3widgrx'),
-);
-foreach ( MontageLayout::find() as $Layout ) {
-  $layouts[$Layout->Id()] = $Layout->Name();
-}
-*/
 $layouts = MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
 foreach ( $layouts as $l ) {
@@ -83,103 +69,34 @@ $layout = '';
 if ( isset($_COOKIE['zmMontageLayout']) )
   $layout = $_COOKIE['zmMontageLayout'];
 
+session_start();
 $options = array();
-if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] )
-  $options['width'] = $_COOKIE['zmMontageWidth'];
-else
+if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] ) {
+  $_SESSION['zmMontageWidth'] = $options['width'] = $_COOKIE['zmMontageWidth'];
+} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
+  $options['width'] = $_SESSION['zmMontageWidth'];
+} else
   $options['width'] = '';
+
 if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
-  $options['height'] = $_COOKIE['zmMontageHeight'];
+  $_SESSION['zmMontageHeight'] = $options['height'] = $_COOKIE['zmMontageHeight'];
+else if ( isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight'] )
+  $options['height'] = $_SESSION['zmMontageHeight'];
 else
   $options['height'] = '';
+session_write_close();
+
 if ( $scale ) 
   $options['scale'] = $scale;
 
 ob_start();
-# This will end up with the group_id of the deepest selection
-$group_id = Group::get_group_dropdowns();
-$group_dropdowns = ob_get_contents();
+include('_monitor_filters.php');
+$filterbar = ob_get_contents();
 ob_end_clean();
 
-$groupSql = Group::get_group_sql( $group_id );
-
-$servers = Server::find_all();
-$ServersById = array();
-foreach ( $servers as $S ) {
-  $ServersById[$S->Id()] = $S;
-}
-session_start();
-foreach ( array('ServerFilter','StorageFilter') as $var ) {
-  if ( isset( $_REQUEST[$var] ) ) {
-    if ( $_REQUEST[$var] != '' ) {
-      $_SESSION[$var] = $_REQUEST[$var];
-    } else {
-      unset( $_SESSION[$var] );
-    }
-  } else if ( isset( $_COOKIE[$var] ) ) {
-    if ( $_COOKIE[$var] != '' ) {
-      $_SESSION[$var] = $_COOKIE[$var];
-    } else {
-      unset($_SESSION[$var]);
-    }
-  }
-}
-session_write_close();
-
-$storage_areas = Storage::find_all();
-$StorageById = array();
-foreach ( $storage_areas as $S ) {
-  $StorageById[$S->Id()] = $S;
-}
-
-$monitor_id = 0;
-if ( isset( $_REQUEST['monitor_id'] ) ) {
-  $monitor_id = $_REQUEST['monitor_id'];
-} else if ( isset($_COOKIE['zmMonitorId']) ) {
-  $monitor_id = $_COOKIE['zmMonitorId'];
-}
-
 $monitors = array();
-$monitors_dropdown = array( '' => 'All' );
-  $conditions = array();
-  $values = array();
-
-  if ( $groupSql )
-    $conditions[] = $groupSql;
-  if ( isset($_SESSION['ServerFilter']) ) {
-    $conditions[] = 'ServerId=?';
-    $values[] = $_SESSION['ServerFilter'];
-  }
-  if ( isset($_SESSION['StorageFilter']) ) {
-    $conditions[] = 'StorageId=?';
-    $values[] = $_SESSION['StorageFilter'];
-  }
-  $sql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
-  $monitor_rows = dbFetchAll( $sql, null, $values );
-
-  if ( $monitor_id ) {
-    $found_selected_monitor = false;
-
-    for ( $i = 0; $i < count($monitor_rows); $i++ ) {
-      if ( !visibleMonitor( $monitor_rows[$i]['Id'] ) ) {
-        continue;
-      }
-      $monitors_dropdown[$monitor_rows[$i]['Id']] = $monitor_rows[$i]['Name'];
-      if ( $monitor_rows[$i]['Id'] == $monitor_id ) {
-        $found_selected_monitor = true;
-      }
-    }
-    if ( ! $found_selected_monitor ) {
-      $monitor_id = '';
-    }
-  }
-
-$monitors = array();
-foreach( $monitor_rows as $row ) {
-  if ( !visibleMonitor( $row['Id'] ) ) {
-    continue;
-  }
-  if ( $monitor_id and $row['Id'] != $monitor_id ) 
+foreach( $displayMonitors as &$row ) {
+  if ( $row['Function'] == 'None' )
     continue;
 
   $row['Scale'] = $scale;
@@ -188,14 +105,13 @@ foreach( $monitor_rows as $row ) {
   if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
     $showControl = true;
   $row['connKey'] = generateConnKey();
-  $Monitor = $monitors[] = new Monitor( $row );
-  $monitors_dropdown[$Monitor->Id()] = $Monitor->Name();
   if ( ! isset( $widths[$row['Width']] ) ) {
     $widths[$row['Width']] = $row['Width'];
   }
   if ( ! isset( $heights[$row['Height']] ) ) {
     $heights[$row['Height']] = $row['Height'];
   }
+  $monitors[] = new Monitor( $row );
 } # end foreach Monitor
 
 xhtmlHeaders(__FILE__, translate('Montage') );
@@ -222,38 +138,27 @@ if ( $showZones ) {
 }
 ?>
       </div>
-      <div id="headerControl">
-        <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
-        <?php echo $group_dropdowns; ?>
-        </span>
-      <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
-      <?php echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') ); ?>
-      </span>
-<?php if ( count($ServersById) > 0 ) { ?>
-<span class="ServerFilter"><label><?php echo translate('Server')?>:</label>
-<?php
-echo htmlSelect( 'ServerFilter', array(''=>'All')+$ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
-?>
-</span>
-<?php 
-}
-if ( count($StorageById) > 0 ) { ?>
-<span class="StorageFilter"><label><?php echo translate('Storage')?>:</label>
-<?php
-echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
-?>
-</span>
-<?php
-}
-?>
-      <br/>
-        <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
-        <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
-        <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 
-        <span id="layoutControl">
-          <label for="layout"><?php echo translate('Layout') ?>:</label>
-          <?php echo htmlSelect( 'layout', $layoutsById, $layout, 'selectLayout(this);' )?>
-        </span>
+      <?php echo $filterbar ?>
+      <div id="sizeControl">
+        <form action="index.php?view=montage" method="post">
+          <input type="hidden" name="object" value="MontageLayout"/>
+          <input type="hidden" name="action" value="Save"/>
+
+          <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
+          <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
+          <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 
+          <span id="layoutControl">
+            <label for="layout"><?php echo translate('Layout') ?>:</label>
+            <?php echo htmlSelect( 'zmMontageLayout', $layoutsById, $layout, array( 'onchange'=>'selectLayout(this);', 'id'=>'zmMontageLayout') ); ?>
+          </span>
+          <input type="hidden" name="Positions"/>
+          <input type="button" id="EditLayout" value="<?php echo translate('EditLayout') ?>" onclick="edit_layout(this);"/>
+          <span id="SaveLayout" style="display:none;">
+            <input type="text" name="Name" placeholder="Enter new name for layout if desired" />
+            <input type="button" value="<?php echo translate('Save') ?>" onclick="save_layout(this);"/>
+            <input type="button" value="Cancel" onclick="cancel_layout(this);"/>
+          </span>
+        </form>
       </div>
     </div>
     <div id="content">
@@ -262,7 +167,7 @@ echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSIO
 foreach ( $monitors as $monitor ) {
   $connkey = $monitor->connKey(); // Minor hack
 ?>
-        <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>">
+  <div id="monitorFrame<?php echo $monitor->Id() ?>" class="monitorFrame" title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>" style="<?php echo $options['width'] ? 'width:'.$options['width'].'px;':''?>">
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
             <?php 
@@ -303,16 +208,13 @@ foreach ( $monitors as $monitor ) {
                   $row['Coords'] = pointsToCoords( $row['Points'] );
                   $row['AreaCoords'] = preg_replace( '/\s+/', ',', $row['Coords'] );
                   $zones[] = $row;
-                }
-
+                } // end foreach Zone
 ?>
 
             <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: <?php echo $width ?>px; height: <?php echo $height ?>px;">
             <?php
             foreach( array_reverse($zones) as $zone ) {
-              ?>
-                <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" />
-                <?php
+                echo '<polygon points="'. $zone['AreaCoords'] .'" class="'. $zone['Type'].'" />';
             } // end foreach zone
 ?>
   Sorry, your browser does not support inline SVG

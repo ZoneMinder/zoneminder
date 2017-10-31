@@ -175,9 +175,7 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
 
 if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
   if ( empty($user) && ! empty($_REQUEST['auth']) ) {
-Logger::Debug("Getting user from auth hash");
     if ( $authUser = getAuthUser( $_REQUEST['auth'] ) ) {
-Logger::Debug("Success Getting user from auth hash");
       userLogin( $authUser['Username'], $authUser['Password'], true );
     }
   } else if ( ! empty($user) ) {

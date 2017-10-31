@@ -13,7 +13,6 @@ function Monitor( monitorData ) {
   this.streamCmdTimer = null;
 
   this.start = function( delay ) {
-    console.log(delay);
     this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
   };
 
@@ -120,6 +119,7 @@ function selectLayout( element ) {
 
   if ( layout_id = parseInt(layout) ) {
     layout = layouts[layout];
+    console.log(layout);
 
     for ( var i = 0; i < monitors.length; i++ ) {
       monitor = monitors[i];
@@ -132,18 +132,23 @@ function selectLayout( element ) {
       }
 
       // Apply default layout options, like float left
-      if ( layout.default ) {
-        styles = layout.default; 
+      if ( layout.Positions['default'] ) {
+        styles = layout.Positions['default']; 
         for ( style in styles ) {
           monitor_frame.css(style, styles[style]); 
         }
+      } else {
+        console.log("No default styles to apply" + layout.Positions);
       } // end if default styles
 
-      if ( layout[monitor.id] ) {
-        styles = layout[monitor.id].Positions; 
+      if ( layout.Positions['mId'+monitor.id] ) {
+        styles = layout.Positions['mId'+monitor.id]; 
         for ( style in styles ) {
           monitor_frame.css(style, styles[style]); 
+          console.log("Applying " + style + ' : ' + styles[style] );
         }
+      } else {
+        console.log("No Monitor styles to apply");
       } // end if specific monitor style
     } // end foreach monitor
   }  // end if a stored layout
@@ -291,14 +296,14 @@ function edit_layout(button) {
 
 function save_layout(button) {
   var form=button.form;
-  var Positions = new Array();
-  for ( var x = 0; x < monitors.length; x++ ) {
-    var monitor = monitors[x];
+  var Positions = {};
+  for ( var i = 0; i < monitors.length; i++ ) {
+    var monitor = monitors[i];
     monitor_frame = $j('#monitorFrame'+monitor.id);
 
-    Positions[monitor.id] = { 
+    Positions['mId'+monitor.id] = { 
       width: monitor_frame.css('width'),
-      height: monitor_frame.css('width'),
+      height: monitor_frame.css('height'),
       top: monitor_frame.css('top'),
       bottom: monitor_frame.css('bottom'),
       left: monitor_frame.css('left'),
@@ -321,7 +326,7 @@ function initPage() {
     monitors[i] = new Monitor(monitorData[i]);
     var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
     console.log("delay: " + delay);
-    //monitors[i].start(delay);
+    monitors[i].start(delay);
   }
   selectLayout('#zmMontageLayout');
 }

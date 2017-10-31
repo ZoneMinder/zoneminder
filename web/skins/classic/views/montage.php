@@ -142,6 +142,7 @@ if ( $showZones ) {
       <div id="sizeControl">
         <form action="index.php?view=montage" method="post">
           <input type="hidden" name="object" value="MontageLayout"/>
+          <input type="hidden" name="action" value="Save"/>
 
           <span id="widthControl"><label><?php echo translate('Width') ?>:</label><?php echo htmlSelect( 'width', $widths, $options['width'], 'changeSize(this);' ); ?></span>
           <span id="heightControl"><label><?php echo translate('Height') ?>:</label><?php echo htmlSelect( 'height', $heights, $options['height'], 'changeSize(this);' ); ?></span>
@@ -154,7 +155,7 @@ if ( $showZones ) {
           <input type="button" id="EditLayout" value="<?php echo translate('EditLayout') ?>" onclick="edit_layout(this);"/>
           <span id="SaveLayout" style="display:none;">
             <input type="text" name="Name" placeholder="Enter new name for layout if desired" />
-            <input type="button" name="action" value="<?php echo translate('Save') ?>" onclick="save_layout(this);"/>
+            <input type="button" value="<?php echo translate('Save') ?>" onclick="save_layout(this);"/>
             <input type="button" value="Cancel" onclick="cancel_layout(this);"/>
           </span>
         </form>

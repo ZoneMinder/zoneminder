@@ -112,9 +112,9 @@ class MontageLayout {
       }
     }
 
-    $fields = array_keys( $this->defaults );
+    $fields = array_values( array_filter( array_keys($this->defaults), function($field){return $field != 'Id';} ) );
     $values = null; 
-    if ( $this->{'Id'} ) {
+    if ( isset($this->{'Id'}) ) {
       $sql = 'UPDATE MontageLayouts SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
       $values = array_map( function($field){return $this->{$field};}, $fields );
       $values[] = $this->{'Id'};

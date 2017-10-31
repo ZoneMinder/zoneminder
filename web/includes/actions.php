@@ -17,7 +17,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-warning("Un error");
 
 // PP - POST request handler for PHP which does not need extensions
 // credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
@@ -79,10 +78,8 @@ function getAffectedIds( $name ) {
 
 
 if ( empty($action) ) {
-  Warning("No action");
   return;
 }
-Warning("Have action $action");
 if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 'remote' || isset($_REQUEST['password']) ) ) {
   // if true, a popup will display after login
   // PP - lets validate reCaptcha if it exists
@@ -90,15 +87,15 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
       && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') 
       && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
       && ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY 
-      && ZM_OPT_GOOG_RECAPTCHA_SITEKEY)
+      && ZM_OPT_GOOG_RECAPTCHA_SITEKEY )
   {
     $url = 'https://www.google.com/recaptcha/api/siteverify';
     $fields = array (
-        'secret'=> ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,
-        'response' => $_REQUEST['g-recaptcha-response'],
-        'remoteip'=> $_SERVER['REMOTE_ADDR']
+        'secret'    => ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,
+        'response'  => $_REQUEST['g-recaptcha-response'],
+        'remoteip'  => $_SERVER['REMOTE_ADDR']
         );
-    $res= do_post_request($url, http_build_query($fields));
+    $res = do_post_request($url, http_build_query($fields));
     $responseData = json_decode($res,true);
     // PP - credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
     // if recaptcha resulted in error, we might have to deny login
@@ -685,7 +682,6 @@ if ( canEdit( 'Groups' ) ) {
 // System edit actions
 if ( canEdit( 'System' ) ) {
   if ( isset( $_REQUEST['object'] ) ) {
-    Warning("Have object: " . $_REQUEST['object']);
     if ( $_REQUEST['object'] == 'MontageLayout' ) {
       require_once('MontageLayout.php');
       if ( $action == 'Save' ) {
@@ -696,7 +692,6 @@ if ( canEdit( 'System' ) ) {
         } else {
           $Layout = new MontageLayout( $_REQUEST['zmMontageLayout'] );
         }
-        Warning("Positions: " . $_REQUEST['Positions'] );
         $Layout->Positions( $_REQUEST['Positions'] );
         $Layout->save();
       } // end if save

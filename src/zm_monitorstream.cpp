@@ -693,6 +693,8 @@ Debug(2, "checking command Queue");
       } // end if buffered playback
       frame_count++;
     }
+    unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
+    Debug(2,"Sleep for (%d) microseconds");
     usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {
@@ -704,6 +706,7 @@ Debug(2, "checking command Queue");
       break;
     }
   } // end while
+
   if ( buffered_playback ) {
     Debug( 1, "Cleaning swap files from %s", swap_path );
     struct stat stat_buf;

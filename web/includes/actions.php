@@ -696,8 +696,9 @@ if ( canEdit( 'System' ) ) {
         $Layout->save();
         session_start();
         $_SESSION['zmMontageLayout'] = $Layout->Id();
+        setcookie('zmMontageLayout', $Layout->Id(), 1 );
         session_write_close();
-        unset( $_COOKIE['zmMontageLayout'] );
+        $redirect = true;
       } // end if save
 
     } else if ( $_REQUEST['object'] == 'server' ) {

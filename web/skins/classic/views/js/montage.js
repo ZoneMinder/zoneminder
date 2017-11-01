@@ -8,6 +8,7 @@ function Monitor( monitorData ) {
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
+  this.onclick=monitorData.onclick;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
   this.streamCmdTimer = null;
@@ -109,7 +110,7 @@ function Monitor( monitorData ) {
     this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
   };
 
-  this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
+  this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: 1000+AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
 
   requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }
@@ -268,23 +269,16 @@ function toGrid(value) {
   return Math.round(value / 80) * 80;
 }
 
-
 // Makes monitorFrames draggable.
 function edit_layout(button) {
-  console.log("edit click");
 
-  for ( var x = 0; x < monitors.length; x++ ) {
-    var monitor = monitors[x];
+  // Turn off the onclick on the image.
   
-    // Scale the frame
-    monitor_frame = $j('#monitorFrame'+monitor.id);
-    if ( ! monitor_frame ) {
-      console.log("Error finding frame for " + monitor.id );
-      continue;
-    }
-    monitor_frame.css('float','none');
-    monitor_frame.css('position','absolute');
-  } // end foreach monitor
+  for ( var i = 0; i < monitors.length; i++ ) {
+    var monitor = monitors[i];
+    monitor_feed = $j('#imageFeed'+monitor.id)[0];
+    monitor_feed.onclick='';
+  };
 
   $j('#monitors .monitorFrame').draggable({
     cursor: 'crosshair',
@@ -296,6 +290,7 @@ function edit_layout(button) {
 
 function save_layout(button) {
   var form=button.form;
+  // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
   for ( var i = 0; i < monitors.length; i++ ) {
     var monitor = monitors[i];
@@ -318,6 +313,12 @@ function save_layout(button) {
 function cancel_layout(button) {
   $j('#SaveLayout').hide();
   $j('#EditLayout').show();
+  for ( var i = 0; i < monitors.length; i++ ) {
+    var monitor = monitors[i];
+    monitor_feed = $j('#imageFeed'+monitor.id);
+    monitor_feed.click( monitor.onclick );
+  };
+  selectLayout('#zmMontageLayout');
 }
 
 var monitors = new Array();
@@ -325,7 +326,6 @@ function initPage() {
   for ( var i = 0; i < monitorData.length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);
     var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
-    console.log("delay: " + delay);
     monitors[i].start(delay);
   }
   selectLayout('#zmMontageLayout');

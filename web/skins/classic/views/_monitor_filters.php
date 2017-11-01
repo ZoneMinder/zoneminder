@@ -76,6 +76,12 @@ $groupSql = Group::get_group_sql( $group_id );
     $conditions[] = 'StorageId=?';
     $values[] = $_SESSION['StorageFilter'];
   }
+  if ( ! empty( $user['MonitorIds'] ) ) {
+    $ids = explode(',', $user['MonitorIds'] );
+    $conditions[] = 'Id IN ('.implode(',',array_map( function(){return '?';}, $ids) ).')';
+    $values += $ids;
+  }
+
   $sql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll( $sql, null, $values );
   $displayMonitors = array();

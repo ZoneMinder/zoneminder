@@ -268,36 +268,8 @@ function toGrid(value) {
   return Math.round(value / 80) * 80;
 }
 
-function getOffset( el ) {
-      var _x = 0;
-      var _y = 0;
-      while( el && !isNaN( el.offsetLeft ) && !isNaN( el.offsetTop ) ) {
-                _x += el.offsetLeft - el.scrollLeft;
-                _y += el.offsetTop - el.scrollTop;
-                el = el.offsetParent;
-            }
-      return { top: _y, left: _x };
-}
-
 // Makes monitorFrames draggable.
 function edit_layout(button) {
-  console.log("edit click");
-
-  for ( var x = 0; x < monitors.length; x++ ) {
-    var monitor = monitors[x];
-  
-    // Scale the frame
-    monitor_frame = $j('#monitorFrame'+monitor.id);
-    if ( ! monitor_frame ) {
-      console.log("Error finding frame for " + monitor.id );
-      continue;
-    }
-    var position = getOffset( monitor_frame );
-    monitor_frame.css('top', position.top+'px' );
-    monitor_frame.css('left', position.left+'px' );
-    monitor_frame.css('float','none');
-    monitor_frame.css('position','absolute');
-  } // end foreach monitor
 
   $j('#monitors .monitorFrame').draggable({
     cursor: 'crosshair',
@@ -309,6 +281,7 @@ function edit_layout(button) {
 
 function save_layout(button) {
   var form=button.form;
+  // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
   for ( var i = 0; i < monitors.length; i++ ) {
     var monitor = monitors[i];
@@ -338,7 +311,6 @@ function initPage() {
   for ( var i = 0; i < monitorData.length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);
     var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
-    console.log("delay: " + delay);
     monitors[i].start(delay);
   }
   selectLayout('#zmMontageLayout');

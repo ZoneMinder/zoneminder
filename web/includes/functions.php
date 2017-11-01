@@ -2063,7 +2063,8 @@ function detaintPath( $path ) {
 function cache_bust( $file ) {
   # Use the last modified timestamp to create a link that gets a different filename
   # To defeat caching.  Should probably use md5 hash
-  $cacheFile = '/cache/'.basename($file).'-'.filemtime($file);
+  $parts = pathinfo($file);
+  $cacheFile = '/cache/'.$parts['filename'].'-'.filemtime($file).'.'.$parts['extension'];
   if ( file_exists( ZM_PATH_WEB.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.$cacheFile ) ) {
     return $cacheFile;
   } else {

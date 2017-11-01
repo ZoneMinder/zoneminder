@@ -69,10 +69,13 @@ foreach ( $layouts as $l ) {
 session_start();
 
 $layout = '';
-if ( isset($_COOKIE['zmMontageLayout']) )
+if ( isset($_COOKIE['zmMontageLayout']) ) {
   $layout = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
-elseif ( isset($_SESSION['zmMontageLayout']) )
+Warning("Setting layout by cookie");
+} elseif ( isset($_SESSION['zmMontageLayout']) ) {
   $layout = $_SESSION['zmMontageLayout'];
+Warning("Setting layout by session");
+}
 
 $options = array();
 if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] ) {

@@ -8,6 +8,7 @@ function Monitor( monitorData ) {
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
+  this.onclick=monitorData.onclick;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
   this.streamCmdTimer = null;
@@ -271,6 +272,14 @@ function toGrid(value) {
 // Makes monitorFrames draggable.
 function edit_layout(button) {
 
+  // Turn off the onclick on the image.
+  
+  for ( var i = 0; i < monitors.length; i++ ) {
+    var monitor = monitors[i];
+    monitor_feed = $j('#imageFeed'+monitor.id)[0];
+    monitor_feed.onclick='';
+  };
+
   $j('#monitors .monitorFrame').draggable({
     cursor: 'crosshair',
     //revert: 'invalid'
@@ -304,6 +313,12 @@ function save_layout(button) {
 function cancel_layout(button) {
   $j('#SaveLayout').hide();
   $j('#EditLayout').show();
+  for ( var i = 0; i < monitors.length; i++ ) {
+    var monitor = monitors[i];
+    monitor_feed = $j('#imageFeed'+monitor.id);
+    monitor_feed.click( monitor.onclick );
+  };
+  selectLayout('#zmMontageLayout');
 }
 
 var monitors = new Array();

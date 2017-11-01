@@ -13,7 +13,7 @@ SET @s = (SELECT IF(
  CREATE TABLE MontageLayouts (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name`    TEXT  NOT NULL,
-  `Positions` JSON,
+  `Positions` LONGTEXT,
   PRIMARY KEY (`Id`)
 );
 "

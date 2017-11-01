@@ -293,10 +293,10 @@ function edit_layout(button) {
       continue;
     }
     var position = getOffset( monitor_frame );
-    monitor_frame.css('float','none');
-    monitor_frame.css('position','absolute');
     monitor_frame.css('top', position.top+'px' );
     monitor_frame.css('left', position.left+'px' );
+    monitor_frame.css('float','none');
+    monitor_frame.css('position','absolute');
   } // end foreach monitor
 
   $j('#monitors .monitorFrame').draggable({

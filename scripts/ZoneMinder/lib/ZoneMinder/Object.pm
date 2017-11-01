@@ -48,7 +48,7 @@ use vars qw/ $AUTOLOAD $log $dbh/;
 *dbh = \$ZoneMinder::Database::dbh;
 
 my $debug = 1;
-use constant DEBUG_ALL=>0;
+use constant DEBUG_ALL=>1;
 
 sub new {
   my ( $parent, $id, $data ) = @_;
@@ -185,8 +185,11 @@ $log->debug("No serial") if $debug;
 					next;
 				}
 				if ( ! $$self{$id} ) {
-					($$self{$id}) = ($sql{$$fields{$id}}) = $local_dbh->selectrow_array( q{SELECT nextval('} . $serial{$id} . q{')} );
-					$log->debug("SQL statement execution SELECT nextval('$serial{$id}') returned $$self{$id}") if $debug or DEBUG_ALL;
+          my $s = qq{SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE table_name = '$table'};
+
+					($$self{$id}) = ($sql{$$fields{$id}}) = $local_dbh->selectrow_array( $s );
+					#($$self{$id}) = ($sql{$$fields{$id}}) = $local_dbh->selectrow_array( q{SELECT nextval('} . $serial{$id} . q{')} );
+					$log->debug("SQL statement execution SELECT $s returned $$self{$id}") if $debug or DEBUG_ALL;
 					$insert = 1;
 				} # end if
 			} # end foreach
@@ -224,22 +227,28 @@ $log->debug("No serial") if $debug;
 			} # end if
 		} # end if
 	} else { # not identified_by
-		@identified_by = ('id') if ! @identified_by;
-		my $need_serial = ! ( @identified_by == map { $$self{$_} ? $_ : () } @identified_by );
+		@identified_by = ('Id') if ! @identified_by;
+
+    # If the size of the arrays are not equal which means one or more are missing
+    my @identified_by_without_values = map { $$self{$_} ? () : $_ } @identified_by;
+		my $need_serial = @identified_by_without_values > 0;
 
 		if ( $force_insert or $need_serial ) {
 			
 			if ( $need_serial ) {
 				if ( $serial ) {
-					@$self{@identified_by} = @sql{@$fields{@identified_by}} = $local_dbh->selectrow_array( q{SELECT nextval('} . $serial . q{')} );
+          my $s = qq{SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE table_name = '$table'};
+					@$self{@identified_by} = @sql{@$fields{@identified_by}} = $local_dbh->selectrow_array( $s );
+#@$self{@identified_by} = @sql{@$fields{@identified_by}} = $local_dbh->selectrow_array( q{SELECT nextval('} . $serial . q{')} );
 					if ( $local_dbh->errstr() )  {
 						$log->error("Error getting next id. " . $local_dbh->errstr() );
-						$log->error("SQL statement execution SELECT nextval('$serial') returned ".join(',',@$self{@identified_by}));
+						$log->error("SQL statement execution $s returned ".join(',',@$self{@identified_by}));
 					} elsif ( $debug or DEBUG_ALL ) {
-						$log->debug("SQL statement execution SELECT nextval('$serial') returned ".join(',',@$self{@identified_by}));
+						$log->debug("SQL statement execution $s returned ".join(',',@$self{@identified_by}));
 					} # end if
 				} # end if
 			} # end if
+
 			my @keys = keys %sql;
 			my $command = "INSERT INTO $table (" . join(',', @keys ) . ') VALUES (' . join(',', map { '?' } @sql{@keys} ) . ')';
 			if ( ! ( $_ = $local_dbh->prepare($command) and $_->execute( @sql{@keys} ) ) ) {
@@ -257,7 +266,9 @@ $log->debug("No serial") if $debug;
 		} else {
 			delete $sql{created_on};
 			my @keys = keys %sql;
-			@keys = sets::exclude( [ @$fields{@identified_by} ], \@keys );
+      my %identified_by = map { $_, $_ } @identified_by;
+
+			@keys = map { $identified_by{$_} ? () : $$fields{$_} } @keys;
 			my $command = "UPDATE $table SET " . join(',', map { $_ . ' = ?' } @keys ) . ' WHERE ' . join(' AND ', map { $$fields{$_} .'= ?' } @identified_by );
 			if ( ! ( $_ = $local_dbh->prepare($command) and $_->execute( @sql{@keys}, @sql{@$fields{@identified_by}} ) ) ) {
 				my $error = $local_dbh->errstr;
@@ -294,30 +305,32 @@ sub set {
 	my $type = ref $self;
 	my %fields = eval ('%'.$type.'::fields');
 	if ( ! %fields ) {
-		$log->warn('ZoneMinder::Object::set called on an object with no fields');
+		$log->warn("ZoneMinder::Object::set called on an object ($type) with no fields".$@);
 	} # end if
 	my %defaults = eval('%'.$type.'::defaults');
 	if ( ref $params ne 'HASH' ) {
 		my ( $caller, undef, $line ) = caller;
-		$openprint::log->error("$type -> set called with non-hash params from $caller $line");
+		$log->error("$type -> set called with non-hash params from $caller $line");
 	}
 
 	foreach my $field ( keys %fields ) {
-$log->debug("field: $field, param: ".$$params{$field}) if $debug;
-		if ( exists $$params{$field} ) {
-$openprint::log->debug("field: $field, $$self{$field} =? param: ".$$params{$field}) if $debug;
-			if ( ( ! defined $$self{$field} ) or ($$self{$field} ne $params->{$field}) ) {
+    if ( $params ) {
+      $log->debug("field: $field, param: ".$$params{$field}) if $debug;
+      if ( exists $$params{$field} ) {
+        $log->debug("field: $field, $$self{$field} =? param: ".$$params{$field}) if $debug;
+        if ( ( ! defined $$self{$field} ) or ($$self{$field} ne $params->{$field}) ) {
 # Only make changes to fields that have changed
-				if ( defined $fields{$field} ) {
-					$$self{$field} = $$params{$field} if defined $fields{$field};
-					push @set_fields, $fields{$field}, $$params{$field};	#mark for sql updating
-				} # end if
-$openprint::log->debug("Running $field with $$params{$field}") if $debug;
-				if ( my $func = $self->can( $field ) ) {
-					$func->( $self, $$params{$field} );
-				} # end if
-			} # end if
-		} # end if
+          if ( defined $fields{$field} ) {
+            $$self{$field} = $$params{$field} if defined $fields{$field};
+            push @set_fields, $fields{$field}, $$params{$field};	#mark for sql updating
+          } # end if
+          $log->debug("Running $field with $$params{$field}") if $debug;
+          if ( my $func = $self->can( $field ) ) {
+            $func->( $self, $$params{$field} );
+          } # end if
+        } # end if
+      } # end if
+		} # end if $params
 
 		if ( defined $fields{$field} ) {
 			if ( $$self{$field} ) {
@@ -356,7 +369,7 @@ sub transform {
 
 	if ( defined $$fields{$_[1]} ) {
 		my @transforms = eval('@{$'.$type.'::transforms{$_[1]}}');
-		$openprint::log->debug("Transforms for $_[1] before $_[2]: @transforms") if $debug;
+		$log->debug("Transforms for $_[1] before $_[2]: @transforms") if $debug;
 		if ( @transforms ) {
 			foreach my $transform ( @transforms ) {
 				if ( $transform =~ /^s\// or $transform =~ /^tr\// ) {
@@ -366,15 +379,15 @@ sub transform {
 						$value = undef;
 					} # end if
 				} else {
-	$openprint::log->debug("evalling $value ".$transform . " Now value is $value" );
+	$log->debug("evalling $value ".$transform . " Now value is $value" );
 					eval '$value '.$transform;
-	$openprint::log->error("Eval error $@") if $@;
+	$log->error("Eval error $@") if $@;
 				}
-	$openprint::log->debug("After $transform: $value") if $debug;
+	$log->debug("After $transform: $value") if $debug;
 			} # end foreach
 		} # end if 
 	} else {
-		$openprint::log->error("Object::transform ($_[1]) not in fields for $type");
+		$log->error("Object::transform ($_[1]) not in fields for $type");
 	} # end if
 	return $value;
 

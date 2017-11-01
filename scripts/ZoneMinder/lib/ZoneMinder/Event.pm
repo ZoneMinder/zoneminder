@@ -48,9 +48,38 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 require Date::Parse;
 
-use vars qw/ $table $primary_key /;
+use vars qw/ $table $primary_key %fields $serial @identified_by/;
 $table = 'Events';
-$primary_key = 'Id';
+@identified_by = ('Id');
+$serial = $primary_key = 'Id';
+%fields = map { $_, $_ } qw(
+  Id
+  MonitorId
+  StorageId
+  Name
+  Cause
+  StartTime
+  EndTime
+  Width
+  Height
+  Length
+  Frames
+  AlarmFrames
+  DefaultVideo
+  TotScore
+  AvgScore
+  MaxScore
+  Archived
+  Videoed
+  Uploaded
+  Emailed
+  Messaged
+  Executed
+  Notes
+  StateId
+  Orientation
+  DiskSpace
+);
 
 use POSIX;
 

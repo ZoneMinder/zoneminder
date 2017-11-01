@@ -109,7 +109,7 @@ function Monitor( monitorData ) {
     this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
   };
 
-  this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
+  this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: 1000+AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
 
   requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }

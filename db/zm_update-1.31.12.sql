@@ -25,7 +25,7 @@ EXECUTE stmt;
 SET @s = ( SELECT IF(
     (SELECT COUNT(*) FROM MontageLayouts WHERE Name='Freeform') > 0,
       "SELECT 'Freeform already in layouts'",
-'INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES (\'Freeform\', \'{"default":{"float":"left","position":"relative"}}\');' 
+'INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES (\'Freeform\', \'{"default":{"float":"left","position":"relative","left":"0px","right":"0px","top":"0px","bottom":"0px"}}\');' 
 ) );
 PREPARE stmt FROM @s;
 EXECUTE stmt;

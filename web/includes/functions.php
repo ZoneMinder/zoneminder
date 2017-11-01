@@ -2060,6 +2060,18 @@ function detaintPath( $path ) {
   return( $path );
 }
 
+function cache_bust( $file ) {
+  # Use the last modified timestamp to create a link that gets a different filename
+  # To defeat caching.  Should probably use md5 hash
+  $cacheFile = '/cache/'.basename($file).'-'.filemtime($file);
+  if ( file_exists( ZM_PATH_WEB.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.$cacheFile ) ) {
+    return $cacheFile;
+  } else {
+    Warning("Failed linking $file to $cacheFile");
+  }
+  return $file;
+}
+
 function getSkinFile( $file ) {
   global $skinBase;
   $skinFile = false;
@@ -2068,7 +2080,7 @@ function getSkinFile( $file ) {
     if ( file_exists( $tempSkinFile ) )
       $skinFile = $tempSkinFile;
   }
-  return( $skinFile );
+  return  $skinFile;
 }
 
 function getSkinIncludes( $file, $includeBase=false, $asOverride=false ) {

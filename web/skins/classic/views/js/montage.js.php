@@ -35,7 +35,8 @@ monitorData[monitorData.length] = {
   'connKey': <?php echo $monitor->connKey() ?>, 
   'width': <?php echo $monitor->Width() ?>,
   'height':<?php echo $monitor->Height() ?>,
-  'server_url': '<?php echo $monitor->Server()->Url().(ZM_MIN_STREAMING_PORT?':'.(ZM_MIN_STREAMING_PORT+$monitor->Id()):'').$_SERVER['PHP_SELF'] ?>'
+  'server_url': '<?php echo $monitor->Server()->Url().(ZM_MIN_STREAMING_PORT?':'.(ZM_MIN_STREAMING_PORT+$monitor->Id()):'').$_SERVER['PHP_SELF'] ?>',
+  'onclick': function(){createPopup( '?view=watch&mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );}
 };
 <?php
 } // end foreach monitor
@@ -45,7 +46,7 @@ layouts[0] = {}; // reserved, should hold which fields to clear when transitioni
 <?php
 foreach ( $layouts as $layout ) {
 ?>
-layouts[<?php echo $layout->Id() ?>] = <?php echo $layout->Positions() ?>;
+layouts[<?php echo $layout->Id() ?>] = {"Name":"<?php echo $layout->Name()?>","Positions":<?php echo $layout->Positions() ?>};
 <?php
 } // end foreach layout
 ?>

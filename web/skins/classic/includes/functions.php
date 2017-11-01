@@ -60,11 +60,11 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
-  <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
+  <link rel="stylesheet" href="<?php echo cache_bust($skinCssFile) ?>" type="text/css" media="screen"/>
 <?php
   if ( $viewCssFile ) {
 ?>
-  <link rel="stylesheet" href="<?php echo $viewCssFile ?>" type="text/css" media="screen"/>
+  <link rel="stylesheet" href="<?php echo cache_bust($viewCssFile) ?>" type="text/css" media="screen"/>
 <?php
   }
   if ( $viewCssPhpFile ) {
@@ -138,18 +138,18 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   }
 	if ( $cssJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo $cssJsFile ?>"></script>
+  <script type="text/javascript" src="<?php echo cache_bust($cssJsFile) ?>"></script>
 <?php
 } else {
 ?>
   <script type="text/javascript" src="skins/classic/js/classic.js"></script>
 <?php } ?>
-  <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
+  <script type="text/javascript" src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script type="text/javascript" src="js/logger.js"></script>
 <?php
   if ( $viewJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo $viewJsFile ?>"></script>
+  <script type="text/javascript" src="<?php echo cache_bust($viewJsFile) ?>"></script>
 <?php
   }
 ?>

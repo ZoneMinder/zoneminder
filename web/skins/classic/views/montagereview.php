@@ -55,61 +55,9 @@ if ( !canView( 'Events' ) ) {
 }
 
 ob_start();
-# This will end up with the group_id of the deepest selection
-$group_id = Group::get_group_dropdowns();
-$group_dropdowns = ob_get_contents();
+include('_monitor_filters.php');
+$filter_bar = ob_get_contents();
 ob_end_clean();
-
-$groupSql = Group::get_group_sql( $group_id );
-
-$servers = Server::find_all();
-$ServersById = array();
-foreach ( $servers as $S ) {
-  $ServersById[$S->Id()] = $S;
-}
-$storage_areas = Storage::find_all();
-$StorageById = array();
-foreach ( $storage_areas as $S ) {
-  $StorageById[$S->Id()] = $S;
-}
-session_start();
-foreach ( array('minTime','maxTime','ServerFilter','StorageFilter') as $var ) {
-  if ( isset( $_REQUEST[$var] ) ) {
-    if ( $_REQUEST[$var] != '' ) {
-      $_SESSION[$var] = $_REQUEST[$var];
-    } else {
-      unset( $_SESSION[$var] );
-    }
-  } else if ( isset( $_COOKIE[$var] ) ) {
-    if ( $_COOKIE[$var] != '' ) {
-      $_SESSION[$var] = $_COOKIE[$var];
-    } else {
-      unset($_SESSION[$var]);
-    }
-  }
-}
-session_write_close();
-
-$monitor_id = 0;
-if ( isset( $_REQUEST['monitor_id'] ) ) {
-  $monitor_id = $_REQUEST['monitor_id'];
-} else if ( isset($_COOKIE['zmMonitorId']) ) {
-  $monitor_id = $_COOKIE['zmMonitorId'];
-}
-
-  $conditions = array();
-  $values = array();
-
-  if ( $groupSql )
-    $conditions[] = $groupSql;
-  if ( isset($_SESSION['ServerFilter']) ) {
-    $conditions[] = 'ServerId=?';
-    $values[] = $_SESSION['ServerFilter'];
-  }
-  if ( isset($_SESSION['StorageFilter']) ) {
-    $conditions[] = 'StorageId=?';
-    $values[] = $_SESSION['StorageFilter'];
-  }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
@@ -141,25 +89,18 @@ $frameSql = '
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
 if ( ! empty( $user['MonitorIds'] ) ) {
-  $eventsSql   .= ' AND M.Id IN ('.$user['MonitorIds'].')';
-  $monitorsSql .= ' AND Id IN ('.$user['MonitorIds'].')';
-  $monitor_ids = explode(',',$user['MonitorIds']);
-  $conditions[] .= 'Id IN ('.array_map( function(){return '?';}, $monitor_ids ) . ')';
-    array_push( $values, $monitor_ids );
-  $frameSql    .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
+  $eventsSql .= ' AND M.Id IN ('.$user['MonitorIds'].')';
+  $frameSql  .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 if ( $monitor_id ) {
-  $conditions[] = 'Id=?';
-  $values[] = $monitor_id;
   $eventsSql .= ' AND M.Id='.$monitor_id;
-  $frameSql   .= ' AND E.MonitorId='.$monitor_id;
+  $frameSql  .= ' AND E.MonitorId='.$monitor_id;
 }
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
 // Live overrides all the min/max stuff but it is still processed
 
 // The default (nothing at all specified) is for 1 hour so we do not read the whole database
-
 
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   $time = time();
@@ -180,7 +121,7 @@ if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
   $maxTime = null;
 }
 
-$fitMode=1;
+$fitMode = 1;
 if (isset($_REQUEST['fit']) && $_REQUEST['fit']=='0' )
   $fitMode = 0;
 
@@ -196,7 +137,7 @@ if ( isset($_REQUEST['speed']) )
 else
   $defaultSpeed = 1;
 
-$speedIndex=5; // default to 1x
+$speedIndex = 5; // default to 1x
 for ( $i = 0; $i < count($speeds); $i++ ) {
   if ( $speeds[$i] == $defaultSpeed ) {
     $speedIndex = $i;
@@ -225,10 +166,10 @@ if ( isset($minTime) && isset($maxTime) ) {
 }
 $frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
 
-
 $monitors = array();
-$monitorsSql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
-foreach( dbFetchAll( $monitorsSql, null, $values ) as $row ) {
+foreach( $displayMonitors as &$row ) {
+  if ( $row['Function'] == 'None' )
+    continue;
   $Monitor = new Monitor( $row );
   $monitors[] = $Monitor;
 }
@@ -243,32 +184,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
 <form action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
 <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
-      <div id="headerControl">
-        <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
-        <?php echo $group_dropdowns; ?>
-      </span>
-      <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
-      <?php Group::get_monitors_dropdown( $groupSql ? array( 'groupSql'=>$groupSql) : null ); ?>
-      </span>
-<?php
- if ( count($ServersById) > 0 ) { ?>
-<span class="ServerFilter"><label><?php echo translate('Server')?>:</label>
-<?php
-echo htmlSelect( 'ServerFilter', array(''=>'All')+$ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
-?>
-</span>
-<?php
-}
-if ( count($StorageById) > 0 ) { ?>
-<span class="StorageFilter"><label><?php echo translate('Storage')?>:</label>
-<?php
-echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
-?>
-</span>
-<?php
-}
-?>
-
+<?php echo $filter_bar ?>
       <div id="DateTimeDiv">
         <input type="datetime-local" name="minTime" id="minTime" value="<?php echo preg_replace('/ /', 'T', $minTime ) ?>" onchange="changeDateTime(this);"> to 
         <input type="datetime-local" name="maxTime" id="maxTime" value="<?php echo preg_replace('/ /', 'T', $maxTime ) ?>" onchange="changeDateTime(this);">

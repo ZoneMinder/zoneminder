@@ -694,6 +694,10 @@ if ( canEdit( 'System' ) ) {
         }
         $Layout->Positions( $_REQUEST['Positions'] );
         $Layout->save();
+        session_start();
+        $_SESSION['zmMontageLayout'] = $Layout->Id();
+        session_write_close();
+        unset( $_COOKIE['zmMontageLayout'] );
       } // end if save
 
     } else if ( $_REQUEST['object'] == 'server' ) {

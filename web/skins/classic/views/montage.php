@@ -65,11 +65,15 @@ foreach ( $layouts as $l ) {
   $layoutsById[$l->Id()] = $l->Name();
 }
 
-$layout = '';
-if ( isset($_COOKIE['zmMontageLayout']) )
-  $layout = $_COOKIE['zmMontageLayout'];
 
 session_start();
+
+$layout = '';
+if ( isset($_COOKIE['zmMontageLayout']) )
+  $layout = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
+elseif ( isset($_SESSION['zmMontageLayout']) )
+  $layout = $_SESSION['zmMontageLayout'];
+
 $options = array();
 if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] ) {
   $_SESSION['zmMontageWidth'] = $options['width'] = $_COOKIE['zmMontageWidth'];

@@ -2065,7 +2065,7 @@ function cache_bust( $file ) {
   # To defeat caching.  Should probably use md5 hash
   $parts = pathinfo($file);
   $cacheFile = '/cache/'.$parts['filename'].'-'.filemtime($file).'.'.$parts['extension'];
-  if ( file_exists( ZM_PATH_WEB.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.$cacheFile ) ) {
+  if ( file_exists(ZM_PATH_WEB.'/cache') and ( file_exists( ZM_PATH_WEB.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.$cacheFile ) ) ) {
     return $cacheFile;
   } else {
     Warning("Failed linking $file to $cacheFile");

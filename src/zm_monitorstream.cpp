@@ -569,7 +569,7 @@ void MonitorStream::runStream() {
     gettimeofday( &now, NULL );
 
     if ( connkey ) {
-Debug(2, "checking command Queue");
+Debug(2, "checking command Queue for connkey: %d", connkey );
       while(checkCommandQueue()) {
         got_command = true;
       }

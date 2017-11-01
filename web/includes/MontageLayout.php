@@ -111,11 +111,21 @@ class MontageLayout {
         $this->{$k} = $v;
       }
     }
-    
-    $sql = 'UPDATE MontageLayouts SET '.implode(', ', array_map( function($field) {return $field.'=?';}, array_keys( $this->defaults ) ) ) . ' WHERE Id=?';
-    $values = array_map( function($field){return $this->{$field};}, $this->fields );
-    $values[] = $this->{'Id'};
+
+    $fields = array_values( array_filter( array_keys($this->defaults), function($field){return $field != 'Id';} ) );
+    $values = null; 
+    if ( isset($this->{'Id'}) ) {
+      $sql = 'UPDATE MontageLayouts SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
+      $values = array_map( function($field){return $this->{$field};}, $fields );
+      $values[] = $this->{'Id'};
     dbQuery( $sql, $values );
+    } else {
+      $sql = 'INSERT INTO MontageLayouts ('.implode( ',', $fields ).') VALUES ('.implode(',',array_map( function(){return '?';}, $fields ) ).')';
+      $values = array_map( function($field){return $this->{$field};}, $fields );
+      dbQuery( $sql, $values );
+      global $dbConn;
+      $this->{Id} = $dbConn->lastInsertId();
+    }
   } // end function save
 
 } // end class MontageLayout

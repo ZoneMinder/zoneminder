@@ -60,21 +60,21 @@ $path = null;
 
 if ( empty($_REQUEST['path']) ) {
 
-	if ( ! empty($_REQUEST['fid']) ) {
-		if ( $_REQUEST['fid'] == 'snapshot' ) {
-			$Event = new Event( $_REQUEST['eid'] );
+  if ( ! empty($_REQUEST['fid']) ) {
+    if ( $_REQUEST['fid'] == 'snapshot' ) {
+      $Event = new Event( $_REQUEST['eid'] );
       $Frame = new Frame();
       $Frame->FrameId('snapshot');
-			$path = $Event->Path().'/snapshot.jpg';
+      $path = $Event->Path().'/snapshot.jpg';
 Warning("Path to snapshot: $path");
-		} else {
+    } else {
 
-			$show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
+      $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
 
-			if ( ! empty($_REQUEST['eid'] ) ) {
-				$Event = new Event( $_REQUEST['eid'] );
-				$Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
-				if ( ! $Frame ) {
+      if ( ! empty($_REQUEST['eid'] ) ) {
+        $Event = new Event( $_REQUEST['eid'] );
+        $Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
+        if ( ! $Frame ) {
           $previousBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId < ? AND Type='BULK' ORDER BY FrameID DESC LIMIT 1", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
           $nextBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId > ? AND Type='BULK' ORDER BY FrameID ASC LIMIT 1", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
           if ( $previousBulkFrame and $nextBulkFrame ) {

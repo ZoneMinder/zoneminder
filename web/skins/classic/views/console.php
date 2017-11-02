@@ -122,10 +122,11 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   $sql = 'SELECT '.join($counts,', ').' FROM Events as E where MonitorId = ?';
   $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
   if ( $counts )
-    $displayMonitors[$i] = $monitor = array_merge( $monitor, $counts );
+    $monitor = array_merge( $monitor, $counts );
   for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
     $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
   }
+  unset($monitor);
 }
 $cycleWidth = $maxWidth;
 $cycleHeight = $maxHeight;

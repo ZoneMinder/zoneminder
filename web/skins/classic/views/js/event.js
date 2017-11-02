@@ -488,29 +488,6 @@ function loadEventThumb( event, frame, loadImage ) {
       );
 }
 
-function updateStillsSizes( noDelay ) {
-  var containerDim = $('eventThumbs').getSize();
-
-  var containerWidth = containerDim.x;
-  var containerHeight = containerDim.y;
-  var popupWidth = parseInt($('eventImage').getStyle( 'width' ));
-  var popupHeight = parseInt($('eventImage').getStyle( 'height' ));
-
-  var left = (containerWidth - popupWidth)/2;
-  if ( left < 0 ) left = 0;
-  var top = (containerHeight - popupHeight)/2;
-  if ( top < 0 ) top = 0;
-  if ( popupHeight == 0 && !noDelay ) {
-    // image not yet loaded lets give it another second
-    updateStillsSizes.pass( true ).delay( 50 );
-    return;
-  }
-  $('eventImagePanel').setStyles( {
-      'left': left,
-      'top': top
-      } );
-}
-
 function loadEventImage( event, frame ) {
   console.debug( "Loading "+event.Id+"/"+frame.FrameId );
   var eventImg = $('eventImage');
@@ -524,14 +501,6 @@ function loadEventImage( event, frame ) {
       lastThumbImg.setOpacity( 1.0 );
     }
 
-    eventImg.setProperties( {
-        'class': frame.Type=='Alarm'?'alarm':'normal',
-        'src': thumbImg.getProperty( 'src' ),
-        'title': thumbImg.getProperty( 'title' ),
-        'alt': thumbImg.getProperty( 'alt' ),
-        'width': event.Width,
-        'height': event.Height
-        } );
     $('eventImageBar').setStyle( 'width', event.Width );
     if ( frame.Type=='Alarm' )
       $('eventImageStats').removeClass( 'hidden' );
@@ -542,10 +511,17 @@ function loadEventImage( event, frame ) {
 
     if ( eventImagePanel.getStyle( 'display' ) == 'none' ) {
       eventImagePanel.setOpacity( 0 );
-      updateStillsSizes();
-      eventImagePanel.setStyle( 'display', 'block' );
+      eventImagePanel.setStyle( 'display', 'inline-block' );
       new Fx.Tween( eventImagePanel, { duration: 500, transition: Fx.Transitions.Sine } ).start( 'opacity', 0, 1 );
     }
+
+    eventImg.setProperties( {
+        'class': frame.Type=='Alarm'?'alarm':'normal',
+        'src': thumbImg.getProperty( 'src' ),
+        'title': thumbImg.getProperty( 'title' ),
+        'alt': thumbImg.getProperty( 'alt' ),
+        'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
+        } );
 
     $('eventImageNo').set( 'text', frame.FrameId );
     $('prevImageBtn').disabled = (frame.FrameId==1);
@@ -593,7 +569,7 @@ function resetEventStills() {
     } ).set( 0 );
   }
   if ( $('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) < (parseInt(eventData.Height)+80) )
-    $('eventThumbs').setStyle( 'height', (parseInt(eventData.Height)+80)+'px' );
+    $('eventThumbs').setStyle( 'height', ($j(vid ? '#videoobj' : 'evtStream').height())+'px' );
 }
 
 function getFrameResponse( respObj, respText ) {
@@ -821,7 +797,6 @@ function showStills() {
     );
   }
   resetEventStills();
-  $(window).addEvent( 'resize', updateStillsSizes );
 }
 
 function showFrameStats() {
@@ -995,7 +970,7 @@ function initPage() {
   } else {
     progressBarNav ();
     streamCmdTimer = streamQuery.delay( 250 );
-    eventQuery.pass( eventData.Id ).delay( 500 );
+    eventQuery.pass(eventData.id);
     initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues for zms.
 
     if ( canStreamNative ) {

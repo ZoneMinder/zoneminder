@@ -964,7 +964,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
             zm_av_packet_unref( &packet );
             continue;
           }
-
+        
 #if HAVE_AVUTIL_HWCONTEXT_H
         }
 #endif
@@ -979,8 +979,6 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
           continue;
         }
 #endif
-
-        Debug( 4, "Decoded video packet at frame %d", frameCount );
 
         if ( frameComplete ) {
           Debug( 4, "Got frame %d", frameCount );
@@ -1012,6 +1010,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
           Debug( 3, "Not framecomplete after av_read_frame" );
         } // end if frameComplete
     } else if ( packet.stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
+        frameComplete = 1;
       if ( videoStore ) {
         if ( record_audio ) {
           if ( have_video_keyframe ) {

@@ -35,6 +35,7 @@ span.noneCue {
 
 #dataBar #dataTable {
     width: 100%;
+    table-layout: fixed;
 }
 
 #dataBar #dataTable td {

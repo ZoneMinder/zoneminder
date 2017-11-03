@@ -8,7 +8,7 @@ function Monitor( monitorData ) {
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
-  this.onclick=monitorData.onclick;
+  this.onclick = monitorData.onclick;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
   this.streamCmdTimer = null;
@@ -34,6 +34,7 @@ function Monitor( monitorData ) {
       this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
 
     var stream = $j('#liveStream'+this.id)[0];
+
     if ( respObj.result == 'Ok' ) {
       this.status = respObj.status;
       this.alarmState = this.status.state;
@@ -97,15 +98,17 @@ function Monitor( monitorData ) {
       }
     } // end if Ok or not
     var streamCmdTimeout = statusRefreshTimeout;
-    if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT )
-      streamCmdTimeout = streamCmdTimeout/5;
+    // The idea here is if we are alarmed, do updates faster.  However, there is a timeout in the php side which isn't getting modified, so this may cause a problem. Also the server may only be able to update so fast. 
+    //if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT ) {
+      //streamCmdTimeout = streamCmdTimeout/5;
+    //}
     this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
     this.lastAlarmState = this.alarmState;
   };
 
   this.streamCmdQuery = function( resent ) {
-    //if ( resent )
-    //console.log( this.connKey+": Resending" );
+    if ( resent )
+    console.log( this.connKey+": Resending" );
     //this.streamCmdReq.cancel();
     this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
   };
@@ -231,13 +234,32 @@ function changeSize() {
 
 function changeScale() {
   var scale = $('scale').get('value');
-
+  $('width').set('value', '');
+  $('height').set('value', '');
+  Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
+  Cookie.write( 'zmMontageWidth', '', { duration: 10*365 } );
+  Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
+  if ( ! scale ) {
+    selectLayout('#zmMontageLayout');
+    return;
+  }
   for ( var x = 0; x < monitors.length; x++ ) {
     var monitor = monitors[x];
     var newWidth = ( monitorData[x].width * scale ) / SCALE_BASE;
     var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
+
+    // Scale the frame
+      monitor_frame = $j('#monitorFrame'+monitor.id);
+      if ( ! monitor_frame ) {
+        console.log("Error finding frame for " + monitor.id );
+        continue;
+      }
+      if ( width )
+        monitor_frame.css('width',width+'px');
+      if ( height )
+        monitor_frame.css('height',height+'px');
     /*Stream could be an applet so can't use moo tools*/
-    var streamImg = document.getElementById( 'liveStream'+monitor.id );
+    var streamImg = $j('#liveStream'+monitor.id )[0];
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
@@ -258,11 +280,6 @@ function changeScale() {
       zonesSVG.style.height = newHeight + "px";
     }
   }
-  $('width').set('value', '');
-  $('height').set('value', '');
-  Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
-  Cookie.write( 'zmMontageWidth', '', { duration: 10*365 } );
-  Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
 }
 
 function toGrid(value) {

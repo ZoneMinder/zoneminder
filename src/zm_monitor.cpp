@@ -2878,6 +2878,12 @@ int Monitor::Capture() {
       captureResult = camera->CaptureAndRecord(*(next_buffer.image),
           video_store_data->recording,
           video_store_data->event_file );
+      // CaptureAndRecord returns # of frames captured I think
+      //if ( ( videowriter == H264PASSTHROUGH ) && ( captureResult > 0 ) ) {
+      if ( captureResult > 0 ) {
+        //video_store_data->frameNumber = captureResult;
+        captureResult = 0;
+      }
     } else {
       captureResult = camera->Capture(*(next_buffer.image));
     }
@@ -2889,33 +2895,28 @@ int Monitor::Capture() {
 
   } else {
     //Check if FFMPEG camera
-    if ( (videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo() ) {
+    if ( (videowriter == H264PASSTHROUGH) && camera->SupportsNativeVideo() ) {
       //Warning("ZMC: Recording: %d", video_store_data->recording);
-      captureResult = camera->CaptureAndRecord(*capture_image, video_store_data->recording, video_store_data->event_file);
-    }else{
+      // Should return -1 on error, like loss of signal.  Should return 0 if ok but no video frame. > 0 for received a frame.
+      captureResult = camera->CaptureAndRecord(
+          *capture_image,
+          video_store_data->recording,
+          video_store_data->event_file
+          );
+    } else {
       /* Capture directly into image buffer, avoiding the need to memcpy() */
       captureResult = camera->Capture(*capture_image);
     }
   }
   
-  // CaptureAndRecord returns # of frames captured I think
-  if ( ( videowriter == H264PASSTHROUGH ) && ( captureResult > 0 ) ) {
-    //video_store_data->frameNumber = captureResult;
-    captureResult = 0;
-  }
  
-  if ( captureResult != 0 ) {
+  if ( captureResult < 0 ) {
     // Unable to capture image for temporary reason
     // Fake a signal loss image
     Rgb signalcolor;
     signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
     capture_image->Fill(signalcolor);
-    captureResult = 0;
-  } else { 
-    captureResult = 1;
-  }
-  
-  if ( captureResult == 1 ) {
+  } else if ( captureResult > 0 ) {
     
     /* Deinterlacing */
     if ( deinterlacing_value == 1 ) {
@@ -2978,40 +2979,38 @@ int Monitor::Capture() {
     shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
 
     image_count++;
+  }
 
-    if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-      time_t now = image_buffer[index].timestamp->tv_sec;
-      fps = double(fps_report_interval)/(now-last_fps_time);
-      //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
-      //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-      Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
-      last_fps_time = now;
-      static char sql[ZM_SQL_SML_BUFSIZ];
-      snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS = '%.2lf' WHERE Id = '%d'", fps, id );
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error( "Can't run query: %s", mysql_error( &dbconn ) );
-      }
+  if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
+    time_t now = image_buffer[index].timestamp->tv_sec;
+    fps = double(fps_report_interval)/(now-last_fps_time);
+    //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
+    //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
+    Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
+    last_fps_time = now;
+    static char sql[ZM_SQL_SML_BUFSIZ];
+    snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS = '%.2lf' WHERE Id = '%d'", fps, id );
+    if ( mysql_query( &dbconn, sql ) ) {
+      Error( "Can't run query: %s", mysql_error( &dbconn ) );
     }
+  }
 
-    // Icon: I'm not sure these should be here. They have nothing to do with capturing
-    if ( shared_data->action & GET_SETTINGS ) {
-      shared_data->brightness = camera->Brightness();
-      shared_data->hue = camera->Hue();
-      shared_data->colour = camera->Colour();
-      shared_data->contrast = camera->Contrast();
-      shared_data->action &= ~GET_SETTINGS;
-    }
-    if ( shared_data->action & SET_SETTINGS ) {
-      camera->Brightness( shared_data->brightness );
-      camera->Hue( shared_data->hue );
-      camera->Colour( shared_data->colour );
-      camera->Contrast( shared_data->contrast );
-      shared_data->action &= ~SET_SETTINGS;
-    }
-    return( 0 );
-  } // end if captureResults == 1 which is success I think
-  shared_data->signal = false;
-  return( -1 );
+  // Icon: I'm not sure these should be here. They have nothing to do with capturing
+  if ( shared_data->action & GET_SETTINGS ) {
+    shared_data->brightness = camera->Brightness();
+    shared_data->hue = camera->Hue();
+    shared_data->colour = camera->Colour();
+    shared_data->contrast = camera->Contrast();
+    shared_data->action &= ~GET_SETTINGS;
+  }
+  if ( shared_data->action & SET_SETTINGS ) {
+    camera->Brightness( shared_data->brightness );
+    camera->Hue( shared_data->hue );
+    camera->Colour( shared_data->colour );
+    camera->Contrast( shared_data->contrast );
+    shared_data->action &= ~SET_SETTINGS;
+  }
+  return captureResult;
 }
 
 void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) const {

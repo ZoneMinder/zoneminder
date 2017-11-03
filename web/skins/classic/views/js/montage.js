@@ -7,7 +7,7 @@ function Monitor( monitorData ) {
   this.status = null;
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
-  this.streamCmdParms = "view=request&request=stream&connkey="+this.connKey;
+  this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
   this.onclick = monitorData.onclick;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
@@ -112,8 +112,24 @@ function Monitor( monitorData ) {
     //this.streamCmdReq.cancel();
     this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
   };
+  this.onError = function( text, error ) {
+    console.log('onerror: ' + text + ' error:'+error);
+  };
+  this.onFailure = function( xhr ) {
+    console.log('onFailure: ' );
+    console.log(xhr );
+  };
 
-  this.streamCmdReq = new Request.JSON( { url: this.server_url, method: 'get', timeout: 1000+AJAX_TIMEOUT, onSuccess: this.getStreamCmdResponse.bind( this ), onTimeout: this.streamCmdQuery.bind( this, true ), link: 'cancel' } );
+  this.streamCmdReq = new Request.JSON( {
+    url: this.server_url,
+    method: 'get',
+    timeout: 1000+AJAX_TIMEOUT,
+    onSuccess: this.getStreamCmdResponse.bind( this ),
+    onTimeout: this.streamCmdQuery.bind( this, true ),
+    onError: this.onError.bind(this),
+    onFailure: this.onFailure.bind(this),
+    link: 'cancel'
+  } );
 
   requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }

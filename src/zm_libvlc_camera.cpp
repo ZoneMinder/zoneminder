@@ -23,8 +23,7 @@
 #if HAVE_LIBVLC
 
 // Do all the buffer checking work here to avoid unnecessary locking 
-void* LibvlcLockBuffer(void* opaque, void** planes)
-{
+void* LibvlcLockBuffer(void* opaque, void** planes) {
   LibvlcPrivateData* data = (LibvlcPrivateData*)opaque;
   data->mutex.lock();
 
@@ -36,15 +35,12 @@ void* LibvlcLockBuffer(void* opaque, void** planes)
   return NULL;
 }
 
-void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes)
-{
+void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes) {
   LibvlcPrivateData* data = (LibvlcPrivateData*)opaque;
 
   bool newFrame = false;
-  for(uint32_t i = 0; i < data->bufferSize; i++)
-  {
-    if(data->buffer[i] != data->prevBuffer[i])
-    {
+  for( uint32_t i = 0; i < data->bufferSize; i++ ) {
+    if ( data->buffer[i] != data->prevBuffer[i] ) {
       newFrame = true;
       break;
     }
@@ -54,8 +50,7 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes)
   time_t now;
   time(&now);
   // Return frames slightly faster than 1fps (if time() supports greater than one second resolution)
-  if(newFrame || difftime(now, data->prevTime) >= 0.8)
-  {
+  if ( newFrame || difftime(now, data->prevTime) >= 0.8 ) {
     data->prevTime = now;
     data->newImage.updateValueSignal(true);
   }
@@ -90,58 +85,46 @@ LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, const std::stri
     Panic("Unexpected colours: %d",colours);
   }
 
-  if ( capture )
-  {
+  if ( capture ) {
     Initialise();
   }
 }
 
-LibvlcCamera::~LibvlcCamera()
-{
-  if ( capture )
-  {
+LibvlcCamera::~LibvlcCamera() {
+  if ( capture ) {
     Terminate();
   }
-  if(mLibvlcMediaPlayer != NULL)
-  {
+  if ( mLibvlcMediaPlayer != NULL ) {
     libvlc_media_player_release(mLibvlcMediaPlayer);
     mLibvlcMediaPlayer = NULL;
   }
-  if(mLibvlcMedia != NULL)
-  {
+  if ( mLibvlcMedia != NULL ) {
     libvlc_media_release(mLibvlcMedia);
     mLibvlcMedia = NULL;
   }
-  if(mLibvlcInstance != NULL)
-  {
+  if ( mLibvlcInstance != NULL ) {
     libvlc_release(mLibvlcInstance);
     mLibvlcInstance = NULL;
   }
-  if (mOptArgV != NULL)
-  {
+  if ( mOptArgV != NULL ) {
     delete[] mOptArgV;
   }
 }
 
-void LibvlcCamera::Initialise()
-{
+void LibvlcCamera::Initialise() {
 }
 
-void LibvlcCamera::Terminate()
-{
+void LibvlcCamera::Terminate() {
   libvlc_media_player_stop(mLibvlcMediaPlayer);
-  if(mLibvlcData.buffer != NULL)
-  {
+  if(mLibvlcData.buffer != NULL) {
     zm_freealigned(mLibvlcData.buffer);
   }
-  if(mLibvlcData.prevBuffer != NULL)
-  {
+  if(mLibvlcData.prevBuffer != NULL) {
     zm_freealigned(mLibvlcData.prevBuffer);
   }
 }
 
-int LibvlcCamera::PrimeCapture()
-{
+int LibvlcCamera::PrimeCapture() {
   Info("Priming capture from %s", mPath.c_str());
 
   StringVector opVect = split(Options(), ",");
@@ -154,8 +137,7 @@ int LibvlcCamera::PrimeCapture()
   else if ( Method() == "rtpRtspHttp" )
     opVect.push_back("--rtsp-http");
 
-  if (opVect.size() > 0) 
-  {
+  if ( opVect.size() > 0 ) {
     mOptArgV = new char*[opVect.size()];
     Debug(2, "Number of Options: %d",opVect.size());
     for (size_t i=0; i< opVect.size(); i++) {
@@ -166,7 +148,7 @@ int LibvlcCamera::PrimeCapture()
   }
 
   mLibvlcInstance = libvlc_new (opVect.size(), (const char* const*)mOptArgV);
-  if(mLibvlcInstance == NULL)
+  if ( mLibvlcInstance == NULL )
     Fatal("Unable to create libvlc instance due to: %s", libvlc_errmsg());
 
   mLibvlcMedia = libvlc_media_new_location(mLibvlcInstance, mPath.c_str());
@@ -189,17 +171,15 @@ int LibvlcCamera::PrimeCapture()
 
   libvlc_media_player_play(mLibvlcMediaPlayer);
 
-  return(0);
+  return 0;
 }
 
-int LibvlcCamera::PreCapture()
-{    
+int LibvlcCamera::PreCapture() {    
   return(0);
 }
 
 // Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::Capture( Image &image )
-{   
+int LibvlcCamera::Capture( Image &image ) {   
   while(!mLibvlcData.newImage.getValueImmediate())
     mLibvlcData.newImage.getUpdatedValue(1);
 
@@ -208,25 +188,15 @@ int LibvlcCamera::Capture( Image &image )
   mLibvlcData.newImage.setValueImmediate(false);
   mLibvlcData.mutex.unlock();
 
-  return (0);
+  return 1;
 }
 
 // Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::CaptureAndRecord(Image &image, timeval recording, char* event_directory)
-{
-  while(!mLibvlcData.newImage.getValueImmediate())
-    mLibvlcData.newImage.getUpdatedValue(1);
-
-  mLibvlcData.mutex.lock();
-  image.Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
-  mLibvlcData.newImage.setValueImmediate(false);
-  mLibvlcData.mutex.unlock();
-
+int LibvlcCamera::CaptureAndRecord(Image &image, timeval recording, char* event_directory) {
   return (0);
 }
 
-int LibvlcCamera::PostCapture()
-{
+int LibvlcCamera::PostCapture() {
   return(0);
 }
 

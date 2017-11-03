@@ -317,7 +317,7 @@ int FfmpegCamera::Capture( Image &image ) {
     } // end if packet.stream_index == mVideoStreamId
     zm_av_packet_unref( &packet );
   } // end while ! frameComplete
-  return (0);
+  return 1;
 } // FfmpegCamera::Capture
 
 int FfmpegCamera::PostCapture() {
@@ -1010,7 +1010,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
           Debug( 3, "Not framecomplete after av_read_frame" );
         } // end if frameComplete
     } else if ( packet.stream_index == mAudioStreamId ) { //FIXME best way to copy all other streams
-        frameComplete = 1;
+      frameComplete = 1;
       if ( videoStore ) {
         if ( record_audio ) {
           if ( have_video_keyframe ) {
@@ -1032,6 +1032,8 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
       } else {
         Debug(4, "Have audio packet, but not recording atm" );
       }
+      zm_av_packet_unref( &packet );
+      return 0;
     } else {
 #if LIBAVUTIL_VERSION_CHECK(56, 23, 0, 23, 0)
       Debug( 3, "Some other stream index %d, %s", packet.stream_index, av_get_media_type_string( mFormatContext->streams[packet.stream_index]->codecpar->codec_type) );
@@ -1043,7 +1045,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
     // the packet contents are ref counted... when queuing, we allocate another packet and reference it with that one, so we should always need to unref here, which should not affect the queued version.
     zm_av_packet_unref( &packet );
   } // end while ! frameComplete
-  return (frameCount);
+  return frameCount;
 } // end FfmpegCamera::CaptureAndRecord
 
 

@@ -1058,6 +1058,7 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
       break;
     case 'DateTime' :
       $sortColumn = 'E.StartTime';
+      $_REQUEST['sort_field'] = 'StartTime';
       break;
     case 'DiskSpace' :
       $sortColumn = 'E.DiskSpace';

@@ -1277,8 +1277,10 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             break;
           case 'IS' :
             $filter['sql'] .= " IS $value";
+            break;
           case 'IS NOT' :
             $filter['sql'] .= " IS NOT $value";
+            break;
         }
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);

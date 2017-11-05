@@ -495,7 +495,16 @@ int FfmpegCamera::OpenFfmpeg() {
         }
       }
     }
-
+  } else {
+#ifdef AV_CODEC_ID_H265
+    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
+      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
+    } else {
+#endif
+      Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
+#ifdef AV_CODEC_ID_H265
+    }
+#endif
   } // end if h264
 #endif
 
@@ -735,22 +744,12 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     mReopenThread = 0;
   }
 
-  if ( mVideoCodecContext->codec_id != AV_CODEC_ID_H264 ) {
-#ifdef AV_CODEC_ID_H265
-    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
-      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
-    } else {
-#endif
-      Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
-#ifdef AV_CODEC_ID_H265
-    }
-#endif
-  }
 
   int frameComplete = false;
   while ( ! frameComplete ) {
     av_init_packet( &packet );
 
+    Debug(4,"before read frame");
     ret = av_read_frame( mFormatContext, &packet );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -960,7 +959,7 @@ else if ( packet.pts && video_last_pts > packet.pts ) {
           ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
           if ( ret < 0 ) {
             av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-            Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
+            Warning( "Unable to receive frame %d: %s, continuing", frameCount, errbuf );
             zm_av_packet_unref( &packet );
             continue;
           }

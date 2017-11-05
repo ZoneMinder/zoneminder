@@ -1178,7 +1178,7 @@ bool Monitor::Analyse() {
   gettimeofday( &now, NULL );
 
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-    fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
+    fps = double(fps_report_interval)/(now.tv_sec - last_fps_time);
     Info( "%s: %d - Analysing at %.2f fps", name, image_count, fps );
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf( sql, sizeof(sql), "UPDATE Monitors SET AnalysisFPS = '%.2lf' WHERE Id = '%d'", fps, id );
@@ -2878,12 +2878,6 @@ int Monitor::Capture() {
       captureResult = camera->CaptureAndRecord(*(next_buffer.image),
           video_store_data->recording,
           video_store_data->event_file );
-      // CaptureAndRecord returns # of frames captured I think
-      //if ( ( videowriter == H264PASSTHROUGH ) && ( captureResult > 0 ) ) {
-      if ( captureResult > 0 ) {
-        //video_store_data->frameNumber = captureResult;
-        captureResult = 0;
-      }
     } else {
       captureResult = camera->Capture(*(next_buffer.image));
     }
@@ -2908,8 +2902,7 @@ int Monitor::Capture() {
       captureResult = camera->Capture(*capture_image);
     }
   }
-  
- 
+Debug(4, "Return from Capture (%d)", captureResult); 
   if ( captureResult < 0 ) {
     // Unable to capture image for temporary reason
     // Fake a signal loss image
@@ -2970,26 +2963,34 @@ int Monitor::Capture() {
     if ( privacy_bitmask )
       capture_image->MaskPrivacy( privacy_bitmask );
 
+    // Might be able to remove this call, when we start passing around ZMPackets, which will already have a timestamp
     gettimeofday( image_buffer[index].timestamp, NULL );
     if ( config.timestamp_on_capture ) {
       TimestampImage( capture_image, image_buffer[index].timestamp );
     }
+    // Maybe we don't need to do this on all camera types
     shared_data->signal = CheckSignal(capture_image);
     shared_data->last_write_index = index;
     shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
 
     image_count++;
-  }
+  } // end if captureResult
 
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-    time_t now = image_buffer[index].timestamp->tv_sec;
-    fps = double(fps_report_interval)/(now-last_fps_time);
-    //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
+
+    struct timeval now;
+    if ( !captureResult ) {
+      gettimeofday( &now, NULL );
+    } else {
+      now.tv_sec = image_buffer[index].timestamp->tv_sec;
+    }
+    fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
+    Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
     //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
     Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
-    last_fps_time = now;
+    last_fps_time = now.tv_sec;
     static char sql[ZM_SQL_SML_BUFSIZ];
-    snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS = '%.2lf' WHERE Id = '%d'", fps, id );
+    snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", fps, id );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't run query: %s", mysql_error( &dbconn ) );
     }

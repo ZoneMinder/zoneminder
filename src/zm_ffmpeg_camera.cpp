@@ -458,7 +458,9 @@ int FfmpegCamera::OpenFfmpeg() {
 	// STolen from ispy
 	//this fixes issues with rtsp streams!! woot.
 	//mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG2_CHUNKS | CODEC_FLAG_LOW_DELAY;  // Enable faster H264 decode.
+#ifdef CODEC_FLAG2_FAST
 	mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
+#endif
 
 #if HAVE_AVUTIL_HWCONTEXT_H
   if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {

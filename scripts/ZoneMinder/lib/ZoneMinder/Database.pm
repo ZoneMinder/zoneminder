@@ -205,6 +205,30 @@ sub zmDbGetMonitorAndControl {
   return( $monitor );
 }
 
+sub start_transaction {
+	#my ( $caller, undef, $line ) = caller;
+#$openprint::log->debug("Called start_transaction from $caller : $line");
+	my $d = shift;
+	$d = $dbh if ! $d;
+	my $ac = $d->{AutoCommit};
+	$d->{AutoCommit} = 0;
+	return $ac;
+} # end sub start_transaction
+
+sub end_transaction {
+	#my ( $caller, undef, $line ) = caller;
+#$openprint::log->debug("Called end_transaction from $caller : $line");
+	my ( $d, $ac ) = @_;
+if ( ! defined $ac ) {
+	Error("Undefined ac");
+}
+	$d = $dbh if ! $d;
+	if ( $ac ) {
+		#$log->debug("Committing");
+		$d->commit();
+	} # end if
+	$d->{AutoCommit} = $ac;
+} # end sub end_transaction
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!

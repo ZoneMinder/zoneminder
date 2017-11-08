@@ -251,17 +251,23 @@ sub checkFilter {
   my $filter = shift;
 
   my @Events = $filter->Execute();
-  Info( join( "Checking filter '$filter->{Name}'",
-      ($filter->{AutoDelete}?', delete':''),
-      ($filter->{AutoArchive}?', archive':''),
-      ($filter->{AutoVideo}?', video':''),
-      ($filter->{AutoUpload}?', upload':''),
-      ($filter->{AutoEmail}?', email':''),
-      ($filter->{AutoMessage}?', message':''),
-      ($filter->{AutoExecute}?', execute':''),
-      ' returned ' , scalar @Events , ' events',
-      "\n",
-      ) );
+  Info(
+      join(' ',
+        'Checking filter', $filter->{Name},
+        join( ', ', 
+
+          ($filter->{AutoDelete}?'delete':()),
+          ($filter->{AutoArchive}?'archive':()),
+          ($filter->{AutoVideo}?'video':()),
+          ($filter->{AutoUpload}?'upload':()),
+          ($filter->{AutoEmail}?'email':()),
+          ($filter->{AutoMessage}?'message':()),
+          ($filter->{AutoExecute}?'execute':()),
+          ($filter->{UpdateDiskSpace}?'update disk space':()),
+          ),
+        'returned' , scalar @Events , 'events',
+        "\n",
+        ) );
 
   foreach my $event ( @Events ) {
     Debug( "Checking event $event->{Id}\n" );
@@ -309,6 +315,12 @@ sub checkFilter {
         Error( "Unable toto delete event $event->{Id} as previous operations failed\n" );
       }
     } # end if AutoDelete
+    if ( $filter->{UpdateDiskSpace} ) {
+        my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+        $Event->DiskSpace(undef);
+        $Event->save();
+          
+    } # end if UpdateDiskSpace
   } # end foreach event
 }
 

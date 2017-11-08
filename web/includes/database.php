@@ -122,17 +122,26 @@ function dbQuery( $sql, $params=NULL ) {
   $result = NULL;
   try {
     if ( isset($params) ) {
-      $result = $dbConn->prepare( $sql );
-      $result->execute( $params );
+      if ( ! $result = $dbConn->prepare( $sql ) ) {
+        Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        return NULL;
+      }
+
+      if ( ! $result->execute( $params ) ) {
+        Error("SQL: Error executing $sql: " . implode(',', $result->errorInfo() ) );
+        return NULL;
+      }
     } else {
       $result = $dbConn->query( $sql );
     }
+if ( 0 ) {
     if ( $params )
-      Warning("SQL: $sql" . implode(',',$params));
+      Warning("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount() );
     else
-      Warning("SQL: $sql" );
+      Warning("SQL: $sql: rows:" . $result->rowCount()  );
+}
   } catch(PDOException $e) {
-    Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . implode(',',$params) );
+    Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):'') );
   }
   return( $result );
 }

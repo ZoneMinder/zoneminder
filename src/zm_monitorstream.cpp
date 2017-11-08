@@ -270,7 +270,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
       Debug( 1, "Got SCALE command, to %d", scale );
       break;
     }
-  case CMD_QUIT :
+    case CMD_QUIT :
     {
       Info ("User initiated exit - CMD_QUIT");
       break;
@@ -316,7 +316,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
   //status_data.enabled = monitor->shared_data->active;
   status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
   status_data.forced = monitor->trigger_data->trigger_state==Monitor::TRIGGER_ON;
-  Debug( 2, "L:%d, D:%d, P:%d, R:%d, d:%.3f, Z:%d, E:%d F:%d", 
+  Debug( 2, "Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d", 
     status_data.buffer_level,
     status_data.delayed,
     status_data.paused,
@@ -338,11 +338,15 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
       //exit( -1 );
     }
   }
+Debug(2, "NUmber of bytes sent: (%d)", nbytes );
 
   // quit after sending a status, if this was a quit request
-  if ((MsgCommand)msg->msg_data[0]==CMD_QUIT)
-  exit(0);
+  if ( (MsgCommand)msg->msg_data[0]==CMD_QUIT ) {
+    Debug(2,"Quitting");
+    exit(0);
+  }
 
+  Debug(2,"Updating framrate");
   updateFrameRate( monitor->GetFPS() );
 } // end void MonitorStream::processCommand( const CmdMsg *msg )
 
@@ -553,20 +557,28 @@ void MonitorStream::runStream() {
         Debug( 2, "Assigned temporary buffer" );
       }
     }
-  }
+  } // end if connkey  & playback_buffer
 
   float max_secs_since_last_sent_frame = 10.0; //should be > keep alive amount (5 secs)
   while ( !zm_terminate ) {
     bool got_command = false;
     if ( feof( stdout ) || ferror( stdout ) || !monitor->ShmValid() ) {
+      if ( feof( stdout ) ) {
+        Debug(2,"feof stdout");
+      } else if ( ferror( stdout ) ) {
+        Debug(2,"ferror stdout");
+      } else if ( !monitor->ShmValid() ) {
+        Debug(2,"monitor not valid.... maybe we should wait until it comes back.");
+      }
       break;
     }
 
     gettimeofday( &now, NULL );
 
     if ( connkey ) {
-Debug(2, "checking command Queue");
+//Debug(2, "checking command Queue for connkey: %d", connkey );
       while(checkCommandQueue()) {
+Debug(2, "Have checking command Queue for connkey: %d", connkey );
         got_command = true;
       }
     }
@@ -655,8 +667,10 @@ Debug(2, "checking command Queue");
           // Send the next frame
           Monitor::Snapshot *snap = &monitor->image_buffer[index];
 
-          if ( !sendFrame( snap->image, snap->timestamp ) )
+          if ( !sendFrame( snap->image, snap->timestamp ) ) {
+            Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
+          }
           memcpy( &last_frame_timestamp, snap->timestamp, sizeof(last_frame_timestamp) );
           //frame_sent = true;
 
@@ -693,9 +707,12 @@ Debug(2, "checking command Queue");
       } // end if buffered playback
       frame_count++;
     }
+    unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
+    Debug(2, "Sleeping for (%d)", sleep_time);
     usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {
+        Debug(2, "now(%d) - start(%d) > ttl(%d) break", now.tv_sec, stream_start_time, ttl);
         break;
       }
     }

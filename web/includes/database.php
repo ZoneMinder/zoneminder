@@ -141,7 +141,7 @@ if ( 0 ) {
       Warning("SQL: $sql: rows:" . $result->rowCount()  );
 }
   } catch(PDOException $e) {
-    Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . $params?implode(',',$params):'' );
+    Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):'') );
   }
   return( $result );
 }

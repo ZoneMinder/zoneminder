@@ -2984,15 +2984,18 @@ Debug(4, "Return from Capture (%d)", captureResult);
     } else {
       now.tv_sec = image_buffer[index].timestamp->tv_sec;
     }
-    fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
-    Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
-    //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-    Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
-    last_fps_time = now.tv_sec;
-    static char sql[ZM_SQL_SML_BUFSIZ];
-    snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", fps, id );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't run query: %s", mysql_error( &dbconn ) );
+    // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
+    if ( now.tv_sec != last_fps_time ) {
+      fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
+      Info( "%d -> %d -> %d", fps_report_interval, now.tv_sec, last_fps_time );
+      //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
+      Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
+      last_fps_time = now.tv_sec;
+      static char sql[ZM_SQL_SML_BUFSIZ];
+      snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", fps, id );
+      if ( mysql_query( &dbconn, sql ) ) {
+        Error( "Can't run query: %s", mysql_error( &dbconn ) );
+      }
     }
   }
 

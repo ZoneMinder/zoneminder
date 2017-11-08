@@ -133,6 +133,7 @@ int av_dict_parse_string(AVDictionary **pm, const char *str,
 #endif // HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
 #if HAVE_LIBAVUTIL
+#if LIBAVUTIL_VERSION_CHECK(56, 0, 0, 17, 100)
 int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb){
   int64_t a, b, this_thing;
 
@@ -155,6 +156,7 @@ simple_round:
 
   return av_rescale_q(this_thing, fs_tb, out_tb);
 }
+#endif
 #endif
 
 int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat *oformat, const char *format, const char *filename) {

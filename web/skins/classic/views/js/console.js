@@ -19,7 +19,7 @@ function setButtonStates( element ) {
   form.deleteBtn.disabled = (checked==0);
 }
 
-function addMonitor( element) {
+function addMonitor(element) {
   var form = element.form;
   var dupParam;
   var monitorId=-1;

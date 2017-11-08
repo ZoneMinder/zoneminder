@@ -48,9 +48,38 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 require Date::Parse;
 
-use vars qw/ $table $primary_key /;
+use vars qw/ $table $primary_key %fields $serial @identified_by/;
 $table = 'Events';
-$primary_key = 'Id';
+@identified_by = ('Id');
+$serial = $primary_key = 'Id';
+%fields = map { $_, $_ } qw(
+  Id
+  MonitorId
+  StorageId
+  Name
+  Cause
+  StartTime
+  EndTime
+  Width
+  Height
+  Length
+  Frames
+  AlarmFrames
+  DefaultVideo
+  TotScore
+  AvgScore
+  MaxScore
+  Archived
+  Videoed
+  Uploaded
+  Emailed
+  Messaged
+  Executed
+  Notes
+  StateId
+  Orientation
+  DiskSpace
+);
 
 use POSIX;
 
@@ -359,14 +388,16 @@ sub age {
   return $_[0]{age};
 }
 
-sub DiskUsage {
+sub DiskSpace {
   if ( @_ > 1 ) {
-    $_[0]{DiskUsage} = $_[1];
+    Debug("Cleared DiskSpace, was $_[0]{DiskSpace}");
+    $_[0]{DiskSpace} = $_[1];
   }
-  if ( ! defined $_[0]{DiskUsage} ) {
+  if ( ! defined $_[0]{DiskSpace} ) {
     my $size = 0;
     File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
-    $_[0]{DiskUsage}  = $size;
+    $_[0]{DiskSpace} = $size;
+    Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
   }
 }
 

@@ -246,7 +246,7 @@ MAIN: while( $loop ) {
               $$Event{Path} = join('/', $Storage->Path(), $day_dir,$event_path);
               $Event->MonitorId( $monitor_dir );
               $Event->StorageId( $Storage->Id() );
-              $Event->DiskUsage( undef );
+              $Event->DiskSpace( undef );
             } # event path exists
           } # end foreach event_link
           chdir( $Storage->Path() );

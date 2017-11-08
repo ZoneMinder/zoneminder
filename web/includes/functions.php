@@ -2150,7 +2150,7 @@ function validHtmlStr( $input ) {
 function getStreamHTML( $monitor, $options = array() ) {
 
   if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
-    Warning("Scale to " . $options['scale'] );
+    //Warning("Scale to " . $options['scale'] );
     $options['width'] = reScale( $monitor->Width(), $options['scale'] );
     $options['height'] = reScale( $monitor->Height(), $options['scale'] );
   } else {
@@ -2169,11 +2169,17 @@ function getStreamHTML( $monitor, $options = array() ) {
   $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
   if ( $monitor->StreamReplayBuffer() )
     $options['buffer'] = $monitor->StreamReplayBuffer();
-  Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+  //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
 
   //FIXME, the width and height of the image need to be scaled.
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format' => ZM_MPEG_LIVE_FORMAT ) );
+    $streamSrc = $monitor->getStreamSrc( array(
+      'mode'=>'mpeg',
+      'scale'=>$options['scale'],
+      'bitrate'=>ZM_WEB_VIDEO_BITRATE,
+      'maxfps'=>ZM_WEB_VIDEO_MAXFPS,
+      'format' => ZM_MPEG_LIVE_FORMAT
+    ) );
     return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
   } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';

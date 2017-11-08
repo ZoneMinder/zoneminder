@@ -339,11 +339,11 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
 }
 
 function outputImageStream( $id, $src, $width, $height, $title='' ) {
-  echo getImageStream( $id, $src, $width, $height, $title );
+  echo getImageStreamHTML( $id, $src, $width, $height, $title );
 }
 
 
-function getImageStream( $id, $src, $width, $height, $title='' ) {
+function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
@@ -1239,12 +1239,18 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
               $value = dbEscape($value);
               break;
             case 'DateTime':
+            case 'StartDateTime':
+            case 'EndDateTime':
               $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
               break;
             case 'Date':
+            case 'StartDate':
+            case 'EndDate':
               $value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             case 'Time':
+            case 'StartTime':
+            case 'EndTime':
               $value = "extract( hour_second from '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             default :
@@ -1281,13 +1287,15 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'IS NOT' :
             $filter['sql'] .= " IS NOT $value";
             break;
+          default:
+            Warning("Invalid operator in filter: " . $terms[$i]['op'] );
         }
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($terms[$i]['op'])."\"/>\n";
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($terms[$i]['val']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
-      }
+      } // end foreach term
       if ( isset($terms[$i]['cbr']) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($terms[$i]['cbr']);
         $filter['sql'] .= ' '.str_repeat( ')', $terms[$i]['cbr'] ).' ';
@@ -1302,13 +1310,14 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
   }
 }
 
+// Please note that the filter is passed in by copy, so you need to use the return value from this function.
+//
 function addFilterTerm( $filter, $position, $term=false ) {
   if ( $position < 0 )
     $position = 0;
   
   if ( ! isset( $filter['Query']['terms'] ) )
     $filter['Query']['terms'] = array();
-
   elseif( $position > count($filter['Query']['terms']) )
     $position = count($filter['Query']['terms']);
   if ( $term && $position == 0 )
@@ -2141,18 +2150,17 @@ function validHtmlStr( $input ) {
 function getStreamHTML( $monitor, $options = array() ) {
 
   if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
+    Warning("Scale to " . $options['scale'] );
     $options['width'] = reScale( $monitor->Width(), $options['scale'] );
     $options['height'] = reScale( $monitor->Height(), $options['scale'] );
   } else {
-    if ( ! isset( $options['width'] ) ) {
-        $options['width'] = NULL;
-    } else if ( $options['width'] == 100 ) {
+    # scale is empty or 100
+    # There may be a fixed width applied though, in which case we need to leave the height empty
+    if ( ! ( isset($options['width']) and $options['width'] ) ) {
       $options['width'] = $monitor->Width();
-    }
-    if ( ! isset( $options['height'] ) ) {
-        $options['height'] = NULL;
-    } else if ( $options['height'] == 100 ) {
-      $options['height'] = $monitor->Height();
+      if ( ! ( isset($options['height']) and $options['height'] ) ) {
+        $options['height'] = $monitor->Height();
+      }
     }
   }
   if ( ! isset($options['mode'] ) ) {
@@ -2161,17 +2169,18 @@ function getStreamHTML( $monitor, $options = array() ) {
   $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
   if ( $monitor->StreamReplayBuffer() )
     $options['buffer'] = $monitor->StreamReplayBuffer();
+  Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
 
   //FIXME, the width and height of the image need to be scaled.
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format' => ZM_MPEG_LIVE_FORMAT ) );
-    return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+    return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
   } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';
     $streamSrc = $monitor->getStreamSrc( $options );
 
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
+      return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
     elseif ( canStreamApplet() )
       // Helper, empty widths and heights really don't work.
       return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 

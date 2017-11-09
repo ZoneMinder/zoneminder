@@ -75,26 +75,21 @@ RemoteCameraHttp::RemoteCameraHttp(
     method = REGEXP;
   else
     Fatal( "Unrecognised method '%s' when creating HTTP camera %d", p_method.c_str(), monitor_id );
-  if ( capture )
-  {
+  if ( capture ) {
     Initialise();
   }
 }
 
-RemoteCameraHttp::~RemoteCameraHttp()
-{
-  if ( capture )
-  {
+RemoteCameraHttp::~RemoteCameraHttp() {
+  if ( capture ) {
     Terminate();
   }
 }
 
-void RemoteCameraHttp::Initialise()
-{
+void RemoteCameraHttp::Initialise() {
   RemoteCamera::Initialise();
 
-  if ( request.empty() )
-  {
+  if ( request.empty() ) {
     request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
     request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
     request += stringtf( "Host: %s\r\n", host.c_str());
@@ -106,8 +101,7 @@ void RemoteCameraHttp::Initialise()
     Debug( 2, "Request: %s", request.c_str() );
   }
 
-  if ( !timeout.tv_sec )
-  {
+  if ( !timeout.tv_sec ) {
     timeout.tv_sec = config.http_timeout/1000; 
     timeout.tv_usec = (config.http_timeout%1000)*1000;
   }
@@ -121,21 +115,17 @@ void RemoteCameraHttp::Initialise()
   state = HEADER;
 }
 
-int RemoteCameraHttp::Connect()
-{
+int RemoteCameraHttp::Connect() {
   struct addrinfo *p;
 
-  for(p = hp; p != NULL; p = p->ai_next)
-  {
+  for ( p = hp; p != NULL; p = p->ai_next ) {
     sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
-    if ( sd < 0 )
-    {
+    if ( sd < 0 ) {
       Warning("Can't create socket: %s", strerror(errno) );
       continue;
     }
 
-    if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 )
-    {
+    if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
       close(sd);
       sd = -1;
       char buf[sizeof(struct in6_addr)];
@@ -151,7 +141,7 @@ int RemoteCameraHttp::Connect()
     break;
   }
 
-  if(p == NULL) {
+  if ( p == NULL ) {
     Error("Unable to connect to the remote camera, aborting");
     return( -1 );
   }
@@ -160,16 +150,14 @@ int RemoteCameraHttp::Connect()
   return( sd );
 }
 
-int RemoteCameraHttp::Disconnect()
-{
+int RemoteCameraHttp::Disconnect() {
   close( sd );
   sd = -1;
   Debug( 3, "Disconnected from host" );
   return( 0 );
 }
 
-int RemoteCameraHttp::SendRequest()
-{
+int RemoteCameraHttp::SendRequest() {
   Debug( 2, "Sending request: %s", request.c_str() );
   if ( write( sd, request.data(), request.length() ) < 0 )
   {
@@ -1036,59 +1024,52 @@ int RemoteCameraHttp::PreCapture() {
   return( 0 );
 } // end int RemoteCameraHttp::PreCapture()
 
-ZMPacket * RemoteCameraHttp::Capture( Image &image ) {
+int RemoteCameraHttp::Capture( ZMPacket &packet ) {
   int content_length = GetResponse();
   if ( content_length == 0 ) {
     Warning( "Unable to capture image, retrying" );
-    return NULL;
+    return 0;
   }
   if ( content_length < 0 ) {
     Error( "Unable to get response, disconnecting" );
     Disconnect();
-    return NULL;
+    return -1;
   }
+
+  Image *image = packet.image;
 
   switch( format ) {
     case JPEG :
-      {
-        if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length, colours, subpixelorder ) ) {
-          Error( "Unable to decode jpeg" );
-          Disconnect();
-          return NULL;
-        }
-        break;
-      }
-    case X_RGB :
-      {
-        if ( content_length != (long)image.Size() ) {
-          Error( "Image length mismatch, expected %d bytes, content length was %d", image.Size(), content_length );
-          Disconnect();
-          return NULL;
-        }
-        image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
-        break;
-      }
-    case X_RGBZ :
-      {
-        if ( !image.Unzip( buffer.extract( content_length ), content_length ) ) {
-          Error( "Unable to unzip RGB image" );
-          Disconnect();
-          return NULL;
-        }
-        image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
-        break;
-      }
-    default :
-      {
-        Error( "Unexpected image format encountered" );
+      if ( !image->DecodeJpeg( buffer.extract( content_length ), content_length, colours, subpixelorder ) ) {
+        Error( "Unable to decode jpeg" );
         Disconnect();
-        return NULL;
+        return -1;
       }
+      break;
+    case X_RGB :
+      if ( content_length != (long)image->Size() ) {
+        Error( "Image length mismatch, expected %d bytes, content length was %d", image->Size(), content_length );
+        Disconnect();
+        return -1;
+      }
+      image->Assign( width, height, colours, subpixelorder, buffer, imagesize );
+      break;
+    case X_RGBZ :
+      if ( !image->Unzip( buffer.extract( content_length ), content_length ) ) {
+        Error( "Unable to unzip RGB image" );
+        Disconnect();
+        return -1;
+      }
+      image->Assign( width, height, colours, subpixelorder, buffer, imagesize );
+      break;
+    default :
+      Error( "Unexpected image format encountered" );
+      Disconnect();
+      return -1;
   }
-  ZMPacket *packet = new ZMPacket( &image );
-  return packet;
+  return 1;
 } // end ZmPacket *RmoteCameraHttp::Capture( &image );
 
 int RemoteCameraHttp::PostCapture() {
-  return( 0 );
+  return 0;
 }

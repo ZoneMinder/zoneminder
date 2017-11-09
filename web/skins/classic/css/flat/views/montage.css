@@ -6,6 +6,15 @@
     width: 99%;
 }
 
+#monitors:after {
+  content: ".";
+  display: block;
+  height: 0;
+  font-size: 0;
+  clear: both;
+  visibility: hidden;
+}
+
 #monitors .monitor {
   min-width: 180px;
   margin: 0;

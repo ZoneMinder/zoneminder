@@ -40,6 +40,7 @@ class FfmpegCamera : public Camera {
     std::string         mPath;
     std::string         mMethod;
     std::string         mOptions;
+    std::string         encoder_options;
 
     int frameCount;    
 
@@ -89,7 +90,20 @@ class FfmpegCamera : public Camera {
     int64_t             startTime;
 
   public:
-    FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+    FfmpegCamera(
+        int p_id,
+        const std::string &path,
+        const std::string &p_method,
+        const std::string &p_options,
+        int p_width,
+        int p_height,
+        int p_colours,
+        int p_brightness,
+        int p_contrast,
+        int p_hue,
+        int p_colour,
+        bool p_capture,
+        bool p_record_audio );
     ~FfmpegCamera();
 
     const std::string &Path() const { return( mPath ); }
@@ -101,15 +115,14 @@ class FfmpegCamera : public Camera {
 
     int PrimeCapture();
     int PreCapture();
-    ZMPacket * Capture( Image &image );
-    int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
+    int Capture(ZMPacket &p);
     int PostCapture();
-    AVStream      *get_VideoStream() { 
+    AVStream *get_VideoStream() { 
       if ( mVideoStreamId != -1 )
         return mFormatContext->streams[mVideoStreamId];
       return NULL;
     }
-    AVStream      *get_AudioStream() {
+    AVStream *get_AudioStream() {
       if ( mAudioStreamId != -1 )
         return mFormatContext->streams[mAudioStreamId];
       return NULL;

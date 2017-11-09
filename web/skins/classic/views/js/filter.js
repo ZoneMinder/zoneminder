@@ -19,6 +19,8 @@ function updateButtons( element ) {
       canExecute = true;
     else if ( form.elements['filter[AutoDelete]'].checked )
       canExecute = true;
+    else if ( form.elements['filter[UpdateDiskSpace]'].checked )
+      canExecute = true;
     form.elements['executeButton'].disabled = !canExecute;
   }
 }

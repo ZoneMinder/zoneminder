@@ -55,7 +55,7 @@ function validateForm( form ) {
   else if ( form.elements.mid.value == 0 && monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
 
-  if ( form.elements['newMonitor[AnalysisFPS]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPS]'].value) > 0 ) )
+  if ( form.elements['newMonitor[AnalysisFPSLimit]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPSLimit]'].value) > 0 ) )
     errors[errors.length] = "<?php echo translate('BadAnalysisFPS') ?>";
   if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
     errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";
@@ -97,7 +97,7 @@ function validateForm( form ) {
     errors[errors.length] = "<?php echo translate('BadImageBufferCount') ?>";
   if ( !form.elements['newMonitor[WarmupCount]'].value || !(parseInt(form.elements['newMonitor[WarmupCount]'].value) >= 0 ) )
     errors[errors.length] = "<?php echo translate('BadWarmupCount') ?>";
-  if ( !form.elements['newMonitor[PreEventCount]'].value || !(parseInt(form.elements['newMonitor[PreEventCount]'].value) > 0 ) || (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[ImageBufferCount]'].value)) )
+  if ( !form.elements['newMonitor[PreEventCount]'].value || !(parseInt(form.elements['newMonitor[PreEventCount]'].value) >= 0 ) || (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[ImageBufferCount]'].value)) )
     errors[errors.length] = "<?php echo translate('BadPreEventCount') ?>";
   if ( !form.elements['newMonitor[PostEventCount]'].value || !(parseInt(form.elements['newMonitor[PostEventCount]'].value) >= 0 ) )
     errors[errors.length] = "<?php echo translate('BadPostEventCount') ?>";

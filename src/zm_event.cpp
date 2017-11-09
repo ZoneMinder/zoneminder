@@ -168,40 +168,11 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
     snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
     Debug(1,"Writing video file to %s", video_file );
-
-#if 0
-    /* X264 MP4 video writer */
-    if ( monitor->GetOptVideoWriter() == Monitor::X264ENCODE ) {
-#if ZM_HAVE_VIDEOWRITER_X264MP4
-      videowriter = new X264MP4Writer(video_file, monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder(), monitor->GetOptEncoderParams());
-#else
-      Error("ZoneMinder was not compiled with the X264 MP4 video writer, check dependencies (x264 and mp4v2)");
-#endif
-    }
-
-    if ( videowriter != NULL ) {
-      /* Open the video stream */
-      int nRet = videowriter->Open();
-      if(nRet != 0) {
-        Error("Failed opening video stream");
-        delete videowriter;
-        videowriter = NULL;
-      }
-
-      snprintf( timecodes_name, sizeof(timecodes_name), "%d-%s", id, "video.timecodes" );
-      snprintf( timecodes_file, sizeof(timecodes_file), staticConfig.video_file_format, path, timecodes_name );
-
-      /* Create timecodes file */
-      timecodes_fd = fopen(timecodes_file, "wb");
-      if ( timecodes_fd == NULL ) {
-        Error("Failed creating timecodes file");
-      }
-    }
+    videowriter = NULL;
   } else {
     /* No video object */
     videowriter = NULL;
   }
-#endif
 
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
@@ -211,7 +182,6 @@ Event::~Event() {
   DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
 
   if ( frames > last_db_frame ) {
-
     Debug( 1, "Adding closing frame %d to DB", frames );
     snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
     if ( mysql_query( &dbconn, sql ) ) {

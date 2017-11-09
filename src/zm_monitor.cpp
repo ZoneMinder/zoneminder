@@ -453,6 +453,7 @@ Monitor::Monitor(
   adaptive_skip = true;
 
   ReloadLinkedMonitors( p_linked_monitors );
+  videoStore = NULL;
 } // Monitor::Monitor
 
 bool Monitor::connect() {
@@ -1145,14 +1146,15 @@ bool Monitor::CheckSignal( const Image *image ) {
 bool Monitor::Analyse() {
   if ( shared_data->last_read_index == shared_data->last_write_index ) {
     // I wonder how often this happens. Maybe if this happens we should sleep or something?
-    return( false );
+    Debug(3, " shared_data->last_read_index == shared_data->last_write_index " );
+    return false;
   }
 
   struct timeval now;
   gettimeofday( &now, NULL );
 
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-    fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
+    fps = double(fps_report_interval)/(now.tv_sec - last_fps_time);
     Info( "%s: %d - Analysing at %.2f fps", name, image_count, fps );
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf( sql, sizeof(sql), "UPDATE Monitors SET AnalysisFPS = '%.2lf' WHERE Id = '%d'", fps, id );
@@ -1177,7 +1179,8 @@ bool Monitor::Analyse() {
     int pending_frames = shared_data->last_write_index - shared_data->last_read_index;
     if ( pending_frames < 0 ) pending_frames += image_buffer_count;
 
-    Debug( 4, "ReadIndex:%d, WriteIndex: %d, PendingFrames = %d, ReadMargin = %d, Step = %d", shared_data->last_read_index, shared_data->last_write_index, pending_frames, read_margin, step );
+    Debug( 4, "ReadIndex:%d, WriteIndex: %d, PendingFrames = %d, ReadMargin = %d, Step = %d",
+        shared_data->last_read_index, shared_data->last_write_index, pending_frames, read_margin, step );
     if ( step <= pending_frames ) {
       index = (shared_data->last_read_index+step)%image_buffer_count;
     } else {
@@ -1359,12 +1362,12 @@ Debug(3,"before DetectMotion");
           if ( event ) {
             //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
             //snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-              Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
+              //Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
             
             if ( section_length ) {
               // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
               int section_mod = timestamp->tv_sec % section_length;
-              Debug( 3, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
+              Debug( 4, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
               if ( section_mod < last_section_mod ) {
                 //if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
                   //if ( state == TAPE ) {
@@ -2846,107 +2849,85 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 int Monitor::Capture() {
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
-  unsigned int index = image_count%image_buffer_count;
+  unsigned int index = image_count % image_buffer_count;
   Image* capture_image = image_buffer[index].image;
-
-  unsigned int deinterlacing_value = deinterlacing & 0xff;
-
-  ZMPacket *packet;
+  ZMPacket packet;
+  packet.set_image(capture_image);
   int captureResult = 0;
 
+  unsigned int deinterlacing_value = deinterlacing & 0xff;
   if ( deinterlacing_value == 4 ) {
     if ( FirstCapture != 1 ) {
       /* Copy the next image into the shared memory */
       capture_image->CopyBuffer(*(next_buffer.image)); 
     }
-    
     /* Capture a new next image */
-    
-    packet = camera->Capture(*(next_buffer.image));
+    captureResult = camera->Capture(packet);
 
     if ( FirstCapture ) {
       FirstCapture = 0;
       return 0;
     }
-
   } else {
-    packet = camera->Capture(*capture_image);
-    if ( ! packet ) {
-      packet = new ZMPacket(capture_image);
+    captureResult = camera->Capture(packet);
+    if ( captureResult < 0 ) {
       // Unable to capture image for temporary reason
       // Fake a signal loss image
       Rgb signalcolor;
-      signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
+      /* HTML colour code is actually BGR in memory, we want RGB */
+      signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
       capture_image->Fill(signalcolor);
-    } else {
-      captureResult = 1;
+      shared_data->signal = false;
+      return -1;
     }
+
     int video_stream_id = camera->get_VideoStreamId();
-    // Should maybe not write to videowriter when no signal FIXME
 
     //Video recording
     if ( video_store_data->recording.tv_sec ) {
-
       if ( shared_data->last_event_id != this->GetVideoWriterEventId() ) {
-        Debug(2, "Have change of event.  last_event(%d), our current (%d)", shared_data->last_event_id, this->GetVideoWriterEventId() );
-
+        Debug(2, "Have change of event. last_event(%d), our current (%d)",
+            shared_data->last_event_id,
+            this->GetVideoWriterEventId()
+            );
         if ( videoStore ) {
-          Info("Re-starting video storage module");
-
+Debug(2, "Have videostore already?");
           // I don't know if this is important or not... but I figure we might as well write this last packet out to the store before closing it.
           // Also don't know how much it matters for audio.
-            int ret = videoStore->writePacket( packet );
-            if ( ret < 0 ) { //Less than zero and we skipped a frame
-              Warning("Error writing last packet to videostore.");
-            }
-          
-            delete videoStore;
-            videoStore = NULL;
-            this->SetVideoWriterEventId( 0 );
+          int ret = videoStore->writePacket( &packet );
+          if ( ret < 0 ) { //Less than zero and we skipped a frame
+            Warning("Error writing last packet to videostore.");
+          }
+
+          delete videoStore;
+          videoStore = NULL;
+          this->SetVideoWriterEventId( 0 );
         } // end if videoStore
       } // end if end of recording
 
       if ( shared_data->last_event_id and ! videoStore ) {
-        //Instantiate the video storage module
-
-        videoStore = new VideoStore((const char *) video_store_data->event_file, "mp4",
+Debug(2,"New videostore");
+        videoStore = new VideoStore(
+            (const char *) video_store_data->event_file,
+            "mp4",
             camera->get_VideoStream(),
             ( record_audio ? camera->get_AudioStream() : NULL ),
+            video_store_data->recording.tv_sec,
             this );
 
         if ( ! videoStore->open() ) {
           delete videoStore;
           videoStore = NULL;
-
         } else {
-          this->SetVideoWriterEventId( shared_data->last_event_id );
+          this->SetVideoWriterEventId(shared_data->last_event_id);
 
-          // Need to write out all the frames from the last keyframe?
-          // No... need to write out all frames from when the event began. Due to PreEventFrames, this could be more than since the last keyframe.
-          unsigned int packet_count = 0;
-          ZMPacket *queued_packet;
-
+          Debug(2, "Clearing packets");
           // Clear all packets that predate the moment when the recording began
-          packetqueue.clear_unwanted_packets( &video_store_data->recording, video_stream_id );
-
-          while ( ( queued_packet = packetqueue.popPacket() ) ) {
-            AVPacket *avp = queued_packet->av_packet();
-
-            packet_count += 1;
-            //Write the packet to our video store
-            Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
-            int ret = videoStore->writePacket( queued_packet );
-            if ( ret < 0 ) {
-              //Less than zero and we skipped a frame
-            }
-            delete queued_packet;
-          } // end while packets in the packetqueue
-          Debug(2, "Wrote %d queued packets", packet_count );
+          packetqueue.clear_unwanted_packets(&video_store_data->recording, video_stream_id);
+          videoStore->write_packets(packetqueue);
         } // success opening
       } // end if ! was recording
-
-    } else {
-      // Not recording
+    } else { // Not recording
       if ( videoStore ) {
         Info("Deleting videoStore instance");
         delete videoStore;
@@ -2954,42 +2935,33 @@ int Monitor::Capture() {
         this->SetVideoWriterEventId( 0 );
       }
 
-    // Buffer video packets, since we are not recording.
+      // Buffer video packets, since we are not recording.
       // All audio packets are keyframes, so only if it's a video keyframe
-      if ( packet->packet.stream_index == video_stream_id ) {
-        if ( packet->keyframe ) {
-          Debug(3, "Clearing queue");
-          packetqueue.clearQueue( this->GetPreEventCount(), video_stream_id );
-        } 
-
+      if ( ( packet.packet.stream_index == video_stream_id ) && ( packet.keyframe ) ) {
+        packetqueue.clearQueue( this->GetPreEventCount(), video_stream_id );
       }
       // The following lines should ensure that the queue always begins with a video keyframe
-      if ( packet->packet.stream_index == camera->get_AudioStreamId() ) {
-//Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
+      if ( packet.packet.stream_index == camera->get_AudioStreamId() ) {
+        //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
         if ( record_audio && packetqueue.size() ) { 
           // if it's audio, and we are doing audio, and there is already something in the queue
-          packetqueue.queuePacket( packet );
+          packetqueue.queuePacket( &packet );
         }
-      } else if ( packet->packet.stream_index == video_stream_id ) {
-        if ( packet->keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
-          packetqueue.queuePacket( packet );
-      }
+      } else if ( packet.packet.stream_index == video_stream_id ) {
+        if ( packet.keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
+          packetqueue.queuePacket( &packet );
+      } // end if audio or video
     } // end if recording or not
 
     if ( videoStore ) {
       //Write the packet to our video store, it will be smart enough to know what to do
-      int ret = videoStore->writePacket( packet );
+      int ret = videoStore->writePacket( &packet );
       if ( ret < 0 ) { //Less than zero and we skipped a frame
         Warning("problem writing packet");
       }
     }
   } // end if de-interlacing or not
   
-  if ( ! captureResult ) {
-    shared_data->signal = false;
-    return  -1;
-  } // end if captureResults == 1 which is success I think
-    
   /* Deinterlacing */
   if ( deinterlacing_value == 1 ) {
     capture_image->Deinterlace_Discard();
@@ -3046,17 +3018,26 @@ int Monitor::Capture() {
   shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
 
   image_count++;
+
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-    time_t now = image_buffer[index].timestamp->tv_sec;
-    fps = double(fps_report_interval)/(now-last_fps_time);
-    //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
-    //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-    Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
-    last_fps_time = now;
-    static char sql[ZM_SQL_SML_BUFSIZ];
-    snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS = '%.2lf' WHERE Id = '%d'", fps, id );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't run query: %s", mysql_error( &dbconn ) );
+    struct timeval now;
+    if ( !captureResult ) {
+      gettimeofday( &now, NULL );
+    } else {
+      now.tv_sec = image_buffer[index].timestamp->tv_sec;
+    }
+    // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
+    if ( now.tv_sec != last_fps_time ) {
+      fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
+      Info( "%d -> %d -> %d", fps_report_interval, now.tv_sec, last_fps_time );
+      //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
+      Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
+      last_fps_time = now.tv_sec;
+      static char sql[ZM_SQL_SML_BUFSIZ];
+      snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", fps, id );
+      if ( mysql_query( &dbconn, sql ) ) {
+        Error( "Can't run query: %s", mysql_error( &dbconn ) );
+      }
     }
   }
 
@@ -3075,8 +3056,8 @@ int Monitor::Capture() {
     camera->Contrast( shared_data->contrast );
     shared_data->action &= ~SET_SETTINGS;
   }
-  return( 0 );
-}
+  return captureResult;
+} // end Monitor::Capture
 
 void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) const {
   if ( label_format[0] ) {

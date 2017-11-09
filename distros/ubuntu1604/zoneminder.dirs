@@ -4,5 +4,6 @@ var/cache/zoneminder/events
 var/cache/zoneminder/images
 var/cache/zoneminder/temp
 usr/share/zoneminder/db
+usr/share/zoneminder/www/cache
 etc/zm/
 etc/zm/conf.d

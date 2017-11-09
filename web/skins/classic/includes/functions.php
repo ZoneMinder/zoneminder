@@ -48,8 +48,10 @@ function xhtmlHeaders( $file, $title ) {
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
 <?php
 if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
-  echo "<link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>\n";
-  echo "<link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>\n";
+  echo "
+  <link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
+  <link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
+";
 } else {
   echo '
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
@@ -60,11 +62,11 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
-  <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
+  <link rel="stylesheet" href="<?php echo cache_bust($skinCssFile) ?>" type="text/css" media="screen"/>
 <?php
   if ( $viewCssFile ) {
 ?>
-  <link rel="stylesheet" href="<?php echo $viewCssFile ?>" type="text/css" media="screen"/>
+  <link rel="stylesheet" href="<?php echo cache_bust($viewCssFile) ?>" type="text/css" media="screen"/>
 <?php
   }
   if ( $viewCssPhpFile ) {
@@ -138,18 +140,18 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   }
 	if ( $cssJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo $cssJsFile ?>"></script>
+  <script type="text/javascript" src="<?php echo cache_bust($cssJsFile) ?>"></script>
 <?php
 } else {
 ?>
   <script type="text/javascript" src="skins/classic/js/classic.js"></script>
 <?php } ?>
-  <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
+  <script type="text/javascript" src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script type="text/javascript" src="js/logger.js"></script>
 <?php
   if ( $viewJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo $viewJsFile ?>"></script>
+  <script type="text/javascript" src="<?php echo cache_bust($viewJsFile) ?>"></script>
 <?php
   }
 ?>
@@ -194,9 +196,19 @@ ZoneMinder requires Javascript. Please enable Javascript in your browser for thi
 			<li><a href="?view=console"><?php echo translate('Console') ?></a></li>
 <?php if ( canView( 'System' ) ) { ?>
 			<li><a href="?view=options"><?php echo translate('Options') ?></a></li>
-			<li><?php if ( logToDatabase() > Logger::NOLOG ) { ?> <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></li>
-<?php } ?>
-<?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
+			<li>
+<?php
+  if ( logToDatabase() > Logger::NOLOG ) { 
+    if ( ! ZM_RUN_AUDIT ) {
+    # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
+     dbQuery("DELETE FROM Logs WHERE TimeKey < NOW()-to_days('".ZM_LOG_DATABASE_LIMIT."')");
+    }
+    echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
+  }
+} // end if canview(System)
+?></li>
+<?php
+if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
 <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>

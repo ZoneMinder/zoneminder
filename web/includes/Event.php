@@ -198,14 +198,6 @@ class Event {
   }
 
   function createListThumbnail( $overwrite=false ) {
-  # Load the frame with the highest score to use as a thumbnail
-    if ( !($frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1', NULL, array( $this->{'Id'}, $this->{'MaxScore'} ) )) ) {
-      Error("Unable to find a Frame matching max score " . $this->{'MaxScore'} . ' for event ' . $this->{'Id'} );
-      // FIXME: What if somehow the db frame was lost or score was changed?  Should probably try another search for any frame.
-      return( false );
-    }
-
-    $frameId = $frame['FrameId'];
 
     if ( ZM_WEB_LIST_THUMB_WIDTH ) {
       $thumbWidth = ZM_WEB_LIST_THUMB_WIDTH;
@@ -219,12 +211,25 @@ class Event {
       Fatal( "No thumbnail width or height specified, please check in Options->Web" );
     }
 
-    $imageData = $this->getImageSrc( $frame, $scale, false, $overwrite );
-    if ( ! $imageData ) {
-      return ( false );
+    $eventPath = $this->Path();
+    if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
+      $frame = 'snapshot';
+      $humbData = array('Path'=>$eventPath.'/snapshot.jpg'); 
+    } else {
+# Load the frame with the highest score to use as a thumbnail
+      if ( !($frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1', NULL, array( $this->{'Id'}, $this->{'MaxScore'} ) )) ) {
+        Error("Unable to find a Frame matching max score " . $this->{'MaxScore'} . ' for event ' . $this->{'Id'} );
+        // FIXME: What if somehow the db frame was lost or score was changed?  Should probably try another search for any frame.
+        return( false );
+      }
+
+      $imageData = $this->getImageSrc( $frame, $scale, false, $overwrite );
+      if ( ! $imageData ) {
+        return ( false );
+      }
+      $thumbData = $frame;
+      $thumbData['Path'] = $imageData['thumbPath'];
     }
-    $thumbData = $frame;
-    $thumbData['Path'] = $imageData['thumbPath'];
     $thumbData['Width'] = (int)$thumbWidth;
     $thumbData['Height'] = (int)$thumbHeight;
 

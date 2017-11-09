@@ -40,15 +40,20 @@ class ZMPacket {
     struct timeval timestamp;
   public:
     AVPacket *av_packet() { return &packet; }
+    AVPacket *set_packet( AVPacket *p ) ;
     AVFrame *av_frame() { return frame; }
     Image *get_image( Image * );
+    Image *set_image( Image * );
+
     int is_keyframe() { return keyframe; };
     int decode( AVCodecContext *ctx );
     ZMPacket( AVPacket *packet, struct timeval *timestamp );
     ZMPacket( AVPacket *packet );
+    ZMPacket( AVPacket *packet, AVFrame *frame, Image *image );
     ZMPacket( Image *image );
     ZMPacket();
     ~ZMPacket();
+
 };
 
 #endif /* ZM_PACKET_H */

@@ -156,7 +156,7 @@ public:
 
   int PrimeCapture();
   int PreCapture();
-  ZMPacket *Capture( Image &image );
+  int Capture(ZMPacket &p);
   int PostCapture();
   static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
 };

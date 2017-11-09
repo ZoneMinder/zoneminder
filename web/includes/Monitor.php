@@ -14,6 +14,7 @@ private $defaults = array(
 'Width' => null,
 'Height' => null,
 'Orientation' => null,
+'AnalysisFPSLimit'  =>  null,
 );
 private $control_fields = array(
   'Name' => '',

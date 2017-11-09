@@ -55,9 +55,9 @@ class MonitorStream : public StreamBase {
     bool sendFrame( const char *filepath, struct timeval *timestamp );
     bool sendFrame( Image *image, struct timeval *timestamp );
     void processCommand( const CmdMsg *msg );
-  void SingleImage( int scale=100 );
-  void SingleImageRaw( int scale=100 );
-  void SingleImageZip( int scale=100 );
+    void SingleImage( int scale=100 );
+    void SingleImageRaw( int scale=100 );
+    void SingleImageZip( int scale=100 );
 
   public:
     MonitorStream() : playback_buffer( 0 ), delayed( false ), frame_count( 0 ) {

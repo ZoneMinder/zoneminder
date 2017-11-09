@@ -46,6 +46,7 @@ protected:
   AVOutputFormat *of;
   AVFormatContext *ofc;
   AVStream *ost;
+  AVCodecContext *codec_context;
   AVCodec *codec;
   AVFrame *opicture;
   AVFrame *tmp_opicture;

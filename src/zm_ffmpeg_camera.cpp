@@ -177,138 +177,43 @@ int FfmpegCamera::PreCapture() {
   return( 0 );
 }
 
-ZMPacket * FfmpegCamera::Capture( Image &image ) {
+int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
   if ( ! mCanCapture ) {
-    return NULL;
+    return -1;
   }
 
   int ret;
-  char errbuf[AV_ERROR_MAX_STRING_SIZE];
 
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
   if ( mReopenThread != 0 ) {
     void *retval = 0;
-
     ret = pthread_join(mReopenThread, &retval);
     if ( ret != 0 ) {
       Error("Could not join reopen thread.");
     }
-
     Info( "Successfully reopened stream." );
     mReopenThread = 0;
   }
 
-  ZMPacket *zm_packet = NULL;
-
   ret = av_read_frame( mFormatContext, &packet );
   if ( ret < 0 ) {
-    av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
     if (
         // Check if EOF.
         (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
         // Check for Connection failure.
         (ret == -110)
        ) {
-      Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf );
+      Info( "av_read_frame returned \"%s\". Reopening stream.", av_make_error_string(ret).c_str() );
       ReopenFfmpeg();
     }
-
-    Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
-    return NULL;
+    Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, av_make_error_string(ret).c_str() );
+    return -1;
   }
   Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet.stream_index, packet.pts, packet.dts );
 
-#if 0
-    // What about audio stream? Maybe someday we could do sound detection...
-    if ( ( packet.stream_index == mVideoStreamId ) && ( keyframe || have_video_keyframe ) ) {
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      ret = avcodec_send_packet( mVideoCodecContext, &packet );
-      if ( ret < 0 ) {
-        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-        zm_av_packet_unref( &packet );
-        continue;
-      }
-
-#if HAVE_AVUTIL_HWCONTEXT_H
-      if ( hwaccel ) {
-        ret = avcodec_receive_frame( mVideoCodecContext, hwFrame );
-        if ( ret < 0 ) {
-          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-          zm_av_packet_unref( &packet );
-          continue;
-        }
-        ret = av_hwframe_transfer_data(mRawFrame, hwFrame, 0);
-        if (ret < 0) {
-          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Error( "Unable to transfer frame at frame %d: %s, continuing", frameCount, errbuf );
-          zm_av_packet_unref( &packet );
-          continue;
-        }
-      } else {
-#endif
-        ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
-        if ( ret < 0 ) {
-          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-          zm_av_packet_unref( &packet );
-          continue;
-        }
-
-#if HAVE_AVUTIL_HWCONTEXT_H
-      }
-#endif
-
-      frameComplete = 1;
-# else
-      ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
-      if ( ret < 0 ) {
-        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to decode frame at frame %d: %s, continuing", frameCount, errbuf );
-        zm_av_packet_unref( &packet );
-        continue;
-      }
-#endif
-
-      Debug( 4, "Decoded video packet at frame %d", frameCount );
-
-      if ( frameComplete ) {
-        Debug( 4, "Got frame %d", frameCount );
-
-        uint8_t* directbuffer;
-
-        /* Request a writeable buffer of the target image */
-        directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-        if ( directbuffer == NULL ) {
-          Error("Failed requesting writeable buffer for the captured image.");
-          return (-1);
-        }
-
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-        av_image_fill_arrays(mFrame->data, mFrame->linesize,
-            directbuffer, imagePixFormat, width, height, 1);
-#else
-        avpicture_fill( (AVPicture *)mFrame, directbuffer,
-            imagePixFormat, width, height);
-#endif
-
-#if HAVE_LIBSWSCALE
-        if ( sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0 )
-          Fatal("Unable to convert raw format %u to target format %u at frame %d", mVideoCodecContext->pix_fmt, imagePixFormat, frameCount);
-#else // HAVE_LIBSWSCALE
-        Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
-#endif // HAVE_LIBSWSCALE
-
-        frameCount++;
-      } // end if frameComplete
-    } else {
-      Debug( 4, "Different stream_index %d", packet.stream_index );
-    } // end if packet.stream_index == mVideoStreamId
-#endif
-  zm_packet = new ZMPacket( &packet );
+  zm_packet.set_packet( &packet );
   zm_av_packet_unref( &packet );
-  return zm_packet;
+  return 1;
 } // FfmpegCamera::Capture
 
 int FfmpegCamera::PostCapture() {
@@ -448,7 +353,9 @@ int FfmpegCamera::OpenFfmpeg() {
 	// STolen from ispy
 	//this fixes issues with rtsp streams!! woot.
 	//mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG2_CHUNKS | CODEC_FLAG_LOW_DELAY;  // Enable faster H264 decode.
+#ifdef CODEC_FLAG2_FAST
 	mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
+#endif
 
 #if HAVE_AVUTIL_HWCONTEXT_H
   if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
@@ -485,7 +392,16 @@ int FfmpegCamera::OpenFfmpeg() {
         }
       }
     }
-
+  } else {
+#ifdef AV_CODEC_ID_H265
+    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
+      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
+    } else {
+#endif
+      Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
+#ifdef AV_CODEC_ID_H265
+    }
+#endif
   } // end if h264
 #endif
 
@@ -515,6 +431,18 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning( "Option %s not recognized by ffmpeg", e->key);
     }
   }
+  }
+
+  if ( mVideoCodecContext->codec_id != AV_CODEC_ID_H264 ) {
+#ifdef AV_CODEC_ID_H265
+    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
+      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
+    } else {
+#endif
+      Warning( "Input stream is not h264.  The stored event file may not be viewable in browser." );
+#ifdef AV_CODEC_ID_H265
+    }
+#endif
   }
 
   if (mVideoCodecContext->hwaccel != NULL) {

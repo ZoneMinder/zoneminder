@@ -130,7 +130,6 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
 }
 
 Image::Image( const AVFrame *frame ) {
-  AVFrame *dest_frame = zm_av_frame_alloc();
 
   width = frame->width;
   height = frame->height;
@@ -141,7 +140,13 @@ Image::Image( const AVFrame *frame ) {
   buffer = 0;
   holdbuffer = 0;
   AllocImgBuffer(size);
+  this->Assign( frame );
+}
 
+void Image::Assign( const AVFrame *frame ) {
+/* Assume the dimensions etc are correct. FIXME */
+
+  AVFrame *dest_frame = zm_av_frame_alloc();
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   av_image_fill_arrays(dest_frame->data, dest_frame->linesize,
       buffer, AV_PIX_FMT_RGBA, width, height, 1);
@@ -167,7 +172,7 @@ Image::Image( const AVFrame *frame ) {
   Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE
   av_frame_free( &dest_frame );
-}
+} // end Image::Image( const AVFrame *frame )
 
 Image::Image( const Image &p_image ) {
   if ( !initialised )
@@ -613,25 +618,25 @@ void Image::Assign(const unsigned int p_width, const unsigned int p_height, cons
 void Image::Assign( const Image &image ) {
   unsigned int new_size = (image.width * image.height) * image.colours;
 
-  if(image.buffer == NULL) {
+  if ( image.buffer == NULL ) {
     Error("Attempt to assign image with an empty buffer");
     return;
   }
 
-  if(image.colours != ZM_COLOUR_GRAY8 && image.colours != ZM_COLOUR_RGB24 && image.colours != ZM_COLOUR_RGB32) {
+  if ( image.colours != ZM_COLOUR_GRAY8 && image.colours != ZM_COLOUR_RGB24 && image.colours != ZM_COLOUR_RGB32 ) {
     Error("Attempt to assign image with unexpected colours per pixel: %d",image.colours);
     return;
   }
 
-  if ( !buffer || image.width != width || image.height != height || image.colours != colours || image.subpixelorder != subpixelorder) {
+  if ( !buffer || image.width != width || image.height != height || image.colours != colours || image.subpixelorder != subpixelorder ) {
 
-    if (holdbuffer && buffer) {
-      if (new_size > allocation) {
+    if ( holdbuffer && buffer ) {
+      if ( new_size > allocation ) {
         Error("Held buffer is undersized for assigned buffer");
         return;
       }
     } else {
-      if(new_size > allocation || !buffer) { 
+      if ( new_size > allocation || !buffer ) { 
         // DumpImgBuffer(); This is also done in AllocImgBuffer
         AllocImgBuffer(new_size);
       }
@@ -645,7 +650,7 @@ void Image::Assign( const Image &image ) {
     size = new_size;
   }
 
-  if(image.buffer != buffer)
+  if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
 

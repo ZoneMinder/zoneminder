@@ -116,7 +116,7 @@ int cURLCamera::PreCapture() {
     return( 0 );
 }
 
-ZMPacket * cURLCamera::Capture( Image &image ) {
+int cURLCamera::Capture( ZMPacket &zm_packet ) {
   bool frameComplete = false;
 
   /* MODE_STREAM specific variables */
@@ -128,10 +128,10 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
   /* Grab the mutex to ensure exclusive access to the shared data */
   lock();
 
-  while (!frameComplete) {
+  while ( !frameComplete ) {
 
     /* If the work thread did a reset, reset our local variables */
-    if(bReset) {
+    if ( bReset ) {
       SubHeadersParsingComplete = false;
       frame_content_length = 0;
       frame_content_type.clear();
@@ -139,25 +139,25 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
       bReset = false;
     }
 
-    if(mode == MODE_UNSET) {
+    if ( mode == MODE_UNSET ) {
       /* Don't have a mode yet. Sleep while waiting for data */
       nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
-      if(nRet != 0) {
+      if ( nRet != 0 ) {
         Error("Failed waiting for available data condition variable: %s",strerror(nRet));
-        return NULL;
+        return -1;
       }
     }
 
-    if(mode == MODE_STREAM) {
+    if ( mode == MODE_STREAM ) {
 
       /* Subheader parsing */
-      while(!SubHeadersParsingComplete && !need_more_data) {
+      while( !SubHeadersParsingComplete && !need_more_data ) {
 
         size_t crlf_start, crlf_end, crlf_size;
         std::string subheader;
 
         /* Check if the buffer contains something */
-        if(databuffer.empty()) {
+        if ( databuffer.empty() ) {
           /* Empty buffer, wait for data */
           need_more_data = true;
           break;
@@ -165,14 +165,14 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
      
         /* Find crlf start */
         crlf_start = memcspn(databuffer,"\r\n",databuffer.size());
-        if(crlf_start == databuffer.size()) {
+        if ( crlf_start == databuffer.size() ) {
           /* Not found, wait for more data */
           need_more_data = true;
           break;
         }
 
         /* See if we have enough data for determining crlf length */
-        if(databuffer.size() < crlf_start+5) {
+        if ( databuffer.size() < crlf_start+5 ) {
           /* Need more data */
           need_more_data = true;
           break;
@@ -183,13 +183,13 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
         crlf_size = (crlf_start + crlf_end) - crlf_start;
 
         /* Is this the end of a previous stream? (This is just before the boundary) */
-        if(crlf_start == 0) {
+        if ( crlf_start == 0 ) {
           databuffer.consume(crlf_size);
           continue;        
         }
 
         /* Check for invalid CRLF size */
-        if(crlf_size > 4) {
+        if ( crlf_size > 4 ) {
           Error("Invalid CRLF length");
         }
 
@@ -209,7 +209,7 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
 
         /* Find where the data in this header starts */
         size_t subheader_data_start = subheader.rfind(' ');
-        if(subheader_data_start == std::string::npos) {
+        if ( subheader_data_start == std::string::npos ) {
           subheader_data_start = subheader.find(':');
         }
 
@@ -247,7 +247,7 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
           need_more_data = true;
         } else {
           /* All good. decode the image */
-          image.DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
+          zm_packet.image->DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
           frameComplete = true;
         }
       }
@@ -257,7 +257,7 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
         nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
         if(nRet != 0) {
           Error("Failed waiting for available data condition variable: %s",strerror(nRet));
-          return NULL;
+          return -1;
         }
         need_more_data = false;
       }
@@ -267,7 +267,7 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
       if (!single_offsets.empty()) {
         if( (single_offsets.front() > 0) && (databuffer.size() >= single_offsets.front()) ) {
           /* Extract frame */
-          image.DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
+          zm_packet.image->DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
           single_offsets.pop_front();
           frameComplete = true;
         } else {
@@ -281,7 +281,7 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
         nRet = pthread_cond_wait(&request_complete_cond,&shareddata_mutex);
         if(nRet != 0) {
           Error("Failed waiting for request complete condition variable: %s",strerror(nRet));
-          return NULL;
+          return -1;
         }
       }
     } else {
@@ -295,10 +295,9 @@ ZMPacket * cURLCamera::Capture( Image &image ) {
   unlock();
 
   if(!frameComplete)
-    return NULL;
+    return 0;
 
-  ZMPacket * packet = new ZMPacket( &image );
-  return packet;
+  return 1;
 }
 
 int cURLCamera::PostCapture() {

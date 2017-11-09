@@ -56,7 +56,7 @@ public:
   void Initialise();
   void Terminate();
   int PreCapture();
-  ZMPacket * Capture( Image &image );
+  int Capture( ZMPacket &p );
   int PostCapture();
 };
 

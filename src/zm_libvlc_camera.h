@@ -67,7 +67,7 @@ public:
 
   int PrimeCapture();
   int PreCapture();
-  ZMPacket *Capture( Image &image );
+  int Capture( ZMPacket &p );
   int PostCapture();
 };
 

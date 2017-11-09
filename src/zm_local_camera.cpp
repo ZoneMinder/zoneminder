@@ -1902,7 +1902,7 @@ int LocalCamera::PreCapture() {
   return( 0 );
 }
 
-ZMPacket *LocalCamera::Capture( Image &image ) {
+int LocalCamera::Capture( ZMPacket &zm_packet ) {
 
   // We assume that the avpacket is allocated, and just needs to be filled
   Debug( 3, "Capturing" );
@@ -1938,7 +1938,7 @@ ZMPacket *LocalCamera::Capture( Image &image ) {
             Warning( "Capture failure, possible signal loss?: %s", strerror(errno) )
           else
             Error( "Unable to capture frame %d: %s", vid_buf.index, strerror(errno) )
-              return NULL;
+              return -1;
         }
 
         v4l2_data.bufptr = &vid_buf;
@@ -1946,10 +1946,10 @@ ZMPacket *LocalCamera::Capture( Image &image ) {
         if ( --captures_per_frame ) {
           if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) < 0 ) {
             Error( "Unable to requeue buffer %d: %s", vid_buf.index, strerror(errno) );
-            return NULL;
+            return -1;
           }
         }
-      }
+      } // while captures_per_frame
 
       Debug( 3, "Captured frame %d/%d from channel %d", capture_frame, v4l2_data.bufptr->sequence, channel );
 
@@ -1959,7 +1959,7 @@ ZMPacket *LocalCamera::Capture( Image &image ) {
       if ( (v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) !=  (width * height) ) {
         Fatal("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",v4l2_data.fmt.fmt.pix.width,v4l2_data.fmt.fmt.pix.height,width,height);
       }
-    } else
+    } else // end if v4l2
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
     if ( v4l_version == 1 ) {
@@ -1968,14 +1968,14 @@ ZMPacket *LocalCamera::Capture( Image &image ) {
         Debug( 3, "Syncing frame %d", v4l1_data.active_frame );
         if ( ioctl( vid_fd, VIDIOCSYNC, &v4l1_data.active_frame ) < 0 ) {
           Error( "Sync failure for frame %d buffer %d: %s", v4l1_data.active_frame, captures_per_frame, strerror(errno) );
-          return NULL;
+          return -1;
         }
         captures_per_frame--;
         if ( captures_per_frame ) {
           Debug( 3, "Capturing frame %d", v4l1_data.active_frame );
           if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.active_frame] ) < 0 ) {
             Error( "Capture failure for buffer %d (%d): %s", v4l1_data.active_frame, captures_per_frame, strerror(errno) );
-            return NULL;
+            return -1;
           }
         }
       }
@@ -1987,17 +1987,15 @@ ZMPacket *LocalCamera::Capture( Image &image ) {
 #endif // ZM_HAS_V4L1
   } /* prime capture */    
 
-  ZMPacket *packet = new ZMPacket( &image );
   if ( conversion_type != 0 ) {
 
     Debug( 3, "Performing format conversion" );
 
     /* Request a writeable buffer of the target image */
-    directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+    directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
     if ( directbuffer == NULL ) {
       Error("Failed requesting writeable buffer for the captured image.");
-      delete packet;
-      return NULL;
+      return -1;
     }
 #if HAVE_LIBSWSCALE
     if ( conversion_type == 1 ) {
@@ -2012,11 +2010,18 @@ ZMPacket *LocalCamera::Capture( Image &image ) {
       avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
           imagePixFormat, width, height );
 #endif
-      sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
+      sws_scale(
+          imgConversionContext,
+          capturePictures[capture_frame]->data,
+          capturePictures[capture_frame]->linesize,
+          0,
+          height,
+          tmpPicture->data,
+          tmpPicture->linesize
+          );
     } else
 #endif  
     if ( conversion_type == 2 ) {
-
       Debug( 9, "Calling the conversion function" );
       /* Call the image conversion function and convert directly into the shared memory */
       (*conversion_fptr)(buffer, directbuffer, pixels);
@@ -2024,17 +2029,17 @@ ZMPacket *LocalCamera::Capture( Image &image ) {
       // Need to store the jpeg data too
       Debug( 9, "Decoding the JPEG image" );
       /* JPEG decoding */
-      image.DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
+      zm_packet.image->DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
     }
 
   } else {
     Debug( 3, "No format conversion performed. Assigning the image" );
 
     /* No conversion was performed, the image is in the V4L buffers and needs to be copied into the shared memory */
-    image.Assign(width, height, colours, subpixelorder, buffer, imagesize);
+    zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
   } // end if doing conversion or not
 
-  return packet;
+  return 1;
 } // end Capture
 
 int LocalCamera::PostCapture() {

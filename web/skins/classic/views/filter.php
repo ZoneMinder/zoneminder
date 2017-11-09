@@ -69,10 +69,14 @@ $attrTypes = array(
     'Name'        => translate('AttrName'),
     'Cause'       => translate('AttrCause'),
     'Notes'       => translate('AttrNotes'),
-    'DateTime'    => translate('AttrDateTime'),
-    'Date'        => translate('AttrDate'),
-    'Time'        => translate('AttrTime'),
-    'Weekday'     => translate('AttrWeekday'),
+    'StartDateTime'    => translate('AttrStartDateTime'),
+    'StartDate'        => translate('AttrStartDate'),
+    'StartTime'        => translate('AttrStartTime'),
+    'StartWeekday'     => translate('AttrStartWeekday'),
+    'EndDateTime'    => translate('AttrEndDateTime'),
+    'EndDate'        => translate('AttrEndDate'),
+    'EndTime'        => translate('AttrEndTime'),
+    'EndWeekday'     => translate('AttrEndWeekday'),
     'Length'      => translate('AttrDuration'),
     'Frames'      => translate('AttrFrames'),
     'AlarmFrames' => translate('AttrAlarmFrames'),
@@ -80,8 +84,9 @@ $attrTypes = array(
     'AvgScore'    => translate('AttrAvgScore'),
     'MaxScore'    => translate('AttrMaxScore'),
     'Archived'    => translate('AttrArchiveStatus'),
-    'DiskPercent' => translate('AttrDiskPercent'),
     'DiskBlocks'  => translate('AttrDiskBlocks'),
+    'DiskPercent' => translate('AttrDiskPercent'),
+    'DiskSpace'   => translate('AttrDiskSpace'),
     'SystemLoad'  => translate('AttrSystemLoad'),
     'StorageId'   => translate('AttrStorageArea'),
     'ServerId'    => translate('AttrServer'),
@@ -99,6 +104,8 @@ $opTypes = array(
     '!~'  => translate('OpNotMatches'),
     '=[]' => translate('OpIn'),
     '![]' => translate('OpNotIn'),
+    'IS'  => translate('OpIs'),
+    'IS NOT'  => translate('OpIsNot'),
     );
 
 $archiveTypes = array(
@@ -297,18 +304,19 @@ if ( count($terms) == 0 ) {
                 <label for="filter[Query][sort_field]"><?php echo translate('SortBy') ?></label>
                 <?php
 $sort_fields = array(
-    'Id'          => translate('AttrId'),
-    'Name'        => translate('AttrName'),
-    'Cause'       => translate('AttrCause'),
-    'Notes'       => translate('AttrNotes'),
-    'MonitorName' => translate('AttrMonitorName'),
-    'DateTime'    => translate('AttrDateTime'),
-    'Length'      => translate('AttrDuration'),
-    'Frames'      => translate('AttrFrames'),
-    'AlarmFrames' => translate('AttrAlarmFrames'),
-    'TotScore'    => translate('AttrTotalScore'),
-    'AvgScore'    => translate('AttrAvgScore'),
-    'MaxScore'    => translate('AttrMaxScore'),
+    'Id'            => translate('AttrId'),
+    'Name'          => translate('AttrName'),
+    'Cause'         => translate('AttrCause'),
+    'DiskSpace'     => translate('AttrDiskSpace'),
+    'Notes'         => translate('AttrNotes'),
+    'MonitorName'   => translate('AttrMonitorName'),
+    'StartDateTime' => translate('AttrStartDateTime'),
+    'Length'        => translate('AttrDuration'),
+    'Frames'        => translate('AttrFrames'),
+    'AlarmFrames'   => translate('AttrAlarmFrames'),
+    'TotScore'      => translate('AttrTotalScore'),
+    'AvgScore'      => translate('AttrAvgScore'),
+    'MaxScore'      => translate('AttrMaxScore'),
     );
 echo htmlSelect( 'filter[Query][sort_field]', $sort_fields, $filter->sort_field() );
 $sort_dirns = array(
@@ -331,6 +339,9 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
             <p>
               <label><?php echo translate('FilterArchiveEvents') ?></label>
               <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( !empty($filter->AutoArchive()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+            </p>
+            <p><label><?php echo translate('FilterUpdateDiskSpace') ?></label>
+              <input type="checkbox" name="filter[UpdateDiskSpace]" value="1"<?php echo empty($filter->UpdateDiskSpace()) ? '' : ' checked="checked"' ?> onclick="updateButtons(this);"/>
             </p>
 <?php
 if ( ZM_OPT_FFMPEG ) {
@@ -387,7 +398,7 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Submit') ?>" onclick="submitToEvents( this );"/>
+          <input type="submit" value="<?php echo translate('ListMatches') ?>" onclick="submitToEvents( this );"/>
           <input type="button" name="executeButton" id="executeButton" value="<?php echo translate('Execute') ?>" onclick="executeFilter( this );"/>
 <?php 
 if ( canEdit( 'Events' ) ) {

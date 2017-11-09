@@ -76,7 +76,7 @@ public:
 
   int PrimeCapture();
   int PreCapture();
-  ZMPacket * Capture( Image &image );
+  int Capture( ZMPacket &p );
   int PostCapture();
 
   size_t data_callback(void *buffer, size_t size, size_t nmemb, void *userdata);

@@ -392,9 +392,9 @@ if ( ZM_HAS_V4L2 ) {
 }
 
 $Colours = array(
-    translate('8BitGrey')    => 1,
-    translate('24BitColour') => 3,
-    translate('32BitColour') => 4
+    '1' => translate('8BitGrey'),
+    '3' => translate('24BitColour'),
+    '4' => translate('32BitColour')
     );
 
 $orientations = array(
@@ -803,7 +803,10 @@ switch ( $tab ) {
 <?php
         if ( ZM_HAS_V4L1 && $monitor->Method() == 'v4l1' ) {
 ?>
-          <tr><td><?php echo translate('DeviceChannel') ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l1DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Channel()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+          <tr>
+            <td><?php echo translate('DeviceChannel') ?></td>
+            <td><select name="newMonitor[Channel]"><?php foreach ( $v4l1DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Channel()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td>
+          </tr>
           <tr><td><?php echo translate('DeviceFormat') ?></td><td><select name="newMonitor[Format]"><?php foreach ( $v4l1DeviceFormats as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Format()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
           <tr><td><?php echo translate('CapturePalette') ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l1LocalPalettes as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Palette()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
@@ -827,7 +830,7 @@ switch ( $tab ) {
 <?php
       
       } else if ( $monitor->Type() == 'NVSocket' ) {
-include('monitor_source_nvsocket.php');
+include("_monitor_source_nvsocket.php");
       } else if ( $monitor->Type() == 'Remote' ) {
 ?>
           <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo htmlSelect( "newMonitor[Protocol]", $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?></td></tr>

@@ -37,6 +37,8 @@ if ( $$opts{protocol} eq 'https' ) {
     die "https requires a server_name";
   }
   $VirtualHostPorts = ' *:443';
+} else {
+  $VirtualHostPorts = ' *:80';
 }
 
 

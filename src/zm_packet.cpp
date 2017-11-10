@@ -29,6 +29,7 @@ ZMPacket::ZMPacket( ) {
   image = NULL;
   frame = NULL;
   av_init_packet( &packet );
+  packet.size = 0;
   gettimeofday( &timestamp, NULL );
 }
 
@@ -61,6 +62,12 @@ ZMPacket::ZMPacket( AVPacket *p, AVFrame *f, Image *i ) {
 
 ZMPacket::~ZMPacket() {
   zm_av_packet_unref( &packet );
+  if ( frame ) {
+    av_frame_free( &frame );
+  }
+  if ( image ) {
+    delete image;
+  }
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {

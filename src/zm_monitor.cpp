@@ -1146,7 +1146,7 @@ bool Monitor::CheckSignal( const Image *image ) {
 bool Monitor::Analyse() {
   if ( shared_data->last_read_index == shared_data->last_write_index ) {
     // I wonder how often this happens. Maybe if this happens we should sleep or something?
-    Debug(3, " shared_data->last_read_index == shared_data->last_write_index " );
+    //Debug(3, " shared_data->last_read_index == shared_data->last_write_index " );
     return false;
   }
 

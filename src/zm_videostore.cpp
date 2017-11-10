@@ -150,7 +150,13 @@ VideoStore::VideoStore(
       Error("Could not allocate in frame");
       return;
     }
-    video_out_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+    video_out_codec = avcodec_find_encoder_by_name( "h264_omx" );
+    if ( ! video_out_codec ) {
+      Debug(3, "omx not foudn");
+    }
+    if ( ! video_out_codec ) 
+      video_out_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+
     if (!video_out_codec) {
       Fatal("Could not find codec for H264");
     }

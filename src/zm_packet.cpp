@@ -65,9 +65,8 @@ ZMPacket::~ZMPacket() {
   if ( frame ) {
     av_frame_free( &frame );
   }
-  if ( image ) {
-    delete image;
-  }
+  // We assume the image was allocated elsewhere, so we just unref it.
+  image = NULL;
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {

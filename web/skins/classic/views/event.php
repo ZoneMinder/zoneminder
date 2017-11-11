@@ -162,12 +162,23 @@ if ( $Event->DefaultVideo() ) {
           Your browser does not support the video tag.
           </video>
         </div>
-        <!--script>includeVideoJs();</script-->
-
-      <p id="dvrControls" class="dvrControls">
-        <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
-        <input type="button" value="+&gt;" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" onclick="streamNext( true );"/>
-      </p>
+        <p id="dvrControls" class="dvrControls">
+          <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
+          <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" onclick="streamFastRev( true );"/>
+          <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" onclick="streamSlowRev( true );"/>
+          <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" onclick="pauseClicked();"/>
+          <input type="button" value="|>" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" onclick="playClicked();"/>
+          <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" onclick="streamSlowFwd( true );"/>
+          <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" onclick="streamFastFwd( true );"/>
+          <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" onclick="streamZoomOut();"/>
+          <input type="button" value="+&gt;" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" onclick="streamNext( true );"/>
+        </p>
+        <div id="replayStatus">
+          <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
+          <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"><?php echo $rate/100 ?></span>x</span>
+          <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+          <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
+        </div>
       </div><!--eventVideo-->
 <?php
 }  // end if DefaultVideo

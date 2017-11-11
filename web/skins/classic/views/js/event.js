@@ -774,21 +774,27 @@ function showEventFrames() {
   createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames' );
 }
 
-function showVideo() {
+function showStream() {
   $('eventStills').addClass( 'hidden' );
-  $('imageFeed').addClass('hidden');
-  $('eventVideo').removeClass( 'hidden' );
+  if (vid) {
+    $('eventVideo').removeClass( 'hidden' );
+  } else {
+    $('imageFeed').removeClass('hidden');
+  }
 
   $('stillsEvent').removeClass( 'hidden' );
-  $('videoEvent').addClass( 'hidden' );
+  $('streamEvent').addClass( 'hidden' );
 
   streamMode = 'video';
 }
 
 function showStills() {
   $('eventStills').removeClass( 'hidden' );
-  $('imageFeed').removeClass('hidden');
-  $('eventVideo').addClass( 'hidden' );		
+  if (vid) {
+    $('eventVideo').addClass( 'hidden' );
+  } else {
+    $('imageFeed').addClass('hidden');
+  }
 
   if (vid && ( vid.paused != true ) ) {
     // Pause the video
@@ -800,7 +806,7 @@ function showStills() {
   }
 
   $('stillsEvent').addClass( 'hidden' );
-  $('videoEvent').removeClass( 'hidden' );
+  $('streamEvent').removeClass( 'hidden' );
 
   streamMode = 'stills';
 

@@ -135,13 +135,9 @@ if ( canEdit('Events') ) {
 } // end if can edit Events
 ?>
         <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
+        <div id="streamEvent" class="hidden"><a href="#" onclick="showStream()"><?php echo translate('Stream') ?></a></div>
+        <div id="stillsEvent"><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
 
-<?php
-if ( $Event->SaveJPEGs() & 3 ) { // Analysis or Jpegs
-?>
-        <div id="stillsEvent"<?php if ( $streamMode == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
-<?php
-} // has frames or analysis
 <?php
   if ( $Event->DefaultVideo() ) {
 ?>
@@ -215,9 +211,6 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
       </div><!--imageFeed-->
       </div>
 <?php } /*end if !DefaultVideo*/ ?>
-<?php
-  if ( $Event->SaveJPEGs() & 3 ) { // frames or analysis
-?>
       <div id="eventStills" class="hidden">
         <div id="eventThumbsPanel">
           <div id="eventThumbs">
@@ -253,7 +246,6 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </div>
       </div>
 <?php
-  } // end if SaveJPEGs() & 3 Analysis or Jpegs
 } // end if Event exists
 ?>
   </div><!--page-->

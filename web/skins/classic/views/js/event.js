@@ -153,26 +153,40 @@ function scaleToFit () {
     newWidth = container.innerWidth();
     newHeight = newWidth / ratio;
   }
-  return {width: Math.floor(newWidth), height: Math.floor(newHeight)};
+  let autoScale = Math.round(newWidth / eventData.Width * SCALE_BASE);
+  let scales = $j('#scale option').map(function() {return parseInt($j(this).val());}).get();
+  scales.shift();
+  let closest = null;
+  $j(scales).each(function () { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
+    if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
+      closest = this.valueOf();
+    }
+  });
+  autoScale = closest;
+  return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
 function changeScale() {
   let scale = $j('#scale').val();
+  let newWidth = null;
+  let newHeight = null;
+  let autoScale = null;
   if (scale == "auto") {
     let newSize = scaleToFit();
-    var newWidth = newSize.width;
-    var newHeight = newSize.height;
+    newWidth = newSize.width;
+    newHeight = newSize.height;
+    autoScale = newSize.autoScale;
   } else {
     $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-    var newWidth = eventData.Width * scale / SCALE_BASE;
-    var newHeight = eventData.Height * scale / SCALE_BASE;
+    newWidth = eventData.Width * scale / SCALE_BASE;
+    newHeight = eventData.Height * scale / SCALE_BASE;
   }
   let alarmCue = $j('div.alarmCue');
   let eventViewer = $j(vid ? '#videoobj' : '#evtStream')
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
-    streamScale(scale == "auto" ? Math.round(newWidth / eventData.Width * SCALE_BASE) : scale);
+    streamScale(scale == "auto" ? autoScale : scale);
     alarmCue.width(newWidth);
     drawProgressBar();
   }

@@ -145,7 +145,7 @@ if ( $Event->SaveJPEGs() & 3 ) { // Analysis or Jpegs
 <?php
   if ( $Event->DefaultVideo() ) {
 ?>
-        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'))?>">Download MP4</a></div>
+        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'))?>" download>Download MP4</a></div>
 <?php
   } else {
 ?>

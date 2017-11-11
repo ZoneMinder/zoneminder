@@ -1,48 +1,43 @@
 var vid = null;
 
 function vjsReplay() {
-  vid.ready(function(){
-    var player = this;
-    player.on('ended', function() {
-      var endTime = (Date.parse(eventData.EndTime)).getTime();
-      switch(replayMode.value) {
-        case 'none':
-          break;
-        case 'single':
-          player.play();
-          break;
-        case 'all':
-          if (nextEventId == 0) {
-            let overLaid = $j("#videoobj");
-            overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
-          } else {
-            var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
-            if (nextStartTime <= endTime) {
-             streamNext( true );
-             return;
-            }
-            let overLaid = $j("#videoobj");
-            vid.pause();
-            overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-            var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
-            let messageP = $j(".vjsMessage");
-            var x = setInterval(function() {
-              var now = new Date().getTime();
-              var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
-              messageP.html(remainder + ' to next event.');
-              if (remainder < 0) {
-                clearInterval(x);
-                streamNext( true );
-              }
-            }, 1000);
+  let endTime = (Date.parse(eventData.EndTime)).getTime();
+  switch(replayMode.value) {
+    case 'none':
+      break;
+    case 'single':
+      player.play();
+      break;
+    case 'all':
+      if (nextEventId == 0) {
+        let overLaid = $j("#videoobj");
+        overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
+      } else {
+        let nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+        if (nextStartTime <= endTime) {
+         streamNext( true );
+         return;
+        }
+        let overLaid = $j("#videoobj");
+        vid.pause();
+        overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
+        let gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+        let messageP = $j(".vjsMessage");
+        let x = setInterval(function() {
+          let now = new Date().getTime();
+          let remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
+          messageP.html(remainder + ' to next event.');
+          if (remainder < 0) {
+            clearInterval(x);
+            streamNext( true );
           }
-            break;
-        case 'gapless':
-          streamNext( true );
-          break;
+        }, 1000);
       }
-    });
-  });
+        break;
+    case 'gapless':
+      streamNext( true );
+      break;
+  }
 }
 
 $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.

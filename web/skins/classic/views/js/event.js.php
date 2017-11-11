@@ -33,12 +33,14 @@ var eventData = {
     Length: '<?php echo $Event->Length() ?>',
     StartTime: '<?php echo $Event->StartTime() ?>',
     EndTime: '<?php echo $Event->EndTime() ?>',
+    Frames: '<?php echo $Event->Frames() ?>',
     MonitorName: '<?php echo $Monitor->Name() ?>'
 };
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
+var rates = <?php echo json_encode(array_keys($rates)) ?>;
 var scale = "<?php echo $scale ?>";
 var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
 

@@ -124,7 +124,11 @@ function renderAlarmCues () {
 function setButtonState( element, butClass ) {
   if ( element ) {
     element.className = butClass;
-    element.disabled = (butClass != 'inactive' && (element.id == "pauseBtn" || element.id == "playBtn"));
+    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
+      element.disabled = true;
+    } else {
+      element.disabled = false;
+    }
   } else {
     console.log("Element was null in setButtonState");
   }
@@ -218,17 +222,13 @@ function getCmdResponse( respObj, respText ) {
     lastEventId = eventId;
   }
   if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
-  if ( streamStatus.paused == true ) {
-    $('modeValue').set( 'text', 'Paused' );
-    $('rate').addClass( 'hidden' );
-  } else {
+  if (!streamStatus.paused){
     console.log('playing');
-    $('modeValue').set( 'text', "Replay" );
-    $('rateValue').set( 'text', streamStatus.rate );
-    $('rate').removeClass( 'hidden' );
+    $j('#modeValue').html("Replay");
+    $j('#rateValue').html(streamStatus.rate);
   }
-  $('progressValue').set( 'text', secsToTime( parseInt(streamStatus.progress) ) );
-  $('zoomValue').set( 'text', streamStatus.zoom );
+  $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
+  $j('#zoomValue').html(streamStatus.zoom);
   if ( streamStatus.zoom == "1.0" )
     setButtonState( $('zoomOutBtn'), 'unavail' );
   else
@@ -248,13 +248,23 @@ function getCmdResponse( respObj, respText ) {
 
 var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
 
-function pauseClicked( ) {
-  streamReq.send( streamParms+"&command="+CMD_PAUSE );
+function pauseClicked() {
+  if (vid) {
+    vid.pause();
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_PAUSE );
+    streamPause();
+  }
+}
+
+function vjsPause () {
+  stopFastRev();
   streamPause();
 }
 
-// Called when stream becomes paused, just updates the button status
 function streamPause( ) {
+  $j('#modeValue').html('Paused');
+  $j('#rateValue').html('0');
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );
   setButtonState( $('fastFwdBtn'), 'unavail' );
@@ -264,11 +274,26 @@ function streamPause( ) {
 }
 
 function playClicked( ) {
-  streamReq.send( streamParms+"&command="+CMD_PLAY );
+  if (vid) {
+    if (vid.paused()) {
+      vid.play();
+    } else {
+      vjsPlay();
+  }
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_PLAY );
+    streamPlay();
+  }
+}
+
+function vjsPlay () { //catches if we change mode programatically
+  stopFastRev();
+  $j('#rateValue').html(vid.playbackRate());
   streamPlay();
 }
 
 function streamPlay( ) {
+  $j('#modeValue').html('Replay');
   setButtonState( $('pauseBtn'), 'inactive' );
   setButtonState( $('playBtn'), 'active' );
   setButtonState( $('fastFwdBtn'), 'inactive' );
@@ -284,15 +309,40 @@ function streamFastFwd( action ) {
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
   setButtonState( $('fastRevBtn'), 'inactive' );
-  streamReq.send( streamParms+"&command="+CMD_FASTFWD );
+  if (vid) {
+    if (revSpeed != .5) stopFastRev();
+    vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)-1]/100);
+    if (rates.indexOf(vid.playbackRate()*100)-1 == -1) setButtonState($('fastFwdBtn'), 'unavail');
+    $j('#rateValue').html(vid.playbackRate());
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_FASTFWD );
+  }
 }
 
+var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
+var intervalRewind;
+var revSpeed = .5;
+
 function streamSlowFwd( action ) {
-  streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
+  if (vid) {
+   vid.currentTime(vid.currentTime() + spf);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
+  }
 }
 
 function streamSlowRev( action ) {
-  streamReq.send( streamParms+"&command="+CMD_SLOWREV );
+  if (vid) {
+    vid.currentTime(vid.currentTime() - spf);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_SLOWREV );
+  }
+}
+
+function stopFastRev () {
+  clearInterval(intervalRewind);
+  vid.playbackRate(1);
+  revSpeed = .5;
 }
 
 function streamFastRev( action ) {
@@ -301,8 +351,26 @@ function streamFastRev( action ) {
   setButtonState( $('fastFwdBtn'), 'inactive' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
-  streamReq.send( streamParms+"&command="+CMD_FASTREV );
   setButtonState( $('fastRevBtn'), 'active' );
+  if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manualy set the time back.
+    revSpeed = rates[rates.indexOf(revSpeed*100)-1]/100;
+    if (rates.indexOf(revSpeed*100) == 0) {
+      setButtonState( $('fastRevBtn'), 'unavail' );
+    }
+    clearInterval(intervalRewind);
+    $j('#rateValue').html(-revSpeed);
+    intervalRewind = setInterval(function() {
+      if (vid.currentTime() <= 0) {
+        clearInterval(intervalRewind);
+        vid.pause();
+      } else {
+        vid.playbackRate(0);
+        vid.currentTime(vid.currentTime() - (revSpeed/2)); //Half of reverse speed because our interval is 500ms.
+      }
+    }, 500); //500ms is a compromise between smooth reverse and realistic performance
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_FASTREV );
+  }
 }
 
 function streamPrev(action) {
@@ -324,7 +392,7 @@ function streamNext(action) {
   if (action) {
     $j(".vjsMessage").remove();//This shouldn't happen
     if (nextEventId == 0) { //handles deleting last event.
-      vid ? vid.pause() : streamPause();
+      pauseClicked();
       let hideContainer = $j( vid ? "#eventVideo" : "#imageFeed");
       let hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
       hideContainer.prepend('<p class="vjsMessage" style="height: ' + hideStream + 'px; line-height: ' + hideStream + 'px;">No more events</p>');
@@ -343,12 +411,61 @@ function streamNext(action) {
   }
 }
 
+function vjsPanZoom (action, x, y) { //Pan and zoom with centering where the click occurs
+  let outer = $j('#videoobj');
+  let video = outer.children().first();
+  let zoom =  parseFloat($j('#zoomValue').html());
+  let zoomRate = .5;
+  let matrix = video.css('transform').split(',');
+  let currentPanX = parseFloat(matrix[4]);
+  let currentPanY = parseFloat(matrix[5]);
+  let xDist = outer.width()/2 - x //Click distance from center of view
+  let yDist = outer.height()/2 - y
+  if (action == 'zoomOut') {
+    zoom -= zoomRate;
+    if (x && y) {
+      x = (xDist + currentPanX)*((zoom-zoomRate)/zoom); // if ctrl-click Pan but use ratio of old zoom to new zoom for coords
+      y = (yDist + currentPanY)*((zoom-zoomRate)/zoom);
+    } else {
+      x = currentPanX*((zoom-zoomRate)/zoom); //Leave zoom centered where it was
+      y = currentPanY*((zoom-zoomRate)/zoom);
+    }
+    if (zoom <= 1) {
+      zoom = 1;
+      $j('#zoomOutBtn').attr('class', 'unavail').attr('disabled', 'disabled');
+    }
+    $j('#zoomValue').html(zoom);
+  } else if (action == 'zoom') {
+    zoom += zoomRate;
+    x = (xDist + currentPanX)*(zoom/(zoom-zoomRate)); //Pan but use ratio of new zoom to old zoom for coords.  Center on mouse click.
+    y = (yDist + currentPanY)*(zoom/(zoom-zoomRate));
+    $j('#zoomOutBtn').attr('class', 'inactive').removeAttr('disabled');
+    $j('#zoomValue').html(zoom);
+  } else if (action == 'pan') {
+    x = xDist + currentPanX;
+    y = yDist + currentPanY;
+  }
+  let limitX = ((zoom*outer.width()) - outer.width())/2; //Calculate outer bounds of video
+  let limitY = ((zoom*outer.height()) - outer.height())/2;
+  x = Math.min(Math.max((x),-limitX),limitX); //Limit pan to outer bounds of video
+  y = Math.min(Math.max((y),-limitY),limitY);
+  video.css('transform', 'matrix('+zoom+', 0, 0, '+zoom+', '+x+', '+y+')');
+}
+
 function streamZoomIn( x, y ) {
-  streamReq.send( streamParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
+  if (vid) {
+    vjsPanZoom('zoom', x, y);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
+  }
 }
 
 function streamZoomOut() {
-  streamReq.send( streamParms+"&command="+CMD_ZOOMOUT );
+  if (vid) {
+    vjsPanZoom('zoomOut');
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_ZOOMOUT );
+  }
 }
 
 function streamScale( scale ) {
@@ -356,7 +473,11 @@ function streamScale( scale ) {
 }
 
 function streamPan( x, y ) {
-  streamReq.send( streamParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
+  if (vid) {
+    vjsPanZoom('pan', x, y);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
+  }
 }
 
 function streamSeek( offset ) {
@@ -414,6 +535,10 @@ function getEventResponse( respObj, respText ) {
     initialAlarmCues(eventData.Id);//ajax and render, new event
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
     CurEventDefVideoPath = null;
+    $j('#modeValue').html('Replay');
+    $j('#zoomValue').html('1');
+    $j('#rateValue').html('1');
+    vjsPanZoom('zoomOut');
   } else {
     drawProgressBar();
   }
@@ -715,7 +840,7 @@ function actQuery( action, parms ) {
 }
 
 function deleteEvent() {
-  vid ? vid.pause() : streamPause(); //Provides visual feedback that your click happened.
+  pauseClicked(); //Provides visual feedback that your click happened.
   actQuery( 'delete' );
   streamNext( true );
 }
@@ -781,7 +906,7 @@ function showStills() {
 
   streamMode = 'stills';
 
-  streamPause( true );
+  pauseClicked();
   if ( !scroll ) {
     scroll = new Fx.Scroll( 'eventThumbs', {
       wait: false,
@@ -829,11 +954,19 @@ function progressBarNav (){
 
 function handleClick( event ) {
   var target = event.target;
-  var x = event.page.x - $(target).getLeft();
-  var y = event.page.y - $(target).getTop();
+  if (vid) {
+    if (target.id != 'videoobj') return; //ignore clicks on control bar
+    var x = event.offsetX;
+    var y = event.offsetY;
+  } else {
+    var x = event.page.x - $(target).getLeft();
+    var y = event.page.y - $(target).getTop();
+  }
 
-  if (event.shift) {
+  if (event.shift || event.shiftKey) {//handle both jquery and mootools
     streamPan(x, y);
+  } else if (vid && event.ctrlKey) { //allow zoom out by control click.  useful in fullscreen
+    vjsPanZoom('zoomOut', x, y);
   } else {
     streamZoomIn(x, y);
   }
@@ -937,31 +1070,14 @@ function setupListener() {
 function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if ($j('#videoobj').length) {
-    vid = videojs("videoobj");
+    vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
-    $j(".vjs-progress-control").append('<div class="alarmCue"></div>');//add a place for videojs only on first load
-    nearEventsQuery(eventData.Id);
-    initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues after videojs is initialized
-    vjsReplay();
-  }
-  if (vid) {
-/*
-    setupListener();
-      vid.removeAttribute("controls");
-    /* window.videoobj.oncanplay=null;
-    window.videoobj.currentTime=window.videoobj.currentTime-1;
-    window.videoobj.currentTime=window.videoobj.currentTime+1;//may not be symetrical of course
-
-    vid.onstalled=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;} 
-    vid.onwaiting=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    vid.onloadstart=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    vid.onplay=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    vid.onplaying=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    //window.vid.hide();//does not help
-    var sources = window.videoobj.getElementsByTagName('source');
-    sources[0].src=null;
-    window.videoobj.load();
-    streamPlay();    */
+    $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
+    vid.on('ended', vjsReplay);
+    vid.on('play', vjsPlay);
+    vid.on('pause', vjsPause);
+    vid.on('click', function(event){handleClick(event);});
+    vid.on('timeupdate', function (){$j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())))});
   } else {
     progressBarNav ();
     streamCmdTimer = streamQuery.delay( 250 );

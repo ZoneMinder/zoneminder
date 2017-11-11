@@ -1081,9 +1081,6 @@ function initPage() {
   } else {
     progressBarNav ();
     streamCmdTimer = streamQuery.delay( 250 );
-    eventQuery.pass(eventData.id);
-    initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues for zms.
-
     if ( canStreamNative ) {
       var streamImg = $('imageFeed').getElement('img');
       if ( !streamImg )
@@ -1091,7 +1088,9 @@ function initPage() {
       $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
     }
   }
-if (scale == "auto") changeScale();
+  nearEventsQuery(eventData.Id);
+  initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
+  if (scale == "auto") changeScale();
 }
 
 // Kick everything off

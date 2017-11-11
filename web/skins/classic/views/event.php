@@ -199,14 +199,14 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           <input type="button" value="|>" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" onclick="playClicked();"/>
           <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" onclick="streamSlowFwd( true );"/>
           <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" onclick="streamFastFwd( true );"/>
-          <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" onclick="streamZoomOut();"/>
+          <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" onclick="streamZoomOut();"/>
           <input type="button" value="+&gt;" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" onclick="streamNext( true );"/>
         </p>
         <div id="replayStatus">
-          <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">&nbsp;</span></span>
+          <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
           <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"></span>x</span>
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue"></span>s</span>
-          <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
+          <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>
       </div><!--imageFeed-->
       </div>

@@ -269,7 +269,8 @@ int main(int argc, char *argv[]) {
   struct timeval now;
   struct DeltaTimeval delta_time;
   while ( !zm_terminate ) {
-    sigprocmask(SIG_BLOCK, &block_set, 0);
+    Debug(2,"blocking");
+    //sigprocmask(SIG_BLOCK, &block_set, 0);
     for ( int i = 0; i < n_monitors; i++ ) {
       long min_delay = MAXINT;
 
@@ -316,14 +317,18 @@ int main(int argc, char *argv[]) {
           DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
           long sleep_time = next_delays[i]-delta_time.delta;
           if ( sleep_time > 0 ) {
+            Debug(2,"usleeping (%d)", sleep_time*(DT_MAXGRAN/DT_PREC_3) );
             usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
           }
+          last_capture_times[i] = now;
+        } else {
+          gettimeofday(&(last_capture_times[i]), NULL);
         }
-        gettimeofday(&(last_capture_times[i]), NULL);
       }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
 
     }  // end foreach n_monitors
-    sigprocmask(SIG_UNBLOCK, &block_set, 0);
+    Debug(2,"unblocking");
+    //sigprocmask(SIG_UNBLOCK, &block_set, 0);
   }  // end while ! zm_terminate
   for ( int i = 0; i < n_monitors; i++ ) {
     if ( analysis_threads[i] ) {

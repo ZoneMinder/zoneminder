@@ -29,10 +29,13 @@ int AnalysisThread::run() {
     if ( analysis_update_delay ) {
       cur_time = time( 0 );
       if ( (unsigned int)( cur_time - last_analysis_update_time ) > analysis_update_delay ) {
+Debug(4, "Updating " );
         analysis_rate = monitor->GetAnalysisRate();
         monitor->UpdateAdaptiveSkip();
         last_analysis_update_time = cur_time;
       }
+    } else {
+Debug(4, "Not Updating " );
     }
 
     if ( !monitor->Analyse() ) {
@@ -44,6 +47,6 @@ Debug(4, "Sleeping for %d", analysis_rate);
     }
 
     //sigprocmask(SIG_UNBLOCK, &block_set, 0);
-  }
+  } // end while ! terminate
   return 0;
 } // end in AnalysisThread::run()

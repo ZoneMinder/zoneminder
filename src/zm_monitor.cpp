@@ -1149,6 +1149,7 @@ bool Monitor::Analyse() {
     //Debug(3, " shared_data->last_read_index == shared_data->last_write_index " );
     return false;
   }
+  Debug(3, "ANal");
 
   struct timeval now;
   gettimeofday( &now, NULL );
@@ -2870,6 +2871,7 @@ int Monitor::Capture() {
     }
   } else {
     captureResult = camera->Capture(packet);
+    Debug(2,"Capture result (%d)", captureResult );
     if ( captureResult < 0 ) {
       // Unable to capture image for temporary reason
       // Fake a signal loss image
@@ -2882,13 +2884,15 @@ int Monitor::Capture() {
     }
 
     int video_stream_id = camera->get_VideoStreamId();
+    Debug(2,"Video stream is (%d)", video_stream_id );
 
     //Video recording
     if ( video_store_data->recording.tv_sec ) {
-      if ( shared_data->last_event_id != this->GetVideoWriterEventId() ) {
+    Debug(2,"Recording since (%d)", video_store_data->recording.tv_sec );
+      if ( shared_data->last_event_id != video_store_data->current_event ) {
         Debug(2, "Have change of event. last_event(%d), our current (%d)",
             shared_data->last_event_id,
-            this->GetVideoWriterEventId()
+            video_store_data->current_event
             );
         if ( videoStore ) {
 Debug(2, "Have videostore already?");
@@ -2903,6 +2907,8 @@ Debug(2, "Have videostore already?");
           videoStore = NULL;
           this->SetVideoWriterEventId( 0 );
         } // end if videoStore
+      } else {
+        Debug(2, "No change of event");
       } // end if end of recording
 
       if ( shared_data->last_event_id and ! videoStore ) {
@@ -2933,27 +2939,34 @@ Debug(2,"New videostore");
         delete videoStore;
         videoStore = NULL;
         this->SetVideoWriterEventId( 0 );
+      } else {
+        Debug(2,"Not recording");
       }
 
       // Buffer video packets, since we are not recording.
       // All audio packets are keyframes, so only if it's a video keyframe
-      if ( ( packet.packet.stream_index == video_stream_id ) && ( packet.keyframe ) ) {
-        packetqueue.clearQueue( this->GetPreEventCount(), video_stream_id );
-      }
-      // The following lines should ensure that the queue always begins with a video keyframe
-      if ( packet.packet.stream_index == camera->get_AudioStreamId() ) {
+      if ( packet.packet.stream_index == video_stream_id ) {
+        if ( packet.keyframe ) {
+          packetqueue.clearQueue( this->GetPreEventCount(), video_stream_id );
+          packetqueue.queuePacket( &packet );
+        } else if ( packetqueue.size() ) {
+          // it's a keyframe or we already have something in the queue
+          packetqueue.queuePacket( &packet );
+        }
+      } else if ( packet.packet.stream_index == camera->get_AudioStreamId() ) {
+        // The following lines should ensure that the queue always begins with a video keyframe
         //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
         if ( record_audio && packetqueue.size() ) { 
           // if it's audio, and we are doing audio, and there is already something in the queue
           packetqueue.queuePacket( &packet );
         }
-      } else if ( packet.packet.stream_index == video_stream_id ) {
-        if ( packet.keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
-          packetqueue.queuePacket( &packet );
+      } else {
+        Debug(2,"Unknown stream");
       } // end if audio or video
     } // end if recording or not
 
     if ( videoStore ) {
+      Debug(2, "Writing packet");
       //Write the packet to our video store, it will be smart enough to know what to do
       int ret = videoStore->writePacket( &packet );
       if ( ret < 0 ) { //Less than zero and we skipped a frame
@@ -2962,20 +2975,24 @@ Debug(2,"New videostore");
     }
   } // end if de-interlacing or not
   
-  /* Deinterlacing */
-  if ( deinterlacing_value == 1 ) {
-    capture_image->Deinterlace_Discard();
-  } else if ( deinterlacing_value == 2 ) {
-    capture_image->Deinterlace_Linear();
-  } else if ( deinterlacing_value == 3 ) {
-    capture_image->Deinterlace_Blend();
-  } else if ( deinterlacing_value == 4 ) {
-    capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
-  } else if ( deinterlacing_value == 5 ) {
-    capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
+  if ( deinterlacing_value ) {
+    Debug(2,"Deinterlace");
+    /* Deinterlacing */
+    if ( deinterlacing_value == 1 ) {
+      capture_image->Deinterlace_Discard();
+    } else if ( deinterlacing_value == 2 ) {
+      capture_image->Deinterlace_Linear();
+    } else if ( deinterlacing_value == 3 ) {
+      capture_image->Deinterlace_Blend();
+    } else if ( deinterlacing_value == 4 ) {
+      capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
+    } else if ( deinterlacing_value == 5 ) {
+      capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
+    }
   }
 
   if ( orientation != ROTATE_0 ) {
+    Debug(2,"Rotate");
     switch ( orientation ) {
       case ROTATE_0 : {
                         // No action required
@@ -3006,13 +3023,17 @@ Debug(2,"New videostore");
     }
   }
 
-  if ( privacy_bitmask )
+  if ( privacy_bitmask ) {
+    Debug(2,"privacy");
     capture_image->MaskPrivacy( privacy_bitmask );
+  }
 
   gettimeofday( image_buffer[index].timestamp, NULL );
   if ( config.timestamp_on_capture ) {
+    Debug(2,"Timestamping");
     TimestampImage( capture_image, image_buffer[index].timestamp );
   }
+  Debug(2,"Check signal");
   shared_data->signal = CheckSignal(capture_image);
   shared_data->last_write_index = index;
   shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
@@ -3039,7 +3060,7 @@ Debug(2,"New videostore");
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
       }
     }
-  }
+  } // end if report fps
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing
   if ( shared_data->action & GET_SETTINGS ) {

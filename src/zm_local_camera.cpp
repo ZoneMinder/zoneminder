@@ -1534,34 +1534,28 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           return( false );
         }
 
-        if ( verbose )
-        {
+        if ( verbose ) {
           sprintf( output+strlen(output), "  Input %d\n", input.index );
           sprintf( output+strlen(output), "    Name: %s\n", input.name );
           sprintf( output+strlen(output), "    Type: %s\n", input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
           sprintf( output+strlen(output), "    Audioset: %08x\n", input.audioset );
           sprintf( output+strlen(output), "    Standards: 0x%llx\n", input.std );
-        }
-        else
-        {
+        } else {
           sprintf( output+strlen(output), "i%d:%s|", input.index, input.name );
           sprintf( output+strlen(output), "i%dT:%s|", input.index, input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
           sprintf( output+strlen(output), "i%dS:%llx|", input.index, input.std );
         }
 
-        if ( verbose )
-        {
+        if ( verbose ) {
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_POWER, "Power ", "off", "on", " (X)" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_SIGNAL, "Signal ", "not detected", "detected", " (X)" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_COLOR, "Colour Signal ", "not detected", "detected", "" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_H_LOCK, "Horizontal Lock ", "not detected", "detected", "" ) );
-        }
-        else
-        {
-          sprintf( output+strlen(output), "i%dSP:%d|", input.index, input.status&V4L2_IN_ST_NO_POWER?0:1 );
-          sprintf( output+strlen(output), "i%dSS:%d|", input.index, input.status&V4L2_IN_ST_NO_SIGNAL?0:1 );
-          sprintf( output+strlen(output), "i%dSC:%d|", input.index, input.status&V4L2_IN_ST_NO_COLOR?0:1 );
-          sprintf( output+strlen(output), "i%dHP:%d|", input.index, input.status&V4L2_IN_ST_NO_H_LOCK?0:1 );
+        } else {
+          sprintf( output+strlen(output), "i%dSP:%d|", input.index, (input.status&V4L2_IN_ST_NO_POWER)?0:1 );
+          sprintf( output+strlen(output), "i%dSS:%d|", input.index, (input.status&V4L2_IN_ST_NO_SIGNAL)?0:1 );
+          sprintf( output+strlen(output), "i%dSC:%d|", input.index, (input.status&V4L2_IN_ST_NO_COLOR)?0:1 );
+          sprintf( output+strlen(output), "i%dHP:%d|", input.index, (input.status&V4L2_IN_ST_NO_H_LOCK)?0:1 );
         }
       }
       while ( inputIndex++ >= 0 );
@@ -1570,12 +1564,10 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
     }
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
-    if ( version == 1 )
-    {
+    if ( version == 1 ) {
       struct video_capability vid_cap;
       memset( &vid_cap, 0, sizeof(video_capability) );
-      if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 )
-      {
+      if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 ) {
         Error( "Failed to get video capabilities: %s", strerror(errno) );
         if ( verbose )
           sprintf( output, "Error, failed to get video capabilities %s: %s\n", queryDevice, strerror(errno) );
@@ -1583,8 +1575,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           sprintf( output, "error%d\n", errno );
         return( false );
       }
-      if ( verbose )
-      {
+      if ( verbose ) {
         sprintf( output+strlen(output), "Video Capabilities\n" );
         sprintf( output+strlen(output), "  Name: %s\n", vid_cap.name );
         sprintf( output+strlen(output), "  Type: %d\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s", vid_cap.type,
@@ -2048,7 +2039,6 @@ int LocalCamera::Capture( Image &image ) {
   Debug( 3, "Capturing" );
   static uint8_t* buffer = NULL;
   static uint8_t* directbuffer = NULL;
-  static int capture_frame = -1;
   int buffer_bytesused = 0;
 
   int captures_per_frame = 1;
@@ -2062,6 +2052,7 @@ int LocalCamera::Capture( Image &image ) {
 
   // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer
   if ( channel_prime ) {
+    static int capture_frame = -1;
 #if ZM_HAS_V4L2
     if ( v4l_version == 2 ) {
       static struct v4l2_buffer vid_buf;

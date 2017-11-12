@@ -107,7 +107,8 @@ private:
   mutable bool accessed;
 
 public:
-  ConfigItem( const char *p_name, const char *p_value, const char *const p_type );
+  ConfigItem(const char *p_name, const char *p_value, const char *const p_type);
+  ConfigItem(const ConfigItem &);
   ~ConfigItem();
   void ConvertValue() const;
   bool BooleanValue() const;
@@ -116,16 +117,16 @@ public:
   const char *StringValue() const;
 
   inline operator bool() const {
-    return( BooleanValue() );
+    return BooleanValue();
   }
   inline operator int() const {
-    return( IntegerValue() );
+    return IntegerValue();
   }
   inline operator double() const {
-    return( DecimalValue() );
+    return DecimalValue();
   }
   inline operator const char *() const {
-    return( StringValue() );
+    return StringValue();
   }
 };
 

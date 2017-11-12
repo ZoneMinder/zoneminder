@@ -2043,7 +2043,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
 } // end Capture
 
 int LocalCamera::PostCapture() {
-  Debug( 2, "Post-capturing" );
+  Debug( 4, "Post-capturing" );
   // Requeue the buffer unless we need to switch or are a duplicate camera on a channel
   if ( channel_count > 1 || channel_prime ) {
 #if ZM_HAS_V4L2

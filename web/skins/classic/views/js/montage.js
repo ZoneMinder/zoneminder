@@ -91,8 +91,11 @@ function Monitor( monitorData ) {
       console.error( respObj.message );
       // Try to reload the image stream.
       if ( stream ) {
+        if ( stream.src ) {
         console.log('Reloading stream: ' + stream.src );
         stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+        } else {
+        }
       } else {
         console.log( 'No stream to reload?' );
       }
@@ -118,6 +121,9 @@ function Monitor( monitorData ) {
   this.onFailure = function( xhr ) {
     console.log('onFailure: ' );
     console.log(xhr );
+    // Requeue
+    var streamCmdTimeout = statusRefreshTimeout;
+    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
   };
 
   this.streamCmdReq = new Request.JSON( {
@@ -246,6 +252,7 @@ function changeSize() {
   Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
   Cookie.write( 'zmMontageWidth', width, { duration: 10*365 } );
   Cookie.write( 'zmMontageHeight', height, { duration: 10*365 } );
+  selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
 function changeScale() {

@@ -116,7 +116,7 @@ int cURLCamera::PreCapture() {
     return( 0 );
 }
 
-int cURLCamera::Capture( Image &image ) {
+int cURLCamera::Capture( ZMPacket &zm_packet ) {
   bool frameComplete = false;
 
   /* MODE_STREAM specific variables */
@@ -144,7 +144,7 @@ int cURLCamera::Capture( Image &image ) {
       nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
       if ( nRet != 0 ) {
         Error("Failed waiting for available data condition variable: %s",strerror(nRet));
-        return -20;
+        return -1;
       }
     }
 
@@ -247,7 +247,7 @@ int cURLCamera::Capture( Image &image ) {
           need_more_data = true;
         } else {
           /* All good. decode the image */
-          image.DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
+          zm_packet.image->DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
           frameComplete = true;
         }
       }
@@ -257,7 +257,7 @@ int cURLCamera::Capture( Image &image ) {
         nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
         if(nRet != 0) {
           Error("Failed waiting for available data condition variable: %s",strerror(nRet));
-          return -18;
+          return -1;
         }
         need_more_data = false;
       }
@@ -267,7 +267,7 @@ int cURLCamera::Capture( Image &image ) {
       if (!single_offsets.empty()) {
         if( (single_offsets.front() > 0) && (databuffer.size() >= single_offsets.front()) ) {
           /* Extract frame */
-          image.DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
+          zm_packet.image->DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
           single_offsets.pop_front();
           frameComplete = true;
         } else {
@@ -281,7 +281,7 @@ int cURLCamera::Capture( Image &image ) {
         nRet = pthread_cond_wait(&request_complete_cond,&shareddata_mutex);
         if(nRet != 0) {
           Error("Failed waiting for request complete condition variable: %s",strerror(nRet));
-          return -19;
+          return -1;
         }
       }
     } else {
@@ -295,20 +295,14 @@ int cURLCamera::Capture( Image &image ) {
   unlock();
 
   if(!frameComplete)
-    return -1;
+    return 0;
 
-  return 0;
+  return 1;
 }
 
 int cURLCamera::PostCapture() {
     // Nothing to do here
     return( 0 );
-}
-
-int cURLCamera::CaptureAndRecord( Image &image, struct timeval recording, char* event_directory ) {
-  Error("Capture and Record not implemented for the cURL camera type");
-  // Nothing to do here
-  return( 0 );
 }
 
 size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata) {

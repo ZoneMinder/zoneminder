@@ -85,7 +85,7 @@ Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
   mem_size = 0;
   mem_ptr = 0;
 
-  last_event = 0;
+  last_event_id = 0;
   last_state = IDLE;
 
   last_connect_time = 0;
@@ -165,7 +165,7 @@ bool Monitor::MonitorLink::connect() {
     }
 
     last_state = shared_data->state;
-    last_event = shared_data->last_event;
+    last_event_id = shared_data->last_event_id;
     connected = true;
 
     return( true );
@@ -231,8 +231,8 @@ bool Monitor::MonitorLink::inAlarm() {
 bool Monitor::MonitorLink::hasAlarmed() {
   if ( shared_data->state == ALARM ) {
     return( true );
-  } else if ( shared_data->last_event != (unsigned int)last_event ) {
-    last_event = shared_data->last_event;
+  } else if ( shared_data->last_event_id != (unsigned int)last_event_id ) {
+    last_event_id = shared_data->last_event_id;
   }
   return( false );
 }
@@ -410,7 +410,7 @@ Monitor::Monitor(
     shared_data->last_write_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;
     shared_data->last_write_time = 0;
-    shared_data->last_event = 0;
+    shared_data->last_event_id = 0;
     shared_data->action = (Action)0;
     shared_data->brightness = -1;
     shared_data->hue = -1;
@@ -772,7 +772,7 @@ unsigned int Monitor::GetLastWriteIndex() const {
 }
 
 unsigned int Monitor::GetLastEvent() const {
-  return( shared_data->last_event );
+  return( shared_data->last_event_id );
 }
 
 double Monitor::GetFPS() const {
@@ -1279,6 +1279,7 @@ bool Monitor::Analyse() {
     Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
     
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
+    Debug(3, "trigger != off");
       unsigned int score = 0;
       if ( Ready() ) {
         std::string cause;
@@ -1407,7 +1408,7 @@ bool Monitor::Analyse() {
 
             // Create event
             event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
-            shared_data->last_event = event->Id();
+            shared_data->last_event_id = event->Id();
             //set up video store data
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
             video_store_data->recording = event->StartTime();
@@ -1511,7 +1512,7 @@ bool Monitor::Analyse() {
 
                   event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                 }
-                shared_data->last_event = event->Id();
+                shared_data->last_event_id = event->Id();
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
@@ -1639,6 +1640,7 @@ bool Monitor::Analyse() {
         } // end if ! IDLE
       }
     } else {
+    Debug(3, "trigger == off");
       if ( event ) {
         Info( "%s: %03d - Closing event %d, trigger off", name, image_count, event->Id() );
         closeEvent();
@@ -1670,7 +1672,7 @@ bool Monitor::Analyse() {
 
   image_count++;
 
-  return( true );
+  return true;
 }
 
 void Monitor::Reload() {
@@ -2857,13 +2859,14 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
  */
 int Monitor::Capture() {
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
-  int captureResult;
 
-  unsigned int index = image_count%image_buffer_count;
+  unsigned int index = image_count % image_buffer_count;
   Image* capture_image = image_buffer[index].image;
+  ZMPacket packet;
+  packet.set_image(capture_image);
+  int captureResult = 0;
 
   unsigned int deinterlacing_value = deinterlacing & 0xff;
-
   if ( deinterlacing_value == 4 ) {
     if ( FirstCapture != 1 ) {
       /* Copy the next image into the shared memory */
@@ -2871,47 +2874,108 @@ int Monitor::Capture() {
     }
     
     /* Capture a new next image */
-    
-    //Check if FFMPEG camera
-    // Icon: I don't think we can support de-interlacing on ffmpeg input.... most of the time it will be h264 or mpeg4
-    if ( ( videowriter == H264PASSTHROUGH ) && camera->SupportsNativeVideo() ) {
-      captureResult = camera->CaptureAndRecord(*(next_buffer.image),
-          video_store_data->recording,
-          video_store_data->event_file );
-    } else {
-      captureResult = camera->Capture(*(next_buffer.image));
-    }
+    captureResult = camera->Capture(packet);
 
     if ( FirstCapture ) {
       FirstCapture = 0;
       return 0;
     }
-
   } else {
-    //Check if FFMPEG camera
-    if ( (videowriter == H264PASSTHROUGH) && camera->SupportsNativeVideo() ) {
-      //Warning("ZMC: Recording: %d", video_store_data->recording);
-      // Should return -1 on error, like loss of signal.  Should return 0 if ok but no video frame. > 0 for received a frame.
-      captureResult = camera->CaptureAndRecord(
-          *capture_image,
-          video_store_data->recording,
-          video_store_data->event_file
-          );
-    } else {
-      /* Capture directly into image buffer, avoiding the need to memcpy() */
-      captureResult = camera->Capture(*capture_image);
+    captureResult = camera->Capture(packet);
+    if ( captureResult < 0 ) {
+      // Unable to capture image for temporary reason
+      // Fake a signal loss image
+      Rgb signalcolor;
+      /* HTML colour code is actually BGR in memory, we want RGB */
+      signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
+      capture_image->Fill(signalcolor);
+      shared_data->signal = false;
+      return -1;
     }
-  }
-Debug(4, "Return from Capture (%d)", captureResult); 
-  if ( captureResult < 0 ) {
-    // Unable to capture image for temporary reason
-    // Fake a signal loss image
-    Rgb signalcolor;
-    signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
-    capture_image->Fill(signalcolor);
-  } else if ( captureResult > 0 ) {
-    
-    /* Deinterlacing */
+
+    int video_stream_id = camera->get_VideoStreamId();
+
+    //Video recording
+    if ( video_store_data->recording.tv_sec ) {
+      if ( shared_data->last_event_id != this->GetVideoWriterEventId() ) {
+        Debug(2, "Have change of event. last_event(%d), our current (%d)",
+            shared_data->last_event_id,
+            this->GetVideoWriterEventId()
+            );
+        if ( videoStore ) {
+          Debug(2, "Have videostore already?");
+          // I don't know if this is important or not... but I figure we might as well write this last packet out to the store before closing it.
+          // Also don't know how much it matters for audio.
+          int ret = videoStore->writePacket( &packet );
+          if ( ret < 0 ) { //Less than zero and we skipped a frame
+            Warning("Error writing last packet to videostore.");
+          }
+
+          delete videoStore;
+          videoStore = NULL;
+          this->SetVideoWriterEventId( 0 );
+        } // end if videoStore
+      } // end if end of recording
+
+      if ( shared_data->last_event_id and ! videoStore ) {
+        Debug(2,"New videostore");
+        videoStore = new VideoStore(
+            (const char *) video_store_data->event_file,
+            "mp4",
+            camera->get_VideoStream(),
+            ( record_audio ? camera->get_AudioStream() : NULL ),
+            video_store_data->recording.tv_sec,
+            this );
+
+        if ( ! videoStore->open() ) {
+          delete videoStore;
+          videoStore = NULL;
+        } else {
+          this->SetVideoWriterEventId(shared_data->last_event_id);
+
+          Debug(2, "Clearing packets");
+          // Clear all packets that predate the moment when the recording began
+          packetqueue.clear_unwanted_packets(&video_store_data->recording, video_stream_id);
+          videoStore->write_packets(packetqueue);
+        } // success opening
+      } // end if ! was recording
+    } else { // Not recording
+      if ( videoStore ) {
+        Info("Deleting videoStore instance");
+        delete videoStore;
+        videoStore = NULL;
+        this->SetVideoWriterEventId( 0 );
+      }
+
+      // Buffer video packets, since we are not recording.
+      // All audio packets are keyframes, so only if it's a video keyframe
+      if ( ( packet.packet.stream_index == video_stream_id ) && ( packet.keyframe ) ) {
+        packetqueue.clearQueue( this->GetPreEventCount(), video_stream_id );
+      }
+      // The following lines should ensure that the queue always begins with a video keyframe
+      if ( packet.packet.stream_index == camera->get_AudioStreamId() ) {
+        //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
+        if ( record_audio && packetqueue.size() ) {
+          // if it's audio, and we are doing audio, and there is already something in the queue
+          packetqueue.queuePacket( &packet );
+        }
+      } else if ( packet.packet.stream_index == video_stream_id ) {
+        if ( packet.keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
+          packetqueue.queuePacket( &packet );
+      } // end if audio or video
+    } // end if recording or not
+
+    if ( videoStore ) {
+      //Write the packet to our video store, it will be smart enough to know what to do
+      int ret = videoStore->writePacket( &packet );
+      if ( ret < 0 ) { //Less than zero and we skipped a frame
+        Warning("problem writing packet");
+      }
+    }
+  } // end if deinterlacing
+
+  /* Deinterlacing */
+  if ( deinterlacing_value ) {
     if ( deinterlacing_value == 1 ) {
       capture_image->Deinterlace_Discard();
     } else if ( deinterlacing_value == 2 ) {
@@ -2923,71 +2987,66 @@ Debug(4, "Return from Capture (%d)", captureResult);
     } else if ( deinterlacing_value == 5 ) {
       capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
     }
-    
-    if ( orientation != ROTATE_0 ) {
-      switch ( orientation ) {
-        case ROTATE_0 : {
-          // No action required
-          break;
-        }
-        case ROTATE_90 :
-        case ROTATE_180 :
-        case ROTATE_270 : {
-          capture_image->Rotate( (orientation-1)*90 );
-          break;
-        }
-        case FLIP_HORI :
-        case FLIP_VERT : {
-          capture_image->Flip( orientation==FLIP_HORI );
-          break;
-        }
-      }
-    }
+  }
 
-    if ( capture_image->Size() > camera->ImageSize() ) {
-      Error( "Captured image %d does not match expected size %d check width, height and colour depth",capture_image->Size(),camera->ImageSize() );
-      return( -1 );
+  if ( orientation != ROTATE_0 ) {
+    switch ( orientation ) {
+      case ROTATE_0 :
+        // No action required
+        break;
+      case ROTATE_90 :
+      case ROTATE_180 :
+      case ROTATE_270 : 
+        capture_image->Rotate( (orientation-1)*90 );
+        break;
+      case FLIP_HORI :
+      case FLIP_VERT :
+        capture_image->Flip( orientation==FLIP_HORI );
+        break;
     }
+  }
 
-    if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
-      Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
-      time_t now = time(0);
-      double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp->tv_sec);
-      time_t last_read_delta = now - shared_data->last_read_time;
-      if ( last_read_delta > (image_buffer_count/approxFps) ) {
-        Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
+  if ( capture_image->Size() > camera->ImageSize() ) {
+    Error( "Captured image %d does not match expected size %d check width, height and colour depth",capture_image->Size(),camera->ImageSize() );
+    return( -1 );
+  }
+
+  if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
+    Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
+    time_t now = time(0);
+    double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp->tv_sec);
+    time_t last_read_delta = now - shared_data->last_read_time;
+    if ( last_read_delta > (image_buffer_count/approxFps) ) {
+      Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
         shared_data->last_read_index = image_buffer_count;
-      }
     }
+  }
 
-    if ( privacy_bitmask )
-      capture_image->MaskPrivacy( privacy_bitmask );
+  if ( privacy_bitmask )
+    capture_image->MaskPrivacy( privacy_bitmask );
 
-    // Might be able to remove this call, when we start passing around ZMPackets, which will already have a timestamp
-    gettimeofday( image_buffer[index].timestamp, NULL );
-    if ( config.timestamp_on_capture ) {
-      TimestampImage( capture_image, image_buffer[index].timestamp );
-    }
-    // Maybe we don't need to do this on all camera types
-    shared_data->signal = CheckSignal(capture_image);
-    shared_data->last_write_index = index;
-    shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
+  gettimeofday( image_buffer[index].timestamp, NULL );
+  if ( config.timestamp_on_capture ) {
+    TimestampImage( capture_image, image_buffer[index].timestamp );
+  }
+  shared_data->signal = CheckSignal(capture_image);
+  shared_data->last_write_index = index;
+  shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
 
-    image_count++;
-  } // end if captureResult
+  image_count++;
 
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-
     struct timeval now;
     if ( !captureResult ) {
       gettimeofday( &now, NULL );
     } else {
       now.tv_sec = image_buffer[index].timestamp->tv_sec;
     }
+
     // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
     if ( now.tv_sec != last_fps_time ) {
       fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
-      Info( "%d -> %d -> %d", fps_report_interval, now.tv_sec, last_fps_time );
+      //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
       //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
       Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
       last_fps_time = now.tv_sec;
@@ -2996,8 +3055,8 @@ Debug(4, "Return from Capture (%d)", captureResult);
       if ( mysql_query( &dbconn, sql ) ) {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
       }
-    }
-  }
+    } // end if too fast
+  } // end if should report fps
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing
   if ( shared_data->action & GET_SETTINGS ) {

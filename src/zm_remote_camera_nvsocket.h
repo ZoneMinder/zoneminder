@@ -65,12 +65,10 @@ bool p_record_audio );
   int Connect();
   int Disconnect();
   int SendRequest( std::string );
-  int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
   int GetResponse();
-  int PreCapture();
-  int Capture( Image &image );
+  int PrimeCapture();
+  int Capture( ZMPacket &p );
   int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
 };
 
 #endif // ZM_REMOTE_CAMERA_NVSOCKET_H

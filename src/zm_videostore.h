@@ -12,7 +12,10 @@ extern "C"  {
 
 #if HAVE_LIBAVCODEC
 
+class VideoStore;
 #include "zm_monitor.h"
+#include "zm_packet.h"
+#include "zm_packetqueue.h"
 
 class VideoStore {
 private:
@@ -23,6 +26,8 @@ private:
 	AVFormatContext *oc;
 	AVStream *video_out_stream;
 	AVStream *audio_out_stream;
+int video_in_stream_index;
+int audio_in_stream_index;
 
   AVCodec *video_out_codec;
   AVCodecContext *video_out_ctx;
@@ -40,6 +45,8 @@ private:
   AVCodecContext *video_in_ctx;
   AVCodecContext *audio_in_ctx;
   int ret;
+
+  SWScale swscale;
 
   // The following are used when encoding the audio stream to AAC
   AVCodec *audio_out_codec;
@@ -82,16 +89,19 @@ public:
       const char *format_in,
       AVStream *video_in_stream,
       AVStream *audio_in_stream,
-      int64_t nStartTime,
-      Monitor * p_monitor);
-  bool  open();
+      int64_t starttime,
+      Monitor * p_monitor
+      );
 	~VideoStore();
+  bool  open();
 
   void write_video_packet( AVPacket &pkt );
   void write_audio_packet( AVPacket &pkt );
-  int writeVideoFramePacket( AVPacket *pkt );
-  int writeAudioFramePacket( AVPacket *pkt );
+  int writeVideoFramePacket( ZMPacket *pkt );
+  int writeAudioFramePacket( ZMPacket *pkt );
+  int writePacket( ZMPacket *pkt );
 	void dumpPacket( AVPacket *pkt );
+  int write_packets( zm_packetqueue &queue );
 };
 
 #endif //havelibav

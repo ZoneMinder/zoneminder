@@ -179,21 +179,16 @@ int LibvlcCamera::PreCapture() {
 }
 
 // Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::Capture( Image &image ) {   
+int LibvlcCamera::Capture( ZMPacket &zm_packet ) {   
   while(!mLibvlcData.newImage.getValueImmediate())
     mLibvlcData.newImage.getUpdatedValue(1);
 
   mLibvlcData.mutex.lock();
-  image.Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
+  zm_packet.image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
   mLibvlcData.newImage.setValueImmediate(false);
   mLibvlcData.mutex.unlock();
 
   return 1;
-}
-
-// Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::CaptureAndRecord(Image &image, timeval recording, char* event_directory) {
-  return (0);
 }
 
 int LibvlcCamera::PostCapture() {

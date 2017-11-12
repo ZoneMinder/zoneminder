@@ -31,8 +31,7 @@
 #endif
 
 // Used by libvlc callbacks
-struct LibvlcPrivateData
-{
+struct LibvlcPrivateData {
   uint8_t* buffer;
   uint8_t* prevBuffer;
   time_t prevTime;
@@ -41,8 +40,7 @@ struct LibvlcPrivateData
   ThreadData<bool> newImage;
 };
 
-class LibvlcCamera : public Camera
-{
+class LibvlcCamera : public Camera {
 protected:
   std::string mPath;
   std::string mMethod;
@@ -69,8 +67,7 @@ public:
 
   int PrimeCapture();
   int PreCapture();
-  int Capture( Image &image );
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
+  int Capture( ZMPacket &p );
   int PostCapture();
 };
 

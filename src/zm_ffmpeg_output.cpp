@@ -3,7 +3,7 @@
 #include "zm_logger.h"
 #include "zm_ffmpeg.h"
 
-FFmpeg_Input::FFmpeg_Input() {
+FFmpeg_Output::FFmpeg_Output() {
   input_format_context = NULL;
   video_stream_id = -1;
   audio_stream_id = -1;
@@ -11,10 +11,10 @@ FFmpeg_Input::FFmpeg_Input() {
   avcodec_register_all();
 
 }
-FFmpeg_Input::~FFmpeg_Input() {
+FFmpeg_Output::~FFmpeg_Output() {
 }
 
-int FFmpeg_Input::Open( const char *filepath ) {
+int FFmpeg_Output::Open( const char *filepath ) {
 
   int error;
 
@@ -85,9 +85,9 @@ int FFmpeg_Input::Open( const char *filepath ) {
     Debug( 3, "Unable to locate audio stream in %s", filepath );
 
   return 0;
-} // end int FFmpeg_Input::Open( const char * filepath )
+} // end int FFmpeg_Output::Open( const char * filepath )
 
-AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
+AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
   Debug(1, "Getting frame from stream %d", stream_id );
 
   int frameComplete = false;
@@ -116,9 +116,9 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
     if ( (stream_id < 0 ) || ( packet.stream_index == stream_id ) ) {
       Debug(1,"Packet is for our stream (%d)", packet.stream_index );
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    AVCodecContext *context = streams[packet.stream_index].context;
+      AVCodecContext *context = streams[packet.stream_index].context;
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     ret = avcodec_send_packet( context, &packet );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -177,4 +177,4 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
   } // end while ! frameComplete
   return frame;
 
-} //  end AVFrame *FFmpeg_Input::get_frame
+} //  end AVFrame *FFmpeg_Output::get_frame

@@ -207,6 +207,7 @@ public:
 	
 	void Assign( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);
 	void Assign( const Image &image );
+  void Assign( const AVFrame *frame );
 	void AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
 
 	inline void CopyBuffer( const Image &image ) {

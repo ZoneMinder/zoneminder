@@ -80,7 +80,7 @@ const std::string stringtf( const char *format, ... )
   return( tempString );
 }
 
-const std::string stringtf( const std::string &format, ... )
+const std::string stringtf( const std::string format, ... )
 {
   va_list ap;
   char tempBuffer[8192];
@@ -100,7 +100,7 @@ bool startsWith( const std::string &haystack, const std::string &needle )
   return( haystack.substr( 0, needle.length() ) == needle );
 }
 
-StringVector split( const std::string &string, const std::string chars, int limit )
+StringVector split( const std::string &string, const std::string &chars, int limit )
 {
   StringVector stringVector;
   std::string tempString = string;
@@ -134,7 +134,7 @@ StringVector split( const std::string &string, const std::string chars, int limi
   return( stringVector );
 }
 
-const std::string join(const StringVector v, const char * delim ) {
+const std::string join(const StringVector &v, const char * delim ) {
   std::stringstream ss;
 
   for(size_t i = 0; i < v.size(); ++i) {

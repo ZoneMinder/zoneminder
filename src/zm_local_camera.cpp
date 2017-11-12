@@ -2038,8 +2038,8 @@ int LocalCamera::PreCapture() {
 int LocalCamera::Capture( Image &image ) {
   Debug( 3, "Capturing" );
   static uint8_t* buffer = NULL;
-  static uint8_t* directbuffer = NULL;
   int buffer_bytesused = 0;
+  int capture_frame = -1;
 
   int captures_per_frame = 1;
   if ( channel_count > 1 )
@@ -2049,10 +2049,8 @@ int LocalCamera::Capture( Image &image ) {
     Warning( "Invalid Captures Per Frame setting: %d", captures_per_frame );
   } 
 
-
   // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer
   if ( channel_prime ) {
-    static int capture_frame = -1;
 #if ZM_HAS_V4L2
     if ( v4l_version == 2 ) {
       static struct v4l2_buffer vid_buf;
@@ -2126,7 +2124,7 @@ int LocalCamera::Capture( Image &image ) {
     Debug( 3, "Performing format conversion" );
 
     /* Request a writeable buffer of the target image */
-    directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+    uint8_t* directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
     if ( directbuffer == NULL ) {
       Error("Failed requesting writeable buffer for the captured image.");
       return -1;
@@ -2144,7 +2142,13 @@ int LocalCamera::Capture( Image &image ) {
       avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
           imagePixFormat, width, height );
 #endif
-      sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
+      sws_scale( imgConversionContext,
+          capturePictures[capture_frame]->data,
+          capturePictures[capture_frame]->linesize,
+          0,
+          height,
+          tmpPicture->data,
+          tmpPicture->linesize );
     }
 #endif  
     if ( conversion_type == 2 ) {
@@ -2165,7 +2169,7 @@ int LocalCamera::Capture( Image &image ) {
   }
 
   return 1;
-}
+} // end int LocalCamera::Capture()
 
 int LocalCamera::PostCapture()
 {

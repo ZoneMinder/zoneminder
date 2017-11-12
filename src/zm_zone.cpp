@@ -204,7 +204,6 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
   int diff_width = diff_image->Width();
   uint8_t* diff_buff = (uint8_t*)diff_image->Buffer();
   uint8_t* pdiff;
-  const uint8_t* ppoly;
 
   unsigned int pixel_diff_count = 0;
 
@@ -266,6 +265,7 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
     int by = filter_box.Y();
     int bx1 = bx-1;
     int by1 = by-1;
+
 
     Debug( 5, "Checking for filtered pixels" );
     if ( bx > 1 || by > 1 ) {
@@ -679,7 +679,7 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
           }
         }
 
-        ppoly = pg_image->Buffer( lo_x2, y );
+        const uint8_t* ppoly = pg_image->Buffer( lo_x2, y );
         for ( int x = lo_x2; x <= hi_x2; x++, pdiff++, ppoly++ ) {
           if ( !*ppoly ) {
             *pdiff = BLACK;

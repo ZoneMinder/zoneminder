@@ -163,9 +163,23 @@ public:
 	inline unsigned int Width() const { return( width ); }
 	inline unsigned int Height() const { return( height ); }
 	inline unsigned int Pixels() const { return( pixels ); }
-	inline unsigned int Colours() const { return( colours ); }
-	inline unsigned int SubpixelOrder() const { return( subpixelorder ); }
-	inline unsigned int Size() const { return( size ); }
+  inline unsigned int Colours() const { return( colours ); }
+  inline unsigned int SubpixelOrder() const { return( subpixelorder ); }
+  inline unsigned int Size() const { return( size ); }
+
+  inline unsigned int AVPixFormat() {
+    if ( colours == ZM_COLOUR_RGB32 ) {
+      return AV_PIX_FMT_RGBA;
+    } else if ( colours == ZM_COLOUR_RGB24 ) {
+      return AV_PIX_FMT_RGB24;
+    } else if ( colours == ZM_COLOUR_GRAY8 ) {
+      return AV_PIX_FMT_GRAY8;
+    } else {
+      Error("Unknown colours (%d)",colours);
+      return AV_PIX_FMT_RGBA;
+    }
+  }
+
 	
 	/* Internal buffer should not be modified from functions outside of this class */
 	inline const uint8_t* Buffer() const { return( buffer ); }

@@ -103,6 +103,7 @@ int RemoteCamera::Read( int fd, char *buf, int size ) {
     int bytes_to_recv = size - ReceivedBytes;
     if ( SOCKET_BUF_SIZE < bytes_to_recv ) 
       bytes_to_recv = SOCKET_BUF_SIZE;
+//Debug(3, "Aiming to receive %d of %d bytes", bytes_to_recv, size );
     bytes = recv(fd, &buf[ReceivedBytes], bytes_to_recv, 0); //socket, buffer, len, flags
     if ( bytes <= 0 ) {
       Error("RemoteCamera::Read Recv error. Closing Socket\n");

@@ -29,6 +29,9 @@
 #include "zm_rgb.h"
 #include "zm_zone.h"
 #include "zm_event.h"
+#include "zm_videostore.h"
+#include "zm_packetqueue.h"
+
 class Monitor;
 #include "zm_camera.h"
 #include "zm_storage.h"
@@ -102,7 +105,7 @@ protected:
     uint32_t last_write_index;  /* +4    */ 
     uint32_t last_read_index;   /* +8    */
     uint32_t state;             /* +12   */
-    uint32_t last_event;        /* +16   */
+    uint32_t last_event_id;     /* +16   */
     uint32_t action;            /* +20   */
     int32_t brightness;         /* +24   */
     int32_t hue;                /* +28   */
@@ -158,7 +161,6 @@ protected:
   };
 
   //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
-#if 1
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
   typedef struct {
     uint32_t size;
@@ -168,7 +170,8 @@ protected:
     //uint32_t frameNumber;
   } VideoStoreData;
 
-#endif // HAVE_LIBAVFORMAT
+  VideoStore          *videoStore;
+  zm_packetqueue      packetqueue;
 
   class MonitorLink {
   protected:
@@ -192,7 +195,7 @@ protected:
     volatile VideoStoreData *video_store_data;
 
     int        last_state;
-    int        last_event;
+    int        last_event_id;
 
 
     public:
@@ -434,7 +437,7 @@ public:
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
   const std::string &GetEncoderOptions() const { return( encoderparams ); }
 
-  uint32_t GetLastEventId() const { return shared_data->last_event; }
+  uint32_t GetLastEventId() const { return shared_data->last_event_id; }
   uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }
  

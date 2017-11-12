@@ -34,58 +34,72 @@
 #include "zm.h"
 #include "zm_file_camera.h"
 
-FileCamera::FileCamera( int p_id, const char *p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) : Camera( p_id, FILE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio )
+FileCamera::FileCamera(
+    int p_id,
+    const char *p_path,
+    int p_width,
+    int p_height,
+    int p_colours,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio
+    ) : Camera(
+      p_id,
+      FILE_SRC,
+      p_width,
+      p_height,
+      p_colours,
+      ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours),
+      p_brightness,
+      p_contrast,
+      p_hue,
+      p_colour,
+      p_capture,
+      p_record_audio )
 {
   strncpy( path, p_path, sizeof(path) );
-  if ( capture )
-  {
+  if ( capture ) {
     Initialise();
   }
 }
 
-FileCamera::~FileCamera()
-{
-  if ( capture )
-  {
+FileCamera::~FileCamera() {
+  if ( capture ) {
     Terminate();
   }
 }
 
-void FileCamera::Initialise()
-{
-  if ( !path[0] )
-  {
+void FileCamera::Initialise() {
+  if ( !path[0] ) {
     Error( "No path specified for file image" );
     exit( -1 );
   }
 }
 
-void FileCamera::Terminate()
-{
+void FileCamera::Terminate() {
 }
 
-int FileCamera::PreCapture()
-{
+int FileCamera::PreCapture() {
   struct stat statbuf;
-  if ( stat( path, &statbuf ) < 0 )
-  {
+  if ( stat( path, &statbuf ) < 0 ) {
     Error( "Can't stat %s: %s", path, strerror(errno) );
     return( -1 );
   }
 
-  while ( (time( 0 ) - statbuf.st_mtime) < 1 )
-  {
+  // I think this is waiting for file change...
+  while ( (time( 0 ) - statbuf.st_mtime) < 1 ) {
     usleep( 100000 );
   }
   return( 0 );
 }
 
-int FileCamera::Capture( Image &image )
-{
-  return( image.ReadJpeg( path, colours, subpixelorder )?0:-1 );
+int FileCamera::Capture( ZMPacket &zm_packet ) {
+  return zm_packet.image->ReadJpeg( path, colours, subpixelorder ) ;
 }
 
-int FileCamera::PostCapture()
-{
-    return( 0 );
+int FileCamera::PostCapture() {
+  return( 0 );
 }

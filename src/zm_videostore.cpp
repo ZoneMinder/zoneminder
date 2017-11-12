@@ -570,6 +570,16 @@ Debug(3, "dts:%d, pts:%d", pkt.dts, pkt.pts );
     }
 #endif
   }
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  if ( video_in_ctx ) {
+  avcodec_free_context(&video_in_ctx);
+  video_in_ctx = NULL;
+  }
+  if ( video_out_ctx ) {
+  avcodec_free_context(&video_out_ctx);
+  video_out_ctx = NULL;
+  }
+#endif
 
   // When will be not using a file ? // Might someday use this for streaming
   if ( !(out_format->flags & AVFMT_NOFILE) ) {

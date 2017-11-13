@@ -245,6 +245,8 @@ function eventQuery( eventId ) {
 
 var prevEventId = 0;
 var nextEventId = 0;
+var prevEventStartTime = 0;
+var nextEventStartTime = 0;
 var PrevEventDefVideoPath = "";
 var NextEventDefVideoPath = "";
 
@@ -253,6 +255,8 @@ function getNearEventsResponse( respObj, respText ) {
     return;
   prevEventId = respObj.nearevents.PrevEventId;
   nextEventId = respObj.nearevents.NextEventId;
+  prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
+  nextEventStartTime = Date.parse(respObj.nearevents.NextEventStartTime);
   PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;
   NextEventDefVideoPath = respObj.nearevents.NextEventDefVideoPath;
 

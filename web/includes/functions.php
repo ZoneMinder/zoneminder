@@ -452,7 +452,8 @@ function getEventPath( $event ) {
 }
 
 function getEventDefaultVideoPath( $event ) {
-	return ZM_DIR_EVENTS . '/' . getEventPath($event) . '/' . $event['DefaultVideo'];
+  $Event = new Event( $event );
+  return $Event->getStreamSrc( array( "mode"=>"mpeg", "format"=>"h264" ) );
 }
 
 function deletePath( $path ) {

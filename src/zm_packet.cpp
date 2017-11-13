@@ -63,6 +63,7 @@ ZMPacket::ZMPacket( AVPacket *p, AVFrame *f, Image *i ) {
 ZMPacket::~ZMPacket() {
   zm_av_packet_unref( &packet );
   if ( frame ) {
+    //av_free(frame->data);
     av_frame_free( &frame );
   }
   // We assume the image was allocated elsewhere, so we just unref it.

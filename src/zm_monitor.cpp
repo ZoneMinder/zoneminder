@@ -2795,6 +2795,8 @@ int Monitor::Capture() {
   unsigned int index = image_count % image_buffer_count;
   Image* capture_image = image_buffer[index].image;
   ZMPacket *packet = &image_buffer[index];
+// clears frame
+packet->reset();
   int captureResult = 0;
 
   unsigned int deinterlacing_value = deinterlacing & 0xff;

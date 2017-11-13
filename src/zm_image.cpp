@@ -610,7 +610,7 @@ void Image::Assign(const unsigned int p_width, const unsigned int p_height, cons
     size = new_size;
   }
 
-  if(new_buffer != buffer)
+  if ( new_buffer != buffer )
     (*fptr_imgbufcpy)(buffer, new_buffer, size);
 
 }

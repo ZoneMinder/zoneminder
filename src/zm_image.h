@@ -173,7 +173,11 @@ public:
     if ( colours == ZM_COLOUR_RGB32 ) {
       return AV_PIX_FMT_RGBA;
     } else if ( colours == ZM_COLOUR_RGB24 ) {
-      return AV_PIX_FMT_RGB24;
+      if ( subpixelorder == ZM_SUBPIX_ORDER_BGR){
+        return AV_PIX_FMT_BGR24;
+      } else {
+        return AV_PIX_FMT_RGB24;
+      }
     } else if ( colours == ZM_COLOUR_GRAY8 ) {
       return AV_PIX_FMT_GRAY8;
     } else {

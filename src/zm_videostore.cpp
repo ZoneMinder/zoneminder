@@ -87,9 +87,12 @@ VideoStore::VideoStore(
     video_in_stream_index = video_in_stream->index;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     video_in_ctx = avcodec_alloc_context3(NULL);
+Debug(2,"About to copy aparames");
     avcodec_parameters_to_context(video_in_ctx,
         video_in_stream->codecpar);
     zm_dump_codecpar( video_in_stream->codecpar );
+Debug(2,"About to copy aparames");
+//video_in_ctx.codec_id = video_in_stream->codecpar.codec_id;
 #else
     video_in_ctx = video_in_stream->codec;
 #endif
@@ -100,6 +103,7 @@ VideoStore::VideoStore(
   }
 
   video_out_ctx = NULL;
+  video_out_ctx = avcodec_alloc_context3(NULL);
 
   // Copy params from instream to ctx
   if ( video_in_stream && ( video_in_ctx->codec_id == AV_CODEC_ID_H264 ) ) {
@@ -114,13 +118,10 @@ VideoStore::VideoStore(
       zm_dump_codec(video_out_ctx);
     }
 #else
-    video_out_ctx = avcodec_alloc_context3(NULL);
     avcodec_copy_context( video_out_ctx, video_in_ctx );
 #endif
     // Same codec, just copy the packets, otherwise we have to decode/encode
     video_out_codec = (AVCodec *)video_in_ctx->codec;
-    video_out_ctx->time_base = video_in_ctx->time_base;
-    video_out_stream->time_base = video_in_stream->time_base;
   } else {
 
     /** Create a new frame to store the */
@@ -168,8 +169,11 @@ VideoStore::VideoStore(
         Debug( 3, "Encoder Option %s=%s", e->key, e->value );
       }
     }
-    if ( ! av_dict_get( opts, "preset", NULL, 0 ) )
-        av_dict_set( &opts, "preset", "superfast", 0 );
+
+    if ( ! av_dict_get( opts, "preset", NULL, 0 ) ) {
+      Debug(2,"Setting preset to superfast");
+      av_dict_set( &opts, "preset", "superfast", 0 );
+    }
 
     if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
       Warning("Can't open video codec (%s)! %s, trying h264",

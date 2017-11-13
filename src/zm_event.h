@@ -38,7 +38,9 @@
 #include "zm_image.h"
 #include "zm_stream.h"
 #include "zm_video.h"
+#include "zm_packet.h"
 
+class VideoStore;
 class Zone;
 class Monitor;
 class EventStream;
@@ -85,6 +87,7 @@ class Event {
     unsigned int  max_score;
     char      path[PATH_MAX];
     VideoWriter* videowriter;
+    VideoStore *videoStore;
     FILE* timecodes_fd;
     char video_name[PATH_MAX];
     char video_file[PATH_MAX];
@@ -119,6 +122,7 @@ class Event {
 
     void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
     void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
+    bool WritePacket( ZMPacket &p );
 
   private:
     void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );

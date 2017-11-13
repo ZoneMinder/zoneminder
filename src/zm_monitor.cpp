@@ -2893,87 +2893,6 @@ int Monitor::Capture() {
       return -1;
     }
 
-    int video_stream_id = camera->get_VideoStreamId();
-
-    //Video recording
-    if ( video_store_data->recording.tv_sec ) {
-      if ( shared_data->last_event_id != this->GetVideoWriterEventId() ) {
-        Debug(2, "Have change of event. last_event(%d), our current (%d)",
-            shared_data->last_event_id,
-            this->GetVideoWriterEventId()
-            );
-        if ( videoStore ) {
-          Debug(2, "Have videostore already?");
-          // I don't know if this is important or not... but I figure we might as well write this last packet out to the store before closing it.
-          // Also don't know how much it matters for audio.
-          int ret = videoStore->writePacket( &packet );
-          if ( ret < 0 ) { //Less than zero and we skipped a frame
-            Warning("Error writing last packet to videostore.");
-          }
-
-          delete videoStore;
-          videoStore = NULL;
-          this->SetVideoWriterEventId( 0 );
-        } // end if videoStore
-      } // end if end of recording
-
-      if ( shared_data->last_event_id and ! videoStore ) {
-        Debug(2,"New videostore");
-        videoStore = new VideoStore(
-            (const char *) video_store_data->event_file,
-            "mp4",
-            camera->get_VideoStream(),
-            ( record_audio ? camera->get_AudioStream() : NULL ),
-            video_store_data->recording.tv_sec,
-            this );
-
-        if ( ! videoStore->open() ) {
-          delete videoStore;
-          videoStore = NULL;
-        } else {
-          this->SetVideoWriterEventId(shared_data->last_event_id);
-
-          Debug(2, "Clearing packets");
-          // Clear all packets that predate the moment when the recording began
-          packetqueue.clear_unwanted_packets(&video_store_data->recording, video_stream_id);
-          videoStore->write_packets(packetqueue);
-        } // success opening
-      } // end if ! was recording
-    } else { // Not recording
-      if ( videoStore ) {
-        Info("Deleting videoStore instance");
-        delete videoStore;
-        videoStore = NULL;
-        this->SetVideoWriterEventId( 0 );
-      }
-
-      // Buffer video packets, since we are not recording.
-      // All audio packets are keyframes, so only if it's a video keyframe
-      if ( ( packet.packet.stream_index == video_stream_id ) && ( packet.keyframe ) ) {
-        packetqueue.clearQueue( this->GetPreEventCount(), video_stream_id );
-      }
-      // The following lines should ensure that the queue always begins with a video keyframe
-      if ( packet.packet.stream_index == camera->get_AudioStreamId() ) {
-        //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
-        if ( record_audio && packetqueue.size() ) {
-          // if it's audio, and we are doing audio, and there is already something in the queue
-          packetqueue.queuePacket( &packet );
-        }
-      } else if ( packet.packet.stream_index == video_stream_id ) {
-        if ( packet.keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
-          packetqueue.queuePacket( &packet );
-      } // end if audio or video
-    } // end if recording or not
-
-    if ( videoStore ) {
-      //Write the packet to our video store, it will be smart enough to know what to do
-      int ret = videoStore->writePacket( &packet );
-      if ( ret < 0 ) { //Less than zero and we skipped a frame
-        Warning("problem writing packet");
-      }
-    }
-  } // end if deinterlacing
-
   /* Deinterlacing */
   if ( deinterlacing_value ) {
     if ( deinterlacing_value == 1 ) {
@@ -3006,11 +2925,6 @@ int Monitor::Capture() {
     }
   }
 
-  if ( capture_image->Size() > camera->ImageSize() ) {
-    Error( "Captured image %d does not match expected size %d check width, height and colour depth",capture_image->Size(),camera->ImageSize() );
-    return( -1 );
-  }
-
   if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
     Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
     time_t now = time(0);
@@ -3025,10 +2939,40 @@ int Monitor::Capture() {
   if ( privacy_bitmask )
     capture_image->MaskPrivacy( privacy_bitmask );
 
-  gettimeofday( image_buffer[index].timestamp, NULL );
+  //gettimeofday( image_buffer[index].timestamp, NULL );
   if ( config.timestamp_on_capture ) {
-    TimestampImage( capture_image, image_buffer[index].timestamp );
+    TimestampImage( capture_image, &packet.timestamp );
   }
+
+    int video_stream_id = camera->get_VideoStreamId();
+
+    //packetqueue.clear_unwanted_packets(&video_store_data->recording, video_stream_id);
+    //videoStore->write_packets(packetqueue);
+    if ( ! event ) { 
+      // Buffer video packets, since we are not recording.
+      // All audio packets are keyframes, so only if it's a video keyframe
+      if ( ( packet.packet.stream_index == video_stream_id ) && ( packet.keyframe ) ) {
+        packetqueue.clearQueue( this->GetPreEventCount(), video_stream_id );
+      }
+      // The following lines should ensure that the queue always begins with a video keyframe
+      if ( packet.packet.stream_index == camera->get_AudioStreamId() ) {
+        //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
+        if ( record_audio && packetqueue.size() ) {
+          // if it's audio, and we are doing audio, and there is already something in the queue
+          packetqueue.queuePacket( &packet );
+        }
+      } else if ( packet.packet.stream_index == video_stream_id ) {
+        if ( packet.keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
+          packetqueue.queuePacket( &packet );
+      } // end if audio or video
+    } else {
+      //Write the packet to our video store, it will be smart enough to know what to do
+      if ( ! event->WritePacket( packet ) ) {
+        Warning("problem writing packet");
+      }
+    } // end if recording or not
+  } // end if deinterlacing
+
   shared_data->signal = CheckSignal(capture_image);
   shared_data->last_write_index = index;
   shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;

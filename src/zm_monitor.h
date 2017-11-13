@@ -404,6 +404,9 @@ public:
   inline Function GetFunction() const {
     return( function );
   }
+  inline Camera *getCamera() {
+    return camera;
+  }
   inline bool Enabled() {
     if ( function <= MONITOR )
       return( false );
@@ -424,6 +427,9 @@ public:
   }
   inline bool Exif() {
     return( embed_exif );
+  }
+  inline bool RecordAudio() {
+    return record_audio;
   }
   Orientation getOrientation() const;
 

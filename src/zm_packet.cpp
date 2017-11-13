@@ -29,8 +29,8 @@ ZMPacket::ZMPacket( ) {
   image = NULL;
   frame = NULL;
   av_init_packet( &packet );
-  packet.size = 0;
-  gettimeofday( &timestamp, NULL );
+  packet.size = 0; // So we can detect whether it has been filled.
+  timestamp = (struct timeval){0};
 }
 
 ZMPacket::ZMPacket( Image *i ) {
@@ -38,7 +38,7 @@ ZMPacket::ZMPacket( Image *i ) {
   image = i;
   frame = NULL;
   av_init_packet( &packet );
-  gettimeofday( &timestamp, NULL );
+  timestamp = (struct timeval){0};
 }
 
 ZMPacket::ZMPacket( AVPacket *p ) {
@@ -69,6 +69,13 @@ ZMPacket::~ZMPacket() {
   //if ( image ) {
     //delete image;
   //}
+}
+
+void ZMPacket::reset() {
+  zm_av_packet_unref( &packet );
+  if ( frame ) {
+    av_frame_free( &frame );
+  }
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {

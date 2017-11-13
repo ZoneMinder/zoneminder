@@ -372,7 +372,6 @@ Monitor::Monitor(
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
-       + (image_buffer_count*sizeof(struct timeval))
        + (image_buffer_count*camera->ImageSize())
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
@@ -553,36 +552,32 @@ bool Monitor::connect() {
   shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
   video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
-  struct timeval *shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
-  unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
-
+  unsigned char *shared_images = (unsigned char *)((char *)video_store_data + sizeof(VideoStoreData));
   
   if ( ((unsigned long)shared_images % 64) != 0 ) {
     /* Align images buffer to nearest 64 byte boundary */
     Debug(3,"Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
-    Debug(3, "Allocating %d image buffers", image_buffer_count );
-    image_buffer = new Snapshot[image_buffer_count];
-    for ( int i = 0; i < image_buffer_count; i++ ) {
-      image_buffer[i].timestamp = &(shared_timestamps[i]);
-      image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
-      image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-    }
-    if ( (deinterlacing & 0xff) == 4) {
-      /* Four field motion adaptive deinterlacing in use */
-      /* Allocate a buffer for the next image */
-      next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
-      next_buffer.timestamp = new struct timeval;
-    }
+
+  Debug(3, "Allocating %d image buffers", image_buffer_count );
+  image_buffer = new ZMPacket[image_buffer_count];
+  for ( int i = 0; i < image_buffer_count; i++ ) {
+    image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
+    image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
+  }
+  if ( (deinterlacing & 0xff) == 4) {
+    /* Four field motion adaptive deinterlacing in use */
+    /* Allocate a buffer for the next image */
+    next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+  }
   if ( ( purpose == ANALYSIS ) && analysis_fps ) {
     // Size of pre event buffer must be greater than pre_event_count
     // if alarm_frame_count > 1, because in this case the buffer contains
     // alarmed images that must be discarded when event is created
     pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
-    pre_event_buffer = new Snapshot[pre_event_buffer_count];
+    pre_event_buffer = new ZMPacket[pre_event_buffer_count];
     for ( int i = 0; i < pre_event_buffer_count; i++ ) {
-      pre_event_buffer[i].timestamp = new struct timeval;
       pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
     }
   }
@@ -611,7 +606,6 @@ Monitor::~Monitor() {
 
     if ( (deinterlacing & 0xff) == 4) {
       delete next_buffer.image;
-      delete next_buffer.timestamp;
     }
     for ( int i = 0; i < image_buffer_count; i++ ) {
       delete image_buffer[i].image;
@@ -636,7 +630,6 @@ Monitor::~Monitor() {
       if ( analysis_fps ) {
         for ( int i = 0; i < pre_event_buffer_count; i++ ) {
           delete pre_event_buffer[i].image;
-          delete pre_event_buffer[i].timestamp;
         }
         delete[] pre_event_buffer;
       }
@@ -718,7 +711,7 @@ int Monitor::GetImage( int index, int scale ) {
     Image *image;
     // If we are going to be modifying the snapshot before writing, then we need to copy it
     if ( ( scale != ZM_SCALE_BASE ) || ( !config.timestamp_on_capture ) ) {
-      Snapshot *snap = &image_buffer[index];
+      ZMPacket *snap = &image_buffer[index];
       Image *snap_image = snap->image;
 
       alarm_image.Assign( *snap_image );
@@ -731,7 +724,7 @@ int Monitor::GetImage( int index, int scale ) {
       }
 
       if ( !config.timestamp_on_capture ) {
-        TimestampImage( &alarm_image, snap->timestamp );
+        TimestampImage( &alarm_image, &snap->timestamp );
       }
       image = &alarm_image;
     } else {
@@ -753,13 +746,13 @@ struct timeval Monitor::GetTimestamp( int index ) const {
   }
 
   if ( index != image_buffer_count ) {
-    Snapshot *snap = &image_buffer[index];
+    ZMPacket *snap = &image_buffer[index];
 
-    return( *(snap->timestamp) );
+    return snap->timestamp;
   } else {
     static struct timeval null_tv = { 0, 0 };
 
-    return( null_tv );
+    return null_tv;
   }
 }
 
@@ -778,29 +771,29 @@ unsigned int Monitor::GetLastEvent() const {
 double Monitor::GetFPS() const {
   int index1 = shared_data->last_write_index;
   if ( index1 == image_buffer_count ) {
-    return( 0.0 );
+    return 0.0;
   }
-  Snapshot *snap1 = &image_buffer[index1];
-  if ( !snap1->timestamp || !snap1->timestamp->tv_sec ) {
-    return( 0.0 );
+  ZMPacket *snap1 = &image_buffer[index1];
+  if ( !snap1->timestamp.tv_sec ) {
+    return 0.0;
   }
-  struct timeval time1 = *snap1->timestamp;
+  struct timeval time1 = snap1->timestamp;
 
   int image_count = image_buffer_count;
   int index2 = (index1+1)%image_buffer_count;
   if ( index2 == image_buffer_count ) {
-    return( 0.0 );
+    return 0.0;
   }
-  Snapshot *snap2 = &image_buffer[index2];
-  while ( !snap2->timestamp || !snap2->timestamp->tv_sec ) {
+  ZMPacket *snap2 = &image_buffer[index2];
+  while ( !snap2->timestamp.tv_sec ) {
     if ( index1 == index2 ) {
-      return( 0.0 );
+      return 0.0;
     }
     index2 = (index2+1)%image_buffer_count;
     snap2 = &image_buffer[index2];
     image_count--;
   }
-  struct timeval time2 = *snap2->timestamp;
+  struct timeval time2 = snap2->timestamp;
 
   double time_diff = tvDiffSec( time2, time1 );
 
@@ -808,9 +801,9 @@ double Monitor::GetFPS() const {
 
   if ( curr_fps < 0.0 ) {
     //Error( "Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
-    return( 0.0 );
+    return 0.0;
   }
-  return( curr_fps );
+  return curr_fps;
 }
 
 useconds_t Monitor::GetAnalysisRate() {
@@ -1028,7 +1021,7 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
   if ( ( (!staticConfig.SERVER_ID) || ( staticConfig.SERVER_ID == server_id ) ) && mem_ptr ) {
     Debug(3, "Trying to load from local zmc");
     int index = shared_data->last_write_index;
-    Snapshot *snap = &image_buffer[index];
+    ZMPacket *snap = &image_buffer[index];
     zone_image = new Image( *snap->image );
   } else {
     Debug(3, "Trying to load from event");
@@ -1216,8 +1209,9 @@ bool Monitor::Analyse() {
     index = shared_data->last_write_index%image_buffer_count;
   }
 
-  Snapshot *snap = &image_buffer[index];
-  struct timeval *timestamp = snap->timestamp;
+  ZMPacket *snap = &image_buffer[index];
+  struct timeval *timestamp = &snap->timestamp;
+  Debug(2,timeval_to_string( *timestamp ) );
   Image *snap_image = snap->image;
 
   if ( shared_data->action ) {
@@ -1267,7 +1261,6 @@ bool Monitor::Analyse() {
   if ( static_undef ) {
 // Sure would be nice to be able to assume that these were already initialized.  It's just 1 compare/branch, but really not neccessary.
     static_undef = false;
-    timestamps = new struct timeval *[pre_event_count];
     images = new Image *[pre_event_count];
     last_signal = shared_data->signal;
   }
@@ -1419,56 +1412,6 @@ bool Monitor::Analyse() {
             if ( state == IDLE ) {
               shared_data->state = state = TAPE;
             }
-
-            //if ( config.overlap_timed_events )
-            if ( false ) {
-              int pre_index;
-              int pre_event_images = pre_event_count;
-
-              if ( analysis_fps ) {
-                // If analysis fps is set,
-                // compute the index for pre event images in the dedicated buffer
-                pre_index = image_count%pre_event_buffer_count;
-
-                // Seek forward the next filled slot in to the buffer (oldest data)
-                // from the current position
-                while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
-                  pre_index = (pre_index + 1)%pre_event_buffer_count;
-                  // Slot is empty, removing image from counter
-                  pre_event_images--;
-                }
-              } else {
-                // If analysis fps is not set (analysis performed at capturing framerate),
-                // compute the index for pre event images in the capturing buffer
-                pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
-
-                // Seek forward the next filled slot in to the buffer (oldest data)
-                // from the current position
-                while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec ) {
-                  pre_index = (pre_index + 1)%image_buffer_count;
-                  // Slot is empty, removing image from counter
-                  pre_event_images--;
-                }
-              }
-
-              if ( pre_event_images ) {
-                if ( analysis_fps ) {
-                  for ( int i = 0; i < pre_event_images; i++ ) {
-                    timestamps[i] = pre_event_buffer[pre_index].timestamp;
-                    images[i] = pre_event_buffer[pre_index].image;
-                    pre_index = (pre_index + 1)%pre_event_buffer_count;
-                  }
-                } else {
-                  for ( int i = 0; i < pre_event_images; i++ ) {
-                    timestamps[i] = image_buffer[pre_index].timestamp;
-                    images[i] = image_buffer[pre_index].image;
-                    pre_index = (pre_index + 1)%image_buffer_count;
-                  }
-                }
-
-                event->AddFrames( pre_event_images, images, timestamps );
-              }
-            } // end if false or config.overlap_timed_events
           } // end if ! event
         }
         if ( score ) {
@@ -1487,13 +1430,13 @@ bool Monitor::Analyse() {
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position
-                  while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
+                  while ( pre_event_images && !pre_event_buffer[pre_index].timestamp.tv_sec ) {
                     pre_index = (pre_index + 1)%pre_event_buffer_count;
                     // Slot is empty, removing image from counter
                     pre_event_images--;
                   }
 
-                  event = new Event( this, *(pre_event_buffer[pre_index].timestamp), cause, noteSetMap );
+                  event = new Event( this, pre_event_buffer[pre_index].timestamp, cause, noteSetMap );
                 } else {
                   // If analysis fps is not set (analysis performed at capturing framerate),
                   // compute the index for pre event images in the capturing buffer
@@ -1504,13 +1447,13 @@ bool Monitor::Analyse() {
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position
-                  while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec ) {
+                  while ( pre_event_images && !image_buffer[pre_index].timestamp.tv_sec ) {
                     pre_index = (pre_index + 1)%image_buffer_count;
                     // Slot is empty, removing image from counter
                     pre_event_images--;
                   }
 
-                  event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
+                  event = new Event( this, image_buffer[pre_index].timestamp, cause, noteSetMap );
                 }
                 shared_data->last_event_id = event->Id();
                 //set up video store data
@@ -1522,13 +1465,13 @@ bool Monitor::Analyse() {
                 if ( pre_event_images ) {
                   if ( analysis_fps ) {
                     for ( int i = 0; i < pre_event_images; i++ ) {
-                      timestamps[i] = pre_event_buffer[pre_index].timestamp;
+                      timestamps[i] = &pre_event_buffer[pre_index].timestamp;
                       images[i] = pre_event_buffer[pre_index].image;
                       pre_index = (pre_index + 1)%pre_event_buffer_count;
                     }
                   } else {
                     for ( int i = 0; i < pre_event_images; i++ ) {
-                      timestamps[i] = image_buffer[pre_index].timestamp;
+                      timestamps[i] = &image_buffer[pre_index].timestamp;
                       images[i] = image_buffer[pre_index].image;
                       pre_index = (pre_index + 1)%image_buffer_count;
                     }
@@ -1667,7 +1610,7 @@ bool Monitor::Analyse() {
     // If analysis fps is set, add analysed image to dedicated pre event buffer
     int pre_index = image_count%pre_event_buffer_count;
     pre_event_buffer[pre_index].image->Assign(*snap->image);
-    memcpy( pre_event_buffer[pre_index].timestamp, snap->timestamp, sizeof(struct timeval) );
+    pre_event_buffer[pre_index].timestamp = snap->timestamp;
   }
 
   image_count++;
@@ -2862,8 +2805,7 @@ int Monitor::Capture() {
 
   unsigned int index = image_count % image_buffer_count;
   Image* capture_image = image_buffer[index].image;
-  ZMPacket packet;
-  packet.set_image(capture_image);
+  ZMPacket *packet = &image_buffer[index];
   int captureResult = 0;
 
   unsigned int deinterlacing_value = deinterlacing & 0xff;
@@ -2874,14 +2816,17 @@ int Monitor::Capture() {
     }
     
     /* Capture a new next image */
-    captureResult = camera->Capture(packet);
+    captureResult = camera->Capture(*packet);
+    gettimeofday( &packet->timestamp, NULL );
 
     if ( FirstCapture ) {
       FirstCapture = 0;
       return 0;
     }
   } else {
-    captureResult = camera->Capture(packet);
+    captureResult = camera->Capture(*packet);
+    gettimeofday( &packet->timestamp, NULL );
+  Debug(2,timeval_to_string( packet->timestamp ) );
     if ( captureResult < 0 ) {
       // Unable to capture image for temporary reason
       // Fake a signal loss image
@@ -2928,7 +2873,7 @@ int Monitor::Capture() {
   if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
     Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
     time_t now = time(0);
-    double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp->tv_sec);
+    double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp.tv_sec);
     time_t last_read_delta = now - shared_data->last_read_time;
     if ( last_read_delta > (image_buffer_count/approxFps) ) {
       Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
@@ -2940,7 +2885,7 @@ int Monitor::Capture() {
     capture_image->MaskPrivacy( privacy_bitmask );
 
   if ( config.timestamp_on_capture ) {
-    TimestampImage( capture_image, &packet.timestamp );
+    TimestampImage( capture_image, &packet->timestamp );
   }
     int video_stream_id = camera->get_VideoStreamId();
 
@@ -2955,7 +2900,7 @@ int Monitor::Capture() {
           Debug(2, "Have videostore already?");
           // I don't know if this is important or not... but I figure we might as well write this last packet out to the store before closing it.
           // Also don't know how much it matters for audio.
-          int ret = videoStore->writePacket( &packet );
+          int ret = videoStore->writePacket( packet );
           if ( ret < 0 ) { //Less than zero and we skipped a frame
             Warning("Error writing last packet to videostore.");
           }
@@ -2998,25 +2943,25 @@ int Monitor::Capture() {
 
       // Buffer video packets, since we are not recording.
       // All audio packets are keyframes, so only if it's a video keyframe
-      if ( ( packet.packet.stream_index == video_stream_id ) && ( packet.keyframe ) ) {
+      if ( ( packet->packet.stream_index == video_stream_id ) && ( packet->keyframe ) ) {
         packetqueue.clearQueue( this->GetPreEventCount(), video_stream_id );
       }
       // The following lines should ensure that the queue always begins with a video keyframe
-      if ( packet.packet.stream_index == camera->get_AudioStreamId() ) {
+      if ( packet->packet.stream_index == camera->get_AudioStreamId() ) {
         //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
         if ( record_audio && packetqueue.size() ) {
           // if it's audio, and we are doing audio, and there is already something in the queue
-          packetqueue.queuePacket( &packet );
+          packetqueue.queuePacket( packet );
         }
-      } else if ( packet.packet.stream_index == video_stream_id ) {
-        if ( packet.keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
-          packetqueue.queuePacket( &packet );
+      } else if ( packet->packet.stream_index == video_stream_id ) {
+        if ( packet->keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
+          packetqueue.queuePacket( packet );
       } // end if audio or video
     } // end if recording or not
 
     if ( videoStore ) {
       //Write the packet to our video store, it will be smart enough to know what to do
-      int ret = videoStore->writePacket( &packet );
+      int ret = videoStore->writePacket( packet );
       if ( ret < 0 ) { //Less than zero and we skipped a frame
         Warning("problem writing packet");
       }
@@ -3025,7 +2970,7 @@ int Monitor::Capture() {
 
   shared_data->signal = CheckSignal(capture_image);
   shared_data->last_write_index = index;
-  shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
+  shared_data->last_write_time = image_buffer[index].timestamp.tv_sec;
 
   image_count++;
 
@@ -3034,7 +2979,7 @@ int Monitor::Capture() {
     if ( !captureResult ) {
       gettimeofday( &now, NULL );
     } else {
-      now.tv_sec = image_buffer[index].timestamp->tv_sec;
+      now.tv_sec = image_buffer[index].timestamp.tv_sec;
     }
 
     // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
@@ -3355,6 +3300,6 @@ int Monitor::PostCapture() {
 }
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
-Monitor::Snapshot *Monitor::getSnapshot() {
+ZMPacket *Monitor::getSnapshot() {
   return &image_buffer[ shared_data->last_write_index%image_buffer_count ];
 }

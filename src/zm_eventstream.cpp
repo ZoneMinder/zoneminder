@@ -593,6 +593,7 @@ bool EventStream::sendFrame( int delta_us ) {
   FILE *fdj = NULL;
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.  If we are only saving analysis frames, then send that.
+  // // This is also wrong, need to have this info stored in the event! FIXME
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
     snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
   } else if ( monitor->GetOptSaveJPEGs() & 2 ) {

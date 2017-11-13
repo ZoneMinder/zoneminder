@@ -68,11 +68,7 @@ th {
     color: #016A9d;
 }
 
-a:link {
-    color: #7f7fb2;
-    text-decoration: none;
-}
-
+a:link,
 a:visited {
     color: #7f7fb2;
     text-decoration: none;

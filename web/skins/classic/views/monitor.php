@@ -665,7 +665,7 @@ if ( ZM_HAS_V4L && ($tab != 'misc' || $monitor->Type()!= 'Local') ) {
 <?php
 }
 ?>
-      <table id="contentTable" class="major" cellspacing="0">
+      <table id="contentTable" class="major">
         <tbody>
 <?php
 switch ( $tab ) {

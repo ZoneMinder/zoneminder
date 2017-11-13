@@ -25,6 +25,7 @@
 var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
 
 function checkSize() {
+  if ( 0 ) {
   if (window.outerHeight) {
     var w = window.outerWidth;
     var prevW = w;
@@ -36,6 +37,7 @@ function checkSize() {
       w = screen.availWidth;
     if (w != prevW || h != prevH)
       window.resizeTo(w, h);
+  }
   }
 }
 

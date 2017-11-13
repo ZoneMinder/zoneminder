@@ -4,13 +4,17 @@ require_once( 'Server.php' );
 
 class Monitor {
 
-private $fields = array(
-'Id',
-'Name',
-'StorageId',
-'ServerId',
-'Function',
-'Enabled',
+private $defaults = array(
+'Id' => null,
+'Name' => '',
+'StorageId' => 0,
+'ServerId' => 0,
+'Function' => 'None',
+'Enabled' => 1,
+'Width' => null,
+'Height' => null,
+'Orientation' => null,
+'AnalysisFPSLimit'  =>  null,
 );
 private $control_fields = array(
   'Name' => '',
@@ -158,19 +162,20 @@ private $control_fields = array(
   public function Server() {
     return new Server( $this->{'ServerId'} );
   }
-  public function __call( $fn, array $args){
-    if ( count( $args )  ) {
+  public function __call($fn, array $args){
+    if ( count($args) ) {
       $this->{$fn} = $args[0];
     }
-    if ( array_key_exists( $fn, $this ) ) {
+    if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
         #array_unshift($args, $this);
         #call_user_func_array( $this->{$fn}, $args);
 		} else {
-      if ( array_key_exists( $fn, $this->control_fields ) ) {
+      if ( array_key_exists($fn, $this->control_fields) ) {
         return $this->control_fields{$fn};
+      } else if ( array_key_exists( $fn, $this->defaults ) ) {
+        return $this->defaults{$fn};
       } else {
-
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
@@ -214,14 +219,19 @@ private $control_fields = array(
     return( $streamSrc );
   } // end function getStreamSrc
 
-  public function Width() {
+  public function Width( $new = null ) {
+    if ( $new )
+      $this->{'Width'} = $new;
+
     if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
       return $this->{'Height'};
     }
     return $this->{'Width'};
   }
 
-  public function Height() {
+  public function Height( $new=null ) {
+    if ( $new )
+      $this->{'Height'} = $new;
     if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
       return $this->{'Width'};
     }
@@ -287,11 +297,12 @@ private $control_fields = array(
       }
     }
     
-    $sql = 'UPDATE Monitors SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $this->fields ) ) . ' WHERE Id=?';
+    $sql = 'UPDATE Monitors SET '.implode(', ', array_map( function($field) {return $field.'=?';}, array_keys( $this->defaults ) ) ) . ' WHERE Id=?';
     $values = array_map( function($field){return $this->{$field};}, $this->fields );
     $values[] = $this->{'Id'};
     dbQuery( $sql, $values );
   } // end function save
+
   function zmcControl( $mode=false ) {
     if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$this->{'ServerId'} ) ) {
       if ( $this->{'Type'} == 'Local' ) {
@@ -306,7 +317,8 @@ private $control_fields = array(
         if ( $mode == 'restart' ) {
           daemonControl( 'stop', 'zmc', $zmcArgs );
         }
-        daemonControl( 'start', 'zmc', $zmcArgs );
+        if ( $this->{'Function'} != 'None' )
+          daemonControl( 'start', 'zmc', $zmcArgs );
       }
     } else {
       $Server = $this->Server();

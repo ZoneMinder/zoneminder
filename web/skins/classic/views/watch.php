@@ -25,6 +25,11 @@ if ( !canView( 'Stream' ) ) {
   return;
 }
 
+if ( ! isset($_REQUEST['mid']) ) {
+  $view = 'error';
+  return;
+}
+
 // This is for input sanitation
 $mid = intval( $_REQUEST['mid'] ); 
 if ( ! visibleMonitor( $mid ) ) {

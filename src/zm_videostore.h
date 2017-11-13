@@ -51,7 +51,6 @@ int audio_in_stream_index;
   // The following are used when encoding the audio stream to AAC
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
-  int data_present;
   AVAudioFifo *fifo;
   int out_frame_size;
 #ifdef HAVE_LIBAVRESAMPLE

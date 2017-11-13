@@ -1905,7 +1905,7 @@ int LocalCamera::PreCapture() {
 int LocalCamera::Capture( ZMPacket &zm_packet ) {
 
   // We assume that the avpacket is allocated, and just needs to be filled
-  Debug( 2, "Capturing" );
+  Debug( 3, "Capturing" );
   static uint8_t* buffer = NULL;
   static uint8_t* directbuffer = NULL;
   static int capture_frame = -1;
@@ -2045,7 +2045,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
 } // end Capture
 
 int LocalCamera::PostCapture() {
-  Debug( 2, "Post-capturing" );
+  Debug( 4, "Post-capturing" );
   // Requeue the buffer unless we need to switch or are a duplicate camera on a channel
   if ( channel_count > 1 || channel_prime ) {
 #if ZM_HAS_V4L2

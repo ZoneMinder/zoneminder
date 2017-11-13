@@ -279,9 +279,9 @@ int RemoteCameraRtsp::PreCapture() {
 }
 
 int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
-  AVPacket packet;
   uint8_t* directbuffer;
   int frameComplete = false;
+  AVPacket *packet = &zm_packet.packet;
   
   /* Request a writeable buffer of the target image */
   directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
@@ -324,17 +324,18 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
         Debug(3, "Not an h264 packet");
       }
 
-      av_init_packet( &packet );
+        // Don't need to do this... as zmPacket does it.
+      //av_init_packet( &packet );
 
       while ( !frameComplete && buffer.size() > 0 ) {
-        packet.data = buffer.head();
-        packet.size = buffer.size();
+        packet->data = buffer.head();
+        packet->size = buffer.size();
 
         // So I think this is the magic decode step. Result is a raw image?
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
-        int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, &packet );
+        int len = avcodec_decode_video2( mCodecContext, mRawFrame, &frameComplete, packet );
 #else
-        int len = avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet.data, packet.size );
+        int len = avcodec_decode_video( mCodecContext, mRawFrame, &frameComplete, packet->data, packet->size );
 #endif
         if ( len < 0 ) {
           Error( "Error while decoding frame %d", frameCount );
@@ -359,8 +360,6 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
       
         frameCount++;
       } /* frame complete */
-      zm_packet.set_packet( &packet );
-      zm_av_packet_unref( &packet );
     } /* getFrame() */
   } // end while true
 

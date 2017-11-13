@@ -25,7 +25,7 @@ $eventCounts = array(
   array(
     'title' => translate('Events'),
     'filter' => array(
-      'Query' => array (
+      'Query' => array(
         'terms' => array()
       )
     ),
@@ -114,7 +114,11 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
 
   $counts = array();
   for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
-    $filter = addFilterTerm( $eventCounts[$j]['filter'], count($eventCounts[$j]['filter']['Query']['terms']), array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] ) );
+    $filter = addFilterTerm(
+      $eventCounts[$j]['filter'],
+      count($eventCounts[$j]['filter']['Query']['terms']),
+      array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] )
+    );
     parseFilter( $filter );
     $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
     $monitor['eventCounts'][$j]['filter'] = $filter;
@@ -127,7 +131,7 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
   }
   unset($monitor);
-}
+} // end foreach display monitor
 $cycleWidth = $maxWidth;
 $cycleHeight = $maxHeight;
 

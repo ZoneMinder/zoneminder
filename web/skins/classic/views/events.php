@@ -84,6 +84,7 @@ if ( !empty($page) ) {
   $eventsSql .= ' limit 0, '.$limit;
 }
 
+if ( 0 ) {
 $maxWidth = 0;
 $maxHeight = 0;
 $archived = false;
@@ -102,6 +103,7 @@ foreach ( dbFetchAll( $eventsSql ) as $event_row ) {
     $archived = true;
   else
     $unarchived = true;
+}
 }
 
 $maxShortcuts = 5;
@@ -160,7 +162,12 @@ if ( $pagination ) {
 $count = 0;
 $disk_space_total = 0;
 
-foreach ( $events as $event ) {
+$results = dbQuery( $eventsSql );
+while ( $event_row = dbFetchNext( $results ) ) {
+  $event = new Event( $event_row );
+#foreach ( dbFetchAll( $eventsSql ) as $event_row ) {
+  #$events[] = $event = new Event( $event_row );
+#foreach ( $events as $event ) {
   if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
 ?>
             <tr>

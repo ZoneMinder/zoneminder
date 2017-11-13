@@ -36,7 +36,7 @@ class ZMPacket {
     int keyframe;
     AVPacket  packet;   // Input packet, undecoded
     AVFrame   *frame;    // Input image, decoded Theoretically only filled if needed.
-    Image     *image;   // Our internal image oject representing this frame
+    Image     *image;   // Our internal image object representing this frame
     struct timeval timestamp;
   public:
     AVPacket *av_packet() { return &packet; }
@@ -47,6 +47,7 @@ class ZMPacket {
 
     int is_keyframe() { return keyframe; };
     int decode( AVCodecContext *ctx );
+    void reset();
     ZMPacket( AVPacket *packet, struct timeval *timestamp );
     ZMPacket( AVPacket *packet );
     ZMPacket( AVPacket *packet, AVFrame *frame, Image *image );

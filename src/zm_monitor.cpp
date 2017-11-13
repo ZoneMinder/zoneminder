@@ -2893,6 +2893,55 @@ int Monitor::Capture() {
       return -1;
     }
 
+  /* Deinterlacing */
+  if ( deinterlacing_value ) {
+    if ( deinterlacing_value == 1 ) {
+      capture_image->Deinterlace_Discard();
+    } else if ( deinterlacing_value == 2 ) {
+      capture_image->Deinterlace_Linear();
+    } else if ( deinterlacing_value == 3 ) {
+      capture_image->Deinterlace_Blend();
+    } else if ( deinterlacing_value == 4 ) {
+      capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
+    } else if ( deinterlacing_value == 5 ) {
+      capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
+    }
+  }
+
+  if ( orientation != ROTATE_0 ) {
+    switch ( orientation ) {
+      case ROTATE_0 :
+        // No action required
+        break;
+      case ROTATE_90 :
+      case ROTATE_180 :
+      case ROTATE_270 : 
+        capture_image->Rotate( (orientation-1)*90 );
+        break;
+      case FLIP_HORI :
+      case FLIP_VERT :
+        capture_image->Flip( orientation==FLIP_HORI );
+        break;
+    }
+  }
+
+  if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
+    Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
+    time_t now = time(0);
+    double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp->tv_sec);
+    time_t last_read_delta = now - shared_data->last_read_time;
+    if ( last_read_delta > (image_buffer_count/approxFps) ) {
+      Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
+        shared_data->last_read_index = image_buffer_count;
+    }
+  }
+
+  if ( privacy_bitmask )
+    capture_image->MaskPrivacy( privacy_bitmask );
+
+  if ( config.timestamp_on_capture ) {
+    TimestampImage( capture_image, &packet.timestamp );
+  }
     int video_stream_id = camera->get_VideoStreamId();
 
     //Video recording
@@ -2974,61 +3023,6 @@ int Monitor::Capture() {
     }
   } // end if deinterlacing
 
-  /* Deinterlacing */
-  if ( deinterlacing_value ) {
-    if ( deinterlacing_value == 1 ) {
-      capture_image->Deinterlace_Discard();
-    } else if ( deinterlacing_value == 2 ) {
-      capture_image->Deinterlace_Linear();
-    } else if ( deinterlacing_value == 3 ) {
-      capture_image->Deinterlace_Blend();
-    } else if ( deinterlacing_value == 4 ) {
-      capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
-    } else if ( deinterlacing_value == 5 ) {
-      capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
-    }
-  }
-
-  if ( orientation != ROTATE_0 ) {
-    switch ( orientation ) {
-      case ROTATE_0 :
-        // No action required
-        break;
-      case ROTATE_90 :
-      case ROTATE_180 :
-      case ROTATE_270 : 
-        capture_image->Rotate( (orientation-1)*90 );
-        break;
-      case FLIP_HORI :
-      case FLIP_VERT :
-        capture_image->Flip( orientation==FLIP_HORI );
-        break;
-    }
-  }
-
-  if ( capture_image->Size() > camera->ImageSize() ) {
-    Error( "Captured image %d does not match expected size %d check width, height and colour depth",capture_image->Size(),camera->ImageSize() );
-    return( -1 );
-  }
-
-  if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
-    Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
-    time_t now = time(0);
-    double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp->tv_sec);
-    time_t last_read_delta = now - shared_data->last_read_time;
-    if ( last_read_delta > (image_buffer_count/approxFps) ) {
-      Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
-        shared_data->last_read_index = image_buffer_count;
-    }
-  }
-
-  if ( privacy_bitmask )
-    capture_image->MaskPrivacy( privacy_bitmask );
-
-  gettimeofday( image_buffer[index].timestamp, NULL );
-  if ( config.timestamp_on_capture ) {
-    TimestampImage( capture_image, image_buffer[index].timestamp );
-  }
   shared_data->signal = CheckSignal(capture_image);
   shared_data->last_write_index = index;
   shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;

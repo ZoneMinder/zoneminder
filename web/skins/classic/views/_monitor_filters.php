@@ -107,7 +107,6 @@ $groupSql = Group::get_group_sql( $group_id );
     if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
       continue;
     }
-    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
 
     if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
       continue;

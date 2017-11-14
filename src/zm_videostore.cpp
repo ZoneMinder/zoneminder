@@ -176,11 +176,13 @@ VideoStore::VideoStore(
       /* video time_base can be set to whatever is handy and supported by encoder */
       video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
       video_out_ctx->framerate = (AVRational){0,1}; // Unknown framerate
+#if 1
       video_out_ctx->gop_size = 12;
-      video_out_ctx->bit_rate = 4000000;
       video_out_ctx->qmin = 10;
       video_out_ctx->qmax = 51;
       video_out_ctx->qcompress = 0.6;
+      video_out_ctx->bit_rate = 4000000;
+#endif
 
       AVDictionary *opts = 0;
       std::string Options = monitor->GetEncoderOptions();
@@ -194,14 +196,22 @@ VideoStore::VideoStore(
         }
       }
 
+#if 0
       if ( ! av_dict_get( opts, "preset", NULL, 0 ) ) {
-        Debug(2,"Setting preset to ultrafast");
-        av_dict_set( &opts, "preset", "ultrafast", 0 );
+        Debug(2,"Setting preset to superfast");
+        av_dict_set( &opts, "preset", "superfast", 0 );
       }
+      if ( ! av_dict_get( opts, "crf", NULL, 0 ) ) {
+        Debug(2,"Setting crf to superfast");
+        av_dict_set( &opts, "crf", "0", 0 );
+      }
+#endif
+#if 1
       if ( ! av_dict_get( opts, "tune", NULL, 0 ) ) {
-        Debug(2,"Setting tune to lowlatency");
-        av_dict_set( &opts, "tune", "lowlatency", 0 );
+        Debug(2,"Setting tune to zerolatency");
+        av_dict_set( &opts, "tune", "zerolatency", 0 );
       }
+#endif
 
       if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
         Warning("Can't open video codec (%s)! %s, trying h264",
@@ -217,6 +227,21 @@ VideoStore::VideoStore(
             return;
           }
         }
+#if 0 
+      if ( ! av_dict_get( opts, "preset", NULL, 0 ) ) {
+        Debug(2,"Setting preset to superfast");
+        av_dict_set( &opts, "preset", "ultrafast", 0 );
+      }
+      if ( ! av_dict_get( opts, "crf", NULL, 0 ) ) {
+        Debug(2,"Setting crf to 0");
+        av_dict_set( &opts, "crf", "0", 0 );
+      }
+#else
+      if ( ! av_dict_get( opts, "tune", NULL, 0 ) ) {
+        Debug(2,"Setting tune to zerolatency");
+        av_dict_set( &opts, "tune", "zerolatency", 0 );
+      }
+#endif
         if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
           Error("Can't open video codec (%s)! %s",
               video_out_codec->name,
@@ -270,8 +295,10 @@ Debug(2, "%dx%d", video_out_stream->codec->width, video_out_stream->codec->heigh
 zm_dump_codec(video_out_ctx);
 zm_dump_codec(video_out_stream->codec);
 #endif
+#if 0
 video_out_stream->time_base.num = video_out_ctx->time_base.num;
 video_out_stream->time_base.den = video_out_ctx->time_base.den;
+#endif
 
   Debug(3,
         "Time bases: VIDEO out stream: (%d/%d) out codec (%d/%d)",
@@ -987,6 +1014,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
 
   //AVPacket safepkt;
   //memcpy(&safepkt, &opkt, sizeof(AVPacket));
+  av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
 
   Debug(1,
         "writing video packet pts(%d) dts(%d) duration(%d) packet_count(%d)",

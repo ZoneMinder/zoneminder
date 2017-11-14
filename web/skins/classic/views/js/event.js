@@ -1,5 +1,45 @@
 var vid = null;
 
+function vjsReplay() {
+  let endTime = (Date.parse(eventData.EndTime)).getTime();
+  switch(replayMode.value) {
+    case 'none':
+      break;
+    case 'single':
+      player.play();
+      break;
+    case 'all':
+      if (nextEventId == 0) {
+        let overLaid = $j("#videoobj");
+        overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
+      } else {
+        let nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+        if (nextStartTime <= endTime) {
+         streamNext( true );
+         return;
+        }
+        let overLaid = $j("#videoobj");
+        vid.pause();
+        overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
+        let gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+        let messageP = $j(".vjsMessage");
+        let x = setInterval(function() {
+          let now = new Date().getTime();
+          let remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
+          messageP.html(remainder + ' to next event.');
+          if (remainder < 0) {
+            clearInterval(x);
+            streamNext( true );
+          }
+        }, 1000);
+      }
+        break;
+    case 'gapless':
+      streamNext( true );
+      break;
+  }
+}
+
 function setButtonState( element, butClass ) {
   if ( element ) {
     element.className = butClass;
@@ -163,6 +203,8 @@ function streamFastRev( action ) {
 function streamPrev( action ) {
   if ( action )
     streamReq.send( streamParms+"&command="+CMD_PREV );
+    $j(".vjsMessage").remove();
+    $j(".vjsMessage").remove();//This shouldn't happen
 }
 
 function streamNext( action ) {
@@ -808,6 +850,7 @@ function initPage() {
     sources[0].src=null;
     window.videoobj.load();
     streamPlay();    */
+    vid.on('ended', vjsReplay);
   } else {
     streamCmdTimer = streamQuery.delay( 250 );
     eventQuery.pass( eventData.Id ).delay( 500 );

@@ -1,3 +1,15 @@
+#content .vjsMessage {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    z-index: 10;
+    margin: 0;
+    font-size: 200%;
+    color: white;
+    background-color: black;
+    display: inline-block;
+}
+
 #dataBar {
     width: 100%;
     margin: 2px auto;

@@ -61,6 +61,7 @@ if ( isset( $_REQUEST['streamMode'] ) )
 else
   $streamMode = 'video';
 
+$replayMode = '';
 if ( isset( $_REQUEST['replayMode'] ) )
   $replayMode = validHtmlStr($_REQUEST['replayMode']);
 if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )

@@ -266,15 +266,15 @@ int RemoteCameraRtsp::Capture( Image &image ) {
   
   /* Request a writeable buffer of the target image */
   directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  if(directbuffer == NULL) {
+  if ( directbuffer == NULL ) {
     Error("Failed requesting writeable buffer for the captured image.");
-    return (-1);
+    return -1;
   }
   
   while ( true ) {
     buffer.clear();
     if ( !rtspThread->isRunning() )
-      return (-1);
+      return -1;
 
     if ( rtspThread->getFrame( buffer ) ) {
       Debug( 3, "Read frame %d bytes", buffer.size() );
@@ -282,21 +282,21 @@ int RemoteCameraRtsp::Capture( Image &image ) {
       Hexdump( 4, buffer.head(), 16 );
 
       if ( !buffer.size() )
-        return( -1 );
+        return -1;
 
-      if(mCodecContext->codec_id == AV_CODEC_ID_H264) {
+      if ( mCodecContext->codec_id == AV_CODEC_ID_H264 ) {
         // SPS and PPS frames should be saved and appended to IDR frames
         int nalType = (buffer.head()[3] & 0x1f);
         
         // SPS The SPS NAL unit contains parameters that apply to a series of consecutive coded video pictures
-        if(nalType == 7) {
+        if ( nalType == 7 ) {
           lastSps = buffer;
           continue;
-        } else if(nalType == 8) {
+        } else if ( nalType == 8 ) {
         // PPS The PPS NAL unit contains parameters that apply to the decoding of one or more individual pictures inside a coded video sequence
           lastPps = buffer;
           continue;
-        } else if(nalType == 5) {
+        } else if ( nalType == 5 ) {
         // IDR
           buffer += lastSps;
           buffer += lastPps;
@@ -357,13 +357,13 @@ int RemoteCameraRtsp::Capture( Image &image ) {
       zm_av_packet_unref( &packet );
     } /* getFrame() */
    
-    if(frameComplete)
-      return (0);
+    if ( frameComplete )
+      return 1;
   
   } // end while true
 
   // can never get here.
-  return (0);
+  return 0;
 }
 
 //Function to handle capture and store

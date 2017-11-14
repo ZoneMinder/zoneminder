@@ -224,7 +224,7 @@ sub Sql {
                 || $term->{attr} eq 'Notes'
                 ) {
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} eq 'DateTime' ) {
+            } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
               $value = DateTimeToSQL( $temp_value );
               if ( !$value ) {
                 Error( "Error parsing date/time '$temp_value', "
@@ -232,7 +232,7 @@ sub Sql {
                 return;
               }
               $value = "'$value'";
-            } elsif ( $term->{attr} eq 'Date' ) {
+            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or  $term->{attr} eq 'EndDate' ) {
               $value = DateTimeToSQL( $temp_value );
               if ( !$value ) {
                 Error( "Error parsing date/time '$temp_value', "
@@ -240,7 +240,7 @@ sub Sql {
                 return;
               }
               $value = "to_days( '$value' )";
-            } elsif ( $term->{attr} eq 'Time' ) {
+            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
               $value = DateTimeToSQL( $temp_value );
               if ( !$value ) {
                 Error( "Error parsing date/time '$temp_value', "

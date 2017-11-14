@@ -215,6 +215,18 @@ ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *con
 
   accessed = false;
 }
+ConfigItem::ConfigItem( const ConfigItem &item ) {
+  name = new char[strlen(item.name)+1];
+  strcpy( name, item.name );
+  value = new char[strlen(item.value)+1];
+  strcpy( value, item.value );
+  type = new char[strlen(item.type)+1];
+  strcpy( type, item.type );
+
+  //Info( "Created new config item %s = %s (%s)\n", name, value, type );
+
+  accessed = false;
+}
 
 ConfigItem::~ConfigItem() {
   delete[] name;

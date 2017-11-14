@@ -14,6 +14,7 @@ private $defaults = array(
 'Width' => null,
 'Height' => null,
 'Orientation' => null,
+'AnalysisFPSLimit'  =>  null,
 );
 private $control_fields = array(
   'Name' => '',
@@ -301,6 +302,7 @@ private $control_fields = array(
     $values[] = $this->{'Id'};
     dbQuery( $sql, $values );
   } // end function save
+
   function zmcControl( $mode=false ) {
     if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$this->{'ServerId'} ) ) {
       if ( $this->{'Type'} == 'Local' ) {
@@ -315,7 +317,8 @@ private $control_fields = array(
         if ( $mode == 'restart' ) {
           daemonControl( 'stop', 'zmc', $zmcArgs );
         }
-        daemonControl( 'start', 'zmc', $zmcArgs );
+        if ( $this->{'Function'} != 'None' )
+          daemonControl( 'start', 'zmc', $zmcArgs );
       }
     } else {
       $Server = $this->Server();

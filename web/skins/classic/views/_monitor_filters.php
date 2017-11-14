@@ -118,7 +118,7 @@ $groupSql = Group::get_group_sql( $group_id );
 ?>
 </span>
 <?php
-if ( count($ServersById) > 0 ) {
+if ( count($ServersById) > 1 ) {
 ?>
 <span class="ServerFilter"><label><?php echo translate('Server')?>:</label>
 <?php
@@ -127,7 +127,7 @@ echo htmlSelect( 'ServerFilter', array(''=>'All')+$ServersById, (isset($_SESSION
 </span>
 <?php 
 }
-if ( count($StorageById) > 0 ) { ?>
+if ( count($StorageById) > 1 ) { ?>
   <span class="StorageFilter"><label><?php echo translate('Storage')?>:</label>
 <?php
 echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );

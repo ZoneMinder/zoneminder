@@ -48,8 +48,10 @@ function xhtmlHeaders( $file, $title ) {
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
 <?php
 if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
-  echo "<link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>\n";
-  echo "<link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>\n";
+  echo "
+  <link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
+  <link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
+";
 } else {
   echo '
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>

@@ -167,7 +167,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         video_out_ctx->time_base.den);
 
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
+    video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+#else
     video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#endif
   }
 
   Monitor::Orientation orientation = monitor->getOrientation();
@@ -274,7 +278,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
     if (audio_out_stream) {
       if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-        audio_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
+    audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+#else
+    audio_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#endif
       }
     }
   }  // end if audio_in_stream
@@ -823,19 +831,19 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
 int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   Debug(4, "writeAudioFrame");
 
-  if (!audio_out_stream) {
+  if ( !audio_out_stream ) {
     Debug(1, "Called writeAudioFramePacket when no audio_out_stream");
     return 0;  // FIXME -ve return codes do not free packet in ffmpeg_camera at
                // the moment
   }
 
-  if (audio_out_codec) {
+  if ( audio_out_codec ) {
     Debug(3, "Have audio codec");
 #ifdef HAVE_LIBAVRESAMPLE
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     ret = avcodec_send_packet(audio_in_ctx, ipkt);
-    if (ret < 0) {
+    if ( ret < 0 ) {
       Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
       return 0;
     }

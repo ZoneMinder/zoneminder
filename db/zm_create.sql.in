@@ -609,13 +609,14 @@ CREATE TABLE `Storage` (
 	`Path`	varchar(64)	NOT NULL default '',
 	`Name`	varchar(64) NOT NULL default '',
 	`Type`	enum('local','s3fs') NOT NULL default 'local',
+  `DiskSpace`   bigint unsigned default NULL,
 	PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default', 'local' );
+insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default', 'local', NULL );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

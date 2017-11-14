@@ -114,11 +114,12 @@ class Storage {
       $used = 0;
       if ( $this->{'Type'} == 's3fs' ) {
         $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
-
+if ( 0 ) {
 	      foreach ( Event::find_all( array( 'StorageId'=>$this->Id(), 'DiskSpace'=>null ) ) as $Event ) {
 		      $Event->Storage( $this ); // Prevent further db hit
 		      $used += $Event->DiskSpace();
 	      }
+}
       } else { 
 	      $path = $this->Path();
 	      $used = disk_total_space( $path ) - disk_free_space( $path );;

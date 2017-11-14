@@ -127,6 +127,8 @@ class FfmpegCamera : public Camera {
         return mFormatContext->streams[mAudioStreamId];
       return NULL;
     }
+  AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
+  AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };
 };
 
 #endif // ZM_FFMPEG_CAMERA_H

@@ -55,6 +55,7 @@ use constant START_DELAY => 30; # To give everything else time to start
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
+use ZoneMinder::Storage;
 use POSIX;
 use DBI;
 use autouse 'Data::Dumper'=>qw(Dumper);
@@ -168,13 +169,21 @@ while( 1 ) {
 
       if ( $restart ) {
         Info( "Restarting analysis daemon for $$monitor{Id} $$monitor{Name}\n");
-        my $command = "zmdc.pl restart zma -m ".$monitor->{Id};
+        my $command = "zmdc.pl restart zmc -m ".$monitor->{Id};
         runCommand( $command );
       } # end if restart
     } # end if check analysis daemon
     # Prevent open handles building up if we have connect to shared memory
     zmMemInvalidate( $monitor ); # Close our file handle to the zmc process we are about to end
   } # end foreach monitor
+  my $diskspace_sql = 'UPDATE Storage SET DiskSpace =(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL)';
+  my $diskspace_sth = $dbh->prepare_cached( $sql )
+    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+  foreach my $Storage ( ZoneMinder::Storage->find() ) {
+Error("Updating displace for $$Storage{Name}");
+    $diskspace_sth->execute( $$Storage{Id} ) or Error( "Can't execute: ".$diskspace_sth->errstr() );
+  }
+  $diskspace_sth->finish();
   sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );
 } # end while (1)
 

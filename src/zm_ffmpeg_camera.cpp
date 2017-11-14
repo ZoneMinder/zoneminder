@@ -195,8 +195,7 @@ int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
     mReopenThread = 0;
   }
 
-  ret = av_read_frame( mFormatContext, &packet );
-  if ( ret < 0 ) {
+  if ( (ret = av_read_frame( mFormatContext, &packet )) < 0 ) {
     if (
         // Check if EOF.
         (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
@@ -431,18 +430,6 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning( "Option %s not recognized by ffmpeg", e->key);
     }
   }
-  }
-
-  if ( mVideoCodecContext->codec_id != AV_CODEC_ID_H264 ) {
-#ifdef AV_CODEC_ID_H265
-    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
-      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
-    } else {
-#endif
-      Warning( "Input stream is not h264.  The stored event file may not be viewable in browser." );
-#ifdef AV_CODEC_ID_H265
-    }
-#endif
   }
 
   if (mVideoCodecContext->hwaccel != NULL) {

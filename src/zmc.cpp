@@ -269,8 +269,8 @@ int main(int argc, char *argv[]) {
   struct timeval now;
   struct DeltaTimeval delta_time;
   while ( !zm_terminate ) {
-    Debug(2,"blocking");
-    //sigprocmask(SIG_BLOCK, &block_set, 0);
+    //Debug(2,"blocking");
+    sigprocmask(SIG_BLOCK, &block_set, 0);
     for ( int i = 0; i < n_monitors; i++ ) {
       long min_delay = MAXINT;
 
@@ -327,8 +327,8 @@ int main(int argc, char *argv[]) {
       }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
 
     }  // end foreach n_monitors
-    Debug(2,"unblocking");
-    //sigprocmask(SIG_UNBLOCK, &block_set, 0);
+    //Debug(2,"unblocking");
+    sigprocmask(SIG_UNBLOCK, &block_set, 0);
   }  // end while ! zm_terminate
   for ( int i = 0; i < n_monitors; i++ ) {
     if ( analysis_threads[i] ) {

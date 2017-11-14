@@ -472,7 +472,8 @@ Debug(2,"Different codecs between in and out");
             break;
           }
 #endif
-Debug(3, "dts:%d, pts:%d", pkt.dts, pkt.pts );
+  int keyframe = pkt.flags & AV_PKT_FLAG_KEY;
+Debug(3, "dts:%d, pts:%d, keyframe:%d", pkt.dts, pkt.pts, keyframe );
           //pkt.dts = video_next_dts;
           pkt.pts = pkt.dts;
           //pkt.duration = video_last_duration;
@@ -854,11 +855,11 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
             video_out_ctx->height, 1);
-        uint8_t *buffer = (uint8_t *)av_malloc(codec_imgsize);
+        zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
         av_image_fill_arrays(
             frame->data,
             frame->linesize,
-            buffer,
+            zm_packet->buffer,
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
             video_out_ctx->height,
@@ -868,10 +869,10 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
             video_out_ctx->height);
-        uint8_t *buffer = (uint8_t *)av_malloc(codec_imgsize);
+        zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
         avpicture_fill(
             (AVPicture *)frame,
-            buffer,
+            zm_packet->buffer,
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
             video_out_ctx->height
@@ -882,7 +883,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
         frame->height = video_out_ctx->height;
         frame->format = video_out_ctx->pix_fmt;
         swscale.Convert(zm_packet->image, 
-            buffer,
+            zm_packet->buffer,
             codec_imgsize,
             (AVPixelFormat)zm_packet->image->AVPixFormat(),
             video_out_ctx->pix_fmt,
@@ -942,6 +943,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     opkt.flags = ipkt->flags;
   }
 
+  int keyframe = opkt.flags & AV_PKT_FLAG_KEY;
+Debug(3, "dts:%d, pts:%d, keyframe:%d", opkt.dts, opkt.pts, keyframe );
   write_video_packet( opkt );
   zm_av_packet_unref(&opkt);
 
@@ -950,7 +953,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
 
 void VideoStore::write_video_packet( AVPacket &opkt ) {
 
-  if (opkt.dts > opkt.pts) {
+  if ( opkt.dts > opkt.pts ) {
     Debug(1,
           "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen "
           "before presentation.",
@@ -981,8 +984,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
     //dumpPacket(&opkt);
 
   } else {
-    ret = av_interleaved_write_frame(oc, &opkt);
-    if (ret < 0) {
+    if ( (ret = av_interleaved_write_frame(oc, &opkt)) < 0 ) {
       // There's nothing we can really do if the frame is rejected, just drop it
       // and get on with the next
       Warning(

@@ -15,8 +15,10 @@ private $defaults = array(
 'Height' => null,
 'Orientation' => null,
 'AnalysisFPSLimit'  =>  null,
-'OutputCodec',
-'OutputContainer',
+'OutputCodec' => 'h264',
+'OutputContainer' => 'auto',
+'AnalysisFPS' => null,
+'CaptureFPS' => null,
 );
 private $control_fields = array(
   'Name' => '',

@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     Usage();
   }
 
-  int modes = (device[0]?1:0 + host[0]?1:0 + file[0]?1:0 + (monitor_id > 0 ? 1 : 0));
+  int modes = ( (device[0]?1:0) + (host[0]?1:0) + (file[0]?1:0) + (monitor_id > 0 ? 1 : 0));
   if ( modes > 1 ) {
     fprintf(stderr, "Only one of device, host/port/path, file or monitor id allowed\n");
     Usage();

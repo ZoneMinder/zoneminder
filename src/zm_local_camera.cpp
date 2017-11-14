@@ -1475,10 +1475,10 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_COLOR, "Colour Signal ", "not detected", "detected", "" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_H_LOCK, "Horizontal Lock ", "not detected", "detected", "" ) );
         } else {
-          sprintf( output+strlen(output), "i%dSP:%d|", input.index, input.status&V4L2_IN_ST_NO_POWER?0:1 );
-          sprintf( output+strlen(output), "i%dSS:%d|", input.index, input.status&V4L2_IN_ST_NO_SIGNAL?0:1 );
-          sprintf( output+strlen(output), "i%dSC:%d|", input.index, input.status&V4L2_IN_ST_NO_COLOR?0:1 );
-          sprintf( output+strlen(output), "i%dHP:%d|", input.index, input.status&V4L2_IN_ST_NO_H_LOCK?0:1 );
+          sprintf( output+strlen(output), "i%dSP:%d|", input.index, (input.status&V4L2_IN_ST_NO_POWER)?0:1 );
+          sprintf( output+strlen(output), "i%dSS:%d|", input.index, (input.status&V4L2_IN_ST_NO_SIGNAL)?0:1 );
+          sprintf( output+strlen(output), "i%dSC:%d|", input.index, (input.status&V4L2_IN_ST_NO_COLOR)?0:1 );
+          sprintf( output+strlen(output), "i%dHP:%d|", input.index, (input.status&V4L2_IN_ST_NO_H_LOCK)?0:1 );
         }
       } while ( inputIndex++ >= 0 );
       if ( !verbose )
@@ -1907,9 +1907,8 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
   // We assume that the avpacket is allocated, and just needs to be filled
   Debug( 3, "Capturing" );
   static uint8_t* buffer = NULL;
-  static uint8_t* directbuffer = NULL;
-  static int capture_frame = -1;
   int buffer_bytesused = 0;
+  int capture_frame = -1;
 
   int captures_per_frame = 1;
   if ( channel_count > 1 )
@@ -1992,7 +1991,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
     Debug( 3, "Performing format conversion" );
 
     /* Request a writeable buffer of the target image */
-    directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
+    uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
     if ( directbuffer == NULL ) {
       Error("Failed requesting writeable buffer for the captured image.");
       return -1;
@@ -2010,7 +2009,6 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
       avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
           imagePixFormat, width, height );
 #endif
-      Debug( 9, "Calling sws_scale to perform the conversion" );
       sws_scale(
           imgConversionContext,
           capturePictures[capture_frame]->data,
@@ -2020,7 +2018,6 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
           tmpPicture->data,
           tmpPicture->linesize
           );
-      Debug( 9, "Done sws_scale to perform the conversion" );
     } else
 #endif  
     if ( conversion_type == 2 ) {
@@ -2042,7 +2039,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
   } // end if doing conversion or not
 
   return 1;
-} // end Capture
+} // end int LocalCamera::Capture()
 
 int LocalCamera::PostCapture() {
   Debug( 4, "Post-capturing" );

@@ -34,17 +34,13 @@ public function beforeFilter() {
 	public function index() {
 		$this->Event->recursive = -1;
 		
-                $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
+    $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 
-                if (!empty($allowedMonitors))
-                {
-                        $mon_options = array('Event.MonitorId' => $allowedMonitors);
-                }
-                else
-                {
-                        $mon_options='';
-                }
-
+    if (!empty($allowedMonitors)) {
+      $mon_options = array('Event.MonitorId' => $allowedMonitors);
+    } else {
+      $mon_options='';
+    }
 
 		if ($this->request->params['named']) {	
 			$this->FilterComponent = $this->Components->load('Filter');
@@ -81,7 +77,6 @@ public function beforeFilter() {
 			//$thumbData = $this->createThumbnail($value['Event']['Id']);
 			$thumbData = "";
 			$events[$key]['thumbData'] = $thumbData;
-
 		}
 
 		$this->set(compact('events'));

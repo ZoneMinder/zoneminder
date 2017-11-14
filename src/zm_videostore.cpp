@@ -167,7 +167,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         video_out_ctx->time_base.den);
 
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
+    video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+#else
     video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#endif
   }
 
   Monitor::Orientation orientation = monitor->getOrientation();
@@ -274,7 +278,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
     if (audio_out_stream) {
       if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-        audio_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
+    audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+#else
+    audio_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#endif
       }
     }
   }  // end if audio_in_stream

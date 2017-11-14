@@ -827,7 +827,7 @@ switch ( $tab ) {
 <?php
       
       } else if ( $monitor->Type() == 'NVSocket' ) {
-include('monitor_source_nvsocket.php');
+include('_monitor_source_nvsocket.php');
       } else if ( $monitor->Type() == 'Remote' ) {
 ?>
           <tr><td><?php echo translate('RemoteProtocol') ?></td><td><?php echo htmlSelect( "newMonitor[Protocol]", $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?></td></tr>

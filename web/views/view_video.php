@@ -41,6 +41,10 @@ if ( ! empty($_REQUEST['eid'] ) ) {
   $Event = new Event( $_REQUEST['eid'] );
   $path = $Event->Path().'/'.$Event->DefaultVideo();
 	Logger::Debug("Path: $path");
+} else if ( ! empty($_REQUEST['event_id'] ) ) {
+  $Event = new Event( $_REQUEST['event_id'] );
+  $path = $Event->Path().'/'.$Event->DefaultVideo();
+	Logger::Debug("Path: $path");
 } else {
   $errorText = 'No video path';
 }

@@ -166,6 +166,8 @@ protected:
   VideoStore          *videoStore;
   zm_packetqueue      packetqueue;
   Mutex mutex;
+  std::string         output_codec;
+  std::string         output_container;
 
   class MonitorLink {
   protected:
@@ -346,6 +348,8 @@ public:
     int p_savejpegs,
     VideoWriter p_videowriter,
     std::string p_encoderparams,
+    std::string p_output_codec,
+    std::string p_output_container,
     bool  p_record_audio,
     const char *p_event_prefix,
     const char *p_label_format,
@@ -431,6 +435,8 @@ public:
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
   const std::string &GetEncoderOptions() const { return( encoderparams ); }
+  const std::string &OutputCodec() const { return output_codec; }
+  const std::string &OutputContainer() const { return output_container; }
 
   uint32_t GetLastEventId() const { return shared_data->last_event_id; }
   uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }

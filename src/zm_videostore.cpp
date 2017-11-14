@@ -129,78 +129,95 @@ Debug(2,"About to copy aparames");
       Error("Could not allocate in frame");
       return;
     }
-    video_out_codec = avcodec_find_encoder_by_name("h264_omx");
-    if ( ! video_out_codec ) {
-      Debug(1, "Didn't find omx");
-      video_out_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
-    }
-    if ( !video_out_codec ) {
-      Fatal("Could not find codec for H264");
-    }
-    Debug(2, "Have video out codec");
+      video_out_ctx = avcodec_alloc_context3( video_out_codec );
+      // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
+      video_out_ctx->width = monitor->Width();
+      video_out_ctx->height = monitor->Height();
+      video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 
-    video_out_ctx = avcodec_alloc_context3( video_out_codec );
-    // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
-    video_out_ctx->width = monitor->Width();
-    video_out_ctx->height = monitor->Height();
-    video_out_ctx->codec_id = AV_CODEC_ID_H264;
-    video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-//video_in_ctx->sample_aspect_ratio;
-    /* take first format from list of supported formats */
-    //video_out_ctx->pix_fmt = video_out_codec->pix_fmts[0];
-    video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-    /* video time_base can be set to whatever is handy and supported by encoder */
-    video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-    video_out_ctx->framerate = (AVRational){0,1}; // Unknown framerate
-    video_out_ctx->gop_size = 12;
-    video_out_ctx->bit_rate = 4000000;
-    video_out_ctx->qmin = 10;
-    video_out_ctx->qmax = 51;
-    video_out_ctx->qcompress = 0.6;
-
-    AVDictionary *opts = 0;
-    std::string Options = monitor->GetEncoderOptions();
-    ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
-    if ( ret < 0 ) {
-      Warning("Could not parse ffmpeg encoder options list '%s'\n", Options.c_str());
-    } else {
-      AVDictionaryEntry *e = NULL;
-      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Debug( 3, "Encoder Option %s=%s", e->key, e->value );
-      }
-    }
-
-    if ( ! av_dict_get( opts, "preset", NULL, 0 ) ) {
-      Debug(2,"Setting preset to superfast");
-      av_dict_set( &opts, "preset", "superfast", 0 );
-    }
-
-    if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-      Warning("Can't open video codec (%s)! %s, trying h264",
-          video_out_codec->name,
-          av_make_error_string(ret).c_str()
-          );
-      video_out_codec = avcodec_find_encoder_by_name("h264");
+    if ( monitor->OutputCodec() == "mjpeg" ) {
+      video_out_codec = avcodec_find_encoder_by_name("mjpeg");
       if ( ! video_out_codec ) {
-        Error("Can't find h264 encoder");
-        video_out_codec = avcodec_find_encoder_by_name("libx264");
+        Debug(1, "Didn't find omx");
+        video_out_codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
+      }
+      video_out_ctx->codec_id = video_out_codec->id;
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUVJ422P;
+
+    } else if ( monitor->OutputCodec() == "h264" ) {
+      video_out_codec = avcodec_find_encoder_by_name("h264_omx");
+      if ( ! video_out_codec ) {
+        Debug(1, "Didn't find omx");
+        video_out_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+      }
+      if ( !video_out_codec ) {
+        Fatal("Could not find codec for H264");
+      }
+      Debug(2, "Have video out codec");
+
+      video_out_ctx->codec_id = AV_CODEC_ID_H264;
+  //video_in_ctx->sample_aspect_ratio;
+      /* take first format from list of supported formats */
+      //video_out_ctx->pix_fmt = video_out_codec->pix_fmts[0];
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+      /* video time_base can be set to whatever is handy and supported by encoder */
+      video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+      video_out_ctx->framerate = (AVRational){0,1}; // Unknown framerate
+      video_out_ctx->gop_size = 12;
+      video_out_ctx->bit_rate = 4000000;
+      video_out_ctx->qmin = 10;
+      video_out_ctx->qmax = 51;
+      video_out_ctx->qcompress = 0.6;
+
+      AVDictionary *opts = 0;
+      std::string Options = monitor->GetEncoderOptions();
+      ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
+      if ( ret < 0 ) {
+        Warning("Could not parse ffmpeg encoder options list '%s'\n", Options.c_str());
+      } else {
+        AVDictionaryEntry *e = NULL;
+        while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+          Debug( 3, "Encoder Option %s=%s", e->key, e->value );
+        }
+      }
+
+      if ( ! av_dict_get( opts, "preset", NULL, 0 ) ) {
+        Debug(2,"Setting preset to ultrafast");
+        av_dict_set( &opts, "preset", "ultrafast", 0 );
+      }
+
+      if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
+        Warning("Can't open video codec (%s)! %s, trying h264",
+            video_out_codec->name,
+            av_make_error_string(ret).c_str()
+            );
+        video_out_codec = avcodec_find_encoder_by_name("h264");
         if ( ! video_out_codec ) {
-          Error("Can't find libx264 encoder");
+          Error("Can't find h264 encoder");
+          video_out_codec = avcodec_find_encoder_by_name("libx264");
+          if ( ! video_out_codec ) {
+            Error("Can't find libx264 encoder");
+            return;
+          }
+        }
+        if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
+          Error("Can't open video codec (%s)! %s",
+              video_out_codec->name,
+              av_make_error_string(ret).c_str() );
           return;
         }
       }
-      if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-        Error("Can't open video codec (%s)! %s",
-            video_out_codec->name,
-            av_make_error_string(ret).c_str() );
-        return;
+      AVDictionaryEntry *e = NULL;
+      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+        Warning( "Encoder Option %s not recognized by ffmpeg codec", e->key);
       }
-    }
-    AVDictionaryEntry *e = NULL;
-    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-      Warning( "Encoder Option %s not recognized by ffmpeg codec", e->key);
-    }
-    av_dict_free(&opts);
+      av_dict_free(&opts);
+  if ( !video_out_ctx->codec_tag ) {
+    video_out_ctx->codec_tag =
+        av_codec_get_tag(oc->oformat->codec_tag, AV_CODEC_ID_H264 );
+    Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
+  }
+    }// end if codec == h264
 
     swscale.SetDefaults(
         video_in_ctx->pix_fmt,
@@ -210,11 +227,6 @@ Debug(2,"About to copy aparames");
         );
   } // end if copying or trasncoding
 
-  if ( !video_out_ctx->codec_tag ) {
-    video_out_ctx->codec_tag =
-        av_codec_get_tag(oc->oformat->codec_tag, AV_CODEC_ID_H264 );
-    Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
-  }
 
   video_out_stream = avformat_new_stream(oc, video_out_codec);
   if ( !video_out_stream ) {

@@ -326,7 +326,7 @@ function changeGroup( e, depth ) {
 }
 function changeMonitor( e ) {
   var monitor_id = e.value;
-  Cookie.write( 'zmMonitorId', monitor_id, { duration: 10*365 } );
+  Cookie.write( 'MonitorId', monitor_id, { duration: 10*365 } );
   window.location = window.location;
 }
 function changeFilter( e ) {

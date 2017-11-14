@@ -167,7 +167,16 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
-    snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
+    std::string container = monitor->OutputContainer();
+    if ( container == "auto" || container == "" ) {
+      if ( monitor->OutputCodec() == "h264" ) {
+        container = "mp4";
+      } else {
+        container = "mkv";
+      }
+    }
+        
+    snprintf( video_name, sizeof(video_name), "%d-%s.%s", id, "video", container.c_str() );
     snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
     Debug(1,"Writing video file to %s", video_file );
     videowriter = NULL;

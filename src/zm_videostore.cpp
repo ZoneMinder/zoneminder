@@ -175,7 +175,7 @@ VideoStore::VideoStore(
       video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
       /* video time_base can be set to whatever is handy and supported by encoder */
       video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-      video_out_ctx->framerate = (AVRational){0,1}; // Unknown framerate
+      video_out_ctx->framerate = (AVRational){0,24}; // Unknown framerate
 #if 1
       video_out_ctx->gop_size = 12;
       video_out_ctx->qmin = 10;
@@ -206,7 +206,7 @@ VideoStore::VideoStore(
         av_dict_set( &opts, "crf", "0", 0 );
       }
 #endif
-#if 1
+#if 0
       if ( ! av_dict_get( opts, "tune", NULL, 0 ) ) {
         Debug(2,"Setting tune to zerolatency");
         av_dict_set( &opts, "tune", "zerolatency", 0 );
@@ -236,7 +236,6 @@ VideoStore::VideoStore(
         Debug(2,"Setting crf to 0");
         av_dict_set( &opts, "crf", "0", 0 );
       }
-#else
       if ( ! av_dict_get( opts, "tune", NULL, 0 ) ) {
         Debug(2,"Setting tune to zerolatency");
         av_dict_set( &opts, "tune", "zerolatency", 0 );
@@ -433,7 +432,7 @@ bool VideoStore::open() {
 
   AVDictionary *opts = NULL;
   // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+   av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
   // av_dict_set(&opts, "movflags",
   // "frag_keyframe+empty_moov+default_base_moof", 0);
   if ( (ret = avformat_write_header(oc, &opts)) < 0 ) {
@@ -945,6 +944,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       zm_packet->frame->pts = ( zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec ) - video_last_pts;
     }
 
+    // Do this to allow the encoder to choose whether to use I/P/B frame
+    zm_packet->frame->pict_type = AV_PICTURE_TYPE_NONE;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( (ret = avcodec_send_frame(video_out_ctx, zm_packet->frame)) < 0 ) {
       Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());

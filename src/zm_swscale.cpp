@@ -78,7 +78,17 @@ int SWScale::SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, 
   return 0;
 }
 
-int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
+
+int SWScale::Convert(
+    const uint8_t* in_buffer,
+    const size_t in_buffer_size,
+    uint8_t* out_buffer,
+    const size_t out_buffer_size,
+    enum _AVPIXELFORMAT in_pf,
+    enum _AVPIXELFORMAT out_pf,
+    unsigned int width,
+    unsigned int height
+    ) {
   /* Parameter checking */
   if(in_buffer == NULL || out_buffer == NULL) {
     Error("NULL Input or output buffer");
@@ -119,14 +129,14 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   size_t outsize = avpicture_get_size(out_pf, width, height);
 #endif
 
-  if(outsize < out_buffer_size) {
+  if ( outsize < out_buffer_size ) {
     Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
     return -5;
   }
 
   /* Get the context */
   swscale_ctx = sws_getCachedContext( swscale_ctx, width, height, in_pf, width, height, out_pf, SWS_FAST_BILINEAR, NULL, NULL, NULL );
-  if(swscale_ctx == NULL) {
+  if ( swscale_ctx == NULL ) {
     Error("Failed getting swscale context");
     return -6;
   }
@@ -163,22 +173,22 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 }
 
 int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
-  if(img->Width() != width) {
+  if ( img->Width() != width ) {
     Error("Source image width differs. Source: %d Output: %d",img->Width(), width);
     return -12;
   }
 
-  if(img->Height() != height) {
+  if ( img->Height() != height ) {
     Error("Source image height differs. Source: %d Output: %d",img->Height(), height);
     return -13;
   }
 
-  return Convert(img->Buffer(),img->Size(),out_buffer,out_buffer_size,in_pf,out_pf,width,height);
+  return Convert(img->Buffer(), img->Size(), out_buffer, out_buffer_size, in_pf, out_pf, width, height);
 }
 
 int SWScale::ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size) {
 
-  if(!gotdefaults) {
+  if ( !gotdefaults ) {
     Error("Defaults are not set");
     return -24;
   }
@@ -188,7 +198,7 @@ int SWScale::ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t
 
 int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size) {
 
-  if(!gotdefaults) {
+  if ( !gotdefaults ) {
     Error("Defaults are not set");
     return -24;
   }

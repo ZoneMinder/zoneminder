@@ -74,6 +74,10 @@ if ( ( ! $replayMode ) or ( ! $replayModes[$replayMode] ) ) {
   $replayMode = 'none';
 }
 
+$video_tag = false;
+if ( $Event->DefaultVideo() and ( 'mp4' == pathinfo($Event->DefaultVideo(), PATHINFO_EXTENSION) ) ) {
+  $video_tag = true;
+}
 // videojs zoomrotate only when direct recording
 $Zoom = 1;
 $Rotation = 0;
@@ -150,7 +154,7 @@ if ( $Event->SaveJPEGs() & 3 ) { // Analysis or Jpegs
         <div id="exportEvent"><a href="#" onclick="exportEvent();"><?php echo translate('Export') ?></a></div>
       </div>
 <?php
-if ( $Event->DefaultVideo() ) {
+if ( $video_tag ) {
 ?>
       <div id="eventVideo" class="">
         <div id="videoFeed">
@@ -170,7 +174,7 @@ if ( $Event->DefaultVideo() ) {
 <?php
 }  // end if DefaultVideo
 ?>
-<?php if (!$Event->DefaultVideo()) { ?>
+<?php if ( !$video_tag ) { ?>
       <div id="imageFeed">
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {

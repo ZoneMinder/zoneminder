@@ -360,7 +360,8 @@ function getNearEvents() {
   $eventId = $_REQUEST['id'];
   $event = dbFetchOne( 'SELECT * FROM Events WHERE Id=?', NULL, array( $eventId ) );
 
-  parseFilter( $_REQUEST['filter'] );
+  if ( isset($_REQUEST['filter']) )
+    parseFilter( $_REQUEST['filter'] );
   parseSort();
 
   if ( $user['MonitorIds'] )

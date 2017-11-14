@@ -63,16 +63,6 @@
 #define MAP_LOCKED 0
 #endif
 
-std::vector<std::string> split(const std::string &s, char delim) {
-  std::vector<std::string> elems;
-  std::stringstream ss(s);
-  std::string item;
-  while(std::getline(ss, item, delim)) {
-    elems.push_back(trimSpaces(item));
-  }
-  return elems;
-}
-
 Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
   strncpy( name, p_name, sizeof(name) );
 
@@ -231,9 +221,11 @@ bool Monitor::MonitorLink::inAlarm() {
 bool Monitor::MonitorLink::hasAlarmed() {
   if ( shared_data->state == ALARM ) {
     return( true );
-  } else if ( shared_data->last_event_id != (unsigned int)last_event_id ) {
-    last_event_id = shared_data->last_event_id;
   }
+  //} else if ( shared_data->last_event_id != (unsigned int)last_event ) {
+// Why test for it, just set it...
+    last_event_id = shared_data->last_event_id;
+  //}
   return( false );
 }
 
@@ -251,6 +243,8 @@ Monitor::Monitor(
   int p_savejpegs,
   VideoWriter p_videowriter,
   std::string p_encoderparams,
+  std::string p_output_codec,
+  std::string p_output_container,
   bool p_record_audio,
   const char *p_event_prefix,
   const char *p_label_format,
@@ -290,6 +284,8 @@ Monitor::Monitor(
   savejpegspref( p_savejpegs ),
   videowriter( p_videowriter ),
   encoderparams( p_encoderparams ),
+  output_codec( p_output_codec ),
+  output_container( p_output_container ),
   record_audio( p_record_audio ),
   label_coord( p_label_coord ),
   label_size( p_label_size ),
@@ -372,7 +368,6 @@ Monitor::Monitor(
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
-       + (image_buffer_count*sizeof(struct timeval))
        + (image_buffer_count*camera->ImageSize())
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
@@ -386,6 +381,7 @@ Monitor::Monitor(
   snprintf( monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id );
   struct stat statbuf;
 
+  // If we are going to actually do capture, then yes, we should stat this dir, otherwise not
   if ( stat( monitor_dir, &statbuf ) ) {
     if ( errno == ENOENT || errno == ENOTDIR ) {
       if ( mkdir( monitor_dir, 0755 ) ) {
@@ -428,61 +424,39 @@ Monitor::Monitor(
     trigger_data->trigger_showtext[0] = 0;
     shared_data->valid = true;
     video_store_data->recording = (struct timeval){0};
+    // Uh, why nothing?  Why not NULL?
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
-  } else if ( purpose == ANALYSIS ) {
-    this->connect();
-    if ( ! mem_ptr ) exit(-1);
-    shared_data->state = IDLE;
-    shared_data->last_read_time = 0;
-    shared_data->alarm_x = -1;
-    shared_data->alarm_y = -1;
   }
 
-  if ( ( ! mem_ptr ) || ! shared_data->valid ) {
-    if ( purpose != QUERY ) {
-      Error( "Shared data not initialised by capture daemon for monitor %s", name );
-      exit( -1 );
-    }
-  }
+  //if ( ( ! mem_ptr ) || ! shared_data->valid ) {
+    //if ( purpose != QUERY ) {
+      //Error( "Shared data not initialised by capture daemon for monitor %s", name );
+      //exit( -1 );
+    //}
+  //}
 
-  // Will this not happen every time a monitor is instantiated?  Seems like all the calls to the Monitor constructor pass a zero for n_zones, then load zones after..
-  // In my storage areas branch, I took this out.. and didn't notice any problems.
-  if ( false && !n_zones ) {
-    Debug( 1, "Monitor %s has no zones, adding one.", name );
-    n_zones = 1;
-    zones = new Zone *[1];
-    Coord coords[4] = { Coord( 0, 0 ), Coord( width-1, 0 ), Coord( width-1, height-1 ), Coord( 0, height-1 ) };
-    zones[0] = new Zone( this, 0, "All", Zone::ACTIVE, Polygon( sizeof(coords)/sizeof(*coords), coords ), RGB_RED, Zone::BLOBS );
-  }
   start_time = last_fps_time = time( 0 );
 
   event = 0;
 
-  Debug( 1, "Monitor %s has function %d", name, function );
-  Debug( 1, "Monitor %s LBF = '%s', LBX = %d, LBY = %d, LBS = %d", name, label_format, label_coord.X(), label_coord.Y(), label_size );
-  Debug( 1, "Monitor %s IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d", name, image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion );
+  Debug( 1, "Monitor %s\
+      function: %d\
+      label_format: '%s', label_x = %d, label_y = %d, label size = %d \
+      IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d",
+      name, 
+      function, label_format, label_coord.X(), label_coord.Y(), label_size,
+      image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion
+      );
 
-  //Set video recording flag for event start constructor and easy reference in code
-  videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
+  n_linked_monitors = 0;
+  linked_monitors = 0;
 
-  if ( purpose == ANALYSIS ) {
+  adaptive_skip = true;
 
-    while( shared_data->last_write_index == (unsigned int)image_buffer_count 
-         && shared_data->last_write_time == 0) {
-      Warning( "Waiting for capture daemon" );
-      sleep( 1 );
-    }
-    ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
-
-    n_linked_monitors = 0;
-    linked_monitors = 0;
-
-    adaptive_skip = true;
-
-    ReloadLinkedMonitors( p_linked_monitors );
-  }
+  ReloadLinkedMonitors( p_linked_monitors );
+  videoStore = NULL;
 } // Monitor::Monitor
 
 bool Monitor::connect() {
@@ -553,44 +527,46 @@ bool Monitor::connect() {
   shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
   video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
-  struct timeval *shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
-  unsigned char *shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
-
+  unsigned char *shared_images = (unsigned char *)((char *)video_store_data + sizeof(VideoStoreData));
   
   if ( ((unsigned long)shared_images % 64) != 0 ) {
     /* Align images buffer to nearest 64 byte boundary */
     Debug(3,"Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
-    Debug(3, "Allocating %d image buffers", image_buffer_count );
-    image_buffer = new Snapshot[image_buffer_count];
-    for ( int i = 0; i < image_buffer_count; i++ ) {
-      image_buffer[i].timestamp = &(shared_timestamps[i]);
-      image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
-      image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-    }
-    if ( (deinterlacing & 0xff) == 4) {
-      /* Four field motion adaptive deinterlacing in use */
-      /* Allocate a buffer for the next image */
-      next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
-      next_buffer.timestamp = new struct timeval;
-    }
-  if ( ( purpose == ANALYSIS ) && analysis_fps ) {
-    // Size of pre event buffer must be greater than pre_event_count
-    // if alarm_frame_count > 1, because in this case the buffer contains
-    // alarmed images that must be discarded when event is created
+
+  Debug(3, "Allocating %d image buffers", image_buffer_count );
+  image_buffer = new ZMPacket[image_buffer_count];
+  for ( int i = 0; i < image_buffer_count; i++ ) {
+    image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
+    image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
+  }
+  if ( (deinterlacing & 0xff) == 4) {
+    /* Four field motion adaptive deinterlacing in use */
+    /* Allocate a buffer for the next image */
+    next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+  }
+  pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
+  //if ( ( purpose == ANALYSIS ) && analysis_fps ) {
+  // Size of pre event buffer must be greater than pre_event_count
+  // if alarm_frame_count > 1, because in this case the buffer contains
+  // alarmed images that must be discarded when event is created
+
+  // Couldn't we just make sure there is always enough frames in the ring buffer?
     pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
-    pre_event_buffer = new Snapshot[pre_event_buffer_count];
+    pre_event_buffer = new ZMPacket[pre_event_buffer_count];
     for ( int i = 0; i < pre_event_buffer_count; i++ ) {
-      pre_event_buffer[i].timestamp = new struct timeval;
       pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
     }
-  }
 Debug(3, "Success connecting");
   return true;
-}
+} // Monitor::connect
 
 Monitor::~Monitor() {
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
   if ( timestamps ) {
     delete[] timestamps;
     timestamps = 0;
@@ -611,23 +587,12 @@ Monitor::~Monitor() {
 
     if ( (deinterlacing & 0xff) == 4) {
       delete next_buffer.image;
-      delete next_buffer.timestamp;
     }
     for ( int i = 0; i < image_buffer_count; i++ ) {
       delete image_buffer[i].image;
     }
     delete[] image_buffer;
-  } // end if mem_ptr
 
-  for ( int i = 0; i < n_zones; i++ ) {
-    delete zones[i];
-  }
-  delete[] zones;
-
-  delete camera;
-  delete storage;
-
-  if ( mem_ptr ) {
     if ( purpose == ANALYSIS ) {
       shared_data->state = state = IDLE;
       shared_data->last_read_index = image_buffer_count;
@@ -636,7 +601,6 @@ Monitor::~Monitor() {
       if ( analysis_fps ) {
         for ( int i = 0; i < pre_event_buffer_count; i++ ) {
           delete pre_event_buffer[i].image;
-          delete pre_event_buffer[i].timestamp;
         }
         delete[] pre_event_buffer;
       }
@@ -675,6 +639,14 @@ Monitor::~Monitor() {
     }
 #endif // ZM_MEM_MAPPED
   } // end if mem_ptr
+
+  for ( int i = 0; i < n_zones; i++ ) {
+    delete zones[i];
+  }
+  delete[] zones;
+
+  delete camera;
+  delete storage;
 }
 
 void Monitor::AddZones( int p_n_zones, Zone *p_zones[] ) {
@@ -713,16 +685,15 @@ int Monitor::GetImage( int index, int scale ) {
   if ( index < 0 || index > image_buffer_count ) {
     index = shared_data->last_write_index;
   }
-
+Debug(3, "GetImage");
   if ( index != image_buffer_count ) {
     Image *image;
     // If we are going to be modifying the snapshot before writing, then we need to copy it
     if ( ( scale != ZM_SCALE_BASE ) || ( !config.timestamp_on_capture ) ) {
-      Snapshot *snap = &image_buffer[index];
+      ZMPacket *snap = &image_buffer[index];
       Image *snap_image = snap->image;
 
       alarm_image.Assign( *snap_image );
-
 
       //write_image.Assign( *snap_image );
 
@@ -731,7 +702,7 @@ int Monitor::GetImage( int index, int scale ) {
       }
 
       if ( !config.timestamp_on_capture ) {
-        TimestampImage( &alarm_image, snap->timestamp );
+        TimestampImage( &alarm_image, &snap->timestamp );
       }
       image = &alarm_image;
     } else {
@@ -753,13 +724,13 @@ struct timeval Monitor::GetTimestamp( int index ) const {
   }
 
   if ( index != image_buffer_count ) {
-    Snapshot *snap = &image_buffer[index];
+    ZMPacket *snap = &image_buffer[index];
 
-    return( *(snap->timestamp) );
+    return snap->timestamp;
   } else {
     static struct timeval null_tv = { 0, 0 };
 
-    return( null_tv );
+    return null_tv;
   }
 }
 
@@ -778,29 +749,29 @@ unsigned int Monitor::GetLastEvent() const {
 double Monitor::GetFPS() const {
   int index1 = shared_data->last_write_index;
   if ( index1 == image_buffer_count ) {
-    return( 0.0 );
+    return 0.0;
   }
-  Snapshot *snap1 = &image_buffer[index1];
-  if ( !snap1->timestamp || !snap1->timestamp->tv_sec ) {
-    return( 0.0 );
+  ZMPacket *snap1 = &image_buffer[index1];
+  if ( !snap1->timestamp.tv_sec ) {
+    return 0.0;
   }
-  struct timeval time1 = *snap1->timestamp;
+  struct timeval time1 = snap1->timestamp;
 
   int image_count = image_buffer_count;
   int index2 = (index1+1)%image_buffer_count;
   if ( index2 == image_buffer_count ) {
-    return( 0.0 );
+    return 0.0;
   }
-  Snapshot *snap2 = &image_buffer[index2];
-  while ( !snap2->timestamp || !snap2->timestamp->tv_sec ) {
+  ZMPacket *snap2 = &image_buffer[index2];
+  while ( !snap2->timestamp.tv_sec ) {
     if ( index1 == index2 ) {
-      return( 0.0 );
+      return 0.0;
     }
     index2 = (index2+1)%image_buffer_count;
     snap2 = &image_buffer[index2];
     image_count--;
   }
-  struct timeval time2 = *snap2->timestamp;
+  struct timeval time2 = snap2->timestamp;
 
   double time_diff = tvDiffSec( time2, time1 );
 
@@ -808,9 +779,9 @@ double Monitor::GetFPS() const {
 
   if ( curr_fps < 0.0 ) {
     //Error( "Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
-    return( 0.0 );
+    return 0.0;
   }
-  return( curr_fps );
+  return curr_fps;
 }
 
 useconds_t Monitor::GetAnalysisRate() {
@@ -1028,7 +999,7 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
   if ( ( (!staticConfig.SERVER_ID) || ( staticConfig.SERVER_ID == server_id ) ) && mem_ptr ) {
     Debug(3, "Trying to load from local zmc");
     int index = shared_data->last_write_index;
-    Snapshot *snap = &image_buffer[index];
+    ZMPacket *snap = &image_buffer[index];
     zone_image = new Image( *snap->image );
   } else {
     Debug(3, "Trying to load from event");
@@ -1169,23 +1140,27 @@ bool Monitor::CheckSignal( const Image *image ) {
 }
 
 bool Monitor::Analyse() {
+  mutex.lock();
   if ( shared_data->last_read_index == shared_data->last_write_index ) {
     // I wonder how often this happens. Maybe if this happens we should sleep or something?
-    return( false );
+    //Debug(3, " shared_data->last_read_index == shared_data->last_write_index " );
+    // If analysis is keeping up, then it happens lots
+    mutex.unlock();
+    return false;
   }
 
   struct timeval now;
   gettimeofday( &now, NULL );
 
-  if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-    fps = double(fps_report_interval)/(now.tv_sec - last_fps_time);
+  if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
+    fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
     Info( "%s: %d - Analysing at %.2f fps", name, image_count, fps );
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf( sql, sizeof(sql), "UPDATE Monitors SET AnalysisFPS = '%.2lf' WHERE Id = '%d'", fps, id );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't run query: %s", mysql_error( &dbconn ) );
     }
-    last_fps_time = now.tv_sec;
+    last_analysis_fps_time = now.tv_sec;
   }
 
   int index;
@@ -1203,7 +1178,8 @@ bool Monitor::Analyse() {
     int pending_frames = shared_data->last_write_index - shared_data->last_read_index;
     if ( pending_frames < 0 ) pending_frames += image_buffer_count;
 
-    Debug( 4, "ReadIndex:%d, WriteIndex: %d, PendingFrames = %d, ReadMargin = %d, Step = %d", shared_data->last_read_index, shared_data->last_write_index, pending_frames, read_margin, step );
+    Debug( 4, "ReadIndex:%d, WriteIndex: %d, PendingFrames = %d, ReadMargin = %d, Step = %d",
+        shared_data->last_read_index, shared_data->last_write_index, pending_frames, read_margin, step );
     if ( step <= pending_frames ) {
       index = (shared_data->last_read_index+step)%image_buffer_count;
     } else {
@@ -1216,10 +1192,12 @@ bool Monitor::Analyse() {
     index = shared_data->last_write_index%image_buffer_count;
   }
 
-  Snapshot *snap = &image_buffer[index];
-  struct timeval *timestamp = snap->timestamp;
+  ZMPacket *snap = &image_buffer[index];
+  struct timeval *timestamp = &snap->timestamp;
+  //Debug(2, "timestamp for index (%d) %s", index, timeval_to_string( *timestamp ) );
   Image *snap_image = snap->image;
 
+  // This chunk o fcode is not analysis, so shouldn't be in here.  Move it up to whereever analyse is called
   if ( shared_data->action ) {
     // Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
     if ( shared_data->action & RELOAD ) {
@@ -1267,7 +1245,6 @@ bool Monitor::Analyse() {
   if ( static_undef ) {
 // Sure would be nice to be able to assume that these were already initialized.  It's just 1 compare/branch, but really not neccessary.
     static_undef = false;
-    timestamps = new struct timeval *[pre_event_count];
     images = new Image *[pre_event_count];
     last_signal = shared_data->signal;
   }
@@ -1279,13 +1256,16 @@ bool Monitor::Analyse() {
     Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
     
     if ( trigger_data->trigger_state != TRIGGER_OFF ) {
-    Debug(3, "trigger != off");
+Debug(9, "Trigger not oFF state is (%d)", trigger_data->trigger_state );
       unsigned int score = 0;
+      // Ready means that we have captured the warmpup # of frames
       if ( Ready() ) {
+Debug(9, "Ready");
         std::string cause;
         Event::StringSetMap noteSetMap;
 
         if ( trigger_data->trigger_state == TRIGGER_ON ) {
+
           score += trigger_data->trigger_score;
           if ( !event ) {
             if ( cause.length() )
@@ -1323,10 +1303,12 @@ bool Monitor::Analyse() {
           ref_image = *snap_image;
 
         } else if ( signal && Active() && (function == MODECT || function == MOCORD) ) {
+Debug(3, "signal and active and modtect");
           Event::StringSet zoneSet;
           int motion_score = last_motion_score;
           if ( !(image_count % (motion_frame_skip+1) ) ) {
             // Get new score.
+Debug(3,"before DetectMotion");
             motion_score = DetectMotion( *snap_image, zoneSet );
 
             Debug( 3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score );
@@ -1377,14 +1359,10 @@ bool Monitor::Analyse() {
         //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
         if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
           if ( event ) {
-            //TODO: We shouldn't have to do this every time. Not sure why it clears itself if this isn't here??
-            //snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-              //Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
-            
             if ( section_length ) {
               // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
               int section_mod = timestamp->tv_sec % section_length;
-              Debug( 4, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
+              Debug( 3, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );
               if ( section_mod < last_section_mod ) {
                 //if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
                   //if ( state == TAPE ) {
@@ -1419,59 +1397,10 @@ bool Monitor::Analyse() {
             if ( state == IDLE ) {
               shared_data->state = state = TAPE;
             }
-
-            //if ( config.overlap_timed_events )
-            if ( false ) {
-              int pre_index;
-              int pre_event_images = pre_event_count;
-
-              if ( analysis_fps ) {
-                // If analysis fps is set,
-                // compute the index for pre event images in the dedicated buffer
-                pre_index = image_count%pre_event_buffer_count;
-
-                // Seek forward the next filled slot in to the buffer (oldest data)
-                // from the current position
-                while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
-                  pre_index = (pre_index + 1)%pre_event_buffer_count;
-                  // Slot is empty, removing image from counter
-                  pre_event_images--;
-                }
-              } else {
-                // If analysis fps is not set (analysis performed at capturing framerate),
-                // compute the index for pre event images in the capturing buffer
-                pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
-
-                // Seek forward the next filled slot in to the buffer (oldest data)
-                // from the current position
-                while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec ) {
-                  pre_index = (pre_index + 1)%image_buffer_count;
-                  // Slot is empty, removing image from counter
-                  pre_event_images--;
-                }
-              }
-
-              if ( pre_event_images ) {
-                if ( analysis_fps ) {
-                  for ( int i = 0; i < pre_event_images; i++ ) {
-                    timestamps[i] = pre_event_buffer[pre_index].timestamp;
-                    images[i] = pre_event_buffer[pre_index].image;
-                    pre_index = (pre_index + 1)%pre_event_buffer_count;
-                  }
-                } else {
-                  for ( int i = 0; i < pre_event_images; i++ ) {
-                    timestamps[i] = image_buffer[pre_index].timestamp;
-                    images[i] = image_buffer[pre_index].image;
-                    pre_index = (pre_index + 1)%image_buffer_count;
-                  }
-                }
-
-                event->AddFrames( pre_event_images, images, timestamps );
-              }
-            } // end if false or config.overlap_timed_events
           } // end if ! event
         }
         if ( score ) {
+Debug(9, "Score: (%d)", score );
           if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
             if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
               Info( "%s: %03d - Gone into alarm state", name, image_count );
@@ -1484,16 +1413,18 @@ bool Monitor::Analyse() {
                   // If analysis fps is set,
                   // compute the index for pre event images in the dedicated buffer
                   pre_index = image_count%pre_event_buffer_count;
+Debug(3, "Pre Index = (%d) = image_count(%d) %% pre_event_buffer_count (%d)", pre_index, image_count, pre_event_buffer_count );
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position
-                  while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
+                  // ICON: I think this is supposed to handle when we havn't recorded enough images.
+                  while ( pre_event_images && !pre_event_buffer[pre_index].timestamp.tv_sec ) {
                     pre_index = (pre_index + 1)%pre_event_buffer_count;
                     // Slot is empty, removing image from counter
                     pre_event_images--;
                   }
 
-                  event = new Event( this, *(pre_event_buffer[pre_index].timestamp), cause, noteSetMap );
+                  event = new Event( this, pre_event_buffer[pre_index].timestamp, cause, noteSetMap );
                 } else {
                   // If analysis fps is not set (analysis performed at capturing framerate),
                   // compute the index for pre event images in the capturing buffer
@@ -1504,13 +1435,13 @@ bool Monitor::Analyse() {
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position
-                  while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec ) {
+                  while ( pre_event_images && !image_buffer[pre_index].timestamp.tv_sec ) {
                     pre_index = (pre_index + 1)%image_buffer_count;
                     // Slot is empty, removing image from counter
                     pre_event_images--;
                   }
 
-                  event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
+                  event = new Event( this, image_buffer[pre_index].timestamp, cause, noteSetMap );
                 }
                 shared_data->last_event_id = event->Id();
                 //set up video store data
@@ -1522,13 +1453,13 @@ bool Monitor::Analyse() {
                 if ( pre_event_images ) {
                   if ( analysis_fps ) {
                     for ( int i = 0; i < pre_event_images; i++ ) {
-                      timestamps[i] = pre_event_buffer[pre_index].timestamp;
+                      timestamps[i] = &pre_event_buffer[pre_index].timestamp;
                       images[i] = pre_event_buffer[pre_index].image;
                       pre_index = (pre_index + 1)%pre_event_buffer_count;
                     }
                   } else {
                     for ( int i = 0; i < pre_event_images; i++ ) {
-                      timestamps[i] = image_buffer[pre_index].timestamp;
+                      timestamps[i] = &image_buffer[pre_index].timestamp;
                       images[i] = image_buffer[pre_index].image;
                       pre_index = (pre_index + 1)%image_buffer_count;
                     }
@@ -1596,12 +1527,14 @@ bool Monitor::Analyse() {
                 if ( state == PREALARM )
                   Event::AddPreAlarmFrame( snap_image, *timestamp, score, &alarm_image );
                 else
-                  event->AddFrame( snap_image, *timestamp, score, &alarm_image );
+                  //event->AddFrame( snap_image, *timestamp, score, &alarm_image );
+                  event->AddPacket( snap, score, &alarm_image );
               } else {
                 if ( state == PREALARM )
                   Event::AddPreAlarmFrame( snap_image, *timestamp, score );
                 else
-                  event->AddFrame( snap_image, *timestamp, score );
+                  //event->AddFrame( snap_image, *timestamp, score );
+                  event->AddPacket( snap, score );
               }
             } else {
               for( int i = 0; i < n_zones; i++ ) {
@@ -1614,7 +1547,8 @@ bool Monitor::Analyse() {
               if ( state == PREALARM )
                 Event::AddPreAlarmFrame( snap_image, *timestamp, score );
               else
-                event->AddFrame( snap_image, *timestamp, score );
+                  event->AddPacket( snap, score );
+                //event->AddFrame( snap_image, *timestamp, score );
             }
             if ( event && noteSetMap.size() > 0 )
               event->updateNotes( noteSetMap );
@@ -1631,13 +1565,17 @@ bool Monitor::Analyse() {
             //}
             if ( !(image_count%(frame_skip+1)) ) {
               if ( config.bulk_frame_interval > 1 ) {
-                event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
+                  event->AddPacket( snap, (event->Frames()<pre_event_count?0:-1) );
+                //event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
               } else {
-                event->AddFrame( snap_image, *timestamp );
+                //event->AddFrame( snap_image, *timestamp );
+                  event->AddPacket( snap );
               }
             }
           }
         } // end if ! IDLE
+      } else {
+Debug(3,"Not ready?");
       }
     } else {
     Debug(3, "trigger == off");
@@ -1660,17 +1598,19 @@ bool Monitor::Analyse() {
   } // end if Enabled()
 
   shared_data->last_read_index = index % image_buffer_count;
-  //shared_data->last_read_time = image_buffer[index].timestamp->tv_sec;
   shared_data->last_read_time = now.tv_sec;
+  mutex.unlock(); 
 
   if ( analysis_fps ) {
     // If analysis fps is set, add analysed image to dedicated pre event buffer
-    int pre_index = image_count%pre_event_buffer_count;
+Debug(3,"analysis fps image_count(%d) pre_event_buffer_count(%d)", image_count, pre_event_buffer_count );
+    int pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
+Debug(3,"analysis fps pre_index(%d) = image_count(%d) %% pre_event_buffer_count(%d)", pre_index, image_count, pre_event_buffer_count );
     pre_event_buffer[pre_index].image->Assign(*snap->image);
-    memcpy( pre_event_buffer[pre_index].timestamp, snap->timestamp, sizeof(struct timeval) );
+    pre_event_buffer[pre_index].timestamp = snap->timestamp;
   }
 
-  image_count++;
+  analysis_image_count++;
 
   return true;
 }
@@ -1850,7 +1790,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
 
 #if ZM_HAS_V4L
 int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose ) {
-  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Function != 'None' and Type = 'Local'";
+  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Function != 'None' and Type = 'Local'";
 ;
   if ( device[0] ) {
     sql += " AND Device='";
@@ -1915,6 +1855,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string output_codec = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string output_container = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;
@@ -1992,6 +1934,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
       savejpegs,
       videowriter,
       encoderparams,
+      output_codec,
+      output_container,
       record_audio,
       event_prefix,
       label_format,
@@ -2039,7 +1983,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 #endif // ZM_HAS_V4L
 
 int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose ) {
-  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
+  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
   if ( staticConfig.SERVER_ID ) {
     sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
   }
@@ -2085,6 +2029,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string output_codec = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string output_container = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;
@@ -2176,6 +2122,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       savejpegs,
       videowriter,
       encoderparams,
+      output_codec,
+      output_container,
       record_audio,
       event_prefix,
       label_format,
@@ -2222,7 +2170,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 }
 
 int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose ) {
-  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'File'";
+  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'File'";
   if ( file[0] ) {
     sql += " AND Path='";
     sql += file;
@@ -2264,6 +2212,8 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams =  dbrow[col]; col++;
+    std::string output_codec =  dbrow[col]; col++;
+    std::string output_container =  dbrow[col]; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;
@@ -2325,6 +2275,8 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
       savejpegs,
       videowriter,
       encoderparams,
+      output_codec,
+      output_container,
       record_audio,
       event_prefix,
       label_format,
@@ -2372,7 +2324,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 
 #if HAVE_LIBAVFORMAT
 int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose ) {
-    std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Ffmpeg'";
+    std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Ffmpeg'";
   if ( file[0] ) {
     sql += " AND Path = '";
     sql += file;
@@ -2417,6 +2369,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
+    std::string output_codec = dbrow[col] ? dbrow[col] : ""; col++;
+    std::string output_container = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
     int brightness = atoi(dbrow[col]); col++;
@@ -2484,6 +2438,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
       savejpegs,
       videowriter,
       encoderparams,
+      output_codec,
+      output_container,
       record_audio,
       event_prefix,
       label_format,
@@ -2532,7 +2488,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
 #endif // HAVE_LIBAVFORMAT
 
 Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
-  std::string sql = stringtf( "select Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
+  std::string sql = stringtf( "select Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Protocol, Method, Host, Port, Path, Options, User, Pass, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Id = %d", p_id );
 
   zmDbRow dbrow;
   if ( ! dbrow.fetch( sql.c_str() ) ) {
@@ -2592,7 +2548,9 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   bool rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
   int savejpegs = atoi(dbrow[col]); col++;
   VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
-  std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
+  std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string output_codec = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string output_container = dbrow[col] ? dbrow[col] : ""; col++;
   bool record_audio = (*dbrow[col] != '0'); col++;
 
   int brightness = atoi(dbrow[col]); col++;
@@ -2811,6 +2769,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
     savejpegs,
     videowriter,
     encoderparams,
+    output_codec,
+    output_container,
     record_audio,
     event_prefix,
     label_format,
@@ -2858,12 +2818,14 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
+  mutex.lock();
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
   unsigned int index = image_count % image_buffer_count;
   Image* capture_image = image_buffer[index].image;
-  ZMPacket packet;
-  packet.set_image(capture_image);
+  ZMPacket *packet = &image_buffer[index];
+// clears frame
+packet->reset();
   int captureResult = 0;
 
   unsigned int deinterlacing_value = deinterlacing & 0xff;
@@ -2872,16 +2834,17 @@ int Monitor::Capture() {
       /* Copy the next image into the shared memory */
       capture_image->CopyBuffer(*(next_buffer.image)); 
     }
-    
     /* Capture a new next image */
-    captureResult = camera->Capture(packet);
+    captureResult = camera->Capture(*packet);
+    gettimeofday( &packet->timestamp, NULL );
 
     if ( FirstCapture ) {
       FirstCapture = 0;
       return 0;
     }
   } else {
-    captureResult = camera->Capture(packet);
+    captureResult = camera->Capture(*packet);
+    gettimeofday( &packet->timestamp, NULL );
     if ( captureResult < 0 ) {
       // Unable to capture image for temporary reason
       // Fake a signal loss image
@@ -2928,7 +2891,7 @@ int Monitor::Capture() {
   if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
     Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
     time_t now = time(0);
-    double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp->tv_sec);
+    double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp.tv_sec);
     time_t last_read_delta = now - shared_data->last_read_time;
     if ( last_read_delta > (image_buffer_count/approxFps) ) {
       Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
@@ -2939,44 +2902,96 @@ int Monitor::Capture() {
   if ( privacy_bitmask )
     capture_image->MaskPrivacy( privacy_bitmask );
 
-  //gettimeofday( image_buffer[index].timestamp, NULL );
   if ( config.timestamp_on_capture ) {
-    TimestampImage( capture_image, &packet.timestamp );
+    TimestampImage( capture_image, &packet->timestamp );
   }
-
     int video_stream_id = camera->get_VideoStreamId();
 
-    //packetqueue.clear_unwanted_packets(&video_store_data->recording, video_stream_id);
-    //videoStore->write_packets(packetqueue);
-    if ( ! event ) { 
+#if 0
+    //Video recording
+    if ( video_store_data->recording.tv_sec ) {
+      if ( shared_data->last_event_id != this->GetVideoWriterEventId() ) {
+        Debug(2, "Have change of event. last_event(%d), our current (%d)",
+            shared_data->last_event_id,
+            this->GetVideoWriterEventId()
+            );
+        if ( videoStore ) {
+          Debug(2, "Have videostore already?");
+          // I don't know if this is important or not... but I figure we might as well write this last packet out to the store before closing it.
+          // Also don't know how much it matters for audio.
+          int ret = videoStore->writePacket( packet );
+          if ( ret < 0 ) { //Less than zero and we skipped a frame
+            Warning("Error writing last packet to videostore.");
+          }
+
+          delete videoStore;
+          videoStore = NULL;
+          this->SetVideoWriterEventId( 0 );
+        } // end if videoStore
+      } // end if end of recording
+
+      if ( shared_data->last_event_id and ! videoStore ) {
+        Debug(2,"New videostore");
+        videoStore = new VideoStore(
+            (const char *) video_store_data->event_file,
+            "mp4",
+            camera->get_VideoStream(),
+            ( record_audio ? camera->get_AudioStream() : NULL ),
+            video_store_data->recording.tv_sec,
+            this );
+
+        if ( ! videoStore->open() ) {
+          delete videoStore;
+          videoStore = NULL;
+        } else {
+          this->SetVideoWriterEventId(shared_data->last_event_id);
+
+          Debug(2, "Clearing packets");
+          // Clear all packets that predate the moment when the recording began
+          packetqueue.clear_unwanted_packets(&video_store_data->recording, video_stream_id);
+          videoStore->write_packets(packetqueue);
+        } // success opening
+      } // end if ! was recording
+    } else { // Not recording
+      if ( videoStore ) {
+        Info("Deleting videoStore instance");
+        delete videoStore;
+        videoStore = NULL;
+        this->SetVideoWriterEventId( 0 );
+      }
+
       // Buffer video packets, since we are not recording.
       // All audio packets are keyframes, so only if it's a video keyframe
-      if ( ( packet.packet.stream_index == video_stream_id ) && ( packet.keyframe ) ) {
+      if ( ( packet->packet.stream_index == video_stream_id ) && ( packet->keyframe ) ) {
         packetqueue.clearQueue( this->GetPreEventCount(), video_stream_id );
       }
       // The following lines should ensure that the queue always begins with a video keyframe
-      if ( packet.packet.stream_index == camera->get_AudioStreamId() ) {
+      if ( packet->packet.stream_index == camera->get_AudioStreamId() ) {
         //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
         if ( record_audio && packetqueue.size() ) {
           // if it's audio, and we are doing audio, and there is already something in the queue
-          packetqueue.queuePacket( &packet );
+          packetqueue.queuePacket( packet );
         }
-      } else if ( packet.packet.stream_index == video_stream_id ) {
-        if ( packet.keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
-          packetqueue.queuePacket( &packet );
+      } else if ( packet->packet.stream_index == video_stream_id ) {
+        if ( packet->keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
+          packetqueue.queuePacket( packet );
       } // end if audio or video
-    } else {
+    } // end if recording or not
+
+    if ( videoStore ) {
       //Write the packet to our video store, it will be smart enough to know what to do
-      if ( ! event->WritePacket( packet ) ) {
+      int ret = videoStore->writePacket( packet );
+      if ( ret < 0 ) { //Less than zero and we skipped a frame
         Warning("problem writing packet");
       }
-    } // end if recording or not
+    }
+#endif
   } // end if deinterlacing
 
   shared_data->signal = CheckSignal(capture_image);
   shared_data->last_write_index = index;
-  shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
-
+  shared_data->last_write_time = image_buffer[index].timestamp.tv_sec;
+  mutex.unlock();
   image_count++;
 
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
@@ -2984,7 +2999,7 @@ int Monitor::Capture() {
     if ( !captureResult ) {
       gettimeofday( &now, NULL );
     } else {
-      now.tv_sec = image_buffer[index].timestamp->tv_sec;
+      now.tv_sec = image_buffer[index].timestamp.tv_sec;
     }
 
     // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
@@ -3018,7 +3033,7 @@ int Monitor::Capture() {
     shared_data->action &= ~SET_SETTINGS;
   }
   return captureResult;
-}
+} // end Monitor::Capture
 
 void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) const {
   if ( label_format[0] ) {
@@ -3305,6 +3320,19 @@ int Monitor::PostCapture() {
 }
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
-Monitor::Snapshot *Monitor::getSnapshot() {
+ZMPacket *Monitor::getSnapshot() {
   return &image_buffer[ shared_data->last_write_index%image_buffer_count ];
+}
+
+// Wait for camera to get an image, and then assign it as the base reference image. So this should be done as the first task in the analysis thread startup.
+void Monitor::get_ref_image() {
+  while ( 
+      ( shared_data->last_write_index == (unsigned int)image_buffer_count )
+      &&
+      ( shared_data->last_write_time == 0 )
+      ) {
+    Warning( "Waiting for capture daemon" );
+    usleep( 100000 );
+  }
+  ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
 }

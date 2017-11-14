@@ -107,8 +107,8 @@ public:
   virtual int PreCapture()=0;
   virtual int Capture(ZMPacket &p)=0;
   virtual int PostCapture()=0;
-  AVStream      *get_VideoStream() { return NULL; };
-  AVStream      *get_AudioStream() { return NULL; };
+  virtual AVStream      *get_VideoStream() { return NULL; };
+  virtual AVStream      *get_AudioStream() { return NULL; };
   int            get_VideoStreamId() { return mVideoStreamId; };
   int            get_AudioStreamId() { return mAudioStreamId; };
 };

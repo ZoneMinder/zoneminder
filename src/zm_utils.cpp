@@ -100,8 +100,17 @@ bool startsWith( const std::string &haystack, const std::string &needle )
   return( haystack.substr( 0, needle.length() ) == needle );
 }
 
-StringVector split( const std::string &string, const std::string &chars, int limit )
-{
+std::vector<std::string> split(const std::string &s, char delim) {
+  std::vector<std::string> elems;
+  std::stringstream ss(s);
+  std::string item;
+  while(std::getline(ss, item, delim)) {
+    elems.push_back(trimSpaces(item));
+  }
+  return elems;
+}
+
+StringVector split( const std::string &string, const std::string &chars, int limit ) {
   StringVector stringVector;
   std::string tempString = string;
   std::string::size_type startIndex = 0;

@@ -28,23 +28,26 @@ ZMPacket::ZMPacket( ) {
   keyframe = 0;
   image = NULL;
   frame = NULL;
+  buffer = NULL;
   av_init_packet( &packet );
-  packet.size = 0;
-  gettimeofday( &timestamp, NULL );
+  packet.size = 0; // So we can detect whether it has been filled.
+  timestamp = (struct timeval){0};
 }
 
 ZMPacket::ZMPacket( Image *i ) {
   keyframe = 1;
   image = i;
   frame = NULL;
+  buffer = NULL;
   av_init_packet( &packet );
-  gettimeofday( &timestamp, NULL );
+  timestamp = (struct timeval){0};
 }
 
 ZMPacket::ZMPacket( AVPacket *p ) {
   av_init_packet( &packet );
   set_packet( p );
   keyframe = p->flags & AV_PKT_FLAG_KEY;
+  buffer = NULL;
 }
 
 ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
@@ -52,23 +55,40 @@ ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
   set_packet( p );
   timestamp = *t;
   keyframe = p->flags & AV_PKT_FLAG_KEY;
+  buffer = NULL;
 }
 ZMPacket::ZMPacket( AVPacket *p, AVFrame *f, Image *i ) {
   av_init_packet( &packet );
   set_packet( p );
   image = i;
   frame = f;
+  buffer = NULL;
 }
 
 ZMPacket::~ZMPacket() {
   zm_av_packet_unref( &packet );
   if ( frame ) {
+    //av_free(frame->data);
     av_frame_free( &frame );
   }
+  if ( buffer ) {
+    av_freep( &buffer );
+  }
+  // We assume the image was allocated elsewhere, so we just unref it.
   image = NULL;
-  //if ( image ) {
-    //delete image;
-  //}
+}
+
+void ZMPacket::reset() {
+  Debug(2,"reset");
+  zm_av_packet_unref( &packet );
+  packet.size = 0;
+  if ( frame ) {
+    av_frame_free( &frame );
+  }
+  if ( buffer ) {
+  Debug(2,"freeing buffer");
+    av_freep( &buffer );
+  }
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {

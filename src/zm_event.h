@@ -122,6 +122,7 @@ class Event {
 
     void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
     void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
+    void AddPacket( ZMPacket *p, int score=0, Image *alarm_frame=NULL );
     bool WritePacket( ZMPacket &p );
 
   private:

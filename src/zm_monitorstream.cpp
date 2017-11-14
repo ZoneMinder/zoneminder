@@ -665,13 +665,13 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
           // Send the next frame
-          Monitor::Snapshot *snap = &monitor->image_buffer[index];
+          ZMPacket *snap = &monitor->image_buffer[index];
 
-          if ( !sendFrame( snap->image, snap->timestamp ) ) {
+          if ( !sendFrame( snap->image, &snap->timestamp ) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
           }
-          memcpy( &last_frame_timestamp, snap->timestamp, sizeof(last_frame_timestamp) );
+          last_frame_timestamp = snap->timestamp;
           //frame_sent = true;
 
           temp_read_index = temp_write_index;
@@ -679,14 +679,14 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
       }
       if ( buffered_playback ) {
         if ( monitor->shared_data->valid ) {
-          if ( monitor->image_buffer[index].timestamp->tv_sec ) {
+          if ( monitor->image_buffer[index].timestamp.tv_sec ) {
             int temp_index = temp_write_index%temp_image_buffer_count;
             Debug( 2, "Storing frame %d", temp_index );
             if ( !temp_image_buffer[temp_index].valid ) {
               snprintf( temp_image_buffer[temp_index].file_name, sizeof(temp_image_buffer[0].file_name), "%s/zmswap-i%05d.jpg", swap_path, temp_index );
               temp_image_buffer[temp_index].valid = true;
             }
-            memcpy( &(temp_image_buffer[temp_index].timestamp), monitor->image_buffer[index].timestamp, sizeof(temp_image_buffer[0].timestamp) );
+            temp_image_buffer[temp_index].timestamp = monitor->image_buffer[index].timestamp;
             monitor->image_buffer[index].image->WriteJpeg( temp_image_buffer[temp_index].file_name, config.jpeg_file_quality );
             temp_write_index = MOD_ADD( temp_write_index, 1, temp_image_buffer_count );
             if ( temp_write_index == temp_read_index ) {
@@ -764,7 +764,7 @@ void MonitorStream::SingleImage( int scale ) {
   int img_buffer_size = 0;
   static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
-  Monitor::Snapshot *snap = monitor->getSnapshot();
+  ZMPacket *snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -773,7 +773,7 @@ void MonitorStream::SingleImage( int scale ) {
     snap_image = &scaled_image;
   }
   if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage( snap_image, snap->timestamp );
+    monitor->TimestampImage( snap_image, &snap->timestamp );
   }
   snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
   
@@ -784,7 +784,7 @@ void MonitorStream::SingleImage( int scale ) {
 
 void MonitorStream::SingleImageRaw( int scale ) {
   Image scaled_image;
-  Monitor::Snapshot *snap = monitor->getSnapshot();
+  ZMPacket *snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -793,7 +793,7 @@ void MonitorStream::SingleImageRaw( int scale ) {
     snap_image = &scaled_image;
   }
   if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage( snap_image, snap->timestamp );
+    monitor->TimestampImage( snap_image, &snap->timestamp );
   }
   
   fprintf( stdout, "Content-Length: %d\r\n", snap_image->Size() );
@@ -806,7 +806,7 @@ void MonitorStream::SingleImageZip( int scale ) {
   static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
 
-  Monitor::Snapshot *snap = monitor->getSnapshot();
+  ZMPacket *snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -815,7 +815,7 @@ void MonitorStream::SingleImageZip( int scale ) {
     snap_image = &scaled_image;
   }
   if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage( snap_image, snap->timestamp );
+    monitor->TimestampImage( snap_image, &snap->timestamp );
   }
   snap_image->Zip( img_buffer, &img_buffer_size );
   

@@ -310,25 +310,27 @@ sub set {
 	my %defaults = eval('%'.$type.'::defaults');
 	if ( ref $params ne 'HASH' ) {
 		my ( $caller, undef, $line ) = caller;
-		$openprint::log->error("$type -> set called with non-hash params from $caller $line");
+		$log->error("$type -> set called with non-hash params from $caller $line");
 	}
 
 	foreach my $field ( keys %fields ) {
-$log->debug("field: $field, param: ".$$params{$field}) if $debug;
-		if ( exists $$params{$field} ) {
-$openprint::log->debug("field: $field, $$self{$field} =? param: ".$$params{$field}) if $debug;
-			if ( ( ! defined $$self{$field} ) or ($$self{$field} ne $params->{$field}) ) {
+    if ( $params ) {
+      $log->debug("field: $field, param: ".$$params{$field}) if $debug;
+      if ( exists $$params{$field} ) {
+        $log->debug("field: $field, $$self{$field} =? param: ".$$params{$field}) if $debug;
+        if ( ( ! defined $$self{$field} ) or ($$self{$field} ne $params->{$field}) ) {
 # Only make changes to fields that have changed
-				if ( defined $fields{$field} ) {
-					$$self{$field} = $$params{$field} if defined $fields{$field};
-					push @set_fields, $fields{$field}, $$params{$field};	#mark for sql updating
-				} # end if
-$openprint::log->debug("Running $field with $$params{$field}") if $debug;
-				if ( my $func = $self->can( $field ) ) {
-					$func->( $self, $$params{$field} );
-				} # end if
-			} # end if
-		} # end if
+          if ( defined $fields{$field} ) {
+            $$self{$field} = $$params{$field} if defined $fields{$field};
+            push @set_fields, $fields{$field}, $$params{$field};	#mark for sql updating
+          } # end if
+          $log->debug("Running $field with $$params{$field}") if $debug;
+          if ( my $func = $self->can( $field ) ) {
+            $func->( $self, $$params{$field} );
+          } # end if
+        } # end if
+      } # end if
+		} # end if $params
 
 		if ( defined $fields{$field} ) {
 			if ( $$self{$field} ) {

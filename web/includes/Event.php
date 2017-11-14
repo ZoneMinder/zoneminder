@@ -9,6 +9,7 @@ class Event {
 'StorageId',
 'Name',
 'DiskSpace',
+'SaveJPEGs',
 );
   public function __construct( $IdOrRow = null ) {
     $row = NULL;

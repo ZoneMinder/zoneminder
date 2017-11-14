@@ -36,6 +36,7 @@
 #ifdef __FreeBSD__
 #include <sys/thr.h>
 #endif
+#include <cstdarg>
 
 bool Logger::smInitialised = false;
 Logger *Logger::smInstance = 0;

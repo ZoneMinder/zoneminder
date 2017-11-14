@@ -71,7 +71,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   static char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime( &start_time.tv_sec );
-  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d )", 
+  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d )", 
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,
@@ -81,7 +81,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       notes.c_str(), 
       state_id,
       monitor->getOrientation(),
-      videoEvent
+      videoEvent,
+      monitor->GetOptSaveJPEGs()
       );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
@@ -140,6 +141,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if ( symlink( time_path, id_file ) < 0 )
       Error( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
   } else {
+    // Shallow Storage
     snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
 
     errno = 0;
@@ -165,13 +167,23 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
-    snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
+    std::string container = monitor->OutputContainer();
+    if ( container == "auto" || container == "" ) {
+      if ( monitor->OutputCodec() == "h264" ) {
+        container = "mp4";
+      } else {
+        container = "mkv";
+      }
+    }
+        
+    snprintf( video_name, sizeof(video_name), "%d-%s.%s", id, "video", container.c_str() );
     snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
     Debug(1,"Writing video file to %s", video_file );
+    videowriter = NULL;
     Camera * camera = monitor->getCamera();
     videoStore = new VideoStore(
         video_file,
-        "mp4",
+        container.c_str(),
         camera->get_VideoStream(),
         ( monitor->RecordAudio() ? camera->get_AudioStream() : NULL ),
         monitor );
@@ -180,7 +192,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       delete videoStore;
       videoStore = NULL;
     } 
-
   } else {
     /* No video object */
     videowriter = NULL;
@@ -208,7 +219,7 @@ Event::~Event() {
     videoStore = NULL;
   }
 
-  snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
+  snprintf( sql, sizeof(sql), "UPDATE Events SET Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't update event: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
@@ -285,7 +296,9 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
 
 bool Event::WritePacket( ZMPacket &packet ) {
   
-  videoStore->writePacket( &packet );
+  if ( videoStore->writePacket( &packet ) < 0 )
+    return false;
+  return true;
 }
 
 void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
@@ -403,6 +416,11 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     if ( timestamps[i]->tv_sec <= 0 ) {
       Debug( 1, "Not adding pre-capture frame %d, zero or less than 0 timestamp", i );
       continue;
+    } else if ( timestamps[i]->tv_sec < 0 ) {
+      Warning( "Not adding pre-capture frame %d, negative timestamp", i );
+      continue;
+    } else {
+      Debug( 3, "Adding pre-capture frame %d, timestamp = (%d), start_time=(%d)", i, timestamps[i]->tv_sec, start_time.tv_sec );
     }
 
     frames++;
@@ -450,6 +468,96 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
   }
 }
 
+void Event::AddPacket( ZMPacket *packet, int score, Image *alarm_image ) {
+  frames++;
+
+  static char event_file[PATH_MAX];
+  snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
+
+  if ( monitor->GetOptSaveJPEGs() & 4 ) {
+    // Only snapshots
+    //If this is the first frame, we should add a thumbnail to the event directory
+    if ( frames == 10 ) {
+      static char snapshot_file[PATH_MAX];
+      snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
+      WriteFrameImage( packet->image, packet->timestamp, snapshot_file );
+    }
+  }
+  if ( monitor->GetOptSaveJPEGs() & 1 ) {
+    Debug( 1, "Writing capture frame %d to %s", frames, event_file );
+    if ( ! WriteFrameImage( packet->image, packet->timestamp, event_file ) ) {
+      Error("Failed to write frame image");
+    }
+  }
+  if ( videoStore ) {
+    videoStore->writePacket( packet );
+    //FIXME if it fails, we should write a jpeg
+  }
+
+  struct DeltaTimeval delta_time;
+  DELTA_TIMEVAL( delta_time, packet->timestamp, start_time, DT_PREC_2 );
+
+  FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
+  // < 0 means no motion detection is being done.
+  if ( score < 0 )
+    score = 0;
+
+  bool db_frame = ( frame_type != BULK ) || ((frames%config.bulk_frame_interval)==0) || !frames;
+  if ( db_frame ) {
+
+    Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, Event::frame_type_names[frame_type] );
+    static char sql[ZM_SQL_MED_BUFSIZ];
+    snprintf( sql, sizeof(sql), 
+        "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score )"
+       " values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )",
+       id, frames, frame_type_names[frame_type], packet->timestamp.tv_sec, 
+       delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+    if ( mysql_query( &dbconn, sql ) ) {
+      Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
+      exit( mysql_errno( &dbconn ) );
+    }
+    last_db_frame = frames;
+
+    // We are writing a Bulk frame
+    if ( frame_type == BULK ) {
+      snprintf( sql, sizeof(sql), "update Events set Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", 
+          ( delta_time.positive?"":"-" ),
+          delta_time.sec, delta_time.fsec,
+          frames, 
+          alarm_frames,
+          tot_score,
+          (int)(alarm_frames?(tot_score/alarm_frames):0),
+          max_score,
+          id
+          );
+      if ( mysql_query( &dbconn, sql ) ) {
+        Error( "Can't update event: %s", mysql_error( &dbconn ) );
+        exit( mysql_errno( &dbconn ) );
+      }
+    }
+  } // end if db_frame
+
+  end_time = packet->timestamp;
+
+  // We are writing an Alarm frame
+  if ( frame_type == ALARM ) {
+    alarm_frames++;
+
+    tot_score += score;
+    if ( score > (int)max_score )
+      max_score = score;
+
+    if ( alarm_image ) {
+      snprintf( event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames );
+
+      Debug( 1, "Writing analysis frame %d", frames );
+      if ( monitor->GetOptSaveJPEGs() & 2 ) {
+        WriteFrameImage(alarm_image, packet->timestamp, event_file, true);
+      }
+    }
+  }
+}
+
 void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *alarm_image ) {
   if ( !timestamp.tv_sec ) {
     Debug( 1, "Not adding new frame, zero timestamp" );
@@ -465,7 +573,7 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     // Only snapshots
     //If this is the first frame, we should add a thumbnail to the event directory
     if ( frames == 10 ) {
-      char snapshot_file[PATH_MAX];
+      static char snapshot_file[PATH_MAX];
       snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
       WriteFrameImage( image, timestamp, snapshot_file );
     }
@@ -539,37 +647,4 @@ Debug(3, "Writing video");
       }
     }
   }
-
-  /* This makes viewing the diagnostic images impossible because it keeps deleting them
-  if ( config.record_diag_images ) {
-    char diag_glob[PATH_MAX] = "";
-
-    snprintf( diag_glob, sizeof(diag_glob), "%s/%d/diag-*.jpg", staticConfig.DIR_EVENTS.c_str(), monitor->Id() );
-    glob_t pglob;
-    int glob_status = glob( diag_glob, 0, 0, &pglob );
-    if ( glob_status != 0 ) {
-      if ( glob_status < 0 ) {
-        Error( "Can't glob '%s': %s", diag_glob, strerror(errno) );
-      } else {
-        Debug( 1, "Can't glob '%s': %d", diag_glob, glob_status );
-      }
-    } else {
-      char new_diag_path[PATH_MAX] = "";
-      for ( int i = 0; i < pglob.gl_pathc; i++ ) {
-        char *diag_path = pglob.gl_pathv[i];
-
-        char *diag_file = strstr( diag_path, "diag-" );
-
-        if ( diag_file ) {
-          snprintf( new_diag_path, sizeof(new_diag_path), general_file_format, path, frames, diag_file );
-
-          if ( rename( diag_path, new_diag_path ) < 0 ) {
-            Error( "Can't rename '%s' to '%s': %s", diag_path, new_diag_path, strerror(errno) );
-          }
-        }
-      }
-    }
-    globfree( &pglob );
-  }
-  */
 }

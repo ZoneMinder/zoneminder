@@ -15,6 +15,8 @@ private $defaults = array(
 'Height' => null,
 'Orientation' => null,
 'AnalysisFPSLimit'  =>  null,
+'OutputCodec',
+'OutputContainer',
 );
 private $control_fields = array(
   'Name' => '',

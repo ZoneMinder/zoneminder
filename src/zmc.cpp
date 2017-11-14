@@ -70,6 +70,7 @@ possible, this should run at more or less constant speed.
 #include "zm_time.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
+#include "zm_analysis_thread.h"
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
@@ -244,6 +245,7 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
+  AnalysisThread **analysis_threads = new AnalysisThread *[n_monitors];
   long *capture_delays = new long[n_monitors];
   long *alarm_capture_delays = new long[n_monitors];
   long *next_delays = new long[n_monitors];
@@ -252,12 +254,22 @@ int main(int argc, char *argv[]) {
     last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
     capture_delays[i] = monitors[i]->GetCaptureDelay();
     alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
-  }
+
+    Monitor::Function function = monitors[0]->GetFunction();
+    if ( function == Monitor::MODECT || function == Monitor::MOCORD || function == Monitor::RECORD) {
+      Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
+      analysis_threads[i] = new AnalysisThread(monitors[i]);
+      analysis_threads[i]->start();
+    } else {
+      analysis_threads[i] = NULL;
+    }
+  } // end foreach monitor
 
   int result = 0;
   struct timeval now;
   struct DeltaTimeval delta_time;
   while ( !zm_terminate ) {
+    //Debug(2,"blocking");
     sigprocmask(SIG_BLOCK, &block_set, 0);
     for ( int i = 0; i < n_monitors; i++ ) {
       long min_delay = MAXINT;
@@ -305,18 +317,29 @@ int main(int argc, char *argv[]) {
           DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
           long sleep_time = next_delays[i]-delta_time.delta;
           if ( sleep_time > 0 ) {
+            Debug(2,"usleeping (%d)", sleep_time*(DT_MAXGRAN/DT_PREC_3) );
             usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
           }
+          last_capture_times[i] = now;
+        } else {
+          gettimeofday(&(last_capture_times[i]), NULL);
         }
-        gettimeofday(&(last_capture_times[i]), NULL);
       }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
 
     }  // end foreach n_monitors
+    //Debug(2,"unblocking");
     sigprocmask(SIG_UNBLOCK, &block_set, 0);
   }  // end while ! zm_terminate
   for ( int i = 0; i < n_monitors; i++ ) {
+    if ( analysis_threads[i] ) {
+      analysis_threads[i]->stop();
+      analysis_threads[i]->join();
+      delete analysis_threads[i];
+      analysis_threads[i] = 0;
+    }
     delete monitors[i];
   }
+  delete [] analysis_threads;
   delete [] monitors;
   delete [] alarm_capture_delays;
   delete [] capture_delays;

@@ -69,6 +69,7 @@ bool p_record_audio );
   int PrimeCapture();
   int Capture( ZMPacket &p );
   int PostCapture();
+AVStream* get_VideoStream();
 };
 
 #endif // ZM_REMOTE_CAMERA_NVSOCKET_H

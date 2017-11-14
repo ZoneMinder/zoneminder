@@ -86,9 +86,12 @@ VideoStore::VideoStore(
     video_in_stream_index = video_in_stream->index;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     video_in_ctx = avcodec_alloc_context3(NULL);
+Debug(2,"About to copy aparames");
     avcodec_parameters_to_context(video_in_ctx,
         video_in_stream->codecpar);
     zm_dump_codecpar( video_in_stream->codecpar );
+Debug(2,"About to copy aparames");
+//video_in_ctx.codec_id = video_in_stream->codecpar.codec_id;
 #else
     video_in_ctx = video_in_stream->codec;
 #endif
@@ -99,6 +102,7 @@ VideoStore::VideoStore(
   }
 
   video_out_ctx = NULL;
+  video_out_ctx = avcodec_alloc_context3(NULL);
 
   // Copy params from instream to ctx
   if ( video_in_stream && ( video_in_ctx->codec_id == AV_CODEC_ID_H264 ) ) {
@@ -113,13 +117,10 @@ VideoStore::VideoStore(
       zm_dump_codec(video_out_ctx);
     }
 #else
-    video_out_ctx = avcodec_alloc_context3(NULL);
     avcodec_copy_context( video_out_ctx, video_in_ctx );
 #endif
     // Same codec, just copy the packets, otherwise we have to decode/encode
     video_out_codec = (AVCodec *)video_in_ctx->codec;
-    video_out_ctx->time_base = video_in_ctx->time_base;
-    video_out_stream->time_base = video_in_stream->time_base;
   } else {
 
     /** Create a new frame to store the */
@@ -127,84 +128,95 @@ VideoStore::VideoStore(
       Error("Could not allocate in frame");
       return;
     }
-    video_out_codec = avcodec_find_encoder_by_name("h264_omx");
-    if ( ! video_out_codec ) {
-      Debug(1, "Didn't find omx");
-      video_out_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
-    }
-    if ( !video_out_codec ) {
-      Fatal("Could not find codec for H264");
-    }
-    Debug(2, "Have video out codec");
+      video_out_ctx = avcodec_alloc_context3( video_out_codec );
+      // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
+      video_out_ctx->width = monitor->Width();
+      video_out_ctx->height = monitor->Height();
+      video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 
-    video_out_ctx = avcodec_alloc_context3( video_out_codec );
-    // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
-    video_out_ctx->width = monitor->Width();
-    video_out_ctx->height = monitor->Height();
-    video_out_ctx->codec_id = AV_CODEC_ID_H264;
-    //video_out_ctx->sample_aspect_ratio = (AVRational){4,3};
-    video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-//video_in_ctx->sample_aspect_ratio;
-    /* take first format from list of supported formats */
-    //video_out_ctx->pix_fmt = video_out_codec->pix_fmts[0];
-    video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-    /* video time_base can be set to whatever is handy and supported by encoder */
-    video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-    video_out_ctx->framerate = (AVRational){0,1}; // Unknown framerate
-    video_out_ctx->gop_size = 12;
-    video_out_ctx->bit_rate = 4000000;
-    video_out_ctx->qmin = 10;
-    video_out_ctx->qmax = 51;
-    video_out_ctx->qcompress = 0.6;
-
-  if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
-#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
-    video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-#else
-    video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
-#endif
-  }
-
-    AVDictionary *opts = 0;
-    std::string Options = monitor->GetEncoderOptions();
-    ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
-    if ( ret < 0 ) {
-      Warning("Could not parse ffmpeg encoder options list '%s'\n", Options.c_str());
-    } else {
-      AVDictionaryEntry *e = NULL;
-      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Debug( 3, "Encoder Option %s=%s", e->key, e->value );
-      }
-    }
-    if ( ! av_dict_get( opts, "preset", NULL, 0 ) )
-        av_dict_set( &opts, "preset", "superfast", 0 );
-
-    if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-      Warning("Can't open video codec (%s)! %s, trying h264",
-          video_out_codec->name,
-          av_make_error_string(ret).c_str()
-          );
-      video_out_codec = avcodec_find_encoder_by_name("h264");
+    if ( monitor->OutputCodec() == "mjpeg" ) {
+      video_out_codec = avcodec_find_encoder_by_name("mjpeg");
       if ( ! video_out_codec ) {
-        Error("Can't find h264 encoder");
-        video_out_codec = avcodec_find_encoder_by_name("libx264");
+        Debug(1, "Didn't find omx");
+        video_out_codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
+      }
+      video_out_ctx->codec_id = video_out_codec->id;
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUVJ422P;
+
+    } else if ( monitor->OutputCodec() == "h264" ) {
+      video_out_codec = avcodec_find_encoder_by_name("h264_omx");
+      if ( ! video_out_codec ) {
+        Debug(1, "Didn't find omx");
+        video_out_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+      }
+      if ( !video_out_codec ) {
+        Fatal("Could not find codec for H264");
+      }
+      Debug(2, "Have video out codec");
+
+      video_out_ctx->codec_id = AV_CODEC_ID_H264;
+  //video_in_ctx->sample_aspect_ratio;
+      /* take first format from list of supported formats */
+      //video_out_ctx->pix_fmt = video_out_codec->pix_fmts[0];
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+      /* video time_base can be set to whatever is handy and supported by encoder */
+      video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+      video_out_ctx->framerate = (AVRational){0,1}; // Unknown framerate
+      video_out_ctx->gop_size = 12;
+      video_out_ctx->bit_rate = 4000000;
+      video_out_ctx->qmin = 10;
+      video_out_ctx->qmax = 51;
+      video_out_ctx->qcompress = 0.6;
+
+      AVDictionary *opts = 0;
+      std::string Options = monitor->GetEncoderOptions();
+      ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
+      if ( ret < 0 ) {
+        Warning("Could not parse ffmpeg encoder options list '%s'\n", Options.c_str());
+      } else {
+        AVDictionaryEntry *e = NULL;
+        while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+          Debug( 3, "Encoder Option %s=%s", e->key, e->value );
+        }
+      }
+
+      if ( ! av_dict_get( opts, "preset", NULL, 0 ) ) {
+        Debug(2,"Setting preset to ultrafast");
+        av_dict_set( &opts, "preset", "ultrafast", 0 );
+      }
+
+      if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
+        Warning("Can't open video codec (%s)! %s, trying h264",
+            video_out_codec->name,
+            av_make_error_string(ret).c_str()
+            );
+        video_out_codec = avcodec_find_encoder_by_name("h264");
         if ( ! video_out_codec ) {
-          Error("Can't find libx264 encoder");
+          Error("Can't find h264 encoder");
+          video_out_codec = avcodec_find_encoder_by_name("libx264");
+          if ( ! video_out_codec ) {
+            Error("Can't find libx264 encoder");
+            return;
+          }
+        }
+        if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
+          Error("Can't open video codec (%s)! %s",
+              video_out_codec->name,
+              av_make_error_string(ret).c_str() );
           return;
         }
       }
-      if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-        Error("Can't open video codec (%s)! %s",
-            video_out_codec->name,
-            av_make_error_string(ret).c_str() );
-        return;
+      AVDictionaryEntry *e = NULL;
+      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+        Warning( "Encoder Option %s not recognized by ffmpeg codec", e->key);
       }
-    }
-    AVDictionaryEntry *e = NULL;
-    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-      Warning( "Encoder Option %s not recognized by ffmpeg codec", e->key);
-    }
-    av_dict_free(&opts);
+      av_dict_free(&opts);
+  if ( !video_out_ctx->codec_tag ) {
+    video_out_ctx->codec_tag =
+        av_codec_get_tag(oc->oformat->codec_tag, AV_CODEC_ID_H264 );
+    Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
+  }
+    }// end if codec == h264
 
     swscale.SetDefaults(
         video_in_ctx->pix_fmt,
@@ -214,11 +226,6 @@ VideoStore::VideoStore(
         );
   } // end if copying or trasncoding
 
-  if ( !video_out_ctx->codec_tag ) {
-    video_out_ctx->codec_tag =
-        av_codec_get_tag(oc->oformat->codec_tag, AV_CODEC_ID_H264 );
-    Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
-  }
 
   video_out_stream = avformat_new_stream(oc, video_out_codec);
   if ( !video_out_stream ) {
@@ -434,6 +441,7 @@ void VideoStore::write_audio_packet( AVPacket &pkt ) {
 
 VideoStore::~VideoStore() {
   if ( video_out_ctx->codec_id != video_in_ctx->codec_id ) {
+Debug(2,"Different codecs between in and out");
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( video_out_ctx->codec && ( video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY ) ) {
@@ -475,7 +483,8 @@ VideoStore::~VideoStore() {
             break;
           }
 #endif
-Debug(3, "dts:%d, pts:%d", pkt.dts, pkt.pts );
+  int keyframe = pkt.flags & AV_PKT_FLAG_KEY;
+Debug(3, "dts:%d, pts:%d, keyframe:%d", pkt.dts, pkt.pts, keyframe );
           //pkt.dts = video_next_dts;
           pkt.pts = pkt.dts;
           //pkt.duration = video_last_duration;
@@ -830,7 +839,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
           return 0;
         }
 #else
-  int data_present;
+        int data_present;
         if ((ret = avcodec_decode_video2(video_in_ctx, in_frame,
                 &data_present, ipkt )) < 0) {
           Error("Could not decode frame (error '%s')\n",
@@ -857,11 +866,11 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
             video_out_ctx->height, 1);
-        uint8_t *buffer = (uint8_t *)av_malloc(codec_imgsize);
+        zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
         av_image_fill_arrays(
             frame->data,
             frame->linesize,
-            buffer,
+            zm_packet->buffer,
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
             video_out_ctx->height,
@@ -871,10 +880,10 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
             video_out_ctx->height);
-        uint8_t *buffer = (uint8_t *)av_malloc(codec_imgsize);
+        zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
         avpicture_fill(
             (AVPicture *)frame,
-            buffer,
+            zm_packet->buffer,
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
             video_out_ctx->height
@@ -885,7 +894,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
         frame->height = video_out_ctx->height;
         frame->format = video_out_ctx->pix_fmt;
         swscale.Convert(zm_packet->image, 
-            buffer,
+            zm_packet->buffer,
             codec_imgsize,
             (AVPixelFormat)zm_packet->image->AVPixFormat(),
             video_out_ctx->pix_fmt,
@@ -907,19 +916,20 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     if ( (ret = avcodec_send_frame(video_out_ctx, zm_packet->frame)) < 0 ) {
       Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt); // NOT SURE THIS IS NECCESSARY
-      return 0;
+      return -1;
     }
     if ( (ret = avcodec_receive_packet(video_out_ctx, &opkt)) < 0 ) {
+      zm_av_packet_unref(&opkt);
       if ( AVERROR(EAGAIN) == ret ) {
         // THe codec may need more samples than it has, perfectly valid
         Debug(3, "Could not recieve packet (error '%s')",
               av_make_error_string(ret).c_str());
+        return 0;
       } else {
         Error("Could not recieve packet (error %d = '%s')", ret,
               av_make_error_string(ret).c_str());
       }
-      zm_av_packet_unref(&opkt);
-      return 0;
+      return -1;
     }
 #else
     if ( (ret = avcodec_encode_video2(
@@ -945,34 +955,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     opkt.flags = ipkt->flags;
   }
 
-  //opkt.dts = opkt.pts = ( zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec ) - video_last_pts;
-#if 0
-  opkt.dts = video_next_dts;
-  opkt.pts = video_next_pts;
-
-  int duration;
-  if ( !video_last_pts ) {
-    duration = 0;
-  } else {
-    duration = av_rescale_q(
-        ipkt->pts - video_last_pts,
-        video_in_stream->time_base,
-        video_out_stream->time_base
-        );
-    Debug(1, "duration calc: pts(%d) - last_pts(%d) = (%d)", ipkt->pts,
-        video_last_pts, duration);
-    if ( duration < 0 ) {
-      duration = ipkt->duration;
-    }
-  }
-
-  // our timebase is always /1000000 now, so we can use the timestamp as the pts/dts
-  video_last_pts = zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec;
-  video_last_dts = video_last_pts;
-  video_last_duration = duration;
-  opkt.duration = duration;
-#endif
-
+  int keyframe = opkt.flags & AV_PKT_FLAG_KEY;
+Debug(3, "dts:%d, pts:%d, keyframe:%d", opkt.dts, opkt.pts, keyframe );
   write_video_packet( opkt );
   zm_av_packet_unref(&opkt);
 
@@ -981,7 +965,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
 
 void VideoStore::write_video_packet( AVPacket &opkt ) {
 
-  if (opkt.dts > opkt.pts) {
+  if ( opkt.dts > opkt.pts ) {
     Debug(1,
           "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen "
           "before presentation.",
@@ -1012,8 +996,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
     //dumpPacket(&opkt);
 
   } else {
-    ret = av_interleaved_write_frame(oc, &opkt);
-    if (ret < 0) {
+    if ( (ret = av_interleaved_write_frame(oc, &opkt)) < 0 ) {
       // There's nothing we can really do if the frame is rejected, just drop it
       // and get on with the next
       Warning(

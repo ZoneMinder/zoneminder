@@ -1898,7 +1898,7 @@ int LocalCamera::PrimeCapture() {
 }
 
 int LocalCamera::PreCapture() {
-  Debug( 5, "Pre-capturing" );
+  Debug( 4, "Pre-capturing" );
   return( 0 );
 }
 
@@ -2000,7 +2000,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
 #if HAVE_LIBSWSCALE
     if ( conversion_type == 1 ) {
 
-      Debug( 9, "Calling sws_scale to perform the conversion" );
+      Debug( 9, "Setting up a frame" );
       /* Use swscale to convert the image directly into the shared memory */
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
       av_image_fill_arrays(tmpPicture->data,
@@ -2010,6 +2010,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
       avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
           imagePixFormat, width, height );
 #endif
+      Debug( 9, "Calling sws_scale to perform the conversion" );
       sws_scale(
           imgConversionContext,
           capturePictures[capture_frame]->data,
@@ -2019,6 +2020,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
           tmpPicture->data,
           tmpPicture->linesize
           );
+      Debug( 9, "Done sws_scale to perform the conversion" );
     } else
 #endif  
     if ( conversion_type == 2 ) {
@@ -2071,7 +2073,7 @@ int LocalCamera::PostCapture() {
       } else {
         Error( "Unable to requeue buffer due to not v4l2_data" )
       }
-    }
+    } else
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
     if ( v4l_version == 1 ) {

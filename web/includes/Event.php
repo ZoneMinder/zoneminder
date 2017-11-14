@@ -215,7 +215,7 @@ class Event {
     $eventPath = $this->Path();
     if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
       $frame = 'snapshot';
-      $humbData = array('Path'=>$eventPath.'/snapshot.jpg'); 
+      $thumbData = array('Path'=>$eventPath.'/snapshot.jpg'); 
     } else {
 # Load the frame with the highest score to use as a thumbnail
       if ( !($frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1', NULL, array( $this->{'Id'}, $this->{'MaxScore'} ) )) ) {

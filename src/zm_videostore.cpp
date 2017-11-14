@@ -86,11 +86,9 @@ VideoStore::VideoStore(
     video_in_stream_index = video_in_stream->index;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     video_in_ctx = avcodec_alloc_context3(NULL);
-Debug(2,"About to copy aparames");
     avcodec_parameters_to_context(video_in_ctx,
         video_in_stream->codecpar);
     zm_dump_codecpar( video_in_stream->codecpar );
-Debug(2,"About to copy aparames");
 //video_in_ctx.codec_id = video_in_stream->codecpar.codec_id;
 #else
     video_in_ctx = video_in_stream->codec;
@@ -101,7 +99,6 @@ Debug(2,"About to copy aparames");
     video_in_stream_index = 0;
   }
 
-  video_out_ctx = NULL;
   video_out_ctx = avcodec_alloc_context3(NULL);
 
   // Copy params from instream to ctx
@@ -121,6 +118,24 @@ Debug(2,"About to copy aparames");
 #endif
     // Same codec, just copy the packets, otherwise we have to decode/encode
     video_out_codec = (AVCodec *)video_in_ctx->codec;
+    // Only set orientation if doing passthrough, otherwise the frame image will be rotated
+    Monitor::Orientation orientation = monitor->getOrientation();
+    Debug(3, "Have orientation");
+    if ( orientation ) {
+      if ( orientation == Monitor::ROTATE_0 ) {
+      } else if ( orientation == Monitor::ROTATE_90 ) {
+        dsr = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
+        if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      } else if ( orientation == Monitor::ROTATE_180 ) {
+        dsr = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
+        if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      } else if ( orientation == Monitor::ROTATE_270 ) {
+        dsr = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
+        if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      } else {
+        Warning("Unsupported Orientation(%d)", orientation);
+      }
+    }
   } else {
 
     /** Create a new frame to store the */
@@ -128,10 +143,10 @@ Debug(2,"About to copy aparames");
       Error("Could not allocate in frame");
       return;
     }
-      // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
-      video_out_ctx->width = monitor->Width();
-      video_out_ctx->height = monitor->Height();
-      video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+    // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
+    video_out_ctx->width = monitor->Width();
+    video_out_ctx->height = monitor->Height();
+    video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 
     if ( monitor->OutputCodec() == "mjpeg" ) {
       video_out_codec = avcodec_find_encoder_by_name("mjpeg");
@@ -209,16 +224,20 @@ Debug(2,"About to copy aparames");
           return;
         }
       }
+Debug(2,"Sucess opening codec");
       AVDictionaryEntry *e = NULL;
       while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
         Warning( "Encoder Option %s not recognized by ffmpeg codec", e->key);
       }
       av_dict_free(&opts);
-  if ( !video_out_ctx->codec_tag ) {
-    video_out_ctx->codec_tag =
-        av_codec_get_tag(oc->oformat->codec_tag, AV_CODEC_ID_H264 );
-    Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
-  }
+
+      if ( !video_out_ctx->codec_tag ) {
+        video_out_ctx->codec_tag =
+          av_codec_get_tag(oc->oformat->codec_tag, AV_CODEC_ID_H264 );
+        Debug(2, "No codec_tag, setting to h264");
+      }
+  } else {
+Error("Codec not set");
     }// end if codec == h264
 
     swscale.SetDefaults(
@@ -261,23 +280,7 @@ video_out_stream->time_base.den = video_out_ctx->time_base.den;
         video_out_ctx->time_base.num,
         video_out_ctx->time_base.den);
 
-  Monitor::Orientation orientation = monitor->getOrientation();
-  Debug(3, "Have orientation");
-  if ( orientation ) {
-    if ( orientation == Monitor::ROTATE_0 ) {
-    } else if ( orientation == Monitor::ROTATE_90 ) {
-      dsr = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-      if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-    } else if ( orientation == Monitor::ROTATE_180 ) {
-      dsr = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-      if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-    } else if ( orientation == Monitor::ROTATE_270 ) {
-      dsr = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-      if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-    } else {
-      Warning("Unsupported Orientation(%d)", orientation);
-    }
-  }
+
 
   converted_in_samples = NULL;
   audio_out_codec = NULL;

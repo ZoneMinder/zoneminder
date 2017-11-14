@@ -142,13 +142,13 @@ int RemoteCameraNVSocket::Disconnect() {
 }
 
 int RemoteCameraNVSocket::SendRequest( std::string request ) {
-  Debug( 4, "Sending request: %s", request.c_str() );
+  //Debug( 4, "Sending request: %s", request.c_str() );
   if ( write( sd, request.data(), request.length() ) < 0 ) {
     Error( "Can't write: %s", strerror(errno) );
     Disconnect();
     return( -1 );
   }
-  Debug( 4, "Request sent" );
+  //Debug( 4, "Request sent" );
   return( 0 );
 }
 
@@ -222,10 +222,12 @@ AVStream *RemoteCameraNVSocket::get_VideoStream() {
       video_stream->codecpar->width = width;
       video_stream->codecpar->height = height;
       video_stream->codecpar->format = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
 #else
       video_stream->codec->width = width;
       video_stream->codec->height = height;
       video_stream->codec->pix_fmt = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
 #endif
     } else {
       Error("Can't create video stream");

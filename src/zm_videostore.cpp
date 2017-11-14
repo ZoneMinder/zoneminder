@@ -859,7 +859,6 @@ int VideoStore::writePacket( ZMPacket *ipkt ) {
 }
 
 int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
-  av_init_packet(&opkt);
   frame_count += 1;
 
   // if we have to transcode
@@ -867,65 +866,72 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
     if ( ! zm_packet->frame ) {
+      Debug(3, "Have no out frame");
       AVFrame *out_frame = zm_packet->frame = zm_av_frame_alloc();
-        if ( ! out_frame ) {
-          Error("Unable to allocate a frame");
-          return 0;
-        }
+      if ( ! out_frame ) {
+        Error("Unable to allocate a frame");
+        return 0;
+      }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-        int codec_imgsize = av_image_get_buffer_size(
-            video_out_ctx->pix_fmt,
-            video_out_ctx->width,
-            video_out_ctx->height, 1);
-        zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
-        av_image_fill_arrays(
-            out_frame->data,
-            out_frame->linesize,
-            zm_packet->buffer,
-            video_out_ctx->pix_fmt,
-            video_out_ctx->width,
-            video_out_ctx->height,
-            1);
+      int codec_imgsize = av_image_get_buffer_size(
+          video_out_ctx->pix_fmt,
+          video_out_ctx->width,
+          video_out_ctx->height, 1);
+      zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
+      av_image_fill_arrays(
+          out_frame->data,
+          out_frame->linesize,
+          zm_packet->buffer,
+          video_out_ctx->pix_fmt,
+          video_out_ctx->width,
+          video_out_ctx->height,
+          1);
 #else
-        int codec_imgsize = avpicture_get_size(
-            video_out_ctx->pix_fmt,
-            video_out_ctx->width,
-            video_out_ctx->height);
-        zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
-        avpicture_fill(
-            (AVPicture *)out_frame,
-            zm_packet->buffer,
-            video_out_ctx->pix_fmt,
-            video_out_ctx->width,
-            video_out_ctx->height
-            );
+      int codec_imgsize = avpicture_get_size(
+          video_out_ctx->pix_fmt,
+          video_out_ctx->width,
+          video_out_ctx->height);
+      zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
+      avpicture_fill(
+          (AVPicture *)out_frame,
+          zm_packet->buffer,
+          video_out_ctx->pix_fmt,
+          video_out_ctx->width,
+          video_out_ctx->height
+          );
 #endif
 
-        out_frame->width = video_out_ctx->width;
-        out_frame->height = video_out_ctx->height;
-        out_frame->format = video_out_ctx->pix_fmt;
+      out_frame->width = video_out_ctx->width;
+      out_frame->height = video_out_ctx->height;
+      out_frame->format = video_out_ctx->pix_fmt;
 
       if ( ! zm_packet->in_frame ) {
+        Debug(2,"Have no in_frame");
         if ( zm_packet->packet.size ) {
+          Debug(2,"Decoding");
           if ( ! zm_packet->decode( video_in_ctx ) ) {
             Debug(2, "unable to decode yet.");
             return 0;
           }
-        }
-        //Go straight to out frame
-        swscale.Convert( zm_packet->in_frame, out_frame );
-      } else if ( zm_packet->image ) {
-        //Go straight to out frame
-        swscale.Convert(zm_packet->image, 
-            zm_packet->buffer,
-            codec_imgsize,
-            (AVPixelFormat)zm_packet->image->AVPixFormat(),
-            video_out_ctx->pix_fmt,
-            video_out_ctx->width,
-            video_out_ctx->height
-            );
+          //Go straight to out frame
+          swscale.Convert( zm_packet->in_frame, out_frame );
+        } else if ( zm_packet->image ) {
+          Debug(2,"Have an image, convert it");
+          //Go straight to out frame
+          swscale.Convert(zm_packet->image, 
+              zm_packet->buffer,
+              codec_imgsize,
+              (AVPixelFormat)zm_packet->image->AVPixFormat(),
+              video_out_ctx->pix_fmt,
+              video_out_ctx->width,
+              video_out_ctx->height
+              );
 
-      } // end if has packet or image
+        } else {
+          Error("Have neither in_frame or image!");
+          return 0;
+        } // end if has packet or image
+      } // end if no in_Frmae
     } // end if no frame
 
     if ( ! video_last_pts ) {
@@ -940,9 +946,10 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( (ret = avcodec_send_frame(video_out_ctx, zm_packet->frame)) < 0 ) {
       Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
-      zm_av_packet_unref(&opkt); // NOT SURE THIS IS NECCESSARY
       return -1;
     }
+
+    av_init_packet(&opkt);
     if ( (ret = avcodec_receive_packet(video_out_ctx, &opkt)) < 0 ) {
       zm_av_packet_unref(&opkt);
       if ( AVERROR(EAGAIN) == ret ) {

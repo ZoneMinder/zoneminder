@@ -938,6 +938,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       return -1;
     }
 #else
+    int data_present;
     if ( (ret = avcodec_encode_video2(
             video_out_ctx, &opkt, zm_packet->frame, &data_present)) < 0) {
       Error("Could not encode frame (error '%s')",
@@ -1059,6 +1060,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
      * If we are at the end of the file, pass an empty packet to the decoder
      * to flush it.
      */
+    int data_present;
     if ( (ret = avcodec_decode_audio4(audio_in_ctx, in_frame,
                                      &data_present, ipkt)) < 0 ) {
       Error("Could not decode frame (error '%s')\n",

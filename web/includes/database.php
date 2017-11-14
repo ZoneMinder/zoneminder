@@ -134,7 +134,7 @@ function dbQuery( $sql, $params=NULL ) {
     } else {
       $result = $dbConn->query( $sql );
     }
-if ( 0 ) {
+if ( 1 ) {
     if ( $params )
       Warning("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount() );
     else

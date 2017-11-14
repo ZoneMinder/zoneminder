@@ -35,6 +35,7 @@ class ZMPacket {
   
     int keyframe;
     AVPacket  packet;   // Input packet, undecoded
+    AVFrame   *in_frame;    // Input image, decoded Theoretically only filled if needed.
     AVFrame   *frame;    // Input image, decoded Theoretically only filled if needed.
   uint8_t *buffer;
     Image     *image;   // Our internal image object representing this frame
@@ -43,7 +44,7 @@ class ZMPacket {
     AVPacket *av_packet() { return &packet; }
     AVPacket *set_packet( AVPacket *p ) ;
     AVFrame *av_frame() { return frame; }
-    Image *get_image( Image * );
+    Image *get_image( Image *i=NULL );
     Image *set_image( Image * );
 
     int is_keyframe() { return keyframe; };

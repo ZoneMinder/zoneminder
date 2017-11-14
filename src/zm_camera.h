@@ -109,6 +109,8 @@ public:
   virtual int PostCapture()=0;
   virtual AVStream      *get_VideoStream() { return NULL; };
   virtual AVStream      *get_AudioStream() { return NULL; };
+  virtual AVCodecContext     *get_VideoCodecContext() { return NULL; };
+  virtual AVCodecContext     *get_AudioCodecContext() { return NULL; };
   int            get_VideoStreamId() { return mVideoStreamId; };
   int            get_AudioStreamId() { return mAudioStreamId; };
 };

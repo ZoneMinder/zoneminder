@@ -146,13 +146,15 @@ Image::Image( const AVFrame *frame ) {
 void Image::Assign( const AVFrame *frame ) {
 /* Assume the dimensions etc are correct. FIXME */
 
+AVPixelFormat format = (AVPixelFormat)AVPixFormat();
+
   AVFrame *dest_frame = zm_av_frame_alloc();
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   av_image_fill_arrays(dest_frame->data, dest_frame->linesize,
-      buffer, AV_PIX_FMT_RGBA, width, height, 1);
+      buffer, format, width, height, 1);
 #else
   avpicture_fill( (AVPicture *)dest_frame, buffer,
-      AV_PIX_FMT_RGBA, width, height);
+     format, width, height);
 #endif
 
 #if HAVE_LIBSWSCALE
@@ -161,13 +163,13 @@ void Image::Assign( const AVFrame *frame ) {
       height,
       (AVPixelFormat)frame->format,
       width, height,
-      AV_PIX_FMT_RGBA, SWS_BICUBIC, NULL,
+      format, SWS_BICUBIC, NULL,
       NULL, NULL);
   if ( mConvertContext == NULL )
     Fatal( "Unable to create conversion context" );
 
   if ( sws_scale(mConvertContext, frame->data, frame->linesize, 0, frame->height, dest_frame->data, dest_frame->linesize) < 0 )
-    Fatal("Unable to convert raw format %u to target format %u", frame->format, AV_PIX_FMT_RGBA);
+    Fatal("Unable to convert raw format %u to target format %u", frame->format, format);
 #else // HAVE_LIBSWSCALE
   Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE

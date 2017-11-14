@@ -92,6 +92,8 @@ VideoStore::VideoStore(
 //video_in_ctx.codec_id = video_in_stream->codecpar.codec_id;
 #else
     video_in_ctx = video_in_stream->codec;
+Debug(2,"Copied video context from input stream");
+      zm_dump_codec(video_in_ctx);
 #endif
   } else {
     Debug(2, "No input ctx");
@@ -147,6 +149,13 @@ VideoStore::VideoStore(
     video_out_ctx->width = monitor->Width();
     video_out_ctx->height = monitor->Height();
     video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+      if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
+    video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+#else
+    video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#endif
+      }
 
     if ( monitor->OutputCodec() == "mjpeg" ) {
       video_out_codec = avcodec_find_encoder_by_name("mjpeg");
@@ -199,8 +208,8 @@ VideoStore::VideoStore(
         av_dict_set( &opts, "preset", "ultrafast", 0 );
       }
       if ( ! av_dict_get( opts, "tune", NULL, 0 ) ) {
-        Debug(2,"Setting tune to lowlatency");
-        av_dict_set( &opts, "tune", "lowlatency", 0 );
+        Debug(2,"Setting tune to zerolatency");
+        av_dict_set( &opts, "tune", "zerolatency", 0 );
       }
 
       if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
@@ -832,38 +841,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
     if ( ! zm_packet->frame ) {
-      if ( zm_packet->packet.size ) {
-        AVPacket *ipkt =  &zm_packet->packet;
-
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-        if ( ( ret = avcodec_send_packet(video_in_ctx, ipkt) ) < 0 ) {
-          Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
-          return 0;
-        }
-        if ( ( ret = avcodec_receive_frame(video_in_ctx, in_frame) ) < 0 ) {
-          Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
-          return 0;
-        }
-#else
-        int data_present;
-        if ((ret = avcodec_decode_video2(video_in_ctx, in_frame,
-                &data_present, ipkt )) < 0) {
-          Error("Could not decode frame (error '%s')\n",
-              av_make_error_string(ret).c_str());
-          av_frame_free(&in_frame);
-          return 0;
-        } else {
-          Debug(3, "Decoded frame data_present(%d)", data_present);
-        }
-        if ( !data_present ) {
-          Debug(2, "Not ready to transcode a frame yet.");
-          return 0;
-        }
-#endif
-        zm_packet->frame = in_frame;
-      } else if ( zm_packet->image ) {
-        AVFrame *frame = zm_packet->frame = zm_av_frame_alloc();
-        if ( ! frame ) {
+      AVFrame *out_frame = zm_packet->frame = zm_av_frame_alloc();
+        if ( ! out_frame ) {
           Error("Unable to allocate a frame");
           return 0;
         }
@@ -874,8 +853,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
             video_out_ctx->height, 1);
         zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
         av_image_fill_arrays(
-            frame->data,
-            frame->linesize,
+            out_frame->data,
+            out_frame->linesize,
             zm_packet->buffer,
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
@@ -888,7 +867,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
             video_out_ctx->height);
         zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
         avpicture_fill(
-            (AVPicture *)frame,
+            (AVPicture *)out_frame,
             zm_packet->buffer,
             video_out_ctx->pix_fmt,
             video_out_ctx->width,
@@ -896,9 +875,21 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
             );
 #endif
 
-        frame->width = video_out_ctx->width;
-        frame->height = video_out_ctx->height;
-        frame->format = video_out_ctx->pix_fmt;
+        out_frame->width = video_out_ctx->width;
+        out_frame->height = video_out_ctx->height;
+        out_frame->format = video_out_ctx->pix_fmt;
+
+      if ( ! zm_packet->in_frame ) {
+        if ( zm_packet->packet.size ) {
+          if ( ! zm_packet->decode( video_in_ctx ) ) {
+            Debug(2, "unable to decode yet.");
+            return 0;
+          }
+        }
+        //Go straight to out frame
+        swscale.Convert( zm_packet->in_frame, out_frame );
+      } else if ( zm_packet->image ) {
+        //Go straight to out frame
         swscale.Convert(zm_packet->image, 
             zm_packet->buffer,
             codec_imgsize,

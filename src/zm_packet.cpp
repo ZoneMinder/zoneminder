@@ -27,6 +27,7 @@ using namespace std;
 ZMPacket::ZMPacket( ) {
   keyframe = 0;
   image = NULL;
+  in_frame = NULL;
   frame = NULL;
   buffer = NULL;
   av_init_packet( &packet );
@@ -37,6 +38,7 @@ ZMPacket::ZMPacket( ) {
 ZMPacket::ZMPacket( Image *i ) {
   keyframe = 1;
   image = i;
+  in_frame = NULL;
   frame = NULL;
   buffer = NULL;
   av_init_packet( &packet );
@@ -48,6 +50,8 @@ ZMPacket::ZMPacket( AVPacket *p ) {
   set_packet( p );
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   buffer = NULL;
+  in_frame = NULL;
+  frame = NULL;
 }
 
 ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
@@ -56,6 +60,8 @@ ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
   timestamp = *t;
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   buffer = NULL;
+  in_frame = NULL;
+  frame = NULL;
 }
 ZMPacket::ZMPacket( AVPacket *p, AVFrame *f, Image *i ) {
   av_init_packet( &packet );
@@ -63,10 +69,16 @@ ZMPacket::ZMPacket( AVPacket *p, AVFrame *f, Image *i ) {
   image = i;
   frame = f;
   buffer = NULL;
+  in_frame = NULL;
+  frame = NULL;
 }
 
 ZMPacket::~ZMPacket() {
   zm_av_packet_unref( &packet );
+  if ( in_frame ) {
+    //av_free(frame->data);
+    av_frame_free( &in_frame );
+  }
   if ( frame ) {
     //av_free(frame->data);
     av_frame_free( &frame );
@@ -82,11 +94,16 @@ void ZMPacket::reset() {
   Debug(2,"reset");
   zm_av_packet_unref( &packet );
   packet.size = 0;
+  if ( in_frame ) {
+  Debug(4,"reset frame");
+    av_frame_free( &in_frame );
+  }
   if ( frame ) {
+  Debug(4,"reset frame");
     av_frame_free( &frame );
   }
   if ( buffer ) {
-  Debug(2,"freeing buffer");
+  Debug(4,"freeing buffer");
     av_freep( &buffer );
   }
 }
@@ -94,17 +111,17 @@ void ZMPacket::reset() {
 int ZMPacket::decode( AVCodecContext *ctx ) {
   Debug(4, "about to decode video" );
 
-  if ( frame ) {
+  if ( in_frame ) {
       Error("Already have a frame?");
   } else {
-      frame = zm_av_frame_alloc();
+      in_frame = zm_av_frame_alloc();
   }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   int ret = avcodec_send_packet( ctx, &packet );
   if ( ret < 0 ) {
     Error( "Unable to send packet: %s", av_make_error_string(ret).c_str() );
-    av_frame_free( &frame );
+    av_frame_free( &in_frame );
     return 0;
   }
 
@@ -113,21 +130,21 @@ int ZMPacket::decode( AVCodecContext *ctx ) {
     ret = avcodec_receive_frame( ctx, hwFrame );
     if ( ret < 0 ) {
       Error( "Unable to receive frame: %s", av_make_error_string(ret).c_str() );
-      av_frame_free( &frame );
+      av_frame_free( &in_frame );
       return 0;
     }
     ret = av_hwframe_transfer_data(frame, hwFrame, 0);
     if ( ret < 0 ) {
       Error( "Unable to transfer frame: %s", av_make_error_string(ret).c_str() );
-      av_frame_free( &frame );
+      av_frame_free( &in_frame );
       return 0;
     }
   } else {
 #endif
-    ret = avcodec_receive_frame( ctx, frame );
+    ret = avcodec_receive_frame( ctx, in_frame );
     if ( ret < 0 ) {
       Error( "Unable to receive frame: %s", av_make_error_string(ret).c_str() );
-      av_frame_free( &frame );
+      av_frame_free( &in_frame );
       return 0;
     }
 
@@ -137,23 +154,23 @@ int ZMPacket::decode( AVCodecContext *ctx ) {
 
 # else
   int frameComplete = 0;
-  int ret = zm_avcodec_decode_video( ctx, frame, &frameComplete, &packet );
+  int ret = zm_avcodec_decode_video( ctx, in_frame, &frameComplete, &packet );
   if ( ret < 0 ) {
     Error( "Unable to decode frame at frame %s", av_make_error_string(ret).c_str() );
-    av_frame_free( &frame );
+    av_frame_free( &in_frame );
     return 0;
   }
   if ( ! frameComplete ) {
     Debug(1, "incomplete frame?");
-    av_frame_free( &frame );
+    av_frame_free( &in_frame );
     return 0;
   }
 #endif
   return 1;
 } // end ZMPacket::decode
 
-Image * ZMPacket::get_image( Image *i = NULL ) {
-  if ( ! frame ) {
+Image * ZMPacket::get_image( Image *i ) {
+  if ( ! in_frame ) {
     Error("Can't get image without frame.. maybe need to decode first");
     return NULL;
   }
@@ -164,7 +181,7 @@ Image * ZMPacket::get_image( Image *i = NULL ) {
     } 
     image = i;
   }
-  image->Assign( frame );
+  image->Assign( in_frame );
   return image;
 }
 

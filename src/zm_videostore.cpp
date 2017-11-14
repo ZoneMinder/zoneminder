@@ -128,7 +128,6 @@ Debug(2,"About to copy aparames");
       Error("Could not allocate in frame");
       return;
     }
-      video_out_ctx = avcodec_alloc_context3( video_out_codec );
       // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
       video_out_ctx->width = monitor->Width();
       video_out_ctx->height = monitor->Height();
@@ -183,6 +182,10 @@ Debug(2,"About to copy aparames");
       if ( ! av_dict_get( opts, "preset", NULL, 0 ) ) {
         Debug(2,"Setting preset to ultrafast");
         av_dict_set( &opts, "preset", "ultrafast", 0 );
+      }
+      if ( ! av_dict_get( opts, "tune", NULL, 0 ) ) {
+        Debug(2,"Setting tune to lowlatency");
+        av_dict_set( &opts, "tune", "lowlatency", 0 );
       }
 
       if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {

@@ -271,7 +271,6 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
 
-  avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, "    Stream #%d:%d", index, i);
 
   /* the pid is an important information, so we display it */
@@ -281,6 +280,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   if (lang)
     Debug(1, "(%s)", lang->value);
   Debug(1, ", frames:%d, timebase: %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
+  avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, ": %s", buf);
 
   if (st->sample_aspect_ratio.num && // default

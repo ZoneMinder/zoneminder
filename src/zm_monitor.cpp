@@ -2822,6 +2822,18 @@ int Monitor::Capture() {
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
   unsigned int index = image_count % image_buffer_count;
+
+  if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
+    Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
+    time_t now = time(0);
+    double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp.tv_sec);
+    time_t last_read_delta = now - shared_data->last_read_time;
+    if ( last_read_delta > (image_buffer_count/approxFps) ) {
+      Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
+        shared_data->last_read_index = image_buffer_count;
+    }
+  }
+
   Image* capture_image = image_buffer[index].image;
   ZMPacket *packet = &image_buffer[index];
 // clears frame
@@ -2854,60 +2866,54 @@ packet->reset();
       capture_image->Fill(signalcolor);
       shared_data->signal = false;
       return -1;
+    } else if ( captureResult > 0 ) {
+
+    if ( packet->packet.size && ! packet->frame ) {
+      packet->decode( camera->get_VideoCodecContext() );
+      packet->get_image();
     }
 
-  /* Deinterlacing */
-  if ( deinterlacing_value ) {
-    if ( deinterlacing_value == 1 ) {
-      capture_image->Deinterlace_Discard();
-    } else if ( deinterlacing_value == 2 ) {
-      capture_image->Deinterlace_Linear();
-    } else if ( deinterlacing_value == 3 ) {
-      capture_image->Deinterlace_Blend();
-    } else if ( deinterlacing_value == 4 ) {
-      capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
-    } else if ( deinterlacing_value == 5 ) {
-      capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
+    /* Deinterlacing */
+    if ( deinterlacing_value ) {
+      if ( deinterlacing_value == 1 ) {
+        capture_image->Deinterlace_Discard();
+      } else if ( deinterlacing_value == 2 ) {
+        capture_image->Deinterlace_Linear();
+      } else if ( deinterlacing_value == 3 ) {
+        capture_image->Deinterlace_Blend();
+      } else if ( deinterlacing_value == 4 ) {
+        capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
+      } else if ( deinterlacing_value == 5 ) {
+        capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
+      }
     }
-  }
 
-  if ( orientation != ROTATE_0 ) {
-    switch ( orientation ) {
-      case ROTATE_0 :
-        // No action required
-        break;
-      case ROTATE_90 :
-      case ROTATE_180 :
-      case ROTATE_270 : 
-        capture_image->Rotate( (orientation-1)*90 );
-        break;
-      case FLIP_HORI :
-      case FLIP_VERT :
-        capture_image->Flip( orientation==FLIP_HORI );
-        break;
+    if ( orientation != ROTATE_0 ) {
+      switch ( orientation ) {
+        case ROTATE_0 :
+          // No action required
+          break;
+        case ROTATE_90 :
+        case ROTATE_180 :
+        case ROTATE_270 : 
+          capture_image->Rotate( (orientation-1)*90 );
+          break;
+        case FLIP_HORI :
+        case FLIP_VERT :
+          capture_image->Flip( orientation==FLIP_HORI );
+          break;
+      }
     }
-  }
 
-  if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
-    Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
-    time_t now = time(0);
-    double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp.tv_sec);
-    time_t last_read_delta = now - shared_data->last_read_time;
-    if ( last_read_delta > (image_buffer_count/approxFps) ) {
-      Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
-        shared_data->last_read_index = image_buffer_count;
+    if ( privacy_bitmask )
+      capture_image->MaskPrivacy( privacy_bitmask );
+
+    if ( config.timestamp_on_capture ) {
+      TimestampImage( capture_image, &packet->timestamp );
     }
-  }
-
-  if ( privacy_bitmask )
-    capture_image->MaskPrivacy( privacy_bitmask );
-
-  if ( config.timestamp_on_capture ) {
-    TimestampImage( capture_image, &packet->timestamp );
-  }
-    int video_stream_id = camera->get_VideoStreamId();
 
 #if 0
+    int video_stream_id = camera->get_VideoStreamId();
     //Video recording
     if ( video_store_data->recording.tv_sec ) {
       if ( shared_data->last_event_id != this->GetVideoWriterEventId() ) {
@@ -2986,13 +2992,17 @@ packet->reset();
       }
     }
 #endif
+
+    shared_data->signal = CheckSignal(capture_image);
+    shared_data->last_write_index = index;
+    shared_data->last_write_time = image_buffer[index].timestamp.tv_sec;
+    image_count++;
+    } else { // result == 0
+
+    } // end if result
   } // end if deinterlacing
 
-  shared_data->signal = CheckSignal(capture_image);
-  shared_data->last_write_index = index;
-  shared_data->last_write_time = image_buffer[index].timestamp.tv_sec;
   mutex.unlock();
-  image_count++;
 
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
     struct timeval now;
@@ -3013,8 +3023,11 @@ packet->reset();
       snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", fps, id );
       if ( mysql_query( &dbconn, sql ) ) {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
-      }
+      } else {
+Debug(2,"toofast");}
     } // end if too fast
+}else {
+Debug(2,"Nor reopting fps");
   } // end if should report fps
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing

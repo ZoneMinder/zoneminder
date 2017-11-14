@@ -78,6 +78,27 @@ int SWScale::SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, 
   return 0;
 }
 
+int SWScale::Convert( 
+  AVFrame *in_frame,
+  AVFrame *out_frame
+) {
+  /* Get the context */
+  swscale_ctx = sws_getCachedContext( swscale_ctx,
+      in_frame->width, in_frame->height, (AVPixelFormat)in_frame->format,
+      out_frame->width, out_frame->height, (AVPixelFormat)out_frame->format,
+      SWS_FAST_BILINEAR, NULL, NULL, NULL );
+  if ( swscale_ctx == NULL ) {
+    Error("Failed getting swscale context");
+    return -6;
+  }
+  /* Do the conversion */
+  if(!sws_scale(swscale_ctx, in_frame->data, in_frame->linesize, 0, in_frame->height, out_frame->data, out_frame->linesize ) ) {
+    Error("swscale conversion failed");
+    return -10;
+  }
+
+  return 0;
+}
 
 int SWScale::Convert(
     const uint8_t* in_buffer,

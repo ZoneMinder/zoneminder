@@ -166,8 +166,6 @@ protected:
   VideoStore          *videoStore;
   zm_packetqueue      packetqueue;
   Mutex mutex;
-  std::string         output_codec;
-  std::string         output_container;
 
   class MonitorLink {
   protected:
@@ -238,6 +236,8 @@ protected:
   int savejpegspref;
   VideoWriter videowriter;
   std::string encoderparams;
+  std::string         output_codec;
+  std::string         output_container;
   std::vector<EncoderParameter_t> encoderparamsvec;
   bool      record_audio;      // Whether to store the audio that we receive
 

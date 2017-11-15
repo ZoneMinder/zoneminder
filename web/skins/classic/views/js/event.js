@@ -292,8 +292,8 @@ function playClicked( ) {
     if (vid.paused()) {
       vid.play();
     } else {
-      vjsPlay();
-  }
+      vjsPlay(); //handles fast forward and rewind
+    }
   } else {
     streamReq.send( streamParms+"&command="+CMD_PLAY );
     streamPlay();
@@ -407,7 +407,7 @@ function streamNext(action) {
     $j(".vjsMessage").remove();//This shouldn't happen
     if (nextEventId == 0) { //handles deleting last event.
       pauseClicked();
-      let hideContainer = $j( vid ? "#eventVideo" : "#imageFeed");
+      let hideContainer = $j('#eventVideo');
       let hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
       hideContainer.prepend('<p class="vjsMessage" style="height: ' + hideStream + 'px; line-height: ' + hideStream + 'px;">No more events</p>');
       if (vid == null) zmsBroke = true;
@@ -703,7 +703,7 @@ function resetEventStills() {
     } ).set( 0 );
   }
   if ( $('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) < (parseInt(eventData.Height)+80) )
-    $('eventThumbs').setStyle( 'height', ($j(vid ? '#videoobj' : 'evtStream').height())+'px' );
+    $('eventThumbs').setStyle( 'height', ($j(vid ? '#videoobj' : '#evtStream').height())+'px' );
 }
 
 function getFrameResponse( respObj, respText ) {
@@ -886,11 +886,7 @@ function showEventFrames() {
 
 function showStream() {
   $('eventStills').addClass( 'hidden' );
-  if (vid) {
-    $('eventVideo').removeClass( 'hidden' );
-  } else {
-    $('imageFeed').removeClass('hidden');
-  }
+  $('eventVideo').removeClass( 'hidden' );
 
   $('stillsEvent').removeClass( 'hidden' );
   $('streamEvent').addClass( 'hidden' );
@@ -900,11 +896,7 @@ function showStream() {
 
 function showStills() {
   $('eventStills').removeClass( 'hidden' );
-  if (vid) {
-    $('eventVideo').addClass( 'hidden' );
-  } else {
-    $('imageFeed').addClass('hidden');
-  }
+  $('eventVideo').addClass( 'hidden' );
 
   if (vid && ( vid.paused != true ) ) {
     // Pause the video

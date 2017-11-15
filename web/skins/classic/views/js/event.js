@@ -124,7 +124,11 @@ function renderAlarmCues (containerEl) {
 function setButtonState( element, butClass ) {
   if ( element ) {
     element.className = butClass;
-    element.disabled = (butClass != 'inactive');
+    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
+      element.disabled = true;
+    } else {
+      element.disabled = false;
+    }
   } else {
     console.log("Element was null in setButtonState");
   }
@@ -198,19 +202,15 @@ function getCmdResponse( respObj, respText ) {
     initialAlarmCues(eventId);
     lastEventId = eventId;
   }
+  if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
   if ( streamStatus.paused == true ) {
-    $('modeValue').set( 'text', 'Paused' );
-    $('rate').addClass( 'hidden' );
     streamPause( );
   } else {
-    $('modeValue').set( 'text', "Replay" );
-    $('rateValue').set( 'text', streamStatus.rate );
-    $('rate').removeClass( 'hidden' );
+    $j('#rateValue').html(streamStatus.rate);
     streamPlay( );
-  if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
   }
-  $('progressValue').set( 'text', secsToTime( parseInt(streamStatus.progress) ) );
-  $('zoomValue').set( 'text', streamStatus.zoom );
+  $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
+  $j('#zoomValue').html(streamStatus.zoom);
   if ( streamStatus.zoom == "1.0" )
     setButtonState( $('zoomOutBtn'), 'unavail' );
   else
@@ -225,17 +225,29 @@ function getCmdResponse( respObj, respText ) {
       streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
   } // end if haev a new auth hash
 
-  streamCmdTimer = streamQuery.delay( streamTimeout );
+  streamCmdTimer = streamQuery.delay( streamTimeout ); //Timeout is refresh rate for progressBox and time display
 }
 
 var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
 
-function pauseClicked( ) {
-  streamReq.send( streamParms+"&command="+CMD_PAUSE );
+function pauseClicked() {
+  if (vid) {
+    vid.pause();
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_PAUSE );
+    streamPause();
+  }
+}
+
+function vjsPause () {
+  stopFastRev();
+  streamPause();
 }
 
 // Called when stream becomes paused, just updates the button status
 function streamPause( ) {
+  $j('#modeValue').html('Paused');
+  $j('#rateValue').html('0');
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );
   setButtonState( $('fastFwdBtn'), 'unavail' );
@@ -245,13 +257,28 @@ function streamPause( ) {
 }
 
 function playClicked( ) {
-  streamReq.send( streamParms+"&command="+CMD_PLAY );
+  if (vid) {
+    if (vid.paused()) {
+      vid.play();
+    } else {
+      vjsPlay(); //handles fast forward and rewind
+    }
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_PLAY );
+    streamPlay();
+  }
+}
+
+function vjsPlay () { //catches if we change mode programatically
+  stopFastRev();
+  $j('#rateValue').html(vid.playbackRate());
+  streamPlay();
 }
 
 function streamPlay( ) {
+  $j('#modeValue').html('Replay');
   setButtonState( $('pauseBtn'), 'inactive' );
-  if (streamStatus)
-    setButtonState( $('playBtn'), streamStatus.rate==1?'active':'inactive' );
+  setButtonState( $('playBtn'), 'active' );
   setButtonState( $('fastFwdBtn'), 'inactive' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
@@ -261,35 +288,44 @@ function streamPlay( ) {
 function streamFastFwd( action ) {
   setButtonState( $('pauseBtn'), 'inactive' );
   setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
+  setButtonState( $('fastFwdBtn'), 'active' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
   setButtonState( $('fastRevBtn'), 'inactive' );
-  streamReq.send( streamParms+"&command="+CMD_FASTFWD );
+  if (vid) {
+    if (revSpeed != .5) stopFastRev();
+    vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)-1]/100);
+    if (rates.indexOf(vid.playbackRate()*100)-1 == -1) setButtonState($('fastFwdBtn'), 'unavail');
+    $j('#rateValue').html(vid.playbackRate());
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_FASTFWD );
+  }
 }
 
+var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
+var intervalRewind;
+var revSpeed = .5;
+
 function streamSlowFwd( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'unavail' );
-  setButtonState( $('slowFwdBtn'), 'active' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
-  setButtonState( $('fastRevBtn'), 'unavail' );
-  streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
+  if (vid) {
+   vid.currentTime(vid.currentTime() + spf);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
+  }
 }
 
 function streamSlowRev( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'unavail' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'active' );
-  setButtonState( $('fastRevBtn'), 'unavail' );
-  streamReq.send( streamParms+"&command="+CMD_SLOWREV );
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
+  if (vid) {
+    vid.currentTime(vid.currentTime() - spf);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_SLOWREV );
+  }
+}
+
+function stopFastRev () {
+  clearInterval(intervalRewind);
+  vid.playbackRate(1);
+  revSpeed = .5;
 }
 
 function streamFastRev( action ) {
@@ -298,8 +334,26 @@ function streamFastRev( action ) {
   setButtonState( $('fastFwdBtn'), 'inactive' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
-  streamReq.send( streamParms+"&command="+CMD_FASTREV );
+  setButtonState( $('fastRevBtn'), 'active' );
+  if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manualy set the time back.
+    revSpeed = rates[rates.indexOf(revSpeed*100)-1]/100;
+    if (rates.indexOf(revSpeed*100) == 0) {
+      setButtonState( $('fastRevBtn'), 'unavail' );
+    }
+    clearInterval(intervalRewind);
+    $j('#rateValue').html(-revSpeed);
+    intervalRewind = setInterval(function() {
+      if (vid.currentTime() <= 0) {
+        clearInterval(intervalRewind);
+        vid.pause();
+      } else {
+        vid.playbackRate(0);
+        vid.currentTime(vid.currentTime() - (revSpeed/2)); //Half of reverse speed because our interval is 500ms.
+      }
+    }, 500); //500ms is a compromise between smooth reverse and realistic performance
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_FASTREV );
+  }
 }
 
 function streamPrev(action) {
@@ -340,14 +394,61 @@ function streamNext(action) {
   }
 }
 
+function vjsPanZoom (action, x, y) { //Pan and zoom with centering where the click occurs
+  let outer = $j('#videoobj');
+  let video = outer.children().first();
+  let zoom =  parseFloat($j('#zoomValue').html());
+  let zoomRate = .5;
+  let matrix = video.css('transform').split(',');
+  let currentPanX = parseFloat(matrix[4]);
+  let currentPanY = parseFloat(matrix[5]);
+  let xDist = outer.width()/2 - x //Click distance from center of view
+  let yDist = outer.height()/2 - y
+  if (action == 'zoomOut') {
+    zoom -= zoomRate;
+    if (x && y) {
+      x = (xDist + currentPanX)*((zoom-zoomRate)/zoom); // if ctrl-click Pan but use ratio of old zoom to new zoom for coords
+      y = (yDist + currentPanY)*((zoom-zoomRate)/zoom);
+    } else {
+      x = currentPanX*((zoom-zoomRate)/zoom); //Leave zoom centered where it was
+      y = currentPanY*((zoom-zoomRate)/zoom);
+    }
+    if (zoom <= 1) {
+      zoom = 1;
+      $j('#zoomOutBtn').attr('class', 'unavail').attr('disabled', 'disabled');
+    }
+    $j('#zoomValue').html(zoom);
+  } else if (action == 'zoom') {
+    zoom += zoomRate;
+    x = (xDist + currentPanX)*(zoom/(zoom-zoomRate)); //Pan but use ratio of new zoom to old zoom for coords.  Center on mouse click.
+    y = (yDist + currentPanY)*(zoom/(zoom-zoomRate));
+    $j('#zoomOutBtn').attr('class', 'inactive').removeAttr('disabled');
+    $j('#zoomValue').html(zoom);
+  } else if (action == 'pan') {
+    x = xDist + currentPanX;
+    y = yDist + currentPanY;
+  }
+  let limitX = ((zoom*outer.width()) - outer.width())/2; //Calculate outer bounds of video
+  let limitY = ((zoom*outer.height()) - outer.height())/2;
+  x = Math.min(Math.max((x),-limitX),limitX); //Limit pan to outer bounds of video
+  y = Math.min(Math.max((y),-limitY),limitY);
+  video.css('transform', 'matrix('+zoom+', 0, 0, '+zoom+', '+x+', '+y+')');
 }
 
 function streamZoomIn( x, y ) {
-  streamReq.send( streamParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
+  if (vid) {
+    vjsPanZoom('zoom', x, y);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
+  }
 }
 
 function streamZoomOut() {
-  streamReq.send( streamParms+"&command="+CMD_ZOOMOUT );
+  if (vid) {
+    vjsPanZoom('zoomOut');
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_ZOOMOUT );
+  }
 }
 
 function streamScale( scale ) {
@@ -355,7 +456,11 @@ function streamScale( scale ) {
 }
 
 function streamPan( x, y ) {
-  streamReq.send( streamParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
+  if (vid) {
+    vjsPanZoom('pan', x, y);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
+  }
 }
 
 function streamSeek( offset ) {
@@ -738,6 +843,7 @@ function actQuery( action, parms ) {
 }
 
 function deleteEvent() {
+  pauseClicked(); //Provides visual feedback that your click happened.
   actQuery( 'delete' );
   streamNext( true );
 }
@@ -835,15 +941,6 @@ function updateProgressBar() {
   $j("#progressBox").css('width', curWidth + '%');
 } // end function updateProgressBar()
 
-function handleClick( event ) {
-  var target = event.target;
-  var x = event.page.x - $(target).getLeft();
-  var y = event.page.y - $(target).getTop();
-
-  if ( event.shift )
-    streamPan( x, y );
-  else
-    streamZoomIn( x, y );
 // Handles seeking when clicking on the progress bar.
 function progressBarNav (){
   $j('#progressBar').click(function(e){
@@ -853,99 +950,24 @@ function progressBarNav (){
   });
 }
 
-function setupListener() {
+function handleClick( event ) {
+  var target = event.target;
+  if (vid) {
+    if (target.id != 'videoobj') return; //ignore clicks on control bar
+    var x = event.offsetX;
+    var y = event.offsetY;
+  } else {
+    var x = event.page.x - $(target).getLeft();
+    var y = event.page.y - $(target).getTop();
+  }
 
-  // Buttons
-  var playButton = document.getElementById("play-pause");
-  var muteButton = document.getElementById("mute");
-  var fullScreenButton = document.getElementById("full-screen");
-
-  // Sliders
-  var seekBar = document.getElementById("seekbar");
-  var volumeBar = document.getElementById("volume-bar");
-
-  // Event listener for the play/pause button
-  playButton.addEventListener( "click", function() {
-      if (vid.paused == true) {
-      // Play the video
-      vid.play();
-
-      // Update the button text to 'Pause'
-      playButton.innerHTML = "Pause";
-      } else {
-      // Pause the video
-      vid.pause();
-
-      // Update the button text to 'Play'
-      playButton.innerHTML = "Play";
-      }
-      });
-
-
-  // Event listener for the mute button
-  muteButton.addEventListener("click", function() {
-      if (vid.muted == false) {
-      // Mute the video
-      vid.muted = true;
-
-      // Update the button text
-      muteButton.innerHTML = "Unmute";
-      } else {
-      // Unmute the video
-      vid.muted = false;
-
-      // Update the button text
-      muteButton.innerHTML = "Mute";
-      }
-      });
-
-
-  // Event listener for the full-screen button
-  fullScreenButton.addEventListener("click", function() {
-      if (vid.requestFullscreen) {
-      vid.requestFullscreen();
-      } else if (vid.mozRequestFullScreen) {
-      vid.mozRequestFullScreen(); // Firefox
-      } else if (vid.webkitRequestFullscreen) {
-      vid.webkitRequestFullscreen(); // Chrome and Safari
-      }
-      });
-
-
-  // Event listener for the seek bar
-  seekBar.addEventListener("change", function() {
-      // Calculate the new time
-      var time = vid.duration * (seekBar.value / 100);
-
-      // Update the video time
-      vid.currentTime = time;
-      });
-
-
-  // Update the seek bar as the video plays
-  vid.addEventListener("timeupdate", function() {
-      // Calculate the slider value
-      var value = (100 / vid.duration) * vid.currentTime;
-
-      // Update the slider value
-      seekBar.value = value;
-      });
-
-  // Pause the video when the seek handle is being dragged
-  seekBar.addEventListener("mousedown", function() {
-      vid.pause();
-      });
-
-  // Play the video when the seek handle is dropped
-  seekBar.addEventListener("mouseup", function() {
-      vid.play();
-      });
-
-  // Event listener for the volume bar
-  volumeBar.addEventListener("change", function() {
-      // Update the video volume
-      vid.volume = volumeBar.value;
-      });
+  if (event.shift || event.shiftKey) {//handle both jquery and mootools
+    streamPan(x, y);
+  } else if (vid && event.ctrlKey) { //allow zoom out by control click.  useful in fullscreen
+    vjsPanZoom('zoomOut', x, y);
+  } else {
+    streamZoomIn(x, y);
+  }
 }
 
 function initPage() {
@@ -955,6 +977,10 @@ function initPage() {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
     $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
+    vid.on('play', vjsPlay);
+    vid.on('pause', vjsPause);
+    vid.on('click', function(event){handleClick(event);});
+    vid.on('timeupdate', function (){$j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())))});
   } else {
     progressBarNav ();
     streamCmdTimer = streamQuery.delay( 250 );

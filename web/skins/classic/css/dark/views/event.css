@@ -10,6 +10,25 @@
     display: inline-block;
 }
 
+.alarmCue {
+    background-color: #222222;
+    height: 1.25em;
+    text-align: left;
+    margin: 0 auto 0 auto;
+    border-radius: 0 0 .3em .3em;
+}
+
+.alarmCue span {
+    background-color:red;
+    height: 100%;
+    display: inline-block;
+    border-radius: 0;
+}
+
+span.noneCue {
+    background: none;
+}
+
 #eventVideo {
     display: inline-block;
     position: relative;
@@ -84,6 +103,7 @@
 
 #imageFeed {
     display: inline-block;
+    position: relative;
     text-align: center;
 }
 

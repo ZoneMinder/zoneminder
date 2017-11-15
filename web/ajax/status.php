@@ -136,6 +136,17 @@ $statusData = array(
                   //"Path" => array( "postFunc" => "getEventPath" ),
                   ),
                   ),
+                  "frames" => array(
+                      "permission" => "Events",
+                      "table" => "Frames",
+                      "selector" => "EventId",
+                      "elements" => array(
+                        "EventId" => true,
+                        "FrameId" => true,
+                        "Type" => true,
+                        "Delta" => true,
+                        ),
+                      ),
                   "frame" => array(
                       "permission" => "Events",
                       "table" => "Frames",

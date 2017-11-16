@@ -428,9 +428,11 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
-`Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
-`zmcFPS`  DECIMAL(5,2) NOT NULL default 0,
-`zmaFPS` DECIMAL(5,2) NOT NULL default 0,
+  `Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
+  `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
+  `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
+  `zmcFPS`  DECIMAL(5,2) NOT NULL default 0,
+  `zmaFPS` DECIMAL(5,2) NOT NULL default 0,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

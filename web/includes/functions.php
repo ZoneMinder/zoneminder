@@ -993,7 +993,7 @@ function zmaCheck( $monitor ) {
 }
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-  $eventPath = getEventPath( $event );
+  $eventPath = ZM_DIR_EVENTS . '/' . getEventPath( $event );
 
   if ( !is_array($frame) )
     $frame = array( 'FrameId'=>$frame, 'Type'=>'' );

@@ -236,10 +236,11 @@ function getCmdResponse( respObj, respText ) {
     lastEventId = eventId;
   }
   if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
-  if (!streamStatus.paused){
-    console.log('playing');
-    $j('#modeValue').html("Replay");
+  if ( streamStatus.paused == true ) {
+    streamPause( );
+  } else {
     $j('#rateValue').html(streamStatus.rate);
+    streamPlay( );
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
   $j('#zoomValue').html(streamStatus.zoom);

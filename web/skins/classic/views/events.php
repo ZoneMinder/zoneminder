@@ -84,28 +84,10 @@ if ( !empty($page) ) {
   $eventsSql .= ' limit 0, '.$limit;
 }
 
-if ( 0 ) {
 $maxWidth = 0;
 $maxHeight = 0;
 $archived = false;
 $unarchived = false;
-$events = array();
-foreach ( dbFetchAll( $eventsSql ) as $event_row ) {
-  $events[] = $event = new Event( $event_row );
-
-# Doesn this code do anything? 
-  $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-  $eventWidth = reScale( $event_row['Width'], $scale );
-  $eventHeight = reScale( $event_row['Height'], $scale );
-  if ( $maxWidth < $eventWidth ) $maxWidth = $eventWidth;
-  if ( $maxHeight < $eventHeight ) $maxHeight = $eventHeight;
-  if ( $event_row['Archived'] )
-    $archived = true;
-  else
-    $unarchived = true;
-}
-}
-
 $maxShortcuts = 5;
 $pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQuery.'&amp;limit='.$limit );
 
@@ -165,9 +147,16 @@ $disk_space_total = 0;
 $results = dbQuery( $eventsSql );
 while ( $event_row = dbFetchNext( $results ) ) {
   $event = new Event( $event_row );
-#foreach ( dbFetchAll( $eventsSql ) as $event_row ) {
-  #$events[] = $event = new Event( $event_row );
-#foreach ( $events as $event ) {
+  $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+  $eventWidth = reScale( $event_row['Width'], $scale );
+  $eventHeight = reScale( $event_row['Height'], $scale );
+  if ( $maxWidth < $eventWidth ) $maxWidth = $eventWidth;
+  if ( $maxHeight < $eventHeight ) $maxHeight = $eventHeight;
+  if ( $event_row['Archived'] )
+    $archived = true;
+  else
+    $unarchived = true;
+
   if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
 ?>
             <tr>
@@ -300,5 +289,12 @@ if ( true || canEdit( 'Events' ) ) {
       </form>
     </div>
   </div>
+<script type="text/javascript">
+  // These are defined in the .js.php but need to be updated down here.
+  archivedEvents = <?php echo !empty($archived)?'true':'false' ?>;
+  unarchivedEvents = <?php echo !empty($unarchived)?'true':'false' ?>;
+  maxWidth = <?php echo $maxWidth?$maxWidth:0 ?>;
+  maxHeight = <?php echo $maxHeight?$maxHeight:0 ?>;
+</script>
 </body>
 </html>

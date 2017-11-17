@@ -95,6 +95,23 @@ VideoStore::VideoStore(
 Debug(2,"Copied video context from input stream");
       zm_dump_codec(video_in_ctx);
 #endif
+    // Fix deprecated formats
+    switch ( video_in_ctx->pix_fmt ) {
+      case AV_PIX_FMT_YUVJ420P :
+        video_in_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+        break;
+      case AV_PIX_FMT_YUVJ422P  :
+        video_in_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
+        break;
+      case AV_PIX_FMT_YUVJ444P   :
+        video_in_ctx->pix_fmt = AV_PIX_FMT_YUV444P;
+        break;
+      case AV_PIX_FMT_YUVJ440P :
+        video_in_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
+        break;
+      default:
+        break;
+    }
   } else {
     Debug(2, "No input ctx");
     video_in_ctx = avcodec_alloc_context3(NULL);
@@ -139,6 +156,24 @@ Debug(2,"Copied video context from input stream");
         Warning("Unsupported Orientation(%d)", orientation);
       }
     }
+    // Fix deprecated formats
+    switch ( video_out_ctx->pix_fmt ) {
+      case AV_PIX_FMT_YUVJ420P :
+        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+        break;
+      case AV_PIX_FMT_YUVJ422P  :
+        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
+        break;
+      case AV_PIX_FMT_YUVJ444P   :
+        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV444P;
+        break;
+      case AV_PIX_FMT_YUVJ440P :
+        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
+        break;
+      default:
+        break;
+    }
+
   } else {
 
     /** Create a new frame to store the */
@@ -462,8 +497,8 @@ bool VideoStore::open() {
 } // end bool VideoStore::open()
 
 void VideoStore::write_audio_packet( AVPacket &pkt ) {
-  Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
-      pkt.dts, pkt.duration);
+//Debug(2, "writing audio packet pts(%d) dts(%d) duration(%d)", pkt.pts,
+      //pkt.dts, pkt.duration);
   pkt.pts = audio_next_pts;
   pkt.dts = audio_next_dts;
 
@@ -474,7 +509,7 @@ void VideoStore::write_audio_packet( AVPacket &pkt ) {
   audio_next_pts += pkt.duration;
   audio_next_dts += pkt.duration;
 
-  Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
+  Debug(2, "writing audio packet pts(%d) dts(%d) duration(%d)", pkt.pts,
       pkt.dts, pkt.duration);
   pkt.stream_index = audio_out_stream->index;
   av_interleaved_write_frame(oc, &pkt);
@@ -591,18 +626,18 @@ Debug(3, "dts:%d, pts:%d, keyframe:%d", pkt.dts, pkt.pts, keyframe );
   // allocation/de-allocation constantly, or whether we can just re-use it.
   // Just do a file open/close/writeheader/etc.
   // What if we were only doing audio recording?
-  if ( video_out_stream ) {
-    avcodec_close(video_out_ctx);
-    video_out_ctx = NULL;
-    Debug(4, "Success freeing video_out_ctx");
-  }
 // Used by both audio and video conversions
     if ( in_frame ) {
       av_frame_free(&in_frame);
       in_frame = NULL;
     }
+  if ( audio_in_ctx ) {
+    avcodec_free_context(&audio_in_ctx);
+    audio_in_ctx = NULL;
+  }
   if ( audio_out_stream ) {
     avcodec_close(audio_out_ctx);
+    avcodec_free_context(&audio_out_ctx);
     audio_out_ctx = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
     if ( resample_ctx ) {
@@ -621,12 +656,13 @@ Debug(3, "dts:%d, pts:%d, keyframe:%d", pkt.dts, pkt.pts, keyframe );
   }
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   if ( video_in_ctx ) {
-  avcodec_free_context(&video_in_ctx);
-  video_in_ctx = NULL;
+    avcodec_free_context(&video_in_ctx);
+    video_in_ctx = NULL;
   }
   if ( video_out_ctx ) {
-  avcodec_free_context(&video_out_ctx);
-  video_out_ctx = NULL;
+    avcodec_close(video_out_ctx);
+    avcodec_free_context(&video_out_ctx);
+    video_out_ctx = NULL;
   }
 #endif
 
@@ -995,6 +1031,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       opkt.dts = opkt.pts = ( zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec ) - video_last_pts;
     }
   }
+  opkt.duration = 0;
 
   int keyframe = opkt.flags & AV_PKT_FLAG_KEY;
 Debug(3, "dts:%d, pts:%d, keyframe:%d", opkt.dts, opkt.pts, keyframe );

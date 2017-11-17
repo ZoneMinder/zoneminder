@@ -285,10 +285,8 @@ int FfmpegCamera::OpenFfmpeg() {
   Info( "Stream open %s", mPath.c_str() );
 
 #if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
-  Debug ( 1, "Calling av_find_stream_info" );
   if ( av_find_stream_info( mFormatContext ) < 0 )
 #else
-    Debug ( 1, "Calling avformat_find_stream_info" );
   if ( avformat_find_stream_info( mFormatContext, 0 ) < 0 )
 #endif
     Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
@@ -559,12 +557,12 @@ int FfmpegCamera::CloseFfmpeg() {
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
-    //av_free(mVideoCodecContext);
+    avcodec_free_context(&mVideoCodecContext);
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }
   if ( mAudioCodecContext ) {
     avcodec_close(mAudioCodecContext);
-    //av_free(mAudioCodecContext);
+    avcodec_free_context(&mAudioCodecContext);
     mAudioCodecContext = NULL; // Freed by av_close_input_file
   }
 

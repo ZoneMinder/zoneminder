@@ -554,12 +554,16 @@ bool Monitor::connect() {
   // alarmed images that must be discarded when event is created
 
   // Couldn't we just make sure there is always enough frames in the ring buffer?
-    pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
-    pre_event_buffer = new ZMPacket[pre_event_buffer_count];
-    for ( int i = 0; i < pre_event_buffer_count; i++ ) {
-      pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+  if ( purpose == ANALYSIS ) {
+    if ( analysis_fps ) {
+      pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
+      pre_event_buffer = new ZMPacket[pre_event_buffer_count];
+      for ( int i = 0; i < pre_event_buffer_count; i++ ) {
+        pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+      }
     }
-Debug(3, "Success connecting");
+  }
+  Debug(3, "Success connecting");
   return true;
 } // Monitor::connect
 
@@ -1614,7 +1618,7 @@ Debug(3,"Not ready?");
   shared_data->last_read_time = now.tv_sec;
   mutex.unlock(); 
 
-  if ( analysis_fps ) {
+  if ( (purpose == ANALYSIS) && analysis_fps ) {
     // If analysis fps is set, add analysed image to dedicated pre event buffer
 Debug(3,"analysis fps image_count(%d) pre_event_buffer_count(%d)", image_count, pre_event_buffer_count );
     int pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;

@@ -184,46 +184,32 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
     }
   }
 
-  if (!oformat) {
-    if (format) {
-      oformat = av_guess_format(format, NULL, NULL);
-      if (!oformat) {
-        av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
-        ret = AVERROR(EINVAL);
-      }
-    } else {
-      oformat = av_guess_format(NULL, filename, NULL);
-      if (!oformat) {
-        ret = AVERROR(EINVAL);
-        av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n", filename);
-      }
-    }
-  }
-
   if (ret) {
     avformat_free_context(s);
     return ret;
-  } else {
-    s->oformat = oformat;
-    if (s->oformat->priv_data_size > 0) {
-      s->priv_data = av_mallocz(s->oformat->priv_data_size);
-      if (s->priv_data) {
-        if (s->oformat->priv_class) {
-          *(const AVClass**)s->priv_data= s->oformat->priv_class;
-          av_opt_set_defaults(s->priv_data);
-        }
-      } else {
-        av_log(s, AV_LOG_ERROR, "Out of memory\n");
-        ret = AVERROR(ENOMEM);
-        return ret;
-      }
-      s->priv_data = NULL;
-    }
-
-    if (filename) strncpy(s->filename, filename, sizeof(s->filename));
-    *avctx = s;
-    return 0;
   }
+
+  s->oformat = oformat;
+#if 0
+  if (s->oformat->priv_data_size > 0) {
+      if (s->oformat->priv_class) {
+        // This looks wrong, we just allocated priv_data and now we are losing the pointer to it.FIXME
+        *(const AVClass**)s->priv_data = s->oformat->priv_class;
+        av_opt_set_defaults(s->priv_data);
+      } else {
+    s->priv_data = av_mallocz(s->oformat->priv_data_size);
+    if ( ! s->priv_data) {
+      av_log(s, AV_LOG_ERROR, "Out of memory\n");
+      ret = AVERROR(ENOMEM);
+      return ret;
+    }
+    s->priv_data = NULL;
+  }
+#endif
+
+  if (filename) strncpy(s->filename, filename, sizeof(s->filename));
+  *avctx = s;
+  return 0;
 }
 
 static void zm_log_fps(double d, const char *postfix) {

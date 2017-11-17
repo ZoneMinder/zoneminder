@@ -42,7 +42,9 @@ RemoteCamera::RemoteCamera(
     host( p_host ),
     port( p_port ),
     path( p_path ),
-    hp( 0 )
+    hp( 0 ),
+    mNeedAuth(false),
+    mAuthenticator(NULL)
 {
     if ( path[0] != '/' )
         path = '/'+path;
@@ -97,14 +99,13 @@ void RemoteCamera::Initialise() {
 
 int RemoteCamera::Read( int fd, char *buf, int size ) {
   int ReceivedBytes = 0;
-  int bytes;
   while ( ReceivedBytes < size ) {
     // recv blocks until we get data, but it may be of ARBITRARY LENGTH and INCOMPLETE
     int bytes_to_recv = size - ReceivedBytes;
     if ( SOCKET_BUF_SIZE < bytes_to_recv ) 
       bytes_to_recv = SOCKET_BUF_SIZE;
 //Debug(3, "Aiming to receive %d of %d bytes", bytes_to_recv, size );
-    bytes = recv(fd, &buf[ReceivedBytes], bytes_to_recv, 0); //socket, buffer, len, flags
+    int bytes = recv(fd, &buf[ReceivedBytes], bytes_to_recv, 0); //socket, buffer, len, flags
     if ( bytes <= 0 ) {
       Error("RemoteCamera::Read Recv error. Closing Socket\n");
       return -1;

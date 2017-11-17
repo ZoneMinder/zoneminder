@@ -1579,20 +1579,20 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
         sprintf( output+strlen(output), "Video Capabilities\n" );
         sprintf( output+strlen(output), "  Name: %s\n", vid_cap.name );
         sprintf( output+strlen(output), "  Type: %d\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s", vid_cap.type,
-            vid_cap.type&VID_TYPE_CAPTURE?"    Can capture\n":"",
-            vid_cap.type&VID_TYPE_TUNER?"    Can tune\n":"",
-            vid_cap.type&VID_TYPE_TELETEXT?"    Does teletext\n":"",
-            vid_cap.type&VID_TYPE_OVERLAY?"    Overlay onto frame buffer\n":"",
-            vid_cap.type&VID_TYPE_CHROMAKEY?"    Overlay by chromakey\n":"",
-            vid_cap.type&VID_TYPE_CLIPPING?"    Can clip\n":"",
-            vid_cap.type&VID_TYPE_FRAMERAM?"    Uses the frame buffer memory\n":"",
-            vid_cap.type&VID_TYPE_SCALES?"    Scalable\n":"",
-            vid_cap.type&VID_TYPE_MONOCHROME?"    Monochrome only\n":"",
-            vid_cap.type&VID_TYPE_SUBCAPTURE?"    Can capture subareas of the image\n":"",
-            vid_cap.type&VID_TYPE_MPEG_DECODER?"    Can decode MPEG streams\n":"",
-            vid_cap.type&VID_TYPE_MPEG_ENCODER?"    Can encode MPEG streams\n":"",
-            vid_cap.type&VID_TYPE_MJPEG_DECODER?"    Can decode MJPEG streams\n":"",
-            vid_cap.type&VID_TYPE_MJPEG_ENCODER?"    Can encode MJPEG streams\n":""
+            (vid_cap.type&VID_TYPE_CAPTURE)?"    Can capture\n":"",
+            (vid_cap.type&VID_TYPE_TUNER)?"    Can tune\n":"",
+            (vid_cap.type&VID_TYPE_TELETEXT)?"    Does teletext\n":"",
+            (vid_cap.type&VID_TYPE_OVERLAY)?"    Overlay onto frame buffer\n":"",
+            (vid_cap.type&VID_TYPE_CHROMAKEY)?"    Overlay by chromakey\n":"",
+            (vid_cap.type&VID_TYPE_CLIPPING)?"    Can clip\n":"",
+            (vid_cap.type&VID_TYPE_FRAMERAM)?"    Uses the frame buffer memory\n":"",
+            (vid_cap.type&VID_TYPE_SCALES)?"    Scalable\n":"",
+            (vid_cap.type&VID_TYPE_MONOCHROME)?"    Monochrome only\n":"",
+            (vid_cap.type&VID_TYPE_SUBCAPTURE)?"    Can capture subareas of the image\n":"",
+            (vid_cap.type&VID_TYPE_MPEG_DECODER)?"    Can decode MPEG streams\n":"",
+            (vid_cap.type&VID_TYPE_MPEG_ENCODER)?"    Can encode MPEG streams\n":"",
+            (vid_cap.type&VID_TYPE_MJPEG_DECODER)?"    Can decode MJPEG streams\n":"",
+            (vid_cap.type&VID_TYPE_MJPEG_ENCODER)?"    Can encode MJPEG streams\n":""
             );
         sprintf( output+strlen(output), "  Video Channels: %d\n", vid_cap.channels );
         sprintf( output+strlen(output), "  Audio Channels: %d\n", vid_cap.audios );

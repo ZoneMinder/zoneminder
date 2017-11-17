@@ -39,7 +39,7 @@ class ZMPacket {
   public:
     AVPacket *av_packet() { return &packet; }
     ZMPacket( AVPacket *packet, struct timeval *timestamp );
-    ZMPacket( AVPacket *packet );
+    explicit ZMPacket( AVPacket *packet );
     ~ZMPacket();
 };
 

@@ -721,6 +721,7 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
       break;
     }
   } // end while
+
   if ( buffered_playback ) {
     Debug( 1, "Cleaning swap files from %s", swap_path );
     struct stat stat_buf;

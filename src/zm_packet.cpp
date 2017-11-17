@@ -46,6 +46,8 @@ ZMPacket::ZMPacket( Image *i ) {
 }
 
 ZMPacket::ZMPacket( AVPacket *p ) {
+  frame = NULL;
+  image = NULL;
   av_init_packet( &packet );
   set_packet( p );
   keyframe = p->flags & AV_PKT_FLAG_KEY;
@@ -55,6 +57,8 @@ ZMPacket::ZMPacket( AVPacket *p ) {
 }
 
 ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
+  frame = NULL;
+  image = NULL;
   av_init_packet( &packet );
   set_packet( p );
   timestamp = *t;
@@ -91,19 +95,19 @@ ZMPacket::~ZMPacket() {
 }
 
 void ZMPacket::reset() {
-  Debug(2,"reset");
+  //Debug(2,"reset");
   zm_av_packet_unref( &packet );
   packet.size = 0;
   if ( in_frame ) {
-  Debug(4,"reset frame");
+  //Debug(4,"reset frame");
     av_frame_free( &in_frame );
   }
   if ( frame ) {
-  Debug(4,"reset frame");
+  //Debug(4,"reset frame");
     av_frame_free( &frame );
   }
   if ( buffer ) {
-  Debug(4,"freeing buffer");
+  //Debug(4,"freeing buffer");
     av_freep( &buffer );
   }
 }

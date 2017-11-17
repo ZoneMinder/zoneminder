@@ -51,9 +51,9 @@ class ZMPacket {
     int decode( AVCodecContext *ctx );
     void reset();
     ZMPacket( AVPacket *packet, struct timeval *timestamp );
-    ZMPacket( AVPacket *packet );
+    explicit ZMPacket( AVPacket *packet );
     ZMPacket( AVPacket *packet, AVFrame *frame, Image *image );
-    ZMPacket( Image *image );
+    explicit ZMPacket( Image *image );
     ZMPacket();
     ~ZMPacket();
 

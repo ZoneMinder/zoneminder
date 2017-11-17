@@ -82,9 +82,29 @@ int SWScale::Convert(
   AVFrame *in_frame,
   AVFrame *out_frame
 ) {
+
+  // THe J formats are deprecated, so we need to convert
+  AVPixelFormat format;
+  switch ( in_frame->format ) {
+    case AV_PIX_FMT_YUVJ420P :
+      format = AV_PIX_FMT_YUV420P;
+      break;
+    case AV_PIX_FMT_YUVJ422P  :
+      format = AV_PIX_FMT_YUV422P;
+      break;
+    case AV_PIX_FMT_YUVJ444P   :
+      format = AV_PIX_FMT_YUV444P;
+      break;
+    case AV_PIX_FMT_YUVJ440P :
+      format = AV_PIX_FMT_YUV440P;
+      break;
+    default:
+      format = (AVPixelFormat)in_frame->format;
+      break;
+  }
   /* Get the context */
   swscale_ctx = sws_getCachedContext( swscale_ctx,
-      in_frame->width, in_frame->height, (AVPixelFormat)in_frame->format,
+      in_frame->width, in_frame->height, format,
       out_frame->width, out_frame->height, (AVPixelFormat)out_frame->format,
       SWS_FAST_BILINEAR, NULL, NULL, NULL );
   if ( swscale_ctx == NULL ) {
@@ -122,6 +142,24 @@ int SWScale::Convert(
   if (!width || !height) {
     Error("Invalid width or height");
     return -3;
+  }
+
+  // THe J formats are deprecated, so we need to convert
+  switch ( in_pf ) {
+    case AV_PIX_FMT_YUVJ420P :
+      in_pf = AV_PIX_FMT_YUV420P;
+      break;
+    case AV_PIX_FMT_YUVJ422P  :
+      in_pf = AV_PIX_FMT_YUV422P;
+      break;
+    case AV_PIX_FMT_YUVJ444P   :
+      in_pf = AV_PIX_FMT_YUV444P;
+      break;
+    case AV_PIX_FMT_YUVJ440P :
+      in_pf = AV_PIX_FMT_YUV440P;
+      break;
+    default:
+      break;
   }
 
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)

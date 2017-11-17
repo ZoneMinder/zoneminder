@@ -107,7 +107,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mRawFrame = NULL;
   mFrame = NULL;
   frameCount = 0;
-  startTime = 0;
   mIsOpening = false;
   mCanCapture = false;
   mOpenStart = 0;
@@ -275,8 +274,8 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-  AVDictionaryEntry *e;
-  if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+  AVDictionaryEntry *e = NULL;
+  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
 
@@ -294,7 +293,6 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
     Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
 
-  startTime = av_gettime();//FIXME here or after find_Stream_info
   Debug ( 1, "Got stream info" );
 
   // Find first video stream present
@@ -416,21 +414,20 @@ int FfmpegCamera::OpenFfmpeg() {
   if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 ){
 #else
     Debug ( 1, "Calling avcodec_open2" );
-  if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 ) {
+    if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 ) {
 #endif
-    AVDictionaryEntry *e;
-    if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-      Warning( "Option %s not recognized by ffmpeg", e->key);
+      AVDictionaryEntry *e = NULL;
+      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+        Warning( "Option %s not recognized by ffmpeg", e->key);
+      }
+      Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
+    } else {
+      AVDictionaryEntry *e = NULL;
+      if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+        Warning( "Option %s not recognized by ffmpeg", e->key);
+      }
     }
-    Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
-  } else {
-
-    AVDictionaryEntry *e;
-    if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-      Warning( "Option %s not recognized by ffmpeg", e->key);
-    }
-  }
-  }
+  } // end if success opening codec
 
   if (mVideoCodecContext->hwaccel != NULL) {
     Debug(1, "HWACCEL in use");
@@ -451,17 +448,18 @@ int FfmpegCamera::OpenFfmpeg() {
       zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  Debug ( 1, "Calling avcodec_open" );
-  if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )
+      Debug ( 1, "Calling avcodec_open" );
+      if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )
 #else
-    Debug ( 1, "Calling avcodec_open2" );
-  if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 )
+        Debug ( 1, "Calling avcodec_open2" );
+      if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 )
 #endif
-    Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
+        Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
     }
-  }
+  } // end if have audio stream
 
   Debug ( 1, "Opened codec" );
+# if 0
 
   // Allocate space for the native video frame
   mRawFrame = zm_av_frame_alloc();
@@ -508,6 +506,7 @@ int FfmpegCamera::OpenFfmpeg() {
   Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
 
+#endif
   if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
     Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
   }

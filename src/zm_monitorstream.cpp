@@ -658,7 +658,10 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
         replay_rate = ZM_RATE_BASE;
       }
     }
+    // Last read index is analysis... what do we care about analysis? I think we are using the same variable for two purposese
     if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index ) {
+
+  // Is his % neccessary?  is last_write_index not guaranteed to be < image_buffer_count?
       int index = monitor->shared_data->last_write_index%monitor->image_buffer_count;
       last_read_index = monitor->shared_data->last_write_index;
       //Debug( 1, "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer );

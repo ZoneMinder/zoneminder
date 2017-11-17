@@ -344,6 +344,7 @@ Monitor::Monitor(
   fps = 0.0;
   event_count = 0;
   image_count = 0;
+  analysis_image_count = 0;
   ready_count = warmup_count;
   first_alarm_count = 0;
   last_alarm_count = 0;
@@ -758,6 +759,7 @@ double Monitor::GetFPS() const {
   struct timeval time1 = snap1->timestamp;
 
   int image_count = image_buffer_count;
+
   int index2 = (index1+1)%image_buffer_count;
   if ( index2 == image_buffer_count ) {
     return 0.0;
@@ -774,7 +776,9 @@ double Monitor::GetFPS() const {
   struct timeval time2 = snap2->timestamp;
 
   double time_diff = tvDiffSec( time2, time1 );
-
+  if ( ! time_diff ) {
+    return 0.0;
+  }
   double curr_fps = image_count/time_diff;
 
   if ( curr_fps < 0.0 ) {
@@ -1193,6 +1197,15 @@ bool Monitor::Analyse() {
   }
 
   ZMPacket *snap = &image_buffer[index];
+  if ( snap->packet.stream_index != camera->get_VideoStreamId() ) {
+    if ( event ) {
+      //event->AddFrame( snap_image, *timestamp, score );
+      event->AddPacket( snap, 0 );
+    }
+    mutex.unlock();
+    return false;
+  }
+
   struct timeval *timestamp = &snap->timestamp;
   //Debug(2, "timestamp for index (%d) %s", index, timeval_to_string( *timestamp ) );
   Image *snap_image = snap->image;
@@ -2852,6 +2865,7 @@ packet->reset();
 
     if ( FirstCapture ) {
       FirstCapture = 0;
+  mutex.unlock();
       return 0;
     }
   } else {
@@ -2865,12 +2879,23 @@ packet->reset();
       signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
       capture_image->Fill(signalcolor);
       shared_data->signal = false;
+  mutex.unlock();
       return -1;
     } else if ( captureResult > 0 ) {
 
     if ( packet->packet.size && ! packet->frame ) {
-      packet->decode( camera->get_VideoCodecContext() );
-      packet->get_image();
+      if ( packet->packet.stream_index == camera->get_VideoStreamId() ) {
+        packet->decode( camera->get_VideoCodecContext() );
+        packet->get_image();
+      } else {
+        packet->decode( camera->get_AudioCodecContext() );
+        shared_data->last_write_index = index;
+        shared_data->last_write_time = image_buffer[index].timestamp.tv_sec;
+  mutex.unlock();
+        return 1;
+      }
+    } else {
+      Debug(2,"Not decoding");
     }
 
     /* Deinterlacing */
@@ -3339,7 +3364,7 @@ ZMPacket *Monitor::getSnapshot() {
 
 // Wait for camera to get an image, and then assign it as the base reference image. So this should be done as the first task in the analysis thread startup.
 void Monitor::get_ref_image() {
-  while ( 
+  while (
       ( shared_data->last_write_index == (unsigned int)image_buffer_count )
       &&
       ( shared_data->last_write_time == 0 )

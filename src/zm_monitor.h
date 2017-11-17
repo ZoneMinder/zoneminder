@@ -330,7 +330,7 @@ protected:
   MonitorLink    **linked_monitors;
 
 public:
-  Monitor( int p_id );
+  explicit Monitor( int p_id );
 
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );

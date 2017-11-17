@@ -118,6 +118,7 @@ Debug(2,"Copied video context from input stream");
 #else
     avcodec_copy_context( video_out_ctx, video_in_ctx );
 #endif
+    video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
     // Same codec, just copy the packets, otherwise we have to decode/encode
     video_out_codec = (AVCodec *)video_in_ctx->codec;
     // Only set orientation if doing passthrough, otherwise the frame image will be rotated
@@ -281,10 +282,9 @@ Error("Codec not set");
         );
   } // end if copying or trasncoding
 
-
   video_out_stream = avformat_new_stream(oc, video_out_codec);
-  if ( !video_out_stream ) {
-    Fatal("Unable to create video out stream\n");
+  if ( ! video_out_stream ) {
+    Fatal("Unable to create video out stream");
   } else {
     Debug(2, "Success creating video out stream");
   }
@@ -303,7 +303,7 @@ Debug(2, "%dx%d", video_out_stream->codec->width, video_out_stream->codec->heigh
 zm_dump_codec(video_out_ctx);
 zm_dump_codec(video_out_stream->codec);
 #endif
-#if 0
+#if 1
 video_out_stream->time_base.num = video_out_ctx->time_base.num;
 video_out_stream->time_base.den = video_out_ctx->time_base.den;
 #endif
@@ -964,6 +964,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       return -1;
     }
 #else
+    av_init_packet(&opkt);
     int data_present;
     if ( (ret = avcodec_encode_video2(
             video_out_ctx, &opkt, zm_packet->frame, &data_present)) < 0) {
@@ -983,9 +984,16 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     AVPacket *ipkt = &zm_packet->packet;
     Debug(3, "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
+    av_init_packet(&opkt);
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
     opkt.flags = ipkt->flags;
+    if ( ! video_last_pts ) {
+      video_last_pts = zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec;
+      opkt.dts = opkt.pts = 0;
+    } else {
+      opkt.dts = opkt.pts = ( zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec ) - video_last_pts;
+    }
   }
 
   int keyframe = opkt.flags & AV_PKT_FLAG_KEY;
@@ -1014,7 +1022,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
 
   //AVPacket safepkt;
   //memcpy(&safepkt, &opkt, sizeof(AVPacket));
-  av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
+  //av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
 
   Debug(1,
         "writing video packet pts(%d) dts(%d) duration(%d) packet_count(%d)",
@@ -1102,11 +1110,12 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     }
 #endif
     int frame_size = out_frame->nb_samples;
+    in_frame->pts = audio_next_pts;
 
     // Resample the in into the audioSampleBuffer until we proceed the whole
     // decoded data
     if ((ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
-                                0, in_frame->nb_samples)) < 0) {
+                                0, frame_size)) < 0) {
       Error("Could not resample frame (error '%s')\n",
             av_make_error_string(ret).c_str());
       av_frame_unref(in_frame);
@@ -1115,16 +1124,14 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     av_frame_unref(in_frame);
 
     int samples_available = avresample_available(resample_ctx);
-
-    if (samples_available < frame_size) {
+    if ( samples_available < frame_size ) {
       Debug(1, "Not enough samples yet (%d)", samples_available);
       return 0;
     }
 
     Debug(3, "Output_frame samples (%d)", out_frame->nb_samples);
     // Read a frame audio data from the resample fifo
-    if (avresample_read(resample_ctx, out_frame->data, frame_size) !=
-        frame_size) {
+    if ( avresample_read(resample_ctx, out_frame->data, frame_size) != frame_size) {
       Warning("Error reading resampled audio: ");
       return 0;
     }
@@ -1146,8 +1153,8 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
 
     // av_frame_unref( out_frame );
 
-    if ((ret = avcodec_receive_packet(audio_out_ctx, &opkt)) < 0) {
-      if (AVERROR(EAGAIN) == ret) {
+    if ( (ret = avcodec_receive_packet(audio_out_ctx, &opkt)) < 0 ) {
+      if ( AVERROR(EAGAIN) == ret ) {
         // THe codec may need more samples than it has, perfectly valid
         Debug(3, "Could not recieve packet (error '%s')",
               av_make_error_string(ret).c_str());
@@ -1155,20 +1162,20 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
         Error("Could not recieve packet (error %d = '%s')", ret,
               av_make_error_string(ret).c_str());
       }
-      zm_av_packet_unref(&opkt);
+      //zm_av_packet_unref(&opkt);
       av_frame_unref(in_frame);
       // av_frame_unref( out_frame );
       return 0;
     }
 #else
-    if ((ret = avcodec_encode_audio2(audio_out_ctx, &opkt, out_frame,
+    if ( (ret = avcodec_encode_audio2(audio_out_ctx, &opkt, out_frame,
                                      &data_present)) < 0) {
       Error("Could not encode frame (error '%s')",
             av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);
       return 0;
     }
-    if (!data_present) {
+    if ( !data_present ) {
       Debug(2, "Not ready to out a frame yet.");
       zm_av_packet_unref(&opkt);
       return 0;
@@ -1176,11 +1183,13 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
 #endif
 
 #endif
+    opkt.duration = out_frame->nb_samples;
   } else {
     av_init_packet(&opkt);
     Debug(5, "after init packet");
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
+    opkt.duration = ipkt->duration;
   }
 
 // PTS is difficult, because of the buffering of the audio packets in the
@@ -1245,7 +1254,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     opkt.dts = opkt.pts;
   }
 
-  opkt.duration = out_frame ? out_frame->nb_samples : ipkt->duration;
+  //opkt.duration = out_frame ? out_frame->nb_samples : ipkt->duration;
   // opkt.duration = av_rescale_q(ipkt->duration, audio_in_stream->time_base,
   // audio_out_stream->time_base);
   Debug(2, "opkt.pts (%d), opkt.dts(%d) opkt.duration = (%d)", opkt.pts,
@@ -1260,7 +1269,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
   AVPacket safepkt;
   memcpy(&safepkt, &opkt, sizeof(AVPacket));
   ret = av_interleaved_write_frame(oc, &opkt);
-  if (ret != 0) {
+  if ( ret != 0 ) {
     Error("Error writing audio frame packet: %s\n",
           av_make_error_string(ret).c_str());
     dumpPacket(&safepkt);

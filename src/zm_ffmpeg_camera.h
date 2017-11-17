@@ -46,8 +46,6 @@ class FfmpegCamera : public Camera {
 
 #if HAVE_LIBAVFORMAT
     AVFormatContext     *mFormatContext;
-    int                 mVideoStreamId;
-    int                 mAudioStreamId;
     AVCodec             *mVideoCodec;
     AVCodec             *mAudioCodec;
     AVFrame             *mRawFrame; 
@@ -81,7 +79,6 @@ class FfmpegCamera : public Camera {
     int mOpenStart;
     pthread_t mReopenThread;
 #endif // HAVE_LIBAVFORMAT
-
 
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;

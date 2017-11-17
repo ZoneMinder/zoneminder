@@ -71,7 +71,7 @@ public:
     int mNoAddresses;
 
   public:
-    ConnInfo( const std::string &connInfo );
+    explicit ConnInfo( const std::string &connInfo );
   };
 
   class BandInfo {
@@ -80,7 +80,7 @@ public:
     int mValue;
 
   public:
-    BandInfo( const std::string &bandInfo );
+    explicit BandInfo( const std::string &bandInfo );
   };
 
   class MediaDescriptor {
@@ -138,48 +138,38 @@ public:
     {
       return( mControlUrl );
     }
-    void setControlUrl( const std::string &controlUrl )
-    {
+    void setControlUrl( const std::string &controlUrl ) {
       mControlUrl = controlUrl;
     }
 
-    const int getClock() const
-    {
+    const int getClock() const {
       return( mClock );
     }
-    void setClock( int clock )
-    {
+    void setClock( int clock ) {
       mClock = clock;
     }
 
-    void setFrameSize( int width, int height )
-    {
+    void setFrameSize( int width, int height ) {
       mWidth = width;
       mHeight = height;
     }
-    int getWidth() const
-    {
+    int getWidth() const {
       return( mWidth );
     }
-    int getHeight() const
-    {
+    int getHeight() const {
       return( mHeight );
     }
 
-    void setSprops(const std::string props)
-    {
+    void setSprops(const std::string &props) {
       mSprops = props;
     }
-    const std::string getSprops() const
-    {
+    const std::string getSprops() const {
       return ( mSprops );
     }
-    const double getFrameRate() const
-    {
+    const double getFrameRate() const {
       return( mFrameRate );
     }
-    void setFrameRate( double frameRate )
-    {
+    void setFrameRate( double frameRate ) {
       mFrameRate = frameRate;
     }
   };

@@ -80,7 +80,7 @@ const std::string stringtf( const char *format, ... )
   return( tempString );
 }
 
-const std::string stringtf( const std::string format, ... )
+const std::string stringtf( const std::string &format, ... )
 {
   va_list ap;
   char tempBuffer[8192];

@@ -228,11 +228,11 @@ Event::~Event() {
 
 void Event::createNotes( std::string &notes ) {
   notes.clear();
-  for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); mapIter++ ) {
+  for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter ) {
     notes += mapIter->first;
     notes += ": ";
     const StringSet &stringSet = mapIter->second;
-    for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); setIter++ ) {
+    for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); ++setIter ) {
       if ( setIter != stringSet.begin() )
         notes += ", ";
       notes += *setIter;
@@ -310,7 +310,7 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
       noteSetMap = newNoteSetMap;
       update = true;
     } else {
-      for ( StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin(); newNoteSetMapIter != newNoteSetMap.end(); newNoteSetMapIter++ ) {
+      for ( StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin(); newNoteSetMapIter != newNoteSetMap.end(); ++newNoteSetMapIter ) {
         const std::string &newNoteGroup = newNoteSetMapIter->first;
         const StringSet &newNoteSet = newNoteSetMapIter->second;
         //Info( "Got %d new strings", newNoteSet.size() );
@@ -323,7 +323,7 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
           } else {
             StringSet &noteSet = noteSetMapIter->second;
             //Info( "Found note group %s, got %d strings", newNoteGroup.c_str(), newNoteSet.size() );
-            for ( StringSet::const_iterator newNoteSetIter = newNoteSet.begin(); newNoteSetIter != newNoteSet.end(); newNoteSetIter++ ) {
+            for ( StringSet::const_iterator newNoteSetIter = newNoteSet.begin(); newNoteSetIter != newNoteSet.end(); ++newNoteSetIter ) {
               const std::string &newNote = *newNoteSetIter;
               StringSet::iterator noteSetIter = noteSet.find( newNote );
               if ( noteSetIter == noteSet.end() ) {
@@ -384,7 +384,6 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
     }
 
     strncpy( notesStr, notes.c_str(), sizeof(notesStr) );
-    notesLen = notes.length();
 
     if ( mysql_stmt_execute( stmt ) ) {
       Fatal( "Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt) );

@@ -478,32 +478,24 @@ public:
   }
 
 public:
-  virtual int sendto( const void *msg, int len, const SockAddr *addr=0 ) const
-  {
+  virtual int sendto( const void *msg, int len, const SockAddr *addr=0 ) const {
     ssize_t nBytes = ::sendto( mSd, msg, len, 0, addr?addr->getAddr():NULL, addr?addr->getAddrSize():0 );
     if ( nBytes < 0 )
       Debug( 1, "Sendto of %d bytes on sd %d failed: %s", len, mSd, strerror(errno) );
     return( nBytes );
   }
-  virtual int recvfrom( void *msg, int len, SockAddr *addr=0 ) const
-  {
+  virtual int recvfrom( void *msg, int len, SockAddr *addr=0 ) const {
     ssize_t nBytes = 0;
-    if ( addr )
-    {
+    if ( addr ) {
       struct sockaddr sockAddr;
       socklen_t sockLen;
       nBytes = ::recvfrom( mSd, msg, len, 0, &sockAddr, &sockLen );
-      if ( nBytes < 0 )
-      {
+      if ( nBytes < 0 ) {
         Debug( 1, "Recvfrom of %d bytes max on sd %d (with address) failed: %s", len, mSd, strerror(errno) );
-      }
-      else if ( sockLen )
-      {
+      } else if ( sockLen ) {
         addr = SockAddr::newSockAddr( sockAddr, sockLen );
       }
-    }   
-    else
-    {
+    } else {
       nBytes = ::recvfrom( mSd, msg, len, 0, NULL, 0 );
       if ( nBytes < 0 )
         Debug( 1, "Recvfrom of %d bytes max on sd %d (no address) failed: %s", len, mSd, strerror(errno) );

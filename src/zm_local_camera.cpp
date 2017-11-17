@@ -358,7 +358,7 @@ LocalCamera::LocalCamera(
   }
 #endif
 
-  if( capture ) {
+  if ( capture ) {
     if ( last_camera ) {
       if ( (p_method == "v4l2" && v4l_version != 2) || (p_method == "v4l1" && v4l_version != 1) ) 
         Fatal( "Different Video For Linux version used for monitors sharing same device" );
@@ -1932,12 +1932,14 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
 
       Debug( 3, "Capturing %d frames", captures_per_frame );
       while ( captures_per_frame ) {
+        Debug( 3, "Capturing %d frames", captures_per_frame );
         if ( vidioctl( vid_fd, VIDIOC_DQBUF, &vid_buf ) < 0 ) {
-          if ( errno == EIO )
-            Warning( "Capture failure, possible signal loss?: %s", strerror(errno) )
-          else
-            Error( "Unable to capture frame %d: %s", vid_buf.index, strerror(errno) )
-              return -1;
+          if ( errno == EIO ) {
+            Warning( "Capture failure, possible signal loss?: %s", strerror(errno) );
+          } else {
+            Error( "Unable to capture frame %d: %s", vid_buf.index, strerror(errno) );
+          }
+          return -1;
         }
 
         v4l2_data.bufptr = &vid_buf;

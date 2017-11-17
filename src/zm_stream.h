@@ -141,6 +141,8 @@ public:
 #if HAVE_LIBAVCODEC   
     vid_stream = 0;
 #endif // HAVE_LIBAVCODEC   
+    last_frame_sent = 0.0;
+    msg = { 0, { 0 } };
   }
   virtual ~StreamBase();
 

@@ -45,11 +45,11 @@ $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
 var cueFrames = null; //make cueFrames availaible even if we don't send another ajax query
 
 function initialAlarmCues (eventId) {
-  $j.getJSON("api/events/"+eventId+".json", setAlarmCues); //get frames data for alarmCues and inserts into html
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues); //get frames data for alarmCues and inserts into html
 }
 
 function setAlarmCues (data) {
-  cueFrames = data.event.Frame;
+  cueFrames = data.frames;
   alarmSpans = renderAlarmCues();
   $j(".alarmCue").html(alarmSpans);
 }

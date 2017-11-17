@@ -600,6 +600,7 @@ Monitor::~Monitor() {
 
     if ( purpose == ANALYSIS ) {
       shared_data->state = state = IDLE;
+      // I think we set it to the count so that it is technically 1 behind capture, which starts at 0
       shared_data->last_read_index = image_buffer_count;
       shared_data->last_read_time = 0;
 
@@ -1202,10 +1203,13 @@ bool Monitor::Analyse() {
 
   ZMPacket *snap = &image_buffer[index];
   if ( snap->packet.stream_index != camera->get_VideoStreamId() ) {
+    Debug(2, "Non video packet in analysis (%d) != (%d)", snap->packet.stream_index, camera->get_VideoStreamId()  );
     if ( event ) {
       //event->AddFrame( snap_image, *timestamp, score );
       event->AddPacket( snap, 0 );
     }
+    shared_data->last_read_index = index % image_buffer_count;
+    shared_data->last_read_time = now.tv_sec;
     mutex.unlock();
     return false;
   }
@@ -3022,10 +3026,10 @@ packet->reset();
     }
 #endif
 
-    shared_data->signal = CheckSignal(capture_image);
-    shared_data->last_write_index = index;
-    shared_data->last_write_time = image_buffer[index].timestamp.tv_sec;
-    image_count++;
+      shared_data->signal = CheckSignal(capture_image);
+      shared_data->last_write_index = index;
+      shared_data->last_write_time = image_buffer[index].timestamp.tv_sec;
+      image_count++;
     } else { // result == 0
 
     } // end if result

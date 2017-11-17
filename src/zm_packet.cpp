@@ -26,9 +26,10 @@ using namespace std;
 
 ZMPacket::ZMPacket( ) {
   keyframe = 0;
-  image = NULL;
+  // frame from decoded packet, to be used in generating image
   in_frame = NULL;
-  frame = NULL;
+  out_frame = NULL;
+  image = NULL;
   buffer = NULL;
   av_init_packet( &packet );
   packet.size = 0; // So we can detect whether it has been filled.
@@ -39,25 +40,23 @@ ZMPacket::ZMPacket( Image *i ) {
   keyframe = 1;
   image = i;
   in_frame = NULL;
-  frame = NULL;
+  out_frame = NULL;
   buffer = NULL;
   av_init_packet( &packet );
   timestamp = (struct timeval){0};
 }
 
 ZMPacket::ZMPacket( AVPacket *p ) {
-  frame = NULL;
   image = NULL;
   av_init_packet( &packet );
   set_packet( p );
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   buffer = NULL;
   in_frame = NULL;
-  frame = NULL;
+  out_frame = NULL;
 }
 
 ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
-  frame = NULL;
   image = NULL;
   av_init_packet( &packet );
   set_packet( p );
@@ -65,16 +64,15 @@ ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   buffer = NULL;
   in_frame = NULL;
-  frame = NULL;
+  out_frame = NULL;
 }
 ZMPacket::ZMPacket( AVPacket *p, AVFrame *f, Image *i ) {
   av_init_packet( &packet );
   set_packet( p );
   image = i;
-  frame = f;
   buffer = NULL;
   in_frame = NULL;
-  frame = NULL;
+  out_frame = f;
 }
 
 ZMPacket::~ZMPacket() {
@@ -83,9 +81,9 @@ ZMPacket::~ZMPacket() {
     //av_free(frame->data);
     av_frame_free( &in_frame );
   }
-  if ( frame ) {
+  if ( out_frame ) {
     //av_free(frame->data);
-    av_frame_free( &frame );
+    av_frame_free( &out_frame );
   }
   if ( buffer ) {
     av_freep( &buffer );
@@ -102,9 +100,9 @@ void ZMPacket::reset() {
   //Debug(4,"reset frame");
     av_frame_free( &in_frame );
   }
-  if ( frame ) {
+  if ( out_frame ) {
   //Debug(4,"reset frame");
-    av_frame_free( &frame );
+    av_frame_free( &out_frame );
   }
   if ( buffer ) {
   //Debug(4,"freeing buffer");

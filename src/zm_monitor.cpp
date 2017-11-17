@@ -2891,7 +2891,7 @@ packet->reset();
       return -1;
     } else if ( captureResult > 0 ) {
 
-    if ( packet->packet.size && ! packet->frame ) {
+    if ( packet->packet.size && ! packet->in_frame ) {
       if ( packet->packet.stream_index == camera->get_VideoStreamId() ) {
         packet->decode( camera->get_VideoCodecContext() );
         packet->get_image();

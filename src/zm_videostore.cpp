@@ -305,7 +305,7 @@ Debug(2,"Sucess opening codec");
       if ( !video_out_ctx->codec_tag ) {
         video_out_ctx->codec_tag =
           av_codec_get_tag(oc->oformat->codec_tag, AV_CODEC_ID_H264 );
-        Debug(2, "No codec_tag, setting to h264");
+        Debug(2, "No codec_tag, setting to h264 ? ");
       }
   } else {
 Error("Codec not set");
@@ -903,9 +903,9 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
   if ( video_out_ctx->codec_id != video_in_ctx->codec_id ) {
     Debug(3, "Have encoding video frame count (%d)", frame_count);
 
-    if ( ! zm_packet->frame ) {
+    if ( ! zm_packet->out_frame ) {
       Debug(3, "Have no out frame");
-      AVFrame *out_frame = zm_packet->frame = zm_av_frame_alloc();
+      AVFrame *out_frame = zm_packet->out_frame = zm_av_frame_alloc();
       if ( ! out_frame ) {
         Error("Unable to allocate a frame");
         return 0;
@@ -969,20 +969,23 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
           Error("Have neither in_frame or image!");
           return 0;
         } // end if has packet or image
-      } // end if no in_Frmae
-    } // end if no frame
+      } else {
+        // Have in_frame.... may need to convert it to out_frame
+        swscale.Convert(zm_packet->in_frame, zm_packet->out_frame);
+      } // end if no in_frame
+    } // end if no out_frame
 
     if ( ! video_last_pts ) {
       video_last_pts = zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec;
-      zm_packet->frame->pts = 0;
+      zm_packet->out_frame->pts = 0;
     } else {
-      zm_packet->frame->pts = ( zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec ) - video_last_pts;
+      zm_packet->out_frame->pts = ( zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec ) - video_last_pts;
     }
 
     // Do this to allow the encoder to choose whether to use I/P/B frame
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    zm_packet->frame->pict_type = AV_PICTURE_TYPE_NONE;
-    if ( (ret = avcodec_send_frame(video_out_ctx, zm_packet->frame)) < 0 ) {
+    zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
+    if ( (ret = avcodec_send_frame(video_out_ctx, zm_packet->out_frame)) < 0 ) {
       Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
       return -1;
     }
@@ -1005,7 +1008,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     av_init_packet(&opkt);
     int data_present;
     if ( (ret = avcodec_encode_video2(
-            video_out_ctx, &opkt, zm_packet->frame, &data_present)) < 0) {
+            video_out_ctx, &opkt, zm_packet->out_frame, &data_present)) < 0) {
       Error("Could not encode frame (error '%s')",
             av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);

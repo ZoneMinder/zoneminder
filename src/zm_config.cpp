@@ -28,6 +28,7 @@
 #include <glob.h>
 
 #include "zm_utils.h"
+#include "zm_config.h"
 
 void zmLoadConfig() {
 

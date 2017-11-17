@@ -184,7 +184,7 @@ Debug(2,"Copied video context from input stream");
       video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
       /* video time_base can be set to whatever is handy and supported by encoder */
       video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-      video_out_ctx->framerate = (AVRational){0,24}; // Unknown framerate
+      //video_out_ctx->framerate = (AVRational){0,24}; // Unknown framerate
 #if 1
       video_out_ctx->gop_size = 12;
       video_out_ctx->qmin = 10;
@@ -942,8 +942,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     }
 
     // Do this to allow the encoder to choose whether to use I/P/B frame
-    zm_packet->frame->pict_type = AV_PICTURE_TYPE_NONE;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    zm_packet->frame->pict_type = AV_PICTURE_TYPE_NONE;
     if ( (ret = avcodec_send_frame(video_out_ctx, zm_packet->frame)) < 0 ) {
       Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
       return -1;

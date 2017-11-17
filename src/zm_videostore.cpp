@@ -86,8 +86,10 @@ VideoStore::VideoStore(
     video_in_stream_index = video_in_stream->index;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     video_in_ctx = avcodec_alloc_context3(NULL);
+    Debug(2, "copy to context");
     avcodec_parameters_to_context(video_in_ctx,
         video_in_stream->codecpar);
+    Debug(2, "dump to context");
     zm_dump_codecpar( video_in_stream->codecpar );
 //video_in_ctx.codec_id = video_in_stream->codecpar.codec_id;
 #else

@@ -650,6 +650,9 @@ LocalCamera::LocalCamera(
     }
   } // end if capture and conversion_tye == swscale
 #endif
+    mVideoStreamId = 0;
+    mAudioStreamId = -1;
+    video_stream = NULL;
 } // end LocalCamera::LocalCamera
 
 LocalCamera::~LocalCamera() {
@@ -2107,5 +2110,32 @@ int LocalCamera::PostCapture() {
   }
   return( 0 );
 }
+AVStream *LocalCamera::get_VideoStream() {
+  if ( ! video_stream ) {
+    AVFormatContext *oc = avformat_alloc_context();
+    video_stream = avformat_new_stream( oc, NULL );
+    if ( video_stream ) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      video_stream->codecpar->width = width;
+      video_stream->codecpar->height = height;
+      video_stream->codecpar->format = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+#else
+      video_stream->codec->width = width;
+      video_stream->codec->height = height;
+      video_stream->codec->pix_fmt = GetFFMPEGPixelFormat(colours,subpixelorder);
+      video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+#endif
+    } else {
+      Error("Can't create video stream");
+    }
+  } else {
+    Debug(2,"Have videostream");
+  }
+  Debug(2,"Get videoStream");
+  return video_stream;
+}
+
 
 #endif // ZM_HAS_V4L
+

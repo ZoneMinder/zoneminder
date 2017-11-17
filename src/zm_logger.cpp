@@ -498,7 +498,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   va_start( argPtr, fstring );
   if ( hex ) {
     unsigned char *data = va_arg( argPtr, unsigned char * );
-    int len = va_arg( argPtr, int );
+    int len = va_arg( argPtr, int32_t );
     int i;
     logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), "%d:", len );
     for ( i = 0; i < len; i++ ) {

@@ -88,7 +88,7 @@ void VideoStream::SetupFormat( ) {
 	
 	if (s->oformat->priv_data_size > 0) {
 		s->priv_data = av_mallocz(s->oformat->priv_data_size);
-		if (!s->priv_data) {
+		if ( !(s->priv_data) ) {
 			Fatal( "Could not allocate private data for output format." );
 		}
 #if LIBAVFORMAT_VERSION_CHECK(52, 92, 0, 92, 0)
@@ -286,19 +286,19 @@ const char *VideoStream::MimeType( ) const {
 }
 
 void VideoStream::OpenStream( ) {
-	int avRet;
+	int ret;
 
 	/* now that all the parameters are set, we can open the 
 	   video codecs and allocate the necessary encode buffers */
 	if ( ost ) {
 		/* open the codec */
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-		if ( (avRet = avcodec_open( codec_context, codec )) < 0 )
+		if ( (ret = avcodec_open( codec_context, codec )) < 0 )
 #else
-		if ( (avRet = avcodec_open2( codec_context, codec, 0 )) < 0 )
+		if ( (ret = avcodec_open2( codec_context, codec, 0 )) < 0 )
 #endif
 		{
-			Fatal( "Could not open codec. Error code %d \"%s\"", avRet, av_err2str( avRet ) );
+			Fatal( "Could not open codec. Error code %d \"%s\"", ret, av_err2str(ret) );
 		}
 
 		Debug( 1, "Opened codec" );
@@ -364,7 +364,6 @@ void VideoStream::OpenStream( ) {
 
   /* open the output file, if needed */
   if ( !(of->flags & AVFMT_NOFILE) ) {
-    int ret;
 #if LIBAVFORMAT_VERSION_CHECK(53, 15, 0, 21, 0)
 		ret = avio_open2( &ofc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL );
 #elif LIBAVFORMAT_VERSION_CHECK(52, 102, 0, 102, 0)
@@ -405,9 +404,9 @@ void VideoStream::OpenStream( ) {
 #endif
 
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
-    int ret = av_write_header( ofc );
+    ret = av_write_header( ofc );
 #else
-    int ret = avformat_write_header( ofc, NULL );
+    ret = avformat_write_header( ofc, NULL );
 #endif
 
     if ( ret < 0 ) {

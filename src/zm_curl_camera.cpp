@@ -526,19 +526,19 @@ int cURLCamera::progress_callback(void *userdata, double dltotal, double dlnow, 
 
 /* These functions call the functions in the class for the correct object */
 size_t data_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata) {
-  return ((cURLCamera*)userdata)->data_callback(buffer,size,nmemb,userdata);
+  return reinterpret_cast<cURLCamera*>(userdata)->data_callback(buffer,size,nmemb,userdata);
 }
 
 size_t header_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata) {
-  return ((cURLCamera*)userdata)->header_callback(buffer,size,nmemb,userdata);
+  return reinterpret_cast<cURLCamera*>(userdata)->header_callback(buffer,size,nmemb,userdata);
 }
 
 int progress_callback_dispatcher(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow) {
-  return ((cURLCamera*)userdata)->progress_callback(userdata,dltotal,dlnow,ultotal,ulnow);
+  return reinterpret_cast<cURLCamera*>(userdata)->progress_callback(userdata,dltotal,dlnow,ultotal,ulnow);
 }
 
 void* thread_func_dispatcher(void* object) {
-  return ((cURLCamera*)object)->thread_func();
+  return reinterpret_cast<cURLCamera*>(object)->thread_func();
 }
 
 #endif // HAVE_LIBCURL

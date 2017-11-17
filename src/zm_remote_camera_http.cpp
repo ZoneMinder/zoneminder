@@ -588,10 +588,6 @@ int RemoteCameraHttp::GetResponse()
   else
 #endif // HAVE_LIBPCRE
   {
-    if ( method == REGEXP )
-    {
-      Warning( "Unable to use netcam regexps as not compiled with libpcre" );
-    }
     static const char *http_match = "HTTP/";
     static const char *connection_match = "Connection:";
     static const char *content_length_match = "Content-length:";

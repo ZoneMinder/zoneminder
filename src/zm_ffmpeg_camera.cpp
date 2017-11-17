@@ -205,7 +205,6 @@ int FfmpegCamera::Capture( Image &image ) {
 
   int frameComplete = false;
   while ( !frameComplete ) {
-    int ret;
     int avResult = av_read_frame( mFormatContext, &packet );
     char errbuf[AV_ERROR_MAX_STRING_SIZE];
     if ( avResult < 0 ) {
@@ -231,6 +230,7 @@ int FfmpegCamera::Capture( Image &image ) {
     Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet.stream_index, packet.pts, packet.dts );
     // What about audio stream? Maybe someday we could do sound detection...
     if ( ( packet.stream_index == mVideoStreamId ) && ( keyframe || have_video_keyframe ) ) {
+    int ret;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_send_packet( mVideoCodecContext, &packet );
       if ( ret < 0 ) {
@@ -838,7 +838,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           videoStore = NULL;
 
         } else {
-          strcpy(oldDirectory, event_file);
           monitor->SetVideoWriterEventId( last_event_id );
 
           // Need to write out all the frames from the last keyframe?

@@ -761,10 +761,10 @@ void Select::clearTimeout()
 void Select::calcMaxFd()
 {
   mMaxFd = -1;
-  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter )
     if ( (*iter)->getMaxDesc() > mMaxFd )
       mMaxFd = (*iter)->getMaxDesc();
-  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter )
     if ( (*iter)->getMaxDesc() > mMaxFd )
       mMaxFd = (*iter)->getMaxDesc();
 }
@@ -839,12 +839,12 @@ int Select::wait()
 
   mReadable.clear();
   FD_ZERO(&rfds);
-  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter )
     FD_SET((*iter)->getReadDesc(),&rfds);
 
   mWriteable.clear();
   FD_ZERO(&wfds);
-  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter )
     FD_SET((*iter)->getWriteDesc(),&wfds);
 
   int nFound = select( mMaxFd+1, &rfds, &wfds, NULL, selectTimeout );
@@ -858,10 +858,10 @@ int Select::wait()
   }
   else
   {
-    for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+    for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter )
       if ( FD_ISSET((*iter)->getReadDesc(),&rfds) )
         mReadable.push_back( *iter );
-    for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+    for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter )
       if ( FD_ISSET((*iter)->getWriteDesc(),&rfds) )
         mWriteable.push_back( *iter );
   }

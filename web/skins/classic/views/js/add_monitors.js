@@ -8,9 +8,9 @@ function probe( url_e ) {
 var ProbeResults;
 
 function getProbeResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getProbeResponse", respObj ) )
+  if ( checkStreamForErrors( "getProbeResponse", respObj ) ) {
     return;
-//alert(respText);
+  }
 
   if ( respObj.Streams ) {
     parseStreams( respObj.Streams );

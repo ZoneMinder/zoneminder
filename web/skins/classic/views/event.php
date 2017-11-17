@@ -161,10 +161,12 @@ if ( $Event->DefaultVideo() ) {
 
         addVideoTimingTrack(document.getElementById('videoobj'), LabelFormat, monitorName, duration, startTime);
         </script>
+        </div><!--videoFeed-->
 <?php
 }  // end if DefaultVideo
 ?>
-        <div id="imageFeed" <?php if ( $Event->DefaultVideo() ) { ?>class="hidden"<?php } ?> >
+<?php if (!$Event->DefaultVideo()) { ?>
+      <div id="imageFeed">
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   $streamSrc = $Event->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode ) );
@@ -182,6 +184,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->
       </div><!--imageFeed-->
+<?php } /*end if !DefaultVideo*/ ?>
         <p id="dvrControls">
           <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
           <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" onclick="streamFastRev( true );"/>
@@ -195,7 +198,6 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </p>
         <div id="replayStatus">
           <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
-    </div>
           <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"><?php echo $rate/100 ?></span>x</span>
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
@@ -203,7 +205,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
 <?php 
   if ($Event->SaveJPEGs() & 3) { // frames or analysis
 ?>
-    </div><!--eventVideo-->
+      </div><!--eventVideo-->
       <div id="eventStills" class="hidden">
         <div id="eventThumbsPanel">
           <div id="eventThumbs">
@@ -242,6 +244,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   } // end if SaveJPEGs() & 3 Analysis or Jpegs
 } // end if Event exists
 ?>
+    </div><!--content-->
   </div><!--page-->
 </body>
 </html>

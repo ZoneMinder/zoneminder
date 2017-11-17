@@ -25,6 +25,11 @@
     padding: 2px;
 }
 
+#eventVideo {
+   display: inline-block;
+   position: relative;
+}
+
 #menuBar1 {
     width: 100%;
     padding: 3px 0;
@@ -95,6 +100,7 @@
 }
 
 #imageFeed {
+    display: inline-block;
     text-align: center;
 }
 
@@ -159,22 +165,15 @@
 
 #progressBar {
     position: relative;
-    border: 1px solid #666666;
-    height: 15px;
-    margin: 0 auto;
+    top: -1.25em;
+    height: 1.25em;
+    margin: 0 auto -1.25em auto;
 }
 
 #progressBar .progressBox {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    height: 15px;
-    background: #eeeeee;
-    border-left: 1px solid #999999;
-}
-
-#progressBar .complete {
-    background: #aaaaaa;
+    height: 100%;
+    background: rgba(170, 170, 170, .7);
+    border-radius: 0 0 .3em .3em;
 }
 
 #eventStills {

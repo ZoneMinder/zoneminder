@@ -91,6 +91,7 @@ function getCmdResponse( respObj, respText ) {
     streamCmdTimer = clearTimeout( streamCmdTimer );
 
   streamStatus = respObj.status;
+  if (streamStatus.progress >= Math.round(parseFloat(eventData.Length))) streamStatus.progress = parseFloat(eventData.Length); //Limit progress to reality
 
   var eventId = streamStatus.event;
   if ( eventId != lastEventId ) {
@@ -676,49 +677,19 @@ function videoEvent() {
   createPopup( '?view=video&eid='+eventData.Id, 'zmVideo', 'video', eventData.Width, eventData.Height );
 }
 
-
+// Called on each event load because each event can be a different width
 function drawProgressBar() {
-  var barWidth = 0;
-  $('progressBar').addClass( 'invisible' );
-  var cells = $('progressBar').getElements( 'div' );
-  var cellWidth = parseInt( eventData.Width/$$(cells).length );
-  $$(cells).forEach(
-      function( cell, index ) {
-      if ( index == 0 )
-        $(cell).setStyles( { 'left': barWidth, 'width': cellWidth, 'borderLeft': 0 } );
-      else
-        $(cell).setStyles( { 'left': barWidth, 'width': cellWidth } );
-        var offset = parseInt((index*eventData.Length)/$$(cells).length);
-        $(cell).setProperty( 'title', '+'+secsToTime(offset)+'s' );
-        $(cell).removeEvent( 'click' );
-        $(cell).addEvent( 'click', function() { streamSeek( offset ); } );
-        barWidth += $(cell).getCoordinates().width;
-      }
-      );
-  $('progressBar').setStyle( 'width', barWidth );
-  $('progressBar').removeClass( 'invisible' );
+  let barWidth = $j('#evtStream').width();
+  $j('#progressBar').css( 'width', barWidth );
 }
 
+// Shows current stream progress.
 function updateProgressBar() {
-  if ( eventData && streamStatus ) {
-    var cells = $('progressBar').getElements( 'div' );
-    var completeIndex = parseInt((($$(cells).length+1)*streamStatus.progress)/eventData.Length);
-    $$(cells).forEach(
-      function( cell, index ) {
-        if ( index < completeIndex ) {
-          if ( !$(cell).hasClass( 'complete' ) ) {
-            $(cell).addClass( 'complete' );
-          }
-        } else {
-          if ( $(cell).hasClass( 'complete' ) ) {
-            $(cell).removeClass( 'complete' );
-          }
-        } // end if
-      } // end function
-    );
-    //$('progressBar').setStyle( 'width', barWidth );
-    $('progressBar').removeClass( 'invisible' );
-  } // end if eventData && streamStatus
+  if ( ! ( eventData && streamStatus ) ) {
+    return;
+  } // end if ! eventData && streamStatus
+  var curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+  $j("#progressBox").css('width', curWidth + '%');
 } // end function updateProgressBar()
 
 function handleClick( event ) {
@@ -730,6 +701,13 @@ function handleClick( event ) {
     streamPan( x, y );
   else
     streamZoomIn( x, y );
+// Handles seeking when clicking on the progress bar.
+function progressBarNav (){
+  $j('#progressBar').click(function(e){
+    var x = e.offsetX;
+    var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    streamSeek (seekTime);
+  });
 }
 
 function setupListener() {
@@ -852,6 +830,7 @@ function initPage() {
     streamPlay();    */
     vid.on('ended', vjsReplay);
   } else {
+    progressBarNav ();
     streamCmdTimer = streamQuery.delay( 250 );
     eventQuery.pass( eventData.Id ).delay( 500 );
 

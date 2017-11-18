@@ -9,9 +9,14 @@ FFmpeg_Input::FFmpeg_Input() {
   audio_stream_id = -1;
   av_register_all();
   avcodec_register_all();
-
+  streams = NULL;
 }
+
 FFmpeg_Input::~FFmpeg_Input() {
+  if ( streams ) {
+    delete streams;
+    streams = NULL;
+  }
 }
 
 int FFmpeg_Input::Open( const char *filepath ) {
@@ -34,6 +39,8 @@ int FFmpeg_Input::Open( const char *filepath ) {
     avformat_close_input(&input_format_context);
     return error;
   }
+
+  streams = new stream[input_format_context->nb_streams];
 
   for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
     if ( is_video_stream( input_format_context->streams[i] ) ) {
@@ -162,7 +169,7 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
 
     frameComplete = 1;
 # else
-    ret = zm_avcodec_decode_video( streams[packet.stream_index].context, frame, &frameComplete, &packet );
+    ret = zm_avcodec_decode_video( context, frame, &frameComplete, &packet );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
       Error( "Unable to decode frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );

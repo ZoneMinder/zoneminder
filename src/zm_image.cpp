@@ -131,6 +131,7 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
 
 Image::Image( const AVFrame *frame ) {
   AVFrame *dest_frame = zm_av_frame_alloc();
+  text[0] = '\0';
 
   width = frame->width;
   height = frame->height;
@@ -612,12 +613,12 @@ void Image::Assign(const unsigned int p_width, const unsigned int p_height, cons
 void Image::Assign( const Image &image ) {
   unsigned int new_size = (image.width * image.height) * image.colours;
 
-  if(image.buffer == NULL) {
+  if ( image.buffer == NULL ) {
     Error("Attempt to assign image with an empty buffer");
     return;
   }
 
-  if(image.colours != ZM_COLOUR_GRAY8 && image.colours != ZM_COLOUR_RGB24 && image.colours != ZM_COLOUR_RGB32) {
+  if ( image.colours != ZM_COLOUR_GRAY8 && image.colours != ZM_COLOUR_RGB24 && image.colours != ZM_COLOUR_RGB32 ) {
     Error("Attempt to assign image with unexpected colours per pixel: %d",image.colours);
     return;
   }
@@ -1847,8 +1848,7 @@ void Image::Delta( const Image &image, Image* targetimage) const
 #endif
 }
 
-const Coord Image::centreCoord( const char *text ) const
-{
+const Coord Image::centreCoord( const char *text ) const {
   int index = 0;
   int line_no = 0;
   int text_len = strlen( text );
@@ -1856,14 +1856,12 @@ const Coord Image::centreCoord( const char *text ) const
   int max_line_len = 0;
   const char *line = text;
 
-  while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
-  {
+  while ( (index < text_len) && (line_len = strcspn( line, "\n" )) ) {
     if ( line_len > max_line_len )
       max_line_len = line_len;
 
     index += line_len;
-    while ( text[index] == '\n' )
-    {
+    while ( text[index] == '\n' ) {
       index++;
     }
     line = text+index;
@@ -1875,8 +1873,7 @@ const Coord Image::centreCoord( const char *text ) const
 }
 
 /* RGB32 compatible: complete */
-void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour )
-{
+void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour ) {
   const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
   const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
   const uint8_t pixel_b_col = BLUE_VAL_RGBA(pixel_colour);

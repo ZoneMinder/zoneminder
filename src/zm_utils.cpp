@@ -49,8 +49,7 @@ std::string trimSet(std::string str, std::string trimset) {
     return str.substr( startpos, endpos-startpos+1 );
 }
 
-std::string trimSpaces(std::string str)
-{
+std::string trimSpaces(std::string str) {
   return trimSet(str, " \t");
 }
 
@@ -80,7 +79,7 @@ const std::string stringtf( const char *format, ... )
   return( tempString );
 }
 
-const std::string stringtf( const std::string &format, ... )
+const std::string stringtf( const std::string format, ... )
 {
   va_list ap;
   char tempBuffer[8192];
@@ -209,10 +208,9 @@ int split(const char* string, const char delim, std::vector<std::string>& items)
     return -2;
 
   std::string str(string);
-  size_t pos;
   
   while(true) {
-    pos = str.find(delim);
+    size_t pos = str.find(delim);
     items.push_back(str.substr(0, pos));
     str.erase(0, pos+1);
 

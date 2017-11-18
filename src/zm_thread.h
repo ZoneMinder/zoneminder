@@ -32,8 +32,7 @@
 #include <sys/thr.h>
 #endif
 
-class ThreadException : public Exception
-{
+class ThreadException : public Exception {
 private:
 #ifndef SOLARIS
   pid_t pid() {
@@ -55,12 +54,11 @@ private:
   pthread_t pid() { return( pthread_self() ); }
 #endif
 public:
-  ThreadException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) ) {
+  explicit ThreadException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) ) {
   }
 };
 
-class Mutex
-{
+class Mutex {
 friend class Condition;
 
 private:
@@ -71,8 +69,7 @@ public:
   ~Mutex();
 
 private:
-  pthread_mutex_t *getMutex()
-  {
+  pthread_mutex_t *getMutex() {
     return( &mMutex );
   }
 
@@ -84,18 +81,15 @@ public:
   bool locked();
 };
 
-class ScopedMutex
-{
+class ScopedMutex {
 private:
   Mutex &mMutex;
 
 public:
-  ScopedMutex( Mutex &mutex ) : mMutex( mutex )
-  {
+  explicit ScopedMutex( Mutex &mutex ) : mMutex( mutex ) {
     mMutex.lock();
   }
-  ~ScopedMutex()
-  {
+  ~ScopedMutex() {
     mMutex.unlock();
   }
 
@@ -164,8 +158,7 @@ public:
   }
 };
 
-template <class T> class ThreadData
-{
+template <class T> class ThreadData {
 private:
   T mValue;
   mutable bool mChanged;
@@ -173,11 +166,11 @@ private:
   mutable Condition mCondition;
 
 public:
-  __attribute__((used)) ThreadData() : mCondition( mMutex )
-  {
+  __attribute__((used)) ThreadData() : mCondition( mMutex ) {
+    mChanged = false;
   }
-  __attribute__((used)) ThreadData( T value ) : mValue( value ), mCondition( mMutex )
-  {
+  __attribute__((used)) ThreadData( T value ) : mValue( value ), mCondition( mMutex ) {
+    mChanged = false;
   }
   //~ThreadData() {}
 

@@ -62,6 +62,7 @@ void VideoStream::SetupFormat( ) {
 	AVFormatContext *s= avformat_alloc_context();
 	if(!s) {
 		Fatal( "avformat_alloc_context failed %d \"%s\"", (size_t)ofc, av_err2str((size_t)ofc) );
+    return;
 	}
 
 	AVOutputFormat *oformat;
@@ -417,9 +418,15 @@ void VideoStream::OpenStream( ) {
 VideoStream::VideoStream( const char *in_filename, const char *in_format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height ) :
 		filename(in_filename),
 		format(in_format),
+    opicture(NULL),
+    tmp_opicture(NULL),
+    video_outbuf(NULL),
+    video_outbuf_size(0),
 		last_pts( -1 ),
 		streaming_thread(0),
 		do_streaming(true),
+    add_timestamp(false),
+    timestamp(0),
 		buffer_copy(NULL),
 		buffer_copy_lock(new pthread_mutex_t),
 		buffer_copy_size(0),
@@ -573,11 +580,11 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _a
 }
 
 double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp ) {
+
+	if ( codec_context->pix_fmt != pf ) {
 #ifdef HAVE_LIBSWSCALE
 	static struct SwsContext *img_convert_ctx = 0;
 #endif // HAVE_LIBSWSCALE
-
-	if ( codec_context->pix_fmt != pf ) {
 		memcpy( tmp_opicture->data[0], buffer, buffer_size );
 #ifdef HAVE_LIBSWSCALE
 		if ( !img_convert_ctx ) {

@@ -229,10 +229,13 @@ ConfigItem::ConfigItem( const ConfigItem &item ) {
   accessed = false;
 }
 void ConfigItem::Copy( const ConfigItem &item ) {
+  if (name) delete name;
   name = new char[strlen(item.name)+1];
   strcpy( name, item.name );
+  if (value) delete value;
   value = new char[strlen(item.value)+1];
   strcpy( value, item.value );
+  if (type) delete type;
   type = new char[strlen(item.type)+1];
   strcpy( type, item.type );
 

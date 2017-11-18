@@ -42,11 +42,10 @@
 #include <sys/filio.h> // define FIONREAD
 #endif
 
-int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )
-{
+int CommsBase::readV( int iovcnt, /* const void *, int, */ ... ) {
   va_list arg_ptr;
-  //struct iovec iov[iovcnt];
-  struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
+  struct iovec iov[iovcnt];
+  //struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
 
   va_start( arg_ptr, iovcnt );
   for ( int i = 0; i < iovcnt; i++ )
@@ -62,11 +61,10 @@ int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )
   return( nBytes );
 }
 
-int CommsBase::writeV( int iovcnt, /* const void *, int, */ ... )
-{
+int CommsBase::writeV( int iovcnt, /* const void *, int, */ ... ) {
   va_list arg_ptr;
-  //struct iovec iov[iovcnt];
-  struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
+  struct iovec iov[iovcnt];
+  //struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
 
   va_start( arg_ptr, iovcnt );
   for ( int i = 0; i < iovcnt; i++ )

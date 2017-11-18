@@ -227,7 +227,7 @@ function getCmdResponse( respObj, respText ) {
     streamCmdTimer = clearTimeout( streamCmdTimer );
 
   streamStatus = respObj.status;
-  if (streamStatus.progress > parseFloat(eventData.Length)) streamStatus.progress = parseFloat(eventData.Length); //Limit progress to reality
+  if (streamStatus.progress >= Math.round(parseFloat(eventData.Length))) streamStatus.progress = parseFloat(eventData.Length); //Limit progress to reality
 
   var eventId = streamStatus.event;
   if ( eventId != lastEventId && lastEventId != 0) { //Doesn't run on first load, prevents a double hit on event and nearEvents ajax

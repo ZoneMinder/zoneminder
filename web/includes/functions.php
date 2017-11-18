@@ -2198,6 +2198,7 @@ function getStreamMode( ) {
     $streamMode = 'single';
     Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
   }
+  return $streamMode;
 } // end function getStreamMode
 
 function folder_size($dir) {

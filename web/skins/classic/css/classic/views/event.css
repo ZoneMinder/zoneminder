@@ -149,9 +149,9 @@ span.noneCue {
 }
 
 .dvrControls input {
-    height: 20px;
-    width: 28px;
-    padding-bottom: 3px;
+    height: 1.5em;
+    width: 2em;
+    padding: 0 ;
     margin: 0 3px;
 }
 

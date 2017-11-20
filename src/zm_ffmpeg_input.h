@@ -21,7 +21,7 @@ class FFmpeg_Input {
 
     int Open( const char *filename );
     int Close();
-    AVFrame *get_frame( int stream_id=-1 );
+    AVFrame *get_frame( int stream_id=-1, int frame_number=-1 );
     int get_video_stream_id() {
       return video_stream_id;
     }

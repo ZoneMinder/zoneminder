@@ -1216,7 +1216,7 @@ bool Monitor::Analyse() {
 
   // if  have event, sent frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
-  int skip_index = 0;
+  unsigned int skip_index = 0;
 
   if ( adaptive_skip ) {
     int read_margin = shared_data->last_read_index - shared_data->last_write_index;
@@ -1295,6 +1295,7 @@ bool Monitor::Analyse() {
 
   Debug(3, "Motion detection is enabled signal(%d) signal_change(%d)", signal, signal_change);
   
+  // if we have been told to be OFF, then we are off and don't do any processing.
   if ( trigger_data->trigger_state != TRIGGER_OFF ) {
 Debug(4, "Trigger not oFF state is (%d)", trigger_data->trigger_state );
     unsigned int score = 0;
@@ -1304,8 +1305,8 @@ Debug(4, "Ready");
       std::string cause;
       Event::StringSetMap noteSetMap;
 
+      // Specifically told to be on.  Setting the score here will trigger the alarm.
       if ( trigger_data->trigger_state == TRIGGER_ON ) {
-
         score += trigger_data->trigger_score;
         if ( !event ) {
           if ( cause.length() )
@@ -1372,7 +1373,6 @@ Debug(3,"before DetectMotion");
 
       // If we aren't recording, check linked monitors to see if we should be.
       if ( (!(signal_change && signal)) && (n_linked_monitors > 0) ) {
-        bool first_link = true;
         Event::StringSet noteSet;
         for ( int i=0; i < n_linked_monitors; i++ ) {
           if ( ! linked_monitors[i]->isConnected() )
@@ -1434,6 +1434,7 @@ Debug(3,"before DetectMotion");
           }
         } // end if ! event
       }
+
       if ( score ) {
 Debug(9, "Score: (%d)", score );
         if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
@@ -1488,7 +1489,7 @@ Debug(3, "creating new event");
               if ( pre_event_images ) {
                 Debug(2,"Have pre_event_image");
                 if ( analysis_fps ) {
-                Debug(2,"Have analysis_fps");
+                  Debug(2,"Have analysis_fps");
                   for ( int i = 0; i < pre_event_images; i++ ) {
                     timestamps[i] = &pre_event_buffer[pre_index].timestamp;
                     images[i] = pre_event_buffer[pre_index].image;
@@ -1520,7 +1521,7 @@ Debug(3, "creating new event");
           shared_data->state = state = ALARM;
         }
         last_alarm_count = image_count;
-      } else {
+      } else { // no score?
         if ( state == ALARM ) {
           Info( "%s: %03d - Gone into alert state", name, image_count );
           shared_data->state = state = ALERT;
@@ -1536,17 +1537,14 @@ Debug(3, "creating new event");
               shared_data->state = state = TAPE;
             }
           }
-        }
-        if ( state == PREALARM ) {
-          if ( function != MOCORD ) {
-            shared_data->state = state = IDLE;
-          } else {
-            shared_data->state = state = TAPE;
-          }
+        } else if ( state == PREALARM ) {
+          // Back to IDLE
+          shared_data->state = state =  function != MOCORD ? IDLE : TAPE;
         }
         if ( Event::PreAlarmCount() )
           Event::EmptyPreAlarmFrames();
-      }
+      } // end if score or not
+
       if ( state != IDLE ) {
         if ( state == PREALARM || state == ALARM ) {
           if ( config.create_analysis_images ) {
@@ -1565,6 +1563,7 @@ Debug(3, "creating new event");
             }
             if ( got_anal_image ) {
               if ( state == PREALARM )
+                // AddPreAlarmFrame just copies/buffers these frames in the event.  If we go back to idle, we will drop them.
                 Event::AddPreAlarmFrame( snap_image, *timestamp, score, &alarm_image );
               else
                 //event->AddFrame( snap_image, *timestamp, score, &alarm_image );
@@ -1593,23 +1592,17 @@ Debug(3, "creating new event");
           if ( event && noteSetMap.size() > 0 )
             event->updateNotes( noteSetMap );
         } else if ( state == ALERT ) {
-          event->AddFrame( snap_image, *timestamp );
+          // Alert means this frame has no motion, but we were alarmed and are still recording.
+          event->AddPacket( snap );
           if ( noteSetMap.size() > 0 )
             event->updateNotes( noteSetMap );
         } else if ( state == TAPE ) {
-          //Video Storage: activate only for supported cameras. Event::AddFrame knows whether or not we are recording video and saves frames accordingly
-          //if((GetOptVideoWriter() == 2) && camera->SupportsNativeVideo()) {
-            // I don't think this is required, and causes problems, as the event file hasn't been setup yet.
-            //Warning("In state TAPE, 
-            //video_store_data->recording = event->StartTime();
-          //}
+
           if ( !(image_count%(frame_skip+1)) ) {
             if ( config.bulk_frame_interval > 1 ) {
-                event->AddPacket( snap, (event->Frames()<pre_event_count?0:-1) );
-              //event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
+              event->AddPacket( snap, (event->Frames()<pre_event_count?0:-1) );
             } else {
-              //event->AddFrame( snap_image, *timestamp );
-                event->AddPacket( snap );
+              event->AddPacket( snap );
             }
           }
         }

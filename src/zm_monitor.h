@@ -285,7 +285,7 @@ protected:
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
-  static bool last_signal;
+  bool       last_signal;
   int        buffer_count;
   int        prealarm_count;
   State      state;
@@ -294,7 +294,6 @@ protected:
   time_t      last_analysis_fps_time;
   time_t      auto_resume_time;
   unsigned int      last_motion_score;
-  bool last_signal;
 
   EventCloseMode  event_close_mode;
 

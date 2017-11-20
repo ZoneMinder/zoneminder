@@ -148,7 +148,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
     }
   }
 
-  Debug( 1, "Attempting to authenticate user from auth string '%s'", auth );
+  Debug( 1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth, remote_addr );
   char sql[ZM_SQL_SML_BUFSIZ] = "";
   snprintf( sql, sizeof(sql), "SELECT Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds FROM Users WHERE Enabled = 1" );
 
@@ -170,6 +170,17 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
     return( 0 );
   }
 
+  // getting the time is expensive, so only do it once.
+  time_t now = time( 0 );
+  unsigned int hours = config.auth_hash_ttl;
+
+  if ( ! hours ) {
+    Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
+    hours = 2;
+  } else {
+    Debug( 1, "AUTH_HASH_TTL is %d, time is %d", hours, now );
+  }
+
   while( MYSQL_ROW dbrow = mysql_fetch_row( result ) ) {
     const char *user = dbrow[0];
     const char *pass = dbrow[1];
@@ -179,18 +190,9 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
     size_t md5len = 16;
     unsigned char md5sum[md5len];
 
-    time_t now = time( 0 );
-    unsigned int hours = config.auth_hash_ttl;
-
-    if ( ! hours ) {
-      Warning("No value set for ZM_AUTH_HASH_TTL. Defaulting to 2.");
-      hours = 2;
-    } else {
-      Debug( 1, "AUTH_HASH_TTL is %d", hours );
-    }
-
-    for ( unsigned int i = 0; i < hours; i++, now -= 3600 ) {
-      struct tm *now_tm = localtime( &now );
+    time_t now_copy = now;
+    for ( unsigned int i = 0; i < hours; i++, now_copy -= 3600 ) {
+      struct tm *now_tm = localtime(&now_copy);
 
       snprintf( auth_key, sizeof(auth_key), "%s%s%s%s%d%d%d%d", 
         config.auth_hash_secret,
@@ -221,11 +223,10 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
         Debug(1, "Authenticated user '%s'", user->getUsername() );
         mysql_free_result( result );
         return( user );
-      } else {
-        Debug(1, "No match for %s", auth );
       }
-    }
-  }
+    } // end foreach hours
+  } // end foreach user
+  Debug(1, "No match for %s", auth );
   mysql_free_result( result );
 #else // HAVE_DECL_MD5
   Error( "You need to build with gnutls or openssl installed to use hash based authentication" );

@@ -28,13 +28,13 @@ if ( version_compare( phpversion(), '4.3.0', '<') ) {
 }
 
 # We are requiring these because this file is getting included from the api, which hasn't already included them.
-require_once( 'logger.php' );
-require_once( 'database.php' );
+require_once('logger.php');
+require_once('database.php');
 
 function userLogin( $username, $password='', $passwordHashed=false ) {
   global $user, $cookies;
 
-  $sql = 'SELECT * FROM Users WHERE Enabled = 1';
+  $sql = 'SELECT * FROM Users WHERE Enabled=1';
   $sql_values = NULL;
   if ( ZM_AUTH_TYPE == 'builtin' ) {
     if ( $passwordHashed ) {
@@ -44,7 +44,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     }
     $sql_values = array( $username, $password );
   } else {
-    $sql .= ' AND Username = ?';
+    $sql .= ' AND Username=?';
     $sql_values = array( $username );
   }
   $_SESSION['username'] = $username;
@@ -138,26 +138,27 @@ function getAuthUser( $auth ) {
         $authHash = md5( $authKey );
 
         if ( $auth == $authHash ) {
-          return( $user );
+          return $user;
         }
       } // end foreach hour
     } // end foreach user
   } // end if using auth hash
   Error( "Unable to authenticate user from auth hash '$auth'" );
   return( false );
-}
+} // end getAuthUser($auth)
 
 function generateAuthHash( $useRemoteAddr ) {
   if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
-    if ( ( ! isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < time() - ( ZM_AUTH_HASH_TTL * 1800 ) ) ) {
+    $time = time();
+    if ( ( ! isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < ( $time - ( ZM_AUTH_HASH_TTL * 1800 ) ) ) ) {
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
-      $time = localtime();
+      $local_time = localtime();
       $authKey = '';
       if ( $useRemoteAddr ) {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       } else {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
       $auth = md5( $authKey );
       if ( session_status() == PHP_SESSION_NONE ) {
@@ -167,10 +168,10 @@ function generateAuthHash( $useRemoteAddr ) {
         Warning("Session is not active. AuthHash will not be cached. called from $file:$line");
       }
       $_SESSION['AuthHash'] = $auth;
-      $_SESSION['AuthHashGeneratedAt'] = time();
+      $_SESSION['AuthHashGeneratedAt'] = $time;
       Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
     } else {
-      Logger::Debug( "Using cached auth " . $_SESSION['AuthHash'] );
+      Logger::Debug( "Using cached auth " . $_SESSION['AuthHash'] ." beacuse " . $_SESSION['AuthHashGeneratedAt'] . ' < '. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '.( $time - (ZM_AUTH_HASH_TTL * 1800) ));
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'];
   } else {

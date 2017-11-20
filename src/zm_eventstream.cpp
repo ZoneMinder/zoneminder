@@ -579,7 +579,6 @@ Image * EventStream::getImage( ) {
 
   Debug( 2, "EventStream::getImage path(%s) frame(%d)", event_data->path, curr_frame_id );
   snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
-  Debug( 2, "EventStream::getImage path(%s) ", filepath, curr_frame_id );
   Image *image = new Image( filepath );
   return image;
 }
@@ -657,7 +656,7 @@ bool EventStream::sendFrame( int delta_us ) {
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
-        AVFrame *frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id() );
+        AVFrame *frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), curr_frame_id );
         if ( frame ) {
           image = new Image( frame );
           av_frame_free(&frame);

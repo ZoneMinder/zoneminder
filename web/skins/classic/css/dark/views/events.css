@@ -44,3 +44,13 @@
     text-align: right;
     padding-right: 8px;
 }
+
+#header {
+    display: flex;
+    justify-content: space-between;
+}
+
+#header h2, #header div {
+    line-height: 1.1;
+    margin:0;
+}

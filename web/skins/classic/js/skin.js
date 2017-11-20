@@ -333,3 +333,38 @@ function changeFilter( e ) {
   Cookie.write( e.name, e.value, { duration: 10*365 } );
   window.location = window.location;
 }
+
+var resizeTimer;
+
+function endOfResize(e) {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(changeScale, 250);
+}
+
+function scaleToFit (baseWidth, baseHeight, feed) {
+  $j(window).on('resize', endOfResize)  //set delayed scaling when Scale to Fit is selected
+  let ratio = baseWidth / baseHeight;
+  let container = $j('#content');
+  let viewPort = $j(window);
+  let bottomDiv = $j('#replayStatus');
+// jquery does not provide a bottom offet, and offset dows not include margins.  outerHeight true minus false gives total vertical margins.
+  let bottomLoc = bottomDiv.offset().top + (bottomDiv.outerHeight(true) - bottomDiv.outerHeight()) + bottomDiv.outerHeight(true);
+  let newHeight = viewPort.height() - (bottomLoc - feed.outerHeight(true))
+//  let newHeight = viewPort.height() - (container.outerHeight(true) - feed.outerHeight(true));
+  let newWidth = ratio * newHeight;
+  if (newWidth > container.innerWidth()) {
+    newWidth = container.innerWidth();
+    newHeight = newWidth / ratio;
+  }
+  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
+  let scales = $j('#scale option').map(function() {return parseInt($j(this).val());}).get();
+  scales.shift();
+  let closest;
+  $j(scales).each(function () { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
+    if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
+      closest = this.valueOf();
+    }
+  });
+  autoScale = closest;
+  return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
+}

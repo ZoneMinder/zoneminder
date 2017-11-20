@@ -134,45 +134,13 @@ function setButtonState( element, butClass ) {
   }
 }
 
-var resizeTimer;
-
-function endOfResize(e) {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(changeScale, 250);
-}
-
-function scaleToFit () {
-  $j(window).on('resize', endOfResize)  //set delayed scaling when Scale to Fit is selected
-  let ratio = eventData.Width/eventData.Height;
-  let container = $j('#content');
-  let feed = $j(vid ? '#videoobj' : '#evtStream');
-  let viewPort = $j(window);
-  let newHeight = viewPort.height() - (container.outerHeight(true) - feed.outerHeight(true));
-  let newWidth = ratio * newHeight;
-  if (newWidth > container.innerWidth()) {
-    newWidth = container.innerWidth();
-    newHeight = newWidth / ratio;
-  }
-  let autoScale = Math.round(newWidth / eventData.Width * SCALE_BASE);
-  let scales = $j('#scale option').map(function() {return parseInt($j(this).val());}).get();
-  scales.shift();
-  let closest = null;
-  $j(scales).each(function () { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
-    if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
-      closest = this.valueOf();
-    }
-  });
-  autoScale = closest;
-  return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
-}
-
 function changeScale() {
   let scale = $j('#scale').val();
   let newWidth = null;
   let newHeight = null;
   let autoScale = null;
   if (scale == "auto") {
-    let newSize = scaleToFit();
+    let newSize = scaleToFit(eventData.Width, eventData.Height, $j(vid ? '#videoobj' : '#evtStream'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;

@@ -216,7 +216,7 @@ int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
 
 int FfmpegCamera::PostCapture() {
   // Nothing to do here
-  return( 0 );
+  return 0;
 }
 
 int FfmpegCamera::OpenFfmpeg() {

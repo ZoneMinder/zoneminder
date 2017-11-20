@@ -353,9 +353,11 @@ Debug(2, "NUmber of bytes sent: (%d)", nbytes );
 bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp ) {
   bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
-  if ( type != STREAM_JPEG )
-    send_raw = false;
-  if ( !config.timestamp_on_capture && timestamp )
+  if ( 
+      ( type != STREAM_JPEG )
+      ||
+      ( (!config.timestamp_on_capture) && timestamp )
+     )
     send_raw = false;
 
   if ( !send_raw ) {

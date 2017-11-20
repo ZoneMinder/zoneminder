@@ -37,9 +37,10 @@ class ZMPacket {
     AVPacket  packet;   // Input packet, undecoded
     AVFrame   *in_frame;    // Input image, decoded Theoretically only filled if needed.
     AVFrame   *out_frame;    // Input image, decoded Theoretically only filled if needed.
-  uint8_t *buffer;
+    uint8_t *buffer;
     Image     *image;   // Our internal image object representing this frame
     struct timeval timestamp;
+    AVMediaType codec_type;
   public:
     AVPacket *av_packet() { return &packet; }
     AVPacket *set_packet( AVPacket *p ) ;

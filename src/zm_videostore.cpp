@@ -1038,8 +1038,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
   }
   opkt.duration = 0;
 
-  int keyframe = opkt.flags & AV_PKT_FLAG_KEY;
-Debug(3, "dts:%d, pts:%d, keyframe:%d", opkt.dts, opkt.pts, keyframe );
+Debug(3, "dts:%d, pts:%d, keyframe:%d", opkt.dts, opkt.pts, opkt.flags & AV_PKT_FLAG_KEY );
   write_video_packet( opkt );
   zm_av_packet_unref(&opkt);
 

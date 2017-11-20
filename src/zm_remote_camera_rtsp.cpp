@@ -287,13 +287,13 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
   directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
   if ( directbuffer == NULL ) {
     Error("Failed requesting writeable buffer for the captured image.");
-    return NULL;
+    return -1;
   }
   
   while ( !frameComplete ) {
     buffer.clear();
     if ( !rtspThread->isRunning() )
-      return NULL;
+      return -1;
 
     if ( rtspThread->getFrame( buffer ) ) {
       Debug( 3, "Read frame %d bytes", buffer.size() );
@@ -301,7 +301,7 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
       Hexdump( 4, buffer.head(), 16 );
 
       if ( !buffer.size() )
-        return NULL;
+        return -1;
 
       if ( mCodecContext->codec_id == AV_CODEC_ID_H264 ) {
         // SPS and PPS frames should be saved and appended to IDR frames

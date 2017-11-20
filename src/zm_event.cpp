@@ -432,9 +432,8 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
       // neccessarily be of the motion.  But some events are less than 10 frames, 
       // so I am changing this to 1, but we should overwrite it later with a better snapshot.
       if ( frames == 1 ) {
-        char snapshot_file[PATH_MAX];
-        snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
-        WriteFrameImage( images[i], *(timestamps[i]), snapshot_file );
+        std::string snapshot_file = std::string(path) + "/snapshot.jpg";
+        WriteFrameImage( images[i], *(timestamps[i]), snapshot_file.c_str() );
       }
     }
     if ( monitor->GetOptSaveJPEGs() & 1 ) {
@@ -470,91 +469,14 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
 void Event::AddPacket( ZMPacket *packet, int score, Image *alarm_image ) {
   frames++;
 
-  static char event_file[PATH_MAX];
-  snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
-
-  if ( monitor->GetOptSaveJPEGs() & 4 ) {
-    // Only snapshots
-    //If this is the first frame, we should add a thumbnail to the event directory
-    if ( frames == 10 ) {
-      static char snapshot_file[PATH_MAX];
-      snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
-      WriteFrameImage( packet->image, packet->timestamp, snapshot_file );
-    }
-  }
-  if ( monitor->GetOptSaveJPEGs() & 1 ) {
-    Debug( 1, "Writing capture frame %d to %s", frames, event_file );
-    if ( ! WriteFrameImage( packet->image, packet->timestamp, event_file ) ) {
-      Error("Failed to write frame image");
-    }
-  }
   if ( videoStore ) {
     videoStore->writePacket( packet );
     //FIXME if it fails, we should write a jpeg
   }
-
-  struct DeltaTimeval delta_time;
-  DELTA_TIMEVAL( delta_time, packet->timestamp, start_time, DT_PREC_2 );
-
-  FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
-  // < 0 means no motion detection is being done.
-  if ( score < 0 )
-    score = 0;
-
-  bool db_frame = ( frame_type != BULK ) || ((frames%config.bulk_frame_interval)==0) || !frames;
-  if ( db_frame ) {
-
-    Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, Event::frame_type_names[frame_type] );
-    static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), 
-        "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score )"
-       " values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )",
-       id, frames, frame_type_names[frame_type], packet->timestamp.tv_sec, 
-       delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
-    }
-    last_db_frame = frames;
-
-    // We are writing a Bulk frame
-    if ( frame_type == BULK ) {
-      snprintf( sql, sizeof(sql), "update Events set Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", 
-          ( delta_time.positive?"":"-" ),
-          delta_time.sec, delta_time.fsec,
-          frames, 
-          alarm_frames,
-          tot_score,
-          (int)(alarm_frames?(tot_score/alarm_frames):0),
-          max_score,
-          id
-          );
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error( "Can't update event: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
-      }
-    }
-  } // end if db_frame
-
-  end_time = packet->timestamp;
-
-  // We are writing an Alarm frame
-  if ( frame_type == ALARM ) {
-    alarm_frames++;
-
-    tot_score += score;
-    if ( score > (int)max_score )
-      max_score = score;
-
-    if ( alarm_image ) {
-      snprintf( event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames );
-
-      Debug( 1, "Writing analysis frame %d", frames );
-      if ( monitor->GetOptSaveJPEGs() & 2 ) {
-        WriteFrameImage(alarm_image, packet->timestamp, event_file, true);
-      }
-    }
-  }
+  if ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) {
+    AddFrame( packet->image, packet->timestamp, score, alarm_image );
+  } // end if is video
+  return;
 }
 
 void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *alarm_image ) {
@@ -571,10 +493,9 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   if ( monitor->GetOptSaveJPEGs() & 4 ) {
     // Only snapshots
     //If this is the first frame, we should add a thumbnail to the event directory
-    if ( frames == 10 ) {
-      static char snapshot_file[PATH_MAX];
-      snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
-      WriteFrameImage( image, timestamp, snapshot_file );
+    if ( frames == 10 || frames == 1 ) {
+      std::string snapshot_file = std::string(path) + "/snapshot.jpg";
+      WriteFrameImage( image, timestamp, snapshot_file.c_str() );
     }
   }
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
@@ -582,10 +503,6 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
     if ( ! WriteFrameImage( image, timestamp, event_file ) ) {
       Error("Failed to write frame image");
     }
-  }
-  if ( videowriter != NULL ) {
-Debug(3, "Writing video");
-    WriteFrameVideo(image, timestamp, videowriter);
   }
 
   struct DeltaTimeval delta_time;

@@ -17,13 +17,11 @@ if [ "$1" = "configure" ]; then
     a2enmod cgi
   fi
 
-	# Do this every time the package is installed or upgraded
-  # Ensure zoneminder is stopped
-  deb-systemd-invoke stop zoneminder.service || exit $?
 
-  # Ensure zoneminder is stopped
-  deb-systemd-invoke stop zoneminder.service || exit $?
 	if [ "$ZM_DB_HOST" = "localhost" ]; then
+    # Do this every time the package is installed or upgraded
+    # Ensure zoneminder is stopped
+    deb-systemd-invoke stop zoneminder.service || exit $?
 
     if [ -e "/etc/init.d/mysql" ]; then
 
@@ -57,9 +55,9 @@ if [ "$1" = "configure" ]; then
   else
     echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)"
   fi
+
   echo "Done Updating, starting ZoneMinder"
   deb-systemd-invoke restart zoneminder.service || exit $?
-
 fi
 
 #DEBHELPER#

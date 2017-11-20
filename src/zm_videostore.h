@@ -3,7 +3,6 @@
 
 #include "zm_ffmpeg.h"
 extern "C"  {
-#include "libavutil/audio_fifo.h"
 
 #ifdef HAVE_LIBAVRESAMPLE
 #include "libavresample/avresample.h"
@@ -38,7 +37,6 @@ int audio_in_stream_index;
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
   AVPacket opkt;
   // we are transcoding
-  AVFrame *video_in_frame;
   AVFrame *in_frame;
   AVFrame *out_frame;
 
@@ -51,8 +49,6 @@ int audio_in_stream_index;
   // The following are used when encoding the audio stream to AAC
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
-  AVAudioFifo *fifo;
-  int out_frame_size;
 #ifdef HAVE_LIBAVRESAMPLE
 AVAudioResampleContext* resample_ctx;
 #endif
@@ -60,9 +56,6 @@ AVAudioResampleContext* resample_ctx;
     
 	const char *filename;
 	const char *format;
-    
-  bool keyframeMessage;
-  int keyframeSkipNumber;
     
   // These are for in
   int64_t video_last_pts;

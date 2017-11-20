@@ -285,6 +285,7 @@ protected:
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
+  static bool last_signal;
   int        buffer_count;
   int        prealarm_count;
   State      state;
@@ -293,6 +294,7 @@ protected:
   time_t      last_analysis_fps_time;
   time_t      auto_resume_time;
   unsigned int      last_motion_score;
+  bool last_signal;
 
   EventCloseMode  event_close_mode;
 
@@ -347,9 +349,9 @@ public:
     unsigned int p_deinterlacing,
     int p_savejpegs,
     VideoWriter p_videowriter,
-    std::string p_encoderparams,
-    std::string p_output_codec,
-    std::string p_output_container,
+    std::string &p_encoderparams,
+    std::string &p_output_codec,
+    std::string &p_output_container,
     bool  p_record_audio,
     const char *p_event_prefix,
     const char *p_label_format,
@@ -489,6 +491,8 @@ public:
   int PreCapture();
   int Capture();
   int PostCapture();
+
+  void CheckAction();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
    // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.

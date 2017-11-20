@@ -32,7 +32,11 @@ Camera::Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_wid
     colour( p_colour ),
     contrast( p_contrast ),
     capture( p_capture ),
-    record_audio( p_record_audio )
+    record_audio( p_record_audio ),
+    mVideoStreamId(-1),
+    mAudioStreamId(-1),
+    mVideoCodecContext(NULL),
+    video_stream(NULL)
 {
   pixels = width * height;
   imagesize = pixels * colours;

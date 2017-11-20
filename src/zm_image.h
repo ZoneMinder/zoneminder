@@ -154,10 +154,10 @@ protected:
 
 public:
 	Image();
-	Image( const char *filename );
+	explicit Image( const char *filename );
 	Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0);
-	Image( const Image &p_image );
-  Image( const AVFrame *frame );
+	explicit Image( const Image &p_image );
+  explicit Image( const AVFrame *frame );
 	~Image();
 	static void Initialise();
 	static void Deinitialise();

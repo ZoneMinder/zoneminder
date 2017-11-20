@@ -130,7 +130,7 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
 }
 
 Image::Image( const AVFrame *frame ) {
-
+  text[0] = '\0';
   width = frame->width;
   height = frame->height;
   pixels = width*height;
@@ -1856,8 +1856,7 @@ void Image::Delta( const Image &image, Image* targetimage) const
 #endif
 }
 
-const Coord Image::centreCoord( const char *text ) const
-{
+const Coord Image::centreCoord( const char *text ) const {
   int index = 0;
   int line_no = 0;
   int text_len = strlen( text );
@@ -1865,14 +1864,12 @@ const Coord Image::centreCoord( const char *text ) const
   int max_line_len = 0;
   const char *line = text;
 
-  while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
-  {
+  while ( (index < text_len) && (line_len = strcspn( line, "\n" )) ) {
     if ( line_len > max_line_len )
       max_line_len = line_len;
 
     index += line_len;
-    while ( text[index] == '\n' )
-    {
+    while ( text[index] == '\n' ) {
       index++;
     }
     line = text+index;
@@ -1884,8 +1881,7 @@ const Coord Image::centreCoord( const char *text ) const
 }
 
 /* RGB32 compatible: complete */
-void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour )
-{
+void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour ) {
   const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
   const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
   const uint8_t pixel_b_col = BLUE_VAL_RGBA(pixel_colour);

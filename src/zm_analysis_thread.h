@@ -13,7 +13,7 @@ class AnalysisThread : public Thread {
     Monitor *monitor;
 
   public:
-    AnalysisThread( Monitor * );
+    explicit AnalysisThread( Monitor * );
     ~AnalysisThread();
     int run();
 

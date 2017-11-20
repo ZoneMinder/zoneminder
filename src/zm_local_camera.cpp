@@ -715,8 +715,8 @@ void LocalCamera::Initialise() {
       Fatal( "Failed to get video format: %s", strerror(errno) );
 
     Debug( 4, " v4l2_data.fmt.type = %08x",  v4l2_data.fmt.type );
-    Debug( 4, " v4l2_data.fmt.fmt.pix.width = %08x",  v4l2_data.fmt.fmt.pix.width );
-    Debug( 4, " v4l2_data.fmt.fmt.pix.height = %08x",  v4l2_data.fmt.fmt.pix.height );
+    Debug( 4, " v4l2_data.fmt.fmt.pix.width = %d",  v4l2_data.fmt.fmt.pix.width );
+    Debug( 4, " v4l2_data.fmt.fmt.pix.height = %d",  v4l2_data.fmt.fmt.pix.height );
     Debug( 4, " v4l2_data.fmt.fmt.pix.pixelformat = %08x",  v4l2_data.fmt.fmt.pix.pixelformat );
     Debug( 4, " v4l2_data.fmt.fmt.pix.field = %08x",  v4l2_data.fmt.fmt.pix.field );
     Debug( 4, " v4l2_data.fmt.fmt.pix.bytesperline = %08x",  v4l2_data.fmt.fmt.pix.bytesperline );
@@ -755,6 +755,13 @@ void LocalCamera::Initialise() {
     Debug( 4, " v4l2_data.fmt.fmt.pix.sizeimage = %08x",  v4l2_data.fmt.fmt.pix.sizeimage );
     Debug( 4, " v4l2_data.fmt.fmt.pix.colorspace = %08x",  v4l2_data.fmt.fmt.pix.colorspace );
     Debug( 4, " v4l2_data.fmt.fmt.pix.priv = %08x",  v4l2_data.fmt.fmt.pix.priv );
+
+    if ( v4l2_data.fmt.fmt.pix.width != width ) {
+        Warning("Failed to set requested width");
+    }
+    if ( v4l2_data.fmt.fmt.pix.height != height ) {
+        Warning("Failed to set requested width");
+    }
 
     /* Buggy driver paranoia. */
     unsigned int min;
@@ -1624,8 +1631,8 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           sprintf( output+strlen(output), "  Name: %s\n", vid_src.name );
           sprintf( output+strlen(output), "  Channel: %d\n", vid_src.channel );
           sprintf( output+strlen(output), "  Flags: %d\n%s%s", vid_src.flags,
-              vid_src.flags&VIDEO_VC_TUNER?"    Channel has a tuner\n":"",
-              vid_src.flags&VIDEO_VC_AUDIO?"    Channel has audio\n":""
+              (vid_src.flags&VIDEO_VC_TUNER)?"    Channel has a tuner\n":"",
+              (vid_src.flags&VIDEO_VC_AUDIO)?"    Channel has audio\n":""
               );
           sprintf( output+strlen(output), "  Type: %d - %s\n", vid_src.type,
               vid_src.type==VIDEO_TYPE_TV?"TV":(
@@ -1862,11 +1869,14 @@ int LocalCamera::PrimeCapture() {
   Debug( 2, "Priming capture" );
 #if ZM_HAS_V4L2
   if ( v4l_version == 2 ) {
-    Debug( 3, "Queueing buffers" );
+    Debug( 3, "Queueing (%d) buffers", v4l2_data.reqbufs.count );
     for ( unsigned int frame = 0; frame < v4l2_data.reqbufs.count; frame++ ) {
       struct v4l2_buffer vid_buf;
 
       memset( &vid_buf, 0, sizeof(vid_buf) );
+      if ( v4l2_data.fmt.type != V4L2_BUF_TYPE_VIDEO_CAPTURE ) {
+        Warning("Unknown type: (%d)", v4l2_data.fmt.type );
+      }
 
       vid_buf.type = v4l2_data.fmt.type;
       vid_buf.memory = v4l2_data.reqbufs.memory;
@@ -1944,6 +1954,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
           }
           return -1;
         }
+        Debug( 3, "Capturing %d frames", captures_per_frame );
 
         v4l2_data.bufptr = &vid_buf;
         capture_frame = v4l2_data.bufptr->index;
@@ -2120,11 +2131,13 @@ AVStream *LocalCamera::get_VideoStream() {
       video_stream->codecpar->height = height;
       video_stream->codecpar->format = GetFFMPEGPixelFormat(colours,subpixelorder);
       video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+      video_stream->codecpar->codec_id = AV_CODEC_ID_NONE;
 #else
       video_stream->codec->width = width;
       video_stream->codec->height = height;
       video_stream->codec->pix_fmt = GetFFMPEGPixelFormat(colours,subpixelorder);
       video_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+      video_stream->codec->codec_id = AV_CODEC_ID_NONE;
 #endif
     } else {
       Error("Can't create video stream");

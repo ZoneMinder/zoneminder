@@ -159,8 +159,7 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
   MediaDescriptor *currMedia = 0;
 
   StringVector lines = split( sdp, "\r\n" );
-  for ( StringVector::const_iterator iter = lines.begin(); iter != lines.end(); iter++ )
-  {
+  for ( StringVector::const_iterator iter = lines.begin(); iter != lines.end(); ++iter ) {
     std::string line = *iter;
     if ( line.empty() )
       break;
@@ -276,48 +275,26 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
               {
                 StringVector attr3Tokens = split( attr2Tokens[i], "=" );
                 //Info( "Name = %s, Value = %s", attr3Tokens[0].c_str(), attr3Tokens[1].c_str() );
-                if ( attr3Tokens[0] == "profile-level-id" )
-                {
-                }
-                else if ( attr3Tokens[0] == "config" )
-                {
-                }
-                else if ( attr3Tokens[0] == "sprop-parameter-sets" )
-                {
+                if ( attr3Tokens[0] == "profile-level-id" ) {
+                } else if ( attr3Tokens[0] == "config" ) {
+                } else if ( attr3Tokens[0] == "sprop-parameter-sets" ) {
                     size_t t = attr2Tokens[i].find("=");
                     char *c = (char *)attr2Tokens[i].c_str() + t + 1;
                     Debug(4, "sprop-parameter-sets value %s", c);
                   currMedia->setSprops(std::string(c));
-                }
-                else if ( attr3Tokens[0] == "sprop-parameter-sets" )
-                {
-                    size_t t = attr2Tokens[i].find("=");
-                    char *c = (char *)attr2Tokens[i].c_str() + t + 1;
-                    Debug(4, "sprop-parameter-sets value %s", c);
-                  currMedia->setSprops(std::string(c));
-                }
-                else 
-                {
+                } else {
                   Debug( 3, "Ignoring SDP fmtp attribute '%s' for media '%s'", attr3Tokens[0].c_str(), currMedia->getType().c_str() )
                 }
               }
             }
-          }
-          else if ( attrName == "mpeg4-iod" )
-          {
+          } else if ( attrName == "mpeg4-iod" ) {
             // a=mpeg4-iod: "data:application/mpeg4-iod;base64,AoEAAE8BAf73AQOAkwABQHRkYXRhOmFwcGxpY2F0aW9uL21wZWc0LW9kLWF1O2Jhc2U2NCxBVGdCR3dVZkF4Y0F5U1FBWlFRTklCRUVrK0FBQWEyd0FBR3RzQVlCQkFFWkFwOERGUUJsQlFRTlFCVUFDN2dBQVBvQUFBRDZBQVlCQXc9PQQNAQUABAAAAAAAAAAAAAYJAQAAAAAAAAAAA0IAAkA+ZGF0YTphcHBsaWNhdGlvbi9tcGVnNC1iaWZzLWF1O2Jhc2U2NCx3QkFTZ1RBcUJYSmhCSWhRUlFVL0FBPT0EEgINAAACAAAAAAAAAAAFAwAAQAYJAQAAAAAAAAAA"
-          }
-          else if ( attrName == "mpeg4-esid" )
-          {
+          } else if ( attrName == "mpeg4-esid" ) {
             // a=mpeg4-esid:201
-          }
-          else
-          {
+          } else {
             Debug( 3, "Ignoring SDP attribute '%s' for media '%s'", line.c_str(), currMedia->getType().c_str() )
           }
-        }
-        else
-        {
+        } else {
           Debug( 3, "Ignoring general SDP attribute '%s'", line.c_str() );
         }
         break;
@@ -369,8 +346,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     strncpy( formatContext->comment, mInfo.c_str(), sizeof(formatContext->comment) );
 */
   //formatContext->nb_streams = mMediaList.size();
-  for ( unsigned int i = 0; i < mMediaList.size(); i++ )
-  {
+  for ( unsigned int i = 0; i < mMediaList.size(); i++ ) {
     const MediaDescriptor *mediaDesc = mMediaList[i];
 #if !LIBAVFORMAT_VERSION_CHECK(53, 10, 0, 17, 0)
     AVStream *stream = av_new_stream( formatContext, i );
@@ -379,15 +355,12 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     stream->id = i;
 #endif
 
-    AVCodecContext *codec_context = NULL;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  codec_context = avcodec_alloc_context3(NULL);
-  avcodec_parameters_to_context(codec_context, stream->codecpar);
+    AVCodecContext *codec_context = avcodec_alloc_context3(NULL);
+    avcodec_parameters_to_context(codec_context, stream->codecpar);
 #else
-		codec_context = stream->codec;
+    AVCodecContext *codec_context = stream->codec;
 #endif
-
-
 
     Debug( 1, "Looking for codec for %s payload type %d / %s",  mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
@@ -409,13 +382,10 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
     std::string codec_name;
 #endif
-    if ( mediaDesc->getPayloadType() < PAYLOAD_TYPE_DYNAMIC )
-    {
+    if ( mediaDesc->getPayloadType() < PAYLOAD_TYPE_DYNAMIC ) {
       // Look in static table
-      for ( unsigned int i = 0; i < (sizeof(smStaticPayloads)/sizeof(*smStaticPayloads)); i++ )
-      {
-        if ( smStaticPayloads[i].payloadType == mediaDesc->getPayloadType() )
-        {
+      for ( unsigned int i = 0; i < (sizeof(smStaticPayloads)/sizeof(*smStaticPayloads)); i++ ) {
+        if ( smStaticPayloads[i].payloadType == mediaDesc->getPayloadType() ) {
           Debug( 1, "Got static payload type %d, %s", smStaticPayloads[i].payloadType, smStaticPayloads[i].payloadName );
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
           codec_name = std::string( smStaticPayloads[i].payloadName );

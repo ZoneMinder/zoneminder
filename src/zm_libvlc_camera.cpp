@@ -24,7 +24,7 @@
 
 // Do all the buffer checking work here to avoid unnecessary locking 
 void* LibvlcLockBuffer(void* opaque, void** planes) {
-  LibvlcPrivateData* data = (LibvlcPrivateData*)opaque;
+  LibvlcPrivateData* data = reinterpret_cast<LibvlcPrivateData*>(opaque);
   data->mutex.lock();
 
   uint8_t* buffer = data->buffer;
@@ -36,7 +36,7 @@ void* LibvlcLockBuffer(void* opaque, void** planes) {
 }
 
 void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes) {
-  LibvlcPrivateData* data = (LibvlcPrivateData*)opaque;
+  LibvlcPrivateData* data = reinterpret_cast<LibvlcPrivateData*>(opaque);
 
   bool newFrame = false;
   for( uint32_t i = 0; i < data->bufferSize; i++ ) {
@@ -67,6 +67,7 @@ LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, const std::stri
   mLibvlcMediaPlayer = NULL;
   mLibvlcData.buffer = NULL;
   mLibvlcData.prevBuffer = NULL;
+  mOptArgV = NULL;
 
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
   if(colours == ZM_COLOUR_RGB32) {

@@ -292,6 +292,8 @@ int main(int argc, char *argv[]) {
         }
       }
 
+      monitors[i]->CheckAction();
+
       if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
         if ( monitors[i]->PreCapture() < 0 ) {
           Error("Failed to pre-capture monitor %d %d (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);

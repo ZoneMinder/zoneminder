@@ -81,10 +81,6 @@ if ( !empty($page) ) {
   $eventsSql .= ' limit 0, '.$limit;
 }
 
-$maxWidth = 0;
-$maxHeight = 0;
-$archived = false;
-$unarchived = false;
 $maxShortcuts = 5;
 $pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQuery.'&amp;limit='.$limit );
 
@@ -95,6 +91,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
 ?>
 <body>
   <div id="page">
+  <?php echo getNavBarHTML() ?>
     <div id="header">
       <h2><?php echo sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
 <?php
@@ -118,7 +115,7 @@ if ( $pages > 1 ) {
   }
 }
 ?>
-        <a href="#" onclick="closeWindows();"><?php echo translate('Close') ?></a>
+        <a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a>
       </div>
     </div>
     <div id="content">
@@ -132,7 +129,6 @@ if ( $pages > 1 ) {
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
         <p id="controls">
           <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
-          <a id="filterLink" href="#" onclick="createPopup( '?view=filter&amp;page=<?php echo $page ?><?php echo $filterQuery ?>', 'zmFilter', 'filter' );"><?php echo translate('ShowFilterWindow') ?></a>
           <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?php echo $filterQuery ?>', 'zmTimeline', 'timeline' );"><?php echo translate('ShowTimeline') ?></a>
         </p>
         <table id="contentTable" class="major">

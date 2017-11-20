@@ -25,8 +25,19 @@ function showPtzControls() {
 
 function changeScale() {
   var scale = $('scale').get('value');
-  var newWidth = ( monitorWidth * scale ) / SCALE_BASE;
-  var newHeight = ( monitorHeight * scale ) / SCALE_BASE;
+  var newWidth;
+  var newHeight;
+  if (scale == "auto") {
+    let newSize = scaleToFit(monitorWidth, monitorHeight, $j('#liveStream'+monitorId));
+    newWidth = newSize.width;
+    newHeight = newSize.height;
+    autoScale = newSize.autoScale;
+  } else {
+    $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
+    newWidth = monitorWidth * scale / SCALE_BASE;
+    newHeight = monitorHeight * scale / SCALE_BASE;
+  }
+
 
   Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
 
@@ -36,7 +47,7 @@ function changeScale() {
     streamImg.style.width = newWidth + "px";
     streamImg.style.height = newHeight + "px";
 
-    streamImg.src = streamImg.src.replace(/scale=\d+/i, 'scale='+scale);
+    streamImg.src = streamImg.src.replace(/scale=\d+/i, 'scale='+(scale== 'auto' ? autoScale : scale));
   } else {
     console.error("No element found for liveStream.");
   }
@@ -655,6 +666,7 @@ function initPage() {
 
   if ( refreshApplet && appletRefreshTime )
     appletRefresh.delay( appletRefreshTime*1000 );
+  if (scale == "auto") changeScale();
 }
 
 // Kick everything off

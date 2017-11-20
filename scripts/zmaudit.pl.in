@@ -81,6 +81,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
                            ? $Config{ZM_DIR_EVENTS}
                            : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS})
 ;
+use constant ZM_AUDIT_PID =>  $Config{ZM_RUNDIR}.'/zm.pid'
 
 $| = 1;
 
@@ -116,6 +117,17 @@ if ( ($report + $interactive + $continuous) > 1 ) {
 
 if ( ! exists $Config{ZM_AUDIT_MIN_AGE} ) {
   Fatal('ZM_AUDIT_MIN_AGE is not set in config.');
+}
+
+if ( -e ZM_AUDIT_PID ) {
+  Fatal('zmaudit.pl appears to already be running.  If not, please delete ' . ZM_AUDIT_PID );
+} else {
+  if ( open( my $PID, '>', ZM_AUDIT_PID ) ) {
+    print( $PID $$ );
+    close( $PID );
+  } else {
+    Error( "Can't open pid file at " . ZM_PID );
+  }
 }
 
 my $dbh = zmDbConnect();
@@ -598,6 +610,7 @@ Debug("Event $db_event is not in fs.");
   sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;
 };
 
+unlink ZM_AUDIT_PID;
 exit( 0 );
 
 sub aud_print {

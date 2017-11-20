@@ -160,6 +160,8 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 } // end function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML($reload = null) {
+  parseFilter( $_REQUEST['filter'] );
+  $filterQuery = $_REQUEST['filter']['query'];
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
   global $running;
@@ -210,7 +212,7 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
 <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
-      <li><a href="?view=filter"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
+      <li><a href="?view=filter<?php echo $filterQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
   if ( canView( 'Stream' ) ) {

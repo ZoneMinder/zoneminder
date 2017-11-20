@@ -61,14 +61,11 @@ xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
 ?>
 <body>
   <div id="page">
+  <?php echo getNavBarHTML() ?>
     <div id="content">
       <div id="menuBar">
         <div id="monitorName"><?php echo $monitor->Name() ?></div>
-<script type="text/javascript">
-  if ( window.opener ) {
-    document.write('<div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>');
-  }
-</script>
+        <div id="closeControl"><a href="#" onclick="window.history.back()"><?php echo translate('Back') ?></a></div>
         <div id="menuControls">
 <?php
 if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {

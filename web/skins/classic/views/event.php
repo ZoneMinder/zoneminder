@@ -96,6 +96,7 @@ xhtmlHeaders(__FILE__, translate('Event') );
 ?>
 <body>
   <div id="page">
+    <?php echo getNavBarHTML() ?>
     <div id="content">
 <?php 
 if ( ! $Event->Id() ) {
@@ -123,7 +124,7 @@ if ( ! $Event->Id() ) {
         </div>
       </div>
       <div id="menuBar2">
-        <div id="closeWindow"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
+        <div id="closeWindow"><a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a></div>
 <?php
 if ( canEdit('Events') ) {
 ?>

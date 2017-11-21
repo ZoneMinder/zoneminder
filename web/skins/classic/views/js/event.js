@@ -175,10 +175,16 @@ var streamCmdTimer = null;
 
 var streamStatus = null;
 var lastEventId = 0;
+var zmsBroke = false; //Use alternate navigation if zms has crashed
 
 function getCmdResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getCmdResponse", respObj ) )
+  if ( checkStreamForErrors( "getCmdResponse", respObj ) ) {
+    console.log('Got an error from getCmdResponse');
+    zmsBroke = true;
     return;
+  }
+
+  zmsBroke = false;
 
   if ( streamCmdTimer )
     streamCmdTimer = clearTimeout( streamCmdTimer );
@@ -201,6 +207,7 @@ function getCmdResponse( respObj, respText ) {
     $('rateValue').set( 'text', streamStatus.rate );
     $('rate').removeClass( 'hidden' );
     streamPlay( );
+  if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
   }
   $('progressValue').set( 'text', secsToTime( parseInt(streamStatus.progress) ) );
   $('zoomValue').set( 'text', streamStatus.zoom );
@@ -295,16 +302,44 @@ function streamFastRev( action ) {
   streamReq.send( streamParms+"&command="+CMD_FASTREV );
 }
 
-function streamPrev( action ) {
-  if ( action )
-    streamReq.send( streamParms+"&command="+CMD_PREV );
+function streamPrev(action) {
+  if (action) {
     $j(".vjsMessage").remove();
-    $j(".vjsMessage").remove();//This shouldn't happen
+    if (vid && PrevEventDefVideoPath.indexOf("view_video") > 0) {
+      CurEventDefVideoPath = PrevEventDefVideoPath;
+      eventQuery(prevEventId);
+    } else if (zmsBroke || (vid && PrevEventDefVideoPath.indexOf("view_video") < 0) || $j("#vjsMessage").length || PrevEventDefVideoPath.indexOf("view_video") > 0) {//zms broke, leaving videojs, last event, moving to videojs
+      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+    } else {
+      streamReq.send(streamParms+"&command="+CMD_PREV);
+      streamPlay();
+    }
+  }
 }
 
-function streamNext( action ) {
-  if ( action )
-    streamReq.send( streamParms+"&command="+CMD_NEXT );
+function streamNext(action) {
+  if (action) {
+    $j(".vjsMessage").remove();//This shouldn't happen
+    if (nextEventId == 0) { //handles deleting last event.
+      pauseClicked();
+      let hideContainer = $j('#eventVideo');
+      let hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
+      hideContainer.prepend('<p class="vjsMessage" style="height: ' + hideStream + 'px; line-height: ' + hideStream + 'px;">No more events</p>');
+      if (vid == null) zmsBroke = true;
+      return;
+    }
+    if (vid && NextEventDefVideoPath.indexOf("view_video") > 0) { //on and staying with videojs
+      CurEventDefVideoPath = NextEventDefVideoPath;
+      eventQuery(nextEventId);
+    } else if (zmsBroke || (vid && NextEventDefVideoPath.indexOf("view_video") < 0) || NextEventDefVideoPath.indexOf("view_video") > 0) {//reload zms, leaving vjs, moving to vjs
+      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    } else {
+      streamReq.send(streamParms+"&command="+CMD_NEXT);
+      streamPlay();
+    }
+  }
+}
+
 }
 
 function streamZoomIn( x, y ) {
@@ -333,6 +368,7 @@ function streamQuery() {
 
 var slider = null;
 var scroll = null;
+var CurEventDefVideoPath = null;
 
 function getEventResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getEventResponse", respObj ) )
@@ -357,7 +393,7 @@ function getEventResponse( respObj, respText ) {
   $('dataFrames').set( 'text', eventData.Frames+"/"+eventData.AlarmFrames );
   $('dataScore').set( 'text', eventData.TotScore+"/"+eventData.AvgScore+"/"+eventData.MaxScore );
   $('eventName').setProperty( 'value', eventData.Name );
-
+  history.replaceState(null, null, '?view=event&eid=' + eventData.Id + filterQuery + sortQuery);//if popup removed, check if this allows forward
   if ( canEditEvents ) {
     if ( parseInt(eventData.Archived) ) {
       $('archiveEvent').addClass( 'hidden' );
@@ -369,7 +405,18 @@ function getEventResponse( respObj, respText ) {
   }
   //var eventImg = $('eventImage');
   //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
-  drawProgressBar();
+  if (vid && CurEventDefVideoPath) {
+    vid.src({type: 'video/mp4', src: CurEventDefVideoPath}); //Currently mp4 is all we use
+    initialAlarmCues(eventData.Id);//ajax and render, new event
+    addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
+    CurEventDefVideoPath = null;
+    $j('#modeValue').html('Replay');
+    $j('#zoomValue').html('1');
+    $j('#rateValue').html('1');
+    vjsPanZoom('zoomOut');
+  } else {
+    drawProgressBar();
+  }
   nearEventsQuery( eventData.Id );
 }
 
@@ -401,12 +448,14 @@ function getNearEventsResponse( respObj, respText ) {
   if ( prevEventBtn ) prevEventBtn.disabled = !prevEventId;
   var nextEventBtn = $('nextEventBtn');
   if ( nextEventBtn ) nextEventBtn.disabled = !nextEventId;
+  $j('#prevBtn').prop('disabled', prevEventId == 0 ? true : false).attr('class', prevEventId == 0 ? 'unavail' : 'inactive');
+  $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 }
 
 var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
 
 function nearEventsQuery( eventId ) {
-  var parms = "view=request&request=status&entity=nearevents&id="+eventId;
+  var parms = "view=request&request=status&entity=nearevents&id="+eventId+filterQuery+sortQuery;
   nearEventsReq.send( parms );
 }
 
@@ -901,33 +950,14 @@ function setupListener() {
 
 function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
-  if ( $('videoobj') ) {
-    vid = videojs("videoobj");
-  }
-  if ( vid ) {
-/*
-    setupListener();
-      vid.removeAttribute("controls");
-    /* window.videoobj.oncanplay=null;
-    window.videoobj.currentTime=window.videoobj.currentTime-1;
-    window.videoobj.currentTime=window.videoobj.currentTime+1;//may not be symetrical of course
-
-    vid.onstalled=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;} 
-    vid.onwaiting=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    vid.onloadstart=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    vid.onplay=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    vid.onplaying=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    //window.vid.hide();//does not help
-    var sources = window.videoobj.getElementsByTagName('source');
-    sources[0].src=null;
-    window.videoobj.load();
-    streamPlay();    */
+  if ($j('#videoobj').length) {
+    vid = videojs('videoobj');
+    addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
+    $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
   } else {
     progressBarNav ();
     streamCmdTimer = streamQuery.delay( 250 );
-    eventQuery.pass( eventData.Id ).delay( 500 );
-
     if ( canStreamNative ) {
       var streamImg = $('imageFeed').getElement('img');
       if ( !streamImg )
@@ -935,6 +965,7 @@ function initPage() {
       $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
     }
   }
+  nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   if (scale == "auto") changeScale();
 }

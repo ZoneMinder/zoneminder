@@ -36,7 +36,7 @@ class FFmpeg_Input {
         int frame_count;
     } stream;
 
-    stream streams[2];
+    stream *streams;
     int video_stream_id;
     int audio_stream_id;
     AVFormatContext *input_format_context;

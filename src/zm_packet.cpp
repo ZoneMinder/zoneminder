@@ -25,6 +25,8 @@
 using namespace std;
 
 ZMPacket::ZMPacket( AVPacket *p ) {
+  frame = NULL;
+  image = NULL;
   av_init_packet( &packet );
   if ( zm_av_packet_ref( &packet, p ) < 0 ) {
     Error("error refing packet");
@@ -33,6 +35,8 @@ ZMPacket::ZMPacket( AVPacket *p ) {
 }
 
 ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
+  frame = NULL;
+  image = NULL;
   av_init_packet( &packet );
   if ( zm_av_packet_ref( &packet, p ) < 0 ) {
     Error("error refing packet");

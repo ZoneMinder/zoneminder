@@ -176,13 +176,13 @@ bool EventStream::loadEventData( int event_id ) {
   event_data->n_frames = mysql_num_rows( result );
 
   event_data->frames = new FrameData[event_data->frame_count];
-  int id, last_id = 0;
+  int last_id = 0;
   time_t timestamp, last_timestamp = event_data->start_time;
-  double delta, last_delta = 0.0;
+  double last_delta = 0.0;
   while ( ( dbrow = mysql_fetch_row( result ) ) ) {
-    id = atoi(dbrow[0]);
+    int id = atoi(dbrow[0]);
     timestamp = atoi(dbrow[1]);
-    delta = atof(dbrow[2]);
+    double delta = atof(dbrow[2]);
     int id_diff = id - last_id;
     double frame_delta = (delta-last_delta)/id_diff;
     if ( id_diff > 1 ) {
@@ -414,7 +414,6 @@ void EventStream::processCommand( const CmdMsg *msg ) {
         }
         send_frame = true;
         break;
-        send_frame = true;
       }
     case CMD_PAN :
       {

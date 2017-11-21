@@ -75,7 +75,7 @@ class EventStream : public StreamBase {
 
     int curr_frame_id;
     double curr_stream_time;
-      bool  send_frame;
+    bool  send_frame;
 
     EventData *event_data;
     FFmpeg_Input  *ffmpeg_input;
@@ -97,6 +97,7 @@ class EventStream : public StreamBase {
 
       curr_frame_id = 0;
       curr_stream_time = 0.0;
+      send_frame = false;
 
       event_data = 0;
 

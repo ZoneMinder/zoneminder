@@ -115,7 +115,7 @@ BEGIN {
       , $Config{ZM_DB_USER}
       , $Config{ZM_DB_PASS}
       ) or croak( "Can't connect to db" );
-  my $sql = 'select * from Config';
+  my $sql = 'SELECT Name,Value FROM Config';
   my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
   while( my $config = $sth->fetchrow_hashref() ) {

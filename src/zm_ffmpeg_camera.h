@@ -85,8 +85,6 @@ class FfmpegCamera : public Camera {
 #endif // HAVE_LIBAVFORMAT
 
     VideoStore          *videoStore;
-    char                oldDirectory[4096];
-    unsigned int        old_event_id;
     zm_packetqueue      packetqueue;
     bool                have_video_keyframe;
 

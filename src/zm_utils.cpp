@@ -49,8 +49,7 @@ std::string trimSet(std::string str, std::string trimset) {
     return str.substr( startpos, endpos-startpos+1 );
 }
 
-std::string trimSpaces(std::string str)
-{
+std::string trimSpaces(std::string str) {
   return trimSet(str, " \t");
 }
 
@@ -80,7 +79,7 @@ const std::string stringtf( const char *format, ... )
   return( tempString );
 }
 
-const std::string stringtf( const std::string &format, ... )
+const std::string stringtf( const std::string format, ... )
 {
   va_list ap;
   char tempBuffer[8192];
@@ -100,7 +99,7 @@ bool startsWith( const std::string &haystack, const std::string &needle )
   return( haystack.substr( 0, needle.length() ) == needle );
 }
 
-StringVector split( const std::string &string, const std::string chars, int limit )
+StringVector split( const std::string &string, const std::string &chars, int limit )
 {
   StringVector stringVector;
   std::string tempString = string;
@@ -134,7 +133,7 @@ StringVector split( const std::string &string, const std::string chars, int limi
   return( stringVector );
 }
 
-const std::string join(const StringVector v, const char * delim ) {
+const std::string join(const StringVector &v, const char * delim ) {
   std::stringstream ss;
 
   for(size_t i = 0; i < v.size(); ++i) {
@@ -209,10 +208,9 @@ int split(const char* string, const char delim, std::vector<std::string>& items)
     return -2;
 
   std::string str(string);
-  size_t pos;
   
   while(true) {
-    pos = str.find(delim);
+    size_t pos = str.find(delim);
     items.push_back(str.substr(0, pos));
     str.erase(0, pos+1);
 

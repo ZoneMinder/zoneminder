@@ -36,7 +36,7 @@ protected:
 public:
   Buffer() : mStorage( 0 ), mAllocation( 0 ), mSize( 0 ), mHead( 0 ), mTail( 0 ) {
   }
-  Buffer( unsigned int pSize ) : mAllocation( pSize ), mSize( 0 ) {
+  explicit Buffer( unsigned int pSize ) : mAllocation( pSize ), mSize( 0 ) {
     mHead = mStorage = new unsigned char[mAllocation];
     mTail = mHead;
   }

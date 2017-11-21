@@ -1534,34 +1534,28 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           return( false );
         }
 
-        if ( verbose )
-        {
+        if ( verbose ) {
           sprintf( output+strlen(output), "  Input %d\n", input.index );
           sprintf( output+strlen(output), "    Name: %s\n", input.name );
           sprintf( output+strlen(output), "    Type: %s\n", input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
           sprintf( output+strlen(output), "    Audioset: %08x\n", input.audioset );
           sprintf( output+strlen(output), "    Standards: 0x%llx\n", input.std );
-        }
-        else
-        {
+        } else {
           sprintf( output+strlen(output), "i%d:%s|", input.index, input.name );
           sprintf( output+strlen(output), "i%dT:%s|", input.index, input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
           sprintf( output+strlen(output), "i%dS:%llx|", input.index, input.std );
         }
 
-        if ( verbose )
-        {
+        if ( verbose ) {
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_POWER, "Power ", "off", "on", " (X)" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_SIGNAL, "Signal ", "not detected", "detected", " (X)" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_COLOR, "Colour Signal ", "not detected", "detected", "" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_H_LOCK, "Horizontal Lock ", "not detected", "detected", "" ) );
-        }
-        else
-        {
-          sprintf( output+strlen(output), "i%dSP:%d|", input.index, input.status&V4L2_IN_ST_NO_POWER?0:1 );
-          sprintf( output+strlen(output), "i%dSS:%d|", input.index, input.status&V4L2_IN_ST_NO_SIGNAL?0:1 );
-          sprintf( output+strlen(output), "i%dSC:%d|", input.index, input.status&V4L2_IN_ST_NO_COLOR?0:1 );
-          sprintf( output+strlen(output), "i%dHP:%d|", input.index, input.status&V4L2_IN_ST_NO_H_LOCK?0:1 );
+        } else {
+          sprintf( output+strlen(output), "i%dSP:%d|", input.index, (input.status&V4L2_IN_ST_NO_POWER)?0:1 );
+          sprintf( output+strlen(output), "i%dSS:%d|", input.index, (input.status&V4L2_IN_ST_NO_SIGNAL)?0:1 );
+          sprintf( output+strlen(output), "i%dSC:%d|", input.index, (input.status&V4L2_IN_ST_NO_COLOR)?0:1 );
+          sprintf( output+strlen(output), "i%dHP:%d|", input.index, (input.status&V4L2_IN_ST_NO_H_LOCK)?0:1 );
         }
       }
       while ( inputIndex++ >= 0 );
@@ -1570,12 +1564,10 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
     }
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
-    if ( version == 1 )
-    {
+    if ( version == 1 ) {
       struct video_capability vid_cap;
       memset( &vid_cap, 0, sizeof(video_capability) );
-      if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 )
-      {
+      if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 ) {
         Error( "Failed to get video capabilities: %s", strerror(errno) );
         if ( verbose )
           sprintf( output, "Error, failed to get video capabilities %s: %s\n", queryDevice, strerror(errno) );
@@ -1583,25 +1575,24 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           sprintf( output, "error%d\n", errno );
         return( false );
       }
-      if ( verbose )
-      {
+      if ( verbose ) {
         sprintf( output+strlen(output), "Video Capabilities\n" );
         sprintf( output+strlen(output), "  Name: %s\n", vid_cap.name );
         sprintf( output+strlen(output), "  Type: %d\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s", vid_cap.type,
-            vid_cap.type&VID_TYPE_CAPTURE?"    Can capture\n":"",
-            vid_cap.type&VID_TYPE_TUNER?"    Can tune\n":"",
-            vid_cap.type&VID_TYPE_TELETEXT?"    Does teletext\n":"",
-            vid_cap.type&VID_TYPE_OVERLAY?"    Overlay onto frame buffer\n":"",
-            vid_cap.type&VID_TYPE_CHROMAKEY?"    Overlay by chromakey\n":"",
-            vid_cap.type&VID_TYPE_CLIPPING?"    Can clip\n":"",
-            vid_cap.type&VID_TYPE_FRAMERAM?"    Uses the frame buffer memory\n":"",
-            vid_cap.type&VID_TYPE_SCALES?"    Scalable\n":"",
-            vid_cap.type&VID_TYPE_MONOCHROME?"    Monochrome only\n":"",
-            vid_cap.type&VID_TYPE_SUBCAPTURE?"    Can capture subareas of the image\n":"",
-            vid_cap.type&VID_TYPE_MPEG_DECODER?"    Can decode MPEG streams\n":"",
-            vid_cap.type&VID_TYPE_MPEG_ENCODER?"    Can encode MPEG streams\n":"",
-            vid_cap.type&VID_TYPE_MJPEG_DECODER?"    Can decode MJPEG streams\n":"",
-            vid_cap.type&VID_TYPE_MJPEG_ENCODER?"    Can encode MJPEG streams\n":""
+            (vid_cap.type&VID_TYPE_CAPTURE)?"    Can capture\n":"",
+            (vid_cap.type&VID_TYPE_TUNER)?"    Can tune\n":"",
+            (vid_cap.type&VID_TYPE_TELETEXT)?"    Does teletext\n":"",
+            (vid_cap.type&VID_TYPE_OVERLAY)?"    Overlay onto frame buffer\n":"",
+            (vid_cap.type&VID_TYPE_CHROMAKEY)?"    Overlay by chromakey\n":"",
+            (vid_cap.type&VID_TYPE_CLIPPING)?"    Can clip\n":"",
+            (vid_cap.type&VID_TYPE_FRAMERAM)?"    Uses the frame buffer memory\n":"",
+            (vid_cap.type&VID_TYPE_SCALES)?"    Scalable\n":"",
+            (vid_cap.type&VID_TYPE_MONOCHROME)?"    Monochrome only\n":"",
+            (vid_cap.type&VID_TYPE_SUBCAPTURE)?"    Can capture subareas of the image\n":"",
+            (vid_cap.type&VID_TYPE_MPEG_DECODER)?"    Can decode MPEG streams\n":"",
+            (vid_cap.type&VID_TYPE_MPEG_ENCODER)?"    Can encode MPEG streams\n":"",
+            (vid_cap.type&VID_TYPE_MJPEG_DECODER)?"    Can decode MJPEG streams\n":"",
+            (vid_cap.type&VID_TYPE_MJPEG_ENCODER)?"    Can encode MJPEG streams\n":""
             );
         sprintf( output+strlen(output), "  Video Channels: %d\n", vid_cap.channels );
         sprintf( output+strlen(output), "  Audio Channels: %d\n", vid_cap.audios );
@@ -1721,8 +1712,8 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           sprintf( output+strlen(output), "  Name: %s\n", vid_src.name );
           sprintf( output+strlen(output), "  Channel: %d\n", vid_src.channel );
           sprintf( output+strlen(output), "  Flags: %d\n%s%s", vid_src.flags,
-              vid_src.flags&VIDEO_VC_TUNER?"    Channel has a tuner\n":"",
-              vid_src.flags&VIDEO_VC_AUDIO?"    Channel has audio\n":""
+              (vid_src.flags&VIDEO_VC_TUNER)?"    Channel has a tuner\n":"",
+              (vid_src.flags&VIDEO_VC_AUDIO)?"    Channel has audio\n":""
               );
           sprintf( output+strlen(output), "  Type: %d - %s\n", vid_src.type,
               vid_src.type==VIDEO_TYPE_TV?"TV":(
@@ -2047,9 +2038,8 @@ int LocalCamera::PreCapture() {
 int LocalCamera::Capture( Image &image ) {
   Debug( 3, "Capturing" );
   static uint8_t* buffer = NULL;
-  static uint8_t* directbuffer = NULL;
-  static int capture_frame = -1;
   int buffer_bytesused = 0;
+  int capture_frame = -1;
 
   int captures_per_frame = 1;
   if ( channel_count > 1 )
@@ -2058,7 +2048,6 @@ int LocalCamera::Capture( Image &image ) {
     captures_per_frame = 1;
     Warning( "Invalid Captures Per Frame setting: %d", captures_per_frame );
   } 
-
 
   // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer
   if ( channel_prime ) {
@@ -2135,7 +2124,7 @@ int LocalCamera::Capture( Image &image ) {
     Debug( 3, "Performing format conversion" );
 
     /* Request a writeable buffer of the target image */
-    directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+    uint8_t* directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
     if ( directbuffer == NULL ) {
       Error("Failed requesting writeable buffer for the captured image.");
       return -1;
@@ -2153,7 +2142,13 @@ int LocalCamera::Capture( Image &image ) {
       avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
           imagePixFormat, width, height );
 #endif
-      sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
+      sws_scale( imgConversionContext,
+          capturePictures[capture_frame]->data,
+          capturePictures[capture_frame]->linesize,
+          0,
+          height,
+          tmpPicture->data,
+          tmpPicture->linesize );
     }
 #endif  
     if ( conversion_type == 2 ) {
@@ -2174,11 +2169,11 @@ int LocalCamera::Capture( Image &image ) {
   }
 
   return 1;
-}
+} // end int LocalCamera::Capture()
 
 int LocalCamera::PostCapture()
 {
-  Debug( 2, "Post-capturing" );
+  Debug( 4, "Post-capturing" );
   // Requeue the buffer unless we need to switch or are a duplicate camera on a channel
   if ( channel_count > 1 || channel_prime )
   {

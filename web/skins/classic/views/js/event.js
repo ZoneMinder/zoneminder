@@ -50,22 +50,32 @@ function setButtonState( element, butClass ) {
 }
 
 function changeScale() {
-  var scale = $('scale').get('value');
-  var baseWidth = eventData.Width;
-  var baseHeight = eventData.Height;
-  var newWidth = ( baseWidth * scale ) / SCALE_BASE;
-  var newHeight = ( baseHeight * scale ) / SCALE_BASE;
-
-	if ( vid ) {
-    // Using video.js
-		vid.width = newWidth;
-		vid.height = newHeight;
-	} else {
-    streamScale( scale );
-		var streamImg = document.getElementById('evtStream');
-		streamImg.style.width = newWidth + "px";
-		streamImg.style.height = newHeight + "px";
-    Cookie.write( 'zmEventScale'+eventData.MonitorId, scale, { duration: 10*365 } );
+  let scale = $j('#scale').val();
+  let newWidth;
+  let newHeight;
+  let autoScale;
+  if (scale == "auto") {
+    let newSize = scaleToFit(eventData.Width, eventData.Height, $j(vid ? '#videoobj' : '#evtStream'), $j('#replayStatus'));
+    newWidth = newSize.width;
+    newHeight = newSize.height;
+    autoScale = newSize.autoScale;
+  } else {
+    $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
+    newWidth = eventData.Width * scale / SCALE_BASE;
+    newHeight = eventData.Height * scale / SCALE_BASE;
+  }
+  let eventViewer = $j(vid ? '#videoobj' : '#evtStream')
+  eventViewer.width(newWidth);
+  eventViewer.height(newHeight);
+  if ( !vid ) { // zms needs extra sizing
+    streamScale(scale == "auto" ? autoScale : scale);
+    drawProgressBar();
+  }
+  if (scale == "auto") {
+    Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
+  }else{
+    Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
+    Cookie.dispose('zmEventScaleAuto');
   }
 }
 
@@ -841,6 +851,7 @@ function initPage() {
       $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
     }
   }
+  if (scale == "auto") changeScale();
 }
 
 // Kick everything off

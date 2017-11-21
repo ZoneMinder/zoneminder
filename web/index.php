@@ -34,7 +34,7 @@ if ( version_compare( phpversion(), '4.1.0', '<') ) {
 }
 
 // Useful debugging lines for mobile devices
-if ( false ) {
+if ( true ) {
   ob_start();
   phpinfo( INFO_VARIABLES );
   $fp = fopen( '/tmp/env.html', 'w' );
@@ -113,7 +113,7 @@ if ( !file_exists( ZM_SKIN_PATH ) )
 $skinBase[] = $skin;
 
 $currentCookieParams = session_get_cookie_params(); 
-Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+//Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
 session_set_cookie_params( 
     $currentCookieParams['lifetime'], 
     $currentCookieParams['path'], 
@@ -175,9 +175,7 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
 
 if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
   if ( empty($user) && ! empty($_REQUEST['auth']) ) {
-Logger::Debug("Getting user from auth hash");
     if ( $authUser = getAuthUser( $_REQUEST['auth'] ) ) {
-Logger::Debug("Success Getting user from auth hash");
       userLogin( $authUser['Username'], $authUser['Password'], true );
     }
   } else if ( ! empty($user) ) {

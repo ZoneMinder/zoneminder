@@ -38,7 +38,9 @@
 #include "zm_image.h"
 #include "zm_stream.h"
 #include "zm_video.h"
+#include "zm_packet.h"
 
+class VideoStore;
 class Zone;
 class Monitor;
 class EventStream;
@@ -78,19 +80,16 @@ class Event {
     struct timeval  end_time;
     std::string     cause;
     StringSetMap    noteSetMap;
-    bool            videoEvent;
     int        frames;
     int        alarm_frames;
     unsigned int  tot_score;
     unsigned int  max_score;
     char      path[PATH_MAX];
-    VideoWriter* videowriter;
-    FILE* timecodes_fd;
+    VideoStore *videoStore;
     char video_name[PATH_MAX];
     char video_file[PATH_MAX];
-    char timecodes_name[PATH_MAX];
-    char timecodes_file[PATH_MAX];
     int        last_db_frame;
+    bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.
 
     void createNotes( std::string &notes );
 
@@ -98,7 +97,7 @@ class Event {
     static bool OpenFrameSocket( int );
     static bool ValidateFrameSocket( int );
 
-    Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent=false );
+    Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap );
     ~Event();
 
     int Id() const { return( id ); }
@@ -113,12 +112,13 @@ class Event {
 
     bool SendFrameImage( const Image *image, bool alarm_frame=false );
     bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false );
-    bool WriteFrameVideo( const Image *image, const struct timeval timestamp, VideoWriter* videow );
 
     void updateNotes( const StringSetMap &stringSetMap );
 
     void AddFrames( int n_frames, Image **images, struct timeval **timestamps );
     void AddFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL );
+    void AddPacket( ZMPacket *p, int score=0, Image *alarm_frame=NULL );
+    bool WritePacket( ZMPacket &p );
 
   private:
     void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );

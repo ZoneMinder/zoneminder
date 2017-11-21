@@ -107,7 +107,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mRawFrame = NULL;
   mFrame = NULL;
   frameCount = 0;
-  startTime = 0;
   mIsOpening = false;
   mCanCapture = false;
   mOpenStart = 0;
@@ -161,55 +160,47 @@ int FfmpegCamera::PreCapture() {
   return( 0 );
 }
 
-ZMPacket * FfmpegCamera::Capture( Image &image ) {
+int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
   if ( ! mCanCapture ) {
-    return NULL;
+    return -1;
   }
 
   int ret;
-  char errbuf[AV_ERROR_MAX_STRING_SIZE];
 
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
   if ( mReopenThread != 0 ) {
     void *retval = 0;
-
     ret = pthread_join(mReopenThread, &retval);
     if ( ret != 0 ) {
       Error("Could not join reopen thread.");
     }
-
     Info( "Successfully reopened stream." );
     mReopenThread = 0;
   }
 
-  ZMPacket *zm_packet = NULL;
-
-  ret = av_read_frame( mFormatContext, &packet );
-  if ( ret < 0 ) {
-    av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+  if ( (ret = av_read_frame( mFormatContext, &packet )) < 0 ) {
     if (
         // Check if EOF.
         (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
         // Check for Connection failure.
         (ret == -110)
        ) {
-      Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf );
+      Info( "av_read_frame returned \"%s\". Reopening stream.", av_make_error_string(ret).c_str() );
       ReopenFfmpeg();
     }
-
-    Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
-    return NULL;
+    Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, av_make_error_string(ret).c_str() );
+    return -1;
   }
   Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet.stream_index, packet.pts, packet.dts );
 
-  zm_packet = new ZMPacket( &packet );
+  zm_packet.set_packet( &packet );
   zm_av_packet_unref( &packet );
-  return zm_packet;
+  return 1;
 } // FfmpegCamera::Capture
 
 int FfmpegCamera::PostCapture() {
   // Nothing to do here
-  return( 0 );
+  return 0;
 }
 
 int FfmpegCamera::OpenFfmpeg() {
@@ -267,8 +258,8 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-  AVDictionaryEntry *e;
-  if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+  AVDictionaryEntry *e = NULL;
+  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
 
@@ -278,15 +269,12 @@ int FfmpegCamera::OpenFfmpeg() {
   Info( "Stream open %s", mPath.c_str() );
 
 #if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
-  Debug ( 1, "Calling av_find_stream_info" );
   if ( av_find_stream_info( mFormatContext ) < 0 )
 #else
-    Debug ( 1, "Calling avformat_find_stream_info" );
   if ( avformat_find_stream_info( mFormatContext, 0 ) < 0 )
 #endif
     Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
 
-  startTime = av_gettime();//FIXME here or after find_Stream_info
   Debug ( 1, "Got stream info" );
 
   // Find first video stream present
@@ -344,7 +332,9 @@ int FfmpegCamera::OpenFfmpeg() {
 	// STolen from ispy
 	//this fixes issues with rtsp streams!! woot.
 	//mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG2_CHUNKS | CODEC_FLAG_LOW_DELAY;  // Enable faster H264 decode.
+#ifdef CODEC_FLAG2_FAST
 	mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
+#endif
 
 #if HAVE_AVUTIL_HWCONTEXT_H
   if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
@@ -381,7 +371,6 @@ int FfmpegCamera::OpenFfmpeg() {
         }
       }
     }
-
   } // end if h264
 #endif
 
@@ -397,35 +386,22 @@ int FfmpegCamera::OpenFfmpeg() {
   if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 ){
 #else
     Debug ( 1, "Calling avcodec_open2" );
-  if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 ) {
+    if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 ) {
 #endif
-    AVDictionaryEntry *e;
-    if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-      Warning( "Option %s not recognized by ffmpeg", e->key);
-    }
-    Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
-  } else {
-
-    AVDictionaryEntry *e;
-    if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-      Warning( "Option %s not recognized by ffmpeg", e->key);
-    }
-  }
-  }
-
-  if ( mVideoCodecContext->codec_id != AV_CODEC_ID_H264 ) {
-#ifdef AV_CODEC_ID_H265
-    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
-      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
+      AVDictionaryEntry *e = NULL;
+      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+        Warning( "Option %s not recognized by ffmpeg", e->key);
+      }
+      Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
     } else {
-#endif
-      Warning( "Input stream is not h264.  The stored event file may not be viewable in browser." );
-#ifdef AV_CODEC_ID_H265
+      AVDictionaryEntry *e = NULL;
+      if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+        Warning( "Option %s not recognized by ffmpeg", e->key);
+      }
     }
-#endif
-  }
+  } // end if success opening codec
 
-  if (mVideoCodecContext->hwaccel != NULL) {
+  if ( mVideoCodecContext->hwaccel != NULL ) {
     Debug(1, "HWACCEL in use");
   } else {
     Debug(1, "HWACCEL not in use");
@@ -444,26 +420,21 @@ int FfmpegCamera::OpenFfmpeg() {
       zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  Debug ( 1, "Calling avcodec_open" );
-  if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )
+      Debug ( 1, "Calling avcodec_open" );
+      if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )
 #else
-    Debug ( 1, "Calling avcodec_open2" );
-  if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 )
+        Debug ( 1, "Calling avcodec_open2" );
+      if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 )
 #endif
-    Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
+        Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
     }
-  }
+  } // end if have audio stream
 
   Debug ( 1, "Opened codec" );
 
-  // Allocate space for the native video frame
-  mRawFrame = zm_av_frame_alloc();
-
-  if ( mRawFrame == NULL )
-    Fatal( "Unable to allocate frame for %s", mPath.c_str() );
-
-  Debug ( 1, "Allocated frames" );
-
+  if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
+    Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
+  }
 
   mCanCapture = true;
 
@@ -507,12 +478,12 @@ int FfmpegCamera::CloseFfmpeg() {
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
-    //av_free(mVideoCodecContext);
+    avcodec_free_context(&mVideoCodecContext);
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }
   if ( mAudioCodecContext ) {
     avcodec_close(mAudioCodecContext);
-    //av_free(mAudioCodecContext);
+    avcodec_free_context(&mAudioCodecContext);
     mAudioCodecContext = NULL; // Freed by av_close_input_file
   }
 
@@ -566,45 +537,4 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx) {
   }
 } // end void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx)
 
-/*
-   Responsible for populating the decoded frame member of the zm_packet.
-*/
-Image * FfmpegCamera::decode( Image *i = NULL, _AVPIXELFORMAT imagePixFormat, struct SwsContext *mConvertContext ) {
-
-  if ( ! frame ) {
-    Error("Can't get image without frame.. maybe need to decode first");
-    return NULL;
-  }
-
-  if ( ! image ) {
-    if ( ! i ) {
-      Error("Need a pre-allocated image buffer");
-      return NULL;
-    } 
-    image = i;
-  }
-  /* Request a writeable buffer of the target image */
-  uint8_t* directbuffer = image->WriteBuffer();
-  //uint8_t* directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-  if ( directbuffer == NULL ) {
-    Error("Failed requesting writeable buffer for the captured image.");
-    image = NULL;
-    return NULL;
-  }
-
-  // mFrame is an intermediate. 
-  AVFrame *mFrame = zm_av_frame_alloc();
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  av_image_fill_arrays(mFrame->data, mFrame->linesize, directbuffer, imagePixFormat, frame->width, frame->height, 1);
-#else
-  avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, frame->width, frame->height);
-#endif
-  if (sws_scale(mConvertContext, frame->data, frame->linesize,
-        0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0) {
-    Fatal("Unable to convert raw format %u to target format %u",
-        mVideoCodecContext->pix_fmt, imagePixFormat);
-  }
-  av_frame_free( &mFrame );
-  return image;
-}
 #endif // HAVE_LIBAVFORMAT

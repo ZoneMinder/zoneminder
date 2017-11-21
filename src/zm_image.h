@@ -154,10 +154,10 @@ protected:
 
 public:
 	Image();
-	Image( const char *filename );
+	explicit Image( const char *filename );
 	Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0);
-	Image( const Image &p_image );
-  Image( const AVFrame *frame );
+	explicit Image( const Image &p_image );
+  explicit Image( const AVFrame *frame );
 	~Image();
 	static void Initialise();
 	static void Deinitialise();
@@ -165,27 +165,26 @@ public:
 	inline unsigned int Width() const { return( width ); }
 	inline unsigned int Height() const { return( height ); }
 	inline unsigned int Pixels() const { return( pixels ); }
-	inline unsigned int Colours() const { return( colours ); }
-	inline unsigned int SubpixelOrder() const { return( subpixelorder ); }
-	inline unsigned int Size() const { return( size ); }
+  inline unsigned int Colours() const { return( colours ); }
+  inline unsigned int SubpixelOrder() const { return( subpixelorder ); }
+  inline unsigned int Size() const { return( size ); }
 
   inline unsigned int AVPixFormat() {
-    if ( ! imagePixFormat ) {
-      /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
-      if ( colours == ZM_COLOUR_RGB32 ) {
-        subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-        imagePixFormat = AV_PIX_FMT_RGBA;
-      } else if ( colours == ZM_COLOUR_RGB24 ) {
-        subpixelorder = ZM_SUBPIX_ORDER_RGB;
-        imagePixFormat = AV_PIX_FMT_RGB24;
-      } else if ( colours == ZM_COLOUR_GRAY8 ) {
-        subpixelorder = ZM_SUBPIX_ORDER_NONE;
-        imagePixFormat = AV_PIX_FMT_GRAY8;
-      };
+    if ( colours == ZM_COLOUR_RGB32 ) {
+      return AV_PIX_FMT_RGBA;
+    } else if ( colours == ZM_COLOUR_RGB24 ) {
+      if ( subpixelorder == ZM_SUBPIX_ORDER_BGR){
+        return AV_PIX_FMT_BGR24;
+      } else {
+        return AV_PIX_FMT_RGB24;
+      }
+    } else if ( colours == ZM_COLOUR_GRAY8 ) {
+      return AV_PIX_FMT_GRAY8;
+    } else {
+      Error("Unknown colours (%d)",colours);
+      return AV_PIX_FMT_RGBA;
     }
-      return imagePixFormat;
   }
-
 	
 	/* Internal buffer should not be modified from functions outside of this class */
 	inline const uint8_t* Buffer() const { return( buffer ); }
@@ -207,6 +206,7 @@ public:
 	
 	void Assign( unsigned int p_width, unsigned int p_height, unsigned int p_colours, unsigned int p_subpixelorder, const uint8_t* new_buffer, const size_t buffer_size);
 	void Assign( const Image &image );
+  void Assign( const AVFrame *frame );
 	void AssignDirect( const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder, uint8_t *new_buffer, const size_t buffer_size, const int p_buffertype);
 
 	inline void CopyBuffer( const Image &image ) {

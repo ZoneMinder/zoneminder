@@ -78,7 +78,58 @@ int SWScale::SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, 
   return 0;
 }
 
-int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
+int SWScale::Convert( 
+  AVFrame *in_frame,
+  AVFrame *out_frame
+) {
+
+  // THe J formats are deprecated, so we need to convert
+  AVPixelFormat format;
+  switch ( in_frame->format ) {
+    case AV_PIX_FMT_YUVJ420P :
+      format = AV_PIX_FMT_YUV420P;
+      break;
+    case AV_PIX_FMT_YUVJ422P  :
+      format = AV_PIX_FMT_YUV422P;
+      break;
+    case AV_PIX_FMT_YUVJ444P   :
+      format = AV_PIX_FMT_YUV444P;
+      break;
+    case AV_PIX_FMT_YUVJ440P :
+      format = AV_PIX_FMT_YUV440P;
+      break;
+    default:
+      format = (AVPixelFormat)in_frame->format;
+      break;
+  }
+  /* Get the context */
+  swscale_ctx = sws_getCachedContext( swscale_ctx,
+      in_frame->width, in_frame->height, format,
+      out_frame->width, out_frame->height, (AVPixelFormat)out_frame->format,
+      SWS_FAST_BILINEAR, NULL, NULL, NULL );
+  if ( swscale_ctx == NULL ) {
+    Error("Failed getting swscale context");
+    return -6;
+  }
+  /* Do the conversion */
+  if(!sws_scale(swscale_ctx, in_frame->data, in_frame->linesize, 0, in_frame->height, out_frame->data, out_frame->linesize ) ) {
+    Error("swscale conversion failed");
+    return -10;
+  }
+
+  return 0;
+}
+
+int SWScale::Convert(
+    const uint8_t* in_buffer,
+    const size_t in_buffer_size,
+    uint8_t* out_buffer,
+    const size_t out_buffer_size,
+    enum _AVPIXELFORMAT in_pf,
+    enum _AVPIXELFORMAT out_pf,
+    unsigned int width,
+    unsigned int height
+    ) {
   /* Parameter checking */
   if(in_buffer == NULL || out_buffer == NULL) {
     Error("NULL Input or output buffer");
@@ -91,6 +142,24 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   if (!width || !height) {
     Error("Invalid width or height");
     return -3;
+  }
+
+  // THe J formats are deprecated, so we need to convert
+  switch ( in_pf ) {
+    case AV_PIX_FMT_YUVJ420P :
+      in_pf = AV_PIX_FMT_YUV420P;
+      break;
+    case AV_PIX_FMT_YUVJ422P  :
+      in_pf = AV_PIX_FMT_YUV422P;
+      break;
+    case AV_PIX_FMT_YUVJ444P   :
+      in_pf = AV_PIX_FMT_YUV444P;
+      break;
+    case AV_PIX_FMT_YUVJ440P :
+      in_pf = AV_PIX_FMT_YUV440P;
+      break;
+    default:
+      break;
   }
 
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
@@ -119,14 +188,14 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
   size_t outsize = avpicture_get_size(out_pf, width, height);
 #endif
 
-  if(outsize < out_buffer_size) {
+  if ( outsize < out_buffer_size ) {
     Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
     return -5;
   }
 
   /* Get the context */
   swscale_ctx = sws_getCachedContext( swscale_ctx, width, height, in_pf, width, height, out_pf, SWS_FAST_BILINEAR, NULL, NULL, NULL );
-  if(swscale_ctx == NULL) {
+  if ( swscale_ctx == NULL ) {
     Error("Failed getting swscale context");
     return -6;
   }
@@ -163,22 +232,22 @@ int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint
 }
 
 int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
-  if(img->Width() != width) {
+  if ( img->Width() != width ) {
     Error("Source image width differs. Source: %d Output: %d",img->Width(), width);
     return -12;
   }
 
-  if(img->Height() != height) {
+  if ( img->Height() != height ) {
     Error("Source image height differs. Source: %d Output: %d",img->Height(), height);
     return -13;
   }
 
-  return Convert(img->Buffer(),img->Size(),out_buffer,out_buffer_size,in_pf,out_pf,width,height);
+  return Convert(img->Buffer(), img->Size(), out_buffer, out_buffer_size, in_pf, out_pf, width, height);
 }
 
 int SWScale::ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size) {
 
-  if(!gotdefaults) {
+  if ( !gotdefaults ) {
     Error("Defaults are not set");
     return -24;
   }
@@ -188,7 +257,7 @@ int SWScale::ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t
 
 int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size) {
 
-  if(!gotdefaults) {
+  if ( !gotdefaults ) {
     Error("Defaults are not set");
     return -24;
   }

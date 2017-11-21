@@ -34,19 +34,16 @@ class zm_packetqueue {
 public:
     zm_packetqueue();
     virtual ~zm_packetqueue();
-    bool queuePacket( AVPacket* packet, struct timeval *timestamp );
     bool queuePacket( ZMPacket* packet );
-    bool queuePacket( AVPacket* packet );
     ZMPacket * popPacket( );
-    bool popVideoPacket(ZMPacket* packet);
-    bool popAudioPacket(ZMPacket* packet);
     unsigned int clearQueue( unsigned int video_frames_to_keep, int stream_id );
     void clearQueue( );
     unsigned int size();
+    unsigned int get_video_packet_count();
     void clear_unwanted_packets( timeval *recording, int mVideoStreamId );
 private:
     std::list<ZMPacket *>    pktQueue;
-
+    unsigned int video_packets; // keep track of how many video packets we have, because we shouldn't have more than image_buffer_count
 };
 
 #endif /* ZM_PACKETQUEUE_H */

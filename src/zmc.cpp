@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     Usage();
   }
 
-  int modes = (device[0]?1:0 + host[0]?1:0 + file[0]?1:0 + (monitor_id > 0 ? 1 : 0));
+  int modes = ( (device[0]?1:0) + (host[0]?1:0) + (file[0]?1:0) + (monitor_id > 0 ? 1 : 0));
   if ( modes > 1 ) {
     fprintf(stderr, "Only one of device, host/port/path, file or monitor id allowed\n");
     Usage();
@@ -256,19 +256,20 @@ int main(int argc, char *argv[]) {
     alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
 
     Monitor::Function function = monitors[0]->GetFunction();
-    if ( function == Monitor::MODECT || function == Monitor::MOCORD ) {
+    if ( function == Monitor::MODECT || function == Monitor::MOCORD || function == Monitor::RECORD) {
       Debug(1, "Starting an analysis thread for monitor (%d)", monitors[i]->Id());
       analysis_threads[i] = new AnalysisThread(monitors[i]);
       analysis_threads[i]->start();
     } else {
       analysis_threads[i] = NULL;
     }
-  }
+  } // end foreach monitor
 
   int result = 0;
   struct timeval now;
   struct DeltaTimeval delta_time;
   while ( !zm_terminate ) {
+    //Debug(2,"blocking");
     sigprocmask(SIG_BLOCK, &block_set, 0);
     for ( int i = 0; i < n_monitors; i++ ) {
       long min_delay = MAXINT;
@@ -290,6 +291,8 @@ int main(int argc, char *argv[]) {
           min_delay = next_delays[j];
         }
       }
+
+      monitors[i]->CheckAction();
 
       if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
         if ( monitors[i]->PreCapture() < 0 ) {
@@ -316,13 +319,17 @@ int main(int argc, char *argv[]) {
           DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
           long sleep_time = next_delays[i]-delta_time.delta;
           if ( sleep_time > 0 ) {
+            //Debug(2,"usleeping (%d)", sleep_time*(DT_MAXGRAN/DT_PREC_3) );
             usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
           }
+          last_capture_times[i] = now;
+        } else {
+          gettimeofday(&(last_capture_times[i]), NULL);
         }
-        gettimeofday(&(last_capture_times[i]), NULL);
       }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
 
     }  // end foreach n_monitors
+    //Debug(2,"unblocking");
     sigprocmask(SIG_UNBLOCK, &block_set, 0);
   }  // end while ! zm_terminate
   for ( int i = 0; i < n_monitors; i++ ) {

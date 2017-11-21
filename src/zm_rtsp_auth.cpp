@@ -26,7 +26,11 @@
 
 namespace zm {
 
-Authenticator::Authenticator(std::string &username, std::string password) {
+Authenticator::Authenticator( const std::string &username, const std::string &password) : 
+ fCnonce( "0a4f113b" ),
+ fUsername(username),
+ fPassword(password)
+  {
 #ifdef HAVE_GCRYPT_H
   // Special initialisation for libgcrypt
   if ( !gcry_check_version( GCRYPT_VERSION ) )
@@ -38,10 +42,7 @@ Authenticator::Authenticator(std::string &username, std::string password) {
 #endif // HAVE_GCRYPT_H
   
   fAuthMethod = AUTH_UNDEFINED;
-  fUsername = username;
-  fPassword = password;
   nc = 1;
-  fCnonce = "0a4f113b";
 }
 
 Authenticator::~Authenticator() {
@@ -96,13 +97,11 @@ void Authenticator::authHandleHeader(std::string headerData)
   }
 }
 
-std::string Authenticator::quote(std::string src)
-{
+std::string Authenticator::quote( const std::string &src ) {
   return replaceAll(replaceAll(src, "\\", "\\\\"), "\"", "\\\"");
 }
 
-std::string Authenticator::getAuthHeader(std::string method, std::string uri) 
-{
+std::string Authenticator::getAuthHeader(std::string method, std::string uri) {
   std::string result = "Authorization: ";
   if (fAuthMethod == AUTH_BASIC) 
   {

@@ -21,7 +21,7 @@ class FFmpeg_Input {
 
     int Open( const char *filename );
     int Close();
-    AVFrame *get_frame( int stream_id=-1 );
+    AVFrame *get_frame( int stream_id=-1, int frame_number=-1 );
     int get_video_stream_id() {
       return video_stream_id;
     }
@@ -36,7 +36,7 @@ class FFmpeg_Input {
         int frame_count;
     } stream;
 
-    stream streams[2];
+    stream *streams;
     int video_stream_id;
     int audio_stream_id;
     AVFormatContext *input_format_context;

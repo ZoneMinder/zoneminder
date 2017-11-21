@@ -270,7 +270,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
       Debug( 1, "Got SCALE command, to %d", scale );
       break;
     }
-  case CMD_QUIT :
+    case CMD_QUIT :
     {
       Info ("User initiated exit - CMD_QUIT");
       break;
@@ -316,7 +316,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
   //status_data.enabled = monitor->shared_data->active;
   status_data.enabled = monitor->trigger_data->trigger_state!=Monitor::TRIGGER_OFF;
   status_data.forced = monitor->trigger_data->trigger_state==Monitor::TRIGGER_ON;
-  Debug( 2, "L:%d, D:%d, P:%d, R:%d, d:%.3f, Z:%d, E:%d F:%d", 
+  Debug( 2, "Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d", 
     status_data.buffer_level,
     status_data.delayed,
     status_data.paused,
@@ -338,20 +338,26 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
       //exit( -1 );
     }
   }
+Debug(2, "NUmber of bytes sent: (%d)", nbytes );
 
   // quit after sending a status, if this was a quit request
-  if ((MsgCommand)msg->msg_data[0]==CMD_QUIT)
-  exit(0);
+  if ( (MsgCommand)msg->msg_data[0]==CMD_QUIT ) {
+    Debug(2,"Quitting");
+    exit(0);
+  }
 
+  Debug(2,"Updating framrate");
   updateFrameRate( monitor->GetFPS() );
 } // end void MonitorStream::processCommand( const CmdMsg *msg )
 
 bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp ) {
   bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
-  if ( type != STREAM_JPEG )
-    send_raw = false;
-  if ( !config.timestamp_on_capture && timestamp )
+  if ( 
+      ( type != STREAM_JPEG )
+      ||
+      ( (!config.timestamp_on_capture) && timestamp )
+     )
     send_raw = false;
 
   if ( !send_raw ) {
@@ -553,20 +559,28 @@ void MonitorStream::runStream() {
         Debug( 2, "Assigned temporary buffer" );
       }
     }
-  }
+  } // end if connkey  & playback_buffer
 
   float max_secs_since_last_sent_frame = 10.0; //should be > keep alive amount (5 secs)
   while ( !zm_terminate ) {
     bool got_command = false;
     if ( feof( stdout ) || ferror( stdout ) || !monitor->ShmValid() ) {
+      if ( feof( stdout ) ) {
+        Debug(2,"feof stdout");
+      } else if ( ferror( stdout ) ) {
+        Debug(2,"ferror stdout");
+      } else if ( !monitor->ShmValid() ) {
+        Debug(2,"monitor not valid.... maybe we should wait until it comes back.");
+      }
       break;
     }
 
     gettimeofday( &now, NULL );
 
     if ( connkey ) {
-Debug(2, "checking command Queue");
+//Debug(2, "checking command Queue for connkey: %d", connkey );
       while(checkCommandQueue()) {
+Debug(2, "Have checking command Queue for connkey: %d", connkey );
         got_command = true;
       }
     }
@@ -646,18 +660,23 @@ Debug(2, "checking command Queue");
         replay_rate = ZM_RATE_BASE;
       }
     }
+    // Last read index is analysis... what do we care about analysis? I think we are using the same variable for two purposese
     if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index ) {
+
+  // Is his % neccessary?  is last_write_index not guaranteed to be < image_buffer_count?
       int index = monitor->shared_data->last_write_index%monitor->image_buffer_count;
       last_read_index = monitor->shared_data->last_write_index;
       //Debug( 1, "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer );
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
           // Send the next frame
-          Monitor::Snapshot *snap = &monitor->image_buffer[index];
+          ZMPacket *snap = &monitor->image_buffer[index];
 
-          if ( !sendFrame( snap->image, snap->timestamp ) )
+          if ( !sendFrame( snap->image, &snap->timestamp ) ) {
+            Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
-          memcpy( &last_frame_timestamp, snap->timestamp, sizeof(last_frame_timestamp) );
+          }
+          last_frame_timestamp = snap->timestamp;
           //frame_sent = true;
 
           temp_read_index = temp_write_index;
@@ -665,14 +684,14 @@ Debug(2, "checking command Queue");
       }
       if ( buffered_playback ) {
         if ( monitor->shared_data->valid ) {
-          if ( monitor->image_buffer[index].timestamp->tv_sec ) {
+          if ( monitor->image_buffer[index].timestamp.tv_sec ) {
             int temp_index = temp_write_index%temp_image_buffer_count;
             Debug( 2, "Storing frame %d", temp_index );
             if ( !temp_image_buffer[temp_index].valid ) {
               snprintf( temp_image_buffer[temp_index].file_name, sizeof(temp_image_buffer[0].file_name), "%s/zmswap-i%05d.jpg", swap_path, temp_index );
               temp_image_buffer[temp_index].valid = true;
             }
-            memcpy( &(temp_image_buffer[temp_index].timestamp), monitor->image_buffer[index].timestamp, sizeof(temp_image_buffer[0].timestamp) );
+            temp_image_buffer[temp_index].timestamp = monitor->image_buffer[index].timestamp;
             monitor->image_buffer[index].image->WriteJpeg( temp_image_buffer[temp_index].file_name, config.jpeg_file_quality );
             temp_write_index = MOD_ADD( temp_write_index, 1, temp_image_buffer_count );
             if ( temp_write_index == temp_read_index ) {
@@ -693,9 +712,12 @@ Debug(2, "checking command Queue");
       } // end if buffered playback
       frame_count++;
     }
+    unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
+    Debug(2, "Sleeping for (%d)", sleep_time);
     usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {
+        Debug(2, "now(%d) - start(%d) > ttl(%d) break", now.tv_sec, stream_start_time, ttl);
         break;
       }
     }
@@ -704,6 +726,7 @@ Debug(2, "checking command Queue");
       break;
     }
   } // end while
+
   if ( buffered_playback ) {
     Debug( 1, "Cleaning swap files from %s", swap_path );
     struct stat stat_buf;
@@ -747,7 +770,7 @@ void MonitorStream::SingleImage( int scale ) {
   int img_buffer_size = 0;
   static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
-  Monitor::Snapshot *snap = monitor->getSnapshot();
+  ZMPacket *snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -756,7 +779,7 @@ void MonitorStream::SingleImage( int scale ) {
     snap_image = &scaled_image;
   }
   if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage( snap_image, snap->timestamp );
+    monitor->TimestampImage( snap_image, &snap->timestamp );
   }
   snap_image->EncodeJpeg( img_buffer, &img_buffer_size );
   
@@ -767,7 +790,7 @@ void MonitorStream::SingleImage( int scale ) {
 
 void MonitorStream::SingleImageRaw( int scale ) {
   Image scaled_image;
-  Monitor::Snapshot *snap = monitor->getSnapshot();
+  ZMPacket *snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -776,7 +799,7 @@ void MonitorStream::SingleImageRaw( int scale ) {
     snap_image = &scaled_image;
   }
   if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage( snap_image, snap->timestamp );
+    monitor->TimestampImage( snap_image, &snap->timestamp );
   }
   
   fprintf( stdout, "Content-Length: %d\r\n", snap_image->Size() );
@@ -789,7 +812,7 @@ void MonitorStream::SingleImageZip( int scale ) {
   static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
 
-  Monitor::Snapshot *snap = monitor->getSnapshot();
+  ZMPacket *snap = monitor->getSnapshot();
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -798,7 +821,7 @@ void MonitorStream::SingleImageZip( int scale ) {
     snap_image = &scaled_image;
   }
   if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage( snap_image, snap->timestamp );
+    monitor->TimestampImage( snap_image, &snap->timestamp );
   }
   snap_image->Zip( img_buffer, &img_buffer_size );
   

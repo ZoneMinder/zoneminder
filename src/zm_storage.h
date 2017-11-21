@@ -32,8 +32,8 @@ protected:
 
 public:
 	Storage();
-	Storage( MYSQL_ROW &dbrow );
-	Storage( unsigned int p_id );
+	explicit Storage( MYSQL_ROW &dbrow );
+	explicit Storage( unsigned int p_id );
 	~Storage();
 
 	unsigned int	Id() const { return( id ); }

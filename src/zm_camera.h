@@ -58,6 +58,7 @@ protected:
     int                 mAudioStreamId;
     AVCodecContext      *mVideoCodecContext;
     AVCodecContext      *mAudioCodecContext;
+    AVStream *video_stream;
 
 public:
   Camera(
@@ -104,12 +105,14 @@ public:
 
   virtual int PrimeCapture() { return( 0 ); }
   virtual int PreCapture()=0;
-  virtual ZMPacket * Capture( Image &image )=0;
+  virtual int Capture(ZMPacket &p)=0;
   virtual int PostCapture()=0;
-    AVStream      *get_VideoStream() { return NULL; };
-    AVStream      *get_AudioStream() { return NULL; };
-    int                 get_VideoStreamId() { return mVideoStreamId; };
-    int                 get_AudioStreamId() { return mAudioStreamId; };
+  virtual AVStream      *get_VideoStream() { return NULL; };
+  virtual AVStream      *get_AudioStream() { return NULL; };
+  virtual AVCodecContext     *get_VideoCodecContext() { return NULL; };
+  virtual AVCodecContext     *get_AudioCodecContext() { return NULL; };
+  int            get_VideoStreamId() { return mVideoStreamId; };
+  int            get_AudioStreamId() { return mAudioStreamId; };
 };
 
 #endif // ZM_CAMERA_H

@@ -31,6 +31,7 @@
 #include "zm_event.h"
 #include "zm_videostore.h"
 #include "zm_packetqueue.h"
+#include "zm_thread.h"
 
 class Monitor;
 #include "zm_camera.h"
@@ -153,13 +154,6 @@ protected:
     char trigger_showtext[256];
   } TriggerData;
 
-  /* sizeof(Snapshot) expected to be 16 bytes on 32bit and 32 bytes on 64bit */
-  struct Snapshot {
-    struct timeval  *timestamp;
-    Image  *image;
-    void* padding;
-  };
-
   //TODO: Technically we can't exclude this struct when people don't have avformat as the Memory.pm module doesn't know about avformat
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
   typedef struct {
@@ -171,6 +165,7 @@ protected:
 
   VideoStore          *videoStore;
   zm_packetqueue      packetqueue;
+  Mutex mutex;
 
   class MonitorLink {
   protected:
@@ -195,7 +190,6 @@ protected:
 
     int        last_state;
     int        last_event_id;
-
 
     public:
       MonitorLink( int p_id, const char *p_name );
@@ -243,6 +237,8 @@ protected:
   int colours;
   VideoWriter videowriter;
   std::string encoderparams;
+  std::string         output_codec;
+  std::string         output_container;
   std::vector<EncoderParameter_t> encoderparamsvec;
     _AVPIXELFORMAT      imagePixFormat;
   unsigned int  subpixelorder;
@@ -291,14 +287,17 @@ protected:
   Purpose      purpose;        // What this monitor has been created to do
   int        event_count;
   int        image_count;
+  int        analysis_image_count;
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
+  bool       last_signal;
   int        buffer_count;
   int        prealarm_count;
   State      state;
   time_t      start_time;
   time_t      last_fps_time;
+  time_t      last_analysis_fps_time;
   time_t      auto_resume_time;
   unsigned int      last_motion_score;
 
@@ -318,12 +317,13 @@ protected:
   TriggerData    *trigger_data;
   VideoStoreData  *video_store_data;
 
-  Snapshot    *image_buffer;
-  Snapshot    next_buffer; /* Used by four field deinterlacing */
-  Snapshot    *pre_event_buffer;
+  ZMPacket    *image_buffer;
+  ZMPacket    next_buffer; /* Used by four field deinterlacing */
+  ZMPacket    *pre_event_buffer;
+
+  int video_stream_id; // will be filled in PrimeCapture
 
   Camera      *camera;
-
   Event      *event;
 
   int      n_zones;
@@ -338,7 +338,7 @@ protected:
   MonitorLink    **linked_monitors;
 
 public:
-  Monitor( int p_id );
+  explicit Monitor( int p_id );
 
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
@@ -356,7 +356,9 @@ public:
     int p_savejpegs,
     int p_colours,
     VideoWriter p_videowriter,
-    std::string p_encoderparams,
+    std::string &p_encoderparams,
+    std::string &p_output_codec,
+    std::string &p_output_container,
     bool  p_record_audio,
     const char *p_event_prefix,
     const char *p_label_format,
@@ -410,6 +412,9 @@ public:
   inline Function GetFunction() const {
     return( function );
   }
+  inline Camera *getCamera() {
+    return camera;
+  }
   inline bool Enabled() {
     if ( function <= MONITOR )
       return( false );
@@ -431,6 +436,9 @@ public:
   inline bool Exif() {
     return( embed_exif );
   }
+  inline bool RecordAudio() {
+    return record_audio;
+  }
   Orientation getOrientation() const;
 
   unsigned int Width() const { return width; }
@@ -442,6 +450,9 @@ public:
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
   const std::string &GetEncoderOptions() const { return( encoderparams ); }
+  const std::string &OutputCodec() const { return output_codec; }
+  const std::string &OutputContainer() const { return output_container; }
+
   uint32_t GetLastEventId() const { return shared_data->last_event_id; }
   uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }
@@ -449,7 +460,7 @@ public:
   unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
-  Snapshot *getSnapshot();
+  ZMPacket *getSnapshot();
   struct timeval GetTimestamp( int index=-1 ) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
@@ -487,6 +498,8 @@ public:
   int PreCapture();
   int Capture();
   int PostCapture();
+
+  void CheckAction();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
    // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.

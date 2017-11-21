@@ -36,6 +36,7 @@
 #ifdef __FreeBSD__
 #include <sys/thr.h>
 #endif
+#include <cstdarg>
 
 bool Logger::smInitialised = false;
 Logger *Logger::smInstance = 0;
@@ -184,7 +185,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
     StringVector targets = split( config.log_debug_target, "|" );
     for ( unsigned int i = 0; i < targets.size(); i++ ) {
       const std::string &target = targets[i];
-      if ( target == mId || target == "_"+mId || target == "_"+mIdRoot || target == "_"+mIdRoot || target == "" ) {
+      if ( target == mId || target == "_"+mId || target == "_"+mIdRoot || target == "" ) {
         if ( config.log_debug_level > NOLOG ) {
           tempLevel = config.log_debug_level;
           if ( config.log_debug_file[0] ) {
@@ -277,18 +278,15 @@ std::string Logger::strEnv( const std::string &name, const std::string &defaultV
 }
 
 char *Logger::getTargettedEnv( const std::string &name ) {
-  char *envPtr = NULL;
-  std::string envName;
-
-  envName = name+"_"+mId;
-  envPtr = getenv( envName.c_str() );
+  std::string envName = name+"_"+mId;
+  char *envPtr = getenv( envName.c_str() );
   if ( !envPtr && mId != mIdRoot ) {
     envName = name+"_"+mIdRoot;
     envPtr = getenv( envName.c_str() );
   }
   if ( !envPtr )
     envPtr = getenv( name.c_str() );
-  return( envPtr );
+  return envPtr;
 }
 
 const std::string &Logger::id( const std::string &id ) {
@@ -500,7 +498,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   va_start( argPtr, fstring );
   if ( hex ) {
     unsigned char *data = va_arg( argPtr, unsigned char * );
-    int len = va_arg( argPtr, int );
+    int len = va_arg( argPtr, int32_t );
     int i;
     logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), "%d:", len );
     for ( i = 0; i < len; i++ ) {

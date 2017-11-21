@@ -176,13 +176,13 @@ bool EventStream::loadEventData( int event_id ) {
   event_data->n_frames = mysql_num_rows( result );
 
   event_data->frames = new FrameData[event_data->frame_count];
-  int id, last_id = 0;
+  int last_id = 0;
   time_t timestamp, last_timestamp = event_data->start_time;
-  double delta, last_delta = 0.0;
+  double last_delta = 0.0;
   while ( ( dbrow = mysql_fetch_row( result ) ) ) {
-    id = atoi(dbrow[0]);
+    int id = atoi(dbrow[0]);
     timestamp = atoi(dbrow[1]);
-    delta = atof(dbrow[2]);
+    double delta = atof(dbrow[2]);
     int id_diff = id - last_id;
     double frame_delta = (delta-last_delta)/id_diff;
     if ( id_diff > 1 ) {
@@ -414,7 +414,6 @@ void EventStream::processCommand( const CmdMsg *msg ) {
         }
         send_frame = true;
         break;
-        send_frame = true;
       }
     case CMD_PAN :
       {
@@ -580,7 +579,6 @@ Image * EventStream::getImage( ) {
 
   Debug( 2, "EventStream::getImage path(%s) frame(%d)", event_data->path, curr_frame_id );
   snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
-  Debug( 2, "EventStream::getImage path(%s) ", filepath, curr_frame_id );
   Image *image = new Image( filepath );
   return image;
 }
@@ -593,6 +591,7 @@ bool EventStream::sendFrame( int delta_us ) {
   FILE *fdj = NULL;
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.  If we are only saving analysis frames, then send that.
+  // // This is also wrong, need to have this info stored in the event! FIXME
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
     snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
   } else if ( monitor->GetOptSaveJPEGs() & 2 ) {
@@ -657,7 +656,7 @@ bool EventStream::sendFrame( int delta_us ) {
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
-        AVFrame *frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id() );
+        AVFrame *frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), curr_frame_id );
         if ( frame ) {
           image = new Image( frame );
           av_frame_free(&frame);

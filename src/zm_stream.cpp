@@ -88,6 +88,7 @@ bool StreamBase::checkCommandQueue() {
       //Error( "Partial message received, expected %d bytes, got %d", sizeof(msg), nbytes );
     //}
     else {
+Debug(2, "Message length is (%d)", nbytes );
       processCommand( &msg );
       return( true );
     }
@@ -311,7 +312,7 @@ void StreamBase::openComms() {
     strncpy( rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path) );
     rem_addr.sun_family = AF_UNIX;
   } // end if connKey > 0
-	Debug(3, "comms open" );
+	Debug(2, "comms open" );
 }
 
 void StreamBase::closeComms() {

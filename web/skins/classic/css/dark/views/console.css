@@ -12,6 +12,19 @@
     float: right;
 }
 
+#systemStats .warning {
+    color: orange;
+}
+
+#systemStats .error {
+    color: red;
+}
+
+#systemStats .critical {
+    color: red;
+    text-decoration: blink;
+}
+
 #monitorSummary {
     float: left;
     text-align: left;

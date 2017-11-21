@@ -125,32 +125,32 @@ span.noneCue {
 #monitorStatus #monitorState {
 }
 
-#dvrcontrols {
+#dvrControls {
     margin-top: 3px;
     margin-bottom: 2px;
     text-align: center;
 }
 
-#dvrcontrols input {
+#dvrControls input {
     height: 1.5em;
     width: 2em;
     padding: 0;
     margin: 0 3px;
 }
 
-#dvrcontrols input[disabled=disabled] {
+#dvrControls input[disabled=disabled] {
     color: #aaaaaa;
 }
 
-#dvrcontrols input.active {
+#dvrControls input.active {
     border: 1px solid blue;
 }
 
-#dvrcontrols input.inactive {
+#dvrControls input.inactive {
     border: 1px solid green;
 }
 
-#dvrcontrols input.unavail {
+#dvrControls input.unavail {
     border: 1px solid red;
 }
 

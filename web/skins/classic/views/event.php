@@ -131,42 +131,36 @@ if ( canEdit('Events') ) {
         <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
         <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
         <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
-<?php 
+<?php
 } // end if can edit Events
-  if ( $Event->DefaultVideo() ) { ?>
-        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'))?>">Download MP4</a></div>
+?>
+        <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
+        <div id="streamEvent" class="hidden"><a href="#" onclick="showStream()"><?php echo translate('Stream') ?></a></div>
+        <div id="stillsEvent"><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
+<?php
+  if ( $Event->DefaultVideo() ) { 
+?>
+        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'))?>" download>Download MP4</a></div>
+<?php
+  } else {
+?>
+        <div id="videoEvent"><a href="#" onclick="videoEvent();"><?php echo translate('Video') ?></a></div>
 <?php
   } // end if Event->DefaultVideo
 ?>
-        <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
-<?php
-if ( $Event->SaveJPEGs() & 3 ) { // Analysis or Jpegs
-?>
-        <div id="stillsEvent"<?php if ( $streamMode == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
-<?php
-} // has frames or analysis
-?>
-        <div id="videoEvent"><a href="#" onclick="videoEvent();"><?php echo translate('Video') ?></a></div>
         <div id="exportEvent"><a href="#" onclick="exportEvent();"><?php echo translate('Export') ?></a></div>
       </div>
+      <div id="eventVideo" class="">
 <?php
 if ( $Event->DefaultVideo() ) {
 ?>
-      <div id="eventVideo" class="">
         <div id="videoFeed">
-          <video id="videoobj" class="video-js vjs-default-skin" width="<?php echo reScale( $Event->Width(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $scale ) ?>" data-setup='{ "controls": true, "playbackRates": [0.5, 1, 1.5, 2, 4, 8, 16, 32, 64, 128, 256], "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'>
+          <video id="videoobj" class="video-js vjs-default-skin" style="transform: matrix(1, 0, 0, 1, 0, 0)" width="<?php echo reScale( $Event->Width(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'>
           <source src="<?php echo $Event->getStreamSrc( array( 'mode'=>'mpeg','format'=>'h264' ) ); ?>" type="video/mp4">
           <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default>
           Your browser does not support the video tag.
           </video>
-        </div>
-        <!--script>includeVideoJs();</script-->
-
-      <p id="dvrControls" class="dvrControls">
-        <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
-        <input type="button" value="+&gt;" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" onclick="streamNext( true );"/>
-      </p>
-      </div><!--eventVideo-->
+        </div><!--videoFeed-->
 <?php
 }  // end if DefaultVideo
 ?>
@@ -189,29 +183,26 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->
-        <p id="dvrControls" class="dvrControls">
+      </div><!--imageFeed-->
+<?php } /*end if !DefaultVideo*/ ?>
+        <p id="dvrControls">
           <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
-          <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" disabled="disabled" onclick="streamFastRev( true );"/>
+          <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" onclick="streamFastRev( true );"/>
           <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" onclick="streamSlowRev( true );"/>
           <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" onclick="pauseClicked();"/>
           <input type="button" value="|>" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" onclick="playClicked();"/>
           <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" onclick="streamSlowFwd( true );"/>
-          <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" disabled="disabled" onclick="streamFastFwd( true );"/>
-          <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" onclick="streamZoomOut();"/>
+          <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" onclick="streamFastFwd( true );"/>
+          <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" onclick="streamZoomOut();"/>
           <input type="button" value="+&gt;" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" onclick="streamNext( true );"/>
         </p>
         <div id="replayStatus">
-          <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">&nbsp;</span></span>
-          <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"></span>x</span>
-          <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue"></span>s</span>
-          <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
+          <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
+          <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"><?php echo $rate/100 ?></span>x</span>
+          <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+          <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>
-      </div><!--imageFeed-->
-      </div>
-<?php } /*end if !DefaultVideo*/ ?>
-<?php
-  if ( $Event->SaveJPEGs() & 3 ) { // frames or analysis
-?>
+      </div><!--eventVideo-->
       <div id="eventStills" class="hidden">
         <div id="eventThumbsPanel">
           <div id="eventThumbs">
@@ -247,9 +238,9 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </div>
       </div>
 <?php
-  } // end if SaveJPEGs() & 3 Analysis or Jpegs
 } // end if Event exists
 ?>
+    </div><!--content-->
   </div><!--page-->
 </body>
 </html>

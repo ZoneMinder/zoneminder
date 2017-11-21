@@ -241,6 +241,7 @@ Monitor::Monitor(
   int p_orientation,
   unsigned int p_deinterlacing,
   int p_savejpegs,
+  int p_colours,
   VideoWriter p_videowriter,
   std::string &p_encoderparams,
   std::string &p_output_codec,
@@ -282,6 +283,7 @@ Monitor::Monitor(
   orientation( (Orientation)p_orientation ),
   deinterlacing( p_deinterlacing ),
   savejpegspref( p_savejpegs ),
+  colours( p_colours ),
   videowriter( p_videowriter ),
   encoderparams( p_encoderparams ),
   output_codec( p_output_codec ),
@@ -340,6 +342,49 @@ Monitor::Monitor(
 
   /* Parse encoder parameters */
   ParseEncoderParameters(encoderparams.c_str(), &encoderparamsvec);
+#if HAVE_LIBSWSCALE  
+  mConvertContext = NULL;
+#endif
+  /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
+  if ( colours == ZM_COLOUR_RGB32 ) {
+    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+    imagePixFormat = AV_PIX_FMT_RGBA;
+  } else if ( colours == ZM_COLOUR_RGB24 ) {
+    subpixelorder = ZM_SUBPIX_ORDER_RGB;
+    imagePixFormat = AV_PIX_FMT_RGB24;
+  } else if ( colours == ZM_COLOUR_GRAY8 ) {
+    subpixelorder = ZM_SUBPIX_ORDER_NONE;
+    imagePixFormat = AV_PIX_FMT_GRAY8;
+  } else {
+    Panic("Unexpected colours: %d",colours);
+  }
+#if HAVE_LIBSWSCALE
+//FIXME, need to be able to query the camera input for what it is going to be getting, which needs to be called after the camera is open.
+  //Debug ( 1, "Calling sws_isSupportedInput" );
+  //if ( !sws_isSupportedInput(mVideoCodecContext->pix_fmt) ) {
+    //Fatal("swscale does not support the codec format: %c%c%c%c", (mVideoCodecContext->pix_fmt)&0xff, ((mVideoCodecContext->pix_fmt >> 8)&0xff), ((mVideoCodecContext->pix_fmt >> 16)&0xff), ((mVideoCodecContext->pix_fmt >> 24)&0xff));
+  //}
+
+  if ( !sws_isSupportedOutput(imagePixFormat) ) {
+    Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
+  }
+
+  // We don't know this yet, need to open the camera first.
+  //mConvertContext = sws_getContext(mVideoCodecContext->width,
+      //mVideoCodecContext->height,
+      //mVideoCodecContext->pix_fmt,
+      //width, height,
+      //imagePixFormat, SWS_BICUBIC, NULL,
+      //NULL, NULL);
+  //if ( mConvertContext == NULL )
+    //Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+#else // HAVE_LIBSWSCALE
+  //Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+#endif // HAVE_LIBSWSCALE
+
+  //if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
+    //Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
+  //}
 
   fps = 0.0;
   event_count = 0;
@@ -572,6 +617,12 @@ Monitor::~Monitor() {
     delete videoStore;
     videoStore = NULL;
   }
+#if HAVE_LIBSWSCALE
+  if ( mConvertContext ) {
+    sws_freeContext( mConvertContext );
+    mConvertContext = NULL;
+  }
+#endif
   if ( timestamps ) {
     delete[] timestamps;
     timestamps = 0;
@@ -1132,7 +1183,7 @@ bool Monitor::CheckSignal( const Image *image ) {
             return true;
         }
 
-      } else if(colours == ZM_COLOUR_RGB32) {
+      } else if ( colours == ZM_COLOUR_RGB32 ) {
         if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
           if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
             return true;
@@ -1183,16 +1234,15 @@ void Monitor::CheckAction() {
   } // end if shared_data->action
 }
 
+// Would be nice if this JUST did analysis
 bool Monitor::Analyse() {
   // last_write_index is the last capture
   // last_read_index is the last analysis
-  
-  if ( shared_data->last_read_index == shared_data->last_write_index ) {
-    // I wonder how often this happens. Maybe if this happens we should sleep or something?
-    //Debug(3, " shared_data->last_read_index == shared_data->last_write_index " );
-    // If analysis is keeping up, then it happens lots
+  if ( ! packetqueue.size() ) {
+    Debug(2, "Nothing in packetqueue");
     return false;
   }
+  
   if ( ! Enabled() ) {
     Warning("SHouldn't be doing Analyze when not Enabled");
     return false;
@@ -1248,35 +1298,30 @@ bool Monitor::Analyse() {
     // last-write_index is the last frame captured
     skip_index = shared_data->last_write_index%image_buffer_count;
   }
-  // Skip non-video frames
-  int videostream_id = camera->get_VideoStreamId();
-  unsigned int index = ( shared_data->last_read_index + 1 ) % image_buffer_count;
-  while (
-      ( index != shared_data->last_write_index ) 
-      && (
-        ( index < skip_index )
-        ||
-        ( image_buffer[index].packet.stream_index != videostream_id )
-        ) ) {
 
-    Debug(2, "Skipping packet in analysis (%d) != (%d)",
-        image_buffer[index].packet.stream_index, camera->get_VideoStreamId()  );
-    if ( event ) {
-      event->AddPacket( &image_buffer[index], 0 );
+  // process audio packets, writing them if there is an event.
+  ZMPacket *queued_packet;
+  while ( packetqueue.size() ) {
+    if ( ( queued_packet = packetqueue.popPacket() ) ) {
+      if ( queued_packet->packet.stream_index == video_stream_id ) {
+        break;
+      }
+      if ( event ) {
+        event->AddPacket( queued_packet );
+      }
+      delete queued_packet;
+      queued_packet = NULL;
     }
-    index ++;
-    index = index % image_buffer_count;
   }
-  // Still looking at audio packets
-  if ( image_buffer[index].packet.stream_index != videostream_id ) {
-    shared_data->last_read_index = index;
+
+  if ( ! queued_packet ) {
     shared_data->last_read_time = now.tv_sec;
     mutex.unlock();
     return false;
   }
 
   //Debug(2, "timestamp for index (%d) %s", index, timeval_to_string( *timestamp ) );
-  ZMPacket *snap = &image_buffer[index];
+  ZMPacket *snap = queued_packet;
   struct timeval *timestamp = &snap->timestamp;
   Image *snap_image = snap->image;
 
@@ -1420,10 +1465,8 @@ Debug(3,"before DetectMotion");
 
         if ( ! event ) {
           // Create event
-          event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
+          event = new Event( this, *timestamp, "Continuous", noteSetMap );
           shared_data->last_event_id = event->Id();
-          //set up video store data
-          snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
           video_store_data->recording = event->StartTime();
 
           Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
@@ -1448,7 +1491,7 @@ Debug(9, "Score: (%d)", score );
               if ( analysis_fps ) {
                 // If analysis fps is set,
                 // compute the index for pre event images in the dedicated buffer
-                pre_index = image_count%pre_event_buffer_count;
+                pre_index = image_count % pre_event_buffer_count;
 Debug(3, "Pre Index = (%d) = image_count(%d) %% pre_event_buffer_count (%d)", pre_index, image_count, pre_event_buffer_count );
 
                 // Seek forward the next filled slot in to the buffer (oldest data)
@@ -1955,6 +1998,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
       orientation,
       deinterlacing,
       savejpegs,
+      colours,
       videowriter,
       encoderparams,
       output_codec,
@@ -2143,6 +2187,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       orientation,
       deinterlacing,
       savejpegs,
+      colours,
       videowriter,
       encoderparams,
       output_codec,
@@ -2296,6 +2341,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
       orientation,
       deinterlacing,
       savejpegs,
+      colours,
       videowriter,
       encoderparams,
       output_codec,
@@ -2459,6 +2505,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
       orientation,
       deinterlacing,
       savejpegs,
+      colours,
       videowriter,
       encoderparams,
       output_codec,
@@ -2790,6 +2837,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
     orientation,
     deinterlacing,
     savejpegs,
+    colours,
     videowriter,
     encoderparams,
     output_codec,
@@ -2893,23 +2941,26 @@ int Monitor::Capture() {
       return -1;
     } else if ( captureResult > 0 ) {
 
-      if ( packet->packet.size && ! packet->in_frame ) {
+      // Analysis thread will take care of consuming and emptying the packets.
+      packetqueue.queuePacket( packet );
 
-        if ( packet->packet.stream_index == camera->get_VideoStreamId() ) {
+      if ( packet->packet.stream_index == video_stream_id ) {
+        if ( packet->packet.size && ! packet->in_frame ) {
           packet->codec_type = camera->get_VideoStream()->codecpar->codec_type;
           if ( packet->decode( camera->get_VideoCodecContext() ) )
             packet->get_image();
         } else {
-          packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
-          packet->decode( camera->get_AudioCodecContext() );
-          shared_data->last_write_index = index;
-          shared_data->last_write_time = image_buffer[index].timestamp.tv_sec;
-          mutex.unlock();
-          return 1;
+          // If not a AVPacket, then assume video for now.
+          packet->codec_type = camera->get_VideoStream()->codecpar->codec_type;
         }
-      } else {
-        // If not a AVPacket, then assume video for now.
-        packet->codec_type = camera->get_VideoStream()->codecpar->codec_type;
+      } else { // probably audio
+        packet->image = NULL;
+        packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
+        packet->decode( camera->get_AudioCodecContext() );
+        // Don't update last_write_index because that is used for live streaming
+        shared_data->last_write_time = image_buffer[index].timestamp.tv_sec;
+        mutex.unlock();
+        return 1;
       }
 
       /* Deinterlacing */
@@ -2952,49 +3003,13 @@ int Monitor::Capture() {
       }
 
 #if 0
-    int video_stream_id = camera->get_VideoStreamId();
     //Video recording
     if ( video_store_data->recording.tv_sec ) {
-      if ( shared_data->last_event_id != this->GetVideoWriterEventId() ) {
-        Debug(2, "Have change of event. last_event(%d), our current (%d)",
-            shared_data->last_event_id,
-            this->GetVideoWriterEventId()
-            );
-        if ( videoStore ) {
-          Debug(2, "Have videostore already?");
-          // I don't know if this is important or not... but I figure we might as well write this last packet out to the store before closing it.
-          // Also don't know how much it matters for audio.
-          int ret = videoStore->writePacket( packet );
-          if ( ret < 0 ) { //Less than zero and we skipped a frame
-            Warning("Error writing last packet to videostore.");
-          }
 
-          delete videoStore;
-          videoStore = NULL;
-          this->SetVideoWriterEventId( 0 );
-        } // end if videoStore
-      } // end if end of recording
-
-      if ( shared_data->last_event_id and ! videoStore ) {
-        Debug(2,"New videostore");
-        videoStore = new VideoStore(
-            (const char *) video_store_data->event_file,
-            "mp4",
-            camera->get_VideoStream(),
-            ( record_audio ? camera->get_AudioStream() : NULL ),
-            video_store_data->recording.tv_sec,
-            this );
-
-        if ( ! videoStore->open() ) {
-          delete videoStore;
-          videoStore = NULL;
-        } else {
           this->SetVideoWriterEventId(shared_data->last_event_id);
 
           Debug(2, "Clearing packets");
           // Clear all packets that predate the moment when the recording began
-          packetqueue.clear_unwanted_packets(&video_store_data->recording, video_stream_id);
-          videoStore->write_packets(packetqueue);
         } // success opening
       } // end if ! was recording
     } else { // Not recording
@@ -3019,7 +3034,6 @@ int Monitor::Capture() {
         }
       } else if ( packet->packet.stream_index == video_stream_id ) {
         if ( packet->keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
-          packetqueue.queuePacket( packet );
       } // end if audio or video
     } // end if recording or not
 
@@ -3363,7 +3377,9 @@ bool Monitor::DumpSettings( char *output, bool verbose ) {
 unsigned int Monitor::Colours() const { return( camera->Colours() ); }
 unsigned int Monitor::SubpixelOrder() const { return( camera->SubpixelOrder() ); }
 int Monitor::PrimeCapture() {
-  return( camera->PrimeCapture() );
+  int ret = camera->PrimeCapture();
+  video_stream_id = ret ? camera->get_VideoStreamId() : -1;
+  return ret;
 }
 int Monitor::PreCapture() {
   return( camera->PreCapture() );

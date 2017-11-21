@@ -234,11 +234,17 @@ protected:
   bool            videoRecording;
 
   int savejpegspref;
+  int colours;
   VideoWriter videowriter;
   std::string encoderparams;
   std::string         output_codec;
   std::string         output_container;
   std::vector<EncoderParameter_t> encoderparamsvec;
+    _AVPIXELFORMAT      imagePixFormat;
+  unsigned int  subpixelorder;
+#if HAVE_LIBSWSCALE
+    struct SwsContext   *mConvertContext;
+#endif
   bool      record_audio;      // Whether to store the audio that we receive
 
   int        brightness;        // The statically saved brightness of the camera
@@ -315,8 +321,9 @@ protected:
   ZMPacket    next_buffer; /* Used by four field deinterlacing */
   ZMPacket    *pre_event_buffer;
 
-  Camera      *camera;
+  int video_stream_id; // will be filled in PrimeCapture
 
+  Camera      *camera;
   Event      *event;
 
   int      n_zones;
@@ -347,6 +354,7 @@ public:
     int p_orientation,
     unsigned int p_deinterlacing,
     int p_savejpegs,
+    int p_colours,
     VideoWriter p_videowriter,
     std::string &p_encoderparams,
     std::string &p_output_codec,

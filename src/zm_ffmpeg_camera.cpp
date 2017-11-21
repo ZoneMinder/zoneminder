@@ -112,22 +112,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mOpenStart = 0;
   mReopenThread = 0;
 
-#if HAVE_LIBSWSCALE  
-  mConvertContext = NULL;
-#endif
-  /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
-  if ( colours == ZM_COLOUR_RGB32 ) {
-    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-    imagePixFormat = AV_PIX_FMT_RGBA;
-  } else if ( colours == ZM_COLOUR_RGB24 ) {
-    subpixelorder = ZM_SUBPIX_ORDER_RGB;
-    imagePixFormat = AV_PIX_FMT_RGB24;
-  } else if ( colours == ZM_COLOUR_GRAY8 ) {
-    subpixelorder = ZM_SUBPIX_ORDER_NONE;
-    imagePixFormat = AV_PIX_FMT_GRAY8;
-  } else {
-    Panic("Unexpected colours: %d",colours);
-  }
 } // end FFmpegCamera::FFmpegCamera
 
 FfmpegCamera::~FfmpegCamera() {
@@ -387,16 +371,6 @@ int FfmpegCamera::OpenFfmpeg() {
         }
       }
     }
-  } else {
-#ifdef AV_CODEC_ID_H265
-    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
-      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
-    } else {
-#endif
-      Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
-#ifdef AV_CODEC_ID_H265
-    }
-#endif
   } // end if h264
 #endif
 
@@ -427,7 +401,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   } // end if success opening codec
 
-  if (mVideoCodecContext->hwaccel != NULL) {
+  if ( mVideoCodecContext->hwaccel != NULL ) {
     Debug(1, "HWACCEL in use");
   } else {
     Debug(1, "HWACCEL not in use");
@@ -457,54 +431,7 @@ int FfmpegCamera::OpenFfmpeg() {
   } // end if have audio stream
 
   Debug ( 1, "Opened codec" );
-# if 0
 
-  // Allocate space for the native video frame
-  mRawFrame = zm_av_frame_alloc();
-
-  // Allocate space for the converted video frame
-  mFrame = zm_av_frame_alloc();
-
-  if ( mRawFrame == NULL || mFrame == NULL )
-    Fatal( "Unable to allocate frame for %s", mPath.c_str() );
-
-  Debug ( 1, "Allocated frames" );
-
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  int pSize = av_image_get_buffer_size( imagePixFormat, width, height,1 );
-#else
-  int pSize = avpicture_get_size( imagePixFormat, width, height );
-#endif
-
-  if ( (unsigned int)pSize != imagesize ) {
-    Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
-  }
-
-  Debug ( 1, "Validated imagesize" );
-
-#if HAVE_LIBSWSCALE
-  Debug ( 1, "Calling sws_isSupportedInput" );
-  if ( !sws_isSupportedInput(mVideoCodecContext->pix_fmt) ) {
-    Fatal("swscale does not support the codec format: %c%c%c%c", (mVideoCodecContext->pix_fmt)&0xff, ((mVideoCodecContext->pix_fmt >> 8)&0xff), ((mVideoCodecContext->pix_fmt >> 16)&0xff), ((mVideoCodecContext->pix_fmt >> 24)&0xff));
-  }
-
-  if ( !sws_isSupportedOutput(imagePixFormat) ) {
-    Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
-  }
-
-  mConvertContext = sws_getContext(mVideoCodecContext->width,
-      mVideoCodecContext->height,
-      mVideoCodecContext->pix_fmt,
-      width, height,
-      imagePixFormat, SWS_BICUBIC, NULL,
-      NULL, NULL);
-  if ( mConvertContext == NULL )
-    Fatal( "Unable to create conversion context for %s", mPath.c_str() );
-#else // HAVE_LIBSWSCALE
-  Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
-#endif // HAVE_LIBSWSCALE
-
-#endif
   if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
     Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
   }
@@ -548,12 +475,6 @@ int FfmpegCamera::CloseFfmpeg() {
     mRawFrame = NULL;
   }
 
-#if HAVE_LIBSWSCALE
-  if ( mConvertContext ) {
-    sws_freeContext( mConvertContext );
-    mConvertContext = NULL;
-  }
-#endif
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
@@ -576,7 +497,7 @@ int FfmpegCamera::CloseFfmpeg() {
   }
 
   return 0;
-}
+} // end int FfmpegCamera::CloseFfmpeg()
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) { 
   Debug(3,"FfmpegInteruptCallback");
@@ -590,9 +511,9 @@ int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   }
 
   return 0;
-}
+} // end int FfmpegCamera::FfmpegInterruptCallback(void *ctx)
 
-void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
+void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx) {
   Debug(3,"FfmpegReopenThreadtCallback");
   if ( ctx == NULL ) return NULL;
 
@@ -614,6 +535,6 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx){
       return NULL;
     }
   }
-}
+} // end void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx)
 
 #endif // HAVE_LIBAVFORMAT

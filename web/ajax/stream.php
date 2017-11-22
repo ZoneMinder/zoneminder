@@ -15,6 +15,7 @@ if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) ) {
 $locSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.sock';
 if ( file_exists( $locSockFile ) ) {
   Warning("sock file $locSockFile already exists?!  Is someone else talking to zms?");
+  // They could be.  We can maybe have concurrent requests from a browser.  
 } else {
   Logger::Debug("socket file does not exist, we should be good to connect.");
 }

@@ -62,39 +62,47 @@ if ( ! $scale )
 $layouts = MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
 foreach ( $layouts as $l ) {
-  $layoutsById[$l->Id()] = $l->Name();
+  $layoutsById[$l->Id()] = $l;
 }
 
 
 session_start();
 
-$layout = '';
+$layout_id = '';
 if ( isset($_COOKIE['zmMontageLayout']) ) {
-  $layout = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
-Warning("Setting layout by cookie");
+  $layout_id = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
 } elseif ( isset($_SESSION['zmMontageLayout']) ) {
-  $layout = $_SESSION['zmMontageLayout'];
-Warning("Setting layout by session");
+  $layout_id = $_SESSION['zmMontageLayout'];
 }
 
 $options = array();
-if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] ) {
-  $_SESSION['zmMontageWidth'] = $options['width'] = $_COOKIE['zmMontageWidth'];
-} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
-  $options['width'] = $_SESSION['zmMontageWidth'];
-} else
-  $options['width'] = '';
+$Layout = '';
+$Positions = '';
+if ( $layout_id ) {
+  $Layout = $layoutsById[$layout_id];
+  $Positions = json_decode( $Layout->Positions(), true );
+}
+if ( $Layout and ( $Layout->Name() != 'Freeform' ) ) {
+  // Use layout instead of other options
+}
 
-if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
-  $_SESSION['zmMontageHeight'] = $options['height'] = $_COOKIE['zmMontageHeight'];
-else if ( isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight'] )
-  $options['height'] = $_SESSION['zmMontageHeight'];
-else
-  $options['height'] = '';
+  if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] ) {
+    $_SESSION['zmMontageWidth'] = $options['width'] = $_COOKIE['zmMontageWidth'];
+  } elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
+    $options['width'] = $_SESSION['zmMontageWidth'];
+  } else
+    $options['width'] = '';
+
+  if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
+    $_SESSION['zmMontageHeight'] = $options['height'] = $_COOKIE['zmMontageHeight'];
+  else if ( isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight'] )
+    $options['height'] = $_SESSION['zmMontageHeight'];
+  else
+    $options['height'] = '';
+
+  if ( $scale ) 
+    $options['scale'] = $scale;
 session_write_close();
-
-if ( $scale ) 
-  $options['scale'] = $scale;
 
 ob_start();
 include('_monitor_filters.php');
@@ -156,7 +164,7 @@ if ( $showZones ) {
           <span id="scaleControl"><label><?php echo translate('Scale') ?>:</label><?php echo htmlSelect( 'scale', $scales, $scale, 'changeScale(this);' ); ?></span> 
           <span id="layoutControl">
             <label for="layout"><?php echo translate('Layout') ?>:</label>
-            <?php echo htmlSelect( 'zmMontageLayout', $layoutsById, $layout, array( 'onchange'=>'selectLayout(this);', 'id'=>'zmMontageLayout') ); ?>
+            <?php echo htmlSelect( 'zmMontageLayout', $layoutsById, $layout_id, array( 'onchange'=>'selectLayout(this);', 'id'=>'zmMontageLayout') ); ?>
           </span>
           <input type="hidden" name="Positions"/>
           <input type="button" id="EditLayout" value="<?php echo translate('EditLayout') ?>" onclick="edit_layout(this);"/>
@@ -178,7 +186,22 @@ foreach ( $monitors as $monitor ) {
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
             <?php 
-              echo getStreamHTML( $monitor, $options );
+  $monitor_options = $options;
+  if ( $Positions ) {
+    $monitor_options['width'] = '100%';
+    $monitor_options['height'] = '100%';
+    if ( 0 ) {
+    if ( isset($Positions[$monitor->Id()]) ) {
+      $monitor_options = array();
+      #$monitor_options = $Positions[$monitor->Id()];
+    } else if ( isset($Positions['default']) ) {
+      $monitor_options = array();
+      #$monitor_options = $Positions['default'];
+    }
+    }
+  }
+
+              echo getStreamHTML( $monitor, $monitor_options );
               if ( $showZones ) { 
                 $height = null;
                 $width = null;

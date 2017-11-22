@@ -13,13 +13,6 @@ function Monitor( monitorData ) {
     this.streamCmdParms += '&auth='+auth_hash;
   this.streamCmdTimer = null;
 
-  /*
-  this.zm_startup = function( delay ) {
-    console.log("Starting streamwatch for " + this.connKey );
-    this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
-  };
-  */
-
   this.setStateClass = function( element, stateClass ) {
     if ( !element.hasClass( stateClass ) ) {
       if ( stateClass != 'alarm' )
@@ -141,7 +134,7 @@ function Monitor( monitorData ) {
       console.log( this.connKey+": Resending" );
       this.streamCmdReq.cancel();
     }
-    console.log("Starting CmdQuery for " + this.connKey );
+    //console.log("Starting CmdQuery for " + this.connKey );
     this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
   };
 
@@ -206,7 +199,7 @@ function selectLayout( element ) {
     Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
     $('scale').set('value', '' );
     $('width').set('value', '');
-
+if ( 1 ) {
     for ( var x = 0; x < monitors.length; x++ ) {
       var monitor = monitors[x];
       var streamImg = $( 'liveStream'+monitor.id );
@@ -228,6 +221,7 @@ function selectLayout( element ) {
         zonesSVG.style.width = '';
       }
     } // end foreach monitor
+}
   }
 }
 

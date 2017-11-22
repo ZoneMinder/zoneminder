@@ -18,7 +18,7 @@ class MontageLayout {
         if ( ! $row ) {
           Error("Unable to load MontageLayout record for Id=" . $IdOrRow );
         }
-      } elseif ( is_array( $IdOrRow ) ) {
+      } else if ( is_array( $IdOrRow ) ) {
         $row = $IdOrRow;
       } else {
         Error("Unknown argument passed to MontageLayout Constructor ($IdOrRow)");

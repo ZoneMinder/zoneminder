@@ -15,6 +15,8 @@ private $defaults = array(
 'Height' => null,
 'Orientation' => null,
 'AnalysisFPSLimit'  =>  null,
+'AnalysisFPS' => null,
+'CaptureFPS' => null,
 );
 private $control_fields = array(
   'Name' => '',
@@ -191,7 +193,7 @@ private $control_fields = array(
       $Server = new Server( $this->{'ServerId'} );
       $streamSrc .= $Server->Hostname();
     } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'] );
+      $streamSrc .= $_SERVER['HTTP_HOST'];
     }
     if ( ZM_MIN_STREAMING_PORT )
       $streamSrc .= ':'. (ZM_MIN_STREAMING_PORT+$this->{'Id'});

@@ -434,6 +434,11 @@ CREATE TABLE `Monitors` (
   `Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
   `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
   `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
+  `TotalEvents` int(10) unsigned,
+  `HourEvents` int(10) unsigned,
+  `DayEvents` int(10) unsigned,
+  `WeekEvents` int(10) unsigned,
+  `MonthEvents` int(10) unsigned,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

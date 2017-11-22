@@ -288,7 +288,7 @@ void StreamBase::openComms() {
     if ( sd < 0 ) {
       Fatal( "Can't create socket: %s", strerror(errno) );
 		} else {
-			Debug(3, "Have socket %d", sd );
+			Debug(1, "Have socket %d", sd );
     }
 
     length = snprintf( loc_sock_path, sizeof(loc_sock_path), "%s/zms-%06ds.sock", staticConfig.PATH_SOCKS.c_str(), connkey );
@@ -313,7 +313,7 @@ void StreamBase::openComms() {
     rem_addr.sun_family = AF_UNIX;
   } // end if connKey > 0
 	Debug(2, "comms open" );
-}
+} // end void StreamBase::openComms()
 
 void StreamBase::closeComms() {
   if ( connkey > 0 ) {

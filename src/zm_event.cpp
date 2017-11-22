@@ -307,7 +307,8 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
   }
 
   /* Add the frame to the timecodes file */
-  fprintf(timecodes_fd, "%u\n", timeMS);
+  if ( timecodes_fd )
+    fprintf(timecodes_fd, "%u\n", timeMS);
 
   return( true );
 }

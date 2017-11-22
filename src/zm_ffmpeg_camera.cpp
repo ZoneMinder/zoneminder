@@ -438,7 +438,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   mCanCapture = true;
 
-  return 0;
+  return 1;
 } // int FfmpegCamera::OpenFfmpeg()
 
 int FfmpegCamera::ReopenFfmpeg() {

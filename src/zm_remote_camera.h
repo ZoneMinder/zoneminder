@@ -45,6 +45,7 @@ protected:
   std::string  username;
   std::string  password;
   std::string  auth64;
+  struct addrinfo *hp;
 
   // Reworked authentication system
   // First try without authentication, even if we have a username and password
@@ -53,8 +54,6 @@ protected:
   // subsequent requests can set the required authentication header.
   bool mNeedAuth;
   zm::Authenticator* mAuthenticator;
-protected:
-  struct addrinfo *hp;
 
 public:
   RemoteCamera(

@@ -24,9 +24,8 @@
 #define VIDEO_QUEUESIZE 200
 #define AUDIO_QUEUESIZE 50
 
-zm_packetqueue::zm_packetqueue(){
+zm_packetqueue::zm_packetqueue() {
   video_packet_count = 0;
-
 }
 
 zm_packetqueue::~zm_packetqueue() {
@@ -48,7 +47,7 @@ ZMPacket* zm_packetqueue::popPacket( ) {
 
 	ZMPacket *packet = pktQueue.front();
 	pktQueue.pop_front();
-  if ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) {
+  if ( packet->codec_type == AVMEDIA_TYPE_VIDEO )
     video_packet_count -= 1;
 
 	return packet;
@@ -84,7 +83,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     Debug(3, "Hit end of queue, still need (%d) video keyframes", frames_to_keep );
   } else {
     AVPacket *av_packet = &( (*it)->packet );
-    while ( ( av_packet->stream_index != stream_id ) || ! ( av_packet->flags & AV_PKT_FLAG_KEY ) && it != pktQueue.rend() ) {
+    while ( ( av_packet->stream_index != stream_id ) || ! ( av_packet->flags & AV_PKT_FLAG_KEY ) && ( it != pktQueue.rend() ) ) {
       ++it;
     }
   }
@@ -118,7 +117,7 @@ unsigned int zm_packetqueue::size() {
   return pktQueue.size();
 }
 
-unsigned in zm_packetqueue::get_video_packet_count() {
+unsigned int zm_packetqueue::get_video_packet_count() {
   return video_packet_count;
 }
 
@@ -141,7 +140,7 @@ void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVi
         && 
         ( av_packet->stream_index == mVideoStreamId )
         && 
-        timercmp( &(zm_packet->timestamp), recording_started, < )
+        timercmp( zm_packet->timestamp, recording_started, < )
        ) {
     Debug(3, "Found keyframe before start with stream index (%d) with keyframe (%d)", av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ) );
       break;

@@ -33,46 +33,9 @@ ZMPacket::ZMPacket( ) {
   buffer = NULL;
   av_init_packet( &packet );
   packet.size = 0; // So we can detect whether it has been filled.
-  timestamp = (struct timeval){0};
-}
-
-ZMPacket::ZMPacket( Image *i ) {
-  keyframe = 1;
-  image = i;
-  in_frame = NULL;
-  out_frame = NULL;
-  buffer = NULL;
-  av_init_packet( &packet );
-  timestamp = (struct timeval){0};
-}
-
-ZMPacket::ZMPacket( AVPacket *p ) {
-  image = NULL;
-  av_init_packet( &packet );
-  set_packet( p );
-  keyframe = p->flags & AV_PKT_FLAG_KEY;
-  buffer = NULL;
-  in_frame = NULL;
-  out_frame = NULL;
-}
-
-ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
-  image = NULL;
-  av_init_packet( &packet );
-  set_packet( p );
-  timestamp = *t;
-  keyframe = p->flags & AV_PKT_FLAG_KEY;
-  buffer = NULL;
-  in_frame = NULL;
-  out_frame = NULL;
-}
-ZMPacket::ZMPacket( AVPacket *p, AVFrame *f, Image *i ) {
-  av_init_packet( &packet );
-  set_packet( p );
-  image = i;
-  buffer = NULL;
-  in_frame = NULL;
-  out_frame = f;
+  timestamp = NULL;
+  analysis_image = NULL;
+  image_index = -1;
 }
 
 ZMPacket::~ZMPacket() {
@@ -88,8 +51,13 @@ ZMPacket::~ZMPacket() {
   if ( buffer ) {
     av_freep( &buffer );
   }
+  if ( analysis_image ) {
+    delete analysis_image;
+    analysis_image = NULL;
+  }
   // We assume the image was allocated elsewhere, so we just unref it.
   image = NULL;
+  timestamp = NULL;
 }
 
 void ZMPacket::reset() {
@@ -108,10 +76,18 @@ void ZMPacket::reset() {
   //Debug(4,"freeing buffer");
     av_freep( &buffer );
   }
+  if ( analysis_image ) {
+    delete analysis_image;
+    analysis_image = NULL;
+  }
+  if ( (! image) && timestamp ) {
+    delete timestamp;
+    timestamp = NULL;
+  }
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {
-  Debug(4, "about to decode video" );
+  Debug(4, "about to decode video, image_index is (%d)", image_index );
 
   if ( in_frame ) {
       Error("Already have a frame?");
@@ -196,7 +172,7 @@ AVPacket *ZMPacket::set_packet( AVPacket *p ) {
   if ( zm_av_packet_ref( &packet, p ) < 0 ) {
     Error("error refing packet");
   }
-  gettimeofday( &timestamp, NULL );
+  gettimeofday( timestamp, NULL );
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   return &packet;
 }

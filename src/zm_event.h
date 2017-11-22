@@ -86,7 +86,7 @@ class Event {
     unsigned int  max_score;
     char      path[PATH_MAX];
     VideoStore *videoStore;
-    char video_name[PATH_MAX];
+    char video_name[64];
     char video_file[PATH_MAX];
     int        last_db_frame;
     bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.

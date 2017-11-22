@@ -976,10 +976,10 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     } // end if no out_frame
 
     if ( ! video_last_pts ) {
-      video_last_pts = zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec;
+      video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
       zm_packet->out_frame->pts = 0;
     } else {
-      zm_packet->out_frame->pts = ( zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec ) - video_last_pts;
+      zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
     }
 
     // Do this to allow the encoder to choose whether to use I/P/B frame
@@ -1030,10 +1030,10 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     opkt.size = ipkt->size;
     opkt.flags = ipkt->flags;
     if ( ! video_last_pts ) {
-      video_last_pts = zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec;
+      video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
       opkt.dts = opkt.pts = 0;
     } else {
-      opkt.dts = opkt.pts = ( zm_packet->timestamp.tv_sec*1000000 + zm_packet->timestamp.tv_usec ) - video_last_pts;
+      opkt.dts = opkt.pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
     }
   }
   opkt.duration = 0;

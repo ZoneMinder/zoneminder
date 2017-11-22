@@ -266,13 +266,18 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   Debug(1, ", frames:%d, timebase: %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
   avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, ": %s", buf);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  AVCodecParameters *codec = st->codecpar;
+#else
+  AVCodecContext *codec = st->codec;
+#endif
 
   if (st->sample_aspect_ratio.num && // default
-      av_cmp_q(st->sample_aspect_ratio, st->codec->sample_aspect_ratio)) {
+      av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)) {
     AVRational display_aspect_ratio;
     av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
-        st->codec->width  * (int64_t)st->sample_aspect_ratio.num,
-        st->codec->height * (int64_t)st->sample_aspect_ratio.den,
+        codec->width  * (int64_t)st->sample_aspect_ratio.num,
+        codec->height * (int64_t)st->sample_aspect_ratio.den,
         1024 * 1024);
     Debug(1, ", SAR %d:%d DAR %d:%d",
         st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,

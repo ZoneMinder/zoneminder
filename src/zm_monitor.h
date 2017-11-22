@@ -166,6 +166,7 @@ protected:
   VideoStore          *videoStore;
   zm_packetqueue      packetqueue;
   Mutex mutex;
+  std::list<ZMPacket *>::iterator analysis_it;  // Iterator into the packetqueue. Theoretically points to the most recently analyzed packet
 
   class MonitorLink {
   protected:
@@ -187,6 +188,7 @@ protected:
     volatile SharedData  *shared_data;
     volatile TriggerData  *trigger_data;
     volatile VideoStoreData *video_store_data;
+
 
     int        last_state;
     int        last_event_id;
@@ -245,14 +247,13 @@ protected:
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
 #endif
-  bool      record_audio;      // Whether to store the audio that we receive
-
+  bool       record_audio;      // Whether to store the audio that we receive
   int        brightness;        // The statically saved brightness of the camera
   int        contrast;        // The statically saved contrast of the camera
   int        hue;          // The statically saved hue of the camera
   int        colour;          // The statically saved colour of the camera
-  char      event_prefix[64];    // The prefix applied to event names as they are created
-  char      label_format[64];    // The format of the timestamp on the images
+  char       event_prefix[64];    // The prefix applied to event names as they are created
+  char       label_format[64];    // The format of the timestamp on the images
   Coord      label_coord;      // The coordinates of the timestamp on the images
   int        label_size;         // Size of the timestamp on the images
   int        image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
@@ -263,10 +264,10 @@ protected:
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   int        section_length;      // How long events should last in continuous modes
-  bool      adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
+  bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
-  double      analysis_fps;  // Target framerate for video analysis
+  double     analysis_fps_limit;     // Target framerate for video analysis
   unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
   int        capture_delay;      // How long we wait between capture frames
   int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
@@ -276,9 +277,11 @@ protected:
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
   bool      track_motion;      // Whether this monitor tries to track detected motion 
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
-  bool              embed_exif; // Whether to embed Exif data into each image frame or not
+  bool        embed_exif; // Whether to embed Exif data into each image frame or not
 
-  double      fps;
+  double      capture_fps;       // Current capturing fps
+  double      analysis_fps;      // Current analysis fps
+
   Image      delta_image;
   Image      ref_image;
   Image       alarm_image;  // Used in creating analysis images, will be initialized in Analysis
@@ -317,9 +320,10 @@ protected:
   TriggerData    *trigger_data;
   VideoStoreData  *video_store_data;
 
-  ZMPacket    *image_buffer;
+    struct timeval *shared_timestamps;
+    unsigned char *shared_images;
+  ZMPacket *image_buffer;
   ZMPacket    next_buffer; /* Used by four field deinterlacing */
-  ZMPacket    *pre_event_buffer;
 
   int video_stream_id; // will be filled in PrimeCapture
 
@@ -460,8 +464,8 @@ public:
   unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
-  ZMPacket *getSnapshot();
-  struct timeval GetTimestamp( int index=-1 ) const;
+  ZMPacket *getSnapshot( int index=-1 );
+  struct timeval GetTimestamp( int index=-1 );
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   unsigned int GetAnalysisUpdateDelay() const { return( analysis_update_delay ); }
@@ -471,6 +475,7 @@ public:
   unsigned int GetLastWriteIndex() const;
   unsigned int GetLastEvent() const;
   double GetFPS() const;
+  void UpdateAnalysisFPS();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();

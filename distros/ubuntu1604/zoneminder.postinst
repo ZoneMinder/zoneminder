@@ -17,7 +17,7 @@ if [ "$1" = "configure" ]; then
     a2enmod cgi
   fi
 
-  # Ensure zoneminder is stopped
+  if [ "$ZM_DB_HOST" = "localhost" ]; then
 
     if [ -e "/etc/init.d/mysql" ]; then
       # Do this every time the package is installed or upgraded

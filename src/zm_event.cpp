@@ -71,7 +71,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   static char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime( &start_time.tv_sec );
-  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d )", 
+  snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,
@@ -81,7 +81,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       notes.c_str(), 
       state_id,
       monitor->getOrientation(),
-      videoEvent
+      videoEvent,
+      monitor->GetOptSaveJPEGs()
       );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
@@ -211,7 +212,9 @@ Event::~Event() {
   if ( frames > last_db_frame ) {
 
     Debug( 1, "Adding closing frame %d to DB", frames );
-    snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+    snprintf( sql, sizeof(sql), 
+        "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )",
+        id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
       exit( mysql_errno( &dbconn ) );

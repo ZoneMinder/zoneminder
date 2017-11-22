@@ -140,11 +140,6 @@ $disk_space_total = 0;
 $results = dbQuery( $eventsSql );
 while ( $event_row = dbFetchNext( $results ) ) {
   $event = new Event( $event_row );
-  $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-  $eventWidth = reScale( $event_row['Width'], $scale );
-  $eventHeight = reScale( $event_row['Height'], $scale );
-  if ( $maxWidth < $eventWidth ) $maxWidth = $eventWidth;
-  if ( $maxHeight < $eventHeight ) $maxHeight = $eventHeight;
   if ( $event_row['Archived'] )
     $archived = true;
   else
@@ -284,8 +279,6 @@ if ( true || canEdit( 'Events' ) ) {
   // These are defined in the .js.php but need to be updated down here.
   archivedEvents = <?php echo !empty($archived)?'true':'false' ?>;
   unarchivedEvents = <?php echo !empty($unarchived)?'true':'false' ?>;
-  maxWidth = <?php echo $maxWidth?$maxWidth:0 ?>;
-  maxHeight = <?php echo $maxHeight?$maxHeight:0 ?>;
 </script>
 </body>
 </html>

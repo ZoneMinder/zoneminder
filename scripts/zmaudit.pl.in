@@ -53,7 +53,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
                            ? $Config{ZM_DIR_EVENTS}
                            : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS})
 ;
-use constant ZM_AUDIT_PID =>  $Config{ZM_RUNDIR}.'/zm.pid'
+use constant ZM_AUDIT_PID => '@ZM_RUNDIR@/zmaudit.pid';
 
 $| = 1;
 

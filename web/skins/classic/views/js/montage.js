@@ -1,4 +1,4 @@
-var requestQueue = new Request.Queue( { concurrent: 2 } );
+var requestQueue = new Request.Queue( { concurrent: 2, stopOnFailure: false } );
 
 function Monitor( monitorData ) {
   this.id = monitorData.id;
@@ -26,6 +26,26 @@ function Monitor( monitorData ) {
       if ( stateClass != 'idle' )
         element.removeClass( 'idle' );
       element.addClass( stateClass );
+    }
+  };
+
+  this.onError = function( text, error ) {
+    console.log('onerror: ' + text + ' error:'+error);
+    // Requeue, but want to wait a while.
+    var streamCmdTimeout = 1000*statusRefreshTimeout;
+    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
+  };
+  this.onFailure = function( xhr ) {
+    console.log('onFailure: ' + this.connKey);
+    console.log(xhr );
+    requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
+    if ( 0 ) {
+    // Requeue, but want to wait a while.
+    if ( this.streamCmdTimer )
+      this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
+    var streamCmdTimeout = 1000*statusRefreshTimeout;
+    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this, true );
+    requestQueue.resume();
     }
   };
 
@@ -110,20 +130,11 @@ function Monitor( monitorData ) {
   };
 
   this.streamCmdQuery = function( resent ) {
-    if ( resent )
-    console.log( this.connKey+": Resending" );
-    //this.streamCmdReq.cancel();
+    if ( resent ) {
+      console.log( this.connKey+": Resending" );
+      this.streamCmdReq.cancel();
+    }
     this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
-  };
-  this.onError = function( text, error ) {
-    console.log('onerror: ' + text + ' error:'+error);
-  };
-  this.onFailure = function( xhr ) {
-    console.log('onFailure: ' );
-    console.log(xhr );
-    // Requeue
-    var streamCmdTimeout = statusRefreshTimeout;
-    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
   };
 
   this.streamCmdReq = new Request.JSON( {
@@ -193,10 +204,11 @@ function selectLayout( element ) {
       if ( streamImg ) {
         if ( streamImg.nodeName == 'IMG' ) {
           var src = streamImg.src;
-          streamImg.src='';
           src = src.replace(/width=[\.\d]+/i,'width=0' );
-          src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-          streamImg.src = src;
+          if ( src != streamImg.src ) {
+            streamImg.src='';
+            streamImg.src = src;
+          }
         } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
           // APPLET's and OBJECTS need to be re-initialized
         }
@@ -363,12 +375,17 @@ function cancel_layout(button) {
 
 var monitors = new Array();
 function initPage() {
+
   for ( var i = 0; i < monitorData.length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);
-    var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
-    monitors[i].start(delay);
   }
   selectLayout('#zmMontageLayout');
+
+  for ( var i = 0; i < monitorData.length; i++ ) {
+    var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
+    console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
+    monitors[i].start(delay);
+  }
 }
 // Kick everything off
 window.addEvent( 'domready', initPage );

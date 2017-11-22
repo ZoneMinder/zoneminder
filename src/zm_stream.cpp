@@ -75,6 +75,7 @@ void StreamBase::updateFrameRate( double fps ) {
 
 bool StreamBase::checkCommandQueue() {
   if ( sd >= 0 ) {
+    Debug(2, "sd is (%d)", sd );
     CmdMsg msg;
     memset( &msg, 0, sizeof(msg) );
     int nbytes = recvfrom( sd, &msg, sizeof(msg), MSG_DONTWAIT, 0, 0 );
@@ -92,6 +93,8 @@ Debug(2, "Message length is (%d)", nbytes );
       processCommand( &msg );
       return( true );
     }
+  } else {
+    Error("sd is < 0");
   }
   return( false );
 }

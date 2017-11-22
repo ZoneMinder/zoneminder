@@ -140,7 +140,7 @@ function changeScale() {
   let newHeight = null;
   let autoScale = null;
   if (scale == "auto") {
-    let newSize = scaleToFit(eventData.Width, eventData.Height, $j(vid ? '#videoobj' : '#evtStream'));
+    let newSize = scaleToFit(eventData.Width, eventData.Height, $j(vid ? '#videoobj' : '#evtStream'), $j('#replayStatus'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;

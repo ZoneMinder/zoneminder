@@ -341,16 +341,14 @@ function endOfResize(e) {
   resizeTimer = setTimeout(changeScale, 250);
 }
 
-function scaleToFit (baseWidth, baseHeight, feed) {
+function scaleToFit (baseWidth, baseHeight, scaleEl, bottomEl) {
   $j(window).on('resize', endOfResize)  //set delayed scaling when Scale to Fit is selected
   let ratio = baseWidth / baseHeight;
   let container = $j('#content');
   let viewPort = $j(window);
-  let bottomDiv = $j('#replayStatus');
 // jquery does not provide a bottom offet, and offset dows not include margins.  outerHeight true minus false gives total vertical margins.
-  let bottomLoc = bottomDiv.offset().top + (bottomDiv.outerHeight(true) - bottomDiv.outerHeight()) + bottomDiv.outerHeight(true);
-  let newHeight = viewPort.height() - (bottomLoc - feed.outerHeight(true))
-//  let newHeight = viewPort.height() - (container.outerHeight(true) - feed.outerHeight(true));
+  let bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+  let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true))
   let newWidth = ratio * newHeight;
   if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth();

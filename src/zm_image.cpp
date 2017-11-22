@@ -131,6 +131,7 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
 
 Image::Image( const AVFrame *frame ) {
   AVFrame *dest_frame = zm_av_frame_alloc();
+  text[0] = '\0';
 
   width = frame->width;
   height = frame->height;
@@ -457,7 +458,6 @@ void Image::Initialise() {
 
 /* Requests a writeable buffer to the image. This is safer than buffer() because this way we can guarantee that a buffer of required size exists */
 uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder) {
-  unsigned int newsize;
 
   if ( p_colours != ZM_COLOUR_GRAY8 && p_colours != ZM_COLOUR_RGB24 && p_colours != ZM_COLOUR_RGB32 ) {
     Error("WriteBuffer called with unexpected colours: %d",p_colours);
@@ -470,7 +470,7 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
   }
 
   if ( p_width != width || p_height != height || p_colours != colours || p_subpixelorder != subpixelorder ) {
-    newsize = (p_width * p_height) * p_colours;
+    unsigned int newsize = (p_width * p_height) * p_colours;
 
     if ( buffer == NULL ) {
       AllocImgBuffer(newsize);
@@ -613,12 +613,12 @@ void Image::Assign(const unsigned int p_width, const unsigned int p_height, cons
 void Image::Assign( const Image &image ) {
   unsigned int new_size = (image.width * image.height) * image.colours;
 
-  if(image.buffer == NULL) {
+  if ( image.buffer == NULL ) {
     Error("Attempt to assign image with an empty buffer");
     return;
   }
 
-  if(image.colours != ZM_COLOUR_GRAY8 && image.colours != ZM_COLOUR_RGB24 && image.colours != ZM_COLOUR_RGB32) {
+  if ( image.colours != ZM_COLOUR_GRAY8 && image.colours != ZM_COLOUR_RGB24 && image.colours != ZM_COLOUR_RGB32 ) {
     Error("Attempt to assign image with unexpected colours per pixel: %d",image.colours);
     return;
   }
@@ -1848,8 +1848,7 @@ void Image::Delta( const Image &image, Image* targetimage) const
 #endif
 }
 
-const Coord Image::centreCoord( const char *text ) const
-{
+const Coord Image::centreCoord( const char *text ) const {
   int index = 0;
   int line_no = 0;
   int text_len = strlen( text );
@@ -1857,14 +1856,12 @@ const Coord Image::centreCoord( const char *text ) const
   int max_line_len = 0;
   const char *line = text;
 
-  while ( (index < text_len) && (line_len = strcspn( line, "\n" )) )
-  {
+  while ( (index < text_len) && (line_len = strcspn( line, "\n" )) ) {
     if ( line_len > max_line_len )
       max_line_len = line_len;
 
     index += line_len;
-    while ( text[index] == '\n' )
-    {
+    while ( text[index] == '\n' ) {
       index++;
     }
     line = text+index;
@@ -1876,8 +1873,7 @@ const Coord Image::centreCoord( const char *text ) const
 }
 
 /* RGB32 compatible: complete */
-void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour )
-{
+void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour ) {
   const uint8_t pixel_r_col = RED_VAL_RGBA(pixel_colour);
   const uint8_t pixel_g_col = GREEN_VAL_RGBA(pixel_colour);
   const uint8_t pixel_b_col = BLUE_VAL_RGBA(pixel_colour);
@@ -2102,8 +2098,8 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
 void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size ) {
   char time_text[64];
   strftime( time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime( &when ) );
-  char text[64];
   if ( label ) {
+    char text[64];
     snprintf( text, sizeof(text), "%s - %s", label, time_text );
     Annotate( text, coord, size );
   } else {
@@ -2625,8 +2621,7 @@ void Image::Rotate( int angle )
   unsigned int new_width = width;
   uint8_t* rotate_buffer = AllocBuffer(size);
 
-  switch( angle )
-  {
+  switch( angle ) {
     case 90 :
       {
         new_height = width;
@@ -2635,41 +2630,27 @@ void Image::Rotate( int angle )
         unsigned int line_bytes = new_width*colours;
         unsigned char *s_ptr = buffer;
 
-        if ( colours == ZM_COLOUR_GRAY8 )
-        {
-          unsigned char *d_ptr;
-          for ( unsigned int i = new_width; i > 0; i-- )
-          {
-            d_ptr = rotate_buffer+(i-1);
-            for ( unsigned int j = new_height; j > 0; j-- )
-            {
+        if ( colours == ZM_COLOUR_GRAY8 ) {
+          for ( unsigned int i = new_width; i > 0; i-- ) {
+            unsigned char *d_ptr = rotate_buffer+(i-1);
+            for ( unsigned int j = new_height; j > 0; j-- ) {
               *d_ptr = *s_ptr++;
               d_ptr += line_bytes;
             }
           }
-        }
-        else if ( colours == ZM_COLOUR_RGB32 )
-        {
+        } else if ( colours == ZM_COLOUR_RGB32 ) {
           Rgb* s_rptr = (Rgb*)s_ptr;
-          Rgb* d_rptr;
-          for ( unsigned int i = new_width; i > 0; i-- )
-          {
-            d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
-            for ( unsigned int j = new_height; j > 0; j-- )
-            {
+          for ( unsigned int i = new_width; i > 0; i-- ) {
+            Rgb* d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
+            for ( unsigned int j = new_height; j > 0; j-- ) {
               *d_rptr = *s_rptr++;
               d_rptr += new_width;
             }
           }
-        }
-        else /* Assume RGB24 */
-        {
-          unsigned char *d_ptr;
-          for ( unsigned int i = new_width; i > 0; i-- )
-          {
-            d_ptr = rotate_buffer+((i-1)*3);
-            for ( unsigned int j = new_height; j > 0; j-- )
-            {
+        } else /* Assume RGB24 */ {
+          for ( unsigned int i = new_width; i > 0; i-- ) {
+            unsigned char *d_ptr = rotate_buffer+((i-1)*3);
+            for ( unsigned int j = new_height; j > 0; j-- ) {
               *d_ptr = *s_ptr++;
               *(d_ptr+1) = *s_ptr++;
               *(d_ptr+2) = *s_ptr++;
@@ -2684,28 +2665,20 @@ void Image::Rotate( int angle )
         unsigned char *s_ptr = buffer+size;
         unsigned char *d_ptr = rotate_buffer;
 
-        if ( colours == ZM_COLOUR_GRAY8 )
-        {
-          while( s_ptr > buffer )
-          {
+        if ( colours == ZM_COLOUR_GRAY8 ) {
+          while( s_ptr > buffer ) {
             s_ptr--;
             *d_ptr++ = *s_ptr;
           }
-        }
-        else if ( colours == ZM_COLOUR_RGB32 )
-        {
+        } else if ( colours == ZM_COLOUR_RGB32 ) {
           Rgb* s_rptr = (Rgb*)s_ptr;
           Rgb* d_rptr = (Rgb*)d_ptr;
-          while( s_rptr > (Rgb*)buffer )
-          {
+          while( s_rptr > (Rgb*)buffer ) {
             s_rptr--;
             *d_rptr++ = *s_rptr;
           }
-        }
-        else /* Assume RGB24 */
-        {
-          while( s_ptr > buffer )
-          {
+        } else /* Assume RGB24 */ {
+          while( s_ptr > buffer ) {
             s_ptr -= 3;
             *d_ptr++ = *s_ptr;
             *d_ptr++ = *(s_ptr+1);
@@ -2722,43 +2695,29 @@ void Image::Rotate( int angle )
         unsigned int line_bytes = new_width*colours;
         unsigned char *s_ptr = buffer+size;
 
-        if ( colours == ZM_COLOUR_GRAY8 )
-        {
-          unsigned char *d_ptr;
-          for ( unsigned int i = new_width; i > 0; i-- )
-          {
-            d_ptr = rotate_buffer+(i-1);
-            for ( unsigned int j = new_height; j > 0; j-- )
-            {
+        if ( colours == ZM_COLOUR_GRAY8 ) {
+          for ( unsigned int i = new_width; i > 0; i-- ) {
+            unsigned char *d_ptr = rotate_buffer+(i-1);
+            for ( unsigned int j = new_height; j > 0; j-- ) {
               s_ptr--;
               *d_ptr = *s_ptr;
               d_ptr += line_bytes;
             }
           }
-        }
-        else if ( colours == ZM_COLOUR_RGB32 )
-        {
+        } else if ( colours == ZM_COLOUR_RGB32 ) {
           Rgb* s_rptr = (Rgb*)s_ptr;
-          Rgb* d_rptr;
-          for ( unsigned int i = new_width; i > 0; i-- )
-          {
-            d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
-            for ( unsigned int j = new_height; j > 0; j-- )
-            {
+          for ( unsigned int i = new_width; i > 0; i-- ) {
+            Rgb* d_rptr = (Rgb*)(rotate_buffer+((i-1)<<2));
+            for ( unsigned int j = new_height; j > 0; j-- ) {
               s_rptr--;
               *d_rptr = *s_rptr;
               d_rptr += new_width;
             }
           }
-        }
-        else /* Assume RGB24 */
-        {
-          unsigned char *d_ptr;
-          for ( unsigned int i = new_width; i > 0; i-- )
-          {
-            d_ptr = rotate_buffer+((i-1)*3);
-            for ( unsigned int j = new_height; j > 0; j-- )
-            {
+        } else /* Assume RGB24 */ {
+          for ( unsigned int i = new_width; i > 0; i-- ) {
+            unsigned char *d_ptr = rotate_buffer+((i-1)*3);
+            for ( unsigned int j = new_height; j > 0; j-- ) {
               *(d_ptr+2) = *(--s_ptr);
               *(d_ptr+1) = *(--s_ptr);
               *d_ptr = *(--s_ptr);
@@ -2771,18 +2730,15 @@ void Image::Rotate( int angle )
   }
 
   AssignDirect( new_width, new_height, colours, subpixelorder, rotate_buffer, size, ZM_BUFTYPE_ZM);
-
 }
 
 /* RGB32 compatible: complete */
-void Image::Flip( bool leftright )
-{
+void Image::Flip( bool leftright ) {
   uint8_t* flip_buffer = AllocBuffer(size);
 
   unsigned int line_bytes = width*colours;
   unsigned int line_bytes2 = 2*line_bytes;
-  if ( leftright )
-  {
+  if ( leftright ) {
     // Horizontal flip, left to right
     unsigned char *s_ptr = buffer+line_bytes;
     unsigned char *d_ptr = flip_buffer;

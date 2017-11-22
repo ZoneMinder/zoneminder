@@ -2974,26 +2974,24 @@ Debug(4, "Return from Capture (%d)", captureResult);
     shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
 
     image_count++;
-  } // end if captureResult
 
-  if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-
-    struct timeval now;
-    if ( !captureResult ) {
-      gettimeofday( &now, NULL );
-    } else {
-      now.tv_sec = image_buffer[index].timestamp->tv_sec;
-    }
-    fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
-    Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
-    //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-    Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
-    last_fps_time = now.tv_sec;
-    static char sql[ZM_SQL_SML_BUFSIZ];
-    snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", fps, id );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    }
+    if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
+      time_t now = image_buffer[index].timestamp->tv_sec;
+      // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
+      if ( now != last_fps_time ) {
+        // # of images per interval / the amount of time it took
+        fps = double(fps_report_interval)/(now-last_fps_time);
+        Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
+        //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
+        Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
+        last_fps_time = now;
+        static char sql[ZM_SQL_SML_BUFSIZ];
+        snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", fps, id );
+        if ( mysql_query( &dbconn, sql ) ) {
+          Error( "Can't run query: %s", mysql_error( &dbconn ) );
+        }
+      }
+    } // end if captureResult
   }
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing

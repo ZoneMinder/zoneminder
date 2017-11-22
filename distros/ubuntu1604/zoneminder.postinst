@@ -17,23 +17,16 @@ if [ "$1" = "configure" ]; then
     a2enmod cgi
   fi
 
-	# Do this every time the package is installed or upgraded
   # Ensure zoneminder is stopped
-  deb-systemd-invoke stop zoneminder.service || exit $?
-
-  # Ensure zoneminder is stopped
-  deb-systemd-invoke stop zoneminder.service || exit $?
-	if [ "$ZM_DB_HOST" = "localhost" ]; then
 
     if [ -e "/etc/init.d/mysql" ]; then
+      # Do this every time the package is installed or upgraded
+      # Ensure zoneminder is stopped
+      deb-systemd-invoke stop zoneminder.service || exit $?
 
       #
       # Get mysql started if it isn't
       #
-      if ! $(/etc/init.d/mysql status >/dev/null 2>&1); then
-          deb-systemd-invoke start mysql.service || exit $?
-      fi
-
       if $(/etc/init.d/mysql status >/dev/null 2>&1); then
         mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
         # test if database if already present...

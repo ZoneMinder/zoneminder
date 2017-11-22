@@ -1,48 +1,43 @@
 var vid = null;
 
 function vjsReplay() {
-  vid.ready(function(){
-    var player = this;
-    player.on('ended', function() {
-      var endTime = (Date.parse(eventData.EndTime)).getTime();
-      switch(replayMode.value) {
-        case 'none':
-          break;
-        case 'single':
-          player.play();
-          break;
-        case 'all':
-          if (nextEventId == 0) {
-            let overLaid = $j("#videoobj");
-            overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
-          } else {
-            var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
-            if (nextStartTime <= endTime) {
-             streamNext( true );
-             return;
-            }
-            let overLaid = $j("#videoobj");
-            vid.pause();
-            overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-            var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
-            let messageP = $j(".vjsMessage");
-            var x = setInterval(function() {
-              var now = new Date().getTime();
-              var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
-              messageP.html(remainder + ' to next event.');
-              if (remainder < 0) {
-                clearInterval(x);
-                streamNext( true );
-              }
-            }, 1000);
+  let endTime = (Date.parse(eventData.EndTime)).getTime();
+  switch(replayMode.value) {
+    case 'none':
+      break;
+    case 'single':
+      player.play();
+      break;
+    case 'all':
+      if (nextEventId == 0) {
+        let overLaid = $j("#videoobj");
+        overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
+      } else {
+        let nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+        if (nextStartTime <= endTime) {
+         streamNext( true );
+         return;
+        }
+        let overLaid = $j("#videoobj");
+        vid.pause();
+        overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
+        let gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+        let messageP = $j(".vjsMessage");
+        let x = setInterval(function() {
+          let now = new Date().getTime();
+          let remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
+          messageP.html(remainder + ' to next event.');
+          if (remainder < 0) {
+            clearInterval(x);
+            streamNext( true );
           }
-            break;
-        case 'gapless':
-          streamNext( true );
-          break;
+        }, 1000);
       }
-    });
-  });
+        break;
+    case 'gapless':
+      streamNext( true );
+      break;
+  }
 }
 
 $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
@@ -50,11 +45,11 @@ $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
 var cueFrames = null; //make cueFrames availaible even if we don't send another ajax query
 
 function initialAlarmCues (eventId) {
-  $j.getJSON("api/events/"+eventId+".json", setAlarmCues); //get frames data for alarmCues and inserts into html
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues); //get frames data for alarmCues and inserts into html
 }
 
 function setAlarmCues (data) {
-  cueFrames = data.event.Frame;
+  cueFrames = data.frames;
   alarmSpans = renderAlarmCues();
   $j(".alarmCue").html(alarmSpans);
 }
@@ -129,7 +124,11 @@ function renderAlarmCues () {
 function setButtonState( element, butClass ) {
   if ( element ) {
     element.className = butClass;
-    element.disabled = (butClass != 'inactive');
+    if (butClass == 'unavail' || (butClass == 'active' && (element.id == 'pauseBtn' || element.id == 'playBtn'))) {
+      element.disabled = true;
+    } else {
+      element.disabled = false;
+    }
   } else {
     console.log("Element was null in setButtonState");
   }
@@ -154,26 +153,40 @@ function scaleToFit () {
     newWidth = container.innerWidth();
     newHeight = newWidth / ratio;
   }
-  return {width: Math.floor(newWidth), height: Math.floor(newHeight)};
+  let autoScale = Math.round(newWidth / eventData.Width * SCALE_BASE);
+  let scales = $j('#scale option').map(function() {return parseInt($j(this).val());}).get();
+  scales.shift();
+  let closest = null;
+  $j(scales).each(function () { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
+    if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
+      closest = this.valueOf();
+    }
+  });
+  autoScale = closest;
+  return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
 function changeScale() {
   let scale = $j('#scale').val();
+  let newWidth = null;
+  let newHeight = null;
+  let autoScale = null;
   if (scale == "auto") {
     let newSize = scaleToFit();
-    var newWidth = newSize.width;
-    var newHeight = newSize.height;
+    newWidth = newSize.width;
+    newHeight = newSize.height;
+    autoScale = newSize.autoScale;
   } else {
     $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-    var newWidth = eventData.Width * scale / SCALE_BASE;
-    var newHeight = eventData.Height * scale / SCALE_BASE;
+    newWidth = eventData.Width * scale / SCALE_BASE;
+    newHeight = eventData.Height * scale / SCALE_BASE;
   }
   let alarmCue = $j('div.alarmCue');
   let eventViewer = $j(vid ? '#videoobj' : '#evtStream')
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
-    streamScale(scale == "auto" ? Math.round(newWidth / eventData.Width * SCALE_BASE) : scale);
+    streamScale(scale == "auto" ? autoScale : scale);
     alarmCue.width(newWidth);
     drawProgressBar();
   }
@@ -214,7 +227,7 @@ function getCmdResponse( respObj, respText ) {
     streamCmdTimer = clearTimeout( streamCmdTimer );
 
   streamStatus = respObj.status;
-  if (streamStatus.progress > parseFloat(eventData.Length)) streamStatus.progress = parseFloat(eventData.Length); //Limit progress to reality
+  if (streamStatus.progress >= Math.round(parseFloat(eventData.Length))) streamStatus.progress = parseFloat(eventData.Length); //Limit progress to reality
 
   var eventId = streamStatus.event;
   if ( eventId != lastEventId && lastEventId != 0) { //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
@@ -224,18 +237,13 @@ function getCmdResponse( respObj, respText ) {
   }
   if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
   if ( streamStatus.paused == true ) {
-    $('modeValue').set( 'text', 'Paused' );
-    $('rate').addClass( 'hidden' );
     streamPause( );
   } else {
-    console.log('playing');
-    $('modeValue').set( 'text', "Replay" );
-    $('rateValue').set( 'text', streamStatus.rate );
-    $('rate').removeClass( 'hidden' );
+    $j('#rateValue').html(streamStatus.rate);
     streamPlay( );
   }
-  $('progressValue').set( 'text', secsToTime( parseInt(streamStatus.progress) ) );
-  $('zoomValue').set( 'text', streamStatus.zoom );
+  $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
+  $j('#zoomValue').html(streamStatus.zoom);
   if ( streamStatus.zoom == "1.0" )
     setButtonState( $('zoomOutBtn'), 'unavail' );
   else
@@ -255,12 +263,23 @@ function getCmdResponse( respObj, respText ) {
 
 var streamReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getCmdResponse } );
 
-function pauseClicked( ) {
-  streamReq.send( streamParms+"&command="+CMD_PAUSE );
+function pauseClicked() {
+  if (vid) {
+    vid.pause();
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_PAUSE );
+    streamPause();
+  }
 }
 
-// Called when stream becomes paused, just updates the button status
+function vjsPause () {
+  stopFastRev();
+  streamPause();
+}
+
 function streamPause( ) {
+  $j('#modeValue').html('Paused');
+  $j('#rateValue').html('0');
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('playBtn'), 'inactive' );
   setButtonState( $('fastFwdBtn'), 'unavail' );
@@ -270,13 +289,28 @@ function streamPause( ) {
 }
 
 function playClicked( ) {
-  streamReq.send( streamParms+"&command="+CMD_PLAY );
+  if (vid) {
+    if (vid.paused()) {
+      vid.play();
+    } else {
+      vjsPlay(); //handles fast forward and rewind
+    }
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_PLAY );
+    streamPlay();
+  }
+}
+
+function vjsPlay () { //catches if we change mode programatically
+  stopFastRev();
+  $j('#rateValue').html(vid.playbackRate());
+  streamPlay();
 }
 
 function streamPlay( ) {
+  $j('#modeValue').html('Replay');
   setButtonState( $('pauseBtn'), 'inactive' );
-  if (streamStatus)
-    setButtonState( $('playBtn'), streamStatus.rate==1?'active':'inactive' );
+  setButtonState( $('playBtn'), 'active' );
   setButtonState( $('fastFwdBtn'), 'inactive' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
@@ -286,35 +320,44 @@ function streamPlay( ) {
 function streamFastFwd( action ) {
   setButtonState( $('pauseBtn'), 'inactive' );
   setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'inactive' );
+  setButtonState( $('fastFwdBtn'), 'active' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
   setButtonState( $('fastRevBtn'), 'inactive' );
-  streamReq.send( streamParms+"&command="+CMD_FASTFWD );
+  if (vid) {
+    if (revSpeed != .5) stopFastRev();
+    vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)-1]/100);
+    if (rates.indexOf(vid.playbackRate()*100)-1 == -1) setButtonState($('fastFwdBtn'), 'unavail');
+    $j('#rateValue').html(vid.playbackRate());
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_FASTFWD );
+  }
 }
 
+var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
+var intervalRewind;
+var revSpeed = .5;
+
 function streamSlowFwd( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'unavail' );
-  setButtonState( $('slowFwdBtn'), 'active' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
-  setButtonState( $('fastRevBtn'), 'unavail' );
-  streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
+  if (vid) {
+   vid.currentTime(vid.currentTime() + spf);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_SLOWFWD );
+  }
 }
 
 function streamSlowRev( action ) {
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('playBtn'), 'inactive' );
-  setButtonState( $('fastFwdBtn'), 'unavail' );
-  setButtonState( $('slowFwdBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'active' );
-  setButtonState( $('fastRevBtn'), 'unavail' );
-  streamReq.send( streamParms+"&command="+CMD_SLOWREV );
-  setButtonState( $('pauseBtn'), 'inactive' );
-  setButtonState( $('slowRevBtn'), 'inactive' );
+  if (vid) {
+    vid.currentTime(vid.currentTime() - spf);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_SLOWREV );
+  }
+}
+
+function stopFastRev () {
+  clearInterval(intervalRewind);
+  vid.playbackRate(1);
+  revSpeed = .5;
 }
 
 function streamFastRev( action ) {
@@ -323,8 +366,26 @@ function streamFastRev( action ) {
   setButtonState( $('fastFwdBtn'), 'inactive' );
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
-  setButtonState( $('fastRevBtn'), 'inactive' );
-  streamReq.send( streamParms+"&command="+CMD_FASTREV );
+  setButtonState( $('fastRevBtn'), 'active' );
+  if (vid) { //There is no reverse play with mp4.  Set the speed to 0 and manualy set the time back.
+    revSpeed = rates[rates.indexOf(revSpeed*100)-1]/100;
+    if (rates.indexOf(revSpeed*100) == 0) {
+      setButtonState( $('fastRevBtn'), 'unavail' );
+    }
+    clearInterval(intervalRewind);
+    $j('#rateValue').html(-revSpeed);
+    intervalRewind = setInterval(function() {
+      if (vid.currentTime() <= 0) {
+        clearInterval(intervalRewind);
+        vid.pause();
+      } else {
+        vid.playbackRate(0);
+        vid.currentTime(vid.currentTime() - (revSpeed/2)); //Half of reverse speed because our interval is 500ms.
+      }
+    }, 500); //500ms is a compromise between smooth reverse and realistic performance
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_FASTREV );
+  }
 }
 
 function streamPrev(action) {
@@ -337,6 +398,7 @@ function streamPrev(action) {
       location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     } else {
       streamReq.send(streamParms+"&command="+CMD_PREV);
+      streamPlay();
     }
   }
 }
@@ -345,8 +407,8 @@ function streamNext(action) {
   if (action) {
     $j(".vjsMessage").remove();//This shouldn't happen
     if (nextEventId == 0) { //handles deleting last event.
-      vid ? vid.pause() : streamPause();
-      let hideContainer = $j( vid ? "#eventVideo" : "#imageFeed");
+      pauseClicked();
+      let hideContainer = $j('#eventVideo');
       let hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
       hideContainer.prepend('<p class="vjsMessage" style="height: ' + hideStream + 'px; line-height: ' + hideStream + 'px;">No more events</p>');
       if (vid == null) zmsBroke = true;
@@ -359,16 +421,66 @@ function streamNext(action) {
       location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
     } else {
       streamReq.send(streamParms+"&command="+CMD_NEXT);
+      streamPlay();
     }
   }
 }
 
+function vjsPanZoom (action, x, y) { //Pan and zoom with centering where the click occurs
+  let outer = $j('#videoobj');
+  let video = outer.children().first();
+  let zoom =  parseFloat($j('#zoomValue').html());
+  let zoomRate = .5;
+  let matrix = video.css('transform').split(',');
+  let currentPanX = parseFloat(matrix[4]);
+  let currentPanY = parseFloat(matrix[5]);
+  let xDist = outer.width()/2 - x //Click distance from center of view
+  let yDist = outer.height()/2 - y
+  if (action == 'zoomOut') {
+    zoom -= zoomRate;
+    if (x && y) {
+      x = (xDist + currentPanX)*((zoom-zoomRate)/zoom); // if ctrl-click Pan but use ratio of old zoom to new zoom for coords
+      y = (yDist + currentPanY)*((zoom-zoomRate)/zoom);
+    } else {
+      x = currentPanX*((zoom-zoomRate)/zoom); //Leave zoom centered where it was
+      y = currentPanY*((zoom-zoomRate)/zoom);
+    }
+    if (zoom <= 1) {
+      zoom = 1;
+      $j('#zoomOutBtn').attr('class', 'unavail').attr('disabled', 'disabled');
+    }
+    $j('#zoomValue').html(zoom);
+  } else if (action == 'zoom') {
+    zoom += zoomRate;
+    x = (xDist + currentPanX)*(zoom/(zoom-zoomRate)); //Pan but use ratio of new zoom to old zoom for coords.  Center on mouse click.
+    y = (yDist + currentPanY)*(zoom/(zoom-zoomRate));
+    $j('#zoomOutBtn').attr('class', 'inactive').removeAttr('disabled');
+    $j('#zoomValue').html(zoom);
+  } else if (action == 'pan') {
+    x = xDist + currentPanX;
+    y = yDist + currentPanY;
+  }
+  let limitX = ((zoom*outer.width()) - outer.width())/2; //Calculate outer bounds of video
+  let limitY = ((zoom*outer.height()) - outer.height())/2;
+  x = Math.min(Math.max((x),-limitX),limitX); //Limit pan to outer bounds of video
+  y = Math.min(Math.max((y),-limitY),limitY);
+  video.css('transform', 'matrix('+zoom+', 0, 0, '+zoom+', '+x+', '+y+')');
+}
+
 function streamZoomIn( x, y ) {
-  streamReq.send( streamParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
+  if (vid) {
+    vjsPanZoom('zoom', x, y);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_ZOOMIN+"&x="+x+"&y="+y );
+  }
 }
 
 function streamZoomOut() {
-  streamReq.send( streamParms+"&command="+CMD_ZOOMOUT );
+  if (vid) {
+    vjsPanZoom('zoomOut');
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_ZOOMOUT );
+  }
 }
 
 function streamScale( scale ) {
@@ -376,7 +488,11 @@ function streamScale( scale ) {
 }
 
 function streamPan( x, y ) {
-  streamReq.send( streamParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
+  if (vid) {
+    vjsPanZoom('pan', x, y);
+  } else {
+    streamReq.send( streamParms+"&command="+CMD_PAN+"&x="+x+"&y="+y );
+  }
 }
 
 function streamSeek( offset ) {
@@ -434,6 +550,10 @@ function getEventResponse( respObj, respText ) {
     initialAlarmCues(eventData.Id);//ajax and render, new event
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
     CurEventDefVideoPath = null;
+    $j('#modeValue').html('Replay');
+    $j('#zoomValue').html('1');
+    $j('#rateValue').html('1');
+    vjsPanZoom('zoomOut');
   } else {
     drawProgressBar();
   }
@@ -487,7 +607,7 @@ function loadEventThumb( event, frame, loadImage ) {
     console.error( "No holder found for frame "+frame.FrameId );
     return;
   }
-  var img = new Asset.image( imagePrefix+frame.Image.imagePath,
+  var img = new Asset.image( imagePrefix+frame.EventId+"&fid="+frame.FrameId,
       {
       'onload': ( function( loadImage ) {
           thumbImg.setProperty( 'src', img.getProperty( 'src' ) );
@@ -503,29 +623,6 @@ function loadEventThumb( event, frame, loadImage ) {
       );
 }
 
-function updateStillsSizes( noDelay ) {
-  var containerDim = $('eventThumbs').getSize();
-
-  var containerWidth = containerDim.x;
-  var containerHeight = containerDim.y;
-  var popupWidth = parseInt($('eventImage').getStyle( 'width' ));
-  var popupHeight = parseInt($('eventImage').getStyle( 'height' ));
-
-  var left = (containerWidth - popupWidth)/2;
-  if ( left < 0 ) left = 0;
-  var top = (containerHeight - popupHeight)/2;
-  if ( top < 0 ) top = 0;
-  if ( popupHeight == 0 && !noDelay ) {
-    // image not yet loaded lets give it another second
-    updateStillsSizes.pass( true ).delay( 50 );
-    return;
-  }
-  $('eventImagePanel').setStyles( {
-      'left': left,
-      'top': top
-      } );
-}
-
 function loadEventImage( event, frame ) {
   console.debug( "Loading "+event.Id+"/"+frame.FrameId );
   var eventImg = $('eventImage');
@@ -539,14 +636,6 @@ function loadEventImage( event, frame ) {
       lastThumbImg.setOpacity( 1.0 );
     }
 
-    eventImg.setProperties( {
-        'class': frame.Type=='Alarm'?'alarm':'normal',
-        'src': thumbImg.getProperty( 'src' ),
-        'title': thumbImg.getProperty( 'title' ),
-        'alt': thumbImg.getProperty( 'alt' ),
-        'width': event.Width,
-        'height': event.Height
-        } );
     $('eventImageBar').setStyle( 'width', event.Width );
     if ( frame.Type=='Alarm' )
       $('eventImageStats').removeClass( 'hidden' );
@@ -557,10 +646,17 @@ function loadEventImage( event, frame ) {
 
     if ( eventImagePanel.getStyle( 'display' ) == 'none' ) {
       eventImagePanel.setOpacity( 0 );
-      updateStillsSizes();
-      eventImagePanel.setStyle( 'display', 'block' );
+      eventImagePanel.setStyle( 'display', 'inline-block' );
       new Fx.Tween( eventImagePanel, { duration: 500, transition: Fx.Transitions.Sine } ).start( 'opacity', 0, 1 );
     }
+
+    eventImg.setProperties( {
+        'class': frame.Type=='Alarm'?'alarm':'normal',
+        'src': thumbImg.getProperty( 'src' ),
+        'title': thumbImg.getProperty( 'title' ),
+        'alt': thumbImg.getProperty( 'alt' ),
+        'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
+        } );
 
     $('eventImageNo').set( 'text', frame.FrameId );
     $('prevImageBtn').disabled = (frame.FrameId==1);
@@ -608,7 +704,7 @@ function resetEventStills() {
     } ).set( 0 );
   }
   if ( $('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) < (parseInt(eventData.Height)+80) )
-    $('eventThumbs').setStyle( 'height', (parseInt(eventData.Height)+80)+'px' );
+    $('eventThumbs').setStyle( 'height', ($j(vid ? '#videoobj' : '#evtStream').height())+'px' );
 }
 
 function getFrameResponse( respObj, respText ) {
@@ -759,6 +855,7 @@ function actQuery( action, parms ) {
 }
 
 function deleteEvent() {
+  pauseClicked(); //Provides visual feedback that your click happened.
   actQuery( 'delete' );
   streamNext( true );
 }
@@ -788,21 +885,19 @@ function showEventFrames() {
   createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames' );
 }
 
-function showVideo() {
+function showStream() {
   $('eventStills').addClass( 'hidden' );
-  $('imageFeed').addClass('hidden');
   $('eventVideo').removeClass( 'hidden' );
 
   $('stillsEvent').removeClass( 'hidden' );
-  $('videoEvent').addClass( 'hidden' );
+  $('streamEvent').addClass( 'hidden' );
 
   streamMode = 'video';
 }
 
 function showStills() {
   $('eventStills').removeClass( 'hidden' );
-  $('imageFeed').removeClass('hidden');
-  $('eventVideo').addClass( 'hidden' );		
+  $('eventVideo').addClass( 'hidden' );
 
   if (vid && ( vid.paused != true ) ) {
     // Pause the video
@@ -814,11 +909,11 @@ function showStills() {
   }
 
   $('stillsEvent').addClass( 'hidden' );
-  $('videoEvent').removeClass( 'hidden' );
+  $('streamEvent').removeClass( 'hidden' );
 
   streamMode = 'stills';
 
-  streamPause( true );
+  pauseClicked();
   if ( !scroll ) {
     scroll = new Fx.Scroll( 'eventThumbs', {
       wait: false,
@@ -829,7 +924,6 @@ function showStills() {
     );
   }
   resetEventStills();
-  $(window).addEvent( 'resize', updateStillsSizes );
 }
 
 function showFrameStats() {
@@ -867,145 +961,38 @@ function progressBarNav (){
 
 function handleClick( event ) {
   var target = event.target;
-  var x = event.page.x - $(target).getLeft();
-  var y = event.page.y - $(target).getTop();
+  if (vid) {
+    if (target.id != 'videoobj') return; //ignore clicks on control bar
+    var x = event.offsetX;
+    var y = event.offsetY;
+  } else {
+    var x = event.page.x - $(target).getLeft();
+    var y = event.page.y - $(target).getTop();
+  }
 
-  if (event.shift) {
+  if (event.shift || event.shiftKey) {//handle both jquery and mootools
     streamPan(x, y);
+  } else if (vid && event.ctrlKey) { //allow zoom out by control click.  useful in fullscreen
+    vjsPanZoom('zoomOut', x, y);
   } else {
     streamZoomIn(x, y);
   }
 }
 
-function setupListener() {
-
-  // Buttons
-  var playButton = document.getElementById("play-pause");
-  var muteButton = document.getElementById("mute");
-  var fullScreenButton = document.getElementById("full-screen");
-
-  // Sliders
-  var seekBar = document.getElementById("seekbar");
-  var volumeBar = document.getElementById("volume-bar");
-
-  // Event listener for the play/pause button
-  playButton.addEventListener( "click", function() {
-      if (vid.paused == true) {
-      // Play the video
-      vid.play();
-
-      // Update the button text to 'Pause'
-      playButton.innerHTML = "Pause";
-      } else {
-      // Pause the video
-      vid.pause();
-
-      // Update the button text to 'Play'
-      playButton.innerHTML = "Play";
-      }
-      });
-
-
-  // Event listener for the mute button
-  muteButton.addEventListener("click", function() {
-      if (vid.muted == false) {
-      // Mute the video
-      vid.muted = true;
-
-      // Update the button text
-      muteButton.innerHTML = "Unmute";
-      } else {
-      // Unmute the video
-      vid.muted = false;
-
-      // Update the button text
-      muteButton.innerHTML = "Mute";
-      }
-      });
-
-
-  // Event listener for the full-screen button
-  fullScreenButton.addEventListener("click", function() {
-      if (vid.requestFullscreen) {
-      vid.requestFullscreen();
-      } else if (vid.mozRequestFullScreen) {
-      vid.mozRequestFullScreen(); // Firefox
-      } else if (vid.webkitRequestFullscreen) {
-      vid.webkitRequestFullscreen(); // Chrome and Safari
-      }
-      });
-
-
-  // Event listener for the seek bar
-  seekBar.addEventListener("change", function() {
-      // Calculate the new time
-      var time = vid.duration * (seekBar.value / 100);
-
-      // Update the video time
-      vid.currentTime = time;
-      });
-
-
-  // Update the seek bar as the video plays
-  vid.addEventListener("timeupdate", function() {
-      // Calculate the slider value
-      var value = (100 / vid.duration) * vid.currentTime;
-
-      // Update the slider value
-      seekBar.value = value;
-      });
-
-  // Pause the video when the seek handle is being dragged
-  seekBar.addEventListener("mousedown", function() {
-      vid.pause();
-      });
-
-  // Play the video when the seek handle is dropped
-  seekBar.addEventListener("mouseup", function() {
-      vid.play();
-      });
-
-  // Event listener for the volume bar
-  volumeBar.addEventListener("change", function() {
-      // Update the video volume
-      vid.volume = volumeBar.value;
-      });
-}
-
 function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if ($j('#videoobj').length) {
-    vid = videojs("videoobj");
+    vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
-    $j(".vjs-progress-control").append('<div class="alarmCue"></div>');//add a place for videojs only on first load
-    nearEventsQuery(eventData.Id);
-    initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues after videojs is initialized
-    vjsReplay();
-  }
-  if (vid) {
-/*
-    setupListener();
-      vid.removeAttribute("controls");
-    /* window.videoobj.oncanplay=null;
-    window.videoobj.currentTime=window.videoobj.currentTime-1;
-    window.videoobj.currentTime=window.videoobj.currentTime+1;//may not be symetrical of course
-
-    vid.onstalled=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;} 
-    vid.onwaiting=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    vid.onloadstart=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    vid.onplay=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    vid.onplaying=function(){window.vid.currentTime=window.vid.currentTime-1;window.vid.currentTime=window.vid.currentTime+1;}
-    //window.vid.hide();//does not help
-    var sources = window.videoobj.getElementsByTagName('source');
-    sources[0].src=null;
-    window.videoobj.load();
-    streamPlay();    */
+    $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
+    vid.on('ended', vjsReplay);
+    vid.on('play', vjsPlay);
+    vid.on('pause', vjsPause);
+    vid.on('click', function(event){handleClick(event);});
+    vid.on('timeupdate', function (){$j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())))});
   } else {
     progressBarNav ();
     streamCmdTimer = streamQuery.delay( 250 );
-    eventQuery.pass( eventData.Id ).delay( 500 );
-    initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues for zms.
-
     if ( canStreamNative ) {
       var streamImg = $('imageFeed').getElement('img');
       if ( !streamImg )
@@ -1013,7 +1000,9 @@ function initPage() {
       $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
     }
   }
-if (scale == "auto") changeScale();
+  nearEventsQuery(eventData.Id);
+  initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
+  if (scale == "auto") changeScale();
 }
 
 // Kick everything off

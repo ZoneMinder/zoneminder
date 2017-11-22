@@ -204,7 +204,6 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
   int diff_width = diff_image->Width();
   uint8_t* diff_buff = (uint8_t*)diff_image->Buffer();
   uint8_t* pdiff;
-  const uint8_t* ppoly;
 
   unsigned int pixel_diff_count = 0;
 
@@ -266,6 +265,7 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
     int by = filter_box.Y();
     int bx1 = bx-1;
     int by1 = by-1;
+
 
     Debug( 5, "Checking for filtered pixels" );
     if ( bx > 1 || by > 1 ) {
@@ -679,7 +679,7 @@ bool Zone::CheckAlarms( const Image *delta_image ) {
           }
         }
 
-        ppoly = pg_image->Buffer( lo_x2, y );
+        const uint8_t* ppoly = pg_image->Buffer( lo_x2, y );
         for ( int x = lo_x2; x <= hi_x2; x++, pdiff++, ppoly++ ) {
           if ( !*ppoly ) {
             *pdiff = BLACK;
@@ -946,13 +946,9 @@ bool Zone::DumpSettings( char *output, bool /*verbose*/ ) {
 void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum) {
   uint32_t pixelsalarmed = 0;
   uint32_t pixelsdifference = 0;
-  uint8_t *pdiff;
-  const uint8_t *ppoly;
   uint8_t calc_max_pixel_threshold = 255;
   unsigned int lo_y;
   unsigned int hi_y;
-  unsigned int lo_x;
-  unsigned int hi_x;
 
   if(max_pixel_threshold)
     calc_max_pixel_threshold = max_pixel_threshold;
@@ -960,12 +956,12 @@ void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsig
   lo_y = polygon.LoY();
   hi_y = polygon.HiY();
   for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
-    lo_x = ranges[y].lo_x;
-    hi_x = ranges[y].hi_x;
+    unsigned int lo_x = ranges[y].lo_x;
+    unsigned int hi_x = ranges[y].hi_x;
 
     Debug( 7, "Checking line %d from %d -> %d", y, lo_x, hi_x );
-    pdiff = (uint8_t*)pdiff_image->Buffer( lo_x, y );
-    ppoly = ppoly_image->Buffer( lo_x, y );
+    uint8_t *pdiff = (uint8_t*)pdiff_image->Buffer( lo_x, y );
+    const uint8_t *ppoly = ppoly_image->Buffer( lo_x, y );
 
     for ( unsigned int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ ) {
       if ( *ppoly && (*pdiff > min_pixel_threshold) && (*pdiff <= calc_max_pixel_threshold) ) {

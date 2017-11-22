@@ -109,8 +109,6 @@ int av_dict_parse_string(AVDictionary **pm, const char *str,
                             const char *key_val_sep, const char *pairs_sep,
                             int flags)
    {
-       int ret;
-   
        if (!str)
           return 0;
    
@@ -118,7 +116,7 @@ int av_dict_parse_string(AVDictionary **pm, const char *str,
        flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
    
        while (*str) {
-           if ((ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
+           if ((int ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
               return ret;
    
            if (*str)
@@ -133,6 +131,7 @@ int av_dict_parse_string(AVDictionary **pm, const char *str,
 #endif // HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
 #if HAVE_LIBAVUTIL
+#if LIBAVUTIL_VERSION_CHECK(56, 0, 0, 17, 100)
 int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb){
   int64_t a, b, this_thing;
 
@@ -155,6 +154,7 @@ simple_round:
 
   return av_rescale_q(this_thing, fs_tb, out_tb);
 }
+#endif
 #endif
 
 int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat *oformat, const char *format, const char *filename) {
@@ -184,27 +184,13 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
     }
   }
 
-  if (!oformat) {
-    if (format) {
-      oformat = av_guess_format(format, NULL, NULL);
-      if (!oformat) {
-        av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
-        ret = AVERROR(EINVAL);
-      }
-    } else {
-      oformat = av_guess_format(NULL, filename, NULL);
-      if (!oformat) {
-        ret = AVERROR(EINVAL);
-        av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n", filename);
-      }
-    }
-  }
-
   if (ret) {
     avformat_free_context(s);
     return ret;
   } else {
     s->oformat = oformat;
+#if 0
+    // This is some very wrong code, and I don't think it is neccessary
     if (s->oformat->priv_data_size > 0) {
       s->priv_data = av_mallocz(s->oformat->priv_data_size);
       if (s->priv_data) {
@@ -219,6 +205,7 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
       }
       s->priv_data = NULL;
     }
+#endif
 
     if (filename) strncpy(s->filename, filename, sizeof(s->filename));
     *avctx = s;

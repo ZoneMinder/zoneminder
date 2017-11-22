@@ -27,6 +27,7 @@
 #include "zm_stream.h"
 #include "zm_video.h"
 #include "zm_ffmpeg_input.h"
+#include "zm_monitor.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,7 +75,7 @@ class EventStream : public StreamBase {
 
     int curr_frame_id;
     double curr_stream_time;
-      bool  send_frame;
+    bool  send_frame;
 
     EventData *event_data;
     FFmpeg_Input  *ffmpeg_input;
@@ -96,6 +97,7 @@ class EventStream : public StreamBase {
 
       curr_frame_id = 0;
       curr_stream_time = 0.0;
+      send_frame = false;
 
       event_data = 0;
 
@@ -108,11 +110,17 @@ class EventStream : public StreamBase {
     }
     void setStreamStart( int init_event_id, unsigned int init_frame_id=0 ) {
       loadInitialEventData( init_event_id, init_frame_id );
-      loadMonitor( event_data->monitor_id );
+      if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
+        Fatal( "Unable to load monitor id %d for streaming", event_data->monitor_id );
+        return;
+      }
     }
     void setStreamStart( int monitor_id, time_t event_time ) {
       loadInitialEventData( monitor_id, event_time );
-      loadMonitor( monitor_id );
+      if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
+        Fatal( "Unable to load monitor id %d for streaming", monitor_id );
+        return;
+      }
     }
     void setStreamMode( StreamMode p_mode ) {
       mode = p_mode;

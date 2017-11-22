@@ -28,13 +28,13 @@ if ( version_compare( phpversion(), '4.3.0', '<') ) {
 }
 
 # We are requiring these because this file is getting included from the api, which hasn't already included them.
-require_once( 'logger.php' );
-require_once( 'database.php' );
+require_once('logger.php');
+require_once('database.php');
 
 function userLogin( $username, $password='', $passwordHashed=false ) {
   global $user, $cookies;
 
-  $sql = 'SELECT * FROM Users WHERE Enabled = 1';
+  $sql = 'SELECT * FROM Users WHERE Enabled=1';
   $sql_values = NULL;
   if ( ZM_AUTH_TYPE == 'builtin' ) {
     if ( $passwordHashed ) {
@@ -44,7 +44,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     }
     $sql_values = array( $username, $password );
   } else {
-    $sql .= ' AND Username = ?';
+    $sql .= ' AND Username=?';
     $sql_values = array( $username );
   }
   $_SESSION['username'] = $username;
@@ -138,26 +138,27 @@ function getAuthUser( $auth ) {
         $authHash = md5( $authKey );
 
         if ( $auth == $authHash ) {
-          return( $user );
+          return $user;
         }
       } // end foreach hour
     } // end foreach user
   } // end if using auth hash
   Error( "Unable to authenticate user from auth hash '$auth'" );
   return( false );
-}
+} // end getAuthUser($auth)
 
 function generateAuthHash( $useRemoteAddr ) {
   if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
-    if ( ( ! isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < time() - ( ZM_AUTH_HASH_TTL * 1800 ) ) ) {
+    $time = time();
+    if ( ( ! isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < ( $time - ( ZM_AUTH_HASH_TTL * 1800 ) ) ) ) {
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
-      $time = localtime();
+      $local_time = localtime();
       $authKey = '';
       if ( $useRemoteAddr ) {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       } else {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
       $auth = md5( $authKey );
       if ( session_status() == PHP_SESSION_NONE ) {
@@ -167,10 +168,10 @@ function generateAuthHash( $useRemoteAddr ) {
         Warning("Session is not active. AuthHash will not be cached. called from $file:$line");
       }
       $_SESSION['AuthHash'] = $auth;
-      $_SESSION['AuthHashGeneratedAt'] = time();
+      $_SESSION['AuthHashGeneratedAt'] = $time;
       Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
     } else {
-      Logger::Debug( "Using cached auth " . $_SESSION['AuthHash'] );
+      Logger::Debug( "Using cached auth " . $_SESSION['AuthHash'] ." beacuse " . $_SESSION['AuthHashGeneratedAt'] . ' < '. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '.( $time - (ZM_AUTH_HASH_TTL * 1800) ));
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'];
   } else {
@@ -339,11 +340,11 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
 }
 
 function outputImageStream( $id, $src, $width, $height, $title='' ) {
-  echo getImageStream( $id, $src, $width, $height, $title );
+  echo getImageStreamHTML( $id, $src, $width, $height, $title );
 }
 
 
-function getImageStream( $id, $src, $width, $height, $title='' ) {
+function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
@@ -1239,12 +1240,18 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
               $value = dbEscape($value);
               break;
             case 'DateTime':
+            case 'StartDateTime':
+            case 'EndDateTime':
               $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
               break;
             case 'Date':
+            case 'StartDate':
+            case 'EndDate':
               $value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             case 'Time':
+            case 'StartTime':
+            case 'EndTime':
               $value = "extract( hour_second from '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             default :
@@ -1281,13 +1288,15 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'IS NOT' :
             $filter['sql'] .= " IS NOT $value";
             break;
+          default:
+            Warning("Invalid operator in filter: " . $terms[$i]['op'] );
         }
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($terms[$i]['op'])."\"/>\n";
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($terms[$i]['val']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
-      }
+      } // end foreach term
       if ( isset($terms[$i]['cbr']) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($terms[$i]['cbr']);
         $filter['sql'] .= ' '.str_repeat( ')', $terms[$i]['cbr'] ).' ';
@@ -1302,13 +1311,14 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
   }
 }
 
+// Please note that the filter is passed in by copy, so you need to use the return value from this function.
+//
 function addFilterTerm( $filter, $position, $term=false ) {
   if ( $position < 0 )
     $position = 0;
   
   if ( ! isset( $filter['Query']['terms'] ) )
     $filter['Query']['terms'] = array();
-
   elseif( $position > count($filter['Query']['terms']) )
     $position = count($filter['Query']['terms']);
   if ( $term && $position == 0 )
@@ -1438,6 +1448,66 @@ function getDiskBlocks() {
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];
   return( $space );
+}
+
+function systemStats() {
+
+    $load = getLoad();
+    $diskPercent = getDiskPercent();
+    $pathMapPercent = getDiskPercent(ZM_PATH_MAP);
+    $cpus = getcpus();
+
+    $normalized_load = $load / $cpus;
+
+    # Colorize the system load stat
+    if ( $normalized_load <= 0.75 ) {
+        $htmlLoad=$load;
+    } elseif ( $normalized_load <= 0.9 ) {
+        $htmlLoad="<span class=\"warning\">$load</span>";
+    } elseif ( $normalized_load <= 1.1 ) {
+        $htmlLoad="<span class=\"error\">$load</span>";
+    } else {
+        $htmlLoad="<span class=\"critical\">$load</span>";
+    }
+
+    # Colorize the disk space stat
+    if ( $diskPercent < 98 ) {
+        $htmlDiskPercent="$diskPercent%";
+    } elseif ( $diskPercent <= 99 ) {
+        $htmlDiskPercent="<span class=\"warning\">$diskPercent%</span>";
+    } else {
+        $htmlDiskPercent="<span class=\"error\">$diskPercent%</span>";
+    }
+
+    # Colorize the PATH_MAP (usually /dev/shm) stat
+    if ( $pathMapPercent < 90 ) {
+        if ( disk_free_space(ZM_PATH_MAP) > 209715200 ) { # have to always have at least 200MiB free
+            $htmlPathMapPercent="$pathMapPercent%";
+        } else {
+            $htmlPathMapPercent="<span class=\"warning\">$pathMapPercent%</span>";
+        }
+    } elseif ( $pathMapPercent < 100 ) {
+        $htmlPathMapPercent="<span class=\"warning\">$pathMapPercent%</span>";
+    } else {
+        $htmlPathMapPercent="<span class=\"critical\">$pathMapPercent%</span>";
+    }
+
+    $htmlString = translate('Load').": $htmlLoad - ".translate('Disk').": $htmlDiskPercent - ".ZM_PATH_MAP.": $htmlPathMapPercent";
+
+    return( $htmlString );
+}
+
+function getcpus() {
+
+    if (is_readable("/proc/cpuinfo") ) { # Works on Linux
+        preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches); 
+        $num_cpus = count($matches[0]);
+    } else { # Works on BSD
+        $matches = explode(":", shell_exec("sysctl hw.ncpu"));
+        $num_cpus = trim($matches[1]);
+    }
+
+    return( $num_cpus );
 }
 
 // Function to fix a problem whereby the built in PHP session handling 
@@ -2067,7 +2137,7 @@ function cache_bust( $file ) {
   # Use the last modified timestamp to create a link that gets a different filename
   # To defeat caching.  Should probably use md5 hash
   $parts = pathinfo($file);
-  $cacheFile = 'cache/'.$parts['filename'].'-'.filemtime($file).'.'.$parts['extension'];
+  $cacheFile = 'cache/'.$parts['filename'].'-'.$_COOKIE['zmCSS'].'-'.filemtime($file).'.'.$parts['extension'];
   if ( file_exists( ZM_PATH_WEB.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.'/'.$cacheFile ) ) {
     return $cacheFile;
   } else {
@@ -2141,18 +2211,17 @@ function validHtmlStr( $input ) {
 function getStreamHTML( $monitor, $options = array() ) {
 
   if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
+    //Warning("Scale to " . $options['scale'] );
     $options['width'] = reScale( $monitor->Width(), $options['scale'] );
     $options['height'] = reScale( $monitor->Height(), $options['scale'] );
   } else {
-    if ( ! isset( $options['width'] ) ) {
-        $options['width'] = NULL;
-    } else if ( $options['width'] == 100 ) {
+    # scale is empty or 100
+    # There may be a fixed width applied though, in which case we need to leave the height empty
+    if ( ! ( isset($options['width']) and $options['width'] ) ) {
       $options['width'] = $monitor->Width();
-    }
-    if ( ! isset( $options['height'] ) ) {
-        $options['height'] = NULL;
-    } else if ( $options['height'] == 100 ) {
-      $options['height'] = $monitor->Height();
+      if ( ! ( isset($options['height']) and $options['height'] ) ) {
+        $options['height'] = $monitor->Height();
+      }
     }
   }
   if ( ! isset($options['mode'] ) ) {
@@ -2161,17 +2230,24 @@ function getStreamHTML( $monitor, $options = array() ) {
   $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
   if ( $monitor->StreamReplayBuffer() )
     $options['buffer'] = $monitor->StreamReplayBuffer();
+  //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
 
   //FIXME, the width and height of the image need to be scaled.
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format' => ZM_MPEG_LIVE_FORMAT ) );
-    return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+    $streamSrc = $monitor->getStreamSrc( array(
+      'mode'=>'mpeg',
+      'scale'=>$options['scale'],
+      'bitrate'=>ZM_WEB_VIDEO_BITRATE,
+      'maxfps'=>ZM_WEB_VIDEO_MAXFPS,
+      'format' => ZM_MPEG_LIVE_FORMAT
+    ) );
+    return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
   } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';
     $streamSrc = $monitor->getStreamSrc( $options );
 
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
+      return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
     elseif ( canStreamApplet() )
       // Helper, empty widths and heights really don't work.
       return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 
@@ -2198,6 +2274,7 @@ function getStreamMode( ) {
     $streamMode = 'single';
     Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
   }
+  return $streamMode;
 } // end function getStreamMode
 
 function folder_size($dir) {

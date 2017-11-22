@@ -1,4 +1,4 @@
-var requestQueue = new Request.Queue( { concurrent: 2 } );
+var requestQueue = new Request.Queue( { concurrent: monitorData.length, stopOnFailure: false } );
 
 function Monitor( monitorData ) {
   this.id = monitorData.id;
@@ -7,15 +7,18 @@ function Monitor( monitorData ) {
   this.status = null;
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
-  this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
+  this.streamCmdParms = this.server_url+'?view=request&request=stream&connkey='+this.connKey;
   this.onclick = monitorData.onclick;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
   this.streamCmdTimer = null;
 
-  this.start = function( delay ) {
+  /*
+  this.zm_startup = function( delay ) {
+    console.log("Starting streamwatch for " + this.connKey );
     this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
   };
+  */
 
   this.setStateClass = function( element, stateClass ) {
     if ( !element.hasClass( stateClass ) ) {
@@ -27,6 +30,30 @@ function Monitor( monitorData ) {
         element.removeClass( 'idle' );
       element.addClass( stateClass );
     }
+  };
+
+  this.onError = function( text, error ) {
+    console.log('onerror: ' + text + ' error:'+error);
+    // Requeue, but want to wait a while.
+    var streamCmdTimeout = 1000*statusRefreshTimeout;
+    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
+  };
+  this.onFailure = function( xhr ) {
+    console.log('onFailure: ' + this.connKey);
+    console.log(xhr );
+    if ( ! requestQueue.hasNext("cmdReq"+this.id) ) { 
+      console.log("Not requeuing because there is one already");
+      requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
+    }
+    if ( 0 ) {
+    // Requeue, but want to wait a while.
+    if ( this.streamCmdTimer )
+      this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
+    var streamCmdTimeout = 1000*statusRefreshTimeout;
+    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this, true );
+    requestQueue.resume();
+    }
+      console.log("done failure");
   };
 
   this.getStreamCmdResponse = function( respObj, respText ) {
@@ -91,8 +118,11 @@ function Monitor( monitorData ) {
       console.error( respObj.message );
       // Try to reload the image stream.
       if ( stream ) {
+        if ( stream.src ) {
         console.log('Reloading stream: ' + stream.src );
         stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+        } else {
+        }
       } else {
         console.log( 'No stream to reload?' );
       }
@@ -107,17 +137,12 @@ function Monitor( monitorData ) {
   };
 
   this.streamCmdQuery = function( resent ) {
-    if ( resent )
-    console.log( this.connKey+": Resending" );
-    //this.streamCmdReq.cancel();
+    if ( resent ) {
+      console.log( this.connKey+": Resending" );
+      this.streamCmdReq.cancel();
+    }
+    console.log("Starting CmdQuery for " + this.connKey );
     this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
-  };
-  this.onError = function( text, error ) {
-    console.log('onerror: ' + text + ' error:'+error);
-  };
-  this.onFailure = function( xhr ) {
-    console.log('onFailure: ' );
-    console.log(xhr );
   };
 
   this.streamCmdReq = new Request.JSON( {
@@ -131,6 +156,7 @@ function Monitor( monitorData ) {
     link: 'cancel'
   } );
 
+  console.log("queueing for " + this.id + " " + this.connKey );
   requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }
 
@@ -187,10 +213,11 @@ function selectLayout( element ) {
       if ( streamImg ) {
         if ( streamImg.nodeName == 'IMG' ) {
           var src = streamImg.src;
-          streamImg.src='';
           src = src.replace(/width=[\.\d]+/i,'width=0' );
-          src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-          streamImg.src = src;
+          if ( src != streamImg.src ) {
+            streamImg.src='';
+            streamImg.src = src;
+          }
         } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
           // APPLET's and OBJECTS need to be re-initialized
         }
@@ -246,6 +273,7 @@ function changeSize() {
   Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
   Cookie.write( 'zmMontageWidth', width, { duration: 10*365 } );
   Cookie.write( 'zmMontageHeight', height, { duration: 10*365 } );
+  selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
 function changeScale() {
@@ -356,12 +384,18 @@ function cancel_layout(button) {
 
 var monitors = new Array();
 function initPage() {
+console.log("initPage");
   for ( var i = 0; i < monitorData.length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);
-    var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
-    monitors[i].start(delay);
   }
   selectLayout('#zmMontageLayout');
+
+  for ( var i = 0; i < monitorData.length; i++ ) {
+    var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
+    console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
+    monitors[i].streamCmdQuery.delay( delay, monitors[i] );
+    //monitors[i].zm_startup(delay);
+  }
 }
 // Kick everything off
 window.addEvent( 'domready', initPage );

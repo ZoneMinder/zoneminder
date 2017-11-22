@@ -71,7 +71,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   static char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime( &start_time.tv_sec );
-  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d )", 
+  snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,
@@ -81,7 +81,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       notes.c_str(), 
       state_id,
       monitor->getOrientation(),
-      videoEvent
+      videoEvent,
+      monitor->GetOptSaveJPEGs()
       );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
@@ -211,7 +212,9 @@ Event::~Event() {
   if ( frames > last_db_frame ) {
 
     Debug( 1, "Adding closing frame %d to DB", frames );
-    snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+    snprintf( sql, sizeof(sql), 
+        "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )",
+        id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
       exit( mysql_errno( &dbconn ) );
@@ -241,11 +244,11 @@ Event::~Event() {
 
 void Event::createNotes( std::string &notes ) {
   notes.clear();
-  for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); mapIter++ ) {
+  for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter ) {
     notes += mapIter->first;
     notes += ": ";
     const StringSet &stringSet = mapIter->second;
-    for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); setIter++ ) {
+    for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); ++setIter ) {
       if ( setIter != stringSet.begin() )
         notes += ", ";
       notes += *setIter;
@@ -316,7 +319,7 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
       noteSetMap = newNoteSetMap;
       update = true;
     } else {
-      for ( StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin(); newNoteSetMapIter != newNoteSetMap.end(); newNoteSetMapIter++ ) {
+      for ( StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin(); newNoteSetMapIter != newNoteSetMap.end(); ++newNoteSetMapIter ) {
         const std::string &newNoteGroup = newNoteSetMapIter->first;
         const StringSet &newNoteSet = newNoteSetMapIter->second;
         //Info( "Got %d new strings", newNoteSet.size() );
@@ -329,7 +332,7 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
           } else {
             StringSet &noteSet = noteSetMapIter->second;
             //Info( "Found note group %s, got %d strings", newNoteGroup.c_str(), newNoteSet.size() );
-            for ( StringSet::const_iterator newNoteSetIter = newNoteSet.begin(); newNoteSetIter != newNoteSet.end(); newNoteSetIter++ ) {
+            for ( StringSet::const_iterator newNoteSetIter = newNoteSet.begin(); newNoteSetIter != newNoteSet.end(); ++newNoteSetIter ) {
               const std::string &newNote = *newNoteSetIter;
               StringSet::iterator noteSetIter = noteSet.find( newNote );
               if ( noteSetIter == noteSet.end() ) {
@@ -390,7 +393,6 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
     }
 
     strncpy( notesStr, notes.c_str(), sizeof(notesStr) );
-    notesLen = notes.length();
 
     if ( mysql_stmt_execute( stmt ) ) {
       Fatal( "Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt) );

@@ -39,6 +39,7 @@ span.noneCue {
 
 #dataBar #dataTable {
     width: 100%;
+    table-layout: fixed;
 }
 
 #dataBar #dataTable td {
@@ -124,32 +125,32 @@ span.noneCue {
 #monitorStatus #monitorState {
 }
 
-.dvrControls {
+#dvrControls {
     margin-top: 3px;
     margin-bottom: 2px;
     text-align: center;
 }
 
-.dvrControls input {
-    height: 20px;
-    width: 28px;
-    padding-bottom: 3px;
+#dvrControls input {
+    height: 1.5em;
+    width: 2em;
+    padding: 0;
     margin: 0 3px;
 }
 
-.dvrControls input[disabled=disabled] {
+#dvrControls input[disabled=disabled] {
     color: #aaaaaa;
 }
 
-.dvrControls input.active {
+#dvrControls input.active {
     border: 1px solid blue;
 }
 
-.dvrControls input.inactive {
+#dvrControls input.inactive {
     border: 1px solid green;
 }
 
-.dvrControls input.unavail {
+#dvrControls input.unavail {
     border: 1px solid red;
 }
 
@@ -176,20 +177,17 @@ span.noneCue {
 }
 
 #eventStills {
-    width: 100%;
     position: relative;
 }
 
 #eventThumbsPanel {
     position: relative;
-    width: 100%;
     margin: 4px auto;
     z-index: 1;
 }
 
 #eventThumbs {
     margin: 0 auto;
-    width: 100%;
     overflow: hidden;
     height: 300px;
 }
@@ -209,13 +207,17 @@ span.noneCue {
 
 #eventImagePanel {
     position: absolute;
+    top: 0;
+    left: 0;
     z-index: 10;
+    width: 100%;
 }
 
 #eventImageFrame {
     border: 2px solid gray;
     background-color: white;
     padding: 4px;
+    display: inline-block;
 }
 
 #eventImage {
@@ -223,6 +225,14 @@ span.noneCue {
 
 #eventImageBar {
     margin-top: 2px;
+}
+
+#eventImageBar::after {
+  visibility: hidden;
+  display: block;
+  content: "";
+  clear: both;
+  height: 0;
 }
 
 #eventImageStats {
@@ -240,6 +250,7 @@ span.noneCue {
 
 #eventImageNav {
     position: relative;
+    margin: 4px 0 0 0;
 }
 
 #eventImageNav input {

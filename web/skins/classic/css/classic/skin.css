@@ -63,16 +63,8 @@ p {
     font-weight: normal;
 }
 
-th {
-    font-weight: bold;
-    color: #016A9d;
-}
 
-a:link {
-    color: #7f7fb2;
-    text-decoration: none;
-}
-
+a:link,
 a:visited {
     color: #7f7fb2;
     text-decoration: none;
@@ -81,6 +73,11 @@ a:visited {
 a:hover {
     color: #666699;
     text-decoration: underline;
+}
+
+th, th a {
+    font-weight: bold;
+    color: #016A9d;
 }
 
 input,textarea,select,button {

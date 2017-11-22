@@ -35,22 +35,24 @@ public function beforeFilter() {
  * @return void
  */
 	public function index() {
-                $this->Monitor->recursive = 0;
-		$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
+    $this->Monitor->recursive = 0;
 		
-		if (!empty($allowedMonitors))
-		{
-			$options = array('conditions'=>array('Monitor.Id'=> $allowedMonitors));
+		if ($this->request->params['named']) {	
+			$this->FilterComponent = $this->Components->load('Filter');
+			$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+		} else {
+			$conditions = array();
 		}
-		else
-		{
-			$options='';
+
+		$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
+		if (!empty($allowedMonitors)) {
+      $conditions['Monitor.Id' ] = $allowedMonitors;
 		}
-        	$monitors = $this->Monitor->find('all',$options);
-        	$this->set(array(
-        	    'monitors' => $monitors,
-        	    '_serialize' => array('monitors')
-        	));
+    $monitors = $this->Monitor->find('all',array('conditions'=>$conditions));
+    $this->set(array(
+          'monitors' => $monitors,
+          '_serialize' => array('monitors')
+          ));
 	}
 
 /**
@@ -122,7 +124,7 @@ public function beforeFilter() {
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		if ($this->Session->Read('systemPermission') != 'Edit')
+		if ($this->Session->Read('monitorPermission') != 'Edit')
 		{
 			 throw new UnauthorizedException(__('Insufficient privileges'));
 			return;

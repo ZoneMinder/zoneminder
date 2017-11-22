@@ -195,6 +195,7 @@ CREATE TABLE `Events` (
   `Frames` int(10) unsigned default NULL,
   `AlarmFrames` int(10) unsigned default NULL,
   `DefaultVideo` VARCHAR( 64 ) DEFAULT '' NOT NULL,
+  `SaveJPEGs` TINYINT,
   `TotScore` int(10) unsigned NOT NULL default '0',
   `AvgScore` smallint(5) unsigned default '0',
   `MaxScore` smallint(5) unsigned default '0',
@@ -384,6 +385,8 @@ CREATE TABLE `Monitors` (
   `Deinterlacing` int(10) unsigned NOT NULL default '0',
   `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' ,
   `VideoWriter` TINYINT NOT NULL DEFAULT '0',
+  `OutputCodec`     enum('h264','mjpeg','mpeg1','mpeg2'),
+  `OutputContainer` enum('auto','mp4','mkv'),
   `EncoderParameters` TEXT,
   `RecordAudio` TINYINT NOT NULL DEFAULT '0',
   `RTSPDescribe` tinyint(1) unsigned,
@@ -428,9 +431,9 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
-`Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
-`zmcFPS`  DECIMAL(5,2) NOT NULL default 0,
-`zmaFPS` DECIMAL(5,2) NOT NULL default 0,
+  `Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
+  `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
+  `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -606,13 +609,14 @@ CREATE TABLE `Storage` (
 	`Path`	varchar(64)	NOT NULL default '',
 	`Name`	varchar(64) NOT NULL default '',
 	`Type`	enum('local','s3fs') NOT NULL default 'local',
+  `DiskSpace`   bigint unsigned default NULL,
 	PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default', 'local' );
+insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default', 'local', NULL );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

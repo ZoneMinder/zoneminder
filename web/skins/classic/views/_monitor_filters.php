@@ -98,23 +98,23 @@ $groupSql = Group::get_group_sql( $group_id );
       if ( $monitors[$i]['Id'] == $monitor_id ) {
         $found_selected_monitor = true;
       }
-    }
+    } // end foreach monitor
     if ( ! $found_selected_monitor ) {
       $monitor_id = '';
     }
-  }
+  } // end if a monitor was specified
+
   for ( $i = 0; $i < count($monitors); $i++ ) {
     if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
       continue;
     }
-    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
 
     if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
       continue;
     }
     $displayMonitors[] = $monitors[$i];
   }
-  echo htmlSelect( 'MonitorId', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') );
+  echo htmlSelect( 'MonitorId', $monitors_dropdown, $monitor_id, array('onchange'=>'changeFilter(this);') );
 ?>
 </span>
 <?php

@@ -15,9 +15,11 @@ achieve the same result by running:
 
 ::
 
-    tasksel install lamp-server
+    sudo tasksel install lamp-server
 
 During installation it will ask you to set up a master/root password for the MySQL.
+Installing LAMP is not ZoneMinder specific so you will find plenty of resources to 
+guide you with a quick search.
 
 **Step 1:** Either run commands in this install using sudo or use the below to become root
 ::

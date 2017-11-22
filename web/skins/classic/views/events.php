@@ -88,22 +88,6 @@ $maxWidth = 0;
 $maxHeight = 0;
 $archived = false;
 $unarchived = false;
-$events = array();
-foreach ( dbFetchAll( $eventsSql ) as $event_row ) {
-  $events[] = $event = new Event( $event_row );
-
-# Doesn this code do anything? 
-  $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-  $eventWidth = reScale( $event_row['Width'], $scale );
-  $eventHeight = reScale( $event_row['Height'], $scale );
-  if ( $maxWidth < $eventWidth ) $maxWidth = $eventWidth;
-  if ( $maxHeight < $eventHeight ) $maxHeight = $eventHeight;
-  if ( $event_row['Archived'] )
-    $archived = true;
-  else
-    $unarchived = true;
-}
-
 $maxShortcuts = 5;
 $pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQuery.'&amp;limit='.$limit );
 
@@ -160,7 +144,19 @@ if ( $pagination ) {
 $count = 0;
 $disk_space_total = 0;
 
-foreach ( $events as $event ) {
+$results = dbQuery( $eventsSql );
+while ( $event_row = dbFetchNext( $results ) ) {
+  $event = new Event( $event_row );
+  $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+  $eventWidth = reScale( $event_row['Width'], $scale );
+  $eventHeight = reScale( $event_row['Height'], $scale );
+  if ( $maxWidth < $eventWidth ) $maxWidth = $eventWidth;
+  if ( $maxHeight < $eventHeight ) $maxHeight = $eventHeight;
+  if ( $event_row['Archived'] )
+    $archived = true;
+  else
+    $unarchived = true;
+
   if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
 ?>
             <tr>
@@ -193,12 +189,10 @@ foreach ( $events as $event ) {
   }
   $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 ?>
-            <tr>
+            <tr<?php if ($event->Archived()) echo ' class="archived"' ?>>
               <td class="colId"><?php echo makePopupLink( '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1', 'zmEvent', array( 'event', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->Id().($event->Archived()?'*':'') ) ?></td>
               <td class="colName"><?php echo makePopupLink( '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1', 'zmEvent', array( 'event', reScale( $event->Width(), $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), reScale( $event->Height(), $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ) ), validHtmlStr($event->Name()).($event->Archived()?'*':'' ) ) ?></td>
-              <td class="colMonitorName"><?php echo 
-makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->Monitorid(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) )
- ?></td>
+              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->Monitorid(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
               <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?></td>
               <td class="colTime"><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime()) ) ?></td>
               <td class="colDuration"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
@@ -293,5 +287,12 @@ if ( true || canEdit( 'Events' ) ) {
       </form>
     </div>
   </div>
+<script type="text/javascript">
+  // These are defined in the .js.php but need to be updated down here.
+  archivedEvents = <?php echo !empty($archived)?'true':'false' ?>;
+  unarchivedEvents = <?php echo !empty($unarchived)?'true':'false' ?>;
+  maxWidth = <?php echo $maxWidth?$maxWidth:0 ?>;
+  maxHeight = <?php echo $maxHeight?$maxHeight:0 ?>;
+</script>
 </body>
 </html>

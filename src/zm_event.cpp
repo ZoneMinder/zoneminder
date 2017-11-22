@@ -182,7 +182,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if ( videowriter != NULL ) {
       /* Open the video stream */
       int nRet = videowriter->Open();
-      if(nRet != 0) {
+      if ( nRet != 0 ) {
         Error("Failed opening video stream");
         delete videowriter;
         videowriter = NULL;
@@ -231,8 +231,10 @@ Event::~Event() {
     videowriter = NULL;
 
     /* Close the timecodes file */
-    fclose(timecodes_fd);
-    timecodes_fd = NULL;
+    if ( timecodes_fd ) {
+      fclose(timecodes_fd);
+      timecodes_fd = NULL;
+    }
   }
 
   snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );

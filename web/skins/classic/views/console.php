@@ -143,8 +143,6 @@ if ( count($servers) ) $left_columns += 1;
 if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
 if ( $show_storage_areas ) $left_columns += 1;
 
-return;
-
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>

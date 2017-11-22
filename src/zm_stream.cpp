@@ -299,6 +299,7 @@ void StreamBase::openComms() {
       Warning("Socket path was truncated.");
       length = sizeof(loc_sock_path)-1;
     }
+    // Unlink before bind, in case it already exists
     unlink( loc_sock_path );
     if ( sizeof(loc_addr.sun_path) < length ) {
       Error("Not enough space %d in loc_addr.sun_path for socket file %s", sizeof(loc_addr.sun_path), loc_sock_path );
@@ -327,10 +328,10 @@ void StreamBase::closeComms() {
     if ( loc_sock_path[0] ) {
       unlink( loc_sock_path );
     }
-    if (lock_fd > 0) {
+    if ( lock_fd > 0 ) {
       close(lock_fd); //close it rather than unlock it incase it got deleted.
-      unlink(sock_path_lock);
+      // You cannot unlink the lockfile.  You have to leave a mess around.  SUCKS
+      //unlink(sock_path_lock);
     }
   }
 }
-

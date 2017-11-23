@@ -79,6 +79,23 @@ my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'S
 my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 
+  my $eventcounts_sql = q`UPDATE Monitors SET 
+TotalEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id),
+  TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+  HourEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 hour) ),
+  HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 hour) AND DiskSpace IS NOT NULL),
+  DayEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day)),
+  DayEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day) AND DiskSpace IS NOT NULL),
+  WeekEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week)),
+  WeekEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week) AND DiskSpace IS NOT NULL),
+  MonthEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 month)),
+  MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 month) AND DiskSpace IS NOT NULL),
+  ArchivedEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1),
+  ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1 AND DiskSpace IS NOT NULL)
+  WHERE Id=?`;
+
+  my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
+
 while( 1 ) {
   my $now = time();
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
@@ -175,9 +192,13 @@ while( 1 ) {
     } # end if check analysis daemon
     # Prevent open handles building up if we have connect to shared memory
     zmMemInvalidate( $monitor ); # Close our file handle to the zmc process we are about to end
+    $eventcounts_sth->execute( $$monitor{Id} ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
+
   } # end foreach monitor
+  $eventcounts_sth->finish();
+
   my $diskspace_sql = 'UPDATE Storage SET DiskSpace =(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL)';
-  my $diskspace_sth = $dbh->prepare_cached( $sql )
+  my $diskspace_sth = $dbh->prepare_cached( $diskspace_sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
   foreach my $Storage ( ZoneMinder::Storage->find() ) {
     Error("Updating disk space for $$Storage{Name}");

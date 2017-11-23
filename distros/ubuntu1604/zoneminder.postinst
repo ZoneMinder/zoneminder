@@ -10,14 +10,14 @@ if [ "$1" = "configure" ]; then
   chown www-data:root /var/log/zm
   chown www-data:www-data /var/lib/zm
   if [ -z "$2" ]; then
-      chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
+      chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/* /usr/share/zoneminder/www/cache
   fi
   if [ ! -e "/etc/apache2/mods-enabled/cgi.load" ]; then
     echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
     a2enmod cgi
   fi
 
-  # Ensure zoneminder is stopped
+  if [ "$ZM_DB_HOST" = "localhost" ]; then
 
     if [ -e "/etc/init.d/mysql" ]; then
       # Do this every time the package is installed or upgraded

@@ -229,7 +229,7 @@ for ( $i = 0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $weekdays, $term['val'] ); ?></td>
 <?php
-    } elseif ( false && $term['attr'] == 'MonitorName' ) {
+    } elseif ( $term['attr'] == 'MonitorName' ) {
       $monitors = array();
       foreach ( dbFetchAll( 'select Id,Name from Monitors order by Sequence asc' ) as $monitor ) {
         if ( visibleMonitor( $monitor['Id'] ) ) {

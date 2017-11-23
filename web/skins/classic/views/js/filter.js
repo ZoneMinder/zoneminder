@@ -63,7 +63,7 @@ function saveFilter( element ) {
 
   //form.target = 'zmFilter';
   form.target = window.name;
-  form.elements['action'].value = 'save';
+  form.elements['action'].value = element.value;
   form.action = thisUrl + '?view=filter';
   form.submit();
 }

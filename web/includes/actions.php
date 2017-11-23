@@ -151,7 +151,7 @@ Warning("Addterm");
         if ( ! empty($_REQUEST['Id']) ) {
           dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
         }
-      } else if ( ( $action == 'save' ) or ( $action == 'execute' ) or ( $action == 'submit' ) ) {
+      } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) or ( $action == 'submit' ) ) {
 
         $sql = '';
         $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
@@ -175,7 +175,7 @@ Warning("Addterm");
         $sql .= ', Background = '. ( !empty($_REQUEST['filter']['Background']) ? 1 : 0);
         $sql .= ', Concurrent  = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
 
-        if ( $_REQUEST['Id'] ) {
+        if ( $_REQUEST['Id'] and ( $action == 'Save' ) ) {
           dbQuery( 'UPDATE Filters SET ' . $sql. ' WHERE Id=?', array($_REQUEST['Id']) );
         } else {
           dbQuery( 'INSERT INTO Filters SET' . $sql );

@@ -403,7 +403,8 @@ if ( ZM_OPT_MESSAGE ) {
 <?php 
 if ( canEdit( 'Events' ) ) {
 ?>
-          <input type="button" value="<?php echo translate('Save') ?>" onclick="saveFilter( this );"/>
+          <button value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
+          <button value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>
@@ -415,6 +416,6 @@ if ( canEdit( 'Events' ) ) {
           <input type="button" value="<?php echo translate('Reset') ?>" onclick="submitToFilter( this, 1 );"/>
         </div>
       </form>
-    </div>
-  </div>
+    </div><!--content-->
+  </div><!--page-->
 <?php xhtmlFooter() ?>

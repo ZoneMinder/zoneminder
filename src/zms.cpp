@@ -84,12 +84,6 @@ int main( int argc, const char *argv[] ) {
   
   zmLoadConfig();
 
-  logInit( "zms" );
-  
-  hwcaps_detect();
-
-  zmSetDefaultTermHandler();
-  zmSetDefaultDieHandler();
 
   const char *query = getenv( "QUERY_STRING" );
   if ( query ) {
@@ -175,6 +169,14 @@ int main( int argc, const char *argv[] ) {
     } // end foreach parm
   } // end if query
 
+  char log_id_string[32] = "zms";
+  if ( monitor_id ) {
+    snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
+  } else {
+    snprintf(log_id_string, sizeof(log_id_string), "zms_e%d", event_id);
+  }
+  logInit( log_id_string );
+
   if ( config.opt_use_auth ) {
     User *user = 0;
 
@@ -204,6 +206,10 @@ int main( int argc, const char *argv[] ) {
     }
     ValidateAccess( user, monitor_id );
   }
+
+  hwcaps_detect();
+  zmSetDefaultTermHandler();
+  zmSetDefaultDieHandler();
 
   setbuf( stdout, 0 );
   if ( nph ) {

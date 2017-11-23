@@ -38,6 +38,23 @@ ZMPacket::ZMPacket( ) {
   image_index = -1;
 }
 
+ZMPacket::ZMPacket( ZMPacket &p ) {
+  keyframe = 0;
+  // frame from decoded packet, to be used in generating image
+  in_frame = NULL;
+  out_frame = NULL;
+  image = NULL;
+  buffer = NULL;
+  av_init_packet( &packet );
+  if ( zm_av_packet_ref( &packet, &p.packet ) < 0 ) {
+    Error("error refing packet");
+  }
+  timestamp = new struct timeval;
+  *timestamp = *p.timestamp;
+  analysis_image = NULL;
+  image_index = -1;
+}
+
 ZMPacket::~ZMPacket() {
   zm_av_packet_unref( &packet );
   if ( in_frame ) {
@@ -80,10 +97,12 @@ void ZMPacket::reset() {
     delete analysis_image;
     analysis_image = NULL;
   }
+#if 0
   if ( (! image) && timestamp ) {
     delete timestamp;
     timestamp = NULL;
   }
+#endif
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {

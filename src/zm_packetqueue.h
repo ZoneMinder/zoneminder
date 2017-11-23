@@ -42,7 +42,7 @@ public:
     unsigned int get_video_packet_count();
     void clear_unwanted_packets( timeval *recording, int mVideoStreamId );
     std::list<ZMPacket *>    pktQueue;
-    unsigned int video_packet_count; // keep track of how many video packets we have, because we shouldn't have more than image_buffer_count
+    int video_packet_count; // keep track of how many video packets we have, because we shouldn't have more than image_buffer_count
 };
 
 #endif /* ZM_PACKETQUEUE_H */

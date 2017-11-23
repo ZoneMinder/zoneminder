@@ -1,6 +1,6 @@
-/* MooTools: the javascript framework. license: MIT-style license. copyright: Copyright (c) 2006-2015 [Valerio Proietti](http://mad4milk.net/).*/ 
-/*
-Web Build: http://mootools.net/more/builder/a3048f4bfdf603b22a69c141dbd0fca9
+/* MooTools: the javascript framework. license: MIT-style license. copyright: Copyright (c) 2006-2017 [Valerio Proietti](https://mootools.net/).*/ 
+/*!
+Web Build: https://mootools.net/more/builder/a3048f4bfdf603b22a69c141dbd0fca9
 */
 /*
 ---
@@ -32,8 +32,8 @@ provides: [MooTools.More]
 */
 
 MooTools.More = {
-	version: '1.5.1',
-	build: '2dd695ba957196ae4b0275a690765d6636a61ccd'
+	version: '1.6.0',
+	build: '45b71db70f879781a7e0b0d3fb3bb1307c2521eb'
 };
 
 /*
@@ -63,40 +63,40 @@ provides: [Chain.Wait]
 
 (function(){
 
-	var wait = {
-		wait: function(duration){
-			return this.chain(function(){
-				this.callChain.delay(duration == null ? 500 : duration, this);
-				return this;
-			}.bind(this));
-		}
-	};
-
-	Chain.implement(wait);
-
-	if (this.Fx) Fx.implement(wait);
-
-	if (this.Element && Element.implement && this.Fx){
-		Element.implement({
-
-			chains: function(effects){
-				Array.from(effects || ['tween', 'morph', 'reveal']).each(function(effect){
-					effect = this.get(effect);
-					if (!effect) return;
-					effect.setOptions({
-						link:'chain'
-					});
-				}, this);
-				return this;
-			},
-
-			pauseFx: function(duration, effect){
-				this.chains(effect).get(effect || 'tween').wait(duration);
-				return this;
-			}
-
-		});
+var wait = {
+	wait: function(duration){
+		return this.chain(function(){
+			this.callChain.delay(duration == null ? 500 : duration, this);
+			return this;
+		}.bind(this));
 	}
+};
+
+Chain.implement(wait);
+
+if (this.Fx) Fx.implement(wait);
+
+if (this.Element && Element.implement && this.Fx){
+	Element.implement({
+
+		chains: function(effects){
+			Array.convert(effects || ['tween', 'morph', 'reveal']).each(function(effect){
+				effect = this.get(effect);
+				if (!effect) return;
+				effect.setOptions({
+					link:'chain'
+				});
+			}, this);
+			return this;
+		},
+
+		pauseFx: function(duration, effect){
+			this.chains(effect).get(effect || 'tween').wait(duration);
+			return this;
+		}
+
+	});
+}
 
 })();
 
@@ -125,12 +125,12 @@ provides: [Class.Binds]
 
 Class.Mutators.Binds = function(binds){
 	if (!this.prototype.initialize) this.implement('initialize', function(){});
-	return Array.from(binds).concat(this.prototype.Binds || []);
+	return Array.convert(binds).concat(this.prototype.Binds || []);
 };
 
 Class.Mutators.initialize = function(initialize){
 	return function(){
-		Array.from(this.Binds).each(function(name){
+		Array.convert(this.Binds).each(function(name){
 			var original = this[name];
 			if (original) this[name] = original.bind(this);
 		}, this);
@@ -218,6 +218,58 @@ Class.refactor = function(original, refactors){
 	return original;
 
 };
+
+/*
+---
+
+script: Class.Singleton.js
+
+name: Class.Singleton
+
+description: Always provides a single instance of a class
+
+license: MIT-style license.
+
+authors:
+  - Hristo Chakarov
+
+requires:
+  - Core/Class
+
+provides: [Class.Singleton]
+
+...
+*/
+
+Class.Singleton = new Class({
+
+	initialize : function(descriptor){
+		// here we keep reference of the single instance
+		var singleton;
+		// create a regular Class
+		var constructor = new Class(descriptor);
+		// We return another constructor, because we need to make sure that we
+		// always return the same one and only instance.
+		return function(){
+			if (singleton){
+				return singleton;
+			}
+			// Obviously we instantiate that class for the first time.
+			// Create brand new object & extend it with the prototype of the
+			// original `constructor`.
+			singleton = Object.append({}, constructor.prototype);
+			singleton.constructor = constructor;
+			// We also need to call the constructor as a function, passing the
+			// arguments object.
+			var returnValue = constructor.apply(singleton, arguments);
+			// In case the `constructor` returns something other than `this` -
+			// return that value; otherwise return the `singleton`.
+			singleton = typeof returnValue == 'object' ? returnValue : singleton;
+			return singleton;
+		};
+	}
+
+});
 
 /*
 ---
@@ -405,8 +457,9 @@ provides: [Drag]
 ...
 
 */
+(function(){
 
-var Drag = new Class({
+var Drag = this.Drag = new Class({
 
 	Implements: [Events, Options],
 
@@ -424,6 +477,7 @@ var Drag = new Class({
 		limit: false,
 		handle: false,
 		invert: false,
+		unDraggableTags: ['button', 'input', 'a', 'textarea', 'select', 'option'],
 		preventDefault: false,
 		stopPropagation: false,
 		compensateScroll: false,
@@ -455,7 +509,7 @@ var Drag = new Class({
 		this.compensateScroll = {start: {}, diff: {}, last: {}};
 
 		if ('ondragstart' in document && !('FileReader' in window) && !Drag.ondragstartFixed){
-			document.ondragstart = Function.from(false);
+			document.ondragstart = Function.convert(false);
 			Drag.ondragstartFixed = true;
 		}
 
@@ -465,7 +519,7 @@ var Drag = new Class({
 			drag: this.drag.bind(this),
 			stop: this.stop.bind(this),
 			cancel: this.cancel.bind(this),
-			eventStop: Function.from(false),
+			eventStop: Function.convert(false),
 			scrollListener: this.scrollListener.bind(this)
 		};
 		this.attach();
@@ -473,12 +527,14 @@ var Drag = new Class({
 
 	attach: function(){
 		this.handles.addEvent('mousedown', this.bound.start);
+		this.handles.addEvent('touchstart', this.bound.start);
 		if (this.options.compensateScroll) this.offsetParent.addEvent('scroll', this.bound.scrollListener);
 		return this;
 	},
 
 	detach: function(){
 		this.handles.removeEvent('mousedown', this.bound.start);
+		this.handles.removeEvent('touchstart', this.bound.start);
 		if (this.options.compensateScroll) this.offsetParent.removeEvent('scroll', this.bound.scrollListener);
 		return this;
 	},
@@ -501,7 +557,7 @@ var Drag = new Class({
 
 	sumValues: function(alpha, beta, op){
 		var sum = {}, options = this.options;
-		for (z in options.modifiers){
+		for (var z in options.modifiers){
 			if (!options.modifiers[z]) continue;
 			sum[z] = alpha[z] + beta[z] * op;
 		}
@@ -509,6 +565,8 @@ var Drag = new Class({
 	},
 
 	start: function(event){
+		if (this.options.unDraggableTags.contains(event.target.get('tag'))) return;
+
 		var options = this.options;
 
 		if (event.rightClick) return;
@@ -558,7 +616,9 @@ var Drag = new Class({
 
 		var events = {
 			mousemove: this.bound.check,
-			mouseup: this.bound.cancel
+			mouseup: this.bound.cancel,
+			touchmove: this.bound.check,
+			touchend: this.bound.cancel
 		};
 		events[this.selection] = this.bound.eventStop;
 		this.document.addEvents(events);
@@ -571,7 +631,9 @@ var Drag = new Class({
 			this.cancel();
 			this.document.addEvents({
 				mousemove: this.bound.drag,
-				mouseup: this.bound.stop
+				mouseup: this.bound.stop,
+				touchmove: this.bound.drag,
+				touchend: this.bound.stop
 			});
 			this.fireEvent('start', [this.element, event]).fireEvent('snap', this.element);
 		}
@@ -584,7 +646,7 @@ var Drag = new Class({
 
 		this.render(options);
 		this.fireEvent('drag', [this.element, event]);
-	},  
+	},
 
 	render: function(options){
 		for (var z in options.modifiers){
@@ -608,7 +670,9 @@ var Drag = new Class({
 	cancel: function(event){
 		this.document.removeEvents({
 			mousemove: this.bound.check,
-			mouseup: this.bound.cancel
+			mouseup: this.bound.cancel,
+			touchmove: this.bound.check,
+			touchend: this.bound.cancel
 		});
 		if (event){
 			this.document.removeEvent(this.selection, this.bound.eventStop);
@@ -619,7 +683,9 @@ var Drag = new Class({
 	stop: function(event){
 		var events = {
 			mousemove: this.bound.drag,
-			mouseup: this.bound.stop
+			mouseup: this.bound.stop,
+			touchmove: this.bound.drag,
+			touchend: this.bound.stop
 		};
 		events[this.selection] = this.bound.eventStop;
 		this.document.removeEvents(events);
@@ -628,6 +694,9 @@ var Drag = new Class({
 	}
 
 });
+
+})();
+
 
 Element.implement({
 
@@ -711,8 +780,8 @@ Drag.Move = new Class({
 		this.addEvent('start', this.checkDroppables, true);
 		this.overed = null;
 	},
-	
-	setContainer: function(container) {
+
+	setContainer: function(container){
 		this.container = document.id(container);
 		if (this.container && typeOf(this.container) != 'element'){
 			this.container = document.id(this.container.getDocument().body);
@@ -954,17 +1023,16 @@ Element.implement({
 		} else if (parent){
 			try { //safari sometimes crashes here, so catch it
 				dim = getSize(this, options);
-			}catch(e){}
+			} catch (e){}
 		}
 
 		return Object.append(dim, (dim.x || dim.x === 0) ? {
-				width: dim.x,
-				height: dim.y
-			} : {
-				x: dim.width,
-				y: dim.height
-			}
-		);
+			width: dim.x,
+			height: dim.y
+		} : {
+			x: dim.width,
+			y: dim.height
+		});
 	},
 
 	getComputedSize: function(options){
@@ -1045,8 +1113,9 @@ provides: [Slider]
 
 ...
 */
+(function(){
 
-var Slider = new Class({
+var Slider = this.Slider = new Class({
 
 	Implements: [Events, Options],
 
@@ -1189,7 +1258,7 @@ var Slider = new Class({
 		if (range) this.set(Array.pick([pos, this.step]).limit(this.min,this.max), silently);
 		return this;
 	},
-    
+
 	setModulus: function(){
 		var decimals = ((this.stepSize + '').split('.')[1] || []).length,
 			modulus = 1 + '';
@@ -1259,6 +1328,9 @@ var Slider = new Class({
 
 });
 
+})();
+
+
 /*
 ---
 
@@ -1281,8 +1353,9 @@ provides: [Sortables]
 
 ...
 */
+(function(){
 
-var Sortables = new Class({
+var Sortables = this.Sortables = new Class({
 
 	Implements: [Events, Options],
 
@@ -1361,8 +1434,8 @@ var Sortables = new Class({
 			return list;
 		}, this));
 	},
-    
-	getDroppableCoordinates: function (element){
+
+	getDroppableCoordinates: function(element){
 		var offsetParent = element.getOffsetParent();
 		var position = element.getPosition(offsetParent);
 		var scroll = {
@@ -1377,7 +1450,7 @@ var Sortables = new Class({
 			position.y -= scroll.w.y;
 		}
 
-        return position;
+		return position;
 	},
 
 	getClone: function(event, element){
@@ -1479,7 +1552,7 @@ var Sortables = new Class({
 			this.clone.destroy();
 			self.reset();
 		}
-		
+
 	},
 
 	reset: function(){
@@ -1506,6 +1579,8 @@ var Sortables = new Class({
 	}
 
 });
+
+})();
 
 /*
 ---
@@ -1626,7 +1701,7 @@ DOMEvent.defineKeys({
 	'107': '+',
 	'109': '-', // subtract
 	'189': '-'  // dash
-})
+});
 
 })();
 
@@ -1659,66 +1734,66 @@ provides: [String.Extras]
 (function(){
 
 var special = {
-	'a': /[àáâãäåăą]/g,
-	'A': /[ÀÁÂÃÄÅĂĄ]/g,
-	'c': /[ćčç]/g,
-	'C': /[ĆČÇ]/g,
-	'd': /[ďđ]/g,
-	'D': /[ĎÐ]/g,
-	'e': /[èéêëěę]/g,
-	'E': /[ÈÉÊËĚĘ]/g,
-	'g': /[ğ]/g,
-	'G': /[Ğ]/g,
-	'i': /[ìíîï]/g,
-	'I': /[ÌÍÎÏ]/g,
-	'l': /[ĺľł]/g,
-	'L': /[ĹĽŁ]/g,
-	'n': /[ñňń]/g,
-	'N': /[ÑŇŃ]/g,
-	'o': /[òóôõöøő]/g,
-	'O': /[ÒÓÔÕÖØ]/g,
-	'r': /[řŕ]/g,
-	'R': /[ŘŔ]/g,
-	's': /[ššş]/g,
-	'S': /[ŠŞŚ]/g,
-	't': /[ťţ]/g,
-	'T': /[ŤŢ]/g,
-	'u': /[ùúûůüµ]/g,
-	'U': /[ÙÚÛŮÜ]/g,
-	'y': /[ÿý]/g,
-	'Y': /[ŸÝ]/g,
-	'z': /[žźż]/g,
-	'Z': /[ŽŹŻ]/g,
-	'th': /[þ]/g,
-	'TH': /[Þ]/g,
-	'dh': /[ð]/g,
-	'DH': /[Ð]/g,
-	'ss': /[ß]/g,
-	'oe': /[œ]/g,
-	'OE': /[Œ]/g,
-	'ae': /[æ]/g,
-	'AE': /[Æ]/g
-},
+		'a': /[àáâãäåăą]/g,
+		'A': /[ÀÁÂÃÄÅĂĄ]/g,
+		'c': /[ćčç]/g,
+		'C': /[ĆČÇ]/g,
+		'd': /[ďđ]/g,
+		'D': /[ĎÐ]/g,
+		'e': /[èéêëěę]/g,
+		'E': /[ÈÉÊËĚĘ]/g,
+		'g': /[ğ]/g,
+		'G': /[Ğ]/g,
+		'i': /[ìíîï]/g,
+		'I': /[ÌÍÎÏ]/g,
+		'l': /[ĺľł]/g,
+		'L': /[ĹĽŁ]/g,
+		'n': /[ñňń]/g,
+		'N': /[ÑŇŃ]/g,
+		'o': /[òóôõöøő]/g,
+		'O': /[ÒÓÔÕÖØ]/g,
+		'r': /[řŕ]/g,
+		'R': /[ŘŔ]/g,
+		's': /[ššş]/g,
+		'S': /[ŠŞŚ]/g,
+		't': /[ťţ]/g,
+		'T': /[ŤŢ]/g,
+		'u': /[ùúûůüµ]/g,
+		'U': /[ÙÚÛŮÜ]/g,
+		'y': /[ÿý]/g,
+		'Y': /[ŸÝ]/g,
+		'z': /[žźż]/g,
+		'Z': /[ŽŹŻ]/g,
+		'th': /[þ]/g,
+		'TH': /[Þ]/g,
+		'dh': /[ð]/g,
+		'DH': /[Ð]/g,
+		'ss': /[ß]/g,
+		'oe': /[œ]/g,
+		'OE': /[Œ]/g,
+		'ae': /[æ]/g,
+		'AE': /[Æ]/g
+	},
 
-tidy = {
-	' ': /[\xa0\u2002\u2003\u2009]/g,
-	'*': /[\xb7]/g,
-	'\'': /[\u2018\u2019]/g,
-	'"': /[\u201c\u201d]/g,
-	'...': /[\u2026]/g,
-	'-': /[\u2013]/g,
-//	'--': /[\u2014]/g,
-	'&raquo;': /[\uFFFD]/g
-},
+	tidy = {
+		' ': /[\xa0\u2002\u2003\u2009]/g,
+		'*': /[\xb7]/g,
+		'\'': /[\u2018\u2019]/g,
+		'"': /[\u201c\u201d]/g,
+		'...': /[\u2026]/g,
+		'-': /[\u2013]/g,
+	//	'--': /[\u2014]/g,
+		'&raquo;': /[\uFFFD]/g
+	},
 
-conversions = {
-	ms: 1,
-	s: 1000,
-	m: 6e4,
-	h: 36e5
-},
+	conversions = {
+		ms: 1,
+		s: 1000,
+		m: 6e4,
+		h: 36e5
+	},
 
-findUnits = /(\d*.?\d+)([msh]+)/;
+	findUnits = /(\d*.?\d+)([msh]+)/;
 
 var walk = function(string, replacements){
 	var result = string, key;
@@ -1727,10 +1802,9 @@ var walk = function(string, replacements){
 };
 
 var getRegexForTag = function(tag, contents){
-	tag = tag || '';
-	var regstr = contents ? "<" + tag + "(?!\\w)[^>]*>([\\s\\S]*?)<\/" + tag + "(?!\\w)>" : "<\/?" + tag + "([^>]+)?>",
-		reg = new RegExp(regstr, "gi");
-	return reg;
+	tag = tag || (contents ? '' : '\\w+');
+	var regstr = contents ? '<' + tag + '(?!\\w)[^>]*>([\\s\\S]*?)<\/' + tag + '(?!\\w)>' : '<\/?' + tag + '\/?>|<' + tag + '[\\s|\/][^>]*>';
+	return new RegExp(regstr, 'gi');
 };
 
 String.implement({
@@ -1783,7 +1857,7 @@ String.implement({
 	},
 
 	ms: function(){
-	  // "Borrowed" from https://gist.github.com/1503944
+		// "Borrowed" from https://gist.github.com/1503944
 		var units = findUnits.exec(this);
 		if (units == null) return Number(this);
 		return Number(units[1]) * conversions[units[2]];
@@ -1960,106 +2034,106 @@ provides: [Element.Pin]
 */
 
 (function(){
-	var supportsPositionFixed = false,
-		supportTested = false;
+var supportsPositionFixed = false,
+	supportTested = false;
 
-	var testPositionFixed = function(){
-		var test = new Element('div').setStyles({
-			position: 'fixed',
-			top: 0,
-			right: 0
-		}).inject(document.body);
-		supportsPositionFixed = (test.offsetTop === 0);
-		test.dispose();
-		supportTested = true;
-	};
+var testPositionFixed = function(){
+	var test = new Element('div').setStyles({
+		position: 'fixed',
+		top: 0,
+		right: 0
+	}).inject(document.body);
+	supportsPositionFixed = (test.offsetTop === 0);
+	test.dispose();
+	supportTested = true;
+};
 
-	Element.implement({
+Element.implement({
 
-		pin: function(enable, forceScroll){
-			if (!supportTested) testPositionFixed();
-			if (this.getStyle('display') == 'none') return this;
+	pin: function(enable, forceScroll){
+		if (!supportTested) testPositionFixed();
+		if (this.getStyle('display') == 'none') return this;
 
-			var pinnedPosition,
-				scroll = window.getScroll(),
-				parent,
-				scrollFixer;
+		var pinnedPosition,
+			scroll = window.getScroll(),
+			parent,
+			scrollFixer;
 
-			if (enable !== false){
-				pinnedPosition = this.getPosition();
-				if (!this.retrieve('pin:_pinned')) {
-					var currentPosition = {
-						top: pinnedPosition.y - scroll.y,
-						left: pinnedPosition.x - scroll.x,
-						margin: '0px',
-						padding: '0px'
+		if (enable !== false){
+			pinnedPosition = this.getPosition();
+			if (!this.retrieve('pin:_pinned')){
+				var currentPosition = {
+					top: pinnedPosition.y - scroll.y,
+					left: pinnedPosition.x - scroll.x,
+					margin: '0px',
+					padding: '0px'
+				};
+
+				if (supportsPositionFixed && !forceScroll){
+					this.setStyle('position', 'fixed').setStyles(currentPosition);
+				} else {
+
+					parent = this.getOffsetParent();
+					var position = this.getPosition(parent),
+						styles = this.getStyles('left', 'top');
+
+					if (parent && styles.left == 'auto' || styles.top == 'auto') this.setPosition(position);
+					if (this.getStyle('position') == 'static') this.setStyle('position', 'absolute');
+
+					position = {
+						x: styles.left.toInt() - scroll.x,
+						y: styles.top.toInt() - scroll.y
 					};
 
-					if (supportsPositionFixed && !forceScroll){
-						this.setStyle('position', 'fixed').setStyles(currentPosition);
-					} else {
+					scrollFixer = function(){
+						if (!this.retrieve('pin:_pinned')) return;
+						var scroll = window.getScroll();
+						this.setStyles({
+							left: position.x + scroll.x,
+							top: position.y + scroll.y
+						});
+					}.bind(this);
 
-						parent = this.getOffsetParent();
-						var position = this.getPosition(parent),
-							styles = this.getStyles('left', 'top');
-
-						if (parent && styles.left == 'auto' || styles.top == 'auto') this.setPosition(position);
-						if (this.getStyle('position') == 'static') this.setStyle('position', 'absolute');
-
-						position = {
-							x: styles.left.toInt() - scroll.x,
-							y: styles.top.toInt() - scroll.y
-						};
-
-						scrollFixer = function(){
-							if (!this.retrieve('pin:_pinned')) return;
-							var scroll = window.getScroll();
-							this.setStyles({
-								left: position.x + scroll.x,
-								top: position.y + scroll.y
-							});
-						}.bind(this);
-
-						this.store('pin:_scrollFixer', scrollFixer);
-						window.addEvent('scroll', scrollFixer);
-					}
-					this.store('pin:_pinned', true);
+					this.store('pin:_scrollFixer', scrollFixer);
+					window.addEvent('scroll', scrollFixer);
 				}
-
-			} else {
-				if (!this.retrieve('pin:_pinned')) return this;
-
-				parent = this.getParent();
-				var offsetParent = (parent.getComputedStyle('position') != 'static' ? parent : parent.getOffsetParent());
-
-				pinnedPosition = this.getPosition();
-
-				this.store('pin:_pinned', false);
-				scrollFixer = this.retrieve('pin:_scrollFixer');
-				if (!scrollFixer){
-					this.setStyles({
-						position: 'absolute',
-						top: pinnedPosition.y + scroll.y,
-						left: pinnedPosition.x + scroll.x
-					});
-				} else {
-					this.store('pin:_scrollFixer', null);
-					window.removeEvent('scroll', scrollFixer);
-				}
-				this.removeClass('isPinned');
+				this.store('pin:_pinned', true);
 			}
-			return this;
-		},
 
-		unpin: function(){
-			return this.pin(false);
-		},
+		} else {
+			if (!this.retrieve('pin:_pinned')) return this;
 
-		togglePin: function(){
-			return this.pin(!this.retrieve('pin:_pinned'));
+			parent = this.getParent();
+			var offsetParent = (parent.getComputedStyle('position') != 'static' ? parent : parent.getOffsetParent());
+
+			pinnedPosition = this.getPosition();
+
+			this.store('pin:_pinned', false);
+			scrollFixer = this.retrieve('pin:_scrollFixer');
+			if (!scrollFixer){
+				this.setStyles({
+					position: 'absolute',
+					top: pinnedPosition.y + scroll.y,
+					left: pinnedPosition.x + scroll.x
+				});
+			} else {
+				this.store('pin:_scrollFixer', null);
+				window.removeEvent('scroll', scrollFixer);
+			}
+			this.removeClass('isPinned');
 		}
+		return this;
+	},
 
-	});
+	unpin: function(){
+		return this.pin(false);
+	},
+
+	togglePin: function(){
+		return this.pin(!this.retrieve('pin:_pinned'));
+	}
+
+});
 
 
 
@@ -2199,13 +2273,13 @@ var local = Element.Position = {
 			left = calc.x,
 			winSize = window.getSize();
 
-		switch(options.position.x){
+		switch (options.position.x){
 			case 'left': position.x = left + offsetX; break;
 			case 'right': position.x = left + offsetX + relativeTo.offsetWidth; break;
 			default: position.x = left + ((relativeTo == document.body ? winSize.x : relativeTo.offsetWidth) / 2) + offsetX; break;
 		}
 
-		switch(options.position.y){
+		switch (options.position.y){
 			case 'top': position.y = top + offsetY; break;
 			case 'bottom': position.y = top + offsetY + relativeTo.offsetHeight; break;
 			default: position.y = top + ((relativeTo == document.body ? winSize.y : relativeTo.offsetHeight) / 2) + offsetY; break;
@@ -2253,14 +2327,14 @@ var local = Element.Position = {
 			dimensions = options.dimensions,
 			edge = options.edge;
 
-		switch(edge.x){
+		switch (edge.x){
 			case 'left': edgeOffset.x = 0; break;
 			case 'right': edgeOffset.x = -dimensions.x - dimensions.computedRight - dimensions.computedLeft; break;
 			// center
 			default: edgeOffset.x = -(Math.round(dimensions.totalWidth / 2)); break;
 		}
 
-		switch(edge.y){
+		switch (edge.y){
 			case 'top': edgeOffset.y = 0; break;
 			case 'bottom': edgeOffset.y = -dimensions.y - dimensions.computedTop - dimensions.computedBottom; break;
 			// center
@@ -2347,7 +2421,7 @@ Element.implement({
 		try {
 			//IE fails here if the element is not in the dom
 			d = this.getStyle('display');
-		} catch(e){}
+		} catch (e){}
 		if (d == 'none') return this;
 		return this.store('element:_originalDisplay', d || '').setStyle('display', 'none');
 	},
@@ -2374,7 +2448,7 @@ Document.implement({
 			try {
 				//IE fails here if selected element is not in dom
 				document.selection.empty();
-			} catch(e){}
+			} catch (e){}
 		}
 	}
 
@@ -2453,7 +2527,7 @@ provides: [IframeShim]
 var browsers = false;
 
 
-this.IframeShim = new Class({
+var IframeShim = this.IframeShim = new Class({
 
 	Implements: [Options, Events, Class.Occlude],
 
@@ -2509,7 +2583,7 @@ this.IframeShim = new Class({
 			if (!IframeShim.ready) window.addEvent('load', inject);
 			else inject();
 		} else {
-			this.position = this.hide = this.show = this.dispose = Function.from(this);
+			this.position = this.hide = this.show = this.dispose = Function.convert(this);
 		}
 	},
 
@@ -2585,8 +2659,9 @@ provides: [Mask]
 
 ...
 */
+(function(){
 
-var Mask = new Class({
+var Mask = this.Mask = new Class({
 
 	Implements: [Options, Events],
 
@@ -2737,6 +2812,9 @@ var Mask = new Class({
 
 });
 
+})();
+
+
 Element.Properties.mask = {
 
 	set: function(options){
@@ -2795,10 +2873,11 @@ provides: [Spinner]
 
 ...
 */
+(function(){
 
-var Spinner = new Class({
+var Spinner = this.Spinner = new Class({
 
-	Extends: Mask,
+	Extends: this.Mask,
 
 	Implements: Chain,
 
@@ -2923,6 +3002,8 @@ var Spinner = new Class({
 
 });
 
+})();
+
 Request = Class.refactor(Request, {
 
 	options: {
@@ -3019,6 +3100,22 @@ provides: [String.QueryString]
 ...
 */
 
+(function(){
+
+/**
+ * decodeURIComponent doesn't do the correct thing with query parameter keys or
+ * values. Specifically, it leaves '+' as '+' when it should be converting them
+ * to spaces as that's the specification. When browsers submit HTML forms via
+ * GET, the values are encoded using 'application/x-www-form-urlencoded'
+ * which converts spaces to '+'.
+ *
+ * See: http://unixpapa.com/js/querystring.html for a description of the
+ * problem.
+ */
+var decodeComponent = function(str){
+	return decodeURIComponent(str.replace(/\+/g, ' '));
+};
+
 String.implement({
 
 	parseQueryString: function(decodeKeys, decodeValues){
@@ -3035,9 +3132,9 @@ String.implement({
 				keys = index ? val.substr(0, index - 1).match(/([^\]\[]+|(\B)(?=\]))/g) : [val],
 				obj = object;
 			if (!keys) return;
-			if (decodeValues) value = decodeURIComponent(value);
+			if (decodeValues) value = decodeComponent(value);
 			keys.each(function(key, i){
-				if (decodeKeys) key = decodeURIComponent(key);
+				if (decodeKeys) key = decodeComponent(key);
 				var current = obj[key];
 
 				if (i < keys.length - 1) obj = obj[key] = current || {};
@@ -3060,6 +3157,8 @@ String.implement({
 	}
 
 });
+
+})();
 
 /*
 ---
@@ -3092,176 +3191,176 @@ if (!window.Form) window.Form = {};
 
 (function(){
 
-	Form.Request = new Class({
+Form.Request = new Class({
 
-		Binds: ['onSubmit', 'onFormValidate'],
+	Binds: ['onSubmit', 'onFormValidate'],
 
-		Implements: [Options, Events, Class.Occlude],
+	Implements: [Options, Events, Class.Occlude],
 
-		options: {/*
-			onFailure: function(){},
-			onSuccess: function(){}, // aliased to onComplete,
-			onSend: function(){}*/
-			requestOptions: {
-				evalScripts: true,
-				useSpinner: true,
-				emulation: false,
-				link: 'ignore'
-			},
-			sendButtonClicked: true,
-			extraData: {},
-			resetForm: true
+	options: {/*
+		onFailure: function(){},
+		onSuccess: function(){}, // aliased to onComplete,
+		onSend: function(){}*/
+		requestOptions: {
+			evalScripts: true,
+			useSpinner: true,
+			emulation: false,
+			link: 'ignore'
 		},
+		sendButtonClicked: true,
+		extraData: {},
+		resetForm: true
+	},
 
-		property: 'form.request',
+	property: 'form.request',
 
-		initialize: function(form, target, options){
-			this.element = document.id(form);
-			if (this.occlude()) return this.occluded;
-			this.setOptions(options)
-				.setTarget(target)
-				.attach();
-		},
+	initialize: function(form, target, options){
+		this.element = document.id(form);
+		if (this.occlude()) return this.occluded;
+		this.setOptions(options)
+			.setTarget(target)
+			.attach();
+	},
 
-		setTarget: function(target){
-			this.target = document.id(target);
-			if (!this.request){
-				this.makeRequest();
-			} else {
-				this.request.setOptions({
-					update: this.target
-				});
-			}
-			return this;
-		},
-
-		toElement: function(){
-			return this.element;
-		},
-
-		makeRequest: function(){
-			var self = this;
-			this.request = new Request.HTML(Object.merge({
-					update: this.target,
-					emulation: false,
-					spinnerTarget: this.element,
-					method: this.element.get('method') || 'post'
-			}, this.options.requestOptions)).addEvents({
-				success: function(tree, elements, html, javascript){
-					['complete', 'success'].each(function(evt){
-						self.fireEvent(evt, [self.target, tree, elements, html, javascript]);
-					});
-				},
-				failure: function(){
-					self.fireEvent('complete', arguments).fireEvent('failure', arguments);
-				},
-				exception: function(){
-					self.fireEvent('failure', arguments);
-				}
-			});
-			return this.attachReset();
-		},
-
-		attachReset: function(){
-			if (!this.options.resetForm) return this;
-			this.request.addEvent('success', function(){
-				Function.attempt(function(){
-					this.element.reset();
-				}.bind(this));
-				if (window.OverText) OverText.update();
-			}.bind(this));
-			return this;
-		},
-
-		attach: function(attach){
-			var method = (attach != false) ? 'addEvent' : 'removeEvent';
-			this.element[method]('click:relay(button, input[type=submit])', this.saveClickedButton.bind(this));
-
-			var fv = this.element.retrieve('validator');
-			if (fv) fv[method]('onFormValidate', this.onFormValidate);
-			else this.element[method]('submit', this.onSubmit);
-
-			return this;
-		},
-
-		detach: function(){
-			return this.attach(false);
-		},
-
-		//public method
-		enable: function(){
-			return this.attach();
-		},
-
-		//public method
-		disable: function(){
-			return this.detach();
-		},
-
-		onFormValidate: function(valid, form, event){
-			//if there's no event, then this wasn't a submit event
-			if (!event) return;
-			var fv = this.element.retrieve('validator');
-			if (valid || (fv && !fv.options.stopOnFailure)){
-				event.stop();
-				this.send();
-			}
-		},
-
-		onSubmit: function(event){
-			var fv = this.element.retrieve('validator');
-			if (fv){
-				//form validator was created after Form.Request
-				this.element.removeEvent('submit', this.onSubmit);
-				fv.addEvent('onFormValidate', this.onFormValidate);
-				fv.validate(event);
-				return;
-			}
-			if (event) event.stop();
-			this.send();
-		},
-
-		saveClickedButton: function(event, target){
-			var targetName = target.get('name');
-			if (!targetName || !this.options.sendButtonClicked) return;
-			this.options.extraData[targetName] = target.get('value') || true;
-			this.clickedCleaner = function(){
-				delete this.options.extraData[targetName];
-				this.clickedCleaner = function(){};
-			}.bind(this);
-		},
-
-		clickedCleaner: function(){},
-
-		send: function(){
-			var str = this.element.toQueryString().trim(),
-				data = Object.toQueryString(this.options.extraData);
-
-			if (str) str += "&" + data;
-			else str = data;
-
-			this.fireEvent('send', [this.element, str.parseQueryString()]);
-			this.request.send({
-				data: str,
-				url: this.options.requestOptions.url || this.element.get('action')
-			});
-			this.clickedCleaner();
-			return this;
-		}
-
-	});
-
-	Element.implement('formUpdate', function(update, options){
-		var fq = this.retrieve('form.request');
-		if (!fq){
-			fq = new Form.Request(this, update, options);
+	setTarget: function(target){
+		this.target = document.id(target);
+		if (!this.request){
+			this.makeRequest();
 		} else {
-			if (update) fq.setTarget(update);
-			if (options) fq.setOptions(options).makeRequest();
+			this.request.setOptions({
+				update: this.target
+			});
 		}
-		fq.send();
 		return this;
-	});
+	},
+
+	toElement: function(){
+		return this.element;
+	},
+
+	makeRequest: function(){
+		var self = this;
+		this.request = new Request.HTML(Object.merge({
+			update: this.target,
+			emulation: false,
+			spinnerTarget: this.element,
+			method: this.element.get('method') || 'post'
+		}, this.options.requestOptions)).addEvents({
+			success: function(tree, elements, html, javascript){
+				['complete', 'success'].each(function(evt){
+					self.fireEvent(evt, [self.target, tree, elements, html, javascript]);
+				});
+			},
+			failure: function(){
+				self.fireEvent('complete', arguments).fireEvent('failure', arguments);
+			},
+			exception: function(){
+				self.fireEvent('failure', arguments);
+			}
+		});
+		return this.attachReset();
+	},
+
+	attachReset: function(){
+		if (!this.options.resetForm) return this;
+		this.request.addEvent('success', function(){
+			Function.attempt(function(){
+				this.element.reset();
+			}.bind(this));
+			if (window.OverText) OverText.update();
+		}.bind(this));
+		return this;
+	},
+
+	attach: function(attach){
+		var method = (attach != false) ? 'addEvent' : 'removeEvent';
+		this.element[method]('click:relay(button, input[type=submit])', this.saveClickedButton.bind(this));
+
+		var fv = this.element.retrieve('validator');
+		if (fv) fv[method]('onFormValidate', this.onFormValidate);
+		else this.element[method]('submit', this.onSubmit);
+
+		return this;
+	},
+
+	detach: function(){
+		return this.attach(false);
+	},
+
+	//public method
+	enable: function(){
+		return this.attach();
+	},
+
+	//public method
+	disable: function(){
+		return this.detach();
+	},
+
+	onFormValidate: function(valid, form, event){
+		//if there's no event, then this wasn't a submit event
+		if (!event) return;
+		var fv = this.element.retrieve('validator');
+		if (valid || (fv && !fv.options.stopOnFailure)){
+			event.stop();
+			this.send();
+		}
+	},
+
+	onSubmit: function(event){
+		var fv = this.element.retrieve('validator');
+		if (fv){
+			//form validator was created after Form.Request
+			this.element.removeEvent('submit', this.onSubmit);
+			fv.addEvent('onFormValidate', this.onFormValidate);
+			fv.validate(event);
+			return;
+		}
+		if (event) event.stop();
+		this.send();
+	},
+
+	saveClickedButton: function(event, target){
+		var targetName = target.get('name');
+		if (!targetName || !this.options.sendButtonClicked) return;
+		this.options.extraData[targetName] = target.get('value') || true;
+		this.clickedCleaner = function(){
+			delete this.options.extraData[targetName];
+			this.clickedCleaner = function(){};
+		}.bind(this);
+	},
+
+	clickedCleaner: function(){},
+
+	send: function(){
+		var str = this.element.toQueryString().trim(),
+			data = Object.toQueryString(this.options.extraData);
+
+		if (str) str += '&' + data;
+		else str = data;
+
+		this.fireEvent('send', [this.element, str.parseQueryString()]);
+		this.request.send({
+			data: str,
+			url: this.options.requestOptions.url || this.element.get('action')
+		});
+		this.clickedCleaner();
+		return this;
+	}
+
+});
+
+Element.implement('formUpdate', function(update, options){
+	var fq = this.retrieve('form.request');
+	if (!fq){
+		fq = new Form.Request(this, update, options);
+	} else {
+		if (update) fq.setTarget(update);
+		if (options) fq.setOptions(options).makeRequest();
+	}
+	fq.send();
+	return this;
+});
 
 })();
 
@@ -3346,7 +3445,7 @@ Fx.Reveal = new Class({
 				});
 
 				this.element.setStyles({
-					display: Function.from(this.options.display).call(this),
+					display: Function.convert(this.options.display).call(this),
 					overflow: 'hidden'
 				});
 
@@ -3403,7 +3502,7 @@ Fx.Reveal = new Class({
 
 				var zero = {
 					height: 0,
-					display: Function.from(this.options.display).call(this)
+					display: Function.convert(this.options.display).call(this)
 				};
 				Object.each(startStyles, function(style, name){
 					zero[name] = 0;
@@ -3417,7 +3516,7 @@ Fx.Reveal = new Class({
 
 				this.$chain.unshift(function(){
 					this.element.style.cssText = this.cssText;
-					this.element.setStyle('display', Function.from(this.options.display).call(this));
+					this.element.setStyle('display', Function.convert(this.options.display).call(this));
 					if (!this.hidden) this.showing = false;
 					if (hideThese) hideThese.setStyle('visibility', 'visible');
 					this.callChain();
@@ -3549,20 +3648,19 @@ Form.Request.Append = new Class({
 
 	makeRequest: function(){
 		this.request = new Request.HTML(Object.merge({
-				url: this.element.get('action'),
-				method: this.element.get('method') || 'post',
-				spinnerTarget: this.element
-			}, this.options.requestOptions, {
-				evalScripts: false
-			})
-		).addEvents({
+			url: this.element.get('action'),
+			method: this.element.get('method') || 'post',
+			spinnerTarget: this.element
+		}, this.options.requestOptions, {
+			evalScripts: false
+		})).addEvents({
 			success: function(tree, elements, html, javascript){
 				var container;
 				var kids = Elements.from(html);
 				if (kids.length == 1){
 					container = kids[0];
 				} else {
-					 container = new Element('div', {
+					container = new Element('div', {
 						styles: {
 							display: 'none'
 						}
@@ -3782,7 +3880,7 @@ Locale.Set = new Class({
 		var value = Object.getFromPath(this.sets, key);
 		if (value != null){
 			var type = typeOf(value);
-			if (type == 'function') value = value.apply(null, Array.from(args));
+			if (type == 'function') value = value.apply(null, Array.convert(args));
 			else if (type == 'object') value = Object.clone(value);
 			return value;
 		}
@@ -3808,7 +3906,7 @@ Locale.Set = new Class({
 	},
 
 	inherit: function(names, set){
-		names = Array.from(names);
+		names = Array.convert(names);
 
 		if (set && !this.inherits.sets[set]) this.inherits.sets[set] = [];
 
@@ -3938,9 +4036,11 @@ var DateMethods = Date.Methods = {
 	hr: 'Hours'
 };
 
-['Date', 'Day', 'FullYear', 'Hours', 'Milliseconds', 'Minutes', 'Month', 'Seconds', 'Time', 'TimezoneOffset',
+[
+	'Date', 'Day', 'FullYear', 'Hours', 'Milliseconds', 'Minutes', 'Month', 'Seconds', 'Time', 'TimezoneOffset',
 	'Week', 'Timezone', 'GMTOffset', 'DayOfYear', 'LastMonth', 'LastDayOfMonth', 'UTCDate', 'UTCDay', 'UTCFullYear',
-	'AMPM', 'Ordinal', 'UTCHours', 'UTCMilliseconds', 'UTCMinutes', 'UTCMonth', 'UTCSeconds', 'UTCMilliseconds'].each(function(method){
+	'AMPM', 'Ordinal', 'UTCHours', 'UTCMilliseconds', 'UTCMinutes', 'UTCMonth', 'UTCSeconds', 'UTCMilliseconds'
+].each(function(method){
 	Date.Methods[method.toLowerCase()] = method;
 });
 
@@ -4225,12 +4325,12 @@ Date.extend({
 	},
 
 	units: {
-		ms: Function.from(1),
-		second: Function.from(1000),
-		minute: Function.from(60000),
-		hour: Function.from(3600000),
-		day: Function.from(86400000),
-		week: Function.from(608400000),
+		ms: Function.convert(1),
+		second: Function.convert(1000),
+		minute: Function.convert(60000),
+		hour: Function.convert(3600000),
+		day: Function.convert(86400000),
+		week: Function.convert(608400000),
 		month: function(month, year){
 			var d = new Date;
 			return Date.daysInMonth(month != null ? month : d.get('mo'), year != null ? year : d.get('year')) * 86400000;
@@ -4374,13 +4474,13 @@ var build = function(format){
 
 	var parsed = [];
 	var re = (format.source || format) // allow format to be regex
-	 .replace(/%([a-z])/gi,
+	.replace(/%([a-z])/gi,
 		function($0, $1){
 			return replacers($1) || $0;
 		}
 	).replace(/\((?!\?)/g, '(?:') // make all groups non-capturing
-	 .replace(/ (?!\?|\*)/g, ',? ') // be forgiving with spaces and commas
-	 .replace(/%([a-z%])/gi,
+	.replace(/ (?!\?|\*)/g, ',? ') // be forgiving with spaces and commas
+	.replace(/%([a-z%])/gi,
 		function($0, $1){
 			var p = keys[$1];
 			if (!p) return $1;
@@ -4552,7 +4652,7 @@ var InputValidator = this.InputValidator = new Class({
 
 	options: {
 		errorMsg: 'Validation failed.',
-		test: Function.from(true)
+		test: Function.convert(true)
 	},
 
 	initialize: function(className, options){
@@ -4582,7 +4682,9 @@ var InputValidator = this.InputValidator = new Class({
 Element.Properties.validators = {
 
 	get: function(){
-		return (this.get('data-validators') || this.className).clean().split(' ');
+		return (this.get('data-validators') || this.className).clean().replace(/'(\\.|[^'])*'|"(\\.|[^"])*"/g, function(match){
+			return match.replace(' ', '\\x20');
+		}).split(' ');
 	}
 
 };
@@ -4599,7 +4701,7 @@ Element.Properties.validatorProps = {
 		if (this.getProperty('data-validator-properties') || this.getProperty('validatorProps')){
 			try {
 				this.store('$moo:validatorProps', JSON.decode(this.getProperty('validatorProps') || this.getProperty('data-validator-properties'), false));
-			}catch(e){
+			} catch (e){
 				return {};
 			}
 		} else {
@@ -4615,7 +4717,7 @@ Element.Properties.validatorProps = {
 					if (split[1]){
 						try {
 							props[split[0]] = JSON.decode(split[1], false);
-						} catch(e){}
+						} catch (e){}
 					}
 				});
 				this.store('$moo:validatorProps', props);
@@ -4655,8 +4757,8 @@ Form.Validator = new Class({
 	initialize: function(form, options){
 		this.setOptions(options);
 		this.element = document.id(form);
-		this.warningPrefix = Function.from(this.options.warningPrefix)();
-		this.errorPrefix = Function.from(this.options.errorPrefix)();
+		this.warningPrefix = Function.convert(this.options.warningPrefix)();
+		this.errorPrefix = Function.convert(this.options.errorPrefix)();
 		this._bound = {
 			onSubmit: this.onSubmit.bind(this),
 			blurOrChange: function(event, field){
@@ -4842,7 +4944,7 @@ Form.Validator.adders = {
 	},
 
 	addAllThese : function(validators){
-		Array.from(validators).each(function(validator){
+		Array.convert(validators).each(function(validator){
 			this.add(validator[0], validator[1]);
 		}, this);
 	},
@@ -5080,13 +5182,23 @@ provides: [Form.Validator.Extras]
 
 ...
 */
+
+(function(){
+
+function getItems(props, preference, children, cssSelector){
+	if (preference && props[preference]) return props[preference];
+	var el = document.id(props[children]);
+	if (!el) return [];
+	return el.getElements(cssSelector);
+}
+
 Form.Validator.addAllThese([
 
 	['validate-enforce-oncheck', {
 		test: function(element, props){
 			var fv = element.getParent('form').retrieve('validator');
 			if (!fv) return true;
-			(props.toEnforce || document.id(props.enforceChildrenOf).getElements('input, select, textarea')).map(function(item){
+			getItems(props, 'toEnforce', 'enforceChildrenOf', 'input, select, textarea').each(function(item){
 				if (element.checked){
 					fv.enforceField(item);
 				} else {
@@ -5102,12 +5214,29 @@ Form.Validator.addAllThese([
 		test: function(element, props){
 			var fv = element.getParent('form').retrieve('validator');
 			if (!fv) return true;
-			(props.toIgnore || document.id(props.ignoreChildrenOf).getElements('input, select, textarea')).each(function(item){
+			getItems(props, 'toIgnore', 'ignoreChildrenOf', 'input, select, textarea').each(function(item){
 				if (element.checked){
 					fv.ignoreField(item);
 					fv.resetField(item);
 				} else {
 					fv.enforceField(item);
+				}
+			});
+			return true;
+		}
+	}],
+
+	['validate-enforce-onselect-value', {
+		test: function(element, props){
+			if (!props.value) return true;
+			var fv = element.getParent('form').retrieve('validator');
+			if (!fv) return true;
+			getItems(props, 'toEnforce', 'enforceChildrenOf', 'input, select, textarea').each(function(item){
+				if (props.value == element.value){
+					fv.enforceField(item);
+				} else {
+					fv.ignoreField(item);
+					fv.resetField(item);
 				}
 			});
 			return true;
@@ -5127,7 +5256,7 @@ Form.Validator.addAllThese([
 		test: function(element, props){
 			var fv = element.getParent('form').retrieve('validator');
 			if (!fv) return true;
-			var eleArr = props.toToggle || document.id(props.toToggleChildrenOf).getElements('input, select, textarea');
+			var eleArr = getItems(props, 'toToggle', 'toToggleChildrenOf', 'input, select, textarea');
 			if (!element.checked){
 				eleArr.each(function(item){
 					fv.ignoreField(item);
@@ -5147,7 +5276,7 @@ Form.Validator.addAllThese([
 			return Form.Validator.getMsg('reqChkByNode');
 		},
 		test: function(element, props){
-			return (document.id(props.nodeId).getElements(props.selector || 'input[type=checkbox], input[type=radio]')).some(function(item){
+			return getItems(props, false, 'nodeId', props.selector || 'input[type=checkbox], input[type=radio]').some(function(item){
 				return item.checked;
 			});
 		}
@@ -5168,18 +5297,21 @@ Form.Validator.addAllThese([
 		},
 		test: function(element, props){
 			var grpName = props.groupName || element.get('name');
-			var oneCheckedItem = $$(document.getElementsByName(grpName)).some(function(item, index){
+			var grpNameEls = $$('[name=' + grpName +']');
+			var oneCheckedItem = grpNameEls.some(function(item, index){
 				return item.checked;
 			});
 			var fv = element.getParent('form').retrieve('validator');
-			if (oneCheckedItem && fv) fv.resetField(element);
+			if (oneCheckedItem && fv){
+				grpNameEls.each(function(item, index){ fv.resetField(item); });
+			}
 			return oneCheckedItem;
 		}
 	}],
 
 	['validate-match', {
 		errorMsg: function(element, props){
-			return Form.Validator.getMsg('match').substitute({matchName: props.matchName || document.id(props.matchInput).get('name')});
+			return Form.Validator.getMsg('match').substitute({matchName: decodeURIComponent((props.matchName+'').replace(/\+/g, '%20')) || document.id(props.matchInput).get('name')});
 		},
 		test: function(element, props){
 			var eleVal = element.get('value');
@@ -5250,15 +5382,15 @@ Form.Validator.addAllThese([
 			var ccNum = element.get('value');
 			ccNum = ccNum.replace(/[^0-9]/g, '');
 
-			var valid_type = false;
+			var validType = false;
 
-			if (ccNum.test(/^4[0-9]{12}([0-9]{3})?$/)) valid_type = 'Visa';
-			else if (ccNum.test(/^5[1-5]([0-9]{14})$/)) valid_type = 'Master Card';
-			else if (ccNum.test(/^3[47][0-9]{13}$/)) valid_type = 'American Express';
-			else if (ccNum.test(/^6(?:011|5[0-9]{2})[0-9]{12}$/)) valid_type = 'Discover';
-			else if (ccNum.test(/^3(?:0[0-5]|[68][0-9])[0-9]{11}$/)) valid_type = 'Diners Club';
+			if (ccNum.test(/^4[0-9]{12}([0-9]{3})?$/)) validType = 'Visa';
+			else if (ccNum.test(/^5[1-5]([0-9]{14})$/)) validType = 'Master Card';
+			else if (ccNum.test(/^3[47][0-9]{13}$/)) validType = 'American Express';
+			else if (ccNum.test(/^6(?:011|5[0-9]{2})[0-9]{12}$/)) validType = 'Discover';
+			else if (ccNum.test(/^3(?:0[0-5]|[68][0-9])[0-9]{11}$/)) validType = 'Diners Club';
 
-			if (valid_type){
+			if (validType){
 				var sum = 0;
 				var cur = 0;
 
@@ -5289,8 +5421,9 @@ Form.Validator.addAllThese([
 		}
 	}]
 
-
 ]);
+
+})();
 
 /*
 ---
@@ -5355,7 +5488,7 @@ Form.Validator.Inline = new Class({
 
 	makeAdvice: function(className, field, error, warn){
 		var errorMsg = (warn) ? this.warningPrefix : this.errorPrefix;
-			errorMsg += (this.options.useTitles) ? field.title || error:error;
+		errorMsg += (this.options.useTitles) ? field.title || error:error;
 		var cssClass = (warn) ? 'warning-advice' : 'validation-advice';
 		var advice = this.getAdvice(className, field);
 		if (advice){
@@ -5472,10 +5605,10 @@ Form.Validator.Inline = new Class({
 
 	watchFields: function(fields){
 		fields.each(function(el){
-		if (this.options.evaluateFieldsOnBlur){
-			el.addEvent('blur', this.validationMonitor.pass([el, false, this.options.scrollToErrorsOnBlur], this));
-		}
-		if (this.options.evaluateFieldsOnChange){
+			if (this.options.evaluateFieldsOnBlur){
+				el.addEvent('blur', this.validationMonitor.pass([el, false, this.options.scrollToErrorsOnBlur], this));
+			}
+			if (this.options.evaluateFieldsOnChange){
 				el.addEvent('change', this.validationMonitor.pass([el, true, this.options.scrollToErrorsOnChange], this));
 			}
 		}, this);
@@ -5510,8 +5643,9 @@ provides: [OverText]
 
 ...
 */
+(function(){
 
-var OverText = new Class({
+var OverText = this.OverText = new Class({
 
 	Implements: [Options, Events, Class.Occlude],
 
@@ -5669,7 +5803,7 @@ var OverText = new Class({
 				try {
 					this.element.fireEvent('focus');
 					this.element.focus();
-				} catch(e){} //IE barfs if you call focus on hidden elements
+				} catch (e){} //IE barfs if you call focus on hidden elements
 			}
 		}
 		return this;
@@ -5705,6 +5839,8 @@ var OverText = new Class({
 	}
 
 });
+
+})();
 
 OverText.instances = [];
 
@@ -5856,7 +5992,8 @@ Fx.Accordion = new Class({
 		alwaysHide: false,
 		trigger: 'click',
 		initialDisplayFx: true,
-		resetHeight: true
+		resetHeight: true,
+		keepOpen: false
 	},
 
 	initialize: function(){
@@ -5978,11 +6115,13 @@ Fx.Accordion = new Class({
 		var obj = {},
 			elements = this.elements,
 			options = this.options,
-			effects = this.effects;
+			effects = this.effects,
+			keepOpen = options.keepOpen,
+			alwaysHide = options.alwaysHide;
 
 		if (useFx == null) useFx = true;
 		if (typeOf(index) == 'element') index = elements.indexOf(index);
-		if (index == this.current && !options.alwaysHide) return this;
+		if (index == this.current && !alwaysHide && !keepOpen) return this;
 
 		if (options.resetHeight){
 			var prev = elements[this.current];
@@ -5991,7 +6130,7 @@ Fx.Accordion = new Class({
 			}
 		}
 
-		if ((this.timer && options.link == 'chain') || (index === this.current && !options.alwaysHide)) return this;
+		if (this.timer && options.link == 'chain') return this;
 
 		if (this.current != null) this.previous = this.current;
 		this.current = index;
@@ -5999,16 +6138,20 @@ Fx.Accordion = new Class({
 
 		elements.each(function(el, i){
 			obj[i] = {};
-			var hide;
-			if (i != index){
-				hide = true;
-			} else if (options.alwaysHide && ((el.offsetHeight > 0 && options.height) || el.offsetWidth > 0 && options.width)){
-				hide = true;
-				this.selfHidden = true;
+			var hide, isOpen;
+			if (!keepOpen || i == index){
+				if (i == index) isOpen = (el.offsetHeight > 0 && options.height) || (el.offsetWidth > 0 && options.width);
+
+				if (i != index){
+					hide = true;
+				} else if ((alwaysHide || keepOpen) && isOpen){
+					hide = true;
+					this.selfHidden = true;
+				}
+				this.fireEvent(hide ? 'background' : 'active', [this.togglers[i], el]);
+				for (var fx in effects) obj[i][fx] = hide ? 0 : el[effects[fx]];
+				if (!useFx && !hide && options.resetHeight) obj[i].height = 'auto';
 			}
-			this.fireEvent(hide ? 'background' : 'active', [this.togglers[i], el]);
-			for (var fx in effects) obj[i][fx] = hide ? 0 : el[effects[fx]];
-			if (!useFx && !hide && options.resetHeight) obj[i].height = 'auto';
 		}, this);
 
 		this.internalChain.clearChain();
@@ -6204,7 +6347,7 @@ Fx.Scroll = new Class({
 	},
 
 	toElement: function(el, axes){
-		axes = axes ? Array.from(axes) : ['x', 'y'];
+		axes = axes ? Array.convert(axes) : ['x', 'y'];
 		var scroll = isBody(this.element) ? {x: 0, y: 0} : this.element.getScroll();
 		var position = Object.map(document.id(el).getPosition(this.element), function(value, axis){
 			return axes.contains(axis) ? value + scroll[axis] : false;
@@ -6213,7 +6356,7 @@ Fx.Scroll = new Class({
 	},
 
 	toElementEdge: function(el, axes, offset){
-		axes = axes ? Array.from(axes) : ['x', 'y'];
+		axes = axes ? Array.convert(axes) : ['x', 'y'];
 		el = document.id(el);
 		var to = {},
 			position = el.getPosition(this.element),
@@ -6239,7 +6382,7 @@ Fx.Scroll = new Class({
 	},
 
 	toElementCenter: function(el, axes, offset){
-		axes = axes ? Array.from(axes) : ['x', 'y'];
+		axes = axes ? Array.convert(axes) : ['x', 'y'];
 		el = document.id(el);
 		var to = {},
 			position = el.getPosition(this.element),
@@ -6431,7 +6574,7 @@ Element.implement({
 				slide[flag ? 'slideOut' : 'slideIn'](mode);
 				this.store('slide:flag', !flag);
 				toggle = true;
-			break;
+				break;
 			default: slide.start(how, mode);
 		}
 		if (!toggle) this.eliminate('slide:flag');
@@ -6713,221 +6856,221 @@ provides: [Keyboard]
 
 (function(){
 
-	var Keyboard = this.Keyboard = new Class({
+var Keyboard = this.Keyboard = new Class({
 
-		Extends: Events,
+	Extends: Events,
 
-		Implements: [Options],
+	Implements: [Options],
 
-		options: {/*
-			onActivate: function(){},
-			onDeactivate: function(){},*/
-			defaultEventType: 'keydown',
-			active: false,
-			manager: null,
-			events: {},
-			nonParsedEvents: ['activate', 'deactivate', 'onactivate', 'ondeactivate', 'changed', 'onchanged']
-		},
+	options: {/*
+		onActivate: function(){},
+		onDeactivate: function(){},*/
+		defaultEventType: 'keydown',
+		active: false,
+		manager: null,
+		events: {},
+		nonParsedEvents: ['activate', 'deactivate', 'onactivate', 'ondeactivate', 'changed', 'onchanged']
+	},
 
-		initialize: function(options){
-			if (options && options.manager){
-				this._manager = options.manager;
-				delete options.manager;
+	initialize: function(options){
+		if (options && options.manager){
+			this._manager = options.manager;
+			delete options.manager;
+		}
+		this.setOptions(options);
+		this._setup();
+	},
+
+	addEvent: function(type, fn, internal){
+		return this.parent(Keyboard.parse(type, this.options.defaultEventType, this.options.nonParsedEvents), fn, internal);
+	},
+
+	removeEvent: function(type, fn){
+		return this.parent(Keyboard.parse(type, this.options.defaultEventType, this.options.nonParsedEvents), fn);
+	},
+
+	toggleActive: function(){
+		return this[this.isActive() ? 'deactivate' : 'activate']();
+	},
+
+	activate: function(instance){
+		if (instance){
+			if (instance.isActive()) return this;
+			//if we're stealing focus, store the last keyboard to have it so the relinquish command works
+			if (this._activeKB && instance != this._activeKB){
+				this.previous = this._activeKB;
+				this.previous.fireEvent('deactivate');
 			}
-			this.setOptions(options);
-			this._setup();
-		},
+			//if we're enabling a child, assign it so that events are now passed to it
+			this._activeKB = instance.fireEvent('activate');
+			Keyboard.manager.fireEvent('changed');
+		} else if (this._manager){
+			//else we're enabling ourselves, we must ask our parent to do it for us
+			this._manager.activate(this);
+		}
+		return this;
+	},
 
-		addEvent: function(type, fn, internal){
-			return this.parent(Keyboard.parse(type, this.options.defaultEventType, this.options.nonParsedEvents), fn, internal);
-		},
+	isActive: function(){
+		return this._manager ? (this._manager._activeKB == this) : (Keyboard.manager == this);
+	},
 
-		removeEvent: function(type, fn){
-			return this.parent(Keyboard.parse(type, this.options.defaultEventType, this.options.nonParsedEvents), fn);
-		},
-
-		toggleActive: function(){
-			return this[this.isActive() ? 'deactivate' : 'activate']();
-		},
-
-		activate: function(instance){
-			if (instance){
-				if (instance.isActive()) return this;
-				//if we're stealing focus, store the last keyboard to have it so the relinquish command works
-				if (this._activeKB && instance != this._activeKB){
-					this.previous = this._activeKB;
-					this.previous.fireEvent('deactivate');
-				}
-				//if we're enabling a child, assign it so that events are now passed to it
-				this._activeKB = instance.fireEvent('activate');
+	deactivate: function(instance){
+		if (instance){
+			if (instance === this._activeKB){
+				this._activeKB = null;
+				instance.fireEvent('deactivate');
 				Keyboard.manager.fireEvent('changed');
-			} else if (this._manager){
-				//else we're enabling ourselves, we must ask our parent to do it for us
-				this._manager.activate(this);
 			}
-			return this;
-		},
+		} else if (this._manager){
+			this._manager.deactivate(this);
+		}
+		return this;
+	},
 
-		isActive: function(){
-			return this._manager ? (this._manager._activeKB == this) : (Keyboard.manager == this);
-		},
+	relinquish: function(){
+		if (this.isActive() && this._manager && this._manager.previous) this._manager.activate(this._manager.previous);
+		else this.deactivate();
+		return this;
+	},
 
-		deactivate: function(instance){
-			if (instance){
-				if (instance === this._activeKB){
-					this._activeKB = null;
-					instance.fireEvent('deactivate');
-					Keyboard.manager.fireEvent('changed');
-				}
-			} else if (this._manager){
-				this._manager.deactivate(this);
-			}
-			return this;
-		},
+	//management logic
+	manage: function(instance){
+		if (instance._manager) instance._manager.drop(instance);
+		this._instances.push(instance);
+		instance._manager = this;
+		if (!this._activeKB) this.activate(instance);
+		return this;
+	},
 
-		relinquish: function(){
-			if (this.isActive() && this._manager && this._manager.previous) this._manager.activate(this._manager.previous);
-			else this.deactivate();
-			return this;
-		},
+	drop: function(instance){
+		instance.relinquish();
+		this._instances.erase(instance);
+		if (this._activeKB == instance){
+			if (this.previous && this._instances.contains(this.previous)) this.activate(this.previous);
+			else this._activeKB = this._instances[0];
+		}
+		return this;
+	},
 
-		//management logic
-		manage: function(instance){
-			if (instance._manager) instance._manager.drop(instance);
-			this._instances.push(instance);
-			instance._manager = this;
-			if (!this._activeKB) this.activate(instance);
-			return this;
-		},
+	trace: function(){
+		Keyboard.trace(this);
+	},
 
-		drop: function(instance){
-			instance.relinquish();
-			this._instances.erase(instance);
-			if (this._activeKB == instance){
-				if (this.previous && this._instances.contains(this.previous)) this.activate(this.previous);
-				else this._activeKB = this._instances[0];
-			}
-			return this;
-		},
+	each: function(fn){
+		Keyboard.each(this, fn);
+	},
 
-		trace: function(){
-			Keyboard.trace(this);
-		},
+	/*
+		PRIVATE METHODS
+	*/
 
-		each: function(fn){
-			Keyboard.each(this, fn);
-		},
+	_instances: [],
 
-		/*
-			PRIVATE METHODS
-		*/
+	_disable: function(instance){
+		if (this._activeKB == instance) this._activeKB = null;
+	},
 
-		_instances: [],
+	_setup: function(){
+		this.addEvents(this.options.events);
+		//if this is the root manager, nothing manages it
+		if (Keyboard.manager && !this._manager) Keyboard.manager.manage(this);
+		if (this.options.active) this.activate();
+		else this.relinquish();
+	},
 
-		_disable: function(instance){
-			if (this._activeKB == instance) this._activeKB = null;
-		},
+	_handle: function(event, type){
+		//Keyboard.stop(event) prevents key propagation
+		if (event.preventKeyboardPropagation) return;
 
-		_setup: function(){
-			this.addEvents(this.options.events);
-			//if this is the root manager, nothing manages it
-			if (Keyboard.manager && !this._manager) Keyboard.manager.manage(this);
-			if (this.options.active) this.activate();
-			else this.relinquish();
-		},
-
-		_handle: function(event, type){
-			//Keyboard.stop(event) prevents key propagation
+		var bubbles = !!this._manager;
+		if (bubbles && this._activeKB){
+			this._activeKB._handle(event, type);
 			if (event.preventKeyboardPropagation) return;
-
-			var bubbles = !!this._manager;
-			if (bubbles && this._activeKB){
-				this._activeKB._handle(event, type);
-				if (event.preventKeyboardPropagation) return;
-			}
-			this.fireEvent(type, event);
-
-			if (!bubbles && this._activeKB) this._activeKB._handle(event, type);
 		}
+		this.fireEvent(type, event);
 
+		if (!bubbles && this._activeKB) this._activeKB._handle(event, type);
+	}
+
+});
+
+var parsed = {};
+var modifiers = ['shift', 'control', 'alt', 'meta'];
+var regex = /^(?:shift|control|ctrl|alt|meta)$/;
+
+Keyboard.parse = function(type, eventType, ignore){
+	if (ignore && ignore.contains(type.toLowerCase())) return type;
+
+	type = type.toLowerCase().replace(/^(keyup|keydown):/, function($0, $1){
+		eventType = $1;
+		return '';
 	});
 
-	var parsed = {};
-	var modifiers = ['shift', 'control', 'alt', 'meta'];
-	var regex = /^(?:shift|control|ctrl|alt|meta)$/;
+	if (!parsed[type]){
+		if (type != '+'){
+			var key, mods = {};
+			type.split('+').each(function(part){
+				if (regex.test(part)) mods[part] = true;
+				else key = part;
+			});
 
-	Keyboard.parse = function(type, eventType, ignore){
-		if (ignore && ignore.contains(type.toLowerCase())) return type;
+			mods.control = mods.control || mods.ctrl; // allow both control and ctrl
 
-		type = type.toLowerCase().replace(/^(keyup|keydown):/, function($0, $1){
-			eventType = $1;
-			return '';
-		});
+			var keys = [];
+			modifiers.each(function(mod){
+				if (mods[mod]) keys.push(mod);
+			});
 
-		if (!parsed[type]){
-		    if (type != '+'){
-				var key, mods = {};
-				type.split('+').each(function(part){
-					if (regex.test(part)) mods[part] = true;
-					else key = part;
-				});
-
-				mods.control = mods.control || mods.ctrl; // allow both control and ctrl
-
-				var keys = [];
-				modifiers.each(function(mod){
-					if (mods[mod]) keys.push(mod);
-				});
-
-				if (key) keys.push(key);
-				parsed[type] = keys.join('+');
-			} else {
-			    parsed[type] = type;
-			}
+			if (key) keys.push(key);
+			parsed[type] = keys.join('+');
+		} else {
+			parsed[type] = type;
 		}
+	}
 
-		return eventType + ':keys(' + parsed[type] + ')';
-	};
+	return eventType + ':keys(' + parsed[type] + ')';
+};
 
-	Keyboard.each = function(keyboard, fn){
-		var current = keyboard || Keyboard.manager;
-		while (current){
-			fn(current);
-			current = current._activeKB;
-		}
-	};
+Keyboard.each = function(keyboard, fn){
+	var current = keyboard || Keyboard.manager;
+	while (current){
+		fn(current);
+		current = current._activeKB;
+	}
+};
 
-	Keyboard.stop = function(event){
-		event.preventKeyboardPropagation = true;
-	};
+Keyboard.stop = function(event){
+	event.preventKeyboardPropagation = true;
+};
 
-	Keyboard.manager = new Keyboard({
-		active: true
+Keyboard.manager = new Keyboard({
+	active: true
+});
+
+Keyboard.trace = function(keyboard){
+	keyboard = keyboard || Keyboard.manager;
+	var hasConsole = window.console && console.log;
+	if (hasConsole) console.log('the following items have focus: ');
+	Keyboard.each(keyboard, function(current){
+		if (hasConsole) console.log(document.id(current.widget) || current.wiget || current);
+	});
+};
+
+var handler = function(event){
+	var keys = [];
+	modifiers.each(function(mod){
+		if (event[mod]) keys.push(mod);
 	});
 
-	Keyboard.trace = function(keyboard){
-		keyboard = keyboard || Keyboard.manager;
-		var hasConsole = window.console && console.log;
-		if (hasConsole) console.log('the following items have focus: ');
-		Keyboard.each(keyboard, function(current){
-			if (hasConsole) console.log(document.id(current.widget) || current.wiget || current);
-		});
-	};
+	if (!regex.test(event.key)) keys.push(event.key);
+	Keyboard.manager._handle(event, event.type + ':keys(' + keys.join('+') + ')');
+};
 
-	var handler = function(event){
-		var keys = [];
-		modifiers.each(function(mod){
-			if (event[mod]) keys.push(mod);
-		});
-
-		if (!regex.test(event.key)) keys.push(event.key);
-		Keyboard.manager._handle(event, event.type + ':keys(' + keys.join('+') + ')');
-	};
-
-	document.addEvents({
-		'keyup': handler,
-		'keydown': handler
-	});
+document.addEvents({
+	'keyup': handler,
+	'keydown': handler
+});
 
 })();
 
@@ -6969,7 +7112,7 @@ Keyboard.implement({
 		this._shortcuts = this._shortcuts || [];
 		this._shortcutIndex = this._shortcutIndex || {};
 
-		shortcut.getKeyboard = Function.from(this);
+		shortcut.getKeyboard = Function.convert(this);
 		shortcut.name = name;
 		this._shortcutIndex[name] = shortcut;
 		this._shortcuts.push(shortcut);
@@ -7008,7 +7151,7 @@ Keyboard.implement({
 });
 
 Keyboard.rebind = function(newKeys, shortcuts){
-	Array.from(shortcuts).each(function(shortcut){
+	Array.convert(shortcuts).each(function(shortcut){
 		shortcut.getKeyboard().removeEvent(shortcut.keys, shortcut.handler);
 		shortcut.getKeyboard().addEvent(newKeys, shortcut.handler);
 		shortcut.keys = newKeys;
@@ -7028,11 +7171,11 @@ Keyboard.getShortcut = function(name, keyboard, opts){
 	opts = opts || {};
 	var shortcuts = opts.many ? [] : null,
 		set = opts.many ? function(kb){
-				var shortcut = kb.getShortcut(name);
-				if (shortcut) shortcuts.push(shortcut);
-			} : function(kb){
-				if (!shortcuts) shortcuts = kb.getShortcut(name);
-			};
+			var shortcut = kb.getShortcut(name);
+			if (shortcut) shortcuts.push(shortcut);
+		} : function(kb){
+			if (!shortcuts) shortcuts = kb.getShortcut(name);
+		};
 	Keyboard.each(keyboard, set);
 	return shortcuts;
 };
@@ -7064,8 +7207,9 @@ provides: [HtmlTable]
 
 ...
 */
+(function(){
 
-var HtmlTable = new Class({
+var HtmlTable = this.HtmlTable = new Class({
 
 	Implements: [Options, Events, Class.Occlude],
 
@@ -7188,6 +7332,8 @@ var HtmlTable = new Class({
 	}
 
 });
+
+})();
 
 
 ['adopt', 'inject', 'wraps', 'grab', 'replaces', 'dispose'].each(function(method){
@@ -7325,7 +7471,7 @@ HtmlTable = Class.refactor(HtmlTable, {
 	},
 
 	restore: function(tableState){
-		if(this.options.selectable && tableState.selectedRows){
+		if (this.options.selectable && tableState.selectedRows){
 			tableState.selectedRows.each(function(index){
 				this.selectRow(this.body.rows[index]);
 			}.bind(this));
@@ -7336,7 +7482,7 @@ HtmlTable = Class.refactor(HtmlTable, {
 	deselectRow: function(row, _nocheck){
 		if (!this.isSelected(row) || (!_nocheck && !this.body.getChildren().contains(row))) return;
 
-		this.selectedRows = new Elements(Array.from(this.selectedRows).erase(row));
+		this.selectedRows = new Elements(Array.convert(this.selectedRows).erase(row));
 		row.removeClass(this.options.classRowSelected);
 		this.fireEvent('rowUnfocus', [row, this.selectedRows]);
 		this.fireEvent('stateChanged');
@@ -7437,7 +7583,7 @@ HtmlTable = Class.refactor(HtmlTable, {
 			index += offset;
 		} else {
 			var limit = 0,
-			    count = 0;
+				count = 0;
 			if (offset > 0){
 				while (count < offset && index < this.body.rows.length -1){
 					if (this.body.rows[++index].isDisplayed()) count++;
@@ -7514,7 +7660,7 @@ HtmlTable = Class.refactor(HtmlTable, {
 
 				var shiftHint = '';
 				if (this.options.allowMultiSelect && this.options.shiftForMultiSelect && this.options.useKeyboard){
-					shiftHint = " (Shift multi-selects).";
+					shiftHint = ' (Shift multi-selects).';
 				}
 
 				this.keyboard.addShortcuts({
@@ -7602,7 +7748,7 @@ HtmlTable = Class.refactor(HtmlTable, {
 		thSelector: 'th'
 	},
 
-	initialize: function (){
+	initialize: function(){
 		this.previous.apply(this, arguments);
 		if (this.occluded) return this.occluded;
 		this.sorted = {index: null, dir: 1};
@@ -7685,7 +7831,7 @@ HtmlTable = Class.refactor(HtmlTable, {
 	},
 
 	restore: function(tableState){
-		if(this.options.sortable && tableState.sortIndex){
+		if (this.options.sortable && tableState.sortIndex){
 			this.sort(tableState.sortIndex, tableState.sortReverse);
 		}
 		this.previous.apply(this, arguments);
@@ -7776,12 +7922,13 @@ HtmlTable = Class.refactor(HtmlTable, {
 			return a.value > b.value ? 1 : -1;
 		});
 
-		if (this.sorted.reverse == (parser == HtmlTable.Parsers['input-checked'])) data.reverse(true);
+		var reversed = this.sorted.reverse == (parser == HtmlTable.Parsers['input-checked']);
+		if (reversed) data.reverse(true);
 		this.setRowSort(data, pre);
 
 		if (rel) rel.grab(this.body);
 		this.fireEvent('stateChanged');
-		return this.fireEvent('sort', [this.body, this.sorted.index]);
+		return this.fireEvent('sort', [this.body, this.sorted.index, reversed ? 'asc' : 'desc']);
 	},
 
 	parseData: function(parser){
@@ -7994,8 +8141,9 @@ provides: [Scroller]
 
 ...
 */
+(function(){
 
-var Scroller = new Class({
+var Scroller = this.Scroller = new Class({
 
 	Implements: [Events, Options],
 
@@ -8056,7 +8204,7 @@ var Scroller = new Class({
 	scroll: function(){
 		var size = this.element.getSize(),
 			scroll = this.element.getScroll(),
-			pos = ((this.element != this.docBody) && (this.element != window)) ? element.getOffsets() : {x: 0, y: 0},
+			pos = ((this.element != this.docBody) && (this.element != window)) ? this.element.getOffsets() : {x: 0, y: 0},
 			scrollSize = this.element.getScrollSize(),
 			change = {x: 0, y: 0},
 			top = this.options.area.top || this.options.area,
@@ -8073,6 +8221,9 @@ var Scroller = new Class({
 	}
 
 });
+
+})();
+
 
 /*
 ---
@@ -8109,7 +8260,7 @@ var read = function(option, element){
 	return (option) ? (typeOf(option) == 'function' ? option(element) : element.get(option)) : '';
 };
 
-this.Tips = new Class({
+var Tips = this.Tips = new Class({
 
 	Implements: [Events, Options],
 
@@ -8134,7 +8285,8 @@ this.Tips = new Class({
 		offset: {x: 16, y: 16},
 		windowPadding: {x:0, y:0},
 		fixed: false,
-		waiAria: true
+		waiAria: true,
+		hideEmpty: false
 	},
 
 	initialize: function(){
@@ -8162,7 +8314,8 @@ this.Tips = new Class({
 			styles: {
 				position: 'absolute',
 				top: 0,
-				left: 0
+				left: 0,
+				display: 'none'
 			}
 		}).adopt(
 			new Element('div', {'class': 'tip-top'}),
@@ -8246,15 +8399,22 @@ this.Tips = new Class({
 		clearTimeout(this.timer);
 		this.timer = (function(){
 			this.container.empty();
-
+			var showTip = !this.options.hideEmpty;
 			['title', 'text'].each(function(value){
 				var content = element.retrieve('tip:' + value);
 				var div = this['_' + value + 'Element'] = new Element('div', {
-						'class': 'tip-' + value
-					}).inject(this.container);
-				if (content) this.fill(div, content);
+					'class': 'tip-' + value
+				}).inject(this.container);
+				if (content){
+					this.fill(div, content);
+					showTip = true;
+				}
 			}, this);
-			this.show(element);
+			if (showTip){
+				this.show(element);
+			} else {
+				this.hide(element);
+			}
 			this.position((this.options.fixed) ? {page: element.getPosition()} : event);
 		}).delay(this.options.showDelay, this);
 	},
@@ -8336,6 +8496,31 @@ this.Tips = new Class({
 
 /*
 ---
+name: Locale.CH.Number
+description: Number messages for Switzerland.
+license: MIT-style license
+authors:
+  - Kim D. Jeker
+requires:
+  - Locale
+provides: [Locale.CH.Number]
+...
+*/
+
+Locale.define('CH', 'Number', {
+
+	decimal: ',',
+	group: '\'',
+
+	currency: {
+		decimal: '.',
+		suffix: ' CHF'
+	}
+
+});
+
+/*
+---
 
 name: Locale.EU.Number
 
@@ -8409,7 +8594,7 @@ Locale.Set.from = function(set, type){
 	locale.sets = set.sets || {};
 
 	if (set.inherits){
-		locale.inherits.locales = Array.from(set.inherits.locales);
+		locale.inherits.locales = Array.convert(set.inherits.locales);
 		locale.inherits.sets = set.inherits.sets || {};
 	}
 
@@ -8485,7 +8670,7 @@ Locale.define('af-ZA', 'Date', {
 	AM: 'VM',
 	PM: 'NM',
 	firstDayOfWeek: 1,
-   
+
 	// Date.Extras
 	ordinal: function(dayOfMonth){
 		return ((dayOfMonth > 1 && dayOfMonth < 20 && dayOfMonth != 8) || (dayOfMonth > 100 && dayOfMonth.toString().substr(-2, 1) == '1')) ? 'de' : 'ste';
@@ -8809,7 +8994,7 @@ provides: [Locale.cs-CZ.Date]
 // one -> n is 1;            1
 // few -> n in 2..4;         2-4
 // other -> everything else  0, 5-999, 1.31, 2.31, 5.31...
-var pluralize = function (n, one, few, other){
+var pluralize = function(n, one, few, other){
 	if (n == 1) return one;
 	else if (n == 2 || n == 3 || n == 4) return few;
 	else return other;
@@ -9196,6 +9381,22 @@ Locale.define('de-CH', 'FormValidator', {
 
 /*
 ---
+name: Locale.de-CH.Number
+description: Number messages for Switzerland.
+license: MIT-style license
+authors:
+  - Kim D. Jeker
+requires:
+  - Locale
+  - Locale.CH.Number
+provides: [Locale.de-CH.Number]
+...
+*/
+
+Locale.define('de-CH').inherit('CH', 'Number');
+
+/*
+---
 
 name: Locale.de-DE.Form.Validator
 
@@ -9368,38 +9569,38 @@ provides: [Locale.el-GR.Form.Validator]
 
 Locale.define('el-GR', 'FormValidator', {
 
-    required: 'Αυτό το πεδίο είναι απαραίτητο.',
-    length: 'Παρακαλούμε, εισάγετε {length} χαρακτήρες (έχετε ήδη εισάγει {elLength} χαρακτήρες).',
-    minLength: 'Παρακαλούμε, εισάγετε τουλάχιστον {minLength} χαρακτήρες (έχετε ήδη εισάγε {length} χαρακτήρες).',
-    maxlength: 'Παρακαλούμε, εισάγετε εώς {maxlength} χαρακτήρες (έχετε ήδη εισάγε {length} χαρακτήρες).',
-    integer: 'Παρακαλούμε, εισάγετε έναν ακέραιο αριθμό σε αυτό το πεδίο. Οι αριθμοί με δεκαδικά ψηφία (π.χ. 1.25) δεν επιτρέπονται.',
-    numeric: 'Παρακαλούμε, εισάγετε μόνο αριθμητικές τιμές σε αυτό το πεδίο (π.χ." 1 " ή " 1.1 " ή " -1 " ή " -1.1 " ).',
-    digits: 'Παρακαλούμε, χρησιμοποιήστε μόνο αριθμούς και σημεία στίξης σε αυτόν τον τομέα (π.χ. επιτρέπεται αριθμός τηλεφώνου με παύλες ή τελείες).',
-    alpha: 'Παρακαλούμε, χρησιμοποιήστε μόνο γράμματα (a-z) σε αυτό το πεδίο. Δεν επιτρέπονται κενά ή άλλοι χαρακτήρες.',
-    alphanum: 'Παρακαλούμε, χρησιμοποιήστε μόνο γράμματα (a-z) ή αριθμούς (0-9) σε αυτόν τον τομέα. Δεν επιτρέπονται κενά ή άλλοι χαρακτήρες.',
-    dateSuchAs: 'Παρακαλούμε, εισάγετε μια έγκυρη ημερομηνία, όπως {date}',
-    dateInFormatMDY: 'Παρακαλώ εισάγετε μια έγκυρη ημερομηνία, όπως ΜΜ/ΗΗ/ΕΕΕΕ (π.χ. "12/31/1999").',
-    email: 'Παρακαλούμε, εισάγετε μια έγκυρη διεύθυνση ηλεκτρονικού ταχυδρομείου (π.χ. "fred@domain.com").',
-    url: 'Παρακαλούμε, εισάγετε μια έγκυρη URL διεύθυνση, όπως http://www.example.com',
-    currencyDollar: 'Παρακαλούμε, εισάγετε ένα έγκυρο ποσό σε δολλάρια (π.χ. $100.00).',
-    oneRequired: 'Παρακαλούμε, εισάγετε κάτι για τουλάχιστον ένα από αυτά τα πεδία.',
-    errorPrefix: 'Σφάλμα: ',
-    warningPrefix: 'Προσοχή: ',
+	required: 'Αυτό το πεδίο είναι απαραίτητο.',
+	length: 'Παρακαλούμε, εισάγετε {length} χαρακτήρες (έχετε ήδη εισάγει {elLength} χαρακτήρες).',
+	minLength: 'Παρακαλούμε, εισάγετε τουλάχιστον {minLength} χαρακτήρες (έχετε ήδη εισάγε {length} χαρακτήρες).',
+	maxlength: 'Παρακαλούμε, εισάγετε εώς {maxlength} χαρακτήρες (έχετε ήδη εισάγε {length} χαρακτήρες).',
+	integer: 'Παρακαλούμε, εισάγετε έναν ακέραιο αριθμό σε αυτό το πεδίο. Οι αριθμοί με δεκαδικά ψηφία (π.χ. 1.25) δεν επιτρέπονται.',
+	numeric: 'Παρακαλούμε, εισάγετε μόνο αριθμητικές τιμές σε αυτό το πεδίο (π.χ." 1 " ή " 1.1 " ή " -1 " ή " -1.1 " ).',
+	digits: 'Παρακαλούμε, χρησιμοποιήστε μόνο αριθμούς και σημεία στίξης σε αυτόν τον τομέα (π.χ. επιτρέπεται αριθμός τηλεφώνου με παύλες ή τελείες).',
+	alpha: 'Παρακαλούμε, χρησιμοποιήστε μόνο γράμματα (a-z) σε αυτό το πεδίο. Δεν επιτρέπονται κενά ή άλλοι χαρακτήρες.',
+	alphanum: 'Παρακαλούμε, χρησιμοποιήστε μόνο γράμματα (a-z) ή αριθμούς (0-9) σε αυτόν τον τομέα. Δεν επιτρέπονται κενά ή άλλοι χαρακτήρες.',
+	dateSuchAs: 'Παρακαλούμε, εισάγετε μια έγκυρη ημερομηνία, όπως {date}',
+	dateInFormatMDY: 'Παρακαλώ εισάγετε μια έγκυρη ημερομηνία, όπως ΜΜ/ΗΗ/ΕΕΕΕ (π.χ. "12/31/1999").',
+	email: 'Παρακαλούμε, εισάγετε μια έγκυρη διεύθυνση ηλεκτρονικού ταχυδρομείου (π.χ. "fred@domain.com").',
+	url: 'Παρακαλούμε, εισάγετε μια έγκυρη URL διεύθυνση, όπως http://www.example.com',
+	currencyDollar: 'Παρακαλούμε, εισάγετε ένα έγκυρο ποσό σε δολλάρια (π.χ. $100.00).',
+	oneRequired: 'Παρακαλούμε, εισάγετε κάτι για τουλάχιστον ένα από αυτά τα πεδία.',
+	errorPrefix: 'Σφάλμα: ',
+	warningPrefix: 'Προσοχή: ',
 
-    // Form.Validator.Extras
-    noSpace: 'Δεν επιτρέπονται τα κενά σε αυτό το πεδίο.',
-    reqChkByNode: 'Δεν έχει επιλεγεί κάποιο αντικείμενο',
-    requiredChk: 'Αυτό το πεδίο είναι απαραίτητο.',
-    reqChkByName: 'Παρακαλούμε, επιλέξτε μια ετικέτα {label}.',
-    match: 'Αυτό το πεδίο πρέπει να ταιριάζει με το πεδίο {matchName}.',
-    startDate: 'η ημερομηνία έναρξης',
-    endDate: 'η ημερομηνία λήξης',
-    currentDate: 'η τρέχουσα ημερομηνία',
-    afterDate: 'Η ημερομηνία πρέπει να είναι η ίδια ή μετά από την {label}.',
-    beforeDate: 'Η ημερομηνία πρέπει να είναι η ίδια ή πριν από την {label}.',
-    startMonth: 'Παρακαλώ επιλέξτε ένα μήνα αρχής.',
-    sameMonth: 'Αυτές οι δύο ημερομηνίες πρέπει να έχουν τον ίδιο μήνα - θα πρέπει να αλλάξετε ή το ένα ή το άλλο',
-    creditcard: 'Ο αριθμός της πιστωτικής κάρτας δεν είναι έγκυρος. Παρακαλούμε ελέγξτε τον αριθμό και δοκιμάστε ξανά. {length} μήκος ψηφίων.'
+	// Form.Validator.Extras
+	noSpace: 'Δεν επιτρέπονται τα κενά σε αυτό το πεδίο.',
+	reqChkByNode: 'Δεν έχει επιλεγεί κάποιο αντικείμενο',
+	requiredChk: 'Αυτό το πεδίο είναι απαραίτητο.',
+	reqChkByName: 'Παρακαλούμε, επιλέξτε μια ετικέτα {label}.',
+	match: 'Αυτό το πεδίο πρέπει να ταιριάζει με το πεδίο {matchName}.',
+	startDate: 'η ημερομηνία έναρξης',
+	endDate: 'η ημερομηνία λήξης',
+	currentDate: 'η τρέχουσα ημερομηνία',
+	afterDate: 'Η ημερομηνία πρέπει να είναι η ίδια ή μετά από την {label}.',
+	beforeDate: 'Η ημερομηνία πρέπει να είναι η ίδια ή πριν από την {label}.',
+	startMonth: 'Παρακαλώ επιλέξτε ένα μήνα αρχής.',
+	sameMonth: 'Αυτές οι δύο ημερομηνίες πρέπει να έχουν τον ίδιο μήνα - θα πρέπει να αλλάξετε ή το ένα ή το άλλο',
+	creditcard: 'Ο αριθμός της πιστωτικής κάρτας δεν είναι έγκυρος. Παρακαλούμε ελέγξτε τον αριθμό και δοκιμάστε ξανά. {length} μήκος ψηφίων.'
 
 });
 
@@ -9631,6 +9832,57 @@ Locale.define('es-AR', 'FormValidator', {
 	sameMonth: 'Estas dos fechas deben estar en el mismo mes - debes cambiar una u otra.'
 
 });
+
+/*
+---
+
+name: Locale.es-AR.Number
+
+description: Number messages for es Argentina.
+
+license: MIT-style license
+
+authors:
+  - Oscar Kuchuk
+
+requires:
+  - Locale
+
+provides: [Locale.es-AR.Number]
+
+...
+*/
+
+Locale.define('es-AR', 'Number', {
+
+	decimal: ',',
+	group: '.',
+
+/* 	Commented properties are the defaults for Number.format
+	decimals: 0,
+	precision: 0,
+	scientific: null,
+
+	prefix: null,
+	suffic: null,
+
+	// Negative/Currency/percentage will mixin Number
+	negative: {
+		prefix: '-'
+	},*/
+
+	currency: {
+		decimals: 2,
+		prefix: '$ '
+	}/*,
+
+	percentage: {
+		decimals: 2,
+		suffix: '%'
+	}*/
+
+});
+
 
 /*
 ---
@@ -10284,6 +10536,8 @@ provides: [Locale.fr-FR.Form.Validator]
 ...
 */
 
+/*eslint mootools-whitespace:0*/
+
 Locale.define('fr-FR', 'FormValidator', {
 
 	required: 'Ce champ est obligatoire.',
@@ -10592,6 +10846,8 @@ provides: [Locale.hu-HU.Form.Validator]
 ...
 */
 
+/*eslint mootools-whitespace:0*/
+
 Locale.define('hu-HU', 'FormValidator', {
 
 	required: 'A mező kitöltése kötelező.',
@@ -10718,6 +10974,8 @@ provides: [Locale.it-IT.Form.Validator]
 ...
 */
 
+/*eslint mootools-whitespace:0*/
+
 Locale.define('it-IT', 'FormValidator', {
 
 	required: 'Il campo &egrave; obbligatorio.',
@@ -10841,7 +11099,7 @@ provides: [Locale.ja-JP.Form.Validator]
 ...
 */
 
-Locale.define("ja-JP", "FormValidator", {
+Locale.define('ja-JP', 'FormValidator', {
 
 	required: '入力は必須です。',
 	minLength: '入力文字数は{minLength}以上にしてください。({length}文字)',
@@ -11135,7 +11393,9 @@ description: Form Validator messages for Norwegian.
 license: MIT-style license
 
 authors:
+  - Aaron Newton
   - Espen 'Rexxars' Hovlandsdal
+  - Ole Tøsse Kolvik
 
 requires:
   - Locale
@@ -11147,24 +11407,71 @@ provides: [Locale.no-NO.Form.Validator]
 
 Locale.define('no-NO', 'FormValidator', {
 
-	required: 'Dette feltet er pÃ¥krevd.',
-	minLength: 'Vennligst skriv inn minst {minLength} tegn (du skrev {length} tegn).',
-	maxLength: 'Vennligst skriv inn maksimalt {maxLength} tegn (du skrev {length} tegn).',
-	integer: 'Vennligst skriv inn et tall i dette feltet. Tall med desimaler (for eksempel 1,25) er ikke tillat.',
-	numeric: 'Vennligst skriv inn kun numeriske verdier i dette feltet (for eksempel "1", "1.1", "-1" eller "-1.1").',
-	digits: 'Vennligst bruk kun nummer og skilletegn i dette feltet.',
-	alpha: 'Vennligst bruk kun bokstaver (a-z) i dette feltet. Ingen mellomrom eller andre tegn er tillat.',
-	alphanum: 'Vennligst bruk kun bokstaver (a-z) eller nummer (0-9) i dette feltet. Ingen mellomrom eller andre tegn er tillat.',
-	dateSuchAs: 'Vennligst skriv inn en gyldig dato, som {date}',
-	dateInFormatMDY: 'Vennligst skriv inn en gyldig dato, i formatet MM/DD/YYYY (for eksempel "12/31/1999")',
-	email: 'Vennligst skriv inn en gyldig epost-adresse. For eksempel "espen@domene.no".',
-	url: 'Vennligst skriv inn en gyldig URL, for eksempel http://www.example.com.',
-	currencyDollar: 'Vennligst fyll ut et gyldig $ belÃ¸p. For eksempel $100.00 .',
-	oneRequired: 'Vennligst fyll ut noe i minst ett av disse feltene.',
+	required: 'Dette feltet er påkrevd.',
+	length: 'Skriv inn {length} tegn (du skrev {elLength} tegn)',
+	minLength: 'Skriv inn minst {minLength} tegn (du skrev {length} tegn).',
+	maxLength: 'Ikke skriv mer enn {maxLength} tegn (du skrev {length} tegn).',
+	integer: 'Skriv inn et tall i dette feltet. Tall med desimaler (f.eks. 1,25) er ikke tillat.',
+	numeric: 'Skriv kun inn numeriske verdier i dette feltet (f.eks. "1", "1.1", "-1" eller "-1.1").',
+	digits: 'Skriv kun nummer og skilletegn i dette feltet.',
+	alpha: 'Skriv kun bokstaver (a-å) i dette feltet. Ingen mellomrom eller andre tegn er tillat.',
+	alphanum: 'Skriv kun bokstaver (a-å) eller nummer (0-9) i dette feltet. Ingen mellomrom eller andre tegn er tillat.',
+	dateSuchAs: 'Skriv inn en gyldig dato, som f.eks. {date}',
+	dateInFormatMDY: 'Skriv inn en gyldig dato, f.eks. DD/MM/YYYY ("31/12/1999")',
+	email: 'Skriv inn en gyldig epost-adresse. F.eks. "ola.nordmann@example.com".',
+	url: 'Skriv inn en gyldig URL, f.eks. http://www.example.com.',
+	currencyDollar: 'Skriv inn et gyldig beløp. F.eks. 100,00.',
+	oneRequired: 'Minst ett av disse feltene må fylles ut.',
 	errorPrefix: 'Feil: ',
-	warningPrefix: 'Advarsel: '
+	warningPrefix: 'Advarsel: ',
+
+	// Form.Validator.Extras
+	noSpace: 'Mellomrom er ikke tillatt i dette feltet.',
+	reqChkByNode: 'Ingen objekter er valgt.',
+	requiredChk: 'Dette feltet er påkrevd.',
+	reqChkByName: 'Velg en {label}.',
+	match: 'Dette feltet må være lik {matchName}',
+	startDate: 'startdato',
+	endDate: 'sluttdato',
+	currentDate: 'dagens dato',
+	afterDate: 'Datoen må være den samme som eller etter {label}.',
+	beforeDate: 'Datoen må være den samme som eller før {label}.',
+	startMonth: 'Velg en startmåned',
+	sameMonth: 'Datoene må være i den samme måneden - velg den ene eller den andre.',
+	creditcard: 'Kortnummeret du skrev inn er ikke gyldig. Prøv igjen. Du skrev {length} siffer.'
 
 });
+
+/*
+---
+
+name: Locale.no-NO.Number
+
+description: Number messages for Norwegian.
+
+license: MIT-style license
+
+authors:
+  - Arian Stolwijk
+  - Martin Lundgren
+  - Ole T�sse Kolvik
+
+requires:
+  - Locale
+  - Locale.EU.Number
+
+provides: [Locale.no-NO.Number]
+
+...
+*/
+
+Locale.define('no-NO', 'Number', {
+
+	currency: {
+		prefix: 'NOK '
+	}
+
+}).inherit('EU', 'Number');
 
 /*
 ---
@@ -11534,7 +11841,7 @@ provides: [Locale.ru-RU.Date]
 // few -> n mod 10 in 2..4 and n mod 100 not in 12..14;
 // many -> n mod 10 is 0 or n mod 10 in 5..9 or n mod 100 in 11..14;
 // other -> everything else (example 3.14)
-var pluralize = function (n, one, few, many, other){
+var pluralize = function(n, one, few, many, other){
 	var modulo10 = n % 10,
 		modulo100 = n % 100;
 
@@ -11669,7 +11976,7 @@ provides: [Locale.sk-SK.Date]
 // one -> n is 1;            1
 // few -> n in 2..4;         2-4
 // other -> everything else  0, 5-999, 1.31, 2.31, 5.31...
-var pluralize = function (n, one, few, other){
+var pluralize = function(n, one, few, other){
 	if (n == 1) return one;
 	else if (n == 2 || n == 3 || n == 4) return few;
 	else return other;
@@ -12681,7 +12988,8 @@ Request.JSONP = new Class({
 			case 'object': case 'hash': data = Object.toQueryString(data);
 		}
 
-		var index = this.index = Request.JSONP.counter++;
+		var index = this.index = Request.JSONP.counter++,
+			key = 'request_' + index;
 
 		var src = options.url +
 			(options.url.test('\\?') ? '&' :'?') +
@@ -12691,7 +12999,8 @@ Request.JSONP = new Class({
 
 		if (src.length > 2083) this.fireEvent('error', src);
 
-		Request.JSONP.request_map['request_' + index] = function(){
+		Request.JSONP.request_map[key] = function(){
+			delete Request.JSONP.request_map[key];
 			this.success(arguments, index);
 		}.bind(this);
 
@@ -12712,7 +13021,7 @@ Request.JSONP = new Class({
 		return this.script;
 	},
 
-	success: function(args, index){
+	success: function(args){
 		if (!this.running) return;
 		this.clear()
 			.fireEvent('complete', args).fireEvent('success', args)
@@ -13555,7 +13864,7 @@ var URI = this.URI = new Class({
 		/*base: false*/
 	},
 
-	regex: /^(?:(\w+):)?(?:\/\/(?:(?:([^:@\/]*):?([^:@\/]*))?@)?([^:\/?#]*)(?::(\d*))?)?(\.\.?$|(?:[^?#\/]*\/)*)([^?#]*)(?:\?([^#]*))?(?:#(.*))?/,
+	regex: /^(?:(\w+):)?(?:\/\/(?:(?:([^:@\/]*):?([^:@\/]*))?@)?(\[[A-Fa-f0-9:]+\]|[^:\/?#]*)(?::(\d*))?)?(\.\.?$|(?:[^?#\/]*\/)*)([^?#]*)(?:\?([^#]*))?(?:#(.*))?/,
 	parts: ['scheme', 'user', 'password', 'host', 'port', 'directory', 'file', 'query', 'fragment'],
 	schemes: {http: 80, https: 443, ftp: 21, rtsp: 554, mms: 1755, file: 0},
 
@@ -13672,7 +13981,7 @@ URI.regs = {
 	directoryDot: /\.\/|\.$/
 };
 
-URI.base = new URI(Array.from(document.getElements('base[href]', true)).getLast(), {base: document.location});
+URI.base = new URI(Array.convert(document.getElements('base[href]', true)).getLast(), {base: document.location});
 
 String.implement({
 
@@ -13760,12 +14069,13 @@ requires:
   - Core/Element.Event
   - MooTools.More
 
-provides: [Assets]
+provides: [Assets, Asset.javascript, Asset.css, Asset.image, Asset.images]
 
 ...
 */
+;(function(){
 
-var Asset = {
+var Asset = this.Asset = {
 
 	javascript: function(source, properties){
 		if (!properties) properties = {};
@@ -13824,7 +14134,7 @@ var Asset = {
 				}
 				retries++;
 				if (!loaded && retries < timeout / 50) return setTimeout(check, 50);
-			}
+			};
 			setTimeout(check, 0);
 		}
 		return link;
@@ -13862,7 +14172,7 @@ var Asset = {
 	},
 
 	images: function(sources, options){
-		sources = Array.from(sources);
+		sources = Array.convert(sources);
 
 		var fn = function(){},
 			counter = 0;
@@ -13891,6 +14201,8 @@ var Asset = {
 	}
 
 };
+
+})();
 
 /*
 ---
@@ -13935,7 +14247,7 @@ var Color = this.Color = new Type('Color', function(color, type){
 			var old = color;
 			color = color.hsbToRgb();
 			color.hsb = old;
-		break;
+			break;
 		case 'hex': color = color.hexToRgb(true); break;
 	}
 	color.rgb = color.slice(0, 3);
@@ -13993,14 +14305,15 @@ Array.implement({
 
 	rgbToHsb: function(){
 		var red = this[0],
-				green = this[1],
-				blue = this[2],
-				hue = 0;
-		var max = Math.max(red, green, blue),
-				min = Math.min(red, green, blue);
-		var delta = max - min;
-		var brightness = max / 255,
-				saturation = (max != 0) ? delta / max : 0;
+			green = this[1],
+			blue = this[2],
+			hue = 0,
+			max = Math.max(red, green, blue),
+			min = Math.min(red, green, blue),
+			delta = max - min,
+			brightness = max / 255,
+			saturation = (max != 0) ? delta / max : 0;
+
 		if (saturation != 0){
 			var rr = (max - red) / delta;
 			var gr = (max - green) / delta;
@@ -14080,7 +14393,7 @@ provides: [Group]
 
 (function(){
 
-this.Group = new Class({
+var Group = this.Group = new Class({
 
 	initialize: function(){
 		this.instances = Array.flatten(arguments);
@@ -14304,8 +14617,8 @@ var Table = this.Table = function(){
 
 	this.length = 0;
 	var keys = [],
-	    values = [];
-	
+		values = [];
+
 	this.set = function(key, value){
 		var index = keys.indexOf(key);
 		if (index == -1){
@@ -14337,7 +14650,7 @@ var Table = this.Table = function(){
 	this.each = this.forEach = function(fn, bind){
 		for (var i = 0, l = this.length; i < l; i++) fn.call(bind, keys[i], values[i], this);
 	};
-	
+
 };
 
 if (this.Type) new Type('Table', Table);

@@ -1,3 +1,11 @@
+.vjs-tech {
+  pointer-events: none;
+}
+
+.vjs-captions-button {
+  display: none;
+}
+
 .vjs-tt-cue {
   margin-bottom: .75em;
 }

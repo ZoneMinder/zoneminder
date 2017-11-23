@@ -244,9 +244,6 @@ protected:
   std::vector<EncoderParameter_t> encoderparamsvec;
     _AVPIXELFORMAT      imagePixFormat;
   unsigned int  subpixelorder;
-#if HAVE_LIBSWSCALE
-    struct SwsContext   *mConvertContext;
-#endif
   bool       record_audio;      // Whether to store the audio that we receive
   int        brightness;        // The statically saved brightness of the camera
   int        contrast;        // The statically saved contrast of the camera

@@ -500,7 +500,8 @@ void MonitorStream::runStream() {
   if ( type == STREAM_JPEG )
     fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
 
-  int last_read_index = monitor->image_buffer_count;
+  // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
+  unsigned int last_read_index = monitor->image_buffer_count; 
 
   time_t stream_start_time;
   time( &stream_start_time );
@@ -559,6 +560,8 @@ void MonitorStream::runStream() {
         Debug( 2, "Assigned temporary buffer" );
       }
     }
+  } else {
+    Debug(2, "Not using playback_buffer");
   } // end if connkey  & playback_buffer
 
   float max_secs_since_last_sent_frame = 10.0; //should be > keep alive amount (5 secs)
@@ -578,7 +581,7 @@ void MonitorStream::runStream() {
     gettimeofday( &now, NULL );
 
     if ( connkey ) {
-//Debug(2, "checking command Queue for connkey: %d", connkey );
+Debug(2, "checking command Queue for connkey: %d", connkey );
       while(checkCommandQueue()) {
 Debug(2, "Have checking command Queue for connkey: %d", connkey );
         got_command = true;
@@ -659,14 +662,11 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
         delayed = false;
         replay_rate = ZM_RATE_BASE;
       }
-    }
-    // Last read index is analysis... what do we care about analysis? I think we are using the same variable for two purposese
-    if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index ) {
-
-  // Is his % neccessary?  is last_write_index not guaranteed to be < image_buffer_count?
-      int index = monitor->shared_data->last_write_index%monitor->image_buffer_count;
+    } // end if ( buffered_playback && delayed )
+    if ( last_read_index != monitor->shared_data->last_write_index ) {
+      int index = monitor->shared_data->last_write_index % monitor->image_buffer_count; // % shouldn't be neccessary
       last_read_index = monitor->shared_data->last_write_index;
-      //Debug( 1, "%d: %x - %x", index, image_buffer[index].image, image_buffer[index].image->buffer );
+      Debug( 1, "index: %d: frame_mod: %d frame count: %d", index, frame_mod, frame_count );
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
           // Send the next frame
@@ -684,7 +684,8 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
 
           temp_read_index = temp_write_index;
         }
-      }
+      } // end if should send frame
+
       if ( buffered_playback ) {
         if ( monitor->shared_data->valid ) {
           if ( monitor->shared_timestamps[index].tv_sec ) {
@@ -714,17 +715,24 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
         }
       } // end if buffered playback
       frame_count++;
-    }
+    } else {
+      Debug(2,"Waiting for capture");
+    } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index ) 
+
     unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
     Debug(2, "Sleeping for (%d)", sleep_time);
-    usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
+    usleep( sleep_time );
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {
         Debug(2, "now(%d) - start(%d) > ttl(%d) break", now.tv_sec, stream_start_time, ttl);
         break;
       }
     }
-    if ( (TV_2_FLOAT( now ) - last_frame_sent) > max_secs_since_last_sent_frame ) {
+    if ( ! last_frame_sent ) {
+      // If we didn't capture above, because frame_mod was bad? Then last_frame_sent will not have a value.
+      last_frame_sent = now.tv_sec;
+      Warning( "no last_frame_sent.  Shouldn't happen. frame_mod was (%d) frame_count (%d) ", frame_mod, frame_count );
+    } else if ( (TV_2_FLOAT( now ) - last_frame_sent) > max_secs_since_last_sent_frame ) {
       Error( "Terminating, last frame sent time %f secs more than maximum of %f", TV_2_FLOAT( now ) - last_frame_sent, max_secs_since_last_sent_frame );
       break;
     }

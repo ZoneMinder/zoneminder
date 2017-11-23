@@ -567,12 +567,8 @@ Monitor::~Monitor() {
     delete videoStore;
     videoStore = NULL;
   }
-#if HAVE_LIBSWSCALE
-  if ( mConvertContext ) {
-    sws_freeContext( mConvertContext );
-    mConvertContext = NULL;
-  }
-#endif
+  packetqueue.clearQueue();
+
   if ( timestamps ) {
     delete[] timestamps;
     timestamps = 0;
@@ -1239,14 +1235,15 @@ bool Monitor::Analyse() {
   }
 
   // If do have an event, then analysis_it should point to the head of the queue, because we would have emptied it on event creation.
-  
+  int index = ( shared_data->last_read_index + 1 ) % image_buffer_count;
   // Move to next packet.
-  while ( analysis_it != packetqueue.pktQueue.end() ) {
+  while ( ( index != shared_data->last_write_index ) && ( analysis_it != packetqueue.pktQueue.end() ) ) {
     ++analysis_it;
 
     ZMPacket *snap = *analysis_it;
     struct timeval *timestamp = snap->timestamp;
     Image *snap_image = snap->image;
+    Debug(2, "Analysing image (%d)", snap->image_index );
 
     int last_section_mod = 0;
 
@@ -1393,9 +1390,14 @@ bool Monitor::Analyse() {
                   event = new Event( this, *timestamp, cause, noteSetMap );
                   shared_data->last_event_id = event->Id();
                   ZMPacket *queued_packet = packetqueue.popPacket();
-                  do {
+                  while( packetqueue.size() && queued_packet != *analysis_it ) {
                     event->AddPacket( queued_packet );
-                  } while ( queued_packet != *analysis_it );
+                    if ( queued_packet->image_index == -1 ) {
+                      delete queued_packet;
+                    }
+                    queued_packet = packetqueue.popPacket();
+                  } 
+                  // The analysis packet will be added below.
                 }
               } else if ( state != PREALARM ) {
                 Info( "%s: %03d - Gone into prealarm state", name, image_count );
@@ -1456,20 +1458,36 @@ bool Monitor::Analyse() {
               } // end foreach zone
             } // analsys_images or record stats
 
+            snap = packetqueue.popPacket();
             event->AddPacket( snap, score );
+            if ( snap->image_index == -1 ) {
+              delete snap;
+              snap = NULL;
+            }
+
             if ( noteSetMap.size() > 0 )
               event->updateNotes( noteSetMap );
           } else if ( state == ALERT ) {
             // Alert means this frame has no motion, but we were alarmed and are still recording.
-            event->AddPacket( snap );
+            snap = packetqueue.popPacket();
+            event->AddPacket( snap, score );
+            if ( snap->image_index == -1 ) {
+              delete snap;
+              snap = NULL;
+            }
             if ( noteSetMap.size() > 0 )
               event->updateNotes( noteSetMap );
           } else if ( state == TAPE ) {
             if ( !(image_count%(frame_skip+1)) ) {
+              snap = packetqueue.popPacket();
               if ( config.bulk_frame_interval > 1 ) {
                 event->AddPacket( snap, (event->Frames()<pre_event_count?0:-1) );
               } else {
                 event->AddPacket( snap );
+              }
+              if ( snap->image_index == -1 ) {
+                delete snap;
+                snap = NULL;
               }
             }
           }
@@ -2727,6 +2745,7 @@ int Monitor::Capture() {
   }
 
   ZMPacket *packet = &image_buffer[index];
+  Debug(2,"Reset");
   packet->reset();
   Image* capture_image = packet->image;
   int captureResult = 0;
@@ -2785,18 +2804,18 @@ Debug(2,"Getimage");
           packetqueue.queuePacket( packet );
         }
       } else { // probably audio
-        Debug(2, "Have audio packet (%d) != (%d) ", packet->packet.stream_index, video_stream_id );
+        Debug(2, "Have audio packet (%d) != videostream_id:(%d) ", packet->packet.stream_index, video_stream_id );
         // Only queue if we have some video packets in there.
         if ( packetqueue.video_packet_count || event ) {
+          // Need to copy it into another ZMPacket.
+          ZMPacket *audio_packet = new ZMPacket( *packet );
+          audio_packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
+          //packet->decode( camera->get_AudioCodecContext() );
           Debug(2, "Queueing packet");
-          packet->image = NULL;
-          packet->image_index = -1;
-          packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
-          packet->decode( camera->get_AudioCodecContext() );
-          packetqueue.queuePacket( packet );
+          packetqueue.queuePacket( audio_packet );
         }
         // Don't update last_write_index because that is used for live streaming
-        shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
+        //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
         mutex.unlock();
         return 1;
       }
@@ -2888,6 +2907,24 @@ Debug(2,"Getimage");
       shared_data->last_write_index = index;
       shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       image_count++;
+
+      if ( fps_report_interval && !(image_count%fps_report_interval) ) {
+        time_t now = image_buffer[index].timestamp->tv_sec;
+        // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
+        if ( now != last_fps_time ) {
+          // # of images per interval / the amount of time it took
+          capture_fps = double(fps_report_interval)/(now-last_fps_time);
+          Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
+          //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
+          Info( "%s: %d - Capturing at %.2lf fps", name, image_count, capture_fps );
+          last_fps_time = now;
+          static char sql[ZM_SQL_SML_BUFSIZ];
+          snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", capture_fps, id );
+          if ( mysql_query( &dbconn, sql ) ) {
+            Error( "Can't run query: %s", mysql_error( &dbconn ) );
+          }
+        }
+      } // end if report fps
     } else { // result == 0
       // Question is, do we update last_write_index etc?
 
@@ -2895,32 +2932,6 @@ Debug(2,"Getimage");
   } // end if deinterlacing
 
   mutex.unlock();
-
-  if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-    struct timeval now;
-    if ( !captureResult ) {
-      gettimeofday( &now, NULL );
-    } else {
-      now.tv_sec = image_buffer[index].timestamp->tv_sec;
-    }
-
-    // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
-    if ( now.tv_sec != last_fps_time ) {
-      capture_fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
-      //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
-      //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-      Info( "%s: %d - Capturing at %.2lf fps", name, image_count, capture_fps );
-      last_fps_time = now.tv_sec;
-      static char sql[ZM_SQL_SML_BUFSIZ];
-      snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", capture_fps, id );
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error( "Can't run query: %s", mysql_error( &dbconn ) );
-      } else {
-Debug(2,"toofast");}
-    } // end if too fast
-}else {
-Debug(2,"Nor reporting fps");
-  } // end if should report fps
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing
   if ( shared_data->action & GET_SETTINGS ) {

@@ -60,28 +60,28 @@ $path = null;
 
 if ( empty($_REQUEST['path']) ) {
 
-	if ( ! empty($_REQUEST['fid']) ) {
-		if ( $_REQUEST['fid'] == 'snapshot' ) {
-			$Event = new Event( $_REQUEST['eid'] );
+  if ( ! empty($_REQUEST['fid']) ) {
+    if ( $_REQUEST['fid'] == 'snapshot' ) {
+      $Event = new Event( $_REQUEST['eid'] );
       $Frame = new Frame();
       $Frame->FrameId('snapshot');
-			$path = $Event->Path().'/snapshot.jpg';
+      $path = $Event->Path().'/snapshot.jpg';
 Warning("Path to snapshot: $path");
-		} else {
+    } else {
 
-			$show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
+      $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
 
-			if ( ! empty($_REQUEST['eid'] ) ) {
-				$Event = new Event( $_REQUEST['eid'] );
-				$Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
-				if ( ! $Frame ) {
-          $previousBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId < ? AND Type='BULK' ORDER BY FrameID DESC LIMIT 1", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
-          $nextBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId > ? AND Type='BULK' ORDER BY FrameID ASC LIMIT 1", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
+      if ( ! empty($_REQUEST['eid'] ) ) {
+        $Event = new Event( $_REQUEST['eid'] );
+        $Frame = Frame::find_one( array( 'EventId' => $_REQUEST['eid'], 'FrameId' => $_REQUEST['fid'] ) );
+        if ( ! $Frame ) {
+          $previousBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
+          $nextBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
           if ( $previousBulkFrame and $nextBulkFrame ) {
             $Frame = new Frame( $previousBulkFrame );
             $Frame->FrameId( $_REQUEST['fid'] );
 
-            $percentage = floor( ( $Frame->FrameId() - $previousBulkFrame['FrameId'] ) / ( $nextBulkFrame['FrameId'] / $previousBulkFrame['FrameId'] ) )/100;
+            $percentage = ($Frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
 
             $Frame->Delta( $previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100 );
 Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );

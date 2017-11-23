@@ -75,6 +75,7 @@ void StreamBase::updateFrameRate( double fps ) {
 
 bool StreamBase::checkCommandQueue() {
   if ( sd >= 0 ) {
+    Debug(2, "sd is (%d)", sd );
     CmdMsg msg;
     memset( &msg, 0, sizeof(msg) );
     int nbytes = recvfrom( sd, &msg, sizeof(msg), MSG_DONTWAIT, 0, 0 );
@@ -92,6 +93,8 @@ Debug(2, "Message length is (%d)", nbytes );
       processCommand( &msg );
       return( true );
     }
+  } else {
+    Error("sd is < 0");
   }
   return( false );
 }
@@ -288,7 +291,7 @@ void StreamBase::openComms() {
     if ( sd < 0 ) {
       Fatal( "Can't create socket: %s", strerror(errno) );
 		} else {
-			Debug(3, "Have socket %d", sd );
+			Debug(1, "Have socket %d", sd );
     }
 
     length = snprintf( loc_sock_path, sizeof(loc_sock_path), "%s/zms-%06ds.sock", staticConfig.PATH_SOCKS.c_str(), connkey );
@@ -296,6 +299,7 @@ void StreamBase::openComms() {
       Warning("Socket path was truncated.");
       length = sizeof(loc_sock_path)-1;
     }
+    // Unlink before bind, in case it already exists
     unlink( loc_sock_path );
     if ( sizeof(loc_addr.sun_path) < length ) {
       Error("Not enough space %d in loc_addr.sun_path for socket file %s", sizeof(loc_addr.sun_path), loc_sock_path );
@@ -313,7 +317,7 @@ void StreamBase::openComms() {
     rem_addr.sun_family = AF_UNIX;
   } // end if connKey > 0
 	Debug(2, "comms open" );
-}
+} // end void StreamBase::openComms()
 
 void StreamBase::closeComms() {
   if ( connkey > 0 ) {
@@ -324,10 +328,10 @@ void StreamBase::closeComms() {
     if ( loc_sock_path[0] ) {
       unlink( loc_sock_path );
     }
-    if (lock_fd > 0) {
+    if ( lock_fd > 0 ) {
       close(lock_fd); //close it rather than unlock it incase it got deleted.
-      unlink(sock_path_lock);
+      // You cannot unlink the lockfile.  You have to leave a mess around.  SUCKS
+      //unlink(sock_path_lock);
     }
   }
 }
-

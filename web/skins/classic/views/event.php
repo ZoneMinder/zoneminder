@@ -180,7 +180,7 @@ Warning("Streamsrc: $streamSrc");
   }
 } // end if stream method
 ?>
-        <div id="alarmCue" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"></div>
+        <div id="alarmCue" class="alarmCue"></div>
         <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->

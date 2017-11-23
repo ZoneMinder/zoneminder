@@ -50,13 +50,13 @@ function initialAlarmCues (eventId) {
 
 function setAlarmCues (data) {
   cueFrames = data.frames;
-  alarmSpans = renderAlarmCues();
+  alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
   $j(".alarmCue").html(alarmSpans);
 }
 
-function renderAlarmCues () {
+function renderAlarmCues (containerEl) {
   if (cueFrames) {
-    var cueRatio = (vid ? $j("#videoobj").width() : $j("#evtStream").width()) / (cueFrames[cueFrames.length - 1].Delta * 100);//use videojs width or zms width
+    var cueRatio = containerEl.width() / (cueFrames[cueFrames.length - 1].Delta * 100);
     var minAlarm = Math.ceil(1/cueRatio);
     var spanTimeStart = 0;
     var spanTimeEnd = 0;
@@ -158,7 +158,7 @@ function changeScale() {
     alarmCue.width(newWidth);
     drawProgressBar();
   }
-  alarmCue.html(renderAlarmCues());//just re-render alarmCues.  skip ajax call
+  alarmCue.html(renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream")));//just re-render alarmCues.  skip ajax call
   if (scale == "auto") {
     Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
   }else{

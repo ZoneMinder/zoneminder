@@ -96,6 +96,7 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
      AND table_name = 'Monitors'
@@ -116,6 +117,31 @@ SET @s = (SELECT IF(
     ) > 0,
 "SELECT 'Column MonthEventDiskSpace already exists in Monitors'",
 "ALTER TABLE `Monitors` ADD `MonthEventDiskSpace` BIGINT AFTER `MonthEvents`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'ArchivedEvents'
+    ) > 0,
+"SELECT 'Column ArchivedEvents already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `ArchivedEvents` INT(10) AFTER `MonthEvents`"
+));
+
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'ArchivedEventDiskSpace'
+    ) > 0,
+"SELECT 'Column ArchivedEventDiskSpace already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `ArchivedEventDiskSpace` BIGINT AFTER `ArchivedEvents`"
 ));
 
 PREPARE stmt FROM @s;

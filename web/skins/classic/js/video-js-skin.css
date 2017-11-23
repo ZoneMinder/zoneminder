@@ -1,5 +1,6 @@
 .vjs-tech {
   pointer-events: none;
+  transition: transform .25s;
 }
 
 .vjs-captions-button {

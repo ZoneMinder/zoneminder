@@ -190,6 +190,7 @@ span.noneCue {
 }
 
 #progressBar .progressBox {
+    transition: width .1s;
     height: 1.5em;
     background: rgba(170, 170, 170, .7);
 }

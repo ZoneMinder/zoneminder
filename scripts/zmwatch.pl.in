@@ -201,7 +201,7 @@ while( 1 ) {
   my $diskspace_sth = $dbh->prepare_cached( $diskspace_sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
   foreach my $Storage ( ZoneMinder::Storage->find() ) {
-    Error("Updating disk space for $$Storage{Name}");
+    Debug("Updating disk space for $$Storage{Name}");
     $diskspace_sth->execute( $$Storage{Id} ) or Error( "Can't execute: ".$diskspace_sth->errstr() );
   }
   $diskspace_sth->finish();

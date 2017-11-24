@@ -151,14 +151,16 @@ Warning("Addterm");
         if ( ! empty($_REQUEST['Id']) ) {
           dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
         }
-      } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) or ( $action == 'submit' ) ) {
+      } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) ) {
+       # or ( $action == 'submit' ) ) {
 
         $sql = '';
         $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
         $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
         $_REQUEST['filter']['Query']['limit'] = validInt($_REQUEST['filter']['Query']['limit']);
-        if ( $action == 'execute' or $action == 'submit' ) {
-          $sql .= ' Name = \'_TempFilter'.time().'\'';
+        if ( $action == 'execute' ) {
+          $tempFilterName = '_TempFilter'.time();
+          $sql .= ' Name = \''.$tempFilterName.'\'';
         } else {
           $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
         }
@@ -180,6 +182,9 @@ Warning("Addterm");
         } else {
           dbQuery( 'INSERT INTO Filters SET' . $sql );
           $_REQUEST['Id'] = dbInsertId();
+        }
+        if ( $action == 'execute' ) {
+          executeFilter( $tempFilterName );
         }
 
       } // end if save or execute
@@ -370,6 +375,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
         dbQuery( "UPDATE Zones SET ".implode( ", ", $changes )." WHERE MonitorId=? AND Id=?", array( $mid, $zid) );
       } else {
         dbQuery( "INSERT INTO Zones SET MonitorId=?, ".implode( ", ", $changes ), array( $mid ) );
+        dbQuery( 'UPDATE Monitors SET ZoneCount=(SELECT COUNT(Id) FROM Zones WHERE MonitorId=Monitors.Id) WHERE Id=?', array($mid));
       }
       //if ( $cookies ) session_write_close();
       if ( daemonCheck() ) {
@@ -422,6 +428,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
       foreach( $_REQUEST['markZids'] as $markZid ) {
         $zone = dbFetchOne( 'select * from Zones where Id=?', NULL, array($markZid) );
         dbQuery( 'delete from Zones WHERE MonitorId=? AND Id=?', array( $mid, $markZid) );
+        dbQuery( 'UPDATE Monitors SET ZoneCount=(SELECT COUNT(Id) FROM Zones WHERE MonitorId=Monitors.Id) WHERE Id=?', array($mid));
         $deletedZid = 1;
       }
       if ( $deletedZid ) {
@@ -601,10 +608,10 @@ if ( canEdit( 'Monitors' ) ) {
             } // end if ZM_OPT_FAST_DELETE
 
             // This is the important stuff
-            dbQuery( 'DELETE FROM Monitors WHERE Id = ?', array($markMid) );
             dbQuery( 'DELETE FROM Zones WHERE MonitorId = ?', array($markMid) );
             if ( ZM_OPT_X10 )
               dbQuery( 'DELETE FROM TriggersX10 WHERE MonitorId=?', array($markMid) );
+            dbQuery( 'DELETE FROM Monitors WHERE Id = ?', array($markMid) );
 
             fixSequences();
 

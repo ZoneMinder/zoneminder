@@ -109,7 +109,6 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   }
   $monitor['zmc'] = zmcStatus( $monitor );
   $monitor['zma'] = zmaStatus( $monitor );
-  $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
   $zoneCount += $monitor['ZoneCount'];
 
   $counts = array();

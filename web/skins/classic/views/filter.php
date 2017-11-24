@@ -148,7 +148,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <input type="hidden" name="object" value="filter"/>
 
         <hr/>
-        <p>
+        <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
           <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>"/>
         </p>
@@ -398,13 +398,13 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('ListMatches') ?>" onclick="submitToEvents( this );"/>
+          <input type="submit" value="<?php echo translate('ListMatches') ?>" onclick="submitToEvents(this);"/>
           <input type="button" name="executeButton" id="executeButton" value="<?php echo translate('Execute') ?>" onclick="executeFilter( this );"/>
 <?php 
 if ( canEdit( 'Events' ) ) {
 ?>
-          <button value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
-          <button value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
+          <button name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
+          <button name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>

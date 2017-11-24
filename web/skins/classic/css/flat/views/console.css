@@ -90,7 +90,3 @@
 #consoleTable .colLeftButtons {
     text-align: left;
 }
-
-#consoleTable .colLeftButtons input {
-    margin-right: 24px;
-}

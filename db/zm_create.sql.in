@@ -446,6 +446,7 @@ CREATE TABLE `Monitors` (
   `MonthEventDiskSpace` bigint unsigned,
   `ArchivedEvents` int(10) unsigned,
   `ArchivedEventDiskSpace` bigint unsigned,
+  `ZoneCount` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

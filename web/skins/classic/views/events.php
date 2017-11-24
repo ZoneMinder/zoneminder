@@ -25,9 +25,6 @@ if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')
 
 require_once( 'includes/Event.php' );
 
-if ( !empty($_REQUEST['execute']) ) {
-  executeFilter( $tempFilterName );
-}
 
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';

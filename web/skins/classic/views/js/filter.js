@@ -23,6 +23,13 @@ function updateButtons( element ) {
       canExecute = true;
     form.elements['executeButton'].disabled = !canExecute;
   }
+  if ( form.elements['filter[Name]'].value ) {
+    form.elements['Save'].disabled = false;
+    form.elements['SaveAs'].disabled = false;
+  } else {
+    form.elements['Save'].disabled = true;
+    form.elements['SaveAs'].disabled = true;
+  }
 }
 
 function clearValue( element, line ) {

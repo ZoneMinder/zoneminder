@@ -106,15 +106,15 @@ while( 1 ) {
     my $restart = 0;
     if ( zmMemVerify( $monitor ) ) {
 # Check we have got an image recently
-      my $image_time = zmGetLastWriteTime( $monitor );
-      if ( !defined($image_time) ) {
+      my $capture_time = zmGetLastWriteTime( $monitor );
+      if ( !defined($capture_time) ) {
 # Can't read from shared data
         Debug( "LastWriteTime is not defined." );
         zmMemInvalidate( $monitor );
         next;
       }
-      Debug( "LastWriteTime is = $image_time." );
-      if ( !$image_time ) {
+      Debug( "LastWriteTime is = $capture_time." );
+      if ( !$capture_time ) {
 				my $startup_time = zmGetStartupTime( $monitor );
 				if ( $now - $startup_time > $Config{ZM_WATCH_MAX_DELAY} ) {
 					Info( "Restarting capture daemon for ".$monitor->{Name}.", no image since startup. Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}\n" );
@@ -122,7 +122,7 @@ while( 1 ) {
 				} else {
           # We can't get the last capture time so can't be sure it's died, it might just be starting up.
           zmMemInvalidate( $monitor );
-        next;
+          next;
 				}
       }
 			if ( ! $restart ) {
@@ -132,11 +132,11 @@ while( 1 ) {
 						) ? (3/$monitor->{MaxFPS})
 					: $Config{ZM_WATCH_MAX_DELAY}
 				;
-				my $image_delay = $now-$image_time;
+				my $image_delay = $now-$capture_time;
 				Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
 				if ( $image_delay > $max_image_delay ) {
 					Info( "Restarting capture daemon for "
-							.$monitor->{Name}.", time since last capture $image_delay seconds ($now-$image_time)\n"
+							.$monitor->{Name}.", time since last capture $image_delay seconds ($now-$capture_time)\n"
 							);
 					$restart = 1;
 				}
@@ -166,7 +166,7 @@ while( 1 ) {
       } elsif ( !$image_time ) {
 # We can't get the last capture time so can't be sure it's died.
         $restart = 1;
-        Error( "Error getting last capture time for $$monitor{Id} $$monitor{Name}\n");
+        Error( "Error getting last analyse time for $$monitor{Id} $$monitor{Name}\n");
       } else {
 
         my $max_image_delay = ( $monitor->{MaxFPS}

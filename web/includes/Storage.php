@@ -110,23 +110,25 @@ class Storage {
   }
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( ! array_key_exists( 'disk_used_space', $this ) ) {
-      $used = 0;
-      if ( $this->{'Type'} == 's3fs' ) {
-        $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
+    if ( ! array_key_exists( 'DiskSpace', $this ) ) {
+      $used = $this->{'DiskSpace'};
+      if ( ! $used ) {
+        if ( $this->{'Type'} == 's3fs' ) {
+          $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
 
-	      foreach ( Event::find_all( array( 'StorageId'=>$this->Id(), 'DiskSpace'=>null ) ) as $Event ) {
-		      $Event->Storage( $this ); // Prevent further db hit
-		      $used += $Event->DiskSpace();
-	      }
-      } else { 
-	      $path = $this->Path();
-	      $used = disk_total_space( $path ) - disk_free_space( $path );;
-      }
-      $this->{'disk_used_space'} = $used;
+          foreach ( Event::find_all( array( 'StorageId'=>$this->Id(), 'DiskSpace'=>null ) ) as $Event ) {
+            $Event->Storage( $this ); // Prevent further db hit
+            $used += $Event->DiskSpace();
+          }
+        } else { 
+          $path = $this->Path();
+          $used = disk_total_space( $path ) - disk_free_space( $path );;
+        }
+      } # end if 
+      $this->{'DiskSpace'} = $used;
     }
 		
-    return $this->{'disk_used_space'};
+    return $this->{'DiskSpace'};
   }
 }
 ?>

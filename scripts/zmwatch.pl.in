@@ -79,8 +79,9 @@ my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'S
 my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 
-  my $eventcounts_sql = q`UPDATE Monitors SET 
-TotalEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id),
+my $eventcounts_sql = q`
+UPDATE Monitors SET 
+  TotalEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id),
   TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
   HourEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 hour) ),
   HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 hour) AND DiskSpace IS NOT NULL),
@@ -94,13 +95,13 @@ TotalEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id),
   ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1 AND DiskSpace IS NOT NULL)
   WHERE Id=?`;
 
-  my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
+my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
 
 while( 1 ) {
-  my $now = time();
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
     or Fatal( "Can't execute: ".$sth->errstr() );
   while( my $monitor = $sth->fetchrow_hashref() ) {
+    my $now = time(); 
     next if $monitor->{Function} eq 'None';
     my $restart = 0;
     if ( zmMemVerify( $monitor ) ) {
@@ -192,6 +193,8 @@ while( 1 ) {
     } # end if check analysis daemon
     # Prevent open handles building up if we have connect to shared memory
     zmMemInvalidate( $monitor ); # Close our file handle to the zmc process we are about to end
+
+
     $eventcounts_sth->execute( $$monitor{Id} ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
 
   } # end foreach monitor
@@ -199,10 +202,12 @@ while( 1 ) {
 
   my $diskspace_sql = 'UPDATE Storage SET DiskSpace =(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL)';
   my $diskspace_sth = $dbh->prepare_cached( $diskspace_sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    or Fatal( "Can't prepare '$diskspace_sql': ".$dbh->errstr() );
   foreach my $Storage ( ZoneMinder::Storage->find() ) {
-    Debug("Updating disk space for $$Storage{Name}");
+    Debug("Updating disk space for $$Storage{Name} was $$Storage{DiskSpace}");
     $diskspace_sth->execute( $$Storage{Id} ) or Error( "Can't execute: ".$diskspace_sth->errstr() );
+    $Storage->load();
+    Debug("Updated disk space for $$Storage{Name} to $$Storage{DiskSpace}");
   }
   $diskspace_sth->finish();
   sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );

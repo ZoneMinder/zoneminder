@@ -459,6 +459,7 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin: 8px auto;
 }
 
+button,
 input[type=button],
 input[type=submit] {
     background-color: #3498db;
@@ -470,6 +471,7 @@ input[type=submit] {
     cursor: pointer;
 }
 
+button:hover,
 input[type=button]:hover,
 input[type=submit]:hover {
     background-color: #34a2ee;
@@ -479,6 +481,7 @@ input[type=submit]:hover {
 
 /* PP - make it easy to identify disabled buttons */
 
+button:disabled,
 input[type=button]:disabled,
 input[type=submit]:disabled {
     background-color: #aaaaaa;

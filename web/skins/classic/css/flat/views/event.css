@@ -179,15 +179,16 @@ span.noneCue {
 
 #progressBar {
     position: relative;
-    top: -1.5em;
-    height: 1.5em;
-    margin: 0 auto -1.5em auto;
+    top: -1.25em;
+    height: 1.25em;
+    margin: 0 auto -1.25em auto;
 }
 
 #progressBar .progressBox {
     transition: width .1s;
-    height: 1.5em;
+    height: 100%;
     background: rgba(170, 170, 170, .7);
+    border-radius: 0 0 .3em .3em;
 }
 
 #eventStills {
@@ -265,7 +266,7 @@ span.noneCue {
 
 #eventImageNav {
     position: relative;
-    margin: 4px 0 0 0;
+    margin: 0 0 4px 0;
 }
 
 #eventImageNav input {
@@ -274,22 +275,22 @@ span.noneCue {
 }
 
 #thumbsSliderPanel {
-    width: 400px;
-    margin: 4px auto 0;
-    background: #888888;
-    padding: 1px;
+    width: 80%;
+    margin: 0px auto 4px auto;
 }
 
 #thumbsSlider {
-    width: 400px;
-    height: 10px;
-    background: #dddddd;
+    width: 100%;
+    height: 1.25em;
+    position: relative;
+    top: -1.25em;
+    margin: 0 0 -1.25em 0;
 }
 
 #thumbsKnob {
-    width: 8px;
-    height: 10px;
-    background-color: #444444;
+    width: 1em;
+    height: 100%;
+    background-color: #999999;
 }
 #eventVideo {
     display: inline-block;

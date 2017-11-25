@@ -215,6 +215,13 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           </div>
         </div>
         <div id="eventImageNav">
+          <div id="thumbsSliderPanel">
+            <div id="alarmCue" class="alarmCue"></div>
+            <div id="thumbsSlider">
+              <div id="thumbsKnob">
+              </div>
+            </div>
+          </div>
           <div id="eventImageButtons">
             <div id="prevButtonsPanel">
               <input id="prevEventBtn" type="button" value="&lt;E" onclick="prevEvent()" disabled="disabled"/>
@@ -223,12 +230,6 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
               <input id="nextImageBtn" type="button" value="&gt;" onclick="nextImage()" disabled="disabled"/>
               <input id="nextThumbsBtn" type="button" value="&gt;&gt;" onclick="nextThumbs()" disabled="disabled"/>
               <input id="nextEventBtn" type="button" value="E&gt;" onclick="nextEvent()" disabled="disabled"/>
-            </div>
-          </div>
-          <div id="thumbsSliderPanel">
-            <div id="thumbsSlider">
-              <div id="thumbsKnob">
-              </div>
             </div>
           </div>
         </div>

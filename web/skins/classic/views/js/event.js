@@ -139,8 +139,16 @@ function changeScale() {
   let newWidth;
   let newHeight;
   let autoScale;
+  let eventViewer;
+  let alarmCue = $j('div.alarmCue');
+  let bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
+  if (streamMode == 'stills') {
+    eventViewer = $j('#eventThumbs');
+  } else {
+    eventViewer = $j(vid ? '#videoobj' : '#evtStream');
+  }
   if (scale == "auto") {
-    let newSize = scaleToFit(eventData.Width, eventData.Height, $j(vid ? '#videoobj' : '#evtStream'), $j('#replayStatus'));
+    let newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
@@ -149,15 +157,18 @@ function changeScale() {
     newWidth = eventData.Width * scale / SCALE_BASE;
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
-  let alarmCue = $j('div.alarmCue');
-  let eventViewer = $j(vid ? '#videoobj' : '#evtStream')
-  eventViewer.width(newWidth);
+  if (!(streamMode == 'stills')) eventViewer.width(newWidth);  //stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
     streamScale(scale == "auto" ? autoScale : scale);
     drawProgressBar();
   }
-  alarmCue.html(renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream")));//just re-render alarmCues.  skip ajax call
+  if (streamMode == 'stills') {
+    slider.autosize();
+    alarmCue.html(renderAlarmCues($j('#thumbsSliderPanel')));
+  } else {
+    alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
+  }
   if (scale == "auto") {
     Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
   }else{
@@ -473,6 +484,7 @@ function streamQuery() {
 
 var slider = null;
 var scroll = null;
+var currEventId = null;
 var CurEventDefVideoPath = null;
 
 function getEventResponse( respObj, respText ) {
@@ -663,13 +675,11 @@ function resetEventStills() {
                     fid = 1;
                   else if ( fid > eventData.Frames )
                     fid = eventData.Frames;
-                  checkFrames( eventData.Id, fid );
+                  checkFrames( eventData.Id, fid, ($j('#eventImagePanel').css('display')=='none'?'':'true'));
                   scroll.toElement( 'eventThumb'+fid );
                  }
     } ).set( 0 );
   }
-  if ( $('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) < (parseInt(eventData.Height)+80) )
-    $('eventThumbs').setStyle( 'height', ($j(vid ? '#videoobj' : 'evtStream').height())+'px' );
 }
 
 function getFrameResponse( respObj, respText ) {
@@ -857,6 +867,7 @@ function showStream() {
   $('streamEvent').addClass( 'hidden' );
 
   streamMode = 'video';
+  if (scale == 'auto') changeScale();
 }
 
 function showStills() {
@@ -888,6 +899,7 @@ function showStills() {
     );
   }
   resetEventStills();
+  if (scale == 'auto') changeScale();
 }
 
 function showFrameStats() {

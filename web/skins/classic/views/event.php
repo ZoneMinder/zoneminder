@@ -125,24 +125,25 @@ if ( canEdit( 'Events' ) ) {
 ?>
         <div id="deleteEvent"><a href="#" onclick="deleteEvent()"><?php echo translate('Delete') ?></a></div>
         <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
-<?php 
-} // end if can edit Events
-  if ( $Event->DefaultVideo() ) { ?>
-<div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc()?>">Download MP4</a></div>
         <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
         <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
 <?php
-  } // end if Event->DefaultVideo
+} // end if can edit Events
 ?>
         <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
+        <div id="streamEvent" class="hidden"><a href="#" onclick="showStream()"><?php echo translate('Stream') ?></a></div>
+        <div id="stillsEvent"><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
 <?php
-if ( $Event->SaveJPEGs() & 3 ) { // Analysis or Jpegs
+  if ( $Event->DefaultVideo() ) { 
 ?>
-        <div id="stillsEvent"<?php if ( $streamMode == 'still' ) { ?> class="hidden"<?php } ?>><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
+        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'))?>" download>Download MP4</a></div>
 <?php
-} // has frames or analysis
+  } else {
 ?>
         <div id="videoEvent"><a href="#" onclick="videoEvent();"><?php echo translate('Video') ?></a></div>
+<?php
+  } // end if Event->DefaultVideo
+?>
         <div id="exportEvent"><a href="#" onclick="exportEvent();"><?php echo translate('Export') ?></a></div>
       </div>
       <div id="eventVideo" class="">
@@ -197,9 +198,6 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>
-<?php 
-  if ($Event->SaveJPEGs() & 3) { // frames or analysis
-?>
       </div><!--eventVideo-->
       <div id="eventStills" class="hidden">
         <div id="eventThumbsPanel">
@@ -236,7 +234,6 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
         </div>
       </div>
 <?php
-  } // end if SaveJPEGs() & 3 Analysis or Jpegs
 } // end if Event exists
 ?>
     </div><!--content-->

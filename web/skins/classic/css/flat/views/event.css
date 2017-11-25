@@ -182,20 +182,17 @@ span.noneCue {
 }
 
 #eventStills {
-    width: 100%;
     position: relative;
 }
 
 #eventThumbsPanel {
     position: relative;
-    width: 100%;
-    margin: 4px auto;
+    margin: 0;
     z-index: 1;
 }
 
 #eventThumbs {
     margin: 0 auto;
-    width: 100%;
     overflow: hidden;
     height: 300px;
 }
@@ -215,13 +212,17 @@ span.noneCue {
 
 #eventImagePanel {
     position: absolute;
+    top: 0;
+    left: 0;
     z-index: 10;
+    width: 100%;
 }
 
 #eventImageFrame {
     border: 2px solid gray;
     background-color: white;
     padding: 4px;
+    display: inline-block;
 }
 
 #eventImage {
@@ -244,8 +245,17 @@ span.noneCue {
     float: right;
 }
 
+#eventImageBar::after {
+  visibility: hidden;
+  display: block;
+  content: "";
+  clear: both;
+  height: 0;
+}
+
 #eventImageNav {
     position: relative;
+    margin: 4px 0 0 0;
 }
 
 #eventImageNav input {
@@ -301,10 +311,6 @@ span.noneCue {
 		color-stop(0.13, rgb(3,113,168)),
 		color-stop(1, rgb(0,136,204))
 	);
-}
-
-#eventVideo:hover #video-controls {
-	opacity: .9;
 }
 
 button {

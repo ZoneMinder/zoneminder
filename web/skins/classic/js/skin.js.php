@@ -39,4 +39,4 @@ var refreshParent = <?php echo !empty($refreshParent)?'true':'false' ?>;
 
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
-var imagePrefix = "<?php echo viewImagePath( "", '&' ) ?>";
+var imagePrefix = "<?php echo "?view=image&eid=" ?>";

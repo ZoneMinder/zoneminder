@@ -176,6 +176,7 @@ span.noneCue {
 }
 
 #progressBar .progressBox {
+    transition: width .1s;
     height: 100%;
     background: rgba(170, 170, 170, .7);
     border-radius: 0 0 .3em .3em;

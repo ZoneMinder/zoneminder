@@ -483,6 +483,7 @@ function streamQuery() {
 
 var slider = null;
 var scroll = null;
+var currEventId = null;
 var CurEventDefVideoPath = null;
 
 function getEventResponse( respObj, respText ) {
@@ -676,7 +677,7 @@ function resetEventStills() {
                     fid = 1;
                   else if ( fid > eventData.Frames )
                     fid = eventData.Frames;
-                  checkFrames( eventData.Id, fid );
+                  checkFrames( eventData.Id, fid, ($j('#eventImagePanel').css('display')=='none'?'':'true'));
                   scroll.toElement( 'eventThumb'+fid );
                  }
     } ).set( 0 );

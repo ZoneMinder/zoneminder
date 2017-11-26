@@ -114,6 +114,11 @@ $groupSql = Group::get_group_sql( $group_id );
     if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
       continue;
     }
+    if ( isset($_SESSION['StatusFilter']) ) {
+      if ( $monitors[$i]['Status'] != $_SESSION['StatusFilter'] ) {
+        continue;
+      }
+    }
     $displayMonitors[] = $monitors[$i];
   }
   echo htmlSelect( 'MonitorId', $monitors_dropdown, $monitor_id, array('onchange'=>'changeFilter(this);') );

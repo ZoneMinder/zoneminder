@@ -87,6 +87,7 @@ $groupSql = Group::get_group_sql( $group_id );
   $displayMonitors = array();
   $monitors_dropdown = array(''=>'All');
 
+  # Check to see if the selected monitor_id is in the results.
   if ( $monitor_id ) {
     $found_selected_monitor = false;
 
@@ -94,7 +95,6 @@ $groupSql = Group::get_group_sql( $group_id );
       if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
         continue;
       }
-      $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
       if ( $monitors[$i]['Id'] == $monitor_id ) {
         $found_selected_monitor = true;
       }
@@ -106,8 +106,10 @@ $groupSql = Group::get_group_sql( $group_id );
 
   for ( $i = 0; $i < count($monitors); $i++ ) {
     if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+      Warning("Monitor " . $monitors[$i]['Id'] . ' is not visible' );
       continue;
     }
+    $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
 
     if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
       continue;

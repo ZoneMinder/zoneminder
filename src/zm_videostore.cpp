@@ -226,7 +226,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       Debug(3, "Got AAC");
 
       audio_out_stream =
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
           avformat_new_stream(oc, (const AVCodec *)(audio_in_ctx->codec));
+#else
+          avformat_new_stream(oc, audio_in_ctx->codec);
+#endif
       if (!audio_out_stream) {
         Error("Unable to create audio out stream\n");
         audio_out_stream = NULL;

@@ -116,7 +116,8 @@ int av_dict_parse_string(AVDictionary **pm, const char *str,
        flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
    
        while (*str) {
-           if ((int ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
+	       int ret;
+           if ( (ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
               return ret;
    
            if (*str)

@@ -1325,7 +1325,7 @@ function addFilterTerm( $filter, $position, $term=false ) {
     unset( $term['cnj'] );
   array_splice( $filter['Query']['terms'], $position, 0, array( $term?$term:array() ) );
 
-  return( $filter );
+  return $filter;
 }
 
 function delFilterTerm( $filter, $position ) {
@@ -1335,7 +1335,7 @@ function delFilterTerm( $filter, $position ) {
     $position = count($filter['Query']['terms']);
   array_splice( $filter['Query']['terms'], $position, 1 );
 
-  return( $filter );
+  return $filter;
 }
 
 function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' ) {

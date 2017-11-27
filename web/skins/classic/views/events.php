@@ -129,7 +129,7 @@ if ( $pages > 1 ) {
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
         <p id="controls">
           <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
-          <a id="timelineLink" href="#" onclick="createPopup( '?view=timeline<?php echo $filterQuery ?>', 'zmTimeline', 'timeline' );"><?php echo translate('ShowTimeline') ?></a>
+          <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
         </p>
         <table id="contentTable" class="major">
           <tbody>

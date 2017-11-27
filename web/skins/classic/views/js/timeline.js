@@ -3,8 +3,7 @@ var events = {};
 function showEvent( eid, fid, width, height ) {    
   var url = '?view=event&eid='+eid+'&fid='+fid;
   url += filterQuery;
-  var pop=createPopup( url, 'zmEvent', 'event', width, height );
-  pop.vid=$('preview');
+  window.location.href = url;
 
   //video element is blocking video elements elsewhere in chrome possible interaction with mouseover event?
   //FIXME unless an exact cause can be determined should store all video controls and do something to the other controls when we want to load a new video seek etc or whatever may block

@@ -108,9 +108,6 @@ input.noborder {
     border: 0;
 }
 
-input[disabled] {
-    color: #777777;
-}
 
 img {
   display: inline-block;
@@ -449,6 +446,7 @@ th.table-th-sort-rev span.table-th-sort-span {
     float: right;
 }
 
+#contentButtons button,
 #contentButtons input {
     margin-left: 8px;
     margin-bottom: 4px;
@@ -459,31 +457,34 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin: 8px auto;
 }
 
+button,
 input[type=button],
 input[type=submit] {
-    background-color: #3498db;
-    color: #fff;
-    border-color: #3498db;
-    text-transform: uppercase;
-    font-weight: 200;
-    padding: 5px 10px;
-    cursor: pointer;
+  background-color: #3498db;
+  color: #fff;
+  border-color: #3498db;
+  text-transform: uppercase;
+  font-weight: 200;
+  padding: 5px 10px;
+  cursor: pointer;
 }
 
+button:hover,
 input[type=button]:hover,
 input[type=submit]:hover {
-    background-color: #34a2ee;
-
+  background-color: #34a2ee;
 }
 
 
 /* PP - make it easy to identify disabled buttons */
 
+button:disabled,
+input[disabled],
 input[type=button]:disabled,
 input[type=submit]:disabled {
-    background-color: #aaaaaa;
-    border-color: #bbbbbb;
-
+  color: #ffffff;
+  background-color: #aaaaaa;
+  border-color: #bbbbbb;
 }
 
 /*

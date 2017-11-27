@@ -31,3 +31,7 @@ table.filterTable {
   width: 300px;
   text-align: right;
 }
+
+input#filter\[Name\] {
+  width: 400px;
+}

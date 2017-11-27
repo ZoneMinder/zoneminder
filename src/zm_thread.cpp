@@ -70,6 +70,7 @@ void Mutex::lock()
 {
   if ( pthread_mutex_lock( &mMutex ) < 0 )
     throw ThreadException( stringtf( "Unable to lock pthread mutex: %s", strerror(errno) ) );
+  Debug(3, "Lock");
 }
 
 void Mutex::lock( int secs )
@@ -90,6 +91,7 @@ void Mutex::unlock()
 {
   if ( pthread_mutex_unlock( &mMutex ) < 0 )
     throw ThreadException( stringtf( "Unable to unlock pthread mutex: %s", strerror(errno) ) );
+  Debug(3, "unLock");
 }
 
 bool Mutex::locked()

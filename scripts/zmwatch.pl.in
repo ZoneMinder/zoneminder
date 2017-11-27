@@ -79,24 +79,42 @@ my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'S
 my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 
+my $eventcounts_sql = q`
+UPDATE Monitors SET 
+  TotalEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id),
+  TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+  HourEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 hour) ),
+  HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 hour) AND DiskSpace IS NOT NULL),
+  DayEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day)),
+  DayEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day) AND DiskSpace IS NOT NULL),
+  WeekEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week)),
+  WeekEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week) AND DiskSpace IS NOT NULL),
+  MonthEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 month)),
+  MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 month) AND DiskSpace IS NOT NULL),
+  ArchivedEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1),
+  ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1 AND DiskSpace IS NOT NULL)
+  WHERE Id=?`;
+
+my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
+
 while( 1 ) {
-  my $now = time();
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
     or Fatal( "Can't execute: ".$sth->errstr() );
   while( my $monitor = $sth->fetchrow_hashref() ) {
+    my $now = time(); 
     next if $monitor->{Function} eq 'None';
     my $restart = 0;
     if ( zmMemVerify( $monitor ) ) {
 # Check we have got an image recently
-      my $image_time = zmGetLastWriteTime( $monitor );
-      if ( !defined($image_time) ) {
+      my $capture_time = zmGetLastWriteTime( $monitor );
+      if ( !defined($capture_time) ) {
 # Can't read from shared data
         Debug( "LastWriteTime is not defined." );
         zmMemInvalidate( $monitor );
         next;
       }
-      Debug( "LastWriteTime is = $image_time." );
-      if ( !$image_time ) {
+      Debug( "LastWriteTime is = $capture_time." );
+      if ( !$capture_time ) {
 				my $startup_time = zmGetStartupTime( $monitor );
 				if ( $now - $startup_time > $Config{ZM_WATCH_MAX_DELAY} ) {
 					Info( "Restarting capture daemon for ".$monitor->{Name}.", no image since startup. Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}\n" );
@@ -104,7 +122,7 @@ while( 1 ) {
 				} else {
           # We can't get the last capture time so can't be sure it's died, it might just be starting up.
           zmMemInvalidate( $monitor );
-        next;
+          next;
 				}
       }
 			if ( ! $restart ) {
@@ -114,11 +132,11 @@ while( 1 ) {
 						) ? (3/$monitor->{MaxFPS})
 					: $Config{ZM_WATCH_MAX_DELAY}
 				;
-				my $image_delay = $now-$image_time;
+				my $image_delay = $now-$capture_time;
 				Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
 				if ( $image_delay > $max_image_delay ) {
 					Info( "Restarting capture daemon for "
-							.$monitor->{Name}.", time since last capture $image_delay seconds ($now-$image_time)\n"
+							.$monitor->{Name}.", time since last capture $image_delay seconds ($now-$capture_time)\n"
 							);
 					$restart = 1;
 				}
@@ -148,7 +166,7 @@ while( 1 ) {
       } elsif ( !$image_time ) {
 # We can't get the last capture time so can't be sure it's died.
         $restart = 1;
-        Error( "Error getting last capture time for $$monitor{Id} $$monitor{Name}\n");
+        Error( "Error getting last analyse time for $$monitor{Id} $$monitor{Name}\n");
       } else {
 
         my $max_image_delay = ( $monitor->{MaxFPS}
@@ -175,13 +193,21 @@ while( 1 ) {
     } # end if check analysis daemon
     # Prevent open handles building up if we have connect to shared memory
     zmMemInvalidate( $monitor ); # Close our file handle to the zmc process we are about to end
+
+
+    $eventcounts_sth->execute( $$monitor{Id} ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
+
   } # end foreach monitor
+  $eventcounts_sth->finish();
+
   my $diskspace_sql = 'UPDATE Storage SET DiskSpace =(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL)';
-  my $diskspace_sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $diskspace_sth = $dbh->prepare_cached( $diskspace_sql )
+    or Fatal( "Can't prepare '$diskspace_sql': ".$dbh->errstr() );
   foreach my $Storage ( ZoneMinder::Storage->find() ) {
-    Error("Updating disk space for $$Storage{Name}");
+    Debug("Updating disk space for $$Storage{Name} was $$Storage{DiskSpace}");
     $diskspace_sth->execute( $$Storage{Id} ) or Error( "Can't execute: ".$diskspace_sth->errstr() );
+    $Storage->load();
+    Debug("Updated disk space for $$Storage{Name} to $$Storage{DiskSpace}");
   }
   $diskspace_sth->finish();
   sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );

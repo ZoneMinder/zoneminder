@@ -19,6 +19,7 @@ private $defaults = array(
 'OutputContainer' => 'auto',
 'AnalysisFPS' => null,
 'CaptureFPS' => null,
+'ZoneCount' =>  0,
 );
 private $control_fields = array(
   'Name' => '',

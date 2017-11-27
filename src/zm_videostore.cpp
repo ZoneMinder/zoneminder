@@ -326,23 +326,23 @@ Error("Codec not set");
     Debug(2, "Success creating video out stream");
   }
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  ret = avcodec_parameters_from_context(video_out_stream->codecpar,
-                                        video_out_ctx);
+  ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
   if ( ret < 0 ) {
     Error("Could not initialize stream parameteres");
     return;
   }
   zm_dump_codecpar(video_out_stream->codecpar);
-zm_dump_codec(video_out_ctx);
+  zm_dump_codec(video_out_ctx);
 #else
-avcodec_copy_context( video_out_stream->codec, video_out_ctx );
-Debug(2, "%dx%d", video_out_stream->codec->width, video_out_stream->codec->height );
-zm_dump_codec(video_out_ctx);
-zm_dump_codec(video_out_stream->codec);
+  avcodec_copy_context(video_out_stream->codec, video_out_ctx);
+  Debug(2, "%dx%d", video_out_stream->codec->width, video_out_stream->codec->height );
+  zm_dump_codec(video_out_ctx);
+  zm_dump_codec(video_out_stream->codec);
 #endif
+
 #if 1
-video_out_stream->time_base.num = video_out_ctx->time_base.num;
-video_out_stream->time_base.den = video_out_ctx->time_base.den;
+  video_out_stream->time_base.num = video_out_ctx->time_base.num;
+  video_out_stream->time_base.den = video_out_ctx->time_base.den;
 #endif
 
   Debug(3,
@@ -351,8 +351,6 @@ video_out_stream->time_base.den = video_out_ctx->time_base.den;
         video_out_stream->time_base.den,
         video_out_ctx->time_base.num,
         video_out_ctx->time_base.den);
-
-
 
   converted_in_samples = NULL;
   audio_out_codec = NULL;
@@ -388,7 +386,11 @@ video_out_stream->time_base.den = video_out_ctx->time_base.den;
       Debug(3, "Got AAC");
 
       audio_out_stream =
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
           avformat_new_stream(oc, (const AVCodec *)(audio_in_ctx->codec));
+#else
+          avformat_new_stream(oc, (AVCodec *)audio_in_ctx->codec);
+#endif
       if (!audio_out_stream) {
         Error("Unable to create audio out stream\n");
         audio_out_stream = NULL;

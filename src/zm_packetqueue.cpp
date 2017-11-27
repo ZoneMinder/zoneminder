@@ -70,7 +70,8 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     ZMPacket *zm_packet = *it;
     AVPacket *av_packet = &(zm_packet->packet);
        
-    Debug(4, "Looking at packet with stream index (%d) with keyframe(%d), frames_to_keep is (%d)", av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
+    Debug(4, "Looking at packet with stream index (%d) with keyframe(%d), frames_to_keep is (%d)",
+        av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
     
     // Want frames_to_keep video frames.  Otherwise, we may not have enough
     if ( av_packet->stream_index == stream_id ) {
@@ -84,22 +85,25 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
   } else {
     if ( it != pktQueue.rend() ) {
       Debug(2, "Not rend");
-    }
-    ZMPacket *zm_packet = *it;
-    Debug(2, "packet %d", zm_packet);
 
-    AVPacket *av_packet = &(zm_packet->packet);
-    Debug(2, "packet %d", av_packet);
-    while (
-        ( it != pktQueue.rend() ) 
-        &&
-        ( ( av_packet->stream_index != stream_id ) || ! ( av_packet->flags & AV_PKT_FLAG_KEY ))
-        ) {
-      ++it;
-    AVPacket *av_packet = &( (*it)->packet );
+      ZMPacket *zm_packet = *it;
+      Debug(2, "packet %x %d", zm_packet, zm_packet->image_index);
+
+      AVPacket *av_packet = &(zm_packet->packet);
+      while (
+          ( it != pktQueue.rend() ) 
+          &&
+          (( av_packet->stream_index != stream_id ) || ! ( av_packet->flags & AV_PKT_FLAG_KEY ))
+          ) {
+        zm_packet = *it;
+        Debug(2, "packet %x %d", zm_packet, zm_packet->image_index);
+        ++it;
+        av_packet = &( (*it)->packet );
+      }
     }
   }
   unsigned int delete_count = 0;
+  Debug(4, "Deleting packets from the front, count is (%d)", delete_count );
   while ( it != pktQueue.rend() ) {
     Debug(4, "Deleting a packet from the front, count is (%d)", delete_count );
 
@@ -107,7 +111,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     if ( packet->codec_type == AVMEDIA_TYPE_VIDEO )
       video_packet_count -= 1;
     pktQueue.pop_front();
-    if ( packet->image_index != -1 )
+    if ( packet->image_index == -1 )
       delete packet;
 
     delete_count += 1;
@@ -121,7 +125,8 @@ void zm_packetqueue::clearQueue() {
 	while(!pktQueue.empty()) {
     packet = pktQueue.front();
     pktQueue.pop_front();
-    delete packet;
+    if ( packet->image_index == -1 )
+      delete packet;
 	}
   video_packet_count = 0;
 }
@@ -178,7 +183,8 @@ void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVi
   //while ( pktQueue.rend() != it ) {
     packet = pktQueue.front();
     pktQueue.pop_front();
-    delete packet;
+    if ( packet->image_index == -1 )
+      delete packet;
     deleted_frames += 1;
   }
 

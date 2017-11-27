@@ -114,7 +114,7 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
   }
   $monitor['zmc'] = zmcStatus( $monitor );
-  $monitor['zma'] = zmaStatus( $monitor );
+  #$monitor['zma'] = zmaStatus( $monitor );
   $zoneCount += $monitor['ZoneCount'];
 
   $counts = array();
@@ -125,7 +125,6 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
       array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] )
     );
     parseFilter( $filter );
-    #$counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
     $monitor['eventCounts'][$j]['filter'] = $filter;
     $eventCounts[$j]['totalevents'] += $monitor[$j.'Events'];
     $eventCounts[$j]['totaldiskspace'] += $monitor[$j.'EventDiskSpace'];

@@ -86,10 +86,9 @@ VideoStore::VideoStore(
     video_in_stream_index = video_in_stream->index;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     video_in_ctx = avcodec_alloc_context3(NULL);
-    Debug(2, "copy to context");
+    Debug(2, "copy to video_in_context");
     avcodec_parameters_to_context(video_in_ctx,
         video_in_stream->codecpar);
-    Debug(2, "dump to context");
     zm_dump_codecpar( video_in_stream->codecpar );
 //video_in_ctx.codec_id = video_in_stream->codecpar.codec_id;
 #else
@@ -138,12 +137,10 @@ Debug(2,"Copied video context from input stream");
     avcodec_copy_context( video_out_ctx, video_in_ctx );
 #endif
     video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-    // Same codec, just copy the packets, otherwise we have to decode/encode
-    video_out_codec = (AVCodec *)video_in_ctx->codec;
     // Only set orientation if doing passthrough, otherwise the frame image will be rotated
     Monitor::Orientation orientation = monitor->getOrientation();
-    Debug(3, "Have orientation");
     if ( orientation ) {
+      Debug(3, "Have orientation");
       if ( orientation == Monitor::ROTATE_0 ) {
       } else if ( orientation == Monitor::ROTATE_90 ) {
         dsr = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
@@ -174,6 +171,14 @@ Debug(2,"Copied video context from input stream");
         break;
       default:
         break;
+    }
+    // Same codec, just copy the packets, otherwise we have to decode/encode
+    video_out_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+    if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, NULL)) < 0 ) {
+      Warning("Can't open video codec (%s)! %s, trying h264",
+          video_out_codec->name,
+          av_make_error_string(ret).c_str()
+          );
     }
 
   } else {

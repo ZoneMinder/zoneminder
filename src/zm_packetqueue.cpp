@@ -81,13 +81,13 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
   // Might not be starting with a keyframe, but should always start with a keyframe
 
   if ( frames_to_keep ) {
-    Debug(3, "Hit end of queue, still need (%d) video keyframes", frames_to_keep );
+    Debug(4, "Hit end of queue, still need (%d) video keyframes", frames_to_keep );
   } else {
     if ( it != pktQueue.rend() ) {
-      Debug(2, "Not rend");
+      Debug(4, "Not rend");
 
       ZMPacket *zm_packet = *it;
-      Debug(2, "packet %x %d", zm_packet, zm_packet->image_index);
+      Debug(4, "packet %x %d", zm_packet, zm_packet->image_index);
 
       AVPacket *av_packet = &(zm_packet->packet);
       while (
@@ -96,7 +96,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
           (( av_packet->stream_index != stream_id ) || ! ( av_packet->flags & AV_PKT_FLAG_KEY ))
           ) {
         zm_packet = *it;
-        Debug(2, "packet %x %d", zm_packet, zm_packet->image_index);
+        Debug(4, "packet %x %d", zm_packet, zm_packet->image_index);
         ++it;
         av_packet = &( (*it)->packet );
       }

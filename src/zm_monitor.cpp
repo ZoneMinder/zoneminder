@@ -799,10 +799,10 @@ double Monitor::GetFPS() const {
 useconds_t Monitor::GetAnalysisRate() {
   capture_fps = GetFPS();
   if ( !analysis_fps_limit ) {
-    return( 0 );
+    return 0;
   } else if ( analysis_fps_limit > capture_fps ) {
     Warning( "Analysis fps (%.2f) is greater than capturing fps (%.2f)", analysis_fps_limit, capture_fps );
-    return( 0 );
+    return 0;
   } else {
     return( ( 1000000 / analysis_fps_limit ) - ( 1000000 / capture_fps ) );
   }
@@ -1241,14 +1241,23 @@ bool Monitor::Analyse() {
 
   // If do have an event, then analysis_it should point to the head of the queue, because we would have emptied it on event creation.
   unsigned int index = ( shared_data->last_read_index + 1 ) % image_buffer_count;
+  Debug(2, "Analysis index (%d), last_Write(%d)", index, shared_data->last_write_index );
+  if ( analysis_it == packetqueue.pktQueue.end() ) {
+  Debug(2, "Analysis index (%d), last_Write(%d), at end of queue", index, shared_data->last_write_index );
+  }
   // Move to next packet.
-  while ( ( index != shared_data->last_write_index ) && ( analysis_it != packetqueue.pktQueue.end() ) ) {
+  while ( ( index != shared_data->last_write_index ) && ( *analysis_it != packetqueue.pktQueue.back() ) ) {
     ++analysis_it;
 
     ZMPacket *snap = *analysis_it;
     struct timeval *timestamp = snap->timestamp;
     Image *snap_image = snap->image;
     Debug(2, "Analysing image (%d)", snap->image_index );
+    if ( snap->image_index == -1 ) {
+      Debug(2, "skipping because audio");
+      continue;
+    }
+
 
     int last_section_mod = 0;
 
@@ -1306,7 +1315,9 @@ bool Monitor::Analyse() {
           shared_data->active = signal;
           ref_image = *snap_image;
 
-        } else if ( signal ) {
+        }// else 
+
+        if ( signal ) {
           if ( Active() && (function == MODECT || function == MOCORD) ) {
             Debug(3, "signal and active and modect");
             Event::StringSet zoneSet;
@@ -1466,12 +1477,12 @@ bool Monitor::Analyse() {
             } // analsys_images or record stats
 
       mutex.lock();
-            snap = packetqueue.popPacket();
+            ZMPacket *pack = packetqueue.popPacket();
       mutex.unlock();
-            event->AddPacket( snap, score );
-            if ( snap->image_index == -1 ) {
-              delete snap;
-              snap = NULL;
+            event->AddPacket( pack, score );
+            if ( pack->image_index == -1 ) {
+              delete pack;
+              pack = NULL;
             }
 
             if ( noteSetMap.size() > 0 )
@@ -1479,28 +1490,28 @@ bool Monitor::Analyse() {
           } else if ( state == ALERT ) {
             // Alert means this frame has no motion, but we were alarmed and are still recording.
       mutex.lock();
-            snap = packetqueue.popPacket();
+            ZMPacket *pack = packetqueue.popPacket();
       mutex.unlock();
-            event->AddPacket( snap, score );
-            if ( snap->image_index == -1 ) {
-              delete snap;
-              snap = NULL;
+            event->AddPacket( pack, score );
+            if ( pack->image_index == -1 ) {
+              delete pack;
+              pack = NULL;
             }
             if ( noteSetMap.size() > 0 )
               event->updateNotes( noteSetMap );
           } else if ( state == TAPE ) {
             if ( !(image_count%(frame_skip+1)) ) {
       mutex.lock();
-              snap = packetqueue.popPacket();
+              ZMPacket *pack = packetqueue.popPacket();
       mutex.unlock();
               if ( config.bulk_frame_interval > 1 ) {
-                event->AddPacket( snap, (event->Frames()<pre_event_count?0:-1) );
+                event->AddPacket( pack, (event->Frames()<pre_event_count?0:-1) );
               } else {
-                event->AddPacket( snap );
+                event->AddPacket( pack );
               }
-              if ( snap->image_index == -1 ) {
-                delete snap;
-                snap = NULL;
+              if ( pack->image_index == -1 ) {
+                delete pack;
+                pack = NULL;
               }
             }
           }
@@ -1508,7 +1519,7 @@ bool Monitor::Analyse() {
             ref_image.Blend( *snap_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ) );
           }
           last_signal = signal;
-        } // end if signal change or signal
+        } // end if signal
 
       } else {
         Debug(3,"Not ready?");
@@ -1525,10 +1536,9 @@ bool Monitor::Analyse() {
 
     shared_data->last_read_index = snap->image_index;
     shared_data->last_read_time = now.tv_sec;
+    analysis_image_count++;
   } // end while not at end of packetqueue
   //mutex.unlock(); 
-
-  analysis_image_count++;
 
   return true;
 }
@@ -2759,7 +2769,7 @@ int Monitor::Capture() {
   }
 
   ZMPacket *packet = &image_buffer[index];
-  Debug(2,"Reset index(%d)", index );
+  Debug(2,"Reset index(%d) of (%d)", index, image_buffer_count );
   packet->reset();
   Image* capture_image = packet->image;
   int captureResult = 0;
@@ -2802,11 +2812,8 @@ int Monitor::Capture() {
         // Only queue if we have some video packets in there.
         if ( packetqueue.video_packet_count || event ) {
           // Need to copy it into another ZMPacket.
-          Debug(2, "Copyingg packet");
           ZMPacket *audio_packet = new ZMPacket( *packet );
-          Debug(2, "Copyingg packet");
           audio_packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
-          //packet->decode( camera->get_AudioCodecContext() );
           Debug(2, "Queueing packet");
           packetqueue.queuePacket( audio_packet );
         }

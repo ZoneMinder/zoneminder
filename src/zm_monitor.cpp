@@ -352,6 +352,7 @@ Monitor::Monitor(
   first_alarm_count = 0;
   last_alarm_count = 0;
   state = IDLE;
+  last_signal = false;
 
   if ( alarm_frame_count < 1 )
     alarm_frame_count = 1;
@@ -590,9 +591,9 @@ Monitor::~Monitor() {
     if ( (deinterlacing & 0xff) == 4) {
       delete next_buffer.image;
     }
-#if 0
+#if 1
     for ( int i = 0; i < image_buffer_count; i++ ) {
-      delete image_buffer[i];
+      delete image_buffer[i].image;
     }
 #endif
     delete[] image_buffer;
@@ -1453,11 +1454,12 @@ bool Monitor::Analyse() {
           if ( state == PREALARM || state == ALARM ) {
             if ( config.create_analysis_images ) {
               bool got_anal_image = false;
-              alarm_image.Assign( *snap_image );
+              Image *anal_image = new Image( *snap_image );
+              //alarm_image.Assign( *snap_image );
               for( int i = 0; i < n_zones; i++ ) {
                 if ( zones[i]->Alarmed() ) {
                   if ( zones[i]->AlarmImage() ) {
-                    alarm_image.Overlay( *(zones[i]->AlarmImage()) );
+                    anal_image->Overlay( *(zones[i]->AlarmImage()) );
                     got_anal_image = true;
                   }
                   if ( config.record_event_stats || state == ALARM ) {
@@ -1466,7 +1468,9 @@ bool Monitor::Analyse() {
                 }
               } // end foreach zone
               if ( got_anal_image ) {
-                (*analysis_it)->analysis_image = &alarm_image;
+                (*analysis_it)->analysis_image = anal_image;
+              } else {
+                delete anal_image;
               }
             } else if ( config.record_event_stats && state == ALARM ) {
               for ( int i = 0; i < n_zones; i++ ) {
@@ -2791,6 +2795,7 @@ int Monitor::Capture() {
     }
   } else {
     captureResult = camera->Capture(*packet);
+      Debug(2, "Reset timestamp");
     gettimeofday( packet->timestamp, NULL );
     if ( captureResult < 0 ) {
       // Unable to capture image for temporary reason

@@ -93,15 +93,18 @@ xhtmlHeaders(__FILE__, translate('Events') );
   <div id="page">
   <?php echo getNavBarHTML() ?>
     <div id="header">
-      <h2><?php echo sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
+      <div id="info">
+        <h2><?php echo sprintf( $CLANG['EventCount'], $nEvents, zmVlang( $VLANG['Event'], $nEvents ) ) ?></h2>
+        <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
+      </div>
+      <div id="pagination">
 <?php
 if ( $pagination ) {
 ?>
-        <h2 class="pagination"><?php echo $pagination ?></h3>
+        <h2 class="pagination"><?php echo $pagination ?></h2>
 <?php
 }
 ?>
-      <div id="headerButtons">
 <?php
 if ( $pages > 1 ) {
   if ( !empty($page) ) {
@@ -115,7 +118,10 @@ if ( $pages > 1 ) {
   }
 }
 ?>
+      </div>
+      <div id="controls">
         <a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a>
+        <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
       </div>
     </div>
     <div id="content">
@@ -127,10 +133,6 @@ if ( $pages > 1 ) {
         <input type="hidden" name="sort_field" value="<?php echo validHtmlStr($_REQUEST['sort_field']) ?>"/>
         <input type="hidden" name="sort_asc" value="<?php echo validHtmlStr($_REQUEST['sort_asc']) ?>"/>
         <input type="hidden" name="limit" value="<?php echo $limit ?>"/>
-        <p id="controls">
-          <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
-          <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
-        </p>
         <table id="contentTable" class="major">
           <tbody>
 <?php

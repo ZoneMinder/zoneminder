@@ -276,11 +276,6 @@ span.noneCue {
     margin: 0 0 -1.25em 0;
 }
 
-#eventVideo {
-    display: inline-block;
-    position: relative;
-}
-
 #thumbsKnob {
     width: 1em;
     height: 100%;

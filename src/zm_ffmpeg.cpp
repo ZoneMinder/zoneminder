@@ -190,7 +190,7 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
     return ret;
   } else {
     s->oformat = oformat;
-#if 0
+#if 1
     // This is some very wrong code, and I don't think it is neccessary
     if (s->oformat->priv_data_size > 0) {
       s->priv_data = av_mallocz(s->oformat->priv_data_size);

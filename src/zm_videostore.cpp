@@ -414,13 +414,13 @@ VideoStore::~VideoStore() {
   if (video_out_stream) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
-    av_free(video_in_ctx);
+    avcodec_free_context(&video_in_ctx);
 #endif
     video_in_ctx=NULL;
 
     avcodec_close(video_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    av_free(video_out_ctx);
+    avcodec_free_context(&video_out_ctx);
 #endif
     video_out_ctx = NULL;
     Debug(4, "Success freeing video_out_ctx");
@@ -430,7 +430,7 @@ VideoStore::~VideoStore() {
     avcodec_close(audio_in_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
-    av_free(audio_in_ctx);
+    avcodec_free_context(&audio_in_ctx);
 #endif
     audio_in_ctx = NULL;
     audio_in_codec = NULL;
@@ -438,7 +438,7 @@ VideoStore::~VideoStore() {
 
     avcodec_close(audio_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    av_free(audio_out_ctx);
+    avcodec_free_context(&audio_out_ctx);
 #endif
     audio_out_ctx = NULL;
 #ifdef HAVE_LIBAVRESAMPLE

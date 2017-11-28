@@ -328,6 +328,9 @@ int FfmpegCamera::PostCapture() {
 int FfmpegCamera::OpenFfmpeg() {
 
   Debug ( 2, "OpenFfmpeg called." );
+  uint32_t last_event_id = monitor->GetLastEventId() ;
+  uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
+  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
 
   int ret;
 
@@ -372,6 +375,9 @@ int FfmpegCamera::OpenFfmpeg() {
   //FIXME can speed up initial analysis but need sensible parameters...
   //mFormatContext->probesize = 32;
   //mFormatContext->max_analyze_duration = 32;
+  last_event_id = monitor->GetLastEventId() ;
+  video_writer_event_id = monitor->GetVideoWriterEventId();
+  Debug(2, "last_event(%d), our current (%d), mpath (%s)", last_event_id, video_writer_event_id, mPath.c_str() );
 
   if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
 #endif
@@ -380,11 +386,17 @@ int FfmpegCamera::OpenFfmpeg() {
     Error( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
     return -1;
   }
-
+  last_event_id = monitor->GetLastEventId() ;
+  video_writer_event_id = monitor->GetVideoWriterEventId();
+  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
   AVDictionaryEntry *e=NULL;
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
+
+  last_event_id = monitor->GetLastEventId() ;
+  video_writer_event_id = monitor->GetVideoWriterEventId();
+  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
 
   mIsOpening = false;
   Debug ( 1, "Opened input" );
@@ -524,15 +536,15 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug ( 1, "Calling avcodec_open2" );
   if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 ) {
 #endif
-    AVDictionaryEntry *e;
-    if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+    AVDictionaryEntry *e = NULL;
+    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
       Warning( "Option %s not recognized by ffmpeg", e->key);
     }
     Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
   } else {
 
-    AVDictionaryEntry *e;
-    if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+    AVDictionaryEntry *e = NULL;
+    if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
       Warning( "Option %s not recognized by ffmpeg", e->key);
     }
   }
@@ -567,7 +579,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }
 
-  Debug ( 1, "Opened codec" );
+  Debug ( 1, "Opened audio codec" );
 
   // Allocate space for the native video frame
   mRawFrame = zm_av_frame_alloc();
@@ -667,14 +679,14 @@ int FfmpegCamera::CloseFfmpeg() {
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    av_free(mVideoCodecContext);
+    avcodec_free_context(&mVideoCodecContext);
 #endif
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }
   if ( mAudioCodecContext ) {
     avcodec_close(mAudioCodecContext);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    av_free(mAudioCodecContext);
+    avcodec_free_context(&mAudioCodecContext);
 #endif
     mAudioCodecContext = NULL; // Freed by av_close_input_file
   }
@@ -784,9 +796,10 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     if ( recording.tv_sec ) {
 
       uint32_t last_event_id = monitor->GetLastEventId() ;
+      uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
 
-      if ( last_event_id != monitor->GetVideoWriterEventId() ) {
-        Debug(2, "Have change of event.  last_event(%d), our current (%d)", last_event_id, monitor->GetVideoWriterEventId() );
+      if ( last_event_id != video_writer_event_id ) {
+        Debug(2, "Have change of event.  last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
 
         if ( videoStore ) {
           Info("Re-starting video storage module");

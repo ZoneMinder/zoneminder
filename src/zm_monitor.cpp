@@ -473,9 +473,12 @@ Monitor::Monitor(
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
 
   if ( purpose == ANALYSIS ) {
-
-    while( shared_data->last_write_index == (unsigned int)image_buffer_count 
-         && shared_data->last_write_time == 0) {
+Debug(2,"last_write_index(%d), last_write_time(%d)", shared_data->last_write_index, shared_data->last_write_time );
+    while( 
+        ( shared_data->last_write_index == (unsigned int)image_buffer_count )
+         &&
+        ( shared_data->last_write_time == 0) 
+        ) {
       Warning( "Waiting for capture daemon" );
       sleep( 1 );
     }

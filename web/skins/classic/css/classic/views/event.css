@@ -45,11 +45,6 @@ span.noneCue {
     padding: 2px;
 }
 
-#eventVideo {
-   display: inline-block;
-   position: relative;
-}
-
 #menuBar1 {
     width: 100%;
     padding: 3px 0;
@@ -117,6 +112,11 @@ span.noneCue {
 
 #videoBar1 #nextEvent {
     float: right;
+}
+
+#eventVideo {
+   display: inline-block;
+   position: relative;
 }
 
 #imageFeed {

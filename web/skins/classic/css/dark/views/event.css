@@ -29,10 +29,6 @@ span.noneCue {
     background: none;
 }
 
-#eventVideo {
-    display: inline-block;
-}
-
 #dataBar {
     width: 100%;
     margin: 2px auto;
@@ -99,6 +95,10 @@ span.noneCue {
     font-size: 0;
     clear: both;
     visibility: hidden;
+}
+
+#eventVideo {
+    display: inline-block;
 }
 
 #imageFeed {

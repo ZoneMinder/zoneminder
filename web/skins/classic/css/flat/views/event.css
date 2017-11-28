@@ -52,7 +52,6 @@ span.noneCue {
     clear: both;
 }
 
-
 #menuBar1 #nameControl {
     float: left;
 }
@@ -87,15 +86,6 @@ span.noneCue {
     float: right;
     text-align: right;
 }
-#menuBar1:after,
-#menuBar2:after {
-    content: ".";
-    display: block;
-    height: 0;
-    font-size: 0;
-    clear: both;
-    visibility: hidden;
-}
 
 #menuBar1:after,
 #menuBar2:after {
@@ -106,6 +96,12 @@ span.noneCue {
     clear: both;
     visibility: hidden;
 }
+
+#eventVideo {
+    display: inline-block;
+    position: relative;
+}
+
 #imageFeed {
     display: inline-block;
     position: relative;
@@ -291,8 +287,4 @@ span.noneCue {
     width: 1em;
     height: 100%;
     background-color: #999999;
-}
-#eventVideo {
-    display: inline-block;
-    position: relative;
 }

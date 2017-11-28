@@ -16,7 +16,6 @@ extern "C"  {
 
 class VideoStore {
 private:
-  unsigned int packets_written;
 
 	AVOutputFormat *out_format;
 	AVFormatContext *oc;
@@ -34,13 +33,13 @@ private:
   AVFrame *out_frame;
 
   AVCodecContext *video_in_ctx;
+  AVCodec *audio_in_codec;
   AVCodecContext *audio_in_ctx;
   int ret;
 
   // The following are used when encoding the audio stream to AAC
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
-  int data_present;
   AVAudioFifo *fifo;
   int out_frame_size;
 #ifdef HAVE_LIBAVRESAMPLE

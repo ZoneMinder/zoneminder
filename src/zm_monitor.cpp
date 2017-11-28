@@ -73,7 +73,12 @@ std::vector<std::string> split(const std::string &s, char delim) {
   return elems;
 }
 
-Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
+Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) :
+  id( p_id ),
+  shared_data(NULL),
+  trigger_data(NULL),
+  video_store_data(NULL)
+{
   strncpy( name, p_name, sizeof(name) );
 
 #if ZM_MEM_MAPPED

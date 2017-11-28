@@ -195,6 +195,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   converted_in_samples = NULL;
   audio_out_codec = NULL;
+  audio_in_codec = NULL;
   audio_in_ctx = NULL;
   audio_out_stream = NULL;
   in_frame = NULL;
@@ -411,12 +412,34 @@ VideoStore::~VideoStore() {
   // Just do a file open/close/writeheader/etc.
   // What if we were only doing audio recording?
   if (video_out_stream) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // We allocate and copy in newer ffmpeg, so need to free it
+    av_free(video_in_ctx);
+#endif
+    video_in_ctx=NULL;
+
     avcodec_close(video_out_ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    av_free(video_out_ctx);
+#endif
     video_out_ctx = NULL;
     Debug(4, "Success freeing video_out_ctx");
   }
-  if (audio_out_stream) {
+  if ( audio_out_stream ) {
+    if ( audio_in_codec ) {
+    avcodec_close(audio_in_ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // We allocate and copy in newer ffmpeg, so need to free it
+    av_free(audio_in_ctx);
+#endif
+    audio_in_ctx = NULL;
+    audio_in_codec = NULL;
+    } // end if audio_in_codec
+
     avcodec_close(audio_out_ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    av_free(audio_out_ctx);
+#endif
     audio_out_ctx = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
     if (resample_ctx) {
@@ -459,10 +482,10 @@ bool VideoStore::setup_resampler() {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // Newer ffmpeg wants to keep everything separate... so have to lookup our own
   // decoder, can't reuse the one from the camera.
-  AVCodec *audio_in_codec =
+  audio_in_codec =
       avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
 #else
-  AVCodec *audio_in_codec =
+  audio_in_codec =
       avcodec_find_decoder(audio_in_ctx->codec_id);
 #endif
   ret = avcodec_open2(audio_in_ctx, audio_in_codec, NULL);
@@ -783,7 +806,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   }
 
   opkt.flags = ipkt->flags;
-  int keyframe = opkt.flags & AV_PKT_FLAG_KEY;
   opkt.pos = -1;
 
   opkt.data = ipkt->data;
@@ -797,7 +819,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   Debug(1,
         "writing video packet keyframe(%d) pts(%d) dts(%d) duration(%d) "
         "ipkt.duration(%d)",
-        keyframe, opkt.pts, opkt.dts, duration, ipkt->duration);
+        opkt.flags & AV_PKT_FLAG_KEY, opkt.pts, opkt.dts, duration, ipkt->duration);
   if ((opkt.data == NULL) || (opkt.size < 1)) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
     dumpPacket(ipkt);
@@ -870,6 +892,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
      * If we are at the end of the file, pass an empty packet to the decoder
      * to flush it.
      */
+    int data_present;
     if ((ret = avcodec_decode_audio4(audio_in_ctx, in_frame,
                                      &data_present, ipkt)) < 0) {
       Error("Could not decode frame (error '%s')\n",

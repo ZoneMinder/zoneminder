@@ -381,8 +381,8 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-  AVDictionaryEntry *e;
-  if ( (e = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+  AVDictionaryEntry *e=NULL;
+  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
 
@@ -666,12 +666,16 @@ int FfmpegCamera::CloseFfmpeg() {
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
-    //av_free(mVideoCodecContext);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    av_free(mVideoCodecContext);
+#endif
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }
   if ( mAudioCodecContext ) {
     avcodec_close(mAudioCodecContext);
-    //av_free(mAudioCodecContext);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    av_free(mAudioCodecContext);
+#endif
     mAudioCodecContext = NULL; // Freed by av_close_input_file
   }
 

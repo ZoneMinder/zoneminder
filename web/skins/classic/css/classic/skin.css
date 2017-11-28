@@ -349,6 +349,7 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin: 4px auto;
     line-height: 1;
     text-align: left;
+    padding: 3px 0;
 }
 
 #header h2 {

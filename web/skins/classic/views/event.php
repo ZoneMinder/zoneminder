@@ -97,34 +97,26 @@ xhtmlHeaders(__FILE__, translate('Event') );
 <body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
-    <div id="content">
+    <div id="header">
 <?php 
 if ( ! $Event->Id() ) {
   echo 'Event was not found.';
 } else {
 ?>
       <div id="dataBar">
-        <table id="dataTable" class="major">
-          <tr>
-            <td><span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span></td>
-            <td><span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span></td>
-            <td><span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime( STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime() ) ) ?></span></td>
-            <td><span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length() ?></span>s</td>
-            <td><span id="dataFrames" title="<?php echo translate('AttrFrames')."/".translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span></td>
-            <td><span id="dataScore" title="<?php echo translate('AttrTotalScore')."/".translate('AttrAvgScore')."/".translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span></td>
-          </tr>
-        </table>
+        <span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span>
+        <span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span>
+        <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime( STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime() ) ) ?></span>
+        <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
+        <span id="dataFrames" title="<?php echo translate('AttrFrames')."/".translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
+        <span id="dataScore" title="<?php echo translate('AttrTotalScore')."/".translate('AttrAvgScore')."/".translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
+        <div id="closeWindow"><a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a></div>
       </div>
       <div id="menuBar1">
-        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
-        <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
         <div id="nameControl">
           <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
           <input type="button" value="<?php echo translate('Rename') ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/>
         </div>
-      </div>
-      <div id="menuBar2">
-        <div id="closeWindow"><a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a></div>
 <?php
 if ( canEdit('Events') ) {
 ?>
@@ -150,7 +142,11 @@ if ( canEdit('Events') ) {
   } // end if Event->DefaultVideo
 ?>
         <div id="exportEvent"><a href="#" onclick="exportEvent();"><?php echo translate('Export') ?></a></div>
+        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
+        <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
       </div>
+     </div>
+    <div id="content">
       <div id="eventVideo" class="">
 <?php
 if ( $Event->DefaultVideo() ) {

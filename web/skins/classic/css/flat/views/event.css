@@ -29,70 +29,47 @@ span.noneCue {
     background: none;
 }
 
+#header {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+    margin: 0 0 4px 0;
+}
+
+#header h2, #header a {
+    line-height: 1.1;
+    margin:5px 0 0 0;
+}
+
 #dataBar {
-    width: 100%;
-    margin: 2px auto;
-    text-align: center;
-}
-
-#dataBar #dataTable {
-    width: 100%;
-    table-layout: fixed;
-}
-
-#dataBar #dataTable td {
-    text-align: center;
-    padding: 2px;
+    display: flex;
+    flex-wrap:wrap;
+    justify-content: space-between;
 }
 
 #menuBar1 {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
     width: 100%;
     text-align: center;
-    clear: both;
+    margin: 4px 0 0 0;
 }
 
-#menuBar1 #nameControl {
-    float: left;
-}
-
-#menuBar1 #nameControl #eventName {
-    margin-right: 4px;
-}
-
-#menuBar1 #replayControl {
-    float: right;
-    margin-left: 8px;
+#menuBar1 input, #menuBar1 select {
+    padding: 2px 5px;
 }
 
 #menuBar1 #scaleControl {
-    float: right;
-    margin-left: 8px;
+    margin: 0 4px 0 auto;
 }
 
-#menuBar2 {
-    width: 100%;
-    margin-bottom: 4px;
+#menuBar1 div {
+margin: auto 5px;
 }
 
-#menuBar2 div {
-    text-align: left;
-    float: left;
-    padding: 0 12px;
-}
-
-#menuBar2 #closeWindow {
-    float: right;
-    text-align: right;
-}
-
-#menuBar1:after,
-#menuBar2:after {
-    content: ".";
-    display: block;
-    height: 0;
-    font-size: 0;
-    clear: both;
-    visibility: hidden;
+#nameControl input[type="button"]{
+height: 100%;
 }
 
 #eventVideo {

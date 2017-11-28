@@ -183,6 +183,7 @@ int RemoteCameraNVSocket::PrimeCapture() {
     Disconnect();
     return -1;
   }
+  mVideoStreamId=0;
 
   return 0;
 }

@@ -779,7 +779,14 @@ unsigned int Monitor::GetLastWriteIndex() const {
   return( shared_data->last_write_index!=(unsigned int)image_buffer_count?shared_data->last_write_index:-1 );
 }
 
-unsigned int Monitor::GetLastEvent() const {
+uint32_t Monitor::GetLastEventId() const {
+  Debug(2, "mem_ptr(%x), State(%d) last_read_index(%d) last_read_time(%d) last_event(%d)",
+      mem_ptr,
+      shared_data->state,
+      shared_data->last_read_index,
+      shared_data->last_read_time,
+      shared_data->last_event
+      );
   return( shared_data->last_event );
 }
 

@@ -1906,8 +1906,9 @@ int LocalCamera::PrimeCapture() {
     }
   }
 #endif // ZM_HAS_V4L1
+mVideoStreamId = 0;
 
-  return( 0 );
+  return 0;
 }
 
 int LocalCamera::PreCapture() {
@@ -2054,6 +2055,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
     zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
   } // end if doing conversion or not
 
+  zm_packet.keyframe = 1;
   return 1;
 } // end int LocalCamera::Capture()
 
@@ -2142,10 +2144,7 @@ AVStream *LocalCamera::get_VideoStream() {
     } else {
       Error("Can't create video stream");
     }
-  } else {
-    Debug(2,"Have videostream");
   }
-  Debug(2,"Get videoStream");
   return video_stream;
 }
 

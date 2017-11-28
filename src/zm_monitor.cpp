@@ -1226,8 +1226,6 @@ bool Monitor::Analyse() {
     return false;
   }
 
-  struct timeval now;
-  gettimeofday( &now, NULL );
 
   // if  have event, sent frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
@@ -1240,15 +1238,38 @@ bool Monitor::Analyse() {
     }
   }
 
+
   // If do have an event, then analysis_it should point to the head of the queue, because we would have emptied it on event creation.
   unsigned int index = ( shared_data->last_read_index + 1 ) % image_buffer_count;
+
+  if ( ! packetqueue.size() ) {
+    Debug(2, "PacketQueue is empty" );
+    return false;
+  }
+  Debug(2, "PacketQueue size (%d)", packetqueue.size() );
+
+  // The idea is that iterator_id never gets to the end.
+
+// analysis_it is == end when queue is empty?
   Debug(2, "Analysis index (%d), last_Write(%d)", index, shared_data->last_write_index );
   if ( analysis_it == packetqueue.pktQueue.end() ) {
-  Debug(2, "Analysis index (%d), last_Write(%d), at end of queue", index, shared_data->last_write_index );
+    Debug(2, "Analysis index (%d), last_Write(%d), at end of queue", index, shared_data->last_write_index );
+    analysis_it = packetqueue.pktQueue.begin();
+    return false;
   }
+  std::list<ZMPacket *>::iterator next_it = analysis_it;
+  Debug(2, "next_it (%x)", next_it );
+  ++next_it;
+
+  struct timeval now;
+  gettimeofday( &now, NULL );
+  int packets_processed = 0;
   // Move to next packet.
-  while ( ( index != shared_data->last_write_index ) && ( *analysis_it != packetqueue.pktQueue.back() ) ) {
-    ++analysis_it;
+  while ( ( index != shared_data->last_write_index ) && ( next_it != packetqueue.pktQueue.end() ) ) {
+    analysis_it = next_it;
+    ++next_it;
+    Debug(2, "Analysis index (%d), last_Write(%d), *it: (%x) (%d)", index, shared_data->last_write_index, *analysis_it, (*analysis_it)->image_index );
+    packets_processed += 1;
 
     ZMPacket *snap = *analysis_it;
     struct timeval *timestamp = snap->timestamp;
@@ -1408,12 +1429,13 @@ bool Monitor::Analyse() {
                   shared_data->last_event_id = event->Id();
       mutex.lock();
                   std::list<ZMPacket *>::iterator it = packetqueue.pktQueue.begin();
-                  while( packetqueue.size() && it != analysis_it ) {
+                  while( packetqueue.size() && ( it != analysis_it ) ) {
                     ZMPacket *queued_packet = packetqueue.popPacket();
                     event->AddPacket( queued_packet );
                     if ( queued_packet->image_index == -1 ) {
                       delete queued_packet;
                     }
+                    it = packetqueue.pktQueue.begin();
                   } 
       mutex.unlock();
                   // The analysis packet will be added below.
@@ -1507,6 +1529,8 @@ bool Monitor::Analyse() {
             if ( !(image_count%(frame_skip+1)) ) {
       mutex.lock();
               ZMPacket *pack = packetqueue.popPacket();
+Debug(2,"adding packet (%x)", pack );
+Debug(2,"adding packet (%x) (%d)", pack, pack->image_index );
       mutex.unlock();
               if ( config.bulk_frame_interval > 1 ) {
                 event->AddPacket( pack, (event->Frames()<pre_event_count?0:-1) );
@@ -1543,8 +1567,9 @@ bool Monitor::Analyse() {
     analysis_image_count++;
   } // end while not at end of packetqueue
   //mutex.unlock(); 
-
+if ( packets_processed > 0 )
   return true;
+return false;
 }
 
 void Monitor::Reload() {
@@ -2830,11 +2855,6 @@ int Monitor::Capture() {
 
       Debug(2, "Have video packet");
       packet->codec_type = camera->get_VideoStream()->codecpar->codec_type;
-      // Have an av_packet, 
-      if ( packetqueue.video_packet_count || ( packet->packet.flags & AV_PKT_FLAG_KEY ) || event ) {
-        Debug(2, "Queueing packet");
-        packetqueue.queuePacket( packet );
-      }
 
       if ( packet->packet.size && ! packet->in_frame ) {
         Debug(2,"About to decode");
@@ -2842,6 +2862,15 @@ int Monitor::Capture() {
           Debug(2,"Getimage");
           packet->get_image();
         }
+        // Have an av_packet, 
+        if ( packetqueue.video_packet_count || ( packet->packet.flags & AV_PKT_FLAG_KEY ) || event ) {
+          Debug(2, "Queueing packet");
+          packetqueue.queuePacket( packet );
+        }
+      } else {
+        // Non-avpackets are all keyframes.
+        Debug(2, "Queueing packet");
+        packetqueue.queuePacket( packet );
       }
 
       /* Deinterlacing */
@@ -3206,9 +3235,10 @@ bool Monitor::DumpSettings( char *output, bool verbose ) {
 
 unsigned int Monitor::Colours() const { return( camera->Colours() ); }
 unsigned int Monitor::SubpixelOrder() const { return( camera->SubpixelOrder() ); }
+
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();
-  video_stream_id = ret ? camera->get_VideoStreamId() : -1;
+  video_stream_id = ret ? -1 : camera->get_VideoStreamId();
   Debug(2, "Video stream id is (%d)", video_stream_id );
   return ret;
 }

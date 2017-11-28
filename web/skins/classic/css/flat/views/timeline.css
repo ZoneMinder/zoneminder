@@ -5,6 +5,16 @@
     margin: 0 auto;
 }
 
+#header {
+    display: flex;
+    justify-content: space-between;
+}
+
+#header h2, #header a {
+    line-height: 1.1;
+    margin:5px 0 0 0;
+}
+
 #title {
     position: relative;
     margin: 0 auto;

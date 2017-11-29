@@ -15,6 +15,15 @@
     margin:5px 0 0 0;
 }
 
+#header #info, #header #headerButtons {
+    display: flex;
+    flex-direction: column;
+}
+
+#header #headerButtons {
+    align-items: flex-end;
+}
+
 #title {
     position: relative;
     margin: 0 auto;

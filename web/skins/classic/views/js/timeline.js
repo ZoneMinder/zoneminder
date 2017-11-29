@@ -143,13 +143,13 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
 
 function tlZoomBounds( minTime, maxTime ) {
   console.log( "Zooming" );
-  window.location = '?view='+currentView+filterQuery+'&minTime='+minTime+'&maxTime='+maxTime;
+  location.replace('?view='+currentView+filterQuery+'&minTime='+minTime+'&maxTime='+maxTime);
 }
 
 function tlZoomRange( midTime, range ) {
-  window.location = '?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range;
+  location.replace('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range);
 }
 
 function tlPan( midTime, range ) {
-  window.location = '?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range;
+  location('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range);
 }

@@ -702,7 +702,10 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
   <div id="page">
   <?php echo getNavBarHTML() ?>
     <div id="header">
-      <h2><?php echo translate('Timeline') ?></h2>
+      <div id="info">
+        <h2><?php echo translate('Timeline') ?></h2>
+        <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
+      </div>
       <div id="headerButtons">
         <a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a>
       </div>

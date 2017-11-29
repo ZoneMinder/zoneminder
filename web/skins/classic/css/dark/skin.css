@@ -534,8 +534,10 @@ input[type=submit]:disabled {
   margin-left: 0;
 }
 
-
 .table-striped > tbody > tr:nth-of-type(2n+1) {
-  background: none;
+  background-color: #333333;
 }
 
+.table-hover>tbody>tr:hover {
+  background-color: #444444;
+}

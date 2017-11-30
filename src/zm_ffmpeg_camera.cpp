@@ -245,7 +245,14 @@ int FfmpegCamera::OpenFfmpeg() {
 
   Debug ( 1, "Calling avformat_open_input for %s", mPath.c_str() );
 
+  last_event_id = monitor->GetLastEventId() ;
+  video_writer_event_id = monitor->GetVideoWriterEventId();
+  Debug(2, "last_event(%d), our current (%d), mpath (%s)", last_event_id, video_writer_event_id, mPath.c_str() );
   mFormatContext = avformat_alloc_context( );
+
+  last_event_id = monitor->GetLastEventId() ;
+  video_writer_event_id = monitor->GetVideoWriterEventId();
+  Debug(2, "last_event(%d), our current (%d), mpath (%s)", last_event_id, video_writer_event_id, mPath.c_str() );
   //mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
   //mFormatContext->interrupt_callback.opaque = this;
   // Speed up find_stream_info

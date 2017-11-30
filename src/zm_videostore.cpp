@@ -786,6 +786,7 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 #endif
+  audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
   AVDictionary *opts = NULL;
   av_dict_set(&opts, "strict", "experimental", 0); // Needed to allow AAC

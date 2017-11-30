@@ -769,10 +769,11 @@ uint32_t Monitor::GetLastEventId() const {
 // This function is crap.
 double Monitor::GetFPS() const {
   int index1 = shared_data->last_write_index;
-  if ( index1 == image_buffer_count ) {
+  if ( index1 >= image_buffer_count ) {
     // last_write_index only has this value on startup before capturing anything.
     return 0.0;
   }
+  Debug(2, "index1(%d)", index1);
   ZMPacket *snap1 = &image_buffer[index1];
   if ( !snap1->timestamp->tv_sec ) {
     // This should be impossible
@@ -783,6 +784,7 @@ double Monitor::GetFPS() const {
   int image_count = image_buffer_count;
 
   int index2 = (index1+1)%image_buffer_count;
+  Debug(2, "index2(%d)", index2);
   ZMPacket *snap2 = &image_buffer[index2];
   // the timestamp pointers are initialized on connection, so that's redundant
   // tv_sec is probably only zero during the first loop of capturing, so this basically just counts the unused images.

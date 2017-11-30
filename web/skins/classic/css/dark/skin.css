@@ -378,6 +378,7 @@ th.table-th-sort-rev span.table-th-sort-span {
     padding: 5px 20px;
     margin: 4px auto;
     font-weight: 300;
+    border-bottom: 1px solid #000000;
 }
 
 #header h2 {

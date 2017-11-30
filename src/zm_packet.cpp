@@ -36,6 +36,7 @@ ZMPacket::ZMPacket( ) {
   timestamp = NULL;
   analysis_image = NULL;
   image_index = -1;
+  score = -1;
 }
 
 ZMPacket::ZMPacket( ZMPacket &p ) {
@@ -53,6 +54,7 @@ ZMPacket::ZMPacket( ZMPacket &p ) {
   *timestamp = *p.timestamp;
   analysis_image = NULL;
   image_index = -1;
+  score = -1;
 }
 
 ZMPacket::~ZMPacket() {
@@ -103,6 +105,7 @@ void ZMPacket::reset() {
     timestamp = NULL;
   }
 #endif
+  score = -1;
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {

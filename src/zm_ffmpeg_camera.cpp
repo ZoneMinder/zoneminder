@@ -148,7 +148,7 @@ int FfmpegCamera::PrimeCapture() {
   }
   return 0;
 #else
-  return OpenFfmpeg();
+  return ! OpenFfmpeg();
 #endif
 }
 
@@ -206,6 +206,9 @@ int FfmpegCamera::PostCapture() {
 int FfmpegCamera::OpenFfmpeg() {
 
   Debug ( 2, "OpenFfmpeg called." );
+  uint32_t last_event_id = monitor->GetLastEventId() ;
+  uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
+  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
 
   int ret;
 
@@ -249,6 +252,9 @@ int FfmpegCamera::OpenFfmpeg() {
   //FIXME can speed up initial analysis but need sensible parameters...
   //mFormatContext->probesize = 32;
   //mFormatContext->max_analyze_duration = 32;
+  last_event_id = monitor->GetLastEventId() ;
+  video_writer_event_id = monitor->GetVideoWriterEventId();
+  Debug(2, "last_event(%d), our current (%d), mpath (%s)", last_event_id, video_writer_event_id, mPath.c_str() );
 
   if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
 #endif
@@ -262,6 +268,10 @@ int FfmpegCamera::OpenFfmpeg() {
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
+
+  last_event_id = monitor->GetLastEventId() ;
+  video_writer_event_id = monitor->GetVideoWriterEventId();
+  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
 
   mIsOpening = false;
   Debug ( 1, "Opened input" );
@@ -430,7 +440,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   } // end if have audio stream
 
-  Debug ( 1, "Opened codec" );
+  Debug ( 1, "Opened audio codec" );
 
   if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
     Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
@@ -478,12 +488,16 @@ int FfmpegCamera::CloseFfmpeg() {
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&mVideoCodecContext);
+#endif
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }
   if ( mAudioCodecContext ) {
     avcodec_close(mAudioCodecContext);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&mAudioCodecContext);
+#endif
     mAudioCodecContext = NULL; // Freed by av_close_input_file
   }
 
@@ -535,6 +549,5 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx) {
       return NULL;
     }
   }
-} // end void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx)
-
+}
 #endif // HAVE_LIBAVFORMAT

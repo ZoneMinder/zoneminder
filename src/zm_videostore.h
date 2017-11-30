@@ -18,8 +18,6 @@ class VideoStore;
 
 class VideoStore {
 private:
-  unsigned int packets_written;
-  unsigned int frame_count;
 
 	AVOutputFormat *out_format;
 	AVFormatContext *oc;
@@ -41,10 +39,13 @@ int audio_in_stream_index;
   AVFrame *out_frame;
 
   AVCodecContext *video_in_ctx;
+  AVCodec *audio_in_codec;
   AVCodecContext *audio_in_ctx;
   int ret;
 
   SWScale swscale;
+  unsigned int packets_written;
+  unsigned int frame_count;
 
   // The following are used when encoding the audio stream to AAC
   AVCodec *audio_out_codec;

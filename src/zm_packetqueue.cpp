@@ -26,6 +26,7 @@
 
 zm_packetqueue::zm_packetqueue() {
   video_packet_count = 0;
+  analysis_it = pktQueue.begin();
 }
 
 zm_packetqueue::~zm_packetqueue() {
@@ -37,6 +38,12 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
   if ( zm_packet->codec_type == AVMEDIA_TYPE_VIDEO )
     video_packet_count += 1;
 
+  if ( analysis_it == pktQueue.end() ) {
+    // ANalsys_it should only point to end when queue it empty
+    Debug(2,"pointing analysis_it to begining");
+    analysis_it = pktQueue.begin();
+  }
+
 	return true;
 }
 
@@ -46,6 +53,9 @@ ZMPacket* zm_packetqueue::popPacket( ) {
 	}
 
 	ZMPacket *packet = pktQueue.front();
+  if ( *analysis_it == packet )
+    analysis_it ++;
+
 	pktQueue.pop_front();
   if ( packet->codec_type == AVMEDIA_TYPE_VIDEO )
     video_packet_count -= 1;
@@ -108,6 +118,8 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     Debug(4, "Deleting a packet from the front, count is (%d)", delete_count );
 
     packet = pktQueue.front();
+    if ( *analysis_it == packet )
+      analysis_it ++;
     if ( packet->codec_type == AVMEDIA_TYPE_VIDEO )
       video_packet_count -= 1;
     pktQueue.pop_front();
@@ -129,6 +141,7 @@ void zm_packetqueue::clearQueue() {
       delete packet;
 	}
   video_packet_count = 0;
+  analysis_it = pktQueue.begin();
 }
 
 unsigned int zm_packetqueue::size() {
@@ -195,4 +208,31 @@ void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVi
   } else {
     Debug(1, "Done looking for keyframe.  Deleted %d frames. Remaining frames in queue: %d stream of head packet is (%d), keyframe (%d), distance(%d), packets(%d)", deleted_frames, pktQueue.size(), av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), distance( it, pktQueue.rend() ), pktQueue.size() );
   }
-}
+} // end void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVideoStreamId )
+
+// Returns a packet to analyse or NULL
+ZMPacket *zm_packetqueue::get_analysis_packet() {
+
+  if ( ! pktQueue.size() )
+    return NULL;
+  if ( analysis_it == pktQueue.end() ) 
+    return NULL;
+
+  Debug(2, "Distance from head: (%d)", std::distance( pktQueue.begin(), analysis_it ) );
+  Debug(2, "Distance from end: (%d)", std::distance( analysis_it, pktQueue.end() ) );
+
+  return *analysis_it;
+} // end ZMPacket *zm_packetqueue::get_analysis_packet()
+
+// The idea is that analsys_it will only be == end() if the queue is empty
+// probvlem here is that we don't want to analyse a packet twice. Maybe we can flag the packet analysed
+bool zm_packetqueue::increment_analysis_it( ) {
+  // We do this instead of distance becuase distance will traverse the entire list in the worst case
+  std::list<ZMPacket *>::iterator next_it = analysis_it;
+  next_it ++;
+  if ( next_it == pktQueue.end() ) {
+    return false;
+  }
+  analysis_it = next_it;
+  return true;
+} // end bool zm_packetqueue::increment_analysis_it( )

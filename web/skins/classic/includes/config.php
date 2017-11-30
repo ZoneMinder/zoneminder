@@ -56,6 +56,7 @@ $bandwidth_options = array(
 switch ( $_COOKIE['zmBandwidth'] ) {
     case 'high' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_H_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
+        define( 'ZM_WEB_REFRESH_NAVBAR', ZM_WEB_H_REFRESH_NAVBAR );     // How often (in seconds) the nav header refreshes
         define( 'ZM_WEB_REFRESH_CYCLE', ZM_WEB_H_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
         define( 'ZM_WEB_REFRESH_IMAGE', ZM_WEB_H_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)
         define( 'ZM_WEB_REFRESH_STATUS', ZM_WEB_H_REFRESH_STATUS );     // How often the little status frame refreshes itself in the watch window
@@ -73,6 +74,7 @@ switch ( $_COOKIE['zmBandwidth'] ) {
         break;
     } case 'medium' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_M_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
+        define( 'ZM_WEB_REFRESH_NAVBAR', ZM_WEB_M_REFRESH_NAVBAR );     // How often (in seconds) the nav header refreshes
         define( 'ZM_WEB_REFRESH_CYCLE', ZM_WEB_M_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
         define( 'ZM_WEB_REFRESH_IMAGE', ZM_WEB_M_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)
         define( 'ZM_WEB_REFRESH_STATUS', ZM_WEB_M_REFRESH_STATUS );     // How often the little status frame refreshes itself in the watch window
@@ -90,6 +92,7 @@ switch ( $_COOKIE['zmBandwidth'] ) {
         break;
     } case 'low' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_L_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
+        define( 'ZM_WEB_REFRESH_NAVBAR', ZM_WEB_L_REFRESH_NAVBAR );     // How often (in seconds) the nav header refreshes
         define( 'ZM_WEB_REFRESH_CYCLE', ZM_WEB_L_REFRESH_CYCLE );       // How often the cycle watch windows swaps to the next monitor
         define( 'ZM_WEB_REFRESH_IMAGE', ZM_WEB_L_REFRESH_IMAGE );       // How often the watched image is refreshed (if not streaming)
         define( 'ZM_WEB_REFRESH_STATUS', ZM_WEB_L_REFRESH_STATUS );     // How often the little status frame refreshes itself in the watch window

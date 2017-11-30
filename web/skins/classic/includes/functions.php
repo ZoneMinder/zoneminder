@@ -159,7 +159,7 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 <?php
 } // end function xhtmlHeaders( $file, $title )
 
-function getNavBarHTML() {
+function getNavBarHTML($reload = null) {
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
 
@@ -172,13 +172,16 @@ function getNavBarHTML() {
   global $user;
   global $bandwidth_options;
   global $view;
+if ($reload === null) {
 ?>
 <noscript>
 <div style="background-color:red;color:white;font-size:x-large;">
 ZoneMinder requires Javascript. Please enable Javascript in your browser for this site.
 </div>
 </noscript>
-
+<?php
+}
+?>
 <div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">
 		<div class="navbar-header">
@@ -279,7 +282,7 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
   </ul>
 </div> <!-- End .footer -->
 
-</div> <!-- End .navbar .navbar-default -->
+<!-- End .navbar .navbar-default --></div>
 <?php
   return( ob_get_clean() );
 } // end function getNavBarHTML()

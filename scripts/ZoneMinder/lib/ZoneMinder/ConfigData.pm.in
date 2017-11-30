@@ -2934,6 +2934,16 @@ our @options = (
     category    => 'highband',
   },
   {
+    name        => 'ZM_WEB_H_REFRESH_NAVBAR',
+    default     => '5',
+    description => 'How often (in seconds) the navigation header should refresh itself',
+    help        => q`
+      The navigation header contains the general status information about server load and storage space.
+      `,
+    type        => $types{integer},
+    category    => 'highband',
+  },
+  {
     name        => 'ZM_WEB_H_REFRESH_CYCLE',
     default     => '10',
     description => 'How often (in seconds) the cycle watch window swaps to the next monitor',
@@ -3197,6 +3207,16 @@ our @options = (
     category    => 'medband',
   },
   {
+    name        => 'ZM_WEB_M_REFRESH_NAVBAR',
+    default     => '15',
+    description => 'How often (in seconds) the navigation header should refresh itself',
+    help        => q`
+      The navigation header contains the general status information about server load and storage space.
+      `,
+    type        => $types{integer},
+    category    => 'medband',
+  },
+  {
     name        => 'ZM_WEB_M_REFRESH_CYCLE',
     default     => '20',
     description => 'How often (in seconds) the cycle watch window swaps to the next monitor',
@@ -3455,6 +3475,16 @@ our @options = (
       totals for all monitors. This is not a trivial task and should
       not be repeated too frequently or it may affect the performance
       of the rest of the system.
+      `,
+    type        => $types{integer},
+    category    => 'lowband',
+  },
+  {
+    name        => 'ZM_WEB_L_REFRESH_NAVBAR',
+    default     => '35',
+    description => 'How often (in seconds) the navigation header should refresh itself',
+    help        => q`
+      The navigation header contains the general status information about server load and storage space.
       `,
     type        => $types{integer},
     category    => 'lowband',

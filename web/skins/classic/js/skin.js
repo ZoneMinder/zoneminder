@@ -182,6 +182,20 @@ function refreshParentWindow() {
   }
 }
 
+$j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+
+$j(document).ready(function() {
+  if ($j('.navbar').length) setInterval(getNavBar, navBarRefresh)
+});
+
+function getNavBar () {
+  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar', setNavBar);
+}
+
+function setNavBar (data) {
+  $j('.navbar').replaceWith(data.message);
+}
+
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
 function checkStreamForErrors( funcName, streamObj ) {
   if ( !streamObj ) {

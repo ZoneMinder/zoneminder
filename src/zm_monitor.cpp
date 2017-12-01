@@ -353,8 +353,10 @@ Monitor::Monitor(
   event_count = 0;
   image_count = 0;
   analysis_image_count = 0;
+
+  // How many frames we need to have before we start analysing
   ready_count = warmup_count;
-  first_alarm_count = 0;
+
   last_alarm_count = 0;
   state = IDLE;
   last_signal = false;
@@ -411,6 +413,7 @@ Monitor::Monitor(
     }
     memset( mem_ptr, 0, mem_size );
     shared_data->size = sizeof(SharedData);
+    Debug( 1, "shared.size=%d", shared_data->size );
     shared_data->active = enabled;
     shared_data->signal = false;
     shared_data->state = IDLE;
@@ -451,7 +454,8 @@ Monitor::Monitor(
   start_time = last_fps_time = time( 0 );
 
   event = 0;
-   last_section_mod =0;
+  last_section_mod = 0;
+  pre_event_buffer_count = pre_event_count + alarm_frame_count + warmup_count- 1;
 
   Debug( 1, "Monitor %s\
       function: %d\
@@ -459,7 +463,9 @@ Monitor::Monitor(
       IBC = %d, WUC = %d, pEC = %d, PEC = %d, EAF = %d, FRI = %d, RBP = %d, ARBP = %d, FM = %d",
       name, 
       function, label_format, label_coord.X(), label_coord.Y(), label_size,
-      image_buffer_count, warmup_count, pre_event_count, post_event_count, alarm_frame_count, fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion
+      image_buffer_count, warmup_count, 
+      pre_event_count, post_event_count, alarm_frame_count, 
+      fps_report_interval, ref_blend_perc, alarm_ref_blend_perc, track_motion
       );
 
   n_linked_monitors = 0;
@@ -563,7 +569,6 @@ bool Monitor::connect() {
     /* Allocate a buffer for the next image */
     next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
   }
-  pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
 
   Debug(3, "Success connecting");
   return true;
@@ -752,8 +757,9 @@ unsigned int Monitor::GetLastWriteIndex() const {
 }
 
 uint32_t Monitor::GetLastEventId() const {
-  Debug(2, "mem_ptr(%x), State(%d) last_read_index(%d) last_read_time(%d) last_event(%d)",
+  Debug(2, "mem_ptr(%x), size(%d) State(%d) last_read_index(%d) last_read_time(%d) last_event(%d)",
       mem_ptr,
+      shared_data->size,
       shared_data->state,
       shared_data->last_read_index,
       shared_data->last_read_time,
@@ -777,7 +783,7 @@ double Monitor::GetFPS() const {
   }
   struct timeval time1 = *snap1->timestamp;
 
-  int image_count = image_buffer_count;
+  int fps_image_count = image_buffer_count;
 
   int index2 = (index1+1)%image_buffer_count;
   Debug(2, "index2(%d)", index2);
@@ -791,7 +797,7 @@ double Monitor::GetFPS() const {
     }
     index2 = (index2+1)%image_buffer_count;
     snap2 = &image_buffer[ index2 ];
-    image_count--;
+    fps_image_count--;
   }
   struct timeval time2 = *snap2->timestamp;
 
@@ -799,10 +805,11 @@ double Monitor::GetFPS() const {
   if ( ! time_diff ) {
     return 0.0;
   }
-  double curr_fps = image_count/time_diff;
+  double curr_fps = fps_image_count/time_diff;
 
   if ( curr_fps < 0.0 ) {
-    Error( "Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
+    Error( "Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
+        curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
     return 0.0;
   }
   return curr_fps;
@@ -1236,6 +1243,7 @@ bool Monitor::Analyse() {
     Warning("SHouldn't be doing Analyze when not Enabled");
     return false;
   }
+  GetLastEventId();
 
   // if  have event, sent frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
@@ -1294,7 +1302,7 @@ bool Monitor::Analyse() {
           if ( !signal ) {
             signalText = "Lost";
             if ( event ) {
-              Info( "%s: %03d - Closing event %d, signal loss", name, image_count, event->Id() );
+              Info( "%s: %03d - Closing event %d, signal loss", name, analysis_image_count, event->Id() );
               closeEvent();
               last_section_mod = 0;
             }
@@ -1374,7 +1382,7 @@ bool Monitor::Analyse() {
                 Debug( 3, "Section length (%d) Last Section Mod(%d), tv_sec(%d) new section mod(%d)", section_length, last_section_mod, timestamp->tv_sec, section_mod );
                 // This is not clear, but basically due to pauses, etc we might not get section_mod == 0
                 if ( section_mod < last_section_mod ) {
-                  Info( "%s: %03d - Closing event %d, section end forced ", name, image_count, event->Id() );
+                  Info( "%s: %03d - Closing event %d, section end forced ", name, analysis_image_count, event->Id() );
                   closeEvent();
                   last_section_mod = 0;
                 } else {
@@ -1388,7 +1396,7 @@ bool Monitor::Analyse() {
               event = new Event( this, *timestamp, "Continuous", noteSetMap );
               shared_data->last_event_id = event->Id();
               video_store_data->recording = event->StartTime();
-              Info( "%s: %03d - Opening new event %d, section start", name, image_count, event->Id() );
+              Info( "%s: %03d - Opening new event %d, section start", name, analysis_image_count, event->Id() );
               /* To prevent cancelling out an existing alert\prealarm\alarm state */
               if ( state == IDLE ) {
                 shared_data->state = state = TAPE;
@@ -1400,32 +1408,32 @@ bool Monitor::Analyse() {
             Debug(9, "Score: (%d)", score );
             if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
               if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
-                Info( "%s: %03d - Gone into alarm state", name, image_count );
+                Info( "%s: %03d - Gone into alarm state", name, analysis_image_count );
                 shared_data->state = state = ALARM;
                 if ( (function != MOCORD && state != ALERT) ) {
                   event = new Event( this, *timestamp, cause, noteSetMap );
                   shared_data->last_event_id = event->Id();
                 }
               } else if ( state != PREALARM ) {
-                Info( "%s: %03d - Gone into prealarm state", name, image_count );
+                Info( "%s: %03d - Gone into prealarm state", name, analysis_image_count );
                 shared_data->state = state = PREALARM;
               }
             } else if ( state == ALERT ) {
-              Info( "%s: %03d - Gone back into alarm state", name, image_count );
+              Info( "%s: %03d - Gone back into alarm state", name, analysis_image_count );
               shared_data->state = state = ALARM;
             }
-            last_alarm_count = image_count;
+            last_alarm_count = analysis_image_count;
           } else { // no score?
             if ( state == ALARM ) {
-              Info( "%s: %03d - Gone into alert state", name, image_count );
+              Info( "%s: %03d - Gone into alert state", name, analysis_image_count );
               shared_data->state = state = ALERT;
             } else if ( state == ALERT ) {
-              if ( image_count-last_alarm_count > post_event_count ) {
-                Info( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() );
+              if ( analysis_image_count-last_alarm_count > post_event_count ) {
+                Info( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames() );
                 //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
                 if ( function != MOCORD || event_close_mode == CLOSE_ALARM ) {
                   shared_data->state = state = IDLE;
-                  Info( "%s: %03d - Closing event %d, alarm end%s", name, image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
+                  Info( "%s: %03d - Closing event %d, alarm end%s", name, analysis_image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
                   closeEvent();
                 } else {
                   shared_data->state = state = TAPE;
@@ -1478,7 +1486,7 @@ bool Monitor::Analyse() {
             if ( noteSetMap.size() > 0 )
               event->updateNotes( noteSetMap );
           } else if ( state == TAPE ) {
-            if ( !(image_count%(frame_skip+1)) ) {
+            if ( !(analysis_image_count%(frame_skip+1)) ) {
             }
           }
           if ( function == MODECT || function == MOCORD ) {
@@ -1489,11 +1497,12 @@ bool Monitor::Analyse() {
 
       } else {
         Debug(3,"Not ready?");
+        return false;
       }
     } else {
       Debug(3, "trigger == off");
       if ( event ) {
-        Info( "%s: %03d - Closing event %d, trigger off", name, image_count, event->Id() );
+        Info( "%s: %03d - Closing event %d, trigger off", name, analysis_image_count, event->Id() );
         closeEvent();
       }
       shared_data->state = state = IDLE;
@@ -2736,6 +2745,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 int Monitor::Capture() {
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
+  GetLastEventId();
   unsigned int index = image_count % image_buffer_count;
 
   if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
@@ -3110,7 +3120,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
     shared_data->alarm_x = alarm_centre.X();
     shared_data->alarm_y = alarm_centre.Y();
 
-    Info( "Got alarm centre at %d,%d, at count %d", shared_data->alarm_x, shared_data->alarm_y, image_count );
+    Info( "Got alarm centre at %d,%d, at count %d", shared_data->alarm_x, shared_data->alarm_y, analysis_image_count );
   } else {
     shared_data->alarm_x = shared_data->alarm_y = -1;
   }
@@ -3194,7 +3204,7 @@ int Monitor::PrimeCapture() {
     video_stream_id = camera->get_VideoStreamId();
     packetqueue = new zm_packetqueue( pre_event_buffer_count, video_stream_id );
   }
-  Debug(2, "Video stream id is (%d)", video_stream_id );
+  Debug(2, "Video stream id is (%d), minimum_packets to keep in buffer(%d)", video_stream_id, pre_event_buffer_count );
   return ret;
 }
 int Monitor::PreCapture() {

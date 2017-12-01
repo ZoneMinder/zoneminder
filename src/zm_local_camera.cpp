@@ -1919,7 +1919,6 @@ int LocalCamera::PreCapture() {
 int LocalCamera::Capture( ZMPacket &zm_packet ) {
 
   // We assume that the avpacket is allocated, and just needs to be filled
-  Debug( 3, "Capturing" );
   static uint8_t* buffer = NULL;
   int buffer_bytesused = 0;
   int capture_frame = -1;
@@ -1954,7 +1953,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
           }
           return -1;
         }
-        Debug(3, "Captured a frame");
+        Debug(5, "Captured a frame");
 
         v4l2_data.bufptr = &vid_buf;
         capture_frame = v4l2_data.bufptr->index;

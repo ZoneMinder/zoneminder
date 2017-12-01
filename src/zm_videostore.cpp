@@ -140,14 +140,14 @@ VideoStore::VideoStore(
       Debug(3, "Have orientation");
       if ( orientation == Monitor::ROTATE_0 ) {
       } else if ( orientation == Monitor::ROTATE_90 ) {
-        dsr = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-        if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+        ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
+        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
       } else if ( orientation == Monitor::ROTATE_180 ) {
-        dsr = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-        if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+        ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
+        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
       } else if ( orientation == Monitor::ROTATE_270 ) {
-        dsr = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-        if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+        ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
+        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
       } else {
         Warning("Unsupported Orientation(%d)", orientation);
       }
@@ -188,8 +188,8 @@ VideoStore::VideoStore(
   } else {
 
     /** Create a new frame to store the */
-    if ( !(in_frame = zm_av_frame_alloc()) ) {
-      Error("Could not allocate in frame");
+    if ( !(video_in_frame = zm_av_frame_alloc()) ) {
+      Error("Could not allocate video_in frame");
       return;
     }
     // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
@@ -238,6 +238,9 @@ VideoStore::VideoStore(
       video_out_ctx->qcompress = 0.6;
       video_out_ctx->bit_rate = 4000000;
 #endif
+    video_out_ctx->max_b_frames = 1;
+    if (video_out_ctx->codec_id == AV_CODEC_ID_H264)
+        av_opt_set(video_out_ctx->priv_data, "preset", "superfast", 0);
 
       AVDictionary *opts = 0;
       std::string Options = monitor->GetEncoderOptions();
@@ -250,23 +253,6 @@ VideoStore::VideoStore(
           Debug( 3, "Encoder Option %s=%s", e->key, e->value );
         }
       }
-
-#if 0
-      if ( ! av_dict_get( opts, "preset", NULL, 0 ) ) {
-        Debug(2,"Setting preset to superfast");
-        av_dict_set( &opts, "preset", "superfast", 0 );
-      }
-      if ( ! av_dict_get( opts, "crf", NULL, 0 ) ) {
-        Debug(2,"Setting crf to superfast");
-        av_dict_set( &opts, "crf", "0", 0 );
-      }
-#endif
-#if 0
-      if ( ! av_dict_get( opts, "tune", NULL, 0 ) ) {
-        Debug(2,"Setting tune to zerolatency");
-        av_dict_set( &opts, "tune", "zerolatency", 0 );
-      }
-#endif
 
       if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
         Warning("Can't open video codec (%s)! %s, trying h264",
@@ -282,20 +268,6 @@ VideoStore::VideoStore(
             return;
           }
         }
-#if 0 
-      if ( ! av_dict_get( opts, "preset", NULL, 0 ) ) {
-        Debug(2,"Setting preset to superfast");
-        av_dict_set( &opts, "preset", "ultrafast", 0 );
-      }
-      if ( ! av_dict_get( opts, "crf", NULL, 0 ) ) {
-        Debug(2,"Setting crf to 0");
-        av_dict_set( &opts, "crf", "0", 0 );
-      }
-      if ( ! av_dict_get( opts, "tune", NULL, 0 ) ) {
-        Debug(2,"Setting tune to zerolatency");
-        av_dict_set( &opts, "tune", "zerolatency", 0 );
-      }
-#endif
         if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
           Error("Can't open video codec (%s)! %s",
               video_out_codec->name,
@@ -317,7 +289,7 @@ Debug(2,"Sucess opening codec");
       }
   } else {
 Error("Codec not set");
-    }// end if codec == h264
+    } // end if codec == h264
 
     swscale.SetDefaults(
         video_in_ctx->pix_fmt,
@@ -371,10 +343,10 @@ Error("Codec not set");
 #endif
 
   if ( audio_in_stream ) {
+    Debug(3, "Have audio stream");
     audio_in_stream_index = audio_in_stream->index;
     Debug(3, "Have audio stream");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-
     audio_in_ctx = avcodec_alloc_context3(NULL);
     ret = avcodec_parameters_to_context(audio_in_ctx,
                                         audio_in_stream->codecpar);
@@ -464,6 +436,7 @@ Error("Codec not set");
   video_next_dts = 0;
   audio_next_pts = 0;
   audio_next_dts = 0;
+Debug(2,"End VIdeoStore");
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {
@@ -524,14 +497,14 @@ void VideoStore::write_audio_packet( AVPacket &pkt ) {
 
 VideoStore::~VideoStore() {
   if ( video_out_ctx->codec_id != video_in_ctx->codec_id || audio_out_codec ) {
-Debug(2,"Different codecs between in and out");
-      // The codec queues data.  We need to send a flush command and out
-      // whatever we get. Failures are not fatal.
-      AVPacket pkt;
+    Debug(2,"Different codecs between in and out");
+    // The codec queues data.  We need to send a flush command and out
+    // whatever we get. Failures are not fatal.
+    AVPacket pkt;
     // WIthout these we seg fault I don't know why.
     pkt.data = NULL;
     pkt.size = 0;
-      av_init_packet(&pkt);
+    av_init_packet(&pkt);
 
 // I got crashes if the codec didn't do DELAY, so let's test for it.
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -561,8 +534,7 @@ Debug(2,"Different codecs between in and out");
         int got_packet = 0;
         ret = avcodec_encode_video2(video_out_ctx, &pkt, NULL, &got_packet);
         if ( ret < 0 ) {
-          Error("ERror encoding video while flushing (%d) (%s)", ret,
-              av_err2str(ret));
+          Error("ERror encoding video while flushing (%d) (%s)", ret, av_err2str(ret));
           break;
         }
         if (!got_packet) {
@@ -583,6 +555,10 @@ Debug(2,"Different codecs between in and out");
   if ( audio_out_codec ) {
     // The codec queues data.  We need to send a flush command and out
     // whatever we get. Failures are not fatal.
+    AVPacket pkt;
+    // WIthout these we seg fault I don't know why.
+    pkt.data = NULL;
+    pkt.size = 0;
     av_init_packet(&pkt);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -597,6 +573,9 @@ Debug(2,"Different codecs between in and out");
       }
 #else
     while (1) {
+      pkt.data = NULL;
+      pkt.size = 0;
+      av_init_packet(&pkt);
       int got_packet = 0;
       if ( (ret = avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet)) < 0 ) {
         Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str(ret));
@@ -721,6 +700,10 @@ bool VideoStore::setup_resampler() {
   }
   Debug(2, "Have audio out codec");
 
+  // Now copy them to the out stream
+  audio_out_stream = avformat_new_stream(oc, audio_out_codec);
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // audio_out_ctx = audio_out_stream->codec;
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
   if ( !audio_out_ctx ) {
@@ -728,6 +711,9 @@ bool VideoStore::setup_resampler() {
     audio_out_stream = NULL;
     return false;
   }
+#else
+  audio_out_ctx = audio_out_stream->codec;
+#endif
 
   /* put sample parameters */
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate;
@@ -765,8 +751,6 @@ bool VideoStore::setup_resampler() {
 
   audio_out_ctx->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
-  // Now copy them to the out stream
-  audio_out_stream = avformat_new_stream(oc, audio_out_codec);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   if ( (ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
@@ -774,8 +758,9 @@ bool VideoStore::setup_resampler() {
     Error("Could not initialize stream parameteres");
     return false;
   }
+  audio_out_stream->codecpar->frame_size = audio_out_ctx->frame_size;
 #else
-    avcodec_copy_context( audio_out_stream->codec, audio_out_ctx );
+  avcodec_copy_context( audio_out_stream->codec, audio_out_ctx );
 #endif
   audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
@@ -797,6 +782,22 @@ bool VideoStore::setup_resampler() {
         audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,
         audio_out_ctx->channels, audio_out_ctx->sample_fmt,
         audio_out_ctx->channel_layout, audio_out_ctx->frame_size);
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  Debug(1,
+        "Audio out bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
+        "layout(%d) frame_size(%d)",
+        audio_out_stream->codecpar->bit_rate, audio_out_stream->codecpar->sample_rate,
+        audio_out_stream->codecpar->channels, audio_out_stream->codecpar->format,
+        audio_out_stream->codecpar->channel_layout, audio_out_stream->codecpar->frame_size);
+#else
+  Debug(1,
+        "Audio out bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
+        "layout(%d) frame_size(%d)",
+        audio_out_stream->codec->bit_rate, audio_out_stream->codec->sample_rate,
+        audio_out_stream->codec->channels, audio_out_stream->codec->sample_fmt,
+        audio_out_stream->codec->channel_layout, audio_out_stream->codec->frame_size);
+#endif
 
   /** Create a new frame to store the audio samples. */
   if ( ! in_frame ) {

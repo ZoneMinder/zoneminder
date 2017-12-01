@@ -35,10 +35,12 @@ class zm_packetqueue {
     std::list<ZMPacket *>    pktQueue;
     std::list<ZMPacket *>::iterator analysis_it;
 
+    int video_stream_id;
     int video_packet_count; // keep track of how many video packets we have, because we shouldn't have more than image_buffer_count
+    unsigned int max_video_packet_count;
 
 public:
-    zm_packetqueue();
+    zm_packetqueue( unsigned int p_max_video_packet_count, int p_video_stream_id );
     virtual ~zm_packetqueue();
     bool queuePacket( ZMPacket* packet );
     ZMPacket * popPacket( );

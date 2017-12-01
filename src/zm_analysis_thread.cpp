@@ -41,7 +41,7 @@ int AnalysisThread::run() {
 
     if ( !monitor->Analyse() ) {
 Debug(2, "Sleeping for %d", monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE);
-      usleep(100*(monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE));
+      usleep(10*(monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE));
     } else if ( analysis_rate ) {
 Debug(2, "Sleeping for %d", analysis_rate);
       usleep(analysis_rate);

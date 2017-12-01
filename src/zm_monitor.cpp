@@ -542,8 +542,8 @@ bool Monitor::connect() {
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
-  analysis_it = packetqueue.pktQueue.begin();
-  
+  packetqueue = NULL;
+
   if ( ((unsigned long)shared_images % 64) != 0 ) {
     /* Align images buffer to nearest 64 byte boundary */
     Debug(3,"Aligning shared memory images to the next 64 byte boundary");
@@ -574,7 +574,8 @@ Monitor::~Monitor() {
     delete videoStore;
     videoStore = NULL;
   }
-  packetqueue.clearQueue();
+  delete packetqueue;
+  packetqueue = NULL;
 
   if ( timestamps ) {
     delete[] timestamps;
@@ -730,11 +731,6 @@ ZMPacket *Monitor::getSnapshot( int index ) {
   }
   return &image_buffer[index];
 
-  for ( std::list<ZMPacket *>::iterator it = packetqueue.pktQueue.begin(); it != packetqueue.pktQueue.end(); ++it ) {
-    ZMPacket *zm_packet = *it;
-    if ( zm_packet->image_index == index )
-      return zm_packet;
-  }
   return NULL;
 }
 
@@ -1243,28 +1239,13 @@ bool Monitor::Analyse() {
 
   // if  have event, sent frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
-  // Keeps minimum video frames.  This should be ok, because we SHOULD be staying close to the head of the queue in analysis
-  if ( ! event ) {
-    if ( packetqueue.video_packet_count > pre_event_count ) {
-      mutex.lock();
-      packetqueue.clearQueue( pre_event_count, video_stream_id );
-      mutex.unlock();
-    }
-  }
   // If do have an event, then analysis_it should point to the head of the queue, because we would have emptied it on event creation.
   unsigned int index = ( shared_data->last_read_index + 1 ) % image_buffer_count;
 
-  if ( ! packetqueue.size() ) {
-    Debug(2, "PacketQueue is empty" );
-    return false;
-  }
-
-  struct timeval now;
-  gettimeofday(&now, NULL);
   int packets_processed = 0;
 
   ZMPacket *snap;
-  while ( ( snap = packetqueue.get_analysis_packet() ) && ( snap->score == -1 ) ) {
+  while ( ( snap = packetqueue->get_analysis_packet() ) && ( snap->score == -1 ) ) {
     Debug(2, "Analysis index (%d), last_Write(%d)", index, shared_data->last_write_index);
     packets_processed += 1;
 
@@ -1273,9 +1254,9 @@ bool Monitor::Analyse() {
     Debug(2, "Analysing image (%d)", snap->image_index );
     if ( snap->image_index == -1 ) {
       Debug(2, "skipping because audio");
-      if ( ! packetqueue.increment_analysis_it() ) {
+      if ( ! packetqueue->increment_analysis_it() ) {
         Debug(2, "No more packets to analyse");
-        break;
+        return false;
       }
       continue;
     }
@@ -1478,7 +1459,7 @@ bool Monitor::Analyse() {
                 }
               } // end foreach zone
               if ( got_anal_image ) {
-                (*analysis_it)->analysis_image = anal_image;
+                snap->analysis_image = anal_image;
               } else {
                 delete anal_image;
               }
@@ -1522,7 +1503,7 @@ bool Monitor::Analyse() {
     if ( event ) {
       ZMPacket *queued_packet;
       //popPacket will increment analysis_it if neccessary, so this will write out all packets in queue
-      while ( ( queued_packet = packetqueue.popPacket() ) ) {
+      while ( ( queued_packet = packetqueue->popPacket() ) ) {
         Debug(2,"adding packet (%x) (%d)", queued_packet, queued_packet->image_index );
         event->AddPacket( queued_packet );
         if ( queued_packet->image_index == -1 ) {
@@ -1531,10 +1512,12 @@ bool Monitor::Analyse() {
         }
       } // end while write out queued_packets
     } else {
-      packetqueue.increment_analysis_it();
+      packetqueue->increment_analysis_it();
     }
 
     shared_data->last_read_index = snap->image_index;
+    struct timeval now;
+    gettimeofday(&now, NULL);
     shared_data->last_read_time = now.tv_sec;
     analysis_image_count++;
   } // end while not at end of packetqueue
@@ -2751,7 +2734,6 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
-  mutex.lock();
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
   unsigned int index = image_count % image_buffer_count;
@@ -2785,7 +2767,6 @@ int Monitor::Capture() {
 
     if ( FirstCapture ) {
       FirstCapture = 0;
-      mutex.unlock();
       return 0;
     }
   } else {
@@ -2800,7 +2781,6 @@ int Monitor::Capture() {
       signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
       capture_image->Fill(signalcolor);
       shared_data->signal = false;
-      mutex.unlock();
       return -1;
     } else if ( captureResult > 0 ) {
 
@@ -2808,14 +2788,15 @@ int Monitor::Capture() {
 
       if ( packet->packet.stream_index != video_stream_id ) {
         Debug(2, "Have audio packet (%d) != videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
-            packet->packet.stream_index, video_stream_id, packetqueue.video_packet_count, ( event ? 1 : 0 ) );
+            packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
         // Only queue if we have some video packets in there.
-        if ( packetqueue.video_packet_count || event ) {
+        mutex.lock();
+        if ( packetqueue->video_packet_count || event ) {
           // Need to copy it into another ZMPacket.
           ZMPacket *audio_packet = new ZMPacket( *packet );
           audio_packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
           Debug(2, "Queueing packet");
-          packetqueue.queuePacket( audio_packet );
+          packetqueue->queuePacket( audio_packet );
         }
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
@@ -2833,14 +2814,18 @@ int Monitor::Capture() {
           packet->get_image();
         }
         // Have an av_packet, 
-        if ( packetqueue.video_packet_count || ( packet->packet.flags & AV_PKT_FLAG_KEY ) || event ) {
+        mutex.lock();
+        if ( packetqueue->video_packet_count || packet->keyframe || event ) {
           //Debug(2, "Queueing video packet");
-          packetqueue.queuePacket( packet );
+          packetqueue->queuePacket( packet );
         }
+        mutex.unlock();
       } else {
+        mutex.lock();
         // Non-avpackets are all keyframes.
-        //Debug(2, "Queueing video packet");
-        packetqueue.queuePacket( packet );
+        Debug(2, "Queueing decoded video packet");
+        packetqueue->queuePacket( packet );
+        mutex.unlock();
       }
 
       /* Deinterlacing */
@@ -2909,9 +2894,6 @@ int Monitor::Capture() {
 
     } // end if result
   } // end if deinterlacing
-
-  Debug(2,"Capture unlock");
-  mutex.unlock();
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing
   if ( shared_data->action & GET_SETTINGS ) {
@@ -3208,7 +3190,10 @@ unsigned int Monitor::SubpixelOrder() const { return( camera->SubpixelOrder() );
 
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();
-  video_stream_id = ret ? -1 : camera->get_VideoStreamId();
+  if ( ret == 0 ) {
+    video_stream_id = camera->get_VideoStreamId();
+    packetqueue = new zm_packetqueue( pre_event_buffer_count, video_stream_id );
+  }
   Debug(2, "Video stream id is (%d)", video_stream_id );
   return ret;
 }

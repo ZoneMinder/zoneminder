@@ -164,9 +164,8 @@ protected:
   } VideoStoreData;
 
   VideoStore          *videoStore;
-  zm_packetqueue      packetqueue;
+  zm_packetqueue      *packetqueue;
   Mutex mutex;
-  std::list<ZMPacket *>::iterator analysis_it;  // Iterator into the packetqueue. Theoretically points to the most recently analyzed packet
 
   class MonitorLink {
   protected:

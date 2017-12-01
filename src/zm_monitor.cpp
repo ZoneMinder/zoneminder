@@ -2811,7 +2811,11 @@ int Monitor::Capture() {
         if ( packetqueue.video_packet_count || event ) {
           // Need to copy it into another ZMPacket.
           ZMPacket *audio_packet = new ZMPacket( *packet );
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
           audio_packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
+#else
+          audio_packet->codec_type = camera->get_AudioStream()->codec->codec_type;
+#endif
           Debug(2, "Queueing packet");
           packetqueue.queuePacket( audio_packet );
         }
@@ -2822,7 +2826,11 @@ int Monitor::Capture() {
       }
 
       Debug(2, "Have video packet");
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       packet->codec_type = camera->get_VideoStream()->codecpar->codec_type;
+#else
+      packet->codec_type = camera->get_VideoStream()->codec->codec_type;
+#endif
 
       if ( packet->packet.size && ! packet->in_frame ) {
         //Debug(2,"About to decode");

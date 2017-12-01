@@ -415,8 +415,7 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
   int frameComplete;
   while ( !frameComplete ) {
     if ( (ret = zm_avcodec_decode_video( context, frame, &frameComplete, &packet )) < 0 ) {
-      Error( "Unable to decode frame at frame %d: %s, continuing",
-          streams[packet.stream_index].frame_count,
+      Error( "Unable to decode frame at frame: %s, continuing",
           av_make_error_string(ret).c_str() );
       return 0;
     }

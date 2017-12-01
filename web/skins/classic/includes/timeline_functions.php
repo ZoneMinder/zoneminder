@@ -104,6 +104,10 @@ function parseFilterToTree( $filter ) {
                         $sqlValue = "E.StartTime";
                         $dtAttr = true;
                         break;
+                    case 'StartDateTime':
+                        $sqlValue = "E.StartTime";
+                        $dtAttr = true;
+                        break;
                     case 'Date':
                         $sqlValue = "to_days( E.StartTime )";
                         $dtAttr = true;
@@ -194,6 +198,9 @@ function parseFilterToTree( $filter ) {
                             $value = "'$value'";
                             break;
                         case 'DateTime':
+                            $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
+                            break;
+                        case 'StartDateTime':
                             $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
                             break;
                         case 'Date':

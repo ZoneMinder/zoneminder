@@ -1275,7 +1275,7 @@ bool Monitor::Analyse() {
       Debug(2, "skipping because audio");
       if ( ! packetqueue.increment_analysis_it() ) {
         Debug(2, "No more packets to analyse");
-        break;
+        return false;
       }
       continue;
     }

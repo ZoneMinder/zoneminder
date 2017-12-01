@@ -539,6 +539,8 @@ Debug(2,"Different codecs between in and out");
       // The codec queues data.  We need to send a flush command and out
       // whatever we get. Failures are not fatal.
       AVPacket pkt;
+      pkt.data = NULL;
+      pkt.size = 0;
       av_init_packet(&pkt);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -604,6 +606,9 @@ Debug(3, "dts:%d, pts:%d, keyframe:%d", pkt.dts, pkt.pts, keyframe );
       }
 #else
     while (1) {
+      pkt.data = NULL;
+      pkt.size = 0;
+      av_init_packet(&pkt);
       int got_packet = 0;
       ret =
           avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet);
@@ -732,6 +737,10 @@ bool VideoStore::setup_resampler() {
   }
   Debug(2, "Have audio out codec");
 
+  // Now copy them to the out stream
+  audio_out_stream = avformat_new_stream(oc, audio_out_codec);
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // audio_out_ctx = audio_out_stream->codec;
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
   if ( !audio_out_ctx ) {
@@ -739,6 +748,9 @@ bool VideoStore::setup_resampler() {
     audio_out_stream = NULL;
     return false;
   }
+#else
+  audio_out_ctx = audio_out_stream->codec;
+#endif
 
   /* put sample parameters */
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate;
@@ -776,8 +788,6 @@ bool VideoStore::setup_resampler() {
 
   audio_out_ctx->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
-  // Now copy them to the out stream
-  audio_out_stream = avformat_new_stream(oc, audio_out_codec);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   if ( (ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
@@ -785,6 +795,7 @@ bool VideoStore::setup_resampler() {
     Error("Could not initialize stream parameteres");
     return false;
   }
+  audio_out_stream->codecpar->frame_size = audio_out_ctx->frame_size;
 #endif
   audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
@@ -806,6 +817,13 @@ bool VideoStore::setup_resampler() {
         audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,
         audio_out_ctx->channels, audio_out_ctx->sample_fmt,
         audio_out_ctx->channel_layout, audio_out_ctx->frame_size);
+
+  Debug(1,
+        "Audio out bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
+        "layout(%d) frame_size(%d)",
+        audio_out_stream->codec->bit_rate, audio_out_stream->codec->sample_rate,
+        audio_out_stream->codec->channels, audio_out_stream->codec->sample_fmt,
+        audio_out_stream->codec->channel_layout, audio_out_stream->codec->frame_size);
 
   /** Create a new frame to store the audio samples. */
   if ( ! in_frame ) {

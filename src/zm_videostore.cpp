@@ -1003,6 +1003,13 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     } else {
       zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
     }
+    if ( zm_packet->keyframe ) {
+Debug(2, "Setting keyframe");
+      zm_packet->out_frame->key_frame =1;
+Debug(2, "Setting keyframe (%d)", zm_packet->out_frame->key_frame );
+} else {
+Debug(2, "Not Setting keyframe");
+}
 
     // Do this to allow the encoder to choose whether to use I/P/B frame
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -1043,8 +1050,6 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     }
 #endif
     opkt.dts = opkt.pts;
-    if ( zm_packet->keyframe )
-      opkt.flags |= AV_PKT_FLAG_KEY;
 
   } else {
     AVPacket *ipkt = &zm_packet->packet;

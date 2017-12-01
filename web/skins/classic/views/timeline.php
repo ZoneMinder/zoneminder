@@ -708,6 +708,7 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
       </div>
       <div id="headerButtons">
         <a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a>
+        <a href="?view=events&amp;page=1<?php echo htmlspecialchars($filterQuery) ?>"><?php echo translate('List') ?></a>
       </div>
     </div>
     <div id="content" class="chartSize">

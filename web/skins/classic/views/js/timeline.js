@@ -151,5 +151,5 @@ function tlZoomRange( midTime, range ) {
 }
 
 function tlPan( midTime, range ) {
-  location('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range);
+  location.replace('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range);
 }

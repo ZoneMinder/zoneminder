@@ -366,7 +366,7 @@ function parseTreeToFilter( $tree )
         $level = 0;
         _parseTreeToFilter( $tree, $terms, $level );
     }
-    return( array( 'terms' => $terms ) );
+    return( array( 'Query' => array( 'terms' => $terms ) ) );
 }
 
 function parseTreeToQuery( $tree )

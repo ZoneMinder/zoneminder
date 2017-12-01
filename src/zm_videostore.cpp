@@ -43,9 +43,10 @@ VideoStore::VideoStore(
   filename = filename_in;
   format = format_in;
 
-  av_register_all();
   packets_written = 0;
   frame_count = 0;
+
+  av_register_all();
 
   Info("Opening video storage stream %s format: %s", filename, format);
 
@@ -361,6 +362,7 @@ Error("Codec not set");
 
   converted_in_samples = NULL;
   audio_out_codec = NULL;
+  audio_in_codec = NULL;
   audio_in_ctx = NULL;
   audio_out_stream = NULL;
   out_frame = NULL;
@@ -666,18 +668,35 @@ Debug(2,"Different codecs between in and out");
   // allocation/de-allocation constantly, or whether we can just re-use it.
   // Just do a file open/close/writeheader/etc.
   // What if we were only doing audio recording?
-// Used by both audio and video conversions
-    if ( in_frame ) {
-      av_frame_free(&in_frame);
-      in_frame = NULL;
-    }
-  if ( audio_in_ctx ) {
-    avcodec_free_context(&audio_in_ctx);
-    audio_in_ctx = NULL;
+  if (video_out_stream) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // We allocate and copy in newer ffmpeg, so need to free it
+    avcodec_free_context(&video_in_ctx);
+#endif
+    video_in_ctx=NULL;
+
+    avcodec_close(video_out_ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    avcodec_free_context(&video_out_ctx);
+#endif
+    video_out_ctx = NULL;
+    Debug(4, "Success freeing video_out_ctx");
   }
   if ( audio_out_stream ) {
+    if ( audio_in_codec ) {
+    avcodec_close(audio_in_ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // We allocate and copy in newer ffmpeg, so need to free it
+    avcodec_free_context(&audio_in_ctx);
+#endif
+    audio_in_ctx = NULL;
+    audio_in_codec = NULL;
+    } // end if audio_in_codec
+
     avcodec_close(audio_out_ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&audio_out_ctx);
+#endif
     audio_out_ctx = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
     if ( resample_ctx ) {
@@ -797,6 +816,7 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 #endif
+  audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
   AVDictionary *opts = NULL;
   av_dict_set(&opts, "strict", "experimental", 0); // Needed to allow AAC

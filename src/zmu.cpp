@@ -514,10 +514,10 @@ int main( int argc, char *argv[] ) {
       }
       if ( function & ZMU_EVENT ) {
         if ( verbose )
-          printf( "Last event id: %d\n", monitor->GetLastEvent() );
+          printf( "Last event id: %d\n", monitor->GetLastEventId() );
         else {
           if ( have_output ) printf( "%c", separator );
-          printf( "%d", monitor->GetLastEvent() );
+          printf( "%d", monitor->GetLastEventId() );
           have_output = true;
         }
       }
@@ -712,7 +712,7 @@ int main( int argc, char *argv[] ) {
                 tv.tv_sec, tv.tv_usec/10000,
                 monitor->GetLastReadIndex(),
                 monitor->GetLastWriteIndex(),
-                monitor->GetLastEvent(),
+                monitor->GetLastEventId(),
                 monitor->GetFPS()
               );
               delete monitor;

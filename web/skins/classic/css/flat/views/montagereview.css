@@ -4,7 +4,7 @@
   display: inline-flex;
   border: 1px solid black;
   width: 25%;
-  padding: 9px;
+  padding: 4px;
 }
 #ScaleDiv label,
 #SpeedDiv label {

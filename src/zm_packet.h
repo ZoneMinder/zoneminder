@@ -44,6 +44,7 @@ class ZMPacket {
     struct timeval *timestamp;
     AVMediaType codec_type;
     int image_index;
+
   public:
     AVPacket *av_packet() { return &packet; }
     AVPacket *set_packet( AVPacket *p ) ;

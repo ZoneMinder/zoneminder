@@ -70,7 +70,7 @@ void Mutex::lock()
 {
   if ( pthread_mutex_lock( &mMutex ) < 0 )
     throw ThreadException( stringtf( "Unable to lock pthread mutex: %s", strerror(errno) ) );
-  Debug(3, "Lock");
+  //Debug(3, "Lock");
 }
 
 void Mutex::lock( int secs )
@@ -91,7 +91,7 @@ void Mutex::unlock()
 {
   if ( pthread_mutex_unlock( &mMutex ) < 0 )
     throw ThreadException( stringtf( "Unable to unlock pthread mutex: %s", strerror(errno) ) );
-  Debug(3, "unLock");
+  //Debug(3, "unLock");
 }
 
 bool Mutex::locked()
@@ -263,6 +263,7 @@ void *Thread::mThreadFunc( void *arg )
     thisPtr->mThreadCondition.signal();
     thisPtr->mThreadMutex.unlock();
     thisPtr->mRunning = true;
+    Debug(2,"Runnning");
     thisPtr->status = thisPtr->run();
     thisPtr->mRunning = false;
     Debug( 2, "Exiting thread, status %p", (void *)&(thisPtr->status) );

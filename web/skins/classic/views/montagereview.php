@@ -106,6 +106,7 @@ if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   $time = time();
   $maxTime = strftime("%FT%T",$time);
   $minTime = strftime("%FT%T",$time - 3600);
+  Logger::Debug("Defaulting to $minTime to $maxTime");
 }
 if ( isset($_REQUEST['minTime']) )
   $minTime = validHtmlStr($_REQUEST['minTime']);
@@ -113,7 +114,7 @@ if ( isset($_REQUEST['minTime']) )
 if ( isset($_REQUEST['maxTime']) )
   $maxTime = validHtmlStr($_REQUEST['maxTime']);
 
-// AS a special case a "all" is passed in as an exterme interval - if so , clear them here and let the database query find them
+// AS a special case a "all" is passed in as an extreme interval - if so, clear them here and let the database query find them
 
 if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
   // test years
@@ -161,6 +162,7 @@ $eventsSql .= ' GROUP BY E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.MaxScore,E.
 if ( isset($minTime) && isset($maxTime) ) {
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
+  Logger::Debug("Min/max time secs: $minTimeSecs $maxTimeSecs");
   $eventsSql .= " HAVING CalcEndTimeSecs > '" . $minTimeSecs . "' AND StartTimeSecs < '" . $maxTimeSecs . "'";
   $frameSql .= " AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
 }
@@ -190,31 +192,31 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
         <input type="datetime-local" name="maxTime" id="maxTime" value="<?php echo preg_replace('/ /', 'T', $maxTime ) ?>" onchange="changeDateTime(this);">
       </div>
       <div id="ScaleDiv">
-          <label for="scaleslider"><?php echo translate('Scale')?></label>
-          <input id="scaleslider" type="range" min="0.1" max="1.0" value="<?php echo $defaultScale ?>" step="0.10" onchange="setScale(this.value);" oninput="showScale(this.value);"/>
-          <span id="scaleslideroutput"><?php echo number_format((float)$defaultScale,2,'.','')?> x</span>
+        <label for="scaleslider"><?php echo translate('Scale')?></label>
+        <input id="scaleslider" type="range" min="0.1" max="1.0" value="<?php echo $defaultScale ?>" step="0.10" onchange="setScale(this.value);" oninput="showScale(this.value);"/>
+        <span id="scaleslideroutput"><?php echo number_format((float)$defaultScale,2,'.','')?> x</span>
       </div>
       <div id="SpeedDiv">
-          <label for="speedslider"><?php echo translate('Speed') ?></label>
-          <input id="speedslider" type="range" min="0" max="<?php echo count($speeds)-1?>" value="<?php echo $speedIndex ?>" step="1" onchange="setSpeed(this.value);" oninput="showSpeed(this.value);"/>
-          <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
+        <label for="speedslider"><?php echo translate('Speed') ?></label>
+        <input id="speedslider" type="range" min="0" max="<?php echo count($speeds)-1?>" value="<?php echo $speedIndex ?>" step="1" onchange="setSpeed(this.value);" oninput="showSpeed(this.value);"/>
+        <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
       </div>
       <div style="display: inline-flex; border: 1px solid black; flex-flow: row wrap;">
-          <button type="button" id="panleft"   onclick="click_panleft();"         >&lt; <?php echo translate('Pan') ?></button>
-          <button type="button" id="zoomin"    onclick="click_zoomin();"           ><?php echo translate('In +') ?></button>
-          <button type="button" id="zoomout"   onclick="click_zoomout();"          ><?php echo translate('Out -') ?></button>
-          <button type="button" id="lasteight" onclick="click_lastEight();"        ><?php echo translate('8 Hour') ?></button>
-          <button type="button" id="lasthour"  onclick="click_lastHour();"         ><?php echo translate('1 Hour') ?></button>
-          <button type="button" id="allof"     onclick="click_all_events();"       ><?php echo translate('All Events') ?></button>
-          <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
-          <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
-          <button type="button" id="panright"  onclick="click_panright();"         ><?php echo translate('Pan') ?> &gt;</button>
+        <button type="button" id="panleft"   onclick="click_panleft();"         >&lt; <?php echo translate('Pan') ?></button>
+        <button type="button" id="zoomin"    onclick="click_zoomin();"           ><?php echo translate('In +') ?></button>
+        <button type="button" id="zoomout"   onclick="click_zoomout();"          ><?php echo translate('Out -') ?></button>
+        <button type="button" id="lasteight" onclick="click_lastEight();"        ><?php echo translate('8 Hour') ?></button>
+        <button type="button" id="lasthour"  onclick="click_lastHour();"         ><?php echo translate('1 Hour') ?></button>
+        <button type="button" id="allof"     onclick="click_all_events();"       ><?php echo translate('All Events') ?></button>
+        <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
+        <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
+        <button type="button" id="panright"  onclick="click_panright();"         ><?php echo translate('Pan') ?> &gt;</button>
       </div>
       <div id="timelinediv">
-          <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
-          <span id="scrubleft"></span>
-          <span id="scrubright"></span>
-          <span id="scruboutput"></span>
+        <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
+        <span id="scrubleft"></span>
+        <span id="scrubright"></span>
+        <span id="scruboutput"></span>
       </div>
     </div>
   </div>

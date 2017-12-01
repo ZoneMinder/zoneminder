@@ -11,11 +11,15 @@ AnalysisThread::~AnalysisThread() {
 }
 
 int AnalysisThread::run() {
+  Debug(2, "In run");
 
   useconds_t analysis_rate = monitor->GetAnalysisRate();
+  Debug(2, "after getanalysisrate");
   unsigned int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
+  Debug(2, "after getanalysisUpdateDelay");
   time_t last_analysis_update_time, cur_time;
   monitor->UpdateAdaptiveSkip();
+  Debug(2, "after UpdateAdaptiveSkip");
   last_analysis_update_time = time(0);
 
   Debug(2, "THREAD: Getting ref image");

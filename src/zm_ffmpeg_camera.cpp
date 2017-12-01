@@ -148,7 +148,7 @@ int FfmpegCamera::PrimeCapture() {
   }
   return 0;
 #else
-  return OpenFfmpeg();
+  return ! OpenFfmpeg();
 #endif
 }
 
@@ -206,7 +206,6 @@ int FfmpegCamera::PostCapture() {
 int FfmpegCamera::OpenFfmpeg() {
 
   Debug ( 2, "OpenFfmpeg called." );
-
   int ret;
 
   mOpenStart = time(NULL);
@@ -218,10 +217,12 @@ int FfmpegCamera::OpenFfmpeg() {
   if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) != 0 )
 #else
   // Handle options
-  AVDictionary *opts = 0;
+  AVDictionary *opts = NULL;
   ret = av_dict_parse_string(&opts, Options().c_str(), "=", ",", 0);
   if ( ret < 0 ) {
-    Warning("Could not parse ffmpeg input options list '%s'\n", Options().c_str());
+    Warning("Could not parse ffmpeg input options list '%s'", Options().c_str());
+  } else {
+    Debug(2,"Could not parse ffmpeg input options list '%s'", Options().c_str());
   }
 
   // Set transport method as specified by method field, rtpUni is default
@@ -240,15 +241,12 @@ int FfmpegCamera::OpenFfmpeg() {
     Warning("Could not set rtsp_transport method '%s'\n", method.c_str());
   }
 
-  Debug ( 1, "Calling avformat_open_input for %s", mPath.c_str() );
+  Debug ( 1, "Calling avformat_alloc_context for %s", mPath.c_str() );
 
   mFormatContext = avformat_alloc_context( );
-  //mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
-  //mFormatContext->interrupt_callback.opaque = this;
-  // Speed up find_stream_info
-  //FIXME can speed up initial analysis but need sensible parameters...
-  //mFormatContext->probesize = 32;
-  //mFormatContext->max_analyze_duration = 32;
+
+  monitor->GetLastEventId() ;
+  Debug(2, "before avformat_open_input" );
 
   if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
 #endif
@@ -257,11 +255,15 @@ int FfmpegCamera::OpenFfmpeg() {
     Error( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
     return -1;
   }
+  Debug(2, "afte avformat_open_input" );
+  monitor->GetLastEventId() ;
 
   AVDictionaryEntry *e = NULL;
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
+
+  monitor->GetLastEventId() ;
 
   mIsOpening = false;
   Debug ( 1, "Opened input" );
@@ -380,12 +382,13 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     Debug(1, "Video Found decoder");
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
-  // Open the codec
+
+    // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  Debug ( 1, "Calling avcodec_open" );
-  if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 ){
+    Debug ( 1, "Calling avcodec_open" );
+    if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 ){
 #else
-    Debug ( 1, "Calling avcodec_open2" );
+    Debug ( 1, "Calling video avcodec_open2" );
     if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 ) {
 #endif
       AVDictionaryEntry *e = NULL;
@@ -430,7 +433,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   } // end if have audio stream
 
-  Debug ( 1, "Opened codec" );
+  Debug ( 1, "Opened audio codec" );
 
   if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
     Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
@@ -478,12 +481,16 @@ int FfmpegCamera::CloseFfmpeg() {
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&mVideoCodecContext);
+#endif
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }
   if ( mAudioCodecContext ) {
     avcodec_close(mAudioCodecContext);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     avcodec_free_context(&mAudioCodecContext);
+#endif
     mAudioCodecContext = NULL; // Freed by av_close_input_file
   }
 
@@ -535,6 +542,5 @@ void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx) {
       return NULL;
     }
   }
-} // end void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx)
-
+}
 #endif // HAVE_LIBAVFORMAT

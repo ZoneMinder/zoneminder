@@ -31,6 +31,12 @@ extern "C" {
 }
 
 class zm_packetqueue {
+  public: // For now just to ease development
+    std::list<ZMPacket *>    pktQueue;
+    std::list<ZMPacket *>::iterator analysis_it;
+
+    int video_packet_count; // keep track of how many video packets we have, because we shouldn't have more than image_buffer_count
+
 public:
     zm_packetqueue();
     virtual ~zm_packetqueue();
@@ -41,8 +47,10 @@ public:
     unsigned int size();
     unsigned int get_video_packet_count();
     void clear_unwanted_packets( timeval *recording, int mVideoStreamId );
-    std::list<ZMPacket *>    pktQueue;
-    int video_packet_count; // keep track of how many video packets we have, because we shouldn't have more than image_buffer_count
+
+    // Functions to manage the analysis frame logic
+    bool increment_analysis_it();
+    ZMPacket *get_analysis_packet();
 };
 
 #endif /* ZM_PACKETQUEUE_H */

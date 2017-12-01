@@ -24,7 +24,9 @@
 #define VIDEO_QUEUESIZE 200
 #define AUDIO_QUEUESIZE 50
 
-zm_packetqueue::zm_packetqueue() {
+zm_packetqueue::zm_packetqueue( unsigned int video_image_count, int p_video_stream_id ) {
+  video_stream_id = p_video_stream_id;
+  max_video_packet_count = video_image_count;
   video_packet_count = 0;
   analysis_it = pktQueue.begin();
 }
@@ -35,8 +37,11 @@ zm_packetqueue::~zm_packetqueue() {
 
 bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
 	pktQueue.push_back( zm_packet );
-  if ( zm_packet->codec_type == AVMEDIA_TYPE_VIDEO )
+  if ( zm_packet->codec_type == AVMEDIA_TYPE_VIDEO ) {
     video_packet_count += 1;
+    if ( video_packet_count > max_video_packet_count ) 
+      clearQueue( max_video_packet_count, video_stream_id );
+  }
 
   if ( analysis_it == pktQueue.end() ) {
     // ANalsys_it should only point to end when queue it empty
@@ -81,7 +86,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     AVPacket *av_packet = &(zm_packet->packet);
        
     Debug(4, "Looking at packet with stream index (%d) with keyframe(%d), frames_to_keep is (%d)",
-        av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
+        av_packet->stream_index, zm_packet->keyframe, frames_to_keep );
     
     // Want frames_to_keep video frames.  Otherwise, we may not have enough
     if ( av_packet->stream_index == stream_id ) {
@@ -94,8 +99,6 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     Debug(4, "Hit end of queue, still need (%d) video keyframes", frames_to_keep );
   } else {
     if ( it != pktQueue.rend() ) {
-      Debug(4, "Not rend");
-
       ZMPacket *zm_packet = *it;
       Debug(4, "packet %x %d", zm_packet, zm_packet->image_index);
 
@@ -103,10 +106,10 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
       while (
           ( it != pktQueue.rend() ) 
           &&
-          (( av_packet->stream_index != stream_id ) || ! ( av_packet->flags & AV_PKT_FLAG_KEY ))
+          (( av_packet->stream_index != stream_id ) || !zm_packet->keyframe )
           ) {
         zm_packet = *it;
-        Debug(4, "packet %x %d", zm_packet, zm_packet->image_index);
+        //Debug(4, "packet %x %d", zm_packet, zm_packet->image_index);
         ++it;
         av_packet = &( (*it)->packet );
       }
@@ -127,7 +130,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
       delete packet;
 
     delete_count += 1;
-  }    
+  } // while our iterator is not the first packet
   Debug(3, "Deleted (%d) packets", delete_count );
   return delete_count; 
 } // end unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream_id )
@@ -151,64 +154,6 @@ unsigned int zm_packetqueue::size() {
 unsigned int zm_packetqueue::get_video_packet_count() {
   return video_packet_count;
 }
-
-void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVideoStreamId ) {
-  // Need to find the keyframe <= recording_started.  Can get rid of audio packets.
-	if ( pktQueue.empty() ) {
-		return;
-	}
-
-  // Step 1 - find keyframe < recording_started.
-  // Step 2 - pop packets until we get to the packet in step 2
-  std::list<ZMPacket *>::reverse_iterator it;
-
-  Debug(3, "Looking for keyframe after start recording stream id (%d)", mVideoStreamId );
-  for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
-    ZMPacket *zm_packet = *it;
-    AVPacket *av_packet = &(zm_packet->packet);
-    if ( 
-        ( av_packet->flags & AV_PKT_FLAG_KEY ) 
-        && 
-        ( av_packet->stream_index == mVideoStreamId )
-        && 
-        timercmp( zm_packet->timestamp, recording_started, < )
-       ) {
-    Debug(3, "Found keyframe before start with stream index (%d) with keyframe (%d)", av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ) );
-      break;
-    }
-  }
-  if ( it == pktQueue.rend() ) {
-    Debug(1, "Didn't find a keyframe packet keeping all" );
-    return;
-  }
-
-  ZMPacket *zm_packet = *it;
-  AVPacket *av_packet = &(zm_packet->packet);
-  Debug(3, "Found packet before start with stream index (%d) with keyframe (%d), distance(%d), size(%d)", 
-      av_packet->stream_index, 
-      ( av_packet->flags & AV_PKT_FLAG_KEY ), 
-      distance( it, pktQueue.rend() ),
-      pktQueue.size() );
-
-  unsigned int deleted_frames = 0;
-  ZMPacket *packet = NULL;
-  while ( distance( it, pktQueue.rend() ) > 1 ) {
-  //while ( pktQueue.rend() != it ) {
-    packet = pktQueue.front();
-    pktQueue.pop_front();
-    if ( packet->image_index == -1 )
-      delete packet;
-    deleted_frames += 1;
-  }
-
-  zm_packet = pktQueue.front();
-  av_packet = &(zm_packet->packet);
-  if ( ( ! ( av_packet->flags & AV_PKT_FLAG_KEY ) ) || ( av_packet->stream_index != mVideoStreamId ) ) {
-    Error( "Done looking for keyframe.  Deleted %d frames. Remaining frames in queue: %d stream of head packet is (%d), keyframe (%d), distance(%d), packets(%d)", deleted_frames, pktQueue.size(), av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), distance( it, pktQueue.rend() ), pktQueue.size() );
-  } else {
-    Debug(1, "Done looking for keyframe.  Deleted %d frames. Remaining frames in queue: %d stream of head packet is (%d), keyframe (%d), distance(%d), packets(%d)", deleted_frames, pktQueue.size(), av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), distance( it, pktQueue.rend() ), pktQueue.size() );
-  }
-} // end void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVideoStreamId )
 
 // Returns a packet to analyse or NULL
 ZMPacket *zm_packetqueue::get_analysis_packet() {

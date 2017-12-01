@@ -35,6 +35,7 @@ int audio_in_stream_index;
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
   AVPacket opkt;
   // we are transcoding
+  AVFrame *video_in_frame;
   AVFrame *in_frame;
   AVFrame *out_frame;
 

@@ -1919,7 +1919,6 @@ int LocalCamera::PreCapture() {
 int LocalCamera::Capture( ZMPacket &zm_packet ) {
 
   // We assume that the avpacket is allocated, and just needs to be filled
-  Debug( 3, "Capturing" );
   static uint8_t* buffer = NULL;
   int buffer_bytesused = 0;
   int capture_frame = -1;
@@ -1944,7 +1943,6 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
       //vid_buf.memory = V4L2_MEMORY_MMAP;
       vid_buf.memory = v4l2_data.reqbufs.memory;
 
-      Debug( 3, "Capturing %d frames", captures_per_frame );
       while ( captures_per_frame ) {
         Debug( 3, "Capturing %d frames", captures_per_frame );
         if ( vidioctl( vid_fd, VIDIOC_DQBUF, &vid_buf ) < 0 ) {
@@ -1955,7 +1953,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
           }
           return -1;
         }
-        Debug( 3, "Capturing %d frames", captures_per_frame );
+        Debug(5, "Captured a frame");
 
         v4l2_data.bufptr = &vid_buf;
         capture_frame = v4l2_data.bufptr->index;

@@ -159,7 +159,7 @@ public:
   int Capture(ZMPacket &p);
   int PostCapture();
   static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
-AVStream* get_VideoStream();
+  AVStream* get_VideoStream();
 };
 
 #endif // ZM_HAS_V4L

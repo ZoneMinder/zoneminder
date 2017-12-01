@@ -429,7 +429,7 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
 
 void Event::AddPacket( ZMPacket *packet, int score, Image *alarm_image ) {
 
-    have_video_keyframe = have_video_keyframe || ( packet->codec_type == AVMEDIA_TYPE_VIDEO && ( packet->packet.flags & AV_PKT_FLAG_KEY ) );
+  have_video_keyframe = have_video_keyframe || ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && packet->keyframe );
   if ( videoStore ) {
     if ( have_video_keyframe )  {
       videoStore->writePacket( packet );
@@ -437,6 +437,8 @@ void Event::AddPacket( ZMPacket *packet, int score, Image *alarm_image ) {
       Debug(2, "No video keyframe yet, not writing");
     }
     //FIXME if it fails, we should write a jpeg
+  } else {
+    Debug(2,"AddPacket but no videostore?!");
   }
   if ( have_video_keyframe && ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) ) {
     AddFrame( packet->image, *packet->timestamp, score, alarm_image );

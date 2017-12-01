@@ -106,6 +106,7 @@ void ZMPacket::reset() {
   }
 #endif
   score = -1;
+  keyframe = 0;
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {

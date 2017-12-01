@@ -100,7 +100,7 @@ protected:
 
   typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
-  /* sizeof(SharedData) expected to be 336 bytes on 32bit and 64bit */
+  /* sizeof(SharedData) expected to be 344 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
     uint32_t last_write_index;  /* +4    */ 
@@ -164,9 +164,8 @@ protected:
   } VideoStoreData;
 
   VideoStore          *videoStore;
-  zm_packetqueue      packetqueue;
+  zm_packetqueue      *packetqueue;
   Mutex mutex;
-  std::list<ZMPacket *>::iterator analysis_it;  // Iterator into the packetqueue. Theoretically points to the most recently analyzed packet
 
   class MonitorLink {
   protected:
@@ -426,9 +425,15 @@ public:
     return( event_prefix );
   }
   inline bool Ready() {
-    if ( function <= MONITOR )
+    if ( function <= MONITOR ) {
+      Error("Should not be calling Ready if the function doesn't include motion detection");
       return( false );
-    return( image_count > ready_count );
+    }
+    if ( image_count > ready_count ) {
+      return true;
+    }
+    Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count );
+    return false;
   }
   inline bool Active() {
     if ( function <= MONITOR )

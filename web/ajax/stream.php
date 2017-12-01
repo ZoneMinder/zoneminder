@@ -116,7 +116,9 @@ switch ( $data['type'] ) {
   case MSG_DATA_WATCH :
   {
     $data =  unpack( "ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced", $msg );
+    Logger::Debug("FPS: " . $data['fps'] );
     $data['fps'] = round( $data['fps'], 2 );
+    Logger::Debug("FPS: " . $data['fps'] );
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );

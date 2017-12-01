@@ -317,9 +317,9 @@ int main(int argc, char *argv[]) {
         if ( next_delays[i] > 0 ) {
           gettimeofday(&now, NULL);
           DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
-          long sleep_time = next_delays[i]-delta_time.delta;
+          long sleep_time = next_delays[i] - delta_time.delta;
           if ( sleep_time > 0 ) {
-            //Debug(2,"usleeping (%d)", sleep_time*(DT_MAXGRAN/DT_PREC_3) );
+            Debug(2,"usleeping (%d)", sleep_time*(DT_MAXGRAN/DT_PREC_3) );
             usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
           }
           last_capture_times[i] = now;

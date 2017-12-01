@@ -164,9 +164,8 @@ protected:
   } VideoStoreData;
 
   VideoStore          *videoStore;
-  zm_packetqueue      packetqueue;
+  zm_packetqueue      *packetqueue;
   Mutex mutex;
-  std::list<ZMPacket *>::iterator analysis_it;  // Iterator into the packetqueue. Theoretically points to the most recently analyzed packet
 
   class MonitorLink {
   protected:
@@ -292,6 +291,7 @@ protected:
   int        first_alarm_count;
   int        last_alarm_count;
   bool       last_signal;
+    int last_section_mod;
   int        buffer_count;
   int        prealarm_count;
   State      state;
@@ -454,7 +454,6 @@ public:
   const std::string &OutputCodec() const { return output_codec; }
   const std::string &OutputContainer() const { return output_container; }
 
-  uint32_t GetLastEventId() const { return shared_data->last_event_id; }
   uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }
  
@@ -470,7 +469,7 @@ public:
   int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }
   unsigned int GetLastReadIndex() const;
   unsigned int GetLastWriteIndex() const;
-  unsigned int GetLastEvent() const;
+  uint32_t GetLastEventId() const;
   double GetFPS() const;
   void UpdateAnalysisFPS();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );

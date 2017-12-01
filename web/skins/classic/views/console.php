@@ -114,7 +114,6 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
   }
   $monitor['zmc'] = zmcStatus( $monitor );
-  #$monitor['zma'] = zmaStatus( $monitor );
   $zoneCount += $monitor['ZoneCount'];
 
   $counts = array();
@@ -189,9 +188,9 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $dclass = 'errorText';
   } else {
   // https://github.com/ZoneMinder/ZoneMinder/issues/1082
-    if ( !$monitor['zma'] && $monitor['Function']!='Monitor' )
-      $dclass = 'warnText';
-    else
+    //if ( a'] && $monitor['Function']!='Monitor' )
+      //$dclass = 'warnText';
+    //else
       $dclass = 'infoText';
   }
   if ( $monitor['Function'] == 'None' )

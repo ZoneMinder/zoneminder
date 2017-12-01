@@ -508,6 +508,7 @@ void VideoStore::write_audio_packet( AVPacket &pkt ) {
   pkt.pts = audio_next_pts;
   pkt.dts = audio_next_dts;
 
+  Debug(2, "writing audio packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration);
   if ( pkt.duration > 0 ) {
     pkt.duration =
       av_rescale_q(pkt.duration, audio_out_ctx->time_base,
@@ -516,11 +517,10 @@ void VideoStore::write_audio_packet( AVPacket &pkt ) {
   audio_next_pts += pkt.duration;
   audio_next_dts += pkt.duration;
 
-  Debug(2, "writing audio packet pts(%d) dts(%d) duration(%d)", pkt.pts,
-      pkt.dts, pkt.duration);
+  Debug(2, "writing audio packet pts(%d) dts(%d) duration(%d)", pkt.pts, pkt.dts, pkt.duration);
   pkt.stream_index = audio_out_stream->index;
   av_interleaved_write_frame(oc, &pkt);
-}
+} // end void VideoStore::Write_audio_packet( AVPacket &pkt )
 
 VideoStore::~VideoStore() {
   if ( video_out_ctx->codec_id != video_in_ctx->codec_id || audio_out_codec ) {
@@ -589,58 +589,17 @@ Debug(2,"Different codecs between in and out");
     // Put encoder into flushing mode
     avcodec_send_frame(audio_out_ctx, NULL);
     while (1) {
-      ret = avcodec_receive_packet(audio_out_ctx, &pkt);
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-      if (ret < 0) {
+      if ( (ret = avcodec_receive_packet(audio_out_ctx, &pkt) ) < 0 ) {
         if (AVERROR_EOF != ret) {
-          Error("ERror encoding audio while flushing (%d) (%s)", ret,
-                av_err2str(ret));
+          Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str(ret));
         }
         break;
       }
 #else
     while (1) {
       int got_packet = 0;
-      ret =
-          avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet);
-      if (ret < 0) {
-        Error("ERror encoding audio while flushing (%d) (%s)", ret,
-              av_err2str(ret));
+      if ( (ret = avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet)) < 0 ) {
+        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str(ret));
         break;
       }
       Debug(1, "Have audio encoder, need to flush it's out");
@@ -650,14 +609,14 @@ Debug(2,"Different codecs between in and out");
 #endif
       write_audio_packet(pkt);
       zm_av_packet_unref(&pkt);
-    }  // while have buffered frames
-  }    // end if audio_out_codec
+    } // while have buffered frames
+  } // end if audio_out_codec
 
   // Flush Queues
   av_interleaved_write_frame(oc, NULL);
 
   /* Write the trailer before close */
-  if (int rc = av_write_trailer(oc)) {
+  if ( int rc = av_write_trailer(oc) ) {
     Error("Error writing trailer %s", av_err2str(rc));
   } else {
     Debug(3, "Sucess Writing trailer");
@@ -780,7 +739,7 @@ bool VideoStore::setup_resampler() {
 
   if ( audio_out_codec->supported_samplerates ) {
     int found = 0;
-    for ( int i=0; audio_out_codec->supported_samplerates[i]; i++) {
+    for ( int i=0; audio_out_codec->supported_samplerates[i]; i++ ) {
       if ( audio_out_ctx->sample_rate ==
           audio_out_codec->supported_samplerates[i]) {
         found = 1;
@@ -815,6 +774,8 @@ bool VideoStore::setup_resampler() {
     Error("Could not initialize stream parameteres");
     return false;
   }
+#else
+    avcodec_copy_context( audio_out_stream->codec, audio_out_ctx );
 #endif
   audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 

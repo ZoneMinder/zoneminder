@@ -174,6 +174,7 @@ VideoStore::VideoStore(
         video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
         break;
       default:
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
         break;
     }
     // Same codec, just copy the packets, otherwise we have to decode/encode
@@ -542,7 +543,7 @@ VideoStore::~VideoStore() {
         }
 #endif
         int keyframe = pkt.flags & AV_PKT_FLAG_KEY;
-        Debug(3, "dts:%d, pts:%d, keyframe:%d", pkt.dts, pkt.pts, keyframe );
+        Debug(3, "dts:%I64d, pts:%I64d, keyframe:%d", pkt.dts, pkt.pts, keyframe );
         //pkt.dts = video_next_dts;
         pkt.pts = pkt.dts;
         //pkt.duration = video_last_duration;
@@ -891,7 +892,7 @@ void VideoStore::dumpPacket(AVPacket *pkt) {
   snprintf(b, sizeof(b),
            " pts: %" PRId64 ", dts: %" PRId64
            ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64
-           ", c-duration: %" PRId64 "\n",
+           ", duration: %" PRId64 "\n",
            pkt->pts, 
            pkt->dts,
            pkt->data,
@@ -1057,7 +1058,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
   }
   opkt.duration = 0;
 
-Debug(3, "dts:%d, pts:%d, keyframe:%d", opkt.dts, opkt.pts, opkt.flags & AV_PKT_FLAG_KEY );
+Debug(3, "dts:%" PRId64 ", pts:%" PRId64 ", keyframe:%d", opkt.dts, opkt.pts, opkt.flags & AV_PKT_FLAG_KEY );
   write_video_packet( opkt );
   zm_av_packet_unref(&opkt);
 
@@ -1068,7 +1069,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
 
   if ( opkt.dts > opkt.pts ) {
     Debug(1,
-          "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen "
+          "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 "). Decompression must happen "
           "before presentation.",
           opkt.dts, opkt.pts);
     opkt.dts = opkt.pts;
@@ -1085,7 +1086,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
   //av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
 
   Debug(1,
-        "writing video packet pts(%d) dts(%d) duration(%d) packet_count(%d)",
+        "writing video packet pts(%" PRId64 ") dts(%" PRId64 ") duration(%" PRId64 ") packet_count(%d)",
          opkt.pts, opkt.dts, opkt.duration, packets_written );
   if ( (opkt.data == NULL) || (opkt.size < 1) ) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
@@ -1308,7 +1309,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
   // audio_last_dts = ipkt->dts;
   if ( opkt.dts > opkt.pts ) {
     Debug(1,
-          "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen "
+          "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 "). Decompression must happen "
           "before presentation.",
           opkt.dts, opkt.pts);
     opkt.dts = opkt.pts;
@@ -1317,8 +1318,8 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
   //opkt.duration = out_frame ? out_frame->nb_samples : ipkt->duration;
   // opkt.duration = av_rescale_q(ipkt->duration, audio_in_stream->time_base,
   // audio_out_stream->time_base);
-  Debug(2, "opkt.pts (%d), opkt.dts(%d) opkt.duration = (%d)", opkt.pts,
-        opkt.dts, opkt.duration);
+  Debug(2, "opkt.pts (%" PRId64 "), opkt.dts(%" PRId64 ") opkt.duration = (%" PRId64 ")",
+      opkt.pts, opkt.dts, opkt.duration);
 
   // pkt.pos:  byte position in stream, -1 if unknown
   opkt.pos = -1;
@@ -1351,7 +1352,8 @@ int VideoStore::write_packets( zm_packetqueue &queue ) {
 
     packet_count += 1;
     //Write the packet to our video store
-    Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, queue.size() );
+    Debug(2, "Writing queued packet stream: %d KEY %d, remaining (%d)",
+        avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, queue.size() );
     int ret = this->writePacket( queued_packet );
     if ( ret < 0 ) {
       //Less than zero and we skipped a frame

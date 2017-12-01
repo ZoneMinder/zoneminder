@@ -106,26 +106,25 @@ static int parse_key_value_pair(AVDictionary **pm, const char **buf,
     return ret;
 }
 int av_dict_parse_string(AVDictionary **pm, const char *str,
-                            const char *key_val_sep, const char *pairs_sep,
-                            int flags)
-   {
-       if (!str)
-          return 0;
-   
-       /* ignore STRDUP flags */
-       flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
-   
-       while (*str) {
-	       int ret;
-           if ( (ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
-              return ret;
-   
-           if (*str)
-               str++;
-       }
-   
-       return 0;
+    const char *key_val_sep, const char *pairs_sep,
+    int flags) {
+  if (!str)
+    return 0;
+
+  /* ignore STRDUP flags */
+  flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
+
+  while (*str) {
+    int ret;
+    if ( (ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
+      return ret;
+
+    if (*str)
+      str++;
   }
+
+  return 0;
+}
 #endif
 #endif // HAVE_LIBAVUTIL
 

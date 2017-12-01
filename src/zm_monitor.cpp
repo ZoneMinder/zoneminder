@@ -2745,6 +2745,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 int Monitor::Capture() {
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
+  GetLastEventId();
   unsigned int index = image_count % image_buffer_count;
 
   if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {

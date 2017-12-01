@@ -46,7 +46,7 @@ VideoStore::VideoStore(
   packets_written = 0;
   frame_count = 0;
 
-  av_register_all();
+  FFMPEGInit();
 
   Info("Opening video storage stream %s format: %s", filename, format);
 

@@ -160,15 +160,18 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 } // end function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML($reload = null) {
-  parseFilter( $_REQUEST['filter'] );
-  $filterQuery = $_REQUEST['filter']['query'];
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
   global $running;
   global $user;
   global $bandwidth_options;
   global $view;
-if ($reload === null) {
+  global $filterQuery;
+  if (!$filterQuery) {
+    parseFilter( $_REQUEST['filter'] );
+    $filterQuery = $_REQUEST['filter']['query'];
+  }
+  if ($reload === null) {
     ob_start();
     if ( $running == null )
       $running = daemonCheck();

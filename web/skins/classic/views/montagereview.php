@@ -59,17 +59,18 @@ include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
-$filter = array(
+if (isset($_REQUEST['minTime']) || isset($_REQUEST['maxTime'])) {
+  $filter = array(
       'Query' => array(
         'terms' => array(
-          array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST[minTime]),
-          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST[maxTime]),
+          array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime']),
+          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime']),
         )
       ),
     );
-
-parseFilter( $filter );
-$filterQuery = $filter['query'];
+  parseFilter( $filter );
+  $filterQuery = $filter['query'];
+}
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)

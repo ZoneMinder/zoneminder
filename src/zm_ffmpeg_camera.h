@@ -100,9 +100,6 @@ class FfmpegCamera : public Camera {
     const std::string &Options() const { return( mOptions ); } 
     const std::string &Method() const { return( mMethod ); }
 
-    void Initialise();
-    void Terminate();
-
     int PrimeCapture();
     int PreCapture();
     int Capture(ZMPacket &p);

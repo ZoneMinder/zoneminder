@@ -193,7 +193,7 @@ function getNavBar () {
 }
 
 function setNavBar (data) {
-  $j('.navbar').replaceWith(data.message);
+  $j('#reload').replaceWith(data.message);
 }
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.

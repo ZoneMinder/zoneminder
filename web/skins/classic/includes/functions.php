@@ -162,26 +162,21 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 function getNavBarHTML($reload = null) {
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
-
-
-  ob_start();
   global $running;
-  if ( $running == null )
-    $running = daemonCheck();
-  $status = $running?translate('Running'):translate('Stopped');
   global $user;
   global $bandwidth_options;
   global $view;
 if ($reload === null) {
+    ob_start();
+    if ( $running == null )
+      $running = daemonCheck();
+    $status = $running?translate('Running'):translate('Stopped');
 ?>
 <noscript>
 <div style="background-color:red;color:white;font-size:x-large;">
 ZoneMinder requires Javascript. Please enable Javascript in your browser for this site.
 </div>
 </noscript>
-<?php
-}
-?>
 <div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">
 		<div class="navbar-header">
@@ -246,7 +241,11 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 </div>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
-	<div class="container-fluid">
+<?php
+}//end reload null.  Runs on full page load
+if ($reload == 'reload') ob_start();
+?>
+	<div id="reload" class="container-fluid">
   <div class="pull-left">
     <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bandwidth_options[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
   </div>
@@ -280,9 +279,11 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
   </ul>
-</div> <!-- End .footer -->
-
-<!-- End .navbar .navbar-default --></div>
+</div> <!-- End .footer/reload -->
+<?php
+if ($reload == 'reload') return( ob_get_clean() );
+?>
+</div><!-- End .navbar .navbar-default -->
 <?php
   return( ob_get_clean() );
 } // end function getNavBarHTML()

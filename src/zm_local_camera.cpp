@@ -2047,7 +2047,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
     }
 
   } else {
-    Debug( 3, "No format conversion performed. Assigning the image" );
+    Debug( 5, "No format conversion performed. Assigning the image" );
 
     /* No conversion was performed, the image is in the V4L buffers and needs to be copied into the shared memory */
     zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);

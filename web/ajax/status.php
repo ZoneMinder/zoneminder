@@ -1,4 +1,8 @@
 <?php
+if ($_REQUEST['entity'] == "navBar") {
+   ajaxResponse(getNavBarHtml('reload'));
+   return;
+}
 
 $statusData = array(
     'system' => array(

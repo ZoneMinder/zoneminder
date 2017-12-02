@@ -40,8 +40,6 @@ function vjsReplay() {
   }
 }
 
-$j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
-
 var cueFrames = null; //make cueFrames availaible even if we don't send another ajax query
 
 function initialAlarmCues (eventId) {

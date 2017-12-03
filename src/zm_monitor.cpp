@@ -73,7 +73,12 @@ std::vector<std::string> split(const std::string &s, char delim) {
   return elems;
 }
 
-Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
+Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) :
+  id( p_id ),
+  shared_data(NULL),
+  trigger_data(NULL),
+  video_store_data(NULL)
+{
   strncpy( name, p_name, sizeof(name) );
 
 #if ZM_MEM_MAPPED
@@ -468,9 +473,12 @@ Monitor::Monitor(
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
 
   if ( purpose == ANALYSIS ) {
-
-    while( shared_data->last_write_index == (unsigned int)image_buffer_count 
-         && shared_data->last_write_time == 0) {
+Debug(2,"last_write_index(%d), last_write_time(%d)", shared_data->last_write_index, shared_data->last_write_time );
+    while( 
+        ( shared_data->last_write_index == (unsigned int)image_buffer_count )
+         &&
+        ( shared_data->last_write_time == 0) 
+        ) {
       Warning( "Waiting for capture daemon" );
       sleep( 1 );
     }
@@ -605,7 +613,7 @@ Monitor::~Monitor() {
   }
   if ( mem_ptr ) {
     if ( event ) {
-      Info( "%s: %03d - Closing event %d, shutting down", name, image_count, event->Id() );
+      Info( "%s: image_count:%d - Closing event %d, shutting down", name, image_count, event->Id() );
       closeEvent();
     }
 
@@ -771,30 +779,40 @@ unsigned int Monitor::GetLastWriteIndex() const {
   return( shared_data->last_write_index!=(unsigned int)image_buffer_count?shared_data->last_write_index:-1 );
 }
 
-unsigned int Monitor::GetLastEvent() const {
+uint32_t Monitor::GetLastEventId() const {
+  Debug(2, "mem_ptr(%x), State(%d) last_read_index(%d) last_read_time(%d) last_event(%d)",
+      mem_ptr,
+      shared_data->state,
+      shared_data->last_read_index,
+      shared_data->last_read_time,
+      shared_data->last_event
+      );
   return( shared_data->last_event );
 }
 
+// This function is crap.
 double Monitor::GetFPS() const {
   int index1 = shared_data->last_write_index;
   if ( index1 == image_buffer_count ) {
-    return( 0.0 );
+    // last_write_index only has this value on startup before capturing anything.
+    return 0.0;
   }
   Snapshot *snap1 = &image_buffer[index1];
   if ( !snap1->timestamp || !snap1->timestamp->tv_sec ) {
-    return( 0.0 );
+    // This should be impossible
+    return 0.0;
   }
   struct timeval time1 = *snap1->timestamp;
 
   int image_count = image_buffer_count;
   int index2 = (index1+1)%image_buffer_count;
-  if ( index2 == image_buffer_count ) {
-    return( 0.0 );
-  }
   Snapshot *snap2 = &image_buffer[index2];
+  // the timestamp pointers are initialized on connection, so that's redundant
+  // tv_sec is probably only zero during the first loop of capturing, so this basically just counts the unused images.
   while ( !snap2->timestamp || !snap2->timestamp->tv_sec ) {
     if ( index1 == index2 ) {
-      return( 0.0 );
+      // We didn't find any initialized images
+      return 0.0;
     }
     index2 = (index2+1)%image_buffer_count;
     snap2 = &image_buffer[index2];
@@ -807,10 +825,10 @@ double Monitor::GetFPS() const {
   double curr_fps = image_count/time_diff;
 
   if ( curr_fps < 0.0 ) {
-    //Error( "Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
-    return( 0.0 );
+    Error( "Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
+    return 0.0;
   }
-  return( curr_fps );
+  return curr_fps;
 }
 
 useconds_t Monitor::GetAnalysisRate() {
@@ -2974,29 +2992,24 @@ Debug(4, "Return from Capture (%d)", captureResult);
     shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
 
     image_count++;
-  } // end if captureResult
 
-  if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
-
-    struct timeval now;
-    if ( !captureResult ) {
-      gettimeofday( &now, NULL );
-    } else {
-      now.tv_sec = image_buffer[index].timestamp->tv_sec;
-    }
-    // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
-    if ( now.tv_sec != last_fps_time ) {
-      fps = double(fps_report_interval)/(now.tv_sec-last_fps_time);
-      Info( "%d -> %d -> %d", fps_report_interval, now.tv_sec, last_fps_time );
-      //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-      Info( "%s: %d - Capturing at %.2lf fps", name, image_count, fps );
-      last_fps_time = now.tv_sec;
-      static char sql[ZM_SQL_SML_BUFSIZ];
-      snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", fps, id );
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error( "Can't run query: %s", mysql_error( &dbconn ) );
+    if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
+      time_t now = image_buffer[index].timestamp->tv_sec;
+      // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
+      if ( now != last_fps_time ) {
+        // # of images per interval / the amount of time it took
+        fps = double(fps_report_interval)/(now-last_fps_time);
+        Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
+        //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
+        Info( "%s: images:%d - Capturing at %.2lf fps", name, image_count, fps );
+        last_fps_time = now;
+        static char sql[ZM_SQL_SML_BUFSIZ];
+        snprintf( sql, sizeof(sql), "UPDATE Monitors SET CaptureFPS='%.2lf' WHERE Id=%d", fps, id );
+        if ( mysql_query( &dbconn, sql ) ) {
+          Error( "Can't run query: %s", mysql_error( &dbconn ) );
+        }
       }
-    }
+    } // end if captureResult
   }
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing

@@ -26,6 +26,8 @@
 ?>
 var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 
+var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
+
 var currentView = '<?php echo $view ?>';
 var thisUrl = "<?php echo ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
 var skinPath = "<?php echo ZM_SKIN_PATH ?>";
@@ -59,7 +61,7 @@ if ( ( ! empty($closePopup) ) and ( $closePopup == true ) ) {
 
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
-var imagePrefix = "<?php echo viewImagePath( "", '&' ) ?>";
+var imagePrefix = "<?php echo "?view=image&eid=" ?>";
 
 var auth_hash;
 <?php if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) { ?>

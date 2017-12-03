@@ -853,7 +853,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
     return( array_values( $exportFileList ) );
 }
 
-function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat )
+function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat, $exportStructure = false )
 {     
     
     if ( canView( 'Events' ) && !empty($eids) )
@@ -907,8 +907,12 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         {
             $archive = ZM_DIR_EXPORTS."/".$export_root.".tar.gz";
             @unlink( $archive );
-            $command = "tar --create --gzip --file=$archive --files-from=$listFile";
-            exec( escapeshellcmd( $command ), $output, $status );
+            if ($exportStructure == 'flat') {  //strip file paths if we choose
+              $command = "tar --create --gzip --file=".escapeshellarg($archive)." --files-from=".escapeshellarg($listFile)." --xform='s#^.+/##x'";
+            } else {
+              $command = "tar --create --gzip --file=".escapeshellarg($archive)." --files-from=".escapeshellarg($listFile);
+            }
+            exec( $command, $output, $status );
             if ( $status )
             {
                 Error( "Command '$command' returned with status $status" );
@@ -921,7 +925,11 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
         {
             $archive = ZM_DIR_EXPORTS."/".$export_root.".zip";
             @unlink( $archive );
-            $command = "cat ".escapeshellarg($listFile)." | zip -q ".escapeshellarg($archive)." -@";
+            if ($exportStructure == 'flat') {
+              $command = "cat ".escapeshellarg($listFile)." | zip -q -j ".escapeshellarg($archive)." -@";
+            } else {
+              $command = "cat ".escapeshellarg($listFile)." | zip -q ".escapeshellarg($archive)." -@";
+            }
 //cat zmFileList.txt | zip -q zm_export.zip -@
 //-bash: zip: command not found
 

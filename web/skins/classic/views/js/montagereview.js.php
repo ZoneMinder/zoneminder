@@ -1,4 +1,6 @@
 
+var filterQuery = '<?php echo isset($filterQuery)?htmlspecialchars_decode($filterQuery):'' ?>';
+
 var server_utc_offset = <?php
 $TimeZone = new DateTimeZone( ini_get('date.timezone') );
 $now = new DateTime('now', $TimeZone);
@@ -31,13 +33,17 @@ var groupStr=<?php echo $group_id ? "'&group=$group_id'" : '""'; ?>;
 
 // Because we might not have time as the criteria, figure out the min/max time when we run the query
 
-$minTimeSecs = strtotime('2036-01-01 01:01:01');
-$maxTimeSecs = strtotime('1950-01-01 01:01:01');
+if ( ! $maxTimeSecs )
+$maxTimeSecs = time();
+if ( ! $minTimeSecs )
+$minTimeSecs = strtotime('2010-01-01 01:01:01');
 
 // This builds the list of events that are eligible from this range
 
 $index = 0;
 $anyAlarms = false;
+
+if ( ! $initialModeIsLive ) {
 
 $result = dbQuery( $eventsSql );
 if ( ! $result ) {
@@ -81,6 +87,7 @@ if ( !isset($minTime) || !isset($maxTime) ) {
   $minTime = strftime($minTimeSecs);
 } else {
   $minTimeSecs = strtotime($minTime);
+
   $maxTimeSecs = strtotime($maxTime);
 }
 
@@ -136,6 +143,7 @@ if ( $mId > 0 ) {
 }
 
 echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
+} // end if initialmodeislive
 echo "var monitorName = [];\n";
 echo "var monitorLoading = [];\n";
 echo "var monitorImageObject = [];\n";

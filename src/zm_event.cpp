@@ -71,7 +71,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   static char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime( &start_time.tv_sec );
-  snprintf( sql, sizeof(sql), "insert into Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d )", 
+  snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,
@@ -81,7 +81,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       notes.c_str(), 
       state_id,
       monitor->getOrientation(),
-      videoEvent
+      videoEvent,
+      monitor->GetOptSaveJPEGs()
       );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
@@ -181,7 +182,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     if ( videowriter != NULL ) {
       /* Open the video stream */
       int nRet = videowriter->Open();
-      if(nRet != 0) {
+      if ( nRet != 0 ) {
         Error("Failed opening video stream");
         delete videowriter;
         videowriter = NULL;
@@ -211,7 +212,9 @@ Event::~Event() {
   if ( frames > last_db_frame ) {
 
     Debug( 1, "Adding closing frame %d to DB", frames );
-    snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )", id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+    snprintf( sql, sizeof(sql), 
+        "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )",
+        id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
       exit( mysql_errno( &dbconn ) );
@@ -228,8 +231,10 @@ Event::~Event() {
     videowriter = NULL;
 
     /* Close the timecodes file */
-    fclose(timecodes_fd);
-    timecodes_fd = NULL;
+    if ( timecodes_fd ) {
+      fclose(timecodes_fd);
+      timecodes_fd = NULL;
+    }
   }
 
   snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
@@ -302,7 +307,8 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
   }
 
   /* Add the frame to the timecodes file */
-  fprintf(timecodes_fd, "%u\n", timeMS);
+  if ( timecodes_fd )
+    fprintf(timecodes_fd, "%u\n", timeMS);
 
   return( true );
 }

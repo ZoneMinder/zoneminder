@@ -124,7 +124,7 @@ public function beforeFilter() {
 		if (!$this->Monitor->exists($id)) {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
-		if ($this->Session->Read('systemPermission') != 'Edit')
+		if ($this->Session->Read('monitorPermission') != 'Edit')
 		{
 			 throw new UnauthorizedException(__('Insufficient privileges'));
 			return;

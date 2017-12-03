@@ -250,6 +250,11 @@ ul.tabList li.active a {
     font-size: 120%;
 }
 
+#content table > tbody > tr:hover
+{
+    background-color: #EEE;
+}
+
 .overlay {
     font-size: 11px;
 }
@@ -363,11 +368,11 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #header {
     width: 100%;
-    line-height: 24px;
+    line-height: 1;
     text-align: left;
     background-color: #383836;
-    margin-bottom: 10px;
-    padding: 10px 20px;
+    padding: 5px 20px;
+    margin: 0 auto 4px auto;
     color: #f2f2f2;
     font-weight: 300;
 }
@@ -405,7 +410,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #content {
     width: 96%;
-    margin: 8px auto;
+    margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
 }
@@ -454,6 +459,7 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin: 8px auto;
 }
 
+button,
 input[type=button],
 input[type=submit] {
     background-color: #3498db;
@@ -465,6 +471,7 @@ input[type=submit] {
     cursor: pointer;
 }
 
+button:hover,
 input[type=button]:hover,
 input[type=submit]:hover {
     background-color: #34a2ee;    
@@ -474,6 +481,7 @@ input[type=submit]:hover {
 
 /* PP - make it easy to identify disabled buttons */
 
+button:disabled,
 input[type=button]:disabled,
 input[type=submit]:disabled {
     background-color: #aaaaaa;    

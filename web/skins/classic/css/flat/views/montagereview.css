@@ -4,7 +4,7 @@
   display: inline-flex;
   border: 1px solid black;
   width: 25%;
-  padding: 9px;
+  padding: 4px;
 }
 #ScaleDiv label,
 #SpeedDiv label {
@@ -41,4 +41,8 @@ input[type=range]::-ms-tooltip {
 #timeline {
     color: white;
   font-size: 40px;
+}
+
+#downloadVideo {
+  margin-left: 5px;
 }

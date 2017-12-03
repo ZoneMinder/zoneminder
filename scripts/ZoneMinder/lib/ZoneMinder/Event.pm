@@ -390,7 +390,7 @@ sub age {
 
 sub DiskSpace {
   if ( @_ > 1 ) {
-    Debug("Cleared DiskSpace, was $_[0]{DiskSpace}");
+    Debug("Cleared DiskSpace, was $_[0]{DiskSpace}") if $_[0]{DiskSpace};
     $_[0]{DiskSpace} = $_[1];
   }
   if ( ! defined $_[0]{DiskSpace} ) {

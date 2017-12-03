@@ -148,7 +148,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <input type="hidden" name="object" value="filter"/>
 
         <hr/>
-        <p>
+        <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
           <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>"/>
         </p>
@@ -229,9 +229,9 @@ for ( $i = 0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $weekdays, $term['val'] ); ?></td>
 <?php
-    } elseif ( false && $term['attr'] == 'MonitorName' ) {
+    } elseif ( $term['attr'] == 'MonitorName' ) {
       $monitors = array();
-      foreach ( dbFetchAll( 'select Id,Name from Monitors order by Sequence asc' ) as $monitor ) {
+      foreach ( dbFetchAll( 'select Id,Name from Monitors order by Name asc' ) as $monitor ) {
         if ( visibleMonitor( $monitor['Id'] ) ) {
           $monitors[$monitor['Name']] = $monitor['Name'];
         }
@@ -398,12 +398,13 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('ListMatches') ?>" onclick="submitToEvents( this );"/>
+          <input type="submit" value="<?php echo translate('ListMatches') ?>" onclick="submitToEvents(this);"/>
           <input type="button" name="executeButton" id="executeButton" value="<?php echo translate('Execute') ?>" onclick="executeFilter( this );"/>
 <?php 
 if ( canEdit( 'Events' ) ) {
 ?>
-          <input type="button" value="<?php echo translate('Save') ?>" onclick="saveFilter( this );"/>
+          <button name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
+          <button name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>
@@ -415,6 +416,6 @@ if ( canEdit( 'Events' ) ) {
           <input type="button" value="<?php echo translate('Reset') ?>" onclick="submitToFilter( this, 1 );"/>
         </div>
       </form>
-    </div>
-  </div>
+    </div><!--content-->
+  </div><!--page-->
 <?php xhtmlFooter() ?>

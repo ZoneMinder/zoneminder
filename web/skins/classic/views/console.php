@@ -22,16 +22,17 @@ if ( $running == null )
   $running = daemonCheck();
 
 $eventCounts = array(
-  array(
+  'Total'=>  array(
     'title' => translate('Events'),
     'filter' => array(
       'Query' => array(
         'terms' => array()
       )
     ),
-    'total' => 0,
+    'totalevents' => 0,
+    'totaldiskspace' => 0,
   ),
-  array(
+  'Hour'=>array(
     'title' => translate('Hour'),
     'filter' => array(
       'Query' => array(
@@ -40,42 +41,46 @@ $eventCounts = array(
         )
       )
     ),
-    'total' => 0,
+    'totalevents' => 0,
+    'totaldiskspace' => 0,
   ),
-  array(
+  'Day'=>array(
     'title' => translate('Day'),
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 day' ),
+          array( 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 day' ),
         )
       )
     ),
-    'total' => 0,
+    'totalevents' => 0,
+    'totaldiskspace' => 0,
   ),
-  array(
+  'Week'=>array(
     'title' => translate('Week'),
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-7 day' ),
+          array( 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-7 day' ),
         )
       )
     ),
-    'total' => 0,
+    'totalevents' => 0,
+    'totaldiskspace' => 0,
   ),
-  array(
+  'Month'=>array(
     'title' => translate('Month'),
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 month' ),
+          array( 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 month' ),
         )
       )
     ),
-    'total' => 0,
+    'totalevents' => 0,
+    'totaldiskspace' => 0,
   ),
-  array(
+  'Archived'=>array(
     'title' => translate('Archived'),
     'filter' => array(
       'Query' => array(
@@ -84,7 +89,8 @@ $eventCounts = array(
         )
       )
     ),
-    'total' => 0,
+    'totalevents' => 0,
+    'totaldiskspace' => 0,
   ),
 );
 
@@ -109,26 +115,20 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   }
   $monitor['zmc'] = zmcStatus( $monitor );
   $monitor['zma'] = zmaStatus( $monitor );
-  $monitor['ZoneCount'] = dbFetchOne( 'select count(Id) as ZoneCount from Zones where MonitorId = ?', 'ZoneCount', array($monitor['Id']) );
   $zoneCount += $monitor['ZoneCount'];
 
   $counts = array();
-  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
+  foreach ( array_keys( $eventCounts ) as $j ) {
     $filter = addFilterTerm(
       $eventCounts[$j]['filter'],
       count($eventCounts[$j]['filter']['Query']['terms']),
       array( 'cnj' => 'and', 'attr' => 'MonitorId', 'op' => '=', 'val' => $monitor['Id'] )
     );
     parseFilter( $filter );
-    $counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
+    #$counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
     $monitor['eventCounts'][$j]['filter'] = $filter;
-  }
-  $sql = 'SELECT '.join($counts,', ').' FROM Events as E where MonitorId = ?';
-  $counts = dbFetchOne( $sql, NULL, array($monitor['Id']) );
-  if ( $counts )
-    $monitor = array_merge( $monitor, $counts );
-  for ( $j = 0; $j < count($eventCounts); $j += 1 ) {
-    $eventCounts[$j]['total'] += $monitor['EventCount'.$j];
+    $eventCounts[$j]['totalevents'] += $monitor[$j.'Events'];
+    $eventCounts[$j]['totaldiskspace'] += $monitor[$j.'EventDiskSpace'];
   }
   unset($monitor);
 } // end foreach display monitor
@@ -168,10 +168,11 @@ xhtmlHeaders( __FILE__, translate('Console') );
             <th class="colSource"><?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
             <th class="colStorage"><?php echo translate('Storage') ?></th>
-<?php } ?>
-<?php for ( $i = 0; $i < count($eventCounts); $i++ ) { ?>
-            <th class="colEvents"><?php echo $eventCounts[$i]['title'] ?></th>
-<?php } ?>
+<?php }
+      foreach ( array_keys( $eventCounts ) as $j ) {
+        echo '<th class="colEvents">'. $j .'</th>';
+      }
+?>
             <th class="colZones"><a href="<?php echo $_SERVER['PHP_SELF'] ?>?view=zones_overview"><?php echo translate('Zones') ?></a></th>
 <?php if ( canEdit('Monitors') ) { ?>
             <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox( this, 'markMids[]' );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/> <?php echo translate('All') ?></th>
@@ -207,12 +208,15 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php 
   if ( ZM_WEB_ID_ON_CONSOLE ) {
 ?>
-            <td class="colId"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Id'], ($monitor['Function'] != 'None') && canView('Stream') ) ?></td>
+            <td class="colId"><a <?php echo (canView('Stream') && $running && $monitor['Function'] != 'None' ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Id'] ?></a></td>
 <?php
   }
 ?>
-            <td class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], ($monitor['Function'] != 'None') && canView('Stream') ) ?></td>
-            <td class="colFunction"><?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?></td>
+            <td class="colName"><a <?php echo (canView('Stream') && $monitor['Function'] != 'None' ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a></td>
+            <td class="colFunction">
+              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
+<?php echo $monitor['CaptureFPS'] . ( ( $monitor['Function'] == 'Mocord' or $monitor['Function'] == 'Modect' ) ? ' / ' . $monitor['AnalysisFPS'] : '' ) . ' FPS' ?>
+              </td>
 <?php
   if ( count($servers) ) { ?>
             <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
@@ -239,10 +243,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php
   }
 
-  for ( $i = 0; $i < count($eventCounts); $i++ ) {
+      foreach ( array_keys( $eventCounts ) as $i ) {
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, 
-                $monitor['EventCount'.$i] . '<br/>' . human_filesize($monitor['DiskSpace'.$i]), canView( 'Events' ) ) ?></td>
+            <td class="colEvents"><a <?php echo (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'].'">'  : '') . 
+                $monitor[$i.'Events'] . '<br/>' . human_filesize($monitor[$i.'EventDiskSpace']) ?></a></td>
 <?php
   }
 ?>
@@ -267,17 +271,18 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colId"><?php echo count($displayMonitors) ?></td>
             <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
               <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor( this )"/>
+              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor(this);"/>
               <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
-              <?php echo makePopupButton( '?view=filter&amp;filter[terms][0][attr]=DateTime&amp;filter[terms][0][op]=%3c&amp;filter[terms][0][val]=now', 'zmFilter', 'filter', translate('Filters'), canView( 'Events' ) ) ?>
               <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>
               <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/>
             </td>
 <?php
-      for ( $i = 0; $i < count($eventCounts); $i++ ) {
-        parseFilter( $eventCounts[$i]['filter'] );
+  foreach ( array_keys( $eventCounts ) as $i ) {
+    parseFilter( $eventCounts[$i]['filter'] );
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, $eventCounts[$i]['total'], canView( 'Events' ) ) ?></td>
+            <td class="colEvents">
+              <a <?php echo (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$eventCounts[$i]['filter']['query'].'">' : '') . 
+                  $eventCounts[$i]['totalevents'].'<br/>'.human_filesize($eventCounts[$i]['totaldiskspace']) ?></a></td>
 <?php
       }
 ?>

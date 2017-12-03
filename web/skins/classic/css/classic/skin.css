@@ -1,3 +1,4 @@
+
 /*
  * ZoneMinder Base Stylesheet, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
@@ -95,9 +96,6 @@ input.noborder {
     border: 0;
 }
 
-input[disabled] {
-    color: #888888;
-}
 
 img {
   display: inline-block;
@@ -349,9 +347,11 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #header {
     width: 100%;
-    line-height: 24px;
-    margin: 8px auto;
+    margin: 0 auto 4px auto;
+    line-height: 1;
     text-align: left;
+    padding: 3px 0;
+    border-bottom: 1px solid #555555;
 }
 
 #header h2 {
@@ -381,7 +381,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #content {
     width: 96%;
-    margin: 8px auto;
+    margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
 }
@@ -407,11 +407,15 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 */
 
-#content > input[type=submit], #content > input[type=button], #content > button {
+#content > input[type=submit],
+#content > input[type=button],
+#content > button {
     margin-top: 8px;
 }
 
-#content table input[type=submit], #content table input[type=button], #content table button {
+#content table input[type=submit],
+#content table input[type=button],
+#content table button {
     margin-top: 0;
 }
 
@@ -420,6 +424,7 @@ th.table-th-sort-rev span.table-th-sort-span {
     float: right;
 }
 
+#contentButtons button,
 #contentButtons input {
     margin-left: 8px;
     margin-bottom: 4px;
@@ -486,4 +491,37 @@ margin-left: 0px;
 
 .nav-pills > li > a {
 	border-radius: 0;
+}
+
+button,
+input[type=button],
+input[type=submit] {
+  padding: 1px 6px;
+  /*
+  background-color: #3498db;
+  color: #fff;
+  border-color: #3498db;
+  font-weight: 200;
+  padding: 5px 10px;
+  cursor: pointer;
+  */
+}
+
+button:hover,
+input[type=button]:hover,
+input[type=submit]:hover {
+  /*
+  background-color: #34a2ee;
+  */
+}
+
+button:disabled,
+input[disabled],
+input[type=button]:disabled,
+input[type=submit]:disabled {
+    color: #888888;
+  /*
+  background-color: #aaaaaa;
+  */
+  border-color: #bbbbbb;
 }

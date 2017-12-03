@@ -225,29 +225,41 @@ sub Sql {
                 ) {
               $value = "'$temp_value'";
             } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
-              $value = DateTimeToSQL( $temp_value );
-              if ( !$value ) {
-                Error( "Error parsing date/time '$temp_value', "
-                    ."skipping filter '$self->{Name}'\n" );
-                return;
+              if ( $temp_value == 'NULL' ) {
+                $value = $temp_value;
+              } else {
+                $value = DateTimeToSQL( $temp_value );
+                if ( !$value ) {
+                  Error( "Error parsing date/time '$temp_value', "
+                      ."skipping filter '$self->{Name}'\n" );
+                  return;
+                }
+                $value = "'$value'";
               }
-              $value = "'$value'";
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or  $term->{attr} eq 'EndDate' ) {
-              $value = DateTimeToSQL( $temp_value );
-              if ( !$value ) {
-                Error( "Error parsing date/time '$temp_value', "
-                    ."skipping filter '$self->{Name}'\n" );
-                return;
+              if ( $temp_value == 'NULL' ) {
+                $value = $temp_value;
+              } else {
+                $value = DateTimeToSQL( $temp_value );
+                if ( !$value ) {
+                  Error( "Error parsing date/time '$temp_value', "
+                      ."skipping filter '$self->{Name}'\n" );
+                  return;
+                }
+                $value = "to_days( '$value' )";
               }
-              $value = "to_days( '$value' )";
             } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
-              $value = DateTimeToSQL( $temp_value );
-              if ( !$value ) {
-                Error( "Error parsing date/time '$temp_value', "
-                    ."skipping filter '$self->{Name}'\n" );
-                return;
+              if ( $temp_value == 'NULL' ) {
+                $value = $temp_value;
+              } else {
+                $value = DateTimeToSQL( $temp_value );
+                if ( !$value ) {
+                  Error( "Error parsing date/time '$temp_value', "
+                      ."skipping filter '$self->{Name}'\n" );
+                  return;
+                }
+                $value = "extract( hour_second from '$value' )";
               }
-              $value = "extract( hour_second from '$value' )";
             } else {
               $value = $temp_value;
             }

@@ -1,4 +1,8 @@
 <?php
+if ($_REQUEST['entity'] == "navBar") {
+   ajaxResponse(getNavBarHtml('reload'));
+   return;
+}
 
 $statusData = array(
     'system' => array(
@@ -136,6 +140,17 @@ $statusData = array(
                   'MaxFrameDelta' => array( 'sql' => "(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)" ),
                   //'Path' => array( 'postFunc' => 'getEventPath' ),
                   ),
+                  ),
+                  'frames' => array(
+                      'permission' => 'Events',
+                      'table' => 'Frames',
+                      'selector' => 'EventId',
+                      'elements' => array(
+                        'EventId' => true,
+                        'FrameId' => true,
+                        'Type' => true,
+                        'Delta' => true,
+                      ),
                   ),
                   'frame' => array(
                       'permission' => 'Events',

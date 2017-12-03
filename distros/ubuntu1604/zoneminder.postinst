@@ -10,30 +10,23 @@ if [ "$1" = "configure" ]; then
   chown www-data:root /var/log/zm
   chown www-data:www-data /var/lib/zm
   if [ -z "$2" ]; then
-      chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/*
+      chown www-data:www-data /var/cache/zoneminder /var/cache/zoneminder/* /usr/share/zoneminder/www/cache
   fi
   if [ ! -e "/etc/apache2/mods-enabled/cgi.load" ]; then
     echo "The cgi module is not enabled in apache2.  I am enabling it using a2enmod cgi."
     a2enmod cgi
   fi
 
-	# Do this every time the package is installed or upgraded
-  # Ensure zoneminder is stopped
-  deb-systemd-invoke stop zoneminder.service || exit $?
-
-  # Ensure zoneminder is stopped
-  deb-systemd-invoke stop zoneminder.service || exit $?
-	if [ "$ZM_DB_HOST" = "localhost" ]; then
+  if [ "$ZM_DB_HOST" = "localhost" ]; then
 
     if [ -e "/etc/init.d/mysql" ]; then
+      # Do this every time the package is installed or upgraded
+      # Ensure zoneminder is stopped
+      deb-systemd-invoke stop zoneminder.service || exit $?
 
       #
       # Get mysql started if it isn't
       #
-      if ! $(/etc/init.d/mysql status >/dev/null 2>&1); then
-          deb-systemd-invoke start mysql.service || exit $?
-      fi
-
       if $(/etc/init.d/mysql status >/dev/null 2>&1); then
         mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
         # test if database if already present...

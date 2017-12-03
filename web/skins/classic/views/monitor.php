@@ -392,9 +392,9 @@ if ( ZM_HAS_V4L2 ) {
 }
 
 $Colours = array(
-    translate('8BitGrey')    => 1,
-    translate('24BitColour') => 3,
-    translate('32BitColour') => 4
+    '1' => translate('8BitGrey'),
+    '3' => translate('24BitColour'),
+    '4' => translate('32BitColour')
     );
 
 $orientations = array(
@@ -803,7 +803,10 @@ switch ( $tab ) {
 <?php
         if ( ZM_HAS_V4L1 && $monitor->Method() == 'v4l1' ) {
 ?>
-          <tr><td><?php echo translate('DeviceChannel') ?></td><td><select name="newMonitor[Channel]"><?php foreach ( $v4l1DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Channel()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+          <tr>
+            <td><?php echo translate('DeviceChannel') ?></td>
+            <td><select name="newMonitor[Channel]"><?php foreach ( $v4l1DeviceChannels as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Channel()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td>
+          </tr>
           <tr><td><?php echo translate('DeviceFormat') ?></td><td><select name="newMonitor[Format]"><?php foreach ( $v4l1DeviceFormats as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Format()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
           <tr><td><?php echo translate('CapturePalette') ?></td><td><select name="newMonitor[Palette]"><?php foreach ( $v4l1LocalPalettes as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Palette()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
@@ -820,7 +823,7 @@ switch ( $tab ) {
             <label for="newMonitor[V4LMultiBuffer]1">Yes</label>
             <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]0" value="0" <?php echo ( $monitor->V4LMultiBuffer() == 0 ? 'checked="checked"' : '' ) ?>/>
             <label for="newMonitor[V4LMultiBuffer]0">No</label>
-            <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( empty($monitor->V4LMultiBuffer()) ? 'checked="checked"' : '' ) ?>/>
+            <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( $monitor->V4LMultiBuffer() ? 'checked="checked"' : '' ) ?>/>
             <label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
           </td></tr>
           <tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $monitor->V4LCapturesPerFrame()?>"/></td></tr>
@@ -865,7 +868,8 @@ include('_monitor_source_nvsocket.php');
       }
 if ( $monitor->Type() != 'NVSocket' ) {
 ?>
-        <tr><td><?php echo translate('TargetColorspace') ?></td><td><select name="newMonitor[Colours]"><?php foreach ( $Colours as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Colours()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+        <tr><td><?php echo translate('TargetColorspace') ?></td><td><?php echo htmlSelect('newMonitor[Colours]', $Colours, $monitor->Colours() ); ?>
+</td></tr>
         <tr><td><?php echo translate('CaptureWidth') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
         <tr><td><?php echo translate('CaptureHeight') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
         <tr><td><?php echo translate('PreserveAspect') ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 

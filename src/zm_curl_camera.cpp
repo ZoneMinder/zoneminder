@@ -236,10 +236,10 @@ int cURLCamera::Capture( Image &image ) {
         if(!SubHeadersParsingComplete) {
           /* We haven't parsed all headers yet */
           need_more_data = true;
-        } else if(frame_content_length <= 0) {
+        } else if ( ! frame_content_length ) {
           /* Invalid frame */
           Error("Invalid frame: invalid content length");
-        } else if(frame_content_type != "image/jpeg") {
+        } else if ( frame_content_type != "image/jpeg" ) {
           /* Unsupported frame type */
           Error("Unsupported frame: %s",frame_content_type.c_str());
         } else if(frame_content_length > databuffer.size()) {

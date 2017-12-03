@@ -23,6 +23,13 @@ function updateButtons( element ) {
       canExecute = true;
     form.elements['executeButton'].disabled = !canExecute;
   }
+  if ( form.elements['filter[Name]'].value ) {
+    form.elements['Save'].disabled = false;
+    form.elements['SaveAs'].disabled = false;
+  } else {
+    form.elements['Save'].disabled = true;
+    form.elements['SaveAs'].disabled = true;
+  }
 }
 
 function clearValue( element, line ) {
@@ -42,7 +49,6 @@ function submitToFilter( element ) {
 function submitToEvents( element ) {
   var form = element.form;
   if ( validateForm( form ) ) {
-    form.target = 'zmEvents';
     form.action = thisUrl + '?view=events';
     form.submit();
   }
@@ -51,7 +57,6 @@ function submitToEvents( element ) {
 function executeFilter( element ) {
   var form = element.form;
   if ( validateForm( form ) ) {
-    form.target = 'zmEvents';
     form.action = thisUrl + '?view=events';
     form.elements['action'].value = 'execute';
     form.submit();
@@ -60,10 +65,8 @@ function executeFilter( element ) {
 
 function saveFilter( element ) {
   var form = element.form;
-
-  //form.target = 'zmFilter';
   form.target = window.name;
-  form.elements['action'].value = 'save';
+  form.elements['action'].value = element.value;
   form.action = thisUrl + '?view=filter';
   form.submit();
 }

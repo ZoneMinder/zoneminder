@@ -15,6 +15,7 @@ if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) ) {
 $locSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.sock';
 if ( file_exists( $locSockFile ) ) {
   Warning("sock file $locSockFile already exists?!  Is someone else talking to zms?");
+  // They could be.  We can maybe have concurrent requests from a browser.  
 } else {
   Logger::Debug("socket file does not exist, we should be good to connect.");
 }
@@ -115,7 +116,9 @@ switch ( $data['type'] ) {
   case MSG_DATA_WATCH :
   {
     $data =  unpack( "ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced", $msg );
+    Logger::Debug("FPS: " . $data['fps'] );
     $data['fps'] = round( $data['fps'], 2 );
+    Logger::Debug("FPS: " . $data['fps'] );
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );

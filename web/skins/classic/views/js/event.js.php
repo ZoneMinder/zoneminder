@@ -33,12 +33,14 @@ var eventData = {
     Length: '<?php echo $Event->Length() ?>',
     StartTime: '<?php echo $Event->StartTime() ?>',
     EndTime: '<?php echo $Event->EndTime() ?>',
+    Frames: '<?php echo $Event->Frames() ?>',
     MonitorName: '<?php echo $Monitor->Name() ?>'
 };
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
+var rates = <?php echo json_encode(array_keys($rates)) ?>;
 var scale = "<?php echo $scale ?>";
 var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
 
@@ -46,6 +48,7 @@ var canEditEvents = <?php echo canEdit( 'Events' )?'true':'false' ?>;
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
+var streamMode = '<?php echo $streamMode ?>';
 
 //
 // Strings

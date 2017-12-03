@@ -36,3 +36,7 @@
 input[type=range]::-ms-tooltip {
     display: none;
 }
+
+#downloadVideo {
+  margin-left: 5px;
+}

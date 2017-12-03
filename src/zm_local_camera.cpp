@@ -1712,8 +1712,8 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           sprintf( output+strlen(output), "  Name: %s\n", vid_src.name );
           sprintf( output+strlen(output), "  Channel: %d\n", vid_src.channel );
           sprintf( output+strlen(output), "  Flags: %d\n%s%s", vid_src.flags,
-              vid_src.flags&VIDEO_VC_TUNER?"    Channel has a tuner\n":"",
-              vid_src.flags&VIDEO_VC_AUDIO?"    Channel has audio\n":""
+              (vid_src.flags&VIDEO_VC_TUNER)?"    Channel has a tuner\n":"",
+              (vid_src.flags&VIDEO_VC_AUDIO)?"    Channel has audio\n":""
               );
           sprintf( output+strlen(output), "  Type: %d - %s\n", vid_src.type,
               vid_src.type==VIDEO_TYPE_TV?"TV":(

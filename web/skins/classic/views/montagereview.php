@@ -64,7 +64,7 @@ if (isset($_REQUEST['minTime']) || isset($_REQUEST['maxTime'])) {
       'Query' => array(
         'terms' => array(
           array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime']),
-          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime']),
+          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and'),
         )
       ),
     );
@@ -224,6 +224,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
         <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
         <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
         <button type="button" id="panright"  onclick="click_panright();"         ><?php echo translate('Pan') ?> &gt;</button>
+        <button type="button" id="downloadVideo" onclick="click_download();"        ><?php echo translate('Download Video') ?></button>
       </div>
       <div id="timelinediv">
         <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>

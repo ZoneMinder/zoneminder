@@ -46,7 +46,7 @@ VideoStore::VideoStore(
   packets_written = 0;
   frame_count = 0;
 
-  av_register_all();
+  FFMPEGInit();
 
   Info("Opening video storage stream %s format: %s", filename, format);
 
@@ -976,7 +976,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
         } else if ( zm_packet->image ) {
           Debug(2,"Have an image, convert it");
           //Go straight to out frame
-          swscale.Convert(zm_packet->image, 
+          swscale.Convert(
+              zm_packet->image, 
               zm_packet->buffer,
               codec_imgsize,
               (AVPixelFormat)zm_packet->image->AVPixFormat(),
@@ -997,10 +998,18 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
 
     if ( ! video_last_pts ) {
       video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
+      Debug(2, "No video_lsat_pts, set to (%d)", video_last_pts );
       zm_packet->out_frame->pts = 0;
     } else {
       zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
     }
+    if ( zm_packet->keyframe ) {
+Debug(2, "Setting keyframe");
+      zm_packet->out_frame->key_frame =1;
+Debug(2, "Setting keyframe (%d)", zm_packet->out_frame->key_frame );
+} else {
+Debug(2, "Not Setting keyframe");
+}
 
     // Do this to allow the encoder to choose whether to use I/P/B frame
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -1040,6 +1049,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       return 0;
     }
 #endif
+    opkt.dts = opkt.pts;
 
   } else {
     AVPacket *ipkt = &zm_packet->packet;
@@ -1058,7 +1068,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
   }
   opkt.duration = 0;
 
-Debug(3, "dts:%" PRId64 ", pts:%" PRId64 ", keyframe:%d", opkt.dts, opkt.pts, opkt.flags & AV_PKT_FLAG_KEY );
+  Debug(3, "dts:%" PRId64 ", pts:%" PRId64 ", keyframe:%d", opkt.dts, opkt.pts, opkt.flags & AV_PKT_FLAG_KEY );
   write_video_packet( opkt );
   zm_av_packet_unref(&opkt);
 

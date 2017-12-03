@@ -183,6 +183,7 @@ int RemoteCameraNVSocket::PrimeCapture() {
     Disconnect();
     return -1;
   }
+  mVideoStreamId=0;
 
   return 0;
 }
@@ -207,6 +208,7 @@ int RemoteCameraNVSocket::Capture( ZMPacket &zm_packet ) {
   }
 
   zm_packet.image->Assign( width, height, colours, subpixelorder, buffer, imagesize );
+  zm_packet.keyframe = 1;
   return 1;
 }
 
@@ -232,9 +234,8 @@ AVStream *RemoteCameraNVSocket::get_VideoStream() {
     } else {
       Error("Can't create video stream");
     }
-} else {
-Debug(2,"Have videostream");
+  } else {
+    Debug(5,"Have videostream");
   }
-Debug(2,"Get videoStream");
   return video_stream;
 }

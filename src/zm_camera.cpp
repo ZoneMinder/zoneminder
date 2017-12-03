@@ -36,6 +36,7 @@ Camera::Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_wid
     mVideoStreamId(-1),
     mAudioStreamId(-1),
     mVideoCodecContext(NULL),
+    mAudioCodecContext(NULL),
     video_stream(NULL)
 {
   pixels = width * height;
@@ -49,15 +50,17 @@ Camera::Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_wid
   } else if(colours == ZM_COLOUR_RGB24 && ((imagesize % 64) != 0 || (imagesize % 12) != 0)) {
     Fatal("Image size is not multiples of 12 and 64");
   }
-    monitor = NULL;
+  monitor = NULL;
 }
 
 Camera::~Camera() {
 }
 
 Monitor *Camera::getMonitor() {
-  if ( ! monitor )
+  if ( ! monitor ) {
+    Warning("Loading monitor");
     monitor = Monitor::Load( monitor_id, false, Monitor::QUERY );
+  }
   return monitor;
 } 
 

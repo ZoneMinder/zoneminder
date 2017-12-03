@@ -88,7 +88,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mOptions( p_options )
 {
   if ( capture ) {
-    Initialise();
+    FFMPEGInit();
   }
 
   hwaccel = false;
@@ -118,23 +118,7 @@ FfmpegCamera::~FfmpegCamera() {
 
   CloseFfmpeg();
 
-  if ( capture ) {
-    Terminate();
-  }
   avformat_network_deinit();
-}
-
-void FfmpegCamera::Initialise() {
-  if ( logDebugging() )
-    av_log_set_level( AV_LOG_DEBUG ); 
-  else
-    av_log_set_level( AV_LOG_QUIET ); 
-
-  av_register_all();
-  avformat_network_init();
-}
-
-void FfmpegCamera::Terminate() {
 }
 
 int FfmpegCamera::PrimeCapture() {

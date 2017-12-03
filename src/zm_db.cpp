@@ -28,8 +28,9 @@ MYSQL dbconn;
 int zmDbConnected = false;
 
 void zmDbConnect() {
-  if ( zmDbConnected ) 
-    return;
+  // For some reason having these lines causes memory corruption and crashing on newer debian/ubuntu
+  //if ( zmDbConnected ) 
+    //return;
 
   if ( !mysql_init( &dbconn ) ) {
     Error( "Can't initialise database connection: %s", mysql_error( &dbconn ) );

@@ -187,7 +187,12 @@ while( 1 ) {
 
       if ( $restart ) {
         Info( "Restarting analysis daemon for $$monitor{Id} $$monitor{Name}\n");
-        my $command = "zmdc.pl restart zmc -m ".$monitor->{Id};
+        my $command;
+        if ( $monitor->{Type} eq 'Local' ) {
+          $command = "zmdc.pl restart zmc -d $monitor->{Device}";
+        } else {
+          $command = "zmdc.pl restart zmc -m $monitor->{Id}";
+        }
         runCommand( $command );
       } # end if restart
     } # end if check analysis daemon

@@ -1243,17 +1243,15 @@ bool Monitor::Analyse() {
     Warning("SHouldn't be doing Analyze when not Enabled");
     return false;
   }
-  GetLastEventId();
 
   // if  have event, sent frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
-
-  // If do have an event, then analysis_it should point to the head of the queue, because we would have emptied it on event creation.
-  unsigned int index = ( shared_data->last_read_index + 1 ) % image_buffer_count;
 
   int packets_processed = 0;
 
   ZMPacket *snap;
   while ( ( snap = packetqueue->get_analysis_packet() ) && ( snap->score == -1 ) ) {
+    snap->lock();
+    unsigned int index = snap->image_index;
     Debug(2, "Analysis index (%d), last_Write(%d)", index, shared_data->last_write_index);
     packets_processed += 1;
 
@@ -1261,6 +1259,7 @@ bool Monitor::Analyse() {
     Image *snap_image = snap->image;
     Debug(2, "Analysing image (%d)", snap->image_index );
     if ( snap->image_index == -1 ) {
+      snap->unlock();
       Debug(2, "skipping because audio");
       if ( ! packetqueue->increment_analysis_it() ) {
         Debug(2, "No more packets to analyse");
@@ -1411,8 +1410,12 @@ bool Monitor::Analyse() {
                 Info( "%s: %03d - Gone into alarm state", name, analysis_image_count );
                 shared_data->state = state = ALARM;
                 if ( (function != MOCORD && state != ALERT) ) {
+if ( event ) {
+Error("Already ahve evnet!");
+} else {
                   event = new Event( this, *timestamp, cause, noteSetMap );
                   shared_data->last_event_id = event->Id();
+}
                 }
               } else if ( state != PREALARM ) {
                 Info( "%s: %03d - Gone into prealarm state", name, analysis_image_count );
@@ -1497,6 +1500,7 @@ bool Monitor::Analyse() {
 
       } else {
         Debug(3,"Not ready?");
+        snap->unlock();
         return false;
       }
     } else {
@@ -1510,25 +1514,40 @@ bool Monitor::Analyse() {
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if ( event ) {
+      int last_write = shared_data->last_write_index;
+      int written = 0;
       ZMPacket *queued_packet;
       //popPacket will increment analysis_it if neccessary, so this will write out all packets in queue
+      // We can't just loop here forever, because we may be capturing just as fast, and never leave the loop.
+      // Only loop until we hit the analysis index
       while ( ( queued_packet = packetqueue->popPacket() ) ) {
-        Debug(2,"adding packet (%x) (%d)", queued_packet, queued_packet->image_index );
-        event->AddPacket( queued_packet );
+        Debug(2,"adding packet (%d) qp lwindex(%d), written(%d)", queued_packet->image_index, last_write, written );
+        if ( snap == queued_packet ) {
+          event->AddPacket( queued_packet );
+          packetqueue->increment_analysis_it();
+          break;
+        } else {
+          queued_packet->lock();
+          Debug(2,"adding packet (%d) qp lwindex(%d), written(%d)", queued_packet->image_index, last_write, written );
+          event->AddPacket( queued_packet );
+          queued_packet->unlock();
+        }
+        written ++;
         if ( queued_packet->image_index == -1 ) {
           delete queued_packet;
-          queued_packet = NULL;
-        }
+        } 
+        // encoding can take a long time, so 
+        shared_data->last_read_time = time(NULL);
       } // end while write out queued_packets
+      queued_packet = NULL;
     } else {
       packetqueue->increment_analysis_it();
     }
 
     shared_data->last_read_index = snap->image_index;
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    shared_data->last_read_time = now.tv_sec;
+    shared_data->last_read_time = time(NULL);
     analysis_image_count++;
+    snap->unlock();
   } // end while not at end of packetqueue
   if ( packets_processed > 0 )
     return true;
@@ -2760,7 +2779,7 @@ int Monitor::Capture() {
   }
 
   ZMPacket *packet = &image_buffer[index];
-  Debug(2,"Reset index(%d) of (%d)", index, image_buffer_count );
+  packet->lock();
   packet->reset();
   Image* capture_image = packet->image;
   int captureResult = 0;
@@ -2781,7 +2800,6 @@ int Monitor::Capture() {
     }
   } else {
     captureResult = camera->Capture(*packet);
-      Debug(2, "Reset timestamp");
     gettimeofday( packet->timestamp, NULL );
     if ( captureResult < 0 ) {
       // Unable to capture image for temporary reason
@@ -2791,6 +2809,7 @@ int Monitor::Capture() {
       signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR);
       capture_image->Fill(signalcolor);
       shared_data->signal = false;
+      packet->unlock();
       return -1;
     } else if ( captureResult > 0 ) {
 
@@ -2814,11 +2833,12 @@ int Monitor::Capture() {
         }
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
+        
         mutex.unlock();
+        packet->unlock();
         return 1;
       }
 
-      Debug(2, "Have video packet");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       packet->codec_type = camera->get_VideoStream()->codecpar->codec_type;
 #else
@@ -2834,8 +2854,10 @@ int Monitor::Capture() {
         // Have an av_packet, 
         mutex.lock();
         if ( packetqueue->video_packet_count || packet->keyframe || event ) {
-          //Debug(2, "Queueing video packet");
+          Debug(2, "Have video packet for index (%d)", index );
           packetqueue->queuePacket( packet );
+        } else {
+          Debug(2, "Not queiing video packet for index (%d)", index );
         }
         mutex.unlock();
       } else {
@@ -2889,6 +2911,7 @@ int Monitor::Capture() {
       shared_data->last_write_index = index;
       shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       image_count++;
+      packet->unlock();
 
       if ( fps_report_interval && !(image_count%fps_report_interval) ) {
         time_t now = image_buffer[index].timestamp->tv_sec;
@@ -3210,7 +3233,7 @@ int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();
   if ( ret == 0 ) {
     video_stream_id = camera->get_VideoStreamId();
-    packetqueue = new zm_packetqueue( pre_event_buffer_count, video_stream_id );
+    packetqueue = new zm_packetqueue( image_buffer_count, video_stream_id );
   }
   Debug(2, "Video stream id is (%d), minimum_packets to keep in buffer(%d)", video_stream_id, pre_event_buffer_count );
   return ret;

@@ -29,10 +29,12 @@ extern "C" {
 #endif // __FreeBSD__
 
 #include "zm_image.h"
+#include "zm_thread.h"
 
 class ZMPacket {
   public:
   
+    Mutex mutex;
     int keyframe;
     AVPacket  packet;   // Input packet, undecoded
     AVFrame   *in_frame;    // Input image, decoded Theoretically only filled if needed.
@@ -59,6 +61,8 @@ class ZMPacket {
     explicit ZMPacket( ZMPacket &packet );
     ZMPacket();
     ~ZMPacket();
+    void lock() { mutex.lock(); };
+    void unlock() { mutex.unlock(); };
 };
 
 #endif /* ZM_PACKET_H */

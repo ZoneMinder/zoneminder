@@ -222,7 +222,7 @@ Warning("Not Using snapshot" . $event->Path().'/snapshot.jpg' );
       $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt( $thumbData['Height'] ).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
 
       echo makePopupLink( 
-          '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'],
+          '?view=frame&amp;eid='.$event->Id().'&amp;fid='.( isset($thumbData['FrameId']) ? $thumbData['FrameId'] : 'snapshot' ),
           'zmImage',
           array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ),
           $imgHtml

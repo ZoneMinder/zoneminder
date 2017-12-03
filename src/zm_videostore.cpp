@@ -953,7 +953,9 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       out_frame->width = video_out_ctx->width;
       out_frame->height = video_out_ctx->height;
       out_frame->format = video_out_ctx->pix_fmt;
-      out_frame->duration = 0;
+      //out_frame->pkt_duration = 0;
+      out_frame->coded_picture_number = frame_count;
+      out_frame->display_picture_number = frame_count;
 
       if ( ! zm_packet->in_frame ) {
         Debug(2,"Have no in_frame");
@@ -990,10 +992,20 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
 
     if ( ! video_last_pts ) {
       video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
-      Debug(2, "No video_lsat_pts, set to (%d)", video_last_pts );
+      Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
+          video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
       zm_packet->out_frame->pts = 0;
     } else {
       zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
+      Debug(2, " Setting pts, set to (%" PRId64 ") from (%" PRIu64 " - secs(%d) usecs(%d)",
+          zm_packet->out_frame->pts, video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
+    }
+    if ( zm_packet->keyframe ) {
+      Debug(2, "Setting keyframe was (%d)", zm_packet->out_frame->key_frame );
+      zm_packet->out_frame->key_frame = 1;
+      Debug(2, "Setting keyframe (%d)", zm_packet->out_frame->key_frame );
+    } else {
+      Debug(2, "Not Setting keyframe");
     }
 
     // Do this to allow the encoder to choose whether to use I/P/B frame
@@ -1035,8 +1047,6 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     }
 #endif
     opkt.dts = opkt.pts;
-    if ( zm_packet->keyframe )
-      opkt.flags |= AV_PKT_FLAG_KEY;
     opkt.duration = 0;
 
   } else {
@@ -1084,7 +1094,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
   //av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
 
   Debug(1,
-        "writing video packet pts(%" PRId64 ") dts(%" PRId64 ") duration(%" PRId64 ") packet_count(%d)",
+        "writing video packet pts(%" PRId64 ") dts(%" PRId64 ") duration(%" PRId64 ") packet_count(%u)",
          opkt.pts, opkt.dts, opkt.duration, packets_written );
   if ( (opkt.data == NULL) || (opkt.size < 1) ) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);

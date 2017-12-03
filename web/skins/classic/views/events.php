@@ -269,6 +269,7 @@ if ( true || canEdit( 'Events' ) ) {
           <input type="button" name="unarchiveBtn" value="<?php echo translate('Unarchive') ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
           <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
           <input type="button" name="exportBtn" value="<?php echo translate('Export') ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
+          <input type="button" name="downloadBtn" value="<?php echo translate('DownloadVideo') ?>" onclick="downloadVideo( this, 'markEids' )" disabled="disabled"/>
           <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
         </div>
 <?php

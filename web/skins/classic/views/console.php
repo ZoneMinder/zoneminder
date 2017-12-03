@@ -208,11 +208,11 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php 
   if ( ZM_WEB_ID_ON_CONSOLE ) {
 ?>
-            <td class="colId"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Id'], ($monitor['Function'] != 'None') && canView('Stream') ) ?></td>
+            <td class="colId"><a <?php echo (canView('Stream') && $running && $monitor['Function'] != 'None' ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Id'] ?></a></td>
 <?php
   }
 ?>
-            <td class="colName"><?php echo makePopupLink( '?view=watch&amp;mid='.$monitor['Id'], 'zmWatch'.$monitor['Id'], array( 'watch', reScale( $monitor['Width'], $scale ), reScale( $monitor['Height'], $scale ) ), $monitor['Name'], ($monitor['Function'] != 'None') && canView('Stream') ) ?></td>
+            <td class="colName"><a <?php echo (canView('Stream') && $monitor['Function'] != 'None' ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a></td>
             <td class="colFunction">
               <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
 <?php echo $monitor['CaptureFPS'] . ( ( $monitor['Function'] == 'Mocord' or $monitor['Function'] == 'Modect' ) ? ' / ' . $monitor['AnalysisFPS'] : '' ) . ' FPS' ?>
@@ -245,8 +245,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 
       foreach ( array_keys( $eventCounts ) as $i ) {
 ?>
-            <td class="colEvents"><?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW, 
-                $monitor[$i.'Events'] . '<br/>' . human_filesize($monitor[$i.'EventDiskSpace']), canView( 'Events' ) ) ?></td>
+            <td class="colEvents"><a <?php echo (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'].'">'  : '') . 
+                $monitor[$i.'Events'] . '<br/>' . human_filesize($monitor[$i.'EventDiskSpace']) ?></a></td>
 <?php
   }
 ?>
@@ -281,9 +281,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     parseFilter( $eventCounts[$i]['filter'] );
 ?>
             <td class="colEvents">
-<?php echo makePopupLink( '?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$eventCounts[$i]['filter']['query'], $eventsWindow, ZM_WEB_EVENTS_VIEW,
-  $eventCounts[$i]['totalevents'].'<br/>'.human_filesize($eventCounts[$i]['totaldiskspace']), canView( 'Events' ) ) ?>
-</td>
+              <a <?php echo (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$eventCounts[$i]['filter']['query'].'">' : '') . 
+                  $eventCounts[$i]['totalevents'].'<br/>'.human_filesize($eventCounts[$i]['totaldiskspace']) ?></a></td>
 <?php
       }
 ?>

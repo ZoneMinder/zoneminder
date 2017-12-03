@@ -76,6 +76,19 @@ if ( canView( 'Events' ) ) {
           ajaxError( 'Export Failed' );
         break;
       }
+    case 'download' :
+      {
+        require_once( ZM_SKIN_PATH.'/includes/export_functions.php' );
+        $exportVideo = 1;
+        $exportFormat = $_REQUEST['exportFormat'];
+        $exportStructure = 'flat';
+        $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
+        if ( $exportFile = exportEvents( $exportIds, false, false, false, $exportVideo, false, $exportFormat, $exportStructure ) )
+          ajaxResponse( array( 'exportFile'=>$exportFile ) );
+        else
+          ajaxError( 'Export Failed' );
+        break;
+      }
   }
 }
 

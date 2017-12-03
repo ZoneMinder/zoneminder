@@ -1,4 +1,6 @@
 
+var filterQuery = '<?php echo isset($filterQuery)?htmlspecialchars_decode($filterQuery):'' ?>';
+
 var server_utc_offset = <?php
 $TimeZone = new DateTimeZone( ini_get('date.timezone') );
 $now = new DateTime('now', $TimeZone);

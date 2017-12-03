@@ -700,12 +700,16 @@ xhtmlHeaders(__FILE__, translate('Timeline') );
 ?>
 <body>
   <div id="page">
+  <?php echo getNavBarHTML() ?>
     <div id="header">
-      <div id="headerButtons">
-        <?php echo makePopupLink( '?view=events&amp;page=1'.htmlspecialchars($filterQuery), 'zmEvents', 'events', translate('List'), canView( 'Events' ) ) ?>
-        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
+      <div id="info">
+        <h2><?php echo translate('Timeline') ?></h2>
+        <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
       </div>
-      <h2><?php echo translate('Timeline') ?></h2>
+      <div id="headerButtons">
+        <a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a>
+        <a href="?view=events&amp;page=1<?php echo htmlspecialchars($filterQuery) ?>"><?php echo translate('List') ?></a>
+      </div>
     </div>
     <div id="content" class="chartSize">
       <div id="topPanel" class="graphWidth">

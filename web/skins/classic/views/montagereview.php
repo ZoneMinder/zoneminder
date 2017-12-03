@@ -59,6 +59,19 @@ include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
+if (isset($_REQUEST['minTime']) || isset($_REQUEST['maxTime'])) {
+  $filter = array(
+      'Query' => array(
+        'terms' => array(
+          array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime']),
+          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and'),
+        )
+      ),
+    );
+  parseFilter( $filter );
+  $filterQuery = $filter['query'];
+}
+
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
@@ -211,6 +224,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
         <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
         <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
         <button type="button" id="panright"  onclick="click_panright();"         ><?php echo translate('Pan') ?> &gt;</button>
+        <button type="button" id="downloadVideo" onclick="click_download();"        ><?php echo translate('Download Video') ?></button>
       </div>
       <div id="timelinediv">
         <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>

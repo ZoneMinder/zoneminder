@@ -42,3 +42,7 @@ input[type=range]::-ms-tooltip {
     color: white;
   font-size: 40px;
 }
+
+#downloadVideo {
+  margin-left: 5px;
+}

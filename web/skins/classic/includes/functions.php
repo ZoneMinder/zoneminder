@@ -166,7 +166,12 @@ function getNavBarHTML($reload = null) {
   global $user;
   global $bandwidth_options;
   global $view;
-if ($reload === null) {
+  global $filterQuery;
+  if (!$filterQuery) {
+    parseFilter( $_REQUEST['filter'] );
+    $filterQuery = $_REQUEST['filter']['query'];
+  }
+  if ($reload === null) {
     ob_start();
     if ( $running == null )
       $running = daemonCheck();
@@ -210,7 +215,7 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
 <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
-      <li><a href="?view=filter"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
+      <li><a href="?view=filter<?php echo $filterQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
   if ( canView( 'Stream' ) ) {
@@ -219,9 +224,23 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
       <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
 <?php
    }
+if (isset($_REQUEST['filter']['Query']['terms'])) {
+  $terms = $_REQUEST['filter']['Query']['terms'];
+  $count = 0;
+  foreach ($terms as $term) {
+    if ($term['attr'] == "StartDateTime") {
+      $count += 1;
+      if ($term['op'] == '>=') $minTime = $term['val'];
+      if ($term['op'] == '<=') $maxTime = $term['val'];
+    }
+  }
+  if ($count == 2) {
+    $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
+  }
+}
   if ( canView('Events') ) {
  ?>
-   <li><a href="?view=montagereview"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
+   <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
 <?php
   }
 ?>

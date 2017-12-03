@@ -47,6 +47,7 @@ if ( $archivetype ) {
         if ( is_readable($filename_path) ) {
             header( "Content-type: application/$mimetype" );
             header( "Content-Disposition: attachment; filename=$filename");
+            set_time_limit(0);
             readfile( $filename_path );
         } else {
             Error("$filename_path does not exist or is not readable.");

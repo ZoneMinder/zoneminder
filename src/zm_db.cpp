@@ -25,11 +25,12 @@
 
 MYSQL dbconn;
 
-int zmDbConnected = false;
+bool zmDbConnected = false;
 
 void zmDbConnect() {
-  if ( zmDbConnected ) 
-    return;
+  // If these lines are uncommented, we get memory corruption and crashes
+  //if ( zmDbConnected ) 
+    //return;
 
   if ( !mysql_init( &dbconn ) ) {
     Error( "Can't initialise database connection: %s", mysql_error( &dbconn ) );

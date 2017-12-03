@@ -48,6 +48,7 @@ var canEditEvents = <?php echo canEdit( 'Events' )?'true':'false' ?>;
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
+var streamMode = '<?php echo $streamMode ?>';
 
 //
 // Strings

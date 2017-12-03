@@ -460,9 +460,9 @@ th.table-th-sort-rev span.table-th-sort-span {
 button,
 input[type=button],
 input[type=submit] {
-  background-color: #3498db;
-  color: #fff;
-  border-color: #3498db;
+  background-color: #444444;
+  color: #eeeeee;
+  border-color: #444444;
   text-transform: uppercase;
   font-weight: 200;
   padding: 5px 10px;
@@ -472,7 +472,7 @@ input[type=submit] {
 button:hover,
 input[type=button]:hover,
 input[type=submit]:hover {
-  background-color: #34a2ee;
+  background-color: #555555;
 }
 
 
@@ -482,9 +482,9 @@ button:disabled,
 input[disabled],
 input[type=button]:disabled,
 input[type=submit]:disabled {
-  color: #ffffff;
-  background-color: #aaaaaa;
-  border-color: #bbbbbb;
+  color: #888888;
+  background-color: #666666;
+  border-color: #666666;
 }
 
 /*
@@ -534,8 +534,10 @@ input[type=submit]:disabled {
   margin-left: 0;
 }
 
-
 .table-striped > tbody > tr:nth-of-type(2n+1) {
-  background: none;
+  background-color: #333333;
 }
 
+.table-hover>tbody>tr:hover {
+  background-color: #444444;
+}

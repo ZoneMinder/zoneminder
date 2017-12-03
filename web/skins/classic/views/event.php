@@ -184,7 +184,7 @@ Warning("Streamsrc: $streamSrc");
   }
 } // end if stream method
 ?>
-        <div id="alarmCue" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"></div>
+        <div id="alarmCue" class="alarmCue"></div>
         <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->
@@ -224,6 +224,13 @@ Warning("Streamsrc: $streamSrc");
           </div>
         </div>
         <div id="eventImageNav">
+          <div id="thumbsSliderPanel">
+            <div id="alarmCue" class="alarmCue"></div>
+            <div id="thumbsSlider">
+              <div id="thumbsKnob">
+              </div>
+            </div>
+          </div>
           <div id="eventImageButtons">
             <div id="prevButtonsPanel">
               <input id="prevEventBtn" type="button" value="&lt;E" onclick="prevEvent()" disabled="disabled"/>
@@ -232,12 +239,6 @@ Warning("Streamsrc: $streamSrc");
               <input id="nextImageBtn" type="button" value="&gt;" onclick="nextImage()" disabled="disabled"/>
               <input id="nextThumbsBtn" type="button" value="&gt;&gt;" onclick="nextThumbs()" disabled="disabled"/>
               <input id="nextEventBtn" type="button" value="E&gt;" onclick="nextEvent()" disabled="disabled"/>
-            </div>
-          </div>
-          <div id="thumbsSliderPanel">
-            <div id="thumbsSlider">
-              <div id="thumbsKnob">
-              </div>
             </div>
           </div>
         </div>

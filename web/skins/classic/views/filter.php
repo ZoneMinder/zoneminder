@@ -231,7 +231,7 @@ for ( $i = 0; $i < count($terms); $i++ ) {
 <?php
     } elseif ( $term['attr'] == 'MonitorName' ) {
       $monitors = array();
-      foreach ( dbFetchAll( 'select Id,Name from Monitors order by Sequence asc' ) as $monitor ) {
+      foreach ( dbFetchAll( 'select Id,Name from Monitors order by Name asc' ) as $monitor ) {
         if ( visibleMonitor( $monitor['Id'] ) ) {
           $monitors[$monitor['Name']] = $monitor['Name'];
         }

@@ -31,52 +31,26 @@ if ( empty($_REQUEST['mode']) ) {
 } else {
   $mode = validHtmlStr($_REQUEST['mode']);
 }
+ob_start();
+include('_monitor_filters.php');
+$filterbar = ob_get_contents();
+ob_end_clean();
 
-$group_id = 0;
-if ( isset($_REQUEST['group']) ) { 
-  $group_id = $_REQUEST['group'];
-} else if ( isset($_COOKIE['zmGroup'] ) ) { 
-  $group_id = $_COOKIE['zmGroup'];
-} 
-
-$subgroup_id = 0;
-if ( isset($_REQUEST['subgroup']) ) { 
-  $subgroup_id = $_REQUEST['subgroup'];
-} else if ( isset($_COOKIE['zmSubGroup'] ) ) { 
-  $subgroup_id = $_COOKIE['zmSubGroup'];
-} 
-$groupIds = null;
-if ( $group_id ) {
-$groupIds = array();
-  if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($group_id) ) )
-    if ( $group['MonitorIds'] )
-      $groupIds = explode( ',', $group['MonitorIds'] );
-  if ( $subgroup_id ) {
-    if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id = ?', NULL, array($subgroup_id) ) )
-      if ( $group['MonitorIds'] )
-        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
-  } else {
-    foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
-      if ( $group['MonitorIds'] )
-        $groupIds = array_merge( $groupIds, explode( ',', $group['MonitorIds'] ) );
-  }
-}
-$groupSql = '';
-if ( $groupIds )
-  $groupSql = " and find_in_set( Id, '".implode( ',', $groupIds )."' )";
-
-$sql = "SELECT * FROM Monitors WHERE Function != 'None'$groupSql ORDER BY Sequence";
-$monitors = array();
 $monIdx = 0;
-foreach( dbFetchAll( $sql ) as $row ) {
-  if ( !visibleMonitor( $row['Id'] ) )
+$monitors = array();
+foreach( $displayMonitors as &$row ) {
+  if ( $row['Function'] == 'None' )
     continue;
   if ( isset($_REQUEST['mid']) && $row['Id'] == $_REQUEST['mid'] )
     $monIdx = count($monitors);
+
   $row['ScaledWidth'] = reScale( $row['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
   $row['ScaledHeight'] = reScale( $row['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+  $row['PopupScale'] = reScale( SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
+  $row['connKey'] = generateConnKey();
   $monitors[] = new Monitor( $row );
-}
+} # end foreach Monitor
 
 if ( $monitors ) {
   $monitor = $monitors[$monIdx];
@@ -103,22 +77,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch') );
 <?php } ?>
       </div>
       <div class="controlHeader">
-        <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
-<?php
-  
-  $groups = array(0=>'All');
-  foreach ( Group::find_all( array('ParentId'=>null) ) as $Group ) { 
-    $groups[$Group->Id()] = $Group->Name();
-  } 
-  echo htmlSelect( 'group', $groups, $group_id, 'changeGroup(this);' );
-  $groups = array(0=>'All');
-  if ( $group_id ) { 
-    foreach ( Group::find_all( array('ParentId'=>$group_id) ) as $Group ) { 
-      $groups[$Group->Id()] = $Group->Name();
-    } 
-  } 
-  echo htmlSelect( 'subgroup', $groups, $subgroup_id, 'changeSubGroup(this);' );
-?>
+      <?php echo $filterbar ?>
       </div>
     </div>
     <div id="content">

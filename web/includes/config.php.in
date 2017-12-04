@@ -179,7 +179,7 @@ function loadConfig( $defineConsts=true ) {
 }
 
 require_once( 'logger.php' );
-// For Human-readability, user ZM_SERVER in zm.conf, and convert it here to a ZM_SERVER_ID
+// For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
 if ( ! defined('ZM_SERVER_ID') ) {
   if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
     $server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));

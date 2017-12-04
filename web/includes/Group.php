@@ -6,7 +6,6 @@ public $defaults = array(
     'Id'              =>  null,
     'Name'            =>  '',
     'ParentId'        =>  null,
-    'MonitorIds'      =>  '',
 );
 
   public function __construct( $IdOrRow=NULL ) {
@@ -88,7 +87,8 @@ public $defaults = array(
 
   public function delete() {
     if ( array_key_exists( 'Id', $this ) ) {
-      dbQuery( 'DELETE FROM Groups WHERE Id = ?', array($this->{'Id'}) );
+      dbQuery( 'DELETE FROM Groups WHERE Id=?', array($this->{'Id'}) );
+      dbQuery( 'DELETE FROM Groups_Monitors WHERE GroupId=?', array($this->{'Id'}) );
       if ( isset($_COOKIE['zmGroup']) ) {
         if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
           unset( $_COOKIE['zmGroup'] );
@@ -128,6 +128,13 @@ public $defaults = array(
     return $this->{'depth'};
   } // end public function depth
 
+  public function MonitorIds( ) {
+    if ( ! array_key_exists( 'MonitorIds', $this ) ) {
+      $this->{'MonitorIds'} = dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($this->{'Id'}) );
+    }
+    return $this->{'MonitorIds'};
+  }
+
   public static function get_group_dropdowns() {
     # This will end up with the group_id of the deepest selection
     $group_id = 0;
@@ -164,19 +171,14 @@ public $defaults = array(
     return $group_id;
   } # end public static function get_group_dropdowns()
 
+
   public static function get_group_sql( $group_id ) {
     $groupSql = '';
     if ( $group_id ) {
-      if ( $group = dbFetchOne( 'SELECT MonitorIds FROM Groups WHERE Id=?', NULL, array($group_id) ) ) {
-        $groupIds = array();
-        if ( $group['MonitorIds'] )
-          $groupIds = explode( ',', $group['MonitorIds'] );
+         $MonitorIds = dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($group_id) );
 
-        foreach ( dbFetchAll( 'SELECT MonitorIds FROM Groups WHERE ParentId = ?', NULL, array($group_id) ) as $group )
-          if ( $group['MonitorIds'] )
-            $groupIds = array_merge( $groupIds,  explode( ',', $group['MonitorIds'] ) );
-      }
-      $groupSql = " find_in_set( Id, '".implode( ',', $groupIds )."' )";
+         $MonitorIds = array_merge( $MonitorIds, dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId = ?)', 'MonitorId', array($group_id) ) );
+      $groupSql = " find_in_set( Id, '".implode( ',', $MonitorIds )."' )";
     }
     return $groupSql;
   } # end public static function get_group_sql( $group_id )

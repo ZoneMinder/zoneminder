@@ -1872,7 +1872,10 @@ function monitorIdsToNames( $ids ) {
     }
   }
   $names = array();
-  foreach ( preg_split( '/\s*,\s*/', $ids ) as $id ) {
+  if ( ! is_array($ids) ) {
+    $ids = preg_split( '/\s*,\s*/', $ids );
+  }
+  foreach ( $ids as $id ) {
     if ( visibleMonitor( $id ) ) {
       if ( isset($mITN_monitors[$id]) ) {
         $names[] = $mITN_monitors[$id]['Name'];

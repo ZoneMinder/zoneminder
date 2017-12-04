@@ -59,17 +59,33 @@ include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
-if (isset($_REQUEST['minTime']) || isset($_REQUEST['maxTime'])) {
+if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($displayMonitors) != 0) {
   $filter = array(
       'Query' => array(
         'terms' => array(
-          array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime']),
-          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and'),
+          array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'),
+          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'),
         )
       ),
     );
+  if (isset($_SESSION['MonitorId'])) {
+    $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => '=', 'val' => $_SESSION['MonitorId'], 'cnj' => 'and'));
+  }
+  if (( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) && !isset($_SESSION['MonitorId'])) {
+    for ($i=0; $i < count($displayMonitors); $i++) {
+      if ($i == '0') {
+        $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1');
+      } else if ($i == (count($displayMonitors)-1)) {
+        $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1');
+      } else {
+        $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or');
+      }
+    }
+  }
   parseFilter( $filter );
-  $filterQuery = $filter['query'];
+  session_start();
+  $_SESSION['montageReviewFilter'] = $filter;
+  session_write_close();
 }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
@@ -224,7 +240,13 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
         <button type="button" id="live"      onclick="setLive(1-liveMode);"><?php echo translate('Live') ?></button>
         <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
         <button type="button" id="panright"  onclick="click_panright();"         ><?php echo translate('Pan') ?> &gt;</button>
-        <button type="button" id="downloadVideo" onclick="click_download();"        ><?php echo translate('Download Video') ?></button>
+<?php
+if (count($displayMonitors) != 0) {
+?>
+        <button type="button" id="downloadVideo" onclick="click_download();"><?php echo translate('Download Video') ?></button>
+<?php
+}
+?>
       </div>
       <div id="timelinediv">
         <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>

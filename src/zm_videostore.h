@@ -19,6 +19,7 @@ class VideoStore;
 class VideoStore {
 private:
 
+  Monitor *monitor;
 	AVOutputFormat *out_format;
 	AVFormatContext *oc;
 	AVStream *video_out_stream;

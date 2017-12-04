@@ -23,16 +23,18 @@ if ( !canView( 'Events' ) ) {
   return;
 }
 
-if (isset($_REQUEST['filter'])) { //Handles montageReview filter
+if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
   $eventsSql = 'SELECT E.Id FROM Events as E WHERE 1';
-  parseFilter($_REQUEST['filter']);
-  $eventsSql .= $_REQUEST['filter']['sql'];
+  $eventsSql .= $_SESSION['montageReviewFilter']['sql'];
   $results = dbQuery($eventsSql);
   $eids = [];
   while ( $event_row = dbFetchNext( $results ) ) {
     array_push($eids, 'eids[]='.$event_row['Id']);
   }
   $_REQUEST['eids'] = $eids;
+  session_start();
+  unset($_SESSION['montageReviewFilter']);
+  session_write_close();
 }
 
 $focusWindow = true;

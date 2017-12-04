@@ -335,7 +335,7 @@ function redrawScreen() {
         $('zoomout').style.display="none";
         $('panleft').style.display="none";
         $('panright').style.display="none";
-        $('downloadVideo').style.display="none";
+        if ($('downloadVideo')) $('downloadVideo').style.display="none";
 
     } else  {
     // switch out of liveview mode
@@ -352,7 +352,7 @@ function redrawScreen() {
         $('panleft').style.display="inline-flex";
         $('panright').style.display="inline";
         $('panright').style.display="inline-flex";
-        $('downloadVideo').style.display="inline";
+        if ($('downloadVideo')) $('downloadVideo').style.display="inline";
     }
 
     if ( fitMode == 1 ) {
@@ -556,7 +556,7 @@ function click_panright() {
   clicknav(minTimeSecs,maxTimeSecs,0);
 }
 function click_download() {
-  createPopup( '?view=download'+filterQuery, 'zmDownload', 'download' );
+  createPopup( '?view=download', 'zmDownload', 'download' );
 }
 function click_all_events() {
   clicknav(0,0,0);

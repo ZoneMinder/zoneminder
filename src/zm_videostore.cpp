@@ -36,8 +36,10 @@ VideoStore::VideoStore(
     const char *format_in,
     AVStream *p_video_in_stream,
     AVStream *p_audio_in_stream,
-    Monitor *monitor
+    Monitor *p_monitor
     ) {
+
+monitor = p_monitor;
   video_in_stream = p_video_in_stream;
   audio_in_stream = p_audio_in_stream;
   filename = filename_in;
@@ -45,9 +47,31 @@ VideoStore::VideoStore(
 
   packets_written = 0;
   frame_count = 0;
+  in_frame = NULL;
 
+  converted_in_samples = NULL;
+  audio_out_codec = NULL;
+  audio_in_codec = NULL;
+  audio_in_ctx = NULL;
+  audio_out_stream = NULL;
+  out_frame = NULL;
+#ifdef HAVE_LIBAVRESAMPLE
+  resample_ctx = NULL;
+#endif
   FFMPEGInit();
 
+  video_last_pts = 0;
+  video_last_dts = 0;
+  audio_last_pts = 0;
+  audio_last_dts = 0;
+  video_next_pts = 0;
+  video_next_dts = 0;
+  audio_next_pts = 0;
+  audio_next_dts = 0;
+Debug(2,"End VIdeoStore");
+}  // VideoStore::VideoStore
+
+bool VideoStore::open() {
   Info("Opening video storage stream %s format: %s", filename, format);
 
   ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
@@ -80,7 +104,6 @@ VideoStore::VideoStore(
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
-  in_frame = NULL;
 
   if ( video_in_stream ) {
     video_in_stream_index = video_in_stream->index;
@@ -144,7 +167,7 @@ VideoStore::VideoStore(
 #endif
     if ( ret < 0 ) {
       Error("Could not initialize ctx parameteres");
-      return;
+      return false;
     } else {
       Debug(2, "Going to dump the outctx");
       zm_dump_codec(video_out_ctx);
@@ -199,7 +222,7 @@ VideoStore::VideoStore(
     /** Create a new frame to store the */
     if ( !(video_in_frame = zm_av_frame_alloc()) ) {
       Error("Could not allocate video_in frame");
-      return;
+      return false;
     }
     // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
     video_out_ctx->width = monitor->Width();
@@ -220,7 +243,7 @@ VideoStore::VideoStore(
     /* video time_base can be set to whatever is handy and supported by encoder */
     video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
     //video_out_ctx->framerate = (AVRational){0,24}; // Unknown framerate
-#if 0
+#if 1
     video_out_ctx->gop_size = 12;
     video_out_ctx->qmin = 10;
     video_out_ctx->qmax = 51;
@@ -261,14 +284,19 @@ VideoStore::VideoStore(
         video_out_codec = avcodec_find_encoder_by_name("libx264");
         if ( ! video_out_codec ) {
           Error("Can't find libx264 encoder");
-          return;
+          return false;
         }
       }
       if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-        Error("Can't open video codec (%s)! %s",
-            video_out_codec->name,
+        Error("Can't open video codec (%s)! %s", video_out_codec->name,
             av_make_error_string(ret).c_str() );
-        return;
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+        // We allocate and copy in newer ffmpeg, so need to free it
+        avcodec_free_context(&video_out_ctx);
+#endif
+        video_out_ctx=NULL;
+        
+        return false;
       }
     }
     Debug(2,"Sucess opening codec");
@@ -295,7 +323,7 @@ VideoStore::VideoStore(
   ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
   if ( ret < 0 ) {
     Error("Could not initialize stream parameteres");
-    return;
+    return false;
   }
   zm_dump_codecpar(video_out_stream->codecpar);
   zm_dump_codec(video_out_ctx);
@@ -318,15 +346,6 @@ VideoStore::VideoStore(
         video_out_ctx->time_base.num,
         video_out_ctx->time_base.den);
 
-  converted_in_samples = NULL;
-  audio_out_codec = NULL;
-  audio_in_codec = NULL;
-  audio_in_ctx = NULL;
-  audio_out_stream = NULL;
-  out_frame = NULL;
-#ifdef HAVE_LIBAVRESAMPLE
-  resample_ctx = NULL;
-#endif
 
   if ( audio_in_stream ) {
     Debug(3, "Have audio stream");
@@ -347,7 +366,7 @@ VideoStore::VideoStore(
       Debug(2, "Got something other than AAC (%s)", error_buffer);
 
       if ( !setup_resampler() ) {
-        return;
+        return false;
       }
     } else {
       Debug(3, "Got AAC");
@@ -414,18 +433,6 @@ VideoStore::VideoStore(
     }
   }  // end if audio_in_stream
 
-  video_last_pts = 0;
-  video_last_dts = 0;
-  audio_last_pts = 0;
-  audio_last_dts = 0;
-  video_next_pts = 0;
-  video_next_dts = 0;
-  audio_next_pts = 0;
-  audio_next_dts = 0;
-Debug(2,"End VIdeoStore");
-}  // VideoStore::VideoStore
-
-bool VideoStore::open() {
   /* open the out file, if needed */
   if (!(out_format->flags & AVFMT_NOFILE)) {
     ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL);

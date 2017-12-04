@@ -207,7 +207,7 @@ sub getFilters {
   } else {
     $sql .= ' Background = 1 AND';
   }
-  $sql .= '(  AutoArchive = 1
+  $sql .= '( AutoArchive = 1
     or AutoVideo = 1
     or AutoUpload = 1
     or AutoEmail = 1
@@ -215,16 +215,17 @@ sub getFilters {
     or AutoExecute = 1
     or AutoDelete = 1
     or UpdateDiskSpace = 1
+    or AutoMove = 1
     ) ORDER BY Name';
   my $sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
+    or Fatal( "Unable to prepare '$sql': ".$dbh->errstr() );
   my $res;
   if ( $filter_name ) {
     $res = $sth->execute( $filter_name )
-      or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
+      or Fatal( "Unable to execute '$sql': ".$sth->errstr() );
   } else {
     $res = $sth->execute()
-      or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
+      or Fatal( "Unable to execute '$sql': ".$sth->errstr() );
   }
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
@@ -263,6 +264,7 @@ sub checkFilter {
           ($filter->{AutoEmail}?'email':()),
           ($filter->{AutoMessage}?'message':()),
           ($filter->{AutoExecute}?'execute':()),
+          ($filter->{AutoMove}?'move':()),
           ($filter->{UpdateDiskSpace}?'update disk space':()),
           ),
         'returned' , scalar @Events , 'events',
@@ -270,12 +272,12 @@ sub checkFilter {
         ) );
 
   foreach my $event ( @Events ) {
-    Debug( "Checking event $event->{Id}\n" );
+    Debug( "Checking event $event->{Id}" );
     my $delete_ok = !undef;
     $dbh->ping();
     if ( $filter->{AutoArchive} ) {
-      Info( "Archiving event $event->{Id}\n" );
-# Do it individually to avoid locking up the table for new events
+      Info( "Archiving event $event->{Id}" );
+      # Do it individually to avoid locking up the table for new events
       my $sql = 'UPDATE Events SET Archived = 1 WHERE Id = ?';
       my $sth = $dbh->prepare_cached( $sql )
         or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
@@ -315,11 +317,17 @@ sub checkFilter {
         Error( "Unable toto delete event $event->{Id} as previous operations failed\n" );
       }
     } # end if AutoDelete
+    if ( $filter->{AutoMove} ) {
+      my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+      my $NewStorage = new ZoneMinder::Storage( $filter->{AutoMoveTo} );
+      $_ = $Event->MoveTo( $NewStorage );
+      Error($_) if $_;
+    }
+
     if ( $filter->{UpdateDiskSpace} ) {
-        my $Event = new ZoneMinder::Event( $$event{Id}, $event );
-        $Event->DiskSpace(undef);
-        $Event->save();
-          
+      my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+      $Event->DiskSpace(undef);
+      $Event->save();
     } # end if UpdateDiskSpace
   } # end foreach event
 }

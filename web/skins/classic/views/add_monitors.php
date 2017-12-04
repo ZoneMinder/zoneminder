@@ -45,7 +45,7 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
         <div style="width:50%;position: absolute; top:0; left: 0;height: 100%;">
         <fieldset><legend>Enter by IP or URL</legend>
           <!--<input type="text" name="newMonitor[Name]" />-->
-          <input type="url" name="newMonitor[Url]" oninput="probe(this);"/>
+          <input type="text" name="newMonitor[Url]" oninput="probe(this);"/>
         </fieldset>
         <fieldset><legend>Import CSV Spreadsheet</legend>
             Spreadsheet should have the following format:<br/>

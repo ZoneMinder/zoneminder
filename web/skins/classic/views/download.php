@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
@@ -50,16 +50,12 @@ xhtmlHeaders(__FILE__, translate('Download') );
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
 <?php
-if ( !empty($_REQUEST['eid']) )
-{
+if ( !empty($_REQUEST['eid']) ) {
 ?>
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
 <?php
-}
-elseif ( !empty($_REQUEST['eids']) )
-{
-    foreach ( $_REQUEST['eids'] as $eid )
-    {
+} else if ( !empty($_REQUEST['eids']) ) {
+    foreach ( $_REQUEST['eids'] as $eid ) {
 ?>
         <input type="hidden" name="eids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
@@ -75,30 +71,34 @@ elseif ( !empty($_REQUEST['eids']) )
             <tr>
               <th scope="row"><?php echo translate('ExportFormat') ?></th>
               <td>
-                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar" onclick="configureExportButton( this )"/><label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>
-                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked" onclick="configureExportButton( this )"/><label for="exportFormatZip"><?php echo translate('ExportFormatZip') ?></label>
+                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar" onclick="configureExportButton(this)"/>
+                <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>
+                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked" onclick="configureExportButton(this);"/>
+                <label for="exportFormatZip"><?php echo translate('ExportFormatZip') ?></label>
               </td>
             </tr>
           </tbody>
         </table>
-        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('GenerateDownload') ?>" onclick="exportEvent( this.form );" />
+        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('GenerateDownload') ?>" onclick="exportEvent(this.form);" />
       </form>
     </div>
 <?php
-    if ( isset($_REQUEST['generated']) )
-    {
+    if ( isset($_REQUEST['generated']) ) {
 ?>
-      <h2 id="exportProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>"><span id="exportProgressText"><?php echo $_REQUEST['generated']?translate('ExportSucceeded'):translate('ExportFailed') ?></span><span id="exportProgressTicker"></span></h2>
+      <h2 id="exportProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>">
+        <span id="exportProgressText"><?php echo $_REQUEST['generated']?translate('ExportSucceeded'):translate('ExportFailed') ?></span>
+        <span id="exportProgressTicker"></span>
+      </h2>
+<?php
+    } else {
+?>
+      <h2 id="exportProgress" class="hidden warnText">
+        <span id="exportProgressText"><?php echo translate('Exporting') ?></span>
+        <span id="exportProgressTicker"></span>
+      </h2>
 <?php
     }
-    else
-    {
-?>
-      <h2 id="exportProgress" class="hidden warnText"><span id="exportProgressText"><?php echo translate('Exporting') ?></span><span id="exportProgressTicker"></span></h2>
-<?php
-    }
-    if ( !empty($_REQUEST['generated']) )
-    {
+    if ( !empty($_REQUEST['generated']) ) {
 ?>
       <h3 id="downloadLink"><a href="<?php echo validHtmlStr($_REQUEST['exportFile']) ?>"><?php echo translate('Download') ?></a></h3>
 <?php

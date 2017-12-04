@@ -137,19 +137,19 @@ require_once( 'database.php' );
 loadConfig();
 
 $GLOBALS['defaultUser'] = array(
-  "Username"  => "admin",
-  "Password"  => "",
-  "Language"  => "",
-  "Enabled"   => 1,
-  "Stream"    => 'View',
-  "Events"    => 'Edit',
-  "Control"   => 'Edit',
-  "Monitors"  => 'Edit',
-  "Groups"    => 'Edit',
-  "Devices"   => 'Edit',
-  "System"    => 'Edit',
-  "MaxBandwidth" => "",
-  "MonitorIds"   => false
+  'Username'  => "admin",
+  'Password'  => "",
+  'Language'  => "",
+  'Enabled'   => 1,
+  'Stream'    => 'View',
+  'Events'    => 'Edit',
+  'Control'   => 'Edit',
+  'Monitors'  => 'Edit',
+  'Groups'    => 'Edit',
+  'Devices'   => 'Edit',
+  'System'    => 'Edit',
+  'MaxBandwidth' => '',
+  'MonitorIds'   => false
 );
 
 function loadConfig( $defineConsts=true ) {

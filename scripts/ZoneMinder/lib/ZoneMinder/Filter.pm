@@ -207,10 +207,11 @@ sub Sql {
             if ( $term->{attr} =~ /^Monitor/ ) {
               $value = "'$temp_value'";
             } elsif ( $term->{attr} eq 'ServerId' ) {
+              Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
-                $value = "'$Config{ZM_SERVER_ID}'";
+                $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what
-                $$self{Server} = new ZoneMinder::Server( $Config{ZM_SERVER_ID} );
+                $$self{Server} = new ZoneMinder::Server( $ZoneMinder::Config::Config{ZM_SERVER_ID} );
               } else {
                 $value = "'$temp_value'";
                 # This gets used later, I forget for what
@@ -225,7 +226,7 @@ sub Sql {
                 ) {
               $value = "'$temp_value'";
             } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
-              if ( $temp_value == 'NULL' ) {
+              if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = DateTimeToSQL( $temp_value );
@@ -237,7 +238,7 @@ sub Sql {
                 $value = "'$value'";
               }
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or  $term->{attr} eq 'EndDate' ) {
-              if ( $temp_value == 'NULL' ) {
+              if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = DateTimeToSQL( $temp_value );
@@ -249,7 +250,7 @@ sub Sql {
                 $value = "to_days( '$value' )";
               }
             } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
-              if ( $temp_value == 'NULL' ) {
+              if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = DateTimeToSQL( $temp_value );

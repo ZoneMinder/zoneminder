@@ -8,7 +8,6 @@ App::uses('AppController', 'Controller');
  */
 class MonitorsController extends AppController {
 
-
 /**
  * Components
  *
@@ -16,18 +15,14 @@ class MonitorsController extends AppController {
  */
 	public $components = array('Paginator', 'RequestHandler');
 
-
-public function beforeFilter() {
-	parent::beforeFilter();
-        $canView = $this->Session->Read('monitorPermission');
-	if ($canView =='None')
-	{
-		throw new UnauthorizedException(__('Insufficient Privileges'));
-		return;
-	}
-
-}
-
+  public function beforeFilter() {
+    parent::beforeFilter();
+    $canView = $this->Session->Read('monitorPermission');
+    if ($canView =='None') {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+  }
 
 /**
  * index method
@@ -36,7 +31,7 @@ public function beforeFilter() {
  */
 	public function index() {
     $this->Monitor->recursive = 0;
-		
+
 		if ($this->request->params['named']) {	
 			$this->FilterComponent = $this->Components->load('Filter');
 			$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
@@ -48,7 +43,28 @@ public function beforeFilter() {
 		if (!empty($allowedMonitors)) {
       $conditions['Monitor.Id' ] = $allowedMonitors;
 		}
-    $monitors = $this->Monitor->find('all',array('conditions'=>$conditions));
+    $find_array = array('conditions'=>$conditions,'contain'=>array('Group'));
+
+    //if ( $this->request->params['GroupId'] ) {
+      $find_array['joins'] = array(
+        array(
+          'table' => 'Groups_Monitors',
+          'type' => 'inner',
+          'conditions' => array(
+            'Groups_Monitors.MonitorId = Monitor.Id'
+          ),
+        ),
+        //array(
+          //'table' => 'Groups',
+          //'type' => 'inner',
+          //'conditions' => array(
+            //'Groups.Id = Groups_Monitors.GroupId',
+            //'Groups.Id' => $this->request->params['GroupId'],
+          //),
+        //)
+      );
+    //}
+    $monitors = $this->Monitor->find('all',$find_array);
     $this->set(array(
           'monitors' => $monitors,
           '_serialize' => array('monitors')

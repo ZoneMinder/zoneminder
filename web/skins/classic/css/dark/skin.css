@@ -373,11 +373,12 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #header {
     width: 100%;
-    line-height: 24px;
+    line-height: 1;
     text-align: left;
-    margin-bottom: 10px;
-    padding: 10px 20px;
+    padding: 5px 20px;
+    margin: 0 auto 4px auto;
     font-weight: 300;
+    border-bottom: 1px solid #000000;
 }
 
 #header h2 {
@@ -407,7 +408,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #content {
     width: 96%;
-    margin: 8px auto;
+    margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
 }

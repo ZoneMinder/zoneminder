@@ -104,7 +104,7 @@ echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('o
                 <select name="newGroup[MonitorIds][]" size="4" multiple="multiple" onchange="configureButtons(this);">
 <?php
   $monitors = dbFetchAll( 'SELECT Id,Name FROM Monitors ORDER BY Sequence ASC' );
-  $monitorIds = array_flip( explode( ',', $newGroup->MonitorIds() ) );
+  $monitorIds = $newGroup->MonitorIds();
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor( $monitor['Id'] ) ) {
 ?>

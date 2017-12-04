@@ -61,14 +61,9 @@ xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
 ?>
 <body>
   <div id="page">
-    <div id="content">
-      <div id="menuBar">
+  <?php echo getNavBarHTML() ?>
+    <div id="header">
         <div id="monitorName"><?php echo $monitor->Name() ?></div>
-<script type="text/javascript">
-  if ( window.opener ) {
-    document.write('<div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>');
-  }
-</script>
         <div id="menuControls">
 <?php
 if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
@@ -79,7 +74,9 @@ if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
 ?>
           <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
         </div>
-      </div>
+        <div id="closeControl"><a href="#" onclick="window.history.back()"><?php echo translate('Back') ?></a></div>
+    </div>
+    <div id="content">
       <div id="imageFeed"><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
       <div id="monitorStatus">
 <?php if ( canEdit( 'Monitors' ) ) { ?>

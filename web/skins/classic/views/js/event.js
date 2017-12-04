@@ -812,10 +812,6 @@ function getActResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getActResponse", respObj ) )
     return;
 
-  if ( respObj.refreshParent )
-    if (refreshParent == false) refreshParent = true;  //Bypass filter window redirect fix.
-    refreshParentWindow();
-
   if ( respObj.refreshEvent )
     eventQuery( eventData.Id );
 }

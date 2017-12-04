@@ -385,7 +385,11 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p>
               <label><?php echo translate('FilterDeleteEvents') ?></label>
-              <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( !empty($filter->AutoDelete()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( !empty($filter->AutoDelete()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this)"/>
+            </p>
+            <p><label><?php echo translate('FilterMoveEvents') ?></label>
+              <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( !empty($filter->AutoMove()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);if(this.checked){$j(this.form.elements['filter[AutoMoveTo]']).css('display','inline');}else{this.form.elements['filter[AutoMoveTo]'].hide();};"/>
+              <?php echo htmlSelect( "filter[AutoMoveTo]", $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;' ) ); ?>
             </p>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>

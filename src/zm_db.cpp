@@ -28,7 +28,7 @@ MYSQL dbconn;
 bool zmDbConnected = false;
 
 void zmDbConnect() {
-  // If these lines are uncommented, we get memory corruption and crashes
+  // For some reason having these lines causes memory corruption and crashing on newer debian/ubuntu
   //if ( zmDbConnected ) 
     //return;
 

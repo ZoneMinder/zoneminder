@@ -87,9 +87,6 @@ BEGIN {
       print( STDERR "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on ".ZM_CONFIG_SUBDIR.".\n" );
     }
   }
-  foreach my $k ( keys %Config ) {
-    print "Initial config $k => $Config{$k}\n";
-  }
 
   use DBI;
   my $socket;
@@ -128,7 +125,6 @@ BEGIN {
 #$dbh->disconnect();
   #
   if ( ! $Config{ZM_SERVER_ID} ) {
-    print "Loading ServerId $Config{ZM_SERVER_NAME} HOST:$Config{ZM_SERVER_HOST}\n";
     $Config{ZM_SERVER_ID} = undef;
     $sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
     if ( $Config{ZM_SERVER_NAME} ) {
@@ -141,8 +137,6 @@ BEGIN {
       $Config{ZM_SERVER_ID} = $$result{Id};
     }
     $sth->finish();
-  } else {
-    print "Have ZM_SERVER_ID $Config{ZM_SERVER_ID}\n";
   }
 
   # This subroutine must be inside the BEGIN block

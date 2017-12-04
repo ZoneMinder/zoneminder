@@ -182,18 +182,20 @@ function refreshParentWindow() {
   }
 }
 
-$j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+if (currentView !='none') {
+  $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
 
-$j(document).ready(function() {
-  if ($j('.navbar').length) setInterval(getNavBar, navBarRefresh)
-});
+  $j(document).ready(function() {
+    if ($j('.navbar').length) setInterval(getNavBar, navBarRefresh)
+  });
 
-function getNavBar () {
-  $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar', setNavBar);
-}
+  function getNavBar () {
+    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar', setNavBar);
+  }
 
-function setNavBar (data) {
-  $j('#reload').replaceWith(data.message);
+  function setNavBar (data) {
+    $j('#reload').replaceWith(data.message);
+  }
 }
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.

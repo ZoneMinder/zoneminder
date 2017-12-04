@@ -56,8 +56,8 @@ class EventsController extends AppController {
 			// make a nice ZM_API_ITEMS_PER_PAGE for all pagination
 			// API
 		
-			'limit' => ( isset($this->request->params['limit']) ? $this->request->params['limit'] : '100' ),
-			'order' => ( isset($this->request->params['order']) ? $this->request->params['order'] : array('StartTime', 'MaxScore') ),
+			'limit' => '100',
+			'order' => array('StartTime', 'MaxScore'),
 			'paramType' => 'querystring',
     );
     //if ( $this->request->params['GroupId'] ) {

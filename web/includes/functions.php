@@ -452,7 +452,8 @@ function getEventPath( $event ) {
 }
 
 function getEventDefaultVideoPath( $event ) {
-	return ZM_DIR_EVENTS . '/' . getEventPath($event) . '/' . $event['DefaultVideo'];
+  $Event = new Event( $event );
+  return $Event->getStreamSrc( array( "mode"=>"mpeg", "format"=>"h264" ) );
 }
 
 function deletePath( $path ) {
@@ -992,7 +993,7 @@ function zmaCheck( $monitor ) {
 }
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-  $eventPath = getEventPath( $event );
+  $eventPath = ZM_DIR_EVENTS . '/' . getEventPath( $event );
 
   if ( !is_array($frame) )
     $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
@@ -2305,6 +2306,7 @@ function getStreamMode( ) {
     $streamMode = 'single';
     Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
   }
+  return $streamMode;
 } // end function getStreamMode
 
 function folder_size($dir) {

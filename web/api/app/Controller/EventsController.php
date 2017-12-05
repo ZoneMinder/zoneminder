@@ -57,7 +57,7 @@ class EventsController extends AppController {
 			// API
 		
 			'limit' => '100',
-			'order' => array('StartTime', 'MaxScore'),
+			'order' => array('StartTime'),
 			'paramType' => 'querystring',
     );
     //if ( $this->request->params['GroupId'] ) {

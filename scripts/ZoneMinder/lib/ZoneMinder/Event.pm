@@ -414,19 +414,21 @@ sub MoveTo {
 
   $$self{Storage} = $NewStorage;
 
-  my ( $NewPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
+  my ( $NewPath ) = ( $NewStorage->Path(undef) =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
     return "New storage does not have an id.  Moving will not happen.";
-  } elsif ( !$NewPath) {
+  } elsif ( !$NewPath ) {
     return "$NewPath is empty.";
-  }elsif ( $NewPath eq $OldPath ) {
-    return "New path and old path are the same! $NewPath";
   } elsif ( ! -e $NewPath ) {
     return "New path $NewPath does not exist.";
-  }elsif ( ! -e $OldPath ) {
+  } elsif ( ! -e $OldPath ) {
     return "Old path $OldPath does not exist.";
   }
-Debug("Moving event $$self{Id} from $OldPath to $NewPath");
+  ( $NewPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
+  if ( $NewPath eq $OldPath ) {
+    return "New path and old path are the same! $NewPath";
+  }
+  Debug("Moving event $$self{Id} from $OldPath to $NewPath");
 
   my $error = '';
   File::Path::make_path( $NewPath, {error => \my $err} );

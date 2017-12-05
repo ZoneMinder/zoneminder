@@ -308,7 +308,7 @@ sub delete {
 
 sub delete_files {
 
-  my $Storage = new ZoneMinder::Storage( $_[0]{StorageId} );
+  my $Storage = @_ > 1 $_[1] : new ZoneMinder::Storage( $_[0]{StorageId} );
   my $storage_path = $Storage->Path();
 
   if ( ! $storage_path ) {
@@ -316,7 +316,7 @@ sub delete_files {
     return;
   }
 
-  chdir ( $storage_path );
+  chdir( $storage_path );
 
   if ( $Config{ZM_USE_DEEP_STORAGE} ) {
     if ( ! $_[0]{MonitorId} ) {
@@ -405,6 +405,8 @@ sub DiskSpace {
 
 sub MoveTo {
   my ( $self, $NewStorage ) = @_;
+
+  my $OldStorage = $self->Storage();
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
   my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
@@ -446,8 +448,10 @@ sub MoveTo {
   if ( ! $error ) {
     # Succeeded in copying all files, so we may now update the Event.
     $$self{StorageId} = $$NewStorage{Id};    
+    $$self{Storage} = $NewStorage;
     $error .= $self->save();
   }
+  $self->delete_files( $OldStorage );
   return $error;
 } # end sub MoveTo
 

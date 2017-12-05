@@ -353,6 +353,7 @@ Monitor::Monitor(
   event_count = 0;
   image_count = 0;
   analysis_image_count = 0;
+  deinterlacing_value = deinterlacing & 0xff;
 
   // How many frames we need to have before we start analysing
   ready_count = warmup_count;
@@ -564,7 +565,7 @@ bool Monitor::connect() {
     image_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]) );
     image_buffer[i].image->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
-  if ( (deinterlacing & 0xff) == 4) {
+  if ( deinterlacing_value == 4 ) {
     /* Four field motion adaptive deinterlacing in use */
     /* Allocate a buffer for the next image */
     next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
@@ -600,7 +601,7 @@ Monitor::~Monitor() {
       closeEvent();
     }
 
-    if ( (deinterlacing & 0xff) == 4) {
+    if ( deinterlacing_value == 4 ) {
       delete next_buffer.image;
     }
 #if 1
@@ -2764,7 +2765,6 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
 int Monitor::Capture() {
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
-  GetLastEventId();
   unsigned int index = image_count % image_buffer_count;
 
   if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
@@ -2776,6 +2776,8 @@ int Monitor::Capture() {
       Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
         shared_data->last_read_index = image_buffer_count;
     }
+  } else {
+    Debug(2,"Current write index %d, last read index %d, current (%d)", shared_data->last_write_index, shared_data->last_read_index, index );
   }
 
   ZMPacket *packet = &image_buffer[index];
@@ -2784,7 +2786,6 @@ int Monitor::Capture() {
   Image* capture_image = packet->image;
   int captureResult = 0;
 
-  unsigned int deinterlacing_value = deinterlacing & 0xff;
   if ( deinterlacing_value == 4 ) {
     if ( FirstCapture != 1 ) {
       /* Copy the next image into the shared memory */
@@ -2919,7 +2920,7 @@ int Monitor::Capture() {
         if ( now != last_fps_time ) {
           // # of images per interval / the amount of time it took
           capture_fps = double(fps_report_interval)/(now-last_fps_time);
-          Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
+          //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
           //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
           Info( "%s: %d - Capturing at %.2lf fps", name, image_count, capture_fps );
           last_fps_time = now;

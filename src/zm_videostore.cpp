@@ -141,11 +141,13 @@ bool VideoStore::open() {
   }
 
   if ( monitor->OutputCodec() == "mjpeg" ) {
+Debug(2,"Using mjpeg");
     video_out_codec = avcodec_find_encoder_by_name("mjpeg");
     if ( ! video_out_codec ) {
-      Debug(1, "Didn't find omx");
+      Debug(1, "Didn't find mjpeg encoder");
       video_out_codec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
     }
+    video_out_ctx = avcodec_alloc_context3( video_out_codec );
     video_out_ctx->codec_id = video_out_codec->id;
     video_out_ctx->pix_fmt = AV_PIX_FMT_YUVJ422P;
 
@@ -919,10 +921,10 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
 
   // if we have to transcode
   if ( video_out_ctx->codec_id != video_in_ctx->codec_id ) {
-    Debug(3, "Have encoding video frame count (%d)", frame_count);
+    //Debug(3, "Have encoding video frame count (%d)", frame_count);
 
     if ( ! zm_packet->out_frame ) {
-      Debug(3, "Have no out frame");
+      //Debug(3, "Have no out frame");
       AVFrame *out_frame = zm_packet->out_frame = zm_av_frame_alloc();
       if ( ! out_frame ) {
         Error("Unable to allocate a frame");
@@ -961,13 +963,11 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       out_frame->height = video_out_ctx->height;
       out_frame->format = video_out_ctx->pix_fmt;
       //out_frame->pkt_duration = 0;
-      out_frame->coded_picture_number = frame_count;
-      out_frame->display_picture_number = frame_count;
 
       if ( ! zm_packet->in_frame ) {
-        Debug(2,"Have no in_frame");
+        //Debug(2,"Have no in_frame");
         if ( zm_packet->packet.size ) {
-          Debug(2,"Decoding");
+          //Debug(2,"Decoding");
           if ( ! zm_packet->decode( video_in_ctx ) ) {
             Debug(2, "unable to decode yet.");
             return 0;
@@ -975,7 +975,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
           //Go straight to out frame
           swscale.Convert( zm_packet->in_frame, out_frame );
         } else if ( zm_packet->image ) {
-          Debug(2,"Have an image, convert it");
+          //Debug(2,"Have an image, convert it");
           //Go straight to out frame
           swscale.Convert(
               zm_packet->image, 
@@ -997,26 +997,31 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       } // end if no in_frame
     } // end if no out_frame
 
+    zm_packet->out_frame->coded_picture_number = frame_count;
+    zm_packet->out_frame->display_picture_number = frame_count;
+    zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
+
     if ( ! video_last_pts ) {
       video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
       zm_packet->out_frame->pts = 0;
     } else {
+      //uint64_t seconds = zm_packet->timestamp->tv_sec*1000000;
       zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
-      Debug(2, " Setting pts, set to (%" PRId64 ") from (%" PRIu64 " - secs(%d) usecs(%d)",
-          zm_packet->out_frame->pts, video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
+      Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (%" PRId64 " - secs(%d) usecs(%d)",
+          frame_count, zm_packet->out_frame->pts, video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
     }
     if ( zm_packet->keyframe ) {
-      Debug(2, "Setting keyframe was (%d)", zm_packet->out_frame->key_frame );
+      //Debug(2, "Setting keyframe was (%d)", zm_packet->out_frame->key_frame );
       zm_packet->out_frame->key_frame = 1;
-      Debug(2, "Setting keyframe (%d)", zm_packet->out_frame->key_frame );
+      //Debug(2, "Setting keyframe (%d)", zm_packet->out_frame->key_frame );
     } else {
       Debug(2, "Not Setting keyframe");
     }
 
-    // Do this to allow the encoder to choose whether to use I/P/B frame
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // Do this to allow the encoder to choose whether to use I/P/B frame
     zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
     if ( (ret = avcodec_send_frame(video_out_ctx, zm_packet->out_frame)) < 0 ) {
       Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
@@ -1024,6 +1029,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     }
 
     av_init_packet(&opkt);
+    opkt.data = NULL;
+    opkt.size = 0;
     if ( (ret = avcodec_receive_packet(video_out_ctx, &opkt)) < 0 ) {
       zm_av_packet_unref(&opkt);
       if ( AVERROR(EAGAIN) == ret ) {
@@ -1037,6 +1044,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       }
       return -1;
     }
+//Debug(2, "Got packet using receive_packet, dts:%" PRId64 ", pts:%" PRId64 ", keyframe:%d", opkt.dts, opkt.pts, opkt.flags & AV_PKT_FLAG_KEY );
 #else
     av_init_packet(&opkt);
     int data_present;
@@ -1053,8 +1061,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       return 0;
     }
 #endif
-    opkt.dts = opkt.pts;
-    opkt.duration = 0;
+    //opkt.dts = opkt.pts;
+    //opkt.duration = 0;
 
   } else {
     AVPacket *ipkt = &zm_packet->packet;
@@ -1073,7 +1081,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
   }
   opkt.duration = 0;
 
-  Debug(3, "dts:%" PRId64 ", pts:%" PRId64 ", keyframe:%d", opkt.dts, opkt.pts, opkt.flags & AV_PKT_FLAG_KEY );
+  Debug(3, "dts:%" PRId64 ", pts:%" PRId64 ", duration:%" PRId64 ", keyframe:%d", opkt.dts, opkt.pts, opkt.duration, opkt.flags & AV_PKT_FLAG_KEY );
   write_video_packet( opkt );
   zm_av_packet_unref(&opkt);
 
@@ -1090,7 +1098,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
     opkt.dts = opkt.pts;
   }
 
-  opkt.pos = -1;
+  //opkt.pos = -1;
   opkt.stream_index = video_out_stream->index;
 
   //video_next_dts += opkt.duration;

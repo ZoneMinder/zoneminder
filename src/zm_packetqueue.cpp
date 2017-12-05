@@ -21,12 +21,9 @@
 #include "zm_ffmpeg.h"
 #include <sys/time.h>
 
-#define VIDEO_QUEUESIZE 200
-#define AUDIO_QUEUESIZE 50
-
-zm_packetqueue::zm_packetqueue( unsigned int video_image_count, int p_video_stream_id ) {
+zm_packetqueue::zm_packetqueue( int video_image_count, int p_video_stream_id ) {
   video_stream_id = p_video_stream_id;
-  max_video_packet_count = video_image_count;
+  max_video_packet_count = video_image_count-1;
   video_packet_count = 0;
   analysis_it = pktQueue.begin();
 }
@@ -39,7 +36,7 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
 	pktQueue.push_back( zm_packet );
   if ( zm_packet->codec_type == AVMEDIA_TYPE_VIDEO ) {
     video_packet_count += 1;
-    if ( video_packet_count > max_video_packet_count ) 
+    if ( video_packet_count >= max_video_packet_count ) 
       clearQueue( max_video_packet_count, video_stream_id );
   }
 

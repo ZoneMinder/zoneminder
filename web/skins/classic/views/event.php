@@ -92,13 +92,13 @@ $connkey = generateConnKey();
 
 $focusWindow = true;
 
-$popup = ((!isset($_REQUEST['popup'])) or ($_REQUEST['popup'] != 1)) ? 0 : 1;
+$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] = 1));
 
 xhtmlHeaders(__FILE__, translate('Event') );
 ?>
 <body>
   <div id="page">
-    <?php if ( $popup ) echo getNavBarHTML() ?>
+    <?php if ( !$popup ) echo getNavBarHTML() ?>
     <div id="header">
 <?php 
 if ( ! $Event->Id() ) {
@@ -113,7 +113,7 @@ if ( ! $Event->Id() ) {
         <span id="dataFrames" title="<?php echo translate('AttrFrames')."/".translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
         <span id="dataScore" title="<?php echo translate('AttrTotalScore')."/".translate('AttrAvgScore')."/".translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
         <span id="Storage"> <?php echo human_filesize($Event->DiskSpace(null)) . ' on ' . $Event->Storage()->Name() ?></span>
-        <div id="closeWindow"><a href="#" onclick="<?php echo $popup ?  'window.close()' : 'window.history.back()' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+        <div id="closeWindow"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back()' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
       </div>
       <div id="menuBar1">
         <div id="nameControl">

@@ -113,7 +113,8 @@ function viewEvents( element, name ) {
     }
   }
   if ( events.length > 0 ) {
-    createPopup( '?view=event&eid='+events[0]+'&filter[terms][0][attr]=Id&&filter[terms][0][op]=%3D%5B%5D&&filter[terms][0][val]='+events.join('%2C')+sortQuery+'&page=1&play=1', 'zmEvent', 'event', maxWidth, maxHeight );
+    let filter = '&filter[Query][terms][0][attr]=Id&filter[Query][terms][0][op]=%3D%5B%5D&filter[Query][terms][0][val]='+events.join('%2C');
+    window.location.href = thisUrl+'?view=event&eid='+events[0]+filter+sortQuery+'&page=1&play=1';
   }
 }
 

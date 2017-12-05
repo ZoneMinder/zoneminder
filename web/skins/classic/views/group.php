@@ -108,7 +108,7 @@ echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('o
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor( $monitor['Id'] ) ) {
 ?>
-                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( array_key_exists( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($monitor['Name']) ?></option>
+                  <option value="<?php echo $monitor['Id'] ?>"<?php if ( in_array( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($monitor['Name']) ?></option>
 <?php
     }
   }

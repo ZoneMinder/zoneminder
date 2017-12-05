@@ -212,11 +212,9 @@ if ( !empty($action) ) {
         deleteEvent( $markEid );
         $refreshParent = true;
       }
-      if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'filter' ) ) {
-        if ( !empty($_REQUEST['Id']) ) {
-          dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
-          //$refreshParent = true;
-        }
+      if ( !empty($_REQUEST['fid']) ) {
+        dbQuery( 'DELETE FROM Filters WHERE Name=?', array( $_REQUEST['fid'] ) );
+        //$refreshParent = true;
       }
     }
   }

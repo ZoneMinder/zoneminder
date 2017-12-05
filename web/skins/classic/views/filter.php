@@ -117,6 +117,12 @@ $hasCal = file_exists( 'tools/jscalendar/calendar.js' );
 
 $focusWindow = true;
 
+$storageareas = array();
+$storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
+foreach ( dbFetchAll( 'SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC' ) as $storage ) {
+  $storageareas[$storage['Id']] = $storage['Name'];
+}
+
 xhtmlHeaders(__FILE__, translate('EventFilter') );
 ?>
 <body>
@@ -251,11 +257,6 @@ for ( $i = 0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $servers, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'StorageId' ) {
-        $storageareas = array();
-        $storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
-        foreach ( dbFetchAll( 'SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC' ) as $storage ) {
-          $storageareas[$storage['Id']] = $storage['Name'];
-        }
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $storageareas, $term['val'] ); ?></td>

@@ -96,7 +96,7 @@ xhtmlHeaders(__FILE__, translate('Event') );
 ?>
 <body>
   <div id="page">
-    <?php echo getNavBarHTML() ?>
+    <?php if ($_REQUEST['popup'] != 1) echo getNavBarHTML() ?>
     <div id="header">
 <?php 
 if ( ! $Event->Id() ) {
@@ -110,7 +110,7 @@ if ( ! $Event->Id() ) {
         <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
         <span id="dataFrames" title="<?php echo translate('AttrFrames')."/".translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
         <span id="dataScore" title="<?php echo translate('AttrTotalScore')."/".translate('AttrAvgScore')."/".translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
-        <div id="closeWindow"><a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a></div>
+        <div id="closeWindow"><a href="#" onclick="<?php echo $_REQUEST['popup'] != 1?'window.history.back()':'window.close()' ?>"><?php echo $_REQUEST['popup'] != 1? translate('Back'):translate('Close') ?></a></div>
       </div>
       <div id="menuBar1">
         <div id="nameControl">

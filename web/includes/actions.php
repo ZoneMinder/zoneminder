@@ -665,16 +665,21 @@ if ( canView( 'Groups' ) && $action == 'setgroup' ) {
 if ( canEdit( 'Groups' ) ) {
   if ( $action == 'group' ) {
     $monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? '' : implode(',', $_POST['newGroup']['MonitorIds']);
+    $group_id = null;
     if ( !empty($_POST['gid']) ) {
+      $group_id = $_POST['gid'];
       dbQuery( 'UPDATE Groups SET Name=?, ParentId=? WHERE Id=?',
-        array($_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ), $_POST['gid']) );
-      dbQuery( 'DELETE FROM Groups_Monitors WHERE GroupId=?', array($_POST['gid']) );
+        array($_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ), $group_id) );
+      dbQuery( 'DELETE FROM Groups_Monitors WHERE GroupId=?', array($group_id) );
     } else {
-      dbQuery( 'INSERT INTO Groups SET Name=?, ParentId=?, MonitorIds=?',
-        array( $_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ), $monitors ) );
+      dbQuery( 'INSERT INTO Groups (Name,ParentId) VALUES (?,?)',
+        array( $_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ) ) );
+      $group_id=dbInsertId();
     }
-    foreach ( $_POST['newGroup']['MonitorIds'] as $mid ) {
-      dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($_POST['gid'], $mid) );
+    if ( $group_id ) {
+      foreach ( $_POST['newGroup']['MonitorIds'] as $mid ) {
+        dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($group_id, $mid) );
+      }
     }
     $view = 'none';
     $refreshParent = true;

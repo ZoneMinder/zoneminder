@@ -373,11 +373,12 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #header {
     width: 100%;
-    line-height: 24px;
+    line-height: 1;
     text-align: left;
-    margin-bottom: 10px;
-    padding: 10px 20px;
+    padding: 5px 20px;
+    margin: 0 auto 4px auto;
     font-weight: 300;
+    border-bottom: 1px solid #000000;
 }
 
 #header h2 {
@@ -407,7 +408,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #content {
     width: 96%;
-    margin: 8px auto;
+    margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
 }
@@ -460,9 +461,9 @@ th.table-th-sort-rev span.table-th-sort-span {
 button,
 input[type=button],
 input[type=submit] {
-  background-color: #3498db;
-  color: #fff;
-  border-color: #3498db;
+  background-color: #444444;
+  color: #eeeeee;
+  border-color: #444444;
   text-transform: uppercase;
   font-weight: 200;
   padding: 5px 10px;
@@ -472,7 +473,7 @@ input[type=submit] {
 button:hover,
 input[type=button]:hover,
 input[type=submit]:hover {
-  background-color: #34a2ee;
+  background-color: #555555;
 }
 
 
@@ -482,9 +483,9 @@ button:disabled,
 input[disabled],
 input[type=button]:disabled,
 input[type=submit]:disabled {
-  color: #ffffff;
-  background-color: #aaaaaa;
-  border-color: #bbbbbb;
+  color: #888888;
+  background-color: #666666;
+  border-color: #666666;
 }
 
 /*
@@ -534,8 +535,10 @@ input[type=submit]:disabled {
   margin-left: 0;
 }
 
-
 .table-striped > tbody > tr:nth-of-type(2n+1) {
-  background: none;
+  background-color: #333333;
 }
 
+.table-hover>tbody>tr:hover {
+  background-color: #444444;
+}

@@ -104,6 +104,10 @@ function parseFilterToTree( $filter ) {
                         $sqlValue = "E.StartTime";
                         $dtAttr = true;
                         break;
+                    case 'StartDateTime':
+                        $sqlValue = "E.StartTime";
+                        $dtAttr = true;
+                        break;
                     case 'Date':
                         $sqlValue = "to_days( E.StartTime )";
                         $dtAttr = true;
@@ -194,6 +198,9 @@ function parseFilterToTree( $filter ) {
                             $value = "'$value'";
                             break;
                         case 'DateTime':
+                            $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
+                            break;
+                        case 'StartDateTime':
                             $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
                             break;
                         case 'Date':
@@ -359,7 +366,7 @@ function parseTreeToFilter( $tree )
         $level = 0;
         _parseTreeToFilter( $tree, $terms, $level );
     }
-    return( array( 'terms' => $terms ) );
+    return( array( 'Query' => array( 'terms' => $terms ) ) );
 }
 
 function parseTreeToQuery( $tree )
@@ -461,7 +468,7 @@ function extractDatetimeRange( &$tree, &$minTime, &$maxTime, &$expandable )
 
 function appendDatetimeRange( &$tree, $minTime, $maxTime=false )
 {
-    $attrNode = array( 'data'=>array( 'type'=>'attr', 'value'=>'DateTime', 'sqlValue'=>'E.StartTime', 'dtAttr'=>true ), 'count'=>0 );
+    $attrNode = array( 'data'=>array( 'type'=>'attr', 'value'=>'StartDateTime', 'sqlValue'=>'E.StartTime', 'dtAttr'=>true ), 'count'=>0 );
     $valNode = array( 'data'=>array( 'type'=>'val', 'value'=>$minTime, 'sqlValue'=>$minTime ), 'count'=>0 );
     $opNode = array( 'data'=>array( 'type'=>'op', 'value'=>'>=', 'sqlValue'=>'>=' ), 'count'=>2, 'left'=>$attrNode, 'right'=>$valNode );
     if ( isset($tree) )
@@ -476,7 +483,7 @@ function appendDatetimeRange( &$tree, $minTime, $maxTime=false )
 
     if ( $maxTime )
     {
-        $attrNode = array( 'data'=>array( 'type'=>'attr', 'value'=>'DateTime', 'sqlValue'=>'E.StartTime', 'dtAttr'=>true ), 'count'=>0 );
+        $attrNode = array( 'data'=>array( 'type'=>'attr', 'value'=>'StartDateTime', 'sqlValue'=>'E.StartTime', 'dtAttr'=>true ), 'count'=>0 );
         $valNode = array( 'data'=>array( 'type'=>'val', 'value'=>$maxTime, 'sqlValue'=>$maxTime ), 'count'=>0 );
         $opNode = array( 'data'=>array( 'type'=>'op', 'value'=>'<=', 'sqlValue'=>'<=' ), 'count'=>2, 'left'=>$attrNode, 'right'=>$valNode );
         $cnjNode = array( 'data'=>array( 'type'=>'cnj', 'value'=>'and', 'sqlValue'=>'and' ), 'count'=>2+$tree['count']+$opNode['count'], 'left'=>$tree, 'right'=>$opNode );

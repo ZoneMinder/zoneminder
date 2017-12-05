@@ -432,7 +432,6 @@ public:
   int GetOptSaveJPEGs() const { return( savejpegspref ); }
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
-  uint32_t GetLastEventId() const { return shared_data->last_event; }
   uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }
  
@@ -448,7 +447,7 @@ public:
   int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }
   unsigned int GetLastReadIndex() const;
   unsigned int GetLastWriteIndex() const;
-  unsigned int GetLastEvent() const;
+  uint32_t GetLastEventId() const;
   double GetFPS() const;
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();

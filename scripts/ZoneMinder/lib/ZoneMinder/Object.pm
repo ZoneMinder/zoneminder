@@ -47,7 +47,7 @@ use vars qw/ $AUTOLOAD $log $dbh/;
 *log = \$ZoneMinder::Logger::logger;
 *dbh = \$ZoneMinder::Database::dbh;
 
-my $debug = 1;
+my $debug = 0;
 use constant DEBUG_ALL=>1;
 
 sub new {

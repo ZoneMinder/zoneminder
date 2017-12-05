@@ -96,34 +96,27 @@ xhtmlHeaders(__FILE__, translate('Event') );
 ?>
 <body>
   <div id="page">
-    <div id="content">
+    <?php echo getNavBarHTML() ?>
+    <div id="header">
 <?php 
 if ( ! $Event->Id() ) {
   echo 'Event was not found.';
 } else {
 ?>
       <div id="dataBar">
-        <table id="dataTable" class="major">
-          <tr>
-            <td><span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span></td>
-            <td><span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span></td>
-            <td><span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime( STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime() ) ) ?></span></td>
-            <td><span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length() ?></span>s</td>
-            <td><span id="dataFrames" title="<?php echo translate('AttrFrames')."/".translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span></td>
-            <td><span id="dataScore" title="<?php echo translate('AttrTotalScore')."/".translate('AttrAvgScore')."/".translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span></td>
-          </tr>
-        </table>
+        <span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span>
+        <span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span>
+        <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime( STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime() ) ) ?></span>
+        <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
+        <span id="dataFrames" title="<?php echo translate('AttrFrames')."/".translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
+        <span id="dataScore" title="<?php echo translate('AttrTotalScore')."/".translate('AttrAvgScore')."/".translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
+        <div id="closeWindow"><a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a></div>
       </div>
       <div id="menuBar1">
-        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
-        <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
         <div id="nameControl">
           <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
           <input type="button" value="<?php echo translate('Rename') ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/>
         </div>
-      </div>
-      <div id="menuBar2">
-        <div id="closeWindow"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
 <?php
 if ( canEdit('Events') ) {
 ?>
@@ -149,7 +142,11 @@ if ( canEdit('Events') ) {
   } // end if Event->DefaultVideo
 ?>
         <div id="exportEvent"><a href="#" onclick="exportEvent();"><?php echo translate('Export') ?></a></div>
+        <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
+        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
       </div>
+     </div>
+    <div id="content">
       <div id="eventVideo" class="">
 <?php
 if ( $Event->DefaultVideo() ) {
@@ -180,7 +177,7 @@ Warning("Streamsrc: $streamSrc");
   }
 } // end if stream method
 ?>
-        <div id="alarmCue" class="alarmCue" style="width: <?php echo reScale($Event->Width(), $scale);?>px;"></div>
+        <div id="alarmCue" class="alarmCue"></div>
         <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->
@@ -220,6 +217,13 @@ Warning("Streamsrc: $streamSrc");
           </div>
         </div>
         <div id="eventImageNav">
+          <div id="thumbsSliderPanel">
+            <div id="alarmCue" class="alarmCue"></div>
+            <div id="thumbsSlider">
+              <div id="thumbsKnob">
+              </div>
+            </div>
+          </div>
           <div id="eventImageButtons">
             <div id="prevButtonsPanel">
               <input id="prevEventBtn" type="button" value="&lt;E" onclick="prevEvent()" disabled="disabled"/>
@@ -228,12 +232,6 @@ Warning("Streamsrc: $streamSrc");
               <input id="nextImageBtn" type="button" value="&gt;" onclick="nextImage()" disabled="disabled"/>
               <input id="nextThumbsBtn" type="button" value="&gt;&gt;" onclick="nextThumbs()" disabled="disabled"/>
               <input id="nextEventBtn" type="button" value="E&gt;" onclick="nextEvent()" disabled="disabled"/>
-            </div>
-          </div>
-          <div id="thumbsSliderPanel">
-            <div id="thumbsSlider">
-              <div id="thumbsKnob">
-              </div>
             </div>
           </div>
         </div>

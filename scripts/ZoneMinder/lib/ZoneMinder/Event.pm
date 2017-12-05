@@ -33,6 +33,8 @@ require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require Date::Manip;
 require File::Find;
+require File::Path;
+require File::Copy;
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -400,6 +402,54 @@ sub DiskSpace {
     Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
   }
 }
+
+sub MoveTo {
+  my ( $self, $NewStorage ) = @_;
+  my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
+  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
+  if ( ! $$NewStorage{Id} ) {
+    return "New storage does not have an id.  Moving will not happen.";
+  } elsif ( !$NewPath) {
+    return "$NewPath is empty.";
+  }elsif ( $NewPath eq $OldPath ) {
+    return "New path and old path are the same! $NewPath";
+  } elsif ( ! -e $NewPath ) {
+    return "New path $NewPath does not exist.";
+  }elsif ( ! -e $OldPath ) {
+    return "Old path $OldPath does not exist.";
+  }
+
+  my $error = '';
+  File::Path::make_path( $NewPath, {error => \my $err} );
+  if ( @$err ) {
+    for my $diag (@$err) {
+      my ($file, $message) = %$diag;
+      if ($file eq '') {
+        $error .= "general error: $message\n";
+      } else {
+        $error .= "problem unlinking $file: $message\n";
+      }
+    }
+  }
+  return $error if $error;
+  my @files = glob("$OldPath/*");
+
+  for my $file (@files) {
+    next if $file =~ /^\./;
+    ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+    if ( ! File::Copy::copy( $file, $NewPath ) ) {
+      $error .= "Copy failed: for $file to $NewPath: $!";
+      last;
+    }
+  } # end foreach file.
+
+  if ( ! $error ) {
+    # Succeeded in copying all files, so we may now update the Event.
+    $$self{StorageId} = $$NewStorage{Id};    
+    $error .= $self->save();
+  }
+  return $error;
+} # end sub MoveTo
 
 1;
 __END__

@@ -42,7 +42,7 @@ function evaluateLoadTimes() {
   imageLoadTimesEvaluated=0;
   setSpeed(speedIndex);
   $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
-}
+} // end evaluateLoadTimes()
 
 // time is seconds since epoch
 function SetImageSource( monId, time ) {
@@ -335,6 +335,7 @@ function redrawScreen() {
         $('zoomout').style.display="none";
         $('panleft').style.display="none";
         $('panright').style.display="none";
+        if ($('downloadVideo')) $('downloadVideo').style.display="none";
 
     } else  {
     // switch out of liveview mode
@@ -351,6 +352,7 @@ function redrawScreen() {
         $('panleft').style.display="inline-flex";
         $('panright').style.display="inline";
         $('panright').style.display="inline-flex";
+        if ($('downloadVideo')) $('downloadVideo').style.display="inline";
     }
 
     if ( fitMode == 1 ) {
@@ -465,12 +467,12 @@ function setSpeed( speed_index ) {
   playSecsperInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
 console.log("playSecsPerInterval: " + playSecsperInterval + " = currentspeed:" + currentSpeed + " * " + currentDisplayInterval + " /1000");
   showSpeed(speed_index);
-  if ( timerInterval != currentDisplayInterval || currentSpeed == 0 )  timerFire(); // if the timer isn't firing we need to trigger it to update
+  if ( timerInterval != currentDisplayInterval || currentSpeed == 0 ) timerFire(); // if the timer isn't firing we need to trigger it to update
 }
 
 function setLive(value) {
   liveMode = value;
-  redrawScreen();
+  changeDateTime();
 }
 
 
@@ -510,16 +512,12 @@ function clicknav(minSecs,maxSecs,live) {// we use the current time if we can
   if ( live == 1 )
     liveStr="&live=1";
 
-  var fitStr="&fit=0";
-  if ( fitMode == 1 )
-    fitStr="&fit=1";
-
   var zoomStr="";
   for ( var i=0; i < numMonitors; i++ )
     if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 )  // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
 
-  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
+  var uri = "?view=" + currentView + '&fit='+(fitMode==1?'1':'0') + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
 } // end function clicknav
 
@@ -556,6 +554,9 @@ function click_panright() {
   minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
   clicknav(minTimeSecs,maxTimeSecs,0);
+}
+function click_download() {
+  createPopup( '?view=download', 'zmDownload', 'download' );
 }
 function click_all_events() {
   clicknav(0,0,0);

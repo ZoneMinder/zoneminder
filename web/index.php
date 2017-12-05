@@ -195,7 +195,7 @@ isset($action) || $action = NULL;
 
 if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' && $view != 'video' && $request != 'control' && $view != 'frames') {
   require_once( 'includes/csrf/csrf-magic.php' );
-  Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+  #Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();
 }
 

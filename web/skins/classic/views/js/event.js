@@ -40,8 +40,6 @@ function vjsReplay() {
   }
 }
 
-$j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
-
 var cueFrames = null; //make cueFrames availaible even if we don't send another ajax query
 
 function initialAlarmCues (eventId) {
@@ -50,13 +48,13 @@ function initialAlarmCues (eventId) {
 
 function setAlarmCues (data) {
   cueFrames = data.frames;
-  alarmSpans = renderAlarmCues();
+  alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
   $j(".alarmCue").html(alarmSpans);
 }
 
-function renderAlarmCues () {
+function renderAlarmCues (containerEl) {
   if (cueFrames) {
-    var cueRatio = (vid ? $j("#videoobj").width() : $j("#evtStream").width()) / (cueFrames[cueFrames.length - 1].Delta * 100);//use videojs width or zms width
+    var cueRatio = containerEl.width() / (cueFrames[cueFrames.length - 1].Delta * 100);
     var minAlarm = Math.ceil(1/cueRatio);
     var spanTimeStart = 0;
     var spanTimeEnd = 0;
@@ -134,45 +132,21 @@ function setButtonState( element, butClass ) {
   }
 }
 
-var resizeTimer;
-
-function endOfResize(e) {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(changeScale, 250);
-}
-
-function scaleToFit () {
-  $j(window).on('resize', endOfResize)  //set delayed scaling when Scale to Fit is selected
-  let ratio = eventData.Width/eventData.Height;
-  let container = $j('#content');
-  let feed = $j(vid ? '#videoobj' : '#evtStream');
-  let viewPort = $j(window);
-  let newHeight = viewPort.height() - (container.outerHeight(true) - feed.outerHeight(true));
-  let newWidth = ratio * newHeight;
-  if (newWidth > container.innerWidth()) {
-    newWidth = container.innerWidth();
-    newHeight = newWidth / ratio;
-  }
-  let autoScale = Math.round(newWidth / eventData.Width * SCALE_BASE);
-  let scales = $j('#scale option').map(function() {return parseInt($j(this).val());}).get();
-  scales.shift();
-  let closest = null;
-  $j(scales).each(function () { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
-    if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
-      closest = this.valueOf();
-    }
-  });
-  autoScale = closest;
-  return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
-}
-
 function changeScale() {
   let scale = $j('#scale').val();
-  let newWidth = null;
-  let newHeight = null;
-  let autoScale = null;
+  let newWidth;
+  let newHeight;
+  let autoScale;
+  let eventViewer;
+  let alarmCue = $j('div.alarmCue');
+  let bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
+  if (streamMode == 'stills') {
+    eventViewer = $j('#eventThumbs');
+  } else {
+    eventViewer = $j(vid ? '#videoobj' : '#evtStream');
+  }
   if (scale == "auto") {
-    let newSize = scaleToFit();
+    let newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
@@ -181,16 +155,18 @@ function changeScale() {
     newWidth = eventData.Width * scale / SCALE_BASE;
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
-  let alarmCue = $j('div.alarmCue');
-  let eventViewer = $j(vid ? '#videoobj' : '#evtStream')
-  eventViewer.width(newWidth);
+  if (!(streamMode == 'stills')) eventViewer.width(newWidth);  //stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
     streamScale(scale == "auto" ? autoScale : scale);
-    alarmCue.width(newWidth);
     drawProgressBar();
   }
-  alarmCue.html(renderAlarmCues());//just re-render alarmCues.  skip ajax call
+  if (streamMode == 'stills') {
+    slider.autosize();
+    alarmCue.html(renderAlarmCues($j('#thumbsSliderPanel')));
+  } else {
+    alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
+  }
   if (scale == "auto") {
     Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
   }else{
@@ -505,6 +481,7 @@ function streamQuery() {
 
 var slider = null;
 var scroll = null;
+var currEventId = null;
 var CurEventDefVideoPath = null;
 
 function getEventResponse( respObj, respText ) {
@@ -698,13 +675,11 @@ function resetEventStills() {
                     fid = 1;
                   else if ( fid > eventData.Frames )
                     fid = eventData.Frames;
-                  checkFrames( eventData.Id, fid );
+                  checkFrames( eventData.Id, fid, ($j('#eventImagePanel').css('display')=='none'?'':'true'));
                   scroll.toElement( 'eventThumb'+fid );
                  }
     } ).set( 0 );
   }
-  if ( $('eventThumbs').getStyle( 'height' ).match( /^\d+/ ) < (parseInt(eventData.Height)+80) )
-    $('eventThumbs').setStyle( 'height', ($j(vid ? '#videoobj' : '#evtStream').height())+'px' );
 }
 
 function getFrameResponse( respObj, respText ) {
@@ -837,10 +812,6 @@ function getActResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getActResponse", respObj ) )
     return;
 
-  if ( respObj.refreshParent )
-    if (refreshParent == false) refreshParent = true;  //Bypass filter window redirect fix.
-    refreshParentWindow();
-
   if ( respObj.refreshEvent )
     eventQuery( eventData.Id );
 }
@@ -893,6 +864,7 @@ function showStream() {
   $('streamEvent').addClass( 'hidden' );
 
   streamMode = 'video';
+  if (scale == 'auto') changeScale();
 }
 
 function showStills() {
@@ -924,6 +896,7 @@ function showStills() {
     );
   }
   resetEventStills();
+  if (scale == 'auto') changeScale();
 }
 
 function showFrameStats() {

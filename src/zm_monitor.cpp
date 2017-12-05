@@ -73,7 +73,12 @@ std::vector<std::string> split(const std::string &s, char delim) {
   return elems;
 }
 
-Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) : id( p_id ) {
+Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) :
+  id( p_id ),
+  shared_data(NULL),
+  trigger_data(NULL),
+  video_store_data(NULL)
+{
   strncpy( name, p_name, sizeof(name) );
 
 #if ZM_MEM_MAPPED
@@ -468,9 +473,12 @@ Monitor::Monitor(
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
 
   if ( purpose == ANALYSIS ) {
-
-    while( shared_data->last_write_index == (unsigned int)image_buffer_count 
-         && shared_data->last_write_time == 0) {
+Debug(2,"last_write_index(%d), last_write_time(%d)", shared_data->last_write_index, shared_data->last_write_time );
+    while( 
+        ( shared_data->last_write_index == (unsigned int)image_buffer_count )
+         &&
+        ( shared_data->last_write_time == 0) 
+        ) {
       Warning( "Waiting for capture daemon" );
       sleep( 1 );
     }
@@ -771,7 +779,14 @@ unsigned int Monitor::GetLastWriteIndex() const {
   return( shared_data->last_write_index!=(unsigned int)image_buffer_count?shared_data->last_write_index:-1 );
 }
 
-unsigned int Monitor::GetLastEvent() const {
+uint32_t Monitor::GetLastEventId() const {
+  Debug(2, "mem_ptr(%x), State(%d) last_read_index(%d) last_read_time(%d) last_event(%d)",
+      mem_ptr,
+      shared_data->state,
+      shared_data->last_read_index,
+      shared_data->last_read_time,
+      shared_data->last_event
+      );
   return( shared_data->last_event );
 }
 

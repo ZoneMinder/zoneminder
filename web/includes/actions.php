@@ -142,7 +142,6 @@ if ( canView( 'Events' ) ) {
 
   if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'filter' ) ) {
     if ( $action == 'addterm' ) {
-Warning("Addterm");
       $_REQUEST['filter'] = addFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
     } elseif ( $action == 'delterm' ) {
       $_REQUEST['filter'] = delFilterTerm( $_REQUEST['filter'], $_REQUEST['line'] );
@@ -173,6 +172,11 @@ Warning("Addterm");
         $sql .= ', AutoExecute = '. ( !empty($_REQUEST['filter']['AutoExecute']) ? 1 : 0);
         $sql .= ', AutoExecuteCmd = '.dbEscape($_REQUEST['filter']['AutoExecuteCmd']);
         $sql .= ', AutoDelete = '. ( !empty($_REQUEST['filter']['AutoDelete']) ? 1 : 0);
+        if ( !empty($_REQUEST['filter']['AutoMove']) ? 1 : 0) {
+          $sql .= ', AutoMove = 1, AutoMoveTo='. validInt($_REQUEST['filter']['AutoMoveTo']);
+        } else {
+          $sql .= ', AutoMove = 0'; 
+        }
         $sql .= ', UpdateDiskSpace = '. ( !empty($_REQUEST['filter']['UpdateDiskSpace']) ? 1 : 0);
         $sql .= ', Background = '. ( !empty($_REQUEST['filter']['Background']) ? 1 : 0);
         $sql .= ', Concurrent  = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
@@ -542,7 +546,7 @@ if ( canEdit( 'Monitors' ) ) {
         $saferName = basename($_REQUEST['newMonitor']['Name']);
         symlink( $mid, ZM_DIR_EVENTS.'/'.$saferName );
         if ( isset($_COOKIE['zmGroup']) ) {
-          dbQuery( "UPDATE Groups SET MonitorIds = concat(MonitorIds,',".$mid."') WHERE Id=?", array($_COOKIE['zmGroup']) );
+          dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($_COOKIE['zmGroup'],$mid) );
         }
       } else {
         Error("Users with Monitors restrictions cannot create new monitors.");
@@ -662,11 +666,15 @@ if ( canEdit( 'Groups' ) ) {
   if ( $action == 'group' ) {
     $monitors = empty( $_POST['newGroup']['MonitorIds'] ) ? '' : implode(',', $_POST['newGroup']['MonitorIds']);
     if ( !empty($_POST['gid']) ) {
-      dbQuery( 'UPDATE Groups SET Name=?, ParentId=?, MonitorIds=? WHERE Id=?',
-        array($_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ), $monitors, $_POST['gid']) );
+      dbQuery( 'UPDATE Groups SET Name=?, ParentId=? WHERE Id=?',
+        array($_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ), $_POST['gid']) );
+      dbQuery( 'DELETE FROM Groups_Monitors WHERE GroupId=?', array($_POST['gid']) );
     } else {
       dbQuery( 'INSERT INTO Groups SET Name=?, ParentId=?, MonitorIds=?',
         array( $_POST['newGroup']['Name'], ( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ), $monitors ) );
+    }
+    foreach ( $_POST['newGroup']['MonitorIds'] as $mid ) {
+      dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($_POST['gid'], $mid) );
     }
     $view = 'none';
     $refreshParent = true;

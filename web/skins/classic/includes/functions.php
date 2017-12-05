@@ -159,26 +159,29 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 <?php
 } // end function xhtmlHeaders( $file, $title )
 
-function getNavBarHTML() {
+function getNavBarHTML($reload = null) {
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
-
-
-  ob_start();
   global $running;
-  if ( $running == null )
-    $running = daemonCheck();
-  $status = $running?translate('Running'):translate('Stopped');
   global $user;
   global $bandwidth_options;
   global $view;
+  global $filterQuery;
+  if (!$filterQuery) {
+    parseFilter( $_REQUEST['filter'] );
+    $filterQuery = $_REQUEST['filter']['query'];
+  }
+  if ($reload === null) {
+    ob_start();
+    if ( $running == null )
+      $running = daemonCheck();
+    $status = $running?translate('Running'):translate('Stopped');
 ?>
 <noscript>
 <div style="background-color:red;color:white;font-size:x-large;">
 ZoneMinder requires Javascript. Please enable Javascript in your browser for this site.
 </div>
 </noscript>
-
 <div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">
 		<div class="navbar-header">
@@ -212,7 +215,7 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
 <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
-      <li><a href="?view=filter"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
+      <li><a href="?view=filter<?php echo $filterQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
   if ( canView( 'Stream' ) ) {
@@ -221,9 +224,23 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
       <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
 <?php
    }
+if (isset($_REQUEST['filter']['Query']['terms'])) {
+  $terms = $_REQUEST['filter']['Query']['terms'];
+  $count = 0;
+  foreach ($terms as $term) {
+    if ($term['attr'] == "StartDateTime") {
+      $count += 1;
+      if ($term['op'] == '>=') $minTime = $term['val'];
+      if ($term['op'] == '<=') $maxTime = $term['val'];
+    }
+  }
+  if ($count == 2) {
+    $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
+  }
+}
   if ( canView('Events') ) {
  ?>
-   <li><a href="?view=montagereview"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
+   <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
 <?php
   }
 ?>
@@ -243,7 +260,11 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 </div>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
-	<div class="container-fluid">
+<?php
+}//end reload null.  Runs on full page load
+if ($reload == 'reload') ob_start();
+?>
+	<div id="reload" class="container-fluid">
   <div class="pull-left">
     <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bandwidth_options[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
   </div>
@@ -277,9 +298,11 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
   </ul>
-</div> <!-- End .footer -->
-
-</div> <!-- End .navbar .navbar-default -->
+</div> <!-- End .footer/reload -->
+<?php
+if ($reload == 'reload') return( ob_get_clean() );
+?>
+</div><!-- End .navbar .navbar-default -->
 <?php
   return( ob_get_clean() );
 } // end function getNavBarHTML()

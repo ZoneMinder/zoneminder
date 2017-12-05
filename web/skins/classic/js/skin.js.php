@@ -26,6 +26,8 @@
 ?>
 var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 
+var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
+
 var currentView = '<?php echo $view ?>';
 var thisUrl = "<?php echo ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
 var skinPath = "<?php echo ZM_SKIN_PATH ?>";

@@ -78,7 +78,7 @@ if ( isset($_COOKIE['zmMontageLayout']) ) {
 $options = array();
 $Layout = '';
 $Positions = '';
-if ( $layout_id ) {
+if ( $layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id]) ) {
   $Layout = $layoutsById[$layout_id];
   $Positions = json_decode( $Layout->Positions(), true );
 }

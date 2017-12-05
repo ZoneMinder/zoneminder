@@ -58,7 +58,7 @@ $showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 
 
 noCacheHeaders();
 
-$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] = 1));
+$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] == 1));
 
 xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
 ?>

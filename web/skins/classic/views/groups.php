@@ -68,7 +68,7 @@ function group_line( $Group ) {
     $html .= '<td class="colName">&nbsp;</td>';
   $html .= '<td class="colName" colspan="'.($max_depth-($Group->depth()-1)).'">';
   if ( canEdit('Groups') ) {
-    $html .= '<a href="#" onclick="editGroup('.$Group->Id().');">'. validHtmlStr($Group->Name()).'</a>';
+    $html .= '<a href="#" onclick="editGroup('.$Group->Id().');">'. validHtmlStr($Group->Id() . ' ' . $Group->Name()).'</a>';
   } else {
     $html .= validHtmlStr($Group->Name());
   }

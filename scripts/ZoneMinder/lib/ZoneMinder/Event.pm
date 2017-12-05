@@ -101,7 +101,7 @@ sub Name {
     $_[0]{Name} = $_[1];
   }
   return $_[0]{Name};
-} # end sub Path
+} # end sub Name
 
 sub find {
   shift if $_[0] eq 'ZoneMinder::Event';
@@ -145,10 +145,10 @@ sub getPath {
 sub Path {
   my $event = shift;
 
-  if ( @_ > 1 ) {
-    $$event{Path} = $_[1];
-    if ( ! -e $$event{Path} ) {
-      Error("Setting path for event $$event{Id} to $_[1] but does not exist!");
+  if ( @_ ) {
+    $$event{Path} = $_[0];
+    if ( $$event{Path} and ! -e $$event{Path} ) {
+      Error("Setting path for event $$event{Id} to $_[0] but does not exist!");
     }
   }
 
@@ -308,7 +308,7 @@ sub delete {
 
 sub delete_files {
 
-  my $Storage = @_ > 1 $_[1] : new ZoneMinder::Storage( $_[0]{StorageId} );
+  my $Storage = @_ > 1 ? $_[1] : new ZoneMinder::Storage( $_[0]{StorageId} );
   my $storage_path = $Storage->Path();
 
   if ( ! $storage_path ) {
@@ -364,7 +364,10 @@ sub delete_files {
 } # end sub delete_files
 
 sub Storage {
-  return new ZoneMinder::Storage( $_[0]{StorageId} );
+  if ( ! $_[0]{Storage} ) {
+    $_[0]{Storage} = new ZoneMinder::Storage( $_[0]{StorageId} );
+  } 
+  return $_[0]{Storage};
 }
 
 sub check_for_in_filesystem {
@@ -408,7 +411,10 @@ sub MoveTo {
 
   my $OldStorage = $self->Storage();
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
-  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
+
+  $$self{Storage} = $NewStorage;
+
+  my ( $NewPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
     return "New storage does not have an id.  Moving will not happen.";
   } elsif ( !$NewPath) {
@@ -420,6 +426,7 @@ sub MoveTo {
   }elsif ( ! -e $OldPath ) {
     return "Old path $OldPath does not exist.";
   }
+Debug("Moving event $$self{Id} from $OldPath to $NewPath");
 
   my $error = '';
   File::Path::make_path( $NewPath, {error => \my $err} );

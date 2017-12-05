@@ -58,11 +58,13 @@ $showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 
 
 noCacheHeaders();
 
+$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] = 1));
+
 xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
 ?>
 <body>
   <div id="page">
-  <?php if ($_REQUEST['popup'] != 1) echo getNavBarHTML() ?>
+  <?php if ( !$popup ) echo getNavBarHTML() ?>
     <div id="header">
         <div id="monitorName"><?php echo $monitor->Name() ?></div>
         <div id="menuControls">
@@ -75,7 +77,7 @@ if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
 ?>
           <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
         </div>
-        <div id="closeControl"><a href="#" onclick="<?php echo $_REQUEST['popup'] != 1?'window.history.back()':'window.close()' ?>"><?php echo $_REQUEST['popup'] != 1? translate('Back'):translate('Close') ?></a></div>
+        <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back()' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
     <div id="content">
       <div id="imageFeed"><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>

@@ -154,6 +154,9 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <input type="hidden" name="object" value="filter"/>
 
         <hr/>
+        <?php if ( $filter->Id() ) { ?>
+        <p class="Id"><label><?php echo translate('Id') ?></label><?php echo $filter->Id() ?></p>
+        <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
           <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>"/>
@@ -161,7 +164,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <table id="fieldsTable" class="filterTable">
           <tbody>
 <?php
-for ( $i = 0; $i < count($terms); $i++ ) {
+for ( $i=0; $i < count($terms); $i++ ) {
   $term = $terms[$i];
   if ( ! isset( $term['op'] ) )
     $term['op'] = '=';
@@ -249,7 +252,7 @@ for ( $i = 0; $i < count($terms); $i++ ) {
     } elseif ( $term['attr'] == 'ServerId' ) {
       $servers = array();
       $servers['ZM_SERVER_ID'] = 'Current Server';
-      foreach ( dbFetchAll( "SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC" ) as $server ) {
+      foreach ( dbFetchAll( 'SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC' ) as $server ) {
         $servers[$server['Id']] = $server['Name'];
       }
 ?>
@@ -336,7 +339,6 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
         </table>
         <hr/>
         <div id="actionsTable" class="filterTable">
-        
             <p>
               <label><?php echo translate('FilterArchiveEvents') ?></label>
               <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( !empty($filter->AutoArchive()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>

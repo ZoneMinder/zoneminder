@@ -87,7 +87,7 @@ label {
     margin-right: 4px;
 }
 
-input,textarea,select,button {
+input,textarea,select,button,.btn-primary {
     border: 1px #ccc solid;
     padding: 5px;
     border-radius: 2px;
@@ -436,11 +436,11 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 */
 
-#content > input[type=submit], #content > input[type=button], #content > button {
+#content > input[type=submit], #content > input[type=button], #content > button, #content > .btn-primary {
     margin-top: 8px;
 }
 
-#content table input[type=submit], #content table input[type=button], #content table button {
+#content table input[type=submit], #content table input[type=button], #content table button, #content table .btn-primary {
     margin-top: 1px;
 }
 
@@ -461,7 +461,9 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 button,
 input[type=button],
-input[type=submit] {
+input[type=submit],
+.btn-primary,
+.btn-primary:link {
     background-color: #3498db;
     color: #fff;
     border-color: #3498db;
@@ -469,13 +471,15 @@ input[type=submit] {
     font-weight: 200;
     padding: 5px 10px;
     cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
 }
 
 button:hover,
 input[type=button]:hover,
-input[type=submit]:hover {
+input[type=submit]:hover,
+.btn-primary:hover {
     background-color: #34a2ee;    
-
 }
 
 
@@ -483,7 +487,8 @@ input[type=submit]:hover {
 
 button:disabled,
 input[type=button]:disabled,
-input[type=submit]:disabled {
+input[type=submit]:disabled,
+.btn-primary:disabled {
     background-color: #aaaaaa;    
     border-color: #bbbbbb;
 

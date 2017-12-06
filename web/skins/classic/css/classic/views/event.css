@@ -35,7 +35,7 @@ span.noneCue {
     flex-direction: column;
 }
 
-#header h2, #header a {
+#header h2 {
     line-height: 1.1;
     margin:5px 0 0 0;
 }

@@ -549,3 +549,12 @@ input[type=submit]:disabled,
 .table-hover>tbody>tr:hover {
   background-color: #444444;
 }
+
+.nav-pills>li.active>a, .nav-pills>li.active>a:focus, .nav-pills>li.active>a:hover {
+  color: #8f8fc2;
+  background-color: #333333;
+}
+
+.nav>li>a:focus, .nav>li>a:hover {
+  background-color: #444444;
+}

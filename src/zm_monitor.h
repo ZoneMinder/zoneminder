@@ -232,6 +232,7 @@ protected:
   unsigned int    v4l_captures_per_frame;
   Orientation     orientation;        // Whether the image has to be rotated at all
   unsigned int    deinterlacing;
+  unsigned int    deinterlacing_value;
   bool            videoRecording;
 
   int savejpegspref;

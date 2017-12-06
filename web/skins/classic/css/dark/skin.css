@@ -89,7 +89,7 @@ label {
     margin-right: 4px;
 }
 
-input,textarea,select,button {
+input,textarea,select,button,.btn-primary {
     border: 1px #8f8fc2 solid;
     padding: 10px;
     border-radius: 2px;
@@ -460,7 +460,9 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 button,
 input[type=button],
-input[type=submit] {
+input[type=submit],
+.btn-primary,
+.btn-primary:link {
   background-color: #444444;
   color: #eeeeee;
   border-color: #444444;
@@ -468,12 +470,16 @@ input[type=submit] {
   font-weight: 200;
   padding: 5px 10px;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
 }
 
 button:hover,
 input[type=button]:hover,
-input[type=submit]:hover {
+input[type=submit]:hover,
+.btn-primary:hover {
   background-color: #555555;
+  border-color: #444444;
 }
 
 
@@ -482,7 +488,8 @@ input[type=submit]:hover {
 button:disabled,
 input[disabled],
 input[type=button]:disabled,
-input[type=submit]:disabled {
+input[type=submit]:disabled,
+.btn-primary:disabled {
   color: #888888;
   background-color: #666666;
   border-color: #666666;
@@ -540,5 +547,14 @@ input[type=submit]:disabled {
 }
 
 .table-hover>tbody>tr:hover {
+  background-color: #444444;
+}
+
+.nav-pills>li.active>a, .nav-pills>li.active>a:focus, .nav-pills>li.active>a:hover {
+  color: #8f8fc2;
+  background-color: #333333;
+}
+
+.nav>li>a:focus, .nav>li>a:hover {
   background-color: #444444;
 }

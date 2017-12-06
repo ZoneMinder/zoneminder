@@ -96,11 +96,13 @@ $connkey = generateConnKey();
 
 $focusWindow = true;
 
+$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] = 1));
+
 xhtmlHeaders(__FILE__, translate('Event') );
 ?>
 <body>
   <div id="page">
-    <?php echo getNavBarHTML() ?>
+    <?php if ( !$popup ) echo getNavBarHTML() ?>
     <div id="header">
 <?php 
 if ( ! $Event->Id() ) {
@@ -114,38 +116,40 @@ if ( ! $Event->Id() ) {
         <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
         <span id="dataFrames" title="<?php echo translate('AttrFrames')."/".translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
         <span id="dataScore" title="<?php echo translate('AttrTotalScore')."/".translate('AttrAvgScore')."/".translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
-        <div id="closeWindow"><a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a></div>
+        <span id="Storage"> <?php echo human_filesize($Event->DiskSpace(null)) . ' on ' . $Event->Storage()->Name() ?></span>
+        <div id="closeWindow"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back()' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
       </div>
       <div id="menuBar1">
         <div id="nameControl">
           <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
-          <input type="button" value="<?php echo translate('Rename') ?>" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <button value="Rename" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>>
+<?php echo translate('Rename') ?></button>
         </div>
 <?php
 if ( canEdit('Events') ) {
 ?>
-        <div id="deleteEvent"><a href="#" onclick="deleteEvent()"><?php echo translate('Delete') ?></a></div>
-        <div id="editEvent"><a href="#" onclick="editEvent()"><?php echo translate('Edit') ?></a></div>
-        <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><a href="#" onclick="archiveEvent()"><?php echo translate('Archive') ?></a></div>
-        <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><a href="#" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></a></div>
+        <div id="deleteEvent"><button onclick="deleteEvent()"><?php echo translate('Delete') ?></button></div>
+        <div id="editEvent"><button onclick="editEvent()"><?php echo translate('Edit') ?></button></div>
+        <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><button onclick="archiveEvent()"><?php echo translate('Archive') ?></button></div>
+        <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><button onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></button></div>
 <?php
 } // end if can edit Events
 ?>
-        <div id="framesEvent"><a href="#" onclick="showEventFrames()"><?php echo translate('Frames') ?></a></div>
-        <div id="streamEvent" class="hidden"><a href="#" onclick="showStream()"><?php echo translate('Stream') ?></a></div>
-        <div id="stillsEvent"><a href="#" onclick="showStills()"><?php echo translate('Stills') ?></a></div>
+        <div id="framesEvent"><button onclick="showEventFrames()"><?php echo translate('Frames') ?></button></div>
+        <div id="streamEvent" class="hidden"><button onclick="showStream()"><?php echo translate('Stream') ?></button></div>
+        <div id="stillsEvent"><button onclick="showStills()"><?php echo translate('Stills') ?></button></div>
 <?php
   if ( $Event->DefaultVideo() ) { 
 ?>
-        <div id="downloadEventFile"><a href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'))?>" download>Download MP4</a></div>
+        <div id="downloadEventFile"><a class="btn-primary" href="<?php echo $Event->getStreamSrc(array('mode'=>'mp4'))?>" download>Download MP4</a></div>
 <?php
   } else {
 ?>
-        <div id="videoEvent"><a href="#" onclick="videoEvent();"><?php echo translate('Video') ?></a></div>
+        <div id="videoEvent"><button onclick="videoEvent();"><?php echo translate('Video') ?></button></div>
 <?php
   } // end if Event->DefaultVideo
 ?>
-        <div id="exportEvent"><a href="#" onclick="exportEvent();"><?php echo translate('Export') ?></a></div>
+        <div id="exportEvent"><button onclick="exportEvent();"><?php echo translate('Export') ?></button></div>
         <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
         <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
       </div>

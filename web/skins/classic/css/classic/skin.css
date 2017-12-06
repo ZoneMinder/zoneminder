@@ -371,10 +371,6 @@ th.table-th-sort-rev span.table-th-sort-span {
     float: right;
 }
 
-#headerButtons a {
-    margin-left: 8px;
-}
-
 #headerButtons input {
     margin-left: 4px;
 }
@@ -409,13 +405,15 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #content > input[type=submit],
 #content > input[type=button],
-#content > button {
+#content > button,
+#content > .btn-primary {
     margin-top: 8px;
 }
 
 #content table input[type=submit],
 #content table input[type=button],
-#content table button {
+#content table button,
+#content table .btn-primary {
     margin-top: 0;
 }
 
@@ -495,30 +493,34 @@ margin-left: 0px;
 
 button,
 input[type=button],
-input[type=submit] {
+input[type=submit],
+.btn-primary,
+.btn-primary:link {
   padding: 1px 6px;
-  /*
-  background-color: #3498db;
-  color: #fff;
-  border-color: #3498db;
+  background-color: #eeeeee;
+  color: #333333;
+  border: 1px solid #7f7fb2;
   font-weight: 200;
-  padding: 5px 10px;
   cursor: pointer;
-  */
+  display: inline-block;
+  text-decoration: none;
+  font-family: inherit;
+  font-size: 100%;
 }
 
 button:hover,
 input[type=button]:hover,
-input[type=submit]:hover {
-  /*
-  background-color: #34a2ee;
-  */
+input[type=submit]:hover,
+.btn-primary:hover {
+  background-color: #e1e1e1;
+  color: #000000;
 }
 
 button:disabled,
 input[disabled],
 input[type=button]:disabled,
-input[type=submit]:disabled {
+input[type=submit]:disabled,
+.btn-primary:disabled {
     color: #888888;
   /*
   background-color: #aaaaaa;

@@ -101,7 +101,7 @@ sub Name {
     $_[0]{Name} = $_[1];
   }
   return $_[0]{Name};
-} # end sub Path
+} # end sub Name
 
 sub find {
   shift if $_[0] eq 'ZoneMinder::Event';
@@ -145,10 +145,10 @@ sub getPath {
 sub Path {
   my $event = shift;
 
-  if ( @_ > 1 ) {
-    $$event{Path} = $_[1];
-    if ( ! -e $$event{Path} ) {
-      Error("Setting path for event $$event{Id} to $_[1] but does not exist!");
+  if ( @_ ) {
+    $$event{Path} = $_[0];
+    if ( $$event{Path} and ! -e $$event{Path} ) {
+      Error("Setting path for event $$event{Id} to $_[0] but does not exist!");
     }
   }
 
@@ -308,7 +308,7 @@ sub delete {
 
 sub delete_files {
 
-  my $Storage = new ZoneMinder::Storage( $_[0]{StorageId} );
+  my $Storage = @_ > 1 ? $_[1] : new ZoneMinder::Storage( $_[0]{StorageId} );
   my $storage_path = $Storage->Path();
 
   if ( ! $storage_path ) {
@@ -316,7 +316,7 @@ sub delete_files {
     return;
   }
 
-  chdir ( $storage_path );
+  chdir( $storage_path );
 
   if ( $Config{ZM_USE_DEEP_STORAGE} ) {
     if ( ! $_[0]{MonitorId} ) {
@@ -364,7 +364,10 @@ sub delete_files {
 } # end sub delete_files
 
 sub Storage {
-  return new ZoneMinder::Storage( $_[0]{StorageId} );
+  if ( ! $_[0]{Storage} ) {
+    $_[0]{Storage} = new ZoneMinder::Storage( $_[0]{StorageId} );
+  } 
+  return $_[0]{Storage};
 }
 
 sub check_for_in_filesystem {
@@ -405,19 +408,27 @@ sub DiskSpace {
 
 sub MoveTo {
   my ( $self, $NewStorage ) = @_;
+
+  my $OldStorage = $self->Storage();
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
-  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
+
+  $$self{Storage} = $NewStorage;
+
+  my ( $NewPath ) = ( $NewStorage->Path(undef) =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
     return "New storage does not have an id.  Moving will not happen.";
-  } elsif ( !$NewPath) {
+  } elsif ( !$NewPath ) {
     return "$NewPath is empty.";
-  }elsif ( $NewPath eq $OldPath ) {
-    return "New path and old path are the same! $NewPath";
   } elsif ( ! -e $NewPath ) {
     return "New path $NewPath does not exist.";
-  }elsif ( ! -e $OldPath ) {
+  } elsif ( ! -e $OldPath ) {
     return "Old path $OldPath does not exist.";
   }
+  ( $NewPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
+  if ( $NewPath eq $OldPath ) {
+    return "New path and old path are the same! $NewPath";
+  }
+  Debug("Moving event $$self{Id} from $OldPath to $NewPath");
 
   my $error = '';
   File::Path::make_path( $NewPath, {error => \my $err} );
@@ -446,8 +457,10 @@ sub MoveTo {
   if ( ! $error ) {
     # Succeeded in copying all files, so we may now update the Event.
     $$self{StorageId} = $$NewStorage{Id};    
+    $$self{Storage} = $NewStorage;
     $error .= $self->save();
   }
+  $self->delete_files( $OldStorage );
   return $error;
 } # end sub MoveTo
 

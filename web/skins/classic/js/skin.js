@@ -109,7 +109,7 @@ function createPopup( url, name, tag, width, height ) {
     popupDimensions += ",width="+popupSize.width;
   if ( popupSize.height > 0 )
     popupDimensions += ",height="+popupSize.height;
-  var popup = window.open( url, name, popupOptions+popupDimensions );
+  var popup = window.open( url+"&popup=1", name, popupOptions+popupDimensions );
   if ( ! popup ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");

@@ -224,7 +224,7 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
       <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
 <?php
    }
-if (isset($_REQUEST['filter']['Query']['terms'])) {
+if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   $terms = $_REQUEST['filter']['Query']['terms'];
   $count = 0;
   foreach ($terms as $term) {

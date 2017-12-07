@@ -1,5 +1,5 @@
 <?php
-if ($_REQUEST['entity'] == "navBar") {
+if ($_REQUEST['entity'] == 'navBar') {
    ajaxResponse(getNavBarHtml('reload'));
    return;
 }
@@ -10,21 +10,21 @@ $statusData = array(
       'table' => 'Monitors',
       'limit' => 1,
       'elements' => array(
-        'MonitorCount' => array( 'sql' => "count(*)" ),
+        'MonitorCount' => array( 'sql' => 'count(*)' ),
         'ActiveMonitorCount' => array( 'sql' => "count(if(Function != 'None',1,NULL))" ),
-        'State' => array( 'func' => "daemonCheck()?".translate('Running').":".translate('Stopped') ),
-        'Load' => array( 'func' => "getLoad()" ),
-        'Disk' => array( 'func' => "getDiskPercent()" ),
+        'State' => array( 'func' => 'daemonCheck()?'.translate('Running').':'.translate('Stopped') ),
+        'Load' => array( 'func' => 'getLoad()' ),
+        'Disk' => array( 'func' => 'getDiskPercent()' ),
         ),
       ),
     'monitor' => array(
       'permission' => 'Monitors',
       'table' => 'Monitors',
       'limit' => 1,
-      'selector' => "Monitors.Id",
+      'selector' => 'Monitors.Id',
       'elements' => array(
-        'Id' => array( 'sql' => "Monitors.Id" ),
-        'Name' => array( 'sql' => "Monitors.Name" ),
+        'Id' => array( 'sql' => 'Monitors.Id' ),
+        'Name' => array( 'sql' => 'Monitors.Name' ),
         'Type' => true,
         'Function' => true,
         'Enabled' => true,
@@ -36,8 +36,8 @@ $statusData = array(
         'Host' => true,
         'Port' => true,
         'Path' => true,
-        'Width' => array( 'sql' => "Monitors.Width" ),
-        'Height' => array( 'sql' => "Monitors.Height" ),
+        'Width' => array( 'sql' => 'Monitors.Width' ),
+        'Height' => array( 'sql' => 'Monitors.Height' ),
         'Palette' => true,
         'Orientation' => true,
         'Brightness' => true,
@@ -75,17 +75,17 @@ $statusData = array(
         'DefaultScale' => true,
         'WebColour' => true,
         'Sequence' => true,
-        'MinEventId' => array( 'sql' => "(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id" ),
-        'MaxEventId' => array( 'sql' => "(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id" ),
-        'TotalEvents' => array( 'sql' => "(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id" ),
-        'Status' => array( 'zmu' => "-m ".escapeshellarg($_REQUEST['id'][0])." -s" ),
-        'FrameRate' => array( 'zmu' => "-m ".escapeshellarg($_REQUEST['id'][0])." -f" ),
+        'MinEventId' => array( 'sql' => '(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
+        'MaxEventId' => array( 'sql' => '(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
+        'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id' ),
+        'Status' => array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -s' ),
+        'FrameRate' => array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id'][0]).' -f' ),
         ),
       ),
       'events' => array(
             'permission' => 'Events',
             'table' => 'Events',
-            'selector' => "Events.MonitorId",
+            'selector' => 'Events.MonitorId',
             'elements' => array(
               'Id' => true,
               'Name' => true,
@@ -108,11 +108,11 @@ $statusData = array(
                 'permission' => 'Events',
                 'table' => 'Events',
                 'limit' => 1,
-                'selector' => "Events.Id",
+                'selector' => 'Events.Id',
                 'elements' => array(
-                  'Id' => array( 'sql' => "Events.Id" ),
+                  'Id' => array( 'sql' => 'Events.Id' ),
                   'MonitorId' => true,
-                  'MonitorName' => array('sql' => "(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)"),
+                  'MonitorName' => array('sql' => '(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)'),
                   'Name' => true,
                   'Cause' => true,
                   'StartTime' => true,
@@ -134,10 +134,10 @@ $statusData = array(
                   'Messaged' => true,
                   'Executed' => true,
                   'Notes' => true,
-                  'MinFrameId' => array( 'sql' => "(SELECT min(Frames.FrameId) FROM Frames WHERE EventId=Events.Id)" ),
-                  'MaxFrameId' => array( 'sql' => "(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)" ),
-                  'MinFrameDelta' => array( 'sql' => "(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)" ),
-                  'MaxFrameDelta' => array( 'sql' => "(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)" ),
+                  'MinFrameId' => array( 'sql' => '(SELECT min(Frames.FrameId) FROM Frames WHERE EventId=Events.Id)' ),
+                  'MaxFrameId' => array( 'sql' => '(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+                  'MinFrameDelta' => array( 'sql' => '(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+                  'MaxFrameDelta' => array( 'sql' => '(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
                   //'Path' => array( 'postFunc' => 'getEventPath' ),
                   ),
                   ),
@@ -156,9 +156,9 @@ $statusData = array(
                       'permission' => 'Events',
                       'table' => 'Frames',
                       'limit' => 1,
-                      'selector' => array( array( 'table' => 'Events', 'join' => "Events.Id = Frames.EventId", 'selector'=>"Events.Id" ), "Frames.FrameId" ),
+                      'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>"Events.Id' ), 'Frames.FrameId" ),
                       'elements' => array(
-                        //'Id' => array( 'sql' => "Frames.FrameId" ),
+                        //'Id' => array( 'sql' => 'Frames.FrameId' ),
                         'FrameId' => true,
                         'EventId' => true,
                         'Type' => true,
@@ -171,15 +171,15 @@ $statusData = array(
                       ),
                   'frameimage' => array(
                       'permission' => 'Events',
-                      'func' => "getFrameImage()"
+                      'func' => 'getFrameImage()'
                       ),
                   'nearframe' => array(
                       'permission' => 'Events',
-                      'func' => "getNearFrame()"
+                      'func' => 'getNearFrame()'
                       ),
                   'nearevents' => array(
                       'permission' => 'Events',
-                      'func' => "getNearEvents()"
+                      'func' => 'getNearEvents()'
                       )
                   );
 
@@ -192,7 +192,7 @@ function collectData() {
     ajaxError( 'Unrecognised action or insufficient permissions' );
 
   if ( !empty($entitySpec['func']) ) {
-    $data = eval( "return( ".$entitySpec['func']." );" );
+    $data = eval( 'return( '.$entitySpec['func']." );" );
   } else {
     $data = array();
     $postFuncs = array();
@@ -221,25 +221,25 @@ function collectData() {
         $entitySpec['selector'] = array( $entitySpec['selector'] );
       foreach( $entitySpec['selector'] as $selector )
         if ( is_array( $selector ) && isset($selector['table']) && isset($selector['join']) )
-          $joinSql[] = "left join ".$selector['table']." on ".$selector['join'];
+          $joinSql[] = 'left join '.$selector['table'].' on '.$selector['join'];
     }
 
     foreach ( $_REQUEST['element'] as $element ) {
       if ( !($elementData = $lc_elements[strtolower($element)]) )
-        ajaxError( "Bad ".validJsStr($_REQUEST['entity'])." element ".$element );
+        ajaxError( 'Bad '.validJsStr($_REQUEST['entity']).' element '.$element );
       if ( isset($elementData['func']) )
-        $data[$element] = eval( "return( ".$elementData['func']." );" );
+        $data[$element] = eval( 'return( '.$elementData['func']." );" );
       else if ( isset($elementData['postFunc']) )
         $postFuncs[$element] = $elementData['postFunc'];
       else if ( isset($elementData['zmu']) )
-        $data[$element] = exec( escapeshellcmd( getZmuCommand( " ".$elementData['zmu'] ) ) );
+        $data[$element] = exec( escapeshellcmd( getZmuCommand( ' '.$elementData['zmu'] ) ) );
       else {
         if ( isset($elementData['sql']) )
-          $fieldSql[] = $elementData['sql']." as ".$element;
+          $fieldSql[] = $elementData['sql'].' as '.$element;
         else
           $fieldSql[] = $element;
         if ( isset($elementData['table']) && isset($elementData['join']) ) {
-          $joinSql[] = "left join ".$elementData['table']." on ".$elementData['join'];
+          $joinSql[] = 'left join '.$elementData['table'].' on '.$elementData['join'];
         }
         if ( isset($elementData['group']) ) {
           $groupSql[] = $elementData['group'];
@@ -248,9 +248,9 @@ function collectData() {
     }
 
     if ( count($fieldSql) ) {
-      $sql = "select ".join( ", ", $fieldSql )." from ".$entitySpec['table'];
+      $sql = 'select '.join( ', ', $fieldSql ).' from '.$entitySpec['table'];
       if ( $joinSql )
-        $sql .= " ".join( " ", array_unique( $joinSql ) );
+        $sql .= ' '.join( ' ', array_unique( $joinSql ) );
       if ( $id && !empty($entitySpec['selector']) ) {
         $index = 0;
         $where = array();
@@ -265,21 +265,21 @@ function collectData() {
           }
           $index++;
         }
-        $sql .= " where ".join( " and ", $where );
+        $sql .= ' where '.join( ' and ', $where );
       }
       if ( $groupSql )
-        $sql .= " GROUP BY ".join( ",", array_unique( $groupSql ) );
+        $sql .= ' GROUP BY '.join( ',', array_unique( $groupSql ) );
       if ( !empty($_REQUEST['sort']) )
-        $sql .= " order by ".$_REQUEST['sort'];
+        $sql .= ' order by '.$_REQUEST['sort'];
       if ( !empty($entitySpec['limit']) )
         $limit = $entitySpec['limit'];
       elseif ( !empty($_REQUEST['count']) )
         $limit = validInt($_REQUEST['count']);
-      $limit_offset="";
+      $limit_offset='';
       if ( !empty($_REQUEST['offset']) )
-        $limit_offset = validInt($_REQUEST['offset']) . ", ";
+        $limit_offset = validInt($_REQUEST['offset']) . ', ';
       if ( !empty( $limit ) )
-        $sql .= " limit ".$limit_offset.$limit;
+        $sql .= ' limit '.$limit_offset.$limit;
       if ( isset($limit) && $limit == 1 ) {
         if ( $sqlData = dbFetchOne( $sql, NULL, $values ) ) {
           foreach ( $postFuncs as $element=>$func )
@@ -312,7 +312,7 @@ switch( $_REQUEST['layout'] ) {
   case 'xml NOT CURRENTLY SUPPORTED' :
     {
       header("Content-type: application/xml" );
-      echo( '<?xml version="1.0" encoding="iso-8859-1"?>'."\n" );
+      echo( '<?xml version="1.0' encoding='iso-8859-1"?>'.'\n' );
       echo "<".strtolower($_REQUEST['entity']).">\n";
       foreach ( $data as $key=>$value ) {
         $key = strtolower( $key );
@@ -332,7 +332,7 @@ switch( $_REQUEST['layout'] ) {
   case 'text' :
     {
       header("Content-type: text/plain" );
-      echo join( " ", array_values( $data ) );
+      echo join( ' ', array_values( $data ) );
       break;
     }
 }
@@ -380,7 +380,7 @@ function getNearEvents() {
   parseSort();
 
   if ( $user['MonitorIds'] )
-    $midSql = " and MonitorId in (".join( ",", preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).")";
+    $midSql = ' and MonitorId in ('.join( ',', preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).')';
   else
     $midSql = '';
 

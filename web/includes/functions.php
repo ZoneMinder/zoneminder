@@ -475,8 +475,7 @@ function getEventPath( $event ) {
 
 function getEventDefaultVideoPath( $event ) {
   $Event = new Event( $event );
-  return $Event->getStreamSrc( array( "mode"=>"mpeg", "format"=>"h264" ) );
-  //$Event->Path().'/'.$event['DefaultVideo'];
+  return $Event->getStreamSrc( array( 'mode'=>'mpeg', 'format'=>'h264' ) );
 }
 
 function deletePath( $path ) {

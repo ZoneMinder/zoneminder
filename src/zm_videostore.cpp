@@ -152,12 +152,21 @@ Debug(2,"Using mjpeg");
     video_out_ctx->pix_fmt = AV_PIX_FMT_YUVJ422P;
 
   } else if ( monitor->OutputCodec() == "h264" ) {
+Debug(2,"Using h264");
     video_out_codec = avcodec_find_encoder_by_name("h264_omx");
     if ( ! video_out_codec ) {
       Debug(1, "Didn't find omx");
       video_out_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     }
-    video_out_ctx = avcodec_alloc_context3( video_out_codec );
+    if ( ! video_out_codec ) {
+      Error("Didn't find h264 encoder");
+      video_out_codec = NULL;
+      return false;
+    }
+    video_out_ctx = avcodec_alloc_context3(video_out_codec);
+  } else {
+    Error("No output codec selected");
+    return false;
   }
 
   // Copy params from instream to ctx

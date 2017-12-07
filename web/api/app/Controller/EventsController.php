@@ -79,7 +79,7 @@ public function beforeFilter() {
 		// For each event, get the frameID which has the largest score
 		foreach ($events as $key => $value) {
 			$maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
-			$events[$key]["Event"]['MaxScoreFrameId'] = $maxScoreFrameId;
+			$events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
 
 		}
 
@@ -298,7 +298,7 @@ public function beforeFilter() {
 		))) {
 			throw new NotFoundException(__("Can not find Frame for Event " . $event['Event']['Id']));
 		}
-		return $frame["Frame"]["Id"];
+		return $frame['Frame']['Id'];
 
 
 }

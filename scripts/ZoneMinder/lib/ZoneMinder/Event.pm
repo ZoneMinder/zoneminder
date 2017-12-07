@@ -414,11 +414,11 @@ sub MoveTo {
 
   $$self{Storage} = $NewStorage;
 
-  my ( $NewPath ) = ( $NewStorage->Path(undef) =~ /^(.*)$/ ); # De-taint
+  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
     return "New storage does not have an id.  Moving will not happen.";
   } elsif ( !$NewPath ) {
-    return "$NewPath is empty.";
+    return "New path ($NewPath) is empty.";
   } elsif ( ! -e $NewPath ) {
     return "New path $NewPath does not exist.";
   } elsif ( ! -e $OldPath ) {

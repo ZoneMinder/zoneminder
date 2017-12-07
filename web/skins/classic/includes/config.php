@@ -45,7 +45,8 @@ $scales = array(
     '12.5' => '1/8x',
 );
 
-if (isset($_REQUEST['view'])) unset($scales[$_REQUEST['view'] == 'montage' ? 'auto' : '']); //Only use fixed width/Height on montage
+if (isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage'))
+  unset($scales['auto']); //Remove auto if we aren't using event view
 
 $bandwidth_options = array(
     'high' => translate('High'),

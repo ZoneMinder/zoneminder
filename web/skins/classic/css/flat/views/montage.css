@@ -30,14 +30,17 @@
 
 #monitors .imageFeed img.idle {
     border: 2px solid #ffffff;
+	padding: 0;
 }
 
 #monitors .imageFeed img.alarm {
     border: 2px solid #ff0000;
+	padding: 0;
 }
 
 #monitors .imageFeed img.alert {
     border: 2px solid #ffa500;
+	padding: 0;
 }
 
 #monitors .monitorState {

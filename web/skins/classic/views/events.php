@@ -57,8 +57,10 @@ else
   $limit = 0;
 
 $nEvents = dbFetchOne( $countSql, 'EventCount' );
+Warning("Number of events: $nEvents");
 if ( !empty($limit) && $nEvents > $limit ) {
   $nEvents = $limit;
+Logger::Debug("Number of events: $nEvents");
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
 if ( !empty($page) ) {

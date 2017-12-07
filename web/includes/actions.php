@@ -114,7 +114,7 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
         } else {
           //Let them login but show an error
           echo '<script type="text/javascript">alert("'.translate('RecaptchaWarning').'"); </script>';
-          Error ("Invalid recaptcha secret detected");
+          Error ('Invalid recaptcha secret detected');
         }
       }
     } // end if success==false
@@ -242,11 +242,11 @@ if ( !empty($_REQUEST['mid']) && canView( 'Control', $_REQUEST['mid'] ) ) {
     $ctrlCommand = buildControlCommand( $monitor );
     sendControlCommand( $monitor->Id(), $ctrlCommand );
   } elseif ( $action == 'settings' ) {
-    $args = " -m " . escapeshellarg($mid);
-    $args .= " -B" . escapeshellarg($_REQUEST['newBrightness']);
-    $args .= " -C" . escapeshellarg($_REQUEST['newContrast']);
-    $args .= " -H" . escapeshellarg($_REQUEST['newHue']);
-    $args .= " -O" . escapeshellarg($_REQUEST['newColour']);
+    $args = ' -m ' . escapeshellarg($mid);
+    $args .= ' -B' . escapeshellarg($_REQUEST['newBrightness']);
+    $args .= ' -C' . escapeshellarg($_REQUEST['newContrast']);
+    $args .= ' -H' . escapeshellarg($_REQUEST['newHue']);
+    $args .= ' -O' . escapeshellarg($_REQUEST['newColour']);
 
     $zmuCommand = getZmuCommand( $args );
 
@@ -280,9 +280,9 @@ if ( canEdit( 'Control' ) ) {
 
     if ( count( $changes ) ) {
       if ( !empty($_REQUEST['cid']) ) {
-        dbQuery( "update Controls set ".implode( ", ", $changes )." where Id = ?", array($_REQUEST['cid']) );
+        dbQuery( 'update Controls set '.implode( ', ', $changes ).' where Id = ?', array($_REQUEST['cid']) );
       } else {
-        dbQuery( "insert into Controls set ".implode( ", ", $changes ) );
+        dbQuery( 'insert into Controls set '.implode( ', ', $changes ) );
         //$_REQUEST['cid'] = dbInsertId();
       }
       $refreshParent = true;
@@ -291,8 +291,8 @@ if ( canEdit( 'Control' ) ) {
   } elseif ( $action == 'delete' ) {
     if ( isset($_REQUEST['markCids']) ) {
       foreach( $_REQUEST['markCids'] as $markCid ) {
-        dbQuery( "delete from Controls where Id = ?", array($markCid) );
-        dbQuery( "update Monitors set Controllable = 0, ControlId = 0 where ControlId = ?", array($markCid) );
+        dbQuery( 'delete from Controls where Id = ?', array($markCid) );
+        dbQuery( 'update Monitors set Controllable = 0, ControlId = 0 where ControlId = ?', array($markCid) );
         $refreshParent = true;
       }
     }
@@ -376,9 +376,9 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
 
     if ( count( $changes ) ) {
       if ( $zid > 0 ) {
-        dbQuery( "UPDATE Zones SET ".implode( ", ", $changes )." WHERE MonitorId=? AND Id=?", array( $mid, $zid) );
+        dbQuery( 'UPDATE Zones SET '.implode( ', ', $changes ).' WHERE MonitorId=? AND Id=?', array( $mid, $zid) );
       } else {
-        dbQuery( "INSERT INTO Zones SET MonitorId=?, ".implode( ", ", $changes ), array( $mid ) );
+        dbQuery( 'INSERT INTO Zones SET MonitorId=?, '.implode( ', ', $changes ), array( $mid ) );
         dbQuery( 'UPDATE Monitors SET ZoneCount=(SELECT COUNT(Id) FROM Zones WHERE MonitorId=Monitors.Id) WHERE Id=?', array($mid));
       }
       //if ( $cookies ) session_write_close();
@@ -405,7 +405,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
     foreach( $pconfs as $pconf ) {
       $value=$_REQUEST['pluginOpt'][$pconf['Name']];
       if(array_key_exists($pconf['Name'], $_REQUEST['pluginOpt']) && ($pconf['Value']!=$value)) {
-        dbQuery("UPDATE PluginsConfig SET Value=? WHERE id=?", array( $value, $pconf['Id'] ) );
+        dbQuery('UPDATE PluginsConfig SET Value=? WHERE id=?', array( $value, $pconf['Id'] ) );
         $changes++;
       }
     }
@@ -528,7 +528,7 @@ if ( canEdit( 'Monitors' ) ) {
             $changes = getFormChanges( $zone, $newZone, $types );
 
             if ( count( $changes ) ) {
-              dbQuery( "update Zones set ".implode( ", ", $changes )." WHERE MonitorId=? AND Id=?", array( $mid, $zone['Id'] ) );
+              dbQuery( 'update Zones set '.implode( ', ', $changes ).' WHERE MonitorId=? AND Id=?', array( $mid, $zone['Id'] ) );
             }
           }
         }
@@ -559,12 +559,12 @@ if ( canEdit( 'Monitors' ) ) {
 
       if ( count( $x10Changes ) ) {
         if ( $x10Monitor && isset($_REQUEST['newX10Monitor']) ) {
-          dbQuery( "update TriggersX10 set ".implode( ", ", $x10Changes )." where MonitorId=?", array($mid) );
+          dbQuery( 'update TriggersX10 set '.implode( ', ', $x10Changes ).' where MonitorId=?', array($mid) );
         } elseif ( !$user['MonitorIds'] ) {
           if ( !$x10Monitor ) {
-            dbQuery( "insert into TriggersX10 set MonitorId = ?, ".implode( ", ", $x10Changes ), array( $mid ) );
+            dbQuery( 'insert into TriggersX10 set MonitorId = ?, '.implode( ', ', $x10Changes ), array( $mid ) );
           } else {
-            dbQuery( "delete from TriggersX10 where MonitorId = ?", array($mid) );
+            dbQuery( 'delete from TriggersX10 where MonitorId = ?', array($mid) );
           }
         }
         $restart = true;
@@ -633,9 +633,9 @@ if ( canEdit( 'Devices' ) ) {
       setDeviceStatusX10( $_REQUEST['key'], $_REQUEST['command'] );
     } elseif ( isset( $_REQUEST['newDevice'] ) ) {
       if ( isset($_REQUEST['did']) ) {
-        dbQuery( "update Devices set Name=?, KeyString=? where Id=?", array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'], $_REQUEST['did']) );
+        dbQuery( 'update Devices set Name=?, KeyString=? where Id=?', array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'], $_REQUEST['did']) );
       } else {
-        dbQuery( "insert into Devices set Name=?, KeyString=?", array( $_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'] ) );
+        dbQuery( 'insert into Devices set Name=?, KeyString=?', array( $_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'] ) );
       }
       $refreshParent = true;
       $view = 'none';
@@ -643,7 +643,7 @@ if ( canEdit( 'Devices' ) ) {
   } elseif ( $action == 'delete' ) {
     if ( isset($_REQUEST['markDids']) ) {
       foreach( $_REQUEST['markDids'] as $markDid ) {
-        dbQuery( "delete from Devices where Id=?", array($markDid) );
+        dbQuery( 'delete from Devices where Id=?', array($markDid) );
         $refreshParent = true;
       }
     }
@@ -734,9 +734,9 @@ if ( canEdit( 'System' ) ) {
 
         if ( count( $changes ) ) {
           if ( !empty($_REQUEST['id']) ) {
-            dbQuery( "UPDATE Servers SET ".implode( ", ", $changes )." WHERE Id = ?", array($_REQUEST['id']) );
+            dbQuery( 'UPDATE Servers SET '.implode( ', ', $changes ).' WHERE Id = ?', array($_REQUEST['id']) );
           } else {
-            dbQuery( "INSERT INTO Servers set ".implode( ", ", $changes ) );
+            dbQuery( 'INSERT INTO Servers set '.implode( ', ', $changes ) );
           }
           $refreshParent = true;
         }
@@ -744,7 +744,7 @@ if ( canEdit( 'System' ) ) {
       } else if ( $action == 'delete' ) {
         if ( !empty($_REQUEST['markIds']) ) {
           foreach( $_REQUEST['markIds'] as $Id )
-            dbQuery( "DELETE FROM Servers WHERE Id=?", array($Id) );
+            dbQuery( 'DELETE FROM Servers WHERE Id=?', array($Id) );
         }
         $refreshParent = true;
       } else {
@@ -762,9 +762,9 @@ if ( canEdit( 'System' ) ) {
 
         if ( count( $changes ) ) {
           if ( !empty($_REQUEST['id']) ) {
-            dbQuery( "UPDATE Storage SET ".implode( ", ", $changes )." WHERE Id = ?", array($_REQUEST['id']) );
+            dbQuery( 'UPDATE Storage SET '.implode( ', ', $changes ).' WHERE Id = ?', array($_REQUEST['id']) );
           } else {
-            dbQuery( "INSERT INTO Storage set ".implode( ", ", $changes ) );
+            dbQuery( 'INSERT INTO Storage set '.implode( ', ', $changes ) );
           }
           $refreshParent = true;
         }
@@ -857,7 +857,7 @@ if ( canEdit( 'System' ) ) {
       if ( $value['Type'] == 'boolean' && empty($_REQUEST['newConfig'][$name]) )
         $newValue = 0;
       elseif ( isset($_REQUEST['newConfig'][$name]) )
-        $newValue = preg_replace( "/\r\n/", "\n", stripslashes( $_REQUEST['newConfig'][$name] ) );
+        $newValue = preg_replace( "/\r\n/', '\n", stripslashes( $_REQUEST['newConfig'][$name] ) );
 
       if ( isset($newValue) && ($newValue != $value['Value']) ) {
         dbQuery( 'UPDATE Config SET Value=? WHERE Name=?', array( $newValue, $name ) );
@@ -896,18 +896,18 @@ if ( canEdit( 'System' ) ) {
     $changes = getFormChanges( $dbUser, $_REQUEST['newUser'], $types );
 
     if ( $_REQUEST['newUser']['Password'] )
-      $changes['Password'] = "Password = password(".dbEscape($_REQUEST['newUser']['Password']).")";
+      $changes['Password'] = 'Password = password('.dbEscape($_REQUEST['newUser']['Password']).')';
     else
       unset( $changes['Password'] );
 
     if ( count( $changes ) ) {
       if ( !empty($_REQUEST['uid']) ) {
-        dbQuery( "update Users set ".implode( ", ", $changes )." where Id = ?", array($_REQUEST['uid']) );
+        dbQuery( 'update Users set '.implode( ', ', $changes ).' where Id = ?', array($_REQUEST['uid']) );
         # If we are updating the logged in user, then update our session user data.
         if ( $user and ( $dbUser['Username'] == $user['Username'] ) )
           userLogin( $dbUser['Username'], $dbUser['Password'] );
       } else {
-        dbQuery( "insert into Users set ".implode( ", ", $changes ) );
+        dbQuery( 'insert into Users set '.implode( ', ', $changes ) );
       }
       $refreshParent = true;
     }
@@ -924,20 +924,20 @@ if ( canEdit( 'System' ) ) {
       $definitions = array();
       foreach( dbFetchAll( $sql ) as $monitor )
       {
-        $definitions[] = $monitor['Id'].":".$monitor['Function'].":".$monitor['Enabled'];
+        $definitions[] = $monitor['Id'].':'.$monitor['Function'].':'.$monitor['Enabled'];
       }
       $definition = join( ',', $definitions );
       if ( $_REQUEST['newState'] )
         $_REQUEST['runState'] = $_REQUEST['newState'];
-      dbQuery( "replace into States set Name=?, Definition=?", array( $_REQUEST['runState'],$definition) );
+      dbQuery( 'replace into States set Name=?, Definition=?', array( $_REQUEST['runState'],$definition) );
     }
   } elseif ( $action == 'delete' ) {
     if ( isset($_REQUEST['runState']) )
-      dbQuery( "delete from States where Name=?", array($_REQUEST['runState']) );
+      dbQuery( 'delete from States where Name=?', array($_REQUEST['runState']) );
 
     if ( isset($_REQUEST['markUids']) ) {
       foreach( $_REQUEST['markUids'] as $markUid )
-        dbQuery( "delete from Users where Id = ?", array($markUid) );
+        dbQuery( 'delete from Users where Id = ?', array($markUid) );
       if ( $markUid == $user['Id'] )
         userLogout();
     }
@@ -952,11 +952,11 @@ if ( canEdit( 'System' ) ) {
     $changes = getFormChanges( $dbUser, $_REQUEST['newUser'], $types );
 
     if ( !empty($_REQUEST['newUser']['Password']) )
-      $changes['Password'] = "Password = password(".dbEscape($_REQUEST['newUser']['Password']).")";
+      $changes['Password'] = 'Password = password('.dbEscape($_REQUEST['newUser']['Password']).')';
     else
       unset( $changes['Password'] );
     if ( count( $changes ) ) {
-      dbQuery( "update Users set ".implode( ", ", $changes )." where Id=?", array($uid) );
+      dbQuery( 'update Users set '.implode( ', ', $changes ).' where Id=?', array($uid) );
       $refreshParent = true;
     }
     $view = 'none';

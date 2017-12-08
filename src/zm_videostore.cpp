@@ -177,7 +177,7 @@ Debug(2,"Using mjpeg");
         } else {
           pf =
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-            video_in_stream->codecpar->format;
+            (AVPixelFormat)video_in_stream->codecpar->format;
 #else 
           video_in_stream->codec->pix_fmt;
 #endif
@@ -289,8 +289,8 @@ Debug(2,"Using mjpeg");
     /* video time_base can be set to whatever is handy and supported by encoder */
     video_out_ctx->time_base = (AVRational){1, 1000}; // microseconds as base frame rate
     video_out_ctx->gop_size = 12;
-    video_out_ctx->qmin = 10;
-    video_out_ctx->qmax = 51;
+    video_out_ctx->qmin = 2;
+    video_out_ctx->qmax = 31;
     video_out_ctx->qcompress = 0.6;
     video_out_ctx->bit_rate = 400000;
     video_out_ctx->max_b_frames = 1;
@@ -339,7 +339,7 @@ Debug(2,"Using mjpeg");
         
         return false;
       }
-    }
+    } // end if can't open codec
     Debug(2,"Sucess opening codec");
     AVDictionaryEntry *e = NULL;
     while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
@@ -714,6 +714,7 @@ VideoStore::~VideoStore() {
 }
 
 bool VideoStore::setup_resampler() {
+  //I think this is unneccessary, we should be able to just pass in the decoder from the input.
 #ifdef HAVE_LIBAVRESAMPLE
   // Newer ffmpeg wants to keep everything separate... so have to lookup our own
   // decoder, can't reuse the one from the camera.
@@ -740,7 +741,6 @@ bool VideoStore::setup_resampler() {
   audio_out_stream = avformat_new_stream(oc, audio_out_codec);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  // audio_out_ctx = audio_out_stream->codec;
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
   if ( !audio_out_ctx ) {
     Error("could not allocate codec ctx for AAC\n");
@@ -754,10 +754,9 @@ bool VideoStore::setup_resampler() {
   /* put sample parameters */
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
+  audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
-  audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
-  //audio_out_ctx->refcounted_frames = 1;
 
   if ( audio_out_codec->supported_samplerates ) {
     int found = 0;
@@ -785,20 +784,9 @@ bool VideoStore::setup_resampler() {
     audio_out_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
   }
 
-  audio_out_ctx->time_base = (AVRational){1, audio_out_ctx->sample_rate};
+  // Example code doesn't set the codec tb.  I think it just uses whatever defaults
+  //audio_out_ctx->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
-
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  if ( (ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
-                                        audio_out_ctx)) < 0 ) {
-    Error("Could not initialize stream parameteres");
-    return false;
-  }
-  audio_out_stream->codecpar->frame_size = audio_out_ctx->frame_size;
-#else
-  avcodec_copy_context( audio_out_stream->codec, audio_out_ctx );
-#endif
-  audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
   AVDictionary *opts = NULL;
   av_dict_set(&opts, "strict", "experimental", 0); // Needed to allow AAC
@@ -812,8 +800,22 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 
+  audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  if ( (ret = avcodec_parameters_from_context(
+          audio_out_stream->codecpar,
+          audio_out_ctx)) < 0 ) {
+    Error("Could not initialize stream parameteres");
+    return false;
+  }
+  //audio_out_stream->codecpar->frame_size = audio_out_ctx->frame_size;
+  //audio_out_stream->codecpar->bit_rate = audio_out_ctx->bit_rate;
+#else
+  avcodec_copy_context( audio_out_stream->codec, audio_out_ctx );
+#endif
+
   Debug(1,
-        "Audio out bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
+        "Audio out context bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
         "layout(%d) frame_size(%d)",
         audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,
         audio_out_ctx->channels, audio_out_ctx->sample_fmt,
@@ -821,7 +823,7 @@ bool VideoStore::setup_resampler() {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   Debug(1,
-        "Audio out bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
+        "Audio out stream bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
         "layout(%d) frame_size(%d)",
         audio_out_stream->codecpar->bit_rate, audio_out_stream->codecpar->sample_rate,
         audio_out_stream->codecpar->channels, audio_out_stream->codecpar->format,
@@ -849,6 +851,7 @@ bool VideoStore::setup_resampler() {
     av_frame_free(&in_frame);
     return false;
   }
+  out_frame->sample_rate = audio_out_ctx->sample_rate;
 
   // Setup the audio resampler
   resample_ctx = avresample_alloc_context();
@@ -857,13 +860,13 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 
+  uint64_t mono_layout = av_get_channel_layout("mono");
   // Some formats (i.e. WAV) do not produce the proper channel layout
   if ( audio_in_ctx->channel_layout == 0 ) {
-    uint64_t layout = av_get_channel_layout("mono");
-    av_opt_set_int(resample_ctx, "in_channel_layout",
-                   av_get_channel_layout("mono"), 0);
-    Debug(1, "Bad channel layout. Need to set it to mono (%d).", layout);
+    av_opt_set_int(resample_ctx, "in_channel_layout", mono_layout, 0);
+    Debug(1, "Bad channel layout. Need to set it to mono (%d).", mono_layout);
   } else {
+    Debug(1, "channel layout. set it to mono (%d).", audio_in_ctx->channel_layout);
     av_opt_set_int(resample_ctx, "in_channel_layout",
                    audio_in_ctx->channel_layout, 0);
   }
@@ -873,8 +876,7 @@ bool VideoStore::setup_resampler() {
   av_opt_set_int(resample_ctx, "in_channels", audio_in_ctx->channels, 0);
   // av_opt_set_int( resample_ctx, "out_channel_layout",
   // audio_out_ctx->channel_layout, 0);
-  av_opt_set_int(resample_ctx, "out_channel_layout",
-                 av_get_channel_layout("mono"), 0);
+  av_opt_set_int(resample_ctx, "out_channel_layout", mono_layout, 0);
   av_opt_set_int(resample_ctx, "out_sample_fmt",
                  audio_out_ctx->sample_fmt, 0);
   av_opt_set_int(resample_ctx, "out_sample_rate",
@@ -926,7 +928,7 @@ void VideoStore::dumpPacket(AVPacket *pkt) {
 
   snprintf(b, sizeof(b),
            " pts: %" PRId64 ", dts: %" PRId64
-           ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64
+           ", data: %p, size: %d, stream_index: %d, dflags: %04x, pos: %" PRId64
            ", duration: %" 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
            PRId64
@@ -1041,6 +1043,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     zm_packet->out_frame->coded_picture_number = frame_count;
     zm_packet->out_frame->display_picture_number = frame_count;
     zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
+      zm_packet->out_frame->pkt_duration = 0;
 
     if ( ! video_last_pts ) {
       int64_t temp = zm_packet->timestamp->tv_sec*1000;
@@ -1051,11 +1054,10 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
       zm_packet->out_frame->pts = 0;
-      zm_packet->out_frame->pkt_duration = 0;
     } else {
       //uint64_t seconds = zm_packet->timestamp->tv_sec*1000000;
       zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000 ) - video_last_pts;
-      zm_packet->out_frame->duration = zm_packet->out_frame->pts - video_last_pts;
+      zm_packet->out_frame->pkt_duration = zm_packet->out_frame->pts - video_last_pts;
       Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (%" PRId64 " - secs(%d) usecs(%d)",
           frame_count, zm_packet->out_frame->pts, video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
     }
@@ -1124,8 +1126,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       opkt.dts = opkt.pts = ( zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000 ) - video_last_pts;
     }
   }
-  opkt.duration = 0;
 
+  opkt.duration = 0;
   dumpPacket(&opkt);
 
   write_video_packet( opkt );
@@ -1245,7 +1247,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     // Resample the in into the audioSampleBuffer until we proceed the whole
     // decoded data
     if ((ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
-                                0, frame_size)) < 0) {
+                                0, in_frame->nb_samples)) < 0) {
       Error("Could not resample frame (error '%s')\n",
             av_make_error_string(ret).c_str());
       av_frame_unref(in_frame);

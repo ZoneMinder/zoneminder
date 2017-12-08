@@ -230,12 +230,14 @@ static void zm_log_fps(double d, const char *postfix) {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {
-  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d)", 
+  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d) bit_rate(%d) foramt(%d)", 
     par->codec_type,
     par->codec_id,
     par->codec_tag,
     par->width,
-    par->height
+    par->height,
+    par->bit_rate,
+    par->format
 ); 
 }
 #endif

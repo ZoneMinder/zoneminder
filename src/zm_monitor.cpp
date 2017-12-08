@@ -1245,11 +1245,12 @@ bool Monitor::Analyse() {
     return false;
   }
 
-  // if  have event, sent frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
+  // if  have event, send frames until we find a video packet, at which point do analysis. Adaptive skip should only affect which frames we do analysis on.
 
   int packets_processed = 0;
 
   ZMPacket *snap;
+  // Is it possible for snap->score to be ! -1?
   while ( ( snap = packetqueue->get_analysis_packet() ) && ( snap->score == -1 ) ) {
     snap->lock();
     unsigned int index = snap->image_index;
@@ -1522,14 +1523,15 @@ Error("Already ahve evnet!");
       // We can't just loop here forever, because we may be capturing just as fast, and never leave the loop.
       // Only loop until we hit the analysis index
       while ( ( queued_packet = packetqueue->popPacket() ) ) {
-        Debug(2,"adding packet (%d) qp lwindex(%d), written(%d)", queued_packet->image_index, last_write, written );
+        Debug(2,"adding packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written );
         if ( snap == queued_packet ) {
           event->AddPacket( queued_packet );
-          packetqueue->increment_analysis_it();
+          // Pop may have already incrememented it
+          //packetqueue->increment_analysis_it();
           break;
         } else {
           queued_packet->lock();
-          Debug(2,"adding packet (%d) qp lwindex(%d), written(%d)", queued_packet->image_index, last_write, written );
+          Debug(2,"adding packet (%d) qp last_write_index(%d), written(%d)", queued_packet->image_index, last_write, written );
           event->AddPacket( queued_packet );
           queued_packet->unlock();
         }

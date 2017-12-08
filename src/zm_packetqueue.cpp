@@ -38,12 +38,12 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
   if ( zm_packet->image_index != -1 ) {
     // If we can never queue the same packet, then they can never go past
     if ( zm_packet->image_index == first_video_packet_index ) {
-      Debug(2, "queuing packet that is already on the queue");
+      Debug(2, "queuing packet that is already on the queue(%d)", zm_packet->image_index );
       ZMPacket *p;
-      while ( (p = pktQueue.front()) && ( p->image_index != zm_packet->image_index ) ) {
-        if ( *analysis_it == p ) {
+      while ( pktQueue.size() && (p = pktQueue.front()) && ( p->image_index != zm_packet->image_index ) ) {
+        if ( ( analysis_it != pktQueue.end() ) && ( *analysis_it == p ) ) {
           Debug(2, "Increasing analysis_it");
-          analysis_it ++;
+          ++analysis_it;
         }
 
         pktQueue.pop_front();
@@ -51,11 +51,14 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
           Debug(2, "Descreasing video_packet_count (%d)", video_packet_count);
           video_packet_count -= 1;
         } else {
+          Debug(2, "Deleteing audio frame(%d)", p->image_index);
           delete p;
+          p = NULL;
         }
+        Debug(2,"pktQueue.size(%d)", pktQueue.size() );
       } // end while there are packets at the head of the queue that are not this one
 
-      if ( p->image_index == zm_packet->image_index ) {
+      if ( p && ( p->image_index == zm_packet->image_index ) ) {
         // it should
         video_packet_count -= 1;
         pktQueue.pop_front();
@@ -100,6 +103,7 @@ ZMPacket* zm_packetqueue::popPacket( ) {
   if ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) {
     video_packet_count -= 1;
     if ( video_packet_count ) {
+      // There is another video packet, so it must be the next one
       first_video_packet_index += 1;
       first_video_packet_index %= max_video_packet_count;
     } else {
@@ -165,20 +169,31 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     packet = pktQueue.front();
     if ( *analysis_it == packet )
       analysis_it ++;
-    if ( packet->codec_type == AVMEDIA_TYPE_VIDEO )
+    if ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) {
       video_packet_count -= 1;
+      if ( video_packet_count ) {
+        // There is another video packet, so it must be the next one
+        first_video_packet_index += 1;
+        first_video_packet_index %= max_video_packet_count;
+      } else {
+        first_video_packet_index = -1;
+      }
+    }
     pktQueue.pop_front();
     if ( packet->image_index == -1 )
       delete packet;
 
     delete_count += 1;
   } // while our iterator is not the first packet
+
+#if 0
   if ( pktQueue.size() ) {
     packet = pktQueue.front();
     first_video_packet_index = packet->image_index;
   } else {
     first_video_packet_index = -1;
   }
+#endif
 
   Debug(3, "Deleted (%d) packets", delete_count );
   return delete_count; 
@@ -215,8 +230,8 @@ ZMPacket *zm_packetqueue::get_analysis_packet() {
   if ( analysis_it == pktQueue.end() ) 
     return NULL;
 
-  Debug(2, "Distance from head: (%d)", std::distance( pktQueue.begin(), analysis_it ) );
-  Debug(2, "Distance from end: (%d)", std::distance( analysis_it, pktQueue.end() ) );
+//Debug(2, "Distance from head: (%d)", std::distance( pktQueue.begin(), analysis_it ) );
+  //Debug(2, "Distance from end: (%d)", std::distance( analysis_it, pktQueue.end() ) );
 
   return *analysis_it;
 } // end ZMPacket *zm_packetqueue::get_analysis_packet()

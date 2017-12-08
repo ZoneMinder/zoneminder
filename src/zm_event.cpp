@@ -485,10 +485,16 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
 
     Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, Event::frame_type_names[frame_type] );
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type_names[frame_type], timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
+    snprintf( sql, sizeof(sql), "INSERT INTO Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) VALUES ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type_names[frame_type], timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't insert frame: (%s) reason:%s", sql, mysql_error(&dbconn));
+      zmDbClose();
+      if ( ! zmDbConnect() )
+        exit(mysql_errno(&dbconn));
+      if ( mysql_query(&dbconn, sql) ) {
+        Error("Can't insert frame: (%s) reason:%s", sql, mysql_error(&dbconn));
+        exit(mysql_errno(&dbconn));
+      }
     }
     last_db_frame = frames;
 

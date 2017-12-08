@@ -39,7 +39,7 @@ class zmDbRow {
 
 extern MYSQL dbconn;
 
-void zmDbConnect();
+bool zmDbConnect();
 void zmDbClose();
 
 MYSQL_RES * zmDbFetch( const char *query );

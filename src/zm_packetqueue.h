@@ -25,6 +25,7 @@
 //#include <boost/interprocess/allocators/allocator.hpp>
 #include <list>
 #include "zm_packet.h"
+#include "zm_thread.h"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -37,11 +38,15 @@ class zm_packetqueue {
 
     int video_stream_id;
     int video_packet_count; // keep track of how many video packets we have, because we shouldn't have more than image_buffer_count
+    int first_video_packet_index;
     int max_video_packet_count; // allow a negative value to someday mean unlimited
+
+    Mutex mutex;
 
 public:
     zm_packetqueue( int p_max_video_packet_count, int p_video_stream_id );
     virtual ~zm_packetqueue();
+
     bool queuePacket( ZMPacket* packet );
     ZMPacket * popPacket( );
     unsigned int clearQueue( unsigned int video_frames_to_keep, int stream_id );

@@ -26,6 +26,7 @@ zm_packetqueue::zm_packetqueue( int video_image_count, int p_video_stream_id ) {
   max_video_packet_count = video_image_count-1;
   video_packet_count = 0;
   analysis_it = pktQueue.begin();
+  first_video_packet_index = -1;
 }
 
 zm_packetqueue::~zm_packetqueue() {
@@ -33,6 +34,43 @@ zm_packetqueue::~zm_packetqueue() {
 }
 
 bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
+
+  if ( zm_packet->image_index != -1 ) {
+    // If we can never queue the same packet, then they can never go past
+    if ( zm_packet->image_index == first_video_packet_index ) {
+      Debug(2, "queuing packet that is already on the queue");
+      ZMPacket *p;
+      while ( (p = pktQueue.front()) && ( p->image_index != zm_packet->image_index ) ) {
+        if ( *analysis_it == p ) {
+          Debug(2, "Increasing analysis_it");
+          analysis_it ++;
+        }
+
+        pktQueue.pop_front();
+        if ( p->codec_type == AVMEDIA_TYPE_VIDEO ) {
+          Debug(2, "Descreasing video_packet_count (%d)", video_packet_count);
+          video_packet_count -= 1;
+        } else {
+          delete p;
+        }
+      } // end while there are packets at the head of the queue that are not this one
+
+      if ( p->image_index == zm_packet->image_index ) {
+        // it should
+        video_packet_count -= 1;
+        pktQueue.pop_front();
+        first_video_packet_index += 1;
+        first_video_packet_index %= max_video_packet_count;
+
+      } else {
+        Error("SHould have found the packet!");
+      }
+    } else if ( first_video_packet_index == -1 ) {
+      // Initialize the first_video_packet indicator
+      first_video_packet_index = zm_packet->image_index;
+    } // end if
+  } // end if queuing a video packet
+
 	pktQueue.push_back( zm_packet );
   if ( zm_packet->codec_type == AVMEDIA_TYPE_VIDEO ) {
     video_packet_count += 1;
@@ -47,7 +85,7 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
   }
 
 	return true;
-}
+} // end bool zm_packetqueue::queuePacket(ZMPacket* zm_packet)
 
 ZMPacket* zm_packetqueue::popPacket( ) {
 	if ( pktQueue.empty() ) {
@@ -59,8 +97,15 @@ ZMPacket* zm_packetqueue::popPacket( ) {
     analysis_it ++;
 
 	pktQueue.pop_front();
-  if ( packet->codec_type == AVMEDIA_TYPE_VIDEO )
+  if ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) {
     video_packet_count -= 1;
+    if ( video_packet_count ) {
+      first_video_packet_index += 1;
+      first_video_packet_index %= max_video_packet_count;
+    } else {
+      first_video_packet_index = -1;
+    }
+  }
 
 	return packet;
 }
@@ -128,11 +173,19 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
 
     delete_count += 1;
   } // while our iterator is not the first packet
+  if ( pktQueue.size() ) {
+    packet = pktQueue.front();
+    first_video_packet_index = packet->image_index;
+  } else {
+    first_video_packet_index = -1;
+  }
+
   Debug(3, "Deleted (%d) packets", delete_count );
   return delete_count; 
 } // end unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream_id )
 
 void zm_packetqueue::clearQueue() {
+  mutex.lock();
   ZMPacket *packet = NULL;
 	while(!pktQueue.empty()) {
     packet = pktQueue.front();
@@ -141,7 +194,9 @@ void zm_packetqueue::clearQueue() {
       delete packet;
 	}
   video_packet_count = 0;
+  first_video_packet_index = -1;
   analysis_it = pktQueue.begin();
+  mutex.unlock();
 }
 
 unsigned int zm_packetqueue::size() {

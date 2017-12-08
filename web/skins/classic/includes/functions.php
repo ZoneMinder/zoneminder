@@ -298,7 +298,7 @@ if ($reload == 'reload') ob_start();
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
   </ul>
-</div> <!-- End .footer/reload -->
+<!-- End .footer/reload --></div>
 <?php
 if ($reload == 'reload') return( ob_get_clean() );
 ?>

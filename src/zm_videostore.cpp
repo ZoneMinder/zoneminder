@@ -208,6 +208,7 @@ Debug(2,"Using mjpeg");
   }
 
   // Copy params from instream to ctx
+  // // FIXME SHould check that we are set to passthrough
   if ( video_in_stream && ( video_in_ctx->codec_id == AV_CODEC_ID_H264 ) ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
@@ -221,25 +222,7 @@ Debug(2,"Using mjpeg");
       Debug(2, "Going to dump the outctx");
       zm_dump_codec(video_out_ctx);
     }
-    video_out_ctx->time_base = (AVRational){1, 1000}; // microseconds as base frame rate
-    // Only set orientation if doing passthrough, otherwise the frame image will be rotated
-    Monitor::Orientation orientation = monitor->getOrientation();
-    if ( orientation ) {
-      Debug(3, "Have orientation");
-      if ( orientation == Monitor::ROTATE_0 ) {
-      } else if ( orientation == Monitor::ROTATE_90 ) {
-        ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-      } else if ( orientation == Monitor::ROTATE_180 ) {
-        ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-      } else if ( orientation == Monitor::ROTATE_270 ) {
-        ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-      } else {
-        Warning("Unsupported Orientation(%d)", orientation);
-      }
-    }
+    video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
     if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
       video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -287,7 +270,7 @@ Debug(2,"Using mjpeg");
     }
 
     /* video time_base can be set to whatever is handy and supported by encoder */
-    video_out_ctx->time_base = (AVRational){1, 1000}; // microseconds as base frame rate
+    video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
     video_out_ctx->gop_size = 12;
     video_out_ctx->qmin = 2;
     video_out_ctx->qmax = 31;
@@ -375,18 +358,32 @@ Debug(2,"Using mjpeg");
   zm_dump_codec(video_out_stream->codec);
 #endif
 
-#if 1
+#if 0
+  // No point apparently.  They may change when opening the file.
   video_out_stream->time_base.num = video_out_ctx->time_base.num;
   video_out_stream->time_base.den = video_out_ctx->time_base.den;
 #endif
 
-  Debug(3,
-        "Time bases: VIDEO out stream: (%d/%d) out codec (%d/%d)",
-        video_out_stream->time_base.num,
-        video_out_stream->time_base.den,
-        video_out_ctx->time_base.num,
-        video_out_ctx->time_base.den);
-
+  if ( video_in_stream && ( video_in_ctx->codec_id == AV_CODEC_ID_H264 ) ) {
+    // Only set orientation if doing passthrough, otherwise the frame image will be rotated
+    Monitor::Orientation orientation = monitor->getOrientation();
+    if ( orientation ) {
+      Debug(3, "Have orientation");
+      if ( orientation == Monitor::ROTATE_0 ) {
+      } else if ( orientation == Monitor::ROTATE_90 ) {
+        ret = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
+        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      } else if ( orientation == Monitor::ROTATE_180 ) {
+        ret = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
+        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      } else if ( orientation == Monitor::ROTATE_270 ) {
+        ret = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
+        if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      } else {
+        Warning("Unsupported Orientation(%d)", orientation);
+      }
+    }
+  }
 
   if ( audio_in_stream ) {
     Debug(3, "Have audio stream");
@@ -488,12 +485,7 @@ Debug(2,"Using mjpeg");
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
   AVDictionary *opts = NULL;
-  // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  //av_dict_set(&opts, "movflags", "empty_moov+delay_moov", 0);
   av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
-  // av_dict_set(&opts, "movflags",
-  // "frag_keyframe+empty_moov+default_base_moof", 0);
   if ( (ret = avformat_write_header(oc, &opts)) < 0 ) {
     // if ((ret = avformat_write_header(oc, &opts)) < 0) {
     Warning("Unable to set movflags to frag_custom+dash+delay_moov");
@@ -1046,9 +1038,9 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       zm_packet->out_frame->pkt_duration = 0;
 
     if ( ! video_last_pts ) {
-      int64_t temp = zm_packet->timestamp->tv_sec*1000;
-      int64_t temp2 = zm_packet->timestamp->tv_usec/1000;
-      video_last_pts = zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000;
+      int64_t temp = zm_packet->timestamp->tv_sec*1000000;
+      int64_t temp2 = zm_packet->timestamp->tv_usec;
+      video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d=>%" PRId64 ") usecs(%d=>%" PRId64 ")",
           video_last_pts, zm_packet->timestamp->tv_sec, temp, zm_packet->timestamp->tv_usec, temp2 );
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
@@ -1056,7 +1048,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       zm_packet->out_frame->pts = 0;
     } else {
       //uint64_t seconds = zm_packet->timestamp->tv_sec*1000000;
-      zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000 ) - video_last_pts;
+      zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
       zm_packet->out_frame->pkt_duration = zm_packet->out_frame->pts - video_last_pts;
       Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (%" PRId64 " - secs(%d) usecs(%d)",
           frame_count, zm_packet->out_frame->pts, video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
@@ -1120,10 +1112,10 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     opkt.size = ipkt->size;
     opkt.flags = ipkt->flags;
     if ( ! video_last_pts ) {
-      video_last_pts = zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000;
+      video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
       opkt.dts = opkt.pts = 0;
     } else {
-      opkt.dts = opkt.pts = ( zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000 ) - video_last_pts;
+      opkt.dts = opkt.pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
     }
   }
 
@@ -1146,15 +1138,12 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
     opkt.dts = opkt.pts;
   }
 
-  //opkt.pos = -1;
   opkt.stream_index = video_out_stream->index;
 
   //video_next_dts += opkt.duration;
   //video_next_pts += opkt.duration;
 
-  //AVPacket safepkt;
-  //memcpy(&safepkt, &opkt, sizeof(AVPacket));
-  //av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
+  av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
 
   Debug(1,
         "writing video packet pts(%" PRId64 ") dts(%" PRId64 ") duration(%" PRId64 ") packet_count(%u)",

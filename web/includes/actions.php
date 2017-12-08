@@ -857,13 +857,12 @@ if ( canEdit( 'System' ) ) {
       if ( $value['Type'] == 'boolean' && empty($_REQUEST['newConfig'][$name]) )
         $newValue = 0;
       elseif ( isset($_REQUEST['newConfig'][$name]) )
-        $newValue = preg_replace( "/\r\n/', '\n", stripslashes( $_REQUEST['newConfig'][$name] ) );
-
+        $newValue = preg_replace( "/\r\n/", "\n", stripslashes( $_REQUEST['newConfig'][$name] ) );
       if ( isset($newValue) && ($newValue != $value['Value']) ) {
         dbQuery( 'UPDATE Config SET Value=? WHERE Name=?', array( $newValue, $name ) );
         $changed = true;
       }
-    }
+    } // end foreach config entry
     if ( $changed ) {
       switch( $_REQUEST['tab'] ) {
         case 'system' :

@@ -68,6 +68,7 @@ monitor = p_monitor;
   video_next_dts = 0;
   audio_next_pts = 0;
   audio_next_dts = 0;
+
 Debug(2,"End VIdeoStore");
 }  // VideoStore::VideoStore
 
@@ -152,18 +153,55 @@ Debug(2,"Using mjpeg");
     video_out_ctx->pix_fmt = AV_PIX_FMT_YUVJ422P;
 
   } else if ( monitor->OutputCodec() == "h264" ) {
-Debug(2,"Using h264");
+    AVPixelFormat pf = AV_PIX_FMT_YUV420P;
+
+    //  First try hardware accell
     video_out_codec = avcodec_find_encoder_by_name("h264_omx");
     if ( ! video_out_codec ) {
       Debug(1, "Didn't find omx");
       video_out_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     }
     if ( ! video_out_codec ) {
+      if ( AV_CODEC_ID_NONE ==
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+          video_in_stream->codecpar->codec_id
+#else 
+          video_in_stream->codec->codec_id
+#endif
+         ) {
+        Debug(1, "trying xh264rgb");
+        // We will be encoding rgb images, so prefer 
+        video_out_codec = avcodec_find_encoder_by_name("libx264rgb");
+        if ( ! video_out_codec ) {
+          video_out_codec = avcodec_find_encoder_by_name("libx264");
+        } else {
+          pf =
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+            video_in_stream->codecpar->format;
+#else 
+          video_in_stream->codec->pix_fmt;
+#endif
+        }
+      } else {
+        video_out_codec = avcodec_find_encoder_by_name("libx264");
+        pf = AV_PIX_FMT_YUV420P;
+      }
+    }
+    // Need to do lookup by codec_id
+    if ( ! video_out_codec ) {
       Error("Didn't find h264 encoder");
       video_out_codec = NULL;
       return false;
     }
+    Debug(1, "Using %s for codec", video_out_codec->name);
     video_out_ctx = avcodec_alloc_context3(video_out_codec);
+    if ( AV_CODEC_ID_H264 != video_out_ctx->codec_id ) {
+      Warning("Have to set codec_id?");
+      video_out_ctx->codec_id = AV_CODEC_ID_H264;
+    }
+
+    video_out_ctx->pix_fmt = pf;
+        
   } else {
     Error("No output codec selected");
     return false;
@@ -183,7 +221,7 @@ Debug(2,"Using h264");
       Debug(2, "Going to dump the outctx");
       zm_dump_codec(video_out_ctx);
     }
-    video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+    video_out_ctx->time_base = (AVRational){1, 1000}; // microseconds as base frame rate
     // Only set orientation if doing passthrough, otherwise the frame image will be rotated
     Monitor::Orientation orientation = monitor->getOrientation();
     if ( orientation ) {
@@ -248,25 +286,17 @@ Debug(2,"Using h264");
 #endif
     }
 
-    video_out_ctx->codec_id = AV_CODEC_ID_H264;
-    //video_in_ctx->sample_aspect_ratio;
-    video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
     /* video time_base can be set to whatever is handy and supported by encoder */
-    video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-    //video_out_ctx->framerate = (AVRational){0,24}; // Unknown framerate
-#if 1
+    video_out_ctx->time_base = (AVRational){1, 1000}; // microseconds as base frame rate
     video_out_ctx->gop_size = 12;
     video_out_ctx->qmin = 10;
     video_out_ctx->qmax = 51;
     video_out_ctx->qcompress = 0.6;
-    video_out_ctx->bit_rate = 4000000;
-#endif
+    video_out_ctx->bit_rate = 400000;
     video_out_ctx->max_b_frames = 1;
     if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
       if ( video_out_ctx->priv_data ) {
-        Debug(2, "Setting preset to supoerfast");
-        av_opt_set(video_out_ctx->priv_data, "preset", "superfast", 0);
-        Debug(2, "Setting preset to supoerfast");
+        av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
       } else {
         Debug(2, "Not setting priv_data");
       }
@@ -319,7 +349,7 @@ Debug(2,"Using h264");
 
     if ( !video_out_ctx->codec_tag ) {
       video_out_ctx->codec_tag =
-        av_codec_get_tag(oc->oformat->codec_tag, AV_CODEC_ID_H264 );
+        av_codec_get_tag(oc->oformat->codec_tag, video_out_ctx->codec_id );
       Debug(2, "No codec_tag, setting to h264 ? ");
     }
   } // end if copying or trasncoding
@@ -459,7 +489,9 @@ Debug(2,"Using h264");
 
   AVDictionary *opts = NULL;
   // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+  //av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+  //av_dict_set(&opts, "movflags", "empty_moov+delay_moov", 0);
+  av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
   // av_dict_set(&opts, "movflags",
   // "frag_keyframe+empty_moov+default_base_moof", 0);
   if ( (ret = avformat_write_header(oc, &opts)) < 0 ) {
@@ -1011,13 +1043,19 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
 
     if ( ! video_last_pts ) {
-      video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
+      int64_t temp = zm_packet->timestamp->tv_sec*1000;
+      int64_t temp2 = zm_packet->timestamp->tv_usec/1000;
+      video_last_pts = zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000;
+      Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d=>%" PRId64 ") usecs(%d=>%" PRId64 ")",
+          video_last_pts, zm_packet->timestamp->tv_sec, temp, zm_packet->timestamp->tv_usec, temp2 );
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
       zm_packet->out_frame->pts = 0;
+      zm_packet->out_frame->pkt_duration = 0;
     } else {
       //uint64_t seconds = zm_packet->timestamp->tv_sec*1000000;
-      zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
+      zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000 ) - video_last_pts;
+      zm_packet->out_frame->duration = zm_packet->out_frame->pts - video_last_pts;
       Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (%" PRId64 " - secs(%d) usecs(%d)",
           frame_count, zm_packet->out_frame->pts, video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
     }
@@ -1070,8 +1108,6 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       return 0;
     }
 #endif
-    //opkt.dts = opkt.pts;
-    //opkt.duration = 0;
 
   } else {
     AVPacket *ipkt = &zm_packet->packet;
@@ -1082,15 +1118,16 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     opkt.size = ipkt->size;
     opkt.flags = ipkt->flags;
     if ( ! video_last_pts ) {
-      video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
+      video_last_pts = zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000;
       opkt.dts = opkt.pts = 0;
     } else {
-      opkt.dts = opkt.pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
+      opkt.dts = opkt.pts = ( zm_packet->timestamp->tv_sec*1000 + zm_packet->timestamp->tv_usec/1000 ) - video_last_pts;
     }
   }
   opkt.duration = 0;
 
-  Debug(3, "dts:%" PRId64 ", pts:%" PRId64 ", duration:%" PRId64 ", keyframe:%d", opkt.dts, opkt.pts, opkt.duration, opkt.flags & AV_PKT_FLAG_KEY );
+  dumpPacket(&opkt);
+
   write_video_packet( opkt );
   zm_av_packet_unref(&opkt);
 

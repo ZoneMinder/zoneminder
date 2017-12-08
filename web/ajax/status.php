@@ -156,7 +156,7 @@ $statusData = array(
                       'permission' => 'Events',
                       'table' => 'Frames',
                       'limit' => 1,
-                      'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>"Events.Id' ), 'Frames.FrameId" ),
+                      'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>'Events.Id' ), 'Frames.FrameId' ),
                       'elements' => array(
                         //'Id' => array( 'sql' => 'Frames.FrameId' ),
                         'FrameId' => true,
@@ -312,7 +312,7 @@ switch( $_REQUEST['layout'] ) {
   case 'xml NOT CURRENTLY SUPPORTED' :
     {
       header("Content-type: application/xml" );
-      echo( '<?xml version="1.0' encoding='iso-8859-1"?>'.'\n' );
+      echo( '<?xml version="1.0" encoding="iso-8859-1"?>'.'\n' );
       echo "<".strtolower($_REQUEST['entity']).">\n";
       foreach ( $data as $key=>$value ) {
         $key = strtolower( $key );

@@ -45,8 +45,11 @@ $scales = array(
     '12.5' => '1/8x',
 );
 
-if (isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage'))
-  unset($scales['auto']); //Remove auto if we aren't using event view
+if (isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage')) {
+  unset($scales['auto']); //Remove auto on montage, use everywhere else
+} else {
+  unset($scales['']); //Remove fixed on everything but montage
+}
 
 $bandwidth_options = array(
     'high' => translate('High'),

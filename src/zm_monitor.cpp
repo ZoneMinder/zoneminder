@@ -3260,5 +3260,7 @@ void Monitor::get_ref_image() {
     Warning( "Waiting for capture daemon" );
     usleep( 100000 );
   }
+  image_buffer[shared_data->last_write_index].mutex.lock();
   ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
+  image_buffer[shared_data->last_write_index].mutex.unlock();
 }

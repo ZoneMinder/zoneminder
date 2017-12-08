@@ -24,6 +24,7 @@ int AnalysisThread::run() {
 
   Debug(2, "THREAD: Getting ref image");
   monitor->get_ref_image();
+  Debug(2, "THREAD: after Getting ref image");
 
   while( !terminate ) {
     // Process the next image

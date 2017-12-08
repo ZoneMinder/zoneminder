@@ -60,12 +60,7 @@ monitor = p_monitor;
 #endif
   FFMPEGInit();
 
-  video_last_pts = 0;
-  video_last_dts = 0;
-  audio_last_pts = 0;
-  audio_last_dts = 0;
-  video_next_pts = 0;
-  video_next_dts = 0;
+  video_start_pts = 0;
   audio_next_pts = 0;
   audio_next_dts = 0;
 
@@ -272,10 +267,10 @@ Debug(2,"Using mjpeg");
     /* video time_base can be set to whatever is handy and supported by encoder */
     video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
     video_out_ctx->gop_size = 12;
-    video_out_ctx->qmin = 2;
-    video_out_ctx->qmax = 31;
+    video_out_ctx->qmin = 10;
+    video_out_ctx->qmax = 51;
     video_out_ctx->qcompress = 0.6;
-    video_out_ctx->bit_rate = 400000;
+    video_out_ctx->bit_rate = 4000000;
     video_out_ctx->max_b_frames = 1;
     if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
       if ( video_out_ctx->priv_data ) {
@@ -1037,21 +1032,20 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
       zm_packet->out_frame->pkt_duration = 0;
 
-    if ( ! video_last_pts ) {
-      int64_t temp = zm_packet->timestamp->tv_sec*1000000;
-      int64_t temp2 = zm_packet->timestamp->tv_usec;
-      video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
-      Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d=>%" PRId64 ") usecs(%d=>%" PRId64 ")",
-          video_last_pts, zm_packet->timestamp->tv_sec, temp, zm_packet->timestamp->tv_usec, temp2 );
+    if ( ! video_start_pts ) {
+      uint64_t temp = zm_packet->timestamp->tv_sec*(uint64_t)1000000;
+      video_start_pts = temp + zm_packet->timestamp->tv_usec;
+      Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d=>%" PRId64 ") usecs(%d)",
+          video_start_pts, zm_packet->timestamp->tv_sec, temp, zm_packet->timestamp->tv_usec );
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
-          video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
+          video_start_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
       zm_packet->out_frame->pts = 0;
     } else {
-      //uint64_t seconds = zm_packet->timestamp->tv_sec*1000000;
-      zm_packet->out_frame->pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
-      zm_packet->out_frame->pkt_duration = zm_packet->out_frame->pts - video_last_pts;
-      Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (%" PRId64 " - secs(%d) usecs(%d)",
-          frame_count, zm_packet->out_frame->pts, video_last_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
+      uint64_t seconds = zm_packet->timestamp->tv_sec*(uint64_t)1000000;
+      zm_packet->out_frame->pts = ( seconds + zm_packet->timestamp->tv_usec ) - video_start_pts;
+      //zm_packet->out_frame->pkt_duration = zm_packet->out_frame->pts - video_start_pts;
+      Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
+          frame_count, zm_packet->out_frame->pts, video_start_pts, seconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
     }
     if ( zm_packet->keyframe ) {
       //Debug(2, "Setting keyframe was (%d)", zm_packet->out_frame->key_frame );
@@ -1111,11 +1105,11 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
     opkt.flags = ipkt->flags;
-    if ( ! video_last_pts ) {
-      video_last_pts = zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec;
+    if ( ! video_start_pts ) {
+      video_start_pts = zm_packet->timestamp->tv_sec*(uint64_t)1000000 + zm_packet->timestamp->tv_usec;
       opkt.dts = opkt.pts = 0;
     } else {
-      opkt.dts = opkt.pts = ( zm_packet->timestamp->tv_sec*1000000 + zm_packet->timestamp->tv_usec ) - video_last_pts;
+      opkt.dts = opkt.pts = ( zm_packet->timestamp->tv_sec*(uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_start_pts;
     }
   }
 

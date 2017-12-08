@@ -61,15 +61,12 @@ AVAudioResampleContext* resample_ctx;
 	const char *format;
     
   // These are for in
-  int64_t video_last_pts;
-  int64_t video_last_dts;
-  int64_t video_last_duration;
+  uint64_t video_start_pts;
+
   int64_t audio_last_pts;
   int64_t audio_last_dts;
 
   // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
-  int64_t video_next_pts;
-  int64_t video_next_dts;
 ;
   int64_t audio_next_pts;
   int64_t audio_next_dts;

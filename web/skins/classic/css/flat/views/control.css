@@ -4,6 +4,14 @@
     width: 500px;
 }
 
+.ptzControls::after {
+  visibility: hidden;
+  display: block;
+  content: "";
+  clear: both;
+  height: 0;
+}
+
 .ptzControls input.ptzTextBtn {
     margin-top: 2px;
 }
@@ -18,7 +26,6 @@
 
 .ptzControls .controlsPanel .arrowControl {
     width: 40px;
-    height: 180px;
     margin: 0 4px;
 }
 

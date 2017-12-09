@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
     last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
     capture_delays[i] = monitors[i]->GetCaptureDelay();
     alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
-    Debug(2, "capture delay(%l) alarm delay(%l)", capture_delays[i], alarm_capture_delays[i] );
+    Debug(2, "capture delay(%u) alarm delay(%u)", capture_delays[i], alarm_capture_delays[i] );
 
     Monitor::Function function = monitors[0]->GetFunction();
     if ( function == Monitor::MODECT || function == Monitor::MOCORD || function == Monitor::RECORD) {
@@ -305,7 +305,6 @@ int main(int argc, char *argv[]) {
         }
         if ( monitors[i]->Capture() < 0 ) {
           Error("Failed to capture image from monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          zm_terminate = true;
           result = -1;
           break;
         }

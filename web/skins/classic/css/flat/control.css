@@ -2,6 +2,7 @@
     vertical-align: top;
     margin: 10px auto 0;
     width: 500px;
+    min-height: 20px;
 }
 
 .ptzControls input.ptzTextBtn {
@@ -75,7 +76,7 @@
     width: 100px;
 }
 
-.ptzControls .controlsPanel .pantiltPanel .pantiltControls .pantiltButtons {
+.pantiltButtons {
     margin: 5px auto;
     border: 1px solid #006699;
     text-align: center;

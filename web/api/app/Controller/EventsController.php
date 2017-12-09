@@ -41,8 +41,9 @@ class EventsController extends AppController {
     }
 
 		if ($this->request->params['named']) {	
-			$this->FilterComponent = $this->Components->load('Filter');
-			$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+			//$this->FilterComponent = $this->Components->load('Filter');
+			//$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->request->params['named'];
 		} else {
 			$conditions = array();
 		}
@@ -60,7 +61,7 @@ class EventsController extends AppController {
 			'order' => array('StartTime'),
 			'paramType' => 'querystring',
     );
-    //if ( $this->request->params['GroupId'] ) {
+    if ( isset( $conditions['GroupId'] ) ) {
       $settings['joins'] = array(
         array(
           'table' => 'Groups_Monitors',
@@ -71,7 +72,7 @@ class EventsController extends AppController {
         ),
       );
       $settings['contain'] = array('Group');
-    //}
+    }
     $settings['conditions'] = array($conditions, $mon_options);
 
 		// How many events to return 

@@ -34,7 +34,8 @@ class MonitorsController extends AppController {
 
 		if ($this->request->params['named']) {	
 			$this->FilterComponent = $this->Components->load('Filter');
-			$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+			//$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+			$conditions = $this->request->params['named'];
 		} else {
 			$conditions = array();
 		}
@@ -45,7 +46,7 @@ class MonitorsController extends AppController {
 		}
     $find_array = array('conditions'=>$conditions,'contain'=>array('Group'));
 
-    //if ( $this->request->params['GroupId'] ) {
+    if ( isset( $conditions['GroupId'] ) ) {
       $find_array['joins'] = array(
         array(
           'table' => 'Groups_Monitors',
@@ -63,7 +64,7 @@ class MonitorsController extends AppController {
           //),
         //)
       );
-    //}
+    }
     $monitors = $this->Monitor->find('all',$find_array);
     $this->set(array(
           'monitors' => $monitors,
@@ -84,12 +85,9 @@ class MonitorsController extends AppController {
 			throw new NotFoundException(__('Invalid monitor'));
 		}
 		$allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
-		if (!empty($allowedMonitors))
-		{
+		if (!empty($allowedMonitors)) {
 			$restricted = array('Monitor.' . $this->Monitor->primaryKey => $allowedMonitors);
-		}
-		else
-		{
+		} else {
 			$restricted = '';
 		}
 		

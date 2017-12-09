@@ -88,6 +88,11 @@ $pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQue
 
 $focusWindow = true;
 
+if ($_POST) {
+   header("Location: " . $_SERVER['REQUEST_URI'].htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).'&limit='.$limit.'&page='.$page);
+   exit();
+}
+
 xhtmlHeaders(__FILE__, translate('Events') );
 
 ?>

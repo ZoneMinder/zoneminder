@@ -390,7 +390,7 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
 
     static char event_file[PATH_MAX];
     snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
-    if ( monitor->GetOptSaveJPEGs() & 4 ) {
+    if ( ! ( monitor->GetOptSaveJPEGs() & 3 ) ) {
       //If this is the first frame, we should add a thumbnail to the event directory
       // ICON: We are working through the pre-event frames so this snapshot won't 
       // neccessarily be of the motion.  But some events are less than 10 frames, 
@@ -457,7 +457,8 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   static char event_file[PATH_MAX];
   snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
 
-  if ( monitor->GetOptSaveJPEGs() & 4 ) {
+  if ( ! ( monitor->GetOptSaveJPEGs() & 3 ) ) {
+  //if ( monitor->GetOptSaveJPEGs() & 4 ) {
     // Only snapshots
     //If this is the first frame, we should add a thumbnail to the event directory
     if ( frames == 10 || frames == 1 ) {

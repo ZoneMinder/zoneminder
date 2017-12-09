@@ -87,6 +87,7 @@ if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($display
   $_SESSION['montageReviewFilter'] = $filter;
   session_write_close();
 }
+$filterQuery = $filter['query'];
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)

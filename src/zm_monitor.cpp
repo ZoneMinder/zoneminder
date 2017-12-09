@@ -3258,9 +3258,12 @@ void Monitor::get_ref_image() {
       && ! zm_terminate
       ) {
     Warning( "Waiting for capture daemon" );
-    usleep( 100000 );
+    usleep( 50000 );
   }
-  image_buffer[shared_data->last_write_index].mutex.lock();
-  ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
-  image_buffer[shared_data->last_write_index].mutex.unlock();
+  int last_write_index = shared_data->last_write_index ;
+
+    Warning( "Waiting for capture daemon unlock" );
+  image_buffer[last_write_index].mutex.lock();
+  ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[last_write_index].image->Buffer(), camera->ImageSize());
+  image_buffer[last_write_index].mutex.unlock();
 }

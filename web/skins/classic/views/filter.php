@@ -205,7 +205,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo translate('OpEq') ?><input type="hidden" name="filter[Query][terms][<?php echo $i ?>][op]" value="="/></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $archiveTypes, $term['val'] ); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'DateTime' ) {
+    } elseif ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>

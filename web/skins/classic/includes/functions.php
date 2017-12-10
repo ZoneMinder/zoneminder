@@ -34,6 +34,9 @@ function xhtmlHeaders( $file, $title ) {
 
   $basename = basename( $file, '.php' );
   $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );
+  if ($basename == 'watch') {
+    $viewCssFileExtra = getSkinFile( '/css/'.$css.'/views/control.css' );
+  }
   $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
   $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
   $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
@@ -67,6 +70,12 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   if ( $viewCssFile ) {
 ?>
   <link rel="stylesheet" href="<?php echo cache_bust($viewCssFile) ?>" type="text/css" media="screen"/>
+
+<?php
+  }
+  if ( isset($viewCssFileExtra) ) {
+?>
+  <link rel="stylesheet" href="<?php echo cache_bust($viewCssFileExtra) ?>" type="text/css" media="screen"/>
 <?php
   }
   if ( $viewCssPhpFile ) {
@@ -110,8 +119,11 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <script src="./js/videojs.zoomrotate.js"></script>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
+  } else if ( $title == 'Watch' ) {
+?>
+  <link href="<?php echo cache_bust($viewCssFileExtra) ?>" rel="stylesheet">
+<?php
   }
-
   if ( $skinJsPhpFile ) {
 ?>
   <script type="text/javascript">

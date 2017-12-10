@@ -54,7 +54,12 @@ $conjunctionTypes = array(
 $obracketTypes = array(); 
 $cbracketTypes = array();
 
-$terms = $filter->terms();
+if (count($filter->terms()) > 0) {
+  $terms = $filter->terms();
+} else {
+  $terms[] = array();
+}
+
 if ( count($terms) ) {
   for ( $i = 0; $i <= count($terms)-2; $i++ ) {
     $obracketTypes[$i] = str_repeat( '(', $i );
@@ -293,13 +298,6 @@ for ( $i=0; $i < count($terms); $i++ ) {
 ?>
           </tbody>
         </table>
-<?php
-if ( count($terms) == 0 ) {
-?>
-        <input type="button" onclick="addTerm( this, 1 )" value="+"/>
-<?php
-}
-?>
         <hr/>
         <table id="sortTable" class="filterTable">
           <tbody>

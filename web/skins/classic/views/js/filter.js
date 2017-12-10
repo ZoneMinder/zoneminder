@@ -138,6 +138,7 @@ function parseRows (rows) {
       }
     }
   }
+  history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
 }
 
 function stringFilter (term) {

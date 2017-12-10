@@ -46,6 +46,11 @@ function submitToFilter( element ) {
   form.submit();
 }
 
+function resetFilter( element ) {
+  element.form.reset();
+  $j('#contentForm')[0].reset();
+}
+
 function submitToEvents( element ) {
   var form = element.form;
   if ( validateForm( form ) ) {

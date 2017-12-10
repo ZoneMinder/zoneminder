@@ -155,7 +155,6 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>?view=filter">
         <input type="hidden" name="Id" value="<?php echo $filter->Id() ?>"/>
         <input type="hidden" name="action" value=""/>
-        <input type="hidden" name="line" value=""/>
         <input type="hidden" name="object" value="filter"/>
 
         <hr/>

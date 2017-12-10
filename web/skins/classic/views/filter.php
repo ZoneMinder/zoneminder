@@ -284,14 +284,9 @@ for ( $i=0; $i < count($terms); $i++ ) {
 ?>
               <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr'] ); } else { ?>&nbsp;<?php } ?></td>
               <td>
-                <input type="button" onclick="addTerm( this, <?php echo $i+1 ?> )" value="+"/>
-<?php
-  if ( count($terms) > 1 ) {
-?>
-                <input type="button" onclick="delTerm( this, <?php echo $i ?> )" value="-"/>
-<?php
-  }
-?>            </td>
+                <input type="button" onclick="addTerm( this )" value="+"/>
+                <input type="button" onclick="delTerm( this )" value="-" <?php echo count($terms) == 1 ? 'disabled' : '' ?>/>
+              </td>
             </tr>
 <?php
 } # end foreach filter

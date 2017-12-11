@@ -73,6 +73,9 @@ if [ "$dbc_install" = "true" ] && [ "$1" = "configure" ]; then
     # Run the ZoneMinder update tool
     zmupdate.pl --nointeractive
 
+    # Add any new PTZ control configurations to the database (will not overwrite)
+    zmcamtool.pl --import >/dev/null 2>&1
+
 fi
 
 #DEBHELPER#

@@ -83,6 +83,7 @@ if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($display
     }
   }
   parseFilter( $filter );
+  # This is to enable the download button
   session_start();
   $_SESSION['montageReviewFilter'] = $filter;
   session_write_close();

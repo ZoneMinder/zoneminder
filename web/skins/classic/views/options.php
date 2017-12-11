@@ -189,8 +189,8 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" class="btn btn-primary btn-lg" value="<?php echo translate('AddNewUser') ?>" onclick="createPopup( '?view=user&amp;uid=0', 'zmUser', 'user' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="submit" class="btn btn-danger btn-lg" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
+          <button value="Add New User" onclick="createPopup('?view=user&amp;uid=0', 'zmUser', 'user');"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>><?php echo translate('AddNewUser') ?></button>
+          <button class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
 <?php
@@ -230,8 +230,8 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" class="btn btn-primary btn-lg" value="<?php echo translate('AddNewServer') ?>" onclick="createPopup( '?view=server&amp;id=0', 'zmServer', 'server' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="submit" class="btn btn-danger btn-lg" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
+          <button value="Add New Server" onclick="createPopup('?view=server&amp;id=0','zmServer','server');"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>><?php echo translate('AddNewServer') ?></button>
+          <button class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
 <?php
@@ -249,7 +249,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <th class="colPath"><?php echo translate('path') ?></th>
               <th class="colType"><?php echo translate('Type') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
-			</tr>
+            </tr>
           </thead>
           <tbody>
 <?php foreach( dbFetchAll( 'SELECT * FROM Storage ORDER BY Name' ) as $row ) { ?>
@@ -259,14 +259,13 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colPath"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Path']), $canEdit ) ?></td>
               <td class="colType"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Type']), $canEdit ) ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton(this);"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
-			</tr>
+            </tr>
 <?php } #end foreach Server ?>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewStorage') ?>" onclick="createPopup( '?view=storage&amp;id=0', 'zmStorage', 'storage' );"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <button value="Add New Storage" onclick="createPopup('?view=storage&amp;id=0','zmStorage','storage');"<?php if ( !canEdit( 'System' ) ) { ?> disabled="disabled"<?php } ?>><?php echo translate('AddNewStorage') ?></button>
+          <button class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
 <?php
@@ -339,33 +338,23 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
             }
 ?>
 <?php
-        }
-        elseif ( $value['Type'] == "text" )
-        {
+        } else if ( $value['Type'] == 'text' ) {
 ?>
               <textarea class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" rows="5" cols="40"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo validHtmlStr($value['Value']) ?></textarea>
 <?php
-        }
-        elseif ( $value['Type'] == "integer" )
-        {
+        } else if ( $value['Type'] == 'integer' ) {
 ?>
               <input type="number" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="small"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
-        }
-        elseif ( $value['Type'] == "hexadecimal" )
-        {
+        } else if ( $value['Type'] == 'hexadecimal' ) {
 ?>
               <input type="text" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="medium"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
-        }
-        elseif ( $value['Type'] == "decimal" )
-        {
+        } else if ( $value['Type'] == 'decimal' ) {
 ?>
               <input type="text" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="small"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
-        }
-        else
-        {
+        } else {
 ?>
               <input type="text" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="large"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
@@ -378,7 +367,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
     }
 ?>
         <div id="contentButtons">
-          <input type="submit" class="btn btn-primary btn-lg" value="<?php echo translate('Save') ?>"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
+          <button value="Save" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
         </div>
       </form>
 <?php
@@ -389,6 +378,6 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 	</div>
 </div> <!-- end row -->
     </div>
-<?php include("skins/$skin/views/state.php") ?>
+  <?php include("skins/$skin/views/state.php") ?>
 </body>
 </html>

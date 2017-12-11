@@ -41,8 +41,9 @@ class EventsController extends AppController {
     }
 
 		if ($this->request->params['named']) {	
-			$this->FilterComponent = $this->Components->load('Filter');
-			$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+			//$this->FilterComponent = $this->Components->load('Filter');
+			//$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->request->params['named'];
 		} else {
 			$conditions = array();
 		}
@@ -60,7 +61,7 @@ class EventsController extends AppController {
 			'order' => array('StartTime'),
 			'paramType' => 'querystring',
     );
-    //if ( $this->request->params['GroupId'] ) {
+    if ( isset( $conditions['GroupId'] ) ) {
       $settings['joins'] = array(
         array(
           'table' => 'Groups_Monitors',
@@ -71,7 +72,7 @@ class EventsController extends AppController {
         ),
       );
       $settings['contain'] = array('Group');
-    //}
+    }
     $settings['conditions'] = array($conditions, $mon_options);
 
 		// How many events to return 
@@ -83,11 +84,10 @@ class EventsController extends AppController {
 		$this->Paginator->settings = $settings;
 		$events = $this->Paginator->paginate('Event');
 
-		// For each event, get its thumbnail data (path, width, height)
+		// For each event, get the frameID which has the largest score
 		foreach ($events as $key => $value) {
-			//$thumbData = $this->createThumbnail($value['Event']['Id']);
-			$thumbData = "";
-			$events[$key]['thumbData'] = $thumbData;
+			$maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
+			$events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
 		}
 
 		$this->set(compact('events'));
@@ -114,12 +114,9 @@ class EventsController extends AppController {
 
     $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
 
-    if (!empty($allowedMonitors))
-    {
+    if (!empty($allowedMonitors)) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
-    }
-    else
-    {
+    } else {
       $mon_options='';
     }
 
@@ -156,8 +153,7 @@ class EventsController extends AppController {
    */
   public function add() {
 
-    if ($this->Session->Read('eventPermission') != 'Edit')
-    {
+    if ($this->Session->Read('eventPermission') != 'Edit') {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -181,8 +177,7 @@ class EventsController extends AppController {
    */
   public function edit($id = null) {
 
-    if ($this->Session->Read('eventPermission') != 'Edit')
-    {
+    if ($this->Session->Read('eventPermission') != 'Edit') {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -213,8 +208,7 @@ class EventsController extends AppController {
    * @return void
    */
   public function delete($id = null) {
-    if ($this->Session->Read('eventPermission') != 'Edit')
-    {
+    if ($this->Session->Read('eventPermission') != 'Edit') {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -230,7 +224,7 @@ class EventsController extends AppController {
     } else {
       return $this->flash(__('The event could not be deleted. Please, try again.'), array('action' => 'index'));
     }
-  }
+  } // end public function delete
 
   public function search() {
     $this->Event->recursive = -1;
@@ -254,9 +248,7 @@ class EventsController extends AppController {
       'results' => $results,
       '_serialize' => array('results')
     ));
-
-
-  }
+  } // end public function search
 
   // format expected:
   // you can changed AlarmFrames to any other named params
@@ -320,7 +312,7 @@ class EventsController extends AppController {
         'ZM_WEB_LIST_THUMB_HEIGHT',
         'ZM_EVENT_IMAGE_DIGITS',
         'ZM_DIR_IMAGES',
-        "$thumbs",
+        $thumbs,
         'ZM_DIR_EVENTS'
       )
     )),
@@ -334,13 +326,11 @@ class EventsController extends AppController {
       $thumbWidth = $config['ZM_WEB_LIST_THUMB_WIDTH'];
       $scale = (100 * $thumbWidth) / $event['Event']['Width'];
       $thumbHeight = $this->Scaler->reScale( $event['Event']['Height'], $scale );
-    }
-    elseif ( $config['ZM_WEB_LIST_THUMB_HEIGHT'] ) {
+    } elseif ( $config['ZM_WEB_LIST_THUMB_HEIGHT'] ) {
       $thumbHeight = $config['ZM_WEB_LIST_THUMB_HEIGHT'];
       $scale = (100*$thumbHeight)/$event['Event']['Height'];
       $thumbWidth = $this->Scaler->reScale( $event['Event']['Width'], $scale );
-    }
-    else {
+    } else {
       throw new NotFoundException(__('No thumbnail width or height specified, please check in Options->Web'));
     }
 
@@ -350,7 +340,6 @@ class EventsController extends AppController {
     $thumbData['Height'] = (int)$thumbHeight;
 
     return( $thumbData );
-
   }
 
   public function archive($id = null) {
@@ -377,4 +366,28 @@ class EventsController extends AppController {
     ));
   }
 
-}
+  public function getMaxScoreAlarmFrameId($id = null) {
+    $this->Event->recursive = -1;
+
+    if (!$this->Event->exists($id)) {
+      throw new NotFoundException(__('Invalid event'));
+    }
+
+    $event = $this->Event->find('first', array(
+      'conditions' => array('Id' => $id)
+    ));
+
+    // Find the max Frame for this Event.  Error out otherwise.
+    $this->loadModel('Frame');
+
+    if (! $frame = $this->Frame->find('first', array(
+      'conditions' => array(
+        'EventId' => $event['Event']['Id'],
+        'Score' => $event['Event']['MaxScore']
+      )
+    ))) {
+      throw new NotFoundException(__("Can not find Frame for Event " . $event['Event']['Id']));
+    }
+    return $frame['Frame']['Id'];
+  }
+} // end class EventsController

@@ -88,7 +88,7 @@ bool VideoStore::open() {
           "Could not create video storage stream %s as no out ctx"
           " could not be assigned based on filename or format %s",
           filename, format);
-      return;
+      return false;
     } else {
       Debug(4, "Success alocating out ctx");
     }

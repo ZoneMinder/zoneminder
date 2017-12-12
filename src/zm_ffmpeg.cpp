@@ -208,7 +208,7 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
     }
 #endif
 
-    if (filename) strncpy(s->filename, filename, sizeof(s->filename));
+    if (filename) strncpy(s->filename, filename, sizeof(s->filename)-1);
     *avctx = s;
     return 0;
   }

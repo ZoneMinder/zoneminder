@@ -57,7 +57,7 @@ void cURLCamera::Initialise() {
   databuffer.expand(CURL_BUFFER_INITIAL_SIZE);
 
   /* cURL initialization */
-  cRet = curl_global_init(CURL_GLOBAL_ALL);
+  CURLcode cRet = curl_global_init(CURL_GLOBAL_ALL);
   if(cRet != CURLE_OK) {
     Fatal("libcurl initialization failed: ", curl_easy_strerror(cRet));
   }
@@ -65,7 +65,7 @@ void cURLCamera::Initialise() {
   Debug(2,"libcurl version: %s",curl_version());
 
   /* Create the shared data mutex */
-  nRet = pthread_mutex_init(&shareddata_mutex, NULL);
+  int nRet = pthread_mutex_init(&shareddata_mutex, NULL);
   if(nRet != 0) {
     Fatal("Shared data mutex creation failed: %s",strerror(nRet));
   }
@@ -124,6 +124,7 @@ int cURLCamera::Capture( Image &image ) {
   unsigned int frame_content_length = 0;
   std::string frame_content_type;
   bool need_more_data = false;
+  int nRet;
 
   /* Grab the mutex to ensure exclusive access to the shared data */
   lock();
@@ -318,7 +319,7 @@ size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *
   databuffer.append((const char*)buffer, size*nmemb);
 
   /* Signal data available */
-  nRet = pthread_cond_signal(&data_available_cond);
+  int nRet = pthread_cond_signal(&data_available_cond);
   if(nRet != 0) {
     Error("Failed signaling data available condition variable: %s",strerror(nRet));
     return -16;
@@ -379,6 +380,7 @@ void* cURLCamera::thread_func() {
     Fatal("Failed getting easy handle from libcurl");
   }
 
+  CURLcode cRet;
   /* Set URL */
   cRet = curl_easy_setopt(c, CURLOPT_URL, mPath.c_str());
   if(cRet != CURLE_OK)

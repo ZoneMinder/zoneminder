@@ -34,15 +34,15 @@ Storage::Storage() {
     // not using an absolute path. Make it one by appending ZM_PATH_WEB
     snprintf( path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str( ), staticConfig.DIR_EVENTS.c_str() );
   } else {
-    strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path) );
+    strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path)-1 );
   }
 }
 
 Storage::Storage( MYSQL_ROW &dbrow ) {
 	unsigned int index = 0;
 	id = atoi( dbrow[index++] );
-	strncpy( name, dbrow[index++], sizeof(name) );
-	strncpy( path, dbrow[index++], sizeof(path) );
+	strncpy( name, dbrow[index++], sizeof(name)-1 );
+	strncpy( path, dbrow[index++], sizeof(path)-1 );
 }
 
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
@@ -69,7 +69,7 @@ Storage::Storage( unsigned int p_id ) {
       // not using an absolute path. Make it one by appending ZM_PATH_WEB
       snprintf( path, sizeof (path), "%s/%s", staticConfig.PATH_WEB.c_str( ), staticConfig.DIR_EVENTS.c_str() );
     } else {
-      strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path) );
+      strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path)-1 );
     }
 		Debug(1,"No id passed to Storage constructor.  Using default path %s instead", path );
 		strcpy(name, "Default");

@@ -100,7 +100,6 @@ private:
   Level mEffectiveLevel;  // Level optimised to take account of maxima
 
   bool mDbConnected;
-  MYSQL mDbConnection;
   std::string mLogPath;
   std::string mLogFile;
   FILE *mLogFileFP;

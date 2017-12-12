@@ -4651,17 +4651,17 @@ __attribute__((noinline)) void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t
     g = y1 - (g_u_table[u]+g_v_table[v]);
     b = y1 + b_u_table[u];
 
-    result[0] = r<0?0:(r>255?255:r);
-    result[1] = g<0?0:(g>255?255:g);
-    result[2] = b<0?0:(b>255?255:b);
+    result[0] = r>255?255:r;
+    result[1] = g>255?255:g;
+    result[2] = b>255?255:b;
 
     r = y2 + r_v_table[v];
     g = y2 - (g_u_table[u]+g_v_table[v]);
     b = y2 + b_u_table[u];
 
-    result[4] = r<0?0:(r>255?255:r);
-    result[5] = g<0?0:(g>255?255:g);
-    result[6] = b<0?0:(b>255?255:b);
+    result[4] = r>255?255:r;
+    result[5] = g>255?255:g;
+    result[6] = b>255?255:b;
   }
 
 }

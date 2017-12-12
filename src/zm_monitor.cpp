@@ -692,9 +692,10 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] ) {
 }
 
 void Monitor::AddPrivacyBitmask( Zone *p_zones[] ) {
-  if ( privacy_bitmask )
+  if ( privacy_bitmask ) {
     delete[] privacy_bitmask;
-  privacy_bitmask = NULL;
+    privacy_bitmask = NULL;
+  }
   Image *privacy_image = NULL;
 
   for ( int i = 0; i < n_zones; i++ ) {

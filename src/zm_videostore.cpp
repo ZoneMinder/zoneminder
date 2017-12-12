@@ -101,7 +101,8 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   video_out_stream = avformat_new_stream(oc, NULL);
   if (!video_out_stream) {
-    Fatal("Unable to create video out stream\n");
+    Error("Unable to create video out stream\n");
+    return;
   } else {
     Debug(2, "Success creating video out stream");
   }
@@ -563,7 +564,9 @@ bool VideoStore::setup_resampler() {
 #endif
 
   AVDictionary *opts = NULL;
-  av_dict_set(&opts, "strict", "experimental", 0);
+  if ( (ret = av_dict_set(&opts, "strict", "experimental", 0)) < 0 ) {
+    Error("Couldn't set experimental");
+  }
   ret = avcodec_open2(audio_out_ctx, audio_out_codec, &opts);
   av_dict_free(&opts);
   if (ret < 0) {

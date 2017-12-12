@@ -143,9 +143,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   } else {
     snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
 
-    errno = 0;
-    stat( path, &statbuf );
-    if ( errno == ENOENT || errno == ENOTDIR ) {
+    if ( stat( path, &statbuf ) && ( errno == ENOENT || errno == ENOTDIR ) ) {
       if ( mkdir( path, 0755 ) ) {
         Error( "Can't mkdir %s: %s", path, strerror(errno));
       }

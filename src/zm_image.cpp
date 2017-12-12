@@ -746,37 +746,35 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
   return( high_image );
 }
 
-bool Image::ReadRaw( const char *filename )
-{
+bool Image::ReadRaw( const char *filename ) {
   FILE *infile;
-  if ( (infile = fopen( filename, "rb" )) == NULL )
-  {
-    Error( "Can't open %s: %s", filename, strerror(errno) );
-    return( false );
+  if ( (infile = fopen( filename, "rb" )) == NULL ) {
+    Error("Can't open %s: %s", filename, strerror(errno));
+    return false;
   }
 
   struct stat statbuf;
-  if ( fstat( fileno(infile), &statbuf ) < 0 )
-  {
-    Error( "Can't fstat %s: %s", filename, strerror(errno) );
-    return( false );
+  if ( fstat( fileno(infile), &statbuf ) < 0 ) {
+    fclose(infile);
+    Error("Can't fstat %s: %s", filename, strerror(errno));
+    return false;
   }
 
-  if ( statbuf.st_size != size )
-  {
-    Error( "Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size );
-    return( false );
+  if ( statbuf.st_size != size ) {
+    fclose(infile);
+    Error("Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size);
+    return false;
   }
 
-  if ( fread( buffer, size, 1, infile ) < 1 )
-  {
-    Fatal( "Unable to read from '%s': %s", filename, strerror(errno) );
-    return( false );
+  if ( fread(buffer, size, 1, infile) < 1 ) {
+    fclose(infile);
+    Error("Unable to read from '%s': %s", filename, strerror(errno));
+    return false;
   }
 
   fclose( infile );
 
-  return( true );
+  return true;
 }
 
 bool Image::WriteRaw( const char *filename ) const {

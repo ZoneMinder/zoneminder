@@ -1643,7 +1643,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
       }
 
       struct video_picture vid_pic;
-      memset( &vid_cap, 0, sizeof(video_picture) );
+      memset( &vid_pic, 0, sizeof(video_picture) );
       if ( ioctl( vid_fd, VIDIOCGPICT, &vid_pic ) < 0 )
       {
         Error( "Failed to get picture attributes: %s", strerror(errno) );

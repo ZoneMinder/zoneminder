@@ -65,8 +65,6 @@ AVAudioResampleContext* resample_ctx;
   int64_t audio_next_pts;
   int64_t audio_next_dts;
 
-  int64_t filter_in_rescale_delta_last;
-
   bool setup_resampler();
 
 public:

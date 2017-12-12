@@ -1337,24 +1337,20 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 }
 #endif // HAVE_ZLIB_H
 
-bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y )
-{
+bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y ) {
   unsigned int new_width = (hi_x-lo_x)+1;
   unsigned int new_height = (hi_y-lo_y)+1;
 
-  if ( lo_x > hi_x || lo_y > hi_y )
-  {
+  if ( lo_x > hi_x || lo_y > hi_y ) {
     Error( "Invalid or reversed crop region %d,%d -> %d,%d", lo_x, lo_y, hi_x, hi_y );
     return( false );
   }
-  if ( lo_x < 0 || hi_x > (width-1) || ( lo_y < 0 || hi_y > (height-1) ) )
-  {
+  if ( hi_x > (width-1) || ( hi_y > (height-1) ) ) {
     Error( "Attempting to crop outside image, %d,%d -> %d,%d not in %d,%d", lo_x, lo_y, hi_x, hi_y, width-1, height-1 );
     return( false );
   }
 
-  if ( new_width == width && new_height == height )
-  {
+  if ( new_width == width && new_height == height ) {
     return( true );
   }
 
@@ -1362,8 +1358,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
   uint8_t *new_buffer = AllocBuffer(new_size);
 
   unsigned int new_stride = new_width*colours;
-  for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ )
-  {
+  for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ ) {
     unsigned char *pbuf = &buffer[((y*width)+lo_x)*colours];
     unsigned char *pnbuf = &new_buffer[(ny*new_width)*colours];
     memcpy( pnbuf, pbuf, new_stride );

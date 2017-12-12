@@ -1110,8 +1110,8 @@ void Monitor::DumpImage( Image *dump_image ) const {
     static char new_filename[PATH_MAX];
     snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
     snprintf( new_filename, sizeof(new_filename), "Monitor%d-new.jpg", id );
-    dump_image->WriteJpeg( new_filename );
-    rename( new_filename, filename );
+    if ( dump_image->WriteJpeg( new_filename ) )
+      rename( new_filename, filename );
   }
 }
 

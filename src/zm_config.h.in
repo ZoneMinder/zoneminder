@@ -97,7 +97,7 @@ private:
   char *value;
   char *type;
 
-  mutable enum { CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type;
+  mutable enum { CFG_UNKNOWN, CFG_BOOLEAN, CFG_INTEGER, CFG_DECIMAL, CFG_STRING } cfg_type;
   mutable union {
     bool boolean_value;
     int integer_value;

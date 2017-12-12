@@ -779,24 +779,22 @@ bool Image::ReadRaw( const char *filename )
   return( true );
 }
 
-bool Image::WriteRaw( const char *filename ) const
-{
+bool Image::WriteRaw( const char *filename ) const {
   FILE *outfile;
-  if ( (outfile = fopen( filename, "wb" )) == NULL )
-  {
+  if ( (outfile = fopen( filename, "wb" )) == NULL ) {
     Error( "Can't open %s: %s", filename, strerror(errno) );
-    return( false );
+    return false;
   }
 
-  if ( fwrite( buffer, size, 1, outfile ) != 1 )
-  {
+  if ( fwrite( buffer, size, 1, outfile ) != 1 ) {
     Error( "Unable to write to '%s': %s", filename, strerror(errno) );
-    return( false );
+    fclose( outfile );
+    return false;
   }
 
   fclose( outfile );
 
-  return( true );
+  return true;
 }
 
 bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder)

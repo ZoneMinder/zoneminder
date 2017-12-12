@@ -67,10 +67,11 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   if (!oc) {
     avformat_alloc_output_context2(&oc, NULL, format, filename);
     if (!oc) {
-      Fatal(
+      Error(
           "Could not create video storage stream %s as no out ctx"
           " could not be assigned based on filename or format %s",
           filename, format);
+      return;
     } else {
       Debug(4, "Success alocateing out ctx");
     }

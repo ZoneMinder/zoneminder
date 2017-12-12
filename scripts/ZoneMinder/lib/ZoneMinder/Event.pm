@@ -278,26 +278,26 @@ sub delete {
   Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} $event->{StartTime}\n" );
   $ZoneMinder::Database::dbh->ping();
 # Do it individually to avoid locking up the table for new events
-  my $sql = 'delete from Events where Id = ?';
+  my $sql = 'DELETE FROM Events WHERE Id=?';
   my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+    or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
   my $res = $sth->execute( $event->{Id} )
-    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+    or Error( "Can't execute '$sql': ".$sth->errstr() );
   $sth->finish();
 
   if ( ! $Config{ZM_OPT_FAST_DELETE} ) {
-    my $sql = 'delete from Frames where EventId = ?';
+    my $sql = 'DELETE FROM Frames WHERE EventId=?';
     my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-      or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+      or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
     my $res = $sth->execute( $event->{Id} )
-      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+      or Error( "Can't execute '$sql': ".$sth->errstr() );
     $sth->finish();
 
-    $sql = 'delete from Stats where EventId = ?';
+    $sql = 'DELETE FROM Stats WHERE EventId=?';
     $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-      or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+      or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
     $res = $sth->execute( $event->{Id} )
-      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+      or Error( "Can't execute '$sql': ".$sth->errstr() );
     $sth->finish();
 
     $event->delete_files( );

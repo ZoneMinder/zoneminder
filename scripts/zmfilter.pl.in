@@ -246,7 +246,7 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
   }
 
   return( @filters );
-}
+} # end sub getFilters
 
 sub checkFilter {
   my $filter = shift;

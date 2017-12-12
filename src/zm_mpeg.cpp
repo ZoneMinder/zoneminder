@@ -207,6 +207,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		
 		if ( !ost ) {
 			Fatal( "Could not alloc stream" );
+      return;
 		}
 		ost->id = ofc->nb_streams - 1;
 

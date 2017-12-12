@@ -437,8 +437,7 @@ Monitor::Monitor(
     video_store_data->size = sizeof(VideoStoreData);
     //video_store_data->frameNumber = 0;
   } else if ( purpose == ANALYSIS ) {
-    this->connect();
-    if ( ! mem_ptr ) exit(-1);
+    if ( ! ( this->connect() && mem_ptr ) ) exit(-1);
     shared_data->state = IDLE;
     shared_data->last_read_time = 0;
     shared_data->alarm_x = -1;
@@ -472,6 +471,9 @@ Monitor::Monitor(
   //Set video recording flag for event start constructor and easy reference in code
   videoRecording = ((GetOptVideoWriter() == H264PASSTHROUGH) && camera->SupportsNativeVideo());
 
+  n_linked_monitors = 0;
+  linked_monitors = 0;
+
   if ( purpose == ANALYSIS ) {
 Debug(2,"last_write_index(%d), last_write_time(%d)", shared_data->last_write_index, shared_data->last_write_time );
     while( 
@@ -483,10 +485,6 @@ Debug(2,"last_write_index(%d), last_write_time(%d)", shared_data->last_write_ind
       sleep( 1 );
     }
     ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
-
-    n_linked_monitors = 0;
-    linked_monitors = 0;
-
     adaptive_skip = true;
 
     ReloadLinkedMonitors( p_linked_monitors );

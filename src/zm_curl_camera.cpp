@@ -320,8 +320,9 @@ size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *
 
   /* Signal data available */
   int nRet = pthread_cond_signal(&data_available_cond);
-  if(nRet != 0) {
+  if ( nRet != 0 ) {
     Error("Failed signaling data available condition variable: %s",strerror(nRet));
+    unlock();
     return -16;
   }
 

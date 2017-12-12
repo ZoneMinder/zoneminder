@@ -166,7 +166,7 @@ private:
   mutable Condition mCondition;
 
 public:
-  __attribute__((used)) ThreadData() : mCondition( mMutex ) {
+  __attribute__((used)) ThreadData() : mValue(0), mCondition( mMutex ) {
     mChanged = false;
   }
   __attribute__((used)) ThreadData( T value ) : mValue( value ), mCondition( mMutex ) {

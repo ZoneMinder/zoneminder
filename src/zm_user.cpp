@@ -37,8 +37,8 @@ User::User() {
 
 User::User( MYSQL_ROW &dbrow ) {
   int index = 0;
-  strncpy( username, dbrow[index++], sizeof(username) );
-  strncpy( password, dbrow[index++], sizeof(password) );
+  strncpy( username, dbrow[index++], sizeof(username)-1 );
+  strncpy( password, dbrow[index++], sizeof(password)-1 );
   enabled = (bool)atoi( dbrow[index++] );
   stream = (Permission)atoi( dbrow[index++] );
   events = (Permission)atoi( dbrow[index++] );

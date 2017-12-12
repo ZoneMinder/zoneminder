@@ -69,7 +69,7 @@ Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) :
   trigger_data(NULL),
   video_store_data(NULL)
 {
-  strncpy( name, p_name, sizeof(name) );
+  strncpy( name, p_name, sizeof(name)-1 );
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
@@ -670,9 +670,10 @@ void Monitor::AddZones( int p_n_zones, Zone *p_zones[] ) {
 }
 
 void Monitor::AddPrivacyBitmask( Zone *p_zones[] ) {
-  if ( privacy_bitmask )
+  if ( privacy_bitmask ) {
     delete[] privacy_bitmask;
-  privacy_bitmask = NULL;
+    privacy_bitmask = NULL;
+  }
   Image *privacy_image = NULL;
 
   for ( int i = 0; i < n_zones; i++ ) {
@@ -812,6 +813,8 @@ double Monitor::GetFPS() const {
     Error( "Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
         curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
     return 0.0;
+  } else {
+    Debug( 2, "GetFPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
   }
   return curr_fps;
 }
@@ -846,8 +849,8 @@ void Monitor::UpdateAdaptiveSkip() {
 void Monitor::ForceAlarmOn( int force_score, const char *force_cause, const char *force_text ) {
   trigger_data->trigger_state = TRIGGER_ON;
   trigger_data->trigger_score = force_score;
-  strncpy( trigger_data->trigger_cause, force_cause, sizeof(trigger_data->trigger_cause) );
-  strncpy( trigger_data->trigger_text, force_text, sizeof(trigger_data->trigger_text) );
+  strncpy( trigger_data->trigger_cause, force_cause, sizeof(trigger_data->trigger_cause)-1 );
+  strncpy( trigger_data->trigger_text, force_text, sizeof(trigger_data->trigger_text)-1 );
 }
 
 void Monitor::ForceAlarmOff() {
@@ -1096,8 +1099,8 @@ void Monitor::DumpImage( Image *dump_image ) const {
     static char new_filename[PATH_MAX];
     snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
     snprintf( new_filename, sizeof(new_filename), "Monitor%d-new.jpg", id );
-    dump_image->WriteJpeg( new_filename );
-    rename( new_filename, filename );
+    if ( dump_image->WriteJpeg( new_filename ) )
+      rename( new_filename, filename );
   }
 }
 
@@ -1590,8 +1593,8 @@ void Monitor::Reload() {
     function = (Function)atoi(dbrow[index++]);
     enabled = atoi(dbrow[index++]);
     const char *p_linked_monitors = dbrow[index++];
-    strncpy( event_prefix, dbrow[index++], sizeof(event_prefix) );
-    strncpy( label_format, dbrow[index++], sizeof(label_format) );
+    strncpy( event_prefix, dbrow[index++], sizeof(event_prefix)-1 );
+    strncpy( label_format, dbrow[index++], sizeof(label_format)-1 );
     label_coord = Coord( atoi(dbrow[index]), atoi(dbrow[index+1]) ); index += 2;
     label_size = atoi(dbrow[index++]);
     warmup_count = atoi(dbrow[index++]);
@@ -3209,8 +3212,8 @@ bool Monitor::DumpSettings( char *output, bool verbose ) {
   sprintf( output+strlen(output), "Stream Replay Buffer : %d\n", stream_replay_buffer );
   sprintf( output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
   sprintf( output+strlen(output), "Section Length : %d\n", section_length );
-  sprintf( output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?DT_PREC_3/capture_delay:0.0 );
-  sprintf( output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay?DT_PREC_3/alarm_capture_delay:0.0 );
+  sprintf( output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?(double)DT_PREC_3/capture_delay:0.0 );
+  sprintf( output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay?(double)DT_PREC_3/alarm_capture_delay:0.0 );
   sprintf( output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc );
   sprintf( output+strlen(output), "Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc );
   sprintf( output+strlen(output), "Track Motion : %d\n", track_motion );

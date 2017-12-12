@@ -92,10 +92,6 @@ void RemoteCameraNVSocket::Initialise() {
   int max_size = width*height*colours;
 
   buffer.size( max_size );
-
-  mode = SINGLE_IMAGE;
-  format = UNDEF;
-  state = HEADER;
 }
 
 int RemoteCameraNVSocket::Connect() {

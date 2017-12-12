@@ -229,9 +229,6 @@ int FfmpegCamera::OpenFfmpeg() {
 
   mFormatContext = avformat_alloc_context( );
 
-  monitor->GetLastEventId() ;
-  Debug(2, "before avformat_open_input" );
-
   if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
 #endif
   {
@@ -239,8 +236,6 @@ int FfmpegCamera::OpenFfmpeg() {
     Error( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
     return -1;
   }
-  Debug(2, "afte avformat_open_input" );
-  monitor->GetLastEventId() ;
 
   AVDictionaryEntry *e = NULL;
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {

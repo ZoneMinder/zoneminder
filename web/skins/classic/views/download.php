@@ -23,18 +23,25 @@ if ( !canView('Events') ) {
   return;
 }
 
+$total_size = 0;
 if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
-  $eventsSql = 'SELECT E.Id FROM Events as E WHERE 1';
+  $eventsSql = 'SELECT E.Id,E.DiskSpace FROM Events as E WHERE 1';
   $eventsSql .= $_SESSION['montageReviewFilter']['sql'];
   $results = dbQuery($eventsSql);
   $eids = [];
   while ( $event_row = dbFetchNext( $results ) ) {
     array_push($eids, 'eids[]='.$event_row['Id']);
+    $total_size += $event_row['DiskSpace'];
   }
   $_REQUEST['eids'] = $eids;
-  session_start();
-  unset($_SESSION['montageReviewFilter']);
-  session_write_close();
+  if ( ! count($eids) ) {
+    Error("No events found for download using $eventsSql");
+  } 
+  #session_start();
+  #unset($_SESSION['montageReviewFilter']);
+  #session_write_close();
+#} else {
+#Logger::Debug("NO montageReviewFilter");
 }
 
 $focusWindow = true;
@@ -55,7 +62,9 @@ xhtmlHeaders(__FILE__, translate('Download') );
 if ( !empty($_REQUEST['eid']) ) {
 ?>
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
-<?php
+    <?php
+    $Event = new Event( $_REQUEST['eid'] );
+    echo 'Downloading event ' . $_REQUEST['eid'] . ' Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
 } else if ( !empty($_REQUEST['eids']) ) {
     foreach ( $_REQUEST['eids'] as $eid ) {
 ?>
@@ -63,6 +72,9 @@ if ( !empty($_REQUEST['eid']) ) {
 <?php
     }
     unset( $eid );
+    echo "Downloading " . count($_REQUEST['eids']) . ' events.  Resulting file should be approximately ' . human_filesize($total_size);
+} else {
+echo '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
 }
 ?>
         <table id="contentTable" class="minor" cellspacing="0">

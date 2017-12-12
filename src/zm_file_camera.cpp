@@ -60,7 +60,7 @@ FileCamera::FileCamera(
       p_capture,
       p_record_audio )
 {
-  strncpy( path, p_path, sizeof(path) );
+  strncpy( path, p_path, sizeof(path)-1 );
   if ( capture ) {
     Initialise();
   }
@@ -90,7 +90,7 @@ int FileCamera::PreCapture() {
   }
 
   // I think this is waiting for file change...
-  while ( (time( 0 ) - statbuf.st_mtime) < 1 ) {
+  while ( (time(0) - statbuf.st_mtime) < 1 ) {
     usleep( 100000 );
   }
   return( 0 );

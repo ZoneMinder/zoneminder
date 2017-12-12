@@ -754,57 +754,53 @@ Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p
   return( high_image );
 }
 
-bool Image::ReadRaw( const char *filename )
-{
+bool Image::ReadRaw( const char *filename ) {
   FILE *infile;
-  if ( (infile = fopen( filename, "rb" )) == NULL )
-  {
-    Error( "Can't open %s: %s", filename, strerror(errno) );
-    return( false );
+  if ( (infile = fopen( filename, "rb" )) == NULL ) {
+    Error("Can't open %s: %s", filename, strerror(errno));
+    return false;
   }
 
   struct stat statbuf;
-  if ( fstat( fileno(infile), &statbuf ) < 0 )
-  {
-    Error( "Can't fstat %s: %s", filename, strerror(errno) );
-    return( false );
+  if ( fstat( fileno(infile), &statbuf ) < 0 ) {
+    fclose(infile);
+    Error("Can't fstat %s: %s", filename, strerror(errno));
+    return false;
   }
 
-  if ( statbuf.st_size != size )
-  {
-    Error( "Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size );
-    return( false );
+  if ( statbuf.st_size != size ) {
+    fclose(infile);
+    Error("Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size);
+    return false;
   }
 
-  if ( fread( buffer, size, 1, infile ) < 1 )
-  {
-    Fatal( "Unable to read from '%s': %s", filename, strerror(errno) );
-    return( false );
+  if ( fread(buffer, size, 1, infile) < 1 ) {
+    fclose(infile);
+    Error("Unable to read from '%s': %s", filename, strerror(errno));
+    return false;
   }
 
   fclose( infile );
 
-  return( true );
+  return true;
 }
 
-bool Image::WriteRaw( const char *filename ) const
-{
+bool Image::WriteRaw( const char *filename ) const {
   FILE *outfile;
-  if ( (outfile = fopen( filename, "wb" )) == NULL )
-  {
+  if ( (outfile = fopen( filename, "wb" )) == NULL ) {
     Error( "Can't open %s: %s", filename, strerror(errno) );
-    return( false );
+    return false;
   }
 
-  if ( fwrite( buffer, size, 1, outfile ) != 1 )
-  {
+  if ( fwrite( buffer, size, 1, outfile ) != 1 ) {
     Error( "Unable to write to '%s': %s", filename, strerror(errno) );
-    return( false );
+    fclose( outfile );
+    return false;
   }
 
   fclose( outfile );
 
-  return( true );
+  return true;
 }
 
 bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder)
@@ -1347,24 +1343,20 @@ bool Image::Zip( Bytef *outbuffer, unsigned long *outbuffer_size, int compressio
 }
 #endif // HAVE_ZLIB_H
 
-bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y )
-{
+bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsigned int hi_y ) {
   unsigned int new_width = (hi_x-lo_x)+1;
   unsigned int new_height = (hi_y-lo_y)+1;
 
-  if ( lo_x > hi_x || lo_y > hi_y )
-  {
+  if ( lo_x > hi_x || lo_y > hi_y ) {
     Error( "Invalid or reversed crop region %d,%d -> %d,%d", lo_x, lo_y, hi_x, hi_y );
     return( false );
   }
-  if ( lo_x < 0 || hi_x > (width-1) || ( lo_y < 0 || hi_y > (height-1) ) )
-  {
+  if ( hi_x > (width-1) || ( hi_y > (height-1) ) ) {
     Error( "Attempting to crop outside image, %d,%d -> %d,%d not in %d,%d", lo_x, lo_y, hi_x, hi_y, width-1, height-1 );
     return( false );
   }
 
-  if ( new_width == width && new_height == height )
-  {
+  if ( new_width == width && new_height == height ) {
     return( true );
   }
 
@@ -1372,8 +1364,7 @@ bool Image::Crop( unsigned int lo_x, unsigned int lo_y, unsigned int hi_x, unsig
   uint8_t *new_buffer = AllocBuffer(new_size);
 
   unsigned int new_stride = new_width*colours;
-  for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ )
-  {
+  for ( unsigned int y = lo_y, ny = 0; y <= hi_y; y++, ny++ ) {
     unsigned char *pbuf = &buffer[((y*width)+lo_x)*colours];
     unsigned char *pnbuf = &new_buffer[(ny*new_width)*colours];
     memcpy( pnbuf, pbuf, new_stride );
@@ -1935,7 +1926,7 @@ void Image::MaskPrivacy( const unsigned char *p_bitmask, const Rgb pixel_colour 
 /* RGB32 compatible: complete */
 void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int size, const Rgb fg_colour, const Rgb bg_colour )
 {
-  strncpy( text, p_text, sizeof(text) );
+  strncpy( text, p_text, sizeof(text)-1 );
 
   unsigned int index = 0;
   unsigned int line_no = 0;
@@ -4666,17 +4657,17 @@ __attribute__((noinline)) void zm_convert_yuyv_rgba(const uint8_t* col1, uint8_t
     g = y1 - (g_u_table[u]+g_v_table[v]);
     b = y1 + b_u_table[u];
 
-    result[0] = r<0?0:(r>255?255:r);
-    result[1] = g<0?0:(g>255?255:g);
-    result[2] = b<0?0:(b>255?255:b);
+    result[0] = r>255?255:r;
+    result[1] = g>255?255:g;
+    result[2] = b>255?255:b;
 
     r = y2 + r_v_table[v];
     g = y2 - (g_u_table[u]+g_v_table[v]);
     b = y2 + b_u_table[u];
 
-    result[4] = r<0?0:(r>255?255:r);
-    result[5] = g<0?0:(g>255?255:g);
-    result[6] = b<0?0:(b>255?255:b);
+    result[4] = r>255?255:r;
+    result[5] = g>255?255:g;
+    result[6] = b>255?255:b;
   }
 
 }

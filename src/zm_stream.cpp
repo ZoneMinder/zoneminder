@@ -271,7 +271,6 @@ void StreamBase::openComms() {
 		unsigned int length = snprintf( sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", staticConfig.PATH_SOCKS.c_str(), connkey);
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
-      length = sizeof(sock_path_lock)-1;
     }
     Debug( 1, "Trying to open the lock on %s", sock_path_lock );
 
@@ -313,7 +312,7 @@ void StreamBase::openComms() {
     }
 
     snprintf( rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey );
-    strncpy( rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path) );
+    strncpy( rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path)-1 );
     rem_addr.sun_family = AF_UNIX;
   } // end if connKey > 0
 	Debug(2, "comms open" );

@@ -84,10 +84,11 @@ bool VideoStore::open() {
   if ( !oc ) {
     avformat_alloc_output_context2(&oc, NULL, format, filename);
     if ( !oc ) {
-      Fatal(
+      Error(
           "Could not create video storage stream %s as no out ctx"
           " could not be assigned based on filename or format %s",
           filename, format);
+      return;
     } else {
       Debug(4, "Success alocating out ctx");
     }
@@ -106,8 +107,12 @@ bool VideoStore::open() {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     video_in_ctx = avcodec_alloc_context3(NULL);
     Debug(2, "copy to video_in_context");
-    avcodec_parameters_to_context(video_in_ctx, video_in_stream->codecpar);
-    zm_dump_codecpar( video_in_stream->codecpar );
+    if ( (ret=avcodec_parameters_to_context(video_in_ctx, video_in_stream->codecpar)) < 0 ) {
+      Error("Couldn't copy params to context");
+      return false;
+    } else {
+      zm_dump_codecpar( video_in_stream->codecpar );
+    }
 #else
     video_in_ctx = video_in_stream->codec;
     Debug(2,"Copied video context from input stream");
@@ -776,7 +781,10 @@ bool VideoStore::setup_resampler() {
 
 
   AVDictionary *opts = NULL;
-  av_dict_set(&opts, "strict", "experimental", 0); // Needed to allow AAC
+  // Needed to allow AAC
+  if ( (ret = av_dict_set(&opts, "strict", "experimental", 0)) < 0 ) {
+    Error("Couldn't set experimental");
+  }
   ret = avcodec_open2(audio_out_ctx, audio_out_codec, &opts);
   av_dict_free(&opts);
   if ( ret < 0 ) {

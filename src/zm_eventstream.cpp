@@ -184,7 +184,7 @@ bool EventStream::loadEventData( int event_id ) {
     timestamp = atoi(dbrow[1]);
     double delta = atof(dbrow[2]);
     int id_diff = id - last_id;
-    double frame_delta = (delta-last_delta)/id_diff;
+    double frame_delta = id_diff ? (delta-last_delta)/id_diff : 0;
     if ( id_diff > 1 ) {
       for ( int i = last_id+1; i < id; i++ ) {
         event_data->frames[i-1].timestamp = (time_t)(last_timestamp + ((i-last_id)*frame_delta));
@@ -712,7 +712,6 @@ bool EventStream::sendFrame( int delta_us ) {
         break;
     }
 
-
     if ( send_raw ) {
 #if HAVE_SENDFILE
       fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
@@ -720,6 +719,7 @@ bool EventStream::sendFrame( int delta_us ) {
         /* sendfile() failed, use standard way instead */
         img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
         if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+          fclose(fdj); /* Close the file handle */
           Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
           return( false );
         }
@@ -727,6 +727,7 @@ bool EventStream::sendFrame( int delta_us ) {
 #else
       fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
       if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+        fclose(fdj); /* Close the file handle */
         Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
         return( false );
       }
@@ -754,8 +755,6 @@ void EventStream::runStream() {
 
   checkInitialised();
 
-  Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration );
-  updateFrameRate( (double)event_data->frame_count/event_data->duration );
 
   if ( type == STREAM_JPEG )
     fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
@@ -764,6 +763,9 @@ void EventStream::runStream() {
     sendTextFrame( "No event data found" );
     exit( 0 );
   }
+
+  Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration );
+  updateFrameRate( (double)event_data->frame_count/event_data->duration );
 
   while( !zm_terminate ) {
     gettimeofday( &now, NULL );

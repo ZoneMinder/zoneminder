@@ -87,10 +87,6 @@ public:
   int lock();
   int unlock();
 
-private:
-  int nRet;
-  CURLcode cRet;
-
 };
 
 /* Dispatchers */

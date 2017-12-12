@@ -574,13 +574,13 @@ bool InetSocket::connect( const char *host, const char *serv )
         ::close(mSd);
     }
 
+    freeaddrinfo(result);   /* No longer needed */
+
     if (rp == NULL) {               /* No address succeeded */
         Error( "connect(), Could not connect" );
         mAddressFamily = AF_UNSPEC;
         return( false );
     }
-
-    freeaddrinfo(result);   /* No longer needed */
 
     mState = CONNECTED;
 

@@ -648,6 +648,9 @@ LocalCamera::LocalCamera(
     if ( !imgConversionContext ) {
       Fatal( "Unable to initialise image scaling context" );
     }
+  } else {
+    tmpPicture = NULL;
+    imgConversionContext = NULL;
   } // end if capture and conversion_tye == swscale
 #endif
     mVideoStreamId = 0;
@@ -678,18 +681,18 @@ void LocalCamera::Initialise() {
     av_log_set_level( AV_LOG_QUIET );
 #endif // HAVE_LIBSWSCALE
 
-  struct stat st; 
-
-  if ( stat( device.c_str(), &st ) < 0 )
-    Fatal( "Failed to stat video device %s: %s", device.c_str(), strerror(errno) );
-
-  if ( !S_ISCHR(st.st_mode) )
-    Fatal( "File %s is not device file: %s", device.c_str(), strerror(errno) );
 
   Debug( 3, "Opening video device %s", device.c_str() );
   //if ( (vid_fd = open( device.c_str(), O_RDWR|O_NONBLOCK, 0 )) < 0 )
   if ( (vid_fd = open( device.c_str(), O_RDWR, 0 )) < 0 )
     Fatal( "Failed to open video device %s: %s", device.c_str(), strerror(errno) );
+
+  struct stat st; 
+  if ( stat( device.c_str(), &st ) < 0 )
+    Fatal( "Failed to stat video device %s: %s", device.c_str(), strerror(errno) );
+
+  if ( !S_ISCHR(st.st_mode) )
+    Fatal( "File %s is not device file: %s", device.c_str(), strerror(errno) );
 
 #if ZM_HAS_V4L2
   Debug( 2, "V4L2 support enabled, using V4L%d api", v4l_version );
@@ -1234,7 +1237,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
   int devIndex = 0;
   do {
     if ( device )
-      strcpy( queryDevice, device );
+      strncpy( queryDevice, device, sizeof(queryDevice)-1 );
     else
       sprintf( queryDevice, "/dev/video%d", devIndex );
     if ( (vid_fd = open(queryDevice, O_RDWR)) <= 0 ) {
@@ -1567,7 +1570,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
       }
 
       struct video_picture vid_pic;
-      memset( &vid_cap, 0, sizeof(video_picture) );
+      memset( &vid_pic, 0, sizeof(video_picture) );
       if ( ioctl( vid_fd, VIDIOCGPICT, &vid_pic ) < 0 ) {
         Error( "Failed to get picture attributes: %s", strerror(errno) );
         if ( verbose )

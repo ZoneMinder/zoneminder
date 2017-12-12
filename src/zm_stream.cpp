@@ -271,7 +271,6 @@ void StreamBase::openComms() {
 		unsigned int length = snprintf( sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", staticConfig.PATH_SOCKS.c_str(), connkey);
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
-      length = sizeof(sock_path_lock)-1;
     }
     Debug( 1, "Trying to open the lock on %s", sock_path_lock );
 

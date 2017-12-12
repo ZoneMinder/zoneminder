@@ -375,9 +375,6 @@ int FfmpegCamera::OpenFfmpeg() {
   //FIXME can speed up initial analysis but need sensible parameters...
   //mFormatContext->probesize = 32;
   //mFormatContext->max_analyze_duration = 32;
-  last_event_id = monitor->GetLastEventId() ;
-  video_writer_event_id = monitor->GetVideoWriterEventId();
-  Debug(2, "last_event(%d), our current (%d), mpath (%s)", last_event_id, video_writer_event_id, mPath.c_str() );
 
   if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
 #endif
@@ -386,17 +383,10 @@ int FfmpegCamera::OpenFfmpeg() {
     Error( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
     return -1;
   }
-  last_event_id = monitor->GetLastEventId() ;
-  video_writer_event_id = monitor->GetVideoWriterEventId();
-  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
   AVDictionaryEntry *e=NULL;
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
-
-  last_event_id = monitor->GetLastEventId() ;
-  video_writer_event_id = monitor->GetVideoWriterEventId();
-  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
 
   mIsOpening = false;
   Debug ( 1, "Opened input" );

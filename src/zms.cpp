@@ -151,7 +151,7 @@ int main( int argc, const char *argv[] ) {
           //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
           {
             if ( !strcmp( name, "auth" ) ) {
-              strncpy( auth, value, sizeof(auth) );
+              strncpy( auth, value, sizeof(auth)-1 );
             }
           }
           //else if ( strcmp( config.auth_relay, "plain" ) == 0 )

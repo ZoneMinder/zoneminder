@@ -312,7 +312,7 @@ void StreamBase::openComms() {
     }
 
     snprintf( rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey );
-    strncpy( rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path) );
+    strncpy( rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path)-1 );
     rem_addr.sun_family = AF_UNIX;
   } // end if connKey > 0
 	Debug(2, "comms open" );

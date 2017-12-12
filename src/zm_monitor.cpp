@@ -79,7 +79,7 @@ Monitor::MonitorLink::MonitorLink( int p_id, const char *p_name ) :
   trigger_data(NULL),
   video_store_data(NULL)
 {
-  strncpy( name, p_name, sizeof(name) );
+  strncpy( name, p_name, sizeof(name)-1 );
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
@@ -860,8 +860,8 @@ void Monitor::UpdateAdaptiveSkip() {
 void Monitor::ForceAlarmOn( int force_score, const char *force_cause, const char *force_text ) {
   trigger_data->trigger_state = TRIGGER_ON;
   trigger_data->trigger_score = force_score;
-  strncpy( trigger_data->trigger_cause, force_cause, sizeof(trigger_data->trigger_cause) );
-  strncpy( trigger_data->trigger_text, force_text, sizeof(trigger_data->trigger_text) );
+  strncpy( trigger_data->trigger_cause, force_cause, sizeof(trigger_data->trigger_cause)-1 );
+  strncpy( trigger_data->trigger_text, force_text, sizeof(trigger_data->trigger_text)-1 );
 }
 
 void Monitor::ForceAlarmOff() {
@@ -1723,8 +1723,8 @@ void Monitor::Reload() {
     function = (Function)atoi(dbrow[index++]);
     enabled = atoi(dbrow[index++]);
     const char *p_linked_monitors = dbrow[index++];
-    strncpy( event_prefix, dbrow[index++], sizeof(event_prefix) );
-    strncpy( label_format, dbrow[index++], sizeof(label_format) );
+    strncpy( event_prefix, dbrow[index++], sizeof(event_prefix)-1 );
+    strncpy( label_format, dbrow[index++], sizeof(label_format)-1 );
     label_coord = Coord( atoi(dbrow[index]), atoi(dbrow[index+1]) ); index += 2;
     label_size = atoi(dbrow[index++]);
     warmup_count = atoi(dbrow[index++]);

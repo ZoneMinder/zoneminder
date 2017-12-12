@@ -661,7 +661,9 @@ LocalCamera::LocalCamera(
     if ( !imgConversionContext ) {
       Fatal( "Unable to initialise image scaling context" );
     }
-
+  } else {
+    tmpPicture = NULL;
+    imgConversionContext = NULL;
   }
 #endif
 }

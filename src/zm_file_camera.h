@@ -31,8 +31,7 @@
 // Class representing 'file' cameras, i.e. those which are
 // accessed using a single file which contains the latest jpeg data
 //
-class FileCamera : public Camera
-{
+class FileCamera : public Camera {
 protected:
   char path[PATH_MAX];
 

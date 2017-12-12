@@ -83,6 +83,7 @@ LibvlcCamera::LibvlcCamera( int p_id, const std::string &p_path, const std::stri
     mTargetChroma = "GREY";
     mBpp = 1;
   } else {
+    mBpp = 0;
     Panic("Unexpected colours: %d",colours);
   }
 

@@ -551,6 +551,7 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _a
 		buffer_copy = (uint8_t *)av_malloc( buffer_size );
 		if ( !buffer_copy ) {
 			Panic( "Could not allocate buffer_copy" );
+      return 0;
 		}
 		buffer_copy_size = buffer_size;
 	}

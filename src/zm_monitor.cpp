@@ -3281,8 +3281,8 @@ bool Monitor::DumpSettings( char *output, bool verbose ) {
   sprintf( output+strlen(output), "Stream Replay Buffer : %d\n", stream_replay_buffer );
   sprintf( output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
   sprintf( output+strlen(output), "Section Length : %d\n", section_length );
-  sprintf( output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?DT_PREC_3/capture_delay:0.0 );
-  sprintf( output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay?DT_PREC_3/alarm_capture_delay:0.0 );
+  sprintf( output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?(double)DT_PREC_3/capture_delay:0.0 );
+  sprintf( output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay?(double)DT_PREC_3/alarm_capture_delay:0.0 );
   sprintf( output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc );
   sprintf( output+strlen(output), "Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc );
   sprintf( output+strlen(output), "Track Motion : %d\n", track_motion );

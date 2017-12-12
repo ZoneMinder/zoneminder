@@ -713,7 +713,6 @@ bool EventStream::sendFrame( int delta_us ) {
         break;
     }
 
-
     if ( send_raw ) {
 #if HAVE_SENDFILE
       fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
@@ -721,6 +720,7 @@ bool EventStream::sendFrame( int delta_us ) {
         /* sendfile() failed, use standard way instead */
         img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
         if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+          fclose(fdj); /* Close the file handle */
           Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
           return( false );
         }
@@ -728,6 +728,7 @@ bool EventStream::sendFrame( int delta_us ) {
 #else
       fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
       if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+        fclose(fdj); /* Close the file handle */
         Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
         return( false );
       }

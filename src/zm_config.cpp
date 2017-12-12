@@ -54,9 +54,9 @@ void zmLoadConfig() {
       for ( unsigned int i = 0; i < pglob.gl_pathc; i++ ) {
         process_configfile(pglob.gl_pathv[i]);
       }
-      closedir(configSubFolder);
     }
     globfree( &pglob );
+    closedir(configSubFolder);
   }
 
   zmDbConnect();
@@ -106,6 +106,7 @@ void process_configfile( char* configFile) {
   char line[512];
   if ( (cfg = fopen( configFile, "r")) == NULL ) {
     Fatal( "Can't open %s: %s", configFile, strerror(errno) );
+    return;
   }
   while ( fgets( line, sizeof(line), cfg ) != NULL ) {
     char *line_ptr = line;
@@ -213,6 +214,7 @@ ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *con
 
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
+  cfg_type = CFG_UNKNOWN;
   accessed = false;
 }
 

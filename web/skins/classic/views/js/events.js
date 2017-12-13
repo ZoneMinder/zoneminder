@@ -138,7 +138,7 @@ if ( openFilterWindow ) {
 
 function initPage () {
   if (window.history.length == 1) {
-    $j('#controls').children().eq(0).html('<a href="#" onclick="window.close()">Close</a>');
+    $j('#controls').children().eq(0).html('');
   }
 }
 

@@ -151,6 +151,8 @@ public $defaults = array(
       $selected_group_id = 0;
       if ( isset($_REQUEST['group'.$depth]) ) {
         $selected_group_id = $group_id = $_SESSION['group'.$depth] = $_REQUEST['group'.$depth];
+      } else if ( isset( $_SESSION['group'.$depth] ) ) {
+        $selected_group_id = $group_id = $_SESSION['group'.$depth];
       } else if ( isset($_REQUEST['filtering']) ) {
         unset($_SESSION['group'.$depth]);
       }

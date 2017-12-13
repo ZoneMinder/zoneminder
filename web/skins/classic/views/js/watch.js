@@ -667,6 +667,9 @@ function initPage() {
   if ( refreshApplet && appletRefreshTime )
     appletRefresh.delay( appletRefreshTime*1000 );
   if (scale == "auto") changeScale();
+  if (window.history.length == 1) {
+    $j('#closeControl').html('<a href="#" onclick="window.close()">Close</a>');
+  }
 }
 
 // Kick everything off

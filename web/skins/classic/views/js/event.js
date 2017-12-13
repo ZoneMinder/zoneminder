@@ -979,7 +979,7 @@ function initPage() {
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   if (scale == "auto") changeScale();
   if (window.history.length == 1) {
-    $j('#closeWindow').html('<a href="#" onclick="window.close()">Close</a>');
+    $j('#closeWindow').html('');
   }
 }
 

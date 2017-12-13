@@ -5,6 +5,7 @@ $now = new DateTime('now', $TimeZone);
 $offset = $TimeZone->getOffset($now);
 echo $offset . '; // ' . floor($offset / 3600) . ' hours ';
 ?>
+
 var currentScale=<?php echo $defaultScale?>;
 var liveMode=<?php echo $initialModeIsLive?>;
 var fitMode=<?php echo $fitMode?>;

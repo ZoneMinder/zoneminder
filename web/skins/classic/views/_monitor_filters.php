@@ -69,11 +69,13 @@ if ( ! is_array( $selected_monitor_ids ) ) {
     $conditions[] = $groupSql;
   foreach ( array('ServerId','StorageId','Status') as $filter ) {
     if ( isset($_SESSION[$filter]) ) {
-      if ( is_array($_SESSION[$filter]) ) 
+      if ( is_array($_SESSION[$filter]) ) {
         $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter] ) ). ')';
-      else
+        $values += $_SESSION[$filter];
+    } else {
         $conditions[] = $filter . '=?';
       $values[] = $_SESSION[$filter];
+      }
     }
   } # end foreach filter
   if ( ! empty( $user['MonitorIds'] ) ) {

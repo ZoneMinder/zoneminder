@@ -181,6 +181,12 @@ function getNavBarHTML($reload = null) {
   global $bandwidth_options;
   global $view;
   global $filterQuery;
+  global $sortQuery;
+  global $limit;
+
+  if (!sortQuery) {
+    parseSort();
+  }
   if (!$filterQuery) {
     parseFilter( $_REQUEST['filter'] );
     $filterQuery = $_REQUEST['filter']['query'];
@@ -229,7 +235,7 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
 <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
-      <li><a href="?view=filter<?php echo $filterQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
+      <li><a href="?view=filter<?php echo $filterQuery.$sortQuery."&limit=".$limit ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
   if ( canView( 'Stream' ) ) {

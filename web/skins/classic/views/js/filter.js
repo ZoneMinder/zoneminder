@@ -70,19 +70,15 @@ function resetFilter( element ) {
 
 function submitToEvents( element ) {
   var form = element.form;
-  if ( validateForm( form ) ) {
-    form.action = thisUrl + '?view=events';
-    form.submit();
-  }
+  form.action = thisUrl + '?view=events';
+  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
 
 function executeFilter( element ) {
   var form = element.form;
-  if ( validateForm( form ) ) {
-    form.action = thisUrl + '?view=events';
-    form.elements['action'].value = 'execute';
-    form.submit();
-  }
+  form.action = thisUrl + '?view=events';
+  form.elements['action'].value = 'execute';
+  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
 
 function saveFilter( element ) {

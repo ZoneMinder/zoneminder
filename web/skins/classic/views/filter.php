@@ -171,7 +171,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>?view=filter">
+      <form name="contentForm" id="contentForm" method="post" onsubmit="return validateForm(this);">
         <input type="hidden" name="Id" value="<?php echo $filter->Id() ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="object" value="filter"/>
@@ -397,8 +397,8 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('ListMatches') ?>" onclick="submitToEvents(this);"/>
-          <input type="button" name="executeButton" id="executeButton" value="<?php echo translate('Execute') ?>" onclick="executeFilter( this );"/>
+          <button onclick="submitToEvents(this);"> <?php echo translate('ListMatches') ?></button>
+          <button name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit( 'Events' ) ) {
 ?>
@@ -412,7 +412,7 @@ if ( canEdit( 'Events' ) ) {
   }
 }
 ?>
-          <input type="button" value="<?php echo translate('Reset') ?>" onclick="resetFilter( this );"/>
+          <button value="<?php echo translate('Reset') ?>" onclick="resetFilter( this );"><?php echo translate('Delete') ?></button>
         </div>
       </form>
     </div><!--content-->

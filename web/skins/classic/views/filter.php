@@ -127,6 +127,25 @@ $storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
 foreach ( dbFetchAll( 'SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC' ) as $storage ) {
   $storageareas[$storage['Id']] = $storage['Name'];
 }
+$weekdays = array();
+for ( $i = 0; $i < 7; $i++ ) {
+  $weekdays[$i] = strftime( '%A', mktime( 12, 0, 0, 1, $i+1, 2001 ) );
+}
+$states = array();
+foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
+  $states[$state_row['Id']] = $state_row['Name'];
+}
+$servers = array();
+$servers['ZM_SERVER_ID'] = 'Current Server';
+foreach ( dbFetchAll( 'SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC' ) as $server ) {
+  $servers[$server['Id']] = $server['Name'];
+}
+$monitors = array();
+foreach ( dbFetchAll( 'select Id,Name from Monitors order by Name asc' ) as $monitor ) {
+  if ( visibleMonitor( $monitor['Id'] ) ) {
+    $monitors[$monitor['Name']] = $monitor['Name'];
+  }
+}
 
 xhtmlHeaders(__FILE__, translate('EventFilter') );
 ?>
@@ -225,40 +244,21 @@ for ( $i=0; $i < count($terms); $i++ ) {
               </td>
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {
-      $states = array();
-      foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
-        $states[$state_row['Id']] = $state_row['Name'];
-      }
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $states, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'Weekday' ) {
-      $weekdays = array();
-      for ( $i = 0; $i < 7; $i++ ) {
-        $weekdays[$i] = strftime( '%A', mktime( 12, 0, 0, 1, $i+1, 2001 ) );
-      }
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $weekdays, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'MonitorName' ) {
-      $monitors = array();
-      foreach ( dbFetchAll( 'select Id,Name from Monitors order by Name asc' ) as $monitor ) {
-        if ( visibleMonitor( $monitor['Id'] ) ) {
-          $monitors[$monitor['Name']] = $monitor['Name'];
-        }
-      }
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $monitors, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'ServerId' ) {
-      $servers = array();
-      $servers['ZM_SERVER_ID'] = 'Current Server';
-      foreach ( dbFetchAll( 'SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC' ) as $server ) {
-        $servers[$server['Id']] = $server['Name'];
-      }
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $servers, $term['val'] ); ?></td>

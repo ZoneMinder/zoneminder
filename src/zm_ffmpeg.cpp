@@ -230,26 +230,28 @@ static void zm_log_fps(double d, const char *postfix) {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {
-  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d) bit_rate(%d) foramt(%d)", 
+  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d) bit_rate(%d) format(%d = %s)", 
     par->codec_type,
     par->codec_id,
     par->codec_tag,
     par->width,
     par->height,
     par->bit_rate,
-    par->format
+    par->format,
+    ((AVPixelFormat)par->format == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format))
 ); 
 }
 #endif
 
 void zm_dump_codec ( const AVCodecContext *codec ) {
-  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d)", 
+  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d) format(%s)",
     codec->codec_type,
     codec->codec_id,
     codec->width,
     codec->height,
     codec->time_base.num,
-    codec->time_base.den
+    codec->time_base.den,
+    (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt))
 ); 
 }
 

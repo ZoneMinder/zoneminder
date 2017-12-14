@@ -63,8 +63,6 @@ monitor = p_monitor;
   video_start_pts = 0;
   audio_next_pts = 0;
   audio_next_dts = 0;
-
-Debug(2,"End VIdeoStore");
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {
@@ -152,7 +150,7 @@ Debug(2,"Using mjpeg");
     video_out_ctx->codec_id = video_out_codec->id;
     video_out_ctx->pix_fmt = AV_PIX_FMT_YUVJ422P;
 
-  } else if ( monitor->OutputCodec() == "h264" ) {
+  } else if ( monitor->OutputCodec() == "h264" || monitor->OutputCodec() == "" ) {
     AVPixelFormat pf = AV_PIX_FMT_YUV420P;
 
     //  First try hardware accell
@@ -203,7 +201,7 @@ Debug(2,"Using mjpeg");
     video_out_ctx->pix_fmt = pf;
         
   } else {
-    Error("No output codec selected");
+    Error("Unsupported output codec selected");
     return false;
   }
 
@@ -218,11 +216,10 @@ Debug(2,"Using mjpeg");
     if ( ret < 0 ) {
       Error("Could not initialize ctx parameteres");
       return false;
-    } else {
-      Debug(2, "Going to dump the outctx");
-      zm_dump_codec(video_out_ctx);
     }
-    video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+    //video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+    video_out_ctx->time_base = video_in_ctx->time_base;
+
     if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
       video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -232,9 +229,6 @@ Debug(2,"Using mjpeg");
     }
     // Fix deprecated formats
     switch ( video_out_ctx->pix_fmt ) {
-      case AV_PIX_FMT_YUVJ420P :
-        video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-        break;
       case AV_PIX_FMT_YUVJ422P  :
         video_out_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
         break;
@@ -244,10 +238,13 @@ Debug(2,"Using mjpeg");
       case AV_PIX_FMT_YUVJ440P :
         video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
         break;
+      case AV_PIX_FMT_NONE :
+      case AV_PIX_FMT_YUVJ420P :
       default:
       video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
         break;
     }
+    zm_dump_codec(video_out_ctx);
 
   } else {
 
@@ -339,9 +336,8 @@ Debug(2,"Using mjpeg");
 
   video_out_stream = avformat_new_stream(oc, video_out_codec);
   if ( ! video_out_stream ) {
-    Fatal("Unable to create video out stream");
-  } else {
-    Debug(2, "Success creating video out stream");
+    Error("Unable to create video out stream");
+    return false;
   }
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
@@ -350,11 +346,9 @@ Debug(2,"Using mjpeg");
     return false;
   }
   zm_dump_codecpar(video_out_stream->codecpar);
-  zm_dump_codec(video_out_ctx);
 #else
   avcodec_copy_context(video_out_stream->codec, video_out_ctx);
   Debug(2, "%dx%d", video_out_stream->codec->width, video_out_stream->codec->height );
-  zm_dump_codec(video_out_ctx);
   zm_dump_codec(video_out_stream->codec);
 #endif
 
@@ -386,9 +380,7 @@ Debug(2,"Using mjpeg");
   }
 
   if ( audio_in_stream ) {
-    Debug(3, "Have audio stream");
     audio_in_stream_index = audio_in_stream->index;
-    Debug(3, "Have audio stream");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     audio_in_ctx = avcodec_alloc_context3(NULL);
     ret = avcodec_parameters_to_context(audio_in_ctx,
@@ -500,6 +492,8 @@ Debug(2,"Using mjpeg");
     return false;
   }
   if ( opts ) av_dict_free(&opts);
+  zm_dump_stream_format(oc, 0, 0, 1);
+  if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
   return true;
 } // end bool VideoStore::open()
 
@@ -727,7 +721,6 @@ bool VideoStore::setup_resampler() {
     Error("Could not find codec for AAC");
     return false;
   }
-  Debug(2, "Have audio out codec");
 
   // Now copy them to the out stream
   audio_out_stream = avformat_new_stream(oc, audio_out_codec);
@@ -760,7 +753,7 @@ bool VideoStore::setup_resampler() {
       }
     }
     if ( found ) {
-      Debug(3, "Sample rate is good");
+      Debug(4, "Sample rate is good");
     } else {
       audio_out_ctx->sample_rate =
           audio_out_codec->supported_samplerates[0];
@@ -1114,15 +1107,21 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     opkt.size = ipkt->size;
     opkt.flags = ipkt->flags;
     if ( ! video_start_pts ) {
-      video_start_pts = zm_packet->timestamp->tv_sec*(uint64_t)1000000 + zm_packet->timestamp->tv_usec;
+      video_start_pts = ipkt->pts;
       opkt.dts = opkt.pts = 0;
     } else {
-      opkt.dts = opkt.pts = ( zm_packet->timestamp->tv_sec*(uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_start_pts;
+  dumpPacket(ipkt);
+      opkt.dts = opkt.pts = ( ipkt->pts - video_start_pts );
+  Debug(2, "out_stream_time_base(%d/%d) in_stream_time_base(%d/%d) video_start_pts(%d) pts(%d) /dts(%d) ",
+      video_out_stream->time_base.num, video_out_stream->time_base.den,
+      video_in_stream->time_base.num, video_in_stream->time_base.den,
+      video_start_pts, opkt.pts, opkt.dts );
+      opkt.pts = av_rescale_q( opkt.pts, video_in_stream->time_base, video_out_stream->time_base);
+      opkt.dts = av_rescale_q( opkt.dts, video_in_stream->time_base, video_out_stream->time_base);
     }
   }
 
   opkt.duration = 0;
-  dumpPacket(&opkt);
 
   write_video_packet( opkt );
   zm_av_packet_unref(&opkt);
@@ -1145,11 +1144,10 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
   //video_next_dts += opkt.duration;
   //video_next_pts += opkt.duration;
 
-  av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
+  //av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
 
-  Debug(1,
-        "writing video packet pts(%" PRId64 ") dts(%" PRId64 ") duration(%" PRId64 ") packet_count(%u)",
-         opkt.pts, opkt.dts, opkt.duration, packets_written );
+  dumpPacket(&opkt);
+
   if ( (opkt.data == NULL) || (opkt.size < 1) ) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
     //dumpPacket(&opkt);

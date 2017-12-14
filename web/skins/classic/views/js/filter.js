@@ -1,3 +1,24 @@
+function validateForm ( form ) {
+  let rows = $j(form).find('tbody').eq(0).find('tr');
+  let obrCount = 0;
+  let cbrCount = 0;
+  for ( let i = 0; i < rows.length; i++ ) {
+    if (rows.length > 2) {
+      obrCount += parseInt(form.elements['filter[Query][terms][' + i + '][obr]'].value);
+      cbrCount += parseInt(form.elements['filter[Query][terms][' + i + '][cbr]'].value);
+    }
+    if (form.elements['filter[Query][terms][' + i + '][val]'].value == '') {
+      alert( errorValue );
+      return false;
+    }
+  }
+  if (obrCount - cbrCount != 0) {
+    alert( errorBrackets );
+    return false;
+  }
+  return true;
+}
+
 function updateButtons( element ) {
   var form = element.form;
 

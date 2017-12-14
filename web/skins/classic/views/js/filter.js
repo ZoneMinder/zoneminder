@@ -63,14 +63,6 @@ function clearValue( element ) {
   $j(element).closest('tr').find('[type=text]').val('');
 }
 
-function submitToFilter( element ) {
-  var form = element.form;
-  form.target = window.name;
-  form.action = thisUrl + '?view=filter';
-  form.elements['action'].value = 'submit';
-  form.submit();
-}
-
 function resetFilter( element ) {
   element.form.reset();
   $j('#contentForm')[0].reset();

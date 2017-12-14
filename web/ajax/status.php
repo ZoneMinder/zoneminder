@@ -312,13 +312,13 @@ switch( $_REQUEST['layout'] ) {
   case 'xml NOT CURRENTLY SUPPORTED' :
     {
       header("Content-type: application/xml" );
-      echo( '<?xml version="1.0" encoding="iso-8859-1"?>'.'\n' );
-      echo "<".strtolower($_REQUEST['entity']).">\n";
+      echo( '<?xml version="1.0" encoding="iso-8859-1"?>'."\n" );
+      echo '<'.strtolower($_REQUEST['entity']).">\n";
       foreach ( $data as $key=>$value ) {
         $key = strtolower( $key );
         echo "<$key>".htmlentities($value)."</$key>\n";
       }
-      echo "</".strtolower($_REQUEST['entity']).">\n";
+      echo '</'.strtolower($_REQUEST['entity']).">\n";
       break;
     }
   case 'json' :
@@ -331,7 +331,7 @@ switch( $_REQUEST['layout'] ) {
     }
   case 'text' :
     {
-      header("Content-type: text/plain" );
+      header('Content-type: text/plain' );
       echo join( ' ', array_values( $data ) );
       break;
     }

@@ -335,21 +335,6 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
 }
 */
 
-function changeGroup( e, depth ) {
-  var group_id = $('group'+depth).get('value');
-  Cookie.write( 'zmGroup'+depth, group_id, { duration: 10*365 } );
-  window.location = window.location;
-}
-function changeMonitor( e ) {
-  var monitor_id = e.value;
-  Cookie.write( 'MonitorId', monitor_id, { duration: 10*365 } );
-  window.location = window.location;
-}
-function changeFilter( e ) {
-  Cookie.write( e.name, e.value, { duration: 10*365 } );
-  window.location = window.location;
-}
-
 var resizeTimer;
 
 function endOfResize(e) {

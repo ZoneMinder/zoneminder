@@ -153,7 +153,10 @@ if ( $showZones ) {
 }
 ?>
       </div>
+<form method="get">
+<input type="hidden" name="view" value="montage"/>
       <?php echo $filterbar ?>
+</form>
       <div id="sizeControl">
         <form action="index.php?view=montage" method="post">
           <input type="hidden" name="object" value="MontageLayout"/>

@@ -135,3 +135,11 @@ if ( openFilterWindow ) {
   createPopup( '?view=filter&page='+thisPage+filterQuery, 'zmFilter', 'filter' );
   location.replace( '?view='+currentView+'&page='+thisPage+filterQuery );
 }
+
+function initPage () {
+  if (window.history.length == 1) {
+    $j('#controls').children().eq(0).html('');
+  }
+}
+
+$j(document).ready(initPage);

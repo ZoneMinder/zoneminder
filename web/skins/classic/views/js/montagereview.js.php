@@ -5,6 +5,7 @@ $now = new DateTime('now', $TimeZone);
 $offset = $TimeZone->getOffset($now);
 echo $offset . '; // ' . floor($offset / 3600) . ' hours ';
 ?>
+
 var currentScale=<?php echo $defaultScale?>;
 var liveMode=<?php echo $initialModeIsLive?>;
 var fitMode=<?php echo $fitMode?>;
@@ -42,60 +43,62 @@ $index = 0;
 $anyAlarms = false;
 
 if ( ! $initialModeIsLive ) {
+Warning($eventsSql);
+  $result = dbQuery( $eventsSql );
+  if ( ! $result ) {
+    Fatal('SQL-ERR');
+    return;
+  }
 
-$result = dbQuery( $eventsSql );
-if ( ! $result ) {
-  Fatal('SQL-ERR');
-  return;
-}
+  while( $event = $result->fetch( PDO::FETCH_ASSOC ) ) {
 
-while( $event = $result->fetch( PDO::FETCH_ASSOC ) ) {
-
-  if ( $minTimeSecs > $event['StartTimeSecs'] )   $minTimeSecs = $event['StartTimeSecs'];
-  if ( $maxTimeSecs < $event['CalcEndTimeSecs'] ) $maxTimeSecs = $event['CalcEndTimeSecs'];
-    echo "
+    if ( $minTimeSecs > $event['StartTimeSecs'] )   $minTimeSecs = $event['StartTimeSecs'];
+    if ( $maxTimeSecs < $event['CalcEndTimeSecs'] ) $maxTimeSecs = $event['CalcEndTimeSecs'];
+      echo "
 eMonId[$index]=" . $event['MonitorId'] . ";
 eId[$index]=" . $event['Id'] . ";
 eStartSecs[$index]=" . $event['StartTimeSecs'] . ";
 eEndSecs[$index]=" . $event['CalcEndTimeSecs'] . ";
 eventFrames[$index]=" . $event['Frames'] . ";
 
-";
+  ";
 
-  $index = $index + 1;
-  if ( $event['MaxScore'] > 0 )
-    $anyAlarms = true;
-}
-
-// if there is no data set the min/max to the passed in values
-if ( $index == 0 ) {
-  if ( isset($minTime) && isset($maxTime) ) {
-    $minTimeSecs = strtotime($minTime);
-    $maxTimeSecs = strtotime($maxTime);
-  } else {
-    // this is the case of no passed in times AND no data -- just set something arbitrary
-    $minTimeSecs = strtotime('1950-06-01 01:01:01');  // random time so there's something to display
-    $maxTimeSecs = time() + 86400;
+    $index = $index + 1;
+    if ( $event['MaxScore'] > 0 )
+      $anyAlarms = true;
   }
-}
 
-// We only reset the calling time if there was no calling time
-if ( !isset($minTime) || !isset($maxTime) ) {
-  $maxTime = strftime($maxTimeSecs);
-  $minTime = strftime($minTimeSecs);
-} else {
-  $minTimeSecs = strtotime($minTime);
+  // if there is no data set the min/max to the passed in values
+  if ( $index == 0 ) {
+    if ( isset($minTime) && isset($maxTime) ) {
+      $minTimeSecs = strtotime($minTime);
+      $maxTimeSecs = strtotime($maxTime);
+    } else {
+      // this is the case of no passed in times AND no data -- just set something arbitrary
+      $minTimeSecs = strtotime('1950-06-01 01:01:01');  // random time so there's something to display
+      $maxTimeSecs = time() + 86400;
+    }
+  }
 
-  $maxTimeSecs = strtotime($maxTime);
-}
+  // We only reset the calling time if there was no calling time
+  if ( !isset($minTime) || !isset($maxTime) ) {
+    $maxTime = strftime($maxTimeSecs);
+    $minTime = strftime($minTimeSecs);
+  } else {
+    $minTimeSecs = strtotime($minTime);
 
-// If we had any alarms in those events, this builds the list of all alarm frames, but consolidated down to (nearly) contiguous segments 
-// comparison in else governs how aggressively it consolidates
+    $maxTimeSecs = strtotime($maxTime);
+  }
 
-echo "var fMonId = [];\n";
-echo "var fTimeFromSecs = [];\n";
-echo "var fTimeToSecs = [];\n";
-echo "var fScore = [];\n";
+  // If we had any alarms in those events, this builds the list of all alarm frames, but consolidated down to (nearly) contiguous segments 
+  // comparison in else governs how aggressively it consolidates
+
+  echo "
+var fMonId = [];
+var fTimeFromSecs = [];
+var fTimeToSecs = [];
+var fScore = [];
+";
 $maxScore=0;
 $index=0;
 $mId=-1;
@@ -115,10 +118,11 @@ if ( $anyAlarms && $result = dbQuery( $frameSql ) ) {
       // dump this one start a new
       $index++;
       echo "
-  fMonId[$index]= $mId;
-  fTimeFromSecs[$index]= $fromSecs;
-  fTimeToSecs[$index]= $toSecs;
-  fScore[$index]= $maxScore;
+
+fMonId[$index]= $mId;
+fTimeFromSecs[$index]= $fromSecs;
+fTimeToSecs[$index]= $toSecs;
+fScore[$index]= $maxScore;
 ";
       $mId = $frame['MonitorId'];
       $fromSecs = $frame['TimeStampSecs'];
@@ -140,7 +144,7 @@ if ( $mId > 0 ) {
 ";
 }
 
-echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
+  echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
 } // end if initialmodeislive
 echo "var monitorName = [];\n";
 echo "var monitorLoading = [];\n";

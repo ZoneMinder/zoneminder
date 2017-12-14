@@ -68,10 +68,9 @@ if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($display
         )
       ),
     );
-  if (isset($_SESSION['MonitorId'])) {
-    $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => '=', 'val' => $_SESSION['MonitorId'], 'cnj' => 'and'));
-  }
-  if (( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) && !isset($_SESSION['MonitorId'])) {
+  if (count($selected_monitor_ids ) ) {
+    $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => 'IN', 'val' => $selected_monitor_ids, 'cnj' => 'and'));
+  } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
     for ($i=0; $i < count($displayMonitors); $i++) {
       if ($i == '0') {
         $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1');
@@ -122,9 +121,10 @@ if ( ! empty( $user['MonitorIds'] ) ) {
   $eventsSql .= ' AND M.Id IN ('.$user['MonitorIds'].')';
   $frameSql  .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
-if ( $monitor_id ) {
-  $eventsSql .= ' AND M.Id='.$monitor_id;
-  $frameSql  .= ' AND E.MonitorId='.$monitor_id;
+if ( count($selected_monitor_ids) ) {
+  $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
+  $eventsSql .= ' AND M.Id '.$monitor_ids_sql;
+  $frameSql  .= ' AND E.MonitorId '.$monitor_ids_sql;
 }
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
@@ -199,7 +199,7 @@ if ( isset($minTime) && isset($maxTime) ) {
 $frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
 
 $monitors = array();
-foreach( $displayMonitors as &$row ) {
+foreach( $displayMonitors as $row ) {
   if ( $row['Function'] == 'None' )
     continue;
   $Monitor = new Monitor( $row );

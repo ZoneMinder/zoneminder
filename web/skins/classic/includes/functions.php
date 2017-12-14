@@ -96,6 +96,8 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
+  <link href="skins/<?php echo $skin ?>/js/chosen/chosen.min.css" rel="stylesheet">
   <script type="text/javascript">
   //<![CDATA[
   <!--
@@ -329,7 +331,11 @@ if ( canEdit('System') ) {
 <?php
 }
 ?>
-</body></html>
+</body>
+<script type="text/javascript">
+$j('.chosen').chosen();
+</script>
+</html>
 <?php
 } // end xhtmlFooter
 

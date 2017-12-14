@@ -978,6 +978,9 @@ function initPage() {
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   if (scale == "auto") changeScale();
+  if (window.history.length == 1) {
+    $j('#closeWindow').html('');
+  }
 }
 
 // Kick everything off

@@ -24,19 +24,15 @@ foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
 session_start();
-foreach ( array('ServerFilter','StorageFilter','StatusFilter','MonitorId') as $var ) {
+foreach ( array('ServerId','StorageId','Status','MonitorId') as $var ) {
   if ( isset( $_REQUEST[$var] ) ) {
     if ( $_REQUEST[$var] != '' ) {
       $_SESSION[$var] = $_REQUEST[$var];
     } else {
       unset( $_SESSION[$var] );
     }
-  } else if ( isset( $_COOKIE[$var] ) ) {
-    if ( $_COOKIE[$var] != '' ) {
-      $_SESSION[$var] = $_COOKIE[$var];
-    } else {
-      unset($_SESSION[$var]);
-    }
+  } else if ( isset( $_REQUEST['filtering'] ) ) {
+    unset( $_SESSION[$var] );
   }
 }
 session_write_close();
@@ -49,6 +45,7 @@ foreach ( $storage_areas as $S ) {
 
 ?>
 <div class="controlHeader">
+<input type="hidden" name="filtering" value="" />
   <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
 <?php
 # This will end up with the group_id of the deepest selection
@@ -59,23 +56,28 @@ $groupSql = Group::get_group_sql( $group_id );
   <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
 <?php
 
-  $monitor_id = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : 0;
-
-  # Used to determine if the Cycle button should be made available
+$selected_monitor_ids = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : array();
+if ( ! is_array( $selected_monitor_ids ) ) {
+  Warning("Turning selected_monitor_ids into an array $selected_monitor_ids");
+  $selected_monitor_ids = array( $selected_monitor_ids );
+}
 
   $conditions = array();
   $values = array();
 
   if ( $groupSql )
     $conditions[] = $groupSql;
-  if ( isset($_SESSION['ServerFilter']) ) {
-    $conditions[] = 'ServerId=?';
-    $values[] = $_SESSION['ServerFilter'];
-  }
-  if ( isset($_SESSION['StorageFilter']) ) {
-    $conditions[] = 'StorageId=?';
-    $values[] = $_SESSION['StorageFilter'];
-  }
+  foreach ( array('ServerId','StorageId','Status') as $filter ) {
+    if ( isset($_SESSION[$filter]) ) {
+      if ( is_array($_SESSION[$filter]) ) {
+        $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter] ) ). ')';
+        $values += $_SESSION[$filter];
+    } else {
+        $conditions[] = $filter . '=?';
+      $values[] = $_SESSION[$filter];
+      }
+    }
+  } # end foreach filter
   if ( ! empty( $user['MonitorIds'] ) ) {
     $ids = explode(',', $user['MonitorIds'] );
     $conditions[] = 'Id IN ('.implode(',',array_map( function(){return '?';}, $ids) ).')';
@@ -85,22 +87,22 @@ $groupSql = Group::get_group_sql( $group_id );
   $sql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll( $sql, null, $values );
   $displayMonitors = array();
-  $monitors_dropdown = array(''=>'All');
+  $monitors_dropdown = array();
 
   # Check to see if the selected monitor_id is in the results.
-  if ( $monitor_id ) {
+  if ( count($selected_monitor_ids) ) {
     $found_selected_monitor = false;
 
     for ( $i = 0; $i < count($monitors); $i++ ) {
       if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
         continue;
       }
-      if ( $monitors[$i]['Id'] == $monitor_id ) {
+      if ( in_array( $monitors[$i]['Id'], $selected_monitor_ids ) ) {
         $found_selected_monitor = true;
       }
     } // end foreach monitor
     if ( ! $found_selected_monitor ) {
-      $monitor_id = '';
+      $selected_monitor_ids = array();
     }
   } // end if a monitor was specified
 
@@ -111,7 +113,7 @@ $groupSql = Group::get_group_sql( $group_id );
     }
     $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
 
-    if ( $monitor_id and ( $monitors[$i]['Id'] != $monitor_id ) ) {
+    if ( count($selected_monitor_ids) and ! in_array( $monitors[$i]['Id'], $selected_monitor_ids ) ) {
       continue;
     }
     if ( isset($_SESSION['StatusFilter']) ) {
@@ -121,7 +123,13 @@ $groupSql = Group::get_group_sql( $group_id );
     }
     $displayMonitors[] = $monitors[$i];
   }
-  echo htmlSelect( 'MonitorId', $monitors_dropdown, $monitor_id, array('onchange'=>'changeFilter(this);') );
+  echo htmlSelect( 'MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
+    array(
+      'onchange'=>'this.form.submit();',
+      'class'=>'chosen',
+      'multiple'=>'multiple',
+      'data-placeholder'=>'All',
+    ) );
 ?>
 </span>
 <?php
@@ -129,7 +137,15 @@ if ( count($ServersById) > 1 ) {
 ?>
 <span class="ServerFilter"><label><?php echo translate('Server')?>:</label>
 <?php
-echo htmlSelect( 'ServerFilter', array(''=>'All')+$ServersById, (isset($_SESSION['ServerFilter'])?$_SESSION['ServerFilter']:''), array('onchange'=>'changeFilter(this);') );
+  echo htmlSelect( 'ServerId[]', $ServersById,
+    (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
+    array(
+      'onchange'=>'this.form.submit();',
+      'class'=>'chosen',
+      'multiple'=>'multiple',
+      'data-placeholder'=>'All',
+    )
+  );
 ?>
 </span>
 <?php 
@@ -137,7 +153,14 @@ echo htmlSelect( 'ServerFilter', array(''=>'All')+$ServersById, (isset($_SESSION
 if ( count($StorageById) > 1 ) { ?>
   <span class="StorageFilter"><label><?php echo translate('Storage')?>:</label>
 <?php
-echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSION['StorageFilter'])?$_SESSION['StorageFilter']:''), array('onchange'=>'changeFilter(this);') );
+  echo htmlSelect( 'StorageId[]',$StorageById,
+    (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
+    array(
+      'onchange'=>'this.form.submit();',
+      'class'=>'chosen',
+      'multiple'=>'multiple',
+      'data-placeholder'=>'All',
+    ) );
 ?>
   </span>
 <?php
@@ -146,12 +169,18 @@ echo htmlSelect( 'StorageFilter', array(''=>'All')+$StorageById, (isset($_SESSIO
   <span class="StatusFilter"><label><?php echo translate('Status')?>:</label>
 <?php
 $status_options = array(
-    ''=>'All',
     'Unknown' => translate('Unknown'),
     'NotRunning' => translate('NotRunning'),
     'Running' => translate('Running'),
     );
-echo htmlSelect( 'StatusFilter', $status_options, ( isset($_SESSION['StatusFilter']) ? $_SESSION['StatusFilter'] : '' ), array('onchange'=>'changeFilter(this);') );
+echo htmlSelect( 'Status[]', $status_options,
+  ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),
+  array(
+    'onchange'=>'this.form.submit();',
+    'class'=>'chosen',
+    'multiple'=>'multiple',
+    'data-placeholder'=>'All'
+  ) );
 ?>
   </span>
 </div>

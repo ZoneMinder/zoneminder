@@ -141,6 +141,7 @@ public $defaults = array(
     $depth = 0;
     $groups = array();
     $parent_group_ids = null;
+    session_start();
     while(1) {
       $Groups = Group::find_all( array('ParentId'=>$parent_group_ids) );
       if ( ! count( $Groups ) )
@@ -148,10 +149,12 @@ public $defaults = array(
 
       $parent_group_ids = array();
       $selected_group_id = 0;
-      if ( isset($_REQUEST['group'.$depth]) and $_REQUEST['group'.$depth] > 0 ) {
-        $selected_group_id = $group_id = $_REQUEST['group'.$depth];
-      } else if ( isset($_COOKIE['zmGroup'.$depth] ) and $_COOKIE['zmGroup'.$depth] > 0 ) {
-        $selected_group_id = $group_id = $_COOKIE['zmGroup'.$depth];
+      if ( isset($_REQUEST['group'.$depth]) ) {
+        $selected_group_id = $group_id = $_SESSION['group'.$depth] = $_REQUEST['group'.$depth];
+      } else if ( isset( $_SESSION['group'.$depth] ) ) {
+        $selected_group_id = $group_id = $_SESSION['group'.$depth];
+      } else if ( isset($_REQUEST['filtering']) ) {
+        unset($_SESSION['group'.$depth]);
       }
 
       foreach ( $Groups as $Group ) {
@@ -163,10 +166,11 @@ public $defaults = array(
           $parent_group_ids[] = $Group->Id();
       }
 
-      echo htmlSelect( 'group'.$depth, $groups[$depth], $selected_group_id, "changeGroup(this,$depth);" );
+      echo htmlSelect( 'group'.$depth, $groups[$depth], $selected_group_id, "this.form.submit();" );
       if ( ! count($parent_group_ids) ) break;
       $depth += 1;
     }
+    session_write_close();
 
     return $group_id;
   } # end public static function get_group_dropdowns()

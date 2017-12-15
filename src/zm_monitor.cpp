@@ -1262,7 +1262,6 @@ bool Monitor::Analyse() {
 
     struct timeval *timestamp = snap->timestamp;
     Image *snap_image = snap->image;
-    Debug(2, "Analysing image (%d)", snap->image_index );
     if ( snap->image_index == -1 ) {
       snap->unlock();
       Debug(2, "skipping because audio");

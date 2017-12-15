@@ -1031,7 +1031,9 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     zm_packet->out_frame->coded_picture_number = frame_count;
     zm_packet->out_frame->display_picture_number = frame_count;
     zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       zm_packet->out_frame->pkt_duration = 0;
+#endif
 
     if ( ! video_start_pts ) {
       uint64_t temp = zm_packet->timestamp->tv_sec*(uint64_t)1000000;

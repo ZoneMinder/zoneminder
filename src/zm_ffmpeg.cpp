@@ -251,7 +251,11 @@ void zm_dump_codec ( const AVCodecContext *codec ) {
     codec->height,
     codec->time_base.num,
     codec->time_base.den,
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt))
+#else
+    "unsupported on avconv"
+#endif
 ); 
 }
 

@@ -23,6 +23,7 @@ if ( !canView( 'Events' ) ) {
   return;
 }
 require_once 'includes/Filter.php';
+parseSort();
 
 $filterNames = array( ''=>translate('ChooseFilter') );
 $filter = NULL;
@@ -42,6 +43,12 @@ if ( ! $filter ) {
   $filter = new Filter();
 }
 
+if ( isset($_REQUEST['sort_field']) && isset($_REQUEST['filter']) ) {
+  $_REQUEST['filter']['Query']['sort_field'] = $_REQUEST['sort_field'];
+  $_REQUEST['filter']['Query']['sort_asc'] = $_REQUEST['sort_asc'];
+  $_REQUEST['filter']['Query']['limit'] = $_REQUEST['limit'];
+}
+
 if ( isset($_REQUEST['filter']) ) {
   $filter->set( $_REQUEST['filter'] );
   # Update our filter object with whatever changes we have made before saving
@@ -51,7 +58,7 @@ $conjunctionTypes = array(
     'and' => translate('ConjAnd'),
     'or'  => translate('ConjOr')
     );
-$obracketTypes = array(); 
+$obracketTypes = array();
 $cbracketTypes = array();
 
 if (count($filter->terms()) > 0) {

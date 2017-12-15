@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
     last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
     capture_delays[i] = monitors[i]->GetCaptureDelay();
     alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
-    Debug(2, "capture delay(%u) alarm delay(%u)", capture_delays[i], alarm_capture_delays[i] );
+    Debug(2, "capture delay(%u mSecs 1000/capture_fps) alarm delay(%u)", capture_delays[i], alarm_capture_delays[i] );
 
     Monitor::Function function = monitors[0]->GetFunction();
     if ( function == Monitor::MODECT || function == Monitor::MOCORD || function == Monitor::RECORD) {
@@ -278,6 +278,7 @@ int main(int argc, char *argv[]) {
       gettimeofday(&now, NULL);
       for ( int j = 0; j < n_monitors; j++ ) {
         if ( last_capture_times[j].tv_sec ) {
+          // We pretty much know this is positive.
           DELTA_TIMEVAL(delta_time, now, last_capture_times[j], DT_PREC_3);
           // capture_delay is the amount of time we should sleep to achieve the desired framerate.
           if ( monitors[i]->GetState() == Monitor::ALARM )

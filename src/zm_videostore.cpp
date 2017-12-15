@@ -348,7 +348,6 @@ Debug(2,"Using mjpeg");
   zm_dump_codecpar(video_out_stream->codecpar);
 #else
   avcodec_copy_context(video_out_stream->codec, video_out_ctx);
-  Debug(2, "%dx%d", video_out_stream->codec->width, video_out_stream->codec->height );
   zm_dump_codec(video_out_stream->codec);
 #endif
 
@@ -563,10 +562,9 @@ VideoStore::~VideoStore() {
           break;
         }
 #endif
-        int keyframe = pkt.flags & AV_PKT_FLAG_KEY;
-        Debug(3, "dts:%I64d, pts:%I64d, keyframe:%d", pkt.dts, pkt.pts, keyframe );
+        dumpPacket(&pkt);
         //pkt.dts = video_next_dts;
-        pkt.pts = pkt.dts;
+        //pkt.pts = pkt.dts;
         //pkt.duration = video_last_duration;
         write_video_packet(pkt);
         zm_av_packet_unref(&pkt);

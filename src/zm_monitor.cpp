@@ -1413,13 +1413,9 @@ bool Monitor::Analyse() {
               if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
                 Info( "%s: %03d - Gone into alarm state", name, analysis_image_count );
                 shared_data->state = state = ALARM;
-                if ( (function != MOCORD && state != ALERT) ) {
-if ( event ) {
-Error("Already ahve evnet!");
-} else {
+                if ( ! event ) {
                   event = new Event( this, *timestamp, cause, noteSetMap );
                   shared_data->last_event_id = event->Id();
-}
                 }
               } else if ( state != PREALARM ) {
                 Info( "%s: %03d - Gone into prealarm state", name, analysis_image_count );
@@ -3259,7 +3255,7 @@ void Monitor::get_ref_image() {
       ( shared_data->last_write_time == 0 )
       && ! zm_terminate
       ) {
-    Warning( "Waiting for capture daemon" );
+    Warning( "Waiting for capture daemon lwi(%d) lwt(%d)", shared_data->last_write_index, shared_data->last_write_time );
     usleep( 50000 );
   }
   int last_write_index = shared_data->last_write_index ;

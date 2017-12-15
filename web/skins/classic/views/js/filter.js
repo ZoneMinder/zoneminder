@@ -109,7 +109,7 @@ function parseRows (rows) {
       $j.each(conjTypes, function (i) {
         conjSelect.append('<option value="' + i + '" >' + i + '</option>');
       });
-      inputTds.eq(0).html(conjSelect).children().val(cnjVal);
+      inputTds.eq(0).html(conjSelect).children().val(cnjVal === undefined ? 'and' : cnjVal);
     }
 
     let brackets = rows.length - 2;

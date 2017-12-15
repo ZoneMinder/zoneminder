@@ -1036,9 +1036,18 @@ function monitorLimitSql() {
   return( $midSql );
 }
 
-function parseSort( $saveToSession=false, $querySep='&amp;' ) {
-  global $sortQuery, $sortColumn, $sortOrder; // Outputs
 
+function parseSort( $saveToSession=false, $querySep='&amp;' ) {
+  global $sortQuery, $sortColumn, $sortOrder, $limitQuery; // Outputs
+  if (isset($_REQUEST['filter']['Query']['sort_field'])) { //Handle both new and legacy filter passing
+    $_REQUEST['sort_field'] = $_REQUEST['filter']['Query']['sort_field'];
+  }
+  if (isset($_REQUEST['filter']['Query']['sort_asc'])) {
+    $_REQUEST['sort_asc'] = $_REQUEST['filter']['Query']['sort_asc'];
+  }
+  if (isset($_REQUEST['filter']['Query']['limit'])) {
+    $_REQUEST['limit'] = $_REQUEST['filter']['Query']['limit'];
+  }
   if ( empty($_REQUEST['sort_field']) ) {
     $_REQUEST['sort_field'] = ZM_WEB_EVENT_SORT_FIELD;
     $_REQUEST['sort_asc'] = (ZM_WEB_EVENT_SORT_ORDER == 'asc');
@@ -1100,6 +1109,9 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
   if ( $saveToSession ) {
     $_SESSION['sort_field'] = validHtmlStr($_REQUEST['sort_field']);
     $_SESSION['sort_asc'] = validHtmlStr($_REQUEST['sort_asc']);
+  }
+  if ($_REQUEST['limit'] != '') {
+    $limitQuery = "&limit=".$_REQUEST['limit'];
   }
 }
 

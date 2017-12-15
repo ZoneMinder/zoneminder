@@ -209,7 +209,7 @@ CREATE TABLE `Events` (
   `StateId` int(10) unsigned NOT NULL,
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   `DiskSpace`   bigint unsigned default NULL,
-  PRIMARY KEY (`Id`,`MonitorId`),
+  PRIMARY KEY (`Id`),
   KEY `MonitorId` (`MonitorId`),
   KEY `StartTime` (`StartTime`),
   KEY `Frames` (`Frames`),

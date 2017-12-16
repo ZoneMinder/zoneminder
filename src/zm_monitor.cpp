@@ -1409,21 +1409,22 @@ bool Monitor::Analyse() {
 
           if ( score ) {
             Debug(9, "Score: (%d)", score );
-            if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
-              if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
-                Info( "%s: %03d - Gone into alarm state", name, analysis_image_count );
-                shared_data->state = state = ALARM;
-                if ( ! event ) {
-                  event = new Event( this, *timestamp, cause, noteSetMap );
-                  shared_data->last_event_id = event->Id();
+              if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
+                if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
+                  Info( "%s: %03d - Gone into alarm state", name, analysis_image_count );
+                  shared_data->state = state = ALARM;
+                  if ( ! event ) {
+                    event = new Event( this, *timestamp, cause, noteSetMap );
+                    shared_data->last_event_id = event->Id();
+                  }
+                } else if ( state != PREALARM ) {
+                  Info( "%s: %03d - Gone into prealarm state", name, analysis_image_count );
+                  shared_data->state = state = PREALARM;
                 }
-              } else if ( state != PREALARM ) {
-                Info( "%s: %03d - Gone into prealarm state", name, analysis_image_count );
-                shared_data->state = state = PREALARM;
+              } else if ( state == ALERT ) {
+                Info( "%s: %03d - Gone back into alarm state", name, analysis_image_count );
+                shared_data->state = state = ALARM;
               }
-            } else if ( state == ALERT ) {
-              Info( "%s: %03d - Gone back into alarm state", name, analysis_image_count );
-              shared_data->state = state = ALARM;
             }
             last_alarm_count = analysis_image_count;
           } else { // no score?
@@ -1434,7 +1435,7 @@ bool Monitor::Analyse() {
               if ( analysis_image_count-last_alarm_count > post_event_count ) {
                 Info( "%s: %03d - Left alarm state (%d) - %d(%d) images", name, analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames() );
                 //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
-                if ( function != MOCORD || event_close_mode == CLOSE_ALARM ) {
+                if ( (function != RECORD && function != MOCORD ) || event_close_mode == CLOSE_ALARM ) {
                   shared_data->state = state = IDLE;
                   Info( "%s: %03d - Closing event %d, alarm end%s", name, analysis_image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
                   closeEvent();

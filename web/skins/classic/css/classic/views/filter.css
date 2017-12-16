@@ -3,13 +3,14 @@
 
 table.filterTable {
     margin: 0 auto;
-    empty-cells: show;
-    border-collapse: separate;
-    border-spacing: 5px 2px;
 }
 
 #fieldsTable td:first-of-type {
     width: 4.5em;
+}
+
+#fieldsTable td {
+    padding: 0 5px;
 }
 
 #fieldsTable input[type=button] {

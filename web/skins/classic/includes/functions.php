@@ -26,6 +26,7 @@ function xhtmlHeaders( $file, $title ) {
   global $css;
   global $skin;
   $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
+  $skinCssFilejquery = getSkinFile( 'css/'.$css.'/jquery-ui-theme.css' );
   $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
 
   $skinJsFile = getSkinFile( 'js/skin.js' );
@@ -66,6 +67,7 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
   <link rel="stylesheet" href="<?php echo cache_bust($skinCssFile) ?>" type="text/css" media="screen"/>
+  <link rel="stylesheet" href="<?php echo cache_bust($skinCssFilejquery) ?>" type="text/css" media="screen"/>
 <?php
   if ( $viewCssFile ) {
 ?>
@@ -97,10 +99,10 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-timepicker-addon.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
-  <link href="skins/<?php echo $skin ?>/js/jquery-ui-timepicker-addon.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/jquery-ui.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/dateTimePicker/jquery-ui-timepicker-addon.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/jquery-ui-structure.css" rel="stylesheet">
   <link href="skins/<?php echo $skin ?>/js/chosen/chosen.min.css" rel="stylesheet">
   <script type="text/javascript">
   //<![CDATA[

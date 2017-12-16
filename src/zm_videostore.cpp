@@ -100,6 +100,7 @@ bool VideoStore::open() {
   oc->metadata = pmetadata;
   out_format = oc->oformat;
 
+
   if ( video_in_stream ) {
     video_in_stream_index = video_in_stream->index;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -272,15 +273,23 @@ Debug(2,"Using mjpeg");
     video_out_ctx->qmin = 10;
     video_out_ctx->qmax = 51;
     video_out_ctx->qcompress = 0.6;
-    video_out_ctx->bit_rate = 4000000;
-    video_out_ctx->max_b_frames = 1;
+    //video_out_ctx->bit_rate = 4000000;
     if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
+      video_out_ctx->max_b_frames = 1;
       if ( video_out_ctx->priv_data ) {
         av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
       } else {
         Debug(2, "Not setting priv_data");
       }
-    }
+    } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
+      /* just for testing, we also add B frames */
+      video_out_ctx->max_b_frames = 2;
+    } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
+      /* Needed to avoid using macroblocks in which some coeffs overflow.
+       * This does not happen with normal video, it just happens here as
+       * the motion of the chroma plane does not match the luma plane. */
+      video_out_ctx->mb_decision = 2;
+  }
 
     AVDictionary *opts = 0;
     std::string Options = monitor->GetEncoderOptions();
@@ -345,16 +354,8 @@ Debug(2,"Using mjpeg");
     Error("Could not initialize stream parameteres");
     return false;
   }
-  zm_dump_codecpar(video_out_stream->codecpar);
 #else
   avcodec_copy_context(video_out_stream->codec, video_out_ctx);
-  zm_dump_codec(video_out_stream->codec);
-#endif
-
-#if 0
-  // No point apparently.  They may change when opening the file.
-  video_out_stream->time_base.num = video_out_ctx->time_base.num;
-  video_out_stream->time_base.den = video_out_ctx->time_base.den;
 #endif
 
   if ( video_in_stream && ( video_in_ctx->codec_id == AV_CODEC_ID_H264 ) ) {
@@ -491,6 +492,7 @@ Debug(2,"Using mjpeg");
     return false;
   }
   if ( opts ) av_dict_free(&opts);
+
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
   return true;
@@ -562,10 +564,6 @@ VideoStore::~VideoStore() {
           break;
         }
 #endif
-        dumpPacket(&pkt);
-        //pkt.dts = video_next_dts;
-        //pkt.pts = pkt.dts;
-        //pkt.duration = video_last_duration;
         write_video_packet(pkt);
         zm_av_packet_unref(&pkt);
       }  // while have buffered frames
@@ -914,7 +912,7 @@ void VideoStore::dumpPacket(AVPacket *pkt) {
 
   snprintf(b, sizeof(b),
            " pts: %" PRId64 ", dts: %" PRId64
-           ", data: %p, size: %d, stream_index: %d, dflags: %04x, pos: %" PRId64
+           ", data: %p, size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
            ", duration: %" 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
            PRId64
@@ -928,6 +926,7 @@ void VideoStore::dumpPacket(AVPacket *pkt) {
            pkt->size,
            pkt->stream_index,
            pkt->flags,
+           pkt->flags & AV_PKT_FLAG_KEY,
            pkt->pos,
            pkt->duration);
   Debug(1, "%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
@@ -1029,7 +1028,9 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     zm_packet->out_frame->coded_picture_number = frame_count;
     zm_packet->out_frame->display_picture_number = frame_count;
     zm_packet->out_frame->sample_aspect_ratio = (AVRational){ 0, 1 };
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       zm_packet->out_frame->pkt_duration = 0;
+#endif
 
     if ( ! video_start_pts ) {
       uint64_t temp = zm_packet->timestamp->tv_sec*(uint64_t)1000000;
@@ -1039,6 +1040,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
           video_start_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
       zm_packet->out_frame->pts = 0;
+      zm_packet->out_frame->coded_picture_number = 0;
     } else {
       uint64_t seconds = zm_packet->timestamp->tv_sec*(uint64_t)1000000;
       zm_packet->out_frame->pts = ( seconds + zm_packet->timestamp->tv_usec ) - video_start_pts;
@@ -1081,6 +1083,8 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
 //Debug(2, "Got packet using receive_packet, dts:%" PRId64 ", pts:%" PRId64 ", keyframe:%d", opkt.dts, opkt.pts, opkt.flags & AV_PKT_FLAG_KEY );
 #else
     av_init_packet(&opkt);
+    opkt.data = NULL;
+    opkt.size = 0;
     int data_present;
     if ( (ret = avcodec_encode_video2(
             video_out_ctx, &opkt, zm_packet->out_frame, &data_present)) < 0) {
@@ -1116,10 +1120,11 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       video_start_pts, opkt.pts, opkt.dts );
       opkt.pts = av_rescale_q( opkt.pts, video_in_stream->time_base, video_out_stream->time_base);
       opkt.dts = av_rescale_q( opkt.dts, video_in_stream->time_base, video_out_stream->time_base);
+      opkt.duration = av_rescale_q( opkt.duration, video_in_stream->time_base, video_out_stream->time_base);
     }
   }
 
-  opkt.duration = 0;
+  //opkt.duration = 0;
 
   write_video_packet( opkt );
   zm_av_packet_unref(&opkt);

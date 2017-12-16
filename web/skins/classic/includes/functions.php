@@ -97,6 +97,10 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-timepicker-addon.js"></script>
+
+  <link href="skins/<?php echo $skin ?>/js/jquery-ui-timepicker-addon.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/jquery-ui.css" rel="stylesheet">
   <link href="skins/<?php echo $skin ?>/js/chosen/chosen.min.css" rel="stylesheet">
   <script type="text/javascript">
   //<![CDATA[

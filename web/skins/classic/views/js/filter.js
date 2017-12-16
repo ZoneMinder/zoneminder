@@ -127,17 +127,17 @@ function parseRows (rows) {
       inputTds.eq(1).html(obrSelect).children().val(obrVal); //Set bracket contents and assign saved value
       inputTds.eq(5).html(cbrSelect).children().val(cbrVal);
     } else {
-      inputTds.eq(1).html('&nbsp');
+      inputTds.eq(1).html('&nbsp'); //Blank if there aren't enough terms for brackets
       inputTds.eq(5).html('&nbsp');
     }
 
     if (rows.length == 1) {
-      inputTds.eq(6).find(':input[value="-"]').prop('disabled', true);
+      inputTds.eq(6).find(':input[value="-"]').prop('disabled', true);  //enable/disable remove row button
     } else {
       inputTds.eq(6).find(':input[value="-"]').prop('disabled', false);
     }
 
-    if (inputTds.eq(2).children().val() == "Archived") {
+    if (inputTds.eq(2).children().val() == "Archived") { //Archived types
       inputTds.eq(3).html('equal to<input type="hidden" name="filter[Query][terms][' + rowNum + '][op]" value="=">');
       let archiveSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let i = 0; i < archiveTypes.length; i++) {
@@ -146,7 +146,7 @@ function parseRows (rows) {
       let archiveVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal);
 
-    } else if (inputTds.eq(2).children().val().indexOf('Weekday') >= 0) {
+    } else if (inputTds.eq(2).children().val().indexOf('Weekday') >= 0) {  //Weekday selection
       let weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let i = 0; i < weekdays.length; i++) {
         weekdaySelect.append('<option value="' + i + '">' + weekdays[i] + '</option>');
@@ -154,24 +154,24 @@ function parseRows (rows) {
       let weekdayVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(weekdaySelect).children().val(weekdayVal);
 
-    } else if (inputTds.eq(2).children().val() == 'StateId') {
+    } else if (inputTds.eq(2).children().val() == 'StateId') { //Run state
       let stateSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let key in states) {
         stateSelect.append('<option value="' + key + '">' + states[key] + '</option>');
       }
       let stateVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(weekdaySelect).children().val(stateVal)
+      inputTds.eq(4).html(stateSelect).children().val(stateVal)
 
 
-    } else if (inputTds.eq(2).children().val() == 'ServerId') {
+    } else if (inputTds.eq(2).children().val() == 'ServerId') { //Select Server
       let serverSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let key in servers) {
         serverSelect.append('<option value="' + key + '">' + servers[key] + '</option>');
       }
       let serverVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(weekdaySelect).children().val(serverVal)
+      inputTds.eq(4).html(serverSelect).children().val(serverVal)
 
-    } else if (inputTds.eq(2).children().val() == 'StorageId') {
+    } else if (inputTds.eq(2).children().val() == 'StorageId') { //Choose by storagearea
       let storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let i=0; i < storageareas.length; i++) {
         storageSelect.append('<option value="' + i + '">' + storageareas[i] + '</option>');
@@ -179,14 +179,14 @@ function parseRows (rows) {
       let storageVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(storageSelect).children().val(storageVal)
 
-    } else if (inputTds.eq(2).children().val() == 'MonitorName') {
+    } else if (inputTds.eq(2).children().val() == 'MonitorName') { //Monitor names
       let monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let key in monitors) {
         monitorSelect.append('<option value="' + key + '">' + monitors[key] + '</option>');
       }
       let monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal)
-    } else {
+    } else {  //Reset to regular text field and operator for everything that isn't special
       let opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
       for (let key in opTypes) {
         opSelect.append('<option value="' + key + '">' + opTypes[key] + '</option>');
@@ -196,15 +196,23 @@ function parseRows (rows) {
       let textInput = $j('<input></input>').attr('type', 'text').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]')
       let textVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(textInput).children().val(textVal);
-   }
-   let attr = inputTds.find("[name$='attr\\]']") // Set attr list id and name
-   let term = attr.attr('name').split(/[[\]]{1,2}/);
-   term.length--;
-   term.shift();
-   term[2] = rowNum;
-   inputTds.eq(2).children().attr('name', 'filter'+stringFilter(term));
-   inputTds.eq(2).children().attr('id', 'filter'+stringFilter(term));
-  }
+    }
+    if (inputTds.eq(2).children().val().endsWith('DateTime')) { //Start/End DateTime
+      inputTds.eq(4).children().datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd"});
+    } else if (inputTds.eq(2).children().val().endsWith('Date')) { //Start/End Date
+      inputTds.eq(4).children().datepicker({dateFormat: "yy-mm-dd"});
+    } else if (inputTds.eq(2).children().val().endsWith('Time')) { //Start/End Time
+      inputTds.eq(4).children().timepicker({timeFormat: "HH:mm:ss"});
+    }
+
+    let attr = inputTds.find("[name$='attr\\]']") // Set attr list id and name
+    let term = attr.attr('name').split(/[[\]]{1,2}/);
+    term.length--;
+    term.shift();
+    term[2] = rowNum;
+    inputTds.eq(2).children().attr('name', 'filter'+stringFilter(term));
+    inputTds.eq(2).children().attr('id', 'filter'+stringFilter(term));
+  }//End for each term/row
   history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
 }
 

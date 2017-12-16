@@ -125,8 +125,6 @@ $archiveTypes = array(
     '1' => translate('ArchArchived')
     );
 
-$hasCal = file_exists( 'tools/jscalendar/calendar.js' );
-
 $focusWindow = true;
 
 $storageareas = array();
@@ -235,19 +233,23 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
-<?php if ( $hasCal ) { ?>
-                <script type="text/javascript">Calendar.setup( { inputField: "filter[Query][terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script>
-<?php } ?>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd"}); </script>
               </td>
 <?php
-    } elseif ( $term['attr'] == 'Date' ) {
+    } elseif ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate') {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
-                <input name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
-<?php if ( $hasCal ) { ?>
-                <script type="text/javascript">Calendar.setup( { inputField: "filter[Query][terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script>
-<?php } ?>
+                <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd"}); </script>
+              </td>
+<?php
+    } elseif ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime') {
+?>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td>
+                <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss"}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {

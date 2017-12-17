@@ -109,7 +109,7 @@ function parseRows (rows) {
       $j.each(conjTypes, function (i) {
         conjSelect.append('<option value="' + i + '" >' + i + '</option>');
       });
-      inputTds.eq(0).html(conjSelect).children().val(cnjVal === undefined ? 'and' : cnjVal);
+      inputTds.eq(0).html(conjSelect).children().val(cnjVal === undefined ? 'and' : cnjVal).chosen({width: "101%"});
     }
 
     let brackets = rows.length - 2;
@@ -144,7 +144,7 @@ function parseRows (rows) {
         archiveSelect.append('<option value="' + i + '">' + archiveTypes[i] + '</option>');
       }
       let archiveVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(archiveSelect).children().val(archiveVal);
+      inputTds.eq(4).html(archiveSelect).children().val(archiveVal).chosen({width: "101%"});
 
     } else if (inputTds.eq(2).children().val().indexOf('Weekday') >= 0) {  //Weekday selection
       let weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
@@ -152,7 +152,7 @@ function parseRows (rows) {
         weekdaySelect.append('<option value="' + i + '">' + weekdays[i] + '</option>');
       }
       let weekdayVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(weekdaySelect).children().val(weekdayVal);
+      inputTds.eq(4).html(weekdaySelect).children().val(weekdayVal).chosen({width: "101%"});
 
     } else if (inputTds.eq(2).children().val() == 'StateId') { //Run state
       let stateSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
@@ -160,7 +160,7 @@ function parseRows (rows) {
         stateSelect.append('<option value="' + key + '">' + states[key] + '</option>');
       }
       let stateVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(stateSelect).children().val(stateVal)
+      inputTds.eq(4).html(stateSelect).children().val(stateVal).chosen({width: "101%"});
 
 
     } else if (inputTds.eq(2).children().val() == 'ServerId') { //Select Server
@@ -169,7 +169,7 @@ function parseRows (rows) {
         serverSelect.append('<option value="' + key + '">' + servers[key] + '</option>');
       }
       let serverVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(serverSelect).children().val(serverVal)
+      inputTds.eq(4).html(serverSelect).children().val(serverVal).chosen({width: "101%"});
 
     } else if (inputTds.eq(2).children().val() == 'StorageId') { //Choose by storagearea
       let storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
@@ -177,7 +177,7 @@ function parseRows (rows) {
         storageSelect.append('<option value="' + i + '">' + storageareas[i] + '</option>');
       }
       let storageVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(storageSelect).children().val(storageVal)
+      inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
 
     } else if (inputTds.eq(2).children().val() == 'MonitorName') { //Monitor names
       let monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
@@ -185,15 +185,15 @@ function parseRows (rows) {
         monitorSelect.append('<option value="' + key + '">' + monitors[key] + '</option>');
       }
       let monitorVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(monitorSelect).children().val(monitorVal)
+      inputTds.eq(4).html(monitorSelect).children().val(monitorVal);
     } else {  //Reset to regular text field and operator for everything that isn't special
       let opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
       for (let key in opTypes) {
         opSelect.append('<option value="' + key + '">' + opTypes[key] + '</option>');
       }
       let opVal = inputTds.eq(3).children().val();
-      inputTds.eq(3).html(opSelect).children().val(opVal)
-      let textInput = $j('<input></input>').attr('type', 'text').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]')
+      inputTds.eq(3).html(opSelect).children().val(opVal).chosen({width: "101%"});
+      let textInput = $j('<input></input>').attr('type', 'text').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       let textVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(textInput).children().val(textVal);
     }
@@ -210,8 +210,8 @@ function parseRows (rows) {
     term.length--;
     term.shift();
     term[2] = rowNum;
-    inputTds.eq(2).children().attr('name', 'filter'+stringFilter(term));
-    inputTds.eq(2).children().attr('id', 'filter'+stringFilter(term));
+    inputTds.eq(2).children().eq(0).attr('name', 'filter'+stringFilter(term));
+    inputTds.eq(2).children().eq(0).attr('id', 'filter'+stringFilter(term));
   }//End for each term/row
   history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
 }
@@ -226,10 +226,12 @@ function stringFilter (term) {
 
 function addTerm( element ) {
   let row = $j(element).closest('tr');
+  row.find('select').chosen("destroy");
   let newRow = row.clone().insertAfter(row);
+  row.find('select').chosen({width: "101%"});
   newRow.find('select').each( function () { //reset new row to default
     this[0].selected = 'selected';
-  });
+  }).chosen({width: "101%"});
   newRow.find('input[type="text"]').val('');
   let rows = $j(row).parent().children();
   parseRows(rows);
@@ -245,6 +247,10 @@ function delTerm( element ) {
 
 function init() {
   updateButtons( $('executeButton') );
+  $j('#Id').chosen();
+//  $j('#fieldsTable select').not("[name$='br\\]']").chosen({width: "101%"});
+  $j('#fieldsTable select').chosen({width: '101%', placeholder_text_single: ' '});
+  $j('#sortTable select').chosen();
 }
 
 window.addEvent( 'domready', init );

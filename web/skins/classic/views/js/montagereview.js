@@ -765,6 +765,8 @@ function initPage() {
   //setFit(fitMode);  // will redraw 
   //setLive(liveMode);  // will redraw
   redrawScreen();
+  $j('#minTime').datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd"});
+  $j('#maxTime').datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd"});
 }
 window.addEventListener("resize",redrawScreen);
 // Kick everything off

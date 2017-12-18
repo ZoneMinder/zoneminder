@@ -765,6 +765,27 @@ function initPage() {
   //setFit(fitMode);  // will redraw 
   //setLive(liveMode);  // will redraw
   redrawScreen();
+  $j('#minTime').datetimepicker({
+      timeFormat: "HH:mm:ss",
+      dateFormat: "yy-mm-dd",
+      maxDate: +0,
+      onClose: function (newDate, oldData) {
+        if (newDate !== oldData.lastVal) {
+          changeDateTime();
+        }
+      }
+  });
+  $j('#maxTime').datetimepicker({
+      timeFormat: "HH:mm:ss",
+      dateFormat: "yy-mm-dd",
+      minDate: $j('#minTime').val(),
+      maxDate: +0,
+      onClose: function (newDate, oldData) {
+        if (newDate !== oldData.lastVal) {
+          changeDateTime();
+        }
+      }
+  });
 }
 window.addEventListener("resize",redrawScreen);
 // Kick everything off

@@ -90,14 +90,14 @@ label {
 }
 
 input,textarea,select,button,.btn-primary {
-    border: 1px #8f8fc2 solid;
+    border: 1px #8f8fc2 solid !important;
     padding: 10px;
     border-radius: 2px;
     font-family: inherit;
     font-weight: 400;
     font-size: 100%;
-    color: #eeeeee;
-    background-color: #444444;
+    color: #eeeeee !important;
+    background-color: #444444 !important;
 }
 
 input[type=text], input[type=password], input[type="url"], textarea, select {
@@ -558,3 +558,24 @@ input[type=submit]:disabled,
 .nav>li>a:focus, .nav>li>a:hover {
   background-color: #444444;
 }
+
+/* Override chosen for dark theme */
+.chosen-single,
+.chosen-container,
+.chosen-container-multi,
+.chosen-results,
+.chosen-search,
+.chosen-drop,
+.chosen-choices,
+li.search-choice {
+    font-size: inherit !important;
+    background: -webkit-gradient(linear,left top,left bottom,color-stop(20%,#555),color-stop(50%,#464646),color-stop(52%,#444),to(#545454)) !important;
+    background: linear-gradient(#555 20%,#464646 50%,#444 52%,#545454 100%) !important;
+    background-color: #444444 !important;
+    color: #eee !important;
+    border-color: #8f8fc2 !important;
+    -webkit-box-shadow: none !important;
+    background-image: none !important;
+}
+/* end chosen override */
+

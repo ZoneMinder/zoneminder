@@ -26,6 +26,7 @@ function xhtmlHeaders( $file, $title ) {
   global $css;
   global $skin;
   $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
+  $skinCssFilejquery = getSkinFile( 'css/'.$css.'/jquery-ui-theme.css' );
   $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
 
   $skinJsFile = getSkinFile( 'js/skin.js' );
@@ -66,6 +67,7 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
   <link rel="stylesheet" href="<?php echo cache_bust($skinCssFile) ?>" type="text/css" media="screen"/>
+  <link rel="stylesheet" href="<?php echo cache_bust($skinCssFilejquery) ?>" type="text/css" media="screen"/>
 <?php
   if ( $viewCssFile ) {
 ?>
@@ -97,6 +99,10 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
+
+  <link href="skins/<?php echo $skin ?>/js/dateTimePicker/jquery-ui-timepicker-addon.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/jquery-ui-structure.css" rel="stylesheet">
   <link href="skins/<?php echo $skin ?>/js/chosen/chosen.min.css" rel="stylesheet">
   <script type="text/javascript">
   //<![CDATA[
@@ -181,6 +187,12 @@ function getNavBarHTML($reload = null) {
   global $bandwidth_options;
   global $view;
   global $filterQuery;
+  global $sortQuery;
+  global $limitQuery;
+
+  if (!$sortQuery) {
+    parseSort();
+  }
   if (!$filterQuery) {
     parseFilter( $_REQUEST['filter'] );
     $filterQuery = $_REQUEST['filter']['query'];
@@ -229,7 +241,7 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
 <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
-      <li><a href="?view=filter<?php echo $filterQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
+      <li><a href="?view=filter<?php echo $filterQuery.$sortQuery.$limitQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
   if ( canView( 'Stream' ) ) {

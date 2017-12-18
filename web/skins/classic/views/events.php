@@ -84,9 +84,14 @@ if ( !empty($page) ) {
 }
 
 $maxShortcuts = 5;
-$pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQuery.'&amp;limit='.$limit );
+$pagination = getPagination( $pages, $page, $maxShortcuts, $filterQuery.$sortQuery.$limitQuery );
 
 $focusWindow = true;
+
+if ($_POST) {
+   header("Location: " . $_SERVER['REQUEST_URI'].htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
+   exit();
+}
 
 xhtmlHeaders(__FILE__, translate('Events') );
 
@@ -111,11 +116,11 @@ if ( $pagination ) {
 if ( $pages > 1 ) {
   if ( !empty($page) ) {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewAll') ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery.$limitQuery ?>"><?php echo translate('ViewAll') ?></a>
 <?php
   } else {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery ?>&amp;limit=<?php echo $limit ?>"><?php echo translate('ViewPaged') ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery.$limitQuery ?>"><?php echo translate('ViewPaged') ?></a>
 <?php
   }
 }

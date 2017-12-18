@@ -71,7 +71,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 
   static char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime( &start_time.tv_sec );
-  snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, StorageScheme ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
+  snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,

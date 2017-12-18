@@ -83,7 +83,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       monitor->getOrientation(),
       videoEvent,
       monitor->GetOptSaveJPEGs(),
-      storage->SchemeString()
+      storage->SchemeString().c_str()
       );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );

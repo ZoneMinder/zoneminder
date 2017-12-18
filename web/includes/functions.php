@@ -66,8 +66,8 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     $_SESSION['loginFailed'] = true;
     unset( $user );
   }
-  if ( $cookies )
-    session_write_close();
+  //if ( $cookies )
+    //session_write_close();
 }
 
 function userLogout() {

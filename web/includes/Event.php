@@ -86,8 +86,10 @@ class Event {
   public function Relative_Path() {
     $event_path = '';
 
-    if ( ZM_USE_DEEP_STORAGE ) {
+    if ( $this->{'Scheme'} == 'Deep' ) {
       $event_path = $this->{'MonitorId'} .'/'.strftime( '%y/%m/%d/%H/%M/%S', $this->Time()) ;
+    } else if ( $this->{'Scheme'} eq 'Medium' ) {
+      $event_path = $this->{'MonitorId'} .'/'.strftime( '%y-%m-%d', $this->Time() ) . '/'.$this->{'Id'};
     } else {
       $event_path = $this->{'MonitorId'} .'/'.$this->{'Id'};
     }
@@ -96,7 +98,7 @@ class Event {
   } // end function Relative_Path()
 
   public function Link_Path() {
-    if ( ZM_USE_DEEP_STORAGE ) {
+    if ( $this->{'Scheme'} == 'Deep' ) {
       return $this->{'MonitorId'} .'/'.strftime( '%y/%m/%d/.', $this->Time()).$this->{'Id'};
     }
     Error('Calling Link_Path when not using deep storage');
@@ -109,7 +111,7 @@ class Event {
     if ( !ZM_OPT_FAST_DELETE ) {
       dbQuery( 'DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}) );
       dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}) );
-      if ( ZM_USE_DEEP_STORAGE ) {
+      if ( $this->{'Scheme'} == 'Deep' ) {
 
 # Assumption: All events have a start time
         $start_date = date_parse( $this->{'StartTime'} );

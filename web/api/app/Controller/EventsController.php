@@ -123,8 +123,8 @@ class EventsController extends AppController {
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
 
-    $path = $configs['ZM_DIR_EVENTS'].'/'.$this->Image->getEventPath($event).'/';
-    $event['Event']['BasePath'] = $path;
+    //$path = $configs['ZM_DIR_EVENTS'].'/'.$this->Image->getEventPath($event).'/';
+    //$event['Event']['BasePath'] = $path;
 
     # Get the previous and next events for any monitor
     $this->Event->id = $id;

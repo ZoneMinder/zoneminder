@@ -465,14 +465,6 @@ function canEdit( $area, $mid=false ) {
   return( $user[$area] == 'Edit' && ( !$mid || visibleMonitor( $mid ) ) );
 }
 
-function getEventPath( $event ) {
-  if ( ZM_USE_DEEP_STORAGE )
-    $eventPath = $event['MonitorId'].'/'.strftime( '%y/%m/%d/%H/%M/%S', strtotime($event['StartTime']) );
-  else
-    $eventPath = $event['MonitorId'].'/'.$event['Id'];
-  return( $eventPath );
-}
-
 function getEventDefaultVideoPath( $event ) {
   $Event = new Event( $event );
   return $Event->getStreamSrc( array( 'mode'=>'mpeg', 'format'=>'h264' ) );

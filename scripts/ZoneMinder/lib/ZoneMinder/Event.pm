@@ -154,13 +154,14 @@ sub Path {
 
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
+    
 
-    if ( $Config{ZM_USE_DEEP_STORAGE} ) {
+    if ( $$events{Scheme} eq 'Deep' ) {
       if ( $event->Time() ) {
         $$event{Path} = join('/',
             $Storage->Path(),
             $event->{MonitorId},
-            strftime( "%y/%m/%d/%H/%M/%S",
+            strftime( '%y/%m/%d/%H/%M/%S',
               localtime($event->Time())
               ),
             );
@@ -168,7 +169,18 @@ sub Path {
         Error("Event $$event{Id} has no value for Time(), unable to determine path");
         $$event{Path} = '';
       }
-    } else {
+    } elsif ( $$events{Scheme} eq 'Medium' ) {
+      if ( $event->Time() ) {
+        $$event{Path} = join('/',
+            $Storage->Path(),
+            $event->{MonitorId},
+            strftime( '%y-%m-%d', localtime($event->Time())),
+            $event->{Id},
+            );
+      } else {
+        Error("Event $$event{Id} has no value for Time(), unable to determine path");
+        $$event{Path} = '';
+    } else { # Shallow
       $$event{Path} = join('/',
           $Storage->Path(),
           $event->{MonitorId},
@@ -307,24 +319,25 @@ sub delete {
 } # end sub delete
 
 sub delete_files {
+  my $event = shift;
 
-  my $Storage = @_ > 1 ? $_[1] : new ZoneMinder::Storage( $_[0]{StorageId} );
+  my $Storage = @_ ? $_[0] : new ZoneMinder::Storage( $$event{StorageId} );
   my $storage_path = $Storage->Path();
 
   if ( ! $storage_path ) {
-    Fatal("Empty storage path when deleting files for event $_[0]{Id} with storage id $_[0]{StorageId} ");
+    Fatal("Empty storage path when deleting files for event $$event{Id} with storage id $$event{StorageId} ");
     return;
   }
 
   chdir( $storage_path );
 
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    if ( ! $_[0]{MonitorId} ) {
-      Error("No monitor id assigned to event $_[0]{Id}");
+  if ( $$event{Scheme} eq 'Deep' ) {
+    if ( ! $$event{MonitorId} ) {
+      Error("No monitor id assigned to event $$event{Id}");
       return;
     }
-    Debug("Deleting files for Event $_[0]{Id} from $storage_path.");
-    my $link_path = $_[0]{MonitorId}."/*/*/*/.".$_[0]{Id};
+    Debug("Deleting files for Event $$event{Id} from $storage_path.");
+    my $link_path = $$event{MonitorId}."/*/*/*/.".$$event{Id};
 #Debug( "LP1:$link_path" );
     my @links = glob($link_path);
 #Debug( "L:".$links[0].": $!" );
@@ -356,9 +369,9 @@ sub delete_files {
         my $command = "/bin/rm -rf $storage_path/$delete_path";
         ZoneMinder::General::executeShellCommand( $command );
       }
-    }
+    } # end if links
   } else {
-    my $command = "/bin/rm -rf $storage_path/$_[0]{MonitorId}/$_[0]{Id}";
+    my $command = "/bin/rm -rf ". $event->Path();
     ZoneMinder::General::executeShellCommand( $command );
   }
 } # end sub delete_files

@@ -33,9 +33,15 @@ if ( $_REQUEST['id'] ) {
 	$newStorage['Name'] = translate('NewStorage');
 	$newStorage['Path'] = '';
   $newStorage['Type'] = 'local';
+  $newStorage['Scheme'] = 'Medium';
 }
 
 $type_options = array( 'local' => translate('Local'), 's3fs' => translate('s3fs') );
+$scheme_options = array(
+  'Deep' => translate('Deep'),
+  'Medium' => translate('Medium'),
+  'Shallow' => translate('Shallow'),
+);
 
 $focusWindow = true;
 
@@ -65,12 +71,15 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
               <th scope="row"><?php echo translate('Type') ?></th>
               <td><?php echo htmlSelect( 'newStorage[Type]', $type_options, $newStorage['Type'] ); ?></td>
             </tr>
+            <tr>
+              <th scope="row"><?php echo translate('StorageScheme') ?></th>
+              <td><?php echo htmlSelect( 'newStorage[Scheme]', $scheme_options, $newStorage['Scheme'] ); ?></td>
+            </tr>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="hidden" name="action" value="Save"/>
-          <input type="submit" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <button name="action" type="submit" value="Save"><?php echo translate('Save') ?></button>
+          <button type="button" onclick="closeWindow();"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

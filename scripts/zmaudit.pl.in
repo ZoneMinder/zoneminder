@@ -191,7 +191,7 @@ MAIN: while( $loop ) {
       # De-taint
       ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ );
 
-      if ( $Config{ZM_USE_DEEP_STORAGE} ) {
+      if ( $$Storage{Scheme} eq 'Deep' ) {
         foreach my $day_dir ( glob("$monitor_dir/*/*/*") ) {
           Debug( "Checking day dir $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
@@ -235,6 +235,15 @@ MAIN: while( $loop ) {
           } # end foreach event_link
           chdir( $Storage->Path() );
         } # end foreach day dir
+      } elsif ( $$Storage{Scheme} eq 'Medium' ) {
+        foreach my $event_dir ( glob("$monitor_dir/*/*") ) {
+          next if ! -d $event_dir;
+          my $Event = $fs_events->{$event} = new ZoneMinder::Event();
+          $$Event{Id} = $event;
+          $$Event{Path} = $event_dir;
+          $Event->MonitorId( $monitor_dir );
+          $Event->StorageId( $Storage->Id() );
+        } # end foreach event
       } else {
         if ( ! chdir( $monitor_dir ) ) {
           Error( "Can't chdir directory '$$Storage{Path}/$monitor_dir': $!" );

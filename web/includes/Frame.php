@@ -49,34 +49,6 @@ class Frame {
     }
   }
 
-  public function Path() {
-    $Storage = $this->Storage();
-    return $Storage->Path().'/'.$this->Relative_Path();
-  }
-  public function Relative_Path() {
-    $event_path = "";
-
-    if ( ZM_USE_DEEP_STORAGE )
-    {
-      $event_path = 
-        $this->{'MonitorId'}
-      .'/'.strftime( "%y/%m/%d/%H/%M/%S",
-          $this->Time()
-          )
-        ;
-    }
-    else
-    {
-      $event_path = 
-        $this->{'MonitorId'}
-      .'/'.$this->{'Id'}
-      ;
-    }
-
-    return( $event_path );
-
-  }
-
   public function getImageSrc( $show='capture' ) {
     
     return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'FrameId'}.'&eid='.$this->{'EventId'}.'&show='.$show;

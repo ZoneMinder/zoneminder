@@ -24,11 +24,19 @@
 
 class Storage {
 	public:
+    typedef enum {
+      SHALLOW=0,
+      MEDIUM,
+      DEEP 
+    } Schemes;
 
 protected:
 	unsigned int	id;
 	char name[64+1];
 	char path[64+1];
+  std::string type_str;
+  std::string scheme_str;
+  Schemes  scheme;
 
 public:
 	Storage();
@@ -36,9 +44,11 @@ public:
 	explicit Storage( unsigned int p_id );
 	~Storage();
 
-	unsigned int	Id() const { return( id ); }
-	const char *Name() const { return( name ); }
-	const char *Path() const { return( path ); }
+	unsigned int	Id() const { return id; }
+	const char *Name() const { return name; }
+	const char *Path() const { return path; }
+  const Schemes  Scheme() const { return scheme; }
+  const std::string  SchemeString() const { return scheme_str; }
 };
 
 #endif // ZM_STORAGE_H

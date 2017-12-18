@@ -86,6 +86,7 @@ if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($display
   session_start();
   $_SESSION['montageReviewFilter'] = $filter;
   session_write_close();
+  $filterQuery = $filter['query'];
 }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame

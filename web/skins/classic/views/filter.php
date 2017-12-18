@@ -23,6 +23,7 @@ if ( !canView( 'Events' ) ) {
   return;
 }
 require_once 'includes/Filter.php';
+parseSort();
 
 $filterNames = array( ''=>translate('ChooseFilter') );
 $filter = NULL;
@@ -42,6 +43,12 @@ if ( ! $filter ) {
   $filter = new Filter();
 }
 
+if ( isset($_REQUEST['sort_field']) && isset($_REQUEST['filter']) ) {
+  $_REQUEST['filter']['Query']['sort_field'] = $_REQUEST['sort_field'];
+  $_REQUEST['filter']['Query']['sort_asc'] = $_REQUEST['sort_asc'];
+  $_REQUEST['filter']['Query']['limit'] = $_REQUEST['limit'];
+}
+
 if ( isset($_REQUEST['filter']) ) {
   $filter->set( $_REQUEST['filter'] );
   # Update our filter object with whatever changes we have made before saving
@@ -51,10 +58,15 @@ $conjunctionTypes = array(
     'and' => translate('ConjAnd'),
     'or'  => translate('ConjOr')
     );
-$obracketTypes = array(); 
+$obracketTypes = array();
 $cbracketTypes = array();
 
-$terms = $filter->terms();
+if (count($filter->terms()) > 0) {
+  $terms = $filter->terms();
+} else {
+  $terms[] = array();
+}
+
 if ( count($terms) ) {
   for ( $i = 0; $i <= count($terms)-2; $i++ ) {
     $obracketTypes[$i] = str_repeat( '(', $i );
@@ -113,14 +125,31 @@ $archiveTypes = array(
     '1' => translate('ArchArchived')
     );
 
-$hasCal = file_exists( 'tools/jscalendar/calendar.js' );
-
 $focusWindow = true;
 
 $storageareas = array();
 $storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
 foreach ( dbFetchAll( 'SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC' ) as $storage ) {
   $storageareas[$storage['Id']] = $storage['Name'];
+}
+$weekdays = array();
+for ( $i = 0; $i < 7; $i++ ) {
+  $weekdays[$i] = strftime( '%A', mktime( 12, 0, 0, 1, $i+1, 2001 ) );
+}
+$states = array();
+foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
+  $states[$state_row['Id']] = $state_row['Name'];
+}
+$servers = array();
+$servers['ZM_SERVER_ID'] = 'Current Server';
+foreach ( dbFetchAll( 'SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC' ) as $server ) {
+  $servers[$server['Id']] = $server['Name'];
+}
+$monitors = array();
+foreach ( dbFetchAll( 'select Id,Name from Monitors order by Name asc' ) as $monitor ) {
+  if ( visibleMonitor( $monitor['Id'] ) ) {
+    $monitors[$monitor['Name']] = $monitor['Name'];
+  }
 }
 
 xhtmlHeaders(__FILE__, translate('EventFilter') );
@@ -147,10 +176,9 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>?view=filter">
+      <form name="contentForm" id="contentForm" method="post" onsubmit="return validateForm(this);">
         <input type="hidden" name="Id" value="<?php echo $filter->Id() ?>"/>
         <input type="hidden" name="action" value=""/>
-        <input type="hidden" name="line" value=""/>
         <input type="hidden" name="object" value="filter"/>
 
         <hr/>
@@ -192,7 +220,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
   }
 ?>
               <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[Query][terms][$i][obr]", $obracketTypes, $term['obr'] ); } else { ?>&nbsp;<?php } ?></td>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][attr]", $attrTypes, $term['attr'], "clearValue( this, $i ); this.form.submit();" ); ?></td>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][attr]", $attrTypes, $term['attr'], "checkValue( this );" ); ?></td>
 <?php
   if ( isset($term['attr']) ) {
     if ( $term['attr'] == 'Archived' ) {
@@ -200,61 +228,46 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo translate('OpEq') ?><input type="hidden" name="filter[Query][terms][<?php echo $i ?>][op]" value="="/></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $archiveTypes, $term['val'] ); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'DateTime' ) {
+    } elseif ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
-                <input name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
-<?php if ( $hasCal ) { ?>
-                <script type="text/javascript">Calendar.setup( { inputField: "filter[Query][terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d %H:%M", showsTime: true, timeFormat: "24", showOthers: true, weekNumbers: false });</script>
-<?php } ?>
+                <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0}); </script>
               </td>
 <?php
-    } elseif ( $term['attr'] == 'Date' ) {
+    } elseif ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate') {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
-                <input name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
-<?php if ( $hasCal ) { ?>
-                <script type="text/javascript">Calendar.setup( { inputField: "filter[Query][terms][<?php echo $i ?>][val]", ifFormat: "%Y-%m-%d", showOthers: true, weekNumbers: false });</script>
-<?php } ?>
+                <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd", maxDate: 0}); </script>
+              </td>
+<?php
+    } elseif ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime') {
+?>
+              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td>
+                <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss"}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {
-      $states = array();
-      foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
-        $states[$state_row['Id']] = $state_row['Name'];
-      }
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $states, $term['val'] ); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'Weekday' ) {
-      $weekdays = array();
-      for ( $i = 0; $i < 7; $i++ ) {
-        $weekdays[$i] = strftime( '%A', mktime( 12, 0, 0, 1, $i+1, 2001 ) );
-      }
+    } elseif ( strpos($term['attr'], 'Weekday') !== false ) {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $weekdays, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'MonitorName' ) {
-      $monitors = array();
-      foreach ( dbFetchAll( 'select Id,Name from Monitors order by Name asc' ) as $monitor ) {
-        if ( visibleMonitor( $monitor['Id'] ) ) {
-          $monitors[$monitor['Name']] = $monitor['Name'];
-        }
-      }
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $monitors, $term['val'] ); ?></td>
 <?php
     } elseif ( $term['attr'] == 'ServerId' ) {
-      $servers = array();
-      $servers['ZM_SERVER_ID'] = 'Current Server';
-      foreach ( dbFetchAll( 'SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC' ) as $server ) {
-        $servers[$server['Id']] = $server['Name'];
-      }
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $servers, $term['val'] ); ?></td>
@@ -267,39 +280,27 @@ for ( $i=0; $i < count($terms); $i++ ) {
     } else {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><input name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo $term['val'] ?>"/></td>
+              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo $term['val'] ?>"/></td>
 <?php
     }
   } else {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><input name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?$term['val']:'' ?>"/></td>
+              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?$term['val']:'' ?>"/></td>
 <?php
   }
 ?>
               <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr'] ); } else { ?>&nbsp;<?php } ?></td>
               <td>
-                <input type="button" onclick="addTerm( this, <?php echo $i+1 ?> )" value="+"/>
-<?php
-  if ( count($terms) > 1 ) {
-?>
-                <input type="button" onclick="delTerm( this, <?php echo $i ?> )" value="-"/>
-<?php
-  }
-?>            </td>
+                <input type="button" onclick="addTerm( this )" value="+"/>
+                <input type="button" onclick="delTerm( this )" value="-" <?php echo count($terms) == 1 ? 'disabled' : '' ?>/>
+              </td>
             </tr>
 <?php
 } # end foreach filter
 ?>
           </tbody>
         </table>
-<?php
-if ( count($terms) == 0 ) {
-?>
-        <input type="button" onclick="addTerm( this, 1 )" value="+"/>
-<?php
-}
-?>
         <hr/>
         <table id="sortTable" class="filterTable">
           <tbody>
@@ -405,8 +406,8 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('ListMatches') ?>" onclick="submitToEvents(this);"/>
-          <input type="button" name="executeButton" id="executeButton" value="<?php echo translate('Execute') ?>" onclick="executeFilter( this );"/>
+          <button onclick="submitToEvents(this);"> <?php echo translate('ListMatches') ?></button>
+          <button name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit( 'Events' ) ) {
 ?>
@@ -420,7 +421,7 @@ if ( canEdit( 'Events' ) ) {
   }
 }
 ?>
-          <input type="button" value="<?php echo translate('Reset') ?>" onclick="submitToFilter( this, 1 );"/>
+          <button value="<?php echo translate('Reset') ?>" onclick="resetFilter( this );"><?php echo translate('Reset') ?></button>
         </div>
       </form>
     </div><!--content-->

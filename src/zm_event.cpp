@@ -68,7 +68,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   }
 
   static char sql[ZM_SQL_MED_BUFSIZ];
-  snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d )",
+  snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,
@@ -79,7 +79,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       state_id,
       monitor->getOrientation(),
       ( monitor->GetOptVideoWriter() != 0 ? 1 : 0 ),
-      monitor->GetOptSaveJPEGs()
+      monitor->GetOptSaveJPEGs(),
+      storage->SchemeString().c_str()
       );
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
@@ -100,7 +101,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   char id_file[PATH_MAX];
   struct tm *stime = localtime( &start_time.tv_sec );
 
-  if ( config.use_deep_storage ) {
+  if ( storage->Scheme() == Storage::Schemes::DEEP ) {
     char *path_ptr = path;
     path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d", storage->Path(), monitor->Id() );
 
@@ -119,15 +120,10 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
       path_ptr += snprintf( path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i] );
 
       errno = 0;
-      // Do we really need to stat it?  Perhaps we could do that on error, instead
-      if ( stat( path, &statbuf ) ) {
-        if ( errno == ENOENT || errno == ENOTDIR ) {
-          if ( mkdir( path, 0755 ) ) {
-            // FIXME This should not be fatal.  Should probably move to a different storage area.
-            Fatal( "Can't mkdir %s: %s", path, strerror(errno));
-          }
-        } else {
-          Warning( "Error stat'ing %s, may be fatal. error is %s", path, strerror(errno));
+      if ( mkdir( path, 0755 ) ) {
+        // FIXME This should not be fatal.  Should probably move to a different storage area.
+        if ( errno != EEXIST ) {
+          Error( "Can't mkdir %s: %s", path, strerror(errno));
         }
       }
       if ( i == 2 )
@@ -139,12 +135,27 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
     if ( symlink( time_path, id_file ) < 0 )
       Error( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
+  } else if ( storage->Scheme() == Storage::Schemes::MEDIUM ) {
+    char *path_ptr = path;
+    path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d/%02d-%02d-%02d",
+        storage->Path(), monitor->Id(), stime->tm_year-100, stime->tm_mon+1, stime->tm_mday
+        );
+    if ( mkdir( path, 0755 ) ) {
+      // FIXME This should not be fatal.  Should probably move to a different storage area.
+      if ( errno != EEXIST )
+        Error( "Can't mkdir %s: %s", path, strerror(errno));
+    }
+    path_ptr += snprintf( path_ptr, sizeof(path), "/%d", id );
+    if ( mkdir( path, 0755 ) ) {
+      // FIXME This should not be fatal.  Should probably move to a different storage area.
+      if ( errno != EEXIST )
+        Error( "Can't mkdir %s: %s", path, strerror(errno));
+    }
   } else {
     // Shallow Storage
     snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
-
-    if ( stat( path, &statbuf ) && ( errno == ENOENT || errno == ENOTDIR ) ) {
-      if ( mkdir( path, 0755 ) ) {
+    if ( mkdir( path, 0755 ) ) {
+      if ( errno != EEXIST ) {
         Error( "Can't mkdir %s: %s", path, strerror(errno));
       }
     }

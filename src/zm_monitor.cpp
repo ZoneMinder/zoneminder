@@ -1384,7 +1384,7 @@ bool Monitor::Analyse() {
                 int section_mod = timestamp->tv_sec % section_length;
                 Debug( 3, "Section length (%d) Last Section Mod(%d), tv_sec(%d) new section mod(%d)", section_length, last_section_mod, timestamp->tv_sec, section_mod );
                 // This is not clear, but basically due to pauses, etc we might not get section_mod == 0
-                if ( section_mod < last_section_mod ) {
+                if ( ( section_mod < last_section_mod ) && ( timestamp->tv_sec >= 10 ) ) {
                   Info( "%s: %03d - Closing event %d, section end forced ", name, analysis_image_count, event->Id() );
                   closeEvent();
                   last_section_mod = 0;
@@ -1409,7 +1409,7 @@ bool Monitor::Analyse() {
 
           if ( score ) {
             Debug(9, "Score: (%d)", score );
-              if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
+              if ( state == IDLE || state == TAPE || state == PREALARM ) {
                 if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
                   Info( "%s: %03d - Gone into alarm state", name, analysis_image_count );
                   shared_data->state = state = ALARM;
@@ -1425,7 +1425,6 @@ bool Monitor::Analyse() {
                 Info( "%s: %03d - Gone back into alarm state", name, analysis_image_count );
                 shared_data->state = state = ALARM;
               }
-            }
             last_alarm_count = analysis_image_count;
           } else { // no score?
             if ( state == ALARM ) {

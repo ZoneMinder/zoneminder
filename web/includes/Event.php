@@ -10,6 +10,7 @@ class Event {
 'Name',
 'DiskSpace',
 'SaveJPEGs',
+'Scheme',
 );
   public function __construct( $IdOrRow = null ) {
     $row = NULL;

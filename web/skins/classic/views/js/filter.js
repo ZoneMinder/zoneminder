@@ -109,7 +109,7 @@ function parseRows (rows) {
       $j.each(conjTypes, function (i) {
         conjSelect.append('<option value="' + i + '" >' + i + '</option>');
       });
-      inputTds.eq(0).html(conjSelect).children().val(cnjVal === undefined ? 'and' : cnjVal).chosen({width: "101%"});
+      inputTds.eq(0).html(conjSelect).children().val(cnjVal === undefined ? 'and' : cnjVal);
     }
 
     let brackets = rows.length - 2;
@@ -124,8 +124,8 @@ function parseRows (rows) {
       }
       let obrVal = inputTds.eq(1).children().val();  //Save currently selected bracket option
       let cbrVal = inputTds.eq(5).children().val();
-      inputTds.eq(1).html(obrSelect).children().val(obrVal).chosen({width: (brackets/3.5+4)+'em', placeholder_text_single: ' ', allow_single_deselect: true}); //Set bracket contents and assign saved value
-      inputTds.eq(5).html(cbrSelect).children().val(cbrVal).chosen({width: (brackets/3.5+4)+'em', placeholder_text_single: ' ', allow_single_deselect: true});
+      inputTds.eq(1).html(obrSelect).children().val(obrVal); //Set bracket contents and assign saved value
+      inputTds.eq(5).html(cbrSelect).children().val(cbrVal);
     } else {
       inputTds.eq(1).html('&nbsp'); //Blank if there aren't enough terms for brackets
       inputTds.eq(5).html('&nbsp');
@@ -248,9 +248,8 @@ function delTerm( element ) {
 function init() {
   updateButtons( $('executeButton') );
   $j('#Id').chosen();
-  $j('#fieldsTable select').not("[name$='br\\]']").chosen({width: '101%', placeholder_text_single: ' '});
-  $j('#fieldsTable').find("[name$='br\\]']").chosen({width: '101%', placeholder_text_single: ' ', allow_single_deselect: true});
-  $j('#sortTable select').chosen();
+  $j('#fieldsTable select').not("[name$='br\\]'], [name$='cnj\\]']").chosen({width: '101%'}); //Every select except brackets/and
+  $j("#sortTable [name$='sort_field\\]']").chosen();
 }
 
 window.addEvent( 'domready', init );

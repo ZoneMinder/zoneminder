@@ -421,7 +421,7 @@ if ( canEdit( 'Events' ) ) {
   }
 }
 ?>
-          <button value="<?php echo translate('Reset') ?>" onclick="resetFilter( this );"><?php echo translate('Delete') ?></button>
+          <button value="<?php echo translate('Reset') ?>" onclick="resetFilter( this );"><?php echo translate('Reset') ?></button>
         </div>
       </form>
     </div><!--content-->

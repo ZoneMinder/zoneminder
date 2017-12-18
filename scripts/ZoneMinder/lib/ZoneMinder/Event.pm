@@ -155,8 +155,7 @@ sub Path {
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
     
-
-    if ( $$events{Scheme} eq 'Deep' ) {
+    if ( $$event{Scheme} eq 'Deep' ) {
       if ( $event->Time() ) {
         $$event{Path} = join('/',
             $Storage->Path(),
@@ -169,7 +168,7 @@ sub Path {
         Error("Event $$event{Id} has no value for Time(), unable to determine path");
         $$event{Path} = '';
       }
-    } elsif ( $$events{Scheme} eq 'Medium' ) {
+    } elsif ( $$event{Scheme} eq 'Medium' ) {
       if ( $event->Time() ) {
         $$event{Path} = join('/',
             $Storage->Path(),
@@ -180,14 +179,15 @@ sub Path {
       } else {
         Error("Event $$event{Id} has no value for Time(), unable to determine path");
         $$event{Path} = '';
+      }
     } else { # Shallow
       $$event{Path} = join('/',
           $Storage->Path(),
           $event->{MonitorId},
           $event->{Id},
           );
-    }
-  } # end if
+    } # end if Scheme
+  } # end if ! Path
 
   return $$event{Path};
 }

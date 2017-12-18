@@ -248,6 +248,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <th class="colName"><?php echo translate('name') ?></th>
               <th class="colPath"><?php echo translate('path') ?></th>
               <th class="colType"><?php echo translate('Type') ?></th>
+              <th class="colScheme"><?php echo translate('StorageScheme') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
             </tr>
           </thead>
@@ -258,6 +259,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colName"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Name']), $canEdit ) ?></td>
               <td class="colPath"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Path']), $canEdit ) ?></td>
               <td class="colType"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Type']), $canEdit ) ?></td>
+              <td class="colScheme"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Scheme']), $canEdit ) ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton(this);"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php } #end foreach Server ?>

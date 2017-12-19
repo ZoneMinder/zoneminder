@@ -103,7 +103,7 @@ bool EventStream::loadInitialEventData( int init_event_id, unsigned int init_fra
 bool EventStream::loadEventData( int event_id ) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
-  snprintf( sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo FROM Events WHERE Id = %d", event_id );
+  snprintf( sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo, Scheme FROM Events WHERE Id = %d", event_id );
 
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -136,19 +136,36 @@ bool EventStream::loadEventData( int event_id ) {
   event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[2]);
   event_data->start_time = atoi(dbrow[3]);
   event_data->duration = atof(dbrow[4]);
-  strncpy( event_data->video_file, dbrow[5], sizeof( event_data->video_file )-1 );
+  strncpy( event_data->video_file, dbrow[5], sizeof(event_data->video_file)-1 );
+  std::string scheme_str = std::string(dbrow[6]);
+  if ( scheme_str == "Deep" ) {
+    event_data->scheme = Storage::DEEP;
+  } else if ( scheme_str == "Medium" ) {
+    event_data->scheme = Storage::MEDIUM;
+  } else {
+    event_data->scheme = Storage::SHALLOW;
+  }
   mysql_free_result( result );
 
   Storage * storage = new Storage( event_data->storage_id );
   const char *storage_path = storage->Path();
 
-  if ( config.use_deep_storage ) {
+  if ( event_data->scheme == Storage::DEEP ) {
     struct tm *event_time = localtime( &event_data->start_time );
 
     if ( storage_path[0] == '/' )
       snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
     else
       snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+  } else if ( event_data->scheme == Storage::MEDIUM ) {
+    struct tm *event_time = localtime( &event_data->start_time );
+    if ( storage_path[0] == '/' )
+      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%04d-%02d-%02d/%ld",
+          storage_path, event_data->monitor_id, event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, event_data->event_id );
+    else
+      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%04d-%02d-%02d/%ld",
+          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, 
+          event_data->event_id );
 
   } else {
     if ( storage_path[0] == '/' )

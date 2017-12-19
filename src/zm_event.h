@@ -39,6 +39,7 @@
 #include "zm_stream.h"
 #include "zm_video.h"
 #include "zm_packet.h"
+#include "zm_storage.h"
 
 class VideoStore;
 class Zone;
@@ -92,6 +93,7 @@ class Event {
     bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.
 
     void createNotes( std::string &notes );
+    Storage::Schemes  scheme;
 
   public:
     static bool OpenFrameSocket( int );

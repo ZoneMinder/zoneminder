@@ -175,7 +175,11 @@ int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
     Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, av_make_error_string(ret).c_str() );
     return -1;
   }
-  Debug( 5, "Got packet from stream %d dts (%d) pts(%d)", packet.stream_index, packet.pts, packet.dts );
+  dumpPacket(&packet, "ffmpeg_camera in");
+  if ( 0 && ( packet.dts < 0 ) ) {
+    zm_av_packet_unref( &packet );
+    return 0;
+  }
 
   zm_packet.set_packet( &packet );
   zm_av_packet_unref( &packet );

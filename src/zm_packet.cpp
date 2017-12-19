@@ -195,7 +195,7 @@ AVPacket *ZMPacket::set_packet( AVPacket *p ) {
   if ( zm_av_packet_ref( &packet, p ) < 0 ) {
     Error("error refing packet");
   }
-  dumpPacket(&packet);
+  dumpPacket(&packet, "zmpacket:");
   gettimeofday( timestamp, NULL );
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   return &packet;

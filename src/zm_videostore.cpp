@@ -1075,6 +1075,11 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       return 0;
     }
 #endif
+    // Need to adjust pts/dts values from codec time to stream time
+    if ( opkt.pts != AV_NOPTS_VALUE)
+      opkt.pts = av_rescale_q(opkt.pts, video_out_ctx->time_base, video_out_stream->time_base);
+    if ( opkt.dts != AV_NOPTS_VALUE)
+      opkt.dts = av_rescale_q(opkt.dts, video_out_ctx->time_base, video_out_stream->time_base);
 
   } else {
     AVPacket *ipkt = &zm_packet->packet;
@@ -1085,12 +1090,21 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     opkt.size = ipkt->size;
     opkt.flags = ipkt->flags;
     if ( ! video_start_pts ) {
-      video_start_pts = ipkt->pts;
+      // If video has b-frames, pts can be AV_NOPTS_VALUE so use dts intead
+      video_start_pts = ipkt->dts;
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ")", video_start_pts );
       opkt.dts = opkt.pts = 0;
     } else {
       dumpPacket(ipkt);
-      opkt.dts = opkt.pts = av_rescale_q( ipkt->pts - video_start_pts, video_in_stream->time_base, video_out_stream->time_base );
+      if ( ipkt->pts != AV_NOPTS_VALUE ) 
+        opkt.pts = av_rescale_q( ipkt->pts - video_start_pts, video_in_stream->time_base, video_out_stream->time_base );
+      else
+        opkt.pts = 0;
+
+      if ( ipkt->dts != AV_NOPTS_VALUE ) 
+        opkt.dts = av_rescale_q( ipkt->dts - video_start_pts, video_in_stream->time_base, video_out_stream->time_base );
+      else
+        opkt.dts = 0;
   Debug(2, "out_stream_time_base(%d/%d) in_stream_time_base(%d/%d) video_start_pts(%" PRId64 ")",
       video_out_stream->time_base.num, video_out_stream->time_base.den,
       video_in_stream->time_base.num, video_in_stream->time_base.den,

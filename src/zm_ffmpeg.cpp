@@ -434,7 +434,7 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
 #endif
   return 1;
 } // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
-void dumpPacket(AVPacket *pkt) {
+void dumpPacket(AVPacket *pkt, const char *text) {
   char b[10240];
 
   snprintf(b, sizeof(b),
@@ -456,5 +456,5 @@ void dumpPacket(AVPacket *pkt) {
            pkt->flags & AV_PKT_FLAG_KEY,
            pkt->pos,
            pkt->duration);
-  Debug(1, "%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
+  Debug(1, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
 }

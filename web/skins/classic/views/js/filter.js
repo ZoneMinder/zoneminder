@@ -122,8 +122,8 @@ function parseRows (rows) {
         obrSelect.append('<option value="' + i + '">' + '('.repeat(i) + '</option>');
         cbrSelect.append('<option value="' + i + '">' + ')'.repeat(i) + '</option>');
       }
-      let obrVal = inputTds.eq(1).children().val();  //Save currently selected bracket option
-      let cbrVal = inputTds.eq(5).children().val();
+      let obrVal = inputTds.eq(1).children().val() != undefined ? inputTds.eq(1).children().val() : 0; //Save currently selected bracket option
+      let cbrVal = inputTds.eq(5).children().val() != undefined ? inputTds.eq(5).children().val() : 0;
       inputTds.eq(1).html(obrSelect).children().val(obrVal); //Set bracket contents and assign saved value
       inputTds.eq(5).html(cbrSelect).children().val(cbrVal);
     } else {

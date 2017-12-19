@@ -2777,7 +2777,7 @@ int Monitor::Capture() {
         shared_data->last_read_index = image_buffer_count;
     }
   } else {
-    Debug(2,"Current write index %d, last read index %d, current (%d)", shared_data->last_write_index, shared_data->last_read_index, index );
+    Debug(2,"Capture: Current write index %d, last read index %d, current (%d)", shared_data->last_write_index, shared_data->last_read_index, index );
   }
 
   ZMPacket *packet = &image_buffer[index];
@@ -2933,6 +2933,8 @@ int Monitor::Capture() {
       } // end if report fps
     } else { // result == 0
       // Question is, do we update last_write_index etc?
+      packet->unlock();
+      return 0;
 
     } // end if result
   } // end if deinterlacing

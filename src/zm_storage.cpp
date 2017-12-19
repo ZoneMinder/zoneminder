@@ -36,8 +36,8 @@ Storage::Storage() {
   } else {
     strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path)-1 );
   }
-  scheme = Schemes::SHALLOW;
-  scheme_str = "Shallow";
+  scheme = DEEP;
+  scheme_str = "Deep";
 }
 
 Storage::Storage( MYSQL_ROW &dbrow ) {
@@ -48,11 +48,11 @@ Storage::Storage( MYSQL_ROW &dbrow ) {
   type_str = std::string(dbrow[index++]);
   scheme_str = std::string(dbrow[index++]);
   if ( scheme_str == "Deep" ) {
-    scheme = Schemes::DEEP;
+    scheme = DEEP;
   } else if ( scheme_str == "Medium" ) {
-    scheme = Schemes::MEDIUM;
+    scheme = MEDIUM;
   } else {
-    scheme = Schemes::SHALLOW;
+    scheme = SHALLOW;
   }
 }
 
@@ -75,11 +75,11 @@ Storage::Storage( unsigned int p_id ) {
       type_str = std::string(dbrow[index++]);
       scheme_str = std::string(dbrow[index++]);
       if ( scheme_str == "Deep" ) {
-        scheme = Schemes::DEEP;
+        scheme = DEEP;
       } else if ( scheme_str == "Medium" ) {
-        scheme = Schemes::MEDIUM;
+        scheme = MEDIUM;
       } else {
-        scheme = Schemes::SHALLOW;
+        scheme = SHALLOW;
       }
 			Debug( 1, "Loaded Storage area %d '%s'", id, this->Name() );
 		}

@@ -28,6 +28,7 @@
 #include "zm_video.h"
 #include "zm_ffmpeg_input.h"
 #include "zm_monitor.h"
+#include "zm_storage.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,6 +64,7 @@ class EventStream : public StreamBase {
       int             n_frames;
       FrameData       *frames;
       char            video_file[PATH_MAX];
+      Storage::Schemes  scheme;
     };
 
   protected:

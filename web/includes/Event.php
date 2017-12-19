@@ -90,7 +90,7 @@ class Event {
     if ( $this->{'Scheme'} == 'Deep' ) {
       $event_path = $this->{'MonitorId'} .'/'.strftime( '%y/%m/%d/%H/%M/%S', $this->Time()) ;
     } else if ( $this->{'Scheme'} == 'Medium' ) {
-      $event_path = $this->{'MonitorId'} .'/'.strftime( '%y-%m-%d', $this->Time() ) . '/'.$this->{'Id'};
+      $event_path = $this->{'MonitorId'} .'/'.strftime( '%Y-%m-%d', $this->Time() ) . '/'.$this->{'Id'};
     } else {
       $event_path = $this->{'MonitorId'} .'/'.$this->{'Id'};
     }

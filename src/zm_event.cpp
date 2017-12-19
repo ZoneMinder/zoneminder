@@ -101,7 +101,7 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   char id_file[PATH_MAX];
   struct tm *stime = localtime( &start_time.tv_sec );
 
-  if ( storage->Scheme() == Storage::Schemes::DEEP ) {
+  if ( storage->Scheme() == Storage::DEEP ) {
     char *path_ptr = path;
     path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d", storage->Path(), monitor->Id() );
 
@@ -135,10 +135,10 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
     snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
     if ( symlink( time_path, id_file ) < 0 )
       Error( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
-  } else if ( storage->Scheme() == Storage::Schemes::MEDIUM ) {
+  } else if ( storage->Scheme() == Storage::MEDIUM ) {
     char *path_ptr = path;
-    path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d/%02d-%02d-%02d",
-        storage->Path(), monitor->Id(), stime->tm_year-100, stime->tm_mon+1, stime->tm_mday
+    path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d/%04d-%02d-%02d",
+        storage->Path(), monitor->Id(), stime->tm_year+1900, stime->tm_mon+1, stime->tm_mday
         );
     if ( mkdir( path, 0755 ) ) {
       // FIXME This should not be fatal.  Should probably move to a different storage area.

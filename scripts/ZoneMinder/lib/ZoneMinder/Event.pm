@@ -173,7 +173,7 @@ sub Path {
         $$event{Path} = join('/',
             $Storage->Path(),
             $event->{MonitorId},
-            strftime( '%y-%m-%d', localtime($event->Time())),
+            strftime( '%Y-%m-%d', localtime($event->Time())),
             $event->{Id},
             );
       } else {

@@ -38,6 +38,7 @@
 #include "zm_image.h"
 #include "zm_stream.h"
 #include "zm_video.h"
+#include "zm_storage.h"
 
 class Zone;
 class Monitor;
@@ -93,6 +94,7 @@ class Event {
     int        last_db_frame;
 
     void createNotes( std::string &notes );
+    Storage::Schemes  scheme;
 
   public:
     static bool OpenFrameSocket( int );

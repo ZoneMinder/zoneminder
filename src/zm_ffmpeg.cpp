@@ -434,3 +434,27 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
 #endif
   return 1;
 } // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
+void dumpPacket(AVPacket *pkt) {
+  char b[10240];
+
+  snprintf(b, sizeof(b),
+           " pts: %" PRId64 ", dts: %" PRId64
+           ", data: %p, size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
+           ", duration: %" 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+           PRId64
+#else
+           "d"
+#endif
+           "\n",
+           pkt->pts, 
+           pkt->dts,
+           pkt->data,
+           pkt->size,
+           pkt->stream_index,
+           pkt->flags,
+           pkt->flags & AV_PKT_FLAG_KEY,
+           pkt->pos,
+           pkt->duration);
+  Debug(1, "%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
+}

@@ -907,30 +907,6 @@ bool VideoStore::setup_resampler() {
 #endif
 }  // end bool VideoStore::setup_resampler()
 
-void VideoStore::dumpPacket(AVPacket *pkt) {
-  char b[10240];
-
-  snprintf(b, sizeof(b),
-           " pts: %" PRId64 ", dts: %" PRId64
-           ", data: %p, size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
-           ", duration: %" 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-           PRId64
-#else
-           "d"
-#endif
-           "\n",
-           pkt->pts, 
-           pkt->dts,
-           pkt->data,
-           pkt->size,
-           pkt->stream_index,
-           pkt->flags,
-           pkt->flags & AV_PKT_FLAG_KEY,
-           pkt->pos,
-           pkt->duration);
-  Debug(1, "%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
-}
 
 int VideoStore::writePacket( ZMPacket *ipkt ) {
   if ( ipkt->packet.stream_index == video_in_stream_index ) {
@@ -1110,16 +1086,19 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     opkt.flags = ipkt->flags;
     if ( ! video_start_pts ) {
       video_start_pts = ipkt->pts;
+      Debug(2, "No video_lsat_pts, set to (%" PRId64 ")", video_start_pts );
       opkt.dts = opkt.pts = 0;
     } else {
-  dumpPacket(ipkt);
-      opkt.dts = opkt.pts = ( ipkt->pts - video_start_pts );
-  Debug(2, "out_stream_time_base(%d/%d) in_stream_time_base(%d/%d) video_start_pts(%d) pts(%d) /dts(%d) ",
+      dumpPacket(ipkt);
+      opkt.dts = opkt.pts = av_rescale_q( ipkt->pts - video_start_pts, video_in_stream->time_base, video_out_stream->time_base );
+  Debug(2, "out_stream_time_base(%d/%d) in_stream_time_base(%d/%d) video_start_pts(%" PRId64 ")",
       video_out_stream->time_base.num, video_out_stream->time_base.den,
       video_in_stream->time_base.num, video_in_stream->time_base.den,
-      video_start_pts, opkt.pts, opkt.dts );
-      opkt.pts = av_rescale_q( opkt.pts, video_in_stream->time_base, video_out_stream->time_base);
-      opkt.dts = av_rescale_q( opkt.dts, video_in_stream->time_base, video_out_stream->time_base);
+      video_start_pts
+      );
+
+  dumpPacket(&opkt);
+
       opkt.duration = av_rescale_q( opkt.duration, video_in_stream->time_base, video_out_stream->time_base);
     }
   }
@@ -1143,10 +1122,6 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
   }
 
   opkt.stream_index = video_out_stream->index;
-
-  //video_next_dts += opkt.duration;
-  //video_next_pts += opkt.duration;
-
   //av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
 
   dumpPacket(&opkt);
@@ -1381,8 +1356,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
   //opkt.duration = out_frame ? out_frame->nb_samples : ipkt->duration;
   // opkt.duration = av_rescale_q(ipkt->duration, audio_in_stream->time_base,
   // audio_out_stream->time_base);
-  Debug(2, "opkt.pts (%" PRId64 "), opkt.dts(%" PRId64 ") opkt.duration = (%" PRId64 ")",
-      opkt.pts, opkt.dts, opkt.duration);
+  dumpPacket(&opkt);
 
   // pkt.pos:  byte position in stream, -1 if unknown
   opkt.pos = -1;

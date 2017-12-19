@@ -89,7 +89,6 @@ public:
   int writeVideoFramePacket( ZMPacket *pkt );
   int writeAudioFramePacket( ZMPacket *pkt );
   int writePacket( ZMPacket *pkt );
-	void dumpPacket( AVPacket *pkt );
   int write_packets( zm_packetqueue &queue );
 };
 

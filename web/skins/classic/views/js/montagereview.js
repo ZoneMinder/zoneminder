@@ -492,7 +492,7 @@ function clicknav(minSecs,maxSecs,arch,live) {// we use the current time if we c
     if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 )  // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
 
-  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + speeds[$j("#speedslider").value];
+  var uri = "?view=" + currentView + fitStr + groupStr + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + document.getElementById("scaleslider").value + "&speed=" + speeds[document.getElementById("speedslider").value];
   window.location = uri;
 }
 
@@ -638,7 +638,6 @@ function maxfit2(divW, divH) {
   if ( bestFitArea > 0 ) { // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
     for ( m = 0; m < numMonitors; m++ ) {
       c = $("Monitor" + monitorPtr[m]);
-      c.style.position="absolute";
       c.style.left=bestFitX[m].toString() + "px";
       c.style.top=bestFitY[m].toString() + "px";
       c.width = bestFitX2[m] - bestFitX[m] + 1 - borders;

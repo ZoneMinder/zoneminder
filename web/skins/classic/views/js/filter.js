@@ -198,11 +198,11 @@ function parseRows (rows) {
       inputTds.eq(4).html(textInput).children().val(textVal);
     }
     if (inputTds.eq(2).children().val().endsWith('DateTime')) { //Start/End DateTime
-      inputTds.eq(4).children().datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0});
+      inputTds.eq(4).children().datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     } else if (inputTds.eq(2).children().val().endsWith('Date')) { //Start/End Date
-      inputTds.eq(4).children().datepicker({dateFormat: "yy-mm-dd", maxDate: 0});
+      inputTds.eq(4).children().datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     } else if (inputTds.eq(2).children().val().endsWith('Time')) { //Start/End Time
-      inputTds.eq(4).children().timepicker({timeFormat: "HH:mm:ss"});
+      inputTds.eq(4).children().timepicker({timeFormat: "HH:mm:ss", constrainInput: false});
     }
 
     let attr = inputTds.find("[name$='attr\\]']") // Set attr list id and name

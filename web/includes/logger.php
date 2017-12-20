@@ -373,7 +373,7 @@ class Logger {
       }
 
       if ( $this->useErrorLog )
-        $message .= " at ".$file." line ".$line;
+        $message .= ' at '.$file.' line '.$line;
       else
         $message = $message;
 
@@ -401,9 +401,9 @@ class Logger {
       if ( $level <= $this->databaseLevel ) {
         try {
           global $dbConn;
-          $sql = "INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, ? )";
+          $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) values ( ?, ?, ?, ?, ?, ?, ?, ? )';
           $stmt = $dbConn->prepare( $sql );
-          $result = $stmt->execute( array( sprintf( "%d.%06d", $time['sec'], $time['usec'] ), $this->id, getmypid(), $level, $code, $string, $file, $line ) );
+          $result = $stmt->execute( array( sprintf( '%d.%06d', $time['sec'], $time['usec'] ), $this->id, getmypid(), $level, $code, $string, $file, $line ) );
         } catch(PDOException $ex) {
           $this->databaseLevel = self::NOLOG;
           Fatal( "Can't write log entry '$sql': ". $ex->getMessage() );

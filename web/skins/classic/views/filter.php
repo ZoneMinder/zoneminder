@@ -233,7 +233,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0}); </script>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate') {
@@ -241,7 +241,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd", maxDate: 0}); </script>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime') {
@@ -249,7 +249,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss"}); </script>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: falsepi}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {

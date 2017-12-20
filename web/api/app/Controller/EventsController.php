@@ -102,10 +102,6 @@ class EventsController extends AppController {
  */
 	public function view($id = null) {
     $this->loadModel('Config');
-    $configs = $this->Config->find('list', array(
-      'fields' => array('Name', 'Value'),
-      'conditions' => array('Name' => array('ZM_DIR_EVENTS'))
-    ));
 
     $this->Event->recursive = 1;
     if (!$this->Event->exists($id)) {
@@ -122,9 +118,6 @@ class EventsController extends AppController {
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
-
-    //$path = $configs['ZM_DIR_EVENTS'].'/'.$this->Image->getEventPath($event).'/';
-    //$event['Event']['BasePath'] = $path;
 
     # Get the previous and next events for any monitor
     $this->Event->id = $id;

@@ -769,6 +769,7 @@ function initPage() {
       timeFormat: "HH:mm:ss",
       dateFormat: "yy-mm-dd",
       maxDate: +0,
+      constrainInput: false,
       onClose: function (newDate, oldData) {
         if (newDate !== oldData.lastVal) {
           changeDateTime();
@@ -780,6 +781,7 @@ function initPage() {
       dateFormat: "yy-mm-dd",
       minDate: $j('#minTime').val(),
       maxDate: +0,
+      constrainInput: false,
       onClose: function (newDate, oldData) {
         if (newDate !== oldData.lastVal) {
           changeDateTime();

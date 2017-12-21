@@ -277,7 +277,7 @@ CREATE TABLE `Groups` (
 --Table structure for table `Groups_Monitors`
 --
 
-DROP TABLE IF EXISTS `Groups_Monitors`
+DROP TABLE IF EXISTS `Groups_Monitors`;
 CREATE TABLE `Groups_Monitors` (
     `Id` INT(10) unsigned NOT NULL auto_increment,
     `GroupId` int(10) unsigned NOT NULL,

@@ -160,7 +160,16 @@ class Event {
 
   public function getStreamSrc( $args=array(), $querySep='&amp;' ) {
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
-      return ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
+      $streamSrc = ZM_BASE_PROTOCOL.'://';
+      $Monitor = $this->Monitor();
+      if ( $Monitor->ServerId() ) {
+        $Server = $Monitor->Server();
+        $streamSrc .= $Server->Hostname();
+      } else {
+        $streamSrc .= $_SERVER['HTTP_HOST'];
+      }
+      $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
+      return $streamSrc;
     }
 
     $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;

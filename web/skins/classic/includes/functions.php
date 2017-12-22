@@ -19,14 +19,14 @@
 // 
 
 
-// Don't load in additional JS to these views
-$bad_views = array('monitor', 'log');
-
 function xhtmlHeaders( $file, $title ) {
   global $css;
   global $skin;
-  $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
-  $skinCssFilejquery = getSkinFile( 'css/'.$css.'/jquery-ui-theme.css' );
+
+  # This idea is that we always include the classic css files, 
+  # and then any different skin only needs to contain things that are different.
+  $baseCssPhpFile = getSkinFile( 'css/classic/skin.css.php' );
+
   $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
 
   $skinJsFile = getSkinFile( 'js/skin.js' );
@@ -34,7 +34,7 @@ function xhtmlHeaders( $file, $title ) {
   $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
 
   $basename = basename( $file, '.php' );
-  $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );
+
   if ($basename == 'watch') {
     $viewCssFileExtra = getSkinFile( '/css/'.$css.'/views/control.css' );
   }
@@ -43,6 +43,16 @@ function xhtmlHeaders( $file, $title ) {
   $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
 
   extract( $GLOBALS, EXTR_OVERWRITE );
+  function output_link_if_exists( $files ) {
+  global $skin;
+    $html = array();
+    foreach ( $files as $file ) {
+      if ( getSkinFile( $file ) ) {
+        $html[] = '<link rel="stylesheet" href="'.cache_bust( 'skins/'.$skin.'/'.$file ).'" type="text/css"/>';
+      }
+    }
+    return implode("\n", $html);
+  }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -66,15 +76,20 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
-  <link rel="stylesheet" href="<?php echo cache_bust($skinCssFile) ?>" type="text/css" media="screen"/>
-  <link rel="stylesheet" href="<?php echo cache_bust($skinCssFilejquery) ?>" type="text/css" media="screen"/>
-<?php
-  if ( $viewCssFile ) {
+<?php 
+echo output_link_if_exists( array(
+  'css/classic/skin.css',
+  'css/'.$css.'/skin.css',
+  'css/classic/views/'.$basename.'.css',
+  'css/'.$css.'/views/'.$basename.'.css',
+  '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
+  '/js/jquery-ui-structure.css',
+  '/css/'.$css.'/jquery-ui-theme.css',
+  '/js/chosen/chosen.min.css',
+)
+);
 ?>
-  <link rel="stylesheet" href="<?php echo cache_bust($viewCssFile) ?>" type="text/css" media="screen"/>
-
 <?php
-  }
   if ( isset($viewCssFileExtra) ) {
 ?>
   <link rel="stylesheet" href="<?php echo cache_bust($viewCssFileExtra) ?>" type="text/css" media="screen"/>
@@ -92,6 +107,7 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 <?php
   }
 ?>
+
   <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
@@ -101,9 +117,6 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
-  <link href="skins/<?php echo $skin ?>/js/dateTimePicker/jquery-ui-timepicker-addon.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/jquery-ui-structure.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/chosen/chosen.min.css" rel="stylesheet">
   <script type="text/javascript">
   //<![CDATA[
   <!--
@@ -205,7 +218,7 @@ function getNavBarHTML($reload = null) {
 ?>
 <noscript>
 <div style="background-color:red;color:white;font-size:x-large;">
-ZoneMinder requires Javascript. Please enable Javascript in your browser for this site.
+<?php echo ZM_WEB_TITLE ?> requires Javascript. Please enable Javascript in your browser for this site.
 </div>
 </noscript>
 <div class="navbar navbar-inverse navbar-static-top">
@@ -217,7 +230,7 @@ ZoneMinder requires Javascript. Please enable Javascript in your browser for thi
 				<span class="icon-bar"></span>
 				<span class="icon-bar"></span>
 			</button>
-			<a class="navbar-brand" href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a>
+      <div class="navbar-brand"><a href="<?php echo ZM_HOME_URL?>" target="<?php echo ZM_WEB_TITLE ?>"><?php echo ZM_HOME_CONTENT ?></a></div>
 		</div>
 
 		<div class="collapse navbar-collapse" id="main-header-nav">
@@ -291,17 +304,17 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 if ($reload == 'reload') ob_start();
 ?>
 	<div id="reload" class="container-fluid">
-  <div class="pull-left">
-    <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bandwidth_options[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
-  </div>
-  <div class="pull-right">
-	  <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
-  <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>
-      <h3 id="development"><?php echo ZM_WEB_CONSOLE_BANNER ?></h3>
-  <?php } ?>
-  </div>
-  <ul class="list-inline">
-	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+    <div class="pull-left">
+      <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bandwidth_options[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
+    </div>
+    <div class="pull-right">
+      <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
+    <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>
+        <h3 id="development"><?php echo ZM_WEB_CONSOLE_BANNER ?></h3>
+    <?php } ?>
+    </div>
+    <ul class="list-inline">
+      <li class="Load"><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );

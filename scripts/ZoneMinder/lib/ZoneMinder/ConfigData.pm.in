@@ -1452,6 +1452,17 @@ our @options = (
     category    => 'logging',
   },
   {
+    name        => 'ZM_WEB_TITLE',
+    default     => 'ZoneMinder',
+    description => 'The title displayed wherever the site references itself.',
+    help        => q`
+    If you want the site to identify as something other than ZoneMinder, change this here.
+    It can be used to more accurately identify this installation from others.
+      `,
+    type        => $types{string},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_TITLE_PREFIX',
     default     => 'ZM',
     description => 'The title prefix displayed on each window',
@@ -1460,6 +1471,27 @@ our @options = (
       helpful to display different titles for each one. Changing this
       option allows you to customise the window titles to include
       further information to aid identification.
+      `,
+    type        => $types{string},
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_HOME_URL',
+    default     => 'http://zoneminder.com',
+    description => 'The url used in the home/logo area of the navigation bar.',
+    help        => q`
+    By default this takes you to the zoneminder.com website,
+    but perhaps you would prefer it to take you somewhere else.
+      `,
+    type        => $types{string},
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_HOME_CONTENT',
+    default     => 'ZoneMinder',
+    description => 'The content of the home button.',
+    help        => q`
+    You may wish to set this to empty if you are using css to put a background image on it.
       `,
     type        => $types{string},
     category    => 'web',

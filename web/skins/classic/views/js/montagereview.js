@@ -55,7 +55,17 @@ function SetImageSource( monId, time ) {
       if ( eMonId[i] == monId && time >= eStartSecs[i] && time <= eEndSecs[i] ) {
         var duration = eEndSecs[i]-eStartSecs[i];
         var frame = parseInt((time - eStartSecs[i])/(duration)*eventFrames[i])+1;
-console.log("SetImageSource: " + time + " duration: " + duration + " frame: " + frame );
+        var storage = Storage[eStorageId[i]];
+        if ( storage.ServerId ) {
+          var server = Servers[storage.ServerId];
+          if ( server ) {
+console.log( server.Hostname + " for event " + eId[i] );
+            return location.protocol + '//' + server.Hostname + '/index.php?view=image&eid=' + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+          } else {
+            console.log("No server found for " + storage.ServerId );
+          }
+        }
+        console.log("No storage found for " + eStorageId[i] );
         return "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
       }
     } // end for
@@ -465,7 +475,6 @@ function setSpeed( speed_index ) {
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
   playSecsperInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
-console.log("playSecsPerInterval: " + playSecsperInterval + " = currentspeed:" + currentSpeed + " * " + currentDisplayInterval + " /1000");
   showSpeed(speed_index);
   if ( timerInterval != currentDisplayInterval || currentSpeed == 0 ) timerFire(); // if the timer isn't firing we need to trigger it to update
 }

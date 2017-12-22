@@ -154,11 +154,21 @@ sub Path {
 
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
-    
+    $$event{Path} = join('/', $Storage->Path(), $event->RelativePath() );
+  }
+  return $$event{Path};
+}
+
+sub RelativePath {
+  my $event = shift;
+  if ( @_ ) {
+    $$event{RelativePath} = $_[0];
+  }
+
+  if ( ! $$event{RelativePath} ) {
     if ( $$event{Scheme} eq 'Deep' ) {
       if ( $event->Time() ) {
-        $$event{Path} = join('/',
-            $Storage->Path(),
+        $$event{RelativePath} = join('/',
             $event->{MonitorId},
             strftime( '%y/%m/%d/%H/%M/%S',
               localtime($event->Time())
@@ -166,30 +176,28 @@ sub Path {
             );
       } else {
         Error("Event $$event{Id} has no value for Time(), unable to determine path");
-        $$event{Path} = '';
+        $$event{RelativePath} = '';
       }
     } elsif ( $$event{Scheme} eq 'Medium' ) {
       if ( $event->Time() ) {
-        $$event{Path} = join('/',
-            $Storage->Path(),
+        $$event{RelativePath} = join('/',
             $event->{MonitorId},
             strftime( '%Y-%m-%d', localtime($event->Time())),
             $event->{Id},
             );
       } else {
         Error("Event $$event{Id} has no value for Time(), unable to determine path");
-        $$event{Path} = '';
+        $$event{RelativePath} = '';
       }
     } else { # Shallow
-      $$event{Path} = join('/',
-          $Storage->Path(),
+      $$event{RelativePath} = join('/',
           $event->{MonitorId},
           $event->{Id},
           );
     } # end if Scheme
   } # end if ! Path
 
-  return $$event{Path};
+  return $$event{RelativePath};
 }
 
 sub GenerateVideo {
@@ -337,7 +345,7 @@ sub delete_files {
       return;
     }
     Debug("Deleting files for Event $$event{Id} from $storage_path.");
-    my $link_path = $$event{MonitorId}."/*/*/*/.".$$event{Id};
+    my $link_path = $$event{MonitorId}.'/*/*/*/.'.$$event{Id};
 #Debug( "LP1:$link_path" );
     my @links = glob($link_path);
 #Debug( "L:".$links[0].": $!" );
@@ -371,7 +379,7 @@ sub delete_files {
       }
     } # end if links
   } else {
-    my $command = "/bin/rm -rf ". $event->Path();
+    my $command = '/bin/rm -rf '. $storage_path . '/'. $event->RelativePath();
     ZoneMinder::General::executeShellCommand( $command );
   }
 } # end sub delete_files

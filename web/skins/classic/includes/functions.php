@@ -320,7 +320,10 @@ if ($reload == 'reload') ob_start();
   }
   $func =  function($S){ return '<span title="'.human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()).'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
-  echo implode( ', ', array_map ( $func, $storage_areas ) );
+  if ( count($storage_areas) >= 4 ) 
+    $storage_areas = Storage::find_all( array('ServerId'=>null) );
+  if ( count($storage_areas) < 4 )
+    echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
   </ul>

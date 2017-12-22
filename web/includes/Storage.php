@@ -70,15 +70,38 @@ class Storage {
         Warning( "Unknown function call Storage->$fn from $file:$line" );
     }
   }
-  public static function find_all() {
-    $storage_areas = array();
-    $result = dbQuery( 'SELECT * FROM Storage ORDER BY Name');
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage' );
-    foreach ( $results as $row => $obj ) {
-      $storage_areas[] = $obj;
-      $storage_cache[$obj->Id()] = $obj;
+public static function find_all( $parameters = null, $options = null ) {
+    $filters = array();
+    $sql = 'SELECT * FROM Storage ';
+    $values = array();
+
+    if ( $parameters ) {
+      $fields = array();
+      $sql .= 'WHERE ';
+      foreach ( $parameters as $field => $value ) {
+        if ( $value == null ) {
+          $fields[] = $field.' IS NULL';
+        } else if ( is_array( $value ) ) {
+          $func = function(){return '?';};
+          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $values += $value;
+
+        } else {
+          $fields[] = $field.'=?';
+          $values[] = $value;
+        }
+      }
+      $sql .= implode(' AND ', $fields );
     }
-    return $storage_areas;
+    if ( $options and isset($options['order']) ) {
+    $sql .= ' ORDER BY ' . $options['order'];
+    }
+    $result = dbQuery($sql, $values);
+    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage');
+    foreach ( $results as $row => $obj ) {
+      $filters[] = $obj;
+    }
+    return $filters;
   }
   public function disk_usage_percent() {
     $path = $this->Path();

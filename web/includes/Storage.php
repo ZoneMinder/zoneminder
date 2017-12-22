@@ -95,11 +95,8 @@ class Storage {
       Error("disk_total_space returned false for " . $path );
       return 0;
     }
-    $free = disk_free_space( $path );
-    if ( ! $free ) {
-      Error("disk_free_space returned false for " . $path );
-    }
-    $usage = round(($total - $free) / $total * 100);
+    $used = $this->disk_used_space();
+    $usage = round( ($used / $total) * 100);
     return $usage;
   }
   public function disk_total_space() {

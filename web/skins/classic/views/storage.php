@@ -27,6 +27,7 @@ if ( $_REQUEST['id'] ) {
 	if ( !($newStorage = dbFetchOne('SELECT * FROM Storage WHERE Id=?', NULL, ARRAY($_REQUEST['id'])) ) ) {
 		$view = 'error';
 		return;
+    $newStorage['ServerId'] = '';
 	}
 } else {
 	$newStorage = array();

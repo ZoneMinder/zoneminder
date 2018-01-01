@@ -23,6 +23,7 @@ var imageLoadTimesNeeded=15;     // and how many we need
 var timeLabelsFractOfRow = 0.9;
 var eMonId = [];
 var eId = [];
+var eStorageId = [];
 var eStartSecs = [];
 var eEndSecs = [];
 var eventFrames = [];            // this is going to presume all frames equal durationlength
@@ -43,7 +44,6 @@ $index = 0;
 $anyAlarms = false;
 
 if ( ! $initialModeIsLive ) {
-Warning($eventsSql);
   $result = dbQuery( $eventsSql );
   if ( ! $result ) {
     Fatal('SQL-ERR');
@@ -56,6 +56,7 @@ Warning($eventsSql);
     if ( $maxTimeSecs < $event['CalcEndTimeSecs'] ) $maxTimeSecs = $event['CalcEndTimeSecs'];
       echo "
 eMonId[$index]=" . $event['MonitorId'] . ";
+eStorageId[$index]=".$event['StorageId'] . ";
 eId[$index]=" . $event['Id'] . ";
 eStartSecs[$index]=" . $event['StartTimeSecs'] . ";
 eEndSecs[$index]=" . $event['CalcEndTimeSecs'] . ";
@@ -146,7 +147,17 @@ if ( $mId > 0 ) {
 
   echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
 } // end if initialmodeislive
-echo "var monitorName = [];\n";
+
+echo "var Storage = []\n";
+foreach ( Storage::find_all() as $Storage ) {
+echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
+}
+echo "var Servers = []\n";
+foreach ( Server::find_all() as $Server ) {
+echo 'Servers[' . $Server->Id() . '] = ' . json_encode($Server). ";\n";
+}
+echo "
+var monitorName = [];\n";
 echo "var monitorLoading = [];\n";
 echo "var monitorImageObject = [];\n";
 echo "var monitorImageURL = [];\n";

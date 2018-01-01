@@ -194,7 +194,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         </div>
       </form>
 <?php
-} else if ( $tab == "servers" ) { ?>
+} else if ( $tab == 'servers' ) { ?>
       <form name="serversForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -249,6 +249,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <th class="colPath"><?php echo translate('path') ?></th>
               <th class="colType"><?php echo translate('Type') ?></th>
               <th class="colScheme"><?php echo translate('StorageScheme') ?></th>
+              <th class="colServer"><?php echo translate('Server') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
             </tr>
           </thead>
@@ -260,6 +261,9 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colPath"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Path']), $canEdit ) ?></td>
               <td class="colType"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Type']), $canEdit ) ?></td>
               <td class="colScheme"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Scheme']), $canEdit ) ?></td>
+              <td class="colServer"><?php
+$Server = new Server($row['ServerId']);
+              echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($Server->Name()), $canEdit ) ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton(this);"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php } #end foreach Server ?>

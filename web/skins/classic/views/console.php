@@ -37,7 +37,7 @@ $eventCounts = array(
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 hour' ),
+          array( 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 hour' ),
         )
       )
     ),

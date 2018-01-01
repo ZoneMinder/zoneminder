@@ -1280,6 +1280,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             $filter['sql'] .= ' not regexp '.$value;
             break;
           case '=[]' :
+          case 'IN' :
             $filter['sql'] .= ' in ('.join( ',', $valueList ).')';
             break;
           case '![]' :

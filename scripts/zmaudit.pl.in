@@ -238,8 +238,13 @@ MAIN: while( $loop ) {
       } elsif ( $$Storage{Scheme} eq 'Medium' ) {
         foreach my $event_dir ( glob("$monitor_dir/*/*") ) {
           next if ! -d $event_dir;
-          my $Event = $fs_events->{$event} = new ZoneMinder::Event();
-          $$Event{Id} = $event;
+          my ( $date, $event_id ) = $event_dir =~ /^$monitor_dir\/(\d{4}\-\d{2}\-\d{2})\/(\d\+)$/;
+          if ( ! $event_id ) {
+            Debug("Unable to parse date/event_id from $event_dir");
+            next;
+          }
+          my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
+          $$Event{Id} = $event_id;
           $$Event{Path} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );

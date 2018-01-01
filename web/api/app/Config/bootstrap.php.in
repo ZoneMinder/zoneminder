@@ -142,6 +142,27 @@ foreach( $configvals as $key => $value) {
   Configure::write( $key, $value );
 }
 
+// For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
+if ( ! defined('ZM_SERVER_ID') ) {
+  App::uses('ClassRegistry', 'Utility');
+  $ServerModel = ClassRegistry::init('Server');
+  if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
+    $Server = $ServerModel->find( 'first', array( 'conditions'=>array('Name'=>ZM_SERVER_NAME) ) );
+    if ( ! $Server ) {
+      Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
+    } else {
+      define( 'ZM_SERVER_ID', $Server['Server']['Id'] );
+    }
+  } else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
+    $Server = $ServerModel->find( 'first', array( 'conditions'=>array('Name'=>ZM_SERVER_HOST) ) );
+    if ( ! $Server ) {
+      Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
+    } else {
+      define( 'ZM_SERVER_ID', $Server['Server']['Id'] );
+    }
+  }
+}
+
 function process_configfile($configFile) {
   if ( is_readable( $configFile ) ) {
     $configvals = array();

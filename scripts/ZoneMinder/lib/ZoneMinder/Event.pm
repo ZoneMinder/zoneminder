@@ -457,10 +457,11 @@ sub MoveTo {
   if ( @$err ) {
     for my $diag (@$err) {
       my ($file, $message) = %$diag;
+      next if $message eq 'File exists';
       if ($file eq '') {
         $error .= "general error: $message\n";
       } else {
-        $error .= "problem unlinking $file: $message\n";
+        $error .= "problem making $file: $message\n";
       }
     }
   }

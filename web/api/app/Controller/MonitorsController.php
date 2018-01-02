@@ -15,10 +15,13 @@ class MonitorsController extends AppController {
  */
   public $components = array('Paginator', 'RequestHandler');
 
+  public function beforeRender() {
+    $this->set($this->Monitor->enumValues());
+  }
   public function beforeFilter() {
     parent::beforeFilter();
     $canView = $this->Session->Read('monitorPermission');
-    if ($canView =='None') {
+    if ($canView == 'None') {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -109,10 +112,9 @@ class MonitorsController extends AppController {
  * @return void
  */
   public function add() {
-    if ($this->request->is('post')) {
+    if ( $this->request->is('post') ) {
 
-      if ($this->Session->Read('systemPermission') != 'Edit')
-      {
+      if ( $this->Session->Read('systemPermission') != 'Edit' ) {
          throw new UnauthorizedException(__('Insufficient privileges'));
         return;
       }
@@ -120,8 +122,15 @@ class MonitorsController extends AppController {
       $this->Monitor->create();
       if ($this->Monitor->save($this->request->data)) {
         $this->daemonControl($this->Monitor->id, 'start');
-        return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
+        //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
+        $message = 'Saved';
+      } else {
+        $message = 'Error';
       }
+      $this->set(array(
+        'message' => $message,
+        '_serialize' => array('message')
+      ));
     }
   }
 
@@ -138,8 +147,7 @@ class MonitorsController extends AppController {
     if (!$this->Monitor->exists($id)) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    if ($this->Session->Read('monitorPermission') != 'Edit')
-    {
+    if ($this->Session->Read('monitorPermission') != 'Edit') {
        throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }

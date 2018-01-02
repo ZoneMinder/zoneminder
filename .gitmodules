@@ -2,3 +2,6 @@
 	path = web/api/app/Plugin/Crud
 	url = https://github.com/FriendsOfCake/crud.git
 	branch = 3.0
+[submodule "web/api/app/Plugin/CakePHP-Enum-Behavior"]
+	path = web/api/app/Plugin/CakePHP-Enum-Behavior
+	url = https://github.com/asper/CakePHP-Enum-Behavior.git

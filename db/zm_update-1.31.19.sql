@@ -18,40 +18,6 @@ end;
 
 delimiter ;
 
-drop procedure if exists update_monitor_stats;
-
-delimiter //
-
-create procedure update_monitor_stats(IN MonitorId int(10), IN increment INT, IN space BIGINT)
-
-sql security invoker
-
-deterministic
-
-begin
-
-  update Monitors set
-  TotalEvents = TotalEvents + increment,
-  TotalEventDiskSpace = TotalEventDiskSpace + increment * space,
-  HourEvents = HourEvents + increment,
-  HourEventDiskSpace = HourEventDiskSpace + increment * space,
-  DayEvents = DayEvents + increment,
-  DayEventDiskSpace = DayEventDiskSpace + increment * space,
-  WeekEvents = WeekEvents + increment,
-  WeekEventDiskSpace = WeekEventDiskSpace + increment * space,
-  MonthEvents = MonthEvents + increment,
-  MonthEventDiskSpace = MonthEventDiskSpace + increment * space,
-  ArchivedEvents = ArchivedEvents + increment,
-  ArchivedEventDiskSpace = ArchivedEventDiskSpace + increment * space
-  where Id = MonitorId;
-
-end;
-
-//
-
-delimiter ;
-
-
 drop trigger if exists event_update_trigger;
 
 delimiter //
@@ -76,9 +42,6 @@ begin
     call update_storage_stats(OLD.StorageId, -OLD.DiskSpace);
   END IF;
 
-  call update_monitor_stats( OLD.MonitorId, -1, OLD.DiskSpace );
-  call update_monitor_stats( NEW.MonitorId, 1, NEW.DiskSpace );
-
 end;
 
 //
@@ -100,7 +63,6 @@ for each row
 begin
 
   call update_storage_stats(NEW.StorageId, NEW.DiskSpace);
-  call update_monitor_stats( NEW.MonitorId, 1, NEW.DiskSpace );
 
 end;
 
@@ -124,7 +86,6 @@ for each row
 begin
 
   call update_storage_stats(OLD.StorageId, -OLD.DiskSpace);
-  call update_monitor_stats( OLD.MonitorId, -1, OLD.DiskSpace );
 
 end;
 

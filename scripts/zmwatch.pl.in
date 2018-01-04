@@ -80,20 +80,36 @@ my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 
 my $eventcounts_sql = q`
-UPDATE Monitors SET 
-  TotalEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id),
-  TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
-  HourEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 hour) ),
-  HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 hour) AND DiskSpace IS NOT NULL),
-  DayEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day)),
-  DayEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day) AND DiskSpace IS NOT NULL),
-  WeekEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week)),
-  WeekEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week) AND DiskSpace IS NOT NULL),
-  MonthEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 month)),
-  MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 month) AND DiskSpace IS NOT NULL),
-  ArchivedEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1),
-  ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1 AND DiskSpace IS NOT NULL)
-  WHERE Id=?`;
+UPDATE Monitors INNER JOIN (
+  SELECT  MonitorId,
+    COUNT(Id) AS TotalEvents,
+    SUM(DiskSpace) AS TotalEventDiskSpace,
+    SUM(IF(Archived,1,0)) AS ArchivedEvents,
+    SUM(IF(Archived,DiskSpace,0)) AS ArchivedEventDiskSpace,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 hour),1,0)) AS HourEvents,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 hour),DiskSpace,0)) AS HourEventDiskSpace,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 day),1,0)) AS DayEvents,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 day),DiskSpace,0)) AS DayEventDiskSpace,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 week),1,0)) AS WeekEvents,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 week),DiskSpace,0)) AS WeekEventDiskSpace,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 month),1,0)) AS MonthEvents,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 month),DiskSpace,0)) AS MonthEventDiskSpace
+    FROM Events GROUP BY MonitorId
+    ) AS E ON E.MonitorId=Monitors.Id SET
+    Monitors.TotalEvents = E.TotalEvents,
+    Monitors.TotalEventDiskSpace = E.TotalEventDiskSpace,
+    Monitors.ArchivedEvents = E.ArchivedEvents,
+    Monitors.ArchivedEventDiskSpace = E.ArchivedEventDiskSpace,
+    Monitors.HourEvents = E.HourEvents,
+    Monitors.HourEventDiskSpace = E.HourEventDiskSpace,
+    Monitors.DayEvents = E.DayEvents,
+    Monitors.DayEventDiskSpace = E.DayEventDiskSpace,
+    Monitors.WeekEvents = E.WeekEvents,
+    Monitors.WeekEventDiskSpace = E.WeekEventDiskSpace,
+    Monitors.MonthEvents = E.MonthEvents,
+    Monitors.MonthEventDiskSpace = E.MonthEventDiskSpace
+    WHERE Id=?
+  `;
 
 my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
 

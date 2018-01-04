@@ -210,16 +210,16 @@ while ( $event_row = dbFetchNext( $results ) ) {
 ?>
               <td class="colThumbnail">
 <?php 
-	if ( file_exists( $event->Path().'/snapshot.jpg' ) ) {
-Warning("Using snapshot");
+	if ( ( $event->SaveJPEGs() == 4 ) and file_exists($event->Path().'/snapshot.jpg') ) {
+    Logger::Debug("Using snapshot");
       $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid=snapshot&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
 } else {
-Warning("Not Using snapshot" . $event->Path().'/snapshot.jpg' );
+  Logger::Debug("Not Using snapshot" . $event->Path().'/snapshot.jpg' );
       $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
 }
       $streamSrc = $event->getStreamSrc( array( 'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single') );
 
-      $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt( $thumbData['Height'] ).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
+      $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt($thumbData['Height']).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
 
       echo makePopupLink( 
           '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'],

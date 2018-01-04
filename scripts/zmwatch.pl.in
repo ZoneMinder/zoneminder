@@ -201,16 +201,6 @@ while( 1 ) {
   } # end foreach monitor
   $eventcounts_sth->finish();
 
-  my $diskspace_sql = 'UPDATE Storage SET DiskSpace =(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL)';
-  my $diskspace_sth = $dbh->prepare_cached( $diskspace_sql )
-    or Fatal( "Can't prepare '$diskspace_sql': ".$dbh->errstr() );
-  foreach my $Storage ( ZoneMinder::Storage->find() ) {
-    Debug("Updating disk space for $$Storage{Name} was $$Storage{DiskSpace}");
-    $diskspace_sth->execute( $$Storage{Id} ) or Error( "Can't execute: ".$diskspace_sth->errstr() );
-    $Storage->load();
-    Debug("Updated disk space for $$Storage{Name} to $$Storage{DiskSpace}");
-  }
-  $diskspace_sth->finish();
   sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );
 } # end while (1)
 

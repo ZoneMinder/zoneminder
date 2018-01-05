@@ -172,7 +172,6 @@ MAIN: while( $loop ) {
 
   foreach my $Storage (
       ZoneMinder::Storage->find( ($Config{ZM_SERVER_ID} ? ( ServerId => $Config{ZM_SERVER_ID} ) : () ) ),
-      new ZoneMinder::Storage(),
       ) {
     Debug('Checking events in ' . $Storage->Path() );
     if ( ! chdir( $Storage->Path() ) ) {
@@ -238,8 +237,13 @@ MAIN: while( $loop ) {
       } elsif ( $$Storage{Scheme} eq 'Medium' ) {
         foreach my $event_dir ( glob("$monitor_dir/*/*") ) {
           next if ! -d $event_dir;
-          my $Event = $fs_events->{$event} = new ZoneMinder::Event();
-          $$Event{Id} = $event;
+          my ( $date, $event_id ) = $event_dir =~ /^$monitor_dir\/(\d{4}\-\d{2}\-\d{2})\/(\d\+)$/;
+          if ( ! $event_id ) {
+            Debug("Unable to parse date/event_id from $event_dir");
+            next;
+          }
+          my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
+          $$Event{Id} = $event_id;
           $$Event{Path} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
@@ -357,8 +361,18 @@ Debug("Event $db_event is not in fs.");
             }
             next;
           } 
+          if ( ! $Event->EndTime() ) {
+            Debug("Event $$Event{Id} has no end time.  deleting it.");
+            if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
+              if ( confirm() ) {
+                $Event->delete();
+                $cleaned = 1;
+              }
+              next;
+            }
+          } 
           if ( $Event->check_for_in_filesystem() ) {
-            Debug('Database events apparently exists at ' . $Event->Path() );
+            Debug("Database event $$Event{Id} apparently exists at " . $Event->Path() );
           } else {
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
               aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem' );
@@ -587,6 +601,26 @@ Debug("Event $db_event is not in fs.");
     }
   } # end if ZM_LOG_DATABASE_LIMIT
   $loop = $continuous;
+
+  my $eventcounts_sql = q`
+UPDATE Monitors SET
+  TotalEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id),
+  TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+  HourEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 hour) ),
+  HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 hour) AND DiskSpace IS NOT NULL),
+  DayEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day)),
+  DayEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day) AND DiskSpace IS NOT NULL),
+  WeekEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week)),
+  WeekEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week) AND DiskSpace IS NOT NULL),
+  MonthEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 month)),
+  MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 month) AND DiskSpace IS NOT NULL),
+  ArchivedEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1),
+  ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1 AND DiskSpace IS NOT NULL)
+`;
+
+my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
+$eventcounts_sth->execute();
+$eventcounts_sth->finish();
 
   sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;
 };

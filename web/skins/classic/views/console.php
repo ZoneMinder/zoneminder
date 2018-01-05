@@ -37,7 +37,7 @@ $eventCounts = array(
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'DateTime', 'op' => '>=', 'val' => '-1 hour' ),
+          array( 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 hour' ),
         )
       )
     ),
@@ -173,7 +173,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
 ?>
             <th class="colZones"><a href="<?php echo $_SERVER['PHP_SELF'] ?>?view=zones_overview"><?php echo translate('Zones') ?></a></th>
 <?php if ( canEdit('Monitors') ) { ?>
-            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox( this, 'markMids[]' );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/> <?php echo translate('All') ?></th>
+            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markMids[]');setButtonStates(this);"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/> <?php echo translate('All') ?></th>
 <?php } ?>
           </tr>
         </thead>

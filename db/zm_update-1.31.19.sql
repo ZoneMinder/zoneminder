@@ -93,3 +93,7 @@ end;
 
 delimiter ;
 
+ALTER TABLE Events DROP INDEX Archived;
+ALTER TABLE Events DROP INDEX Frames;
+CREATE INDEX Events_StorageId_idx on Events (StorageId);
+

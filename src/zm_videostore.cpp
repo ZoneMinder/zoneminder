@@ -469,6 +469,7 @@ Debug(2,"Using mjpeg");
     if (ret < 0) {
       Error("Could not open out file '%s': %s\n", filename,
             av_make_error_string(ret).c_str());
+
       return false;
     }
   }
@@ -519,105 +520,120 @@ void VideoStore::write_audio_packet( AVPacket &pkt ) {
 } // end void VideoStore::Write_audio_packet( AVPacket &pkt )
 
 VideoStore::~VideoStore() {
-  if ( video_out_ctx->codec_id != video_in_ctx->codec_id || audio_out_codec ) {
-    Debug(2,"Different codecs between in and out");
-    // The codec queues data.  We need to send a flush command and out
-    // whatever we get. Failures are not fatal.
-    AVPacket pkt;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    av_init_packet(&pkt);
+  if ( oc->pb ) {
+    if ( video_out_ctx->codec_id != video_in_ctx->codec_id || audio_out_codec ) {
+      Debug(2,"Different codecs between in and out");
+      // The codec queues data.  We need to send a flush command and out
+      // whatever we get. Failures are not fatal.
+      AVPacket pkt;
+      // WIthout these we seg fault I don't know why.
+      pkt.data = NULL;
+      pkt.size = 0;
+      av_init_packet(&pkt);
 
-// I got crashes if the codec didn't do DELAY, so let's test for it.
+      // I got crashes if the codec didn't do DELAY, so let's test for it.
+      if ( video_out_ctx->codec && ( video_out_ctx->codec->capabilities & 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    if ( video_out_ctx->codec && ( video_out_ctx->codec->capabilities & AV_CODEC_CAP_DELAY ) ) {
+            AV_CODEC_CAP_DELAY
 #else
-    if ( video_out_ctx->codec && ( video_out_ctx->codec->capabilities & CODEC_CAP_DELAY ) ) {
+            CODEC_CAP_DELAY
 #endif
+            ) ) {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      // Put encoder into flushing mode
-      avcodec_send_frame(video_out_ctx, NULL);
-      while (1) {
-        ret = avcodec_receive_packet(video_out_ctx, &pkt);
-        if (ret < 0) {
-          if (AVERROR_EOF != ret) {
-            Error("ERror encoding audio while flushing (%d) (%s)", ret,
-                av_err2str(ret));
+        // Put encoder into flushing mode
+        avcodec_send_frame(video_out_ctx, NULL);
+        while (1) {
+          ret = avcodec_receive_packet(video_out_ctx, &pkt);
+          if (ret < 0) {
+            if (AVERROR_EOF != ret) {
+              Error("ERror encoding audio while flushing (%d) (%s)", ret,
+                  av_err2str(ret));
+            }
+            break;
           }
-          break;
-        }
 #else
-      while (1) {
+          while (1) {
+            // WIthout these we seg fault I don't know why.
+            pkt.data = NULL;
+            pkt.size = 0;
+            av_init_packet(&pkt);
+            int got_packet = 0;
+            ret = avcodec_encode_video2(video_out_ctx, &pkt, NULL, &got_packet);
+            if ( ret < 0 ) {
+              Error("ERror encoding video while flushing (%d) (%s)", ret, av_err2str(ret));
+              break;
+            }
+            if (!got_packet) {
+              break;
+            }
+#endif
+            write_video_packet(pkt);
+            zm_av_packet_unref(&pkt);
+          }  // while have buffered frames
+        } // end if have delay capability
+      } // end if have buffered video
+
+      if ( audio_out_codec ) {
+        // The codec queues data.  We need to send a flush command and out
+        // whatever we get. Failures are not fatal.
+        AVPacket pkt;
         // WIthout these we seg fault I don't know why.
         pkt.data = NULL;
         pkt.size = 0;
         av_init_packet(&pkt);
-        int got_packet = 0;
-        ret = avcodec_encode_video2(video_out_ctx, &pkt, NULL, &got_packet);
-        if ( ret < 0 ) {
-          Error("ERror encoding video while flushing (%d) (%s)", ret, av_err2str(ret));
-          break;
-        }
-        if (!got_packet) {
-          break;
-        }
-#endif
-        write_video_packet(pkt);
-        zm_av_packet_unref(&pkt);
-      }  // while have buffered frames
-    } // end if have delay capability
-  } // end if have buffered video
-
-  if ( audio_out_codec ) {
-    // The codec queues data.  We need to send a flush command and out
-    // whatever we get. Failures are not fatal.
-    AVPacket pkt;
-    // WIthout these we seg fault I don't know why.
-    pkt.data = NULL;
-    pkt.size = 0;
-    av_init_packet(&pkt);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    // Put encoder into flushing mode
-    avcodec_send_frame(audio_out_ctx, NULL);
-    while (1) {
-      if ( (ret = avcodec_receive_packet(audio_out_ctx, &pkt) ) < 0 ) {
-        if (AVERROR_EOF != ret) {
-          Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str(ret));
-        }
-        break;
-      }
+        // Put encoder into flushing mode
+        avcodec_send_frame(audio_out_ctx, NULL);
+        while (1) {
+          if ( (ret = avcodec_receive_packet(audio_out_ctx, &pkt) ) < 0 ) {
+            if (AVERROR_EOF != ret) {
+              Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str(ret));
+            }
 #else
-    while (1) {
-      pkt.data = NULL;
-      pkt.size = 0;
-      av_init_packet(&pkt);
-      int got_packet = 0;
-      if ( (ret = avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet)) < 0 ) {
-        Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str(ret));
-        break;
-      }
-      Debug(1, "Have audio encoder, need to flush it's out");
-      if (!got_packet) {
-        break;
-      }
+        while (1) {
+          pkt.data = NULL;
+          pkt.size = 0;
+          av_init_packet(&pkt);
+          int got_packet = 0;
+          if ( (ret = avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet)) < 0 ) {
+            Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str(ret));
+            break;
+          }
+          Debug(1, "Have audio encoder, need to flush it's out");
+          if (!got_packet) {
+            break;
+          }
 #endif
-      write_audio_packet(pkt);
-      zm_av_packet_unref(&pkt);
-    } // while have buffered frames
-  } // end if audio_out_codec
+          write_audio_packet(pkt);
+          zm_av_packet_unref(&pkt);
+        } // while have buffered frames
+      } // end if audio_out_codec
+    } // end if buffers
 
-  // Flush Queues
-  av_interleaved_write_frame(oc, NULL);
+    // Flush Queues
+    av_interleaved_write_frame(oc, NULL);
 
-  /* Write the trailer before close */
-  if ( int rc = av_write_trailer(oc) ) {
-    Error("Error writing trailer %s", av_err2str(rc));
-  } else {
-    Debug(3, "Sucess Writing trailer");
-  }
+    /* Write the trailer before close */
+    if ( int rc = av_write_trailer(oc) ) {
+      Error("Error writing trailer %s", av_err2str(rc));
+    } else {
+      Debug(3, "Sucess Writing trailer");
+    }
+
+          // WHen will be not using a file ?
+    if ( !(out_format->flags & AVFMT_NOFILE) ) {
+      /* Close the out file. */
+      Debug(2, "Closing");
+      if (int rc = avio_close(oc->pb)) {
+        oc->pb = NULL;
+        Error("Error closing avio %s", av_err2str(rc));
+      }
+    } else {
+      Debug(3, "Not closing avio because we are not writing to a file.");
+    }
+  } // end if oc->pb
 
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the ctx
@@ -680,16 +696,6 @@ VideoStore::~VideoStore() {
     video_out_ctx = NULL;
   }
 #endif
-
-  // When will be not using a file ? // Might someday use this for streaming
-  if ( !(out_format->flags & AVFMT_NOFILE) ) {
-    /* Close the out file. */
-    if ( int rc = avio_close(oc->pb) ) {
-      Error("Error closing avio %s", av_err2str(rc));
-    }
-  } else {
-    Debug(3, "Not closing avio because we are not writing to a file.");
-  }
 
   /* free the stream */
   avformat_free_context(oc);

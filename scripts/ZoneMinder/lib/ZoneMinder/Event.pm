@@ -200,6 +200,32 @@ sub RelativePath {
   return $$event{RelativePath};
 }
 
+sub LinkPath {
+  my $event = shift;
+  if ( @_ ) {
+    $$event{LinkPath} = $_[0];
+  }
+
+  if ( ! $$event{LinkPath} ) {
+    if ( $$event{Scheme} eq 'Deep' ) {
+      if ( $event->Time() ) {
+        $$event{LinkPath} = join('/',
+            $event->{MonitorId},
+            strftime( '%y/%m/%d',
+              localtime($event->Time())
+              ),
+            '.'.$$event{Id}
+            );
+      } else {
+        Error("Event $$event{Id} has no value for Time(), unable to determine link path");
+        $$event{LinkPath} = '';
+      }
+    } # end if Scheme
+  } # end if ! Path
+
+  return $$event{LinkPath};
+} # end sub LinkPath
+
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
 
@@ -292,10 +318,10 @@ sub delete {
   my $event = $_[0];
   if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartTime} ) ) {
     my ( $caller, undef, $line ) = caller;
-    Warning( "Can't Delete event $event->{Id} from Monitor $event->{MonitorId} $event->{StartTime} from $caller:$line\n" );
+    Warning( "Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from $caller:$line\n" );
     return;
   }
-  Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} $event->{StartTime}\n" );
+  Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}\n" );
   $ZoneMinder::Database::dbh->ping();
 # Do it individually to avoid locking up the table for new events
   my $sql = 'DELETE FROM Events WHERE Id=?';
@@ -337,50 +363,25 @@ sub delete_files {
     return;
   }
 
-  chdir( $storage_path );
+  if ( ! $$event{MonitorId} ) {
+    Error("No monitor id assigned to event $$event{Id}");
+    return;
+  }
+  my $event_path = $event->Path();
+  Debug("Deleting files for Event $$event{Id} from $event_path.");
+  if ( $event_path ) {
+    ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+      my $command = "/bin/rm -rf $event_path";
+    ZoneMinder::General::executeShellCommand( $command );
+  }
 
   if ( $$event{Scheme} eq 'Deep' ) {
-    if ( ! $$event{MonitorId} ) {
-      Error("No monitor id assigned to event $$event{Id}");
-      return;
+    my $link_path = $event->LinkPath();
+    Debug("Deleting files for Event $$event{Id} from $storage_path/$link_path.");
+    if ( $link_path ) {
+      ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
+      unlink( $storage_path.'/'.$link_path ) or Error( "Unable to unlink '$storage_path/$link_path': $!" );
     }
-    Debug("Deleting files for Event $$event{Id} from $storage_path.");
-    my $link_path = $$event{MonitorId}.'/*/*/*/.'.$$event{Id};
-#Debug( "LP1:$link_path" );
-    my @links = glob($link_path);
-#Debug( "L:".$links[0].": $!" );
-    if ( @links ) {
-      ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
-#Debug( "LP2:$link_path" );
-
-        ( my $day_path = $link_path ) =~ s/\.\d+//;
-#Debug( "DP:$day_path" );
-      my $event_path = $day_path.readlink( $link_path );
-      ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-#Debug( "EP:$event_path" );
-        my $command = "/bin/rm -rf $event_path";
-#Debug( "C:$command" );
-      ZoneMinder::General::executeShellCommand( $command );
-
-      unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
-
-      my @path_parts = split( /\//, $event_path );
-      for ( my $i = int(@path_parts)-2; $i >= 1; $i-- ) {
-        my $delete_path = join( '/', @path_parts[0..$i] );
-#Debug( "DP$i:$delete_path" );
-        my @has_files = glob( join('/', $storage_path,$delete_path,'*' ) );
-#Debug( "HF1:".$has_files[0] ) if ( @has_files );
-        last if ( @has_files );
-        @has_files = glob( join('/', $storage_path, $delete_path, '.[0-9]*' ) );
-#Debug( "HF2:".$has_files[0] ) if ( @has_files );
-        last if ( @has_files );
-        my $command = "/bin/rm -rf $storage_path/$delete_path";
-        ZoneMinder::General::executeShellCommand( $command );
-      }
-    } # end if links
-  } else {
-    my $command = '/bin/rm -rf '. $storage_path . '/'. $event->RelativePath();
-    ZoneMinder::General::executeShellCommand( $command );
   }
 } # end sub delete_files
 
@@ -456,10 +457,11 @@ sub MoveTo {
   if ( @$err ) {
     for my $diag (@$err) {
       my ($file, $message) = %$diag;
+      next if $message eq 'File exists';
       if ($file eq '') {
         $error .= "general error: $message\n";
       } else {
-        $error .= "problem unlinking $file: $message\n";
+        $error .= "problem making $file: $message\n";
       }
     }
   }

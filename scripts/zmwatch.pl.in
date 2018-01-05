@@ -108,17 +108,18 @@ UPDATE Monitors INNER JOIN (
     Monitors.WeekEventDiskSpace = E.WeekEventDiskSpace,
     Monitors.MonthEvents = E.MonthEvents,
     Monitors.MonthEventDiskSpace = E.MonthEventDiskSpace
-    WHERE Id=?
   `;
 
 my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
 
 while( 1 ) {
+  $eventcounts_sth->execute() or Error( "Can't execute: ".$eventcounts_sth->errstr() );
+  $eventcounts_sth->finish();
+
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
     or Fatal( "Can't execute: ".$sth->errstr() );
   while( my $monitor = $sth->fetchrow_hashref() ) {
 
-    $eventcounts_sth->execute( $$monitor{Id} ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
 
     my $now = time(); 
     next if $monitor->{Function} eq 'None';
@@ -215,7 +216,6 @@ while( 1 ) {
 
 
   } # end foreach monitor
-  $eventcounts_sth->finish();
 
   sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );
 } # end while (1)

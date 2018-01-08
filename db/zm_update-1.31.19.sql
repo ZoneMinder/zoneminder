@@ -36,10 +36,16 @@ begin
     set diff = NEW.DiskSpace - OLD.DiskSpace;
   IF ( NEW.StorageId = OLD.StorageID ) THEN
 
+    IF ( diff ) THEN
     call update_storage_stats(OLD.StorageId, diff);
+    END IF;
   ELSE
+    IF ( NEW.DiskSpace ) THEN
     call update_storage_stats(NEW.StorageId, NEW.DiskSpace);
+    END IF;
+    IF ( OLD.DiskSpace ) THEN
     call update_storage_stats(OLD.StorageId, -OLD.DiskSpace);
+    END IF;
   END IF;
 
 end;
@@ -51,7 +57,7 @@ delimiter ;
 drop trigger if exists event_insert_trigger;
 
 delimiter //
-
+/*
 create trigger event_insert_trigger
 
 after insert
@@ -65,7 +71,7 @@ begin
   call update_storage_stats(NEW.StorageId, NEW.DiskSpace);
 
 end;
-
+*/
 //
 
 delimiter ;

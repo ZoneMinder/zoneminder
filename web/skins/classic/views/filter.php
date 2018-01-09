@@ -142,6 +142,7 @@ foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as
 }
 $servers = array();
 $servers['ZM_SERVER_ID'] = 'Current Server';
+$servers['NULL'] = 'No Server';
 foreach ( dbFetchAll( 'SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC' ) as $server ) {
   $servers[$server['Id']] = $server['Name'];
 }

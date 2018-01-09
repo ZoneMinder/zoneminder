@@ -216,6 +216,47 @@ CREATE TABLE `Events` (
   KEY `Events_EndTime_DiskSpace` (`EndTime`,`DiskSpace`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+DROP TABLE IF EXISTS `Events_Hour`;
+CREATE TABLE `Events_Hour` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Hour_MonitorId_StartTime_idx` (`MonitorId`,`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Events_Day`;
+CREATE TABLE `Events_Day` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Day_MonitorId_StartTime_idx` (`MonitorId`,`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+
+DROP TABLE IF EXISTS `Events_Week`;
+CREATE TABLE `Events_Week` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Week_MonitorId_StartTime_idx` (`MonitorId`,`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Events_Month`;
+CREATE TABLE `Events_Month` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Month_MonitorId_StartTime_idx` (`MonitorId`,`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 --
 -- Table structure for table `Filters`
 --

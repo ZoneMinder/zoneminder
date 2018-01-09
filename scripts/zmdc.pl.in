@@ -234,6 +234,7 @@ use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
 use Sys::CpuLoad;
 #use Data::Dumper;
 
+# We count 100 of these, so total timeout is this value *100.
 use constant KILL_DELAY => 100*1000; # 1/10th of a second
 
 our %cmd_hash;
@@ -505,7 +506,7 @@ sub kill_until_dead {
   my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset ) or die "dying at block...\n";
   while( $process and $$process{pid} and kill( 0, $$process{pid} ) ) {
-    if ( $count++ > 50 ) {
+    if ( $count++ > 100 ) {
       dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
           .strftime( '%y/%m/%d %H:%M:%S', localtime() )
           .". Sending KILL to pid $$process{pid}\n"
@@ -526,7 +527,6 @@ sub _stop {
   my $pid = send_stop( $final, $process );
   return if ! $pid;
   delete( $cmd_hash{$$process{command}} );
-
   kill_until_dead( $process );
 }
 

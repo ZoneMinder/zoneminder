@@ -210,11 +210,10 @@ CREATE TABLE `Events` (
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`Id`),
-  KEY `MonitorId` (`MonitorId`),
-  KEY `StartTime` (`StartTime`),
-  KEY `Frames` (`Frames`),
-  KEY `Archived` (`Archived`),
-  KEY `EndTime_DiskSpace` (`EndTime`,`DiskSpace`)
+  KEY `Events_MonitorId_idx` (`MonitorId`),
+  KEY `Events_StorageId_idx` (`StorageId`),
+  KEY `Events_StartTime_idx` (`StartTime`),
+  KEY `Events_EndTime_DiskSpace` (`EndTime`,`DiskSpace`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --

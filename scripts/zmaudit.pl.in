@@ -237,7 +237,7 @@ MAIN: while( $loop ) {
       } elsif ( $$Storage{Scheme} eq 'Medium' ) {
         foreach my $event_dir ( glob("$monitor_dir/*/*") ) {
           next if ! -d $event_dir;
-          my ( $date, $event_id ) = $event_dir =~ /^$monitor_dir\/(\d{4}\-\d{2}\-\d{2})\/(\d\+)$/;
+          my ( $date, $event_id ) = $event_dir =~ /^$monitor_dir\/(\d{4}\-\d{2}\-\d{2})\/(\d+)$/;
           if ( ! $event_id ) {
             Debug("Unable to parse date/event_id from $event_dir");
             next;

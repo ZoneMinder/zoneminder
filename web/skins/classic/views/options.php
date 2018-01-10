@@ -219,7 +219,6 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           <tbody>
 <?php
   foreach( dbFetchAll( 'SELECT *,(SELECT COUNT(Id) FROM Monitors WHERE ServerId=Servers.Id) AS MonitorCount FROM Servers ORDER BY Id' ) as $row ) {
-echo var_dump($row);
 ?>
             <tr>
               <td class="colName"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Name']), $canEdit ) ?></td>

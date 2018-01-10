@@ -257,6 +257,16 @@ CREATE TABLE `Events_Month` (
   KEY `Events_Month_MonitorId_StartTime_idx` (`MonitorId`,`StartTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+
+DROP TABLE IF EXISTS `Events_Archived`;
+CREATE TABLE `Events_Archived` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Month_MonitorId_idx` (`MonitorId`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 --
 -- Table structure for table `Filters`
 --
@@ -542,6 +552,9 @@ CREATE TABLE `Servers` (
   `FreeMem` bigint unsigned default null,
   `TotalSwap` bigint  unsigned default null,
   `FreeSwap` bigint unsigned default null, 
+  `zmstats`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmaudit`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmtrigger`  BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -680,7 +693,7 @@ CREATE TABLE `Storage` (
 	`Name`	varchar(64) NOT NULL default '',
 	`Type`	enum('local','s3fs') NOT NULL default 'local',
   `DiskSpace`   bigint unsigned default NULL,
-  `Scheme   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
+  `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   `ServerId` int(10) unsigned,
 	PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

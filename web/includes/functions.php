@@ -2145,7 +2145,8 @@ function cache_bust( $file ) {
   # To defeat caching.  Should probably use md5 hash
   $parts = pathinfo($file);
   global $css;
-  $cacheFile = 'cache/'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
+  $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
+  $cacheFile = 'cache/'.$dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
   if ( file_exists( ZM_PATH_WEB.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.'/'.$cacheFile ) ) {
     return $cacheFile;
   } else {

@@ -135,22 +135,22 @@ BEGIN
   IF ( NEW.Archived != OLD.Archived ) THEN
     IF ( NEW.Archived ) THEN
       INSERT INTO Events_Archived (EventId,MonitorId,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.DiskSpace);
-      UPDATE Monitors SET Events_Archived_Count = Events_Archived_Count+1, Events_Archived_DiskSpace = Events_Archived_DiskSpace + NEW.DiskSpace WHERE Id=NEW.MonitorId;
+      UPDATE Monitors SET ArchivedEvents = ArchivedEvents+1, ArchivedEventDiskSpace = ArchivedEventDiskSpace + NEW.DiskSpace WHERE Id=NEW.MonitorId;
     ELSEIF ( OLD.Archived ) THEN
       DELETE FROM Events_Archived WHERE EventId=OLD.Id;
-      UPDATE Monitors SET Events_Archived_Count = Events_Archived_Count-1, Events_Archived_DiskSpace = Events_Archived_DiskSpace - OLD.DiskSpace WHERE Id=OLD.MonitorId;
+      UPDATE Monitors SET ArchivedEvents =ArchivedEvents-1, ArchivedEventDiskSpace = ArchivedEventDiskSpace - OLD.DiskSpace WHERE Id=OLD.MonitorId;
     ELSE
       IF ( OLD.DiskSpace != NEW.DiskSpace ) THEN
         UPDATE Events_Archived SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
         UPDATE Monitors SET
-          Events_Archived_DiskSpace = Events_Archived_DiskSpace - OLD.DiskSpace + NEW.DiskSpace
+          ArchivedEventDiskSpace = ArchivedEventDiskSpace - OLD.DiskSpace + NEW.DiskSpace
           WHERE Id=OLD.MonitorId;
       END IF;
     END IF;
   END IF;
 
   IF ( OLD.DiskSpace != NEW.DiskSpace ) THEN
-    UPDATE Monitors SET Events_Total_DiskSpace = Events_Total_DiskSpace - OLD.DiskSpace + NEW.DiskSpace WHERE Id=OLD.MonitorId;
+    UPDATE Monitors SET TotalEventDiskSpace = TotalEventDiskSpace - OLD.DiskSpace + NEW.DiskSpace WHERE Id=OLD.MonitorId;
   END IF;
 
 END;
@@ -192,15 +192,15 @@ BEGIN
   IF ( OLD.Archived ) THEN
     DELETE FROM Events_Archived WHERE EventId=OLD.Id;
     UPDATE Monitors SET
-      Events_Archived = Events_Archived - 1,
-      Events_Archived_DiskSpace = Events_Archived_DiskSpace - OLD.DiskSpace,
-      Events_Total_Count = Events_Total_Count - 1,
-      Events_Total_DiskSpace = Events_Total_DiskSpace - OLD.DiskSpace
+      ArchivedEvents = ArchivedEvents - 1,
+      ArchivedEventDiskSpace = ArchivedEventDiskSpace - OLD.DiskSpace,
+      TotalEvents = TotalEvents - 1,
+      TotalEventDiskSpace = TotalEventDiskSpace - OLD.DiskSpace
       WHERE Id=OLD.MonitorId;
   ELSE
     UPDATE Monitors SET
-    Events_Total_Count = Events_Total_Count-1,
-    Events_Total_DiskSpace=Events_Total_DiskSpace-OLD.DiskSpace
+    TotalEvents = TotalEvents-1,
+    TotalEventDiskSpace=TotalEventDiskSpace-OLD.DiskSpace
     WHERE Id=OLD.MonitorId;
   END IF;
 END;

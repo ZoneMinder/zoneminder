@@ -211,11 +211,11 @@ delimiter ;
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
-      AND table_name = 'Storage'
+      AND table_name = 'Servers'
       AND column_name = 'zmstats.pl'
     ) > 0,
-    "SELECT 'Column zmstats.pl already exists in Storage'",
-    "ALTER TABLE Storage ADD `zmstats.pl` BOOLEAN NOT NULL DEFAULT FALSE AFTER `DiskSpace`"
+    "SELECT 'Column zmstats.pl already exists in Servers'",
+    "ALTER TABLE Servers ADD `zmstats.pl` BOOLEAN NOT NULL DEFAULT FALSE AFTER `FreeSwap`"
     ));
 
 PREPARE stmt FROM @s;
@@ -223,11 +223,11 @@ EXECUTE stmt;
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
-      AND table_name = 'Storage'
+      AND table_name = 'Servers'
       AND column_name = 'zmaudit.pl'
     ) > 0,
-    "SELECT 'Column zmaudit.pl already exists in Storage'",
-    "ALTER TABLE Storage ADD `zmaudit.pl` BOOLEAN NOT NULL DEFAULT FALSE AFTER `zmstats.pl`"
+    "SELECT 'Column zmaudit.pl already exists in Servers'",
+    "ALTER TABLE Servers ADD `zmaudit.pl` BOOLEAN NOT NULL DEFAULT FALSE AFTER `zmstats.pl`"
     ));
 
 PREPARE stmt FROM @s;
@@ -235,11 +235,11 @@ EXECUTE stmt;
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
-      AND table_name = 'Storage'
+      AND table_name = 'Servers'
       AND column_name = 'zmtrigger.pl'
     ) > 0,
-    "SELECT 'Column zmtriger.pl already exists in Storage'",
-    "ALTER TABLE Storage ADD `zmtrigger.pl` BOOLEAN NOT NULL DEFAULT FALSE AFTER `zmaudit.pl`"
+    "SELECT 'Column zmtrigger.pl already exists in Servers'",
+    "ALTER TABLE Servers ADD `zmtrigger.pl` BOOLEAN NOT NULL DEFAULT FALSE AFTER `zmaudit.pl`"
     ));
 
 PREPARE stmt FROM @s;

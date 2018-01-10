@@ -552,9 +552,9 @@ CREATE TABLE `Servers` (
   `FreeMem` bigint unsigned default null,
   `TotalSwap` bigint  unsigned default null,
   `FreeSwap` bigint unsigned default null, 
-  `zmstats`  BOOLEAN NOT NULL DEFAULT FALSE,
-  `zmaudit`  BOOLEAN NOT NULL DEFAULT FALSE,
-  `zmtrigger`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmstats.pl`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmaudit.pl`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmtrigger.pl`  BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

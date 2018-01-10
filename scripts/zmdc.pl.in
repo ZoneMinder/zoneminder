@@ -285,20 +285,28 @@ sub run {
   my $ein = $win;
   my $timeout = 1;
   my $Server = undef;
+  my $secs_count = 0;
 
   if ( $Config{ZM_SERVER_ID} ) {
     require ZoneMinder::Server;
+  dPrint( ZoneMinder::Logger::INFO, 'Loading Server record' );
     $Server = new ZoneMinder::Server( $Config{ZM_SERVER_ID} );
+  dPrint( ZoneMinder::Logger::INFO, 'Loading Server record have ' . $$Server{Name} );
   }
 
   while( 1 ) {
+    
     if ( $Config{ZM_SERVER_ID} ) {
-      $dbh = zmDbConnect() if ! $dbh->ping();
-      my @cpuload = Sys::CpuLoad::load();
-      if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
+      if ( $secs_count % 60 ) {
+        $dbh = zmDbConnect() if ! $dbh->ping();
+        my @cpuload = Sys::CpuLoad::load();
+        dPrint( ZoneMinder::Logger::INFO, 'Updating Server record' );
+        if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
             'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
-        Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
+          Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
+        }
       }
+      $secs_count += 1;
     }
     my $nfound = select( my $rout = $rin, undef, undef, $timeout );
     if ( $nfound > 0 ) {

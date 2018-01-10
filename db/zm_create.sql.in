@@ -336,8 +336,8 @@ CREATE TABLE `Groups_Monitors` (
     PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
-CREATE INDEX `Groups_Monitors_GroupId_idx` ON `Groups` (`GroupId`);
-CREATE INDEX `Groups_Monitors_MonitorId_idx` ON `Groups` (`MonitorId`);
+CREATE INDEX `Groups_Monitors_GroupId_idx` ON `Groups_Monitors` (`GroupId`);
+CREATE INDEX `Groups_Monitors_MonitorId_idx` ON `Groups_Monitors` (`MonitorId`);
 
 --
 -- Table structure for table `Logs`

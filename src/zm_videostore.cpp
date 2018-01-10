@@ -521,7 +521,7 @@ void VideoStore::write_audio_packet( AVPacket &pkt ) {
 
 VideoStore::~VideoStore() {
   if ( oc->pb ) {
-    if ( video_out_ctx->codec_id != video_in_ctx->codec_id || audio_out_codec ) {
+    if ( ( video_out_ctx->codec_id != video_in_ctx->codec_id ) || audio_out_codec ) {
       Debug(2,"Different codecs between in and out");
       // The codec queues data.  We need to send a flush command and out
       // whatever we get. Failures are not fatal.
@@ -553,26 +553,25 @@ VideoStore::~VideoStore() {
             break;
           }
 #else
-          while (1) {
-            // WIthout these we seg fault I don't know why.
-            pkt.data = NULL;
-            pkt.size = 0;
-            av_init_packet(&pkt);
-            int got_packet = 0;
-            ret = avcodec_encode_video2(video_out_ctx, &pkt, NULL, &got_packet);
-            if ( ret < 0 ) {
-              Error("ERror encoding video while flushing (%d) (%s)", ret, av_err2str(ret));
-              break;
-            }
-            if (!got_packet) {
-              break;
-            }
+        while (1) {
+          // WIthout these we seg fault I don't know why.
+          pkt.data = NULL;
+          pkt.size = 0;
+          av_init_packet(&pkt);
+          int got_packet = 0;
+          ret = avcodec_encode_video2(video_out_ctx, &pkt, NULL, &got_packet);
+          if ( ret < 0 ) {
+            Error("ERror encoding video while flushing (%d) (%s)", ret, av_err2str(ret));
+            break;
+          }
+          if (!got_packet) {
+            break;
+          }
 #endif
-            write_video_packet(pkt);
-            zm_av_packet_unref(&pkt);
-          }  // while have buffered frames
-        } // end if have delay capability
-      } // end if have buffered video
+          write_video_packet(pkt);
+          zm_av_packet_unref(&pkt);
+        } // while have buffered frames
+      } // end if have delay capability
 
       if ( audio_out_codec ) {
         // The codec queues data.  We need to send a flush command and out
@@ -588,9 +587,11 @@ VideoStore::~VideoStore() {
         avcodec_send_frame(audio_out_ctx, NULL);
         while (1) {
           if ( (ret = avcodec_receive_packet(audio_out_ctx, &pkt) ) < 0 ) {
-            if (AVERROR_EOF != ret) {
+            if ( AVERROR_EOF != ret ) {
               Error("ERror encoding audio while flushing (%d) (%s)", ret, av_err2str(ret));
             }
+            break;
+          }
 #else
         while (1) {
           pkt.data = NULL;
@@ -622,7 +623,7 @@ VideoStore::~VideoStore() {
       Debug(3, "Sucess Writing trailer");
     }
 
-          // WHen will be not using a file ?
+    // WHen will be not using a file ?
     if ( !(out_format->flags & AVFMT_NOFILE) ) {
       /* Close the out file. */
       Debug(2, "Closing");
@@ -640,7 +641,8 @@ VideoStore::~VideoStore() {
   // allocation/de-allocation constantly, or whether we can just re-use it.
   // Just do a file open/close/writeheader/etc.
   // What if we were only doing audio recording?
-  if (video_out_stream) {
+  
+  if ( video_out_stream ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
     avcodec_free_context(&video_in_ctx);

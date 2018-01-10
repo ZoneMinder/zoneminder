@@ -219,24 +219,18 @@ sub getFilters {
     ) ORDER BY Name';
   my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Unable to prepare '$sql': ".$dbh->errstr() );
-  my $res;
-  if ( $filter_name ) {
-    $res = $sth->execute( $filter_name )
-      or Fatal( "Unable to execute '$sql': ".$sth->errstr() );
-  } else {
-    $res = $sth->execute()
-      or Fatal( "Unable to execute '$sql': ".$sth->errstr() );
-  }
+  my $res = $sth->execute( @sql_values )
+    or Fatal( "Unable to execute '$sql': ".$sth->errstr() );
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
     Debug( "Found filter '$db_filter->{Name}'\n" );
-    my $sql = $filter->Sql();
+    my $filter_sql = $filter->Sql();
 
-    if ( ! $sql ) {
+    if ( ! $filter_sql ) {
       Error( "Error parsing Sql. skipping filter '$db_filter->{Name}'\n" );
       next FILTER;
     }
-    push( @filters, $filter );
+    push @filters, $filter;
   }
   $sth->finish();
   if ( ! @filters ) {
@@ -245,7 +239,7 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     Debug( "Got " . @filters . " filters" );
   }
 
-  return( @filters );
+  return @filters;
 } # end sub getFilters
 
 sub checkFilter {

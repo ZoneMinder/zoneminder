@@ -27,6 +27,7 @@ if ( $_REQUEST['id'] ) {
 	if ( !($newStorage = dbFetchOne('SELECT * FROM Storage WHERE Id=?', NULL, ARRAY($_REQUEST['id'])) ) ) {
 		$view = 'error';
 		return;
+    $newStorage['ServerId'] = '';
 	}
 } else {
 	$newStorage = array();
@@ -43,6 +44,11 @@ $scheme_options = array(
   'Shallow' => translate('Shallow'),
 );
 
+$servers = Server::find_all();
+$ServersById = array();
+foreach ( $servers as $S ) {
+  $ServersById[$S->Id()] = $S;
+}
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
@@ -66,6 +72,10 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
             <tr>
               <th scope="row"><?php echo translate('Path') ?></th>
               <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage['Path'] ?>"/></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('Server') ?></th>
+              <td><?php echo htmlSelect( 'newStorage[ServerId]', array('','Remote') + $ServersById, $newStorage['ServerId'] ); ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Type') ?></th>

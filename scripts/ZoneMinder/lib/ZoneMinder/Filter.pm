@@ -133,24 +133,25 @@ sub Sql {
   my $self = $_[0];
   if ( ! $$self{Sql} ) {
     my $filter_expr = ZoneMinder::General::jsonDecode( $self->{Query} );
-    my $sql = "SELECT E.*,
+    my $sql = 'SELECT E.*,
        unix_timestamp(E.StartTime) as Time,
        M.Name as MonitorName,
        M.DefaultRate,
        M.DefaultScale
          FROM Events as E
          INNER JOIN Monitors as M on M.Id = E.MonitorId
-         ";
+         INNER JOIN Storage as S on S.Id = E.StorageId
+         ';
     $self->{Sql} = '';
 
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
 
         if ( exists($term->{cnj}) ) {
-          $self->{Sql} .= ' '.$term->{cnj}." ";
+          $self->{Sql} .= ' '.$term->{cnj}.' ';
         }
         if ( exists($term->{obr}) ) {
-          $self->{Sql} .= ' '.str_repeat( "(", $term->{obr} )." ";
+          $self->{Sql} .= ' '.str_repeat( '(', $term->{obr} ).' ';
         }
         my $value = $term->{val};
         my @value_list;
@@ -159,7 +160,7 @@ sub Sql {
             my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
             $self->{Sql} .= 'M.'.$temp_attr_name;
           } elsif ( $term->{attr} =~ /^Server/ ) {
-            $self->{Sql} .= 'M.'.$term->{attr};
+            $self->{Sql} .= 'S.'.$term->{attr};
 
 # StartTime options
           } elsif ( $term->{attr} eq 'DateTime' ) {
@@ -171,9 +172,9 @@ sub Sql {
           } elsif ( $term->{attr} eq 'StartDate' ) {
             $self->{Sql} .= 'to_days( E.StartTime )';
           } elsif ( $term->{attr} eq 'Time' ) {
-            $self->{Sql} .= "extract( hour_second from E.StartTime )";
+            $self->{Sql} .= 'extract( hour_second from E.StartTime )';
           } elsif ( $term->{attr} eq 'Weekday' ) {
-            $self->{Sql} .= "weekday( E.StartTime )";
+            $self->{Sql} .= 'weekday( E.StartTime )';
 
 # EndTIme options
           } elsif ( $term->{attr} eq 'EndDateTime' ) {
@@ -181,7 +182,7 @@ sub Sql {
           } elsif ( $term->{attr} eq 'EndDate' ) {
             $self->{Sql} .= 'to_days( E.EndTime )';
           } elsif ( $term->{attr} eq 'EndTime' ) {
-            $self->{Sql} .= "extract( hour_second from E.EndTime )";
+            $self->{Sql} .= 'extract( hour_second from E.EndTime )';
           } elsif ( $term->{attr} eq 'EndWeekday' ) {
             $self->{Sql} .= "weekday( E.EndTime )";
 
@@ -212,6 +213,8 @@ sub Sql {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server( $ZoneMinder::Config::Config{ZM_SERVER_ID} );
+              } elsif ( $temp_value eq 'NULL' ) {
+                $value = $temp_value;
               } else {
                 $value = "'$temp_value'";
                 # This gets used later, I forget for what

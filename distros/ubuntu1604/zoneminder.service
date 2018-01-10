@@ -17,6 +17,7 @@ PIDFile=/var/run/zm/zm.pid
 Restart=always
 RestartSec=10
 Environment=TZ=:/etc/localtime
+TimeoutSec=600
 
 [Install]
 WantedBy=multi-user.target

@@ -313,6 +313,7 @@ bool VideoStore::open() {
     if (ret < 0) {
       Error("Could not open out file '%s': %s\n", filename,
             av_make_error_string(ret).c_str());
+
       return false;
     }
   }
@@ -346,68 +347,83 @@ bool VideoStore::open() {
 }
 
 VideoStore::~VideoStore() {
-  if (audio_out_codec) {
-    // The codec queues data.  We need to send a flush command and out
-    // whatever we get. Failures are not fatal.
-    AVPacket pkt;
-    av_init_packet(&pkt);
 
-    while (1) {
+  if ( oc->pb ) {
+
+    if (audio_out_codec) {
+      // The codec queues data.  We need to send a flush command and out
+      // whatever we get. Failures are not fatal.
+      AVPacket pkt;
+      av_init_packet(&pkt);
+
+      while (1) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      // Put encoder into flushing mode
-      avcodec_send_frame(audio_out_ctx, NULL);
-      ret = avcodec_receive_packet(audio_out_ctx, &pkt);
-      if (ret < 0) {
-        if (AVERROR_EOF != ret) {
-          Error("ERror encoding audio while flushing (%d) (%s)", ret,
+        // Put encoder into flushing mode
+        avcodec_send_frame(audio_out_ctx, NULL);
+        ret = avcodec_receive_packet(audio_out_ctx, &pkt);
+        if (ret < 0) {
+          if (AVERROR_EOF != ret) {
+            Error("ERror encoding audio while flushing (%d) (%s)", ret,
                 av_err2str(ret));
+          }
+          break;
         }
-        break;
-      }
 #else
-      int got_packet = 0;
-      ret =
+        int got_packet = 0;
+        ret =
           avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet);
-      if (ret < 0) {
-        Error("ERror encoding audio while flushing (%d) (%s)", ret,
+        if (ret < 0) {
+          Error("ERror encoding audio while flushing (%d) (%s)", ret,
               av_err2str(ret));
-        break;
-      }
-      Debug(1, "Have audio encoder, need to flush it's out");
-      if (!got_packet) {
-        break;
-      }
+          break;
+        }
+        Debug(1, "Have audio encoder, need to flush it's out");
+        if (!got_packet) {
+          break;
+        }
 #endif
-      Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
+        Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
             pkt.dts, pkt.duration);
-      pkt.pts = audio_next_pts;
-      pkt.dts = audio_next_dts;
+        pkt.pts = audio_next_pts;
+        pkt.dts = audio_next_dts;
 
-      if (pkt.duration > 0)
-        pkt.duration =
+        if (pkt.duration > 0)
+          pkt.duration =
             av_rescale_q(pkt.duration, audio_out_ctx->time_base,
-                         audio_out_stream->time_base);
-      audio_next_pts += pkt.duration;
-      audio_next_dts += pkt.duration;
+                audio_out_stream->time_base);
+        audio_next_pts += pkt.duration;
+        audio_next_dts += pkt.duration;
 
-      Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
+        Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
             pkt.dts, pkt.duration);
-      pkt.stream_index = audio_out_stream->index;
-      av_interleaved_write_frame(oc, &pkt);
-      zm_av_packet_unref(&pkt);
-    }  // while have buffered frames
-  }    // end if audio_out_codec
+        pkt.stream_index = audio_out_stream->index;
+        av_interleaved_write_frame(oc, &pkt);
+        zm_av_packet_unref(&pkt);
+      }  // while have buffered frames
+    }    // end if audio_out_codec
 
-  // Flush Queues
-  av_interleaved_write_frame(oc, NULL);
+    // Flush Queues
+    av_interleaved_write_frame(oc, NULL);
 
-  /* Write the trailer before close */
-  if (int rc = av_write_trailer(oc)) {
-    Error("Error writing trailer %s", av_err2str(rc));
-  } else {
-    Debug(3, "Sucess Writing trailer");
+    /* Write the trailer before close */
+    if (int rc = av_write_trailer(oc)) {
+      Error("Error writing trailer %s", av_err2str(rc));
+    } else {
+      Debug(3, "Sucess Writing trailer");
+    }
+
+    // WHen will be not using a file ?
+    if ( !(out_format->flags & AVFMT_NOFILE) ) {
+      /* Close the out file. */
+      Debug(2, "Closing");
+      if (int rc = avio_close(oc->pb)) {
+        oc->pb = NULL;
+        Error("Error closing avio %s", av_err2str(rc));
+      }
+    } else {
+      Debug(3, "Not closing avio because we are not writing to a file.");
+    }
   }
-
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the ctx
   // allocation/de-allocation constantly, or whether we can just re-use it.
@@ -461,16 +477,6 @@ VideoStore::~VideoStore() {
       converted_in_samples = NULL;
     }
 #endif
-  }
-
-  // WHen will be not using a file ?
-  if (!(out_format->flags & AVFMT_NOFILE)) {
-    /* Close the out file. */
-    if (int rc = avio_close(oc->pb)) {
-      Error("Error closing avio %s", av_err2str(rc));
-    }
-  } else {
-    Debug(3, "Not closing avio because we are not writing to a file.");
   }
 
   /* free the stream */

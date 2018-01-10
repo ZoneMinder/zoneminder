@@ -2400,6 +2400,17 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_STATS_UPDATE_INTERVAL',
+    default     => '60',
+    description => 'How often to update the database statistics',
+    help        => q`
+      The zmstats daemon performs various db queries that may take
+      a long time in the background.
+      `,
+    type        => $types{integer},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_WATCH_CHECK_INTERVAL',
     default     => '10',
     description => 'How often to check the capture daemons have not locked up',

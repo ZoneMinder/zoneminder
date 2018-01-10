@@ -213,6 +213,8 @@ sub Sql {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server( $ZoneMinder::Config::Config{ZM_SERVER_ID} );
+              } elsif ( $temp_value eq 'NULL' ) {
+                $value = $temp_value;
               } else {
                 $value = "'$temp_value'";
                 # This gets used later, I forget for what

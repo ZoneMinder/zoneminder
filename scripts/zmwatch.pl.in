@@ -79,91 +79,7 @@ my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'S
 my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 
-my $eventcounts_sql = q`
-UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId,
-    COUNT(Id) AS TotalEvents,
-    SUM(DiskSpace) AS TotalEventDiskSpace,
-    SUM(IF(Archived,1,0)) AS ArchivedEvents,
-    SUM(IF(Archived,DiskSpace,0)) AS ArchivedEventDiskSpace,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 hour),1,0)) AS HourEvents,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 hour),DiskSpace,0)) AS HourEventDiskSpace,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 day),1,0)) AS DayEvents,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 day),DiskSpace,0)) AS DayEventDiskSpace,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 week),1,0)) AS WeekEvents,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 week),DiskSpace,0)) AS WeekEventDiskSpace,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 month),1,0)) AS MonthEvents,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 month),DiskSpace,0)) AS MonthEventDiskSpace
-    FROM Events GROUP BY MonitorId
-    ) AS E ON E.MonitorId=Monitors.Id SET
-    Monitors.TotalEvents = E.TotalEvents,
-    Monitors.TotalEventDiskSpace = E.TotalEventDiskSpace,
-    Monitors.ArchivedEvents = E.ArchivedEvents,
-    Monitors.ArchivedEventDiskSpace = E.ArchivedEventDiskSpace,
-    Monitors.HourEvents = E.HourEvents,
-    Monitors.HourEventDiskSpace = E.HourEventDiskSpace,
-    Monitors.DayEvents = E.DayEvents,
-    Monitors.DayEventDiskSpace = E.DayEventDiskSpace,
-    Monitors.WeekEvents = E.WeekEvents,
-    Monitors.WeekEventDiskSpace = E.WeekEventDiskSpace,
-    Monitors.MonthEvents = E.MonthEvents,
-    Monitors.MonthEventDiskSpace = E.MonthEventDiskSpace
-  `;
-
-
-  my $eventcounts_hour_sql = q`
-UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId, COUNT(*) AS HourEvents, SUM(DiskSpace) AS HourEventDiskSpace
-  FROM Events_Hour GROUP BY MonitorId
-    ) AS E ON E.MonitorId=Monitors.Id SET
-    Monitors.HourEvents = E.HourEvents,
-    Monitors.HourEventDiskSpace = E.HourEventDiskSpace
-  `;
-
-
-    my $eventcounts_day_sql = q`
-UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId, COUNT(*) AS DayEvents, SUM(DiskSpace) AS DayEventDiskSpace
-  FROM Events_Day GROUP BY MonitorId
-    ) AS E ON E.MonitorId=Monitors.Id SET
-    Monitors.DayEvents = E.DayEvents,
-    Monitors.DayEventDiskSpace = E.DayEventDiskSpace
-  `;
-
-    my $eventcounts_week_sql = q`
-UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId, COUNT(*) AS WeekEvents, SUM(DiskSpace) AS WeekEventDiskSpace
-  FROM Events_Week GROUP BY MonitorId
-    ) AS E ON E.MonitorId=Monitors.Id SET
-    Monitors.WeekEvents = E.WeekEvents,
-    Monitors.WeekEventDiskSpace = E.WeekEventDiskSpace
-  `;
-
-    my $eventcounts_month_sql = q`
-UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId, COUNT(*) AS MonthEvents, SUM(DiskSpace) AS MonthEventDiskSpace
-  FROM Events_Month GROUP BY MonitorId
-    ) AS E ON E.MonitorId=Monitors.Id SET
-    Monitors.MonthEvents = E.MonthEvents,
-    Monitors.MonthEventDiskSpace = E.MonthEventDiskSpace
-  `;
-
-
-my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
-my $eventcounts_hour_sth = $dbh->prepare_cached( $eventcounts_hour_sql );
-my $eventcounts_day_sth = $dbh->prepare_cached( $eventcounts_day_sql );
-my $eventcounts_week_sth = $dbh->prepare_cached( $eventcounts_week_sql );
-my $eventcounts_month_sth = $dbh->prepare_cached( $eventcounts_month_sql );
-
 while( 1 ) {
-  $dbh->do('DELETE FROM Events_Hour WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
-  $dbh->do('DELETE FROM Events_Day WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 day)');
-  $dbh->do('DELETE FROM Events_Week WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 week)');
-  $dbh->do('DELETE FROM Events_Month WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 month)');
-  $eventcounts_hour_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
-  $eventcounts_day_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
-  $eventcounts_week_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
-  $eventcounts_month_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
 
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
     or Fatal( "Can't execute: ".$sth->errstr() );
@@ -266,9 +182,8 @@ while( 1 ) {
   sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );
 } # end while (1)
 
-$eventcounts_sth->finish();
-
 Info( "Watchdog exiting\n" );
 exit();
+
 1;
 __END__

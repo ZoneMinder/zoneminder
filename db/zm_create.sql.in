@@ -210,11 +210,61 @@ CREATE TABLE `Events` (
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`Id`),
-  KEY `MonitorId` (`MonitorId`),
-  KEY `StartTime` (`StartTime`),
-  KEY `Frames` (`Frames`),
-  KEY `Archived` (`Archived`),
-  KEY `EndTime_DiskSpace` (`EndTime`,`DiskSpace`)
+  KEY `Events_MonitorId_idx` (`MonitorId`),
+  KEY `Events_StorageId_idx` (`StorageId`),
+  KEY `Events_StartTime_idx` (`StartTime`),
+  KEY `Events_EndTime_DiskSpace` (`EndTime`,`DiskSpace`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Events_Hour`;
+CREATE TABLE `Events_Hour` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Hour_MonitorId_StartTime_idx` (`MonitorId`,`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Events_Day`;
+CREATE TABLE `Events_Day` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Day_MonitorId_StartTime_idx` (`MonitorId`,`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+
+DROP TABLE IF EXISTS `Events_Week`;
+CREATE TABLE `Events_Week` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Week_MonitorId_StartTime_idx` (`MonitorId`,`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Events_Month`;
+CREATE TABLE `Events_Month` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Month_MonitorId_StartTime_idx` (`MonitorId`,`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+
+DROP TABLE IF EXISTS `Events_Archived`;
+CREATE TABLE `Events_Archived` (
+  `EventId` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Month_MonitorId_idx` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
@@ -502,6 +552,9 @@ CREATE TABLE `Servers` (
   `FreeMem` bigint unsigned default null,
   `TotalSwap` bigint  unsigned default null,
   `FreeSwap` bigint unsigned default null, 
+  `zmstats.pl`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmaudit.pl`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmtrigger.pl`  BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -640,7 +693,7 @@ CREATE TABLE `Storage` (
 	`Name`	varchar(64) NOT NULL default '',
 	`Type`	enum('local','s3fs') NOT NULL default 'local',
   `DiskSpace`   bigint unsigned default NULL,
-  `Scheme   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
+  `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   `ServerId` int(10) unsigned,
 	PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

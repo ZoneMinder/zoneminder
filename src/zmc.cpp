@@ -333,6 +333,14 @@ int main(int argc, char *argv[]) {
     }  // end foreach n_monitors
     //Debug(2,"unblocking");
     sigprocmask(SIG_UNBLOCK, &block_set, 0);
+    if ( zm_reload ) {
+      for ( int i = 0; i < n_monitors; i++ ) {
+        monitors[i]->Reload();
+      }
+      logTerm();
+      logInit( log_id_string );
+      zm_reload = false;
+    }
   }  // end while ! zm_terminate
   for ( int i = 0; i < n_monitors; i++ ) {
     if ( analysis_threads[i] ) {

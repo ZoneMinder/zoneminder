@@ -6,7 +6,7 @@ function vjsReplay() {
     case 'none':
       break;
     case 'single':
-      player.play();
+      vid.play();
       break;
     case 'all':
       if (nextEventId == 0) {

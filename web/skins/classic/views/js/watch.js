@@ -541,14 +541,12 @@ function getControlResponse( respObj, respText ) {
 function controlCmd( control, event, xtell, ytell ) {
   var locParms = "";
   if ( event && (xtell || ytell) ) {
-    var xEvent = new Event( event );
-    var target = xEvent.target;
+    console.log(event);
+    var target = event.target;
     var coords = $(target).getCoordinates();
 
-    var l = coords.left;
-    var t = coords.top;
-    var x = xEvent.page.x - l;
-    var y = xEvent.page.y - t;
+    var x = event.pageX - coords.left;
+    var y = event.pageY - coords.top;
 
     if ( xtell ) {
       var xge = parseInt( (x*100)/coords.width );

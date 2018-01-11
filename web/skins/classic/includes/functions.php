@@ -35,9 +35,6 @@ function xhtmlHeaders( $file, $title ) {
 
   $basename = basename( $file, '.php' );
 
-  if ($basename == 'watch') {
-    $viewCssFileExtra = getSkinFile( '/css/'.$css.'/views/control.css' );
-  }
   $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
   $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
   $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
@@ -88,12 +85,11 @@ echo output_link_if_exists( array(
   '/js/chosen/chosen.min.css',
 )
 );
-?>
-<?php
-  if ( isset($viewCssFileExtra) ) {
-?>
-  <link rel="stylesheet" href="<?php echo cache_bust($viewCssFileExtra) ?>" type="text/css" media="screen"/>
-<?php
+  if ($basename == 'watch') {
+    echo output_link_if_exists( array(
+      '/css/base/views/control.css',
+      '/css/'.$css.'/views/control.css'
+    ) );
   }
   if ( $viewCssPhpFile ) {
 ?>

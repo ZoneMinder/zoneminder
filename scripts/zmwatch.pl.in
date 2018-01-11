@@ -131,6 +131,9 @@ while( 1 ) {
     }
 
     if ( $restart ) {
+      # Because zma depends on zmc, and zma can hold the shm in place, preventing zmc from using the space in /dev/shm,
+      # we need to stop zma before restarting zmc.
+      runCommand( "zmdc.pl stop zma -m $$monitor{Id}" ) if $monitor->{Function} ne 'Monitor';
       my $command;
       if ( $monitor->{Type} eq 'Local' ) {
         $command = "zmdc.pl restart zmc -d $monitor->{Device}";
@@ -138,6 +141,7 @@ while( 1 ) {
         $command = "zmdc.pl restart zmc -m $monitor->{Id}";
       }
       runCommand( $command );
+      runCommand( "zmdc.pl start zma -m $$monitor{Id}" ) if $monitor->{Function} ne 'Monitor';
     } elsif ( $monitor->{Function} ne 'Monitor' ) {
 # Now check analysis daemon
       $restart = 0;

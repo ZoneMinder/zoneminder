@@ -141,7 +141,8 @@ sub new {
   $this->{idArgs} = '';
 
   $this->{level} = INFO;
-if (-t STDIN) {
+  $this->{hasTerm} = -t STDERR;
+if ( $this->{hasTerm} ) {
   $this->{termLevel} = INFO;
 } else {
   $this->{termLevel} = NOLOG;
@@ -152,7 +153,6 @@ if (-t STDIN) {
   $this->{effectiveLevel} = INFO;
 
   $this->{autoFlush} = 1;
-  $this->{hasTerm} = -t STDERR;
 
   ( $this->{fileName} = $0 ) =~ s|^.*/||;
   $this->{logPath} = $Config{ZM_PATH_LOGS};

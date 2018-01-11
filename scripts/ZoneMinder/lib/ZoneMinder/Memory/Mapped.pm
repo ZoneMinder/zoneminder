@@ -77,19 +77,18 @@ sub zmMemAttach {
   my ( $monitor, $size ) = @_;
   if ( ! $size ) {
     Error( "No size passed to zmMemAttach for monitor $$monitor{Id}\n" );
-    return( undef );
+    return undef;
   }
   if ( !defined($monitor->{MMapAddr}) ) {
 
-    my $mmap_file = $Config{ZM_PATH_MAP}."/zm.mmap.".$monitor->{Id};
+    my $mmap_file = $Config{ZM_PATH_MAP}.'/zm.mmap.'.$monitor->{Id};
     if ( ! -e $mmap_file ) {
       Error( sprintf( "Memory map file '%s' does not exist.  zmc might not be running."
             , $mmap_file
             )
           );
-      return ( undef );
+      return undef;
     }
-
     my $mmap_file_size = -s $mmap_file;
 
     if ( $mmap_file_size < $size ) {
@@ -99,25 +98,25 @@ sub zmMemAttach {
             , $mmap_file_size
             )
           );
-      return ( undef );
+      return undef;
     }
     my $MMAP;
     if ( !open( $MMAP, '+<', $mmap_file ) ) {
-      Error( sprintf( "Can't open memory map file '%s': $!\n", $mmap_file ) );
-      return( undef );
+      Error( sprintf( "Can't open memory map file '%s': $!", $mmap_file ) );
+      return undef;
     }
     my $mmap = undef;
     my $mmap_addr = mmap( $mmap, $size, PROT_READ|PROT_WRITE, MAP_SHARED, $MMAP );
     if ( !$mmap_addr || !$mmap ) {
       Error( sprintf( "Can't mmap to file '%s': $!\n", $mmap_file ) );
       close( $MMAP );
-      return( undef );
+      return undef;
     }
     $monitor->{MMapHandle} = $MMAP;
     $monitor->{MMapAddr} = $mmap_addr;
     $monitor->{MMap} = \$mmap;
   }
-  return( !undef );
+  return !undef;
 }
 
 sub zmMemDetach {
@@ -149,10 +148,10 @@ sub zmMemGet {
           , $monitor->{Id}
           )
         );
-    return( undef );
+    return undef;
   }
   my $data = substr( $$mmap, $offset, $size );
-  return( $data );
+  return $data;
 }
 
 sub zmMemPut {

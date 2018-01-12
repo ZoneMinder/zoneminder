@@ -92,7 +92,8 @@ if ( $newGroup->Id() )
 $sql = 'SELECT Id,Name from Groups'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids )).')' : '').' ORDER BY Name';
 $options = array(''=>'None');
 foreach ( dbFetchAll( $sql, null, $kids ) as $option ) {
-  $options[$option['Id']] = $option['Name'];
+
+  $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth() ) . $option['Name'];
 }
 echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('onchange'=>'configureButtons(this);' ));
 ?>

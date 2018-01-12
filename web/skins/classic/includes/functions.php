@@ -82,9 +82,11 @@ echo output_link_if_exists( array(
   '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
   '/js/jquery-ui-structure.css',
   '/css/'.$css.'/jquery-ui-theme.css',
-  '/js/chosen/chosen.min.css',
 )
 );
+?>
+  <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
+<?php
   if ($basename == 'watch') {
     echo output_link_if_exists( array(
       '/css/base/views/control.css',

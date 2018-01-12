@@ -1198,8 +1198,9 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
             if ( ! $StorageArea ) {
               for ( $j = 0; $j < count($terms); $j++ ) {
-                if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' ) {
-                  $StorageArea = new Storage(  $terms[$j]['val'] );
+                if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
+                  $StorageArea = new Storage($terms[$j]['val']);
+		  break;
                 }
               } // end foreach remaining term
               if ( ! $StorageArea ) $StorageArea = new Storage();
@@ -1211,8 +1212,8 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
             if ( ! $StorageArea ) {
               for ( $j = $i; $j < count($terms); $j++ ) {
-                if ( isset($terms[$i]['attr']) and $terms[$i]['attr'] == 'StorageId' ) {
-                  $StorageArea = new Storage(  $terms[$i]['val'] );
+                if ( isset($terms[$i]['attr']) and $terms[$i]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
+                  $StorageArea = new Storage($terms[$i]['val']);
                 }
               } // end foreach remaining term
             } // end no StorageArea found yet
@@ -1298,8 +1299,10 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($terms[$i]['op'])."\"/>\n";
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($terms[$i]['val']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
+	if ( isset($terms[$i]['val']) ) {
+		$filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($terms[$i]['val']);
+		$filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
+	}
       } // end foreach term
       if ( isset($terms[$i]['cbr']) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($terms[$i]['cbr']);
@@ -2145,7 +2148,8 @@ function cache_bust( $file ) {
   # To defeat caching.  Should probably use md5 hash
   $parts = pathinfo($file);
   global $css;
-  $cacheFile = 'cache/'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
+  $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
+  $cacheFile = 'cache/'.$dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
   if ( file_exists( ZM_PATH_WEB.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.'/'.$cacheFile ) ) {
     return $cacheFile;
   } else {

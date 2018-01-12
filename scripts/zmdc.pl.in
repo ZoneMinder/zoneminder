@@ -69,8 +69,6 @@ use POSIX;
 use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
-use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
-use Sys::CpuLoad;
 
 use autouse 'Pod::Usage'=>qw(pod2usage);
 #use Data::Dumper;
@@ -101,6 +99,7 @@ my @daemons = (
     'zmx10.pl',
     'zmwatch.pl',
     'zmupdate.pl',
+    'zmstats.pl',
     'zmtrack.pl',
     'zmtelemetry.pl'
     );
@@ -149,8 +148,11 @@ socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
 
 my $saddr = sockaddr_un( SOCK_FILE );
 my $server_up = connect( CLIENT, $saddr );
+
 if ( ! $server_up ) {
   if ( $Config{ZM_SERVER_ID} ) {
+use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+use Sys::CpuLoad;
     if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
           'NotRunning', &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
       Error("Failed Updating status of Server record to Not RUnning for Id=$Config{ZM_SERVER_ID}" . $dbh->errstr());
@@ -234,6 +236,7 @@ use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
 use Sys::CpuLoad;
 #use Data::Dumper;
 
+# We count 100 of these, so total timeout is this value *100.
 use constant KILL_DELAY => 100*1000; # 1/10th of a second
 
 our %cmd_hash;
@@ -281,14 +284,29 @@ sub run {
   my $win = $rin;
   my $ein = $win;
   my $timeout = 1;
+  my $Server = undef;
+  my $secs_count = 0;
+
+  if ( $Config{ZM_SERVER_ID} ) {
+    require ZoneMinder::Server;
+  dPrint( ZoneMinder::Logger::INFO, 'Loading Server record' );
+    $Server = new ZoneMinder::Server( $Config{ZM_SERVER_ID} );
+  dPrint( ZoneMinder::Logger::INFO, 'Loading Server record have ' . $$Server{Name} );
+  }
+
   while( 1 ) {
+    
     if ( $Config{ZM_SERVER_ID} ) {
-      $dbh = zmDbConnect() if ! $dbh->ping();
-      my @cpuload = Sys::CpuLoad::load();
-      if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
+      if ( $secs_count % 60 ) {
+        $dbh = zmDbConnect() if ! $dbh->ping();
+        my @cpuload = Sys::CpuLoad::load();
+        dPrint( ZoneMinder::Logger::INFO, 'Updating Server record' );
+        if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
             'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
-        Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
+          Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
+        }
       }
+      $secs_count += 1;
     }
     my $nfound = select( my $rout = $rin, undef, undef, $timeout );
     if ( $nfound > 0 ) {
@@ -296,12 +314,16 @@ sub run {
         my $paddr = accept( CLIENT, SERVER );
         my $message = <CLIENT>;
 
-        next if ( !$message );
+        next if !$message;
 
         my ( $command, $daemon, @args ) = split( /;/, $message );
 
         if ( $command eq 'start' ) {
-          start( $daemon, @args );
+          if ( $Server and exists $$Server{$daemon} and ! $$Server{$daemon} ) {
+            Debug("Not running $daemon because it is turned off for this server.");
+          } else {
+            start( $daemon, @args );
+          }
         } elsif ( $command eq 'stop' ) {
           stop( $daemon, @args );
         } elsif ( $command eq 'restart' ) {
@@ -505,7 +527,7 @@ sub kill_until_dead {
   my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset ) or die "dying at block...\n";
   while( $process and $$process{pid} and kill( 0, $$process{pid} ) ) {
-    if ( $count++ > 50 ) {
+    if ( $count++ > 100 ) {
       dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
           .strftime( '%y/%m/%d %H:%M:%S', localtime() )
           .". Sending KILL to pid $$process{pid}\n"
@@ -527,7 +549,6 @@ sub _stop {
   my $pid = send_stop( $final, $process );
   return if ! $pid;
   delete( $cmd_hash{$$process{command}} );
-
   kill_until_dead( $process );
 }
 
@@ -579,7 +600,8 @@ sub reload {
 sub logrot {
   logReinit();
   foreach my $process ( values( %pid_hash ) ) {
-    if ( $process->{pid} && $process->{command} =~ /^zm.*\.pl/ ) {
+    if ( $process->{pid} ) {
+      # && $process->{command} =~ /^zm.*\.pl/ ) {
       kill( 'HUP', $process->{pid} );
     }
   }

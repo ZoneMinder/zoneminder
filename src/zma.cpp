@@ -168,6 +168,8 @@ int main( int argc, char *argv[] ) {
 
       if ( zm_reload ) {
         monitor->Reload();
+        logTerm();
+        logInit( log_id_string );
         zm_reload = false;
       }
       sigprocmask( SIG_UNBLOCK, &block_set, 0 );

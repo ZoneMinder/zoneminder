@@ -25,7 +25,7 @@ xhtmlHeaders(__FILE__, translate('Logout') );
 <body>
   <div id="page">
     <div id="header">
-      <h1>ZoneMinder <?php echo translate('Logout') ?></h1>
+      <h1><?php echo ZM_WEB_TITLE . ' ' . translate('Logout') ?></h1>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">

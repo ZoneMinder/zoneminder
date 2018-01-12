@@ -69,56 +69,19 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 logInit();
 logSetSignal();
 
-Info( "Watchdog starting\n" );
-Info( "Watchdog pausing for ".START_DELAY." seconds\n" );
+Info( "Watchdog starting, pausing for ".START_DELAY." seconds\n" );
 sleep( START_DELAY );
 
 my $dbh = zmDbConnect();
-
 my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
 my $sth = $dbh->prepare_cached( $sql )
     or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
 
-my $eventcounts_sql = q`
-UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId,
-    COUNT(Id) AS TotalEvents,
-    SUM(DiskSpace) AS TotalEventDiskSpace,
-    SUM(IF(Archived,1,0)) AS ArchivedEvents,
-    SUM(IF(Archived,DiskSpace,0)) AS ArchivedEventDiskSpace,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 hour),1,0)) AS HourEvents,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 hour),DiskSpace,0)) AS HourEventDiskSpace,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 day),1,0)) AS DayEvents,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 day),DiskSpace,0)) AS DayEventDiskSpace,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 week),1,0)) AS WeekEvents,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 week),DiskSpace,0)) AS WeekEventDiskSpace,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 month),1,0)) AS MonthEvents,
-    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 month),DiskSpace,0)) AS MonthEventDiskSpace
-    FROM Events GROUP BY MonitorId
-    ) AS E ON E.MonitorId=Monitors.Id SET
-    Monitors.TotalEvents = E.TotalEvents,
-    Monitors.TotalEventDiskSpace = E.TotalEventDiskSpace,
-    Monitors.ArchivedEvents = E.ArchivedEvents,
-    Monitors.ArchivedEventDiskSpace = E.ArchivedEventDiskSpace,
-    Monitors.HourEvents = E.HourEvents,
-    Monitors.HourEventDiskSpace = E.HourEventDiskSpace,
-    Monitors.DayEvents = E.DayEvents,
-    Monitors.DayEventDiskSpace = E.DayEventDiskSpace,
-    Monitors.WeekEvents = E.WeekEvents,
-    Monitors.WeekEventDiskSpace = E.WeekEventDiskSpace,
-    Monitors.MonthEvents = E.MonthEvents,
-    Monitors.MonthEventDiskSpace = E.MonthEventDiskSpace
-  `;
-
-my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
-
 while( 1 ) {
-  $eventcounts_sth->execute() or Error( "Can't execute: ".$eventcounts_sth->errstr() );
 
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
     or Fatal( "Can't execute: ".$sth->errstr() );
   while( my $monitor = $sth->fetchrow_hashref() ) {
-
     my $now = time(); 
     next if $monitor->{Function} eq 'None';
     my $restart = 0;
@@ -133,38 +96,41 @@ while( 1 ) {
       }
       Debug( "LastWriteTime is = $capture_time." );
       if ( !$capture_time ) {
-				my $startup_time = zmGetStartupTime( $monitor );
-				if ( $now - $startup_time > $Config{ZM_WATCH_MAX_DELAY} ) {
-					Info( "Restarting capture daemon for ".$monitor->{Name}.", no image since startup. Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}\n" );
-					$restart = 1;
-				} else {
+        my $startup_time = zmGetStartupTime( $monitor );
+        if ( $now - $startup_time > $Config{ZM_WATCH_MAX_DELAY} ) {
+          Info( "Restarting capture daemon for ".$monitor->{Name}.", no image since startup. Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}\n" );
+          $restart = 1;
+        } else {
           # We can't get the last capture time so can't be sure it's died, it might just be starting up.
           zmMemInvalidate( $monitor );
           next;
-				}
+        }
       }
-			if ( ! $restart ) {
-				my $max_image_delay = ( $monitor->{MaxFPS}
-						&&($monitor->{MaxFPS}>0)
-						&&($monitor->{MaxFPS}<1)
-						) ? (3/$monitor->{MaxFPS})
-					: $Config{ZM_WATCH_MAX_DELAY}
-				;
-				my $image_delay = $now-$capture_time;
-				Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
-				if ( $image_delay > $max_image_delay ) {
-					Info( "Restarting capture daemon for "
-							.$monitor->{Name}.", time since last capture $image_delay seconds ($now-$capture_time)\n"
-							);
-					$restart = 1;
-				}
-			} # end if ! restart 
+      if ( ! $restart ) {
+        my $max_image_delay = ( $monitor->{MaxFPS}
+            &&($monitor->{MaxFPS}>0)
+            &&($monitor->{MaxFPS}<1)
+            ) ? (3/$monitor->{MaxFPS})
+          : $Config{ZM_WATCH_MAX_DELAY}
+        ;
+        my $image_delay = $now-$capture_time;
+        Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
+        if ( $image_delay > $max_image_delay ) {
+          Info( "Restarting capture daemon for "
+              .$monitor->{Name}.", time since last capture $image_delay seconds ($now-$capture_time)\n"
+              );
+          $restart = 1;
+        }
+      } # end if ! restart 
     } else {
       Info( "Restarting capture daemon for ".$monitor->{Name}.", shared data not valid\n" );
       $restart = 1;
     }
 
     if ( $restart ) {
+      # Because zma depends on zmc, and zma can hold the shm in place, preventing zmc from using the space in /dev/shm,
+      # we need to stop zma before restarting zmc.
+      runCommand( "zmdc.pl stop zma -m $$monitor{Id}" ) if $monitor->{Function} ne 'Monitor';
       my $command;
       if ( $monitor->{Type} eq 'Local' ) {
         $command = "zmdc.pl restart zmc -d $monitor->{Device}";
@@ -172,6 +138,7 @@ while( 1 ) {
         $command = "zmdc.pl restart zmc -m $monitor->{Id}";
       }
       runCommand( $command );
+      runCommand( "zmdc.pl start zma -m $$monitor{Id}" ) if $monitor->{Function} ne 'Monitor';
     } elsif ( $monitor->{Function} ne 'Monitor' ) {
 # Now check analysis daemon
       $restart = 0;
@@ -216,9 +183,8 @@ while( 1 ) {
   sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );
 } # end while (1)
 
-$eventcounts_sth->finish();
-
 Info( "Watchdog exiting\n" );
 exit();
+
 1;
 __END__

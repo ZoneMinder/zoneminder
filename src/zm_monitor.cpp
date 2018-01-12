@@ -480,6 +480,8 @@ Debug(2,"last_write_index(%d), last_write_time(%d)", shared_data->last_write_ind
         ( shared_data->last_write_index == (unsigned int)image_buffer_count )
          &&
         ( shared_data->last_write_time == 0) 
+        && 
+        ( !zm_terminate )
         ) {
       Warning( "Waiting for capture daemon" );
       sleep( 1 );

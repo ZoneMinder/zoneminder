@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Groups' ) ) {
+if ( !canView('Groups') ) {
   $view = 'error';
   return;
 }
@@ -64,8 +64,7 @@ function group_line( $Group ) {
   global $children;
   global $max_depth;
   $html = '<tr>';
-  for ( $i = 1; $i<$Group->depth(); $i+=1 )
-    $html .= '<td class="colName">&nbsp;</td>';
+  $html .= str_repeat( '<td class="colName">&nbsp;</td>', $Group->depth() );
   $html .= '<td class="colName" colspan="'.($max_depth-($Group->depth()-1)).'">';
   if ( canEdit('Groups') ) {
     $html .= '<a href="#" onclick="editGroup('.$Group->Id().');">'. validHtmlStr($Group->Id() . ' ' . $Group->Name()).'</a>';

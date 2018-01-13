@@ -463,7 +463,6 @@ $savejpegopts = array(
     'Frames only'                                         => 1,
     'Analysis images only (if available)'                 => 2,
     'Frames + Analysis images (if available)'             => 3,
-    'Snapshot Only'                                       => 4          
     );
 
 $videowriteropts = array(

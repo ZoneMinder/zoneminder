@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$servers = Server::find_all();
+$servers = Server::find_all( null, array('order'=>'lower(Name)'));
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;

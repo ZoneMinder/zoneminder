@@ -359,7 +359,7 @@ sub delete_files {
   my $storage_path = $Storage->Path();
 
   if ( ! $storage_path ) {
-    Fatal("Empty storage path when deleting files for event $$event{Id} with storage id $$event{StorageId} ");
+    Error("Empty storage path when deleting files for event $$event{Id} with storage id $$event{StorageId} ");
     return;
   }
 

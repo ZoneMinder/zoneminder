@@ -25,7 +25,7 @@ function xhtmlHeaders( $file, $title ) {
 
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
-  $baseCssPhpFile = getSkinFile( 'css/classic/skin.css.php' );
+  $baseCssPhpFile = getSkinFile( 'css/base/skin.css.php' );
 
   $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
 
@@ -35,9 +35,6 @@ function xhtmlHeaders( $file, $title ) {
 
   $basename = basename( $file, '.php' );
 
-  if ($basename == 'watch') {
-    $viewCssFileExtra = getSkinFile( '/css/'.$css.'/views/control.css' );
-  }
   $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
   $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
   $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
@@ -78,9 +75,9 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
 <?php 
 echo output_link_if_exists( array(
-  'css/classic/skin.css',
+  'css/base/skin.css',
   'css/'.$css.'/skin.css',
-  'css/classic/views/'.$basename.'.css',
+  'css/base/views/'.$basename.'.css',
   'css/'.$css.'/views/'.$basename.'.css',
   '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
   '/js/jquery-ui-structure.css',
@@ -88,12 +85,11 @@ echo output_link_if_exists( array(
   '/js/chosen/chosen.min.css',
 )
 );
-?>
-<?php
-  if ( isset($viewCssFileExtra) ) {
-?>
-  <link rel="stylesheet" href="<?php echo cache_bust($viewCssFileExtra) ?>" type="text/css" media="screen"/>
-<?php
+  if ($basename == 'watch') {
+    echo output_link_if_exists( array(
+      '/css/base/views/control.css',
+      '/css/'.$css.'/views/control.css'
+    ) );
   }
   if ( $viewCssPhpFile ) {
 ?>
@@ -177,7 +173,7 @@ echo output_link_if_exists( array(
 <?php
 } else {
 ?>
-  <script type="text/javascript" src="skins/classic/js/classic.js"></script>
+  <script type="text/javascript" src="skins/classic/js/base.js"></script>
 <?php } ?>
   <script type="text/javascript" src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script type="text/javascript" src="js/logger.js"></script>
@@ -234,6 +230,7 @@ function getNavBarHTML($reload = null) {
 		</div>
 
 		<div class="collapse navbar-collapse" id="main-header-nav">
+<?php if ( canView('Monitors') ) { ?>
 		<ul class="nav navbar-nav">
 			<li><a href="?view=console"><?php echo translate('Console') ?></a></li>
 <?php if ( canView( 'System' ) ) { ?>
@@ -284,9 +281,10 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   }
 ?>
 		</ul>
+<?php } // end if canView('Monitors') ?>
 
 <div class="navbar-right">
-<?php if ( ZM_OPT_USE_AUTH ) { ?>
+<?php if ( ZM_OPT_USE_AUTH and $user ) { ?>
 	<p class="navbar-text"><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
 <?php } ?>
 
@@ -301,13 +299,15 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 	</div> <!-- End .container-fluid -->
 <?php
 }//end reload null.  Runs on full page load
+
+if ( (!ZM_OPT_USE_AUTH) or $user ) {
 if ($reload == 'reload') ob_start();
 ?>
 	<div id="reload" class="container-fluid">
-    <div class="pull-left">
+    <div id="Bandwidth" class="pull-left">
       <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bandwidth_options[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
     </div>
-    <div class="pull-right">
+    <div id="Version" class="pull-right">
       <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
     <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>
         <h3 id="development"><?php echo ZM_WEB_CONSOLE_BANNER ?></h3>
@@ -343,6 +343,7 @@ if ($reload == 'reload') ob_start();
 <!-- End .footer/reload --></div>
 <?php
 if ($reload == 'reload') return( ob_get_clean() );
+} // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
 </div><!-- End .navbar .navbar-default -->
 <?php

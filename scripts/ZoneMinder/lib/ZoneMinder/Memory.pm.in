@@ -349,14 +349,15 @@ sub zmMemRead {
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
       ( $value ) = unpack( 'C'.$size, $data );
     } else {
-      Fatal( "Unexpected type '".$type."' found for '".$field."'" );
+      Error( "Unexpected type '".$type."' found for '".$field."'" );
+      next;
     }
-    push( @values, $value );
+    push @values, $value;
   }
   if ( wantarray() ) {
-    return( @values )
+    return @values;
   }
-  return( $values[0] );
+  return $values[0];
 }
 
 sub zmMemInvalidate {

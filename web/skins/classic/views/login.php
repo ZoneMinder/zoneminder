@@ -2,6 +2,7 @@
 xhtmlHeaders(__FILE__, translate('Login') );
 ?>
 <body>
+<?php echo getNavBarHTML(); ?>
 	<div class="container">
 		<form class="center-block" name="loginForm" id="loginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
 			<input type="hidden" name="action" value="login"/>

@@ -55,10 +55,10 @@ setup_mysql() {
 
 setup_php() {
   # Activate CGI
-  a2enmod cgi
+  a2enmod -q cgi
 
   # Activate modrewrite
-  a2enmod rewrite
+  a2enmod -q rewrite
 
   # Setting timezone
   sed -i "s#;date.timezone =#date.timezone = $PHP_TIMEZONE#" /etc/php/7.0/apache2/php.ini

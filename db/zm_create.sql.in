@@ -209,6 +209,7 @@ CREATE TABLE `Events` (
   `StateId` int(10) unsigned NOT NULL,
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   `DiskSpace`   bigint unsigned default NULL,
+  `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   PRIMARY KEY (`Id`),
   KEY `Events_MonitorId_idx` (`MonitorId`),
   KEY `Events_StorageId_idx` (`StorageId`),

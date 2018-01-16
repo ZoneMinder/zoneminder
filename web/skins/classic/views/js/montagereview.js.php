@@ -27,7 +27,6 @@ var eStorageId = [];
 var eStartSecs = [];
 var eEndSecs = [];
 var eventFrames = [];            // this is going to presume all frames equal durationlength
-var groupStr=<?php echo $group_id ? "'&group=$group_id'" : '""'; ?>;
 
 <?php
 

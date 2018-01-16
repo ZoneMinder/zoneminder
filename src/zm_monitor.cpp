@@ -1588,8 +1588,20 @@ void Monitor::Reload() {
     function = (Function)atoi(dbrow[index++]);
     enabled = atoi(dbrow[index++]);
     const char *p_linked_monitors = dbrow[index++];
-    strncpy( event_prefix, dbrow[index++], sizeof(event_prefix)-1 );
-    strncpy( label_format, dbrow[index++], sizeof(label_format)-1 );
+
+    if ( dbrow[index] ) {
+      strncpy( event_prefix, dbrow[index++], sizeof(event_prefix)-1 );
+    } else {
+      event_prefix[0] = 0;
+      index++;
+    }
+    if ( dbrow[index] ) {
+      strncpy( label_format, dbrow[index++], sizeof(label_format)-1 );
+    } else {
+      label_format[0] = 0;
+      index++;
+    }
+
     label_coord = Coord( atoi(dbrow[index]), atoi(dbrow[index+1]) ); index += 2;
     label_size = atoi(dbrow[index++]);
     warmup_count = atoi(dbrow[index++]);

@@ -120,6 +120,7 @@ public static function find_all( $parameters = null, $options = null ) {
     }
     $used = $this->disk_used_space();
     $usage = round( ($used / $total) * 100);
+    Warning("Used $usage = round( ( $used / $total ) * 100 )");
     return $usage;
   }
   public function disk_total_space() {
@@ -130,7 +131,7 @@ public static function find_all( $parameters = null, $options = null ) {
   }
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( ! array_key_exists( 'DiskSpace', $this ) ) {
+    if ( (! array_key_exists( 'DiskSpace', $this )) or (!$this->{'DiskSpace'}) ) {
       $used = 0;
       if ( $this->{'Type'} == 's3fs' ) {
         $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );

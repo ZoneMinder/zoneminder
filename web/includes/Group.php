@@ -135,6 +135,61 @@ public $defaults = array(
     return $this->{'MonitorIds'};
   }
 
+  public static function get_group_dropdown() {
+
+    session_start();
+    $selected_group_id = 0;
+    if ( isset($_REQUEST['groups']) ) {
+      $selected_group_id = $group_id = $_SESSION['groups'] = $_REQUEST['groups'];
+    } else if ( isset( $_SESSION['groups'] ) ) {
+      $selected_group_id = $group_id = $_SESSION['groups'];
+    } else if ( isset($_REQUEST['filtering']) ) {
+      unset($_SESSION['groups']);
+    }
+    session_write_close();
+
+    $Groups = array();
+    foreach ( Group::find_all( ) as $Group ) {
+      $Groups[$Group->Id()] = $Group;
+    }
+
+# This  array is indexed by parent_id
+global $children;
+    $children = array();
+
+    foreach ( $Groups as $id=>$Group ) {
+      if ( $Group->ParentId() != null ) {
+        if ( ! isset( $children[$Group->ParentId()] ) )
+          $children[$Group->ParentId()] = array();
+        $children[$Group->ParentId()][] = $Group;
+      }
+    }
+
+    function get_options( $Group ) {
+      global $children;
+      $options = array( $Group->Id() => str_repeat('&nbsp;&nbsp;&nbsp;', $Group->depth() ) .  $Group->Name() );
+      if ( isset($children[$Group->Id()]) ) {
+        foreach ( $children[$Group->Id()] as $child ) {
+          $options += get_options( $child );
+        }
+      }
+      return $options;
+    }
+    $group_options = array();
+    foreach ( $Groups as $id=>$Group ) {
+      if ( ! $Group->ParentId() ) {
+        $group_options += get_options( $Group );
+      }
+    }
+    return htmlSelect( 'Group[]', $group_options, isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
+          'onchange' => 'this.form.submit();',
+          'class'=>'chosen',
+          'multiple'=>'multiple',
+          'data-placeholder'=>'All',
+          ) );
+
+  } # end public static function get_group_dropdown
+
   public static function get_group_dropdowns() {
     # This will end up with the group_id of the deepest selection
     $group_id = 0;
@@ -142,6 +197,8 @@ public $defaults = array(
     $groups = array();
     $parent_group_ids = null;
     session_start();
+
+    $group_options = array(0=>'All'); 
     while(1) {
       $Groups = Group::find_all( array('ParentId'=>$parent_group_ids) );
       if ( ! count( $Groups ) )
@@ -161,15 +218,17 @@ public $defaults = array(
         if ( ! isset( $groups[$depth] ) ) {
           $groups[$depth] = array(0=>'All');
         }
+$group_options[$Group->Id()] = str_repeat( '&nbsp;', $depth ) .  $Group->Name();
         $groups[$depth][$Group->Id()] = $Group->Name();
         if ( $selected_group_id and ( $selected_group_id == $Group->Id() ) )
           $parent_group_ids[] = $Group->Id();
       }
 
-      echo htmlSelect( 'group'.$depth, $groups[$depth], $selected_group_id, "this.form.submit();" );
+      //echo htmlSelect( 'group'.$depth, $groups[$depth], $selected_group_id, "this.form.submit();" );
       if ( ! count($parent_group_ids) ) break;
       $depth += 1;
     }
+      echo htmlSelect( 'groups', $group_options, $selected_group_id, 'this.form.submit();' );
     session_write_close();
 
     return $group_id;
@@ -179,9 +238,17 @@ public $defaults = array(
   public static function get_group_sql( $group_id ) {
     $groupSql = '';
     if ( $group_id ) {
-         $MonitorIds = dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($group_id) );
+      if ( is_array( $group_id ) ) {
+        $group_id_sql_part = ' IN ('.implode(',', array_map(function(){return '?';}, $group_id ) ).')';
 
-         $MonitorIds = array_merge( $MonitorIds, dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId = ?)', 'MonitorId', array($group_id) ) );
+        $MonitorIds = dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId'.$group_id_sql_part, 'MonitorId', $group_id );
+
+        $MonitorIds = array_merge( $MonitorIds, dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId'.$group_id_sql_part.')', 'MonitorId', $group_id ) );
+      } else { 
+        $MonitorIds = dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($group_id) );
+
+        $MonitorIds = array_merge( $MonitorIds, dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId = ?)', 'MonitorId', array($group_id) ) );
+      }
       $groupSql = " find_in_set( Id, '".implode( ',', $MonitorIds )."' )";
     }
     return $groupSql;

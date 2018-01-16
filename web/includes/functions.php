@@ -636,10 +636,10 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         {
           if ( is_array( $newValues[$key] ) ) {
             if ( join(',',$newValues[$key]) != $values[$key] ) {
-              $changes[$key] = "$key = ".dbEscape(join(',',$newValues[$key]));
+              $changes[$key] = "`$key` = ".dbEscape(join(',',$newValues[$key]));
             }
           } elseif ( $values[$key] ) {
-            $changes[$key] = "$key = ''";
+            $changes[$key] = "`$key` = ''";
           }
           break;
         }
@@ -696,9 +696,9 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
             if ( ! isset($value) || $value == '' ) {
-              $changes[$key] = "$key = NULL";
+              $changes[$key] = "`$key` = NULL";
             } else {
-              $changes[$key] = $key . ' = '.dbEscape(trim($value));
+              $changes[$key] = "`$key` = ".dbEscape(trim($value));
             }
           }
           break;

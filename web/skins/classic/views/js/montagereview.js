@@ -59,13 +59,13 @@ function SetImageSource( monId, time ) {
         if ( storage.ServerId ) {
           var server = Servers[storage.ServerId];
           if ( server ) {
-console.log( server.Hostname + " for event " + eId[i] );
+//console.log( server.Hostname + " for event " + eId[i] );
             return location.protocol + '//' + server.Hostname + '/index.php?view=image&eid=' + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
           } else {
             console.log("No server found for " + storage.ServerId );
           }
         }
-        console.log("No storage found for " + eStorageId[i] );
+        //console.log("No storage found for " + eStorageId[i] );
         return "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
       }
     } // end for

@@ -476,16 +476,14 @@ sub MoveTo {
       last;
     }
   } # end foreach file.
+  return $error if $error;
 
-  if ( ! $error ) {
-    # Succeeded in copying all files, so we may now update the Event.
-    $$self{StorageId} = $$NewStorage{Id};    
-    $$self{Storage} = $NewStorage;
-    $error .= $self->save();
-  }
-  if ( ! $error ) {
-    $self->delete_files( $OldStorage );
-  }
+  # Succeeded in copying all files, so we may now update the Event.
+  $$self{StorageId} = $$NewStorage{Id};    
+  $$self{Storage} = $NewStorage;
+  $error .= $self->save();
+  return $error if $error;
+  $self->delete_files( $OldStorage );
   return $error;
 } # end sub MoveTo
 

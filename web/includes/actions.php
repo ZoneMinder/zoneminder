@@ -379,7 +379,6 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
         dbQuery( 'UPDATE Zones SET '.implode( ', ', $changes ).' WHERE MonitorId=? AND Id=?', array( $mid, $zid) );
       } else {
         dbQuery( 'INSERT INTO Zones SET MonitorId=?, '.implode( ', ', $changes ), array( $mid ) );
-        dbQuery( 'UPDATE Monitors SET ZoneCount=(SELECT COUNT(Id) FROM Zones WHERE MonitorId=Monitors.Id) WHERE Id=?', array($mid));
       }
       //if ( $cookies ) session_write_close();
       if ( daemonCheck() ) {
@@ -432,7 +431,6 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
       foreach( $_REQUEST['markZids'] as $markZid ) {
         $zone = dbFetchOne( 'select * from Zones where Id=?', NULL, array($markZid) );
         dbQuery( 'delete from Zones WHERE MonitorId=? AND Id=?', array( $mid, $markZid) );
-        dbQuery( 'UPDATE Monitors SET ZoneCount=(SELECT COUNT(Id) FROM Zones WHERE MonitorId=Monitors.Id) WHERE Id=?', array($mid));
         $deletedZid = 1;
       }
       if ( $deletedZid ) {

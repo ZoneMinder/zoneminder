@@ -297,7 +297,7 @@ sub run {
   while( 1 ) {
     
     if ( $Config{ZM_SERVER_ID} ) {
-      if ( $secs_count % 60 ) {
+      if ( ! ( $secs_count % 60 ) ) {
         $dbh = zmDbConnect() if ! $dbh->ping();
         my @cpuload = Sys::CpuLoad::load();
         dPrint( ZoneMinder::Logger::INFO, 'Updating Server record' );

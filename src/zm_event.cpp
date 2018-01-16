@@ -411,9 +411,6 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
         WriteFrameImage( images[i], *(timestamps[i]), snapshot_file.c_str() );
       }
     }
-    //if ( videowriter != NULL ) {
-      //WriteFrameVideo( images[i], *(timestamps[i]), videowriter );
-    //}
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );

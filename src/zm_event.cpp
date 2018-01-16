@@ -97,7 +97,6 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
   max_score = 0;
   have_video_keyframe = false;
 
-  struct stat statbuf;
   char id_file[PATH_MAX];
   struct tm *stime = localtime( &start_time.tv_sec );
 
@@ -399,7 +398,10 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
 
     static char event_file[PATH_MAX];
     snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
-    if ( ! ( monitor->GetOptSaveJPEGs() & 3 ) ) {
+    if ( monitor->GetOptSaveJPEGs() & 1 ) {
+      Debug( 1, "Writing pre-capture frame %d", frames );
+      WriteFrameImage( images[i], *(timestamps[i]), event_file );
+    } else {
       //If this is the first frame, we should add a thumbnail to the event directory
       // ICON: We are working through the pre-event frames so this snapshot won't 
       // neccessarily be of the motion.  But some events are less than 10 frames, 
@@ -409,10 +411,9 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
         WriteFrameImage( images[i], *(timestamps[i]), snapshot_file.c_str() );
       }
     }
-    if ( monitor->GetOptSaveJPEGs() & 1 ) {
-      Debug( 1, "Writing pre-capture frame %d", frames );
-      WriteFrameImage( images[i], *(timestamps[i]), event_file );
-    }
+    //if ( videowriter != NULL ) {
+      //WriteFrameVideo( images[i], *(timestamps[i]), videowriter );
+    //}
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );
@@ -466,19 +467,16 @@ void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *
   static char event_file[PATH_MAX];
   snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
 
-  if ( ! ( monitor->GetOptSaveJPEGs() & 3 ) ) {
-  //if ( monitor->GetOptSaveJPEGs() & 4 ) {
-    // Only snapshots
-    //If this is the first frame, we should add a thumbnail to the event directory
-    if ( frames == 10 || frames == 1 ) {
-      std::string snapshot_file = std::string(path) + "/snapshot.jpg";
-      WriteFrameImage( image, timestamp, snapshot_file.c_str() );
-    }
-  }
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
     Debug( 1, "Writing capture frame %d to %s", frames, event_file );
     if ( ! WriteFrameImage( image, timestamp, event_file ) ) {
       Error("Failed to write frame image");
+    }
+  } else {
+    //If this is the first frame, we should add a thumbnail to the event directory
+    if ( frames == 10 || frames == 1 ) {
+      std::string snapshot_file = std::string(path) + "/snapshot.jpg";
+      WriteFrameImage( image, timestamp, snapshot_file.c_str() );
     }
   }
 

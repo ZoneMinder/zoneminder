@@ -18,13 +18,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$servers = Server::find_all();
+$servers = Server::find_all( null, array('order'=>'lower(Name)'));
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
 session_start();
-foreach ( array('ServerId','StorageId','Status','MonitorId') as $var ) {
+foreach ( array('Group', 'ServerId','StorageId','Status','MonitorId') as $var ) {
   if ( isset( $_REQUEST[$var] ) ) {
     if ( $_REQUEST[$var] != '' ) {
       $_SESSION[$var] = $_REQUEST[$var];
@@ -49,7 +49,8 @@ foreach ( $storage_areas as $S ) {
   <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
 <?php
 # This will end up with the group_id of the deepest selection
-$group_id = Group::get_group_dropdowns();
+$group_id = isset($_SESSION['Group']) ?  $_SESSION['Group'] : null;
+echo Group::get_group_dropdown();
 $groupSql = Group::get_group_sql( $group_id );
 ?>
   </span>

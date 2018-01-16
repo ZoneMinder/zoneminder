@@ -325,7 +325,7 @@ CREATE TABLE `Groups` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
---Table structure for table `Groups_Monitors`
+-- Table structure for table `Groups_Monitors`
 --
 
 DROP TABLE IF EXISTS `Groups_Monitors`;
@@ -701,7 +701,7 @@ CREATE TABLE `Storage` (
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default', 'local', NULL );
+insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default', 'local', NULL, 'Medium', 0 );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
@@ -723,22 +723,6 @@ insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edi
 --
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full
 --
-  `Id` int(10) unsigned NOT NULL auto_increment,
-  `Name` varchar(64) NOT NULL default '',
-  `Query` text NOT NULL,
-  `AutoArchive` tinyint(3) unsigned NOT NULL default '0',
-  `AutoVideo` tinyint(3) unsigned NOT NULL default '0',
-  `AutoUpload` tinyint(3) unsigned NOT NULL default '0',
-  `AutoEmail` tinyint(3) unsigned NOT NULL default '0',
-  `AutoMessage` tinyint(3) unsigned NOT NULL default '0',
-  `AutoExecute` tinyint(3) unsigned NOT NULL default '0',
-  `AutoExecuteCmd` tinytext,
-  `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
-  `AutoMove` tinyint(3) unsigned NOT NULL default '0',
-  `AutoMoveTo`  smallint(5) unsigned NOT NULL default 0,
-  `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
-  `Background` tinyint(1) unsigned NOT NULL default '0',
-  `Concurrent` tinyint(1) unsigned NOT NULL default '0',
 
 insert into Filters values (NULL,'PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',0/*AutoArchive*/,0/*AutoVideo*/,0/*AutoUpload*/,0/*AutoEmail*/,0/*AutoMessage*/,0/*AutoExecute*/,'',1/*AutoDelete*/,0/*AutoMove*/,0/*MoveTo*/,0/*UpdateDiskSpace*/,1/*Background*/,0/*Concurrent*/);
 insert into Filters values (NULL,'Update DiskSpace','{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',0,0,0,0,0,0,'',0,0,0,1,1,0);
@@ -861,15 +845,19 @@ INSERT INTO ZonePresets VALUES (5,'Best, low sensitivity','Active','Percent','Bl
 INSERT INTO ZonePresets VALUES (6,'Best, medium sensitivity','Active','Percent','Blobs',40,NULL,16,NULL,5,5,12,NULL,10,NULL,1,NULL,0,0);
 INSERT INTO ZonePresets VALUES (7,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL,0,0);
 
+DROP TABLE IF EXISTS Maps;
+
 CREATE TABLE Maps (
   `Id` int(10) unsigned NOT NULL auto_increment,
-  `Name`      TEXT NOT NULL,
-  `Filename`  TEXT NOT NULL default '',
+  `Name`      VARCHAR(64) NOT NULL,
+  `Filename`  VARCHAR(64) NOT NULL default '',
   `NumCoords` tinyint(3) unsigned NOT NULL default '0',
   `Coords` tinytext NOT NULL,
   `ParentId`   int(1) unsigned,
   PRIMARY KEY (`Id`)
 );
+
+DROP TABLE IF EXISTS MontageLayout;
 
 CREATE TABLE MontageLayouts (
   `Id` int(10) unsigned NOT NULL auto_increment,

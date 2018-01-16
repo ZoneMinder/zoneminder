@@ -483,7 +483,9 @@ sub MoveTo {
     $$self{Storage} = $NewStorage;
     $error .= $self->save();
   }
-  $self->delete_files( $OldStorage );
+  if ( ! $error ) {
+    $self->delete_files( $OldStorage );
+  }
   return $error;
 } # end sub MoveTo
 

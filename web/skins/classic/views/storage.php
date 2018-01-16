@@ -19,20 +19,20 @@
 //
 
 if ( !canEdit( 'System' ) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 
 if ( $_REQUEST['id'] ) {
-	if ( !($newStorage = dbFetchOne('SELECT * FROM Storage WHERE Id=?', NULL, ARRAY($_REQUEST['id'])) ) ) {
-		$view = 'error';
-		return;
+  if ( !($newStorage = dbFetchOne('SELECT * FROM Storage WHERE Id=?', NULL, ARRAY($_REQUEST['id'])) ) ) {
+    $view = 'error';
+    return;
     $newStorage['ServerId'] = '';
-	}
+  }
 } else {
-	$newStorage = array();
-	$newStorage['Name'] = translate('NewStorage');
-	$newStorage['Path'] = '';
+  $newStorage = array();
+  $newStorage['Name'] = translate('NewStorage');
+  $newStorage['Path'] = '';
   $newStorage['Type'] = 'local';
   $newStorage['Scheme'] = 'Medium';
 }
@@ -44,7 +44,7 @@ $scheme_options = array(
   'Shallow' => translate('Shallow'),
 );
 
-$servers = Server::find_all();
+$servers = Server::find_all( null, array('order'=>'lower(Name)') );
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
@@ -75,7 +75,7 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Server') ?></th>
-              <td><?php echo htmlSelect( 'newStorage[ServerId]', array('','Remote') + $ServersById, $newStorage['ServerId'] ); ?></td>
+              <td><?php echo htmlSelect( 'newStorage[ServerId]', array(''=>'Remote / No Specific Server') + $ServersById, $newStorage['ServerId'] ); ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Type') ?></th>

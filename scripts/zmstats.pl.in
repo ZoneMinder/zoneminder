@@ -164,7 +164,7 @@ while( 1 ) {
   $eventcounts_week_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
   $eventcounts_month_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
 
-  sleep( $Config{ZM_STATS_CHECK_INTERVAL} );
+  sleep( $Config{ZM_STATS_UPDATE_INTERVAL} );
 } # end while (1)
 
 Info( "Stats Daemon exiting\n" );

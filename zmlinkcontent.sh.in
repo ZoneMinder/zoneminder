@@ -262,5 +262,15 @@ else
 	exit 31
 fi
 
+# Link the CakePHP tmp folder to /var/tmp
+echo -n "Linking CakePHP folder to /var/tmp"
+ln -sf /var/tmp "$ZM_PATH_WEB/api/app"
+if [ "$?" = "0" ]; then
+	echo "OK"
+else
+	echo "Failed"
+	exit 32
+fi
+
 echo ""
 echo "All done"

@@ -61,22 +61,22 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name'] );
             <tr>
               <th scope="row"><?php echo translate('RunStats') ?></th>
               <td>
-                <input type="radio" name="newServer[zmstats.pl]" value="1"<?php echo $newServer['zmstats.pl'] ? ' checked="checked"' : '' ?>/> Yes
-                <input type="radio" name="newServer[zmstats.pl]" value="0"<?php echo $newServer['zmstats.pl'] ? '' : ' checked="checked"' ?>/> No
+                <input type="radio" name="newServer[zmstats]" value="1"<?php echo $newServer['zmstats'] ? ' checked="checked"' : '' ?>/> Yes
+                <input type="radio" name="newServer[zmstats]" value="0"<?php echo $newServer['zmstats'] ? '' : ' checked="checked"' ?>/> No
               </td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('RunAudit') ?></th>
               <td>
-                <input type="radio" name="newServer[zmaudit.pl]" value="1"<?php echo $newServer['zmaudit.pl'] ? ' checked="checked"' : '' ?>/> Yes
-                <input type="radio" name="newServer[zmaudit.pl]" value="0"<?php echo $newServer['zmaudit.pl'] ? '' : ' checked="checked"' ?>/> No
+                <input type="radio" name="newServer[zmaudit]" value="1"<?php echo $newServer['zmaudit'] ? ' checked="checked"' : '' ?>/> Yes
+                <input type="radio" name="newServer[zmaudit]" value="0"<?php echo $newServer['zmaudit'] ? '' : ' checked="checked"' ?>/> No
               </td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('RunTrigger') ?></th>
               <td>
-                <input type="radio" name="newServer[zmtrigger.pl]" value="1"<?php echo $newServer['zmtrigger.pl'] ? ' checked="checked"' : '' ?>/> Yes
-                <input type="radio" name="newServer[zmtrigger.pl]" value="0"<?php echo $newServer['zmtrigger.pl'] ? '' : ' checked="checked"' ?>/> No
+                <input type="radio" name="newServer[zmtrigger]" value="1"<?php echo $newServer['zmtrigger'] ? ' checked="checked"' : '' ?>/> Yes
+                <input type="radio" name="newServer[zmtrigger]" value="0"<?php echo $newServer['zmtrigger'] ? '' : ' checked="checked"' ?>/> No
               </td>
             </tr>
           </tbody>

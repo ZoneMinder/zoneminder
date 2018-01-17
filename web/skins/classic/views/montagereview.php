@@ -68,8 +68,8 @@ if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($display
         )
       ),
     );
-  if (count($selected_monitor_ids ) ) {
-    $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => 'IN', 'val' => $selected_monitor_ids, 'cnj' => 'and'));
+  if (count($selected_monitor_ids) ) {
+    $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
   } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
     for ($i=0; $i < count($displayMonitors); $i++) {
       if ($i == '0') {

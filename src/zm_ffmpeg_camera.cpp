@@ -832,7 +832,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
                 this->getMonitor());
           }
         } else {
-          Debug(3, "Record_audio is false so exclude audio stream");
+          if ( mAudioStreamId >= 0 ) {
+            Debug(3, "Record_audio is false so exclude audio stream");
+          }
           videoStore = new VideoStore((const char *) event_file, "mp4",
               mFormatContext->streams[mVideoStreamId],
               NULL,

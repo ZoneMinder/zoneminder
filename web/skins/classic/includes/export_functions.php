@@ -834,7 +834,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
             $filesLeft = array();
             foreach ( $files as $file )
             {
-                if ( preg_match( "/\.(?:mpg|mpeg|avi|asf|3gp)$/", $file ) )
+                if ( preg_match( '/\.(?:mpg|mpeg|mov|swf|mp4|mkv|avi|asf|3gp)$/', $file ) )
                 {
                     $exportFileList[$file] = $eventPath."/".$file;
                 }

@@ -40,7 +40,7 @@ Otherwise, it will attempt to read zm.conf from the local directory.
 If that fails, it will try from /etc/zm.conf
 
 Newer versions of ZoneMinder no longer require symlinks to the events and
-images folder inside the webroot folder. Indeed this is a security risk, and
+images folders inside the zm webroot. Indeed this is a security risk, and
 $0 will no longer create these unless the -o option is specified.
 
 EOF

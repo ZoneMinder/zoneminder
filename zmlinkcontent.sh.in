@@ -1,5 +1,6 @@
 #!/bin/bash
-# The purpose of this file is to create the symlinks in the web folder to the content folder. It can use an existing content folder or create a new one.
+# This tool is used to verify folders critical to ZoneMinder exist and have the right permissions.
+# It will also create symlinks when necessary. It can use an existing content folder or create a new one.
 
 # Set the content dir default to be the one supplied to cmake
 ZM_PATH_CONTENT="@ZM_CONTENTDIR@"
@@ -21,7 +22,7 @@ echo ""
 usage()
 {
 cat <<EOF
-Usage: $0 [-q] [-z zm.conf] [-w WEB DIRECTORY] [-l LOG DIRECTORY] [-t TMP DIRECTORY] [CONTENT DIRECTORY]
+Usage: $0 [-q] [-o] [-z zm.conf] [-w WEB DIRECTORY] [-l LOG DIRECTORY] [-t TMP DIRECTORY] [CONTENT DIRECTORY]
 
 OPTIONS:
    -h      Show this message and quit
@@ -30,6 +31,7 @@ OPTIONS:
    -q      Quick mode. Do not change ownership recursively.
    -l      Override the zm log folder location
    -t      Override the zm temp folder location
+   -o      Enable old legacy symlinks inside ZoneMinder's webroot folder
 
 If the -w option is not used to specify the path to the web directory,
 the script will use the path from zoneminder's configuration file.
@@ -37,10 +39,14 @@ If the -z option is used, the argument will be used instead of zm.conf
 Otherwise, it will attempt to read zm.conf from the local directory.
 If that fails, it will try from /etc/zm.conf
 
+Newer versions of ZoneMinder no longer require symlinks to the events and
+images folder inside the webroot folder. Indeed this is a security risk, and
+$0 will no longer create these unless the -o option is specified.
+
 EOF
 }
 
-while getopts "hz:w:q:l:t" OPTION
+while getopts "hz:w:q:l:t:o" OPTION
 do
      case $OPTION in
          h)
@@ -61,6 +67,9 @@ do
              ;;
          t)
              ZM_TMPDIR_FORCE=$OPTARG
+             ;;
+         o)
+             LEGACY=1
              ;;
      esac
 done
@@ -241,24 +250,26 @@ if [ -d "$ZM_PATH_WEB/events" ]; then
 	fi
 fi
 
-# Create the symlink for the images folder
-echo -n "Creating the symlink for the images folder... " 
-ln -s -f "$ZM_PATH_CONTENT/images" "$ZM_PATH_WEB/images"
-if [ "$?" = "0" ]; then
-	echo "OK"
-else
-	echo "Failed"
-	exit 15
-fi
-	
-# Create the symlink for the events folder
-echo -n "Creating the symlink for the events folder... " 
-ln -s -f "$ZM_PATH_CONTENT/events" "$ZM_PATH_WEB/events"
-if [ "$?" = "0" ]; then
-	echo "OK"
-else
-	echo "Failed"
-	exit 16
+if [ -n "$LEGACY" ]; then
+    # Create the symlink for the images folder
+    echo -n "Creating the symlink for the images folder... " 
+    ln -s -f "$ZM_PATH_CONTENT/images" "$ZM_PATH_WEB/images"
+    if [ "$?" = "0" ]; then
+        echo "OK"
+    else
+        echo "Failed"
+        exit 15
+    fi
+
+    # Create the symlink for the events folder
+    echo -n "Creating the symlink for the events folder... " 
+    ln -s -f "$ZM_PATH_CONTENT/events" "$ZM_PATH_WEB/events"
+    if [ "$?" = "0" ]; then
+        echo "OK"
+    else
+        echo "Failed"
+        exit 16
+    fi
 fi
 
 # change ownership for the images folder. do it recursively unless -q is used

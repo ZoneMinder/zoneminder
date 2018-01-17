@@ -414,9 +414,9 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
         Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
     }
+    Debug ( 1, "Opened audio codec" );
   } // end if have audio stream
 
-  Debug ( 1, "Opened audio codec" );
 
   if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
     Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );

@@ -61,7 +61,9 @@ fi
 service apache2 start
 
 # Start ZoneMinder
-/usr/local/bin/zmpkg.pl start && echo "ZoneMinder started"
+echo "* Starting ZoneMinder video surveillance recorder"
+/usr/local/bin/zmpkg.pl start
+echo "  ...done."
 
 # Stay in a loop to keep the container running
 while :

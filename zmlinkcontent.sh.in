@@ -387,7 +387,7 @@ fi
 
 # Link the CakePHP tmp folder to the zoneminder temp folder
 echo -n "Linking CakePHP tmp folder to ${ZM_TMPDIR}... "
-ln -sf "$ZM_TMPDIR" "$ZM_PATH_WEB/api/app"
+ln -sfT "$ZM_TMPDIR" "$ZM_PATH_WEB/api/app/tmp"
 if [ "$?" = "0" ]; then
 	echo "OK"
 else

@@ -319,11 +319,7 @@ sub run {
         my ( $command, $daemon, @args ) = split( /;/, $message );
 
         if ( $command eq 'start' ) {
-          if ( $Server and exists $$Server{$daemon} and ! $$Server{$daemon} ) {
-            Debug("Not running $daemon because it is turned off for this server.");
-          } else {
-            start( $daemon, @args );
-          }
+          start( $daemon, @args );
         } elsif ( $command eq 'stop' ) {
           stop( $daemon, @args );
         } elsif ( $command eq 'restart' ) {

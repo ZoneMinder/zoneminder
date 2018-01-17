@@ -228,9 +228,9 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colCpuLoad"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server',$row['CpuLoad'], $canEdit ) ?></td>
               <td class="colMemory"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', human_filesize($row['FreeMem']) . ' / ' . human_filesize($row['TotalMem']), $canEdit ) ?></td>
               <td class="colSwap"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', human_filesize($row['FreeSwap']) . ' / ' . human_filesize($row['TotalSwap']) , $canEdit ) ?></td>
-              <td class="colStats"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', $row['zmstats.pl'] ? 'yes' : 'no', $canEdit ) ?></td>
-              <td class="colAudit"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', $row['zmaudit.pl'] ? 'yes' : 'no', $canEdit ) ?></td>
-              <td class="colTrigger"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', $row['zmtrigger.pl'] ? 'yes' : 'no', $canEdit ) ?></td>
+              <td class="colStats"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', $row['zmstats'] ? 'yes' : 'no', $canEdit ) ?></td>
+              <td class="colAudit"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', $row['zmaudit'] ? 'yes' : 'no', $canEdit ) ?></td>
+              <td class="colTrigger"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', $row['zmtrigger'] ? 'yes' : 'no', $canEdit ) ?></td>
 
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
 			</tr>

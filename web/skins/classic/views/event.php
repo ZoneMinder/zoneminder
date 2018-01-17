@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
@@ -107,6 +107,7 @@ if ( ! $Event->Id() ) {
 ?>
       <div id="dataBar">
         <span id="dataId" title="<?php echo translate('Id') ?>"><?php echo $Event->Id() ?></span>
+        <span id="dataMonitor" title="<?php echo translate('Monitor') ?>"><?php echo $Monitor->Id() . ' ' . $Monitor->Name() ?></span>
         <span id="dataCause" title="<?php echo $Event->Notes()?validHtmlStr($Event->Notes()):translate('AttrCause') ?>"><?php echo validHtmlStr($Event->Cause()) ?></span>
         <span id="dataTime" title="<?php echo translate('Time') ?>"><?php echo strftime( STRF_FMT_DATETIME_SHORT, strtotime($Event->StartTime() ) ) ?></span>
         <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>

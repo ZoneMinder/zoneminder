@@ -567,9 +567,8 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
     Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
     }
+    Debug ( 1, "Opened audio codec" );
   }
-
-  Debug ( 1, "Opened audio codec" );
 
   // Allocate space for the native video frame
   mRawFrame = zm_av_frame_alloc();
@@ -833,7 +832,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
                 this->getMonitor());
           }
         } else {
-          Debug(3, "Record_audio is false so exclude audio stream");
+          if ( mAudioStreamId >= 0 ) {
+            Debug(3, "Record_audio is false so exclude audio stream");
+          }
           videoStore = new VideoStore((const char *) event_file, "mp4",
               mFormatContext->streams[mVideoStreamId],
               NULL,

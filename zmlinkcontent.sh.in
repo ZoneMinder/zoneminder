@@ -4,22 +4,32 @@
 # Set the content dir default to be the one supplied to cmake
 ZM_PATH_CONTENT="@ZM_CONTENTDIR@"
 
+# Set the zoneminder log dir default to be the one supplied to cmake
+ZM_LOGDIR="@ZM_LOGDIR@"
+
+# Set the zoneminder temp dir default to be the one supplied to cmake
+ZM_LOGDIR="@ZM_TMPDIR@"
+
 echo "*** This bash script creates the nessecary symlinks for the zoneminder content"
 echo "*** It can use an existing content folder or create a new one"
 echo "*** For usage: use -h"
 echo "*** The default content directory is: $ZM_PATH_CONTENT"
+echo "*** The default log directory is: $ZM_LOGDIR"
+echo "*** The default temp directory is: $ZM_TMPDIR"
 echo ""
 
 usage()
 {
 cat <<EOF
-Usage: $0 [-q] [-z zm.conf] [-w WEB DIRECTORY] [CONTENT DIRECTORY]
+Usage: $0 [-q] [-z zm.conf] [-w WEB DIRECTORY] [-l LOG DIRECTORY] [-t TMP DIRECTORY] [CONTENT DIRECTORY]
 
 OPTIONS:
    -h      Show this message and quit
    -z      ZoneMinder configuration file
    -w      Override the web directory from zm.conf
    -q      Quick mode. Do not change ownership recursively.
+   -l      Override the zm log folder location
+   -t      Override the zm temp folder location
 
 If the -w option is not used to specify the path to the web directory,
 the script will use the path from zoneminder's configuration file.
@@ -30,7 +40,7 @@ If that fails, it will try from /etc/zm.conf
 EOF
 }
 
-while getopts "hz:w:q" OPTION
+while getopts "hz:w:q:l:t" OPTION
 do
      case $OPTION in
          h)
@@ -45,6 +55,12 @@ do
              ;;
          q)
              QUICK=1
+             ;;
+         l)
+             ZM_LOGDIR_FORCE=$OPTARG
+             ;;
+         t)
+             ZM_TMPDIR_FORCE=$OPTARG
              ;;
      esac
 done
@@ -73,13 +89,23 @@ elif [ -f "/etc/zm.conf" ]; then
 	echo "Using system zm.conf"
 	source "/etc/zm.conf"
 else
-	echo "Failed locating zoneminder configuration file (zm.conf)\nUse the -z option to specify the full path to the zoneminder configuration file"
+	echo -e "Failed locating zoneminder configuration file (zm.conf)\nUse the -z option to specify the full path to the zoneminder configuration file"
 	exit 45
 fi
 
 # Override the web directory path from zm.conf
 if [ -n "$ZM_PATH_WEB_FORCE" ]; then
 	ZM_PATH_WEB="$(readlink -f $ZM_PATH_WEB_FORCE)"
+fi
+
+# Override the log directory path
+if [ -n "$ZM_LOGDIR_FORCE" ]; then
+	ZM_LOGDIR="$(readlink -f $ZM_LOGDIR_FORCE)"
+fi
+
+# Override the tmp directory path
+if [ -n "$ZM_TMPDIR_FORCE" ]; then
+	ZM_TMPDIR="$(readlink -f $ZM_TMPDIR_FORCE)"
 fi
 
 # Override the default content path
@@ -90,6 +116,8 @@ fi
 # Print some information
 echo "Web folder       : $ZM_PATH_WEB"
 echo "Content folder   : $ZM_PATH_CONTENT"
+echo "Log folder       : $ZM_LOGDIR"
+echo "Temp folder       : $ZM_TMPDIR"
 echo ""
 
 # Verify the web folder is a real directory
@@ -98,7 +126,7 @@ if [ -d "$ZM_PATH_WEB" ]; then
 	echo "OK"
 else
 	echo "Failed"
-	exit 3
+	exit 2
 fi
 
 # Check if the content folder exists, and if not, create it
@@ -113,9 +141,42 @@ else
 		echo "OK"
 	else
 		echo "Failed"
+		exit 3
+	fi
+fi
+
+# Check if the log folder exists, and if not, create the entire folder including its parents
+echo -n "Checking if the log folder exists... "
+if [ -d "$ZM_LOGDIR" ]; then
+	echo "Yes"
+else
+	echo "No"
+	echo -n "Creating the log folder... "
+	mkdir -p "$ZM_LOGDIR"
+	if [ "$?" = "0" ]; then
+		echo "OK"
+	else
+		echo "Failed"
 		exit 4
 	fi
 fi
+
+# Check if the temp folder exists, and if not, create the entire folder including its parents
+echo -n "Checking if the temp folder exists... "
+if [ -d "$ZM_TMPDIR" ]; then
+	echo "Yes"
+else
+	echo "No"
+	echo -n "Creating the temp folder... "
+	mkdir -p "$ZM_TMPDIR"
+	if [ "$?" = "0" ]; then
+		echo "OK"
+	else
+		echo "Failed"
+		exit 5
+	fi
+fi
+
 # Check if the content/images folder exists, and if not, create it
 echo -n "Checking if the images folder exists inside the content folder... "
 if [ -d "$ZM_PATH_CONTENT/images" ]; then
@@ -131,6 +192,7 @@ else
 		exit 6
 	fi
 fi
+
 # Check if the content/events folder exists, and if not, create it
 echo -n "Checking if the events folder exists inside the content folder... "
 if [ -d "$ZM_PATH_CONTENT/events" ]; then
@@ -228,7 +290,7 @@ if [ -n "$QUICK" ]; then
 		echo "OK"
 	else
 		echo "Failed"
-		exit 25
+		exit 23
 	fi
 else
 	echo -n "Changing ownership of the events folder recursively to ${ZM_WEB_USER} ${ZM_WEB_GROUP}... "
@@ -237,7 +299,49 @@ else
 		echo "OK"
 	else
 		echo "Failed"
+		exit 24
+	fi
+fi
+
+# change ownership for the log folder. do it recursively unless -q is used
+if [ -n "$QUICK" ]; then
+	echo -n "Changing ownership of the log folder to ${ZM_WEB_USER} ${ZM_WEB_GROUP}... "
+	chown ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_LOGDIR"
+	if [ "$?" = "0" ]; then
+		echo "OK"
+	else
+		echo "Failed"
+		exit 25
+	fi
+else
+	echo -n "Changing ownership of the log folder recursively to ${ZM_WEB_USER} ${ZM_WEB_GROUP}... "
+	chown -R ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_LOGDIR"
+	if [ "$?" = "0" ]; then
+		echo "OK"
+	else
+		echo "Failed"
 		exit 26
+	fi
+fi
+
+# change ownership for the temp folder. do it recursively unless -q is used
+if [ -n "$QUICK" ]; then
+	echo -n "Changing ownership of the temp folder to ${ZM_WEB_USER} ${ZM_WEB_GROUP}... "
+	chown ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_TMPDIR"
+	if [ "$?" = "0" ]; then
+		echo "OK"
+	else
+		echo "Failed"
+		exit 27
+	fi
+else
+	echo -n "Changing ownership of the temp folder recursively to ${ZM_WEB_USER} ${ZM_WEB_GROUP}... "
+	chown -R ${ZM_WEB_USER}:${ZM_WEB_GROUP} "$ZM_TMPDIR"
+	if [ "$?" = "0" ]; then
+		echo "OK"
+	else
+		echo "Failed"
+		exit 28
 	fi
 fi
 
@@ -251,7 +355,6 @@ else
 	exit 30
 fi
 
-
 # Change directory permissions for the events folder
 echo -n "Changing permissions of the events folder to 775... "
 chmod 775 "$ZM_PATH_CONTENT/events"
@@ -262,14 +365,34 @@ else
 	exit 31
 fi
 
-# Link the CakePHP tmp folder to /var/tmp
-echo -n "Linking CakePHP folder to /var/tmp"
-ln -sf /var/tmp "$ZM_PATH_WEB/api/app"
+# Change directory permissions for the log folder
+echo -n "Changing permissions of the log folder to 775... "
+chmod 775 "$ZM_LOGDIR"
 if [ "$?" = "0" ]; then
 	echo "OK"
 else
 	echo "Failed"
 	exit 32
+fi
+
+# Change directory permissions for the temp folder
+echo -n "Changing permissions of the temp folder to 775... "
+chmod 775 "$ZM_TMPDIR"
+if [ "$?" = "0" ]; then
+	echo "OK"
+else
+	echo "Failed"
+	exit 33
+fi
+
+# Link the CakePHP tmp folder to the zoneminder temp folder
+echo -n "Linking CakePHP tmp folder to ${ZM_TMPDIR}... "
+ln -sf "$ZM_TMPDIR" "$ZM_PATH_WEB/api/app"
+if [ "$?" = "0" ]; then
+	echo "OK"
+else
+	echo "Failed"
+	exit 40
 fi
 
 echo ""

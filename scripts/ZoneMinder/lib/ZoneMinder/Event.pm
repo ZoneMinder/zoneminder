@@ -367,11 +367,11 @@ sub delete_files {
     Error("No monitor id assigned to event $$event{Id}");
     return;
   }
-  my $event_path = $event->Path();
-  Debug("Deleting files for Event $$event{Id} from $event_path.");
+  my $event_path = $event->RelativePath();
+  Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path.");
   if ( $event_path ) {
-    ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-      my $command = "/bin/rm -rf $event_path";
+    #( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+      my $command = "/bin/rm -rf $storage_path/$event_path";
     ZoneMinder::General::executeShellCommand( $command );
   }
 
@@ -380,7 +380,7 @@ sub delete_files {
     Debug("Deleting files for Event $$event{Id} from $storage_path/$link_path.");
     if ( $link_path ) {
       ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
-      unlink( $storage_path.'/'.$link_path ) or Error( "Unable to unlink '$storage_path/$link_path': $!" );
+        unlink( $storage_path.'/'.$link_path ) or Error( "Unable to unlink '$storage_path/$link_path': $!" );
     }
   }
 } # end sub delete_files
@@ -395,11 +395,15 @@ sub Storage {
 sub check_for_in_filesystem {
   my $path = $_[0]->Path();
   if ( $path ) {
-    my @files = glob( $path . '/*' );
-Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . " files");
-    return 1 if @files;
+    if ( -e $path ) {
+      my @files = glob "$path/*";
+      Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . " files");
+      return 1 if @files;
+    } else {
+      Warning("Path not found for Event $_[0]{Id} at $path");
+    }
   }
-Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
+  Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
   return 0;
 }
 
@@ -421,11 +425,15 @@ sub DiskSpace {
     $_[0]{DiskSpace} = $_[1];
   }
   if ( ! defined $_[0]{DiskSpace} ) {
-    my $size = 0;
-    File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
-    $_[0]{DiskSpace} = $size;
-    Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
-  }
+    if ( -e $_[0]->Path() ) {
+      my $size = 0;
+      File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
+      $_[0]{DiskSpace} = $size;
+      Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
+    } else {
+      Warning("Event does not exist at $_[0]{Path}");
+    }
+  } # end if ! defined DiskSpace
 }
 
 sub MoveTo {
@@ -476,13 +484,13 @@ sub MoveTo {
       last;
     }
   } # end foreach file.
+  return $error if $error;
 
-  if ( ! $error ) {
-    # Succeeded in copying all files, so we may now update the Event.
-    $$self{StorageId} = $$NewStorage{Id};    
-    $$self{Storage} = $NewStorage;
-    $error .= $self->save();
-  }
+  # Succeeded in copying all files, so we may now update the Event.
+  $$self{StorageId} = $$NewStorage{Id};    
+  $$self{Storage} = $NewStorage;
+  $error .= $self->save();
+  return $error if $error;
   $self->delete_files( $OldStorage );
   return $error;
 } # end sub MoveTo

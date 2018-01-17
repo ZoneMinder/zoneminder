@@ -38,6 +38,9 @@ close_mysql () {
 
 echo
 
+# Make sure ZoneMinder can write to the log folder
+chown www-data:www-data /var/log/zm
+
 # Configure then start Mysql
 if [ -n "$MYSQL_SERVER" ] && [ -n "$MYSQL_USER" ] && [ -n "$MYSQL_PASSWORD" ] && [ -n "$MYSQL_DB" ]; then
     sed -i -e "s/ZM_DB_NAME=zm/ZM_DB_NAME=$MYSQL_USER/g" /etc/zm.conf

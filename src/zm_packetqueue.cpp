@@ -92,11 +92,16 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     
     // Want frames_to_keep video keyframes.  Otherwise, we may not have enough
     if ( ( av_packet->stream_index == stream_id) && ( av_packet->flags & AV_PKT_FLAG_KEY ) ) {
+    Debug(4, "Found keyframe at packet with stream index (%d) with keyframe (%d), frames_to_keep is (%d)", av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
       break;
     }
   }
   if ( frames_to_keep ) {
-    Debug(3, "Hit end of queue, still need (%d) video keyframes", frames_to_keep );
+    Debug(3, "Hit end of queue, still need (%d) video frames", frames_to_keep );
+  }
+  if ( it != pktQueue.rend() ) {
+    // We want to keep this packet, so advance to the next
+    it ++;
   }
   unsigned int delete_count = 0;
   while ( it != pktQueue.rend() ) {

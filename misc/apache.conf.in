@@ -8,7 +8,7 @@
     ServerAdmin webmaster@localhost
 
     DocumentRoot "@WEB_PREFIX@"
-    Alias /zm/ "@WEB_PREFIX@/"
+    Alias /zm "@WEB_PREFIX@"
     <Directory "@WEB_PREFIX@">
         Options -Indexes +FollowSymLinks
         AllowOverride All

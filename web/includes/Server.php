@@ -2,6 +2,14 @@
 require_once( 'database.php' );
 
 class Server {
+  private $defaults = array(
+    'Id'        =>  null,
+    'Name'      =>  '',
+    'Hostname'  =>  '',
+    'zmaudit'   =>  1,
+    'zmstats'   =>  1,
+    'zmtrigger' =>  0,
+  );
   public function __construct( $IdOrRow = NULL ) {
     $row = NULL;
     if ( $IdOrRow ) {
@@ -70,13 +78,24 @@ class Server {
 		}
 		return $this->{'Name'};
 	}
-	public function __call( $fn, array $args= NULL){
-    if( array_key_exists( $fn, $this) ) {
+  public function __call($fn, array $args){
+    if ( count($args) ) {
+      $this->{$fn} = $args[0];
+    }
+    if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
-#array_unshift($args, $this);
-#call_user_func_array( $this->{$fn}, $args);
+    } else {
+      if ( array_key_exists( $fn, $this->defaults ) ) {
+        return $this->defaults{$fn};
+      } else {
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Warning( "Unknown function call Server->$fn from $file:$line" );
+      }
     }
   }
+
   public static function find( $parameters = array(), $limit = NULL ) {
     $sql = 'SELECT * FROM Servers';
     $values = array();

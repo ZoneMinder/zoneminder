@@ -234,7 +234,9 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
   } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
     $url_parts = parse_url( $monitor['Path'] );
-    $source = $url_parts['host']. ( $url_parts['port'] ? ':'.$url_parts['port'] : '' );
+    unset($url_parts['user']);
+    unset($url_parts['pass']);
+    $source = unparse_url( $url_parts );
   }
   if ( $source == '' ) {
     $source = 'Monitor ' . $monitor['Id'];

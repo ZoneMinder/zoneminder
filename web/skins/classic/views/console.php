@@ -227,6 +227,9 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $source = $monitor['Device'].' ('.$monitor['Channel'].')';
   } elseif ( $monitor['Type'] == 'Remote' ) {
     $source = preg_replace( '/^.*@/', '', $monitor['Host'] );
+    if ( $monitor['Port'] != '80' and $monitor['Port'] != '554' ) {
+      $source .= ':'.$monitor['Port'];
+    }
   } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
     $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
   } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {

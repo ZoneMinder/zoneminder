@@ -7,7 +7,7 @@
 ###############
 
 # Find ciritical files and perform sanity checks
-initialze () {
+initialize () {
 
     # Check to see if this script has access to all the commands it needs
     for CMD in mysqladmin sed usermod service; do

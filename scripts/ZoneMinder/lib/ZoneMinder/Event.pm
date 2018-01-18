@@ -431,6 +431,14 @@ sub DiskSpace {
 sub MoveTo {
   my ( $self, $NewStorage ) = @_;
 
+  $ZoneMinder::Database::dbh->begin_work();
+  $self->lock_and_load();
+  # data is reloaded, so need to check that the move hasn't already happened.
+  if ( $$self{StorageId} == $$NewStorage{Id} ) {
+    $ZoneMinder::Database::dbh->commit();
+    return "Event has already been moved by someone else.";
+  }
+
   my $OldStorage = $self->Storage();
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
 
@@ -438,16 +446,21 @@ sub MoveTo {
 
   my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
+    $ZoneMinder::Database::dbh->commit();
     return "New storage does not have an id.  Moving will not happen.";
   } elsif ( !$NewPath ) {
+    $ZoneMinder::Database::dbh->commit();
     return "New path ($NewPath) is empty.";
   } elsif ( ! -e $NewPath ) {
+    $ZoneMinder::Database::dbh->commit();
     return "New path $NewPath does not exist.";
   } elsif ( ! -e $OldPath ) {
+    $ZoneMinder::Database::dbh->commit();
     return "Old path $OldPath does not exist.";
   }
   ( $NewPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
+    $ZoneMinder::Database::dbh->commit();
     return "New path and old path are the same! $NewPath";
   }
   Debug("Moving event $$self{Id} from $OldPath to $NewPath");
@@ -476,14 +489,22 @@ sub MoveTo {
       last;
     }
   } # end foreach file.
-  return $error if $error;
+
+  if ( $error ) {
+    $ZoneMinder::Database::dbh->commit();
+    return $error;
+  }
 
   # Succeeded in copying all files, so we may now update the Event.
   $$self{StorageId} = $$NewStorage{Id};    
   $$self{Storage} = $NewStorage;
   $error .= $self->save();
-  return $error if $error;
+  if ( $error ) {
+    $ZoneMinder::Database::dbh->commit();
+    return $error;
+  }
   $self->delete_files( $OldStorage );
+  $ZoneMinder::Database::dbh->commit();
   return $error;
 } # end sub MoveTo
 

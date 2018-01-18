@@ -154,7 +154,7 @@ class Logger {
 
     $this->initialised = true;
 
-    Logger::Debug( "LogOpts: level=".self::$codes[$this->level]."/".self::$codes[$this->effectiveLevel].", screen=".self::$codes[$this->termLevel].", database=".self::$codes[$this->databaseLevel].", logfile=".self::$codes[$this->fileLevel]."->".$this->logFile.", weblog=".self::$codes[$this->weblogLevel].", syslog=".self::$codes[$this->syslogLevel] );
+    //Logger::Debug( "LogOpts: level=".self::$codes[$this->level]."/".self::$codes[$this->effectiveLevel].", screen=".self::$codes[$this->termLevel].", database=".self::$codes[$this->databaseLevel].", logfile=".self::$codes[$this->fileLevel]."->".$this->logFile.", weblog=".self::$codes[$this->weblogLevel].", syslog=".self::$codes[$this->syslogLevel] );
   }
 
   private function terminate() {

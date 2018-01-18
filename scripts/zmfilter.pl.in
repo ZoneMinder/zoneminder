@@ -323,8 +323,10 @@ sub checkFilter {
       $ZoneMinder::Database::dbh->begin_work();
       $Event->lock_and_load();
 
-      $Event->DiskSpace(undef);
-      $Event->save();
+      my $old_diskspace = $$Event{DiskSpace};
+      if ( $old_diskspace != $Event->DiskSpace(undef) ) {
+        $Event->save();
+      }
       $ZoneMinder::Database::dbh->commit();
     } # end if UpdateDiskSpace
   } # end foreach event

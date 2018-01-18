@@ -320,8 +320,14 @@ sub checkFilter {
 
     if ( $filter->{UpdateDiskSpace} ) {
       my $Event = new ZoneMinder::Event( $$event{Id}, $event );
-      $Event->DiskSpace(undef);
-      $Event->save();
+      $ZoneMinder::Database::dbh->begin_work();
+      $Event->lock_and_load();
+
+      my $old_diskspace = $$Event{DiskSpace};
+      if ( $old_diskspace != $Event->DiskSpace(undef) ) {
+        $Event->save();
+      }
+      $ZoneMinder::Database::dbh->commit();
     } # end if UpdateDiskSpace
   } # end foreach event
 }

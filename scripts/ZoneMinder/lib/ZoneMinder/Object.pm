@@ -105,6 +105,44 @@ sub load {
   } # end if
 } # end sub load
 
+sub lock_and_load {
+  my ( $self ) = @_;
+  my $type = ref $self;
+
+  no strict 'refs';
+  my $table = ${$type.'::table'};
+  if ( ! $table ) {
+    Error( 'NO table for type ' . $type );
+    return;
+  } # end if
+  my $primary_key = ${$type.'::primary_key'};
+  if ( ! $primary_key ) {
+    Error( 'NO primary_key for type ' . $type );
+    return;
+  } # end if
+
+  if ( ! $$self{$primary_key} ) {
+    my ( $caller, undef, $line ) = caller;
+    Error( (ref $self) . "::lock_and_load called without $primary_key from $caller:$line");
+    return;
+
+  }
+  #$log->debug("Object::load Loading from db $type");
+  Debug("Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
+  my $data = $ZoneMinder::Database::dbh->selectrow_hashref( "SELECT * FROM $table WHERE $primary_key=? FOR UPDATE", {}, $$self{$primary_key} );
+  if ( ! $data ) {
+    if ( $ZoneMinder::Database::dbh->errstr ) {
+      Error( "Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
+    } else {
+      Debug("No Results Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
+    } # end if
+  } # end if
+  if ( $data and %$data ) {
+    @$self{keys %$data} = values %$data;
+  } # end if
+} # end sub lock_and_load
+
+
 sub AUTOLOAD {
   my ( $self, $newvalue ) = @_;
   my $type = ref($_[0]);

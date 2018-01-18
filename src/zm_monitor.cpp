@@ -772,6 +772,7 @@ uint32_t Monitor::GetLastEventId() const {
 
 // This function is crap.
 double Monitor::GetFPS() const {
+  // last_write_index is the last capture index.  It starts as == image_buffer_count so that the first asignment % image_buffer_count = 0;
   int index1 = shared_data->last_write_index;
   if ( index1 >= image_buffer_count ) {
     // last_write_index only has this value on startup before capturing anything.
@@ -781,6 +782,7 @@ double Monitor::GetFPS() const {
   ZMPacket *snap1 = &image_buffer[index1];
   if ( !snap1->timestamp->tv_sec ) {
     // This should be impossible
+    Warning("Impossible situation.  No timestamp on captured image");
     return 0.0;
   }
   struct timeval time1 = *snap1->timestamp;
@@ -792,9 +794,11 @@ double Monitor::GetFPS() const {
   ZMPacket *snap2 = &image_buffer[index2];
   // the timestamp pointers are initialized on connection, so that's redundant
   // tv_sec is probably only zero during the first loop of capturing, so this basically just counts the unused images.
-  while ( !snap2->timestamp->tv_sec ) {
+  // The problem is that there is no locking, and we set the timestamp before we set last_write_index,
+  // so there is a small window where the next image can have a timestamp in the future
+  while ( !snap2->timestamp->tv_sec || tvDiffSec(*snap2->timestamp, *snap1->timestamp) < 0 ) {
     if ( index1 == index2 ) {
-      // We didn't find any initialized images
+      // All images are uncaptured
       return 0.0;
     }
     index2 = (index2+1)%image_buffer_count;

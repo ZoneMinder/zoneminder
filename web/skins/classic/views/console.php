@@ -228,8 +228,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
     $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
   } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
-    $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
-    $source = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
+    $url_parts = parse_url( $monitor['Path'] );
+    $source = $url_parts['host']. ( $url_parts['port'] ? ':'.$url_parts['port'] : '' );
   }
   if ( $source == '' ) {
     $source = 'Monitor ' . $monitor['Id'];

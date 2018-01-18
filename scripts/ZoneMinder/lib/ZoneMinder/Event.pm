@@ -367,11 +367,11 @@ sub delete_files {
     Error("No monitor id assigned to event $$event{Id}");
     return;
   }
-  my $event_path = $event->Path();
-  Debug("Deleting files for Event $$event{Id} from $event_path.");
+  my $event_path = $event->RelativePath();
+  Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path.");
   if ( $event_path ) {
-    ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-      my $command = "/bin/rm -rf $event_path";
+    #( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+      my $command = "/bin/rm -rf $storage_path/$event_path";
     ZoneMinder::General::executeShellCommand( $command );
   }
 
@@ -380,7 +380,7 @@ sub delete_files {
     Debug("Deleting files for Event $$event{Id} from $storage_path/$link_path.");
     if ( $link_path ) {
       ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
-      unlink( $storage_path.'/'.$link_path ) or Error( "Unable to unlink '$storage_path/$link_path': $!" );
+        unlink( $storage_path.'/'.$link_path ) or Error( "Unable to unlink '$storage_path/$link_path': $!" );
     }
   }
 } # end sub delete_files
@@ -395,11 +395,15 @@ sub Storage {
 sub check_for_in_filesystem {
   my $path = $_[0]->Path();
   if ( $path ) {
-    my @files = glob( $path . '/*' );
-Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . " files");
-    return 1 if @files;
+    if ( -e $path ) {
+      my @files = glob "$path/*";
+      Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . " files");
+      return 1 if @files;
+    } else {
+      Warning("Path not found for Event $_[0]{Id} at $path");
+    }
   }
-Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
+  Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found no files");
   return 0;
 }
 
@@ -421,15 +425,27 @@ sub DiskSpace {
     $_[0]{DiskSpace} = $_[1];
   }
   if ( ! defined $_[0]{DiskSpace} ) {
-    my $size = 0;
-    File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
-    $_[0]{DiskSpace} = $size;
-    Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
-  }
+    if ( -e $_[0]->Path() ) {
+      my $size = 0;
+      File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
+      $_[0]{DiskSpace} = $size;
+      Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
+    } else {
+      Warning("Event does not exist at $_[0]{Path}");
+    }
+  } # end if ! defined DiskSpace
 }
 
 sub MoveTo {
   my ( $self, $NewStorage ) = @_;
+
+  $ZoneMinder::Database::dbh->begin_work();
+  $self->lock_and_load();
+  # data is reloaded, so need to check that the move hasn't already happened.
+  if ( $$self{StorageId} == $$NewStorage{Id} ) {
+    $ZoneMinder::Database::dbh->commit();
+    return "Event has already been moved by someone else.";
+  }
 
   my $OldStorage = $self->Storage();
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
@@ -438,16 +454,21 @@ sub MoveTo {
 
   my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
+    $ZoneMinder::Database::dbh->commit();
     return "New storage does not have an id.  Moving will not happen.";
   } elsif ( !$NewPath ) {
+    $ZoneMinder::Database::dbh->commit();
     return "New path ($NewPath) is empty.";
   } elsif ( ! -e $NewPath ) {
+    $ZoneMinder::Database::dbh->commit();
     return "New path $NewPath does not exist.";
   } elsif ( ! -e $OldPath ) {
+    $ZoneMinder::Database::dbh->commit();
     return "Old path $OldPath does not exist.";
   }
   ( $NewPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
+    $ZoneMinder::Database::dbh->commit();
     return "New path and old path are the same! $NewPath";
   }
   Debug("Moving event $$self{Id} from $OldPath to $NewPath");
@@ -476,14 +497,22 @@ sub MoveTo {
       last;
     }
   } # end foreach file.
-  return $error if $error;
+
+  if ( $error ) {
+    $ZoneMinder::Database::dbh->commit();
+    return $error;
+  }
 
   # Succeeded in copying all files, so we may now update the Event.
   $$self{StorageId} = $$NewStorage{Id};    
   $$self{Storage} = $NewStorage;
   $error .= $self->save();
-  return $error if $error;
+  if ( $error ) {
+    $ZoneMinder::Database::dbh->commit();
+    return $error;
+  }
   $self->delete_files( $OldStorage );
+  $ZoneMinder::Database::dbh->commit();
   return $error;
 } # end sub MoveTo
 

@@ -124,6 +124,7 @@ sub TermHandler {
 }
 $SIG{HUP} = \&HupHandler;
 $SIG{TERM} = \&TermHandler;
+$SIG{INT} = \&TermHandler;
 
 my $dbh = zmDbConnect();
 
@@ -350,16 +351,16 @@ MAIN: while( $loop ) {
   redo MAIN if ( $cleaned );
 
   $cleaned = 0;
-  my $deleteMonitorSql = 'delete low_priority from Monitors where Id = ?';
+  my $deleteMonitorSql = 'DELETE LOW_PRIORITY FROM Monitors WHERE Id = ?';
   my $deleteMonitorSth = $dbh->prepare_cached( $deleteMonitorSql )
     or Fatal( "Can't prepare '$deleteMonitorSql': ".$dbh->errstr() );
-  my $deleteEventSql = 'delete low_priority from Events where Id = ?';
+  my $deleteEventSql = 'DELETE LOW_PRIORITY FROM Events WHERE Id = ?';
   my $deleteEventSth = $dbh->prepare_cached( $deleteEventSql )
     or Fatal( "Can't prepare '$deleteEventSql': ".$dbh->errstr() );
-  my $deleteFramesSql = 'delete low_priority from Frames where EventId = ?';
+  my $deleteFramesSql = 'DELETE LOW_PRIORITY FROM Frames WHERE EventId = ?';
   my $deleteFramesSth = $dbh->prepare_cached( $deleteFramesSql )
     or Fatal( "Can't prepare '$deleteFramesSql': ".$dbh->errstr() );
-  my $deleteStatsSql = 'delete low_priority from Stats where EventId = ?';
+  my $deleteStatsSql = 'DELETE LOW_PRIORITY FROM Stats WHERE EventId = ?';
   my $deleteStatsSth = $dbh->prepare_cached( $deleteStatsSql )
     or Fatal( "Can't prepare '$deleteStatsSql': ".$dbh->errstr() );
 
@@ -372,14 +373,14 @@ MAIN: while( $loop ) {
 
       while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         if ( ! defined( $fs_events->{$db_event} ) ) {
-Debug("Event $db_event is not in fs.");
+          Debug("Event $db_event is not in fs.");
           my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
           if ( ! $Event ) {
             Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
             next;
           }
           if ( ! $Event->StartTime() ) {
-            Debug("Event $$Event{Id} has no start time.  deleting it.");
+            Info("Event $$Event{Id} has no start time.  deleting it.");
             if ( confirm() ) {
               $Event->delete();
               $cleaned = 1;
@@ -387,15 +388,15 @@ Debug("Event $db_event is not in fs.");
             next;
           } 
           if ( ! $Event->EndTime() ) {
-            Debug("Event $$Event{Id} has no end time.  deleting it.");
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
+              Info("Event $$Event{Id} has no end time and is $age seconds old.  deleting it.");
               if ( confirm() ) {
                 $Event->delete();
                 $cleaned = 1;
               }
               next;
             }
-          } 
+          }
           if ( $Event->check_for_in_filesystem() ) {
             Debug("Database event $$Event{Id} apparently exists at " . $Event->Path() );
           } else {

@@ -66,12 +66,13 @@ my $interactive = 0;
 my $continuous = 0;
 my $monitor_id = 0;
 my $version;
+my $force = 0;
 
 logInit();
-logSetSignal();
 
 GetOptions(
     continuous    =>\$continuous,
+    force         =>\$force,
     interactive   =>\$interactive,
     monitor_id    =>\$monitor_id,
     report        =>\$report,
@@ -92,15 +93,37 @@ if ( ! exists $Config{ZM_AUDIT_MIN_AGE} ) {
 }
 
 if ( -e ZM_AUDIT_PID ) {
-  Fatal('zmaudit.pl appears to already be running.  If not, please delete ' . ZM_AUDIT_PID );
-} else {
-  if ( open( my $PID, '>', ZM_AUDIT_PID ) ) {
-    print( $PID $$ );
-    close( $PID );
+  local $/ = undef;
+  open FILE, ZM_AUDIT_PID or die "Couldn't open file: $!";
+  binmode FILE;
+  my $pid = <FILE>;
+  close FILE;
+  if ( $force ) {
+    Error("zmaudit.pl appears to already be running at pid $pid. Continuing." );
   } else {
-    Error( "Can't open pid file at " . ZM_PID );
+    Fatal("zmaudit.pl appears to already be running at pid $pid. If not, please delete " . 
+      ZM_AUDIT_PID . " or use the --force command line option." );
   }
+} # end if ZM_AUDIT_PID exists
+
+if ( open( my $PID, '>', ZM_AUDIT_PID ) ) {
+  print( $PID $$ );
+  close( $PID );
+} else {
+  Error( "Can't open pid file at " . ZM_PID );
 }
+
+sub HupHandler {
+  Info("Received HUP, reloading");
+  &ZoneMinder::Logger::logHupHandler();
+}
+sub TermHandler {
+  Info("Received TERM, exiting");
+  unlink ZM_AUDIT_PID;
+  exit( 0 );
+}
+$SIG{HUP} = \&HupHandler;
+$SIG{TERM} = \&TermHandler;
 
 my $dbh = zmDbConnect();
 
@@ -227,6 +250,7 @@ MAIN: while( $loop ) {
               my $Event = $fs_events->{$event} = new ZoneMinder::Event();
               $$Event{Id} = $event;
               $$Event{Path} = join('/', $Storage->Path(), $day_dir,$event_path);
+              $$Event{RelativePath} = join('/', $day_dir,$event_path);
               $Event->MonitorId( $monitor_dir );
               $Event->StorageId( $Storage->Id() );
               $Event->DiskSpace( undef );
@@ -244,7 +268,8 @@ MAIN: while( $loop ) {
           }
           my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
           $$Event{Id} = $event_id;
-          $$Event{Path} = $event_dir;
+          $$Event{Path} = join('/', $Storage->Path(), $event_dir );
+          $$Event{RelativePath} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
         } # end foreach event
@@ -289,7 +314,7 @@ MAIN: while( $loop ) {
             my $age = $Event->age();
 
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-              aud_print( "Filesystem event '".$Event->Path()."' does not exist in database and is $age seconds old" );
+              aud_print( "Filesystem event $fs_event_id at $$Event{Path} does not exist in database and is $age seconds old" );
               if ( confirm() ) {
                 $Event->delete_files();
                 $cleaned = 1;
@@ -625,8 +650,7 @@ $eventcounts_sth->finish();
   sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;
 };
 
-unlink ZM_AUDIT_PID;
-exit( 0 );
+term_handler();
 
 sub aud_print {
   my $string = shift;
@@ -738,6 +762,7 @@ yet.
 =head1 OPTIONS
 
  -c, --continuous           - Run continuously
+ -f, --force                - Run even if pid file exists
  -i, --interactive          - Ask before applying any changes
  -r, --report               - Just report don't actually do anything
  -v, --version              - Print the installed version of ZoneMinder

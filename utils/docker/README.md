@@ -1,4 +1,4 @@
 ## Docker Support Files
 
-The files in this folder are used to support our Dockerfiles here:
+Docker support files have been moved to the zmdockerfiles repo:
 https://github.com/ZoneMinder/zmdockerfiles

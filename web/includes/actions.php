@@ -530,6 +530,7 @@ if ( canEdit( 'Monitors' ) ) {
             }
           }
         }
+        $restart = true;
       } elseif ( ! $user['MonitorIds'] ) { // Can only create new monitors if we are not restricted to specific monitors
 # FIXME This is actually a race condition. Should lock the table.
         $maxSeq = dbFetchOne( 'SELECT max(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence' );
@@ -570,15 +571,16 @@ if ( canEdit( 'Monitors' ) ) {
     }
 
     if ( $restart ) {
-      $new_monitor = dbFetchOne( 'SELECT * FROM Monitors WHERE Id = ?', NULL, array($mid) );
+      
+      $new_monitor = new Monitor($mid);
       //fixDevices();
       //if ( $cookies )
       //session_write_close();
 
-      zmcControl( $new_monitor, 'start' );
-      zmaControl( $new_monitor, 'start' );
+      $new_monitor->zmcControl('start');
+      $new_monitor->zmaControl('start');
 
-      if ( $new_monitor['Controllable'] ) {
+      if ( $new_monitor->Controllable() ) {
         require_once( 'control_functions.php' );
         sendControlCommand( $mid, 'quit' );
       } 

@@ -162,14 +162,16 @@ class MonitorsController extends AppController {
       '_serialize' => array('message')
     ));
 
-    // - restart or stop this monitor after change
-    $func = $this->Monitor->find('first', array(
-          'fields' => array('Function'),
+    $Monitor = $this->Monitor->find('first', array(
+          'fields' => array('Function','ServerId'),
           'conditions' => array('Id' => $id)
-          ))['Monitor']['Function'];
+          ))['Monitor'];
+
+    // - restart or stop this monitor after change
+    $func = $Monitor['Function'];
     // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
     $this->daemonControl( $this->Monitor->id, 'stop' );
-    if ( ( $func != 'None' ) and ( $this->Monitor->ServerId == ZM_SERVER_ID ) ) {
+    if ( ( $func != 'None' ) and ( $Monitor['ServerId'] == ZM_SERVER_ID ) ) {
       $this->daemonControl( $this->Monitor->id, 'start' );
     }
   } // end function edit

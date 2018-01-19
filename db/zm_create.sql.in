@@ -303,22 +303,22 @@ BEGIN
   IF ( NEW.Archived != OLD.Archived ) THEN
     IF ( NEW.Archived ) THEN
       INSERT INTO Events_Archived (EventId,MonitorId,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.DiskSpace);
-      UPDATE Monitors SET ArchivedEvents = ArchivedEvents+1, ArchivedEventDiskSpace = ArchivedEventDiskSpace + NEW.DiskSpace WHERE Id=NEW.MonitorId;
+      UPDATE Monitors SET ArchivedEvents = COALESCE(ArchivedEvents,0)+1, ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) + COALESCE(NEW.DiskSpace,0) WHERE Id=NEW.MonitorId;
     ELSEIF ( OLD.Archived ) THEN
       DELETE FROM Events_Archived WHERE EventId=OLD.Id;
-      UPDATE Monitors SET ArchivedEvents =ArchivedEvents-1, ArchivedEventDiskSpace = ArchivedEventDiskSpace - OLD.DiskSpace WHERE Id=OLD.MonitorId;
+      UPDATE Monitors SET ArchivedEvents = COALESCE(ArchivedEvents,0)-1, ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) WHERE Id=OLD.MonitorId;
     ELSE
       IF ( OLD.DiskSpace != NEW.DiskSpace ) THEN
         UPDATE Events_Archived SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
         UPDATE Monitors SET
-          ArchivedEventDiskSpace = ArchivedEventDiskSpace - OLD.DiskSpace + NEW.DiskSpace
+          ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) + COALESCE(NEW.DiskSpace,0)
           WHERE Id=OLD.MonitorId;
       END IF;
     END IF;
   END IF;
 
   IF ( OLD.DiskSpace != NEW.DiskSpace ) THEN
-    UPDATE Monitors SET TotalEventDiskSpace = TotalEventDiskSpace - OLD.DiskSpace + NEW.DiskSpace WHERE Id=OLD.MonitorId;
+    UPDATE Monitors SET TotalEventDiskSpace = COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) + COALESCE(NEW.DiskSpace,0) WHERE Id=OLD.MonitorId;
   END IF;
 
 END;
@@ -338,7 +338,7 @@ for each row
   INSERT INTO Events_Day (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   INSERT INTO Events_Week (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   INSERT INTO Events_Month (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
-  UPDATE Monitors SET TotalEvents = TotalEvents+1 WHERE Id=NEW.MonitorId;
+  UPDATE Monitors SET TotalEvents = COALESCE(TotalEvents,0)+1 WHERE Id=NEW.MonitorId;
 end;
 //
 

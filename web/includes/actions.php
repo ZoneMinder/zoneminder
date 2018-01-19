@@ -485,6 +485,9 @@ if ( canEdit( 'Monitors' ) ) {
 
     $columns = getTableColumns( 'Monitors' );
     $changes = getFormChanges( $monitor, $_REQUEST['newMonitor'], $types, $columns );
+    if ( isset($changes['ServerId']) and $changes['ServerId'] == 'auto' ) {
+       $changes['ServerId'] = dbFetchOne( 'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem, CpuLoad LIMIT 1', 'Id' );
+    }
 
     if ( count( $changes ) ) {
       if ( $mid ) {

@@ -449,6 +449,7 @@ sub DiskSpace {
       Warning("Event does not exist at $_[0]{Path}");
     }
   } # end if ! defined DiskSpace
+  return $_[0]{DiskSpace};
 }
 
 sub MoveTo {

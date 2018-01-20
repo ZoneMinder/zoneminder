@@ -123,6 +123,26 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 	a2enmod cgi
         a2enmod rewrite
 
+**Step 7B.** Fix permissions so API access works
+
+Edit zoneminder.conf
+
+nano /etc/apache2/conf-available/zoneminder.conf
+Add a - before Indexes and a + before FollowSymLinks
+
+<Directory /usr/share/zoneminder/www>
+  Options -Indexes +FollowSymLinks
+Make sure the following is at the bottom of the file
+
+<Directory /usr/share/zoneminder/www/api>
+    AllowOverride All
+</Directory>
+
+Ctrl+o Enter to save
+
+CTRL+x to exit
+
+
 **Step 8:** Enable and start Zoneminder
 
 ::

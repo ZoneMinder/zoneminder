@@ -30,9 +30,14 @@ guide you with a quick search.
 
 .. topic :: Latest Release
 
-    ZoneMinder 1.29.0 is now part of the current standard Ubuntu repository. But
-    if you wish to install the later releases of ZoneMinder you will need
-    to add the iconnor/zoneminder PPA.
+    ZoneMinder is now part of the current standard Ubuntu repository, but
+    sometimes the official repository can lag behind. The find out check our
+    [releases page](https://github.com/ZoneMinder/zoneminder/releases) for
+    the latest release. 
+    
+    Alternatively, the ZoneMinder project team maintains a ppa, which is updated immediately
+    following a new release of ZoneMinder. To use this repository instead of the
+    official Ubuntu repository, enter the following from the command line:
 
     ::
 

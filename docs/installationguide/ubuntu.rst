@@ -31,7 +31,7 @@ guide you with a quick search.
 .. topic :: Latest Release
 
     ZoneMinder is now part of the current standard Ubuntu repository, but
-    sometimes the official repository can lag behind. The find out check our
+    sometimes the official repository can lag behind. To find out check our
     `releases page <https://github.com/ZoneMinder/zoneminder/releases>`_ for
     the latest release.
     

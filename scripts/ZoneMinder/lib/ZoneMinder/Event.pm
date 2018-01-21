@@ -159,6 +159,20 @@ sub Path {
   return $$event{Path};
 }
 
+sub Scheme {
+  my $self = shift;
+  if ( ! $$self{Scheme} ) {
+    if ( $$self{RelativePath} ) {
+      if ( $$self{RelativePath} =~ /^\d+\/\d{4}\-\d{2}\-\d{2}\/\d+$/ ) {
+        $$self{Scheme} = 'Medium';
+      } elsif ( $$self{RelativePath} =~ /^\d+\/\d{2}\/\d{2}\/\d{2}\/\d{2}\/\d{2}\/\d{2}\/$/ ) {
+        $$self{Scheme} = 'Deep';
+      }
+    } # end if RelativePath
+  }
+  return $$self{Scheme};
+}
+
 sub RelativePath {
   my $event = shift;
   if ( @_ ) {
@@ -370,12 +384,13 @@ sub delete_files {
   my $event_path = $event->RelativePath();
   Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path.");
   if ( $event_path ) {
-    #( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+    ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
+    ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
       my $command = "/bin/rm -rf $storage_path/$event_path";
     ZoneMinder::General::executeShellCommand( $command );
   }
 
-  if ( $$event{Scheme} eq 'Deep' ) {
+  if ( $event->Scheme() eq 'Deep' ) {
     my $link_path = $event->LinkPath();
     Debug("Deleting files for Event $$event{Id} from $storage_path/$link_path.");
     if ( $link_path ) {
@@ -434,6 +449,7 @@ sub DiskSpace {
       Warning("Event does not exist at $_[0]{Path}");
     }
   } # end if ! defined DiskSpace
+  return $_[0]{DiskSpace};
 }
 
 sub MoveTo {

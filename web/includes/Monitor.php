@@ -20,6 +20,7 @@ private $defaults = array(
 'AnalysisFPS' => null,
 'CaptureFPS' => null,
 'ZoneCount' =>  0,
+'Triggers'  =>  null,
 );
 private $control_fields = array(
   'Name' => '',
@@ -128,7 +129,7 @@ private $control_fields = array(
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
         $row = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
-          Error("Unable to load Server record for Id=" . $IdOrRow );
+          Error("Unable to load Monitor record for Id=" . $IdOrRow );
         }
       } elseif ( is_array( $IdOrRow ) ) {
         $row = $IdOrRow;
@@ -326,8 +327,9 @@ private $control_fields = array(
         if ( $mode == 'restart' ) {
           daemonControl( 'stop', 'zmc', $zmcArgs );
         }
-        if ( $this->{'Function'} != 'None' )
+        if ( $this->{'Function'} != 'None' ) {
           daemonControl( 'start', 'zmc', $zmcArgs );
+        }
       }
     } else {
       $Server = $this->Server();
@@ -343,6 +345,7 @@ private $control_fields = array(
           $url = '&user='.$_SESSION['username'];
         }
       }
+Logger::Debug("sending command to $url");
       $data = array('Monitor[Function]' => $this->{'Function'} );
 
       // use key 'http' even if you send the request to https://...
@@ -354,10 +357,17 @@ private $control_fields = array(
             )
           );
       $context  = stream_context_create($options);
-      $result = file_get_contents($url, false, $context);
-      if ($result === FALSE) { /* Handle error */ }
+      try {
+        $result = file_get_contents($url, false, $context);
+        if ($result === FALSE) { /* Handle error */ 
+          Error("Error restarting zmc using $url");
+        }
+      } catch ( Exception $e ) {
+        Error("Except $e thrown trying to restart zmc");
+      }
     }
   } // end function zmcControl
+
   function zmaControl( $mode=false ) {
     if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$this->{'ServerId'} ) ) {
       if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {

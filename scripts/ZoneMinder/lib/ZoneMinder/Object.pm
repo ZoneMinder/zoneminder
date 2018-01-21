@@ -170,8 +170,6 @@ sub save {
 			foreach my $k ( keys %$data ) {
 				$log->debug("Object::save after set $k => $$data{$k} $$self{$k}");
 			}
-		} else {
-			$log->debug("No data after set");
 		}
 	}
 #$debug = 0;

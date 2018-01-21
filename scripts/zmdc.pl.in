@@ -529,6 +529,7 @@ sub kill_until_dead {
           .". Sending KILL to pid $$process{pid}\n"
           );
       kill( 'KILL', $$process{pid} );
+      last;
     }
 
     sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";

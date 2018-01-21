@@ -2,6 +2,7 @@
 -- This adds StorageAreas
 --
 
+SELECT 'Checking For Storage Table';
 SET @s = (SELECT IF(
     (SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.TABLES
@@ -24,6 +25,7 @@ EXECUTE stmt;
 -- Add StorageId column to Monitors
 --
 
+SELECT 'Checking For StorageId in Monitors';
 SET @s = (SELECT IF(
     (SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.COLUMNS
@@ -42,6 +44,7 @@ EXECUTE stmt;
 -- Add StorageId column to Eventss
 --
 
+SELECT 'Checking For StorageId in Events';
 SET @s = (SELECT IF(
     (SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.COLUMNS
@@ -56,6 +59,7 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+SELECT 'Updating Monitors SETTING StorageId to default';
 UPDATE Monitors SET StorageId = 0 WHERE StorageId IS NULL;
 ALTER TABLE Monitors MODIFY `StorageId`	smallint(5) unsigned NOT NULL default 0;
 UPDATE Events SET StorageId = 0 WHERE StorageId IS NULL;
@@ -78,6 +82,7 @@ EXECUTE stmt;
 --
 -- Update Monitors table to have an Index on ServerId
 --
+SELECT 'Create Index For ServerId on Monitors';
 SET @s = (SELECT IF(
   (SELECT COUNT(*)
   FROM INFORMATION_SCHEMA.STATISTICS
@@ -96,6 +101,7 @@ EXECUTE stmt;
 --
 -- Update Server table to have an Index on Name
 --
+SELECT 'Create Index FOR Name on Servers';
 SET @s = (SELECT IF(
   (SELECT COUNT(*)
   FROM INFORMATION_SCHEMA.STATISTICS
@@ -111,15 +117,19 @@ PREPARE stmt FROM @s;
 EXECUTE stmt;
 
 
+SELECT 'ALTER TABLE Logs MODIFY Message TEXT NOT NULL';
 -- ALTER TABLE Logs ALTER  Message DROP DEFAULT;
 ALTER TABLE Logs MODIFY Message TEXT NOT NULL;
 
+SELECT 'ALTER TABLE Config MODIFY DefaultValue TEXT';
 ALTER TABLE Config MODIFY DefaultValue TEXT;
 
 
 -- 
 -- Add an Id column and make it the primary key of the Filters table
 --
+
+SELECT 'Check for Id column in Filter';
 SET @s = (SELECT IF(
   (SELECT COUNT(*)
   FROM INFORMATION_SCHEMA.COLUMNS

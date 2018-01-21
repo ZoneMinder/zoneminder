@@ -35,7 +35,7 @@ PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
 
 set @exist := (select count(*) from information_schema.statistics where table_name = 'Events_Week' and index_name = 'Events_Week_MonitorId_idx' and table_schema = database());
-set @sqlstmt := if( @exist > 0, "SELECT 'Events_Week_MonitorId_idx INDEX already exists.'", "CREATE INDEX `Events_Week_MonitorId_idx` ON `Events_Day` (`MonitorId`)");
+set @sqlstmt := if( @exist > 0, "SELECT 'Events_Week_MonitorId_idx INDEX already exists.'", "CREATE INDEX `Events_Week_MonitorId_idx` ON `Events_Week` (`MonitorId`)");
 PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
 

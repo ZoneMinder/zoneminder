@@ -110,7 +110,7 @@ UPDATE Monitors INNER JOIN (
 
   my $eventcounts_hour_sql = q`
 UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId, COUNT(*) AS HourEvents, SUM(DiskSpace) AS HourEventDiskSpace
+  SELECT  MonitorId, COUNT(*) AS HourEvents, SUM(COALESCE(DiskSpace,0)) AS HourEventDiskSpace
   FROM Events_Hour GROUP BY MonitorId
     ) AS E ON E.MonitorId=Monitors.Id SET
     Monitors.HourEvents = E.HourEvents,
@@ -120,7 +120,7 @@ UPDATE Monitors INNER JOIN (
 
     my $eventcounts_day_sql = q`
 UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId, COUNT(*) AS DayEvents, SUM(DiskSpace) AS DayEventDiskSpace
+  SELECT  MonitorId, COUNT(*) AS DayEvents, SUM(COALESCE(DiskSpace,0)) AS DayEventDiskSpace
   FROM Events_Day GROUP BY MonitorId
     ) AS E ON E.MonitorId=Monitors.Id SET
     Monitors.DayEvents = E.DayEvents,
@@ -129,7 +129,7 @@ UPDATE Monitors INNER JOIN (
 
     my $eventcounts_week_sql = q`
 UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId, COUNT(*) AS WeekEvents, SUM(DiskSpace) AS WeekEventDiskSpace
+  SELECT  MonitorId, COUNT(*) AS WeekEvents, SUM(COALESCE(DiskSpace,0)) AS WeekEventDiskSpace
   FROM Events_Week GROUP BY MonitorId
     ) AS E ON E.MonitorId=Monitors.Id SET
     Monitors.WeekEvents = E.WeekEvents,
@@ -138,7 +138,7 @@ UPDATE Monitors INNER JOIN (
 
     my $eventcounts_month_sql = q`
 UPDATE Monitors INNER JOIN (
-  SELECT  MonitorId, COUNT(*) AS MonthEvents, SUM(DiskSpace) AS MonthEventDiskSpace
+  SELECT  MonitorId, COUNT(*) AS MonthEvents, SUM(COALESCE(DiskSpace,0)) AS MonthEventDiskSpace
   FROM Events_Month GROUP BY MonitorId
     ) AS E ON E.MonitorId=Monitors.Id SET
     Monitors.MonthEvents = E.MonthEvents,
@@ -153,7 +153,10 @@ my $eventcounts_week_sth = $dbh->prepare_cached( $eventcounts_week_sql );
 my $eventcounts_month_sth = $dbh->prepare_cached( $eventcounts_month_sql );
 
 while( 1 ) {
-  $dbh->ping();
+  while ( ! ( $dbh and $dbh->ping() ) ) {
+    Info("Reconnecting to db");
+    $dbh = zmDbConnect();
+  }
 
   $dbh->do('DELETE FROM Events_Hour WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
   $dbh->do('DELETE FROM Events_Day WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 day)');

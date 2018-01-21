@@ -67,6 +67,7 @@ my $continuous = 0;
 my $monitor_id = 0;
 my $version;
 my $force = 0;
+my $storage_id = undef;
 
 logInit();
 
@@ -76,6 +77,7 @@ GetOptions(
     interactive   =>\$interactive,
     monitor_id    =>\$monitor_id,
     report        =>\$report,
+    storage_id    =>\$storage_id,
     version       =>\$version
     ) or pod2usage(-exitstatus => -1);
 
@@ -194,9 +196,17 @@ MAIN: while( $loop ) {
 
   my $fs_monitors;
 
-  foreach my $Storage (
-      ZoneMinder::Storage->find( ($Config{ZM_SERVER_ID} ? ( ServerId => $Config{ZM_SERVER_ID} ) : () ) ),
-      ) {
+  my @Storage_Areas;
+  if ( defined $storage_id ) {
+    @Storage_Areas = ZoneMinder::Storage->find( Id=>$storage_id );
+  } elsif ( $Config{ZM_SERVER_ID} ) {
+    @Storage_Areas = ZoneMinder::Storage->find( ServerId => $Config{ZM_SERVER_ID} );
+  } else {
+    @Storage_Areas = ZoneMinder::Storage->find();
+  }
+
+    
+  foreach my $Storage ( @Storage_Areas ) {
     Debug('Checking events in ' . $Storage->Path() );
     if ( ! chdir( $Storage->Path() ) ) {
       Error( 'Unable to change dir to ' . $Storage->Path() );

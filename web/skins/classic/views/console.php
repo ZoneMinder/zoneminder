@@ -232,7 +232,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
     $url_parts = parse_url( $monitor['Path'] );
     $source = $url_parts['host']. ( 
-      ( $url_parts['port'] and ( $url_parts['port'] != '554' and $url_parts['port'] != '80' ) ) ? ':'.$url_parts['port'] : '' );
+      ( isset($url_parts['port']) and ( $url_parts['port'] != '554' and $url_parts['port'] != '80' ) ) ? ':'.$url_parts['port'] : '' );
   }
   if ( $source == '' ) {
     $source = 'Monitor ' . $monitor['Id'];

@@ -932,6 +932,8 @@ sub patchDB {
   my $dbh = shift;
   my $version = shift;
 
+  zmDbDisconnect();
+
   my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
   my $command = 'mysql';
   if ( defined($portOrSocket) ) {
@@ -966,6 +968,8 @@ sub patchDB {
     die( "Command '$command' exited with status: $status\n" );
   }
   print( "\nDatabase successfully upgraded to version $version.\n" );
+
+  $dbh = zmDbConnect();
   my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
   my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );

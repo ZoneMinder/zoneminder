@@ -48,7 +48,7 @@ use vars qw/ $AUTOLOAD $log $dbh/;
 *dbh = \$ZoneMinder::Database::dbh;
 
 my $debug = 0;
-use constant DEBUG_ALL=>1;
+use constant DEBUG_ALL=>0;
 
 sub new {
   my ( $parent, $id, $data ) = @_;
@@ -170,8 +170,6 @@ sub save {
 			foreach my $k ( keys %$data ) {
 				$log->debug("Object::save after set $k => $$data{$k} $$self{$k}");
 			}
-		} else {
-			$log->debug("No data after set");
 		}
 	}
 #$debug = 0;

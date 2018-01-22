@@ -756,7 +756,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
   while ( ! frameComplete ) {
     av_init_packet( &packet );
 
-    Debug(4,"before read frame");
     ret = av_read_frame( mFormatContext, &packet );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -775,11 +774,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
-
-    Debug( 4, "Got packet from stream %d packet pts (%u) dts(%u), key?(%d)", 
-        packet.stream_index, packet.pts, packet.dts, 
-        keyframe
-        );
+dumpPacket(&packet);
 
     //Video recording
     if ( recording.tv_sec ) {
@@ -896,28 +891,18 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
         if ( keyframe ) {
           Debug(3, "Clearing queue");
           packetqueue.clearQueue( monitor->GetPreEventCount(), mVideoStreamId );
+          packetqueue.queuePacket( &packet );
+        } else if ( packetqueue.size() ) {
+          // it's a keyframe or we already have something in the queue
+          packetqueue.queuePacket( &packet );
         } 
-#if 0
-// Not sure this is valid.  While a camera will PROBABLY always have an increasing pts... it doesn't have to.
-// Also, I think there are integer wrap-around issues.
-
-else if ( packet.pts && video_last_pts > packet.pts ) {
-          Warning( "Clearing queue due to out of order pts packet.pts(%d) < video_last_pts(%d)");
-          packetqueue.clearQueue();
-        }
-#endif
-      } 
- 
+      } else if ( packet.stream_index == mAudioStreamId ) {
       // The following lines should ensure that the queue always begins with a video keyframe
-      if ( packet.stream_index == mAudioStreamId ) {
 //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
         if ( record_audio && packetqueue.size() ) { 
           // if it's audio, and we are doing audio, and there is already something in the queue
           packetqueue.queuePacket( &packet );
         }
-      } else if ( packet.stream_index == mVideoStreamId ) {
-        if ( keyframe || packetqueue.size() ) // it's a keyframe or we already have something in the queue
-          packetqueue.queuePacket( &packet );
       }
     } // end if recording or not
 

@@ -25,7 +25,6 @@ if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')
 
 require_once( 'includes/Event.php' );
 
-
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
@@ -57,10 +56,8 @@ else
   $limit = 0;
 
 $nEvents = dbFetchOne( $countSql, 'EventCount' );
-Warning("Number of events: $nEvents");
 if ( !empty($limit) && $nEvents > $limit ) {
   $nEvents = $limit;
-Logger::Debug("Number of events: $nEvents");
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
 if ( !empty($page) ) {
@@ -68,9 +65,7 @@ if ( !empty($page) ) {
     $page = 1;
   else if ( $page > $pages )
     $page = $pages;
-}
 
-if ( !empty($page) ) {
   $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
   if ( empty( $limit ) ) {
     $limitAmount = ZM_WEB_EVENTS_PER_PAGE;
@@ -210,27 +205,22 @@ while ( $event_row = dbFetchNext( $results ) ) {
 ?>
               <td class="colThumbnail">
 <?php 
-	if ( ( $event->SaveJPEGs() == 4 ) and file_exists($event->Path().'/snapshot.jpg') ) {
-    Logger::Debug("Using snapshot");
-      $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid=snapshot&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
-} else {
-  Logger::Debug("Not Using snapshot" . $event->Path().'/snapshot.jpg' );
-      $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
-}
+      if ( ( $event->SaveJPEGs() == 0 ) and file_exists($event->Path().'/snapshot.jpg') ) {
+        Logger::Debug("Using snapshot");
+        $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid=snapshot&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
+      } else {
+        Logger::Debug("Not Using snapshot" . $event->Path().'/snapshot.jpg' );
+        $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
+      }
       $streamSrc = $event->getStreamSrc( array( 'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single') );
 
       $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt($thumbData['Height']).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
-
-      echo makePopupLink( 
-          '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'],
-          'zmImage',
-          array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ),
-          $imgHtml
-        );
+      echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';
 ?>
               </td>
 <?php
     } else {
+      Logger::Debug("No thumbnail data");
 ?>
               <td class="colThumbnail">&nbsp;</td>
 <?php
@@ -255,7 +245,7 @@ while ( $event_row = dbFetchNext( $results ) ) {
 ?><td></td>
 <?php
 }
-?>
+?><td></td>
             </tr>
           </tfoot>
 <?php

@@ -707,18 +707,6 @@ bool VideoStore::setup_resampler() {
 #endif
 }  // end bool VideoStore::setup_resampler()
 
-void VideoStore::dumpPacket(AVPacket *pkt) {
-  char b[10240];
-
-  snprintf(b, sizeof(b),
-           " pts: %" PRId64 ", dts: %" PRId64
-           ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64
-           ", c-duration: %d\n",
-           pkt->pts, pkt->dts, pkt->data, pkt->size, pkt->stream_index,
-           pkt->flags, pkt->pos, pkt->duration);
-  Debug(1, "%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
-}
-
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   av_init_packet(&opkt);
 

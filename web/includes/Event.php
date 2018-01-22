@@ -211,14 +211,16 @@ class Event {
   }
 
   function createListThumbnail( $overwrite=false ) {
+    if ( (!$this->SaveJPEGs()) and file_exists($this->Path().'/snapshot.jpg') ) {
+      $frame = null;
+    } else {
   # Load the frame with the highest score to use as a thumbnail
     if ( !($frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1', NULL, array( $this->{'Id'}, $this->{'MaxScore'} ) )) ) {
       Error("Unable to find a Frame matching max score " . $this->{'MaxScore'} . ' for event ' . $this->{'Id'} );
       // FIXME: What if somehow the db frame was lost or score was changed?  Should probably try another search for any frame.
       return( false );
     }
-
-    $frameId = $frame['FrameId'];
+    }
 
     if ( ZM_WEB_LIST_THUMB_WIDTH ) {
       $thumbWidth = ZM_WEB_LIST_THUMB_WIDTH;
@@ -259,7 +261,7 @@ class Event {
     if ( ( ! $frame ) and file_exists( $eventPath.'/snapshot.jpg' ) ) {
       # No frame specified, so look for a snapshot to use
       $captImage = 'snapshot.jpg';
-      Debug("Frame not specified, using snapshot");
+      Logger::Debug("Frame not specified, using snapshot");
     } else {
       $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId'] );
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
@@ -282,7 +284,7 @@ class Event {
             exec( $command, $output, $retval );
             Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
           } else {
-            Error("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
+            Error("Can't create frame images from video because there is no video file for event ".$Event->Id().' at ' .$Event->Path() );
           }
         } // end if capture file exists
       } // end if analyze file exists

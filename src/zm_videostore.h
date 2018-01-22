@@ -80,7 +80,6 @@ public:
 
   int writeVideoFramePacket( AVPacket *pkt );
   int writeAudioFramePacket( AVPacket *pkt );
-	void dumpPacket( AVPacket *pkt );
 };
 
 #endif //havelibav

@@ -90,8 +90,9 @@ sub Time {
     $_[0]{Time} = $_[1];
   }
   if ( ! defined $_[0]{Time} ) {
-
-    $_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
+    if ( $_[0]{StartTime} ) {
+      $_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
+    }
   }
   return $_[0]{Time};
 }
@@ -230,8 +231,15 @@ sub LinkPath {
               ),
             '.'.$$event{Id}
             );
+      } elsif ( $$event{Path} ) {
+        if ( ( $$event{Path} =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
+          $$event{LinkPath} = $1.'/.'.$$event{Id};
+        } else {
+          Error("Unable to get LinkPath from Path for $$event{Id} $$event{Path}");
+          $$event{LinkPath} = '';
+        }
       } else {
-        Error("Event $$event{Id} has no value for Time(), unable to determine link path");
+        Error("Event $$event{Id} $$event{Path} has no value for Time(), unable to determine link path");
         $$event{LinkPath} = '';
       }
     } # end if Scheme
@@ -243,7 +251,7 @@ sub LinkPath {
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
 
-  my $event_path = $self->getPath( );
+  my $event_path = $self->Path( );
   chdir( $event_path );
   ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
 

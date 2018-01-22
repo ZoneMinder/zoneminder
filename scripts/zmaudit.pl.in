@@ -55,7 +55,6 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
 ;
 use constant ZM_AUDIT_PID => '@ZM_RUNDIR@/zmaudit.pid';
 
-$| = 1;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -121,6 +120,9 @@ sub HupHandler {
 }
 sub TermHandler {
   Info("Received TERM, exiting");
+  Term();
+}
+sub Term {
   unlink ZM_AUDIT_PID;
   exit( 0 );
 }
@@ -129,6 +131,8 @@ $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
 
 my $dbh = zmDbConnect();
+
+$| = 1;
 
 require ZoneMinder::Monitor;
 require ZoneMinder::Storage;
@@ -390,8 +394,8 @@ MAIN: while( $loop ) {
 
       while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         if ( ! defined( $fs_events->{$db_event} ) ) {
-          Debug("Event $db_event is not in fs.");
           my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+          Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
           if ( ! $Event ) {
             Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
             next;
@@ -418,7 +422,7 @@ MAIN: while( $loop ) {
             Debug("Database event $$Event{Id} apparently exists at " . $Event->Path() );
           } else {
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-              aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem' );
+              aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem, deleting' );
               if ( confirm() ) {
                 $Event->delete();
                 $cleaned = 1;
@@ -666,7 +670,7 @@ $eventcounts_sth->finish();
   sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;
 };
 
-term_handler();
+Term();
 
 sub aud_print {
   my $string = shift;

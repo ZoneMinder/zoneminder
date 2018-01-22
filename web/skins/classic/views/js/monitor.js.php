@@ -34,17 +34,14 @@ controlOptions[<?php echo $row['Id'] ?>][<?php echo $i ?>] = '<?php echo transla
 }
 ?>
 
-<?php
-if ( empty($_REQUEST['mid']) ) {
-?>
 var monitorNames = new Object();
 <?php
-  foreach ( dbFetchAll( "select Name from Monitors order by Name asc", "Name" ) as $name ) {
+$query = empty($_REQUEST['mid']) ? dbQuery('SELECT Name FROM Monitor') : dbQuery('SELECT Name FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
+while ( $name = dbFetchNext($query, 'Name') ) {
 ?>
 monitorNames['<?php echo validJsStr($name) ?>'] = true;
 <?php
-  }
-}
+} // end foreach
 ?>
 
 function validateForm( form ) {
@@ -52,7 +49,7 @@ function validateForm( form ) {
 
   if ( form.elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
     errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
-  else if ( form.elements.mid.value == 0 && monitorNames[form.elements['newMonitor[Name]'].value] )
+  else if ( monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
 
   if ( form.elements['newMonitor[AnalysisFPSLimit]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPSLimit]'].value) > 0 ) )

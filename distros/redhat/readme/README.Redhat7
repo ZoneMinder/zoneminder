@@ -1,23 +1,26 @@
 What's New
 ==========
 
-1. The Apache ScriptAlias has been changed from "/cgi-bin/zm/zms" to 
+1. ZoneMinder now uses a conf.d subfolder to process custom changes to
+   variables found in zm.conf. Changes to zm.conf will be overwritten
+   during an upgrade. Instead, create a file with a ".conf" extension under
+   the conf.d folder and make your changes there.
+   
+2. ZoneMinder now supports recording directly to video container! This feature
+   is new and should be treated as experimental. Refer to the documentation
+   regarding how to use this feature.
+
+3. The Apache ScriptAlias has been changed from "/cgi-bin/zm/zms" to 
    "/cgi-bin-zm/zms". This has been to done to avoid this bug:
    https://bugzilla.redhat.com/show_bug.cgi?id=973067
 
-   IMPORTANT: You must manually verify the value of PATH_ZMS under Options.
-   Make sure it is set to "/cgi-bin-zm/nph-zms". Failure to do so will result
+   IMPORTANT: You must manually inspect the value for PATH_ZMS under Options
+   and verify it is set to "/cgi-bin-zm/nph-zms". Failure to do so will result
    in a broken system. You have been warned.
 
-2. Due to the active state of the ZoneMinder project, we now recommend granting
-   ALL permission to the ZoneMinder mysql account. This change must be done
-   manually before ZoneMinder will run. See the installation steps below.
-
-3. This package uses the HTTPS protocol by default to access the web portal.
+4. This package uses the HTTPS protocol by default to access the web portal.
    Requests using HTTP will auto-redirect to HTTPS. See README.https for
    more information.
-   
-4. This package ships with the new ZoneMinder API enabled.
 
 New installs
 ============
@@ -25,7 +28,7 @@ New installs
 1. Unless you are already using MariaDB server, you need to ensure that the
    server is configured to start during boot and properly secured by running:
 
-	sudo dnf install mariadb-server
+	sudo yum install mariadb-server
 	sudo systemctl enable mariadb
 	sudo systemctl start  mariadb.service
 	mysql_secure_installation
@@ -43,13 +46,17 @@ New installs
    anything that suits your environment.
 
 3. If you have chosen to change the zoneminder database account credentials to
-   something other than zmuser/zmpass, you must now edit /etc/zm/zm.conf.
-   Change ZM_DB_USER and ZM_DB_PASS to the values you created in the previous
-   step.
+   something other than zmuser/zmpass, you must now create a config file under
+   /etc/zm/conf.d and set your credentials there. For example, create the file
+   /etc/zm/conf.d/zm-db-user.conf and add the following content to it:
+      
+      ZM_DB_USER = {username of the sql account you want to use}
+      ZM_DB_PASS = {password of the sql account you want to use}
 
-   This version of zoneminder no longer requires you to make a similar change 
-   to the credentials in /usr/share/zoneminder/www/api/app/Config/database.php 
-   This now happens dynamically. Do *not* make any changes to this file.
+   Once the file has been saved, set proper file & ownership permissions on it:
+  
+      sudo chown root:apache *.conf
+      sudo chmod 640 *.conf 
 
 4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
    timezone.  PHP will complain loudly if this is not set, or if it is set
@@ -98,21 +105,11 @@ New installs
 Upgrades
 ========
 
-1. Verify /etc/zm/zm.conf.
-
-   If zm.conf was manually edited before running the upgrade, the installation
-   may not overwrite it. In this case, it will create the file
-   /etc/zm/zm.conf.rpmnew.
-
-   For example, this will happen if you are using database account credentials
-   other than zmuser/zmpass.
-
-   Compare /etc/zm/zm.conf to /etc/zm/zm.conf.rpmnew. Verify that zm.conf
-   contains any new config settings that may be in zm.conf.rpmnew.
-
-   This version of zoneminder no longer requires you to make a similar change 
-   to the credentials in /usr/share/zoneminder/www/api/app/Config/database.php 
-   This now happens dynamically. Do *not* make any changes to this file.
+1. Conf.d folder support has been added to ZoneMinder 1.31.0. Any custom
+   changes previously made to zm.conf must now be made in one or more custom
+   config files, created under the conf.d folder. Do this now. See 
+   /etc/zm/conf.d/README for details. Once you recreate any custom config changes
+   under the conf.d folder, they will remain in place indefinitely.
 
 2. Verify permissions of the zmuser account.
 
@@ -142,7 +139,9 @@ Upgrades
 
    sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
 
-5. Now start zoneminder:
+5. Now restart the web server then start zoneminder:
 
+        sudo systemctl restart httpd
 	sudo systemctl start zoneminder
+
 

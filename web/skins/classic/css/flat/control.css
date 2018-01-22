@@ -6,7 +6,6 @@
 
 .ptzControls input.ptzTextBtn {
     margin-top: 2px;
-    width: 40px;
 }
 
 .ptzControls .controlsPanel {
@@ -46,11 +45,11 @@
 */
 
 .ptzControls .controlsPanel .upBtn {
-    background: url("../../graphics/arrow-l-u.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-l-u.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .downBtn {
-    background: url("../../graphics/arrow-l-d.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-l-d.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .focusControls {
@@ -79,8 +78,8 @@
     border: 1px solid #006699;
     text-align: center;
     padding: 1px;
-    width: 96px;
-    height: 96px;
+    width: 100px;
+    height: 100px;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .arrowBtn {
@@ -91,39 +90,39 @@
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .upLeftBtn {
-    background: url("../../graphics/arrow-ul.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-ul.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .upBtn {
-    background: url("../../graphics/arrow-u.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-u.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .upRightBtn {
-    background: url("../../graphics/arrow-ur.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-ur.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .leftBtn {
-    background: url("../../graphics/arrow-l.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-l.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .centerBtn {
-    background: url("../../graphics/center.gif") no-repeat 0 0;
+    background: url("../../graphics/center.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .rightBtn {
-    background: url("../../graphics/arrow-r.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-r.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .downLeftBtn {
-    background: url("../../graphics/arrow-dl.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-dl.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .downBtn {
-    background: url("../../graphics/arrow-d.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-d.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .downRightBtn {
-    background: url("../../graphics/arrow-dr.gif") no-repeat 0 0;
+    background: url("../../graphics/arrow-dr.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .powerControls {

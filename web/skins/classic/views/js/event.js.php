@@ -26,21 +26,29 @@ var SCALE_BASE = <?php echo SCALE_BASE ?>;
 var connKey = '<?php echo $connkey ?>';
 
 var eventData = {
-    Id: <?php echo $event['Id'] ?>,
-    MonitorId: <?php echo $event['MonitorId'] ?>,
-    Width: <?php echo $event['Width'] ?>,
-    Height: <?php echo $event['Height'] ?>,
-    Length: <?php echo $event['Length'] ?>
+    Id: '<?php echo $Event->Id() ?>',
+    MonitorId: '<?php echo $Event->MonitorId() ?>',
+    Width: '<?php echo $Event->Width() ?>',
+    Height: '<?php echo $Event->Height() ?>',
+    Length: '<?php echo $Event->Length() ?>',
+    StartTime: '<?php echo $Event->StartTime() ?>',
+    EndTime: '<?php echo $Event->EndTime() ?>',
+    Frames: '<?php echo $Event->Frames() ?>',
+    MonitorName: '<?php echo $Monitor->Name() ?>'
 };
 
-var filterQuery = '<?php echo isset($filterQuery)?validJsStr($filterQuery):'' ?>';
-var sortQuery = '<?php echo isset($sortQuery)?validJsStr($sortQuery):'' ?>';
+var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
+var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
-var scale = <?php echo $scale ?>;
+var rates = <?php echo json_encode(array_keys($rates)) ?>;
+var scale = "<?php echo $scale ?>";
+var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
+
 var canEditEvents = <?php echo canEdit( 'Events' )?'true':'false' ?>;
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
+var streamMode = '<?php echo $streamMode ?>';
 
 //
 // Strings

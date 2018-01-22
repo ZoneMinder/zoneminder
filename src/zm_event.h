@@ -37,6 +37,7 @@
 #include "zm.h"
 #include "zm_image.h"
 #include "zm_stream.h"
+#include "zm_video.h"
 
 class Zone;
 class Monitor;
@@ -46,8 +47,7 @@ class Monitor;
 //
 // Class describing events, i.e. captured periods of activity.
 //
-class Event
-{
+class Event {
 friend class EventStream;
 
 protected:
@@ -55,6 +55,7 @@ protected:
   static char    capture_file_format[PATH_MAX];
   static char    analyse_file_format[PATH_MAX];
   static char    general_file_format[PATH_MAX];
+  static char   video_file_format[PATH_MAX];
 
 protected:
   static int    sd;
@@ -66,8 +67,7 @@ public:
 protected:
   typedef enum { NORMAL, BULK, ALARM } FrameType;
 
-  struct PreAlarmData
-  {
+  struct PreAlarmData {
     Image *image;
     struct timeval timestamp;
     unsigned int score;
@@ -84,24 +84,31 @@ protected:
   struct timeval  end_time;
   std::string   cause;
   StringSetMap  noteSetMap;
+  bool        videoEvent;
   int        frames;
   int        alarm_frames;
   unsigned int  tot_score;
   unsigned int  max_score;
   char      path[PATH_MAX];
+  VideoWriter* videowriter;
+  FILE* timecodes_fd;
+  char video_name[PATH_MAX];
+  char video_file[PATH_MAX];
+  char timecodes_name[PATH_MAX];
+  char timecodes_file[PATH_MAX];
 
 protected:
   int        last_db_frame;
 
 protected:
-  static void Initialise()
-  {
+  static void Initialise() {
     if ( initialised )
       return;
 
     snprintf( capture_file_format, sizeof(capture_file_format), "%%s/%%0%dd-capture.jpg", config.event_image_digits );
     snprintf( analyse_file_format, sizeof(analyse_file_format), "%%s/%%0%dd-analyse.jpg", config.event_image_digits );
     snprintf( general_file_format, sizeof(general_file_format), "%%s/%%0%dd-%%s", config.event_image_digits );
+    snprintf( video_file_format, sizeof(video_file_format), "%%s/%%s");
 
     initialised = true;
   }
@@ -113,7 +120,7 @@ public:
   static bool ValidateFrameSocket( int );
 
 public:
-  Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap );
+  Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent=false );
   ~Event();
 
   int Id() const { return( id ); }
@@ -127,6 +134,7 @@ public:
 
   bool SendFrameImage( const Image *image, bool alarm_frame=false );
   bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false );
+  bool WriteFrameVideo( const Image *image, const struct timeval timestamp, VideoWriter* videow );
 
   void updateNotes( const StringSetMap &stringSetMap );
 
@@ -137,28 +145,26 @@ private:
   void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );
 
 public:
-  static const char *getSubPath( struct tm *time )
-  {
+  static const char *getSubPath( struct tm *time ) {
     static char subpath[PATH_MAX] = "";
     snprintf( subpath, sizeof(subpath), "%02d/%02d/%02d/%02d/%02d/%02d", time->tm_year-100, time->tm_mon+1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec );
     return( subpath );
   }
-  static const char *getSubPath( time_t *time )
-  {
+  static const char *getSubPath( time_t *time ) {
     return( Event::getSubPath( localtime( time ) ) );
   }
 
+  char* getEventFile(void) {
+    return video_file;
+  }
+
 public:
-  static int PreAlarmCount()
-  {
+  static int PreAlarmCount() {
     return( pre_alarm_count );
   }
-  static void EmptyPreAlarmFrames()
-  {
-    if ( pre_alarm_count > 0 )
-    {
-      for ( int i = 0; i < MAX_PRE_ALARM_FRAMES; i++ )
-      {
+  static void EmptyPreAlarmFrames() {
+    if ( pre_alarm_count > 0 ) {
+      for ( int i = 0; i < MAX_PRE_ALARM_FRAMES; i++ ) {
         delete pre_alarm_data[i].image;
         delete pre_alarm_data[i].alarm_frame;
       }
@@ -166,29 +172,24 @@ public:
     }
     pre_alarm_count = 0;
   }
-  static void AddPreAlarmFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL )
-  {
+  static void AddPreAlarmFrame( Image *image, struct timeval timestamp, int score=0, Image *alarm_frame=NULL ) {
     pre_alarm_data[pre_alarm_count].image = new Image( *image );
     pre_alarm_data[pre_alarm_count].timestamp = timestamp;
     pre_alarm_data[pre_alarm_count].score = score;
-    if ( alarm_frame )
-    {
+    if ( alarm_frame ) {
       pre_alarm_data[pre_alarm_count].alarm_frame = new Image( *alarm_frame );
     }
     pre_alarm_count++;
   }
-  void SavePreAlarmFrames()
-  {
-    for ( int i = 0; i < pre_alarm_count; i++ )
-    {
+  void SavePreAlarmFrames() {
+    for ( int i = 0; i < pre_alarm_count; i++ ) {
       AddFrame( pre_alarm_data[i].image, pre_alarm_data[i].timestamp, pre_alarm_data[i].score, pre_alarm_data[i].alarm_frame );
     }
     EmptyPreAlarmFrames();
   }
 };
 
-class EventStream : public StreamBase
-{
+class EventStream : public StreamBase {
 public:
   typedef enum { MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
 
@@ -201,16 +202,16 @@ protected:
     bool      in_db;
   };
 
-  struct EventData
-  {
+  struct EventData {
     unsigned long   event_id;
     unsigned long   monitor_id;
     unsigned long   frame_count;
-    time_t      start_time;
-    double      duration;
-    char      path[PATH_MAX];
-    int       n_frames;
-    FrameData     *frames;
+    time_t          start_time;
+    double          duration;
+    char            path[PATH_MAX];
+    int             n_frames;
+    FrameData       *frames;
+    char            video_file[PATH_MAX];
   };
 
 protected:
@@ -225,6 +226,7 @@ protected:
 protected:
   int curr_frame_id;
   double curr_stream_time;
+  bool send_frame;          // Used as a flag whether or not to send out a frame.
 
   EventData *event_data;
 
@@ -238,8 +240,7 @@ protected:
   bool sendFrame( int delta_us );
 
 public:
-  EventStream()
-  {
+  EventStream() {
     mode = DEFAULT_MODE;
 
     forceEventChange = false;
@@ -249,18 +250,15 @@ public:
 
     event_data = 0;
   }
-  void setStreamStart( int init_event_id, unsigned int init_frame_id=0 )
-  {
+  void setStreamStart( int init_event_id, unsigned int init_frame_id=0 ) {
     loadInitialEventData( init_event_id, init_frame_id );
     loadMonitor( event_data->monitor_id );
   }
-  void setStreamStart( int monitor_id, time_t event_time )
-  {
+  void setStreamStart( int monitor_id, time_t event_time ) {
     loadInitialEventData( monitor_id, event_time );
     loadMonitor( monitor_id );
   }
-  void setStreamMode( StreamMode p_mode )
-  {
+  void setStreamMode( StreamMode p_mode ) {
     mode = p_mode;
   }
   void runStream();

@@ -75,9 +75,11 @@ sub zmDbConnect {
   if ( $force ) {
     zmDbDisconnect();
   }
-  if ( !defined( $dbh ) ) {
+  my $options = shift;
+
+  if ( ( ! defined( $dbh ) ) or ! $dbh->ping() ) {
+    my ( $host, $portOrSocket ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
     my $socket;
-    my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
 
     if ( defined($portOrSocket) ) {
       if ( $portOrSocket =~ /^\// ) {
@@ -88,8 +90,19 @@ sub zmDbConnect {
     } else {
       $socket = ";host=".$Config{ZM_DB_HOST}; 
     }
+
+    my $sslOptions = "";
+    if ( $Config{ZM_DB_SSL_CA_CERT} ) {
+      $sslOptions = ';'.join(';',
+          "mysql_ssl=1",
+          "mysql_ssl_ca_file=".$Config{ZM_DB_SSL_CA_CERT},
+          "mysql_ssl_client_key=".$Config{ZM_DB_SSL_CLIENT_KEY},
+          "mysql_ssl_client_cert=".$Config{ZM_DB_SSL_CLIENT_CERT}
+          );
+    }
+
     $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-        .$socket
+        .$socket . $sslOptions . ($options?';'.join(';', map { $_.'='.$$options{$_} } keys %{$options} ) : '' )
         , $Config{ZM_DB_USER}
         , $Config{ZM_DB_PASS}
         );

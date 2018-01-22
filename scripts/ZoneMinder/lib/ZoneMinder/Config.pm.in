@@ -65,26 +65,28 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 
 use constant ZM_PID => "@ZM_PID@"; # Path to the ZoneMinder run pid file
 use constant ZM_CONFIG => "@ZM_CONFIG@"; # Path to the ZoneMinder config file
+use constant ZM_CONFIG_SUBDIR => "@ZM_CONFIG_SUBDIR@"; # Path to the ZoneMinder config subfolder
 
 use Carp;
 
 # Load the config from the database into the symbol table
 BEGIN {
+
+  # Process name, value pairs from the main config file first
   my $config_file = ZM_CONFIG;
-  open( my $CONFIG, "<", $config_file )
-    or croak( "Can't open config file '$config_file': $!" );
-  foreach my $str ( <$CONFIG> ) {
-    next if ( $str =~ /^\s*$/ );
-    next if ( $str =~ /^\s*#/ );
-    my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
-    if ( ! $name ) {
-      print( STDERR "Warning, bad line in $config_file: $str\n" );
-      next;
-    } # end if
-    $name =~ tr/a-z/A-Z/;
-    $Config{$name} = $value;
+  process_configfile($config_file);
+
+  # Search for user created config files. If one or more are found then
+  # update the Config hash with those values
+  if ( -d ZM_CONFIG_SUBDIR ) {
+      if ( -R ZM_CONFIG_SUBDIR ) {
+          foreach my $filename ( glob ZM_CONFIG_SUBDIR."/*.conf" ) {
+              process_configfile($filename);
+          }
+      } else {
+          print( STDERR "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on ".ZM_CONFIG_SUBDIR.".\n" );
+      }
   }
-  close( $CONFIG );
 
   use DBI;
   my $socket;
@@ -99,8 +101,17 @@ BEGIN {
   } else {
     $socket = ";host=".$Config{ZM_DB_HOST}; 
   }
+  my $sslOptions = "";
+  if ( $Config{ZM_DB_SSL_CA_CERT} ) {
+    $sslOptions = ';'.join(';',
+        "mysql_ssl=1",
+        "mysql_ssl_ca_file=".$Config{ZM_DB_SSL_CA_CERT},
+        "mysql_ssl_client_key=".$Config{ZM_DB_SSL_CLIENT_KEY},
+        "mysql_ssl_client_cert=".$Config{ZM_DB_SSL_CLIENT_CERT}
+        );
+  }
   my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-      .$socket
+      .$socket.$sslOptions
       , $Config{ZM_DB_USER}
       , $Config{ZM_DB_PASS}
       ) or croak( "Can't connect to db" );
@@ -126,10 +137,35 @@ BEGIN {
     }
     $sth->finish();
   }
+
+  # This subroutine must be inside the BEGIN block
+  sub process_configfile {
+      my $config_file = shift;
+
+      if ( -R $config_file ) {
+          open( my $CONFIG, "<", $config_file )
+              or croak( "Can't open config file '$config_file': $!" );
+          foreach my $str ( <$CONFIG> ) {
+              next if ( $str =~ /^\s*$/ );
+              next if ( $str =~ /^\s*#/ );
+              my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
+              if ( ! $name ) {
+                  print( STDERR "Warning, bad line in $config_file: $str\n" );
+                  next;
+              } # end if
+              $name =~ tr/a-z/A-Z/;
+              $Config{$name} = $value;
+          }
+          close( $CONFIG );
+      } else {
+          print( STDERR "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $config_file\n" );
+      }
+  }
+
 } # end BEGIN
 
 sub loadConfigFromDB {
-  print( "Loading config from DB\n" );
+  print( "Loading config from DB" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
     print( "Error: unable to load options from database: $DBI::errstr\n" );
@@ -160,11 +196,12 @@ sub loadConfigFromDB {
     $option_count++;;
   }
   $sth->finish();
+  print( " $option_count entries\n" );
   return( $option_count );
 } # end sub loadConfigFromDB
 
 sub saveConfigToDB {
-  print( "Saving config to DB\n" );
+  print( "Saving config to DB " . @options . " entries\n" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
     print( "Error: unable to save options to database: $DBI::errstr\n" );

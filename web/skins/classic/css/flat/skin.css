@@ -333,14 +333,14 @@ th.table-th-sort span.table-th-sort-span {
     float: right;
     width: 12px;
     height: 12px;
-    background: url("../graphics/arrow-s-u.gif") no-repeat 0 0;
+    background: url("/skins/classic/graphics/arrow-s-u.png") no-repeat 0 0;
 }
 
 th.table-th-sort-rev span.table-th-sort-span {
     float: right;
     width: 12px;
     height: 12px;
-    background: url("../graphics/arrow-s-d.gif") no-repeat 0 0;
+    background: url("/skins/classic/graphics/arrow-s-d.png") no-repeat 0 0;
 }
 
 .table-tr-odd {

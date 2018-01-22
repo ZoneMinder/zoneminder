@@ -31,6 +31,7 @@ $rates = array(
 );
 
 $scales = array(
+    "auto" => translate("Scale to Fit"),
     "400" => "4x",
     "300" => "3x",
     "200" => "2x",
@@ -42,6 +43,8 @@ $scales = array(
     "25" => "1/4x",
     "12.5" => "1/8x",
 );
+
+if (isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage')) unset($scales['auto']); //Remove auto if we aren't using event view
 
 $bwArray = array(
     "high" => translate('High'),

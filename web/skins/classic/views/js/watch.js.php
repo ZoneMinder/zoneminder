@@ -50,9 +50,7 @@ var monitorWidth = <?php echo $monitor->Width() ?>;
 var monitorHeight = <?php echo $monitor->Height() ?>;
 var monitorUrl = '<?php echo ( $monitor->Server()->Url() ) ?>';
 
-var scale = <?php echo $scale ?>;
-
-var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
+var scale = '<?php echo $scale ?>';
 
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 var eventsRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_EVENTS ?>;

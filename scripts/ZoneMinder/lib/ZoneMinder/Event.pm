@@ -116,6 +116,10 @@ sub find {
     push @sql_filters , ' Name = ? ';
     push @sql_values, $sql_filters{Name};
   }
+  if ( exists $sql_filters{Id} ) {
+    push @sql_filters , ' Id = ? ';
+    push @sql_values, $sql_filters{Id};
+  }
 
   $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
   $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
@@ -345,13 +349,6 @@ sub delete {
   }
   Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}\n" );
   $ZoneMinder::Database::dbh->ping();
-# Do it individually to avoid locking up the table for new events
-  my $sql = 'DELETE FROM Events WHERE Id=?';
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-  my $res = $sth->execute( $event->{Id} )
-    or Error( "Can't execute '$sql': ".$sth->errstr() );
-  $sth->finish();
 
   if ( ! $Config{ZM_OPT_FAST_DELETE} ) {
     my $sql = 'DELETE FROM Frames WHERE EventId=?';
@@ -372,6 +369,13 @@ sub delete {
   } else {
     Debug('Not deleting frames, stats and files for speed.');
   }
+# Do it individually to avoid locking up the table for new events
+  my $sql = 'DELETE FROM Events WHERE Id=?';
+  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+    or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+  my $res = $sth->execute( $event->{Id} )
+    or Error( "Can't execute '$sql': ".$sth->errstr() );
+  $sth->finish();
 } # end sub delete
 
 sub delete_files {

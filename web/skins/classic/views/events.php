@@ -65,9 +65,7 @@ if ( !empty($page) ) {
     $page = 1;
   else if ( $page > $pages )
     $page = $pages;
-}
 
-if ( !empty($page) ) {
   $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
   if ( empty( $limit ) ) {
     $limitAmount = ZM_WEB_EVENTS_PER_PAGE;
@@ -222,7 +220,7 @@ while ( $event_row = dbFetchNext( $results ) ) {
               </td>
 <?php
     } else {
-      Debug("No thumbnail data");
+      Logger::Debug("No thumbnail data");
 ?>
               <td class="colThumbnail">&nbsp;</td>
 <?php
@@ -247,7 +245,7 @@ while ( $event_row = dbFetchNext( $results ) ) {
 ?><td></td>
 <?php
 }
-?>
+?><td></td>
             </tr>
           </tfoot>
 <?php

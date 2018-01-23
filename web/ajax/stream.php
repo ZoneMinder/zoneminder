@@ -55,7 +55,7 @@ $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.soc
 $max_socket_tries = 10;
 // FIXME This should not exceed web_ajax_timeout
 while ( !file_exists($remSockFile) && $max_socket_tries-- ) { //sometimes we are too fast for our own good, if it hasn't been setup yet give it a second.
-  Logger::Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
+  //Logger::Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
   usleep(200000);
 }
 

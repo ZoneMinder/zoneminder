@@ -206,7 +206,7 @@ while ( $event_row = dbFetchNext( $results ) ) {
               <td class="colThumbnail">
 <?php 
       if ( ( $event->SaveJPEGs() == 0 ) and file_exists($event->Path().'/snapshot.jpg') ) {
-        Logger::Debug("Using snapshot");
+        Logger::Debug("Using snapshot" . $event->Path().'/snapshot.jpg' );
         $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid=snapshot&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
       } else {
         Logger::Debug("Not Using snapshot" . $event->Path().'/snapshot.jpg' );

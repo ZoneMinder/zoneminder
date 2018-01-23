@@ -36,8 +36,8 @@ Storage::Storage() {
   } else {
     strncpy(path, staticConfig.DIR_EVENTS.c_str(), sizeof(path)-1 );
   }
-  scheme = DEEP;
-  scheme_str = "Deep";
+  scheme = MEDIUM;
+  scheme_str = "Medium";
 }
 
 Storage::Storage( MYSQL_ROW &dbrow ) {
@@ -93,6 +93,8 @@ Storage::Storage( unsigned int p_id ) {
     }
 		Debug(1,"No id passed to Storage constructor.  Using default path %s instead", path );
 		strcpy(name, "Default");
+    scheme = MEDIUM;
+    scheme_str = "Medium";
 	}
 }
 

@@ -814,10 +814,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   AVPacket safepkt;
   memcpy(&safepkt, &opkt, sizeof(AVPacket));
 
-  Debug(1,
-        "writing video packet keyframe(%d) pts(%d) dts(%d) duration(%d) "
-        "ipkt.duration(%d)",
-        opkt.flags & AV_PKT_FLAG_KEY, opkt.pts, opkt.dts, duration, ipkt->duration);
+  dumpPacket( &opkt, "writing video packet" );
   if ((opkt.data == NULL) || (opkt.size < 1)) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
     dumpPacket(ipkt);
@@ -839,7 +836,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
       Warning(
           "%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d) "
           " ",
-          __FILE__, __LINE__, av_make_error_string(ret).c_str(), (ret));
+          __FILE__, __LINE__, av_make_error_string(ret).c_str(), ret);
       dumpPacket(&safepkt);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       zm_dump_codecpar(video_in_stream->codecpar);

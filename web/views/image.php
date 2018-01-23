@@ -66,7 +66,6 @@ if ( empty($_REQUEST['path']) ) {
       $Frame = new Frame();
       $Frame->FrameId('snapshot');
       $path = $Event->Path().'/snapshot.jpg';
-Warning("Path to snapshot: $path");
     } else {
 
       $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];

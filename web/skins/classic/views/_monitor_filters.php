@@ -46,6 +46,9 @@ foreach ( $storage_areas as $S ) {
 ?>
 <div class="controlHeader">
 <input type="hidden" name="filtering" value="" />
+<?php
+$groupSql = '';
+ if ( Group::find_all() ) { ?>
   <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
 <?php
 # This will end up with the group_id of the deepest selection
@@ -54,6 +57,7 @@ echo Group::get_group_dropdown();
 $groupSql = Group::get_group_sql( $group_id );
 ?>
   </span>
+<?php } ?>
   <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
 <?php
 

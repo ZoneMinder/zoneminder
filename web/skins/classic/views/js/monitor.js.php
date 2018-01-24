@@ -36,12 +36,14 @@ controlOptions[<?php echo $row['Id'] ?>][<?php echo $i ?>] = '<?php echo transla
 
 var monitorNames = new Object();
 <?php
-$query = empty($_REQUEST['mid']) ? dbQuery('SELECT Name FROM Monitor') : dbQuery('SELECT Name FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
+$query = empty($_REQUEST['mid']) ? dbQuery('SELECT Name FROM Monitors') : dbQuery('SELECT Name FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
+if ( $query ) {
 while ( $name = dbFetchNext($query, 'Name') ) {
 ?>
 monitorNames['<?php echo validJsStr($name) ?>'] = true;
 <?php
 } // end foreach
+} # end if query
 ?>
 
 function validateForm( form ) {

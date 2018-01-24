@@ -608,9 +608,6 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
-  `Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
-  `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
-  `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
   `TotalEvents` int(10) unsigned,
   `TotalEventDiskSpace` bigint unsigned,
   `HourEvents` int(10) unsigned,
@@ -629,6 +626,14 @@ CREATE TABLE `Monitors` (
 
 CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`);
 
+DROP TABLE IF EXISTS `Monitor_Status`;
+CREATE TABLE `Monitor_Status` (
+  `Id` int(10) unsigned NOT NULL,
+  `Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
+  `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
+  `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
+  PRIMARY KEY (`Id`)
+) ENGINE=MEMORY;
 --
 -- Table structure for table `States`
 -- PP - Added IsActive to track custom run states

@@ -395,11 +395,11 @@ MAIN: while( $loop ) {
       while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         if ( ! defined( $fs_events->{$db_event} ) ) {
           my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
-          Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
           if ( ! $Event ) {
             Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
             next;
           }
+          Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
           if ( ! $Event->StartTime() ) {
             Info("Event $$Event{Id} has no start time.  deleting it.");
             if ( confirm() ) {

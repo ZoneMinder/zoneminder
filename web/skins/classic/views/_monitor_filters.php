@@ -89,7 +89,7 @@ if ( ! is_array( $selected_monitor_ids ) ) {
     $values += $ids;
   }
 
-  $sql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
+  $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS FROM Monitors AS M LEFT JOIN Monitor_Status AS S ON S.Id=M.Id ' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll( $sql, null, $values );
   $displayMonitors = array();
   $monitors_dropdown = array();

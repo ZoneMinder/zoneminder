@@ -357,6 +357,9 @@ sub delete {
     my $res = $sth->execute( $event->{Id} )
       or Error( "Can't execute '$sql': ".$sth->errstr() );
     $sth->finish();
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      return;
+    }
 
     $sql = 'DELETE FROM Stats WHERE EventId=?';
     $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
@@ -364,6 +367,9 @@ sub delete {
     $res = $sth->execute( $event->{Id} )
       or Error( "Can't execute '$sql': ".$sth->errstr() );
     $sth->finish();
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      return;
+    }
 
     $event->delete_files( );
   } else {

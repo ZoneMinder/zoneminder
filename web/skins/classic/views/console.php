@@ -213,7 +213,18 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colName"><a <?php echo (canView('Stream') && $monitor['Function'] != 'None' ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a></td>
             <td class="colFunction">
               <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
-<?php echo $monitor['CaptureFPS'] . ( ( $monitor['Function'] == 'Mocord' or $monitor['Function'] == 'Modect' ) ? ' / ' . $monitor['AnalysisFPS'] : '' ) . ' FPS' ?>
+<?php 
+  $fps_string = '';
+  if ( isset($monitor['CaptureFPS']) ) {
+    $fps_string .= $monitor['CaptureFPS'];
+  }
+
+  if ( isset($monitor['AnalysisFPS']) and ( $monitor['Function'] == 'Mocord' or $monitor['Function'] == 'Modect' ) ) {
+    $fps_string .= ' / ' . $monitor['AnalysisFPS'];
+  }
+  if ($fps_string) $fps_string .= ' FPS';
+  echo $fps_string;
+?>
               </td>
 <?php
   if ( count($servers) ) { ?>

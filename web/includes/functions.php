@@ -165,7 +165,7 @@ function generateAuthHash( $useRemoteAddr ) {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
-        Warning("Session is not active. AuthHash will not be cached. called from $file:$line");
+        Warning("Session is not active. AuthHash will not be cached. called from $file:$line. OldHash:" . $_SESSION['AuthHash'] . ' generated at ' . $_SESSION['AuthHashGeneratedAt'] . ' < ' . $time . ' - ( ' . ZM_AUTH_HASH_TTL . '* 1800 = ' . ZM_AUTH_HASH_TTL * 1800 );
       }
       $_SESSION['AuthHash'] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
@@ -1236,31 +1236,38 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             case 'ServerId':
               if ( $value == 'ZM_SERVER_ID' ) {
                 $value = ZM_SERVER_ID;
+              } else if ( $value == 'NULL' ) {
+
               } else {
                 $value = dbEscape($value);
               }
               break;
             case 'StorageId':
               $StorageArea = new Storage( $value );
-              $value = dbEscape($value);
+              if ( $value != 'NULL' )
+                $value = dbEscape($value);
               break;
             case 'DateTime':
             case 'StartDateTime':
             case 'EndDateTime':
-              $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
+              if ( $value != 'NULL' )
+                $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
               break;
             case 'Date':
             case 'StartDate':
             case 'EndDate':
-              $value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
+              if ( $value != 'NULL' )
+                $value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             case 'Time':
             case 'StartTime':
             case 'EndTime':
+              if ( $value != 'NULL' )
               $value = "extract( hour_second from '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             default :
-              $value = dbEscape($value);
+              if ( $value != 'NULL' )
+                $value = dbEscape($value);
               break;
           }
           $valueList[] = $value;

@@ -16,6 +16,11 @@ function validateForm ( form ) {
     alert( errorBrackets );
     return false;
   }
+  var numbers_reg = /\D/;
+  if ( numbers_reg.test( form.elements['filter[Query][limit]'].value ) ) {
+    alert( "There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty." );
+    return false;
+  }
   return true;
 }
 

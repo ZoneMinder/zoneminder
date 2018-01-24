@@ -55,7 +55,6 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
 ;
 use constant ZM_AUDIT_PID => '@ZM_RUNDIR@/zmaudit.pid';
 
-$| = 1;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -67,16 +66,18 @@ my $continuous = 0;
 my $monitor_id = 0;
 my $version;
 my $force = 0;
+my $storage_id = undef;
 
 logInit();
 
 GetOptions(
-    continuous    =>\$continuous,
-    force         =>\$force,
-    interactive   =>\$interactive,
-    monitor_id    =>\$monitor_id,
-    report        =>\$report,
-    version       =>\$version
+    continuous     =>\$continuous,
+    force          =>\$force,
+    interactive    =>\$interactive,
+    'monitor_id=i' =>\$monitor_id,
+    report         =>\$report,
+    'storage_id=i' =>\$storage_id,
+    version        =>\$version
     ) or pod2usage(-exitstatus => -1);
 
 if ( $version ) {
@@ -119,6 +120,9 @@ sub HupHandler {
 }
 sub TermHandler {
   Info("Received TERM, exiting");
+  Term();
+}
+sub Term {
   unlink ZM_AUDIT_PID;
   exit( 0 );
 }
@@ -127,6 +131,8 @@ $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
 
 my $dbh = zmDbConnect();
+
+$| = 1;
 
 require ZoneMinder::Monitor;
 require ZoneMinder::Storage;
@@ -165,6 +171,21 @@ MAIN: while( $loop ) {
     } # end if
   } # end while can't connect to the db
 
+  my @Storage_Areas;
+  if ( defined $storage_id ) {
+    @Storage_Areas = ZoneMinder::Storage->find( Id=>$storage_id );
+    if ( !@Storage_Areas ) {
+      Fatal("No Storage Area found with Id $storage_id");
+    }
+    Info("Auditing Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}");
+  } elsif ( $Config{ZM_SERVER_ID} ) {
+    @Storage_Areas = ZoneMinder::Storage->find( ServerId => $Config{ZM_SERVER_ID} );
+    Info("Auditing All Storage Areas on Server " . $Storage_Areas[0]->Server()->Name());
+  } else {
+    @Storage_Areas = ZoneMinder::Storage->find();
+    Info("Auditing All Storage Areas");
+  }
+
   my %Monitors;
   my $db_monitors;
   my $monitorSelectSql = $monitor_id ? 'SELECT * FROM Monitors WHERE Id=?' : 'SELECT * FROM Monitors ORDER BY Id';
@@ -182,21 +203,19 @@ MAIN: while( $loop ) {
   while( my $monitor = $monitorSelectSth->fetchrow_hashref() ) {
     $Monitors{$$monitor{Id}} = $monitor;
 
-    Debug( "Found database monitor '$monitor->{Id}'" );
     my $db_events = $db_monitors->{$monitor->{Id}} = {};
     my $res = $eventSelectSth->execute( $monitor->{Id} )
       or Fatal( "Can't execute: ".$eventSelectSth->errstr() );
     while ( my $event = $eventSelectSth->fetchrow_hashref() ) {
       $db_events->{$event->{Id}} = $event->{Age};
     }
-    Debug( 'Got '.int(keys(%$db_events))." events\n" );
+    Debug( 'Got '.int(keys(%$db_events))." events for monitor $monitor->{Id}" );
   }
 
   my $fs_monitors;
 
-  foreach my $Storage (
-      ZoneMinder::Storage->find( ($Config{ZM_SERVER_ID} ? ( ServerId => $Config{ZM_SERVER_ID} ) : () ) ),
-      ) {
+
+  foreach my $Storage ( @Storage_Areas ) {
     Debug('Checking events in ' . $Storage->Path() );
     if ( ! chdir( $Storage->Path() ) ) {
       Error( 'Unable to change dir to ' . $Storage->Path() );
@@ -214,8 +233,8 @@ MAIN: while( $loop ) {
       # De-taint
       ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ );
 
-      if ( $$Storage{Scheme} eq 'Deep' ) {
-        foreach my $day_dir ( glob("$monitor_dir/*/*/*") ) {
+      #if ( $$Storage{Scheme} eq 'Deep' ) {
+        foreach my $day_dir ( glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]") ) {
           Debug( "Checking day dir $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
           if ( ! chdir( $day_dir ) ) {
@@ -252,6 +271,7 @@ MAIN: while( $loop ) {
               $$Event{Id} = $event;
               $$Event{Path} = join('/', $Storage->Path(), $day_dir,$event_path);
               $$Event{RelativePath} = join('/', $day_dir,$event_path);
+              $$Event{Scheme} = 'Deep';
               $Event->MonitorId( $monitor_dir );
               $Event->StorageId( $Storage->Id() );
               $Event->DiskSpace( undef );
@@ -259,8 +279,8 @@ MAIN: while( $loop ) {
           } # end foreach event_link
           chdir( $Storage->Path() );
         } # end foreach day dir
-      } elsif ( $$Storage{Scheme} eq 'Medium' ) {
-        foreach my $event_dir ( glob("$monitor_dir/*/*") ) {
+
+        foreach my $event_dir ( glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") ) {
           next if ! -d $event_dir;
           my ( $date, $event_id ) = $event_dir =~ /^$monitor_dir\/(\d{4}\-\d{2}\-\d{2})\/(\d+)$/;
           if ( ! $event_id ) {
@@ -270,11 +290,13 @@ MAIN: while( $loop ) {
           my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
           $$Event{Id} = $event_id;
           $$Event{Path} = join('/', $Storage->Path(), $event_dir );
+          $$Event{Scheme} = 'Medium';
           $$Event{RelativePath} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
         } # end foreach event
-      } else {
+
+      if ( ! $$Storage{Scheme} ) {
         if ( ! chdir( $monitor_dir ) ) {
           Error( "Can't chdir directory '$$Storage{Path}/$monitor_dir': $!" );
           next;
@@ -309,7 +331,6 @@ MAIN: while( $loop ) {
         foreach my $fs_event_id ( sort { $a <=> $b } keys %$fs_events ) {
 
           my $Event = $fs_events->{$fs_event_id};
-
 
           if ( ! defined( $db_events->{$fs_event_id} ) ) {
             my $age = $Event->age();
@@ -373,8 +394,8 @@ MAIN: while( $loop ) {
 
       while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         if ( ! defined( $fs_events->{$db_event} ) ) {
-          Debug("Event $db_event is not in fs.");
           my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+          Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
           if ( ! $Event ) {
             Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
             next;
@@ -401,15 +422,13 @@ MAIN: while( $loop ) {
             Debug("Database event $$Event{Id} apparently exists at " . $Event->Path() );
           } else {
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-              aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem' );
+              aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem, deleting' );
               if ( confirm() ) {
                 $Event->delete();
                 $cleaned = 1;
               }
             } else {
-              my $Storage = $Event->Storage();
-
-              aud_print( "Database event '".$Event->getPath()." monitor:$db_monitor event:$db_event' does not exist in filesystem but too young to delete age: $age > MIN $Config{ZM_AUDIT_MIN_AGE}.\n" );
+              aud_print( "Database event '".$Event->Path()." monitor:$db_monitor event:$db_event' does not exist in filesystem but too young to delete age: $age > MIN $Config{ZM_AUDIT_MIN_AGE}.\n" );
             }
           } # end if exists in filesystem
         } # end if ! in fs_events
@@ -651,7 +670,7 @@ $eventcounts_sth->finish();
   sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;
 };
 
-term_handler();
+Term();
 
 sub aud_print {
   my $string = shift;
@@ -766,6 +785,7 @@ yet.
  -f, --force                - Run even if pid file exists
  -i, --interactive          - Ask before applying any changes
  -r, --report               - Just report don't actually do anything
+ -s, --storage_id           - Specify a storage area to audit instead of all
  -v, --version              - Print the installed version of ZoneMinder
 
 =cut

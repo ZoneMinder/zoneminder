@@ -1146,7 +1146,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
   opkt.stream_index = video_out_stream->index;
   //av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
 
-  dumpPacket(&opkt);
+  dumpPacket(&opkt, "writing video packet");
 
   if ( (opkt.data == NULL) || (opkt.size < 1) ) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
@@ -1165,7 +1165,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
       Warning(
           "%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d) "
           " ",
-          __FILE__, __LINE__, av_make_error_string(ret).c_str(), (ret));
+          __FILE__, __LINE__, av_make_error_string(ret).c_str(), ret);
 
       //dumpPacket(&safepkt);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)

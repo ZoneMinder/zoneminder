@@ -42,16 +42,25 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use vars qw/ $AUTOLOAD $log $dbh/;
+use vars qw/ $AUTOLOAD $log $dbh %cache $no_cache/;
 
 *log = \$ZoneMinder::Logger::logger;
 *dbh = \$ZoneMinder::Database::dbh;
 
 my $debug = 0;
+$no_cache = 0;
 use constant DEBUG_ALL=>0;
+
+sub init_cache {
+    $no_cache = 0;
+    %cache = ();
+} # end sub init_cache
 
 sub new {
   my ( $parent, $id, $data ) = @_;
+
+  $cache{$parent} = {} if ! $cache{$parent};
+  my $sub_cache = $cache{$parent};
 
   my $self = {};
   bless $self, $parent;
@@ -61,10 +70,23 @@ sub new {
     Error( 'NO primary_key for type ' . $parent );
     return;
   } # end if
-  if ( ( $$self{$primary_key} = $id ) or $data ) {
-#$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
-    $self->load( $data );
+
+  if ( $id and (!$no_cache) and $$sub_cache{$id} ) {
+    if ( $data ) {
+      # The reason to use load is if we have overriden it in the object,
+      $$sub_cache{$id}->load( $data );
+    } 
+    return $$sub_cache{$id};
   }
+
+  if ( ( $$self{$primary_key} = $id ) or $data ) {
+    #$log->debug("loading $parent $id") if $debug or DEBUG_ALL;
+    $self->load( $data );
+    if ( !$no_cache ) {
+      $$sub_cache{$id} = $self;
+    } # end if
+  } # end if
+
   return $self;
 } # end sub new
 
@@ -428,6 +450,13 @@ sub transform {
 	return $value;
 
 } # end sub transform
+
+sub to_string {
+  my $type = ref($_[0]);
+  my $fields = eval '\%'.$type.'::fields';
+  return $type . ': '. join(' ' , map { $_[0]{$_} ? "$_ => $_[0]{$_}" : () } keys %$fields );
+}
+
 1;
 __END__
 

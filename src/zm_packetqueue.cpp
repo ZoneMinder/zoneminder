@@ -145,7 +145,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     ZMPacket *zm_packet = *it;
     AVPacket *av_packet = &(zm_packet->packet);
        
-    Debug(4, "Looking for keyframe at packet with stream index (%d) with keyframe (%d), frames_to_keep is (%d)", av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
+    Debug(5, "Looking for keyframe at packet with stream index (%d) with keyframe (%d), frames_to_keep is (%d)", av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
     
     // Want frames_to_keep video keyframes.  Otherwise, we may not have enough
     if ( ( av_packet->stream_index == stream_id) && ( av_packet->flags & AV_PKT_FLAG_KEY ) ) {

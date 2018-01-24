@@ -174,13 +174,17 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
   require_once $includeFile;
 
 if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
+  Logger::Debug("Useing hash");
   if ( empty($user) && ! empty($_REQUEST['auth']) ) {
     if ( $authUser = getAuthUser( $_REQUEST['auth'] ) ) {
       userLogin( $authUser['Username'], $authUser['Password'], true );
     }
   } else if ( ! empty($user) ) {
+    Logger::Debug("generating hash");
     // generate it once here, while session is open.  Value will be cached in session and return when called later on
     generateAuthHash( ZM_AUTH_HASH_IPS );
+  } else {
+    Logger::Debug(" not generating hash");
   }
 }
 
@@ -203,7 +207,7 @@ if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' && $vie
 require_once( 'includes/actions.php' );
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH && ! isset($user) ) {
+if ( ZM_OPT_USE_AUTH and ! isset($user) ) {
   Logger::Debug("Redirecting to login" );
   $view = 'login';
   $request = null;

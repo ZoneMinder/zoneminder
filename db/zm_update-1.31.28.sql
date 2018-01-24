@@ -23,8 +23,8 @@ SET @s = (SELECT IF(
       AND column_name = 'Status'
     ) > 0
     ,
-    "ALTER TABLE Monitors DROP COLUMN Status"
-    "SELECT 'Monitor Status already removed.'",
+    "ALTER TABLE Monitors DROP COLUMN Status",
+    "SELECT 'Monitor Status already removed.'"
     ));
 
 PREPARE stmt FROM @s;
@@ -36,8 +36,8 @@ SET @s = (SELECT IF(
       AND column_name = 'CaptureFPS'
     ) > 0
     ,
-    "ALTER TABLE Monitors DROP COLUMN CaptureFPS"
-    "SELECT 'Monitor CaptureFPS already removed.'",
+    "ALTER TABLE Monitors DROP COLUMN CaptureFPS",
+    "SELECT 'Monitor CaptureFPS already removed.'"
     ));
 
 PREPARE stmt FROM @s;
@@ -49,8 +49,8 @@ SET @s = (SELECT IF(
       AND column_name = 'AnalysisFPS'
     ) > 0
     ,
-    "ALTER TABLE Monitors DROP COLUMN AnalysisFPS"
-    "SELECT 'Monitor AnalysisFPS already removed.'",
+    "ALTER TABLE Monitors DROP COLUMN AnalysisFPS",
+    "SELECT 'Monitor AnalysisFPS already removed.'"
     ));
 
 PREPARE stmt FROM @s;

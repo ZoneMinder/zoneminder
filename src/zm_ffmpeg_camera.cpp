@@ -738,7 +738,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
   int ret;
   static char errbuf[AV_ERROR_MAX_STRING_SIZE];
   
-  // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
+  // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened
+  // the connection to the ffmpeg device, and we can clean up the thread.
   if ( mReopenThread != 0 ) {
     void *retval = 0;
 
@@ -750,7 +751,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     Info( "Successfully reopened stream." );
     mReopenThread = 0;
   }
-
 
   int frameComplete = false;
   while ( ! frameComplete ) {
@@ -774,7 +774,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
-dumpPacket(&packet);
+    dumpPacket(&packet);
 
     //Video recording
     if ( recording.tv_sec ) {
@@ -836,6 +836,7 @@ dumpPacket(&packet);
               startTime,
               this->getMonitor());
         } // end if record_audio
+
         if ( ! videoStore->open() ) {
           delete videoStore;
           videoStore = NULL;

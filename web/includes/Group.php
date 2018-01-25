@@ -249,7 +249,7 @@ $group_options[$Group->Id()] = str_repeat( '&nbsp;', $depth ) .  $Group->Name();
 
         $MonitorIds = array_merge( $MonitorIds, dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId = ?)', 'MonitorId', array($group_id) ) );
       }
-      $groupSql = " find_in_set( Id, '".implode( ',', $MonitorIds )."' )";
+      $groupSql = " find_in_set( M.Id, '".implode( ',', $MonitorIds )."' )";
     }
     return $groupSql;
   } # end public static function get_group_sql( $group_id )

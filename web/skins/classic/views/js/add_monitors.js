@@ -8,21 +8,22 @@ function probe( url_e ) {
 var ProbeResults;
 
 function getProbeResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getProbeResponse", respObj ) )
+  if ( checkStreamForErrors( "getProbeResponse", respObj ) ) {
+    console.log(respText);
     return;
-//alert(respText);
+  }
 
-  if ( respObj.Streams ) {
+  if ( respObj.Streams && respObj.Streams.length ) {
     parseStreams( respObj.Streams );
-  } else {
-    alert("No Streams");
+  //} else {
+//console.log("No streams: " + respText);
   }
 } // end function getProbeResponse
 
 function parseStreams( Streams ) {
     ProbeResults = Array();
 
-    var results_div = $j('#url_results')[0];
+    var results_div = $j('#results')[0];
     if ( ! results_div ) {
       console.log("No results div found.");
       return;

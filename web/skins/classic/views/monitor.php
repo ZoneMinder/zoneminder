@@ -674,7 +674,7 @@ switch ( $tab ) {
           <tr class="Name"><td><?php echo translate('Name') ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>" /></td></tr>
           <tr><td><?php echo translate('Server') ?></td><td>
 <?php 
-      $servers = array(''=>'None','auto','Auto');
+      $servers = array(''=>'None','auto'=>'Auto');
       $result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
       $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
       foreach ( $results as $row => $server_obj ) {

@@ -174,17 +174,13 @@ foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
   require_once $includeFile;
 
 if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
-  Logger::Debug("Useing hash");
   if ( empty($user) && ! empty($_REQUEST['auth']) ) {
     if ( $authUser = getAuthUser( $_REQUEST['auth'] ) ) {
       userLogin( $authUser['Username'], $authUser['Password'], true );
     }
   } else if ( ! empty($user) ) {
-    Logger::Debug("generating hash");
     // generate it once here, while session is open.  Value will be cached in session and return when called later on
     generateAuthHash( ZM_AUTH_HASH_IPS );
-  } else {
-    Logger::Debug(" not generating hash");
   }
 }
 

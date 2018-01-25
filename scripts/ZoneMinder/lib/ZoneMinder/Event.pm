@@ -350,6 +350,9 @@ sub delete {
   Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}\n" );
   $ZoneMinder::Database::dbh->ping();
 
+  $ZoneMinder::Database::dbh->begin_work();
+  $event->lock_and_load();
+
   if ( ! $Config{ZM_OPT_FAST_DELETE} ) {
     my $sql = 'DELETE FROM Frames WHERE EventId=?';
     my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
@@ -357,6 +360,10 @@ sub delete {
     my $res = $sth->execute( $event->{Id} )
       or Error( "Can't execute '$sql': ".$sth->errstr() );
     $sth->finish();
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      $ZoneMinder::Database::dbh->commit();
+      return;
+    }
 
     $sql = 'DELETE FROM Stats WHERE EventId=?';
     $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
@@ -364,6 +371,10 @@ sub delete {
     $res = $sth->execute( $event->{Id} )
       or Error( "Can't execute '$sql': ".$sth->errstr() );
     $sth->finish();
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      $ZoneMinder::Database::dbh->commit();
+      return;
+    }
 
     $event->delete_files( );
   } else {
@@ -376,6 +387,7 @@ sub delete {
   my $res = $sth->execute( $event->{Id} )
     or Error( "Can't execute '$sql': ".$sth->errstr() );
   $sth->finish();
+  $ZoneMinder::Database::dbh->commit();
 } # end sub delete
 
 sub delete_files {
@@ -514,7 +526,10 @@ sub MoveTo {
       }
     }
   }
-  return $error if $error;
+  if ( $error ) {
+    $ZoneMinder::Database::dbh->commit();
+    return $error;
+  }
   my @files = glob("$OldPath/*");
 
   for my $file (@files) {

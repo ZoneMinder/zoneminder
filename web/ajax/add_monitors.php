@@ -12,6 +12,7 @@ $defaultMonitor->set(array(
 ) );
 
 function probe( &$url_bits ) {
+error_reporting(0);
   global $defaultMonitor;
   $available_streams = array();
   if ( ! isset($url_bits['port']) ) {

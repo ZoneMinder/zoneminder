@@ -203,7 +203,7 @@ if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' && $vie
 require_once( 'includes/actions.php' );
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH && ! isset($user) ) {
+if ( ZM_OPT_USE_AUTH and ! isset($user) ) {
   Logger::Debug("Redirecting to login" );
   $view = 'login';
   $request = null;

@@ -505,10 +505,17 @@ Logger::Debug("NOT Auto selecting server" . $_REQUEST['newMonitor']['ServerId'])
         zmaControl( $monitor, 'stop' );
         zmcControl( $monitor, 'stop' );
         dbQuery( 'UPDATE Monitors SET '.implode( ', ', $changes ).' WHERE Id=?', array($mid) );
-        if ( isset($changes['Name']) ) {
+        if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
+          $OldStorage = new Storage( $monitor['StorageId'] );
           $saferOldName = basename( $monitor['Name'] );
+          if ( file_exists( $OldStorage->Path().'/'.$saferOldName ) )
+            unlink( $OldStorage->Path().'/'.$saferOldName );
+
+          $NewStorage = new Storage( $_REQUEST['newMonitor']['StorageId'] );
+          if ( ! file_exists( $NewStorage->Path().'/'.$mid ) )
+            mkdir( $NewStorage->Path().'/'.$mid, 0755 );
           $saferNewName = basename( $_REQUEST['newMonitor']['Name'] );
-          rename( ZM_DIR_EVENTS.'/'.$saferOldName, ZM_DIR_EVENTS.'/'.$saferNewName);
+          symlink( $mid, $NewStorage->Path().'/'.$saferNewName );
         }
         if ( isset($changes['Width']) || isset($changes['Height']) ) {
           $newW = $_REQUEST['newMonitor']['Width'];
@@ -553,9 +560,10 @@ Logger::Debug("NOT Auto selecting server" . $_REQUEST['newMonitor']['ServerId'])
         $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
         dbQuery( "insert into Zones set MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
         //$view = 'none';
-        mkdir( ZM_DIR_EVENTS.'/'.$mid, 0755 );
+        $Storage = new Storage( $_REQUEST['newMonitor']['StorageId'] );
+        mkdir( $Storage->Path().'/'.$mid, 0755 );
         $saferName = basename($_REQUEST['newMonitor']['Name']);
-        symlink( $mid, ZM_DIR_EVENTS.'/'.$saferName );
+        symlink( $mid, $Storage->Path().'/'.$saferName );
         if ( isset($_COOKIE['zmGroup']) ) {
           dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($_COOKIE['zmGroup'],$mid) );
         }

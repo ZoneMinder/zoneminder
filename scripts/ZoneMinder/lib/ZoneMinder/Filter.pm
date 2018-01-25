@@ -140,7 +140,7 @@ sub Sql {
        M.DefaultScale
          FROM Events as E
          INNER JOIN Monitors as M on M.Id = E.MonitorId
-         INNER JOIN Storage as S on S.Id = E.StorageId
+         LEFT JOIN Storage as S on S.Id = E.StorageId
          ';
     $self->{Sql} = '';
 

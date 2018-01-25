@@ -1,7 +1,7 @@
 .ptzControls {
     vertical-align: top;
     margin: 10px auto 0;
-    width: 500px;
+    width: 520px;
 }
 
 .ptzControls::after {

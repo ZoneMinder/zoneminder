@@ -153,7 +153,10 @@ my $eventcounts_week_sth = $dbh->prepare_cached( $eventcounts_week_sql );
 my $eventcounts_month_sth = $dbh->prepare_cached( $eventcounts_month_sql );
 
 while( 1 ) {
-  $dbh->ping();
+  while ( ! ( $dbh and $dbh->ping() ) ) {
+    Info("Reconnecting to db");
+    $dbh = zmDbConnect();
+  }
 
   $dbh->do('DELETE FROM Events_Hour WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
   $dbh->do('DELETE FROM Events_Day WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 day)');

@@ -185,7 +185,7 @@ use Sys::CpuLoad;
     my $attempts = 0;
     while( !connect( CLIENT, $saddr ) ) {
       $attempts++;
-      Error("Waiting for zmdc.pl server process at " . SOCK_FILE.", attempt $attempts" );
+      Debug("Waiting for zmdc.pl server process at ".SOCK_FILE.", attempt $attempts" );
       Fatal( "Can't connect: $!" ) if ($attempts > MAX_CONNECT_DELAY);
       usleep(200000);
     } # end while
@@ -566,13 +566,19 @@ sub restart {
 
   my $command = $daemon;
   $command .= ' '.join( ' ', ( @args ) ) if @args;
+  dPrint ( ZoneMinder::Logger::WARNING, "Restarting $command\n");
   my $process = $cmd_hash{$command};
   if ( $process ) {
+  dPrint ( ZoneMinder::Logger::WARNING, "Have process"  );
     if ( $process->{pid} ) {
+  dPrint ( ZoneMinder::Logger::WARNING, "Have process pid " .$process->{pid} );
       my $cpid = $process->{pid};
       if ( defined($pid_hash{$cpid}) ) {
+  dPrint ( ZoneMinder::Logger::WARNING, "Have process pid hash " .$process->{pid} );
         _stop( 0, $process );
         return;
+      } else {
+  dPrint ( ZoneMinder::Logger::WARNING, "Not sending stop" );
       }
     }
   }

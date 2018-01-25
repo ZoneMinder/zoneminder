@@ -171,7 +171,7 @@ class MonitorsController extends AppController {
     $func = $Monitor['Function'];
     // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
     $this->daemonControl( $this->Monitor->id, 'stop' );
-    if ( ( $func != 'None' ) and ( $Monitor['ServerId'] == ZM_SERVER_ID ) ) {
+    if ( ( $func != 'None' ) and ( (!defined('ZM_SERVER_ID')) or ($Monitor['ServerId']==ZM_SERVER_ID) ) ) {
       $this->daemonControl( $this->Monitor->id, 'start' );
     }
   } // end function edit

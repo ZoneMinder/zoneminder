@@ -707,18 +707,6 @@ bool VideoStore::setup_resampler() {
 #endif
 }  // end bool VideoStore::setup_resampler()
 
-void VideoStore::dumpPacket(AVPacket *pkt) {
-  char b[10240];
-
-  snprintf(b, sizeof(b),
-           " pts: %" PRId64 ", dts: %" PRId64
-           ", data: %p, size: %d, sindex: %d, dflags: %04x, s-pos: %" PRId64
-           ", c-duration: %d\n",
-           pkt->pts, pkt->dts, pkt->data, pkt->size, pkt->stream_index,
-           pkt->flags, pkt->pos, pkt->duration);
-  Debug(1, "%s:%d:DEBUG: %s", __FILE__, __LINE__, b);
-}
-
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   av_init_packet(&opkt);
 
@@ -826,10 +814,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   AVPacket safepkt;
   memcpy(&safepkt, &opkt, sizeof(AVPacket));
 
-  Debug(1,
-        "writing video packet keyframe(%d) pts(%d) dts(%d) duration(%d) "
-        "ipkt.duration(%d)",
-        opkt.flags & AV_PKT_FLAG_KEY, opkt.pts, opkt.dts, duration, ipkt->duration);
+  dumpPacket( &opkt, "writing video packet" );
   if ((opkt.data == NULL) || (opkt.size < 1)) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
     dumpPacket(ipkt);
@@ -851,7 +836,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
       Warning(
           "%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d) "
           " ",
-          __FILE__, __LINE__, av_make_error_string(ret).c_str(), (ret));
+          __FILE__, __LINE__, av_make_error_string(ret).c_str(), ret);
       dumpPacket(&safepkt);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       zm_dump_codecpar(video_in_stream->codecpar);

@@ -375,6 +375,7 @@ MAIN: while( $loop ) {
         } # end foreach fs event
       } else {
         aud_print( "Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database" );
+
         if ( confirm() ) {
           my $command = "rm -rf $monitor_id";
           executeShellCommand( $command );
@@ -717,7 +718,7 @@ sub confirm {
   if ( $report ) {
     print( "\n" );
   } elsif ( $interactive ) {
-    print( ", $prompt y/n: " );
+    print( ", $prompt Y/n/q: " );
     my $char = <>;
     chomp( $char );
     if ( $char eq 'q' ) {

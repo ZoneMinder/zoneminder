@@ -148,13 +148,26 @@ class MonitorsController extends AppController {
       throw new NotFoundException(__('Invalid monitor'));
     }
     if ($this->Session->Read('monitorPermission') != 'Edit') {
-       throw new UnauthorizedException(__('Insufficient privileges'));
+      throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
-    if ($this->Monitor->save($this->request->data)) {
-      $message = 'Saved';
+
+    if ( $this->Monitor->save($this->request->data) ) {
+      $message .= 'Saved';
+      $Monitor = $this->Monitor->find('first', array(
+        'fields' => array('Function','ServerId'),
+        'conditions' => array('Id' => $id)
+      ))['Monitor'];
+
+      // - restart or stop this monitor after change
+      $func = $Monitor['Function'];
+      // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
+      $this->daemonControl( $this->Monitor->id, 'stop' );
+      if ( ( $func != 'None' ) and ( (!defined('ZM_SERVER_ID')) or ($Monitor['ServerId']==ZM_SERVER_ID) ) ) {
+        $this->daemonControl( $this->Monitor->id, 'start' );
+      }
     } else {
-      $message = 'Error';
+      $message .= 'Error ' . print_r($this->Monitor->invalidFields(), true);
     }
 
     $this->set(array(
@@ -162,18 +175,6 @@ class MonitorsController extends AppController {
       '_serialize' => array('message')
     ));
 
-    $Monitor = $this->Monitor->find('first', array(
-          'fields' => array('Function','ServerId'),
-          'conditions' => array('Id' => $id)
-          ))['Monitor'];
-
-    // - restart or stop this monitor after change
-    $func = $Monitor['Function'];
-    // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
-    $this->daemonControl( $this->Monitor->id, 'stop' );
-    if ( ( $func != 'None' ) and ( (!defined('ZM_SERVER_ID')) or ($Monitor['ServerId']==ZM_SERVER_ID) ) ) {
-      $this->daemonControl( $this->Monitor->id, 'start' );
-    }
   } // end function edit
 
 /**

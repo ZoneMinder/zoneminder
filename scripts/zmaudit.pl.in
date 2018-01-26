@@ -180,6 +180,9 @@ MAIN: while( $loop ) {
     Info("Auditing Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}");
   } elsif ( $Config{ZM_SERVER_ID} ) {
     @Storage_Areas = ZoneMinder::Storage->find( ServerId => $Config{ZM_SERVER_ID} );
+    if ( ! @Storage_Areas ) {
+      Fatal("No Storage Area found with ServerId =" . $Config{ZM_SERVER_ID});
+    }
     Info("Auditing All Storage Areas on Server " . $Storage_Areas[0]->Server()->Name());
   } else {
     @Storage_Areas = ZoneMinder::Storage->find();

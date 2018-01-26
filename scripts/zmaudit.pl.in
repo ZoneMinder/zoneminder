@@ -506,7 +506,7 @@ MAIN: while( $loop ) {
   $res = $selectEmptyEventsSth->execute()
     or Fatal( "Can't execute: ".$selectEmptyEventsSth->errstr() );
   while( my $event = $selectEmptyEventsSth->fetchrow_hashref() ) {
-    aud_print( "Found empty event with no frame records '$event->{Id}'" );
+    aud_print( "Found empty event with no frame records '$event->{Id}' at $$event{StartTime}" );
     if ( confirm() ) {
       $res = $deleteEventSth->execute( $event->{Id} )
         or Fatal( "Can't execute: ".$deleteEventSth->errstr() );

@@ -13,6 +13,10 @@ ZoneMinder is an integrated set of applications which provide a complete surveil
 Before creating an issue in our github forum, please read our posting rules:
 https://github.com/ZoneMinder/ZoneMinder/wiki/Github-Posting-Rules
 
+## Our Dockerfile has moved
+Please file issues against the ZoneMinder Dockerfile here: 
+https://github.com/ZoneMinder/zmdockerfiles
+
 ## Installation Methods
 
 ### Building from Source is Discouraged

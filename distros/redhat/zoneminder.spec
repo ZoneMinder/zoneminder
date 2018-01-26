@@ -110,6 +110,7 @@ Requires: perl(Net::SMTP)
 Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: ca-certificates
+Requires: zip
 
 %{?with_init_systemd:Requires(post): systemd}
 %{?with_init_systemd:Requires(post): systemd-sysv}

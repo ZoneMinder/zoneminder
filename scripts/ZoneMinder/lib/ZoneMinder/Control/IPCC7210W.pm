@@ -139,7 +139,7 @@ sub moveConUp
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Up" );
-	my $cmd = "decoder_control.cgi?command=0&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=2&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -155,7 +155,7 @@ sub moveConDown
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Down" );
-	my $cmd = "decoder_control.cgi?command=2&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=0&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -203,7 +203,7 @@ sub moveConUpRight
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Diagonally Up Right" );
-	my $cmd = "decoder_control.cgi?command=91&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=93&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -219,7 +219,7 @@ sub moveConDownRight
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Diagonally Down Right" );
-	my $cmd = "decoder_control.cgi?command=93&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=91&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -235,7 +235,7 @@ sub moveConUpLeft
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Diagonally Up Left" );
-	my $cmd = "decoder_control.cgi?command=90&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=92&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -251,7 +251,7 @@ sub moveConDownLeft
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Diagonally Down Left" );
-	my $cmd = "decoder_control.cgi?command=92&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=90&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -275,7 +275,7 @@ sub presetHome
 {
 	my $self = shift;
 	Debug( "Home Preset" );
-	my $cmd = "decoder_control.cgi?command=25&onestep=0&";
+	my $cmd = "decoder_control.cgi?command=4&onestep=0&";
 	$self->sendCmd( $cmd );
 }
 

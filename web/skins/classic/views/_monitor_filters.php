@@ -85,7 +85,7 @@ if ( ! is_array( $selected_monitor_ids ) ) {
   } # end foreach filter
   if ( ! empty( $user['MonitorIds'] ) ) {
     $ids = explode(',', $user['MonitorIds'] );
-    $conditions[] = 'Id IN ('.implode(',',array_map( function(){return '?';}, $ids) ).')';
+    $conditions[] = 'M.Id IN ('.implode(',',array_map( function(){return '?';}, $ids) ).')';
     $values += $ids;
   }
 

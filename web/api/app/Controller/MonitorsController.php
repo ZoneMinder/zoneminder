@@ -152,8 +152,9 @@ class MonitorsController extends AppController {
       return;
     }
 
+    $message = '';
     if ( $this->Monitor->save($this->request->data) ) {
-      $message .= 'Saved';
+      $message = 'Saved';
       $Monitor = $this->Monitor->find('first', array(
         'fields' => array('Function','ServerId'),
         'conditions' => array('Id' => $id)
@@ -167,7 +168,7 @@ class MonitorsController extends AppController {
         $this->daemonControl( $this->Monitor->id, 'start' );
       }
     } else {
-      $message .= 'Error ' . print_r($this->Monitor->invalidFields(), true);
+      $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
     }
 
     $this->set(array(

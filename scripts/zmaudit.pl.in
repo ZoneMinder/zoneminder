@@ -210,10 +210,9 @@ MAIN: while( $loop ) {
       $db_events->{$event->{Id}} = $event->{Age};
     }
     Debug( 'Got '.int(keys(%$db_events))." events for monitor $monitor->{Id}" );
-  }
+  } # end while monitors
 
   my $fs_monitors;
-
 
   foreach my $Storage ( @Storage_Areas ) {
     Debug('Checking events in ' . $Storage->Path() );
@@ -224,7 +223,10 @@ MAIN: while( $loop ) {
 
     # Please note that this glob will take all files beginning with a digit. 
     foreach my $monitor ( glob('[0-9]*') ) {
-      next if $monitor =~ /\D/;
+      if ( $monitor =~ /\D/ ) {
+        Debug("Weird non digit characters in $monitor");
+        next;
+      }
 
       Debug( "Found filesystem monitor '$monitor'" );
       $fs_monitors->{$monitor} = {} if ! $fs_monitors->{$monitor};
@@ -233,8 +235,10 @@ MAIN: while( $loop ) {
       # De-taint
       ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ );
 
-      #if ( $$Storage{Scheme} eq 'Deep' ) {
-        foreach my $day_dir ( glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]") ) {
+      {
+        my @day_dirs = glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]");
+        Debug(qq`Checking for Deep Events under using glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]") returned `. scalar @day_dirs . " events");
+        foreach my $day_dir ( @day_dirs ) {
           Debug( "Checking day dir $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
           if ( ! chdir( $day_dir ) ) {
@@ -279,9 +283,17 @@ MAIN: while( $loop ) {
           } # end foreach event_link
           chdir( $Storage->Path() );
         } # end foreach day dir
+      }
 
-        foreach my $event_dir ( glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") ) {
-          next if ! -d $event_dir;
+      Debug("Checking for Medium Scheme Events under $monitor_dir");
+      {
+        my @event_dirs = glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*");
+        Debug(qq`glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned ` . scalar @event_dirs . " entries." );
+        foreach my $event_dir ( @event_dirs ) {
+          if ( ! -d $event_dir ) {
+            Debug( "$event_dir is not a dir. Skipping" );
+            next;
+          }
           my ( $date, $event_id ) = $event_dir =~ /^$monitor_dir\/(\d{4}\-\d{2}\-\d{2})\/(\d+)$/;
           if ( ! $event_id ) {
             Debug("Unable to parse date/event_id from $event_dir");
@@ -290,13 +302,16 @@ MAIN: while( $loop ) {
           my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
           $$Event{Id} = $event_id;
           $$Event{Path} = join('/', $Storage->Path(), $event_dir );
+          Debug("Have event $$Event{Id} at $$Event{Path}");
           $$Event{Scheme} = 'Medium';
           $$Event{RelativePath} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
         } # end foreach event
+      }
 
       if ( ! $$Storage{Scheme} ) {
+        Debug("Storage Scheme not set on $$Storage{Name}");
         if ( ! chdir( $monitor_dir ) ) {
           Error( "Can't chdir directory '$$Storage{Path}/$monitor_dir': $!" );
           next;
@@ -321,12 +336,21 @@ MAIN: while( $loop ) {
 
       #delete_empty_directories(  $monitor_dir );
     } # end foreach monitor
-    redo MAIN if ( $cleaned );
+
+    if ( $cleaned ) {
+      Debug("First stage cleaning done.  Restarting.");
+      redo MAIN;
+    }
 
     $cleaned = 0;
     while ( my ( $monitor_id, $fs_events ) = each(%$fs_monitors) ) {
       if ( my $db_events = $db_monitors->{$monitor_id} ) {
-        next if ! $fs_events;
+        if ( ! $fs_events ) {
+          Debug("No fs_events for database monitor $monitor_id");
+          next;
+        }
+        my @event_ids = keys %$fs_events;
+        Debug("Have " .scalar @event_ids . " events for monitor $monitor_id");
 
         foreach my $fs_event_id ( sort { $a <=> $b } keys %$fs_events ) {
 

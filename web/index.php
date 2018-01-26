@@ -218,7 +218,7 @@ if ( $redirect ) {
   return;
 }
 
-if ( isset( $_REQUEST['request'] ) ) {
+if ( $request ) {
   foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile ) {
     if ( !file_exists( $includeFile ) )
       Fatal( "Request '$request' does not exist" );

@@ -5,4 +5,3 @@
 [submodule "web/api/app/Plugin/CakePHP-Enum-Behavior"]
 	path = web/api/app/Plugin/CakePHP-Enum-Behavior
 	url = https://github.com/connortechnology/CakePHP-Enum-Behavior.git
-  branch = fix_validate

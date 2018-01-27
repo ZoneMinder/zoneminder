@@ -227,6 +227,10 @@ MAIN: while( $loop ) {
         Debug("Weird non digit characters in $monitor");
         next;
       }
+      if ( $monitor_id and ( $monitor_id != $monitor ) ) {
+        Debug("Skipping monitor $monitor because we are only interested in monitor $monitor_id");
+        next;
+      }
 
       Debug( "Found filesystem monitor '$monitor'" );
       $fs_monitors->{$monitor} = {} if ! $fs_monitors->{$monitor};
@@ -371,6 +375,7 @@ MAIN: while( $loop ) {
         } # end foreach fs event
       } else {
         aud_print( "Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database" );
+
         if ( confirm() ) {
           my $command = "rm -rf $monitor_id";
           executeShellCommand( $command );
@@ -501,7 +506,7 @@ MAIN: while( $loop ) {
   $res = $selectEmptyEventsSth->execute()
     or Fatal( "Can't execute: ".$selectEmptyEventsSth->errstr() );
   while( my $event = $selectEmptyEventsSth->fetchrow_hashref() ) {
-    aud_print( "Found empty event with no frame records '$event->{Id}'" );
+    aud_print( "Found empty event with no frame records '$event->{Id}' at $$event{StartTime}" );
     if ( confirm() ) {
       $res = $deleteEventSth->execute( $event->{Id} )
         or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
@@ -713,7 +718,7 @@ sub confirm {
   if ( $report ) {
     print( "\n" );
   } elsif ( $interactive ) {
-    print( ", $prompt y/n: " );
+    print( ", $prompt Y/n/q: " );
     my $char = <>;
     chomp( $char );
     if ( $char eq 'q' ) {
@@ -808,6 +813,7 @@ yet.
  -c, --continuous           - Run continuously
  -f, --force                - Run even if pid file exists
  -i, --interactive          - Ask before applying any changes
+ -m, --monitor_id           - Only consider the given monitor
  -r, --report               - Just report don't actually do anything
  -s, --storage_id           - Specify a storage area to audit instead of all
  -v, --version              - Print the installed version of ZoneMinder

@@ -214,7 +214,7 @@ if ( ZM_OPT_USE_AUTH and ! isset($user) ) {
 session_write_close();
 
 if ( $redirect ) {
-  header('Location: '.$redirect;
+  header('Location: '.$redirect);
   return;
 }
 

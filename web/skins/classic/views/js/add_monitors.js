@@ -34,7 +34,7 @@ function parseStreams( Streams ) {
     for( i in Streams ) {
       var stream = Streams[i];
       if ( stream.url ) {
-        html += '<p>'+stream.url;
+        html += '<p>'+stream.Monitor.Name + ' at ' + stream.url;
         if ( stream.Monitor.Id ) {
           html += ' is already entered into the system by Monitor ' + stream.Monitor.Id + ' ' + stream.Monitor.Name + '<br/>';
           html += '<input type="button" value="Edit" onclick="addMonitor(\''+stream.url+'\');"/>';

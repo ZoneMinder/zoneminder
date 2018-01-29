@@ -166,10 +166,11 @@ if ( sem_acquire($semaphore,1) !== false ) {
   }
   sem_release($semaphore);
 } else {
-  Error("Couldn't get semaphore");
+  Logger::Debug("Couldn't get semaphore");
+  ajaxResponse( array() );
 }
 
-ajaxError( 'Unrecognised action or insufficient permissions' );
+ajaxError('Unrecognised action or insufficient permissions in ajax/stream');
 
 function ajaxCleanup() {
   global $socket, $localSocketFile;

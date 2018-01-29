@@ -214,7 +214,7 @@ if ( ZM_OPT_USE_AUTH and ! isset($user) ) {
 session_write_close();
 
 if ( $redirect ) {
-  header('Location: '.ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view='.$view);
+  header('Location: '.$redirect);
   return;
 }
 

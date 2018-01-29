@@ -126,7 +126,7 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
   userLogin( $username, $password );
   $refreshParent = true;
   $view = 'console';
-  $redirect = true;
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
 } else if ( $action == 'logout' ) {
   userLogout();
   $refreshParent = true;
@@ -739,7 +739,7 @@ if ( canEdit( 'System' ) ) {
         $_SESSION['zmMontageLayout'] = $Layout->Id();
         setcookie('zmMontageLayout', $Layout->Id(), 1 );
         session_write_close();
-        $redirect = true;
+        $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview';
       } // end if save
 
     } else if ( $_REQUEST['object'] == 'server' ) {
@@ -906,6 +906,7 @@ if ( canEdit( 'System' ) ) {
         case 'lowband' :
           break;
       }
+      $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=options&tab='.$_REQUEST['tab'];
     }
     loadConfig( false );
   } elseif ( $action == 'user' ) {

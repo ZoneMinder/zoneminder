@@ -102,7 +102,7 @@ echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('o
             <tr>
               <th scope="row"><?php echo translate('Monitor') ?></th>
               <td>
-                <select name="newGroup[MonitorIds][]" size="4" multiple="multiple" onchange="configureButtons(this);">
+                <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" onchange="configureButtons(this);">
 <?php
   $monitors = dbFetchAll( 'SELECT Id,Name FROM Monitors ORDER BY Sequence ASC' );
   $monitorIds = $newGroup->MonitorIds();
@@ -127,4 +127,7 @@ echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('o
     </div>
   </div>
 </body>
+  <script type="text/javascript">
+  $j('.chosen').chosen();
+  </script>
 </html>

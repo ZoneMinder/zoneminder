@@ -1205,7 +1205,7 @@ bool Monitor::Analyse() {
     fps = double(fps_report_interval)/(now.tv_sec - last_fps_time);
     Info( "%s: %d - Analysing at %.2f fps", name, image_count, fps );
     static char sql[ZM_SQL_SML_BUFSIZ];
-    snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (Id,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, fps, fps );
+    snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, fps, fps );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't run query: %s", mysql_error( &dbconn ) );
     }
@@ -3022,7 +3022,7 @@ Debug(4, "Return from Capture (%d)", captureResult);
         Info( "%s: images:%d - Capturing at %.2lf fps", name, image_count, fps );
         last_fps_time = now;
         static char sql[ZM_SQL_SML_BUFSIZ];
-        snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (Id,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps );
+        snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps );
         if ( mysql_query( &dbconn, sql ) ) {
           Error( "Can't run query: %s", mysql_error( &dbconn ) );
         }

@@ -396,7 +396,7 @@ bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
     int frameSendTime = tvDiffMsec( frameStartTime, frameEndTime );
     if ( frameSendTime > 1000/maxfps ) {
       maxfps /= 2;
-      Error( "Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps );
+      Info( "Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps );
     }
 
     last_frame_sent = TV_2_FLOAT( now );

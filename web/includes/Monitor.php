@@ -18,7 +18,7 @@ private $defaults = array(
   'ZoneCount' =>  0,
   'Triggers'  =>  null,
 );
-$private $status_fields = array(
+private $status_fields = array(
   'AnalysisFPS' => null,
   'CaptureFPS' => null,
 );

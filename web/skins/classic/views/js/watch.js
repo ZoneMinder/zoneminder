@@ -106,17 +106,28 @@ function setAlarmState( currentAlarmState ) {
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
 if ( auth_hash )
   streamCmdParms += '&auth='+auth_hash;
-
-var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
+console.log("AJAX_TIMEOUT:"+AJAX_TIMEOUT + ' url:' + monitorUrl+thisUrl + ' parms: ' + streamCmdParms );
+var streamCmdReq = new Request.JSON( {
+  url: monitorUrl+thisUrl,
+  method: 'get',
+  timeout: AJAX_TIMEOUT,
+  link: 'chain',
+  onSuccess: getStreamCmdResponse,
+  onFailure: getStreamCmdFailure
+} );
 var streamCmdTimer = null;
 
 var streamStatus;
 
+function getStreamCmdFailure(xhr) {
+console.log(xhr);
+}
 function getStreamCmdResponse( respObj, respText ) {
+console.log(respText);
   watchdogOk("stream");
   if ( streamCmdTimer )
     streamCmdTimer = clearTimeout( streamCmdTimer );
-
+console.log(respText);
   if ( respObj.result == 'Ok' ) {
     streamStatus = respObj.status;
     $('fpsValue').set( 'text', streamStatus.fps );

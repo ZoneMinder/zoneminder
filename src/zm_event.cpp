@@ -47,7 +47,7 @@ Event::Event(
     Monitor *p_monitor,
     struct timeval p_start_time,
     const std::string &p_cause,
-    const StringSetMap &p_noteSetMap,
+    const StringSetMap &p_noteSetMap
     ) :
   monitor( p_monitor ),
   start_time( p_start_time ),

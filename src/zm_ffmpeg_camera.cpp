@@ -110,7 +110,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mIsOpening = false;
   mCanCapture = false;
   mOpenStart = 0;
-  mReopenThread = 0;
 
 } // end FFmpegCamera::FFmpegCamera
 
@@ -126,14 +125,7 @@ int FfmpegCamera::PrimeCapture() {
   mAudioStreamId = -1;
   Info( "Priming capture from %s", mPath.c_str() );
 
-#if THREAD
-  if ( OpenFfmpeg() != 0 ) {
-    ReopenFfmpeg();
-  }
-  return 0;
-#else
   return ! OpenFfmpeg();
-#endif
 }
 
 int FfmpegCamera::PreCapture() {
@@ -152,15 +144,6 @@ int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
   int ret;
 
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
-  if ( mReopenThread != 0 ) {
-    void *retval = 0;
-    ret = pthread_join(mReopenThread, &retval);
-    if ( ret != 0 ) {
-      Error("Could not join reopen thread.");
-    }
-    Info( "Successfully reopened stream." );
-    mReopenThread = 0;
-  }
 
   if ( (ret = av_read_frame( mFormatContext, &packet )) < 0 ) {
     if (
@@ -171,6 +154,7 @@ int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
        ) {
       Info( "av_read_frame returned \"%s\". Reopening stream.", av_make_error_string(ret).c_str() );
       ReopenFfmpeg();
+      return 0;
     }
     Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, av_make_error_string(ret).c_str() );
     return -1;
@@ -431,19 +415,8 @@ int FfmpegCamera::ReopenFfmpeg() {
 
   Debug(2, "ReopenFfmpeg called.");
 
-#if THREAD 
-  mCanCapture = false;
-  if ( pthread_create( &mReopenThread, NULL, ReopenFfmpegThreadCallback, (void*) this) != 0 ) {
-    // Log a fatal error and exit the process.
-    Fatal( "ReopenFfmpeg failed to create worker thread." );
-  }
-#else
   CloseFfmpeg();
-  OpenFfmpeg();
-
-#endif
-
-  return 0;
+  return OpenFfmpeg();
 }
 
 int FfmpegCamera::CloseFfmpeg() {
@@ -489,41 +462,4 @@ int FfmpegCamera::CloseFfmpeg() {
   return 0;
 } // end int FfmpegCamera::CloseFfmpeg()
 
-int FfmpegCamera::FfmpegInterruptCallback(void *ctx) { 
-  Debug(3,"FfmpegInteruptCallback");
-  FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
-  if ( camera->mIsOpening ) {
-    int now = time(NULL);
-    if ( (now - camera->mOpenStart) > config.ffmpeg_open_timeout ) {
-      Error( "Open video took more than %d seconds.", config.ffmpeg_open_timeout );
-      return 1;
-    }
-  }
-
-  return 0;
-} // end int FfmpegCamera::FfmpegInterruptCallback(void *ctx)
-
-void *FfmpegCamera::ReopenFfmpegThreadCallback(void *ctx) {
-  Debug(3,"FfmpegReopenThreadtCallback");
-  if ( ctx == NULL ) return NULL;
-
-  FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
-
-  while (1) {
-    // Close current stream.
-    camera->CloseFfmpeg();
-
-    // Sleep if necessary to not reconnect too fast.
-    int wait = config.ffmpeg_open_timeout - (time(NULL) - camera->mOpenStart);
-    wait = wait < 0 ? 0 : wait;
-    if ( wait > 0 ) {
-      Debug( 1, "Sleeping %d seconds before reopening stream.", wait );
-      sleep(wait);
-    }
-
-    if ( camera->OpenFfmpeg() == 0 ) {
-      return NULL;
-    }
-  }
-}
 #endif // HAVE_LIBAVFORMAT

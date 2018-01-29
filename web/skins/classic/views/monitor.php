@@ -72,11 +72,11 @@ if ( ! $monitor ) {
     $monitor->set( array(
           'Id' => 0,
           'Name' => translate('Monitor').'-'.$nextId,
-          'Function' => 'Monitor',
+          'Function' => 'Mocord',
           'Enabled' => true,
           'LinkedMonitors' => '',
-          'Type' => '',
-          'Device' => "/dev/video0",
+          'Type' => 'Ffmpeg',
+          'Device' => '/dev/video0',
           'Channel' => '0',
           'Format' => 0x000000ff,
           'Protocol' => '',
@@ -87,26 +87,26 @@ if ( ! $monitor ) {
           'Port' => '80',
           'User' => '',
           'Pass' => '',
-          'Colours' => 3,
+          'Colours' => 4,
           'Palette' => 0,
-          'Width' => '320',
-          'Height' => '240',
+          'Width' => '1280',
+          'Height' => '962',
           'Orientation' => '0',
           'Deinterlacing' => 0,
           'RTSPDescribe' => 0,
-          'SaveJPEGs' => '3',
-          'VideoWriter' => '0',
+          'SaveJPEGs' => '4',
+          'VideoWriter' => '1',
           'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
           'RecordAudio' => '0',
           'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
           'LabelX' => 0,
           'LabelY' => 0,
           'LabelSize' => 1,
-          'ImageBufferCount' => 50,
-          'WarmupCount' => 25,
-          'PreEventCount' => 25,
-          'PostEventCount' => 25,
-          'StreamReplayBuffer' => 1000,
+          'ImageBufferCount' => 40,
+          'WarmupCount' => 1,
+          'PreEventCount' => 1,
+          'PostEventCount' => 5,
+          'StreamReplayBuffer' => 0,
           'AlarmFrameCount' => 1,
           'Controllable' => 0,
           'ControlId' => '',
@@ -124,9 +124,9 @@ if ( ! $monitor ) {
           'EventPrefix' => 'Event-',
           'AnalysisFPSLimit' => '',
           'AnalysisUpdateDelay' => 0,
-          'MaxFPS' => '',
-          'AlarmMaxFPS' => '',
-          'FPSReportInterval' => 1000,
+          'MaxFPS' => '30',
+          'AlarmMaxFPS' => '30',
+          'FPSReportInterval' => 100,
           'RefBlendPerc' => 6,
           'AlarmRefBlendPerc' => 6,
           'DefaultView' => 'Events',
@@ -138,8 +138,8 @@ if ( ! $monitor ) {
           'Triggers' => '',
           'V4LMultiBuffer'  =>  '',
           'V4LCapturesPerFrame'  =>  1,
-          'ServerId'  =>  $Server['Id'],
-          'StorageId'  => '0',
+          'ServerId'  =>  'auto',
+          'StorageId'  => '1',
           ) );
     } # end if $_REQUEST['dupID']
 } # end if $_REQUEST['mid']
@@ -688,7 +688,7 @@ switch ( $tab ) {
           <tr class="Name"><td><?php echo translate('Name') ?></td><td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>" /></td></tr>
           <tr><td><?php echo translate('Server') ?></td><td>
 <?php 
-      $servers = array(''=>'None');
+      $servers = array(''=>'None','auto'=>'Auto');
       $result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
       $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
       foreach ( $results as $row => $server_obj ) {

@@ -5,22 +5,24 @@ require_once( 'Server.php' );
 class Monitor {
 
 private $defaults = array(
-'Id' => null,
-'Name' => '',
-'StorageId' => 0,
-'ServerId' => 0,
-'Function' => 'None',
-'Enabled' => 1,
-'Width' => null,
-'Height' => null,
-'Orientation' => null,
-'AnalysisFPSLimit'  =>  null,
-'OutputCodec' => 'h264',
-'OutputContainer' => 'auto',
-'AnalysisFPS' => null,
-'CaptureFPS' => null,
-'ZoneCount' =>  0,
-'Triggers'  =>  null,
+  'Id' => null,
+  'Name' => '',
+  'StorageId' => 0,
+  'ServerId' => 0,
+  'Function' => 'None',
+  'Enabled' => 1,
+  'Width' => null,
+  'Height' => null,
+  'Orientation' => null,
+  'AnalysisFPSLimit'  =>  null,
+  'OutputCodec' => 'h264',
+  'OutputContainer' => 'auto',
+  'ZoneCount' =>  0,
+  'Triggers'  =>  null,
+);
+private $status_fields = array(
+  'AnalysisFPS' => null,
+  'CaptureFPS' => null,
 );
 private $control_fields = array(
   'Name' => '',
@@ -331,7 +333,7 @@ private $control_fields = array(
           daemonControl( 'start', 'zmc', $zmcArgs );
         }
       }
-    } else {
+    } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
       $url = $Server->Url() . '/zm/api/monitors/'.$this->{'Id'}.'.json';

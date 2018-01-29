@@ -34,11 +34,10 @@ function addMonitor(element) {
       }
     }
   }
-  if ( monitorId == -1 ) {
-    window.location = '?view=add_monitors';
-    //createPopup( '?view=add_monitors', 'zmMonitor0', 'monitor' );
-  } else {
+  if ( monitorId != -1 ) {
     createPopup( '?view=monitor&dupId='+monitorId, 'zmMonitor0', 'monitor' );
+  } else {
+    window.location = '?view=add_monitors';
   }
 }
 

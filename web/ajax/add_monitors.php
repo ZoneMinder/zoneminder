@@ -20,9 +20,33 @@ $defaultMonitor->set(array(
 ) );
 
 function probe( &$url_bits ) {
+  error_reporting(0);
   global $defaultMonitor;
   $available_streams = array();
   if ( ! isset($url_bits['port']) ) {
+
+    $cam_list_html = file_get_contents('http://'.$url_bits['host'].':5000/monitoring/');
+    if ( $cam_list_html ) {
+      Logger::Debug("Have content at port 5000/monitoring");
+      $matches_count = preg_match_all(
+          '/<a href="http:\/\/([.[:digit:]]+):([[:digit:]]+)\/\?action=stream" target="_blank">([^<]+)<\/a>/',
+          $cam_list_html, $cam_list );
+      Logger::Debug(print_r($cam_list,true));
+    }
+    if ( $matches_count ) {
+      for( $index = 0; $index < $matches_count; $index ++ ) {
+        $new_stream = $url_bits; // make a copy
+        $new_stream['port'] = $cam_list[2][$index];
+        $new_stream['Name'] = trim($cam_list[3][$index]);
+        if ( ! isset($new_stream['scheme'] ) )
+          $new_stream['scheme'] = 'http';
+        $available_streams[] = $new_stream;          
+Logger::Debug("Have new stream " . print_r($new_stream,true) );
+      }
+    } else {
+      Info('No matches');
+    }
+if ( 0 ) {
     // No port given, do a port scan
     foreach ( range( 2000, 2007 ) as $port ) {
       $socket = socket_create( AF_INET, SOCK_STREAM, SOL_TCP );
@@ -69,15 +93,17 @@ Info("Testing connection to " . $url_bits['host'].':'.$port);
         $available_streams[] = $new_stream;          
       } // end if new_Stream
     } // end foreach port to scan
+} # end if 0
   } else {
     // A port was specified, so don't need to port scan.
     $available_streams[] = $url_bits;
   }
   foreach ( $available_streams as &$stream ) {
     # check for existence in db.
-    $stream['url'] = unparse_url( $stream, array( 'path'=>'/','query'=>'action=stream' ) );
-    $monitors = Monitor::find_all( array( 'Path'=>$stream['url'] ) );
-    if ( count($monitors ) ) {
+    $stream['url'] = unparse_url( $stream, array('path'=>'/','query'=>'action=stream') );
+    $monitors = Monitor::find_all( array('Path'=>$stream['url']) );
+    if ( count($monitors) ) {
+      Info("Found monitors matching " . $stream['url'] );
       $stream['Monitor'] = $monitors[0];
       if ( isset( $stream['Width'] ) and ( $stream['Monitor']->Width() != $stream['Width'] ) ) {
         $stream['Warning'] .= 'Monitor width ('.$stream['Monitor']->Width().') and stream width ('.$stream['Width'].") do not match!\n";
@@ -86,10 +112,13 @@ Info("Testing connection to " . $url_bits['host'].':'.$port);
         $stream['Warning'] .= 'Monitor height ('.$stream['Monitor']->Height().') and stream width ('.$stream['Height'].") do not match!\n";
       }
     } else {
-      $stream['Monitor'] = $defaultMonitor;
+      $stream['Monitor'] = clone $defaultMonitor;
       if ( isset($stream['Width']) ) {
         $stream['Monitor']->Width( $stream['Width'] );
         $stream['Monitor']->Height( $stream['Height'] );
+      }
+      if ( isset($stream['Name']) ) {
+        $stream['Monitor']->Name( $stream['Name'] );
       }
     } // Monitor found or not
   } // end foreach Stream

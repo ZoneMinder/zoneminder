@@ -273,9 +273,25 @@ CREATE TABLE `Events_Archived` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 
-drop trigger if exists event_update_trigger;
+drop procedure if exists update_storage_stats;
 
 delimiter //
+
+create procedure update_storage_stats(IN StorageId smallint(5), IN space BIGINT)
+
+sql security invoker
+
+deterministic
+
+begin
+
+  update Storage set DiskSpace = DiskSpace + space where Id = StorageId;
+
+end;
+
+//
+
+drop trigger if exists event_update_trigger//
 
 CREATE TRIGGER event_update_trigger AFTER UPDATE ON Events 
 FOR EACH ROW
@@ -628,11 +644,11 @@ CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`);
 
 DROP TABLE IF EXISTS `Monitor_Status`;
 CREATE TABLE `Monitor_Status` (
-  `Id` int(10) unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
   `Status`  enum('Unknown','NotRunning','Running','NoSignal','Signal') NOT NULL default 'Unknown',
   `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
   `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
-  PRIMARY KEY (`Id`)
+  PRIMARY KEY (`MonitorId`)
 ) ENGINE=MEMORY;
 --
 -- Table structure for table `States`

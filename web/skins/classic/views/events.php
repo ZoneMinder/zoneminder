@@ -43,6 +43,8 @@ $filterQuery = $_REQUEST['filter']['query'];
 if ( $_REQUEST['filter']['sql'] ) {
   $countSql .= $_REQUEST['filter']['sql'];
   $eventsSql .= $_REQUEST['filter']['sql'];
+} else {
+Error("No filtering in events, will load ALL!");
 }
 $eventsSql .= " ORDER BY $sortColumn $sortOrder";
 
@@ -141,6 +143,7 @@ if ( $pages > 1 ) {
 $count = 0;
 $disk_space_total = 0;
 
+Logger::Debug("EventSql: $eventsSql");
 $results = dbQuery( $eventsSql );
 while ( $event_row = dbFetchNext( $results ) ) {
   $event = new Event( $event_row );

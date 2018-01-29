@@ -338,7 +338,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
       //exit( -1 );
     }
   }
-Debug(2, "NUmber of bytes sent: (%d)", nbytes );
+Debug(2, "NUmber of bytes sent to (%s): (%d)", rem_addr.sun_path, nbytes );
 
   // quit after sending a status, if this was a quit request
   if ( (MsgCommand)msg->msg_data[0]==CMD_QUIT ) {
@@ -398,7 +398,7 @@ bool MonitorStream::sendFrame( const char *filepath, struct timeval *timestamp )
     int frameSendTime = tvDiffMsec( frameStartTime, frameEndTime );
     if ( frameSendTime > 1000/maxfps ) {
       maxfps /= 2;
-      Error( "Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps );
+      Info( "Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps );
     }
 
     last_frame_sent = TV_2_FLOAT( now );
@@ -581,7 +581,6 @@ void MonitorStream::runStream() {
     gettimeofday( &now, NULL );
 
     if ( connkey ) {
-Debug(2, "checking command Queue for connkey: %d", connkey );
       while(checkCommandQueue()) {
 Debug(2, "Have checking command Queue for connkey: %d", connkey );
         got_command = true;
@@ -666,7 +665,7 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
     if ( last_read_index != monitor->shared_data->last_write_index ) {
       int index = monitor->shared_data->last_write_index % monitor->image_buffer_count; // % shouldn't be neccessary
       last_read_index = monitor->shared_data->last_write_index;
-      Debug( 1, "index: %d: frame_mod: %d frame count: %d", index, frame_mod, frame_count );
+      Debug( 3, "index: %d: frame_mod: %d frame count: %d", index, frame_mod, frame_count );
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
           // Send the next frame
@@ -716,11 +715,11 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
       } // end if buffered playback
       frame_count++;
     } else {
-      Debug(2,"Waiting for capture");
+      Debug(5,"Waiting for capture");
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index ) 
 
     unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
-    Debug(2, "Sleeping for (%d)", sleep_time);
+    Debug(4, "Sleeping for (%d)", sleep_time);
     usleep( sleep_time );
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {

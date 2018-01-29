@@ -551,22 +551,26 @@ Logger::Debug('coloumns:'.print_r($columns));
           }
         }
         $restart = true;
-      } elseif ( ! $user['MonitorIds'] ) { // Can only create new monitors if we are not restricted to specific monitors
+      } else if ( ! $user['MonitorIds'] ) { // Can only create new monitors if we are not restricted to specific monitors
 # FIXME This is actually a race condition. Should lock the table.
         $maxSeq = dbFetchOne( 'SELECT max(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence' );
         $changes[] = 'Sequence = '.($maxSeq+1);
 
-        dbQuery( 'INSERT INTO Monitors SET '.implode( ', ', $changes ) );
-        $mid = dbInsertId();
-        $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
-        dbQuery( "insert into Zones set MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
-        //$view = 'none';
-        $Storage = new Storage( $_REQUEST['newMonitor']['StorageId'] );
-        mkdir( $Storage->Path().'/'.$mid, 0755 );
-        $saferName = basename($_REQUEST['newMonitor']['Name']);
-        symlink( $mid, $Storage->Path().'/'.$saferName );
-        if ( isset($_COOKIE['zmGroup']) ) {
-          dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($_COOKIE['zmGroup'],$mid) );
+        if ( dbQuery( 'INSERT INTO Monitors SET '.implode( ', ', $changes ) ) ) {
+          $mid = dbInsertId();
+          $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
+          dbQuery( "insert into Zones set MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
+          //$view = 'none';
+          $Storage = new Storage( $_REQUEST['newMonitor']['StorageId'] );
+          mkdir( $Storage->Path().'/'.$mid, 0755 );
+          $saferName = basename($_REQUEST['newMonitor']['Name']);
+          symlink( $mid, $Storage->Path().'/'.$saferName );
+          if ( isset($_COOKIE['zmGroup']) ) {
+            dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($_COOKIE['zmGroup'],$mid) );
+          }
+        } else {
+          Error("Error saving new Monitor.");
+          return;
         }
       } else {
         Error("Users with Monitors restrictions cannot create new monitors.");

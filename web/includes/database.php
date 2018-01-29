@@ -142,8 +142,9 @@ function dbQuery( $sql, $params=NULL ) {
     }
   } catch(PDOException $e) {
     Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):'') );
+    return NULL;
   }
-  return( $result );
+  return $result;
 }
 
 function dbFetchOne( $sql, $col=false, $params=NULL ) {

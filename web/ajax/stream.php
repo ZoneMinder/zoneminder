@@ -1,4 +1,5 @@
 <?php
+  error_reporting(0);
 
 $start_time = time();
 
@@ -12,7 +13,7 @@ if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
 if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) ) {
   ajaxError( 'socket_create() failed: '.socket_strerror(socket_last_error()) );
 }
-$key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.lock');
+$key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.lock', 'Z');
 $semaphore = sem_get($key,1);
 if ( sem_acquire($semaphore,1) !== false ) {
 
@@ -23,7 +24,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
   } else {
     Logger::Debug("socket file does not exist, we should be good to connect.");
   }
-  if ( !@socket_bind( $socket, $localSocketFile ) ) {
+  if ( ! socket_bind( $socket, $localSocketFile ) ) {
     ajaxError( "socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()) );
   } else {
     Logger::Debug("Bound to $localSocketFile");
@@ -76,9 +77,9 @@ if ( sem_acquire($semaphore,1) !== false ) {
   $eSockets = NULL;
 
   $timeout = MSG_TIMEOUT - ( time() - $start_time );
-  Logger::Debug("TImeout is: $timeout " );
+  Logger::Debug("TImeout is: $timeout/1000 seconds. " );
 
-  $numSockets = @socket_select( $rSockets, $wSockets, $eSockets, intval($timeout/1000), ($timeout%1000)*1000 );
+  $numSockets = socket_select( $rSockets, $wSockets, $eSockets, intval($timeout/1000), ($timeout%1000)*1000 );
 
   if ( $numSockets === false ) {
     Error('socket_select failed: ' . socket_strerror(socket_last_error()) );
@@ -88,7 +89,8 @@ if ( sem_acquire($semaphore,1) !== false ) {
     ajaxError( "Socket closed $remSockFile"  );
   } else if ( $numSockets == 0 ) {
     Error( "Timed out waiting for msg $remSockFile"  );
-    ajaxError( "Timed out waiting for msg $remSockFile"  );
+    socket_Set_nonblock($socket);
+    #ajaxError( "Timed out waiting for msg $remSockFile"  );
   } else if ( $numSockets > 0 ) {
     if ( count($rSockets) != 1 ) {
       Error( 'Bogus return from select, '.count($rSockets).' sockets available' );

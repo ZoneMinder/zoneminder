@@ -38,7 +38,6 @@ function changeScale() {
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
-
   Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
 
   /*Stream could be an applet so can't use moo tools*/
@@ -108,7 +107,7 @@ var streamCmdParms = "view=request&request=stream&connkey="+connKey;
 if ( auth_hash )
   streamCmdParms += '&auth='+auth_hash;
 
-var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
+var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
 var streamCmdTimer = null;
 
 var streamStatus;

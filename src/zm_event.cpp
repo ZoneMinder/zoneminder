@@ -43,7 +43,12 @@ int Event::pre_alarm_count = 0;
 
 Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = { { 0 } };
 
-Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent ) :
+Event::Event(
+    Monitor *p_monitor,
+    struct timeval p_start_time,
+    const std::string &p_cause,
+    const StringSetMap &p_noteSetMap,
+    bool p_videoEvent ) :
   monitor( p_monitor ),
   start_time( p_start_time ),
   cause( p_cause ),
@@ -53,12 +58,12 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 {
 
   std::string notes;
-  createNotes( notes );
+  createNotes(notes);
 
   bool untimedEvent = false;
   if ( !start_time.tv_sec ) {
     untimedEvent = true;
-    gettimeofday( &start_time, 0 );
+    gettimeofday(&start_time, 0);
   }
 
   Storage * storage = monitor->getStorage();
@@ -216,7 +221,8 @@ Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string
 Event::~Event() {
   static char sql[ZM_SQL_MED_BUFSIZ];
   struct DeltaTimeval delta_time;
-  DELTA_TIMEVAL( delta_time, end_time, start_time, DT_PREC_2 );
+  DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
+  Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec );
 
   if ( frames > last_db_frame ) {
 
@@ -462,6 +468,11 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );
+    if ( delta_time.sec > 99999999 ) {
+      Warning("Invalid delta_time from_unixtime(%ld), %s%ld.%02ld", 
+           timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+        delta_time.sec = 0;
+    }
 
     int sql_len = strlen(sql);
     snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %d, %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
@@ -474,7 +485,6 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     *(sql+strlen(sql)-2) = '\0';
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frames: %s, sql was (%s)", mysql_error( &dbconn ), sql );
-      exit( mysql_errno( &dbconn ) );
     }
     last_db_frame = frames;
   } else {

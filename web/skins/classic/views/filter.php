@@ -334,7 +334,7 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
               </td>
               <td>  
                 <label for="filter[Query][limit]"><?php echo translate('LimitResultsPre') ?></label>
-                <input type="text" id="filter[Query][limit]" name="filter[Query][limit]" value="<?php echo (null !== $filter->limit())?validInt($filter->limit()):'' ?>"/><?php echo translate('LimitResultsPost') ?>
+                <input type="number" id="filter[Query][limit]" name="filter[Query][limit]" value="<?php echo (null !== $filter->limit())?validInt($filter->limit()):'' ?>"/><?php echo translate('LimitResultsPost') ?>
               </td>
             </tr>
           </tbody>

@@ -2132,10 +2132,11 @@ function ajaxResponse( $result=false ) {
   if ( function_exists( 'ajaxCleanup' ) )
     ajaxCleanup();
   $response = array( 'result'=>'Ok' );
-  if ( is_array( $result ) )
+  if ( is_array( $result ) ) {
     $response = array_merge( $response, $result );
-  elseif ( !empty($result) )
+  } elseif ( !empty($result) ) {
     $response['message'] = $result;
+  }
   header( 'Content-type: text/plain' );
   exit( jsonEncode( $response ) );
 }

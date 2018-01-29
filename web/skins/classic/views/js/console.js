@@ -34,8 +34,11 @@ function addMonitor(element) {
       }
     }
   }
-  dupParam = (monitorId == -1 ) ? '': '&dupId='+monitorId;
-  createPopup( '?view=monitor'+dupParam, 'zmMonitor0', 'monitor' );
+  if ( monitorId != -1 ) {
+    createPopup( '?view=monitor&dupId='+monitorId, 'zmMonitor0', 'monitor' );
+  } else {
+    window.location = '?view=add_monitors';
+  }
 }
 
 function editMonitor( element ) {

@@ -44,6 +44,11 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
         </div>
         <div style="width:50%;position: absolute; top:0; left: 0;height: 100%;">
         <fieldset><legend>Enter by IP or URL</legend>
+<p>
+Simply enter the ip address or full url to the stream.
+It will be probed for available streams, or checked to see if it has already been entered.
+If streams are found, they will be listed in the results column. Click Add to add them.
+</p>
           <!--<input type="text" name="newMonitor[Name]" />-->
           <input type="text" name="newMonitor[Url]" oninput="probe(this);"/>
         </fieldset>
@@ -61,7 +66,9 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
                 <td>MN1</td>
               </tr>
             </table>
+<p>
             Defaults to apply to each monitor:<br/>
+</p>
             <table><tr><th>Setting</th><th>Value</th></tr>
               <tr><td><?php echo translate('Function') ?></td><td>
 <?php 
@@ -69,7 +76,7 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
               foreach ( getEnumValues('Monitors', 'Function') as $opt ) {
                 $options[$opt] = translate('Fn'.$opt);
               }
-              echo htmlSelect( 'newMonitor[Function]', $options, 'Record' );
+              echo htmlSelect( 'newMonitor[Function]', $options, 'Mocord' );
 ?>
               </td></tr>
 <?php
@@ -100,7 +107,7 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
 ?>
               </td></tr>
             </table>
-
+<br/>
             <input type="file" name="import_file" id="import_file"/>
             <input type="button" value="Import" onclick="import_csv(this.form);"/>
           </div>

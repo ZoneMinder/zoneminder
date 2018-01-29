@@ -483,7 +483,20 @@ if ( canEdit( 'Monitors' ) ) {
         'RecordAudio' => 'toggle',
         );
 
+    if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
+Logger::Debug("Auto selecting server");
+      $_REQUEST['newMonitor']['ServerId'] = dbFetchOne( 'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem ASC, CpuLoad ASC LIMIT 1', 'Id' );
+Logger::Debug("Auto selecting server: Got " . $_REQUEST['newMonitor']['ServerId'] );
+      if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
+        $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
+Logger::Debug("Auto selecting server to " . ZM_SERVER_ID);
+      }
+    } else {
+      Logger::Debug("NOT Auto selecting server" . $_REQUEST['newMonitor']['ServerId']);
+    }
+
     $columns = getTableColumns( 'Monitors' );
+Logger::Debug('coloumns:'.print_r($columns));
     $changes = getFormChanges( $monitor, $_REQUEST['newMonitor'], $types, $columns );
 
     if ( count( $changes ) ) {

@@ -247,6 +247,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $url_parts = parse_url( $monitor['Path'] );
     unset($url_parts['user']);
     unset($url_parts['pass']);
+    unset($url_parts['scheme']);
+    unset($url_parts['query']);
+    if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
+      unset($url_parts['port']);
     $source = unparse_url( $url_parts );
   }
   if ( $source == '' ) {

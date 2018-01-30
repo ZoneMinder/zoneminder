@@ -183,39 +183,39 @@ use Sys::CpuLoad;
 
     socket( CLIENT, PF_UNIX, SOCK_STREAM, 0 ) or Fatal( "Can't open socket: $!" );
     my $attempts = 0;
-    while( !connect( CLIENT, $saddr ) ) {
+    while( !connect(CLIENT, $saddr) ) {
       $attempts++;
-      Debug("Waiting for zmdc.pl server process at ".SOCK_FILE.", attempt $attempts" );
-      Fatal( "Can't connect: $!" ) if ($attempts > MAX_CONNECT_DELAY);
+      Debug("Waiting for zmdc.pl server process at ".SOCK_FILE.", attempt $attempts");
+      Fatal("Can't connect: $!") if $attempts > MAX_CONNECT_DELAY;
       usleep(200000);
     } # end while
   } elsif ( defined($cpid) ) {
     ZMServer::run();
   } else {
-    Fatal( "Can't fork: $!" );
+    Fatal("Can't fork: $!");
   }
 } # end if ! server is up
 
-if ( $command eq 'check' && ! $daemon ) {
-  print( "running\n" );
+if ( ($command eq 'check') && !$daemon ) {
+  print("running\n");
   exit();
 } elsif ( $command eq 'startup' ) {
   # Our work here is done
-  exit() if ( !$server_up );
+  exit() if !$server_up;
 }
 
 # The server is there, connect to it
 #print( "Writing commands\n" );
 CLIENT->autoflush();
 my $message = join(';', $command, ( $daemon ? $daemon : () ), @args );
-print( CLIENT  $message );
-shutdown( CLIENT, 1 );
+print(CLIENT  $message);
+shutdown(CLIENT, 1);
 while( my $line = <CLIENT> ) {
-  chomp( $line );
-  print( "$line\n" );
+  chomp($line);
+  print("$line\n");
 }
 # And we're done!
-close( CLIENT );
+close(CLIENT);
 #print( "Finished writing, bye\n" );
 
 exit;
@@ -344,9 +344,9 @@ sub run {
         } else {
           dPrint( ZoneMinder::Logger::ERROR, "Invalid command '$command'\n" );
         }
-        close( CLIENT );
+        close(CLIENT);
       } else {
-        Fatal( 'Bogus descriptor' );
+        Fatal('Bogus descriptor');
       }
     } elsif ( $nfound < 0 ) {
       if ( $! == EINTR ) {
@@ -355,9 +355,9 @@ sub run {
 # See if it needs to start up again
         restartPending();
       } elsif ( $! == EPIPE ) {
-        Error( "Can't select: $!" );
+        Error("Can't select: $!");
       } else {
-        Fatal( "Can't select: $!" );
+        Fatal("Can't select: $!");
       }
     } else {
 #print( "Select timed out\n" );
@@ -566,19 +566,19 @@ sub restart {
 
   my $command = $daemon;
   $command .= ' '.join( ' ', ( @args ) ) if @args;
-  dPrint ( ZoneMinder::Logger::WARNING, "Restarting $command\n");
+  dPrint ( ZoneMinder::Logger::DEBUG, "Restarting $command\n");
   my $process = $cmd_hash{$command};
   if ( $process ) {
-  dPrint ( ZoneMinder::Logger::WARNING, "Have process"  );
+    dPrint( ZoneMinder::Logger::DEBUG, "Have process"  );
     if ( $process->{pid} ) {
-  dPrint ( ZoneMinder::Logger::WARNING, "Have process pid " .$process->{pid} );
+      dPrint( ZoneMinder::Logger::DEBUG, "Have process pid " .$process->{pid} );
       my $cpid = $process->{pid};
       if ( defined($pid_hash{$cpid}) ) {
-  dPrint ( ZoneMinder::Logger::WARNING, "Have process pid hash " .$process->{pid} );
+        dPrint( ZoneMinder::Logger::DEBUG, "Have process pid hash " .$process->{pid} );
         _stop( 0, $process );
         return;
       } else {
-  dPrint ( ZoneMinder::Logger::WARNING, "Not sending stop" );
+        dPrint( ZoneMinder::Logger::DEBUG, "Not sending stop" );
       }
     }
   }

@@ -269,7 +269,7 @@ MAIN: while( $loop ) {
             #Event path is hour/minute/sec
             my $event_path = readlink( $event_link );
 
-            if ( !-e $event_path ) {
+            if ( !($event_path and -e $event_path) ) {
               aud_print( "Event link $day_dir/$event_link does not point to valid target" );
               if ( confirm() ) {
                 ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint

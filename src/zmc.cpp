@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
   Info("Starting Capture version %s", ZM_VERSION);
   static char sql[ZM_SQL_SML_BUFSIZ];
   for ( int i = 0; i < n_monitors; i ++ ) {
-    snprintf( sql, sizeof(sql), "REPLACE INTO  Monitor_Status (Id, Status ) VALUES ('%d','Running')", monitors[i]->Id() );
+    snprintf( sql, sizeof(sql), "REPLACE INTO  Monitor_Status (MonitorId, Status ) VALUES ('%d','Running')", monitors[i]->Id() );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't run query: %s", mysql_error( &dbconn ) );
     }

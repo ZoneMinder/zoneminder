@@ -161,6 +161,9 @@ void FfmpegCamera::Terminate() {
 }
 
 int FfmpegCamera::PrimeCapture() {
+  if ( mCanCapture ) {
+    CloseFfmpeg();
+  }
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   Info( "Priming capture from %s", mPath.c_str() );
@@ -169,6 +172,7 @@ int FfmpegCamera::PrimeCapture() {
 }
 
 int FfmpegCamera::PreCapture() {
+  Debug(1, "PreCapture");
   // If Reopen was called, then ffmpeg is closed and we need to reopen it.
   if ( ! mCanCapture )
     return OpenFfmpeg();
@@ -273,7 +277,7 @@ int FfmpegCamera::Capture( Image &image ) {
         directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
         if ( directbuffer == NULL ) {
           Error("Failed requesting writeable buffer for the captured image.");
-          return (-1);
+          return -1;
         }
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
@@ -285,8 +289,10 @@ int FfmpegCamera::Capture( Image &image ) {
 #endif
 
 #if HAVE_LIBSWSCALE
-        if ( sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0 )
-          Fatal("Unable to convert raw format %u to target format %u at frame %d", mVideoCodecContext->pix_fmt, imagePixFormat, frameCount);
+        if ( sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0 ) {
+          Error("Unable to convert raw format %u to target format %u at frame %d", mVideoCodecContext->pix_fmt, imagePixFormat, frameCount);
+          return -1;
+        } 
 #else // HAVE_LIBSWSCALE
         Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE
@@ -308,10 +314,10 @@ int FfmpegCamera::PostCapture() {
 
 int FfmpegCamera::OpenFfmpeg() {
 
-  Debug ( 2, "OpenFfmpeg called." );
+  Debug(2, "OpenFfmpeg called.");
   uint32_t last_event_id = monitor->GetLastEventId() ;
   uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
-  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
+  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id);
 
   int ret;
 
@@ -359,7 +365,7 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   {
     mIsOpening = false;
-    Error( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
+    Error("Unable to open input %s due to: %s", mPath.c_str(), strerror(errno));
     return -1;
   }
   AVDictionaryEntry *e=NULL;
@@ -370,19 +376,19 @@ int FfmpegCamera::OpenFfmpeg() {
   mIsOpening = false;
   Debug ( 1, "Opened input" );
 
-  Info( "Stream open %s", mPath.c_str() );
+  Info( "Stream open %s, parsing streams...", mPath.c_str() );
 
 #if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
-  Debug ( 1, "Calling av_find_stream_info" );
+  Debug(4, "Calling av_find_stream_info");
   if ( av_find_stream_info( mFormatContext ) < 0 )
 #else
-    Debug ( 1, "Calling avformat_find_stream_info" );
+    Debug(4, "Calling avformat_find_stream_info");
   if ( avformat_find_stream_info( mFormatContext, 0 ) < 0 )
 #endif
-    Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
+    Fatal("Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno));
 
   startTime = av_gettime();//FIXME here or after find_Stream_info
-  Debug ( 1, "Got stream info" );
+  Debug(4, "Got stream info");
 
   // Find first video stream present
   // The one we want Might not be the first
@@ -427,11 +433,11 @@ int FfmpegCamera::OpenFfmpeg() {
   if ( mAudioStreamId == -1 )
     Debug( 3, "Unable to locate audio stream in %s", mPath.c_str() );
 
-  Debug ( 3, "Found video stream at index %d", mVideoStreamId );
-  Debug ( 3, "Found audio stream at index %d", mAudioStreamId );
+  Debug(3, "Found video stream at index %d", mVideoStreamId);
+  Debug(3, "Found audio stream at index %d", mAudioStreamId);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  mVideoCodecContext = avcodec_alloc_context3( NULL );
+  mVideoCodecContext = avcodec_alloc_context3(NULL);
   avcodec_parameters_to_context( mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar );
 #else
   mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
@@ -484,7 +490,7 @@ int FfmpegCamera::OpenFfmpeg() {
       Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
     } else {
 #endif
-      Error( "Input stream is not h264.  The stored event file may not be viewable in browser." );
+      Warning( "Input stream is not h264.  The stored event file may not be viewable in browser." );
 #ifdef AV_CODEC_ID_H265
     }
 #endif
@@ -493,7 +499,8 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
   // Try and get the codec from the codec context
-    Fatal("Can't find codec for video stream from %s", mPath.c_str());
+    Error("Can't find codec for video stream from %s", mPath.c_str());
+    return -1;
   } else {
     Debug(1, "Video Found decoder");
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
@@ -509,7 +516,8 @@ int FfmpegCamera::OpenFfmpeg() {
     while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
       Warning( "Option %s not recognized by ffmpeg", e->key);
     }
-    Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
+    Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+    return -1;
   } else {
 
     AVDictionaryEntry *e = NULL;
@@ -536,18 +544,20 @@ int FfmpegCamera::OpenFfmpeg() {
     } else {
       Debug(1, "Audio Found decoder");
       zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
-  // Open the codec
+      // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  Debug ( 1, "Calling avcodec_open" );
-  if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )
+      Debug ( 1, "Calling avcodec_open" );
+      if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 ) {
 #else
-    Debug ( 1, "Calling avcodec_open2" );
-  if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 )
+      Debug ( 1, "Calling avcodec_open2" );
+      if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 ) {
 #endif
-    Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
-    }
-    Debug ( 1, "Opened audio codec" );
-  }
+        Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+        return -1;
+      }
+      Debug(2, "Opened audio codec");
+    } // end if find decoder
+  } // end if have audio_context
 
   // Allocate space for the native video frame
   mRawFrame = zm_av_frame_alloc();
@@ -555,10 +565,12 @@ int FfmpegCamera::OpenFfmpeg() {
   // Allocate space for the converted video frame
   mFrame = zm_av_frame_alloc();
 
-  if ( mRawFrame == NULL || mFrame == NULL )
-    Fatal( "Unable to allocate frame for %s", mPath.c_str() );
+  if ( mRawFrame == NULL || mFrame == NULL ) {
+    Error("Unable to allocate frame for %s", mPath.c_str());
+    return -1;
+  }
 
-  Debug ( 1, "Allocated frames" );
+  Debug( 3, "Allocated frames");
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   int pSize = av_image_get_buffer_size( imagePixFormat, width, height,1 );
@@ -567,19 +579,22 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
 
   if ( (unsigned int)pSize != imagesize ) {
-    Fatal("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+    Error("Image size mismatch. Required: %d Available: %d",pSize,imagesize);
+    return -1;
   }
 
-  Debug ( 1, "Validated imagesize" );
+  Debug(4, "Validated imagesize");
 
 #if HAVE_LIBSWSCALE
-  Debug ( 1, "Calling sws_isSupportedInput" );
+  Debug(1, "Calling sws_isSupportedInput");
   if ( !sws_isSupportedInput(mVideoCodecContext->pix_fmt) ) {
-    Fatal("swscale does not support the codec format: %c%c%c%c", (mVideoCodecContext->pix_fmt)&0xff, ((mVideoCodecContext->pix_fmt >> 8)&0xff), ((mVideoCodecContext->pix_fmt >> 16)&0xff), ((mVideoCodecContext->pix_fmt >> 24)&0xff));
+    Error("swscale does not support the codec format: %c%c%c%c", (mVideoCodecContext->pix_fmt)&0xff, ((mVideoCodecContext->pix_fmt >> 8)&0xff), ((mVideoCodecContext->pix_fmt >> 16)&0xff), ((mVideoCodecContext->pix_fmt >> 24)&0xff));
+    return -1;
   }
 
   if ( !sws_isSupportedOutput(imagePixFormat) ) {
-    Fatal("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
+    Error("swscale does not support the target format: %c%c%c%c",(imagePixFormat)&0xff,((imagePixFormat>>8)&0xff),((imagePixFormat>>16)&0xff),((imagePixFormat>>24)&0xff));
+    return -1;
   }
 
   mConvertContext = sws_getContext(mVideoCodecContext->width,
@@ -588,8 +603,10 @@ int FfmpegCamera::OpenFfmpeg() {
       width, height,
       imagePixFormat, SWS_BICUBIC, NULL,
       NULL, NULL);
-  if ( mConvertContext == NULL )
-    Fatal( "Unable to create conversion context for %s", mPath.c_str() );
+  if ( mConvertContext == NULL ) {
+    Error( "Unable to create conversion context for %s", mPath.c_str() );
+    return -1;
+  }
 #else // HAVE_LIBSWSCALE
   Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
 #endif // HAVE_LIBSWSCALE
@@ -658,7 +675,7 @@ int FfmpegCamera::CloseFfmpeg() {
   }
 
   return 0;
-}
+} // end FfmpegCamera::Close
 
 //Function to handle capture and store
 int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event_file ) {
@@ -911,8 +928,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
           if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize,
                 0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0) {
-            Fatal("Unable to convert raw format %u to target format %u at frame %d",
+            Error("Unable to convert raw format %u to target format %u at frame %d",
                 mVideoCodecContext->pix_fmt, imagePixFormat, frameCount);
+            return -1;
           }
 
           frameCount++;

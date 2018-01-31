@@ -45,7 +45,6 @@ our @EXPORT = qw();
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
-use Getopt::Std;
 use Data::UUID;
 
 use vars qw( $verbose $soap_version );
@@ -185,11 +184,11 @@ sub discover {
   };
 
 ## try both soap versions
-  my %services;
 
   my $uuid_gen = Data::UUID->new();
 
   if ( ( ! $soap_version ) or ( $soap_version eq '1.1' ) ) {
+  my %services;
 
     if($verbose) {
       print "Probing for SOAP 1.1\n"
@@ -219,6 +218,7 @@ sub discover {
   } # end if doing soap 1.1
 
   if ( ( ! $soap_version ) or ( $soap_version eq '1.2' ) ) {
+  my %services;
     if($verbose) {
       print "Probing for SOAP 1.2\n"
     }
@@ -253,8 +253,17 @@ sub discover {
 sub profiles {
   my ( $client ) = @_;
 
-  my $result = $client->get_endpoint('media')->GetProfiles( { } ,, );
-  die $result if not $result;
+  my $endpoint = $client->get_endpoint('media');
+  if ( ! $endpoint ) {
+    print "No media enpoint for client.\n";
+    return;
+  }
+
+  my $result = $endpoint->GetProfiles( { } ,, );
+  if ( ! $result ) {
+    print "No result from GetProfiles\n";
+    return;
+  }
   if($verbose) {
     print "Received message:\n" . $result . "\n";
   }

@@ -60,10 +60,16 @@ Event::Event(
   std::string notes;
   createNotes(notes);
 
+  struct timeval now;
+  gettimeofday(&now, 0);
+
   bool untimedEvent = false;
   if ( !start_time.tv_sec ) {
     untimedEvent = true;
-    gettimeofday(&start_time, 0);
+    start_time = now;
+  } else if ( start_time.tv_sec > now.tv_sec ) {
+    Error("StartTime in the future");
+    start_time = now;
   }
 
   Storage * storage = monitor->getStorage();

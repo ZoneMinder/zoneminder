@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
   Info("Starting Capture version %s", ZM_VERSION);
   static char sql[ZM_SQL_SML_BUFSIZ];
   for ( int i = 0; i < n_monitors; i ++ ) {
-    snprintf( sql, sizeof(sql), "REPLACE INTO  Monitor_Status (MonitorId, Status ) VALUES ('%d','Running')", monitors[i]->Id() );
+    snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')", monitors[i]->Id() );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't run query: %s", mysql_error( &dbconn ) );
     }
@@ -238,102 +238,119 @@ int main(int argc, char *argv[]) {
   sigaddset(&block_set, SIGUSR1);
   sigaddset(&block_set, SIGUSR2);
 
-  monitors[0]->setStartupTime((time_t)time(NULL));
-  if ( monitors[0]->PrimeCapture() < 0 ) {
-    Error("Failed to prime capture of initial monitor");
-    exit(-1);
-  }
-
-  long *capture_delays = new long[n_monitors];
-  long *alarm_capture_delays = new long[n_monitors];
-  long *next_delays = new long[n_monitors];
-  struct timeval * last_capture_times = new struct timeval[n_monitors];
-  for ( int i = 0; i < n_monitors; i++ ) {
-    last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
-    capture_delays[i] = monitors[i]->GetCaptureDelay();
-    alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
-  }
-
   int result = 0;
-  struct timeval now;
-  struct DeltaTimeval delta_time;
-  while ( !zm_terminate ) {
-    sigprocmask(SIG_BLOCK, &block_set, 0);
-    for ( int i = 0; i < n_monitors; i++ ) {
-      long min_delay = MAXINT;
 
-      gettimeofday(&now, NULL);
-      for ( int j = 0; j < n_monitors; j++ ) {
-        if ( last_capture_times[j].tv_sec ) {
-          DELTA_TIMEVAL(delta_time, now, last_capture_times[j], DT_PREC_3);
-          if ( monitors[i]->GetState() == Monitor::ALARM )
-            next_delays[j] = alarm_capture_delays[j]-delta_time.delta;
-          else
-            next_delays[j] = capture_delays[j]-delta_time.delta;
-          if ( next_delays[j] < 0 )
-            next_delays[j] = 0;
-        } else {
-          next_delays[j] = 0;
-        }
-        if ( next_delays[j] <= min_delay ) {
-          min_delay = next_delays[j];
-        }
-      }
-
-      if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
-        if ( monitors[i]->PreCapture() < 0 ) {
-          Error("Failed to pre-capture monitor %d %d (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          zm_terminate = true;
-          result = -1;
-          break;
-        }
-        if ( monitors[i]->Capture() < 0 ) {
-          Error("Failed to capture image from monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          zm_terminate = true;
-          result = -1;
-          break;
-        }
-        if ( monitors[i]->PostCapture() < 0 ) {
-          Error("Failed to post-capture monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-          zm_terminate = true;
-          result = -1;
-          break;
-        }
-
-        if ( next_delays[i] > 0 ) {
-          gettimeofday(&now, NULL);
-          DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
-          long sleep_time = next_delays[i]-delta_time.delta;
-          if ( sleep_time > 0 ) {
-            usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
-          }
-        }
-        gettimeofday(&(last_capture_times[i]), NULL);
-      }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
-
-    }  // end foreach n_monitors
-    sigprocmask(SIG_UNBLOCK, &block_set, 0);
-    if ( zm_reload ) {
-      for ( int i = 0; i < n_monitors; i++ ) {
-        monitors[i]->Reload();
-      }
-      logTerm();
-      logInit( log_id_string );
-      zm_reload = false;
+  while( ! zm_terminate ) {
+    for ( int i = 0; i < n_monitors; i ++ ) {
+      time_t now = (time_t)time(NULL);
+      monitors[i]->setStartupTime(now);
     }
-  }  // end while ! zm_terminate
+    // Outer primary loop, handles connection to camera
+    if ( monitors[0]->PrimeCapture() < 0 ) {
+      Error("Failed to prime capture of initial monitor");
+      sleep(10);
+      continue;
+    }
+    static char sql[ZM_SQL_SML_BUFSIZ];
+    for ( int i = 0; i < n_monitors; i ++ ) {
+      snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')", monitors[i]->Id() );
+      if ( mysql_query( &dbconn, sql ) ) {
+        Error( "Can't run query: %s", mysql_error( &dbconn ) );
+      }
+    }
+
+    long *capture_delays = new long[n_monitors];
+    long *alarm_capture_delays = new long[n_monitors];
+    long *next_delays = new long[n_monitors];
+    struct timeval * last_capture_times = new struct timeval[n_monitors];
+    for ( int i = 0; i < n_monitors; i++ ) {
+      last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
+      capture_delays[i] = monitors[i]->GetCaptureDelay();
+      alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
+    }
+
+    struct timeval now;
+    struct DeltaTimeval delta_time;
+    while ( !zm_terminate ) {
+      sigprocmask(SIG_BLOCK, &block_set, 0);
+      for ( int i = 0; i < n_monitors; i++ ) {
+        long min_delay = MAXINT;
+
+        gettimeofday(&now, NULL);
+        for ( int j = 0; j < n_monitors; j++ ) {
+          if ( last_capture_times[j].tv_sec ) {
+            DELTA_TIMEVAL(delta_time, now, last_capture_times[j], DT_PREC_3);
+            if ( monitors[i]->GetState() == Monitor::ALARM )
+              next_delays[j] = alarm_capture_delays[j]-delta_time.delta;
+            else
+              next_delays[j] = capture_delays[j]-delta_time.delta;
+            if ( next_delays[j] < 0 )
+              next_delays[j] = 0;
+          } else {
+            next_delays[j] = 0;
+          }
+          if ( next_delays[j] <= min_delay ) {
+            min_delay = next_delays[j];
+          }
+        } // end foreach monitor
+
+        if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
+          if ( monitors[i]->PreCapture() < 0 ) {
+            Error("Failed to pre-capture monitor %d %d (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+            result = -1;
+            break;
+          }
+          if ( monitors[i]->Capture() < 0 ) {
+            Error("Failed to capture image from monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+            result = -1;
+            break;
+          }
+          if ( monitors[i]->PostCapture() < 0 ) {
+            Error("Failed to post-capture monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+            result = -1;
+            break;
+          }
+
+          if ( next_delays[i] > 0 ) {
+            gettimeofday(&now, NULL);
+            DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
+            long sleep_time = next_delays[i]-delta_time.delta;
+            if ( sleep_time > 0 ) {
+              usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
+            }
+          }
+          gettimeofday(&(last_capture_times[i]), NULL);
+        }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
+
+      }  // end foreach n_monitors
+      sigprocmask(SIG_UNBLOCK, &block_set, 0);
+      if ( zm_reload ) {
+        for ( int i = 0; i < n_monitors; i++ ) {
+          monitors[i]->Reload();
+        }
+        logTerm();
+        logInit( log_id_string );
+        zm_reload = false;
+      }
+      if ( result < 0 ) {
+        // Failure, try reconnecting
+        break;
+      }
+    }  // end while ! zm_terminate
+    delete [] alarm_capture_delays;
+    delete [] capture_delays;
+    delete [] next_delays;
+    delete [] last_capture_times;
+  } // end while ! zm_terminate outer connection loop
+
   for ( int i = 0; i < n_monitors; i++ ) {
     delete monitors[i];
   }
   delete [] monitors;
-  delete [] alarm_capture_delays;
-  delete [] capture_delays;
-  delete [] next_delays;
-  delete [] last_capture_times;
 
   Image::Deinitialise();
   logTerm();
   zmDbClose();
 
-  return( result );
+  return result;
 }

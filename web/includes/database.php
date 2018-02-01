@@ -98,7 +98,7 @@ function dbLog( $sql, $update=false ) {
 }
 
 function dbError( $sql ) {
-  Fatal( "SQL-ERR '".$dbConn->errorInfo()."', statement was '".$sql."'" );
+  Error( "SQL-ERR '".$dbConn->errorInfo()."', statement was '".$sql."'" );
 }
 
 function dbEscape( $string ) {
@@ -150,7 +150,7 @@ function dbQuery( $sql, $params=NULL ) {
 function dbFetchOne( $sql, $col=false, $params=NULL ) {
   $result = dbQuery( $sql, $params );
   if ( ! $result ) {
-    Fatal( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
+    Error( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
     return false;
   }
 
@@ -169,7 +169,7 @@ function dbFetchOne( $sql, $col=false, $params=NULL ) {
 function dbFetchAll( $sql, $col=false, $params=NULL ) {
   $result = dbQuery( $sql, $params );
   if ( ! $result ) {
-    Fatal( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" . ( $params ? 'params: ' .join(',', $params) : '' ) );
+    Error( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" . ( $params ? 'params: ' .join(',', $params) : '' ) );
     return false;
   }
 

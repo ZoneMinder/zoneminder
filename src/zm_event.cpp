@@ -58,10 +58,16 @@ Event::Event(
   std::string notes;
   createNotes(notes);
 
+  struct timeval now;
+  gettimeofday(&now, 0);
+
   bool untimedEvent = false;
   if ( !start_time.tv_sec ) {
     untimedEvent = true;
-    gettimeofday(&start_time, 0);
+    start_time = now;
+  } else if ( start_time.tv_sec > now.tv_sec ) {
+    Error("StartTime in the future");
+    start_time = now;
   }
 
   Storage * storage = monitor->getStorage();
@@ -420,7 +426,8 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
 
     struct DeltaTimeval delta_time;
     DELTA_TIMEVAL( delta_time, *(timestamps[i]), start_time, DT_PREC_2 );
-    if ( delta_time.sec > 99999999 ) {
+    // Delta is Decimal(8,2) so 6 integer digits and 2 decimal digits
+    if ( delta_time.sec > 999999 ) {
       Warning("Invalid delta_time from_unixtime(%ld), %s%ld.%02ld", 
            timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
         delta_time.sec = 0;

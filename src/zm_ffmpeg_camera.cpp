@@ -121,6 +121,9 @@ FfmpegCamera::~FfmpegCamera() {
 }
 
 int FfmpegCamera::PrimeCapture() {
+  if ( mCanCapture ) {
+    CloseFfmpeg();
+  }
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   Info( "Priming capture from %s", mPath.c_str() );
@@ -129,6 +132,7 @@ int FfmpegCamera::PrimeCapture() {
 }
 
 int FfmpegCamera::PreCapture() {
+  Debug(1, "PreCapture");
   // If Reopen was called, then ffmpeg is closed and we need to reopen it.
   if ( ! mCanCapture )
     return OpenFfmpeg();
@@ -177,7 +181,7 @@ int FfmpegCamera::PostCapture() {
 
 int FfmpegCamera::OpenFfmpeg() {
 
-  Debug ( 2, "OpenFfmpeg called." );
+  Debug(2, "OpenFfmpeg called.");
   int ret;
 
   mOpenStart = time(NULL);
@@ -221,7 +225,7 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   {
     mIsOpening = false;
-    Error( "Unable to open input %s due to: %s", mPath.c_str(), strerror(errno) );
+    Error("Unable to open input %s due to: %s", mPath.c_str(), strerror(errno));
     return -1;
   }
 
@@ -235,16 +239,16 @@ int FfmpegCamera::OpenFfmpeg() {
   mIsOpening = false;
   Debug ( 1, "Opened input" );
 
-  Info( "Stream open %s", mPath.c_str() );
+  Info( "Stream open %s, parsing streams...", mPath.c_str() );
 
 #if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
   if ( av_find_stream_info( mFormatContext ) < 0 )
 #else
   if ( avformat_find_stream_info( mFormatContext, 0 ) < 0 )
 #endif
-    Fatal( "Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno) );
+    Fatal("Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno));
 
-  Debug ( 1, "Got stream info" );
+  Debug(4, "Got stream info");
 
   // Find first video stream present
   // The one we want Might not be the first
@@ -289,11 +293,11 @@ int FfmpegCamera::OpenFfmpeg() {
   if ( mAudioStreamId == -1 )
     Debug( 3, "Unable to locate audio stream in %s", mPath.c_str() );
 
-  Debug ( 3, "Found video stream at index %d", mVideoStreamId );
-  Debug ( 3, "Found audio stream at index %d", mAudioStreamId );
+  Debug(3, "Found video stream at index %d", mVideoStreamId);
+  Debug(3, "Found audio stream at index %d", mAudioStreamId);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  mVideoCodecContext = avcodec_alloc_context3( NULL );
+  mVideoCodecContext = avcodec_alloc_context3(NULL);
   avcodec_parameters_to_context( mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar );
 #else
   mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
@@ -345,7 +349,8 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
   // Try and get the codec from the codec context
-    Fatal("Can't find codec for video stream from %s", mPath.c_str());
+    Error("Can't find codec for video stream from %s", mPath.c_str());
+    return -1;
   } else {
     Debug(1, "Video Found decoder");
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
@@ -388,7 +393,7 @@ int FfmpegCamera::OpenFfmpeg() {
     } else {
       Debug(1, "Audio Found decoder");
       zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
-  // Open the codec
+      // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
       Debug ( 1, "Calling avcodec_open" );
       if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )

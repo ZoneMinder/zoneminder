@@ -458,5 +458,5 @@ void dumpPacket(AVPacket *pkt, const char *text) {
            pkt->flags & AV_PKT_FLAG_KEY,
            pkt->pos,
            pkt->duration);
-  Debug(1, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
+  Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
 }

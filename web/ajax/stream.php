@@ -3,19 +3,19 @@
 
 $start_time = time();
 
-define( 'MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT );
+define( 'MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT/2 );
 define( 'MSG_DATA_SIZE', 4+256 );
 
 if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
   ajaxError( "Unexpected received message type '$type'" );
 }
 
-if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) ) {
-  ajaxError( 'socket_create() failed: '.socket_strerror(socket_last_error()) );
-}
 $key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.lock', 'Z');
 $semaphore = sem_get($key,1);
 if ( sem_acquire($semaphore,1) !== false ) {
+  if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) ) {
+    ajaxError( 'socket_create() failed: '.socket_strerror(socket_last_error()) );
+  }
 
   $localSocketFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'w.sock';
   if ( file_exists( $localSocketFile ) ) {
@@ -59,9 +59,12 @@ if ( sem_acquire($semaphore,1) !== false ) {
   $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock';
   $max_socket_tries = 10;
   // FIXME This should not exceed web_ajax_timeout
-  while ( !file_exists($remSockFile) && $max_socket_tries-- ) { //sometimes we are too fast for our own good, if it hasn't been setup yet give it a second.
+  while ( !file_exists($remSockFile) && $max_socket_tries-- ) { //sometimes we are too fast for our own good, if it hasn't been setup yet give it a second. 
+    // WHY? We will just send another one... 
+    // ANSWER: Because otherwise we get a log of errors logged
+
     //Logger::Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
-    usleep(200000);
+    usleep(1000);
   }
 
   if ( !file_exists($remSockFile) ) {

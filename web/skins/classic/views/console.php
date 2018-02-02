@@ -245,6 +245,11 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $url_parts = parse_url( $monitor['Path'] );
     unset($url_parts['user']);
     unset($url_parts['pass']);
+    unset($url_parts['scheme']);
+    unset($url_parts['query']);
+    unset($url_parts['path']);
+    if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
+      unset($url_parts['port']);
     $source = unparse_url( $url_parts );
   }
   if ( $source == '' ) {
@@ -285,9 +290,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colId"><?php echo count($displayMonitors) ?></td>
             <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
               <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor(this);"
+              <!--<input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor(this);"
               <?php echo  (canEdit( 'Monitors' ) && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
-              />
+              />-->
+<?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?>
               <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>
               <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/>
             </td>

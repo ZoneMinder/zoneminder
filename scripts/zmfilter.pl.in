@@ -73,6 +73,7 @@ use autouse 'Data::Dumper'=>qw(Dumper);
 my $filter_name = '';
 my $filter_id;
 my $version = 0;
+my $zm_terminate = 0;
 
 GetOptions(
     'filter=s'      =>\$filter_name,
@@ -94,7 +95,20 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ;
 
 logInit();
-logSetSignal();
+sub HupHandler {
+  Info("Received HUP, reloading");
+  &ZoneMinder::Logger::logHupHandler();
+}
+sub TermHandler {
+  Info("Received TERM, exiting");
+  $zm_terminate = 1;
+}
+sub Term {
+  exit( 0 );
+}
+$SIG{HUP} = \&HupHandler;
+$SIG{TERM} = \&TermHandler;
+$SIG{INT} = \&TermHandler;
 
 if ( $Config{ZM_OPT_UPLOAD} ) {
 # Comment these out if you don't have them and don't want to upload
@@ -166,7 +180,7 @@ if ( ! ( $filter_name or $filter_id ) ) {
 my @filters;
 my $last_action = 0;
 
-while( 1 ) {
+while( ! $zm_terminate ) {
   my $now = time;
   if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
     Debug( "Reloading filters\n" );
@@ -175,6 +189,7 @@ while( 1 ) {
   }
 
   foreach my $filter ( @filters ) {
+    last if $zm_terminate;
     if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
       my ( $proc ) = $0 =~ /(\S+)/;
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
@@ -186,7 +201,7 @@ while( 1 ) {
     }
   }
 
-  last if ( $filter_name or $filter_id );
+  last if $filter_name or $filter_id or $zm_terminate;
 
   Debug( "Sleeping for $delay seconds\n" );
   sleep( $delay );
@@ -266,6 +281,7 @@ sub checkFilter {
         ) );
 
   foreach my $event ( @Events ) {
+    last if $zm_terminate;
     Debug( "Checking event $event->{Id}" );
     my $delete_ok = !undef;
     $dbh->ping();

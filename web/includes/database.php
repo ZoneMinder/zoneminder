@@ -153,11 +153,15 @@ function dbFetchOne( $sql, $col=false, $params=NULL ) {
     Error( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
     return false;
   }
+  if ( ! $result->rowCount() ) {
+    # No rows is not an error
+    return false;
+  }
 
   if ( $result && $dbRow = $result->fetch( PDO::FETCH_ASSOC ) ) {
     if ( $col ) {
       if ( ! isset( $dbRow[$col] ) ) {
-        Warning( "$col does not exist in the returned row" );
+        Warning( "$col does not exist in the returned row " . print_r($dbRow, true) );
       }
       return $dbRow[$col];
     } 

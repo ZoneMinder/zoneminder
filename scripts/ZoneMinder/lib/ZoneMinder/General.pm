@@ -174,7 +174,6 @@ sub runCommand {
   if ( $status || logDebugging() ) {
     if ( $status ) {
       Error( "Unable to run \"$command\", output is \"$output\"\n" );
-      exit( -1 );
     } else {
       Debug( "Output: $output\n" );
     }

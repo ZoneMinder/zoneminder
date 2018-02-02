@@ -562,7 +562,7 @@ CREATE TABLE `Monitors` (
   `V4LMultiBuffer`	tinyint(1) unsigned,
   `V4LCapturesPerFrame`	tinyint(3) unsigned,
   `Protocol` varchar(16),
-  `Method` varchar(16) NOT NULL default '',
+  `Method` varchar(16) default '',
   `Host` varchar(64),
   `Port` varchar(8) NOT NULL default '',
   `SubPath` varchar(64) NOT NULL default '',

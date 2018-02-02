@@ -1937,7 +1937,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     }
     Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
     col++;
-    const char *method = dbrow[col]; col++;
+    const char *method = dbrow[col] ? dbrow[col] : ""; col++;
 
     int width = atoi(dbrow[col]); col++;
     int height = atoi(dbrow[col]); col++;
@@ -2438,7 +2438,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     const char *linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
     const char *path = dbrow[col]; col++;
-    const char *method = dbrow[col]; col++;
+    const char *method = dbrow[col] ? dbrow[col] : ""; col++;
     const char *options = dbrow[col] ? dbrow[col] : ""; col++;
 
     int width = atoi(dbrow[col]); col++;

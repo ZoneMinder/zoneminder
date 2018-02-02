@@ -484,19 +484,18 @@ if ( canEdit( 'Monitors' ) ) {
         );
 
     if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
-Logger::Debug("Auto selecting server");
+      Logger::Debug("Auto selecting server");
       $_REQUEST['newMonitor']['ServerId'] = dbFetchOne( 'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem ASC, CpuLoad ASC LIMIT 1', 'Id' );
-Logger::Debug("Auto selecting server: Got " . $_REQUEST['newMonitor']['ServerId'] );
+      Logger::Debug("Auto selecting server: Got " . $_REQUEST['newMonitor']['ServerId'] );
       if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
         $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
-Logger::Debug("Auto selecting server to " . ZM_SERVER_ID);
+        Logger::Debug("Auto selecting server to " . ZM_SERVER_ID);
       }
     } else {
       Logger::Debug("NOT Auto selecting server" . $_REQUEST['newMonitor']['ServerId']);
     }
 
     $columns = getTableColumns( 'Monitors' );
-Logger::Debug('coloumns:'.print_r($columns));
     $changes = getFormChanges( $monitor, $_REQUEST['newMonitor'], $types, $columns );
 
     if ( count( $changes ) ) {
@@ -553,7 +552,7 @@ Logger::Debug('coloumns:'.print_r($columns));
         $restart = true;
       } else if ( ! $user['MonitorIds'] ) { // Can only create new monitors if we are not restricted to specific monitors
 # FIXME This is actually a race condition. Should lock the table.
-        $maxSeq = dbFetchOne( 'SELECT max(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence' );
+        $maxSeq = dbFetchOne('SELECT MAX(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence');
         $changes[] = 'Sequence = '.($maxSeq+1);
 
         if ( dbQuery( 'INSERT INTO Monitors SET '.implode( ', ', $changes ) ) ) {

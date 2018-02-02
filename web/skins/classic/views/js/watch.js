@@ -38,7 +38,6 @@ function changeScale() {
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
-
   Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
 
   /*Stream could be an applet so can't use moo tools*/
@@ -107,101 +106,112 @@ function setAlarmState( currentAlarmState ) {
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
 if ( auth_hash )
   streamCmdParms += '&auth='+auth_hash;
-
-var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
+var streamCmdReq = new Request.JSON( {
+  url: monitorUrl+thisUrl,
+  method: 'get',
+  timeout: AJAX_TIMEOUT,
+  link: 'chain',
+  onSuccess: getStreamCmdResponse,
+  onFailure: getStreamCmdFailure
+} );
 var streamCmdTimer = null;
 
 var streamStatus;
 
+function getStreamCmdFailure(xhr) {
+console.log(xhr);
+}
 function getStreamCmdResponse( respObj, respText ) {
   watchdogOk("stream");
   if ( streamCmdTimer )
     streamCmdTimer = clearTimeout( streamCmdTimer );
-
   if ( respObj.result == 'Ok' ) {
-    streamStatus = respObj.status;
-    $('fpsValue').set( 'text', streamStatus.fps );
+    // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
+    if ( respObj.status ) {
+      streamStatus = respObj.status;
+      $('fpsValue').set( 'text', streamStatus.fps );
 
-    setAlarmState( streamStatus.state );
+      setAlarmState( streamStatus.state );
 
-    $('levelValue').set( 'text', streamStatus.level );
-    if ( streamStatus.level > 95 )
-      $('levelValue').className = "alarm";
-    else if ( streamStatus.level > 80 )
-      $('levelValue').className = "alert";
-    else
-      $('levelValue').className = "ok";
+      $('levelValue').set( 'text', streamStatus.level );
+      if ( streamStatus.level > 95 )
+        $('levelValue').className = "alarm";
+      else if ( streamStatus.level > 80 )
+        $('levelValue').className = "alert";
+      else
+        $('levelValue').className = "ok";
 
-    var delayString = secsToTime( streamStatus.delay );
+      var delayString = secsToTime( streamStatus.delay );
 
-    if ( streamStatus.paused == true ) {
-      $('modeValue').set( 'text', "Paused" );
-      $('rate').addClass( 'hidden' );
-      $('delayValue').set( 'text', delayString );
-      $('delay').removeClass( 'hidden' );
-      $('level').removeClass( 'hidden' );
-      streamCmdPause( false );
-    } else if ( streamStatus.delayed == true ) {
-      $('modeValue').set( 'text', "Replay" );
-      $('rateValue').set( 'text', streamStatus.rate );
-      $('rate').removeClass( 'hidden' );
-      $('delayValue').set( 'text', delayString );
-      $('delay').removeClass( 'hidden' );
-      $('level').removeClass( 'hidden' );
-      if ( streamStatus.rate == 1 ) {
-        streamCmdPlay( false );
-      } else if ( streamStatus.rate > 0 ) {
-        if ( streamStatus.rate < 1 )
-          streamCmdSlowFwd( false );
-        else
-          streamCmdFastFwd( false );
-      } else {
-        if ( streamStatus.rate > -1 )
-          streamCmdSlowRev( false );
-        else
-          streamCmdFastRev( false );
-      } // rate
-    } else {
-      $('modeValue').set( 'text', "Live" );
-      $('rate').addClass( 'hidden' );
-      $('delay').addClass( 'hidden' );
-      $('level').addClass( 'hidden' );
-      streamCmdPlay( false );
-    } // end if paused or delayed
-
-    $('zoomValue').set( 'text', streamStatus.zoom );
-    if ( streamStatus.zoom == "1.0" )
-      setButtonState( $('zoomOutBtn'), 'unavail' );
-    else
-      setButtonState( $('zoomOutBtn'), 'inactive' );
-
-    if ( canEditMonitors ) {
-      if ( streamStatus.enabled ) {
-        $('enableAlarmsLink').addClass( 'hidden' );
-        $('disableAlarmsLink').removeClass( 'hidden' );
-        if ( streamStatus.forced ) {
-          $('forceAlarmLink').addClass( 'hidden' );
-          $('cancelAlarmLink').removeClass( 'hidden' );
+      if ( streamStatus.paused == true ) {
+        $('modeValue').set( 'text', "Paused" );
+        $('rate').addClass( 'hidden' );
+        $('delayValue').set( 'text', delayString );
+        $('delay').removeClass( 'hidden' );
+        $('level').removeClass( 'hidden' );
+        streamCmdPause( false );
+      } else if ( streamStatus.delayed == true ) {
+        $('modeValue').set( 'text', "Replay" );
+        $('rateValue').set( 'text', streamStatus.rate );
+        $('rate').removeClass( 'hidden' );
+        $('delayValue').set( 'text', delayString );
+        $('delay').removeClass( 'hidden' );
+        $('level').removeClass( 'hidden' );
+        if ( streamStatus.rate == 1 ) {
+          streamCmdPlay( false );
+        } else if ( streamStatus.rate > 0 ) {
+          if ( streamStatus.rate < 1 )
+            streamCmdSlowFwd( false );
+          else
+            streamCmdFastFwd( false );
         } else {
-          $('forceAlarmLink').removeClass( 'hidden' );
-          $('cancelAlarmLink').addClass( 'hidden' );
-        }
-        $('forceCancelAlarm').removeClass( 'hidden' );
+          if ( streamStatus.rate > -1 )
+            streamCmdSlowRev( false );
+          else
+            streamCmdFastRev( false );
+        } // rate
       } else {
-        $('enableAlarmsLink').removeClass( 'hidden' );
-        $('disableAlarmsLink').addClass( 'hidden' );
-        $('forceCancelAlarm').addClass( 'hidden' );
-      }
-      $('enableDisableAlarms').removeClass( 'hidden' );
-    } // end if canEditMonitors
+        $('modeValue').set( 'text', "Live" );
+        $('rate').addClass( 'hidden' );
+        $('delay').addClass( 'hidden' );
+        $('level').addClass( 'hidden' );
+        streamCmdPlay( false );
+      } // end if paused or delayed
 
-    if ( streamStatus.auth ) {
-      console.log("Haev a new auth hash" + streamStatus.auth);
-      // Try to reload the image stream.
-      var streamImg = $('liveStream');
-      if ( streamImg )
-        streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
-    } // end if haev a new auth hash
+      $('zoomValue').set( 'text', streamStatus.zoom );
+      if ( streamStatus.zoom == "1.0" )
+        setButtonState( $('zoomOutBtn'), 'unavail' );
+      else
+        setButtonState( $('zoomOutBtn'), 'inactive' );
+
+      if ( canEditMonitors ) {
+        if ( streamStatus.enabled ) {
+          $('enableAlarmsLink').addClass( 'hidden' );
+          $('disableAlarmsLink').removeClass( 'hidden' );
+          if ( streamStatus.forced ) {
+            $('forceAlarmLink').addClass( 'hidden' );
+            $('cancelAlarmLink').removeClass( 'hidden' );
+          } else {
+            $('forceAlarmLink').removeClass( 'hidden' );
+            $('cancelAlarmLink').addClass( 'hidden' );
+          }
+          $('forceCancelAlarm').removeClass( 'hidden' );
+        } else {
+          $('enableAlarmsLink').removeClass( 'hidden' );
+          $('disableAlarmsLink').addClass( 'hidden' );
+          $('forceCancelAlarm').addClass( 'hidden' );
+        }
+        $('enableDisableAlarms').removeClass( 'hidden' );
+      } // end if canEditMonitors
+
+      if ( streamStatus.auth ) {
+        console.log("Haev a new auth hash" + streamStatus.auth);
+        // Try to reload the image stream.
+        var streamImg = $('liveStream');
+        if ( streamImg )
+          streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
+      } // end if haev a new auth hash
+    } // end if respObj.status
   } else {
     checkStreamForErrors("getStreamCmdResponse",respObj);//log them
     // Try to reload the image stream.

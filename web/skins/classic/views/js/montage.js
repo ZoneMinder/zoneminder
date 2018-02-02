@@ -56,64 +56,66 @@ function Monitor( monitorData ) {
     var stream = $j('#liveStream'+this.id)[0];
 
     if ( respObj.result == 'Ok' ) {
-      this.status = respObj.status;
-      this.alarmState = this.status.state;
+      if ( respObj.status ) {
+        this.status = respObj.status;
+        this.alarmState = this.status.state;
 
-      var stateClass = "";
-      if ( this.alarmState == STATE_ALARM )
-        stateClass = "alarm";
-      else if ( this.alarmState == STATE_ALERT )
-        stateClass = "alert";
-      else
-        stateClass = "idle";
+        var stateClass = "";
+        if ( this.alarmState == STATE_ALARM )
+          stateClass = "alarm";
+        else if ( this.alarmState == STATE_ALERT )
+          stateClass = "alert";
+        else
+          stateClass = "idle";
 
-      if ( !COMPACT_MONTAGE ) {
-        $('fpsValue'+this.id).set( 'text', this.status.fps );
-        $('stateValue'+this.id).set( 'text', stateStrings[this.alarmState] );
-        this.setStateClass( $('monitorState'+this.id), stateClass );
-      }
-      this.setStateClass( $('monitor'+this.id), stateClass );
+        if ( !COMPACT_MONTAGE ) {
+          $('fpsValue'+this.id).set( 'text', this.status.fps );
+          $('stateValue'+this.id).set( 'text', stateStrings[this.alarmState] );
+          this.setStateClass( $('monitorState'+this.id), stateClass );
+        }
+        this.setStateClass( $('monitor'+this.id), stateClass );
 
-      /*Stream could be an applet so can't use moo tools*/
-      stream.className = stateClass;
+        /*Stream could be an applet so can't use moo tools*/
+        stream.className = stateClass;
 
-      var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
-      var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
+        var isAlarmed = ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT );
+        var wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
 
-      var newAlarm = ( isAlarmed && !wasAlarmed );
-      var oldAlarm = ( !isAlarmed && wasAlarmed );
+        var newAlarm = ( isAlarmed && !wasAlarmed );
+        var oldAlarm = ( !isAlarmed && wasAlarmed );
 
-      if ( newAlarm ) {
+        if ( newAlarm ) {
+          if ( false && SOUND_ON_ALARM ) {
+            // Enable the alarm sound
+            $('alarmSound').removeClass( 'hidden' );
+          }
+          if ( POPUP_ON_ALARM ) {
+            windowToFront();
+          }
+        }
         if ( false && SOUND_ON_ALARM ) {
-          // Enable the alarm sound
-          $('alarmSound').removeClass( 'hidden' );
+          if ( oldAlarm ) {
+            // Disable alarm sound
+            $('alarmSound').addClass( 'hidden' );
+          }
         }
-        if ( POPUP_ON_ALARM ) {
-          windowToFront();
-        }
-      }
-      if ( false && SOUND_ON_ALARM ) {
-        if ( oldAlarm ) {
-          // Disable alarm sound
-          $('alarmSound').addClass( 'hidden' );
-        }
-      }
-      if ( this.status.auth ) {
-        if ( this.status.auth != auth_hash ) {
-          // Try to reload the image stream.
-          if ( stream )
-            stream.src = stream.src.replace( /auth=\w+/i, 'auth='+this.status.auth );
-          console.log("Changed auth from " + auth_hash + " to " + this.status.auth );
-          auth_hash = this.status.auth;
-        }
-      } // end if have a new auth hash
+        if ( this.status.auth ) {
+          if ( this.status.auth != auth_hash ) {
+            // Try to reload the image stream.
+            if ( stream )
+              stream.src = stream.src.replace( /auth=\w+/i, 'auth='+this.status.auth );
+            console.log("Changed auth from " + auth_hash + " to " + this.status.auth );
+            auth_hash = this.status.auth;
+          }
+        } // end if have a new auth hash
+      } // end if has state
     } else {
       console.error( respObj.message );
       // Try to reload the image stream.
       if ( stream ) {
         if ( stream.src ) {
-        console.log('Reloading stream: ' + stream.src );
-        stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+          console.log('Reloading stream: ' + stream.src );
+          stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         } else {
         }
       } else {

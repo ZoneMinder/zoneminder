@@ -479,12 +479,12 @@ Debug(2,"last_write_index(%d), last_write_time(%d)", shared_data->last_write_ind
     while( 
         ( shared_data->last_write_index == (unsigned int)image_buffer_count )
          &&
-        ( shared_data->last_write_time == 0) 
+        ( shared_data->last_write_time == 0 ) 
         && 
         ( !zm_terminate )
         ) {
-      Warning( "Waiting for capture daemon" );
-      sleep( 1 );
+      Debug(1, "Waiting for capture daemon");
+      sleep(1);
     }
     ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
     adaptive_skip = true;
@@ -1205,7 +1205,7 @@ bool Monitor::Analyse() {
     fps = double(fps_report_interval)/(now.tv_sec - last_fps_time);
     Info( "%s: %d - Analysing at %.2f fps", name, image_count, fps );
     static char sql[ZM_SQL_SML_BUFSIZ];
-    snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (Id,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, fps, fps );
+    snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, fps, fps );
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't run query: %s", mysql_error( &dbconn ) );
     }
@@ -1937,7 +1937,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     }
     Debug( 1, "Got %d for v4l_captures_per_frame", v4l_captures_per_frame );
     col++;
-    const char *method = dbrow[col]; col++;
+    const char *method = dbrow[col] ? dbrow[col] : ""; col++;
 
     int width = atoi(dbrow[col]); col++;
     int height = atoi(dbrow[col]); col++;
@@ -2438,7 +2438,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     const char *linked_monitors = dbrow[col] ? dbrow[col] : ""; col++;
 
     const char *path = dbrow[col]; col++;
-    const char *method = dbrow[col]; col++;
+    const char *method = dbrow[col] ? dbrow[col] : ""; col++;
     const char *options = dbrow[col] ? dbrow[col] : ""; col++;
 
     int width = atoi(dbrow[col]); col++;
@@ -3022,7 +3022,7 @@ Debug(4, "Return from Capture (%d)", captureResult);
         Info( "%s: images:%d - Capturing at %.2lf fps", name, image_count, fps );
         last_fps_time = now;
         static char sql[ZM_SQL_SML_BUFSIZ];
-        snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (Id,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps );
+        snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps );
         if ( mysql_query( &dbconn, sql ) ) {
           Error( "Can't run query: %s", mysql_error( &dbconn ) );
         }

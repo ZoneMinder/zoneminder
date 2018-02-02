@@ -269,14 +269,14 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
           if ( isWindows() ) {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'
               classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-              codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
+              codebase="'.ZM_BASE_PROTOCOL.'://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
               standby="Loading Microsoft Windows Media Player components..."
               type="'.$mimeType.'">
               <param name="FileName" value="'.$src.'"/>
               <param name="autoStart" value="1"/>
               <param name="showControls" value="0"/>
               <embed type="'.$mimeType.'"
-              pluginspage="http://www.microsoft.com/Windows/MediaPlayer/"
+              pluginspage="'.ZM_BASE_PROTOCOL.'://www.microsoft.com/Windows/MediaPlayer/"
               src="'.$src.'"
               name="'.$title.'"
               width="'.$width.'"
@@ -291,14 +291,14 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
         {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
-            codebase="http://www.apple.com/qtactivex/qtplugin.cab"
+            codebase="'.ZM_BASE_PROTOCOL.'://www.apple.com/qtactivex/qtplugin.cab"
             type="'.$mimeType.'">
             <param name="src" value="'.$src.'"/>
             <param name="autoplay" VALUE="true"/>
             <param name="controller" VALUE="false"/>
             <embed type="'.$mimeType.'"
             src="'.$src.'"
-            pluginspage="http://www.apple.com/quicktime/download/"
+            pluginspage="'.ZM_BASE_PROTOCOL.'://www.apple.com/quicktime/download/"
             name="'.$title.'" width="'.$width.'" height="'.$height.'"
             autoplay="true"
             controller="true">
@@ -309,13 +309,13 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
         {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
-            codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
+            codebase="'.ZM_BASE_PROTOCOL.'://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
             type="'.$mimeType.'">
             <param name="movie" value="'.$src.'"/>
             <param name="quality" value="high"/>
             <param name="bgcolor" value="#ffffff"/>
             <embed type="'.$mimeType.'"
-            pluginspage="http://www.macromedia.com/go/getflashplayer"
+            pluginspage="'.ZM_BASE_PROTOCOL.'://www.macromedia.com/go/getflashplayer"
             src="'.$src.'"
             name="'.$title.'"
             width="'.$width.'"
@@ -2132,10 +2132,11 @@ function ajaxResponse( $result=false ) {
   if ( function_exists( 'ajaxCleanup' ) )
     ajaxCleanup();
   $response = array( 'result'=>'Ok' );
-  if ( is_array( $result ) )
+  if ( is_array( $result ) ) {
     $response = array_merge( $response, $result );
-  elseif ( !empty($result) )
+  } elseif ( !empty($result) ) {
     $response['message'] = $result;
+  }
   header( 'Content-type: text/plain' );
   exit( jsonEncode( $response ) );
 }

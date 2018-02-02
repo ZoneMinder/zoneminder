@@ -24,18 +24,18 @@ if ( !canView( 'Events' ) ) {
 }
 
 if ( isset($_SESSION['export']) ) {
-    if ( isset($_SESSION['export']['detail']) )
-        $_REQUEST['exportDetail'] = $_SESSION['export']['detail'];
-    if ( isset($_SESSION['export']['frames']) )
-        $_REQUEST['exportFrames'] = $_SESSION['export']['frames'];
-    if ( isset($_SESSION['export']['images']) )
-        $_REQUEST['exportImages'] = $_SESSION['export']['images'];
-    if ( isset($_SESSION['export']['video']) )
-        $_REQUEST['exportVideo'] = $_SESSION['export']['video'];
-    if ( isset($_SESSION['export']['misc']) )
-        $_REQUEST['exportMisc'] = $_SESSION['export']['misc'];
-    if ( isset($_SESSION['export']['format']) )
-        $_REQUEST['exportFormat'] = $_SESSION['export']['format'];
+  if ( isset($_SESSION['export']['detail']) )
+    $_REQUEST['exportDetail'] = $_SESSION['export']['detail'];
+  if ( isset($_SESSION['export']['frames']) )
+    $_REQUEST['exportFrames'] = $_SESSION['export']['frames'];
+  if ( isset($_SESSION['export']['images']) )
+    $_REQUEST['exportImages'] = $_SESSION['export']['images'];
+  if ( isset($_SESSION['export']['video']) )
+    $_REQUEST['exportVideo'] = $_SESSION['export']['video'];
+  if ( isset($_SESSION['export']['misc']) )
+    $_REQUEST['exportMisc'] = $_SESSION['export']['misc'];
+  if ( isset($_SESSION['export']['format']) )
+    $_REQUEST['exportFormat'] = $_SESSION['export']['format'];
 }
 
 $focusWindow = true;
@@ -101,24 +101,20 @@ elseif ( !empty($_REQUEST['eids']) )
             </tr>
           </tbody>
         </table>
-        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('Export') ?>" onclick="exportEvent( this.form );" disabled="disabled"/>
+        <button id="exportButton" name="exportButton" value="Export" onclick="exportEvent(this.form);" disabled="disabled"><?php echo translate('Export') ?></button>
       </form>
     </div>
 <?php
-    if ( isset($_REQUEST['generated']) )
-    {
+    if ( isset($_REQUEST['generated']) ) {
 ?>
       <h2 id="exportProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>"><span id="exportProgressText"><?php echo $_REQUEST['generated']?translate('ExportSucceeded'):translate('ExportFailed') ?></span><span id="exportProgressTicker"></span></h2>
 <?php
-    }
-    else
-    {
+    } else {
 ?>
       <h2 id="exportProgress" class="hidden warnText"><span id="exportProgressText"><?php echo translate('Exporting') ?></span><span id="exportProgressTicker"></span></h2>
 <?php
     }
-    if ( !empty($_REQUEST['generated']) )
-    {
+    if ( !empty($_REQUEST['generated']) ) {
 ?>
       <h3 id="downloadLink"><a href="<?php echo validHtmlStr($_REQUEST['exportFile']) ?>"><?php echo translate('Download') ?></a></h3>
 <?php

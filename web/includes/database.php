@@ -98,7 +98,7 @@ function dbLog( $sql, $update=false ) {
 }
 
 function dbError( $sql ) {
-  Fatal( "SQL-ERR '".$dbConn->errorInfo()."', statement was '".$sql."'" );
+  Error( "SQL-ERR '".$dbConn->errorInfo()."', statement was '".$sql."'" );
 }
 
 function dbEscape( $string ) {
@@ -142,21 +142,26 @@ function dbQuery( $sql, $params=NULL ) {
     }
   } catch(PDOException $e) {
     Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):'') );
+    return NULL;
   }
-  return( $result );
+  return $result;
 }
 
 function dbFetchOne( $sql, $col=false, $params=NULL ) {
   $result = dbQuery( $sql, $params );
   if ( ! $result ) {
-    Fatal( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
+    Error( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
+    return false;
+  }
+  if ( ! $result->rowCount() ) {
+    # No rows is not an error
     return false;
   }
 
   if ( $result && $dbRow = $result->fetch( PDO::FETCH_ASSOC ) ) {
     if ( $col ) {
       if ( ! isset( $dbRow[$col] ) ) {
-        Warning( "$col does not exist in the returned row" );
+        Warning( "$col does not exist in the returned row " . print_r($dbRow, true) );
       }
       return $dbRow[$col];
     } 
@@ -168,7 +173,7 @@ function dbFetchOne( $sql, $col=false, $params=NULL ) {
 function dbFetchAll( $sql, $col=false, $params=NULL ) {
   $result = dbQuery( $sql, $params );
   if ( ! $result ) {
-    Fatal( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" . ( $params ? 'params: ' .join(',', $params) : '' ) );
+    Error( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" . ( $params ? 'params: ' .join(',', $params) : '' ) );
     return false;
   }
 

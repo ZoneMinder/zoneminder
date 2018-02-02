@@ -2982,7 +2982,7 @@ Debug(4, "Return from Capture (%d)", captureResult);
 
     if ( capture_image->Size() > camera->ImageSize() ) {
       Error( "Captured image %d does not match expected size %d check width, height and colour depth",capture_image->Size(),camera->ImageSize() );
-      return( -1 );
+      return -1;
     }
 
     if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {

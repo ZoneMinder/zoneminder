@@ -172,7 +172,7 @@ while( 1 ) {
 
       if ( $restart ) {
         Info( "Restarting analysis daemon for $$monitor{Id} $$monitor{Name}\n");
-        my $command = "zmdc.pl restart zma -m ".$monitor->{Id};
+        my $command = 'zmdc.pl restart zma -m '.$monitor->{Id};
         runCommand( $command );
       } # end if restart
     } # end if check analysis daemon

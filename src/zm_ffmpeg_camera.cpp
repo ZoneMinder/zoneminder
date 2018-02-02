@@ -108,7 +108,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mFrame = NULL;
   frameCount = 0;
   startTime = 0;
-  mIsOpening = false;
   mCanCapture = false;
   mOpenStart = 0;
   videoStore = NULL;
@@ -162,6 +161,7 @@ void FfmpegCamera::Terminate() {
 
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
+  Info( "Priming capture from %s", mPath.c_str() );
     CloseFfmpeg();
   }
   mVideoStreamId = -1;
@@ -322,7 +322,6 @@ int FfmpegCamera::OpenFfmpeg() {
   int ret;
 
   mOpenStart = time(NULL);
-  mIsOpening = true;
   have_video_keyframe = false;
 
   // Open the input, not necessarily a file
@@ -364,7 +363,6 @@ int FfmpegCamera::OpenFfmpeg() {
   if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
 #endif
   {
-    mIsOpening = false;
     Error("Unable to open input %s due to: %s", mPath.c_str(), strerror(errno));
     return -1;
   }
@@ -373,8 +371,7 @@ int FfmpegCamera::OpenFfmpeg() {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
 
-  mIsOpening = false;
-  Debug ( 1, "Opened input" );
+  Debug(1, "Opened input");
 
   Info( "Stream open %s, parsing streams...", mPath.c_str() );
 
@@ -382,10 +379,13 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(4, "Calling av_find_stream_info");
   if ( av_find_stream_info( mFormatContext ) < 0 )
 #else
-    Debug(4, "Calling avformat_find_stream_info");
+  Debug(4, "Calling avformat_find_stream_info");
   if ( avformat_find_stream_info( mFormatContext, 0 ) < 0 )
 #endif
-    Fatal("Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno));
+  {
+    Error("Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno));
+    return -1;
+  }
 
   startTime = av_gettime();//FIXME here or after find_Stream_info
   Debug(4, "Got stream info");

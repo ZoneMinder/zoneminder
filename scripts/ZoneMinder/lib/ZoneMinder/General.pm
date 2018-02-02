@@ -173,7 +173,7 @@ sub runCommand {
   chomp( $output );
   if ( $status || logDebugging() ) {
     if ( $status ) {
-      Error( "Unable to run \"$command\", output is \"$output\"\n" );
+      Error( "Unable to run \"$command\", output is \"$output\", status is $status\n" );
     } else {
       Debug( "Output: $output\n" );
     }

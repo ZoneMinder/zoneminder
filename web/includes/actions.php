@@ -67,13 +67,20 @@ function do_post_request($url, $data, $optional_headers = null) {
 function getAffectedIds( $name ) {
   $names = $name.'s';
   $ids = array();
-  if ( isset($_REQUEST[$names]) || isset($_REQUEST[$name]) ) {
-    if ( isset($_REQUEST[$names]) )
-      $ids = validInt($_REQUEST[$names]);
-    else if ( isset($_REQUEST[$name]) )
-      $ids[] = validInt($_REQUEST[$name]);
-  }
-  return( $ids );
+	if ( isset($_REQUEST[$names]) ) {
+		if ( is_array($_REQUEST[$names]) ) {
+			$ids = $_REQUEST[$names];
+		} else {
+			$ids = array($_REQUEST[$names]);
+		}
+	} else if ( isset($_REQUEST[$name]) ) {
+		if ( is_array($_REQUEST[$name]) ) {
+			$ids = $_REQUEST[$name];
+		} else {
+			$ids = array($_REQUEST[$name]);
+		}
+	}
+	return $ids;
 }
 
 
@@ -198,33 +205,39 @@ if ( canView( 'Events' ) ) {
     else {
 
     // Event scope actions, edit permissions required
-    if ( canEdit( 'Events' ) ) {
-      if ( $action == 'rename' && isset($_REQUEST['eventName']) && !empty($_REQUEST['eid']) ) {
+    if ( canEdit('Events') ) {
+      if ( ($action == 'rename') && isset($_REQUEST['eventName']) && !empty($_REQUEST['eid']) ) {
         dbQuery( 'UPDATE Events SET Name=? WHERE Id=?', array( $_REQUEST['eventName'], $_REQUEST['eid'] ) );
       } else if ( $action == 'eventdetail' ) {
         if ( !empty($_REQUEST['eid']) ) {
           dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['eid'] ) );
         } else {
-          foreach( getAffectedIds( 'markEid' ) as $markEid ) {
+					$dbConn->beginTransaction();
+          foreach( getAffectedIds('markEid') as $markEid ) {
             dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $markEid ) );
           }
+					$dbConn->commit();
         }
         $refreshParent = true;
         $closePopup = true;
       } elseif ( $action == 'archive' || $action == 'unarchive' ) {
         $archiveVal = ($action == 'archive')?1:0;
         if ( !empty($_REQUEST['eid']) ) {
-          dbQuery( 'UPDATE Events SET Archived=? WHERE Id=?', array( $archiveVal, $_REQUEST['eid']) );
+          dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array($archiveVal, $_REQUEST['eid']));
         } else {
+					$dbConn->beginTransaction();
           foreach( getAffectedIds( 'markEid' ) as $markEid ) {
-            dbQuery( 'UPDATE Events SET Archived=? WHERE Id=?', array( $archiveVal, $markEid ) );
+            dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array($archiveVal, $markEid));
           }
+					$dbConn->commit();
           $refreshParent = true;
         }
       } elseif ( $action == 'delete' ) {
+				$dbConn->beginTransaction();
         foreach( getAffectedIds( 'markEid' ) as $markEid ) {
           deleteEvent( $markEid );
         }
+				$dbConn->commit();
         $refreshParent = true;
       }
     } // end if canEdit(Events)

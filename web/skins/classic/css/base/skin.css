@@ -95,6 +95,7 @@ input,textarea,select,button,.btn-primary {
     font-weight: 400;
     font-size: 100%;
     color: #333333;
+					 text-align: left;
 }
 /*
 input[type=text], input[type=password], input[type="url"], textarea, select {
@@ -543,4 +544,7 @@ margin-left: 0;
 
 .nav-pills > li > a {
   border-radius: 0;
+}
+.chosen-container {
+text-align: left;
 }

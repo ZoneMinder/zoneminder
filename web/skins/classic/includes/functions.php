@@ -81,11 +81,13 @@ echo output_link_if_exists( array(
   'css/'.$css.'/views/'.$basename.'.css',
   '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
   '/js/jquery-ui-structure.css',
+  '/css/base/jquery-ui-theme.css',
   '/css/'.$css.'/jquery-ui-theme.css',
 )
 );
 ?>
-  <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
+  <!--Chosen can't be cache-busted because it loads sprites by relative path-->
+<link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ($basename == 'watch') {
     echo output_link_if_exists( array(

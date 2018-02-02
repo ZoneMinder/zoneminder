@@ -127,8 +127,8 @@ $archiveTypes = array(
 
 $focusWindow = true;
 
-$storageareas = array();
-$storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
+$storageareas = array( '' => 'All' );
+//$storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
 foreach ( dbFetchAll( 'SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC' ) as $storage ) {
   $storageareas[$storage['Id']] = $storage['Name'];
 }

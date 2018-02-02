@@ -562,7 +562,7 @@ CREATE TABLE `Monitors` (
   `V4LMultiBuffer`	tinyint(1) unsigned,
   `V4LCapturesPerFrame`	tinyint(3) unsigned,
   `Protocol` varchar(16),
-  `Method` varchar(16) NOT NULL default '',
+  `Method` varchar(16) default '',
   `Host` varchar(64),
   `Port` varchar(8) NOT NULL default '',
   `SubPath` varchar(64) NOT NULL default '',
@@ -841,7 +841,7 @@ CREATE TABLE `Storage` (
 	`Path`	varchar(64)	NOT NULL default '',
 	`Name`	varchar(64) NOT NULL default '',
 	`Type`	enum('local','s3fs') NOT NULL default 'local',
-  `DiskSpace`   bigint unsigned default NULL,
+  `DiskSpace`   bigint default NULL,
   `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   `ServerId` int(10) unsigned,
 	PRIMARY KEY (`Id`)

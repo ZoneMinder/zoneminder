@@ -56,3 +56,9 @@ select {
   width: 300px;
   text-align: right;
 }
+select#Id {
+min-width: 400px;
+}
+.Name input {
+min-width: 400px;
+}

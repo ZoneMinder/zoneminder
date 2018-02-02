@@ -196,7 +196,7 @@ MAIN: while( $loop ) {
     or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
 
   my $eventSelectSql = 'SELECT Id, (unix_timestamp() - unix_timestamp(StartTime)) AS Age
-    FROM Events WHERE MonitorId = ? ORDER BY Id';
+    FROM Events WHERE MonitorId = ?'.(@Storage_Areas ? ' AND StorageId IN ('.join(',',map { '?'} @Storage_Areas).')' : '' ). ' ORDER BY Id';
   my $eventSelectSth = $dbh->prepare_cached( $eventSelectSql )
     or Fatal( "Can't prepare '$eventSelectSql': ".$dbh->errstr() );
 
@@ -207,7 +207,7 @@ MAIN: while( $loop ) {
     $Monitors{$$monitor{Id}} = $monitor;
 
     my $db_events = $db_monitors->{$monitor->{Id}} = {};
-    my $res = $eventSelectSth->execute( $monitor->{Id} )
+    my $res = $eventSelectSth->execute( $monitor->{Id}, map { $$_{Id} } @Storage_Areas )
       or Fatal( "Can't execute: ".$eventSelectSth->errstr() );
     while ( my $event = $eventSelectSth->fetchrow_hashref() ) {
       $db_events->{$event->{Id}} = $event->{Age};

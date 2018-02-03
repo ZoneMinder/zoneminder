@@ -378,14 +378,14 @@ BEGIN
     DELETE FROM Events_Archived WHERE EventId=OLD.Id;
     UPDATE Monitors SET
       ArchivedEvents = ArchivedEvents - 1,
-      ArchivedEventDiskSpace = ArchivedEventDiskSpace - OLD.DiskSpace,
+      ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0),
       TotalEvents = TotalEvents - 1,
-      TotalEventDiskSpace = TotalEventDiskSpace - OLD.DiskSpace
+      TotalEventDiskSpace = COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0)
       WHERE Id=OLD.MonitorId;
   ELSE
     UPDATE Monitors SET
     TotalEvents = TotalEvents-1,
-    TotalEventDiskSpace=TotalEventDiskSpace-OLD.DiskSpace
+    TotalEventDiskSpace=COALESCE(TotalEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0)
     WHERE Id=OLD.MonitorId;
   END IF;
 END;

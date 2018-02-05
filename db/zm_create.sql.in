@@ -224,7 +224,7 @@ CREATE TABLE `Events_Hour` (
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
-  KEY `Events_Hour_MonitorId_idx` (`MonitorId`)
+  KEY `Events_Hour_MonitorId_idx` (`MonitorId`),
   KEY `Events_Hour_StartTime_idx` (`StartTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -261,7 +261,7 @@ CREATE TABLE `Events_Day` (
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
-  KEY `Events_Day_MonitorId_idx` (`MonitorId`)
+  KEY `Events_Day_MonitorId_idx` (`MonitorId`),
   KEY `Events_Day_StartTime_idx` (`StartTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -298,7 +298,7 @@ CREATE TABLE `Events_Week` (
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
-  KEY `Events_Week_MonitorId_idx` (`MonitorId`)
+  KEY `Events_Week_MonitorId_idx` (`MonitorId`),
   KEY `Events_Week_StartTime_idx` (`StartTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -335,7 +335,7 @@ CREATE TABLE `Events_Month` (
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
-  KEY `Events_Month_MonitorId_idx` (`MonitorId`)
+  KEY `Events_Month_MonitorId_idx` (`MonitorId`),
   KEY `Events_Month_StartTime_idx` (`StartTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

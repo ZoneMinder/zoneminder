@@ -238,6 +238,20 @@ FOR EACH ROW BEGIN
   WHERE Id=OLD.MonitorId;
 END; 
 //
+
+DROP TRIGGER IF EXISTS Events_Hour_update_trigger//
+
+CREATE TRIGGER Events_Hour_update_trigger AFTER UPDATE ON Events_Hour
+FOR EACH ROW
+  BEGIN
+    declare diff BIGINT default 0;
+
+    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
+    IF ( diff ) THEN
+      UPDATE Monitors SET HourEventDiskSpace=COALESCE(HourEventDiskSpace,)+diff WHERE Monitors.Id=MonitorId;
+    END IF;
+  END;
+
 DELIMITER ;
 
 DROP TABLE IF EXISTS `Events_Day`;
@@ -262,6 +276,20 @@ FOR EACH ROW BEGIN
 END;
 //
 
+DROP TRIGGER IF EXISTS Events_Day_update_trigger;
+CREATE TRIGGER Events_Day_update_trigger AFTER UPDATE ON Events_Day
+FOR EACH ROW
+  BEGIN
+    declare diff BIGINT default 0;
+
+    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
+    IF ( diff ) THEN
+      UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+diff WHERE Monitors.Id=MonitorId;
+    END IF;
+  END;
+  //
+
+
 DELIMITER ;
 DROP TABLE IF EXISTS `Events_Week`;
 CREATE TABLE `Events_Week` (
@@ -284,6 +312,19 @@ FOR EACH ROW BEGIN
   WHERE Id=OLD.MonitorId;
 END;
 //
+
+DROP TRIGGER IF EXISTS Events_Week_update_trigger;
+CREATE TRIGGER Events_Week_update_trigger AFTER UPDATE ON Events_Week
+FOR EACH ROW
+  BEGIN
+    declare diff BIGINT default 0;
+
+    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
+    IF ( diff ) THEN
+      UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+diff WHERE Monitors.Id=MonitorId;
+    END IF;
+  END;
+  //
 
 DELIMITER ;
 
@@ -308,6 +349,21 @@ FOR EACH ROW BEGIN
   WHERE Id=OLD.MonitorId;
 END;
 //
+
+
+DROP TRIGGER IF EXISTS Events_Month_update_trigger;
+CREATE TRIGGER Events_Month_update_trigger AFTER UPDATE ON Events_Month
+FOR EACH ROW
+  BEGIN
+    declare diff BIGINT default 0;
+
+    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
+    IF ( diff ) THEN
+      UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+diff WHERE Monitors.Id=MonitorId;
+    END IF;
+  END;
+  //
+
 
 DELIMITER ;
 

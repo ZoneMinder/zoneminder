@@ -121,21 +121,17 @@ void RemoteCameraHttp::Initialise()
   state = HEADER;
 }
 
-int RemoteCameraHttp::Connect()
-{
+int RemoteCameraHttp::Connect() {
   struct addrinfo *p;
 
-  for(p = hp; p != NULL; p = p->ai_next)
-  {
+  for ( p = hp; p != NULL; p = p->ai_next ) {
     sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
-    if ( sd < 0 )
-    {
+    if ( sd < 0 ) {
       Warning("Can't create socket: %s", strerror(errno) );
       continue;
     }
 
-    if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 )
-    {
+    if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
       close(sd);
       sd = -1;
       char buf[sizeof(struct in6_addr)];
@@ -151,14 +147,14 @@ int RemoteCameraHttp::Connect()
     break;
   }
 
-  if(p == NULL) {
+  if ( p == NULL ) {
     Error("Unable to connect to the remote camera, aborting");
-    return( -1 );
+    return -1;
   }
 
-  Debug( 3, "Connected to host, socket = %d", sd );
-  return( sd );
-}
+  Debug(3, "Connected to host, socket = %d", sd);
+  return sd;
+} // end int RemoteCameraHttp::Connect()
 
 int RemoteCameraHttp::Disconnect()
 {
@@ -1063,8 +1059,8 @@ int RemoteCameraHttp::PreCapture() {
   if ( sd < 0 ) {
     Connect();
     if ( sd < 0 ) {
-      Error( "Unable to connect to camera" );
-      return( -1 );
+      Error("Unable to connect to camera");
+      return -1;
     }
     mode = SINGLE_IMAGE;
     buffer.clear();

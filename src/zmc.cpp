@@ -342,6 +342,7 @@ int main(int argc, char *argv[]) {
     delete [] capture_delays;
     delete [] next_delays;
     delete [] last_capture_times;
+    sleep(10);
   } // end while ! zm_terminate outer connection loop
 
   for ( int i = 0; i < n_monitors; i++ ) {

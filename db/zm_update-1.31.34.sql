@@ -5,7 +5,7 @@ CREATE TRIGGER Events_Hour_delete_trigger BEFORE DELETE ON Events_Hour
 FOR EACH ROW BEGIN
   UPDATE Monitors SET
   HourEvents = COALESCE(HourEvents,1)-1,
-  HourEventDiskSpace=COALESCE(HourEventDiskSpace)-COALESCE(OLD.DiskSpace,0)
+  HourEventDiskSpace=COALESCE(HourEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0)
   WHERE Id=OLD.MonitorId;
 END;
 //

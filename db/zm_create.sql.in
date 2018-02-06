@@ -248,7 +248,12 @@ FOR EACH ROW
 
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
-      UPDATE Monitors SET HourEventDiskSpace=COALESCE(HourEventDiskSpace,)+diff WHERE Monitors.Id=MonitorId;
+      IF ( NEW.MonitorID != OLD.MonitorID ) THEN
+        UPDATE Monitors SET HourEventDiskSpace=COALESCE(DayEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET HourEventDiskSpace=COALESCE(DayEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+      ELSE
+        UPDATE Monitors SET HourEventDiskSpace=COALESCE(DayEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
+      END IF;
     END IF;
   END;
 
@@ -284,7 +289,12 @@ FOR EACH ROW
 
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
-      UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+diff WHERE Monitors.Id=MonitorId;
+      IF ( NEW.MonitorID != OLD.MonitorID ) THEN
+        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+      ELSE
+        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
+      END IF;
     END IF;
   END;
   //
@@ -321,7 +331,12 @@ FOR EACH ROW
 
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
-      UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+diff WHERE Monitors.Id=MonitorId;
+      IF ( NEW.MonitorID != OLD.MonitorID ) THEN
+        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+      ELSE
+        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
+      END IF;
     END IF;
   END;
   //
@@ -359,7 +374,12 @@ FOR EACH ROW
 
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
-      UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+diff WHERE Monitors.Id=MonitorId;
+      IF ( NEW.MonitorID != OLD.MonitorID ) THEN
+        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+      ELSE
+        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
+      END IF;
     END IF;
   END;
   //

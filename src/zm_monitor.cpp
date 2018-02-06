@@ -1226,12 +1226,16 @@ void Monitor::UpdateAnalysisFPS() {
   struct timeval now;
   gettimeofday( &now, NULL );
   if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
-    analysis_fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
-    Info( "%s: %d - Analysing at %.2f fps", name, image_count, analysis_fps );
-    static char sql[ZM_SQL_SML_BUFSIZ];
-    snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, analysis_fps, analysis_fps );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't run query: %s", mysql_error( &dbconn ) );
+    double new_analysis_fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
+    Info("%s: %d - Analysing at %.2f fps", name, image_count, new_analysis_fps);
+    if ( new_analysis_fps != analysis_fps ) {
+      analysis_fps = new_analysis_fps;
+
+      static char sql[ZM_SQL_SML_BUFSIZ];
+      snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, analysis_fps, analysis_fps );
+      if ( mysql_query( &dbconn, sql ) ) {
+        Error("Can't run query: %s", mysql_error(&dbconn));
+      }
     }
     last_analysis_fps_time = now.tv_sec;
   }
@@ -2935,16 +2939,18 @@ int Monitor::Capture() {
         // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
         if ( now != last_fps_time ) {
           // # of images per interval / the amount of time it took
-          capture_fps = double(fps_report_interval)/(now-last_fps_time);
+          double new_capture_fps = double(fps_report_interval)/(now-last_fps_time);
           //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
           //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-          Info( "%s: %d - Capturing at %.2lf fps", name, image_count, capture_fps );
-          last_fps_time = now;
-          static char sql[ZM_SQL_SML_BUFSIZ];
-          snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, capture_fps, capture_fps );
-          if ( mysql_query( &dbconn, sql ) ) {
-            Error( "Can't run query: %s", mysql_error( &dbconn ) );
-          }
+          Info("%s: %d - Capturing at %.2lf fps", name, image_count, capture_fps);
+          if ( new_capture_fps != capture_fps ) {
+            last_fps_time = now;
+            static char sql[ZM_SQL_SML_BUFSIZ];
+            snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, capture_fps, capture_fps);
+            if ( mysql_query(&dbconn, sql) ) {
+              Error("Can't run query: %s", mysql_error(&dbconn));
+            }
+          } // end if fps has changed
         }
       } // end if report fps
     } else { // result == 0

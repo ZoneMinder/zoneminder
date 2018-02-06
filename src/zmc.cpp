@@ -241,6 +241,7 @@ int main(int argc, char *argv[]) {
 
   int result = 0;
   while( ! zm_terminate ) {
+    result = 0;
     for ( int i = 0; i < n_monitors; i ++ ) {
       time_t now = (time_t)time(NULL);
       monitors[i]->setStartupTime(now);
@@ -371,6 +372,7 @@ int main(int argc, char *argv[]) {
       }
     } // end foreach monitor
     delete [] analysis_threads;
+    sleep(10);
   } // end while ! zm_terminate outer connection loop
   delete [] monitors;
 

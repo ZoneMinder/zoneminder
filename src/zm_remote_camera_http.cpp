@@ -144,12 +144,12 @@ int RemoteCameraHttp::Connect() {
 
   if ( p == NULL ) {
     Error("Unable to connect to the remote camera, aborting");
-    return( -1 );
+    return -1;
   }
 
-  Debug( 3, "Connected to host, socket = %d", sd );
-  return( sd );
-}
+  Debug(3, "Connected to host, socket = %d", sd);
+  return sd;
+} // end int RemoteCameraHttp::Connect()
 
 int RemoteCameraHttp::Disconnect() {
   close( sd );
@@ -1006,8 +1006,8 @@ int RemoteCameraHttp::PreCapture() {
   if ( sd < 0 ) {
     Connect();
     if ( sd < 0 ) {
-      Error( "Unable to connect to camera" );
-      return( -1 );
+      Error("Unable to connect to camera");
+      return -1;
     }
     mode = SINGLE_IMAGE;
     buffer.clear();

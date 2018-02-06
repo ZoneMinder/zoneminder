@@ -224,9 +224,40 @@ CREATE TABLE `Events_Hour` (
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
-  KEY `Events_Hour_MonitorId_idx` (`MonitorId`)
+  KEY `Events_Hour_MonitorId_idx` (`MonitorId`),
   KEY `Events_Hour_StartTime_idx` (`StartTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+
+delimiter //
+DROP TRIGGER IF EXISTS Events_Hour_delete_trigger//
+CREATE TRIGGER Events_Hour_delete_trigger BEFORE DELETE ON Events_Hour
+FOR EACH ROW BEGIN
+  UPDATE Monitors SET
+  HourEvents = COALESCE(HourEvents,1)-1,
+  HourEventDiskSpace=COALESCE(HourEventDiskSpace)-COALESCE(OLD.DiskSpace,0)
+  WHERE Id=OLD.MonitorId;
+END; 
+//
+
+DROP TRIGGER IF EXISTS Events_Hour_update_trigger//
+
+CREATE TRIGGER Events_Hour_update_trigger AFTER UPDATE ON Events_Hour
+FOR EACH ROW
+  BEGIN
+    declare diff BIGINT default 0;
+
+    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
+    IF ( diff ) THEN
+      IF ( NEW.MonitorID != OLD.MonitorID ) THEN
+        UPDATE Monitors SET HourEventDiskSpace=COALESCE(DayEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET HourEventDiskSpace=COALESCE(DayEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+      ELSE
+        UPDATE Monitors SET HourEventDiskSpace=COALESCE(DayEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
+      END IF;
+    END IF;
+  END;
+
+DELIMITER ;
 
 DROP TABLE IF EXISTS `Events_Day`;
 CREATE TABLE `Events_Day` (
@@ -235,11 +266,41 @@ CREATE TABLE `Events_Day` (
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
-  KEY `Events_Day_MonitorId_idx` (`MonitorId`)
+  KEY `Events_Day_MonitorId_idx` (`MonitorId`),
   KEY `Events_Day_StartTime_idx` (`StartTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+delimiter //
+DROP TRIGGER IF EXISTS Events_Day_delete_trigger//
+CREATE TRIGGER Events_Day_delete_trigger BEFORE DELETE ON Events_Day
+FOR EACH ROW BEGIN
+  UPDATE Monitors SET
+  DayEvents = COALESCE(DayEvents,1)-1,
+  DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0)
+  WHERE Id=OLD.MonitorId;
+END;
+//
 
+DROP TRIGGER IF EXISTS Events_Day_update_trigger;
+CREATE TRIGGER Events_Day_update_trigger AFTER UPDATE ON Events_Day
+FOR EACH ROW
+  BEGIN
+    declare diff BIGINT default 0;
+
+    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
+    IF ( diff ) THEN
+      IF ( NEW.MonitorID != OLD.MonitorID ) THEN
+        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+      ELSE
+        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
+      END IF;
+    END IF;
+  END;
+  //
+
+
+DELIMITER ;
 DROP TABLE IF EXISTS `Events_Week`;
 CREATE TABLE `Events_Week` (
   `EventId` int(10) unsigned NOT NULL,
@@ -247,9 +308,40 @@ CREATE TABLE `Events_Week` (
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
-  KEY `Events_Week_MonitorId_idx` (`MonitorId`)
+  KEY `Events_Week_MonitorId_idx` (`MonitorId`),
   KEY `Events_Week_StartTime_idx` (`StartTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+
+delimiter //
+DROP TRIGGER IF EXISTS Events_Week_delete_trigger//
+CREATE TRIGGER Events_Week_delete_trigger BEFORE DELETE ON Events_Week
+FOR EACH ROW BEGIN
+  UPDATE Monitors SET
+  WeekEvents = COALESCE(WeekEvents,1)-1,
+  WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0)
+  WHERE Id=OLD.MonitorId;
+END;
+//
+
+DROP TRIGGER IF EXISTS Events_Week_update_trigger;
+CREATE TRIGGER Events_Week_update_trigger AFTER UPDATE ON Events_Week
+FOR EACH ROW
+  BEGIN
+    declare diff BIGINT default 0;
+
+    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
+    IF ( diff ) THEN
+      IF ( NEW.MonitorID != OLD.MonitorID ) THEN
+        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+      ELSE
+        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
+      END IF;
+    END IF;
+  END;
+  //
+
+DELIMITER ;
 
 DROP TABLE IF EXISTS `Events_Month`;
 CREATE TABLE `Events_Month` (
@@ -258,10 +350,42 @@ CREATE TABLE `Events_Month` (
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
-  KEY `Events_Month_MonitorId_idx` (`MonitorId`)
+  KEY `Events_Month_MonitorId_idx` (`MonitorId`),
   KEY `Events_Month_StartTime_idx` (`StartTime`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+delimiter //
+DROP TRIGGER IF EXISTS Events_Month_delete_trigger//
+CREATE TRIGGER Events_Month_delete_trigger BEFORE DELETE ON Events_Month
+FOR EACH ROW BEGIN
+  UPDATE Monitors SET
+  MonthEvents = COALESCE(MonthEvents,1)-1,
+  MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0)
+  WHERE Id=OLD.MonitorId;
+END;
+//
+
+
+DROP TRIGGER IF EXISTS Events_Month_update_trigger;
+CREATE TRIGGER Events_Month_update_trigger AFTER UPDATE ON Events_Month
+FOR EACH ROW
+  BEGIN
+    declare diff BIGINT default 0;
+
+    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
+    IF ( diff ) THEN
+      IF ( NEW.MonitorID != OLD.MonitorID ) THEN
+        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+      ELSE
+        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
+      END IF;
+    END IF;
+  END;
+  //
+
+
+DELIMITER ;
 
 DROP TABLE IF EXISTS `Events_Archived`;
 CREATE TABLE `Events_Archived` (
@@ -346,27 +470,30 @@ delimiter ;
 DROP TRIGGER IF EXISTS event_insert_trigger;
 
 delimiter //
-create trigger event_insert_trigger after insert on Events
-for each row
-  begin
+/* The assumption is that when an Event is inserted, it has no size yet, so don't bother updating the DiskSpace, just the count.
+ * The DiskSpace will get update in the Event Update Trigger
+ */
+CREATE TRIGGER event_insert_trigger AFTER INSERT ON Events
+FOR EACH ROW
+  BEGIN
 
   INSERT INTO Events_Hour (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   INSERT INTO Events_Day (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   INSERT INTO Events_Week (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   INSERT INTO Events_Month (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
-  UPDATE Monitors SET TotalEvents = COALESCE(TotalEvents,0)+1 WHERE Id=NEW.MonitorId;
-end;
+  UPDATE Monitors SET
+  HourEvents = COALESCE(DayEvents,0)+1,
+  DayEvents = COALESCE(DayEvents,0)+1,
+  WeekEvents = COALESCE(DayEvents,0)+1,
+  MonthEvents = COALESCE(DayEvents,0)+1,
+  TotalEvents = COALESCE(TotalEvents,0)+1
+  WHERE Id=NEW.MonitorId;
+END;
 //
 
-delimiter ;
+DROP TRIGGER IF EXISTS event_delete_trigger//
 
-
-drop trigger if exists event_delete_trigger;
-
-delimiter //
-
-CREATE TRIGGER event_delete_trigger BEFORE DELETe on Events
-
+CREATE TRIGGER event_delete_trigger BEFORE DELETE ON Events
 FOR EACH ROW
 BEGIN
   call update_storage_stats(OLD.StorageId, -OLD.DiskSpace);
@@ -378,14 +505,14 @@ BEGIN
     DELETE FROM Events_Archived WHERE EventId=OLD.Id;
     UPDATE Monitors SET
       ArchivedEvents = ArchivedEvents - 1,
-      ArchivedEventDiskSpace = ArchivedEventDiskSpace - OLD.DiskSpace,
+      ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0),
       TotalEvents = TotalEvents - 1,
-      TotalEventDiskSpace = TotalEventDiskSpace - OLD.DiskSpace
+      TotalEventDiskSpace = COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0)
       WHERE Id=OLD.MonitorId;
   ELSE
     UPDATE Monitors SET
     TotalEvents = TotalEvents-1,
-    TotalEventDiskSpace=TotalEventDiskSpace-OLD.DiskSpace
+    TotalEventDiskSpace=COALESCE(TotalEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0)
     WHERE Id=OLD.MonitorId;
   END IF;
 END;

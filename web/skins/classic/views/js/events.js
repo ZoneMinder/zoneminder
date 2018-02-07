@@ -57,7 +57,7 @@ function deleteEvents( element, name ) {
   }
   if ( count > 0 ) {
     if ( confirm( confirmDeleteEventsString ) ) {
-      form.action.value = 'delete';
+      form.elements['action'].value = 'delete';
       form.submit();
     }
   }
@@ -120,13 +120,13 @@ function viewEvents( element, name ) {
 
 function archiveEvents( element, name ) {
   var form = element.form;
-  form.action.value = 'archive';
+  form.elements['action'].value = 'archive';
   form.submit();
 }
 
-function unarchiveEvents( element, name ) {
+function unarchiveEvents(element, name) {
   var form = element.form;
-  form.action.value = 'unarchive';
+  form.elements['action'].value = 'unarchive';
   form.submit();
 }
 

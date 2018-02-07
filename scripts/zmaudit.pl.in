@@ -647,17 +647,17 @@ MAIN: while( $loop ) {
       # Number of rows
       my $selectLogRowCountSql = 'SELECT count(*) AS Rows FROM Logs';
       my $selectLogRowCountSth = $dbh->prepare_cached( $selectLogRowCountSql )
-      or Fatal( "Can't prepare '$selectLogRowCountSql': ".$dbh->errstr() );
+        or Fatal( "Can't prepare '$selectLogRowCountSql': ".$dbh->errstr() );
       $res = $selectLogRowCountSth->execute()
-      or Fatal( "Can't execute: ".$selectLogRowCountSth->errstr() );
+        or Fatal( "Can't execute: ".$selectLogRowCountSth->errstr() );
       my $row = $selectLogRowCountSth->fetchrow_hashref();
       my $logRows = $row->{Rows};
       if ( $logRows > $Config{ZM_LOG_DATABASE_LIMIT} ) {
         my $deleteLogByRowsSql = 'DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?';
         my $deleteLogByRowsSth = $dbh->prepare_cached( $deleteLogByRowsSql )
-        or Fatal( "Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr() );
+          or Fatal( "Can't prepare '$deleteLogByRowsSql': ".$dbh->errstr() );
         $res = $deleteLogByRowsSth->execute( $logRows - $Config{ZM_LOG_DATABASE_LIMIT} )
-        or Fatal( "Can't execute: ".$deleteLogByRowsSth->errstr() );
+          or Fatal( "Can't execute: ".$deleteLogByRowsSth->errstr() );
         if ( $deleteLogByRowsSth->rows() ) {
           aud_print( 'Deleted '.$deleteLogByRowsSth->rows() ." log table entries by count\n" );
         }
@@ -668,9 +668,9 @@ MAIN: while( $loop ) {
       'DELETE low_priority FROM Logs
       WHERE TimeKey < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.')';
       my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
-      or Fatal( "Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr() );
+        or Fatal( "Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr() );
       $res = $deleteLogByTimeSth->execute()
-      or Fatal( "Can't execute: ".$deleteLogByTimeSth->errstr() );
+        or Fatal( "Can't execute: ".$deleteLogByTimeSth->errstr() );
       if ( $deleteLogByTimeSth->rows() ){
         aud_print( 'Deleted '.$deleteLogByTimeSth->rows()
           ." log table entries by time\n" );
@@ -680,7 +680,7 @@ MAIN: while( $loop ) {
   $loop = $continuous;
 
   my $eventcounts_sql = q`
-UPDATE Monitors SET
+  UPDATE Monitors SET
   TotalEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id),
   TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
   HourEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 hour) ),
@@ -693,12 +693,56 @@ UPDATE Monitors SET
   MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 month) AND DiskSpace IS NOT NULL),
   ArchivedEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1),
   ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1 AND DiskSpace IS NOT NULL)
-`;
+  `;
 
-my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
-$eventcounts_sth->execute();
-$eventcounts_sth->finish();
+  my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
+  $eventcounts_sth->execute();
+  $eventcounts_sth->finish();
 
+  my $eventcounts_hour_sql = q`
+  UPDATE Monitors INNER JOIN (
+  SELECT  MonitorId, COUNT(*) AS HourEvents, SUM(COALESCE(DiskSpace,0)) AS HourEventDiskSpace
+  FROM Events_Hour GROUP BY MonitorId
+  ) AS E ON E.MonitorId=Monitors.Id SET
+  Monitors.HourEvents = E.HourEvents,
+  Monitors.HourEventDiskSpace = E.HourEventDiskSpace
+  `;
+
+
+  my $eventcounts_day_sql = q`
+  UPDATE Monitors INNER JOIN (
+  SELECT  MonitorId, COUNT(*) AS DayEvents, SUM(COALESCE(DiskSpace,0)) AS DayEventDiskSpace
+  FROM Events_Day GROUP BY MonitorId
+  ) AS E ON E.MonitorId=Monitors.Id SET
+  Monitors.DayEvents = E.DayEvents,
+  Monitors.DayEventDiskSpace = E.DayEventDiskSpace
+  `;
+
+  my $eventcounts_week_sql = q`
+  UPDATE Monitors INNER JOIN (
+  SELECT  MonitorId, COUNT(*) AS WeekEvents, SUM(COALESCE(DiskSpace,0)) AS WeekEventDiskSpace
+  FROM Events_Week GROUP BY MonitorId
+  ) AS E ON E.MonitorId=Monitors.Id SET
+  Monitors.WeekEvents = E.WeekEvents,
+  Monitors.WeekEventDiskSpace = E.WeekEventDiskSpace
+  `;
+
+  my $eventcounts_month_sql = q`
+  UPDATE Monitors INNER JOIN (
+  SELECT  MonitorId, COUNT(*) AS MonthEvents, SUM(COALESCE(DiskSpace,0)) AS MonthEventDiskSpace
+  FROM Events_Month GROUP BY MonitorId
+  ) AS E ON E.MonitorId=Monitors.Id SET
+  Monitors.MonthEvents = E.MonthEvents,
+  Monitors.MonthEventDiskSpace = E.MonthEventDiskSpace
+  `;
+  my $eventcounts_hour_sth = $dbh->prepare_cached( $eventcounts_hour_sql );
+  my $eventcounts_day_sth = $dbh->prepare_cached( $eventcounts_day_sql );
+  my $eventcounts_week_sth = $dbh->prepare_cached( $eventcounts_week_sql );
+  my $eventcounts_month_sth = $dbh->prepare_cached( $eventcounts_month_sql );
+  $eventcounts_hour_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
+  $eventcounts_day_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
+  $eventcounts_week_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
+  $eventcounts_month_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
   sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;
 };
 

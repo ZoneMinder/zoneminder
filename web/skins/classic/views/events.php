@@ -48,24 +48,19 @@ Error("No filtering in events, will load ALL!");
 }
 $eventsSql .= " ORDER BY $sortColumn $sortOrder";
 
-if ( isset($_REQUEST['page']) )
-  $page = validInt($_REQUEST['page']);
-else
-  $page = 0;
-if ( isset($_REQUEST['limit']) )
-  $limit = validInt($_REQUEST['limit']);
-else
-  $limit = 0;
+$page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
+$limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;
 
 $nEvents = dbFetchOne( $countSql, 'EventCount' );
 if ( !empty($limit) && $nEvents > $limit ) {
   $nEvents = $limit;
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
+#Logger::Debug("Page $page Limit $limit #vents: $nEvents pages: $pages ");
 if ( !empty($page) ) {
   if ( $page < 0 )
     $page = 1;
-  else if ( $page > $pages )
+  else if ( $pages and ( $page > $pages ) )
     $page = $pages;
 
   $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);

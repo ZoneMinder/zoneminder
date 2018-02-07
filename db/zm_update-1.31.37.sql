@@ -46,4 +46,4 @@ FOR EACH ROW
 
 //
 
-UPDATE Storage SET DiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=Storage.Id)//
+UPDATE Storage SET DiskSpace=(SELECT SUM(COALESCE(DiskSpace,0)) FROM Events WHERE StorageId=Storage.Id)//

@@ -1204,7 +1204,7 @@ bool Monitor::Analyse() {
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
 
     double new_fps = double(fps_report_interval)/(now.tv_sec - last_fps_time);
-    Info( "%s: %d - Analysing at %.2f fps", name, image_count, new_fps );
+    Info("%s: %d - Analysing at %.2f fps", name, image_count, new_fps);
     if ( fps != new_fps ) {
       fps = new_fps;
       static char sql[ZM_SQL_SML_BUFSIZ];

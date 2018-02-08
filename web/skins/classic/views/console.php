@@ -291,20 +291,20 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
           <tr>
             <td class="colId"><?php echo count($displayMonitors) ?></td>
             <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
-              <button name="addBtn" onclick="addMonitor(this);"
+              <button type="button" name="addBtn" onclick="addMonitor(this);"
               <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
               >
               <?php echo translate('AddNewMonitor') ?>
               </button>
-              <button name="cloneBtn" onclick="addMonitor(this);"
+              <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
               <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
               style="display:none;">
               <?php echo translate('CloneMonitor') ?>
               </button>
-              <button name="editBtn" onclick="editMonitor(this);" disabled="disabled">
+              <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
               <?php echo translate('Edit') ?>
               </button>
-              <button name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
+              <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
               <?php echo translate('Delete') ?>
               </button>
             </td>

@@ -72,7 +72,7 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
   -->
   </style>
   <script type="text/javascript">
-<?php include(ZM_SKIN_PATH.'/js/jquery.js'
+<?php include(ZM_SKIN_PATH.'/js/jquery.js') ?>
 </script>
   <script type="text/javascript" language="javascript" charset="utf-8">
 

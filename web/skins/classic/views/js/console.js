@@ -33,24 +33,29 @@ function setButtonStates( element ) {
 }
 
 function addMonitor(element) {
+  createPopup( '?view=monitor', 'zmMonitor0', 'monitor' );
+}
+
+function cloneMonitor(element) {
+
   var form = element.form;
   var dupParam;
   var monitorId=-1;
-  if (form.addBtn.value == jsTranslatedCloneText) {
-    // get the value of the first checkbox
-    for ( var i = 0; i < form.elements.length; i++ ) {
-      if ( form.elements[i].type == "checkbox" ) {
-        if ( form.elements[i].checked ) {
-          monitorId = form.elements[i].value;
-          break;
-        }
-      }
+  // get the value of the first checkbox
+  for ( var i = 0; i < form.elements.length; i++ ) {
+    if (
+      form.elements[i].type == "checkbox"
+      &&
+      form.elements[i].name == "markMids[]"
+      &&
+      form.elements[i].checked
+    ) {
+      monitorId = form.elements[i].value;
+      break;
     }
-  }
+  } // end foreach element
   if ( monitorId != -1 ) {
     createPopup( '?view=monitor&dupId='+monitorId, 'zmMonitor0', 'monitor' );
-  } else {
-    window.location = '?view=add_monitors';
   }
 }
 
@@ -59,14 +64,18 @@ function editMonitor( element ) {
   var monitorIds = Array();
 
   for ( var i = 0; i < form.elements.length; i++ ) {
-    if ( form.elements[i].type == "checkbox" ) {
-      if ( form.elements[i].checked ) {
-        monitorIds.push( form.elements[i].value );
-        //form.elements[i].checked = false;
-        //setButtonStates( form.elements[i] );
-        //$(form.elements[i]).getParent( 'tr' ).removeClass( 'highlight' );
-        //break;
-      }
+    if ( 
+      form.elements[i].type == "checkbox"
+      &&
+      form.elements[i].name == "markMids[]"
+      &&
+      form.elements[i].checked
+    ) {
+      monitorIds.push( form.elements[i].value );
+      //form.elements[i].checked = false;
+      //setButtonStates( form.elements[i] );
+      //$(form.elements[i]).getParent( 'tr' ).removeClass( 'highlight' );
+      //break;
     }
   } // end foreach checkboxes
   if ( monitorIds.length == 1 )

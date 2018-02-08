@@ -232,7 +232,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
         <input id="speedslider" type="range" min="0" max="<?php echo count($speeds)-1?>" value="<?php echo $speedIndex ?>" step="1" onchange="setSpeed(this.value);" oninput="showSpeed(this.value);"/>
         <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
       </div>
-      <div style="display: inline-flex; border: 1px solid black; flex-flow: row wrap;">
+      <div id="ButtonsDiv">
         <button type="button" id="panleft"   onclick="click_panleft();"         >&lt; <?php echo translate('Pan') ?></button>
         <button type="button" id="zoomin"    onclick="click_zoomin();"           ><?php echo translate('In +') ?></button>
         <button type="button" id="zoomout"   onclick="click_zoomout();"          ><?php echo translate('Out -') ?></button>

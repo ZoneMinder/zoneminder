@@ -1,22 +1,34 @@
-var jsTranslatedAddText;
-var jsTranslatedCloneText;
 
 function setButtonStates( element ) {
   var form = element.form;
   var checked = 0;
-  for ( var i = 0; i < form.elements.length; i++ ) {
-    if ( form.elements[i].type == "checkbox" ) {
-      if ( form.elements[i].checked ) {
-        if ( checked++ > 1 )
-          break;
-      }
+  // We want to know if 1 or more monitors are checked
+  for ( var i=0; i < form.elements.length; i++ ) {
+    if (
+      form.elements[i].type=="checkbox"
+      &&
+      form.elements[i].name=="markMids[]"
+      &&
+      form.elements[i].checked
+    ) {
+      if ( checked++ > 1 )
+        break;
     }
   }
   $(element).closest("tr").toggleClass("danger");
-  form.editBtn.disabled = checked ? false : true;
-  form.addBtn.value = (checked==1) ? jsTranslatedCloneText:jsTranslatedAddText;
-
-  form.deleteBtn.disabled = (checked==0);
+  if ( checked ) {
+    form.editBtn.disabled = false;
+    form.deleteBtn.disabled = false;
+    if ( checked == 1 ) {
+      $j(form.cloneBtn).css('display','inline');
+    } else {
+      form.cloneBtn.hide();
+    }
+  } else {
+    form.cloneBtn.hide();
+    form.editBtn.disabled = true;
+    form.deleteBtn.disabled = true;
+  }
 }
 
 function addMonitor(element) {

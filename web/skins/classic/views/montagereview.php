@@ -219,8 +219,8 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
     <div id="header">
 <?php echo $filter_bar ?>
       <div id="DateTimeDiv">
-        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime ) ?>"> to 
-        <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime ) ?>">
+        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime ) ?>"/> to 
+        <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime ) ?>"/>
       </div>
       <div id="ScaleDiv">
         <label for="scaleslider"><?php echo translate('Scale')?></label>

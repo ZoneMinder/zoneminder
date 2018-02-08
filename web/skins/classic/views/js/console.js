@@ -2,20 +2,21 @@
 function setButtonStates( element ) {
   var form = element.form;
   var checked = 0;
-  // We want to know if 1 or more monitors are checked
   for ( var i=0; i < form.elements.length; i++ ) {
     if (
       form.elements[i].type=="checkbox"
       &&
       form.elements[i].name=="markMids[]"
-      &&
-      form.elements[i].checked
     ) {
-      if ( checked++ > 1 )
-        break;
+      var tr = $j(form.elements[i]).closest("tr");
+      if ( form.elements[i].checked ) {
+        checked ++;
+        tr.addClass("danger");
+      } else {
+        tr.removeClass("danger");
+      }
     }
   }
-  $(element).closest("tr").toggleClass("danger");
   if ( checked ) {
     form.editBtn.disabled = false;
     form.deleteBtn.disabled = false;
@@ -87,8 +88,6 @@ function reloadWindow() {
 }
 
 function initPage() {
-  jsTranslatedAddText = translatedAddText;
-  jsTranslatedCloneText = translatedCloneText;
   reloadWindow.periodical( consoleRefreshTimeout );
   if ( showVersionPopup )
     createPopup( '?view=version', 'zmVersion', 'version' );
@@ -96,7 +95,7 @@ function initPage() {
     createPopup( '?view=donate', 'zmDonate', 'donate' );
 
   // Makes table sortable
-$j( function() {
+  $j( function() {
     $j( "#consoleTableBody" ).sortable({
         handle: ".glyphicon-sort",
         update: applySort,

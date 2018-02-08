@@ -409,7 +409,7 @@ deterministic
 
 begin
 
-  update Storage set DiskSpace = DiskSpace + space where Id = StorageId;
+  update Storage set DiskSpace = COALESCE(DiskSpace,0) + COALESCE(space,0) where Id = StorageId;
 
 end;
 
@@ -496,7 +496,9 @@ DROP TRIGGER IF EXISTS event_delete_trigger//
 CREATE TRIGGER event_delete_trigger BEFORE DELETE ON Events
 FOR EACH ROW
 BEGIN
-  call update_storage_stats(OLD.StorageId, -OLD.DiskSpace);
+  IF ( OLD.DiskSpace ) THEN
+    call update_storage_stats(OLD.StorageId, -OLD.DiskSpace);
+  END IF;
   DELETE FROM Events_Hour WHERE EventId=OLD.Id;
   DELETE FROM Events_Day WHERE EventId=OLD.Id;
   DELETE FROM Events_Week WHERE EventId=OLD.Id;

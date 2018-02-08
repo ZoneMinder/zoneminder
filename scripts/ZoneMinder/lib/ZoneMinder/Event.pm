@@ -470,7 +470,7 @@ sub DiskSpace {
       $_[0]{DiskSpace} = $size;
       Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
     } else {
-      Warning("Event does not exist at $_[0]{Path}");
+      Warning("DiskSpace: Event does not exist at $_[0]{Path}:" . $Event->to_string() );
     }
   } # end if ! defined DiskSpace
   return $_[0]{DiskSpace};

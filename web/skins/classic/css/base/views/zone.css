@@ -52,11 +52,11 @@
 }
 
 #imageFrame div {
-    background-image: url(../../../graphics/point-g.png);
+    background-image: url(/zm/skins/classic/graphics/point-g.png);
 }
 
 #imageFrame div.highlight {
-    background-image: url(../../../graphics/point-o.png);
+    background-image: url(/zm/skins/classic/graphics/point-o.png);
 }
 
 #imageFrame div.active {

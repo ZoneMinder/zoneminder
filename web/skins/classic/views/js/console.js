@@ -1,22 +1,35 @@
-var jsTranslatedAddText;
-var jsTranslatedCloneText;
 
 function setButtonStates( element ) {
   var form = element.form;
   var checked = 0;
-  for ( var i = 0; i < form.elements.length; i++ ) {
-    if ( form.elements[i].type == "checkbox" ) {
+  for ( var i=0; i < form.elements.length; i++ ) {
+    if (
+      form.elements[i].type=="checkbox"
+      &&
+      form.elements[i].name=="markMids[]"
+    ) {
+      var tr = $j(form.elements[i]).closest("tr");
       if ( form.elements[i].checked ) {
-        if ( checked++ > 1 )
-          break;
+        checked ++;
+        tr.addClass("danger");
+      } else {
+        tr.removeClass("danger");
       }
     }
   }
-  $(element).closest("tr").toggleClass("danger");
-  form.editBtn.disabled = checked ? false : true;
-  form.addBtn.value = (checked==1) ? jsTranslatedCloneText:jsTranslatedAddText;
-
-  form.deleteBtn.disabled = (checked==0);
+  if ( checked ) {
+    form.editBtn.disabled = false;
+    form.deleteBtn.disabled = false;
+    if ( checked == 1 ) {
+      $j(form.cloneBtn).css('display','inline');
+    } else {
+      form.cloneBtn.hide();
+    }
+  } else {
+    form.cloneBtn.hide();
+    form.editBtn.disabled = true;
+    form.deleteBtn.disabled = true;
+  }
 }
 
 function addMonitor(element) {
@@ -75,8 +88,6 @@ function reloadWindow() {
 }
 
 function initPage() {
-  jsTranslatedAddText = translatedAddText;
-  jsTranslatedCloneText = translatedCloneText;
   reloadWindow.periodical( consoleRefreshTimeout );
   if ( showVersionPopup )
     createPopup( '?view=version', 'zmVersion', 'version' );
@@ -84,7 +95,7 @@ function initPage() {
     createPopup( '?view=donate', 'zmDonate', 'donate' );
 
   // Makes table sortable
-$j( function() {
+  $j( function() {
     $j( "#consoleTableBody" ).sortable({
         handle: ".glyphicon-sort",
         update: applySort,

@@ -22,6 +22,7 @@
 function xhtmlHeaders( $file, $title ) {
   global $css;
   global $skin;
+  global $view;
 
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
@@ -41,7 +42,7 @@ function xhtmlHeaders( $file, $title ) {
 
   extract( $GLOBALS, EXTR_OVERWRITE );
   function output_link_if_exists( $files ) {
-  global $skin;
+    global $skin;
     $html = array();
     foreach ( $files as $file ) {
       if ( getSkinFile( $file ) ) {
@@ -132,7 +133,7 @@ echo output_link_if_exists( array(
 ?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
 <?php
-  } else if ( $title == 'Event' ) {
+  } else if ( $view == 'event' ) {
 ?>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
   <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
@@ -140,7 +141,11 @@ echo output_link_if_exists( array(
   <script src="./js/videojs.zoomrotate.js"></script>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
-  } else if ( $title == 'Watch' ) {
+  } else if ( $view == 'montagereview' ) {
+?>
+  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
+<?php
+  } else if ( $view == 'watch' ) {
 ?>
   <link href="<?php echo cache_bust($viewCssFileExtra) ?>" rel="stylesheet">
 <?php

@@ -80,8 +80,8 @@ echo output_link_if_exists( array(
   'css/base/views/'.$basename.'.css',
   'css/'.$css.'/views/'.$basename.'.css',
   '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  '/js/jquery-ui-structure.css',
-  '/css/base/jquery-ui-theme.css',
+  '/js/jquery-ui.structure.css',
+  '/css/base/jquery-ui.theme.css',
   '/css/'.$css.'/jquery-ui-theme.css',
 )
 );
@@ -112,7 +112,7 @@ echo output_link_if_exists( array(
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>

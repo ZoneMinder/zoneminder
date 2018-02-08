@@ -296,7 +296,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
               >
               <?php echo translate('AddNewMonitor') ?>
               </button>
-              <button name="cloneBtn" onclick="addMonitor(this);"
+              <button name="cloneBtn" onclick="cloneMonitor(this);"
               <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
               style="display:none;">
               <?php echo translate('CloneMonitor') ?>

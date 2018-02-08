@@ -122,8 +122,8 @@ if ( ! empty( $user['MonitorIds'] ) ) {
   $eventsSql .= ' AND M.Id IN ('.$user['MonitorIds'].')';
   $frameSql  .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
-if ( count($selected_monitor_ids) ) {
-  $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
+if ( count($displayMonitors) ) {
+  $monitor_ids_sql = ' IN (' .  implode(',',array_map( function($Monitor){return $Monitor['Id'];}, $displayMonitors) ) . ')';
   $eventsSql .= ' AND M.Id '.$monitor_ids_sql;
   $frameSql  .= ' AND E.MonitorId '.$monitor_ids_sql;
 }

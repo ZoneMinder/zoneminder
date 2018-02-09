@@ -15,7 +15,13 @@ function getProbeResponse( respObj, respText ) {
 
   if ( respObj.Streams && respObj.Streams.length ) {
     parseStreams( respObj.Streams );
-  //} else {
+  } else {
+    var results_div = $j('#results')[0];
+    if ( ! results_div ) {
+      console.log("No results div found.");
+      return;
+    }
+    results_div.innerHTML = 'No streams found.';
 //console.log("No streams: " + respText);
   }
 } // end function getProbeResponse
@@ -59,7 +65,8 @@ function addMonitor(url) {
   var Stream = ProbeResults[url];
   var Monitor = Stream.Monitor;
 
-  popup_url = '?view=monitor&newMonitor[Path]='+url;
+  var mid = Monitor.Id ? Monitor.Id : '';
+  popup_url = '?view=monitor&mid='+mid+'&newMonitor[Path]='+url;
   keys = Object.keys( Monitor );
   for ( i in Monitor ) {
     if ( ! Monitor[i] )
@@ -68,7 +75,7 @@ function addMonitor(url) {
       Monitor[i]='';
     popup_url += '&newMonitor['+i+']='+Monitor[i];
   }
-  createPopup( popup_url, 'zmMonitor0', 'monitor' );
+  createPopup( popup_url, 'zmMonitor'+mid, 'monitor' );
 }
   
 function import_csv( form ) {
@@ -88,3 +95,10 @@ function import_csv( form ) {
          }
   });
 }
+function initPage() {
+  url = $j('#Url')[0];
+  if ( url.value ) {
+    probe(url);
+  }
+}
+window.addEvent( 'domready', initPage );

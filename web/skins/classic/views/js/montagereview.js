@@ -340,7 +340,7 @@ function redrawScreen() {
     $('DateTimeDiv').style.display="none";
     $('SpeedDiv').style.display="none";
     $('timelinediv').style.display="none";
-    $('live').innerHTML="History";
+    $('liveButton').innerHTML="History";
     $('zoomin').style.display="none";
     $('zoomout').style.display="none";
     $('panleft').style.display="none";
@@ -354,7 +354,7 @@ function redrawScreen() {
     $('SpeedDiv').style.display="inline";
     $('SpeedDiv').style.display="inline-flex";
     $('timelinediv').style.display=null;
-    $('live').innerHTML="Live";
+    $('liveButton').innerHTML="Live";
     $('zoomin').style.display="inline";
     $('zoomin').style.display="inline-flex";
     $('zoomout').style.display="inline";
@@ -483,7 +483,10 @@ function setSpeed( speed_index ) {
 
 function setLive(value) {
   liveMode = value;
-  changeDateTime();
+  var form = $j('#montagereview_form')[0];
+  form.elements['live'].value = value;
+  form.submit();
+  return false;
 }
 
 
@@ -743,10 +746,8 @@ function changeDateTime(e) {
   var maxTime = moment(maxTime_element.val());
   if ( minTime.isAfter(maxTime) ) {
     maxTime_element.parent().addClass('has-error');
-console.log("maxTime is less than mintime");
     return; // Don't reload because we have invalid datetime filter.
 } else {
-console.log("maxTime is greater than mintime");
     maxTime_element.parent().removeClass('has-error');
   }
 

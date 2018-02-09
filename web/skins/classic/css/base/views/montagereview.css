@@ -53,3 +53,6 @@ input[type=range]::-ms-tooltip {
 #downloadVideo {
   margin-left: 5px;
 }
+#minTime, #maxTime {
+margin: 0 4px;
+}

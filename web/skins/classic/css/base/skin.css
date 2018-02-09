@@ -84,7 +84,7 @@ a:hover {
 }
 
 label {
-    margin-right: 4px;
+    margin: 0 4px;
 }
 
 input,textarea,select,button,.btn-primary {

@@ -256,7 +256,7 @@ FOR EACH ROW
       END IF;
     END IF;
   END;
-
+//
 DELIMITER ;
 
 DROP TABLE IF EXISTS `Events_Day`;

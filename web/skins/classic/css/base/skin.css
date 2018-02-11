@@ -474,6 +474,7 @@ input[type=submit],
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
+    text-align: center;
 }
 
 button:hover,

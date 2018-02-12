@@ -467,10 +467,10 @@ MAIN: while( $loop ) {
           } # end if exists in filesystem
         } # end if ! in fs_events
       } # foreach db_event
-    } else {
-      my $Monitor = new ZoneMinder::Monitor( $db_monitor );
-      my $Storage = $Monitor->Storage();
-      aud_print( "Database monitor '$db_monitor' does not exist in filesystem, should have been at ".$Storage->Path().'/'.$Monitor->Id()."\n" );
+      #} else {
+      #my $Monitor = new ZoneMinder::Monitor( $db_monitor );
+      #my $Storage = $Monitor->Storage();
+      #aud_print( "Database monitor '$db_monitor' does not exist in filesystem, should have been at ".$Storage->Path().'/'.$Monitor->Id()."\n" );
 #if ( confirm() )
 #{
 # We don't actually do this in case it's new
@@ -480,10 +480,14 @@ MAIN: while( $loop ) {
 #}
     }
   } # end foreach db_monitor
-  redo MAIN if ( $cleaned );
+  if ( $cleaned ) {
+    Debug("Have done some cleaning, restarting.");
+    redo MAIN;
+  }
 
 # Remove orphaned events (with no monitor)
   $cleaned = 0;
+  Debug("Checking for Orphaned Events");
   my $selectOrphanedEventsSql = 'SELECT Events.Id, Events.Name
     FROM Events LEFT JOIN Monitors ON (Events.MonitorId = Monitors.Id)
     WHERE isnull(Monitors.Id)';
@@ -506,6 +510,7 @@ MAIN: while( $loop ) {
 
 # Remove empty events (with no frames)
   $cleaned = 0;
+  Debug("Checking for Events with no Frames");
   my $selectEmptyEventsSql = 'SELECT E.Id AS Id, E.StartTime, F.EventId FROM Events as E LEFT JOIN Frames as F ON (E.Id = F.EventId)
     WHERE isnull(F.EventId) AND now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second > E.StartTime';
   if ( my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql ) ) {
@@ -530,6 +535,7 @@ MAIN: while( $loop ) {
 
 # Remove orphaned frame records
   $cleaned = 0;
+  Debug("Checking for Orphaned Frames");
   my $selectOrphanedFramesSql = 'SELECT DISTINCT EventId FROM Frames
     WHERE EventId NOT IN (SELECT Id FROM Events)';
   my $selectOrphanedFramesSth = $dbh->prepare_cached( $selectOrphanedFramesSql )
@@ -548,6 +554,7 @@ MAIN: while( $loop ) {
 
 # Remove orphaned stats records
   $cleaned = 0;
+  Debug("Checking for Orphaned Stats");
   my $selectOrphanedStatsSql = 'SELECT DISTINCT EventId FROM Stats
     WHERE EventId NOT IN (SELECT Id FROM Events)';
   my $selectOrphanedStatsSth = $dbh->prepare_cached( $selectOrphanedStatsSql )
@@ -581,11 +588,15 @@ MAIN: while( $loop ) {
 #;
     'SELECT *, unix_timestamp(StartTime) AS TimeStamp FROM Events WHERE EndTime IS NULL AND StartTime < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)';
 
-  my $selectFrameDataSql = 'SELECT max(TimeStamp) as EndTime, unix_timestamp(max(TimeStamp)) AS EndTimeStamp, max(FrameId) as Frames,
-     count(if(Score>0,1,NULL)) as AlarmFrames,
-     sum(Score) as TotScore,
-     max(Score) as MaxScore
-       FROM Frames WHERE EventId=?';
+  my $selectFrameDataSql = '
+SELECT
+  max(TimeStamp) as EndTime,
+  unix_timestamp(max(TimeStamp)) AS EndTimeStamp,
+  max(FrameId) as Frames,
+  count(if(Score>0,1,NULL)) as AlarmFrames,
+  sum(Score) as TotScore,
+  max(Score) as MaxScore
+FROM Frames WHERE EventId=?';
   my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
     or Fatal( "Can't prepare '$selectFrameDataSql': ".$dbh->errstr() );
 

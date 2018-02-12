@@ -714,6 +714,9 @@ sub error {
 
 sub Fatal( @ ) {
   fetch()->logPrint( FATAL, @_ );
+  if ( $SIG{TERM} ne 'DEFAULT' ) {
+    $SIG{TERM}();
+  }
   exit( -1 );
 }
 

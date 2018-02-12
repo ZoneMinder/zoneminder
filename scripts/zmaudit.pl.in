@@ -159,14 +159,14 @@ MAIN: while( $loop ) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
     $dbh = zmDbConnect();
     if ( ! $dbh ) {
+      Error('Unable to connect to database');
       if ( $continuous ) {
-        Error('Unable to connect to database');
         # if we are running continuously, then just skip to the next
         # interval, otherwise we are a one off run, so wait a second and
         # retry until someone kills us.
         sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
       } else {
-        Fatal('Unable to connect to database');
+        Term();
       } # end if
     } # end if
   } # end while can't connect to the db
@@ -175,13 +175,15 @@ MAIN: while( $loop ) {
   if ( defined $storage_id ) {
     @Storage_Areas = ZoneMinder::Storage->find( Id=>$storage_id );
     if ( !@Storage_Areas ) {
-      Fatal("No Storage Area found with Id $storage_id");
+      Error("No Storage Area found with Id $storage_id");
+      Term();
     }
     Info("Auditing Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}");
   } elsif ( $Config{ZM_SERVER_ID} ) {
     @Storage_Areas = ZoneMinder::Storage->find( ServerId => $Config{ZM_SERVER_ID} );
     if ( ! @Storage_Areas ) {
-      Fatal("No Storage Area found with ServerId =" . $Config{ZM_SERVER_ID});
+      Error("No Storage Area found with ServerId =" . $Config{ZM_SERVER_ID});
+      Term();
     }
     Info("Auditing All Storage Areas on Server " . $Storage_Areas[0]->Server()->Name());
   } else {
@@ -465,10 +467,10 @@ MAIN: while( $loop ) {
           } # end if exists in filesystem
         } # end if ! in fs_events
       } # foreach db_event
-    } else {
-      my $Monitor = new ZoneMinder::Monitor( $db_monitor );
-      my $Storage = $Monitor->Storage();
-      aud_print( "Database monitor '$db_monitor' does not exist in filesystem, should have been at ".$Storage->Path().'/'.$Monitor->Id()."\n" );
+      #} else {
+      #my $Monitor = new ZoneMinder::Monitor( $db_monitor );
+      #my $Storage = $Monitor->Storage();
+      #aud_print( "Database monitor '$db_monitor' does not exist in filesystem, should have been at ".$Storage->Path().'/'.$Monitor->Id()."\n" );
 #if ( confirm() )
 #{
 # We don't actually do this in case it's new
@@ -478,48 +480,62 @@ MAIN: while( $loop ) {
 #}
     }
   } # end foreach db_monitor
-  redo MAIN if ( $cleaned );
+  if ( $cleaned ) {
+    Debug("Have done some cleaning, restarting.");
+    redo MAIN;
+  }
 
 # Remove orphaned events (with no monitor)
   $cleaned = 0;
+  Debug("Checking for Orphaned Events");
   my $selectOrphanedEventsSql = 'SELECT Events.Id, Events.Name
     FROM Events LEFT JOIN Monitors ON (Events.MonitorId = Monitors.Id)
     WHERE isnull(Monitors.Id)';
   my $selectOrphanedEventsSth = $dbh->prepare_cached( $selectOrphanedEventsSql )
-    or Fatal( "Can't prepare '$selectOrphanedEventsSql': ".$dbh->errstr() );
+    or Error( "Can't prepare '$selectOrphanedEventsSql': ".$dbh->errstr() );
   $res = $selectOrphanedEventsSth->execute()
-    or Fatal( "Can't execute: ".$selectOrphanedEventsSth->errstr() );
+    or Error( "Can't execute: ".$selectOrphanedEventsSth->errstr() );
 
   while( my $event = $selectOrphanedEventsSth->fetchrow_hashref() ) {
     aud_print( "Found orphaned event with no monitor '$event->{Id}'" );
     if ( confirm() ) {
-      $res = $deleteEventSth->execute( $event->{Id} )
-        or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
-      $cleaned = 1;
+      if ( $res = $deleteEventSth->execute( $event->{Id} ) ) {
+        $cleaned = 1;
+      } else {
+        Error( "Can't execute: ".$deleteEventSth->errstr() );
+      }
     }
   }
-  redo MAIN if ( $cleaned );
+  redo MAIN if $cleaned;
 
 # Remove empty events (with no frames)
   $cleaned = 0;
+  Debug("Checking for Events with no Frames");
   my $selectEmptyEventsSql = 'SELECT E.Id AS Id, E.StartTime, F.EventId FROM Events as E LEFT JOIN Frames as F ON (E.Id = F.EventId)
     WHERE isnull(F.EventId) AND now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second > E.StartTime';
-  my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql )
-    or Fatal( "Can't prepare '$selectEmptyEventsSql': ".$dbh->errstr() );
-  $res = $selectEmptyEventsSth->execute()
-    or Fatal( "Can't execute: ".$selectEmptyEventsSth->errstr() );
-  while( my $event = $selectEmptyEventsSth->fetchrow_hashref() ) {
-    aud_print( "Found empty event with no frame records '$event->{Id}' at $$event{StartTime}" );
-    if ( confirm() ) {
-      $res = $deleteEventSth->execute( $event->{Id} )
-        or Fatal( "Can't execute: ".$deleteEventSth->errstr() );
-      $cleaned = 1;
+  if ( my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql ) ) {
+    if ( $res = $selectEmptyEventsSth->execute() ) {
+      while( my $event = $selectEmptyEventsSth->fetchrow_hashref() ) {
+        aud_print( "Found empty event with no frame records '$event->{Id}' at $$event{StartTime}" );
+        if ( confirm() ) {
+          if ( $res = $deleteEventSth->execute( $event->{Id} ) ) {
+            $cleaned = 1;
+          } else {
+            Error( "Can't execute: ".$deleteEventSth->errstr() );
+          }
+        }
+      } # end foreach row
+    } else {
+      Error( "Can't execute: ".$selectEmptyEventsSth->errstr() );
     }
+  } else {
+    Error( "Can't prepare '$selectEmptyEventsSql': ".$dbh->errstr() );
   }
-  redo MAIN if ( $cleaned );
+  redo MAIN if $cleaned;
 
 # Remove orphaned frame records
   $cleaned = 0;
+  Debug("Checking for Orphaned Frames");
   my $selectOrphanedFramesSql = 'SELECT DISTINCT EventId FROM Frames
     WHERE EventId NOT IN (SELECT Id FROM Events)';
   my $selectOrphanedFramesSth = $dbh->prepare_cached( $selectOrphanedFramesSql )
@@ -534,10 +550,11 @@ MAIN: while( $loop ) {
       $cleaned = 1;
     }
   }
-  redo MAIN if ( $cleaned );
+  redo MAIN if $cleaned;
 
 # Remove orphaned stats records
   $cleaned = 0;
+  Debug("Checking for Orphaned Stats");
   my $selectOrphanedStatsSql = 'SELECT DISTINCT EventId FROM Stats
     WHERE EventId NOT IN (SELECT Id FROM Events)';
   my $selectOrphanedStatsSth = $dbh->prepare_cached( $selectOrphanedStatsSql )
@@ -571,11 +588,15 @@ MAIN: while( $loop ) {
 #;
     'SELECT *, unix_timestamp(StartTime) AS TimeStamp FROM Events WHERE EndTime IS NULL AND StartTime < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)';
 
-  my $selectFrameDataSql = 'SELECT max(TimeStamp) as EndTime, unix_timestamp(max(TimeStamp)) AS EndTimeStamp, max(FrameId) as Frames,
-     count(if(Score>0,1,NULL)) as AlarmFrames,
-     sum(Score) as TotScore,
-     max(Score) as MaxScore
-       FROM Frames WHERE EventId=?';
+  my $selectFrameDataSql = '
+SELECT
+  max(TimeStamp) as EndTime,
+  unix_timestamp(max(TimeStamp)) AS EndTimeStamp,
+  max(FrameId) as Frames,
+  count(if(Score>0,1,NULL)) as AlarmFrames,
+  sum(Score) as TotScore,
+  max(Score) as MaxScore
+FROM Frames WHERE EventId=?';
   my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
     or Fatal( "Can't prepare '$selectFrameDataSql': ".$dbh->errstr() );
 
@@ -664,6 +685,11 @@ MAIN: while( $loop ) {
       }
     } else {
       # Time of record
+      
+      # 7 days is invalid.  We need to remove the s
+      if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^(.*)s$/ ) {
+        $Config{ZM_LOG_DATABASE_LIMIT} = $1;
+      }
       my $deleteLogByTimeSql =
       'DELETE low_priority FROM Logs
       WHERE TimeKey < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.')';

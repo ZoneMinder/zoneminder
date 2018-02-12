@@ -132,7 +132,13 @@ function dbQuery( $sql, $params=NULL ) {
         return NULL;
       }
     } else {
-      $result = $dbConn->query( $sql );
+      if ( defined('ZM_DB_DEBUG') ) {
+        if ( $params )
+          Warning("SQL: $sql" . implode(',',$params) );
+        else
+          Warning("SQL: $sql:"  );
+      }
+      $result = $dbConn->query($sql);
     }
     if ( defined('ZM_DB_DEBUG') ) {
       if ( $params )

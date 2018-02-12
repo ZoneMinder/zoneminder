@@ -147,7 +147,6 @@ echo output_link_if_exists( array(
 <?php
   } else if ( $view == 'watch' ) {
 ?>
-  <link href="<?php echo cache_bust($viewCssFileExtra) ?>" rel="stylesheet">
 <?php
   }
   if ( $skinJsPhpFile ) {
@@ -249,7 +248,7 @@ function getNavBarHTML($reload = null) {
   if ( logToDatabase() > Logger::NOLOG ) { 
     if ( ! ZM_RUN_AUDIT ) {
     # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
-     dbQuery("DELETE FROM Logs WHERE TimeKey < NOW()-to_days('".ZM_LOG_DATABASE_LIMIT."')");
+     dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.')');
     }
     echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
   }

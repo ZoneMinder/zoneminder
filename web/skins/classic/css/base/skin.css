@@ -84,7 +84,7 @@ a:hover {
 }
 
 label {
-    margin-right: 4px;
+    margin: 0 4px;
 }
 
 input,textarea,select,button,.btn-primary {
@@ -474,6 +474,7 @@ input[type=submit],
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
+    text-align: center;
 }
 
 button:hover,

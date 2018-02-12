@@ -222,14 +222,6 @@ int main(int argc, char *argv[]) {
   }
 
   Info("Starting Capture version %s", ZM_VERSION);
-  static char sql[ZM_SQL_SML_BUFSIZ];
-  for ( int i = 0; i < n_monitors; i ++ ) {
-    snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')", monitors[i]->Id() );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    }
-  }
-
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
@@ -242,9 +234,15 @@ int main(int argc, char *argv[]) {
   int result = 0;
   while( ! zm_terminate ) {
     result = 0;
+    static char sql[ZM_SQL_SML_BUFSIZ];
     for ( int i = 0; i < n_monitors; i ++ ) {
       time_t now = (time_t)time(NULL);
       monitors[i]->setStartupTime(now);
+
+      snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')", monitors[i]->Id() );
+      if ( mysql_query( &dbconn, sql ) ) {
+        Error( "Can't run query: %s", mysql_error( &dbconn ) );
+      }
     }
     // Outer primary loop, handles connection to camera
     if ( monitors[0]->PrimeCapture() < 0 ) {
@@ -252,7 +250,6 @@ int main(int argc, char *argv[]) {
       sleep(10);
       continue;
     }
-    static char sql[ZM_SQL_SML_BUFSIZ];
     for ( int i = 0; i < n_monitors; i ++ ) {
       snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')", monitors[i]->Id() );
       if ( mysql_query( &dbconn, sql ) ) {
@@ -374,6 +371,15 @@ int main(int argc, char *argv[]) {
     delete [] analysis_threads;
     sleep(10);
   } // end while ! zm_terminate outer connection loop
+
+  for ( int i = 0; i < n_monitors; i++ ) {
+    static char sql[ZM_SQL_SML_BUFSIZ];
+    snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','NotRunning')", monitors[i]->Id() );
+    if ( mysql_query( &dbconn, sql ) ) {
+      Error( "Can't run query: %s", mysql_error( &dbconn ) );
+    }
+    delete monitors[i];
+  }
   delete [] monitors;
 
   Image::Deinitialise();

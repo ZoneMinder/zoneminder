@@ -109,7 +109,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   frameCount = 0;
   startTime = 0;
   mCanCapture = false;
-  mOpenStart = 0;
   videoStore = NULL;
   video_last_pts = 0;
   have_video_keyframe = false;
@@ -161,7 +160,7 @@ void FfmpegCamera::Terminate() {
 
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
-  Info( "Priming capture from %s", mPath.c_str() );
+    Info( "Priming capture from %s, CLosing", mPath.c_str() );
     CloseFfmpeg();
   }
   mVideoStreamId = -1;
@@ -200,7 +199,10 @@ int FfmpegCamera::Capture( Image &image ) {
           (avResult == -110)
          ) {
         Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf );
-        ReopenFfmpeg();
+        if ( (ret= ReopenFfmpeg() ) < 0 ) {
+          // OpenFfmpeg will do enough logging.
+          return -1;
+        }
         continue;
       }
 
@@ -321,7 +323,6 @@ int FfmpegCamera::OpenFfmpeg() {
 
   int ret;
 
-  mOpenStart = time(NULL);
   have_video_keyframe = false;
 
   // Open the input, not necessarily a file
@@ -364,12 +365,21 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   {
     Error("Unable to open input %s due to: %s", mPath.c_str(), strerror(errno));
+#if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
+    av_close_input_file( mFormatContext );
+#else
+    avformat_close_input( &mFormatContext );
+#endif
+    mFormatContext = NULL;
+    av_dict_free(&opts);
+
     return -1;
   }
   AVDictionaryEntry *e=NULL;
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
+  av_dict_free(&opts);
 
   Debug(1, "Opened input");
 
@@ -517,6 +527,7 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning( "Option %s not recognized by ffmpeg", e->key);
     }
     Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+    av_dict_free(&opts);
     return -1;
   } else {
 
@@ -524,6 +535,7 @@ int FfmpegCamera::OpenFfmpeg() {
     if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
       Warning( "Option %s not recognized by ffmpeg", e->key);
     }
+    av_dict_free(&opts);
   }
   }
 

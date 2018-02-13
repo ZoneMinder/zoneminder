@@ -42,6 +42,7 @@ public:
   typedef enum { PERM_NONE=1, PERM_VIEW, PERM_EDIT } Permission;
 
 protected:
+  int id;
   char username[32+1];
   char password[64+1];
   bool enabled;
@@ -62,6 +63,7 @@ public:
     Copy(u); return *this;
   }
 
+  const int  Id() const { return id; }
   const char *getUsername() const { return( username ); }
   const char *getPassword() const { return( password ); }
   bool isEnabled() const { return( enabled ); }

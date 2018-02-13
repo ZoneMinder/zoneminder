@@ -41,7 +41,8 @@ bool ValidateAccess( User *user, int mon_id ) {
       allowed = false;
   }
   if ( !allowed ) {
-    Error( "Error, insufficient privileges for requested action" );
+    Error( "Error, insufficient privileges for requested action user %d %s for monitor %d",
+      user->Id(), user->getUsername(), mon_id );
     exit( -1 );
   }
   return( allowed );

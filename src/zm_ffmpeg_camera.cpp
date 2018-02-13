@@ -199,7 +199,7 @@ int FfmpegCamera::Capture( Image &image ) {
           (avResult == -110)
          ) {
         Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf );
-        if ( (ret= ReopenFfmpeg() ) < 0 ) {
+        if ( ReopenFfmpeg() < 0 ) {
           // OpenFfmpeg will do enough logging.
           return -1;
         }

@@ -3,6 +3,7 @@ if ($_REQUEST['entity'] == 'navBar') {
   $data  = array();
   if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
     $time = time();
+    Logger::Debug("Using hashed auth, $time ? " . ( $time - (ZM_AUTH_HASH_TTL * 1800) ) . ' <? ' . $_SESSION['AuthHashGeneratedAt'] );
     // Regenerate auth hash after half the lifetime of the hash
     if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
       session_start();
@@ -10,7 +11,7 @@ if ($_REQUEST['entity'] == 'navBar') {
       session_write_close();
     }
   }
-  $data['NavBarHtml'] = getNavBarHtml('reload');
+  $data['message'] = getNavBarHtml('reload');
   ajaxResponse($data);
   return;
 }

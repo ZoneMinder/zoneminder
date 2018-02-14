@@ -182,21 +182,26 @@ function refreshParentWindow() {
   }
 }
 
-if (currentView !='none') {
+if ( currentView != 'none' ) {
   $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
-    if ($j('.navbar').length) setInterval(getNavBar, navBarRefresh)
+    if ($j('.navbar').length) {
+      setInterval(getNavBar, navBarRefresh);
+    }
   });
 
-  function getNavBar () {
+  function getNavBar() {
     $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar', setNavBar);
   }
 
-  function setNavBar (data) {
+  function setNavBar(data) {
+    console.log(data);
     if ( data.auth ) {
-      // Update authentication token.
-      auth_hash = data.auth;
+      if ( data.auth != auth_hash ) {
+        // Update authentication token.
+        auth_hash = data.auth;
+      }
     }
     $j('#reload').replaceWith(data.message);
   }

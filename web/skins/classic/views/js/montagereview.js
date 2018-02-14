@@ -45,10 +45,14 @@ function evaluateLoadTimes() {
 } // end evaluateLoadTimes()
 
 // time is seconds since epoch
-function SetImageSource( monId, time ) {
+function getImageSource( monId, time ) {
   if ( liveMode == 1 ) {
-    return monitorImageObject[monId].src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-
+    var new_url = monitorImageObject[monId].src.replace(/=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    if ( auth_hash ) {
+      // update auth hash
+      new_url = new_url.replace(/auth=[a-z0-9]+/i, 'auth='+auth_hash);
+    }
+    return new_url;
   }
 
   for ( var i=0, eIdlength = eId.length; i < eIdlength; i++ ) {
@@ -395,7 +399,7 @@ function redrawScreen() {
 function outputUpdate(time) {
   drawSliderOnGraph(time);
   for ( var i=0; i < numMonitors; i++ ) {
-    loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],time));
+    loadImage2Monitor(monitorPtr[i],getImageSource(monitorPtr[i],time));
   }
   currentTimeSecs = time;
 }

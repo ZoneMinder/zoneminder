@@ -1,7 +1,18 @@
 <?php
 if ($_REQUEST['entity'] == 'navBar') {
-   ajaxResponse(getNavBarHtml('reload'));
-   return;
+  $data  = array();
+  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
+    $time = time();
+    // Regenerate auth hash after half the lifetime of the hash
+    if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
+      session_start();
+      $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+      session_write_close();
+    }
+  }
+  $data['NavBarHtml'] = getNavBarHtml('reload');
+  ajaxResponse($data);
+  return;
 }
 
 $statusData = array(

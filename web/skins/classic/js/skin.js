@@ -194,6 +194,10 @@ if (currentView !='none') {
   }
 
   function setNavBar (data) {
+    if ( data.auth ) {
+      // Update authentication token.
+      auth_hash = data.auth;
+    }
     $j('#reload').replaceWith(data.message);
   }
 }

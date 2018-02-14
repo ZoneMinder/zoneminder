@@ -402,9 +402,13 @@ void Logger::logFile( const std::string &logFile ) {
 }
 
 void Logger::openFile() {
-  if ( mLogFile.size() && (mLogFileFP = fopen( mLogFile.c_str() ,"a" )) == (FILE *)NULL ) {
+  if ( mLogFile.size() ) {
+   if ( (mLogFileFP = fopen(mLogFile.c_str() ,"a")) == (FILE *)NULL ) {
     mFileLevel = NOLOG;
     Fatal( "fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno) );
+   }
+  } else {
+    puts("Called Logger::openFile() without a filename");
   }
 }
 
@@ -524,6 +528,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     } else {
       puts("Logging to file, but file not open\n");
     }
+  } else {
+    puts("Not logging to file because level <= mFileLevel");
   }
   *syslogEnd = '\0';
   if ( level <= mDatabaseLevel ) {

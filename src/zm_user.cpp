@@ -30,6 +30,7 @@
 #include "zm_utils.h"
 
 User::User() {
+  id = 0;
   username[0] = password[0] = 0;
   enabled = false;
   stream = events = control = monitors = system = PERM_NONE;
@@ -37,6 +38,7 @@ User::User() {
 
 User::User( MYSQL_ROW &dbrow ) {
   int index = 0;
+  id = atoi( dbrow[index++] );
   strncpy( username, dbrow[index++], sizeof(username)-1 );
   strncpy( password, dbrow[index++], sizeof(password)-1 );
   enabled = (bool)atoi( dbrow[index++] );
@@ -59,6 +61,7 @@ User::~User() {
 }
 
 void User::Copy( const User &u ) {
+  id=u.id;
   strncpy( username, u.username, sizeof(username)-1 );
   strncpy( password, u.password, sizeof(password)-1 );
   enabled = u.enabled;
@@ -94,9 +97,9 @@ User *zmLoadUser( const char *username, const char *password ) {
   if ( password ) {
     char safer_password[129]; // current db password size is 64
     mysql_real_escape_string(&dbconn, safer_password, password, strlen( password ) );
-    snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", safer_username, safer_password );
+    snprintf( sql, sizeof(sql), "select Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", safer_username, safer_password );
   } else {
-    snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Enabled = 1", safer_username );
+    snprintf( sql, sizeof(sql), "select Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Enabled = 1", safer_username );
   }
 
   if ( mysql_query( &dbconn, sql ) ) {
@@ -124,7 +127,7 @@ User *zmLoadUser( const char *username, const char *password ) {
 
   mysql_free_result( result );
 
-  return( user );
+  return user;
 }
 
 // Function to validate an authentication string
@@ -150,7 +153,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 
   Debug( 1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth, remote_addr );
   char sql[ZM_SQL_SML_BUFSIZ] = "";
-  snprintf( sql, sizeof(sql), "SELECT Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds FROM Users WHERE Enabled = 1" );
+  snprintf( sql, sizeof(sql), "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds FROM Users WHERE Enabled = 1" );
 
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -182,8 +185,8 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
   }
 
   while( MYSQL_ROW dbrow = mysql_fetch_row( result ) ) {
-    const char *user = dbrow[0];
-    const char *pass = dbrow[1];
+    const char *user = dbrow[1];
+    const char *pass = dbrow[2];
 
     char auth_key[512] = "";
     char auth_md5[32+1] = "";
@@ -232,5 +235,5 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
   Error( "You need to build with gnutls or openssl installed to use hash based authentication" );
 #endif // HAVE_DECL_MD5
   Debug(1, "No user found for auth_key %s", auth );
-  return( 0 );
+  return 0;
 }

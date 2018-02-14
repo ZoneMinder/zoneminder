@@ -199,6 +199,7 @@ if ( isset($minTime) && isset($maxTime) ) {
   $frameSql .= " AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
 }
 $frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
+$eventsSql .= ' ORDER BY E.Id ASC';
 
 $monitors = array();
 foreach( $displayMonitors as $row ) {

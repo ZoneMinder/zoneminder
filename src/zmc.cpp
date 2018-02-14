@@ -369,8 +369,10 @@ int main(int argc, char *argv[]) {
       }
     } // end foreach monitor
     delete [] analysis_threads;
-    sleep(10);
+    if ( !zm_terminate )
+      sleep(10);
   } // end while ! zm_terminate outer connection loop
+  Debug(1,"Updating Monitor status");
 
   for ( int i = 0; i < n_monitors; i++ ) {
     static char sql[ZM_SQL_SML_BUFSIZ];

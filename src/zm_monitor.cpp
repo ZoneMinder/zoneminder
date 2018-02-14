@@ -3279,7 +3279,7 @@ void Monitor::get_ref_image() {
       ( shared_data->last_write_time == 0 )
       && ! zm_terminate
       ) {
-    Warning( "Waiting for capture daemon lwi(%d) lwt(%d)", shared_data->last_write_index, shared_data->last_write_time );
+    Warning( "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)", shared_data->last_write_index, shared_data->last_write_time );
     usleep( 50000 );
   }
   int last_write_index = shared_data->last_write_index ;

@@ -620,9 +620,12 @@ FROM Frames WHERE EventId=?';
   $res = $selectUnclosedEventsSth->execute()
     or Fatal( "Can't execute: ".$selectUnclosedEventsSth->errstr() );
   while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() ) {
-    aud_print( "Found open event '$event->{Id}'" );
+    aud_print( "Found open event '$event->{Id}' at $$event{StartTime}" );
     if ( confirm( 'close', 'closing' ) ) {
-      $res = $selectFrameDataSth->execute( $event->{Id} ) or Fatal( "Can't execute: ".$selectFrameDataSth->errstr() );
+      if ( ! ( $res = $selectFrameDataSth->execute($event->{Id}) ) ) {
+        Error( "Can't execute: $selectFrameDataSql:".$selectFrameDataSth->errstr() );
+        next;
+      }
       my $frame = $selectFrameDataSth->fetchrow_hashref();
       if ( $frame ) {
         $res = $updateUnclosedEventsSth->execute(
@@ -643,12 +646,13 @@ FROM Frames WHERE EventId=?';
            $frame->{MaxScore},
            RECOVER_TEXT,
            $event->{Id}
-          ) or Fatal( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
+          ) or Error( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
       } else {
         Error('SHOULD DELETE');
       } # end if has frame data
     }
   } # end while unclosed event
+  Debug("Done closing open events.");
 
 # Now delete any old image files
   if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> ) {

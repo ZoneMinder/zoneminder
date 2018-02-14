@@ -11,12 +11,11 @@ AnalysisThread::~AnalysisThread() {
 }
 
 int AnalysisThread::run() {
-  Debug(2, "In run");
 
   useconds_t analysis_rate = monitor->GetAnalysisRate();
-  Debug(2, "after getanalysisrate");
+  Debug(2, "after getanalysisrate rate is %u", analysis_rate);
   unsigned int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
-  Debug(2, "after getanalysisUpdateDelay");
+  Debug(2, "after getanalysisUpdateDelay delay is %u", analysis_update_delay);
   time_t last_analysis_update_time, cur_time;
   monitor->UpdateAdaptiveSkip();
   Debug(2, "after UpdateAdaptiveSkip");

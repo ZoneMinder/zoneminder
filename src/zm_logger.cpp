@@ -128,7 +128,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
   char *envPtr;
 
   if ( !id.empty() )
-    this->id( id );
+    this->id(id);
 
   std::string tempLogFile;
 
@@ -151,14 +151,17 @@ void Logger::initialise( const std::string &id, const Options &options ) {
 
   if ( options.mTermLevel != NOOPT )
     tempTermLevel = options.mTermLevel;
+
   if ( options.mDatabaseLevel != NOOPT )
     tempDatabaseLevel = options.mDatabaseLevel;
   else
     tempDatabaseLevel = config.log_level_database >= DEBUG1 ? DEBUG9 : config.log_level_database;
+
   if ( options.mFileLevel != NOOPT )
     tempFileLevel = options.mFileLevel;
   else
     tempFileLevel = config.log_level_file >= DEBUG1 ? DEBUG9 : config.log_level_file;
+
   if ( options.mSyslogLevel != NOOPT )
     tempSyslogLevel = options.mSyslogLevel;
   else
@@ -363,13 +366,12 @@ Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
 Logger::Level Logger::fileLevel( Logger::Level fileLevel ) {
   if ( fileLevel > NOOPT ) {
     fileLevel = limit(fileLevel);
-    if ( mFileLevel != fileLevel ) {
-      if ( mFileLevel > NOLOG )
-        closeFile();
-      mFileLevel = fileLevel;
-      if ( mFileLevel > NOLOG )
-        openFile();
-    }
+    // Always close, because we may have changed file names
+    if ( mFileLevel > NOLOG )
+	    closeFile();
+    mFileLevel = fileLevel;
+    if ( mFileLevel > NOLOG )
+	    openFile();
   }
   return( mFileLevel );
 }

@@ -2942,8 +2942,9 @@ int Monitor::Capture() {
           double new_capture_fps = double(fps_report_interval)/(now-last_fps_time);
           //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
           //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-          Info("%s: %d - Capturing at %.2lf fps", name, image_count, capture_fps);
+          Info("%s: %d - Capturing at %.2lf fps", name, image_count, new_capture_fps);
           if ( new_capture_fps != capture_fps ) {
+            capture_fps = new_capture_fps;
             last_fps_time = now;
             static char sql[ZM_SQL_SML_BUFSIZ];
             snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, capture_fps, capture_fps);
@@ -3264,10 +3265,10 @@ int Monitor::PrimeCapture() {
   return ret;
 }
 int Monitor::PreCapture() {
-  return( camera->PreCapture() );
+  return camera->PreCapture();
 }
 int Monitor::PostCapture() {
-  return( camera->PostCapture() );
+  return camera->PostCapture();
 }
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 

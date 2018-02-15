@@ -25,6 +25,7 @@
 
 // From what I read, we need one of these per thread
 MYSQL dbconn;
+Mutex db_mutex;
 
 bool zmDbConnected = false;
 
@@ -90,6 +91,7 @@ MYSQL_RES * zmDbFetch( const char * query ) {
     Error( "Not connected." );
     return NULL;
   }
+  db_mutex.lock();
 
   if ( mysql_query( &dbconn, query ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -101,6 +103,7 @@ MYSQL_RES * zmDbFetch( const char * query ) {
     Error( "Can't use query result: %s for query %s", mysql_error( &dbconn ), query );
     return NULL;
   }
+  db_mutex.unlock();
   return result;
 } // end MYSQL_RES * zmDbFetch( const char * query );
 

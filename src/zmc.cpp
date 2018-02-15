@@ -260,7 +260,6 @@ int main(int argc, char *argv[]) {
     AnalysisThread **analysis_threads = new AnalysisThread *[n_monitors];
     long *capture_delays = new long[n_monitors];
     long *alarm_capture_delays = new long[n_monitors];
-    long *next_delays = new long[n_monitors];
     struct timeval * last_capture_times = new struct timeval[n_monitors];
     for ( int i = 0; i < n_monitors; i++ ) {
       last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
@@ -280,64 +279,50 @@ int main(int argc, char *argv[]) {
 
     struct timeval now;
     struct DeltaTimeval delta_time;
+
     while ( !zm_terminate ) {
-      //Debug(2,"blocking");
       sigprocmask(SIG_BLOCK, &block_set, 0);
       for ( int i = 0; i < n_monitors; i++ ) {
-        long min_delay = MAXINT;
-
-        gettimeofday(&now, NULL);
-        for ( int j = 0; j < n_monitors; j++ ) {
-          if ( last_capture_times[j].tv_sec ) {
-            // We pretty much know this is positive.
-            DELTA_TIMEVAL(delta_time, now, last_capture_times[j], DT_PREC_3);
-            // capture_delay is the amount of time we should sleep to achieve the desired framerate.
-            if ( monitors[i]->GetState() == Monitor::ALARM )
-              next_delays[j] = alarm_capture_delays[j] - delta_time.delta;
-            else
-              next_delays[j] = capture_delays[j] - delta_time.delta;
-            if ( next_delays[j] < 0 )
-              next_delays[j] = 0;
-          }
-          if ( next_delays[j] <= min_delay ) {
-            min_delay = next_delays[j];
-          }
-        } // end foreach monitor
 
         monitors[i]->CheckAction();
 
-        if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
-          if ( monitors[i]->PreCapture() < 0 ) {
-            Error("Failed to pre-capture monitor %d %d (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-            result = -1;
-            break;
-          }
-          if ( monitors[i]->Capture() < 0 ) {
-            Error("Failed to capture image from monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-            result = -1;
-            break;
-          }
-          if ( monitors[i]->PostCapture() < 0 ) {
-            Error("Failed to post-capture monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
-            result = -1;
-            break;
-          }
+        if ( monitors[i]->PreCapture() < 0 ) {
+          Error("Failed to pre-capture monitor %d %d (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          result = -1;
+          break;
+        }
+        if ( monitors[i]->Capture() < 0 ) {
+          Error("Failed to capture image from monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          result = -1;
+          break;
+        }
+        if ( monitors[i]->PostCapture() < 0 ) {
+          Error("Failed to post-capture monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          result = -1;
+          break;
+        }
 
-          if ( next_delays[i] > 0 ) {
-            gettimeofday(&now, NULL);
-            DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
-            long sleep_time = next_delays[i] - delta_time.delta;
-            if ( sleep_time > 0 ) {
-              Debug(2,"usleeping (%d)", sleep_time*(DT_MAXGRAN/DT_PREC_3) );
-              usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
-            }
-            last_capture_times[i] = now;
-          } else {
-            gettimeofday(&(last_capture_times[i]), NULL);
-          }
-        }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
+        gettimeofday(&now, NULL);
+        // capture_delay is the amount of time we should sleep to achieve the desired framerate.
+        if ( last_capture_times[i].tv_sec ) {
+          long sleep_time;
+          DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
+          long delay = monitors[i]->GetState() == Monitor::ALARM ? alarm_capture_delays[i] : capture_delays[i];
 
-      }  // end foreach n_monitors
+          sleep_time = delay - delta_time.delta;
+          Debug(3, "Sleep time is %d from now:%d.%d last:%d.%d delay: %d", sleep_time, now.tv_sec, now.tv_usec, last_capture_times[i].tv_sec, last_capture_times[i].tv_usec, delay );
+          
+          if ( sleep_time < 0 )
+            sleep_time = 0;
+
+          if ( sleep_time > 0 ) {
+            Debug(2,"usleeping (%d)", sleep_time*(DT_MAXGRAN/DT_PREC_3) );
+            usleep(sleep_time*(DT_MAXGRAN/DT_PREC_3));
+          }
+        } // end if has a last_capture time
+        last_capture_times[i] = now;
+
+      } // end foreach n_monitors
       //Debug(2,"unblocking");
       sigprocmask(SIG_UNBLOCK, &block_set, 0);
       if ( zm_reload ) {
@@ -356,7 +341,6 @@ int main(int argc, char *argv[]) {
 
     delete [] alarm_capture_delays;
     delete [] capture_delays;
-    delete [] next_delays;
     delete [] last_capture_times;
 
     // Killoff the analysis threads. Don't need them spinning while we try to reconnect

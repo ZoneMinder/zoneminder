@@ -186,13 +186,6 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   if ( (!$monitor['Status']) or ($monitor['Status'] == 'NotRunning') ) {
     $source_class = 'errorText';
   } else {
-<<<<<<< HEAD
-  // https://github.com/ZoneMinder/ZoneMinder/issues/1082
-    //if ( a'] && $monitor['Function']!='Monitor' )
-      //$dclass = 'warnText';
-    //else
-      $dclass = 'infoText';
-=======
     if ( (!$monitor['CaptureFPS']) ) {
       $source_class = 'errorText';
     } else if ( (!$monitor['AnalysisFPS']) && ($monitor['Function']!='Monitor') && ($monitor['Function'] != 'Nodect') ) {
@@ -200,7 +193,6 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     } else {
       $source_class = 'infoText';
     }
->>>>>>> storageareas
   }
   if ( $monitor['Function'] == 'None' )
     $fclass = 'errorText';

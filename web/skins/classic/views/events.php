@@ -213,17 +213,7 @@ while ( $event_row = dbFetchNext( $results ) ) {
       $streamSrc = $event->getStreamSrc( array( 'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single') );
 
       $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt($thumbData['Height']).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
-<<<<<<< HEAD
-
-      echo makePopupLink( 
-          '?view=frame&amp;eid='.$event->Id().'&amp;fid='.( isset($thumbData['FrameId']) ? $thumbData['FrameId'] : 'snapshot' ),
-          'zmImage',
-          array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ),
-          $imgHtml
-        );
-=======
       echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';
->>>>>>> storageareas
 ?>
               </td>
 <?php

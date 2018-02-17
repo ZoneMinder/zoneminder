@@ -67,8 +67,8 @@ public:
     std::string mLogFile;
 
   public:
-    Options( Level termLevel=NOOPT, Level databaseLevel=NOOPT, Level fileLevel=NOOPT, Level syslogLevel=NOOPT, const std::string &logPath=".", const std::string &logFile="" ) :
-      mTerminalLevel( termLevel ),
+    Options( Level terminalLevel=NOOPT, Level databaseLevel=NOOPT, Level fileLevel=NOOPT, Level syslogLevel=NOOPT, const std::string &logPath=".", const std::string &logFile="" ) :
+      mTerminalLevel( terminalLevel ),
       mDatabaseLevel( databaseLevel ),
       mFileLevel( fileLevel ),
       mSyslogLevel( syslogLevel ),
@@ -104,7 +104,7 @@ private:
   std::string mLogFile;
   FILE *mLogFileFP;
 
-  bool mHasTerm;
+  bool mHasTerminal;
   bool mFlush;
 
 private:
@@ -163,7 +163,7 @@ public:
     return( mEffectiveLevel >= DEBUG1 );
   }
 
-  Level termLevel( Level=NOOPT );
+  Level terminalLevel( Level=NOOPT );
   Level databaseLevel( Level=NOOPT );
   Level fileLevel( Level=NOOPT );
   Level syslogLevel( Level=NOOPT );

@@ -75,7 +75,7 @@ Logger::Logger() :
   //mLogFile( mLogPath+"/"+mId+".log" ),
   mDbConnected( false ),
   mLogFileFP( NULL ),
-  mHasTerm( false ),
+  mHasTerminal( false ),
   mFlush( false ) {
 
   if ( smInstance ) {
@@ -107,7 +107,7 @@ Logger::Logger() :
   }
 
   if ( fileno(stderr) && isatty(fileno(stderr)) )
-    mHasTerm = true;
+    mHasTerminal = true;
 }
 
 Logger::~Logger() {
@@ -206,7 +206,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
 
   logFile( tempLogFile );
 
-  termLevel( tempTerminalLevel );
+  terminalLevel( tempTerminalLevel );
   databaseLevel( tempDatabaseLevel );
   fileLevel( tempFileLevel );
   syslogLevel( tempSyslogLevel );
@@ -335,13 +335,13 @@ Logger::Level Logger::level( Logger::Level level ) {
   return( mLevel );
 }
 
-Logger::Level Logger::termLevel( Logger::Level termLevel ) {
-  if ( termLevel > NOOPT ) {
-    if ( !mHasTerm )
-      termLevel = NOLOG;
-    termLevel = limit(termLevel);
-    if ( mTerminalLevel != termLevel )
-      mTerminalLevel = termLevel;
+Logger::Level Logger::terminalLevel( Logger::Level terminalLevel ) {
+  if ( terminalLevel > NOOPT ) {
+    if ( !mHasTerminal )
+      terminalLevel = NOLOG;
+    terminalLevel = limit(terminalLevel);
+    if ( mTerminalLevel != terminalLevel )
+      mTerminalLevel = terminalLevel;
   }
   return( mTerminalLevel );
 }

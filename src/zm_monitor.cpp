@@ -1225,9 +1225,9 @@ void Monitor::CheckAction() {
 }
 
 void Monitor::UpdateAnalysisFPS() {
-  struct timeval now;
-  gettimeofday( &now, NULL );
   if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
+    struct timeval now;
+    gettimeofday(&now, NULL);
     double new_analysis_fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
     Info("%s: %d - Analysing at %.2f fps", name, image_count, new_analysis_fps);
     if ( new_analysis_fps != analysis_fps ) {
@@ -1562,6 +1562,7 @@ bool Monitor::Analyse() {
     analysis_image_count++;
     snap->unlock();
   } // end while not at end of packetqueue
+  UpdateAnalysisFPS();
   if ( packets_processed > 0 )
     return true;
   return false;

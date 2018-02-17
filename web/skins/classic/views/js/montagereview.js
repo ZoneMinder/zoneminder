@@ -45,10 +45,14 @@ function evaluateLoadTimes() {
 } // end evaluateLoadTimes()
 
 // time is seconds since epoch
-function SetImageSource( monId, time ) {
+function getImageSource( monId, time ) {
   if ( liveMode == 1 ) {
-    return monitorImageObject[monId].src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-
+    var new_url = monitorImageObject[monId].src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    if ( auth_hash ) {
+      // update auth hash
+      new_url = new_url.replace(/auth=[a-z0-9]+/i, 'auth='+auth_hash);
+    }
+    return new_url;
   }
 
   for ( var i=0, eIdlength = eId.length; i < eIdlength; i++ ) {
@@ -395,7 +399,7 @@ function redrawScreen() {
 function outputUpdate(time) {
   drawSliderOnGraph(time);
   for ( var i=0; i < numMonitors; i++ ) {
-    loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],time));
+    loadImage2Monitor(monitorPtr[i],getImageSource(monitorPtr[i],time));
   }
   currentTimeSecs = time;
 }
@@ -706,12 +710,26 @@ function showOneMonitor(monId) {
     createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
   } else {
     for ( var i=0, len=eId.length; i<len; i++ ) {
-      if ( eMonId[i] == monId && currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i] ) {
+      if ( eMonId[i] != monId )
+        continue;
+
+      if ( currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i] ) {
         url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
+        break;
+      } else if ( currentTimeSecs <= eStartSecs[i] ) {
+        if ( i ) {
+          // Didn't find an exact event, so go with the one before.
+          url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
+        }
         break;
       }
     }
-    createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
+    if ( url ) {
+      createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
+    } else {
+      url="?view=watch&mid=" + monId.toString();
+      createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
+    }
   }
 }
 

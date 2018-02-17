@@ -128,7 +128,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
   char *envPtr;
 
   if ( !id.empty() )
-    this->id( id );
+    this->id(id);
 
   std::string tempLogFile;
 
@@ -151,14 +151,17 @@ void Logger::initialise( const std::string &id, const Options &options ) {
 
   if ( options.mTerminalLevel != NOOPT )
     tempTerminalLevel = options.mTerminalLevel;
+
   if ( options.mDatabaseLevel != NOOPT )
     tempDatabaseLevel = options.mDatabaseLevel;
   else
     tempDatabaseLevel = config.log_level_database >= DEBUG1 ? DEBUG9 : config.log_level_database;
+
   if ( options.mFileLevel != NOOPT )
     tempFileLevel = options.mFileLevel;
   else
     tempFileLevel = config.log_level_file >= DEBUG1 ? DEBUG9 : config.log_level_file;
+
   if ( options.mSyslogLevel != NOOPT )
     tempSyslogLevel = options.mSyslogLevel;
   else
@@ -363,13 +366,12 @@ Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
 Logger::Level Logger::fileLevel( Logger::Level fileLevel ) {
   if ( fileLevel > NOOPT ) {
     fileLevel = limit(fileLevel);
-    if ( mFileLevel != fileLevel ) {
-      if ( mFileLevel > NOLOG )
-        closeFile();
-      mFileLevel = fileLevel;
-      if ( mFileLevel > NOLOG )
-        openFile();
-    }
+    // Always close, because we may have changed file names
+    if ( mFileLevel > NOLOG )
+	    closeFile();
+    mFileLevel = fileLevel;
+    if ( mFileLevel > NOLOG )
+	    openFile();
   }
   return( mFileLevel );
 }
@@ -402,9 +404,13 @@ void Logger::logFile( const std::string &logFile ) {
 }
 
 void Logger::openFile() {
-  if ( mLogFile.size() && (mLogFileFP = fopen( mLogFile.c_str() ,"a" )) == (FILE *)NULL ) {
+  if ( mLogFile.size() ) {
+   if ( (mLogFileFP = fopen(mLogFile.c_str() ,"a")) == (FILE *)NULL ) {
     mFileLevel = NOLOG;
     Fatal( "fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno) );
+   }
+  } else {
+    puts("Called Logger::openFile() without a filename");
   }
 }
 
@@ -524,6 +530,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     } else {
       puts("Logging to file, but file not open\n");
     }
+  } else {
+    puts("Not logging to file because level <= mFileLevel");
   }
   *syslogEnd = '\0';
   if ( level <= mDatabaseLevel ) {

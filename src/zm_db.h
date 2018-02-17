@@ -21,6 +21,7 @@
 #define ZM_DB_H
 
 #include <mysql/mysql.h>
+#include "zm_thread.h"
 
 class zmDbRow {
   private:
@@ -38,6 +39,7 @@ class zmDbRow {
 };
 
 extern MYSQL dbconn;
+extern Mutex db_mutex;
 
 bool zmDbConnect();
 void zmDbClose();

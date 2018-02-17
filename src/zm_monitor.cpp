@@ -875,10 +875,11 @@ void Monitor::actionEnable() {
 
   static char sql[ZM_SQL_SML_BUFSIZ];
   snprintf( sql, sizeof(sql), "update Monitors set Enabled = 1 where Id='%d'", id );
+  db_mutex.lock();
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
   }
+  db_mutex.unlock();
 }
 
 void Monitor::actionDisable() {
@@ -886,10 +887,11 @@ void Monitor::actionDisable() {
 
   static char sql[ZM_SQL_SML_BUFSIZ];
   snprintf( sql, sizeof(sql), "update Monitors set Enabled = 0 where Id='%d'", id );
+  db_mutex.lock();
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
   }
+  db_mutex.unlock();
 }
 
 void Monitor::actionSuspend() {
@@ -1234,9 +1236,11 @@ void Monitor::UpdateAnalysisFPS() {
 
       static char sql[ZM_SQL_SML_BUFSIZ];
       snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, analysis_fps, analysis_fps );
+      db_mutex.lock();
       if ( mysql_query( &dbconn, sql ) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
+      db_mutex.unlock();
     }
     last_analysis_fps_time = now.tv_sec;
   }
@@ -1576,12 +1580,15 @@ void Monitor::Reload() {
   // This seems to have fallen out of date.
   snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = '%d'", id );
 
+  db_mutex.lock();
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
+    db_mutex.unlock();
     exit( mysql_errno( &dbconn ) );
   }
 
   MYSQL_RES *result = mysql_store_result( &dbconn );
+  db_mutex.unlock();
   if ( !result ) {
     Error( "Can't use query result: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
@@ -1724,12 +1731,15 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
 
         static char sql[ZM_SQL_SML_BUFSIZ];
         snprintf( sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
+        db_mutex.lock();
         if ( mysql_query( &dbconn, sql ) ) {
           Error( "Can't run query: %s", mysql_error( &dbconn ) );
+          db_mutex.unlock();
           exit( mysql_errno( &dbconn ) );
         }
 
         MYSQL_RES *result = mysql_store_result( &dbconn );
+        db_mutex.unlock();
         if ( !result ) {
           Error( "Can't use query result: %s", mysql_error( &dbconn ) );
           exit( mysql_errno( &dbconn ) );
@@ -2943,14 +2953,17 @@ int Monitor::Capture() {
           double new_capture_fps = double(fps_report_interval)/(now-last_fps_time);
           //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
           //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-          Info("%s: %d - Capturing at %.2lf fps", name, image_count, capture_fps);
+          Info("%s: %d - Capturing at %.2lf fps", name, image_count, new_capture_fps);
           if ( new_capture_fps != capture_fps ) {
+            capture_fps = new_capture_fps;
             last_fps_time = now;
             static char sql[ZM_SQL_SML_BUFSIZ];
             snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, capture_fps, capture_fps);
+            db_mutex.lock();
             if ( mysql_query(&dbconn, sql) ) {
               Error("Can't run query: %s", mysql_error(&dbconn));
             }
+            db_mutex.unlock();
           } // end if fps has changed
         }
       } // end if report fps
@@ -3265,10 +3278,10 @@ int Monitor::PrimeCapture() {
   return ret;
 }
 int Monitor::PreCapture() {
-  return( camera->PreCapture() );
+  return camera->PreCapture();
 }
 int Monitor::PostCapture() {
-  return( camera->PostCapture() );
+  return camera->PostCapture();
 }
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
@@ -3280,12 +3293,14 @@ void Monitor::get_ref_image() {
       ( shared_data->last_write_time == 0 )
       && ! zm_terminate
       ) {
-    Warning( "Waiting for capture daemon lwi(%d) lwt(%d)", shared_data->last_write_index, shared_data->last_write_time );
+    Warning( "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)", shared_data->last_write_index, shared_data->last_write_time );
     usleep( 50000 );
   }
+  if ( zm_terminate )
+    return;
   int last_write_index = shared_data->last_write_index ;
 
-    Warning( "Waiting for capture daemon unlock" );
+  Warning( "Waiting for capture daemon unlock" );
   image_buffer[last_write_index].mutex.lock();
   ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[last_write_index].image->Buffer(), camera->ImageSize());
   image_buffer[last_write_index].mutex.unlock();

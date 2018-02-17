@@ -108,7 +108,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   mFrame = NULL;
   frameCount = 0;
   mCanCapture = false;
-  mOpenStart = 0;
 
 } // end FFmpegCamera::FFmpegCamera
 
@@ -121,7 +120,7 @@ FfmpegCamera::~FfmpegCamera() {
 
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
-  Info( "Priming capture from %s", mPath.c_str() );
+    Info( "Priming capture from %s, CLosing", mPath.c_str() );
     CloseFfmpeg();
   }
   mVideoStreamId = -1;
@@ -132,12 +131,7 @@ int FfmpegCamera::PrimeCapture() {
 }
 
 int FfmpegCamera::PreCapture() {
-  Debug(1, "PreCapture");
-  // If Reopen was called, then ffmpeg is closed and we need to reopen it.
-  if ( ! mCanCapture )
-    return OpenFfmpeg();
-  // Nothing to do here
-  return( 0 );
+  return 0;
 }
 
 int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
@@ -184,8 +178,6 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(2, "OpenFfmpeg called.");
   int ret;
 
-  mOpenStart = time(NULL);
-
   // Open the input, not necessarily a file
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
   Debug ( 1, "Calling av_open_input_file" );
@@ -224,6 +216,14 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   {
     Error("Unable to open input %s due to: %s", mPath.c_str(), strerror(errno));
+#if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
+    av_close_input_file( mFormatContext );
+#else
+    avformat_close_input( &mFormatContext );
+#endif
+    mFormatContext = NULL;
+    av_dict_free(&opts);
+
     return -1;
   }
 
@@ -231,6 +231,7 @@ int FfmpegCamera::OpenFfmpeg() {
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
+  av_dict_free(&opts);
 
   monitor->GetLastEventId() ;
 
@@ -367,12 +368,15 @@ int FfmpegCamera::OpenFfmpeg() {
       while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
         Warning( "Option %s not recognized by ffmpeg", e->key);
       }
-      Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
+      Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+      av_dict_free(&opts);
+      return -1;
     } else {
       AVDictionaryEntry *e = NULL;
       if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
         Warning( "Option %s not recognized by ffmpeg", e->key);
       }
+      av_dict_free(&opts);
     }
   } // end if success opening codec
 

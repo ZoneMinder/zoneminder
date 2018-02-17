@@ -221,8 +221,10 @@ Thread::Thread() :
 
 Thread::~Thread() {
   Debug( 1, "Destroying thread %d", mPid );
-  if ( mStarted )
+  if ( mStarted ) {
+    Warning("You should really join the thread before destroying it");
     join();
+  }
 }
 
 void *Thread::mThreadFunc( void *arg ) {

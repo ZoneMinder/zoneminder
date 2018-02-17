@@ -1915,8 +1915,7 @@ mVideoStreamId = 0;
 }
 
 int LocalCamera::PreCapture() {
-  Debug( 4, "Pre-capturing" );
-  return( 0 );
+  return 0;
 }
 
 int LocalCamera::Capture( ZMPacket &zm_packet ) {
@@ -1947,8 +1946,8 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
       vid_buf.memory = v4l2_data.reqbufs.memory;
 
       while ( captures_per_frame ) {
-        Debug( 3, "Capturing %d frames", captures_per_frame );
-        if ( vidioctl( vid_fd, VIDIOC_DQBUF, &vid_buf ) < 0 ) {
+        //Debug( 3, "Capturing %d frames", captures_per_frame );
+        if ( vidioctl(vid_fd, VIDIOC_DQBUF, &vid_buf) < 0 ) {
           if ( errno == EIO ) {
             Warning( "Capture failure, possible signal loss?: %s", strerror(errno) );
           } else {
@@ -1976,7 +1975,10 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
       if ( (v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) !=  (width * height) ) {
         Fatal("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",v4l2_data.fmt.fmt.pix.width,v4l2_data.fmt.fmt.pix.height,width,height);
       }
-    } else // end if v4l2
+    } // end if v4l2
+#if ZM_HAS_V4L1
+    else 
+#endif // ZM_HAS_V4L1
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
     if ( v4l_version == 1 ) {
@@ -2002,6 +2004,7 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
       buffer = v4l1_data.bufptr+v4l1_data.frames.offsets[capture_frame];
     }
 #endif // ZM_HAS_V4L1
+
   } /* prime capture */    
 
   if ( conversion_type != 0 ) {
@@ -2069,27 +2072,30 @@ int LocalCamera::PostCapture() {
       if ( channel_count > 1 ) {
         int next_channel = (channel_index+1)%channel_count;
         Debug( 3, "Switching video source to %d", channels[next_channel] );
-        if ( vidioctl( vid_fd, VIDIOC_S_INPUT, &channels[next_channel] ) < 0 ) {
+        if ( vidioctl(vid_fd, VIDIOC_S_INPUT, &channels[next_channel] ) < 0) {
           Error( "Failed to set camera source %d: %s", channels[next_channel], strerror(errno) );
-          return( -1 );
+          return -1;
         }
 
         v4l2_std_id stdId = standards[next_channel];
-        if ( vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 ) {
-          Error( "Failed to set video format %d: %s", standards[next_channel], strerror(errno) );
-          return( -1 );
+        if ( vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0 ) {
+          Error("Failed to set video format %d: %s", standards[next_channel], strerror(errno));
+          return -1;
         }
       }
       if ( v4l2_data.bufptr ) {
-        Debug( 3, "Requeueing buffer %d", v4l2_data.bufptr->index );
-        if ( vidioctl( vid_fd, VIDIOC_QBUF, v4l2_data.bufptr ) < 0 ) {
-          Error( "Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno) )
-            return( -1 );
+        Debug(3, "Requeueing buffer %d", v4l2_data.bufptr->index);
+        if ( vidioctl(vid_fd, VIDIOC_QBUF, v4l2_data.bufptr) < 0 ) {
+          Error("Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno));
+          return -1;
         }
       } else {
-        Error( "Unable to requeue buffer due to not v4l2_data" )
+        Error("Unable to requeue buffer due to not v4l2_data")
       }
-    } else
+    }
+#if ZM_HAS_V4L1
+    else
+#endif // ZM_HAS_V4L1
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
     if ( v4l_version == 1 ) {
@@ -2122,7 +2128,7 @@ int LocalCamera::PostCapture() {
     }
 #endif // ZM_HAS_V4L1
   }
-  return( 0 );
+  return 0;
 }
 AVStream *LocalCamera::get_VideoStream() {
   if ( ! video_stream ) {

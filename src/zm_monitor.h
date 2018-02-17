@@ -430,7 +430,7 @@ public:
       Error("Should not be calling Ready if the function doesn't include motion detection");
       return( false );
     }
-    if ( image_count > ready_count ) {
+    if ( image_count >= ready_count ) {
       return true;
     }
     Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count );

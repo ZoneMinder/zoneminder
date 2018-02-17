@@ -128,10 +128,11 @@ Zone::~Zone() {
 void Zone::RecordStats( const Event *event ) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 	snprintf( sql, sizeof(sql), "insert into Stats set MonitorId=%d, ZoneId=%d, EventId=%d, FrameId=%d, PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d", monitor->Id(), id, event->Id(), event->Frames()+1, pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score );
+  db_mutex.lock();
 	if ( mysql_query( &dbconn, sql ) ) {
 		Error( "Can't insert event stats: %s", mysql_error( &dbconn ) );
-		exit( mysql_errno( &dbconn ) );
 	}
+  db_mutex.unlock();
 } // end void Zone::RecordStats( const Event *event )
 
 bool Zone::CheckOverloadCount() {
@@ -825,15 +826,17 @@ bool Zone::ParseZoneString( const char *zone_string, int &zone_id, int &colour, 
 int Zone::Load( Monitor *monitor, Zone **&zones ) {
   static char sql[ZM_SQL_MED_BUFSIZ];
   snprintf( sql, sizeof(sql), "select Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames,ExtendAlarmFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id() );
+  db_mutex.lock();
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
     exit( mysql_errno( &dbconn ) );
   }
 
   MYSQL_RES *result = mysql_store_result( &dbconn );
+  db_mutex.unlock();
   if ( !result ) {
     Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+    return 0;
   }
   int n_zones = mysql_num_rows( result );
   Debug( 1, "Got %d zones for monitor %s", n_zones, monitor->Name() );

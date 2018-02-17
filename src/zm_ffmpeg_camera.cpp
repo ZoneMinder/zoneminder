@@ -207,7 +207,7 @@ int FfmpegCamera::Capture( Image &image ) {
       }
 
       Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
-      return( -1 );
+      return -1;
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
@@ -710,12 +710,16 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           // Check for Connection failure.
           (ret == -110)
          ) {
-          Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
-          ReopenFfmpeg();
+        Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
+        if ( ReopenFfmpeg() < 0 ) {
+          // OpenFfmpeg will do enough logging.
+          return -1;
+        }
+        continue;
       }
 
       Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
-      return( -1 );
+      return -1;
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;

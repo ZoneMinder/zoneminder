@@ -234,7 +234,7 @@ CREATE TRIGGER Events_Hour_delete_trigger BEFORE DELETE ON Events_Hour
 FOR EACH ROW BEGIN
   UPDATE Monitors SET
   HourEvents = COALESCE(HourEvents,1)-1,
-  HourEventDiskSpace=COALESCE(HourEventDiskSpace)-COALESCE(OLD.DiskSpace,0)
+  HourEventDiskSpace=COALESCE(HourEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0)
   WHERE Id=OLD.MonitorId;
 END; 
 //
@@ -249,10 +249,10 @@ FOR EACH ROW
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
       IF ( NEW.MonitorID != OLD.MonitorID ) THEN
-        UPDATE Monitors SET HourEventDiskSpace=COALESCE(DayEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
-        UPDATE Monitors SET HourEventDiskSpace=COALESCE(DayEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+        UPDATE Monitors SET HourEventDiskSpace=COALESCE(HourEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0) WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET HourEventDiskSpace=COALESCE(HourEventDiskSpace,0)-COALESCE(NEW.DiskSpace,0) WHERE Monitors.Id=NEW.MonitorId;
       ELSE
-        UPDATE Monitors SET HourEventDiskSpace=COALESCE(DayEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
+        UPDATE Monitors SET HourEventDiskSpace=COALESCE(HourEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
       END IF;
     END IF;
   END;
@@ -290,8 +290,8 @@ FOR EACH ROW
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
       IF ( NEW.MonitorID != OLD.MonitorID ) THEN
-        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
-        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0) WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+COALESCE(NEW.DiskSpace,0) WHERE Monitors.Id=NEW.MonitorId;
       ELSE
         UPDATE Monitors SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
       END IF;
@@ -332,8 +332,8 @@ FOR EACH ROW
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
       IF ( NEW.MonitorID != OLD.MonitorID ) THEN
-        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
-        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0) WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+COALESCE(NEW.DiskSpace,0) WHERE Monitors.Id=NEW.MonitorId;
       ELSE
         UPDATE Monitors SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
       END IF;
@@ -375,8 +375,8 @@ FOR EACH ROW
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
       IF ( NEW.MonitorID != OLD.MonitorID ) THEN
-        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)-OLD.DiskSpace WHERE Monitors.Id=OLD.MonitorId;
-        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+NEW.DiskSpace WHERE Monitors.Id=NEW.MonitorId;
+        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)-COALESCE(OLD.DiskSpace) WHERE Monitors.Id=OLD.MonitorId;
+        UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+COALESCE(NEW.DiskSpace) WHERE Monitors.Id=NEW.MonitorId;
       ELSE
         UPDATE Monitors SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+diff WHERE Monitors.Id=NEW.MonitorId;
       END IF;
@@ -422,7 +422,7 @@ FOR EACH ROW
 BEGIN
     declare diff BIGINT default 0;
 
-    set diff = NEW.DiskSpace - OLD.DiskSpace;
+    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
   IF ( NEW.StorageId = OLD.StorageID ) THEN
     IF ( diff ) THEN
       call update_storage_stats(OLD.StorageId, diff);
@@ -440,6 +440,7 @@ BEGIN
   UPDATE Events_Day SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
   UPDATE Events_Week SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
   UPDATE Events_Month SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
+
   IF ( NEW.Archived != OLD.Archived ) THEN
     IF ( NEW.Archived ) THEN
       INSERT INTO Events_Archived (EventId,MonitorId,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.DiskSpace);
@@ -455,9 +456,11 @@ BEGIN
           WHERE Id=OLD.MonitorId;
       END IF;
     END IF;
+  ELSE IF ( NEW.Archived AND diff ) THEN
+    UPDATE Events_Archived SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
   END IF;
 
-  IF ( OLD.DiskSpace != NEW.DiskSpace ) THEN
+  IF ( diff ) THEN
     UPDATE Monitors SET TotalEventDiskSpace = COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) + COALESCE(NEW.DiskSpace,0) WHERE Id=OLD.MonitorId;
   END IF;
 
@@ -506,14 +509,14 @@ BEGIN
   IF ( OLD.Archived ) THEN
     DELETE FROM Events_Archived WHERE EventId=OLD.Id;
     UPDATE Monitors SET
-      ArchivedEvents = ArchivedEvents - 1,
+      ArchivedEvents = COALESCE(ArchivedEvents,1) - 1,
       ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0),
-      TotalEvents = TotalEvents - 1,
+      TotalEvents = COALESCE(TotalEvents,1) - 1,
       TotalEventDiskSpace = COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0)
       WHERE Id=OLD.MonitorId;
   ELSE
     UPDATE Monitors SET
-    TotalEvents = TotalEvents-1,
+    TotalEvents = COALESCE(TotalEvents,1)-1,
     TotalEventDiskSpace=COALESCE(TotalEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0)
     WHERE Id=OLD.MonitorId;
   END IF;

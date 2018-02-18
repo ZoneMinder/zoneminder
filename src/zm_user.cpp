@@ -225,7 +225,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
         User *user = new User( dbrow );
         Debug(1, "Authenticated user '%s'", user->getUsername() );
         mysql_free_result( result );
-        return( user );
+        return user;
       }
     } // end foreach hours
   } // end foreach user

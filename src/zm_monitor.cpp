@@ -823,6 +823,7 @@ double Monitor::GetFPS() const {
   return curr_fps;
 }
 
+/* I think this returns the # of micro seconds that we should sleep in order to maintain the desired analysis rate */
 useconds_t Monitor::GetAnalysisRate() {
   capture_fps = GetFPS();
   if ( !analysis_fps_limit ) {

@@ -176,7 +176,7 @@ BEGIN
           WHERE Id=OLD.MonitorId;
       END IF;
     END IF;
-  ELSE IF ( NEW.Archived AND diff ) THEN
+  ELSEIF ( NEW.Archived AND diff ) THEN
     UPDATE Events_Archived SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
   END IF;
 

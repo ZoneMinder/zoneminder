@@ -23,6 +23,12 @@ addons:
     - curl
     - sshfs
     - sed
+    - binfmt-support
+    - qemu
+    - qemu-user-static
+install:
+  - update-binfmts --enable qemu-arm
+
 env:
   matrix:
   - OS=el DIST=6
@@ -34,6 +40,7 @@ env:
   - OS=ubuntu DIST=xenial
   - OS=ubuntu DIST=trusty ARCH=i386
   - OS=ubuntu DIST=xenial ARCH=i386
+
 compiler:
 - gcc
 services:

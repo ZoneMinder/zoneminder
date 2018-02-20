@@ -40,6 +40,7 @@ env:
   - OS=ubuntu DIST=xenial
   - OS=ubuntu DIST=trusty ARCH=i386
   - OS=ubuntu DIST=xenial ARCH=i386
+  - OS=raspbian DIST=stretch ARCH=armhf DOCKER_REPO=knnniggett/packpack
 
 compiler:
 - gcc

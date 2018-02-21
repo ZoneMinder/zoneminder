@@ -231,6 +231,7 @@ execpackpack () {
         parms="-f utils/packpack/redhat_package.mk redhat_package"
     else
         parms=""
+        export SMPFLAGS="-j$(nproc) --no-lintian"
     fi
 
     if [ "${TRAVIS}" == "true"  ]; then

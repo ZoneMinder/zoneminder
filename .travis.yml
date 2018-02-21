@@ -30,10 +30,6 @@ install:
   - update-binfmts --enable qemu-arm
 
 env:
-  global:
-  - DEB_BUILD_OPTIONS="parallel=4"
-  - DEBUILD_LINTIAN="no"
-  - SMPFLAGS="-j4"
   matrix:
   - OS=el DIST=6
   - OS=el DIST=6 ARCH=i386 DOCKER_REPO=knnniggett/packpack

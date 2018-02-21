@@ -205,10 +205,10 @@ FOR EACH ROW
   INSERT INTO Events_Week (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   INSERT INTO Events_Month (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   UPDATE Monitors SET
-  HourEvents = COALESCE(DayEvents,0)+1,
+  HourEvents = COALESCE(HourEvents,0)+1,
   DayEvents = COALESCE(DayEvents,0)+1,
-  WeekEvents = COALESCE(DayEvents,0)+1,
-  MonthEvents = COALESCE(DayEvents,0)+1,
+  WeekEvents = COALESCE(WeekEvents,0)+1,
+  MonthEvents = COALESCE(MonthEvents,0)+1,
   TotalEvents = COALESCE(TotalEvents,0)+1
   WHERE Id=NEW.MonitorId;
 END;

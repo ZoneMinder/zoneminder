@@ -425,6 +425,9 @@ sub delete_files {
 } # end sub delete_files
 
 sub Storage {
+  if ( @_ > 1 ) {
+    $_[0]{Storage} = $_[1];
+  }
   if ( ! $_[0]{Storage} ) {
     $_[0]{Storage} = new ZoneMinder::Storage( $_[0]{StorageId} );
   } 

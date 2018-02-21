@@ -264,13 +264,13 @@ DELIMITER ;
 UPDATE Monitors SET
 TotalEvents=(SELECT COUNT(*) FROM Events WHERE MonitorId=Monitors.Id),
 TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
-HourEvents=(SELECT COUNT(*) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 hour) ),
-HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 hour) AND DiskSpace IS NOT NULL),
-DayEvents=(SELECT COUNT(*) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day)),
-DayEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day) AND DiskSpace IS NOT NULL),
-WeekEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week)),
-WeekEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week) AND DiskSpace IS NOT NULL),
-MonthEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 month)),
-MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 month) AND DiskSpace IS NOT NULL),
-ArchivedEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1),
-ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1 AND DiskSpace IS NOT NULL);
+HourEvents=(SELECT COUNT(*) FROM Events_Hour WHERE MonitorId=Monitors.Id),
+HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Hour WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+DayEvents=(SELECT COUNT(*) FROM Events_Day WHERE MonitorId=Monitors.Id),
+DayEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Day WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+WeekEvents=(SELECT COUNT(Id) FROM Events_Week WHERE MonitorId=Monitors.Id),
+WeekEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Week WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+MonthEvents=(SELECT COUNT(Id) FROM Events_Month WHERE MonitorId=Monitors.Id),
+MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Month WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+ArchivedEvents=(SELECT COUNT(Id) FROM Events_Archived WHERE MonitorId=Monitors.Id),
+ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Archived WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL);

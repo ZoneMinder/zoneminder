@@ -506,13 +506,20 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   } // end if h264
 #endif
+  if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
+    if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == NULL ) {
+      Debug(1, "Failed to find decoder (h264_mmal)" );
+    } else {
+      Debug(1, "Success finding decoder (h264_mmal)" );
+    }
+  }
 
   if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
   // Try and get the codec from the codec context
     Error("Can't find codec for video stream from %s", mPath.c_str());
     return -1;
   } else {
-    Debug(1, "Video Found decoder");
+    Debug(1, "Video Found decoder %s", mVideoCodec->name);
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)

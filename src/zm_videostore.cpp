@@ -277,7 +277,8 @@ Debug(2,"Using mjpeg");
     if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
       video_out_ctx->max_b_frames = 1;
       if ( video_out_ctx->priv_data ) {
-        av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
+    av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
+        //av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
       } else {
         Debug(2, "Not setting priv_data");
       }

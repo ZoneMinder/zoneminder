@@ -346,6 +346,13 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   } // end if h264
 #endif
+  if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
+      if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == NULL ) { 
+        Debug(1, "Failed to find decoder (h264_mmal)" );
+      } else {
+        Debug(1, "Success finding decoder (h264_mmal)" );
+      }
+  }
 
   if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
   // Try and get the codec from the codec context

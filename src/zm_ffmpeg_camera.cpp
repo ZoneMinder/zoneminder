@@ -151,8 +151,7 @@ int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
         (ret == -110)
        ) {
       Info( "av_read_frame returned \"%s\". Reopening stream.", av_make_error_string(ret).c_str() );
-      ReopenFfmpeg();
-      return 0;
+      return ReopenFfmpeg();
     }
     Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, av_make_error_string(ret).c_str() );
     return -1;

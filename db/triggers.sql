@@ -30,17 +30,6 @@ FOR EACH ROW
 //
 DELIMITER ;
 
-DROP TABLE IF EXISTS `Events_Day`;
-CREATE TABLE `Events_Day` (
-  `EventId` int(10) unsigned NOT NULL,
-  `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
-  `DiskSpace`   bigint unsigned default NULL,
-  PRIMARY KEY (`EventId`),
-  KEY `Events_Day_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Day_StartTime_idx` (`StartTime`)
-) ENGINE=@ZM_MYSQL_ENGINE@;
-
 delimiter //
 DROP TRIGGER IF EXISTS Events_Day_delete_trigger//
 CREATE TRIGGER Events_Day_delete_trigger BEFORE DELETE ON Events_Day
@@ -71,19 +60,6 @@ FOR EACH ROW
   //
 
 
-DELIMITER ;
-DROP TABLE IF EXISTS `Events_Week`;
-CREATE TABLE `Events_Week` (
-  `EventId` int(10) unsigned NOT NULL,
-  `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
-  `DiskSpace`   bigint unsigned default NULL,
-  PRIMARY KEY (`EventId`),
-  KEY `Events_Week_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Week_StartTime_idx` (`StartTime`)
-) ENGINE=@ZM_MYSQL_ENGINE@;
-
-delimiter //
 DROP TRIGGER IF EXISTS Events_Week_delete_trigger//
 CREATE TRIGGER Events_Week_delete_trigger BEFORE DELETE ON Events_Week
 FOR EACH ROW BEGIN
@@ -112,20 +88,6 @@ FOR EACH ROW
   END;
   //
 
-DELIMITER ;
-
-DROP TABLE IF EXISTS `Events_Month`;
-CREATE TABLE `Events_Month` (
-  `EventId` int(10) unsigned NOT NULL,
-  `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,
-  `DiskSpace`   bigint unsigned default NULL,
-  PRIMARY KEY (`EventId`),
-  KEY `Events_Month_MonitorId_idx` (`MonitorId`),
-  KEY `Events_Month_StartTime_idx` (`StartTime`)
-) ENGINE=@ZM_MYSQL_ENGINE@;
-
-delimiter //
 DROP TRIGGER IF EXISTS Events_Month_delete_trigger//
 CREATE TRIGGER Events_Month_delete_trigger BEFORE DELETE ON Events_Month
 FOR EACH ROW BEGIN
@@ -135,7 +97,6 @@ FOR EACH ROW BEGIN
   WHERE Id=OLD.MonitorId;
 END;
 //
-
 
 DROP TRIGGER IF EXISTS Events_Month_update_trigger;
 CREATE TRIGGER Events_Month_update_trigger AFTER UPDATE ON Events_Month
@@ -155,23 +116,7 @@ FOR EACH ROW
   END;
   //
 
-
-DELIMITER ;
-
-DROP TABLE IF EXISTS `Events_Archived`;
-CREATE TABLE `Events_Archived` (
-  `EventId` int(10) unsigned NOT NULL,
-  `MonitorId` int(10) unsigned NOT NULL,
-  `DiskSpace`   bigint unsigned default NULL,
-  PRIMARY KEY (`EventId`),
-  KEY `Events_Archived_MonitorId_idx` (`MonitorId`)
-) ENGINE=@ZM_MYSQL_ENGINE@;
-
-
 drop procedure if exists update_storage_stats;
-
-delimiter //
-
 create procedure update_storage_stats(IN StorageId smallint(5), IN space BIGINT)
 
 sql security invoker
@@ -227,7 +172,7 @@ BEGIN
           WHERE Id=OLD.MonitorId;
       END IF;
     END IF;
-  ELSE IF ( NEW.Archived AND diff ) THEN
+  ELSEIF ( NEW.Archived AND diff ) THEN
     UPDATE Events_Archived SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
   END IF;
 
@@ -256,10 +201,10 @@ FOR EACH ROW
   INSERT INTO Events_Week (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   INSERT INTO Events_Month (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   UPDATE Monitors SET
-  HourEvents = COALESCE(DayEvents,0)+1,
+  HourEvents = COALESCE(HourEvents,0)+1,
   DayEvents = COALESCE(DayEvents,0)+1,
-  WeekEvents = COALESCE(DayEvents,0)+1,
-  MonthEvents = COALESCE(DayEvents,0)+1,
+  WeekEvents = COALESCE(WeekEvents,0)+1,
+  MonthEvents = COALESCE(MonthEvents,0)+1,
   TotalEvents = COALESCE(TotalEvents,0)+1
   WHERE Id=NEW.MonitorId;
 END;

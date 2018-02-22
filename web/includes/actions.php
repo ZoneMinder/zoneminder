@@ -195,6 +195,7 @@ if ( canView( 'Events' ) ) {
           $_REQUEST['Id'] = dbInsertId();
         }
         if ( $action == 'execute' ) {
+session_write_close();
           executeFilter( $tempFilterName );
         }
 

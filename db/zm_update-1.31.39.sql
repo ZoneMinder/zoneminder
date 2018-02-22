@@ -1,4 +1,17 @@
 
+ALTER TABLE `Monitors` MODIFY `HourEvents` INT(10) DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `HourEventDiskSpace` BIGINT DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `DayEvents` INT(10) DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `DayEventDiskSpace` BIGINT DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `WeekEvents` INT(10) DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `WeekEventDiskSpace` BIGINT DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `MonthEvents` INT(10) DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `MonthEventDiskSpace` BIGINT DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `ArchivedEvents` INT(10) DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `ArchivedEventDiskSpace` BIGINT DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `TotalEvents` INT(10) DEFAULT NULL;
+ALTER TABLE `Monitors` MODIFY `TotalEventDiskSpace` BIGINT DEFAULT NULL;
+
 delimiter //
 DROP TRIGGER IF EXISTS Events_Hour_delete_trigger//
 CREATE TRIGGER Events_Hour_delete_trigger BEFORE DELETE ON Events_Hour
@@ -260,17 +273,3 @@ FOR EACH ROW
 //
 
 DELIMITER ;
-
-UPDATE Monitors SET
-TotalEvents=(SELECT COUNT(*) FROM Events WHERE MonitorId=Monitors.Id),
-TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
-HourEvents=(SELECT COUNT(*) FROM Events_Hour WHERE MonitorId=Monitors.Id),
-HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Hour WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
-DayEvents=(SELECT COUNT(*) FROM Events_Day WHERE MonitorId=Monitors.Id),
-DayEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Day WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
-WeekEvents=(SELECT COUNT(Id) FROM Events_Week WHERE MonitorId=Monitors.Id),
-WeekEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Week WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
-MonthEvents=(SELECT COUNT(Id) FROM Events_Month WHERE MonitorId=Monitors.Id),
-MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Month WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
-ArchivedEvents=(SELECT COUNT(Id) FROM Events_Archived WHERE MonitorId=Monitors.Id),
-ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Archived WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL);

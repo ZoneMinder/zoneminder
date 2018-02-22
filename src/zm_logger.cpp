@@ -67,7 +67,7 @@ void Logger::usrHandler( int sig ) {
 
 Logger::Logger() :
   mLevel( INFO ),
-  mTermLevel( NOLOG ),
+  mTerminalLevel( NOLOG ),
   mDatabaseLevel( NOLOG ),
   mFileLevel( NOLOG ),
   mSyslogLevel( NOLOG ),
@@ -76,7 +76,7 @@ Logger::Logger() :
   //mLogFile( mLogPath+"/"+mId+".log" ),
   mDbConnected( false ),
   mLogFileFP( NULL ),
-  mHasTerm( false ),
+  mHasTerminal( false ),
   mFlush( false ) {
 
   if ( smInstance ) {
@@ -108,7 +108,7 @@ Logger::Logger() :
   }
 
   if ( fileno(stderr) && isatty(fileno(stderr)) )
-    mHasTerm = true;
+    mHasTerminal = true;
 }
 
 Logger::~Logger() {
@@ -145,13 +145,13 @@ void Logger::initialise( const std::string &id, const Options &options ) {
   }
 
   Level tempLevel = INFO;
-  Level tempTermLevel = mTermLevel;
+  Level tempTerminalLevel = mTerminalLevel;
   Level tempDatabaseLevel = mDatabaseLevel;
   Level tempFileLevel = mFileLevel;
   Level tempSyslogLevel = mSyslogLevel;
 
-  if ( options.mTermLevel != NOOPT )
-    tempTermLevel = options.mTermLevel;
+  if ( options.mTerminalLevel != NOOPT )
+    tempTerminalLevel = options.mTerminalLevel;
 
   if ( options.mDatabaseLevel != NOOPT )
     tempDatabaseLevel = options.mDatabaseLevel;
@@ -170,13 +170,13 @@ void Logger::initialise( const std::string &id, const Options &options ) {
 
   // Legacy
   if ( (envPtr = getenv( "LOG_PRINT" )) )
-    tempTermLevel = atoi(envPtr) ? DEBUG9 : NOLOG;
+    tempTerminalLevel = atoi(envPtr) ? DEBUG9 : NOLOG;
 
   if ( (envPtr = getTargettedEnv( "LOG_LEVEL" )) )
     tempLevel = atoi(envPtr);
 
   if ( (envPtr = getTargettedEnv( "LOG_LEVEL_TERM" )) )
-    tempTermLevel = atoi(envPtr);
+    tempTerminalLevel = atoi(envPtr);
   if ( (envPtr = getTargettedEnv( "LOG_LEVEL_DATABASE" )) )
     tempDatabaseLevel = atoi(envPtr);
   if ( (envPtr = getTargettedEnv( "LOG_LEVEL_FILE" )) )
@@ -202,7 +202,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
     // if we don't have debug turned on, then the max effective log level is INFO
     if ( tempSyslogLevel > INFO ) tempSyslogLevel = INFO;
     if ( tempFileLevel > INFO ) tempFileLevel = INFO;
-    if ( tempTermLevel > INFO ) tempTermLevel = INFO;
+    if ( tempTerminalLevel > INFO ) tempTerminalLevel = INFO;
     if ( tempDatabaseLevel > INFO ) tempDatabaseLevel = INFO;
     if ( tempLevel > INFO ) tempLevel = INFO;
   } // end if config.log_debug
@@ -210,7 +210,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
 
   logFile( tempLogFile );
 
-  termLevel( tempTermLevel );
+  terminalLevel( tempTerminalLevel );
   databaseLevel( tempDatabaseLevel );
   fileLevel( tempFileLevel );
   syslogLevel( tempSyslogLevel );
@@ -244,7 +244,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
   Debug( 1, "LogOpts: level=%s/%s, screen=%s, database=%s, logfile=%s->%s, syslog=%s",
       smCodes[mLevel].c_str(),
       smCodes[mEffectiveLevel].c_str(),
-      smCodes[mTermLevel].c_str(),
+      smCodes[mTerminalLevel].c_str(),
       smCodes[mDatabaseLevel].c_str(),
       smCodes[mFileLevel].c_str(),
       mLogFile.c_str(),
@@ -323,8 +323,8 @@ Logger::Level Logger::level( Logger::Level level ) {
       mLevel = level;
 
     mEffectiveLevel = NOLOG;
-    if ( mTermLevel > mEffectiveLevel )
-      mEffectiveLevel = mTermLevel;
+    if ( mTerminalLevel > mEffectiveLevel )
+      mEffectiveLevel = mTerminalLevel;
     if ( mDatabaseLevel > mEffectiveLevel )
       mEffectiveLevel = mDatabaseLevel;
     if ( mFileLevel > mEffectiveLevel )
@@ -337,15 +337,15 @@ Logger::Level Logger::level( Logger::Level level ) {
   return( mLevel );
 }
 
-Logger::Level Logger::termLevel( Logger::Level termLevel ) {
-  if ( termLevel > NOOPT ) {
-    if ( !mHasTerm )
-      termLevel = NOLOG;
-    termLevel = limit(termLevel);
-    if ( mTermLevel != termLevel )
-      mTermLevel = termLevel;
+Logger::Level Logger::terminalLevel( Logger::Level terminalLevel ) {
+  if ( terminalLevel > NOOPT ) {
+    if ( !mHasTerminal )
+      terminalLevel = NOLOG;
+    terminalLevel = limit(terminalLevel);
+    if ( mTerminalLevel != terminalLevel )
+      mTerminalLevel = terminalLevel;
   }
-  return( mTermLevel );
+  return( mTerminalLevel );
 }
 
 Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
@@ -517,7 +517,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   char *syslogEnd = logPtr;
   strncpy( logPtr, "]\n", sizeof(logString)-(logPtr-logString) );   
 
-  if ( level <= mTermLevel ) {
+  if ( level <= mTerminalLevel ) {
     puts( logString );
     fflush( stdout );
   }

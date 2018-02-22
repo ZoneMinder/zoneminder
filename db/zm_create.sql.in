@@ -756,18 +756,18 @@ CREATE TABLE `Monitors` (
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
-  `TotalEvents` int(10) unsigned,
-  `TotalEventDiskSpace` bigint unsigned,
-  `HourEvents` int(10) unsigned,
-  `HourEventDiskSpace` bigint unsigned,
-  `DayEvents` int(10) unsigned,
-  `DayEventDiskSpace` bigint unsigned,
-  `WeekEvents` int(10) unsigned,
-  `WeekEventDiskSpace` bigint unsigned,
-  `MonthEvents` int(10) unsigned,
-  `MonthEventDiskSpace` bigint unsigned,
-  `ArchivedEvents` int(10) unsigned,
-  `ArchivedEventDiskSpace` bigint unsigned,
+  `TotalEvents` int(10) default NULL,
+  `TotalEventDiskSpace` bigint default NULL,
+  `HourEvents` int(10) default NULL,
+  `HourEventDiskSpace` bigint default NULL,
+  `DayEvents` int(10) default NULL,
+  `DayEventDiskSpace` bigint default NULL,
+  `WeekEvents` int(10) default NULL,
+  `WeekEventDiskSpace` bigint default NULL,
+  `MonthEvents` int(10) default NULL,
+  `MonthEventDiskSpace` bigint default NULL,
+  `ArchivedEvents` int(10) default NULL,
+  `ArchivedEventDiskSpace` bigint default NULL,
   `ZoneCount` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -1155,7 +1155,11 @@ INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('4 Wide', '{ "default":{
 INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('5 Wide', '{ "default":{"float":"left", "width":"19%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
 
 -- We generally don't alter triggers, we drop and re-create them, so let's keep them in a separate file that we can just source in update scripts.
+<<<<<<< HEAD
 source triggers.sql
+=======
+source @ZM_PATH_DATA@/db/triggers.sql
+>>>>>>> storageareas
 --
 -- Apply the initial configuration
 --

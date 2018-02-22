@@ -425,6 +425,9 @@ sub delete_files {
 } # end sub delete_files
 
 sub Storage {
+  if ( @_ > 1 ) {
+    $_[0]{Storage} = $_[1];
+  }
   if ( ! $_[0]{Storage} ) {
     $_[0]{Storage} = new ZoneMinder::Storage( $_[0]{StorageId} );
   } 
@@ -487,7 +490,7 @@ sub MoveTo {
     return "Event has already been moved by someone else.";
   }
 
-  my $OldStorage = $self->Storage();
+  my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
 
   $$self{Storage} = $NewStorage;
@@ -535,6 +538,7 @@ sub MoveTo {
   for my $file (@files) {
     next if $file =~ /^\./;
     ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+    Debug("Moving file $file to $NewPath");
     if ( ! File::Copy::copy( $file, $NewPath ) ) {
       $error .= "Copy failed: for $file to $NewPath: $!";
       last;

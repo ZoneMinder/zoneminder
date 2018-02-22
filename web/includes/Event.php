@@ -168,14 +168,21 @@ class Event {
       } else {
         $streamSrc .= $_SERVER['HTTP_HOST'];
       }
-      $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
-      return $streamSrc;
+      $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
+      $args['eid'] = $this->{'Id'};
+      $args['view'] = 'view_video';
+    } else {
+      $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
+
+      $args['source'] = 'event';
+      $args['event'] = $this->{'Id'};
+      if ( ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) && !empty($GLOBALS['connkey']) ) {
+        $args['connkey'] = $GLOBALS['connkey'];
+      }
+      if ( ZM_RAND_STREAM ) {
+        $args['rand'] = time();
+      }
     }
-
-    $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
-
-    $args['source'] = 'event';
-    $args['event'] = $this->{'Id'};
 
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
@@ -187,16 +194,10 @@ class Event {
         $args['user'] = $_SESSION['username'];
       }
     }
-    if ( ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) && !empty($GLOBALS['connkey']) ) {
-      $args['connkey'] = $GLOBALS['connkey'];
-    }
-    if ( ZM_RAND_STREAM ) {
-      $args['rand'] = time();
-    }
 
     $streamSrc .= '?'.http_build_query( $args,'', $querySep );
 
-    return( $streamSrc );
+    return $streamSrc;
   } // end function getStreamSrc
 
   function DiskSpace( $new='' ) {

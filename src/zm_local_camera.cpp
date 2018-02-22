@@ -2135,6 +2135,7 @@ AVStream *LocalCamera::get_VideoStream() {
     AVFormatContext *oc = avformat_alloc_context();
     video_stream = avformat_new_stream( oc, NULL );
     if ( video_stream ) {
+      video_stream->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       video_stream->codecpar->width = width;
       video_stream->codecpar->height = height;

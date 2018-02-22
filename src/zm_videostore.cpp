@@ -200,6 +200,7 @@ Debug(2,"Using mjpeg");
     }
 
     video_out_ctx->pix_fmt = pf;
+    video_out_ctx->level = 32;
         
   } else {
     Error("Unsupported output codec selected");
@@ -268,16 +269,20 @@ Debug(2,"Using mjpeg");
     }
 
     /* video time_base can be set to whatever is handy and supported by encoder */
-    video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-    video_out_ctx->gop_size = 12;
-    video_out_ctx->qmin = 10;
-    video_out_ctx->qmax = 51;
-    video_out_ctx->qcompress = 0.6;
-    //video_out_ctx->bit_rate = 4000000;
+    //video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
+    video_out_ctx->time_base = (AVRational){1, 30}; // microseconds as base frame rate
+    video_out_ctx->framerate = (AVRational){30,1};
+    //video_out_ctx->gop_size = 12;
+    //video_out_ctx->qmin = 10;
+    //video_out_ctx->qmax = 51;
+    //video_out_ctx->qcompress = 0.6;
+    video_out_ctx->bit_rate = 400*1024;
+    video_out_ctx->thread_count = 0;
+
     if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
       video_out_ctx->max_b_frames = 1;
       if ( video_out_ctx->priv_data ) {
-    av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
+        av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
         //av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
       } else {
         Debug(2, "Not setting priv_data");
@@ -1027,8 +1032,9 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       zm_packet->out_frame->pts = 0;
       zm_packet->out_frame->coded_picture_number = 0;
     } else {
-      uint64_t seconds = zm_packet->timestamp->tv_sec*(uint64_t)1000000;
-      zm_packet->out_frame->pts = ( seconds + zm_packet->timestamp->tv_usec ) - video_start_pts;
+      uint64_t seconds = ( zm_packet->timestamp->tv_sec*(uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_start_pts;
+      zm_packet->out_frame->pts = av_rescale_q( seconds, video_in_stream->time_base, video_out_ctx->time_base);
+
       //zm_packet->out_frame->pkt_duration = zm_packet->out_frame->pts - video_start_pts;
       Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
           frame_count, zm_packet->out_frame->pts, video_start_pts, seconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
@@ -1044,6 +1050,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // Do this to allow the encoder to choose whether to use I/P/B frame
     zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
+    Debug(4, "Sending frame");
     if ( (ret = avcodec_send_frame(video_out_ctx, zm_packet->out_frame)) < 0 ) {
       Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
       return -1;

@@ -465,6 +465,7 @@ void Event::AddPacket( ZMPacket *packet, int score, Image *alarm_image ) {
   have_video_keyframe = have_video_keyframe || ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && packet->keyframe );
   if ( videoStore ) {
     if ( have_video_keyframe )  {
+      Debug(2,"Have video keyframe, writing packet to videostore");
       videoStore->writePacket( packet );
     } else {
       Debug(2, "No video keyframe yet, not writing");

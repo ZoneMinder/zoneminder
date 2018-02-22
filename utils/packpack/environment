@@ -1,3 +1,0 @@
-DEB_BUILD_OPTIONS=parallel=4
-DEBUILD_LINTIAN=no
-

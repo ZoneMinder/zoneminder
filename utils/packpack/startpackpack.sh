@@ -108,10 +108,10 @@ commonprep () {
         patch -p1 < utils/packpack/packpack-rpm.patch
     fi
 
-    # Patch packpack
-    patch --dry-run --silent -f -p1 < utils/packpack/envvars.patch
+    # Skip deb lintian checks to speed up the build
+    patch --dry-run --silent -f -p1 < utils/packpack/nolintian.patch
     if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/envvars.patch
+        patch -p1 < utils/packpack/nolintian.patch
     fi
 
     # The rpm specfile requires we download the tarball and manually move it into place
@@ -237,8 +237,6 @@ execpackpack () {
         parms="-f utils/packpack/redhat_package.mk redhat_package"
     else
         parms=""
-        export SMPFLAGS="-j4"
-        export USER_ENV_FILE="utils/packpack/environment"
     fi
 
     if [ "${TRAVIS}" == "true"  ]; then

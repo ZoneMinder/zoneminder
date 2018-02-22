@@ -9,8 +9,8 @@ Subject: [PATCH] don't run lintian checks to speed up build
 
 diff --git a/pack/deb.mk b/pack/deb.mk
 index de4a0b7..bddf9df 100644
---- a/pack/deb.mk
-+++ b/pack/deb.mk
+--- a/packpack/pack/deb.mk
++++ b/packpack/pack/deb.mk
 @@ -130,7 +130,7 @@ $(BUILDDIR)/$(DPKG_CHANGES): $(BUILDDIR)/$(PRODUCT)-$(VERSION)/debian \
  	@echo "Building Debian packages"
  	@echo "-------------------------------------------------------------------"

@@ -295,7 +295,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         execpackpack
 
     # Steps common to Debian based distros
-    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
+    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
         echo "Begin ${OS} ${DIST} build..."
 
         setdebpkgname

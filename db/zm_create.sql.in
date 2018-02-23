@@ -1138,7 +1138,7 @@ CREATE TABLE Maps (
   PRIMARY KEY (`Id`)
 );
 
-DROP TABLE IF EXISTS MontageLayout;
+DROP TABLE IF EXISTS MontageLayouts;
 
 CREATE TABLE MontageLayouts (
   `Id` int(10) unsigned NOT NULL auto_increment,

@@ -5,6 +5,9 @@ set -e
 if [ "$1" = "configure" ]; then
 
     . /etc/zm/zm.conf
+  for i in /etc/zm/conf.d/*.conf; do
+    . $i
+  done;
 
     # The logs can contain passwords, etc... so by setting group root, only www-data can read them, not people in the www-data group.
 	chown www-data:root /var/log/zm

@@ -45,32 +45,36 @@ function evaluateLoadTimes() {
 } // end evaluateLoadTimes()
 
 // time is seconds since epoch
-function SetImageSource( monId, time ) {
+function getImageSource( monId, time ) {
   if ( liveMode == 1 ) {
-    return monitorImageObject[monId].src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-
-  } else {
-    for ( var i=0, eIdlength = eId.length; i < eIdlength; i++ ) {
-      // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
-      if ( eMonId[i] == monId && time >= eStartSecs[i] && time <= eEndSecs[i] ) {
-        var duration = eEndSecs[i]-eStartSecs[i];
-        var frame = parseInt((time - eStartSecs[i])/(duration)*eventFrames[i])+1;
-        var storage = Storage[eStorageId[i]];
-        if ( storage.ServerId ) {
-          var server = Servers[storage.ServerId];
-          if ( server ) {
-//console.log( server.Hostname + " for event " + eId[i] );
-            return location.protocol + '//' + server.Hostname + '/index.php?view=image&eid=' + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
-          } else {
-            console.log("No server found for " + storage.ServerId );
-          }
-        }
-        //console.log("No storage found for " + eStorageId[i] );
-        return "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
-      }
-    } // end for
-    return "no data";
+    var new_url = monitorImageObject[monId].src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    if ( auth_hash ) {
+      // update auth hash
+      new_url = new_url.replace(/auth=[a-z0-9]+/i, 'auth='+auth_hash);
+    }
+    return new_url;
   }
+
+  for ( var i=0, eIdlength = eId.length; i < eIdlength; i++ ) {
+    // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
+    if ( eMonId[i] == monId && time >= eStartSecs[i] && time <= eEndSecs[i] ) {
+      var duration = eEndSecs[i]-eStartSecs[i];
+      var frame = parseInt((time - eStartSecs[i])/(duration)*eventFrames[i])+1;
+      var storage = Storage[eStorageId[i]];
+      if ( storage.ServerId ) {
+        var server = Servers[storage.ServerId];
+        if ( server ) {
+//console.log( server.Hostname + " for event " + eId[i] );
+          return location.protocol + '//' + server.Hostname + '/index.php?view=image&eid=' + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+        } else {
+          console.log("No server found for " + storage.ServerId );
+        }
+      }
+      //console.log("No storage found for " + eStorageId[i] );
+      return "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    }
+  } // end for
+  return "no data";
 }
 
 // callback when loading an image. Will load itself to the canvas, or draw no data
@@ -164,7 +168,7 @@ function loadImage2Monitor( monId, url ) {
 
 function timerFire() {
   // See if we need to reschedule
-  if ( currentDisplayInterval != timerInterval || currentSpeed == 0 ) {
+  if ( ( currentDisplayInterval != timerInterval ) || ( currentSpeed == 0 ) ) {
     // zero just turn off interrupts
     clearInterval(timerObj);
     timerInterval=currentDisplayInterval;
@@ -335,87 +339,88 @@ function drawGraph() {
 }
 
 function redrawScreen() {
-    if ( liveMode == 1 ) {
+  if ( liveMode == 1 ) {
     // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
-        $('DateTimeDiv').style.display="none";
-        $('SpeedDiv').style.display="none";
-        $('timelinediv').style.display="none";
-        $('live').innerHTML="History";
-        $('zoomin').style.display="none";
-        $('zoomout').style.display="none";
-        $('panleft').style.display="none";
-        $('panright').style.display="none";
-        if ($('downloadVideo')) $('downloadVideo').style.display="none";
+    $('DateTimeDiv').style.display="none";
+    $('SpeedDiv').style.display="none";
+    $('timelinediv').style.display="none";
+    $('liveButton').innerHTML="History";
+    $('zoomin').style.display="none";
+    $('zoomout').style.display="none";
+    $('panleft').style.display="none";
+    $('panright').style.display="none";
+    if ($('downloadVideo')) $('downloadVideo').style.display="none";
 
-    } else  {
+  } else  {
     // switch out of liveview mode
-        $('DateTimeDiv').style.display="inline";
-        $('SpeedDiv').style.display="inline";
-        $('SpeedDiv').style.display="inline-flex";
-        $('timelinediv').style.display=null;
-        $('live').innerHTML="Live";
-        $('zoomin').style.display="inline";
-        $('zoomin').style.display="inline-flex";
-        $('zoomout').style.display="inline";
-        $('zoomout').style.display="inline-flex";
-        $('panleft').style.display="inline";
-        $('panleft').style.display="inline-flex";
-        $('panright').style.display="inline";
-        $('panright').style.display="inline-flex";
-        if ($('downloadVideo')) $('downloadVideo').style.display="inline";
-    }
+    $('DateTimeDiv').style.display="inline";
+    $('DateTimeDiv').style.display="inline-flex";
+    $('SpeedDiv').style.display="inline";
+    $('SpeedDiv').style.display="inline-flex";
+    $('timelinediv').style.display=null;
+    $('liveButton').innerHTML="Live";
+    $('zoomin').style.display="inline";
+    $('zoomin').style.display="inline-flex";
+    $('zoomout').style.display="inline";
+    $('zoomout').style.display="inline-flex";
+    $('panleft').style.display="inline";
+    $('panleft').style.display="inline-flex";
+    $('panright').style.display="inline";
+    $('panright').style.display="inline-flex";
+    if ($('downloadVideo')) $('downloadVideo').style.display="inline";
+  }
 
-    if ( fitMode == 1 ) {
-        $('ScaleDiv').style.display="none";
-        $('fit').innerHTML="Scale";
-        var vh=window.innerHeight;
-        var vw=window.innerWidth;
-        var pos=$('monitors').getPosition();
-        var mh=(vh - pos.y - $('fps').getSize().y);
-        $('monitors').setStyle('height',mh.toString() + "px");  // leave a small gap at bottom
-        if(maxfit2($('monitors').getSize().x,$('monitors').getSize().y) == 0)   /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
-            fitMode=1-fitMode;
-    } else {
-      // switch out of fit mode
-      // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
-        for( var i=0; i<numMonitors; i++ )
-            monitorCanvasObj[monitorPtr[i]].style.position="";
-        $('monitors').setStyle('height',"auto");
-        $('ScaleDiv').style.display="inline";
-        $('ScaleDiv').style.display="inline-flex";
-        $('fit').innerHTML="Fit";
-        setScale(currentScale);
-    }
-    drawGraph();
-    outputUpdate(currentTimeSecs);
-    timerFire();  // force a fire in case it's not timing
+  if ( fitMode == 1 ) {
+    $('ScaleDiv').style.display="none";
+    $('fit').innerHTML="Scale";
+    var vh=window.innerHeight;
+    var vw=window.innerWidth;
+    var pos=$('monitors').getPosition();
+    var mh=(vh - pos.y - $('fps').getSize().y);
+    $('monitors').setStyle('height',mh.toString() + "px");  // leave a small gap at bottom
+    if(maxfit2($('monitors').getSize().x,$('monitors').getSize().y) == 0)   /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+      fitMode=1-fitMode;
+  } else {
+    // switch out of fit mode
+    // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
+    for( var i=0; i<numMonitors; i++ )
+      monitorCanvasObj[monitorPtr[i]].style.position="";
+    $('monitors').setStyle('height',"auto");
+    $('ScaleDiv').style.display="inline";
+    $('ScaleDiv').style.display="inline-flex";
+    $('fit').innerHTML="Fit";
+    setScale(currentScale);
+  }
+  drawGraph();
+  outputUpdate(currentTimeSecs);
+  timerFire();  // force a fire in case it's not timing
 }
 
 function outputUpdate(time) {
   drawSliderOnGraph(time);
   for ( var i=0; i < numMonitors; i++ ) {
-    loadImage2Monitor(monitorPtr[i],SetImageSource(monitorPtr[i],time));
+    loadImage2Monitor(monitorPtr[i],getImageSource(monitorPtr[i],time));
   }
   currentTimeSecs = time;
 }
 
 /// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
 function relMouseCoords(event){
-    var totalOffsetX = 0;
-    var totalOffsetY = 0;
-    var canvasX = 0;
-    var canvasY = 0;
-    var currentElement = this;
+  var totalOffsetX = 0;
+  var totalOffsetY = 0;
+  var canvasX = 0;
+  var canvasY = 0;
+  var currentElement = this;
 
-    do {
-        totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
-        totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
-    } while(currentElement = currentElement.offsetParent);
+  do {
+    totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
+    totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
+  } while(currentElement = currentElement.offsetParent);
 
-    canvasX = event.pageX - totalOffsetX;
-    canvasY = event.pageY - totalOffsetY;
+  canvasX = event.pageX - totalOffsetX;
+  canvasY = event.pageY - totalOffsetY;
 
-    return {x:canvasX, y:canvasY}
+  return {x:canvasX, y:canvasY}
 }
 HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 
@@ -476,12 +481,16 @@ function setSpeed( speed_index ) {
   speedIndex = speed_index;
   playSecsperInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
   showSpeed(speed_index);
-  if ( timerInterval != currentDisplayInterval || currentSpeed == 0 ) timerFire(); // if the timer isn't firing we need to trigger it to update
+  if ( timerInterval != currentDisplayInterval ) timerFire(); // if the timer isn't firing we need to trigger it to update
+  //if ( (timerInterval != currentDisplayInterval || currentSpeed == 0 ) timerFire(); // if the timer isn't firing we need to trigger it to update
 }
 
 function setLive(value) {
   liveMode = value;
-  changeDateTime();
+  var form = $j('#montagereview_form')[0];
+  form.elements['live'].value = value;
+  form.submit();
+  return false;
 }
 
 
@@ -701,12 +710,26 @@ function showOneMonitor(monId) {
     createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
   } else {
     for ( var i=0, len=eId.length; i<len; i++ ) {
-      if ( eMonId[i] == monId && currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i] ) {
+      if ( eMonId[i] != monId )
+        continue;
+
+      if ( currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i] ) {
         url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
+        break;
+      } else if ( currentTimeSecs <= eStartSecs[i] ) {
+        if ( i ) {
+          // Didn't find an exact event, so go with the one before.
+          url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
+        }
         break;
       }
     }
-    createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
+    if ( url ) {
+      createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
+    } else {
+      url="?view=watch&mid=" + monId.toString();
+      createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
+    }
   }
 }
 
@@ -734,6 +757,18 @@ function clickMonitor(event,monId) {
 }
 
 function changeDateTime(e) {
+  var minTime_element = $j('#minTime');
+  var maxTime_element = $j('#maxTime');
+
+  var minTime = moment(minTime_element.val());
+  var maxTime = moment(maxTime_element.val());
+  if ( minTime.isAfter(maxTime) ) {
+    maxTime_element.parent().addClass('has-error');
+    return; // Don't reload because we have invalid datetime filter.
+} else {
+    maxTime_element.parent().removeClass('has-error');
+  }
+
   var minStr = "&minTime="+($j('#minTime')[0].value);
   var maxStr = "&maxTime="+($j('#maxTime')[0].value);
 
@@ -798,6 +833,6 @@ function initPage() {
       }
   });
 }
-window.addEventListener("resize",redrawScreen);
+window.addEventListener("resize",redrawScreen,{passive:true});
 // Kick everything off
 window.addEvent( 'domready', initPage );

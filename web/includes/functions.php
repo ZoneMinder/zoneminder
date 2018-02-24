@@ -151,7 +151,9 @@ function generateAuthHash( $useRemoteAddr ) {
   if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
     $time = time();
-    if ( ( ! isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < ( $time - ( ZM_AUTH_HASH_TTL * 1800 ) ) ) ) {
+    $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
+
+    if ( ( !isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
       $local_time = localtime();
       $authKey = '';
@@ -160,18 +162,19 @@ function generateAuthHash( $useRemoteAddr ) {
       } else {
         $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
+      #Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5( $authKey );
       if ( session_status() == PHP_SESSION_NONE ) {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
-        Warning("Session is not active. AuthHash will not be cached. called from $file:$line");
+        Warning("Session is not active. AuthHash will not be cached. called from $file:$line. OldHash:" . $_SESSION['AuthHash'] . ' generated at ' . $_SESSION['AuthHashGeneratedAt'] . ' < ' . $time . ' - ( ' . ZM_AUTH_HASH_TTL . '* 1800 = ' . ZM_AUTH_HASH_TTL * 1800 );
       }
       $_SESSION['AuthHash'] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
-      Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
-    } else {
-      Logger::Debug( "Using cached auth " . $_SESSION['AuthHash'] ." beacuse " . $_SESSION['AuthHashGeneratedAt'] . ' < '. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '.( $time - (ZM_AUTH_HASH_TTL * 1800) ));
+      #Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
+    #} else {
+      #Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'];
   } else {
@@ -269,14 +272,14 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
           if ( isWindows() ) {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'
               classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-              codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
+              codebase="'.ZM_BASE_PROTOCOL.'://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
               standby="Loading Microsoft Windows Media Player components..."
               type="'.$mimeType.'">
               <param name="FileName" value="'.$src.'"/>
               <param name="autoStart" value="1"/>
               <param name="showControls" value="0"/>
               <embed type="'.$mimeType.'"
-              pluginspage="http://www.microsoft.com/Windows/MediaPlayer/"
+              pluginspage="'.ZM_BASE_PROTOCOL.'://www.microsoft.com/Windows/MediaPlayer/"
               src="'.$src.'"
               name="'.$title.'"
               width="'.$width.'"
@@ -291,14 +294,14 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
         {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
-            codebase="http://www.apple.com/qtactivex/qtplugin.cab"
+            codebase="'.ZM_BASE_PROTOCOL.'://www.apple.com/qtactivex/qtplugin.cab"
             type="'.$mimeType.'">
             <param name="src" value="'.$src.'"/>
             <param name="autoplay" VALUE="true"/>
             <param name="controller" VALUE="false"/>
             <embed type="'.$mimeType.'"
             src="'.$src.'"
-            pluginspage="http://www.apple.com/quicktime/download/"
+            pluginspage="'.ZM_BASE_PROTOCOL.'://www.apple.com/quicktime/download/"
             name="'.$title.'" width="'.$width.'" height="'.$height.'"
             autoplay="true"
             controller="true">
@@ -309,13 +312,13 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
         {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
-            codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
+            codebase="'.ZM_BASE_PROTOCOL.'://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
             type="'.$mimeType.'">
             <param name="movie" value="'.$src.'"/>
             <param name="quality" value="high"/>
             <param name="bgcolor" value="#ffffff"/>
             <embed type="'.$mimeType.'"
-            pluginspage="http://www.macromedia.com/go/getflashplayer"
+            pluginspage="'.ZM_BASE_PROTOCOL.'://www.macromedia.com/go/getflashplayer"
             src="'.$src.'"
             name="'.$title.'"
             width="'.$width.'"
@@ -1236,31 +1239,38 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             case 'ServerId':
               if ( $value == 'ZM_SERVER_ID' ) {
                 $value = ZM_SERVER_ID;
+              } else if ( $value == 'NULL' ) {
+
               } else {
                 $value = dbEscape($value);
               }
               break;
             case 'StorageId':
               $StorageArea = new Storage( $value );
-              $value = dbEscape($value);
+              if ( $value != 'NULL' )
+                $value = dbEscape($value);
               break;
             case 'DateTime':
             case 'StartDateTime':
             case 'EndDateTime':
-              $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
+              if ( $value != 'NULL' )
+                $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
               break;
             case 'Date':
             case 'StartDate':
             case 'EndDate':
-              $value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
+              if ( $value != 'NULL' )
+                $value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             case 'Time':
             case 'StartTime':
             case 'EndTime':
+              if ( $value != 'NULL' )
               $value = "extract( hour_second from '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             default :
-              $value = dbEscape($value);
+              if ( $value != 'NULL' )
+                $value = dbEscape($value);
               break;
           }
           $valueList[] = $value;
@@ -2125,10 +2135,11 @@ function ajaxResponse( $result=false ) {
   if ( function_exists( 'ajaxCleanup' ) )
     ajaxCleanup();
   $response = array( 'result'=>'Ok' );
-  if ( is_array( $result ) )
+  if ( is_array( $result ) ) {
     $response = array_merge( $response, $result );
-  elseif ( !empty($result) )
+  } elseif ( !empty($result) ) {
     $response['message'] = $result;
+  }
   header( 'Content-type: text/plain' );
   exit( jsonEncode( $response ) );
 }

@@ -5,20 +5,22 @@ require_once( 'Server.php' );
 class Monitor {
 
 private $defaults = array(
-'Id' => null,
-'Name' => '',
-'StorageId' => 0,
-'ServerId' => 0,
-'Function' => 'None',
-'Enabled' => 1,
-'Width' => null,
-'Height' => null,
-'Orientation' => null,
-'AnalysisFPSLimit'  =>  null,
-'AnalysisFPS' => null,
-'CaptureFPS' => null,
-'ZoneCount' =>  0,
-'Triggers'  =>  null,
+  'Id' => null,
+  'Name' => '',
+  'StorageId' => 0,
+  'ServerId' => 0,
+  'Function' => 'None',
+  'Enabled' => 1,
+  'Width' => null,
+  'Height' => null,
+  'Orientation' => null,
+  'AnalysisFPSLimit'  =>  null,
+  'ZoneCount' =>  0,
+  'Triggers'  =>  null,
+);
+private $status_fields = array(
+  'AnalysisFPS' => null,
+  'CaptureFPS' => null,
 );
 private $control_fields = array(
   'Name' => '',
@@ -312,7 +314,7 @@ private $control_fields = array(
   } // end function save
 
   function zmcControl( $mode=false ) {
-    if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$this->{'ServerId'} ) ) {
+    if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->{'Type'} == 'Local' ) {
         $zmcArgs = '-d '.$this->{'Device'};
       } else {
@@ -329,7 +331,7 @@ private $control_fields = array(
           daemonControl( 'start', 'zmc', $zmcArgs );
         }
       }
-    } else {
+    } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
       $url = $Server->Url() . '/zm/api/monitors/'.$this->{'Id'}.'.json';
@@ -367,7 +369,7 @@ Logger::Debug("sending command to $url");
   } // end function zmcControl
 
   function zmaControl( $mode=false ) {
-    if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$this->{'ServerId'} ) ) {
+    if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
         if ( ZM_OPT_CONTROL ) {
           daemonControl( 'stop', 'zmtrack.pl', '-m '.$this->{'Id'} );

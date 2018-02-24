@@ -26,9 +26,13 @@
 void FFMPEGInit() {
   static bool bInit = false;
 
-  if(!bInit) {
+  if ( !bInit ) {
+    if ( logDebugging() )
+      av_log_set_level( AV_LOG_DEBUG ); 
+    else
+      av_log_set_level( AV_LOG_QUIET ); 
     av_register_all();
-    av_log_set_level(AV_LOG_DEBUG);
+    avformat_network_init();
     bInit = true;
   }
 }
@@ -106,26 +110,25 @@ static int parse_key_value_pair(AVDictionary **pm, const char **buf,
     return ret;
 }
 int av_dict_parse_string(AVDictionary **pm, const char *str,
-                            const char *key_val_sep, const char *pairs_sep,
-                            int flags)
-   {
-       if (!str)
-          return 0;
-   
-       /* ignore STRDUP flags */
-       flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
-   
-       while (*str) {
-	       int ret;
-           if ( (ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
-              return ret;
-   
-           if (*str)
-               str++;
-       }
-   
-       return 0;
+    const char *key_val_sep, const char *pairs_sep,
+    int flags) {
+  if (!str)
+    return 0;
+
+  /* ignore STRDUP flags */
+  flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
+
+  while (*str) {
+    int ret;
+    if ( (ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
+      return ret;
+
+    if (*str)
+      str++;
   }
+
+  return 0;
+}
 #endif
 #endif // HAVE_LIBAVUTIL
 
@@ -188,30 +191,29 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
   if (ret) {
     avformat_free_context(s);
     return ret;
-  } else {
-    s->oformat = oformat;
-#if 1
-    // This is some very wrong code, and I don't think it is neccessary
-    if (s->oformat->priv_data_size > 0) {
-      s->priv_data = av_mallocz(s->oformat->priv_data_size);
-      if (s->priv_data) {
-        if (s->oformat->priv_class) {
-          *(const AVClass**)s->priv_data= s->oformat->priv_class;
-          av_opt_set_defaults(s->priv_data);
-        }
+  }
+
+  s->oformat = oformat;
+#if 0
+  if (s->oformat->priv_data_size > 0) {
+      if (s->oformat->priv_class) {
+        // This looks wrong, we just allocated priv_data and now we are losing the pointer to it.FIXME
+        *(const AVClass**)s->priv_data = s->oformat->priv_class;
+        av_opt_set_defaults(s->priv_data);
       } else {
-        av_log(s, AV_LOG_ERROR, "Out of memory\n");
-        ret = AVERROR(ENOMEM);
-        return ret;
-      }
-      s->priv_data = NULL;
+    s->priv_data = av_mallocz(s->oformat->priv_data_size);
+    if ( ! s->priv_data) {
+      av_log(s, AV_LOG_ERROR, "Out of memory\n");
+      ret = AVERROR(ENOMEM);
+      return ret;
     }
+    s->priv_data = NULL;
+  }
 #endif
 
-    if (filename) strncpy(s->filename, filename, sizeof(s->filename)-1);
-    *avctx = s;
-    return 0;
-  }
+  if (filename) strncpy(s->filename, filename, sizeof(s->filename)-1);
+  *avctx = s;
+  return 0;
 }
 
 static void zm_log_fps(double d, const char *postfix) {
@@ -228,22 +230,32 @@ static void zm_log_fps(double d, const char *postfix) {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {
-  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d)", 
+  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d) bit_rate(%d) format(%d = %s)", 
     par->codec_type,
     par->codec_id,
     par->codec_tag,
     par->width,
-    par->height
+    par->height,
+    par->bit_rate,
+    par->format,
+    ((AVPixelFormat)par->format == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format))
 ); 
 }
 #endif
 
 void zm_dump_codec ( const AVCodecContext *codec ) {
-  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) width(%d) height(%d)", 
+  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d) format(%s)",
     codec->codec_type,
     codec->codec_id,
     codec->width,
-    codec->height
+    codec->height,
+    codec->time_base.num,
+    codec->time_base.den,
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt))
+#else
+    "unsupported on avconv"
+#endif
 ); 
 }
 
@@ -255,7 +267,6 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
 
-  avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, "    Stream #%d:%d", index, i);
 
   /* the pid is an important information, so we display it */
@@ -264,15 +275,21 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, "[0x%x]", st->id);
   if (lang)
     Debug(1, "(%s)", lang->value);
-  Debug(1, ", %d, %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
+  Debug(1, ", frames:%d, timebase: %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
+  avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, ": %s", buf);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  AVCodecParameters *codec = st->codecpar;
+#else
+  AVCodecContext *codec = st->codec;
+#endif
 
   if (st->sample_aspect_ratio.num && // default
-      av_cmp_q(st->sample_aspect_ratio, st->codec->sample_aspect_ratio)) {
+      av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)) {
     AVRational display_aspect_ratio;
     av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
-        st->codec->width  * (int64_t)st->sample_aspect_ratio.num,
-        st->codec->height * (int64_t)st->sample_aspect_ratio.den,
+        codec->width  * (int64_t)st->sample_aspect_ratio.num,
+        codec->height * (int64_t)st->sample_aspect_ratio.den,
         1024 * 1024);
     Debug(1, ", SAR %d:%d DAR %d:%d",
         st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
@@ -337,8 +354,10 @@ int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt) {
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
 #else
 unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {
-  dst->data = reinterpret_cast<uint8_t*>(new uint64_t[(src->size + FF_INPUT_BUFFER_PADDING_SIZE)/sizeof(uint64_t) + 1]);
+  dst->size = (src->size + FF_INPUT_BUFFER_PADDING_SIZE)/sizeof(uint64_t) + 1;
+  dst->data = reinterpret_cast<uint8_t*>(new uint64_t[dst->size]);
   memcpy(dst->data, src->data, src->size );
+  dst->flags = src->flags;
   return 0;
 }
 #endif
@@ -372,4 +391,72 @@ bool is_audio_stream( AVStream * stream ) {
     return true;
   }
   return false;
+}
+
+int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet ) {
+  int ret;
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  if ( (ret = avcodec_send_packet(context, &packet)) < 0  ) {
+    Error( "Unable to send packet %s, continuing",
+       av_make_error_string(ret).c_str() );
+    return 0;
+  }
+
+#if HAVE_AVUTIL_HWCONTEXT_H
+  if ( hwaccel ) {
+    if ( (ret = avcodec_receive_frame(context, hwFrame)) < 0 ) {
+      Error( "Unable to receive frame %d: %s, continuing", streams[packet.stream_index].frame_count,
+         av_make_error_string(ret).c_str() );
+      return 0;
+    }
+    if ( (ret = av_hwframe_transfer_data(frame, hwFrame, 0)) < 0 ) {
+      Error( "Unable to transfer frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count,
+          av_make_error_string(ret).c_str() );
+      return 0;
+    }
+  } else {
+#endif
+    if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
+      Error( "Unable to send packet %s, continuing", av_make_error_string(ret).c_str() );
+      return 0;
+    }
+#if HAVE_AVUTIL_HWCONTEXT_H
+  }
+#endif
+
+# else
+  int frameComplete;
+  while ( !frameComplete ) {
+    if ( (ret = zm_avcodec_decode_video( context, frame, &frameComplete, &packet )) < 0 ) {
+      Error( "Unable to decode frame at frame: %s, continuing",
+          av_make_error_string(ret).c_str() );
+      return 0;
+    }
+  }
+#endif
+  return 1;
+} // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
+void dumpPacket(AVPacket *pkt, const char *text) {
+  char b[10240];
+
+  snprintf(b, sizeof(b),
+           " pts: %" PRId64 ", dts: %" PRId64
+           ", data: %p, size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
+           ", duration: %" 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+           PRId64
+#else
+           "d"
+#endif
+           "\n",
+           pkt->pts, 
+           pkt->dts,
+           pkt->data,
+           pkt->size,
+           pkt->stream_index,
+           pkt->flags,
+           pkt->flags & AV_PKT_FLAG_KEY,
+           pkt->pos,
+           pkt->duration);
+  Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
 }

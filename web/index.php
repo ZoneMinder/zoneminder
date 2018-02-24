@@ -173,12 +173,15 @@ if ( isset($_REQUEST['request']) )
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
   require_once $includeFile;
 
-if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
-  if ( empty($user) && ! empty($_REQUEST['auth']) ) {
-    if ( $authUser = getAuthUser( $_REQUEST['auth'] ) ) {
-      userLogin( $authUser['Username'], $authUser['Password'], true );
-    }
-  } else if ( ! empty($user) ) {
+if ( ZM_OPT_USE_AUTH ) {
+  if ( ZM_AUTH_HASH_LOGINS ) {
+    if ( empty($user) && ! empty($_REQUEST['auth']) ) {
+      if ( $authUser = getAuthUser( $_REQUEST['auth'] ) ) {
+        userLogin( $authUser['Username'], $authUser['Password'], true );
+      }
+    } 
+  }
+  if ( ! empty($user) ) {
     // generate it once here, while session is open.  Value will be cached in session and return when called later on
     generateAuthHash( ZM_AUTH_HASH_IPS );
   }
@@ -203,7 +206,7 @@ if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' && $vie
 require_once( 'includes/actions.php' );
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH && ! isset($user) ) {
+if ( ZM_OPT_USE_AUTH and ! isset($user) ) {
   Logger::Debug("Redirecting to login" );
   $view = 'login';
   $request = null;
@@ -214,11 +217,11 @@ if ( ZM_OPT_USE_AUTH && ! isset($user) ) {
 session_write_close();
 
 if ( $redirect ) {
-  header('Location: '.ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view='.$view);
+  header('Location: '.$redirect);
   return;
 }
 
-if ( isset( $_REQUEST['request'] ) ) {
+if ( $request ) {
   foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile ) {
     if ( !file_exists( $includeFile ) )
       Fatal( "Request '$request' does not exist" );

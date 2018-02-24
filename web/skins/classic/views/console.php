@@ -113,8 +113,8 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
     if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
   }
-  $monitor['zmc'] = zmcStatus( $monitor );
-  $monitor['zma'] = zmaStatus( $monitor );
+  #$monitor['zmc'] = zmcStatus( $monitor );
+  #$monitor['zma'] = zmaStatus( $monitor );
   $zoneCount += $monitor['ZoneCount'];
 
   $counts = array();
@@ -186,36 +186,47 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
 <?php
-  if ( !$monitor['zmc'] ) {
-    $dclass = 'errorText';
+  if ( (!$monitor['Status']) or ($monitor['Status'] == 'NotRunning') ) {
+    $source_class = 'errorText';
   } else {
-  // https://github.com/ZoneMinder/ZoneMinder/issues/1082
-    if ( !$monitor['zma'] && $monitor['Function']!='Monitor' )
-      $dclass = 'warnText';
-    else
-      $dclass = 'infoText';
+    if ( (!$monitor['CaptureFPS']) ) {
+      $source_class = 'errorText';
+    } else if ( (!$monitor['AnalysisFPS']) && ($monitor['Function']!='Monitor') && ($monitor['Function'] != 'Nodect') ) {
+      $source_class = 'warnText';
+    } else {
+      $source_class = 'infoText';
+    }
   }
   if ( $monitor['Function'] == 'None' )
     $fclass = 'errorText';
-  //elseif ( $monitor['Function'] == 'Monitor' )
-   //   $fclass = 'warnText';
   else
     $fclass = 'infoText';
   if ( !$monitor['Enabled'] )
     $fclass .= ' disabledText';
   $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-?>
-<?php 
+$stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Function'] != 'None';
+
   if ( ZM_WEB_ID_ON_CONSOLE ) {
 ?>
-            <td class="colId"><a <?php echo (canView('Stream') && $running && $monitor['Function'] != 'None' ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Id'] ?></a></td>
+            <td class="colId"><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Id'] ?></a></td>
 <?php
   }
 ?>
-            <td class="colName"><a <?php echo (canView('Stream') && $monitor['Function'] != 'None' ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a></td>
+            <td class="colName"><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><?php echo $monitor['Status'] ?></td>
             <td class="colFunction">
               <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
-<?php echo $monitor['CaptureFPS'] . ( ( $monitor['Function'] == 'Mocord' or $monitor['Function'] == 'Modect' ) ? ' / ' . $monitor['AnalysisFPS'] : '' ) . ' FPS' ?>
+<?php 
+  $fps_string = '';
+  if ( isset($monitor['CaptureFPS']) ) {
+    $fps_string .= $monitor['CaptureFPS'];
+  }
+
+  if ( isset($monitor['AnalysisFPS']) and ( $monitor['Function'] == 'Mocord' or $monitor['Function'] == 'Modect' ) ) {
+    $fps_string .= ' / ' . $monitor['AnalysisFPS'];
+  }
+  if ($fps_string) $fps_string .= ' FPS';
+  echo $fps_string;
+?>
               </td>
 <?php
   if ( count($servers) ) { ?>
@@ -227,20 +238,29 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $source = $monitor['Device'].' ('.$monitor['Channel'].')';
   } elseif ( $monitor['Type'] == 'Remote' ) {
     $source = preg_replace( '/^.*@/', '', $monitor['Host'] );
+    if ( $monitor['Port'] != '80' and $monitor['Port'] != '554' ) {
+      $source .= ':'.$monitor['Port'];
+    }
   } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
     $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
   } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
     $url_parts = parse_url( $monitor['Path'] );
-    $source = $url_parts['host']. ( 
-      ( $url_parts['port'] and ( $url_parts['port'] != '554' and $url_parts['port'] != '80' ) ) ? ':'.$url_parts['port'] : '' );
+    unset($url_parts['user']);
+    unset($url_parts['pass']);
+    unset($url_parts['scheme']);
+    unset($url_parts['query']);
+    unset($url_parts['path']);
+    if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
+      unset($url_parts['port']);
+    $source = unparse_url( $url_parts );
   }
   if ( $source == '' ) {
     $source = 'Monitor ' . $monitor['Id'];
   }
-  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$dclass.'">'.$source.'</span>', canEdit( 'Monitors' ) ).'</td>';
+  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.$source.'</span>', canEdit( 'Monitors' ) ).'</td>';
   if ( $show_storage_areas ) {
 ?>
-            <td class="colStorage"><?php if ( isset( $StorageById[ $monitor['StorageId'] ] ) ) { echo $StorageById[ $monitor['StorageId'] ]->Name(); } ?></td>
+            <td class="colStorage"><?php if ( isset($StorageById[$monitor['StorageId']]) ) { echo $StorageById[ $monitor['StorageId'] ]->Name(); } ?></td>
 <?php
   }
 
@@ -271,11 +291,22 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
           <tr>
             <td class="colId"><?php echo count($displayMonitors) ?></td>
             <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
-              <input type="button" value="<?php echo translate('Refresh') ?>" onclick="location.reload(true);"/>
-              <input type="button" name="addBtn" value="<?php echo translate('AddNewMonitor') ?>" onclick="addMonitor(this);"/>
-              <!-- <?php echo makePopupButton( '?view=monitor', 'zmMonitor0', 'monitor', translate('AddNewMonitor'), (canEdit( 'Monitors' ) && !$user['MonitorIds']) ) ?> -->
-              <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editMonitor( this )" disabled="disabled"/>
-              <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteMonitor( this )" disabled="disabled"/>
+              <button type="button" name="addBtn" onclick="addMonitor(this);"
+              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+              >
+              <?php echo translate('AddNewMonitor') ?>
+              </button>
+              <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
+              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+              style="display:none;">
+              <?php echo translate('CloneMonitor') ?>
+              </button>
+              <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
+              <?php echo translate('Edit') ?>
+              </button>
+              <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
+              <?php echo translate('Delete') ?>
+              </button>
             </td>
 <?php
   foreach ( array_keys( $eventCounts ) as $i ) {

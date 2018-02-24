@@ -2,13 +2,20 @@
 #SpeedDiv{
   vertical-align: top;
   display: inline-flex;
-  border: 1px solid black;
   width: 25%;
   padding: 4px;
 }
 #ScaleDiv label,
 #SpeedDiv label {
   margin: 0;
+}
+#ButtonsDiv {
+  display: inline-flex;
+  flex-flow: row-wrap;
+}
+#ButtonsDiv button {
+display: inline-flex;
+min-width: 0;
 }
 #DateTimeDiv {
   display: inline-flex;
@@ -23,7 +30,7 @@
 #timelinediv {
   margin: 2px auto;
   position:relative; 
-  width:93%;
+  width:100%;
 }
 
 #timeline {
@@ -45,4 +52,7 @@ input[type=range]::-ms-tooltip {
 
 #downloadVideo {
   margin-left: 5px;
+}
+#minTime, #maxTime {
+margin: 0 4px;
 }

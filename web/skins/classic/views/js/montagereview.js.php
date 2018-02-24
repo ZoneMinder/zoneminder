@@ -7,7 +7,7 @@ echo $offset . '; // ' . floor($offset / 3600) . ' hours ';
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
-var liveMode=<?php echo $initialModeIsLive?>;
+var liveMode=<?php echo $liveMode?>;
 var fitMode=<?php echo $fitMode?>;
 var currentSpeed=<?php echo $speeds[$speedIndex]?>;  // slider scale, which is only for replay and relative to real time
 var speedIndex=<?php echo $speedIndex?>;
@@ -33,16 +33,16 @@ var eventFrames = [];            // this is going to presume all frames equal du
 // Because we might not have time as the criteria, figure out the min/max time when we run the query
 
 if ( ! $maxTimeSecs )
-$maxTimeSecs = time();
+  $maxTimeSecs = time();
 if ( ! $minTimeSecs )
-$minTimeSecs = strtotime('2010-01-01 01:01:01');
+  $minTimeSecs = strtotime('2010-01-01 01:01:01');
 
 // This builds the list of events that are eligible from this range
 
 $index = 0;
 $anyAlarms = false;
 
-if ( ! $initialModeIsLive ) {
+if ( ! $liveMode ) {
   $result = dbQuery( $eventsSql );
   if ( ! $result ) {
     Fatal('SQL-ERR');
@@ -51,14 +51,17 @@ if ( ! $initialModeIsLive ) {
 
   while( $event = $result->fetch( PDO::FETCH_ASSOC ) ) {
 
-    if ( $minTimeSecs > $event['StartTimeSecs'] )   $minTimeSecs = $event['StartTimeSecs'];
-    if ( $maxTimeSecs < $event['CalcEndTimeSecs'] ) $maxTimeSecs = $event['CalcEndTimeSecs'];
+    $StartTimeSecs = strtotime($event['StartTime']);
+    $EndTimeSecs = strtotime($event['EndTime']);
+
+    if ( $minTimeSecs > $StartTimeSecs )   $minTimeSecs = $StartTimeSecs;
+    if ( $maxTimeSecs < $EndTimeSecs ) $maxTimeSecs = $EndTimeSecs;
       echo "
 eMonId[$index]=" . $event['MonitorId'] . ";
 eStorageId[$index]=".$event['StorageId'] . ";
 eId[$index]=" . $event['Id'] . ";
-eStartSecs[$index]=" . $event['StartTimeSecs'] . ";
-eEndSecs[$index]=" . $event['CalcEndTimeSecs'] . ";
+eStartSecs[$index]=" . $StartTimeSecs . ";
+eEndSecs[$index]=" . $EndTimeSecs . ";
 eventFrames[$index]=" . $event['Frames'] . ";
 
   ";

@@ -1,7 +1,12 @@
 <?php
 if ($_REQUEST['entity'] == 'navBar') {
-   ajaxResponse(getNavBarHtml('reload'));
-   return;
+  $data  = array();
+  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
+    $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+  }
+  $data['message'] = getNavBarHtml('reload');
+  ajaxResponse($data);
+  return;
 }
 
 $statusData = array(
@@ -381,6 +386,11 @@ function getNearEvents() {
     $midSql = ' and MonitorId in ('.join( ',', preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).')';
   else
     $midSql = '';
+
+  # When listing, it may make sense to list them in descending order.  But when viewing Prev should timewise earlier and Next should be after.
+  if ( $sortColumn == 'E.Id' or $sortColumn == 'E.StartTime' ) {
+    $sortOrder = 'asc';
+  }
 
   $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." ORDER BY $sortColumn ".($sortOrder=='asc'?'desc':'asc') . ' LIMIT 2';
   $result = dbQuery( $sql );

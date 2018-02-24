@@ -43,50 +43,97 @@ foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
 }
 
-?>
+$html =
+'
 <div class="controlHeader">
-<input type="hidden" name="filtering" value="" />
-  <span id="groupControl"><label><?php echo translate('Group') ?>:</label>
-<?php
-# This will end up with the group_id of the deepest selection
-$group_id = isset($_SESSION['Group']) ?  $_SESSION['Group'] : null;
-echo Group::get_group_dropdown();
-$groupSql = Group::get_group_sql( $group_id );
-?>
-  </span>
-  <span id="monitorControl"><label><?php echo translate('Monitor') ?>:</label>
-<?php
+  <input type="hidden" name="filtering" value=""/>
+';
+
+$groupSql = '';
+if ( Group::find_all() ) {
+  $html .= '<span id="groupControl"><label>'. translate('Group') .':</label>';
+  # This will end up with the group_id of the deepest selection
+  $group_id = isset($_SESSION['Group']) ? $_SESSION['Group'] : null;
+  $html .= Group::get_group_dropdown();
+  $groupSql = Group::get_group_sql($group_id);
+  $html .= '</span>';
+}
 
 $selected_monitor_ids = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : array();
 if ( ! is_array( $selected_monitor_ids ) ) {
   Warning("Turning selected_monitor_ids into an array $selected_monitor_ids");
-  $selected_monitor_ids = array( $selected_monitor_ids );
+  $selected_monitor_ids = array($selected_monitor_ids);
 }
 
-  $conditions = array();
-  $values = array();
+$conditions = array();
+$values = array();
 
-  if ( $groupSql )
-    $conditions[] = $groupSql;
-  foreach ( array('ServerId','StorageId','Status') as $filter ) {
-    if ( isset($_SESSION[$filter]) ) {
-      if ( is_array($_SESSION[$filter]) ) {
-        $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter] ) ). ')';
-        $values += $_SESSION[$filter];
+if ( $groupSql )
+  $conditions[] = $groupSql;
+foreach ( array('ServerId','StorageId','Status') as $filter ) {
+  if ( isset($_SESSION[$filter]) ) {
+    if ( is_array($_SESSION[$filter]) ) {
+      $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter] ) ). ')';
+      $values = array_merge( $values, $_SESSION[$filter] );
     } else {
-        $conditions[] = $filter . '=?';
+      $conditions[] = $filter . '=?';
       $values[] = $_SESSION[$filter];
-      }
     }
-  } # end foreach filter
-  if ( ! empty( $user['MonitorIds'] ) ) {
-    $ids = explode(',', $user['MonitorIds'] );
-    $conditions[] = 'Id IN ('.implode(',',array_map( function(){return '?';}, $ids) ).')';
-    $values += $ids;
   }
+} # end foreach filter
+if ( ! empty( $user['MonitorIds'] ) ) {
+  $ids = explode(',', $user['MonitorIds'] );
+  $conditions[] = 'M.Id IN ('.implode(',',array_map( function(){return '?';}, $ids) ).')';
+  $values += $ids;
+}
 
-  $sql = 'SELECT * FROM Monitors' . ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions ) : '' ).' ORDER BY Sequence ASC';
-  $monitors = dbFetchAll( $sql, null, $values );
+if ( count($ServersById) > 1 ) {
+  $html .= '<span class="ServerFilter"><label>'. translate('Server').':</label>';
+  $html .= htmlSelect( 'ServerId[]', $ServersById,
+    (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
+    array(
+      'onchange'=>'this.form.submit();',
+      'class'=>'chosen',
+      'multiple'=>'multiple',
+      'data-placeholder'=>'All',
+    )
+  );
+  $html .= '</span>';
+} # end if have Servers
+
+if ( count($StorageById) > 1 ) {
+  $html .= '<span class="StorageFilter"><label>'.translate('Storage').':</label>';
+  $html .= htmlSelect( 'StorageId[]',$StorageById,
+    (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
+    array(
+      'onchange'=>'this.form.submit();',
+      'class'=>'chosen',
+      'multiple'=>'multiple',
+      'data-placeholder'=>'All',
+    ) );
+  $html .= '</span>';
+} # end if have Storage Areas
+$html .= '<span class="StatusFilter"><label>'. translate('Status') . ':</label>';
+$status_options = array(
+    'Connected' => translate('Connected'),
+    'Unknown' => translate('Unknown'),
+    'NotRunning' => translate('NotRunning'),
+    'Running' => translate('Running'),
+    );
+$html .= htmlSelect( 'Status[]', $status_options,
+  ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),
+  array(
+    'onchange'=>'this.form.submit();',
+    'class'=>'chosen',
+    'multiple'=>'multiple',
+    'data-placeholder'=>'All'
+  ) );
+  $html .= '</span>';
+
+  $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS, S.AnalysisFPS AS AnalysisFPS
+  FROM Monitors AS M LEFT JOIN Monitor_Status AS S ON MonitorId=Id ' .
+  ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
+  $monitors = dbFetchAll($sql, null, $values);
   $displayMonitors = array();
   $monitors_dropdown = array();
 
@@ -95,10 +142,10 @@ if ( ! is_array( $selected_monitor_ids ) ) {
     $found_selected_monitor = false;
 
     for ( $i = 0; $i < count($monitors); $i++ ) {
-      if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
+      if ( !visibleMonitor($monitors[$i]['Id']) ) {
         continue;
       }
-      if ( in_array( $monitors[$i]['Id'], $selected_monitor_ids ) ) {
+      if ( in_array($monitors[$i]['Id'], $selected_monitor_ids) ) {
         $found_selected_monitor = true;
       }
     } // end foreach monitor
@@ -108,13 +155,13 @@ if ( ! is_array( $selected_monitor_ids ) ) {
   } // end if a monitor was specified
 
   for ( $i = 0; $i < count($monitors); $i++ ) {
-    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
-      Warning("Monitor " . $monitors[$i]['Id'] . ' is not visible' );
+    if ( !visibleMonitor($monitors[$i]['Id']) ) {
+      Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
       continue;
     }
     $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
 
-    if ( count($selected_monitor_ids) and ! in_array( $monitors[$i]['Id'], $selected_monitor_ids ) ) {
+    if ( count($selected_monitor_ids) and ! in_array($monitors[$i]['Id'], $selected_monitor_ids) ) {
       continue;
     }
     if ( isset($_SESSION['StatusFilter']) ) {
@@ -124,64 +171,17 @@ if ( ! is_array( $selected_monitor_ids ) ) {
     }
     $displayMonitors[] = $monitors[$i];
   }
-  echo htmlSelect( 'MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
+  $html .= '<span id="monitorControl"><label>'.translate('Monitor').':</label>';
+  $html .= htmlSelect( 'MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
       'onchange'=>'this.form.submit();',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
     ) );
+# Repurpose this variable to be the list of MonitorIds as a result of all the filtering
+$selected_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
+  $html .= '</span>';
+  echo $html;
 ?>
-</span>
-<?php
-if ( count($ServersById) > 1 ) {
-?>
-<span class="ServerFilter"><label><?php echo translate('Server')?>:</label>
-<?php
-  echo htmlSelect( 'ServerId[]', $ServersById,
-    (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
-    array(
-      'onchange'=>'this.form.submit();',
-      'class'=>'chosen',
-      'multiple'=>'multiple',
-      'data-placeholder'=>'All',
-    )
-  );
-?>
-</span>
-<?php 
-}
-if ( count($StorageById) > 1 ) { ?>
-  <span class="StorageFilter"><label><?php echo translate('Storage')?>:</label>
-<?php
-  echo htmlSelect( 'StorageId[]',$StorageById,
-    (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
-    array(
-      'onchange'=>'this.form.submit();',
-      'class'=>'chosen',
-      'multiple'=>'multiple',
-      'data-placeholder'=>'All',
-    ) );
-?>
-  </span>
-<?php
-}
-?>
-  <span class="StatusFilter"><label><?php echo translate('Status')?>:</label>
-<?php
-$status_options = array(
-    'Unknown' => translate('Unknown'),
-    'NotRunning' => translate('NotRunning'),
-    'Running' => translate('Running'),
-    );
-echo htmlSelect( 'Status[]', $status_options,
-  ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),
-  array(
-    'onchange'=>'this.form.submit();',
-    'class'=>'chosen',
-    'multiple'=>'multiple',
-    'data-placeholder'=>'All'
-  ) );
-?>
-  </span>
 </div>

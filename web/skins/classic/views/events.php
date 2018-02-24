@@ -25,7 +25,6 @@ if ( !canView( 'Events' ) || (!empty($_REQUEST['execute']) && !canEdit('Events')
 
 require_once( 'includes/Event.php' );
 
-
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
@@ -44,33 +43,26 @@ $filterQuery = $_REQUEST['filter']['query'];
 if ( $_REQUEST['filter']['sql'] ) {
   $countSql .= $_REQUEST['filter']['sql'];
   $eventsSql .= $_REQUEST['filter']['sql'];
+} else {
+Error("No filtering in events, will load ALL!");
 }
 $eventsSql .= " ORDER BY $sortColumn $sortOrder";
 
-if ( isset($_REQUEST['page']) )
-  $page = validInt($_REQUEST['page']);
-else
-  $page = 0;
-if ( isset($_REQUEST['limit']) )
-  $limit = validInt($_REQUEST['limit']);
-else
-  $limit = 0;
+$page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
+$limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;
 
 $nEvents = dbFetchOne( $countSql, 'EventCount' );
-Warning("Number of events: $nEvents");
 if ( !empty($limit) && $nEvents > $limit ) {
   $nEvents = $limit;
-Logger::Debug("Number of events: $nEvents");
 }
 $pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
+#Logger::Debug("Page $page Limit $limit #vents: $nEvents pages: $pages ");
 if ( !empty($page) ) {
   if ( $page < 0 )
     $page = 1;
-  else if ( $page > $pages )
+  else if ( $pages and ( $page > $pages ) )
     $page = $pages;
-}
 
-if ( !empty($page) ) {
   $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
   if ( empty( $limit ) ) {
     $limitAmount = ZM_WEB_EVENTS_PER_PAGE;
@@ -146,6 +138,7 @@ if ( $pages > 1 ) {
 $count = 0;
 $disk_space_total = 0;
 
+Logger::Debug("EventSql: $eventsSql");
 $results = dbQuery( $eventsSql );
 while ( $event_row = dbFetchNext( $results ) ) {
   $event = new Event( $event_row );
@@ -207,30 +200,20 @@ while ( $event_row = dbFetchNext( $results ) ) {
   }
   if ( ZM_WEB_LIST_THUMBS ) {
     if ( $thumbData = $event->createListThumbnail() ) {
+#Logger::Debug(print_r($thumbData,true));
 ?>
               <td class="colThumbnail">
 <?php 
-	if ( ( $event->SaveJPEGs() == 4 ) and file_exists($event->Path().'/snapshot.jpg') ) {
-    Logger::Debug("Using snapshot");
-      $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid=snapshot&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
-} else {
-  Logger::Debug("Not Using snapshot" . $event->Path().'/snapshot.jpg' );
-      $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
-}
+      $imgSrc = $thumbData['url'];
       $streamSrc = $event->getStreamSrc( array( 'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single') );
 
       $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt($thumbData['Height']).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
-
-      echo makePopupLink( 
-          '?view=frame&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'],
-          'zmImage',
-          array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ),
-          $imgHtml
-        );
+      echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';
 ?>
               </td>
 <?php
     } else {
+      Logger::Debug("No thumbnail data");
 ?>
               <td class="colThumbnail">&nbsp;</td>
 <?php
@@ -255,7 +238,7 @@ while ( $event_row = dbFetchNext( $results ) ) {
 ?><td></td>
 <?php
 }
-?>
+?><td></td>
             </tr>
           </tfoot>
 <?php

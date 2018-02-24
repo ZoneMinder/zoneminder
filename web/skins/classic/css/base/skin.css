@@ -84,7 +84,7 @@ a:hover {
 }
 
 label {
-    margin-right: 4px;
+    margin: 0 4px;
 }
 
 input,textarea,select,button,.btn-primary {
@@ -95,6 +95,7 @@ input,textarea,select,button,.btn-primary {
     font-weight: 400;
     font-size: 100%;
     color: #333333;
+					 text-align: left;
 }
 /*
 input[type=text], input[type=password], input[type="url"], textarea, select {
@@ -473,6 +474,7 @@ input[type=submit],
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
+    text-align: center;
 }
 
 button:hover,
@@ -543,4 +545,7 @@ margin-left: 0;
 
 .nav-pills > li > a {
   border-radius: 0;
+}
+.chosen-container {
+text-align: left;
 }

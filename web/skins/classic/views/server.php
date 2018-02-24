@@ -32,6 +32,9 @@ if ( $_REQUEST['id'] ) {
 	$newServer = array();
 	$newServer['Name'] = translate('NewServer');
 	$newServer['Hostname'] = '';
+	$newServer['zmstats'] = '';
+	$newServer['zmaudit'] = '';
+	$newServer['zmtrigger'] = '';
 }
 
 $focusWindow = true;

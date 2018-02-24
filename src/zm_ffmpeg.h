@@ -237,9 +237,8 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
  */
 #ifdef  __cplusplus
 
-    inline static const std::string av_make_error_string(int errnum)
-    {
-        char errbuf[AV_ERROR_MAX_STRING_SIZE];
+    inline static const std::string av_make_error_string(int errnum) {
+        static char errbuf[AV_ERROR_MAX_STRING_SIZE];
 #if LIBAVUTIL_VERSION_CHECK(50, 13, 0, 13, 0)
         av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
 #else
@@ -327,4 +326,6 @@ int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
 
 bool is_video_stream( AVStream * stream );
 bool is_audio_stream( AVStream * stream );
+int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet );
+void dumpPacket(AVPacket *,const char *text="DEBUG");
 #endif // ZM_FFMPEG_H

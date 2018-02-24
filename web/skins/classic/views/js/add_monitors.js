@@ -8,21 +8,28 @@ function probe( url_e ) {
 var ProbeResults;
 
 function getProbeResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getProbeResponse", respObj ) )
+  if ( checkStreamForErrors( "getProbeResponse", respObj ) ) {
+    console.log(respText);
     return;
-//alert(respText);
+  }
 
-  if ( respObj.Streams ) {
+  if ( respObj.Streams && respObj.Streams.length ) {
     parseStreams( respObj.Streams );
   } else {
-    alert("No Streams");
+    var results_div = $j('#results')[0];
+    if ( ! results_div ) {
+      console.log("No results div found.");
+      return;
+    }
+    results_div.innerHTML = 'No streams found.';
+//console.log("No streams: " + respText);
   }
 } // end function getProbeResponse
 
 function parseStreams( Streams ) {
     ProbeResults = Array();
 
-    var results_div = $j('#url_results')[0];
+    var results_div = $j('#results')[0];
     if ( ! results_div ) {
       console.log("No results div found.");
       return;
@@ -33,7 +40,7 @@ function parseStreams( Streams ) {
     for( i in Streams ) {
       var stream = Streams[i];
       if ( stream.url ) {
-        html += '<p>'+stream.url;
+        html += '<p>'+stream.Monitor.Name + ' at ' + stream.url;
         if ( stream.Monitor.Id ) {
           html += ' is already entered into the system by Monitor ' + stream.Monitor.Id + ' ' + stream.Monitor.Name + '<br/>';
           html += '<input type="button" value="Edit" onclick="addMonitor(\''+stream.url+'\');"/>';
@@ -58,7 +65,8 @@ function addMonitor(url) {
   var Stream = ProbeResults[url];
   var Monitor = Stream.Monitor;
 
-  popup_url = '?view=monitor&newMonitor[Path]='+url;
+  var mid = Monitor.Id ? Monitor.Id : '';
+  popup_url = '?view=monitor&mid='+mid+'&newMonitor[Path]='+url;
   keys = Object.keys( Monitor );
   for ( i in Monitor ) {
     if ( ! Monitor[i] )
@@ -67,7 +75,7 @@ function addMonitor(url) {
       Monitor[i]='';
     popup_url += '&newMonitor['+i+']='+Monitor[i];
   }
-  createPopup( popup_url, 'zmMonitor0', 'monitor' );
+  createPopup( popup_url, 'zmMonitor'+mid, 'monitor' );
 }
   
 function import_csv( form ) {
@@ -87,3 +95,10 @@ function import_csv( form ) {
          }
   });
 }
+function initPage() {
+  url = $j('#Url')[0];
+  if ( url.value ) {
+    probe(url);
+  }
+}
+window.addEvent( 'domready', initPage );

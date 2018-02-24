@@ -16,6 +16,11 @@ function validateForm ( form ) {
     alert( errorBrackets );
     return false;
   }
+  var numbers_reg = /\D/;
+  if ( numbers_reg.test( form.elements['filter[Query][limit]'].value ) ) {
+    alert( "There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty." );
+    return false;
+  }
   return true;
 }
 
@@ -56,7 +61,7 @@ function updateButtons( element ) {
 function checkValue ( element ) {
   let rows = $j(element).closest('tbody').children();
   parseRows(rows);
-  clearValue(element);
+  //clearValue(element);
 }
 
 function clearValue( element ) {
@@ -173,9 +178,15 @@ function parseRows (rows) {
 
     } else if (inputTds.eq(2).children().val() == 'StorageId') { //Choose by storagearea
       let storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+			for ( key in storageareas ) {
+console.log(key + ' ' + storageareas[key]);
+        storageSelect.append('<option value="' + key + '">' + storageareas[key] + '</option>');
+}
+/*
       for (let i=0; i < storageareas.length; i++) {
         storageSelect.append('<option value="' + i + '">' + storageareas[i] + '</option>');
       }
+*/
       let storageVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
 

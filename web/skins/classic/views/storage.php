@@ -35,6 +35,8 @@ if ( $_REQUEST['id'] ) {
   $newStorage['Path'] = '';
   $newStorage['Type'] = 'local';
   $newStorage['Scheme'] = 'Medium';
+  $newStorage['StorageId'] = '';
+  $newStorage['ServerId'] = '';
 }
 
 $type_options = array( 'local' => translate('Local'), 's3fs' => translate('s3fs') );

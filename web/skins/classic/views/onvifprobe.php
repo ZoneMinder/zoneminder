@@ -158,7 +158,7 @@ if( !isset($_REQUEST['step']) || ($_REQUEST['step'] == "1")) {
 */
 //       $sourceDesc = htmlspecialchars(serialize($camera['monitor']));
        $sourceDesc = base64_encode(serialize($camera['monitor']));
-       $sourceString = $camera['model'].' @ '.$host;
+       $sourceString = $camera['model'].' @ '.$host . ' using version ' . $camera['monitor']['SOAP'] ;
        $cameras[$sourceDesc] = $sourceString;
   }
 

@@ -99,6 +99,7 @@ void VideoStream::SetupFormat( ) {
 		}
 #endif
 	} else {
+    Debug(1,"No allocating priv_data");
 		s->priv_data = NULL;
 	}
 	
@@ -120,7 +121,6 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	/* ffmpeg format matching */
 	switch(colours) {
 	  case ZM_COLOUR_RGB24:
-	  {
 	    if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 	      /* BGR subpixel order */
 	      pf = AV_PIX_FMT_BGR24;
@@ -129,9 +129,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	      pf = AV_PIX_FMT_RGB24;
 	    }
 	    break;
-	  }
 	  case ZM_COLOUR_RGB32:
-	  {
 	    if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
 	      /* ARGB subpixel order */
 	      pf = AV_PIX_FMT_ARGB;
@@ -146,7 +144,6 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	      pf = AV_PIX_FMT_RGBA;
 	    }
 	    break;
-	  }
 	  case ZM_COLOUR_GRAY8:
 	    pf = AV_PIX_FMT_GRAY8;
 	    break;
@@ -159,6 +156,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		// RTP must have a packet_size.
 		// Not sure what this value should be really...
 		ofc->packet_size = width*height;
+    Debug(1,"Setting packet_size to %d", ofc->packet_size);
 		
 		if ( of->video_codec ==  AV_CODEC_ID_NONE ) {
 			// RTP does not have a default codec in ffmpeg <= 0.8.
@@ -171,6 +169,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
     AVCodec *a = avcodec_find_encoder_by_name(codec_name);
     if ( a ) {
       codec_id = a->id;
+      Debug( 1, "Using codec \"%s\"", codec_name );
     } else {
 #if (LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
       Debug( 1, "Could not find codec \"%s\". Using default \"%s\"", codec_name, avcodec_get_name( codec_id ) );
@@ -209,13 +208,13 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 			Fatal( "Could not alloc stream" );
       return;
 		}
+		Debug( 1, "Allocated stream (%d) !=? (%d)", ost->id , ofc->nb_streams - 1 );
 		ost->id = ofc->nb_streams - 1;
 
-		Debug( 1, "Allocated stream" );
-
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  codec_context = avcodec_alloc_context3(NULL);
-  avcodec_parameters_to_context(codec_context, ost->codecpar);
+    
+    codec_context = avcodec_alloc_context3(NULL);
+    //avcodec_parameters_to_context(codec_context, ost->codecpar);
 #else
 		codec_context = ost->codec;
 #endif
@@ -223,7 +222,7 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		codec_context->codec_id = codec->id;
 		codec_context->codec_type = codec->type;
 
-		codec_context->pix_fmt = strcmp( "mjpeg", ofc->oformat->name ) == 0 ? AV_PIX_FMT_YUVJ422P : AV_PIX_FMT_YUV420P;
+		codec_context->pix_fmt = strcmp("mjpeg", ofc->oformat->name) == 0 ? AV_PIX_FMT_YUVJ422P : AV_PIX_FMT_YUV420P;
 		if ( bitrate <= 100 ) {
 			// Quality based bitrate control (VBR). Scale is 1..31 where 1 is best.
 			// This gets rid of artifacts in the beginning of the movie; and well, even quality.
@@ -246,8 +245,11 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		   identically 1. */
 		codec_context->time_base.den = frame_rate;
 		codec_context->time_base.num = 1;
+    ost->time_base.den = frame_rate;
+		ost->time_base.num = 1;
+
 		
-		Debug( 1, "Will encode in %d fps.", codec_context->time_base.den );
+		Debug( 1, "Will encode in %d fps. %dx%d", codec_context->time_base.den, width, height );
 		
 		/* emit one intra frame every second */
 		codec_context->gop_size = frame_rate;
@@ -258,6 +260,10 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 			codec_context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 #else
 			codec_context->flags |= CODEC_FLAG_GLOBAL_HEADER;
+#endif
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    avcodec_parameters_from_context(ost->codecpar, codec_context);
+    zm_dump_codecpar(ost->codecpar);
 #endif
 	} else {
 		Fatal( "of->video_codec == AV_CODEC_ID_NONE" );
@@ -271,7 +277,7 @@ const char *VideoStream::MimeType( ) const {
 	for ( unsigned int i = 0; i < sizeof (mime_data) / sizeof (*mime_data); i++ ) {
 		if ( strcmp( format, mime_data[i].format ) == 0 ) {
 			Debug( 1, "MimeType is \"%s\"", mime_data[i].mime_type );
-			return ( mime_data[i].mime_type);
+			return mime_data[i].mime_type;
 		}
 	}
 	const char *mime_type = of->mime_type;
@@ -282,9 +288,9 @@ const char *VideoStream::MimeType( ) const {
 		Warning( "Unable to determine mime type for '%s' format, using '%s' as default", format, mime_type );
 	}
 
-	Debug( 1, "MimeType is \"%s\"", mime_type );
+	Debug(1, "MimeType is \"%s\"", mime_type );
 
-	return ( mime_type);
+	return mime_type;
 }
 
 void VideoStream::OpenStream( ) {
@@ -293,11 +299,13 @@ void VideoStream::OpenStream( ) {
 	/* now that all the parameters are set, we can open the 
 	   video codecs and allocate the necessary encode buffers */
 	if ( ost ) {
+    Debug(1,"Opening codec");
+    
 		/* open the codec */
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-		if ( (ret = avcodec_open( codec_context, codec )) < 0 )
+		if ( (ret = avcodec_open(codec_context, codec)) < 0 )
 #else
-		if ( (ret = avcodec_open2( codec_context, codec, 0 )) < 0 )
+		if ( (ret = avcodec_open2(codec_context, codec, 0)) < 0 )
 #endif
 		{
 			Fatal( "Could not open codec. Error code %d \"%s\"", ret, av_err2str(ret) );
@@ -310,6 +318,9 @@ void VideoStream::OpenStream( ) {
     if ( !opicture ) {
       Panic( "Could not allocate opicture" );
     }
+    opicture->width = codec_context->width;
+    opicture->height = codec_context->height;
+    opicture->format = codec_context->pix_fmt;
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
     int size = av_image_get_buffer_size( codec_context->pix_fmt, codec_context->width, codec_context->height, 1 );
@@ -362,7 +373,7 @@ void VideoStream::OpenStream( ) {
         tmp_opicture_buf, pf, codec_context->width, codec_context->height );
 #endif
     }
-  }
+  } // end if ost
 
   /* open the output file, if needed */
   if ( !(of->flags & AVFMT_NOFILE) ) {
@@ -384,8 +395,8 @@ void VideoStream::OpenStream( ) {
 
 	video_outbuf = NULL;
 #if LIBAVFORMAT_VERSION_CHECK(57, 0, 0, 0, 0)
-    if (codec_context->codec_type == AVMEDIA_TYPE_VIDEO &&
-       codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
+  if (codec_context->codec_type == AVMEDIA_TYPE_VIDEO &&
+      codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
 #else
 	if ( !(of->flags & AVFMT_RAWPICTURE) ) {
 #endif
@@ -408,7 +419,7 @@ void VideoStream::OpenStream( ) {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
     ret = av_write_header( ofc );
 #else
-    ret = avformat_write_header( ofc, NULL );
+    ret = avformat_write_header(ofc, NULL);
 #endif
 
     if ( ret < 0 ) {
@@ -451,6 +462,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 		}
 	}
 
+  codec_context = NULL;
 	SetupFormat( );
 	SetupCodec( colours, subpixelorder, width, height, bitrate, frame_rate );
 	SetParameters( );
@@ -466,7 +478,6 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 		Fatal("pthread_mutex_init failed");
 	}
 
-  codec_context = NULL;
 }
 
 VideoStream::~VideoStream( ) {
@@ -627,7 +638,6 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		opicture_ptr->quality = codec_context->global_quality;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      // Put encoder into flushing mode
       avcodec_send_frame(codec_context, opicture_ptr);
       int ret = avcodec_receive_packet(codec_context, pkt);
       if ( ret < 0 ) {

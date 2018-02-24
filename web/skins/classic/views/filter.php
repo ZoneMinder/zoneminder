@@ -127,8 +127,8 @@ $archiveTypes = array(
 
 $focusWindow = true;
 
-$storageareas = array();
-$storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
+$storageareas = array( '' => 'All' );
+//$storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
 foreach ( dbFetchAll( 'SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC' ) as $storage ) {
   $storageareas[$storage['Id']] = $storage['Name'];
 }
@@ -334,7 +334,7 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
               </td>
               <td>  
                 <label for="filter[Query][limit]"><?php echo translate('LimitResultsPre') ?></label>
-                <input type="text" id="filter[Query][limit]" name="filter[Query][limit]" value="<?php echo (null !== $filter->limit())?validInt($filter->limit()):'' ?>"/><?php echo translate('LimitResultsPost') ?>
+                <input type="number" id="filter[Query][limit]" name="filter[Query][limit]" value="<?php echo (null !== $filter->limit())?validInt($filter->limit()):'' ?>"/><?php echo translate('LimitResultsPost') ?>
               </td>
             </tr>
           </tbody>

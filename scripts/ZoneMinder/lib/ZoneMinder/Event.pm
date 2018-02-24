@@ -90,8 +90,9 @@ sub Time {
     $_[0]{Time} = $_[1];
   }
   if ( ! defined $_[0]{Time} ) {
-
-    $_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
+    if ( $_[0]{StartTime} ) {
+      $_[0]{Time} = Date::Parse::str2time( $_[0]{StartTime} );
+    }
   }
   return $_[0]{Time};
 }
@@ -114,6 +115,10 @@ sub find {
   if ( exists $sql_filters{Name} ) {
     push @sql_filters , ' Name = ? ';
     push @sql_values, $sql_filters{Name};
+  }
+  if ( exists $sql_filters{Id} ) {
+    push @sql_filters , ' Id = ? ';
+    push @sql_values, $sql_filters{Id};
   }
 
   $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
@@ -230,8 +235,15 @@ sub LinkPath {
               ),
             '.'.$$event{Id}
             );
+      } elsif ( $$event{Path} ) {
+        if ( ( $$event{Path} =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
+          $$event{LinkPath} = $1.'/.'.$$event{Id};
+        } else {
+          Error("Unable to get LinkPath from Path for $$event{Id} $$event{Path}");
+          $$event{LinkPath} = '';
+        }
       } else {
-        Error("Event $$event{Id} has no value for Time(), unable to determine link path");
+        Error("Event $$event{Id} $$event{Path} has no value for Time(), unable to determine link path");
         $$event{LinkPath} = '';
       }
     } # end if Scheme
@@ -243,7 +255,7 @@ sub LinkPath {
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
 
-  my $event_path = $self->getPath( );
+  my $event_path = $self->Path( );
   chdir( $event_path );
   ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
 
@@ -337,13 +349,9 @@ sub delete {
   }
   Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}\n" );
   $ZoneMinder::Database::dbh->ping();
-# Do it individually to avoid locking up the table for new events
-  my $sql = 'DELETE FROM Events WHERE Id=?';
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-  my $res = $sth->execute( $event->{Id} )
-    or Error( "Can't execute '$sql': ".$sth->errstr() );
-  $sth->finish();
+
+  $ZoneMinder::Database::dbh->begin_work();
+  $event->lock_and_load();
 
   if ( ! $Config{ZM_OPT_FAST_DELETE} ) {
     my $sql = 'DELETE FROM Frames WHERE EventId=?';
@@ -352,6 +360,10 @@ sub delete {
     my $res = $sth->execute( $event->{Id} )
       or Error( "Can't execute '$sql': ".$sth->errstr() );
     $sth->finish();
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      $ZoneMinder::Database::dbh->commit();
+      return;
+    }
 
     $sql = 'DELETE FROM Stats WHERE EventId=?';
     $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
@@ -359,11 +371,23 @@ sub delete {
     $res = $sth->execute( $event->{Id} )
       or Error( "Can't execute '$sql': ".$sth->errstr() );
     $sth->finish();
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      $ZoneMinder::Database::dbh->commit();
+      return;
+    }
 
     $event->delete_files( );
   } else {
     Debug('Not deleting frames, stats and files for speed.');
   }
+# Do it individually to avoid locking up the table for new events
+  my $sql = 'DELETE FROM Events WHERE Id=?';
+  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+    or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+  my $res = $sth->execute( $event->{Id} )
+    or Error( "Can't execute '$sql': ".$sth->errstr() );
+  $sth->finish();
+  $ZoneMinder::Database::dbh->commit();
 } # end sub delete
 
 sub delete_files {
@@ -401,6 +425,9 @@ sub delete_files {
 } # end sub delete_files
 
 sub Storage {
+  if ( @_ > 1 ) {
+    $_[0]{Storage} = $_[1];
+  }
   if ( ! $_[0]{Storage} ) {
     $_[0]{Storage} = new ZoneMinder::Storage( $_[0]{StorageId} );
   } 
@@ -446,7 +473,7 @@ sub DiskSpace {
       $_[0]{DiskSpace} = $size;
       Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
     } else {
-      Warning("Event does not exist at $_[0]{Path}");
+      Warning("DiskSpace: Event does not exist at $_[0]{Path}:" . $_[0]->to_string() );
     }
   } # end if ! defined DiskSpace
   return $_[0]{DiskSpace};
@@ -463,7 +490,7 @@ sub MoveTo {
     return "Event has already been moved by someone else.";
   }
 
-  my $OldStorage = $self->Storage();
+  my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
 
   $$self{Storage} = $NewStorage;
@@ -502,12 +529,16 @@ sub MoveTo {
       }
     }
   }
-  return $error if $error;
+  if ( $error ) {
+    $ZoneMinder::Database::dbh->commit();
+    return $error;
+  }
   my @files = glob("$OldPath/*");
 
   for my $file (@files) {
     next if $file =~ /^\./;
     ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+    Debug("Moving file $file to $NewPath");
     if ( ! File::Copy::copy( $file, $NewPath ) ) {
       $error .= "Copy failed: for $file to $NewPath: $!";
       last;

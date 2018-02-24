@@ -22,6 +22,7 @@
 function xhtmlHeaders( $file, $title ) {
   global $css;
   global $skin;
+  global $view;
 
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
@@ -41,7 +42,7 @@ function xhtmlHeaders( $file, $title ) {
 
   extract( $GLOBALS, EXTR_OVERWRITE );
   function output_link_if_exists( $files ) {
-  global $skin;
+    global $skin;
     $html = array();
     foreach ( $files as $file ) {
       if ( getSkinFile( $file ) ) {
@@ -80,12 +81,14 @@ echo output_link_if_exists( array(
   'css/base/views/'.$basename.'.css',
   'css/'.$css.'/views/'.$basename.'.css',
   '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  '/js/jquery-ui-structure.css',
+  '/js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
+  '/css/jquery-ui-1.12.1/jquery-ui.theme.min.css',
   '/css/'.$css.'/jquery-ui-theme.css',
 )
 );
 ?>
-  <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
+  <!--Chosen can't be cache-busted because it loads sprites by relative path-->
+<link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ($basename == 'watch') {
     echo output_link_if_exists( array(
@@ -110,7 +113,7 @@ echo output_link_if_exists( array(
   <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
   <script type="text/javascript" src="js/mootools.ext.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
+  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
@@ -130,7 +133,7 @@ echo output_link_if_exists( array(
 ?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
 <?php
-  } else if ( $title == 'Event' ) {
+  } else if ( $view == 'event' ) {
 ?>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
   <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
@@ -138,9 +141,12 @@ echo output_link_if_exists( array(
   <script src="./js/videojs.zoomrotate.js"></script>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
-  } else if ( $title == 'Watch' ) {
+  } else if ( $view == 'montagereview' ) {
 ?>
-  <link href="<?php echo cache_bust($viewCssFileExtra) ?>" rel="stylesheet">
+  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
+<?php
+  } else if ( $view == 'watch' ) {
+?>
 <?php
   }
   if ( $skinJsPhpFile ) {
@@ -242,7 +248,7 @@ function getNavBarHTML($reload = null) {
   if ( logToDatabase() > Logger::NOLOG ) { 
     if ( ! ZM_RUN_AUDIT ) {
     # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
-     dbQuery("DELETE FROM Logs WHERE TimeKey < NOW()-to_days('".ZM_LOG_DATABASE_LIMIT."')");
+     dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.')');
     }
     echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
   }

@@ -70,12 +70,11 @@
 }
 
 #consoleTable th,td {
-    height: 16px;
     text-align: left;
 }
 
 #consoleTable .colMark {
-    width: 62px;
+    width: 52px;
     text-align: center;
 }
 
@@ -85,6 +84,10 @@
 
 #consoleTable .colZones {
     text-align: right;
+}
+#consoleTable .colFunction {
+    width: 120px;
+    text-align: center;
 }
 
 #consoleTable .colLeftButtons {

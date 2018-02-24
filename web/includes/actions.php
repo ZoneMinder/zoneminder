@@ -67,13 +67,20 @@ function do_post_request($url, $data, $optional_headers = null) {
 function getAffectedIds( $name ) {
   $names = $name.'s';
   $ids = array();
-  if ( isset($_REQUEST[$names]) || isset($_REQUEST[$name]) ) {
-    if ( isset($_REQUEST[$names]) )
-      $ids = validInt($_REQUEST[$names]);
-    else if ( isset($_REQUEST[$name]) )
-      $ids[] = validInt($_REQUEST[$name]);
-  }
-  return( $ids );
+	if ( isset($_REQUEST[$names]) ) {
+		if ( is_array($_REQUEST[$names]) ) {
+			$ids = $_REQUEST[$names];
+		} else {
+			$ids = array($_REQUEST[$names]);
+		}
+	} else if ( isset($_REQUEST[$name]) ) {
+		if ( is_array($_REQUEST[$name]) ) {
+			$ids = $_REQUEST[$name];
+		} else {
+			$ids = array($_REQUEST[$name]);
+		}
+	}
+	return $ids;
 }
 
 
@@ -126,7 +133,7 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
   userLogin( $username, $password );
   $refreshParent = true;
   $view = 'console';
-  $redirect = true;
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
 } else if ( $action == 'logout' ) {
   userLogout();
   $refreshParent = true;
@@ -188,6 +195,7 @@ if ( canView( 'Events' ) ) {
           $_REQUEST['Id'] = dbInsertId();
         }
         if ( $action == 'execute' ) {
+session_write_close();
           executeFilter( $tempFilterName );
         }
 
@@ -198,33 +206,39 @@ if ( canView( 'Events' ) ) {
     else {
 
     // Event scope actions, edit permissions required
-    if ( canEdit( 'Events' ) ) {
-      if ( $action == 'rename' && isset($_REQUEST['eventName']) && !empty($_REQUEST['eid']) ) {
+    if ( canEdit('Events') ) {
+      if ( ($action == 'rename') && isset($_REQUEST['eventName']) && !empty($_REQUEST['eid']) ) {
         dbQuery( 'UPDATE Events SET Name=? WHERE Id=?', array( $_REQUEST['eventName'], $_REQUEST['eid'] ) );
       } else if ( $action == 'eventdetail' ) {
         if ( !empty($_REQUEST['eid']) ) {
           dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['eid'] ) );
         } else {
-          foreach( getAffectedIds( 'markEid' ) as $markEid ) {
+					$dbConn->beginTransaction();
+          foreach( getAffectedIds('markEid') as $markEid ) {
             dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $markEid ) );
           }
+					$dbConn->commit();
         }
         $refreshParent = true;
         $closePopup = true;
       } elseif ( $action == 'archive' || $action == 'unarchive' ) {
         $archiveVal = ($action == 'archive')?1:0;
         if ( !empty($_REQUEST['eid']) ) {
-          dbQuery( 'UPDATE Events SET Archived=? WHERE Id=?', array( $archiveVal, $_REQUEST['eid']) );
+          dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array($archiveVal, $_REQUEST['eid']));
         } else {
+					$dbConn->beginTransaction();
           foreach( getAffectedIds( 'markEid' ) as $markEid ) {
-            dbQuery( 'UPDATE Events SET Archived=? WHERE Id=?', array( $archiveVal, $markEid ) );
+            dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array($archiveVal, $markEid));
           }
+					$dbConn->commit();
           $refreshParent = true;
         }
       } elseif ( $action == 'delete' ) {
+				$dbConn->beginTransaction();
         foreach( getAffectedIds( 'markEid' ) as $markEid ) {
           deleteEvent( $markEid );
         }
+				$dbConn->commit();
         $refreshParent = true;
       }
     } // end if canEdit(Events)
@@ -483,6 +497,18 @@ if ( canEdit( 'Monitors' ) ) {
         'RecordAudio' => 'toggle',
         );
 
+    if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
+      Logger::Debug("Auto selecting server");
+      $_REQUEST['newMonitor']['ServerId'] = dbFetchOne( 'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem ASC, CpuLoad ASC LIMIT 1', 'Id' );
+      Logger::Debug("Auto selecting server: Got " . $_REQUEST['newMonitor']['ServerId'] );
+      if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
+        $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
+        Logger::Debug("Auto selecting server to " . ZM_SERVER_ID);
+      }
+    } else {
+      Logger::Debug("NOT Auto selecting server" . $_REQUEST['newMonitor']['ServerId']);
+    }
+
     $columns = getTableColumns( 'Monitors' );
     $changes = getFormChanges( $monitor, $_REQUEST['newMonitor'], $types, $columns );
 
@@ -493,10 +519,17 @@ if ( canEdit( 'Monitors' ) ) {
         zmaControl( $monitor, 'stop' );
         zmcControl( $monitor, 'stop' );
         dbQuery( 'UPDATE Monitors SET '.implode( ', ', $changes ).' WHERE Id=?', array($mid) );
-        if ( isset($changes['Name']) ) {
+        if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
+          $OldStorage = new Storage( $monitor['StorageId'] );
           $saferOldName = basename( $monitor['Name'] );
+          if ( file_exists( $OldStorage->Path().'/'.$saferOldName ) )
+            unlink( $OldStorage->Path().'/'.$saferOldName );
+
+          $NewStorage = new Storage( $_REQUEST['newMonitor']['StorageId'] );
+          if ( ! file_exists( $NewStorage->Path().'/'.$mid ) )
+            mkdir( $NewStorage->Path().'/'.$mid, 0755 );
           $saferNewName = basename( $_REQUEST['newMonitor']['Name'] );
-          rename( ZM_DIR_EVENTS.'/'.$saferOldName, ZM_DIR_EVENTS.'/'.$saferNewName);
+          symlink( $mid, $NewStorage->Path().'/'.$saferNewName );
         }
         if ( isset($changes['Width']) || isset($changes['Height']) ) {
           $newW = $_REQUEST['newMonitor']['Width'];
@@ -531,21 +564,26 @@ if ( canEdit( 'Monitors' ) ) {
           }
         }
         $restart = true;
-      } elseif ( ! $user['MonitorIds'] ) { // Can only create new monitors if we are not restricted to specific monitors
+      } else if ( ! $user['MonitorIds'] ) { // Can only create new monitors if we are not restricted to specific monitors
 # FIXME This is actually a race condition. Should lock the table.
-        $maxSeq = dbFetchOne( 'SELECT max(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence' );
+        $maxSeq = dbFetchOne('SELECT MAX(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence');
         $changes[] = 'Sequence = '.($maxSeq+1);
 
-        dbQuery( 'INSERT INTO Monitors SET '.implode( ', ', $changes ) );
-        $mid = dbInsertId();
-        $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
-        dbQuery( "insert into Zones set MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
-        //$view = 'none';
-        mkdir( ZM_DIR_EVENTS.'/'.$mid, 0755 );
-        $saferName = basename($_REQUEST['newMonitor']['Name']);
-        symlink( $mid, ZM_DIR_EVENTS.'/'.$saferName );
-        if ( isset($_COOKIE['zmGroup']) ) {
-          dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($_COOKIE['zmGroup'],$mid) );
+        if ( dbQuery( 'INSERT INTO Monitors SET '.implode( ', ', $changes ) ) ) {
+          $mid = dbInsertId();
+          $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
+          dbQuery( "insert into Zones set MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
+          //$view = 'none';
+          $Storage = new Storage( $_REQUEST['newMonitor']['StorageId'] );
+          mkdir( $Storage->Path().'/'.$mid, 0755 );
+          $saferName = basename($_REQUEST['newMonitor']['Name']);
+          symlink( $mid, $Storage->Path().'/'.$saferName );
+          if ( isset($_COOKIE['zmGroup']) ) {
+            dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($_COOKIE['zmGroup'],$mid) );
+          }
+        } else {
+          Error("Error saving new Monitor.");
+          return;
         }
       } else {
         Error("Users with Monitors restrictions cannot create new monitors.");
@@ -718,7 +756,7 @@ if ( canEdit( 'System' ) ) {
         $_SESSION['zmMontageLayout'] = $Layout->Id();
         setcookie('zmMontageLayout', $Layout->Id(), 1 );
         session_write_close();
-        $redirect = true;
+        $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview';
       } // end if save
 
     } else if ( $_REQUEST['object'] == 'server' ) {
@@ -885,6 +923,7 @@ if ( canEdit( 'System' ) ) {
         case 'lowband' :
           break;
       }
+      $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=options&tab='.$_REQUEST['tab'];
     }
     loadConfig( false );
   } elseif ( $action == 'user' ) {

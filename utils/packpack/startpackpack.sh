@@ -114,6 +114,12 @@ commonprep () {
         patch -p1 < utils/packpack/nolintian.patch
     fi
 
+    # fix 32bit rpm builds
+    patch --dry-run --silent -f -p1 < utils/packpack/setarch.patch
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/setarch.patch
+    fi
+
     # The rpm specfile requires we download the tarball and manually move it into place
     # Might as well do this for Debian as well, rather than git submodule init
     CRUDVER="3.0.10"

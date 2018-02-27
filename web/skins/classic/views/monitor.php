@@ -708,7 +708,7 @@ switch ( $tab ) {
         <tr>
           <td><?php echo translate('LinkedMonitors') ?></td>
           <td>
-            <select name="monitorIds" size="4" multiple="multiple" onchange="updateLinkedMonitors( this )">
+            <select name="monitorIds" class="chosen" multiple="multiple" onchange="updateLinkedMonitors( this )">
 <?php
       $monitors = dbFetchAll( 'select Id,Name from Monitors order by Sequence asc' );
       if ( $monitor->LinkedMonitors() )
@@ -1018,4 +1018,7 @@ if ( $monitor->Type() == 'Local' ) {
     </div>
     </div>
   </body>
+  <script type="text/javascript">
+  $j('.chosen').chosen();
+  </script>
 </html>

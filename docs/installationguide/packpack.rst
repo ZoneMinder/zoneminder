@@ -27,7 +27,7 @@ Procedure
 
 - If the desired distro does not appear in either list, then unfortuantely you cannot use the procedure described here.
 
-- If the desired distro architecture is arm, refer to Appendix A to enable qemu emulation on your amd64 host machine.
+- If the desired distro architecture is arm, refer to `Appendix A - Enable Qemu On the Host`_ to enable qemu emulation on your amd64 host machine.
 
 **Step 2:** Install Docker.
 

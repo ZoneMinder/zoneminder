@@ -171,7 +171,6 @@ int FfmpegCamera::PrimeCapture() {
 }
 
 int FfmpegCamera::PreCapture() {
-  Debug(1, "PreCapture");
   // If Reopen was called, then ffmpeg is closed and we need to reopen it.
   if ( ! mCanCapture )
     return OpenFfmpeg();

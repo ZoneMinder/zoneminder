@@ -1202,19 +1202,20 @@ bool Monitor::Analyse() {
   gettimeofday( &now, NULL );
 
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
+    if ( now.tv_sec != last_fps_time ) {
+      double new_fps = double(fps_report_interval)/(now.tv_sec - last_fps_time);
+      Info("%s: %d - Analysing at %.2f fps", name, image_count, new_fps);
+      if ( fps != new_fps ) {
+        fps = new_fps;
+        static char sql[ZM_SQL_SML_BUFSIZ];
+        snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, fps, fps);
+        if ( mysql_query(&dbconn, sql) ) {
+          Error("Can't run query: %s", mysql_error(&dbconn));
+        }
+      } // end if fps != new_fps
 
-    double new_fps = double(fps_report_interval)/(now.tv_sec - last_fps_time);
-    Info("%s: %d - Analysing at %.2f fps", name, image_count, new_fps);
-    if ( fps != new_fps ) {
-      fps = new_fps;
-      static char sql[ZM_SQL_SML_BUFSIZ];
-      snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, fps, fps);
-      if ( mysql_query(&dbconn, sql) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-      }
-    } // end if fps != new_fps
-
-    last_fps_time = now.tv_sec;
+      last_fps_time = now.tv_sec;
+    }
   }
 
   int index;
@@ -1690,7 +1691,7 @@ bool Monitor::Analyse() {
   //shared_data->last_read_time = image_buffer[index].timestamp->tv_sec;
   shared_data->last_read_time = now.tv_sec;
 
-  if ( analysis_fps ) {
+  if ( analysis_fps && pre_event_buffer_count ) {
     // If analysis fps is set, add analysed image to dedicated pre event buffer
     int pre_index = image_count%pre_event_buffer_count;
     pre_event_buffer[pre_index].image->Assign(*snap->image);

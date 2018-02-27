@@ -135,7 +135,7 @@ public $defaults = array(
     return $this->{'MonitorIds'};
   }
 
-  public static function get_group_dropdown() {
+  public static function get_group_dropdown( ) {
 
     session_start();
     $selected_group_id = 0;
@@ -148,13 +148,23 @@ public $defaults = array(
     }
     session_write_close();
 
+    return htmlSelect( 'Group[]', Group::get_dropdown_options(), isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
+          'onchange' => 'this.form.submit();',
+          'class'=>'chosen',
+          'multiple'=>'multiple',
+          'data-placeholder'=>'All',
+          ) );
+
+  } # end public static function get_group_dropdown
+
+  public static function get_dropdown_options() {
     $Groups = array();
     foreach ( Group::find_all( ) as $Group ) {
       $Groups[$Group->Id()] = $Group;
     }
 
 # This  array is indexed by parent_id
-global $children;
+    global $children;
     $children = array();
 
     foreach ( $Groups as $id=>$Group ) {
@@ -181,16 +191,10 @@ global $children;
         $group_options += get_options( $Group );
       }
     }
-    return htmlSelect( 'Group[]', $group_options, isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
-          'onchange' => 'this.form.submit();',
-          'class'=>'chosen',
-          'multiple'=>'multiple',
-          'data-placeholder'=>'All',
-          ) );
+    return $group_options;
+  }
 
-  } # end public static function get_group_dropdown
-
-  public static function get_group_dropdowns() {
+  public static function get_group_dropdowns( $selected = null ) {
     # This will end up with the group_id of the deepest selection
     $group_id = 0;
     $depth = 0;
@@ -205,6 +209,7 @@ global $children;
         break;
 
       $parent_group_ids = array();
+if ( ! $selected ) {
       $selected_group_id = 0;
       if ( isset($_REQUEST['group'.$depth]) ) {
         $selected_group_id = $group_id = $_SESSION['group'.$depth] = $_REQUEST['group'.$depth];
@@ -213,6 +218,9 @@ global $children;
       } else if ( isset($_REQUEST['filtering']) ) {
         unset($_SESSION['group'.$depth]);
       }
+} else {
+  $selected_group_id = $selected;
+}
 
       foreach ( $Groups as $Group ) {
         if ( ! isset( $groups[$depth] ) ) {

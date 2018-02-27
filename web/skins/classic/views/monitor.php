@@ -1011,8 +1011,8 @@ if ( $monitor->Type() == 'Local' ) {
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <button type="submit" value="Save" onclick="$j('#contentButtons').hide();"<?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button onclick="closeWindow()"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

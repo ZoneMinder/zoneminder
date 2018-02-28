@@ -1273,17 +1273,19 @@ bool Monitor::Analyse() {
     Debug(2, "Analysis index (%d), last_Write(%d)", index, shared_data->last_write_index);
     packets_processed += 1;
 
-    struct timeval *timestamp = snap->timestamp;
-    Image *snap_image = snap->image;
     if ( snap->image_index == -1 ) {
       snap->unlock();
       Debug(2, "skipping because audio");
+      // We want to skip, but if we return, we may sleep.
+      //
       if ( ! packetqueue->increment_analysis_it() ) {
         Debug(2, "No more packets to analyse");
         return false;
       }
       continue;
     }
+    struct timeval *timestamp = snap->timestamp;
+    Image *snap_image = snap->image;
 
     // signal is set by capture
     bool signal = shared_data->signal;
@@ -2831,6 +2833,7 @@ int Monitor::Capture() {
       return 0;
     }
   } else {
+    Debug(4, "Capturing");
     captureResult = camera->Capture(*packet);
     gettimeofday( packet->timestamp, NULL );
     if ( captureResult < 0 ) {

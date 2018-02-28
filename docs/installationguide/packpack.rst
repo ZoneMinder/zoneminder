@@ -116,7 +116,7 @@ Verify arm emulation is enabled by issuing:
 
 	sudo update-binfmts --enable qemu-arm
 
-You may get an message stating emulation for this processor is already enabled. 
+You may get a message stating emulation for this processor is already enabled. 
 
 More testing needs to be done for Redhat distros but it appears Fedora users can just run:
 

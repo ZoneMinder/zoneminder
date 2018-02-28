@@ -239,7 +239,8 @@ protected:
   int colours;
   VideoWriter videowriter;
   std::string encoderparams;
-  std::string         output_codec;
+  int                 output_codec;
+  std::string         encoder;
   std::string         output_container;
   std::vector<EncoderParameter_t> encoderparamsvec;
     _AVPIXELFORMAT      imagePixFormat;
@@ -359,7 +360,8 @@ public:
     int p_colours,
     VideoWriter p_videowriter,
     std::string &p_encoderparams,
-    std::string &p_output_codec,
+    int p_output_codec,
+    std::string &p_encoder,
     std::string &p_output_container,
     bool  p_record_audio,
     const char *p_event_prefix,
@@ -458,7 +460,8 @@ public:
   VideoWriter GetOptVideoWriter() const { return( videowriter ); }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
   const std::string &GetEncoderOptions() const { return( encoderparams ); }
-  const std::string &OutputCodec() const { return output_codec; }
+  const std::string &Encoder() const { return encoder; }
+  const int OutputCodec() const { return output_codec; }
   const std::string &OutputContainer() const { return output_container; }
 
   uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }

@@ -249,7 +249,8 @@ Monitor::Monitor(
   int p_colours,
   VideoWriter p_videowriter,
   std::string &p_encoderparams,
-  std::string &p_output_codec,
+  int p_output_codec,
+  std::string &p_encoder,
   std::string &p_output_container,
   bool p_record_audio,
   const char *p_event_prefix,
@@ -292,6 +293,7 @@ Monitor::Monitor(
   videowriter( p_videowriter ),
   encoderparams( p_encoderparams ),
   output_codec( p_output_codec ),
+  encoder( p_encoder ),
   output_container( p_output_container ),
   record_audio( p_record_audio ),
   label_coord( p_label_coord ),
@@ -1761,7 +1763,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
 
 #if ZM_HAS_V4L
 int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose ) {
-  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Function != 'None' and Type = 'Local'";
+  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, Method, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, Encoder, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour, Exif from Monitors where Function != 'None' and Type = 'Local'";
 ;
   if ( device[0] ) {
     sql += " AND Device='";
@@ -1826,7 +1828,8 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
-    std::string output_codec = dbrow[col] ? dbrow[col] : ""; col++;
+    int output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+    std::string encoder = dbrow[col] ? dbrow[col] : ""; col++;
     std::string output_container = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -1907,6 +1910,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
       videowriter,
       encoderparams,
       output_codec,
+      encoder,
       output_container,
       record_audio,
       event_prefix,
@@ -1955,7 +1959,7 @@ int Monitor::LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose
 #endif // ZM_HAS_V4L
 
 int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose ) {
-  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
+  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, Encoder, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Remote'";
   if ( staticConfig.SERVER_ID ) {
     sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
   }
@@ -2001,7 +2005,8 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
-    std::string output_codec = dbrow[col] ? dbrow[col] : ""; col++;
+    int output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+    std::string encoder = dbrow[col] ? dbrow[col] : ""; col++;
     std::string output_container = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -2096,6 +2101,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
       videowriter,
       encoderparams,
       output_codec,
+      encoder,
       output_container,
       record_audio,
       event_prefix,
@@ -2143,7 +2149,7 @@ int Monitor::LoadRemoteMonitors( const char *protocol, const char *host, const c
 }
 
 int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose ) {
-  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'File'";
+  std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, Encoder, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'File'";
   if ( file[0] ) {
     sql += " AND Path='";
     sql += file;
@@ -2185,7 +2191,8 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams =  dbrow[col]; col++;
-    std::string output_codec =  dbrow[col]; col++;
+    int output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+    std::string encoder =  dbrow[col]; col++;
     std::string output_container =  dbrow[col]; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -2250,6 +2257,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
       videowriter,
       encoderparams,
       output_codec,
+      encoder,
       output_container,
       record_audio,
       event_prefix,
@@ -2298,7 +2306,7 @@ int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose pu
 
 #if HAVE_LIBAVFORMAT
 int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose ) {
-    std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Ffmpeg'";
+    std::string sql = "select Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Path, Method, Options, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, Encoder, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors where Function != 'None' and Type = 'Ffmpeg'";
   if ( file[0] ) {
     sql += " AND Path = '";
     sql += file;
@@ -2343,7 +2351,8 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
     int savejpegs = atoi(dbrow[col]); col++;
     VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
     std::string encoderparams =  dbrow[col] ? dbrow[col] : ""; col++;
-    std::string output_codec = dbrow[col] ? dbrow[col] : ""; col++;
+    int output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+    std::string encoder = dbrow[col] ? dbrow[col] : ""; col++;
     std::string output_container = dbrow[col] ? dbrow[col] : ""; col++;
     bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -2414,6 +2423,7 @@ int Monitor::LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose 
       videowriter,
       encoderparams,
       output_codec,
+      encoder,
       output_container,
       record_audio,
       event_prefix,
@@ -2524,7 +2534,8 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
   int savejpegs = atoi(dbrow[col]); col++;
   VideoWriter videowriter = (VideoWriter)atoi(dbrow[col]); col++;
   std::string encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
-  std::string output_codec = dbrow[col] ? dbrow[col] : ""; col++;
+  int output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  std::string encoder = dbrow[col] ? dbrow[col] : ""; col++;
   std::string output_container = dbrow[col] ? dbrow[col] : ""; col++;
   bool record_audio = (*dbrow[col] != '0'); col++;
 
@@ -2746,6 +2757,7 @@ Monitor *Monitor::Load( unsigned int p_id, bool load_zones, Purpose purpose ) {
     videowriter,
     encoderparams,
     output_codec,
+    encoder,
     output_container,
     record_audio,
     event_prefix,

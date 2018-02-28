@@ -19,6 +19,15 @@ class VideoStore;
 class VideoStore {
 private:
 
+struct CodecData {
+  const int codec_id;
+  const char *codec_codec;
+  const char *codec_name;
+  const enum AVPixelFormat pix_fmt;
+  
+};
+static struct CodecData codec_data[];
+
   Monitor *monitor;
 	AVOutputFormat *out_format;
 	AVFormatContext *oc;

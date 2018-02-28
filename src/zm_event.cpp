@@ -190,7 +190,7 @@ Event::Event(
   if ( monitor->GetOptVideoWriter() != 0 ) {
     std::string container = monitor->OutputContainer();
     if ( container == "auto" || container == "" ) {
-      if ( monitor->OutputCodec() == "h264" ) {
+      if ( monitor->OutputCodec() == AV_CODEC_ID_H264 ) {
         container = "mp4";
       } else {
         container = "mkv";

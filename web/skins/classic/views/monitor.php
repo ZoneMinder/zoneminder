@@ -470,12 +470,20 @@ $videowriteropts = array(
     'X264 Encode'                                         => 1,
     'H264 Camera Passthrough'                             => 2          
     );
-$videowriter_codecs = array(
-  '' => translate('Disabled'),
+$videowriter_encoders = array(
+  '' => translate('Auto'),
+  'h264_omx' => 'h264_omx',
   'h264' => 'h264',
   'mjpeg' => 'mjpeg',
   'mpeg1' => 'mpeg1',
   'mpeg2' => 'mpeg2',
+);
+$videowriter_codecs = array(
+  '0' => translate('Disabled'),
+  '220' => 'h264',
+  '8' => 'mjpeg',
+  '1' => 'mpeg1',
+  '2' => 'mpeg2',
 );
 $videowriter_containers = array(
   '' => translate('Auto'),
@@ -609,6 +617,7 @@ if ( $tab != 'storage' ) {
       <input type="hidden" name="newMonitor[SaveJPEGs]" value="<?php echo validHtmlStr($monitor->SaveJPEGs()) ?>"/>
       <input type="hidden" name="newMonitor[VideoWriter]" value="<?php echo validHtmlStr($monitor->VideoWriter()) ?>"/>
       <input type="hidden" name="newMonitor[OutputCodec]" value="<?php echo validHtmlStr($monitor->OutputCodec()) ?>"/>
+      <input type="hidden" name="newMonitor[Encoder]" value="<?php echo validHtmlStr($monitor->Encoder()) ?>"/>
       <input type="hidden" name="newMonitor[OutputContainer]" value="<?php echo validHtmlStr($monitor->OutputContainer()) ?>"/>
       <input type="hidden" name="newMonitor[EncoderParameters]" value="<?php echo validHtmlStr($monitor->EncoderParameters()) ?>"/>
       <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo validHtmlStr($monitor->RecordAudio()) ?>"/>
@@ -912,6 +921,7 @@ if ( $monitor->Type() == 'Local' ) {
             <tr><td><?php echo translate('SaveJPEGs') ?></td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->SaveJPEGs() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
             <tr><td><?php echo translate('VideoWriter') ?></td><td><select name="newMonitor[VideoWriter]"><?php foreach ( $videowriteropts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->VideoWriter() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
             <tr><td><?php echo translate('OutputCodec') ?></td><td><?php echo htmlSelect( 'newMonitor[OutputCodec]', $videowriter_codecs, $monitor->OutputCodec() );?></td></tr>
+            <tr><td><?php echo translate('Encoder') ?></td><td><?php echo htmlSelect( 'newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder() );?></td></tr>
             <tr><td><?php echo translate('OutputContainer') ?></td><td><?php echo htmlSelect( 'newMonitor[OutputContainer]', $videowriter_containers, $monitor->OutputContainer() );?></td></tr>
             <tr><td><?php echo translate('OptionalEncoderParam') ?></td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea></td></tr>
             <tr><td><?php echo translate('RecordAudio') ?></td><td><input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/></td></tr>

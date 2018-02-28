@@ -13,4 +13,4 @@ install(FILES ${dbfileslist} DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm_create.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")
 
 # install triggers.sql
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/triggers.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/triggers.sql" DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/db")

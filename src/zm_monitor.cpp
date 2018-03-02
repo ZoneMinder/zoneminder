@@ -326,7 +326,8 @@ Monitor::Monitor(
   zones( p_zones ),
   timestamps( 0 ),
   images( 0 ),
-  privacy_bitmask( NULL )
+  privacy_bitmask( NULL ),
+  event_delete_thread(NULL)
 {
   strncpy( name, p_name, sizeof(name)-1 );
 
@@ -599,6 +600,11 @@ Debug(3, "Success connecting");
 }
 
 Monitor::~Monitor() {
+  if ( event_delete_thread ) {
+    event_delete_thread->join();
+    delete event_delete_thread;
+    event_delete_thread = NULL;
+  }
   if ( timestamps ) {
     delete[] timestamps;
     timestamps = 0;
@@ -3100,7 +3106,14 @@ bool Monitor::closeEvent() {
     if ( function == RECORD || function == MOCORD ) {
       gettimeofday( &(event->EndTime()), NULL );
     }
-    delete event;
+    if ( event_delete_thread ) {
+      event_delete_thread->join();
+      delete event_delete_thread;
+      event_delete_thread = NULL;
+    }
+    event_delete_thread = new std::thread([](Event *event) {
+      delete event;
+    }, event );
     video_store_data->recording = (struct timeval){0};
     event = 0;
     return( true );

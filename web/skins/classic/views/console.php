@@ -183,6 +183,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
 <?php
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
+  $Monitor = new Monitor($monitor);
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
 <?php
@@ -212,7 +213,16 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
 <?php
   }
 ?>
-            <td class="colName"><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><?php echo $monitor['Status'] ?></td>
+            <td class="colName">
+              <a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/>
+              <?php echo $monitor['Status'] ?><br/>
+              <?php echo implode('<br/>',
+                  array_map(function($group_id){
+                    $Group = new Group($group_id);
+                    return implode(' &gt; ', array_map(function($Group){ return $Group->Name(); }, $Group->Parents()));
+                    }, $Monitor->GroupIds() ) ); 
+?>
+            </td>
             <td class="colFunction">
               <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
 <?php 

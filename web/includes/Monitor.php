@@ -17,6 +17,9 @@ private $defaults = array(
   'AnalysisFPSLimit'  =>  null,
   'ZoneCount' =>  0,
   'Triggers'  =>  null,
+  'Type'      =>  'Ffmpeg',
+  'MaxFPS' => null,
+  'AlarmMaxFPS' => null,
 );
 private $status_fields = array(
   'AnalysisFPS' => null,

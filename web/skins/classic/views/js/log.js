@@ -286,7 +286,7 @@ sortReverse: true
     warningPrefix: "",
     errorPrefix: ""
   });
-  new Asset.css( "/css/spinner.css" );
+  new Asset.css( "css/spinner.css" );
   fetchNextLogs();
 }
 

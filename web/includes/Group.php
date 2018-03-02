@@ -288,6 +288,23 @@ $group_options[$Group->Id()] = str_repeat( '&nbsp;', $depth ) .  $Group->Name();
   return $monitor_id;
 }
 
+public function Parent( ) {
+  if ( $this->{'ParentId'} ) {
+    return new Group($this->{'ParentId'});
+  }
+  return null;
+}
+
+public function Parents() {
+  $Parents = array();
+  $Parent = $this->Parent();
+  while( $Parent ) {
+    array_unshift($Parents, $Parent);
+    $Parent = $Parent->Parent();
+  }
+  return $Parents;
+}
+
 } # end class Group
 
 

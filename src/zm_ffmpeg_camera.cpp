@@ -710,20 +710,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     ret = av_read_frame( mFormatContext, &packet );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-      if (
-          // Check if EOF.
-          (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
-          // Check for Connection failure.
-          (ret == -110)
-         ) {
-        Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
-        if ( ReopenFfmpeg() < 0 ) {
-          // OpenFfmpeg will do enough logging.
-          return -1;
-        }
-        continue;
-      }
-
       Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
       return -1;
     }

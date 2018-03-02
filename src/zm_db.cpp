@@ -23,29 +23,35 @@
 #include "zm.h"
 #include "zm_db.h"
 
+// From what I read, we need one of these per thread
 MYSQL dbconn;
+Mutex db_mutex;
 
-int zmDbConnected = false;
+bool zmDbConnected = false;
 
-void zmDbConnect() {
+bool zmDbConnect() {
   // For some reason having these lines causes memory corruption and crashing on newer debian/ubuntu
   //if ( zmDbConnected ) 
     //return;
 
   if ( !mysql_init( &dbconn ) ) {
     Error( "Can't initialise database connection: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+    return false;
   }
   my_bool reconnect = 1;
   if ( mysql_options( &dbconn, MYSQL_OPT_RECONNECT, &reconnect ) )
-    Fatal( "Can't set database auto reconnect option: %s", mysql_error( &dbconn ) );
+    Error( "Can't set database auto reconnect option: %s", mysql_error( &dbconn) );
   if ( !staticConfig.DB_SSL_CA_CERT.empty() )
-    mysql_ssl_set( &dbconn, staticConfig.DB_SSL_CLIENT_KEY.c_str(), staticConfig.DB_SSL_CLIENT_CERT.c_str(), staticConfig.DB_SSL_CA_CERT.c_str(), NULL, NULL );
+    mysql_ssl_set( &dbconn,
+        staticConfig.DB_SSL_CLIENT_KEY.c_str(),
+        staticConfig.DB_SSL_CLIENT_CERT.c_str(),
+        staticConfig.DB_SSL_CA_CERT.c_str(),
+        NULL, NULL );
   std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":" );
   if ( colonIndex == std::string::npos ) {
     if ( !mysql_real_connect( &dbconn, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, NULL, 0 ) ) {
       Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
+      return false;
     }
   } else {
     std::string dbHost = staticConfig.DB_HOST.substr( 0, colonIndex );
@@ -53,12 +59,12 @@ void zmDbConnect() {
     if ( dbPortOrSocket[0] == '/' ) {
       if ( !mysql_real_connect( &dbconn, NULL, staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, dbPortOrSocket.c_str(), 0 ) ) {
         Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
+        return false;
       }
     } else {
       if ( !mysql_real_connect( &dbconn, dbHost.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, atoi(dbPortOrSocket.c_str()), NULL, 0 ) ) {
         Error( "Can't connect to server: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
+        return false;
       }
     }
   }
@@ -67,6 +73,7 @@ void zmDbConnect() {
     exit( mysql_errno( &dbconn ) );
   }
   zmDbConnected = true;
+  return zmDbConnected;
 }
 
 void zmDbClose() {
@@ -84,6 +91,7 @@ MYSQL_RES * zmDbFetch( const char * query ) {
     Error( "Not connected." );
     return NULL;
   }
+  db_mutex.lock();
 
   if ( mysql_query( &dbconn, query ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -95,6 +103,7 @@ MYSQL_RES * zmDbFetch( const char * query ) {
     Error( "Can't use query result: %s for query %s", mysql_error( &dbconn ), query );
     return NULL;
   }
+  db_mutex.unlock();
   return result;
 } // end MYSQL_RES * zmDbFetch( const char * query );
 

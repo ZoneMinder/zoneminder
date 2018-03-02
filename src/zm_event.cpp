@@ -96,11 +96,14 @@ Event::Event(
       monitor->GetOptSaveJPEGs(),
       storage->SchemeString().c_str()
       );
+  db_mutex.lock();
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
-    exit( mysql_errno( &dbconn ) );
+    db_mutex.unlock();
+    return;
   }
   id = mysql_insert_id( &dbconn );
+  db_mutex.unlock();
   if ( untimedEvent ) {
     Warning( "Event %d has zero time, setting to current", id );
   }
@@ -110,7 +113,6 @@ Event::Event(
   tot_score = 0;
   max_score = 0;
 
-  struct stat statbuf;
   char id_file[PATH_MAX];
 
   if ( storage->Scheme() == Storage::DEEP ) {
@@ -236,10 +238,11 @@ Event::~Event() {
     snprintf( sql, sizeof(sql), 
         "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )",
         id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+    db_mutex.lock();
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
     }
+    db_mutex.unlock();
   }
 
   /* Close the video file */
@@ -259,10 +262,11 @@ Event::~Event() {
   }
 
   snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
+  db_mutex.lock();
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't update event: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
   }
+  db_mutex.unlock();
 }
 
 void Event::createNotes( std::string &notes ) {
@@ -427,9 +431,11 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
     mysql_real_escape_string( &dbconn, escapedNotes, notes.c_str(), notes.length() );
 
     snprintf( sql, sizeof(sql), "update Events set Notes = '%s' where Id = %d", escapedNotes, id );
+    db_mutex.lock();
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert event: %s", mysql_error( &dbconn ) );
     }
+    db_mutex.unlock();
 #endif
   }
 }
@@ -490,9 +496,11 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
   if ( frameCount ) {
     Debug( 1, "Adding %d/%d frames to DB", frameCount, n_frames );
     *(sql+strlen(sql)-2) = '\0';
+    db_mutex.lock();
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frames: %s, sql was (%s)", mysql_error( &dbconn ), sql );
     }
+    db_mutex.unlock();
     last_db_frame = frames;
   } else {
     Debug( 1, "No valid pre-capture frames to add" );
@@ -542,10 +550,13 @@ Debug(3, "Writing video");
     Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, Event::frame_type_names[frame_type] );
     static char sql[ZM_SQL_MED_BUFSIZ];
     snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type_names[frame_type], timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
+    db_mutex.lock();
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
+      db_mutex.unlock();
+      return;
     }
+    db_mutex.unlock();
     last_db_frame = frames;
 
     // We are writing a Bulk frame
@@ -560,10 +571,11 @@ Debug(3, "Writing video");
           max_score,
           id
           );
+      db_mutex.lock();
       if ( mysql_query( &dbconn, sql ) ) {
         Error( "Can't update event: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
       }
+      db_mutex.unlock();
     }
   } // end if db_frame
 

@@ -283,10 +283,10 @@ int main( int argc, const char *argv[] ) {
     stream.setStreamMode( replay );
     stream.setStreamQueue( connkey );
     if ( monitor_id && event_time ) {
-      stream.setStreamStart( monitor_id, event_time );
+      stream.setStreamStart(monitor_id, event_time);
     } else {
       Debug(3, "Setting stream start to frame (%d)", frame_id);
-      stream.setStreamStart( event_id, frame_id );
+      stream.setStreamStart(event_id, frame_id);
     }
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType( EventStream::STREAM_JPEG );

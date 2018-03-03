@@ -633,6 +633,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
+
     switch( $types[$key] ) {
       case 'set' :
         {
@@ -694,6 +695,16 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
           break;
         }
+      case 'toggle' :
+        if ( (!isset($values[$key])) or $values[$key] != $value ) {
+          if ( empty($value) ) {
+            $changes[$key] = "$key = 0";
+          } else {
+            $changes[$key] = "$key = 0";
+            //$changes[$key] = $key . ' = '.dbEscape(trim($value));
+          }
+        }
+        break;
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {

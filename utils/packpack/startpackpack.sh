@@ -108,6 +108,18 @@ commonprep () {
         patch -p1 < utils/packpack/packpack-rpm.patch
     fi
 
+    # Skip deb lintian checks to speed up the build
+    patch --dry-run --silent -f -p1 < utils/packpack/nolintian.patch
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/nolintian.patch
+    fi
+
+    # fix 32bit rpm builds
+    patch --dry-run --silent -f -p1 < utils/packpack/setarch.patch
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/setarch.patch
+    fi
+
     # The rpm specfile requires we download the tarball and manually move it into place
     # Might as well do this for Debian as well, rather than git submodule init
     CRUDVER="3.0.10"
@@ -295,7 +307,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         execpackpack
 
     # Steps common to Debian based distros
-    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
+    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
         echo "Begin ${OS} ${DIST} build..."
 
         setdebpkgname

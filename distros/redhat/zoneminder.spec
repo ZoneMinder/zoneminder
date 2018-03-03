@@ -83,6 +83,10 @@ BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: ffmpeg-devel
 
+# Required for mp4 container support
+BuildRequires: libmp4v2-devel
+BuildRequires: x264-devel
+
 %{?with_nginx:Requires: nginx}
 %{?with_nginx:Requires: fcgiwrap}
 %{?with_nginx:Requires: php-fpm}
@@ -110,6 +114,7 @@ Requires: perl(Net::SMTP)
 Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: ca-certificates
+Requires: zip
 
 %{?with_init_systemd:Requires(post): systemd}
 %{?with_init_systemd:Requires(post): systemd-sysv}

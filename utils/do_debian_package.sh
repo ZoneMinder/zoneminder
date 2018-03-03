@@ -8,6 +8,13 @@ exit;
 
 fi
 
+DEBUILD=`which debuild`;
+
+if [ "$DEBUILD" == "" ]; then
+  echo "You must install the devscripts package.  Try sudo apt-get install devscripts";
+  exit;
+fi
+
 for i in "$@"
 do
 case $i in

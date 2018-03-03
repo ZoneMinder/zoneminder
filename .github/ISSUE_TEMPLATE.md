@@ -5,6 +5,8 @@ You should only file an issue if you found a bug.  Feature and enhancement reque
 
 **Do not post feature or enhancement requests, general discussions or support questions here.**
 
+Docker related issues should be posted here: https://github.com/ZoneMinder/zmdockerfiles
+
 Make sure you are running the latest version of ZoneMinder before reporting an issue.
 
 **ZoneMinder Version (`zmaudit.pl -v`):**

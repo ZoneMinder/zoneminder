@@ -16,6 +16,10 @@
 
 #monitors .alert {
     color: #ffa500;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    border: none;
 }
 
 #monitors .imageFeed {

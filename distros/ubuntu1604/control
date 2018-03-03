@@ -6,7 +6,6 @@ Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
               ,libx264-dev, libmp4v2-dev
-              ,libboost-dev
               ,libavdevice-dev (>= 6:10~)
               ,libavcodec-dev (>= 6:10~)
               ,libavformat-dev  (>= 6:10~)
@@ -17,7 +16,7 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libcurl4-gnutls-dev
               ,libgnutls-openssl-dev
               ,libjpeg8-dev | libjpeg9-dev | libjpeg62-turbo-dev
-              ,libmysqlclient-dev
+              ,default-libmysqlclient-dev | libmysqlclient-dev
               ,libpcre3-dev
               ,libpolkit-gobject-1-dev
               ,libv4l-dev (>= 0.8.3) [!hurd-any]

@@ -204,6 +204,7 @@ private $defaults = array(
         $this->{$k} = $v;
       }
     }
+    // Set default values
     foreach ( $this->defaults as $k=>$v ) {
       if ( ( ! array_key_exists( $k, $this ) ) or ( $this->{$k} == '' ) ) {
         $this->{$k} = $v;
@@ -212,16 +213,17 @@ private $defaults = array(
     
     $fields = array_keys( $this->defaults );
 
-if ( array_key_exists( 'Id', $this ) ) {
-    $sql = 'UPDATE Controls SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
-    $values = array_map( function($field){return $this->{$field};}, $fields );
-    $values[] = $this->{'Id'};
-    dbQuery( $sql, $values );
-} else {
-    $sql = 'INSERT INTO Controls SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . '';
-    $values = array_map( function($field){return $this->{$field};}, $fields );
-    dbQuery( $sql, $values );
-}
+    if ( array_key_exists( 'Id', $this ) ) {
+      $sql = 'UPDATE Controls SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
+      $values = array_map( function($field){return $this->{$field};}, $fields );
+      $values[] = $this->{'Id'};
+      dbQuery( $sql, $values );
+    } else {
+      $sql = 'INSERT INTO Controls SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . '';
+      $values = array_map( function($field){return $this->{$field};}, $fields );
+      dbQuery( $sql, $values );
+      $this->{'Id'} = dbInsertId();
+    }
   } // end function save
 
 } // end class Control

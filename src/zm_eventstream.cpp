@@ -88,43 +88,48 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
 }
 
 bool EventStream::loadInitialEventData( int init_event_id, unsigned int init_frame_id ) {
-  loadEventData( init_event_id );
+  loadEventData(init_event_id);
 
   if ( init_frame_id ) {
-    curr_stream_time = event_data->frames[init_frame_id-1].timestamp;
-    curr_frame_id = init_frame_id;
+    if ( init_frame_id >= event_data->frame_count ) {
+      Error("Invalid frame id specified. %d > %d", init_frame_id, event_data->frame_count );
+      curr_stream_time = event_data->start_time;
+    } else {
+      curr_stream_time = event_data->frames[init_frame_id-1].timestamp;
+      curr_frame_id = init_frame_id;
+    }
   } else {
     curr_stream_time = event_data->start_time;
   }
 
-  return( true );
+  return true;
 }
 
-bool EventStream::loadEventData( int event_id ) {
+bool EventStream::loadEventData(int event_id) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
-  snprintf( sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo, Scheme FROM Events WHERE Id = %d", event_id );
+  snprintf(sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo, Scheme FROM Events WHERE Id = %d", event_id);
 
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
-  MYSQL_RES *result = mysql_store_result( &dbconn );
+  MYSQL_RES *result = mysql_store_result(&dbconn);
   if ( !result ) {
-    Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+    Error("Can't use query result: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
-  if ( !mysql_num_rows( result ) ) {
-    Fatal( "Unable to load event %d, not found in DB", event_id );
+  if ( !mysql_num_rows(result) ) {
+    Fatal("Unable to load event %d, not found in DB", event_id);
   }
 
-  MYSQL_ROW dbrow = mysql_fetch_row( result );
+  MYSQL_ROW dbrow = mysql_fetch_row(result);
 
-  if ( mysql_errno( &dbconn ) ) {
-    Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  if ( mysql_errno(&dbconn) ) {
+    Error("Can't fetch row: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
   delete event_data;
@@ -885,4 +890,18 @@ void EventStream::runStream() {
 #endif // HAVE_LIBAVCODEC
 
   closeComms();
+}
+void EventStream::setStreamStart( int init_event_id, unsigned int init_frame_id=0 ) {
+  loadInitialEventData( init_event_id, init_frame_id );
+  if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
+    Fatal( "Unable to load monitor id %d for streaming", event_data->monitor_id );
+    return;
+  }
+}
+void EventStream::setStreamStart( int monitor_id, time_t event_time ) {
+  loadInitialEventData( monitor_id, event_time );
+  if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
+    Fatal( "Unable to load monitor id %d for streaming", monitor_id );
+    return;
+  }
 }

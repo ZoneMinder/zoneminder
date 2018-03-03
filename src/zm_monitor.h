@@ -330,6 +330,8 @@ protected:
 
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;
+  // This is the official SQL (and ordering of the fields) to load a Monitor. It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
+  std::string load_monitor_sql = "SELECT Id, Name, ServerId, StorageId, Function+0, Enabled, LinkedMonitors, Protocol, Method, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, SaveJPEGs, VideoWriter, EncoderParameters, OutputCodec, Encoder, OutputContainer, RecordAudio, Brightness, Contrast, Hue, Colour, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif from Monitors";
 
 public:
   explicit Monitor( int p_id );

@@ -553,20 +553,19 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
     }
   }
 
-  $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
+  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions( $contents, $values ).'</select>';
+}
+
+function htmlOptions( $contents, $values ) {
+  $html = '';
   foreach ( $contents as $value=>$text ) {
     if ( is_array( $text ) )
       $text = $text['Name'];
     else if ( is_object( $text ) )
       $text = $text->Name();
-  //for ( $i = 0; $i < count($contents); $i +=2 ) {
-    //$value = $contents[$i];
-    //$text = $contents[$i+1];
     $selected = is_array( $values ) ? in_array( $value, $values ) : !strcmp($value, $values);
-    //Warning("Selected is $selected from $value and $values");
     $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
   }
-  $html .= '</select>';
   return $html;
 }
 
@@ -634,6 +633,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
+
     switch( $types[$key] ) {
       case 'set' :
         {
@@ -695,6 +695,16 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
           break;
         }
+      case 'toggle' :
+        if ( (!isset($values[$key])) or $values[$key] != $value ) {
+          if ( empty($value) ) {
+            $changes[$key] = "$key = 0";
+          } else {
+            $changes[$key] = "$key = 0";
+            //$changes[$key] = $key . ' = '.dbEscape(trim($value));
+          }
+        }
+        break;
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {

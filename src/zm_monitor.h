@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <sstream>
+#include <thread>
 
 #include "zm.h"
 #include "zm_coord.h"
@@ -336,6 +337,7 @@ protected:
   Image      **images;
 
   const unsigned char  *privacy_bitmask;
+  std::thread   *event_delete_thread; // Used to close events, but continue processing.
 
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;

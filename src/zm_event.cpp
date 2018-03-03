@@ -97,7 +97,8 @@ Event::Event(
   db_mutex.lock();
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
-    exit( mysql_errno( &dbconn ) );
+    db_mutex.unlock();
+    return;
   }
   id = mysql_insert_id( &dbconn );
   db_mutex.unlock();
@@ -217,6 +218,16 @@ Event::Event(
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
 Event::~Event() {
+
+  // We cose the videowriter first, because it might take some time, and we don't want to lock the db if we can avoid it
+
+  /* Close the video file */
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
+
+
   static char sql[ZM_SQL_MED_BUFSIZ];
   struct DeltaTimeval delta_time;
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
@@ -225,25 +236,23 @@ Event::~Event() {
   if ( frames > last_db_frame ) {
     Debug( 1, "Adding closing frame %d to DB", frames );
     snprintf( sql, sizeof(sql), 
-        "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )",
+        "INSERT INTO Frames ( EventId, FrameId, TimeStamp, Delta ) VALUES ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )",
         id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
     db_mutex.lock();
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
+    } else {
+      Debug(1,"Success writing last frame");
     }
     db_mutex.unlock();
-  }
-
-  /* Close the video file */
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
   }
 
   snprintf( sql, sizeof(sql), "UPDATE Events SET Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
   db_mutex.lock();
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't update event: %s", mysql_error( &dbconn ) );
+  } else {
+    Debug(1,"Success updating event");
   }
   db_mutex.unlock();
 } // ~Event
@@ -380,27 +389,27 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
 #else
     static char escapedNotes[ZM_SQL_MED_BUFSIZ];
 
-    mysql_real_escape_string( &dbconn, escapedNotes, notes.c_str(), notes.length() );
+    mysql_real_escape_string(&dbconn, escapedNotes, notes.c_str(), notes.length());
 
+    snprintf(sql, sizeof(sql), "UPDATE Events SET Notes = '%s' WHERE Id = %d", escapedNotes, id);
     db_mutex.lock();
-    snprintf( sql, sizeof(sql), "UPDATE Events SET Notes = '%s' WHERE Id = %d", escapedNotes, id );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't insert event: %s", mysql_error( &dbconn ) );
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't insert event: %s", mysql_error(&dbconn));
     }
     db_mutex.unlock();
 #endif
   }
 }
 
-void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps ) {
+void Event::AddFrames(int n_frames, Image **images, struct timeval **timestamps) {
   for (int i = 0; i < n_frames; i += ZM_SQL_BATCH_SIZE) {
     AddFramesInternal(n_frames, i, images, timestamps);
   }
 }
 
-void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps ) {
+void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, struct timeval **timestamps) {
   static char sql[ZM_SQL_LGE_BUFSIZ];
-  strncpy( sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql) );
+  strncpy(sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql));
   int frameCount = 0;
   for ( int i = start_frame; i < n_frames && i - start_frame < ZM_SQL_BATCH_SIZE; i++ ) {
     if ( timestamps[i]->tv_sec <= 0 ) {

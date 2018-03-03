@@ -9,10 +9,14 @@ echo $offset . '; // ' . floor($offset / 3600) . ' hours ';
 var currentScale=<?php echo $defaultScale?>;
 var liveMode=<?php echo $liveMode?>;
 var fitMode=<?php echo $fitMode?>;
-var currentSpeed=<?php echo $speeds[$speedIndex]?>;  // slider scale, which is only for replay and relative to real time
+
+// slider scale, which is only for replay and relative to real time
+var currentSpeed=<?php echo $speeds[$speedIndex]?>;  
 var speedIndex=<?php echo $speedIndex?>;
 
-// will be set based on performance, this is the display interval in milliseconds for history, and fps for live, and dynamically determined (in ms)
+// will be set based on performance, this is the display interval in milliseconds 
+// for history, and fps for live, and dynamically determined (in ms)
+
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
 var playSecsperInterval=1;         // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
@@ -21,12 +25,6 @@ var freeTimeLastIntervals=[];    // Percentage of current interval used in loadi
 var imageLoadTimesEvaluated=0;   // running count
 var imageLoadTimesNeeded=15;     // and how many we need
 var timeLabelsFractOfRow = 0.9;
-var eMonId = [];
-var eId = [];
-var eStorageId = [];
-var eStartSecs = [];
-var eEndSecs = [];
-var eventFrames = [];            // this is going to presume all frames equal durationlength
 
 <?php
 
@@ -41,6 +39,7 @@ if ( ! $minTimeSecs )
 
 $index = 0;
 $anyAlarms = false;
+$maxScore=0;
 
 if ( ! $liveMode ) {
   $result = dbQuery( $eventsSql );
@@ -49,27 +48,53 @@ if ( ! $liveMode ) {
     return;
   }
 
+  $EventsById = array();
+
   while( $event = $result->fetch( PDO::FETCH_ASSOC ) ) {
+    $event_id = $event['Id'];
+    $EventsById[$event_id] = $event;
+  }
 
-    $StartTimeSecs = strtotime($event['StartTime']);
-    $EndTimeSecs = strtotime($event['EndTime']);
+  $next_frames = array();
 
-    if ( $minTimeSecs > $StartTimeSecs )   $minTimeSecs = $StartTimeSecs;
+  if ( $result = dbQuery($frameSql) ) {
+    $next_frame = null;
+    while( $frame = $result->fetch(PDO::FETCH_ASSOC) ) {
+      $event_id = $frame['EventId'];
+      $event = &$EventsById[$event_id];
+
+      $frame['TimeStampSecs'] = $event['StartTimeSecs'] + $frame['Delta'];
+      if ( !isset($event['FramesById']) ) {
+        $event['FramesById'] = array();
+        $frame['NextTimeStampSecs'] = 0;
+      } else {
+        $frame['NextTimeStampSecs'] = $next_frames[$frame['EventId']]['TimeStampSecs'];;
+      }
+      $event['FramesById'] += array( $frame['Id']=>$frame );
+      $next_frames[$frame['EventId']] = $frame;
+    }
+  }
+
+  echo "var events = {\n";
+  foreach ( $EventsById as $event_id=>$event ) {
+
+    $StartTimeSecs = $event['StartTimeSecs'];
+    $EndTimeSecs = $event['EndTimeSecs'];
+
+    if ( $minTimeSecs > $StartTimeSecs ) $minTimeSecs = $StartTimeSecs;
     if ( $maxTimeSecs < $EndTimeSecs ) $maxTimeSecs = $EndTimeSecs;
-      echo "
-eMonId[$index]=" . $event['MonitorId'] . ";
-eStorageId[$index]=".$event['StorageId'] . ";
-eId[$index]=" . $event['Id'] . ";
-eStartSecs[$index]=" . $StartTimeSecs . ";
-eEndSecs[$index]=" . $EndTimeSecs . ";
-eventFrames[$index]=" . $event['Frames'] . ";
 
-  ";
+    $event_json = json_encode($event, JSON_PRETTY_PRINT);
+    echo " $event_id : $event_json,\n";
 
     $index = $index + 1;
-    if ( $event['MaxScore'] > 0 )
+    if ( $event['MaxScore'] > 0 ) {
+      if ( $event['MaxScore'] > $maxScore )
+        $maxScore = $event['MaxScore'];
       $anyAlarms = true;
+    }
   }
+echo " };\n";
 
   // if there is no data set the min/max to the passed in values
   if ( $index == 0 ) {
@@ -92,60 +117,6 @@ eventFrames[$index]=" . $event['Frames'] . ";
 
     $maxTimeSecs = strtotime($maxTime);
   }
-
-  // If we had any alarms in those events, this builds the list of all alarm frames, but consolidated down to (nearly) contiguous segments 
-  // comparison in else governs how aggressively it consolidates
-
-  echo "
-var fMonId = [];
-var fTimeFromSecs = [];
-var fTimeToSecs = [];
-var fScore = [];
-";
-$maxScore=0;
-$index=0;
-$mId=-1;
-$fromSecs=-1;
-$toSecs=-1;
-$maxScore=-1;
-
-if ( $anyAlarms && $result = dbQuery( $frameSql ) ) {
-
-  while( $frame = $result->fetch( PDO::FETCH_ASSOC ) ) {
-    if ( $mId < 0 ) {
-      $mId = $frame['MonitorId'];
-      $fromSecs = $frame['TimeStampSecs'];
-      $toSecs = $frame['TimeStampSecs'];
-      $maxScore = $frame['Score'];
-    } else if ( $mId != $frame['MonitorId'] || $frame['TimeStampSecs'] - $toSecs > 10 ) {
-      // dump this one start a new
-      $index++;
-      echo "
-
-fMonId[$index]= $mId;
-fTimeFromSecs[$index]= $fromSecs;
-fTimeToSecs[$index]= $toSecs;
-fScore[$index]= $maxScore;
-";
-      $mId = $frame['MonitorId'];
-      $fromSecs = $frame['TimeStampSecs'];
-      $toSecs = $frame['TimeStampSecs'];
-      $maxScore = $frame['Score'];
-    } else {
-      // just add this one on
-      $toSecs = $frame['TimeStampSecs'];
-      if ( $maxScore < $frame['Score'] ) $maxScore = $frame['Score'];
-    }
-  }
-}
-if ( $mId > 0 ) {
-  echo "
-  fMonId[$index]= $mId;
-  fTimeFromSecs[$index]= $fromSecs;
-  fTimeToSecs[$index]= $toSecs;
-  fScore[$index]= $maxScore;
-";
-}
 
   echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
 } // end if initialmodeislive

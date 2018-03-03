@@ -143,13 +143,69 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id, int frame_number ) {
       return NULL;
     }
 
+<<<<<<< HEAD
     if ( ( stream_id < 0 ) || ( packet.stream_index != stream_id ) ) {
       Warning("Packet is not for our stream (%d)", packet.stream_index);
       return NULL;
+=======
+    if ( (stream_id < 0 ) || ( packet.stream_index == stream_id ) ) {
+      Debug(3,"Packet is for our stream (%d)", packet.stream_index );
+
+      AVCodecContext *context = streams[packet.stream_index].context;
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    ret = avcodec_send_packet( context, &packet );
+    if ( ret < 0 ) {
+      av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+      Error( "Unable to send packet at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
+      zm_av_packet_unref( &packet );
+      continue;
+    } else {
+      Debug(1, "Success getting a packet");
     }
 
+#if HAVE_AVUTIL_HWCONTEXT_H
+    if ( hwaccel ) {
+      ret = avcodec_receive_frame( context, hwFrame );
+      if ( ret < 0 ) {
+        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+        Error( "Unable to receive frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
+        zm_av_packet_unref( &packet );
+        continue;
+      }
+      ret = av_hwframe_transfer_data(frame, hwFrame, 0);
+      if (ret < 0) {
+        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+        Error( "Unable to transfer frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
+        zm_av_packet_unref( &packet );
+        continue;
+      }
+    } else {
+#endif
+      Debug(1,"Getting a frame?");
+      ret = avcodec_receive_frame( context, frame );
+      if ( ret < 0 ) {
+        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+        Error( "Unable to send packet at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
+        zm_av_packet_unref( &packet );
+        continue;
+      }
+
+#if HAVE_AVUTIL_HWCONTEXT_H
+>>>>>>> storageareas
+    }
+
+<<<<<<< HEAD
     if ( ! zm_receive_frame( streams[packet.stream_index].context, frame, packet ) ) {
       Error("Unable to get frame %d, continuing", streams[packet.stream_index].frame_count);
+=======
+    frameComplete = 1;
+# else
+    ret = zm_avcodec_decode_video(context, frame, &frameComplete, &packet);
+    if ( ret < 0 ) {
+      av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+      Error( "Unable to decode frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
+>>>>>>> storageareas
       zm_av_packet_unref( &packet );
       continue;
     } else {

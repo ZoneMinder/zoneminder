@@ -326,7 +326,8 @@ Monitor::Monitor(
   zones( p_zones ),
   timestamps( 0 ),
   images( 0 ),
-  privacy_bitmask( NULL )
+  privacy_bitmask( NULL ),
+  event_delete_thread(NULL)
 {
   strncpy( name, p_name, sizeof(name)-1 );
 
@@ -477,7 +478,6 @@ Monitor::Monitor(
   adaptive_skip = true;
 
   ReloadLinkedMonitors( p_linked_monitors );
-  videoStore = NULL;
 } // Monitor::Monitor
 
 bool Monitor::connect() {
@@ -578,12 +578,13 @@ bool Monitor::connect() {
 } // Monitor::connect
 
 Monitor::~Monitor() {
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
+
+  if ( event_delete_thread ) {
+    event_delete_thread->join();
+    delete event_delete_thread;
+    event_delete_thread = NULL;
   }
-  delete packetqueue;
-  packetqueue = NULL;
+
 
   if ( timestamps ) {
     delete[] timestamps;
@@ -593,13 +594,18 @@ Monitor::~Monitor() {
     delete[] images;
     images = 0;
   }
+
+  delete packetqueue;
+  packetqueue = NULL;
+
   if ( privacy_bitmask ) {
     delete[] privacy_bitmask;
     privacy_bitmask = NULL;
   }
+
   if ( mem_ptr ) {
     if ( event ) {
-      Info( "%s: image_count:%d - Closing event %d, shutting down", name, image_count, event->Id() );
+      Info("%s: image_count:%d - Closing event %d, shutting down", name, image_count, event->Id() );
       closeEvent();
     }
 
@@ -607,7 +613,7 @@ Monitor::~Monitor() {
       delete next_buffer.image;
     }
 #if 1
-    for ( int i = 0; i < image_buffer_count; i++ ) {
+    for ( int i=0; i < image_buffer_count; i++ ) {
       delete image_buffer[i].image;
     }
 #endif
@@ -620,15 +626,15 @@ Monitor::~Monitor() {
       shared_data->last_read_time = 0;
     } else if ( purpose == CAPTURE ) {
       shared_data->valid = false;
-      memset( mem_ptr, 0, mem_size );
+      memset(mem_ptr, 0, mem_size);
     }
 
 #if ZM_MEM_MAPPED
-    if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
-      Error( "Can't msync: %s", strerror(errno) );
-    if ( munmap( mem_ptr, mem_size ) < 0 )
-      Fatal( "Can't munmap: %s", strerror(errno) );
-    close( map_fd );
+    if ( msync(mem_ptr, mem_size, MS_SYNC) < 0 )
+      Error("Can't msync: %s", strerror(errno));
+    if ( munmap(mem_ptr, mem_size) < 0 )
+      Fatal("Can't munmap: %s", strerror(errno));
+    close(map_fd);
 
     if ( purpose == CAPTURE ) {
       // How about we store this in the object on instantiation so that we don't have to do this again.
@@ -641,20 +647,20 @@ Monitor::~Monitor() {
     }
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
-    if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 ) {
-      Error( "Can't shmctl: %s", strerror(errno) );
-      exit( -1 );
+    if ( shmctl(shm_id, IPC_STAT, &shm_data) < 0 ) {
+      Error("Can't shmctl: %s", strerror(errno));
+      exit(-1);
     }
     if ( shm_data.shm_nattch <= 1 ) {
-      if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 ) {
-        Error( "Can't shmctl: %s", strerror(errno) );
-        exit( -1 );
+      if ( shmctl(shm_id, IPC_RMID, 0) < 0 ) {
+        Error("Can't shmctl: %s", strerror(errno));
+        exit(-1);
       }
     }
 #endif // ZM_MEM_MAPPED
   } // end if mem_ptr
 
-  for ( int i = 0; i < n_zones; i++ ) {
+  for ( int i=0; i < n_zones; i++ ) {
     delete zones[i];
   }
   delete[] zones;
@@ -663,29 +669,29 @@ Monitor::~Monitor() {
   delete storage;
 }
 
-void Monitor::AddZones( int p_n_zones, Zone *p_zones[] ) {
-  for ( int i = 0; i < n_zones; i++ )
+void Monitor::AddZones(int p_n_zones, Zone *p_zones[]) {
+  for ( int i=0; i < n_zones; i++ )
     delete zones[i];
   delete[] zones;
   n_zones = p_n_zones;
   zones = p_zones;
 }
 
-void Monitor::AddPrivacyBitmask( Zone *p_zones[] ) {
+void Monitor::AddPrivacyBitmask(Zone *p_zones[]) {
   if ( privacy_bitmask ) {
     delete[] privacy_bitmask;
     privacy_bitmask = NULL;
   }
   Image *privacy_image = NULL;
 
-  for ( int i = 0; i < n_zones; i++ ) {
+  for ( int i=0; i < n_zones; i++ ) {
     if ( p_zones[i]->IsPrivacy() ) {
       if ( !privacy_image ) {
-        privacy_image = new Image( width, height, 1, ZM_SUBPIX_ORDER_NONE);
+        privacy_image = new Image(width, height, 1, ZM_SUBPIX_ORDER_NONE);
         privacy_image->Clear();
       }
-      privacy_image->Fill( 0xff, p_zones[i]->GetPolygon() );
-      privacy_image->Outline( 0xff, p_zones[i]->GetPolygon() );
+      privacy_image->Fill(0xff, p_zones[i]->GetPolygon());
+      privacy_image->Outline(0xff, p_zones[i]->GetPolygon());
     }
   } // end foreach zone
   if ( privacy_image )
@@ -693,7 +699,7 @@ void Monitor::AddPrivacyBitmask( Zone *p_zones[] ) {
 }
 
 Monitor::State Monitor::GetState() const {
-  return( (State)shared_data->state );
+  return (State)shared_data->state;
 }
 
 int Monitor::GetImage( int index, int scale ) {
@@ -1571,50 +1577,50 @@ bool Monitor::Analyse() {
 } // end Monitor::Analyze
 
 void Monitor::Reload() {
-  Debug( 1, "Reloading monitor %s", name );
+  Debug(1, "Reloading monitor %s", name);
 
   if ( event )
-    Info( "%s: %03d - Closing event %d, reloading", name, image_count, event->Id() );
+    Info("%s: %03d - Closing event %d, reloading", name, image_count, event->Id());
 
   closeEvent();
 
   static char sql[ZM_SQL_MED_BUFSIZ];
   // This seems to have fallen out of date.
-  snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = '%d'", id );
+  snprintf(sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = '%d'", id);
 
   db_mutex.lock();
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't run query: %s", mysql_error( &dbconn ) );
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
     db_mutex.unlock();
-    exit( mysql_errno( &dbconn ) );
-  }
-
-  MYSQL_RES *result = mysql_store_result( &dbconn );
-  db_mutex.unlock();
-  if ( !result ) {
-    Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
-  }
-  int n_monitors = mysql_num_rows( result );
-  if ( n_monitors != 1 ) {
-    Error( "Bogus number of monitors, %d, returned. Can't reload", n_monitors ); 
     return;
   }
 
-  if ( MYSQL_ROW dbrow = mysql_fetch_row( result ) ) {
+  MYSQL_RES *result = mysql_store_result(&dbconn);
+  db_mutex.unlock();
+  if ( !result ) {
+    Error("Can't use query result: %s. Can't reload", mysql_error(&dbconn));
+    return;
+  }
+  int n_monitors = mysql_num_rows(result);
+  if ( n_monitors != 1 ) {
+    Error("Bogus number of monitors, %d, returned. Can't reload", n_monitors);
+    return;
+  }
+
+  if ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {
     int index = 0;
     function = (Function)atoi(dbrow[index++]);
     enabled = atoi(dbrow[index++]);
     const char *p_linked_monitors = dbrow[index++];
 
     if ( dbrow[index] ) {
-      strncpy( event_prefix, dbrow[index++], sizeof(event_prefix)-1 );
+      strncpy(event_prefix, dbrow[index++], sizeof(event_prefix)-1);
     } else {
       event_prefix[0] = 0;
       index++;
     }
     if ( dbrow[index] ) {
-      strncpy( label_format, dbrow[index++], sizeof(label_format)-1 );
+      strncpy(label_format, dbrow[index++], sizeof(label_format)-1);
     } else {
       label_format[0] = 0;
       index++;
@@ -1638,7 +1644,6 @@ void Monitor::Reload() {
     alarm_ref_blend_perc = atoi(dbrow[index++]);
     track_motion = atoi(dbrow[index++]);
     
-
     if ( dbrow[index][0] == '#' )
       signal_check_colour = strtol(dbrow[index]+1,0,16);
     else
@@ -1651,32 +1656,31 @@ void Monitor::Reload() {
       shared_data->active = true;
     ready_count = image_count+warmup_count;
 
-    ReloadLinkedMonitors( p_linked_monitors );
+    ReloadLinkedMonitors(p_linked_monitors);
   }
-  if ( mysql_errno( &dbconn ) ) {
-    Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  if ( mysql_errno(&dbconn) ) {
+    Error("Can't fetch row: %s", mysql_error(&dbconn));
   }
-  mysql_free_result( result );
+  mysql_free_result(result);
 
   ReloadZones();
-}
+} // end void Monitor::Reload()
 
 void Monitor::ReloadZones() {
-  Debug( 1, "Reloading zones for monitor %s", name );
-  for( int i = 0; i < n_zones; i++ ) {
+  Debug(1, "Reloading zones for monitor %s", name);
+  for( int i=0; i < n_zones; i++ ) {
     delete zones[i];
   }
   delete[] zones;
   zones = 0;
-  n_zones = Zone::Load( this, zones );
+  n_zones = Zone::Load(this, zones);
   //DumpZoneImage();
-}
+} // end void Monitor::ReloadZones()
 
-void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
-  Debug( 1, "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors );
+void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
+  Debug(1, "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors);
   if ( n_linked_monitors ) {
-    for( int i = 0; i < n_linked_monitors; i++ ) {
+    for( int i=0; i < n_linked_monitors; i++ ) {
       delete linked_monitors[i];
     }
     delete[] linked_monitors;
@@ -1688,6 +1692,7 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
     int n_link_ids = 0;
     unsigned int link_ids[256];
 
+    // This nasty code picks out strings of digits from p_linked_monitors and tries to load them. 
     char link_id_str[8];
     char *dest_ptr = link_id_str;
     const char *src_ptr = p_linked_monitors;
@@ -1729,35 +1734,35 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
       linked_monitors = new MonitorLink *[n_link_ids];
       int count = 0;
       for ( int i = 0; i < n_link_ids; i++ ) {
-        Debug( 1, "Checking linked monitor %d", link_ids[i] );
+        Debug(1, "Checking linked monitor %d", link_ids[i]);
 
         static char sql[ZM_SQL_SML_BUFSIZ];
-        snprintf( sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
+        snprintf(sql, sizeof(sql), "SELECT Id, Name FROM Monitors WHERE Id = %d AND Function != 'None' AND Function != 'Monitor' AND Enabled = 1", link_ids[i] );
         db_mutex.lock();
-        if ( mysql_query( &dbconn, sql ) ) {
-          Error( "Can't run query: %s", mysql_error( &dbconn ) );
+        if ( mysql_query(&dbconn, sql) ) {
+          Error("Can't run query: %s", mysql_error(&dbconn));
           db_mutex.unlock();
-          exit( mysql_errno( &dbconn ) );
+          continue;
         }
 
-        MYSQL_RES *result = mysql_store_result( &dbconn );
+        MYSQL_RES *result = mysql_store_result(&dbconn);
         db_mutex.unlock();
         if ( !result ) {
-          Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-          exit( mysql_errno( &dbconn ) );
+          Error("Can't use query result: %s", mysql_error(&dbconn));
+          continue;
         }
-        int n_monitors = mysql_num_rows( result );
+        int n_monitors = mysql_num_rows(result);
         if ( n_monitors == 1 ) {
-          MYSQL_ROW dbrow = mysql_fetch_row( result );
-          Debug( 1, "Linking to monitor %d", link_ids[i] );
-          linked_monitors[count++] = new MonitorLink( link_ids[i], dbrow[1] );
+          MYSQL_ROW dbrow = mysql_fetch_row(result);
+          Debug(1, "Linking to monitor %d", link_ids[i]);
+          linked_monitors[count++] = new MonitorLink(link_ids[i], dbrow[1]);
         } else {
-          Warning( "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] );
+          Warning("Can't link to monitor %d, invalid id, function or not enabled", link_ids[i]);
         }
-        mysql_free_result( result );
-      }
+        mysql_free_result(result);
+      } // end foreach n_link_id
       n_linked_monitors = count;
-    }
+    } // end if n_link_ids > 0
   }
 }
 
@@ -3048,12 +3053,22 @@ bool Monitor::closeEvent() {
     if ( function == RECORD || function == MOCORD ) {
       gettimeofday( &(event->EndTime()), NULL );
     }
-    delete event;
+    if ( event_delete_thread ) {
+      event_delete_thread->join();
+      delete event_delete_thread;
+      event_delete_thread = NULL;
+    }
+    event_delete_thread = new std::thread([](Event *event) {
+      Event * e = event;
+      event = NULL;
+      delete e;
+      e = NULL;
+    }, event );
     video_store_data->recording = (struct timeval){0};
-    event = 0;
-    return( true );
+    event = NULL;
+    return true;
   }
-  return( false );
+  return false;
 }
 
 unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet ) {

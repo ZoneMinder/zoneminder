@@ -3112,13 +3112,16 @@ bool Monitor::closeEvent() {
       event_delete_thread = NULL;
     }
     event_delete_thread = new std::thread([](Event *event) {
-      delete event;
+      Event * e = event;
+      event = NULL;
+      delete e;
+      e = NULL;
     }, event );
     video_store_data->recording = (struct timeval){0};
-    event = 0;
-    return( true );
+    event = NULL;
+    return true;
   }
-  return( false );
+  return false;
 }
 
 unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet ) {

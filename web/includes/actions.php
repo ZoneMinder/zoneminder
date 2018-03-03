@@ -247,34 +247,12 @@ if ( !empty($action) ) {
   // Control capability actions, require control edit permissions
   if ( canEdit( 'Control' ) ) {
     if ( $action == 'controlcap' ) {
-      if ( !empty($_REQUEST['cid']) ) {
-        $control = dbFetchOne( 'SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['cid']) );
-      } else {
-        $control = array();
-      }
+      require_once( 'Control.php' );
+      $Control = new Control( !empty($_REQUEST['cid']) ? $_REQUEST['cid'] : null );
 
-      // Define a field type for anything that's not simple text equivalent
-      $types = array(
-          // Empty
-          );
-
-      $columns = getTableColumns( 'Controls' );
-      foreach ( $columns as $name=>$type ) {
-        if ( preg_match( '/^(Can|Has)/', $name ) ) {
-          $types[$name] = 'toggle';
-        }
-      }
-      $changes = getFormChanges( $control, $_REQUEST['newControl'], $types, $columns );
-
-      if ( count( $changes ) ) {
-        if ( !empty($_REQUEST['cid']) ) {
-          dbQuery( "update Controls set ".implode( ", ", $changes )." where Id = ?", array($_REQUEST['cid']) );
-        } else {
-          dbQuery( "insert into Controls set ".implode( ", ", $changes ) );
-          //$_REQUEST['cid'] = dbInsertId();
-        }
-        $refreshParent = true;
-      }
+      //$changes = getFormChanges( $control, $_REQUEST['newControl'], $types, $columns );
+      $Control->save( $_REQUEST['newControl'] );
+      $refreshParent = true;
       $view = 'none';
     } elseif ( $action == 'delete' ) {
       if ( isset($_REQUEST['markCids']) ) {

@@ -38,42 +38,95 @@ function evaluateLoadTimes() {
   else if (avgFrac >= 0.2)  currentDisplayInterval = (currentDisplayInterval * 1.50).toFixed(1);
   else if (avgFrac >= 0.1)  currentDisplayInterval = (currentDisplayInterval * 2.00).toFixed(1);
   else currentDisplayInterval                      = (currentDisplayInterval * 2.50).toFixed(1);
-  currentDisplayInterval = Math.min(Math.max(currentDisplayInterval, 30), 10000);   // limit this from about 30fps to .1 fps
+  // limit this from about 40fps to .1 fps
+  currentDisplayInterval = Math.min(Math.max(currentDisplayInterval, 40), 10000);
   imageLoadTimesEvaluated=0;
   setSpeed(speedIndex);
   $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 } // end evaluateLoadTimes()
 
+function getFrame( monId, time ) {
+  var Frame = null;
+  for ( var event_id in events ) {
+    // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
+    Event = events[event_id];
+    if ( Event.MonitorId != monId || Event.StartTimeSecs > time || Event.EndTimeSecs < time )
+      continue;
+    
+    var duration = Event.EndTimeSecs - Event.StartTimeSecs;
+    var frame = parseInt((time - Event.StartTimeSecs)/(duration)*Object.keys(Event.FramesById).length)+1;
+    // Need to get frame by time, not some fun calc that assumes frames have the same mlength.
+    // Frames are not sorted.
+    for ( var frame_id in Event.FramesById ) {
+if ( 0 ) {
+      if ( frame == 0 ) {
+console.log("Found frame for time " + time );
+console.log(Frame);
+        Frame = Event.FramesById[frame_id];
+        break;
+      } 
+      frame --;
+      continue;
+}
+      if (
+          Event.FramesById[frame_id].TimeStampSecs == time
+          || (
+            Event.FramesById[frame_id].TimeStampSecs < time 
+            && ( 
+             (!Event.FramesById[frame_id].NextTimeStampSecs)
+             ||
+             (Event.FramesById[frame_id].NextTimeStampSecs > time)
+             )
+            )
+         ) {
+        Frame = Event.FramesById[frame_id];
+        break;
+      }
+    } // end foreach frame in the event.
+    if ( ! Frame ) {
+console.log("Difn't find frame for " + time );
+      return null;
+    }
+  } // end foreach event
+  return Frame;
+}
+
 // time is seconds since epoch
 function getImageSource( monId, time ) {
   if ( liveMode == 1 ) {
-    var new_url = monitorImageObject[monId].src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    var new_url = monitorImageObject[monId].src.replace(
+        /rand=\d+/i,
+        'rand='+Math.floor((Math.random() * 1000000) )
+        );
     if ( auth_hash ) {
       // update auth hash
       new_url = new_url.replace(/auth=[a-z0-9]+/i, 'auth='+auth_hash);
     }
     return new_url;
   }
+  var Frame = getFrame(monId, time);
+  if ( Frame ) {
+    Event = events[Frame.EventId];
 
-  for ( var i=0, eIdlength = eId.length; i < eIdlength; i++ ) {
-    // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
-    if ( eMonId[i] == monId && time >= eStartSecs[i] && time <= eEndSecs[i] ) {
-      var duration = eEndSecs[i]-eStartSecs[i];
-      var frame = parseInt((time - eStartSecs[i])/(duration)*eventFrames[i])+1;
-      var storage = Storage[eStorageId[i]];
-      if ( storage.ServerId ) {
-        var server = Servers[storage.ServerId];
-        if ( server ) {
-//console.log( server.Hostname + " for event " + eId[i] );
-          return location.protocol + '//' + server.Hostname + '/index.php?view=image&eid=' + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
-        } else {
-          console.log("No server found for " + storage.ServerId );
-        }
+    var storage = Storage[Event.StorageId];
+    if ( storage.ServerId ) {
+      var server = Servers[storage.ServerId];
+      if ( server ) {
+        //console.log( server.Hostname + " for event " + eId[i] );
+        return location.protocol + '//' + server.Hostname + 
+          //'/cgi-bin/zms?mode=jpeg&replay=single&event=' + event_id +
+          //'&frame='+Frame.FrameId +
+'/index.php?view=image&eid=' + event_id + '&fid='+Frame.FrameId +
+          "&width=" + monitorCanvasObj[monId].width + 
+          "&height=" + monitorCanvasObj[monId].height;
+      } else {
+        console.log("No server found for " + storage.ServerId );
       }
-      //console.log("No storage found for " + eStorageId[i] );
-      return "index.php?view=image&eid=" + eId[i] + '&fid='+frame + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
     }
-  } // end for
+    //console.log("No storage found for " + eStorageId[i] );
+    return '/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    return "/cgi-bin/zms?mode=jpeg&replay=single&event=" + Frame.EventId + '&frame='+Frame.FrameId + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+  } // end found Frame
   return "no data";
 }
 
@@ -294,7 +347,7 @@ function drawGraph() {
 
   canvas.height = cHeight;
 
-  if ( eId.length == 0 ) {
+  if ( Object.keys(events).length == 0 ) {
     ctx.globalAlpha=1;
     ctx.font= "40px Georgia";
     ctx.fillStyle="white";
@@ -308,24 +361,32 @@ function drawGraph() {
 
   // first fill in the bars for the events (not alarms)
 
-  for(var i=0; i<eId.length; i++) {  // Display all we loaded
+  for ( var event_id in events ) {
+    var Event = events[event_id];
 
-    var x1=parseInt( (eStartSecs[i] - minTimeSecs) / rangeTimeSecs * cWidth) ;        // round low end down
-    var x2=parseInt( (eEndSecs[i]   - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round high end up to be sure consecutive ones connect
-    ctx.fillStyle=monitorColour[eMonId[i]];
+    // round low end down
+    var x1 = parseInt((Event.StartTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth);
+    var x2 = parseInt((Event.EndTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round high end up to be sure consecutive ones connect
+    ctx.fillStyle = monitorColour[Event.MonitorId];
     ctx.globalAlpha = 0.2;    // light color for background
-    ctx.clearRect(x1,monitorIndex[eMonId[i]]*rowHeight,x2-x1,rowHeight);  // Erase any overlap so it doesn't look artificially darker
-    ctx.fillRect (x1,monitorIndex[eMonId[i]]*rowHeight,x2-x1,rowHeight);
-  }
-  for(var i=0; (i<fScore.length) && (maxScore>0); i++) {
-    // Now put in scored frames (if any)
-    var x1=parseInt( (fTimeFromSecs[i] - minTimeSecs) / rangeTimeSecs * cWidth) ;        // round low end down
-    var x2=parseInt( (fTimeToSecs[i]   - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round up
-    if(x2-x1 < 2) x2=x1+2;    // So it is visible make them all at least this number of seconds wide
-    ctx.fillStyle=monitorColour[fMonId[i]];
-    ctx.globalAlpha = 0.4 + 0.6 * (1 - fScore[i]/maxScore);    // Background is scaled but even lowest is twice as dark as the background
-    ctx.fillRect(x1,monitorIndex[fMonId[i]]*rowHeight,x2-x1,rowHeight);
-  }
+    ctx.clearRect(x1,monitorIndex[Event.MonitorId]*rowHeight,x2-x1,rowHeight);  // Erase any overlap so it doesn't look artificially darker
+    ctx.fillRect(x1,monitorIndex[Event.MonitorId]*rowHeight,x2-x1,rowHeight);
+    
+    for ( var frame_id in Event.FramesById ) {
+      var Frame = Event.FramesById[frame_id];
+      if ( ! Frame.Score )
+        continue;
+      
+      // Now put in scored frames (if any)
+      var x1=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth) ;        // round low end down
+      var x2=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round up
+      if(x2-x1 < 2) x2=x1+2;    // So it is visible make them all at least this number of seconds wide
+      ctx.fillStyle=monitorColour[Event.MonitorId];
+      ctx.globalAlpha = 0.4 + 0.6 * (1 - Frame.Score/maxScore);    // Background is scaled but even lowest is twice as dark as the background
+      ctx.fillRect(x1,monitorIndex[Event.MonitorId]*rowHeight,x2-x1,rowHeight);
+    } // end foreach frame
+  } // end foreach Event
+
   for(var i=0; i<numMonitors; i++) {
     // Note that this may be a sparse array
     ctx.font= parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
@@ -343,7 +404,8 @@ function redrawScreen() {
     // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
     $('DateTimeDiv').style.display="none";
     $('SpeedDiv').style.display="none";
-    $('timelinediv').style.display="none";
+    var timelinediv= $('timelinediv');
+    if ( timelinediv ) timelinediv.style.display="none";
     $('liveButton').innerHTML="History";
     $('zoomin').style.display="none";
     $('zoomout').style.display="none";
@@ -368,6 +430,7 @@ function redrawScreen() {
     $('panright').style.display="inline";
     $('panright').style.display="inline-flex";
     if ($('downloadVideo')) $('downloadVideo').style.display="inline";
+    drawGraph();
   }
 
   if ( fitMode == 1 ) {
@@ -391,7 +454,6 @@ function redrawScreen() {
     $('fit').innerHTML="Fit";
     setScale(currentScale);
   }
-  drawGraph();
   outputUpdate(currentTimeSecs);
   timerFire();  // force a fire in case it's not timing
 }
@@ -709,28 +771,15 @@ function showOneMonitor(monId) {
     url="?view=watch&mid=" + monId.toString();
     createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
   } else {
-    for ( var i=0, len=eId.length; i<len; i++ ) {
-      if ( eMonId[i] != monId )
-        continue;
-
-      if ( currentTimeSecs >= eStartSecs[i] && currentTimeSecs <= eEndSecs[i] ) {
-        url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
-        break;
-      } else if ( currentTimeSecs <= eStartSecs[i] ) {
-        if ( i ) {
-          // Didn't find an exact event, so go with the one before.
-          url="?view=event&eid=" + eId[i] + '&fid=' + parseInt(Math.max(1, Math.min(eventFrames[i], eventFrames[i] * (currentTimeSecs - eStartSecs[i]) / (eEndSecs[i] - eStartSecs[i] + 1) ) ));
-        }
-        break;
-      }
-    }
-    if ( url ) {
-      createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
+    var Frame = getFrame( monId, currentTimeSecs );
+    if ( Frame ) {
+        url="?view=event&eid=" + Frame.EventId + '&fid=' +Frame.FrameId;
+        createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
     } else {
       url="?view=watch&mid=" + monId.toString();
       createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
     }
-  }
+  } // end if live/events
 }
 
 function zoom(monId,scale) {
@@ -787,8 +836,6 @@ function changeDateTime(e) {
 // >>>>>>>>> Initialization that runs on window load by being at the bottom 
 
 function initPage() {
-  canvas = $("timeline");
-  ctx = canvas.getContext('2d');
   for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
     if ( ! monId ) continue;
@@ -804,7 +851,11 @@ function initPage() {
       loadImage2Monitor( monId, monitorImageURL[monId] );
     }
   }
-  drawGraph();
+  if ( !liveMode ) {
+    canvas = $("timeline");
+    ctx = canvas.getContext('2d');
+    drawGraph();
+  }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw 
   //setLive(liveMode);  // will redraw

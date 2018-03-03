@@ -94,14 +94,14 @@ if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($display
 // if the bulk record has not been written - to be able to include more current frames reduce bulk frame sizes (event size can be large)
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
-$eventsSql = '
-  SELECT E.Id,E.Name,E.StorageId,E.StartTime AS StartTime,
-         CASE WHEN E.EndTime IS NULL THEN (SELECT NOW()) ELSE E.EndTime END AS EndTime,
-         E.Length,
-         CASE WHEN E.Frames IS NULL THEN (SELECT COUNT(*) FROM Frames F WHERE F.EventId=E.Id) ELSE E.Frames END AS Frames,
-         E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
+$eventsSql = 'SELECT
+    E.Id,E.Name,E.StorageId,
+    E.StartTime AS StartTime,UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
+    CASE WHEN E.EndTime IS NULL THEN (SELECT NOW()) ELSE E.EndTime END AS EndTime,
+    UNIX_TIMESTAMP(EndTime) AS EndTimeSecs,
+    E.Length, E.Frames, E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
   FROM Events AS E
-  WHERE NOT isnull(E.Frames)
+  WHERE 1 > 0 
 ';
 
 //    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartTime, Interval Delta+0.5 Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
@@ -112,10 +112,9 @@ $eventsSql = '
 
 // Note that the delta value seems more accurate than the time stamp for some reason.
 $frameSql = '
-    SELECT E.Id AS eId, E.MonitorId, UNIX_TIMESTAMP(DATE_ADD(E.StartTime, Interval Delta Second)) AS TimeStampSecs, max(F.Score) AS Score
-    FROM Events AS E
-    INNER JOIN Frames AS F ON (F.EventId = E.Id)
-    WHERE F.Score>0
+    SELECT Id, FrameId, EventId, TimeStamp, UNIX_TIMESTAMP(TimeStamp) AS TimeStampSecs, Score, Delta
+    FROM Frames 
+    WHERE EventId IN (SELECT E.Id FROM Events AS E WHERE 1>0
 ';
 
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
@@ -183,7 +182,7 @@ if ( isset($_REQUEST['current']) )
 
 $liveMode = 1; // default to live
 if ( isset($_REQUEST['live']) && $_REQUEST['live']=='0' )
-  $liveMode=0;
+  $liveMode = 0;
 
 $initialDisplayInterval = 1000;
 if ( isset($_REQUEST['displayinterval']) )
@@ -196,10 +195,14 @@ if ( isset($minTime) && isset($maxTime) ) {
   $maxTimeSecs = strtotime($maxTime);
   Logger::Debug("Min/max time secs: $minTimeSecs $maxTimeSecs");
   $eventsSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
-  $frameSql .= " AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
+  $frameSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
+  $frameSql .= ") AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
 }
-$frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
+#$frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
+#$frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
 $eventsSql .= ' ORDER BY E.Id ASC';
+// DESC is intentional. We process them in reverse order so that we can point each frame to the next one in time.
+$frameSql .= ' ORDER BY Id DESC';
 
 $monitors = array();
 foreach( $displayMonitors as $row ) {

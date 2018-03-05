@@ -119,7 +119,7 @@ if ( $pages > 1 ) {
 ?>
       </div>
       <div id="controls">
-        <a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a>
+        <a href="#" onclick="window.history.back();return false;"><?php echo translate('Back') ?></a>
         <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
       </div>
     </div>

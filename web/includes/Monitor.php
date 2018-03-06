@@ -394,5 +394,15 @@ Logger::Debug("sending command to $url");
       }
     } // end if we are on the recording server
   }
+  public function GroupIds( ) {
+    if ( !array_key_exists('GroupIds', $this) ) {
+      if ( array_key_exists('Id', $this) and $this->{'Id'} ) {
+        $this->{'GroupIds'} = dbFetchAll( 'SELECT GroupId FROM Groups_Monitors WHERE MonitorId=?', 'GroupId', array($this->{'Id'}) );
+      } else {
+        $this0->{'GroupIds'} = array();
+      }
+    }
+    return $this->{'GroupIds'};
+  }
 } // end class Monitor
 ?>

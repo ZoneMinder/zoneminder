@@ -1228,21 +1228,23 @@ void Monitor::CheckAction() {
 void Monitor::UpdateAnalysisFPS() {
   struct timeval now;
   gettimeofday( &now, NULL );
-  if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
-    double new_analysis_fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
-    Info("%s: %d - Analysing at %.2f fps", name, image_count, new_analysis_fps);
-    if ( new_analysis_fps != analysis_fps ) {
-      analysis_fps = new_analysis_fps;
+  if ( now.tv_sec != last_analysis_fps_time ) {
+    if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
+      double new_analysis_fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
+      Info("%s: %d - Analysing at %.2f fps", name, image_count, new_analysis_fps);
+      if ( new_analysis_fps != analysis_fps ) {
+        analysis_fps = new_analysis_fps;
 
-      static char sql[ZM_SQL_SML_BUFSIZ];
-      snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, analysis_fps, analysis_fps );
-      db_mutex.lock();
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
+        static char sql[ZM_SQL_SML_BUFSIZ];
+        snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, analysis_fps, analysis_fps );
+        db_mutex.lock();
+        if ( mysql_query( &dbconn, sql ) ) {
+          Error("Can't run query: %s", mysql_error(&dbconn));
+        }
+        db_mutex.unlock();
       }
-      db_mutex.unlock();
+      last_analysis_fps_time = now.tv_sec;
     }
-    last_analysis_fps_time = now.tv_sec;
   }
 }
 

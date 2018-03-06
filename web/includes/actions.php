@@ -471,7 +471,7 @@ if ( canEdit( 'Monitors' ) ) {
     $mid = 0;
     if ( !empty($_REQUEST['mid']) ) {
       $mid = validInt($_REQUEST['mid']);
-      $monitor = dbFetchOne( 'SELECT * FROM Monitors WHERE Id = ?', NULL, array($mid) );
+      $monitor = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array($mid) );
 
       if ( ZM_OPT_X10 ) {
         $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId=?', NULL, array($mid) );
@@ -484,6 +484,7 @@ if ( canEdit( 'Monitors' ) ) {
         $x10Monitor = array();
       }
     }
+    $Monitor = new Monitor( $monitor );
 
     // Define a field type for anything that's not simple text equivalent
     $types = array(
@@ -519,6 +520,7 @@ if ( canEdit( 'Monitors' ) ) {
         zmaControl( $monitor, 'stop' );
         zmcControl( $monitor, 'stop' );
         dbQuery( 'UPDATE Monitors SET '.implode( ', ', $changes ).' WHERE Id=?', array($mid) );
+        // Groups will be added below
         if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
           $OldStorage = new Storage( $monitor['StorageId'] );
           $saferOldName = basename( $monitor['Name'] );
@@ -578,16 +580,25 @@ if ( canEdit( 'Monitors' ) ) {
           mkdir( $Storage->Path().'/'.$mid, 0755 );
           $saferName = basename($_REQUEST['newMonitor']['Name']);
           symlink( $mid, $Storage->Path().'/'.$saferName );
-          if ( isset($_COOKIE['zmGroup']) ) {
-            dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($_COOKIE['zmGroup'],$mid) );
-          }
+  
         } else {
           Error("Error saving new Monitor.");
           return;
         }
       } else {
         Error("Users with Monitors restrictions cannot create new monitors.");
+        return;
       }
+      if ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) or array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds() ) ) {
+        if ( $Monitor->Id() )
+          dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', null, array($Mid));
+
+        if ( isset($_POST['newMonitor']['GroupIds']) ) {
+          foreach ( $_POST['newMonitor']['GroupIds'] as $group_id ) {
+            dbQuery( 'INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($group_id, $mid) );
+          }
+        }
+      } // end if there has been a change of groups
       $restart = true;
     } # end if count(changes)
 

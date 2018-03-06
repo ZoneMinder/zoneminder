@@ -101,9 +101,6 @@ if ( isset($_REQUEST['downloadIndex']) )
     header( "Content-Transfer-Encoding: binary" );
     header( "Content-Type: application/force-download" );
     header( "Content-Length: ".filesize($videoFiles[$downloadIndex]) ); 
-    while ( ob_get_level() > 0 ) {
-     ob_end_clean();
-    }
     readfile( $videoFiles[$downloadIndex] );
     exit;
 }

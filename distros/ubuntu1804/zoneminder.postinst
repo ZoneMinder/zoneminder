@@ -29,17 +29,19 @@ if [ "$1" = "configure" ]; then
             #
             $(systemctl status mysql.service >/dev/null 2>&1); MYSQL_STATUS=$?
             $(systemctl status mariadb.service >/dev/null 2>&1); MARIADB_STATUS=$?
+            
+            # 3 = inactive, 4 = nonexistant
+            if [ "$MARIADB_STATUS" != "4" ]; then
+                DBSERVICE="mariadb.service"
+            else
+                DBSERVICE="mysql.service"
+            fi
+            
             if [ "$MYSQL_STATUS" != "0" ] && [ "$MARIADB_STATUS" != "0" ]; then
                 # 3 = inactive, 4 = nonexistant
                 # Due to /etc/init.d service autogeneration, mysql.service always returns the status of mariadb.service
-                # However, mariadb.service
-                if [ "$MARIADB_STATUS" = "3" ]; then
-                    DBSERVICE="mariadb.service"
-                    deb-systemd-invoke start mariadb.service
-                elif [ "$MYSQL_STATUS" = "3" ]; then
-                    DBSERVICE="mysql.service"
-                    deb-systemd-invoke start mysql.service
-                fi
+                # However, mariadb.service will not return the status of mysql.service.
+                deb-systemd-invoke start $DBSERVICE
             fi
             
             # Make sure systemctl status exit code is 0; i.e. the DB is running

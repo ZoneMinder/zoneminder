@@ -17,20 +17,26 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+
 if ( !canView( 'Events' ) ) {
   $view = "error";
   return;
 }
+
 require_once('includes/Event.php');
+
 $eid = validInt($_REQUEST['eid']);
+
 $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
 $sql_values = array( $eid );
+
 if ( $user['MonitorIds'] ) {
   $monitor_ids = explode( ',', $user['MonitorIds'] );
   $sql .= ' AND MonitorId IN (' .implode( ',', array_fill(0,count($monitor_ids),'?') ) . ')';
   $sql_values = array_merge( $sql_values, $monitor_ids );
 }
 $event = dbFetchOne( $sql, NULL, $sql_values );
+
 if ( isset( $_REQUEST['rate'] ) )
   $rate = validInt($_REQUEST['rate']);
 else
@@ -39,8 +45,10 @@ if ( isset( $_REQUEST['scale'] ) )
   $scale = validInt($_REQUEST['scale']);
 else
   $scale = reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
+
 $Event = new Event( $event['Id'] );
 $eventPath = $Event->Path();
+
 $videoFormats = array();
 $ffmpegFormats = preg_split( '/\s+/', ZM_FFMPEG_FORMATS );
 foreach ( $ffmpegFormats as $ffmpegFormat ) {
@@ -53,6 +61,7 @@ foreach ( $ffmpegFormats as $ffmpegFormat ) {
     $videoFormats[$ffmpegFormat] = $ffmpegFormat;
   }
 }
+
 $videoFiles = array();
 if ( $dir = opendir( $eventPath ) ) {
   while ( ($file = readdir( $dir )) !== false ) {
@@ -65,11 +74,13 @@ if ( $dir = opendir( $eventPath ) ) {
   }
   closedir( $dir );
 }
+
 if ( isset($_REQUEST['deleteIndex']) ) {
   $deleteIndex = validInt($_REQUEST['deleteIndex']);
   unlink( $videoFiles[$deleteIndex] );
   unset( $videoFiles[$deleteIndex] );
 }
+
 if ( isset($_REQUEST['downloadIndex']) ) {
   $downloadIndex = validInt($_REQUEST['downloadIndex']);
   header( "Pragma: public" );
@@ -84,7 +95,9 @@ if ( isset($_REQUEST['downloadIndex']) ) {
   readfile( $videoFiles[$downloadIndex] );
   exit;
 }
+
 $focusWindow = true;
+
 xhtmlHeaders(__FILE__, translate('Video') );
 ?>
 <body>

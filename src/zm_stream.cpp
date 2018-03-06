@@ -88,12 +88,12 @@ bool StreamBase::checkCommandQueue() {
       //Error( "Partial message received, expected %d bytes, got %d", sizeof(msg), nbytes );
     //}
     else {
-Debug(2, "Message length is (%d)", nbytes );
+      Debug(2, "Message length is (%d)", nbytes );
       processCommand( &msg );
       return( true );
     }
   } else {
-    Error("sd is < 0");
+    Warning("No sd in checkCommandQueue, comms not open?");
   }
   return( false );
 }

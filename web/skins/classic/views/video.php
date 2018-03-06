@@ -183,7 +183,7 @@ if ( isset($_REQUEST['showIndex']) ) {
         $height = $scale?reScale( $event['Height'], $scale ):$event['Height'];
 ?>
         <tr>
-          <td><?php echo $matches[4] ?></td>
+
           <td><?php echo filesize( $file ) ?></td>
           <td><?php echo $rateText ?></td>
           <td><?php echo $scaleText ?></td>

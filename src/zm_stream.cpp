@@ -88,6 +88,7 @@ bool StreamBase::checkCommandQueue() {
       //Error( "Partial message received, expected %d bytes, got %d", sizeof(msg), nbytes );
     //}
     else {
+      Debug(2, "Message length is (%d)", nbytes );
       processCommand( &msg );
       return( true );
     }

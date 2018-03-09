@@ -39,7 +39,7 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
     // If we can never queue the same packet, then they can never go past
     if ( zm_packet->image_index == first_video_packet_index ) {
       Debug(2, "queuing packet that is already on the queue(%d)", zm_packet->image_index );
-      ZMPacket *p;
+      ZMPacket *p = NULL;;
       while ( pktQueue.size() && (p = pktQueue.front()) && ( p->image_index != zm_packet->image_index ) ) {
         if ( ( analysis_it != pktQueue.end() ) && ( *analysis_it == p ) ) {
           Debug(2, "Increasing analysis_it");

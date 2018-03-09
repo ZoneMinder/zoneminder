@@ -71,6 +71,15 @@ public:
     NODECT
   } Function;
 
+  typedef enum {
+    LOCAL,
+    REMOTE,
+    FILE,
+    FFMPEG,
+    LIBVLC,
+    CURL,
+  } CameraType;
+
   typedef enum { 
     ROTATE_0=1,
     ROTATE_90,
@@ -225,6 +234,7 @@ protected:
   char            name[64];
   unsigned int    server_id;          // Id of the Server object
   unsigned int    storage_id;         // Id of the Storage Object, which currently will just provide a path, but in future may do more.
+  CameraType      type;
   Function        function;           // What the monitor is doing
   bool            enabled;            // Whether the monitor is enabled or asleep
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
@@ -236,7 +246,7 @@ protected:
   unsigned int    deinterlacing_value;
   bool            videoRecording;
 
-  int savejpegspref;
+  int savejpegs;
   int colours;
   VideoWriter videowriter;
   std::string encoderparams;
@@ -458,9 +468,9 @@ public:
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
     
-  int GetOptSaveJPEGs() const { return( savejpegspref ); }
-  VideoWriter GetOptVideoWriter() const { return( videowriter ); }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
+  int GetOptSaveJPEGs() const { return savejpegs; }
+  VideoWriter GetOptVideoWriter() const { return videowriter; }
+  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
   const std::string &GetEncoderOptions() const { return( encoderparams ); }
   const std::string &Encoder() const { return encoder; }
   const int OutputCodec() const { return output_codec; }
@@ -472,13 +482,13 @@ public:
   unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
-  ZMPacket *getSnapshot( int index=-1 );
-  struct timeval GetTimestamp( int index=-1 );
+  ZMPacket *getSnapshot( int index=-1 ) const;
+  struct timeval GetTimestamp( int index=-1 ) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
-  unsigned int GetAnalysisUpdateDelay() const { return( analysis_update_delay ); }
-  int GetCaptureDelay() const { return( capture_delay ); }
-  int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }
+  unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  int GetCaptureDelay() const { return capture_delay; }
+  int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;
   unsigned int GetLastWriteIndex() const;
   uint32_t GetLastEventId() const;
@@ -487,13 +497,9 @@ public:
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();
-  TriggerState GetTriggerState() const { return( (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL )); }
-	inline time_t getStartupTime() const {
-		return( shared_data->startup_time );
-	}
-	inline void setStartupTime( time_t p_time ) {
-		shared_data->startup_time = p_time;
-	}
+  TriggerState GetTriggerState() const { return (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL); }
+	inline time_t getStartupTime() const { return shared_data->startup_time; }
+	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
   void get_ref_image();
 
   void actionReload();
@@ -508,9 +514,9 @@ public:
   int actionContrast( int p_contrast=-1 );
 
   int PrimeCapture();
-  int PreCapture();
+  int PreCapture() const;
   int Capture();
-  int PostCapture();
+  int PostCapture() const;
 
   void CheckAction();
 
@@ -530,15 +536,17 @@ public:
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );
 
+  static int LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
 #if ZM_HAS_V4L
-  static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose );
+  static int LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose);
 #endif // ZM_HAS_V4L
-  static int LoadRemoteMonitors( const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose );
-  static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose );
+  static int LoadRemoteMonitors(const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose);
+  static int LoadFileMonitors(const char *file, Monitor **&monitors, Purpose purpose);
 #if HAVE_LIBAVFORMAT
-  static int LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose );
+  static int LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose purpose);
 #endif // HAVE_LIBAVFORMAT
-  static Monitor *Load( unsigned int id, bool load_zones, Purpose purpose );
+  static Monitor *Load(unsigned int id, bool load_zones, Purpose purpose);
+  static Monitor *Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose);
   //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );
   //void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );
   //void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );

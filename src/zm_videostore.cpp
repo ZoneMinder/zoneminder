@@ -46,7 +46,7 @@ VideoStore::VideoStore(
     Monitor *p_monitor
     ) {
 
-monitor = p_monitor;
+  monitor = p_monitor;
   video_in_stream = p_video_in_stream;
   audio_in_stream = p_audio_in_stream;
   filename = filename_in;
@@ -55,6 +55,9 @@ monitor = p_monitor;
   packets_written = 0;
   frame_count = 0;
   in_frame = NULL;
+
+  video_out_codec = NULL;
+  video_out_stream = NULL;
 
   converted_in_samples = NULL;
   audio_out_codec = NULL;
@@ -216,7 +219,7 @@ bool VideoStore::open() {
       Error("Could not allocate video_in frame");
       return false;
     }
-    for (int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
+    for ( unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
       if ( codec_data[i].codec_id != monitor->OutputCodec() )
         continue;
 

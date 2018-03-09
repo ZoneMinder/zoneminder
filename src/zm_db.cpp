@@ -34,8 +34,8 @@ bool zmDbConnect() {
   //if ( zmDbConnected ) 
     //return;
 
-  if ( !mysql_init( &dbconn ) ) {
-    Error( "Can't initialise database connection: %s", mysql_error( &dbconn ) );
+  if ( !mysql_init(&dbconn) ) {
+    Error("Can't initialise database connection: %s", mysql_error(&dbconn));
     return false;
   }
   my_bool reconnect = 1;

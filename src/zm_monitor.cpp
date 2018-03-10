@@ -1262,21 +1262,23 @@ void Monitor::CheckAction() {
 void Monitor::UpdateAnalysisFPS() {
   struct timeval now;
   gettimeofday( &now, NULL );
-  if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
-    double new_analysis_fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
-    Info("%s: %d - Analysing at %.2f fps", name, image_count, new_analysis_fps);
-    if ( new_analysis_fps != analysis_fps ) {
-      analysis_fps = new_analysis_fps;
+  if ( now.tv_sec != last_analysis_fps_time ) {
+    if ( analysis_image_count && fps_report_interval && !(analysis_image_count%fps_report_interval) ) {
+      double new_analysis_fps = double(fps_report_interval)/(now.tv_sec - last_analysis_fps_time);
+      Info("%s: %d - Analysing at %.2f fps", name, image_count, new_analysis_fps);
+      if ( new_analysis_fps != analysis_fps ) {
+        analysis_fps = new_analysis_fps;
 
-      static char sql[ZM_SQL_SML_BUFSIZ];
-      snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, analysis_fps, analysis_fps );
-      db_mutex.lock();
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
+        static char sql[ZM_SQL_SML_BUFSIZ];
+        snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, analysis_fps, analysis_fps );
+        db_mutex.lock();
+        if ( mysql_query( &dbconn, sql ) ) {
+          Error("Can't run query: %s", mysql_error(&dbconn));
+        }
+        db_mutex.unlock();
       }
-      db_mutex.unlock();
+      last_analysis_fps_time = now.tv_sec;
     }
-    last_analysis_fps_time = now.tv_sec;
   }
 }
 
@@ -1307,17 +1309,19 @@ bool Monitor::Analyse() {
     Debug(2, "Analysis index (%d), last_Write(%d)", index, shared_data->last_write_index);
     packets_processed += 1;
 
-    struct timeval *timestamp = snap->timestamp;
-    Image *snap_image = snap->image;
     if ( snap->image_index == -1 ) {
       snap->unlock();
       Debug(2, "skipping because audio");
+      // We want to skip, but if we return, we may sleep.
+      //
       if ( ! packetqueue->increment_analysis_it() ) {
         Debug(2, "No more packets to analyse");
         return false;
       }
       continue;
     }
+    struct timeval *timestamp = snap->timestamp;
+    Image *snap_image = snap->image;
 
     // signal is set by capture
     bool signal = shared_data->signal;
@@ -2210,6 +2214,7 @@ int Monitor::Capture() {
       return 0;
     }
   } else {
+    Debug(4, "Capturing");
     captureResult = camera->Capture(*packet);
     gettimeofday( packet->timestamp, NULL );
     if ( captureResult < 0 ) {

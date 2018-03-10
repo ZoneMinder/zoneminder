@@ -605,11 +605,6 @@ bool Monitor::connect() {
 
 Monitor::~Monitor() {
 
-  if ( event_delete_thread ) {
-    event_delete_thread->join();
-    delete event_delete_thread;
-    event_delete_thread = NULL;
-  }
 
 
   if ( timestamps ) {
@@ -633,6 +628,11 @@ Monitor::~Monitor() {
     if ( event ) {
       Info("%s: image_count:%d - Closing event %d, shutting down", name, image_count, event->Id() );
       closeEvent();
+    }
+    if ( event_delete_thread ) {
+      event_delete_thread->join();
+      delete event_delete_thread;
+      event_delete_thread = NULL;
     }
 
     if ( deinterlacing_value == 4 ) {

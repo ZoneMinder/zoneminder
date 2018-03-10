@@ -214,11 +214,6 @@ bool VideoStore::open() {
       }
     } // end if orientation
   } else {
-    /** Create a new frame to store the */
-    if ( !(video_in_frame = zm_av_frame_alloc()) ) {
-      Error("Could not allocate video_in frame");
-      return false;
-    }
     for ( unsigned int i = 0; i < sizeof(codec_data) / sizeof(*codec_data); i++ ) {
       if ( codec_data[i].codec_id != monitor->OutputCodec() )
         continue;

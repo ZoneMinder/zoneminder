@@ -1356,6 +1356,7 @@ bool Monitor::Analyse() {
             // Create event
             event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
             shared_data->last_event = event->Id();
+            strncpy( shared_data->alarm_cause,cause.c_str() , sizeof(shared_data->alarm_cause) );
             //set up video store data
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
             video_store_data->recording = event->StartTime();
@@ -1423,7 +1424,6 @@ bool Monitor::Analyse() {
             if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
               Info( "%s: %03d - Gone into alarm state", name, image_count );
               shared_data->state = state = ALARM;
-              strncpy( shared_data->alarm_cause,"boo-yeah" , sizeof(shared_data->alarm_cause) );
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;
                 int pre_event_images = pre_event_count;
@@ -1461,6 +1461,7 @@ bool Monitor::Analyse() {
                   event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                 }
                 shared_data->last_event = event->Id();
+                strncpy( shared_data->alarm_cause,cause.c_str() , sizeof(shared_data->alarm_cause) );
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();

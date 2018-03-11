@@ -400,6 +400,7 @@ Monitor::Monitor(
     shared_data->alarm_y = -1;
     shared_data->format = camera->SubpixelOrder();
     shared_data->imagesize = camera->ImageSize();
+    shared_data->alarm_cause[0] = 0;
     trigger_data->size = sizeof(TriggerData);
     trigger_data->trigger_state = TRIGGER_CANCEL;
     trigger_data->trigger_score = 0;
@@ -1422,6 +1423,7 @@ bool Monitor::Analyse() {
             if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
               Info( "%s: %03d - Gone into alarm state", name, image_count );
               shared_data->state = state = ALARM;
+              strncpy( shared_data->alarm_cause,"boo-yeah" , sizeof(shared_data->alarm_cause) );
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;
                 int pre_event_images = pre_event_count;

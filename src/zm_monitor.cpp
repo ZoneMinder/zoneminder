@@ -1473,7 +1473,7 @@ bool Monitor::Analyse() {
                 } 
                 alarm_cause = cause+" "+alarm_cause;
                 
-                strncpy( shared_data->alarm_cause,alarm_cause , sizeof(shared_data->alarm_cause) );
+                strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();

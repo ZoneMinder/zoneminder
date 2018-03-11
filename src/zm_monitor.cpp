@@ -1356,6 +1356,7 @@ bool Monitor::Analyse() {
             // Create event
             event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
             shared_data->last_event = event->Id();
+            Info ("SIZE ALARM_CAUSE IS:%d",sizeof(shared_data->alarm_cause));
             strncpy( shared_data->alarm_cause,cause.c_str() , sizeof(shared_data->alarm_cause) );
             //set up video store data
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
@@ -1461,6 +1462,7 @@ bool Monitor::Analyse() {
                   event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                 }
                 shared_data->last_event = event->Id();
+                Info ("SIZE ALARM_CAUSE IS:%d",sizeof(shared_data->alarm_cause));
                 strncpy( shared_data->alarm_cause,cause.c_str() , sizeof(shared_data->alarm_cause) );
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());

@@ -1459,8 +1459,8 @@ bool Monitor::Analyse() {
 
                   event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                 }
-
                 shared_data->last_event = event->Id();
+                // lets construct alarm cause. It will contain cause + names of zones alarmed
                 std::string alarm_cause="";
                 for ( int i=0; i < n_zones; i++) {
                     if (zones[i]->Alarmed()) {
@@ -1469,10 +1469,8 @@ bool Monitor::Analyse() {
                             alarm_cause +=",";
                         }
                     }
-
                 } 
                 alarm_cause = cause+" "+alarm_cause;
-                
                 strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());

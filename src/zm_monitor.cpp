@@ -1356,8 +1356,6 @@ bool Monitor::Analyse() {
             // Create event
             event = new Event( this, *timestamp, "Continuous", noteSetMap, videoRecording );
             shared_data->last_event = event->Id();
-            Info ("SIZE ALARM_CAUSE IS:%d",sizeof(shared_data->alarm_cause));
-            strncpy( shared_data->alarm_cause,cause.c_str() , sizeof(shared_data->alarm_cause) );
             //set up video store data
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
             video_store_data->recording = event->StartTime();
@@ -1461,9 +1459,21 @@ bool Monitor::Analyse() {
 
                   event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                 }
+
                 shared_data->last_event = event->Id();
-                Info ("SIZE ALARM_CAUSE IS:%d",sizeof(shared_data->alarm_cause));
-                strncpy( shared_data->alarm_cause,cause.c_str() , sizeof(shared_data->alarm_cause) );
+                std:string alarm_cause="";
+                for ( int i=0; i < n_zones; i++) {
+                    if (zones[i]->Alarmed()) {
+                        alarm_cause += std::string(zones[i]->Label());
+                        if (i < n_zones-1) {
+                            alarm_cause +=",";
+                        }
+                    }
+
+                } 
+                alarm_cause = cause+" "+alarm_cause;
+                
+                strncpy( shared_data->alarm_cause,alarm_cause , sizeof(shared_data->alarm_cause) );
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();

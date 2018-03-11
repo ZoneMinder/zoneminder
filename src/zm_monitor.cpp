@@ -1461,7 +1461,7 @@ bool Monitor::Analyse() {
                 }
 
                 shared_data->last_event = event->Id();
-                std:string alarm_cause="";
+                std::string alarm_cause="";
                 for ( int i=0; i < n_zones; i++) {
                     if (zones[i]->Alarmed()) {
                         alarm_cause += std::string(zones[i]->Label());

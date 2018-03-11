@@ -709,7 +709,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           if ( empty($value) ) {
             $changes[$key] = "$key = 0";
           } else {
-            $changes[$key] = "$key = 0";
+            $changes[$key] = "$key = 1";
             //$changes[$key] = $key . ' = '.dbEscape(trim($value));
           }
         }

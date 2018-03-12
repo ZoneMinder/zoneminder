@@ -320,6 +320,12 @@ sub zmMemRead {
     my $type = $mem_data->{$section}->{contents}->{$element}->{type};
     my $size = $mem_data->{$section}->{contents}->{$element}->{size};
 
+    if (!defined $offset || !defined $type || !defined $size) {
+        Error ("Invalid field:".$field." setting to undef and exiting zmMemRead");
+        zmMemInvalidate( $monitor );
+        return( undef );
+    }   
+
     my $data = zmMemGet( $monitor, $offset, $size );
     if ( !defined($data) ) {
       Error( "Unable to read '$field' from memory for monitor ".$monitor->{Id} );
@@ -354,8 +360,7 @@ sub zmMemRead {
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
       ( $value ) = unpack( 'C'.$size, $data );
     } else {
-      Error( "Unexpected type '".$type."' found for '".$field."'" );
-      return ( undef );
+      Fatal( "Unexpected type '".$type."' found for '".$field."'" );
     }
     push( @values, $value );
   }

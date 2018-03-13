@@ -66,9 +66,6 @@ override_dh_fixperms:
 	chown root:www-data $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
 	chmod 640 $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
 
-override_dh_installinit:
-	dh_installinit --no-start
-
 override_dh_systemd_start:
 	dh_systemd_start --no-start
 

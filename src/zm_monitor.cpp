@@ -69,7 +69,7 @@ std::string load_monitor_sql =
 "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, "
 "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
 "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
-"Protocol, Method, Options, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
+"Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
 "SaveJPEGs, VideoWriter, EncoderParameters, "
 //" OutputCodec, Encoder, OutputContainer, "
 "RecordAudio, "
@@ -1990,7 +1990,7 @@ int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose p
  "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
- "Protocol, Method, Options, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
+ "Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
  "SaveJPEGs, VideoWriter, EncoderParameters, 
 "OutputCodec, Encoder, OutputContainer,"
 " RecordAudio, "
@@ -2043,6 +2043,8 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   std::string protocol = dbrow[col] ? dbrow[col] : ""; col++;
   std::string method = dbrow[col] ? dbrow[col] : ""; col++;
   std::string options = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string user = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string pass = dbrow[col] ? dbrow[col] : ""; col++;
   std::string host = dbrow[col] ? dbrow[col] : ""; col++;
   std::string port = dbrow[col] ? dbrow[col] : ""; col++;
   std::string path = dbrow[col] ? dbrow[col] : ""; col++;

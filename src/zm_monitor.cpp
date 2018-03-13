@@ -2067,7 +2067,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   int colour = atoi(dbrow[col]); col++;
 
   const char *event_prefix = dbrow[col]; col ++;
-  const char *label_format = dbrow[col]; col ++;
+  const char *label_format = dbrow[col] ? dbrow[col] : ""; col ++;
   Coord label_coord = Coord( atoi(dbrow[col]), atoi(dbrow[col+1]) ); col += 2;
   int label_size = atoi(dbrow[col]); col++;
 

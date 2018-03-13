@@ -129,6 +129,7 @@ protected:
       uint64_t extrapad2;
     };
     uint8_t control_state[256];  /* +80   */
+    char alarm_cause[256];
     
   } SharedData;
 

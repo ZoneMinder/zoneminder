@@ -423,6 +423,7 @@ if ( !empty($action) ) {
           'Exif' => 'toggle',
           'RTSPDescribe' => 'toggle',
           'RecordAudio' => 'toggle',
+          'Method' => 'raw',
           );
 
       $columns = getTableColumns( 'Monitors' );

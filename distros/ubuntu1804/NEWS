@@ -1,0 +1,10 @@
+zoneminder (1.28.1-1) unstable; urgency=low
+
+  This version is no longer automatically initialize or upgrade database.
+  See README.Debian for details.
+
+  Changed installation paths (please correct your web server configuration):
+    /usr/share/zoneminder --> /usr/share/zoneminder/www
+    /usr/lib/cgi-bin --> /usr/lib/zoneminder/cgi-bin
+
+ -- Dmitry Smirnov <onlyjob@debian.org>  Tue, 31 Mar 2015 15:12:17 +1100

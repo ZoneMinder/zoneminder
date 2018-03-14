@@ -195,8 +195,8 @@ sub GenerateVideo {
       $frame_rate = $fps;
     }
 
-    my $width = $self->{MonitorWidth};
-    my $height = $self->{MonitorHeight};
+    my $width = $self->{Width};
+    my $height = $self->{Height};
     my $video_size = " ${width}x${height}";
 
     if ( $scale ) {

@@ -197,8 +197,6 @@ my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELE
    Events.*,
    unix_timestamp(Events.StartTime) as Time,
    M.Name as MonitorName,
-   M.Width as MonitorWidth,
-   M.Height as MonitorHeight,
    M.Palette
    FROM Events
    INNER JOIN Monitors as M on Events.MonitorId = M.Id

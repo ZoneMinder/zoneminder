@@ -474,6 +474,7 @@ if ( canEdit( 'Monitors' ) ) {
         'Exif' => 'toggle',
         'RTSPDescribe' => 'toggle',
         'RecordAudio' => 'toggle',
+        'Method' => 'raw',
         );
 
     if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {

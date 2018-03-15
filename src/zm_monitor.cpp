@@ -459,6 +459,7 @@ Monitor::Monitor(
     shared_data->alarm_y = -1;
     shared_data->format = camera->SubpixelOrder();
     shared_data->imagesize = camera->ImageSize();
+    shared_data->alarm_cause[0] = 0;
     trigger_data->size = sizeof(TriggerData);
     trigger_data->trigger_state = TRIGGER_CANCEL;
     trigger_data->trigger_score = 0;
@@ -1449,6 +1450,19 @@ bool Monitor::Analyse() {
               // Create event
               event = new Event( this, *timestamp, "Continuous", noteSetMap );
               shared_data->last_event_id = event->Id();
+
+                // lets construct alarm cause. It will contain cause + names of zones alarmed
+                std::string alarm_cause="Continuous";
+                for ( int i=0; i < n_zones; i++) {
+                    if (zones[i]->Alarmed()) {
+                        alarm_cause += std::string(zones[i]->Label());
+                        if (i < n_zones-1) {
+                            alarm_cause +=",";
+                        }
+                    }
+                } 
+                alarm_cause = cause+" "+alarm_cause;
+                strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
               video_store_data->recording = event->StartTime();
               Info( "%s: %03d - Opening new event %d, section start", name, analysis_image_count, event->Id() );
               /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -1465,6 +1479,18 @@ bool Monitor::Analyse() {
                 Info( "%s: %03d - Gone into alarm state", name, analysis_image_count );
                 shared_data->state = state = ALARM;
                 if ( ! event ) {
+                // lets construct alarm cause. It will contain cause + names of zones alarmed
+                std::string alarm_cause="";
+                for ( int i=0; i < n_zones; i++) {
+                    if (zones[i]->Alarmed()) {
+                        alarm_cause += std::string(zones[i]->Label());
+                        if (i < n_zones-1) {
+                            alarm_cause +=",";
+                        }
+                    }
+                } 
+                alarm_cause = cause+" "+alarm_cause;
+                strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
                   event = new Event( this, *timestamp, cause, noteSetMap );
                   shared_data->last_event_id = event->Id();
                 }

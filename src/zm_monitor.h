@@ -145,6 +145,8 @@ protected:
     };
     uint8_t control_state[256];  /* +88   */
 
+    char alarm_cause[256];
+    
   } SharedData;
 
   typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;

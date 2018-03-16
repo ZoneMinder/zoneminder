@@ -55,14 +55,6 @@ function validateForm( form ) {
   else if ( form.elements.mid.value == 0 && monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
 
-  if ( form.elements['newMonitor[AnalysisFPS]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPS]'].value) > 0 ) )
-    errors[errors.length] = "<?php echo translate('BadAnalysisFPS') ?>";
-  if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
-    errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";
-  if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) > 0 ) )
-    errors[errors.length] = "<?php echo translate('BadAlarmMaxFPS') ?>";
-  if ( !form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) )
-    errors[errors.length] = "<?php echo translate('BadRefBlendPerc') ?>";
   if ( form.elements['newMonitor[Type]'].value == 'Local' ) {
     if ( !form.elements['newMonitor[Palette]'].value || !form.elements['newMonitor[Palette]'].value.match( /^\d+$/ ) )
       errors[errors.length] = "<?php echo translate('BadPalette') ?>";
@@ -90,6 +82,16 @@ function validateForm( form ) {
   }
 
   if ( form.elements['newMonitor[Type]'].value != 'WebSite' ) {
+
+    if ( form.elements['newMonitor[AnalysisFPS]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPS]'].value) > 0 ) )
+      errors[errors.length] = "<?php echo translate('BadAnalysisFPS') ?>";
+    if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
+      errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";
+    if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) > 0 ) )
+      errors[errors.length] = "<?php echo translate('BadAlarmMaxFPS') ?>";
+    if ( !form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) )
+      errors[errors.length] = "<?php echo translate('BadRefBlendPerc') ?>";
+
     if ( !form.elements['newMonitor[Colours]'].value || (parseInt(form.elements['newMonitor[Colours]'].value) != 1 && parseInt(form.elements['newMonitor[Colours]'].value) != 3 && parseInt(form.elements['newMonitor[Colours]'].value) != 4 ) )
       errors[errors.length] = "<?php echo translate('BadColours') ?>";
     if ( !form.elements['newMonitor[Width]'].value || !(parseInt(form.elements['newMonitor[Width]'].value) > 0 ) )

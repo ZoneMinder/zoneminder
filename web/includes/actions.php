@@ -433,7 +433,7 @@ if ( !empty($action) ) {
         if ( $mid ) {
 
           # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
-          if ( $new_monitor['Type'] != 'WebSite' ) {
+          if ( $monitor['Type'] != 'WebSite' ) {
               zmaControl( $monitor, 'stop' );
               zmcControl( $monitor, 'stop' );
           }

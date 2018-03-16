@@ -88,43 +88,47 @@ function validateForm( form ) {
     if ( form.elements['newMonitor[Path]'].value.search(/^https?:\/\//i) )
       errors[errors.length] = "<?php echo translate('BadWebSitePath') ?>";
   }
-  if ( !form.elements['newMonitor[Colours]'].value || (parseInt(form.elements['newMonitor[Colours]'].value) != 1 && parseInt(form.elements['newMonitor[Colours]'].value) != 3 && parseInt(form.elements['newMonitor[Colours]'].value) != 4 ) )
-    errors[errors.length] = "<?php echo translate('BadColours') ?>";
-  if ( !form.elements['newMonitor[Width]'].value || !(parseInt(form.elements['newMonitor[Width]'].value) > 0 ) )
-    errors[errors.length] = "<?php echo translate('BadWidth') ?>";
-  if ( !form.elements['newMonitor[Height]'].value || !(parseInt(form.elements['newMonitor[Height]'].value) > 0 ) )
-    errors[errors.length] = "<?php echo translate('BadHeight') ?>";
-  if ( !form.elements['newMonitor[LabelX]'].value || !(parseInt(form.elements['newMonitor[LabelX]'].value) >= 0 ) )
-    errors[errors.length] = "<?php echo translate('BadLabelX') ?>";
-  if ( !form.elements['newMonitor[LabelY]'].value || !(parseInt(form.elements['newMonitor[LabelY]'].value) >= 0 ) )
-    errors[errors.length] = "<?php echo translate('BadLabelY') ?>";
-  if ( !form.elements['newMonitor[ImageBufferCount]'].value || !(parseInt(form.elements['newMonitor[ImageBufferCount]'].value) >= 10 ) )
-    errors[errors.length] = "<?php echo translate('BadImageBufferCount') ?>";
-  if ( !form.elements['newMonitor[WarmupCount]'].value || !(parseInt(form.elements['newMonitor[WarmupCount]'].value) >= 0 ) )
-    errors[errors.length] = "<?php echo translate('BadWarmupCount') ?>";
-  if ( !form.elements['newMonitor[PreEventCount]'].value || !(parseInt(form.elements['newMonitor[PreEventCount]'].value) > 0 ) || (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[ImageBufferCount]'].value)) )
-    errors[errors.length] = "<?php echo translate('BadPreEventCount') ?>";
-  if ( !form.elements['newMonitor[PostEventCount]'].value || !(parseInt(form.elements['newMonitor[PostEventCount]'].value) >= 0 ) )
-    errors[errors.length] = "<?php echo translate('BadPostEventCount') ?>";
-  if ( !form.elements['newMonitor[StreamReplayBuffer]'].value || !(parseInt(form.elements['newMonitor[StreamReplayBuffer]'].value) >= 0 ) )
-    errors[errors.length] = "<?php echo translate('BadStreamReplayBuffer') ?>";
-  if ( !form.elements['newMonitor[AlarmFrameCount]'].value || !(parseInt(form.elements['newMonitor[AlarmFrameCount]'].value) > 0 ) )
-    errors[errors.length] = "<?php echo translate('BadAlarmFrameCount') ?>";
-  if ( !form.elements['newMonitor[SectionLength]'].value || !(parseInt(form.elements['newMonitor[SectionLength]'].value) >= 30 ) )
-    errors[errors.length] = "<?php echo translate('BadSectionLength') ?>";
-  if ( !form.elements['newMonitor[AnalysisUpdateDelay]'].value || !(parseInt(form.elements['newMonitor[AnalysisUpdateDelay]'].value) >= 0 ) )
-    errors[errors.length] = "<?php echo translate('BadAnalysisUpdateDelay') ?>";
-  if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 0 ) )
-    errors[errors.length] = "<?php echo translate('BadFPSReportInterval') ?>";
-  if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
-    errors[errors.length] = "<?php echo translate('BadFrameSkip') ?>";
-  if ( !form.elements['newMonitor[MotionFrameSkip]'].value || !(parseInt(form.elements['newMonitor[MotionFrameSkip]'].value) >= 0 ) )
-    errors[errors.length] = "<?php echo translate('BadMotionFrameSkip') ?>";
-  if ( form.elements['newMonitor[Type]'].value == 'Local' )
-    if ( !form.elements['newMonitor[SignalCheckColour]'].value || !form.elements['newMonitor[SignalCheckColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
-      errors[errors.length] = "<?php echo translate('BadSignalCheckColour') ?>";
-  if ( !form.elements['newMonitor[WebColour]'].value || !form.elements['newMonitor[WebColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
-    errors[errors.length] = "<?php echo translate('BadWebColour') ?>";
+
+  if ( form.elements['newMonitor[Type]'].value != 'WebSite' ) {
+    if ( !form.elements['newMonitor[Colours]'].value || (parseInt(form.elements['newMonitor[Colours]'].value) != 1 && parseInt(form.elements['newMonitor[Colours]'].value) != 3 && parseInt(form.elements['newMonitor[Colours]'].value) != 4 ) )
+      errors[errors.length] = "<?php echo translate('BadColours') ?>";
+    if ( !form.elements['newMonitor[Width]'].value || !(parseInt(form.elements['newMonitor[Width]'].value) > 0 ) )
+      errors[errors.length] = "<?php echo translate('BadWidth') ?>";
+    if ( !form.elements['newMonitor[Height]'].value || !(parseInt(form.elements['newMonitor[Height]'].value) > 0 ) )
+      errors[errors.length] = "<?php echo translate('BadHeight') ?>";
+    if ( !form.elements['newMonitor[LabelX]'].value || !(parseInt(form.elements['newMonitor[LabelX]'].value) >= 0 ) )
+      errors[errors.length] = "<?php echo translate('BadLabelX') ?>";
+    if ( !form.elements['newMonitor[LabelY]'].value || !(parseInt(form.elements['newMonitor[LabelY]'].value) >= 0 ) )
+      errors[errors.length] = "<?php echo translate('BadLabelY') ?>";
+    if ( !form.elements['newMonitor[ImageBufferCount]'].value || !(parseInt(form.elements['newMonitor[ImageBufferCount]'].value) >= 10 ) )
+      errors[errors.length] = "<?php echo translate('BadImageBufferCount') ?>";
+    if ( !form.elements['newMonitor[WarmupCount]'].value || !(parseInt(form.elements['newMonitor[WarmupCount]'].value) >= 0 ) )
+      errors[errors.length] = "<?php echo translate('BadWarmupCount') ?>";
+    if ( !form.elements['newMonitor[PreEventCount]'].value || !(parseInt(form.elements['newMonitor[PreEventCount]'].value) > 0 ) || (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[ImageBufferCount]'].value)) )
+      errors[errors.length] = "<?php echo translate('BadPreEventCount') ?>";
+    if ( !form.elements['newMonitor[PostEventCount]'].value || !(parseInt(form.elements['newMonitor[PostEventCount]'].value) >= 0 ) )
+      errors[errors.length] = "<?php echo translate('BadPostEventCount') ?>";
+    if ( !form.elements['newMonitor[StreamReplayBuffer]'].value || !(parseInt(form.elements['newMonitor[StreamReplayBuffer]'].value) >= 0 ) )
+      errors[errors.length] = "<?php echo translate('BadStreamReplayBuffer') ?>";
+    if ( !form.elements['newMonitor[AlarmFrameCount]'].value || !(parseInt(form.elements['newMonitor[AlarmFrameCount]'].value) > 0 ) )
+      errors[errors.length] = "<?php echo translate('BadAlarmFrameCount') ?>";
+    if ( !form.elements['newMonitor[SectionLength]'].value || !(parseInt(form.elements['newMonitor[SectionLength]'].value) >= 30 ) )
+      errors[errors.length] = "<?php echo translate('BadSectionLength') ?>";
+    if ( !form.elements['newMonitor[AnalysisUpdateDelay]'].value || !(parseInt(form.elements['newMonitor[AnalysisUpdateDelay]'].value) >= 0 ) )
+      errors[errors.length] = "<?php echo translate('BadAnalysisUpdateDelay') ?>";
+    if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 0 ) )
+      errors[errors.length] = "<?php echo translate('BadFPSReportInterval') ?>";
+    if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
+      errors[errors.length] = "<?php echo translate('BadFrameSkip') ?>";
+    if ( !form.elements['newMonitor[MotionFrameSkip]'].value || !(parseInt(form.elements['newMonitor[MotionFrameSkip]'].value) >= 0 ) )
+      errors[errors.length] = "<?php echo translate('BadMotionFrameSkip') ?>";
+    if ( form.elements['newMonitor[Type]'].value == 'Local' )
+      if ( !form.elements['newMonitor[SignalCheckColour]'].value || !form.elements['newMonitor[SignalCheckColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
+        errors[errors.length] = "<?php echo translate('BadSignalCheckColour') ?>";
+    if ( !form.elements['newMonitor[WebColour]'].value || !form.elements['newMonitor[WebColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
+      errors[errors.length] = "<?php echo translate('BadWebColour') ?>";
+
+  }
 
   if ( errors.length ) {
     alert( errors.join( "\n" ) );

@@ -223,7 +223,7 @@ foreach( $displayMonitors as $monitor ) {
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>">
 <?php
-    if ( !$monitor['zmc'] ) {
+    if ( !$monitor['zmc'] && $monitor['Type']!='WebSite' ) {
       $dclass = 'errorText';
     } else {
     // https://github.com/ZoneMinder/ZoneMinder/issues/1082
@@ -261,7 +261,7 @@ echo $Server->Name();
       $source = preg_replace( '/^.*@/', '', $monitor['Host'] );
     } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
       $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
-    } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
+    } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' || $monitor['Type'] == 'WebSite' ) {
       $domain = parse_url( $monitor['Path'], PHP_URL_HOST );
       $source = $domain ? $domain : preg_replace( '/^.*\//', '', $monitor['Path'] );
     } elseif ( $monitor['Type'] == 'cURL' ) {

@@ -49,6 +49,8 @@ var monitorId = <?php echo $monitor->Id() ?>;
 var monitorWidth = <?php echo $monitor->Width() ?>;
 var monitorHeight = <?php echo $monitor->Height() ?>;
 var monitorUrl = '<?php echo ( $monitor->Server()->Url() ) ?>';
+var monitorType = '<?php echo ( $monitor->Type() ) ?>';
+var monitorRefresh = '<?php echo ( $monitor->Refresh() ) ?>';
 
 var scale = '<?php echo $scale ?>';
 

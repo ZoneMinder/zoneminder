@@ -35,13 +35,15 @@ if ( ! visibleMonitor( $mid ) ) {
 $monitor = new Monitor( $mid );
 
 #Whether to show the actual controls
-if ( isset($_REQUEST['showControls']) )
-  $showControls = validInt($_REQUEST['showControls']);
-else
-  $showControls = canView( 'Control' ) && ($monitor->DefaultView() == 'Control');
+if ( $monitor->Type() != 'WebSite' ) {
+  if  ( isset($_REQUEST['showControls']) )
+    $showControls = validInt($_REQUEST['showControls']);
+  else
+    $showControls = canView( 'Control' ) && ($monitor->DefaultView() == 'Control');
+}
 
 #Whether to show the controls button
-$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) );
+$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) && $monitor->Type() != 'WebSite' );
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validInt($_REQUEST['scale']);
@@ -54,7 +56,7 @@ if ( isset( $_REQUEST['scale'] ) ) {
 $connkey = generateConnKey();
 
 $streamMode = getStreamMode();
-$showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 0 );
+$showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 0 && $monitor->Type() != 'WebSite' );
 
 noCacheHeaders();
 
@@ -76,7 +78,7 @@ if ( $showPtzControls )
           <div id="controlControl"<?php echo $showControls?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showPtzControls(); return( false );"><?php echo translate('Control') ?></a></div>
 <?php
     }
-    if ( canView( 'Events' ) )
+    if ( canView( 'Events' ) && $monitor->Type() != 'WebSite' )
     {
 ?>
           <div id="eventsControl"<?php echo $showControls?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?php echo translate('Events') ?></a></div>
@@ -101,7 +103,7 @@ if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
         <div id="enableDisableAlarms"><a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms(); return( false );" class="hidden"><?php echo translate('EnableAlarms') ?></a><a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms(); return( false );" class="hidden"><?php echo translate('DisableAlarms') ?></a></div>
 <?php
 }
-if ( canEdit( 'Monitors' ) ) {
+if ( canEdit( 'Monitors' ) && $monitor->Type() != 'WebSite' ) {
 ?>
         <div id="forceCancelAlarm">
             <a id="forceAlarmLink" href="#" onclick="cmdForceAlarm();"><?php echo translate('ForceAlarm') ?></a>
@@ -109,6 +111,7 @@ if ( canEdit( 'Monitors' ) ) {
         </div>
 <?php
 }
+if ( $monitor->Type() != 'WebSite' ) {
 ?>
         <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
       </div>
@@ -130,6 +133,7 @@ if ( canEdit( 'Monitors' ) ) {
         <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
       </div>
 <?php
+}
 if ( $showPtzControls ) {
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;
@@ -139,7 +143,7 @@ if ( $showPtzControls ) {
       </div>
 <?php
 }
-if ( canView( 'Events' ) ) {
+if ( canView( 'Events' ) && $monitor->Type() != 'WebSite' ) {
 ?>
       <div id="events">
         <table id="eventList" cellspacing="0">

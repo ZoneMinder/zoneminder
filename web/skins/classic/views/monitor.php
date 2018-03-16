@@ -25,23 +25,6 @@ if ( !canView( 'Monitors' ) ) {
   return;
 }
 
-$tabs = array();
-$tabs['general'] = translate('General');
-$tabs['source'] = translate('Source');
-$tabs['storage'] = translate('Storage');
-$tabs['timestamp'] = translate('Timestamp');
-$tabs['buffers'] = translate('Buffers');
-if ( ZM_OPT_CONTROL && canView( 'Control' ) )
-  $tabs['control'] = translate('Control');
-if ( ZM_OPT_X10 )
-  $tabs['x10'] = translate('X10');
-$tabs['misc'] = translate('Misc');
-
-if ( isset($_REQUEST['tab']) )
-  $tab = validHtmlStr($_REQUEST['tab']);
-else
-  $tab = 'general';
-
 $Server = null;
 if ( defined( 'ZM_SERVER_ID' ) ) {
   $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
@@ -136,6 +119,7 @@ if ( ! empty($_REQUEST['mid']) ) {
           'V4LMultiBuffer'  =>  '',
           'V4LCapturesPerFrame'  =>  1,
           'ServerId'  =>  $Server['Id'],
+          'Refresh' => '',
           ) );
     } # end if $_REQUEST['dupID']
 } # end if $_REQUEST['mid']
@@ -205,7 +189,8 @@ $sourceTypes = array(
     'File'   => translate('File'),
     'Ffmpeg' => translate('Ffmpeg'),
     'Libvlc' => translate('Libvlc'),
-    'cURL'   => 'cURL (HTTP(S) only)'
+    'cURL'   => 'cURL (HTTP(S) only)',
+    'WebSite'=> 'Web Site'
     );
 if ( !ZM_HAS_V4L )
   unset($sourceTypes['Local']);
@@ -501,6 +486,25 @@ if ( canEdit( 'Monitors' ) ) {
   <div id="content">
     <ul class="tabList">
 <?php
+$tabs = array();
+$tabs['general'] = translate('General');
+$tabs['source'] = translate('Source');
+if ( $monitor->Type() != 'WebSite' ) {
+    $tabs['storage'] = translate('Storage');
+    $tabs['timestamp'] = translate('Timestamp');
+    $tabs['buffers'] = translate('Buffers');
+    if ( ZM_OPT_CONTROL && canView( 'Control' ) )
+      $tabs['control'] = translate('Control');
+    if ( ZM_OPT_X10 )
+      $tabs['x10'] = translate('X10');
+    $tabs['misc'] = translate('Misc');
+}
+
+if ( isset($_REQUEST['tab']) )
+  $tab = validHtmlStr($_REQUEST['tab']);
+else
+  $tab = 'general';
+
 foreach ( $tabs as $name=>$value ) {
   if ( $tab == $name ) {
 ?>
@@ -571,7 +575,7 @@ if ( $tab != 'source' || ($monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Lib
       <input type="hidden" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>"/>
 <?php
 }
-if ( $tab != 'source' || ($monitor->Type()!= 'Remote' && $monitor->Type()!= 'File' && $monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Libvlc' && $monitor->Type()!= 'cURL') ) {
+if ( $tab != 'source' || ($monitor->Type()!= 'Remote' && $monitor->Type()!= 'File' && $monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Libvlc' && $monitor->Type()!= 'cURL' && $monitor->Type() != 'WebSite') ) {
 ?>
       <input type="hidden" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/>
       <input type="hidden" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
@@ -689,6 +693,9 @@ switch ( $tab ) {
 ?>
         </select></td></tr>
         <tr><td><?php echo translate('Enabled') ?></td><td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php if ( $monitor->Enabled() ) { ?> checked="checked"<?php } ?>/></td></tr>
+<?php
+      if ( $monitor->Type != 'WebSite' ) {
+?>
         <tr>
           <td><?php echo translate('LinkedMonitors') ?></td>
           <td>
@@ -775,6 +782,7 @@ switch ( $tab ) {
       ?>
         </td></tr>
         <?php
+        }
         break;
     }
   case 'source' :
@@ -836,6 +844,10 @@ switch ( $tab ) {
           <tr><td><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>" size="12"/></td></tr>
           <tr><td><?php echo 'Password' ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" size="12"/></td></tr>
 <?php
+      } elseif ( $monitor->Type() == 'WebSite' ) {
+?>
+          <tr><td><?php echo translate('WebSiteUrl') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" size="36"/></td></tr>
+<?php
       } elseif ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
 ?>
           <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" size="36"/></td></tr>
@@ -843,6 +855,7 @@ switch ( $tab ) {
           <tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($monitor->Type()), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>" size="36"/></td></tr>
 <?php
       }
+      if ( $monitor->Type() != 'WebSite' ) {
 ?>
         <tr><td><?php echo translate('TargetColorspace') ?></td><td><select name="newMonitor[Colours]"><?php foreach ( $Colours as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Colours()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
         <tr><td><?php echo translate('CaptureWidth') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
@@ -850,11 +863,18 @@ switch ( $tab ) {
         <tr><td><?php echo translate('PreserveAspect') ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr> 
         <tr><td><?php echo translate('Orientation') ?></td><td><select name="newMonitor[Orientation]"><?php foreach ( $orientations as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Orientation()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
+      } else {
+?>
+        <tr><td><?php echo translate('Width') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4";"/></td></tr>
+        <tr><td><?php echo translate('Height') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4";"/></td></tr>
+        <tr><td><?php echo 'Web Site Refresh (Optional)' ?></td><td><input type="number" name="newMonitor[Refresh]" value="<?php echo $monitor->Refresh()?>"/></td></tr>
+<?php
+      }
       if ( $monitor->Type() == 'Local' ) {
 ?>
             <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
             <?php
-        } else {
+        } elseif ( $monitor->Type() != 'WebSite' ) {
 ?>
             <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php

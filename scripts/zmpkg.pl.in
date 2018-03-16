@@ -203,7 +203,7 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
       or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() ) {
-      if ( $monitor->{Function} ne 'None' ) {
+      if ( $monitor->{Function} ne 'None' && $monitor->{Type} ne 'WebSite' ) {
         if ( $monitor->{Type} eq 'Local' ) {
           runCommand( "zmdc.pl start zmc -d $monitor->{Device}" );
         } else {

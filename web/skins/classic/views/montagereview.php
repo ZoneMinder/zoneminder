@@ -105,9 +105,9 @@ require_once( 'includes/Monitor.php' );
 if ( !empty($_REQUEST['group']) ) {
   $group = $_REQUEST['group'];
   $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
-  $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None' AND find_in_set( Id, '".$row['MonitorIds']."' ) ";
+  $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None' AND Type != 'WebSite' AND find_in_set( Id, '".$row['MonitorIds']."' ) ";
 } else {
-  $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None'";
+  $monitorsSql = "SELECT * FROM Monitors WHERE Function != 'None' AND Type != 'WebSite'";
   $group = '';
 }
 

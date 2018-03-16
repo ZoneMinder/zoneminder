@@ -34,8 +34,10 @@ monitorData[monitorData.length] = {
 	'id': <?php echo $monitor->Id() ?>, 
 	'connKey': <?php echo $monitor->connKey() ?>, 
 	'width': <?php echo $monitor->Width() ?>,
-	'height':<?php echo $monitor->Height() ?>,
-  'server_url': '<?php echo $monitor->Server()->Url().$_SERVER['PHP_SELF'] ?>'
+	'height': <?php echo $monitor->Height() ?>,
+        'server_url': '<?php echo $monitor->Server()->Url().$_SERVER['PHP_SELF'] ?>',
+	'type': '<?php echo $monitor->Type() ?>',
+	'refresh': '<?php echo $monitor->Refresh() ?>'
 };
 <?php
 }

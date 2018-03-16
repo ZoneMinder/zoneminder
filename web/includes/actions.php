@@ -281,7 +281,7 @@ if ( !empty($action) ) {
 
         $monitor['Function'] = $newFunction;
         $monitor['Enabled'] = $newEnabled;
-        if ( daemonCheck() ) {
+        if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
           $restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
           zmaControl( $monitor, 'stop' );
           zmcControl( $monitor, $restart?'restart':'' );
@@ -323,7 +323,7 @@ if ( !empty($action) ) {
           dbQuery( "INSERT INTO Zones SET MonitorId=?, ".implode( ", ", $changes ), array( $mid ) );
         }
         //if ( $cookies ) session_write_close();
-        if ( daemonCheck() ) {
+        if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
           if ( $_REQUEST['newZone']['Type'] == 'Privacy' ) {
             zmaControl( $monitor, 'stop' );
             zmcControl( $monitor, 'restart' );
@@ -351,7 +351,7 @@ if ( !empty($action) ) {
         }
       }
       if($changes>0) {
-        if ( daemonCheck() ) {
+        if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
           zmaControl( $mid, 'restart' );
         }
         $refreshParent = true;
@@ -378,7 +378,7 @@ if ( !empty($action) ) {
         if ( $deletedZid ) {
           //if ( $cookies )
           //session_write_close();
-          if ( daemonCheck() ) {
+          if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
             if ( $zone['Type'] == 'Privacy' ) {
               zmaControl( $mid, 'stop' );
               zmcControl( $mid, 'restart' );
@@ -433,8 +433,10 @@ if ( !empty($action) ) {
         if ( $mid ) {
 
           # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
-          zmaControl( $monitor, 'stop' );
-          zmcControl( $monitor, 'stop' );
+          if ( $new_monitor['Type'] != 'WebSite' ) {
+              zmaControl( $monitor, 'stop' );
+              zmcControl( $monitor, 'stop' );
+          }
           dbQuery( 'UPDATE Monitors SET '.implode( ", ", $changes ).' WHERE Id =?', array($mid) );
           if ( isset($changes['Name']) ) {
             $saferOldName = basename( $monitor['Name'] );
@@ -517,9 +519,10 @@ if ( !empty($action) ) {
         //fixDevices();
         //if ( $cookies )
         //session_write_close();
-
-        zmcControl( $new_monitor, 'start' );
-        zmaControl( $new_monitor, 'start' );
+        if ( $new_monitor['Type'] != 'WebSite' ) {
+            zmcControl( $new_monitor, 'start' );
+            zmaControl( $new_monitor, 'start' );
+        }
 
         if ( $monitor['Controllable'] ) {
           require_once( 'control_functions.php' );
@@ -536,7 +539,7 @@ if ( !empty($action) ) {
         foreach( $_REQUEST['markMids'] as $markMid ) {
           if ( canEdit( 'Monitors', $markMid ) ) {
             if ( $monitor = dbFetchOne( 'SELECT * FROM Monitors WHERE Id = ?', NULL, array($markMid) ) ) {
-              if ( daemonCheck() ) {
+              if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
                 zmaControl( $monitor, 'stop' );
                 zmcControl( $monitor, 'stop' );
               }

@@ -86,6 +86,7 @@ while( 1 )
     while( my $monitor = $sth->fetchrow_hashref() )
     {
         next if $monitor->{Function} eq 'None';
+        next if $monitor->{Type} eq 'WebSite';
         my $restart = 0;
         if ( zmMemVerify( $monitor ) ) {
             # Check we have got an image recently

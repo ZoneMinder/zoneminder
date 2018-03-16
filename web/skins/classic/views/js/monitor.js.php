@@ -82,6 +82,11 @@ function validateForm( form ) {
   } else if ( form.elements['newMonitor[Type]'].value == 'File' ) {
     if ( !form.elements['newMonitor[Path]'].value )
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
+  } else if ( form.elements['newMonitor[Type]'].value == 'WebSite' ) {
+    if ( form.elements['newMonitor[Function]'].value != 'Monitor' && form.elements['newMonitor[Function]'].value != 'None')
+      errors[errors.length] = "<?php echo translate('BadSourceType') ?>";
+    if ( form.elements['newMonitor[Path]'].value.search(/^https?:\/\//i) )
+      errors[errors.length] = "<?php echo translate('BadWebSitePath') ?>";
   }
   if ( !form.elements['newMonitor[Colours]'].value || (parseInt(form.elements['newMonitor[Colours]'].value) != 1 && parseInt(form.elements['newMonitor[Colours]'].value) != 3 && parseInt(form.elements['newMonitor[Colours]'].value) != 4 ) )
     errors[errors.length] = "<?php echo translate('BadColours') ?>";

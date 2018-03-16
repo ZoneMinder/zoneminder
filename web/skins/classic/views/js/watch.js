@@ -104,11 +104,12 @@ function setAlarmState( currentAlarmState ) {
   lastAlarmState = alarmState;
 }
 
-var streamCmdParms = "view=request&request=stream&connkey="+connKey;
-var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
-var streamCmdTimer = null;
-
-var streamStatus;
+if ( monitorType != 'WebSite' ) {
+    var streamCmdParms = "view=request&request=stream&connkey="+connKey;
+    var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
+    var streamCmdTimer = null;
+    var streamStatus;
+}
 
 function getStreamCmdResponse( respObj, respText ) {
   watchdogOk("stream");
@@ -322,9 +323,11 @@ function streamCmdQuery() {
   streamCmdReq.send( streamCmdParms+"&command="+CMD_QUERY );
 }
 
-var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
-var statusCmdTimer = null;
+if ( monitorType != 'WebSite' ) {
+    var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
+    var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
+    var statusCmdTimer = null;
+}
 
 function getStatusCmdResponse( respObj, respText ) {
   watchdogOk("status");
@@ -347,9 +350,11 @@ function statusCmdQuery() {
   statusCmdReq.send();
 }
 
-var alarmCmdParms = "view=request&request=alarm&id="+monitorId;
-var alarmCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getAlarmCmdResponse, onTimeout: streamCmdQuery } );
-var alarmCmdFirst = true;
+if ( monitorType != 'WebSite' ) {
+    var alarmCmdParms = "view=request&request=alarm&id="+monitorId;
+    var alarmCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getAlarmCmdResponse, onTimeout: streamCmdQuery } );
+    var alarmCmdFirst = true;
+}
 
 function getAlarmCmdResponse( respObj, respText ) {
   checkStreamForErrors("getAlarmCmdResponse", respObj);
@@ -387,10 +392,12 @@ function deleteEvent( event, eventId ) {
   event.stop();
 }
 
-var eventCmdParms = "view=request&request=status&entity=events&id="+monitorId+"&count="+maxDisplayEvents+"&sort=Id%20desc";
-var eventCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: eventCmdParms, link: 'cancel', onSuccess: getEventCmdResponse, onTimeout: eventCmdQuery } );
-var eventCmdTimer = null;
-var eventCmdFirst = true;
+if ( monitorType != 'WebSite' ) {
+    var eventCmdParms = "view=request&request=status&entity=events&id="+monitorId+"&count="+maxDisplayEvents+"&sort=Id%20desc";
+    var eventCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: eventCmdParms, link: 'cancel', onSuccess: getEventCmdResponse, onTimeout: eventCmdQuery } );
+    var eventCmdTimer = null;
+    var eventCmdFirst = true;
+}
 
 function highlightRow( row ) {
   $(row).toggleClass( 'highlight' );
@@ -493,8 +500,10 @@ function eventCmdQuery() {
   eventCmdReq.send();
 }
 
-var controlParms = "view=request&request=control&id="+monitorId;
-var controlReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse } );
+if ( monitorType != 'WebSite' ) {
+    var controlParms = "view=request&request=control&id="+monitorId;
+    var controlReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse } );
+}
 
 function getControlResponse( respObj, respText ) {
   if ( !respObj )
@@ -608,32 +617,41 @@ function watchdogOk( type ) {
   watchdogInactive[type] = false;
 }
 
+function reloadWebSite() {
+    document.getElementById('imageFeed').innerHTML = document.getElementById('imageFeed').innerHTML;
+}
+
 function initPage() {
-  if ( streamMode == "single" ) {
-    statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
-    watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
-  } else {
-    streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
-    watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
-  }
-
-  eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
-  watchdogCheck.pass('event').periodical(eventsRefreshTimeout*2);
-
-  if ( canStreamNative || streamMode == "single" ) {
-    var streamImg = $('imageFeed').getElement('img');
-    if ( !streamImg )
-      streamImg = $('imageFeed').getElement('object');
+  if ( monitorType != 'WebSite' ) {
     if ( streamMode == "single" ) {
-      streamImg.addEvent( 'click', fetchImage.pass( streamImg ) );
-      fetchImage.pass( streamImg ).periodical( imageRefreshTimeout );
-    } else
-      streamImg.addEvent( 'click', function( event ) { handleClick( event ); } );
-  }
+      statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+      watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
+    } else {
+      streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+      watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
+    }
 
-  if ( refreshApplet && appletRefreshTime )
-    appletRefresh.delay( appletRefreshTime*1000 );
-  if (scale == "auto") changeScale();
+    eventCmdTimer = eventCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+    watchdogCheck.pass('event').periodical(eventsRefreshTimeout*2);
+
+    if ( canStreamNative || streamMode == "single" ) {
+      var streamImg = $('imageFeed').getElement('img');
+      if ( !streamImg )
+        streamImg = $('imageFeed').getElement('object');
+      if ( streamMode == "single" ) {
+        streamImg.addEvent( 'click', fetchImage.pass( streamImg ) );
+        fetchImage.pass( streamImg ).periodical( imageRefreshTimeout );
+      } else
+        streamImg.addEvent( 'click', function( event ) { handleClick( event ); } );
+    }
+
+    if ( refreshApplet && appletRefreshTime )
+      appletRefresh.delay( appletRefreshTime*1000 );
+    if (scale == "auto") changeScale();
+
+  } else if ( monitorRefresh > 0 ) {
+    var myReload = setInterval(reloadWebSite, monitorRefresh*1000);
+  }
 }
 
 // Kick everything off

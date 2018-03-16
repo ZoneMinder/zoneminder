@@ -130,7 +130,10 @@ foreach ( $monitors as $monitor )
           <div id="monitor<?php echo $monitor->index() ?>" class="monitor idle">
             <div id="imageFeed<?php echo $monitor->index() ?>" class="imageFeed" onclick="createPopup( '?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo $monitor->scaleWidth() ?>, <?php echo $monitor->scaleHeight() ?> );">
 <?php
-if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+if ( $monitor->Type() == "WebSite" ) {
+    $streamSrc = $monitor->Path();
+    echo getWebSiteUrl( 'liveStream'.$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+} else if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$scale, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_LIVE_FORMAT ) );
     outputVideoStream( "liveStream".$monitor->Id(), $streamSrc, reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
 } else {
@@ -147,7 +150,7 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
 ?>
             </div>
 <?php
-    if ( !ZM_WEB_COMPACT_MONTAGE )
+    if ( !ZM_WEB_COMPACT_MONTAGE && !$monitor->Type() == "WebSite" )
     {
 ?>
             <div id="monitorState<?php echo $monitor->index() ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->index() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->index() ?>"></span>&nbsp;fps</div>

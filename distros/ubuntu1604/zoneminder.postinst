@@ -37,9 +37,9 @@ if [ "$1" = "configure" ]; then
           DBSERVICE="mysql.service"
         fi
         if systemctl is-failed --quiet $DBSERVICE; then
-          echo $DBSERVICE is in a failed state; it will not be started.
-          echo If you have already resolved the problem preventing $DBSERVICE from running,
-          echo run sudo systemctl restart $DBSERVICE then run sudo dpkg-reconfigure zoneminder.
+          echo "$DBSERVICE is in a failed state; it will not be started."
+          echo "If you have already resolved the problem preventing $DBSERVICE from running,"
+          echo "run sudo systemctl restart $DBSERVICE then run sudo dpkg-reconfigure zoneminder."
           exit 1
         fi
         

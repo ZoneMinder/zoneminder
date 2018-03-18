@@ -2,18 +2,18 @@
 /**
  * DboSqliteTest file
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Test.Case.Model.Datasource.Database
  * @since         CakePHP(tm) v 1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Model', 'Model');
@@ -168,7 +168,13 @@ class SqliteTest extends CakeTestCase {
 		$dbName = 'db' . rand() . '$(*%&).db';
 		$this->assertFalse(file_exists(TMP . $dbName));
 
-		$db = new Sqlite(array_merge($this->Dbo->config, array('database' => TMP . $dbName)));
+		try {
+			$db = new Sqlite(array_merge($this->Dbo->config, array('database' => TMP . $dbName)));
+		} catch (MissingConnectionException $e) {
+			// This might be caused by NTFS file systems, where '*' is a forbidden character. Repeat without this character.
+			$dbName = str_replace('*', '', $dbName);
+			$db = new Sqlite(array_merge($this->Dbo->config, array('database' => TMP . $dbName)));
+		}
 		$this->assertTrue(file_exists(TMP . $dbName));
 
 		$db->execute("CREATE TABLE test_list (id VARCHAR(255));");
@@ -255,6 +261,28 @@ class SqliteTest extends CakeTestCase {
 		);
 		$result = $this->Dbo->buildColumn($data);
 		$expected = '"testName" integer(10) DEFAULT 10 NOT NULL';
+		$this->assertEquals($expected, $result);
+
+		$data = array(
+			'name' => 'testName',
+			'type' => 'smallinteger',
+			'length' => 6,
+			'default' => 6,
+			'null' => false,
+		);
+		$result = $this->Dbo->buildColumn($data);
+		$expected = '"testName" smallint(6) DEFAULT 6 NOT NULL';
+		$this->assertEquals($expected, $result);
+
+		$data = array(
+			'name' => 'testName',
+			'type' => 'tinyinteger',
+			'length' => 4,
+			'default' => 4,
+			'null' => false,
+		);
+		$result = $this->Dbo->buildColumn($data);
+		$expected = '"testName" tinyint(4) DEFAULT 4 NOT NULL';
 		$this->assertEquals($expected, $result);
 
 		$data = array(
@@ -377,6 +405,24 @@ class SqliteTest extends CakeTestCase {
 				'default' => null,
 				'length' => 20,
 			),
+			'normal_int' => array(
+				'type' => 'integer',
+				'null' => true,
+				'default' => null,
+				'length' => null
+			),
+			'small_int' => array(
+				'type' => 'smallinteger',
+				'null' => true,
+				'default' => null,
+				'length' => null
+			),
+			'tiny_int' => array(
+				'type' => 'tinyinteger',
+				'null' => true,
+				'default' => null,
+				'length' => null
+			),
 			'bool' => array(
 				'type' => 'boolean',
 				'null' => false,
@@ -423,6 +469,40 @@ class SqliteTest extends CakeTestCase {
 	}
 
 /**
+ * Test that describe ignores `default current_timestamp` in timestamp columns.
+ *
+ * @return void
+ */
+	public function testDescribeHandleCurrentTimestamp() {
+		$name = $this->Dbo->fullTableName('timestamp_default_values');
+		$sql = <<<SQL
+CREATE TABLE $name (
+	id INT NOT NULL,
+	phone VARCHAR(10),
+	limit_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id)
+);
+SQL;
+		$this->Dbo->execute($sql);
+		$model = new Model(array(
+			'table' => 'timestamp_default_values',
+			'ds' => 'test',
+			'alias' => 'TimestampDefaultValue'
+		));
+		$result = $this->Dbo->describe($model);
+		$this->Dbo->execute('DROP TABLE ' . $name);
+
+		$this->assertNull($result['limit_date']['default']);
+
+		$schema = new CakeSchema(array(
+			'connection' => 'test',
+			'testdescribes' => $result
+		));
+		$result = $this->Dbo->createSchema($schema);
+		$this->assertContains('"limit_date" timestamp NOT NULL', $result);
+	}
+
+/**
  * Test virtualFields with functions.
  *
  * @return void
@@ -466,6 +546,7 @@ class SqliteTest extends CakeTestCase {
  * @return void
  */
 	public function testNestedTransaction() {
+		$this->Dbo->useNestedTransactions = true;
 		$this->skipIf($this->Dbo->nestedTransactionSupported() === false, 'The Sqlite version do not support nested transaction');
 
 		$this->loadFixtures('User');
@@ -585,4 +666,25 @@ class SqliteTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 	}
 
+/**
+ * Test Sqlite Datasource doesn't support locking hint
+ *
+ * @return void
+ */
+	public function testBuildStatementWithoutLockingHint() {
+		$model = new TestModel();
+		$sql = $this->Dbo->buildStatement(
+			array(
+				'fields' => array('id'),
+				'table' => 'users',
+				'alias' => 'User',
+				'order' => array('id'),
+				'limit' => 1,
+				'lock' => true,
+			),
+			$model
+		);
+		$expected = 'SELECT id FROM users AS "User"   WHERE 1 = 1   ORDER BY "id" ASC  LIMIT 1';
+		$this->assertEquals($expected, $sql);
+	}
 }

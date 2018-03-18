@@ -2,18 +2,18 @@
 /**
  * SchemaShellTest Test file
  *
- * CakePHP : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP Project
  * @package       Cake.Test.Case.Console.Command
  * @since         CakePHP v 1.3
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ShellDispatcher', 'Console');
@@ -147,7 +147,7 @@ class SchemaShellTest extends CakeTestCase {
 		$this->assertEquals('TestSchema', $this->Shell->Schema->name);
 		$this->assertEquals('test_schema.php', $this->Shell->Schema->file);
 		$this->assertEquals('default', $this->Shell->Schema->connection);
-		$this->assertEquals(APP . 'Config' . DS . 'Schema', $this->Shell->Schema->path);
+		$this->assertEquals(CONFIG . 'Schema', $this->Shell->Schema->path);
 
 		$this->Shell->Schema = null;
 		$this->Shell->params = array(
@@ -169,7 +169,7 @@ class SchemaShellTest extends CakeTestCase {
  */
 	public function testView() {
 		$this->Shell->startup();
-		$this->Shell->Schema->path = APP . 'Config' . DS . 'Schema';
+		$this->Shell->Schema->path = CONFIG . 'Schema';
 		$this->Shell->params['file'] = 'i18n.php';
 		$this->Shell->expects($this->once())->method('_stop');
 		$this->Shell->expects($this->once())->method('out');
@@ -485,7 +485,7 @@ class SchemaShellTest extends CakeTestCase {
 		$this->Shell->params = array(
 			'connection' => 'test',
 			'name' => 'I18n',
-			'path' => APP . 'Config' . DS . 'Schema'
+			'path' => CONFIG . 'Schema'
 		);
 		$this->Shell->args = array('I18n', 'i18n');
 		$this->Shell->startup();

@@ -11,3 +11,4 @@ Contents:
    debian
    redhat
    multiserver
+   dedicateddrive

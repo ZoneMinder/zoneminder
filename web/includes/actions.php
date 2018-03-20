@@ -195,7 +195,6 @@ if ( canView( 'Events' ) ) {
           $_REQUEST['Id'] = dbInsertId();
         }
         if ( $action == 'execute' ) {
-session_write_close();
           executeFilter( $tempFilterName );
         }
 
@@ -618,35 +617,14 @@ if ( canEdit( 'Monitors' ) ) {
     $view = 'none';
   } elseif ( $action == 'delete' ) {
     if ( isset($_REQUEST['markMids']) && !$user['MonitorIds'] ) {
+      require_once( 'Monitor.php' );
       foreach( $_REQUEST['markMids'] as $markMid ) {
-        if ( canEdit( 'Monitors', $markMid ) ) {
+        if ( canEdit('Monitors', $markMid) ) {
+          // This could be faster as a select all
           if ( $monitor = dbFetchOne( 'SELECT * FROM Monitors WHERE Id = ?', NULL, array($markMid) ) ) {
-            if ( daemonCheck() ) {
-              zmaControl( $monitor, 'stop' );
-              zmcControl( $monitor, 'stop' );
-            }
-
-            // If fast deletes are on, then zmaudit will clean everything else up later
-            // If fast deletes are off and there are lots of events then this step may
-            // well time out before completing, in which case zmaudit will still tidy up
-            if ( !ZM_OPT_FAST_DELETE ) {
-              $markEids = dbFetchAll( 'SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($markMid) );
-              foreach( $markEids as $markEid )
-                deleteEvent( $markEid );
-
-              deletePath( ZM_DIR_EVENTS.'/'.basename($monitor['Name']) );
-              deletePath( ZM_DIR_EVENTS.'/'.$monitor['Id'] ); // I'm trusting the Id.  
-            } // end if ZM_OPT_FAST_DELETE
-
-            // This is the important stuff
-            dbQuery( 'DELETE FROM Zones WHERE MonitorId = ?', array($markMid) );
-            if ( ZM_OPT_X10 )
-              dbQuery( 'DELETE FROM TriggersX10 WHERE MonitorId=?', array($markMid) );
-            dbQuery( 'DELETE FROM Monitors WHERE Id = ?', array($markMid) );
-
-            fixSequences();
-
-          } // end if found the monitor in the db
+            $Monitor = new Monitor($monitor);
+            $Monitor->delete();
+          } // end if monitor found in db
         } // end if canedit this monitor
       } // end foreach monitor in MarkMid
     } // markMids is set and we aren't limited to specific monitors
@@ -993,9 +971,10 @@ if ( canEdit( 'System' ) ) {
 }
 
 if ( $action == 'reset' ) {
+  session_start();
   $_SESSION['zmEventResetTime'] = strftime( STRF_FMT_DATETIME_DB );
   setcookie( 'zmEventResetTime', $_SESSION['zmEventResetTime'], time()+3600*24*30*12*10 );
-  //if ( $cookies ) session_write_close();
+  session_write_close();
 }
 
 ?>

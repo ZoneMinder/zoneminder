@@ -53,67 +53,72 @@ GetOptions(
   version   => \$version
 );
 if ( $version ) {
-    print( ZoneMinder::Base::ZM_VERSION . "\n");
-    exit(0);
+  print( ZoneMinder::Base::ZM_VERSION . "\n");
+  exit(0);
 }
 if ( $help ) {
-    pod2usage(-exitstatus => -1);
+  pod2usage(-exitstatus => -1);
 }
 if ( ! defined $interval ) {
   $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
 }
 
-if ( $Config{ZM_TELEMETRY_DATA} or $force ) {
-  print "Update agent starting at ".strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n";
+<<<<<<< HEAD
 
-  my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
+if ( !($Config{ZM_TELEMETRY_DATA} or $force) ) {
+  print "ZoneMinder Telemetry Agent not enabled.  Exiting.\n";
+  exit(0);
+}
+  
+print 'ZoneMinder Telemetry Agent starting at '.strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n";
 
-  while( 1 ) {
-    my $now = time();
-    my $since_last_check = $now-$lastCheck;
-    Debug(" Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
-    if ( $since_last_check < 0 ) {
-      Warning( "Seconds since last check is negative! Which means that lastCheck is in the future!" );
-      next;
-    }
-    if ( ( ($now-$lastCheck) > $interval ) or $force ) {
-      print "Collecting data to send to ZoneMinder Telemetry server.\n";
-      my $dbh = zmDbConnect();
+my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
+
+while( 1 ) {
+  my $now = time();
+  my $since_last_check = $now-$lastCheck;
+  Debug(" Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
+  if ( $since_last_check < 0 ) {
+    Warning( 'Seconds since last check is negative! Which means that lastCheck is in the future!' );
+    next;
+  }
+  if ( ( ($since_last_check) > $interval ) or $force ) {
+    print "Collecting data to send to ZoneMinder Telemetry server.\n";
+    my $dbh = zmDbConnect();
 # Build the telemetry hash
 # We should keep *BSD systems in mind when calling system commands
-      my %telemetry;
-      $telemetry{uuid} = getUUID($dbh);
-      $telemetry{ip} = getIP();
-      $telemetry{timestamp} = strftime( '%Y-%m-%dT%H:%M:%S%z', localtime() );
-      $telemetry{monitor_count} = countQuery($dbh,'Monitors');
-      $telemetry{event_count} = countQuery($dbh,'Events');
-      $telemetry{architecture} = runSysCmd('uname -p');
-      ($telemetry{kernel}, $telemetry{distro}, $telemetry{version}) = getDistro();
-      $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;
-      $telemetry{system_memory} = totalmem();
-      $telemetry{processor_count} = cpu_count();
-      $telemetry{monitors} = getMonitorRef($dbh);
+    my %telemetry;
+    $telemetry{uuid} = getUUID($dbh);
+    $telemetry{ip} = getIP();
+    $telemetry{timestamp} = strftime( '%Y-%m-%dT%H:%M:%S%z', localtime() );
+    $telemetry{monitor_count} = countQuery($dbh,'Monitors');
+    $telemetry{event_count} = countQuery($dbh,'Events');
+    $telemetry{architecture} = runSysCmd('uname -p');
+    ($telemetry{kernel}, $telemetry{distro}, $telemetry{version}) = getDistro();
+    $telemetry{zm_version} = ZoneMinder::Base::ZM_VERSION;
+    $telemetry{system_memory} = totalmem();
+    $telemetry{processor_count} = cpu_count();
+    $telemetry{monitors} = getMonitorRef($dbh);
 
-      Info( 'Sending data to ZoneMinder Telemetry server.' );
+    Info('Sending data to ZoneMinder Telemetry server.');
 
-      my $result = jsonEncode( \%telemetry );
+    my $result = jsonEncode(\%telemetry);
 
-      if ( sendData($result) ) {
-
-        my $sql = q`UPDATE Config SET Value = ? WHERE Name = 'ZM_TELEMETRY_LAST_UPLOAD'`;
-        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute( $now ) or die( "Can't execute: ".$sth->errstr() );
-        $sth->finish();
-        $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
-      }
-      zmDbDisconnect();
-    } elsif ( -t STDIN ) {
-      print "Update agent sleeping for 1 hour because ($now-$lastCheck=$since_last_check > $interval\n";
-    } 
-    sleep( 3600 );
-  }
-  print 'Update agent exiting at '.strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n";
-}
+    if ( sendData($result) ) {
+      my $sql = q`UPDATE Config SET Value = ? WHERE Name = 'ZM_TELEMETRY_LAST_UPLOAD'`;
+      my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+      my $res = $sth->execute($now) or die( "Can't execute: ".$sth->errstr() );
+      $sth->finish();
+      $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
+    }
+    zmDbDisconnect();
+  } elsif ( -t STDIN ) {
+    print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
+  } 
+  $lastCheck = $now;
+  sleep($interval);
+} # end while
+print 'ZoneMinder Telemetry Agent exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n";
 
 ###############
 # SUBROUTINES #
@@ -178,7 +183,7 @@ sub sendData {
 # Retrieves the UUID from the database. Creates a new UUID if one does not exist.
 sub getUUID {
   my $dbh = shift;
-  my $uuid= "";
+  my $uuid= '';
 
 # Verify the current UUID is valid and not nil
   if (( $Config{ZM_TELEMETRY_UUID} =~ /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i ) && ( $Config{ZM_TELEMETRY_UUID} ne '00000000-0000-0000-0000-000000000000' )) {

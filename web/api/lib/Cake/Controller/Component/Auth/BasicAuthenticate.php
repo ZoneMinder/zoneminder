@@ -1,15 +1,15 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
@@ -84,6 +84,12 @@ class BasicAuthenticate extends BaseAuthenticate {
 	public function getUser(CakeRequest $request) {
 		$username = env('PHP_AUTH_USER');
 		$pass = env('PHP_AUTH_PW');
+		if (!strlen($username)) {
+			$httpAuthorization = $request->header('Authorization');
+			if (strlen($httpAuthorization) > 0 && strpos($httpAuthorization, 'Basic') !== false) {
+				list($username, $pass) = explode(':', base64_decode(substr($httpAuthorization, 6)));
+			}
+		}
 
 		if (!is_string($username) || $username === '' || !is_string($pass) || $pass === '') {
 			return false;

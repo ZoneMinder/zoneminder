@@ -85,7 +85,6 @@ while( 1 ) {
     my $dbh = zmDbConnect();
 # Build the telemetry hash
 # We should keep *BSD systems in mind when calling system commands
-<<<<<<< HEAD
     my %telemetry;
     $telemetry{uuid} = getUUID($dbh);
     $telemetry{ip} = getIP();
@@ -112,10 +111,10 @@ while( 1 ) {
     }
     zmDbDisconnect();
   } elsif ( -t STDIN ) {
-    print "ZoneMinder Telemetry Agent sleeping for 1 hour because ($now-$lastCheck=$since_last_check > $interval\n";
+    print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
   } 
   $lastCheck = $now;
-  sleep(3600);
+  sleep($interval);
 }
 print 'ZoneMinder Telemetry Agent exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n";
 

@@ -63,8 +63,6 @@ if ( ! defined $interval ) {
   $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
 }
 
-<<<<<<< HEAD
-
 if ( !($Config{ZM_TELEMETRY_DATA} or $force) ) {
   print "ZoneMinder Telemetry Agent not enabled.  Exiting.\n";
   exit(0);

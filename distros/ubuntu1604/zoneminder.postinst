@@ -30,25 +30,27 @@ if [ "$1" = "configure" ]; then
         #
         # Get mysql started if it isn't running
         #
-        $(systemctl status mysql.service >/dev/null 2>&1); MYSQL_STATUS=$?
-        $(systemctl status mariadb.service >/dev/null 2>&1); MARIADB_STATUS=$?
         
-        # 3 = inactive, 4 = nonexistant
-        if [ "$MARIADB_STATUS" != "4" ]; then
+        if [ -e "/lib/systemd/system/mariadb.service" ]; then
           DBSERVICE="mariadb.service"
         else
           DBSERVICE="mysql.service"
         fi
+        if systemctl is-failed --quiet $DBSERVICE; then
+          echo "$DBSERVICE is in a failed state; it will not be started."
+          echo "If you have already resolved the problem preventing $DBSERVICE from running,"
+          echo "run sudo systemctl restart $DBSERVICE then run sudo dpkg-reconfigure zoneminder."
+          exit 1
+        fi
         
-        if [ "$MYSQL_STATUS" != "0" ] && [ "$MARIADB_STATUS" != "0" ]; then
-          # 3 = inactive, 4 = nonexistant
+        if ! systemctl is-active --quiet mysql.service mariadb.service; then
           # Due to /etc/init.d service autogeneration, mysql.service always returns the status of mariadb.service
           # However, mariadb.service will not return the status of mysql.service.
           deb-systemd-invoke start $DBSERVICE
         fi
         
         # Make sure systemctl status exit code is 0; i.e. the DB is running
-        if systemctl status "$DBSERVICE" >/dev/null 2>&1; then
+        if systemctl is-active --quiet "$DBSERVICE"; then
           mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
           # test if database if already present...
           if ! $(echo quit | mysql zm > /dev/null 2> /dev/null) ; then

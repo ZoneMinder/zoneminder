@@ -1,3 +1,34 @@
+#content .vjsMessage {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    z-index: 10;
+    margin: 0;
+    font-size: 200%;
+    color: white;
+    background-color: black;
+    display: inline-block;
+}
+
+.alarmCue {
+    background-color: #222222;
+    height: 1.25em;
+    text-align: left;
+    margin: 0 auto 0 auto;
+    border-radius: 0 0 .3em .3em;
+}
+
+.alarmCue span {
+    background-color:red;
+    height: 100%;
+    display: inline-block;
+    border-radius: 0;
+}
+
+span.noneCue {
+    background: none;
+}
+
 #dataBar {
     width: 100%;
     margin: 2px auto;
@@ -6,6 +37,7 @@
 
 #dataBar #dataTable {
     width: 100%;
+    table-layout: fixed;
 }
 
 #dataBar #dataTable td {
@@ -64,7 +96,10 @@
     clear: both;
     visibility: hidden;
 }
+
 #imageFeed {
+    display: inline-block;
+    position: relative;
     text-align: center;
 }
 
@@ -135,39 +170,30 @@
 
 #progressBar {
     position: relative;
-    border: 1px solid #666666;
-    height: 15px;
-    margin: 0 auto;
+    top: -1.25em;
+    height: 1.25em;
+    margin: 0 auto -1.25em auto;
 }
 
 #progressBar .progressBox {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    height: 15px;
-    background: #eeeeee;
-    border-left: 1px solid #999999;
-}
-
-#progressBar .complete {
-    background: #aaaaaa;
+    transition: width .1s;
+    height: 100%;
+    background: rgba(170, 170, 170, .7);
+    border-radius: 0 0 .3em .3em;
 }
 
 #eventStills {
-    width: 100%;
     position: relative;
 }
 
 #eventThumbsPanel {
     position: relative;
-    width: 100%;
-    margin: 4px auto;
+    margin: 0;
     z-index: 1;
 }
 
 #eventThumbs {
     margin: 0 auto;
-    width: 100%;
     overflow: hidden;
     height: 300px;
 }
@@ -186,14 +212,19 @@
 }
 
 #eventImagePanel {
+    display: none;
     position: absolute;
+    top: 0;
+    left: 0;
     z-index: 10;
+    width: 100%;
 }
 
 #eventImageFrame {
     border: 2px solid gray;
     background-color: white;
     padding: 4px;
+    display: inline-block;
 }
 
 #eventImage {
@@ -216,8 +247,17 @@
     float: right;
 }
 
+#eventImageBar::after {
+  visibility: hidden;
+  display: block;
+  content: "";
+  clear: both;
+  height: 0;
+}
+
 #eventImageNav {
     position: relative;
+    margin: 0 0 4px 0;
 }
 
 #eventImageNav input {
@@ -226,24 +266,25 @@
 }
 
 #thumbsSliderPanel {
-    width: 400px;
-    margin: 4px auto 0;
-    background: #888888;
-    padding: 1px;
+    width: 80%;
+    margin: 0px auto 4px auto;
 }
 
 #thumbsSlider {
-    width: 400px;
-    height: 10px;
-    background: #dddddd;
+    width: 100%;
+    height: 1.25em;
+    position: relative;
+    top: -1.25em;
+    margin: 0 0 -1.25em 0;
 }
 
 #thumbsKnob {
-    width: 8px;
-    height: 10px;
-    background-color: #444444;
+    width: 1em;
+    height: 100%;
+    background-color: #999999;
 }
 #eventVideo {
+    display: inline-block;
     position: relative;
 }
 
@@ -272,10 +313,6 @@
 		color-stop(0.13, rgb(3,113,168)),
 		color-stop(1, rgb(0,136,204))
 	);
-}
-
-#eventVideo:hover #video-controls {
-	opacity: .9;
 }
 
 button {

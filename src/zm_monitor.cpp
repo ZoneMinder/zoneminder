@@ -400,6 +400,7 @@ Monitor::Monitor(
     shared_data->alarm_y = -1;
     shared_data->format = camera->SubpixelOrder();
     shared_data->imagesize = camera->ImageSize();
+    shared_data->alarm_cause[0] = 0;
     trigger_data->size = sizeof(TriggerData);
     trigger_data->trigger_state = TRIGGER_CANCEL;
     trigger_data->trigger_score = 0;
@@ -1459,6 +1460,18 @@ bool Monitor::Analyse() {
                   event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
                 }
                 shared_data->last_event = event->Id();
+                // lets construct alarm cause. It will contain cause + names of zones alarmed
+                std::string alarm_cause="";
+                for ( int i=0; i < n_zones; i++) {
+                    if (zones[i]->Alarmed()) {
+                        alarm_cause += std::string(zones[i]->Label());
+                        if (i < n_zones-1) {
+                            alarm_cause +=",";
+                        }
+                    }
+                } 
+                alarm_cause = cause+" "+alarm_cause;
+                strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
@@ -2941,7 +2954,7 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
     const char *s_ptr = label_time_text;
     char *d_ptr = label_text;
     while ( *s_ptr && ((d_ptr-label_text) < (unsigned int)sizeof(label_text)) ) {
-      if ( *s_ptr == '%' ) {
+      if ( *s_ptr == config.timestamp_code_char[0] ) {
         bool found_macro = false;
         switch ( *(s_ptr+1) ) {
           case 'N' :

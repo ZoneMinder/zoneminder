@@ -1,0 +1,57 @@
+From 62a98b36fd62d328956503bc9427ae128bb811af Mon Sep 17 00:00:00 2001
+From: Andrew Bauer <zonexpertconsulting@outlook.com>
+Date: Mon, 26 Feb 2018 10:05:02 -0600
+Subject: [PATCH] fix 32bit rpm builds
+
+---
+ pack/rpm.mk | 2 +-
+ packpack    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/packpack/pack/rpm.mk b/packpack/pack/rpm.mk
+index c74e942..9a6b016 100644
+--- a/packpack/pack/rpm.mk
++++ b/packpack/pack/rpm.mk
+@@ -124,7 +124,7 @@ package: $(BUILDDIR)/$(RPMSRC)
+ 	@echo "-------------------------------------------------------------------"
+ 	@echo "Building RPM packages"
+ 	@echo "-------------------------------------------------------------------"
+-	rpmbuild \
++	setarch $(ARCH) rpmbuild \
+ 		--define '_topdir $(BUILDDIR)' \
+ 		--define '_sourcedir $(BUILDDIR)' \
+ 		--define '_specdir $(BUILDDIR)' \
+diff --git a/packpack/packpack b/packpack/packpack
+index 6f4c80f..c329399 100755
+--- a/packpack/packpack
++++ b/packpack/packpack
+@@ -125,7 +125,7 @@ chmod a+x ${BUILDDIR}/userwrapper.sh
+ #
+ # Save defined configuration variables to ./env file
+ #
+-env | grep -E "^PRODUCT=|^VERSION=|^RELEASE=|^ABBREV=|^TARBALL_|^CHANGELOG_|^CCACHE_|^PACKAGECLOUD_|^SMPFLAGS=|^OS=|^DIST=" \
++env | grep -E "^PRODUCT=|^VERSION=|^RELEASE=|^ABBREV=|^TARBALL_|^CHANGELOG_|^CCACHE_|^PACKAGECLOUD_|^SMPFLAGS=|^OS=|^DIST=|^ARCH=" \
+     > ${BUILDDIR}/env
+ 
+ #
+diff --git a/packpack/packpack b/packpack/packpack
+index c329399..6ffaa9c 100755
+--- a/packpack/packpack
++++ b/packpack/packpack
+@@ -19,11 +19,11 @@ DOCKER_REPO=${DOCKER_REPO:-packpack/packpack}
+ if [ -z "${ARCH}" ]; then
+     # Use uname -m instead of HOSTTYPE
+     case "$(uname -m)" in
+-        i*86) ARCH="i386" ;;
+-        arm*) ARCH="armhf" ;;
+-        x86_64) ARCH="x86_64"; ;;
+-        aarch64) ARCH="aarch64" ;;
+-        *) ARCH="${HOSTTYPE}" ;;
++        i*86) export ARCH="i386" ;;
++        arm*) export ARCH="armhf" ;;
++        x86_64) export ARCH="x86_64"; ;;
++        aarch64) export ARCH="aarch64" ;;
++        *) export ARCH="${HOSTTYPE}" ;;
+     esac
+ fi
+ 

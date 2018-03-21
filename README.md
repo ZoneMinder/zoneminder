@@ -13,6 +13,10 @@ ZoneMinder is an integrated set of applications which provide a complete surveil
 Before creating an issue in our github forum, please read our posting rules:
 https://github.com/ZoneMinder/ZoneMinder/wiki/Github-Posting-Rules
 
+## Our Dockerfile has moved
+Please file issues against the ZoneMinder Dockerfile here: 
+https://github.com/ZoneMinder/zmdockerfiles
+
 ## Installation Methods
 
 ### Building from Source is Discouraged
@@ -27,10 +31,12 @@ This is the recommended method to install ZoneMinder onto your system. ZoneMinde
 
 - Ubuntu via [Iconnor's PPA](https://launchpad.net/~iconnor/+archive/ubuntu/zoneminder)
 - Debian from their [default repository](https://packages.debian.org/search?searchon=names&keywords=zoneminder) 
-- RHEL/CentOS and clones via [zmrepo](http://zmrepo.zoneminder.com/)
-- Fedora via [zmrepo](http://zmrepo.zoneminder.com/)
+- RHEL/CentOS and clones via [RPM Fusion](http://rpmfusion.org)
+- Fedora via [RPM Fusion](http://rpmfusion.org)
 - OpenSuse via [third party repository](http://www.zoneminder.com/wiki/index.php/Installing_using_ZoneMinder_RPMs_for_SuSE)
 - Mageia from their default repository
+- Arch via the [AUR](https://aur.archlinux.org/packages/zoneminder/)
+- Gentoo from their [default repository](https://packages.gentoo.org/packages/www-misc/zoneminder)
 
 If a repository that hosts ZoneMinder packages is not available for your distro, then you are encouraged to build your own package, rather than build from source.  While each distro is different in ways that set it apart from all the others, they are often similar enough to allow you to adapt another distro's package building instructions to your own.
 

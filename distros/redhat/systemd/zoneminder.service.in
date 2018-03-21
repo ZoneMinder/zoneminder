@@ -1,4 +1,4 @@
-# ZoneMinder systemd unit file for CentOS 7
+# ZoneMinder systemd unit file for RedHat distros and clones
 
 [Unit]
 Description=ZoneMinder CCTV recording and security system

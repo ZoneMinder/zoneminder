@@ -15,9 +15,11 @@ achieve the same result by running:
 
 ::
 
-    tasksel install lamp-server
+    sudo tasksel install lamp-server
 
 During installation it will ask you to set up a master/root password for the MySQL.
+Installing LAMP is not ZoneMinder specific so you will find plenty of resources to 
+guide you with a quick search.
 
 **Step 1:** Either run commands in this install using sudo or use the below to become root
 ::
@@ -28,9 +30,14 @@ During installation it will ask you to set up a master/root password for the MyS
 
 .. topic :: Latest Release
 
-    ZoneMinder 1.29.0 is now part of the current standard Ubuntu repository. But
-    if you wish to install the later releases of ZoneMinder you will need
-    to add the iconnor/zoneminder PPA.
+    ZoneMinder is now part of the current standard Ubuntu repository, but
+    sometimes the official repository can lag behind. To find out check our
+    `releases page <https://github.com/ZoneMinder/zoneminder/releases>`_ for
+    the latest release.
+    
+    Alternatively, the ZoneMinder project team maintains a ppa, which is updated immediately
+    following a new release of ZoneMinder. To use this repository instead of the
+    official Ubuntu repository, enter the following from the command line:
 
     ::
 

@@ -155,7 +155,7 @@ int X264MP4Writer::Open() {
   }
 
   /* Search SPS NAL for AVC information */
-  for ( unsigned int i = 0; i < i_nals; i++ ) {
+  for ( int i = 0; i < i_nals; i++ ) {
     if ( nals[i].i_type == NAL_SPS ) {
       x264_profleindication = nals[i].p_payload[5];
       x264_profilecompat = nals[i].p_payload[6];
@@ -467,7 +467,7 @@ void X264MP4Writer::x264encodeloop(bool bFlush) {
     /* Got a frame. Copy this new frame into the previous frame */
     if ( frame_size > 0 ) {
       /* Copy the NALs and the payloads */
-      for ( unsigned int i = 0; i < i_nals; i++ ) {
+      for ( int i = 0; i < i_nals; i++ ) {
         prevnals.push_back(nals[i]);
         prevpayload.append(nals[i].p_payload, nals[i].i_payload);
       }

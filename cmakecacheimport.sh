@@ -55,6 +55,9 @@ echo "Database host              : $ZM_DB_HOST"
 echo "Database name              : $ZM_DB_NAME"
 echo "Database user              : $ZM_DB_USER"
 echo "Database password          : Not shown"
+echo "Database SSL CA Cert       : $ZM_DB_SSL_CA_CERT"
+echo "Database SSL Client Key    : $ZM_DB_SSL_CLIENT_KEY"
+echo "Database SSL Client Cert   : $ZM_DB_SSL_CLIENT_CERT"
 
 
 CMPATH="CACHE PATH \"Imported by cmakecacheimport.sh\" FORCE"
@@ -72,6 +75,9 @@ echo "set(ZM_DB_HOST \"$ZM_DB_HOST\" $CMSTRING)">>zm_conf.cmake
 echo "set(ZM_DB_NAME \"$ZM_DB_NAME\" $CMSTRING)">>zm_conf.cmake
 echo "set(ZM_DB_USER \"$ZM_DB_USER\" $CMSTRING)">>zm_conf.cmake
 echo "set(ZM_DB_PASS \"$ZM_DB_PASS\" $CMSTRING)">>zm_conf.cmake
+echo "set(ZM_DB_SSL_CA_CERT \"$ZM_DB_SSL_CA_CERT\" $CMSTRING)">>zm_conf.cmake
+echo "set(ZM_DB_SSL_CLIENT_KEY \"$ZM_DB_SSL_CLIENT_KEY\" $CMSTRING)">>zm_conf.cmake
+echo "set(ZM_DB_SSL_CLIENT_CERT \"$ZM_DB_SSL_CLIENT_CERT\" $CMSTRING)">>zm_conf.cmake
 
 echo ""
 echo "Wrote zm_conf.cmake"

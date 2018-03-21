@@ -28,7 +28,7 @@ New installs
 1. Unless you are already using MariaDB server, you need to ensure that the
    server is configured to start during boot and properly secured by running:
 
-	sudo dnf install mariadb-server
+	sudo yum install mariadb-server
 	sudo systemctl enable mariadb
 	sudo systemctl start  mariadb.service
 	mysql_secure_installation

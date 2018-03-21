@@ -85,6 +85,7 @@ while( 1 ) {
     my $dbh = zmDbConnect();
 # Build the telemetry hash
 # We should keep *BSD systems in mind when calling system commands
+<<<<<<< HEAD
     my %telemetry;
     $telemetry{uuid} = getUUID($dbh);
     $telemetry{ip} = getIP();

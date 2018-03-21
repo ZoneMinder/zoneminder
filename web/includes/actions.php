@@ -478,7 +478,7 @@ if ( canEdit( 'Monitors' ) ) {
 
     if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
       Logger::Debug("Auto selecting server");
-      $_REQUEST['newMonitor']['ServerId'] = dbFetchOne( 'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem ASC, CpuLoad ASC LIMIT 1', 'Id' );
+      $_REQUEST['newMonitor']['ServerId'] = dbFetchOne( 'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id' );
       Logger::Debug("Auto selecting server: Got " . $_REQUEST['newMonitor']['ServerId'] );
       if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
         $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;

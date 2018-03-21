@@ -136,6 +136,17 @@ $statusData = array(
                   //"Path" => array( "postFunc" => "getEventPath" ),
                   ),
                   ),
+                  "frames" => array(
+                      "permission" => "Events",
+                      "table" => "Frames",
+                      "selector" => "EventId",
+                      "elements" => array(
+                        "EventId" => true,
+                        "FrameId" => true,
+                        "Type" => true,
+                        "Delta" => true,
+                        ),
+                      ),
                   "frame" => array(
                       "permission" => "Events",
                       "table" => "Frames",
@@ -367,7 +378,7 @@ function getNearEvents() {
   else
     $midSql = '';
 
-  $sql = "select E.Id as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where ".dbEscape($sortColumn)." ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn ".($sortOrder=='asc'?'desc':'asc');
+  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." ORDER BY $sortColumn ".($sortOrder=='asc'?'desc':'asc') . ' LIMIT 2';
   $result = dbQuery( $sql );
   while ( $id = dbFetchNext( $result, 'Id' ) ) {
     if ( $id == $eventId ) {
@@ -376,7 +387,7 @@ function getNearEvents() {
     }
   }
 
-  $sql = "select E.Id as Id from Events as E inner join Monitors as M on E.MonitorId = M.Id where $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." order by $sortColumn $sortOrder";
+  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." ORDER BY $sortColumn $sortOrder LIMIT 2";
   $result = dbQuery( $sql );
   while ( $id = dbFetchNext( $result, 'Id' ) ) {
     if ( $id == $eventId ) {
@@ -388,8 +399,10 @@ function getNearEvents() {
   $result = array( 'EventId'=>$eventId );
   $result['PrevEventId'] = empty($prevEvent)?0:$prevEvent['Id'];
   $result['NextEventId'] = empty($nextEvent)?0:$nextEvent['Id'];
-  $result['PrevEventDefVideoPath'] = empty($prevEvent)?0:(getEventDefaultVideoPath($prevEvent));
-  $result['NextEventDefVideoPath'] = empty($nextEvent)?0:(getEventDefaultVideoPath($nextEvent));
+  $result['PrevEventStartTime'] = empty($prevEvent)?0:$prevEvent['StartTime'];
+  $result['NextEventStartTime'] = empty($nextEvent)?0:$nextEvent['StartTime'];
+  $result['PrevEventDefVideoPath'] = empty($prevEvent)?0:(getEventDefaultVideoPath($prevEvent['Id']));
+  $result['NextEventDefVideoPath'] = empty($nextEvent)?0:(getEventDefaultVideoPath($nextEvent['Id']));
   return( $result );
 }
 

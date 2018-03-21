@@ -195,7 +195,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
   level( tempLevel );
 
   mFlush = false;
-  if (envPtr = getenv( "LOG_FLUSH")) {
+  if ( (envPtr = getenv("LOG_FLUSH")) ) {
     mFlush = atoi( envPtr );
   } else if ( config.log_debug ) {
     mFlush = true;
@@ -341,6 +341,8 @@ Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
           my_bool reconnect = 1;
           if ( mysql_options( &mDbConnection, MYSQL_OPT_RECONNECT, &reconnect ) )
             Fatal( "Can't set database auto reconnect option: %s", mysql_error( &mDbConnection ) );
+          if ( !staticConfig.DB_SSL_CA_CERT.empty() )
+            mysql_ssl_set( &mDbConnection, staticConfig.DB_SSL_CLIENT_KEY.c_str(), staticConfig.DB_SSL_CLIENT_CERT.c_str(), staticConfig.DB_SSL_CA_CERT.c_str(), NULL, NULL );
           std::string::size_type colonIndex = staticConfig.DB_HOST.find( ":" );
           if ( colonIndex == std::string::npos ) {
             if ( !mysql_real_connect( &mDbConnection, staticConfig.DB_HOST.c_str(), staticConfig.DB_USER.c_str(), staticConfig.DB_PASS.c_str(), NULL, 0, NULL, 0 ) ) {

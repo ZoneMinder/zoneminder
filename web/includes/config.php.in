@@ -29,13 +29,12 @@ define( "ZM_DIR_TEMP", "@ZM_TMPDIR@" );
 
 $configFile = ZM_CONFIG;
 $localConfigFile = basename($configFile);
-if ( file_exists( $localConfigFile ) && filesize( $localConfigFile ) > 0 )
-{
-    if ( php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) )
-        print( "Warning, overriding installed $localConfigFile file with local copy\n" );
-    else
-        error_log( "Warning, overriding installed $localConfigFile file with local copy" );
-    $configFile = $localConfigFile;
+if ( file_exists( $localConfigFile ) && filesize( $localConfigFile ) > 0 ) {
+  if ( php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']) )
+    print( "Warning, overriding installed $localConfigFile file with local copy\n" );
+  else
+    error_log( "Warning, overriding installed $localConfigFile file with local copy" );
+  $configFile = $localConfigFile;
 }
 
 # Process name, value pairs from the main config file first
@@ -45,19 +44,19 @@ $configvals = process_configfile($configFile);
 # update our config value array with those values
 $configSubFolder = ZM_CONFIG_SUBDIR;
 if ( is_dir($configSubFolder) ) {
-    if ( is_readable($configSubFolder) ) {
-        foreach ( glob("$configSubFolder/*.conf") as $filename ) {
-            $configvals = array_replace($configvals, process_configfile($filename) );
-        }
-    } else {
-        error_log( "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on $configSubFolder." );
+  if ( is_readable($configSubFolder) ) {
+    foreach ( glob("$configSubFolder/*.conf") as $filename ) {
+      $configvals = array_replace($configvals, process_configfile($filename) );
     }
+  } else {
+    error_log( "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on $configSubFolder." );
+  }
 }
 
 # Now that our array our finalized, define each key => value
 # pair in the array as a constant
 foreach( $configvals as $key => $value) {
-    define( $key, $value );
+  define( $key, $value );
 }
 
 //
@@ -135,91 +134,87 @@ require_once( 'database.php' );
 loadConfig();
 
 $GLOBALS['defaultUser'] = array(
-    "Username"  => "admin",
-    "Password"  => "",
-    "Language"  => "",
-    "Enabled"   => 1,
-    "Stream"    => 'View',
-    "Events"    => 'Edit',
-    "Control"   => 'Edit',
-    "Monitors"  => 'Edit',
-    "Groups"    => 'Edit',
-    "Devices"   => 'Edit',
-    "System"    => 'Edit',
-    "MaxBandwidth" => "",
-    "MonitorIds"   => false
+  "Username"  => "admin",
+  "Password"  => "",
+  "Language"  => "",
+  "Enabled"   => 1,
+  "Stream"    => 'View',
+  "Events"    => 'Edit',
+  "Control"   => 'Edit',
+  "Monitors"  => 'Edit',
+  "Groups"    => 'Edit',
+  "Devices"   => 'Edit',
+  "System"    => 'Edit',
+  "MaxBandwidth" => "",
+  "MonitorIds"   => false
 );
 
-function loadConfig( $defineConsts=true )
-{
-    global $config;
-    global $configCats;
-	global $dbConn;
+function loadConfig( $defineConsts=true ) {
+  global $config;
+  global $configCats;
+  global $dbConn;
 
-    $config = array();
-    $configCat = array();
+  $config = array();
+  $configCat = array();
 
-    $result = $dbConn->query( 'select * from Config order by Id asc' );
-    if ( !$result )
-        echo mysql_error();
-    $monitors = array();
-    while( $row = dbFetchNext( $result ) )
-    {
-        if ( $defineConsts )
-            define( $row['Name'], $row['Value'] );
-        $config[$row['Name']] = $row;
-        if ( !($configCat = &$configCats[$row['Category']]) )
-        {
-            $configCats[$row['Category']] = array();
-            $configCat = &$configCats[$row['Category']];
-        }
-        $configCat[$row['Name']] = $row;
+  $result = $dbConn->query( 'select * from Config order by Id asc' );
+  if ( !$result )
+    echo mysql_error();
+  $monitors = array();
+  while( $row = dbFetchNext( $result ) ) {
+    if ( $defineConsts )
+      define( $row['Name'], $row['Value'] );
+    $config[$row['Name']] = $row;
+    if ( !($configCat = &$configCats[$row['Category']]) ) {
+      $configCats[$row['Category']] = array();
+      $configCat = &$configCats[$row['Category']];
     }
-    //print_r( $config );
-    //print_r( $configCats );
+    $configCat[$row['Name']] = $row;
+  }
+  //print_r( $config );
+  //print_r( $configCats );
 }
 
 require_once( 'logger.php' );
 // For Human-readability, user ZM_SERVER in zm.conf, and convert it here to a ZM_SERVER_ID
 if ( ! defined('ZM_SERVER_ID') ) {
-	if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
-		$server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));
-		if ( ! $server_id ) {
-			Error("Invalid Multi-Server configration detected. ZM_SERVER_NAME set to " . ZM_SERVER_NAME . " in zm.conf, but no corresponding entry found in Servers table.");
-		} else {
-			define( 'ZM_SERVER_ID', $server_id );
-		}
-	} else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
-		$server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_HOST));
-		if ( ! $server_id ) {
-			Error("Invalid Multi-Server configration detected. ZM_SERVER_HOST set to " . ZM_SERVER_HOST . " in zm.conf, but no corresponding entry found in Servers table.");
-		} else {
-			define( 'ZM_SERVER_ID', $server_id );
-		}
-	}
+  if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
+    $server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));
+    if ( ! $server_id ) {
+      Error("Invalid Multi-Server configration detected. ZM_SERVER_NAME set to " . ZM_SERVER_NAME . " in zm.conf, but no corresponding entry found in Servers table.");
+    } else {
+      define( 'ZM_SERVER_ID', $server_id );
+    }
+  } else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
+    $server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_HOST));
+    if ( ! $server_id ) {
+      Error("Invalid Multi-Server configration detected. ZM_SERVER_HOST set to " . ZM_SERVER_HOST . " in zm.conf, but no corresponding entry found in Servers table.");
+    } else {
+      define( 'ZM_SERVER_ID', $server_id );
+    }
+  }
 }
 
 function process_configfile($configFile) {
-    if ( is_readable( $configFile ) ) {
-        $configvals = array();
+  if ( is_readable( $configFile ) ) {
+    $configvals = array();
 
-        $cfg = fopen( $configFile, "r") or die("Could not open config file.");
-        while ( !feof($cfg) )
-        {
-            $str = fgets( $cfg, 256 );
-            if ( preg_match( '/^\s*$/', $str ))
-                continue;
-            elseif ( preg_match( '/^\s*#/', $str ))
-                continue;
-            elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches ))
-                $configvals[$matches[1]] = $matches[2];
-        }
-        fclose( $cfg );
-        return( $configvals );
-    } else {
-        error_log( "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $configFile." );
-        return( false );
+    $cfg = fopen( $configFile, "r") or die("Could not open config file.");
+    while ( !feof($cfg) ) {
+      $str = fgets( $cfg, 256 );
+      if ( preg_match( '/^\s*$/', $str ))
+        continue;
+      elseif ( preg_match( '/^\s*#/', $str ))
+        continue;
+      elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches ))
+        $configvals[$matches[1]] = $matches[2];
     }
+    fclose( $cfg );
+    return( $configvals );
+  } else {
+    error_log( "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $configFile." );
+    return( false );
+  }
 }
 
 ?>

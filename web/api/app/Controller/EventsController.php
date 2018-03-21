@@ -76,11 +76,10 @@ public function beforeFilter() {
 		);
 		$events = $this->Paginator->paginate('Event');
 
-		// For each event, get its thumbnail data (path, width, height)
+		// For each event, get the frameID which has the largest score
 		foreach ($events as $key => $value) {
-			//$thumbData = $this->createThumbnail($value['Event']['Id']);
-			$thumbData = "";
-			$events[$key]['thumbData'] = $thumbData;
+			$maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
+			$events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
 
 		}
 
@@ -278,6 +277,32 @@ public function beforeFilter() {
 		));
 	}
 
+    public function getMaxScoreAlarmFrameId($id = null) {
+    	$this->Event->recursive = -1;
+
+		if (!$this->Event->exists($id)) {
+			throw new NotFoundException(__('Invalid event'));
+		}
+
+		$event = $this->Event->find('first', array(
+			'conditions' => array('Id' => $id)
+		));
+
+		// Find the max Frame for this Event.  Error out otherwise.
+		$this->loadModel('Frame');
+		if (! $frame = $this->Frame->find('first', array(
+			'conditions' => array(
+				'EventId' => $event['Event']['Id'],
+				'Score' => $event['Event']['MaxScore']
+			)
+		))) {
+			throw new NotFoundException(__("Can not find Frame for Event " . $event['Event']['Id']));
+		}
+		return $frame['Frame']['Id'];
+
+
+}
+
 	// Create a thumbnail and return the thumbnail's data for a given event id.
 	public function createThumbnail($id = null) {
 		$this->Event->recursive = -1;
@@ -300,6 +325,7 @@ public function beforeFilter() {
 		))) {
 			throw new NotFoundException(__("Can not find Frame for Event " . $event['Event']['Id']));
 		}
+
 
 		$this->loadModel('Config');
 

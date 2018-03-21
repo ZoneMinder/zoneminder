@@ -293,24 +293,28 @@ sub terminate {
 sub reinitialise {
   my $this = shift;
 
+  # So if the logger is initialized, we just return.  Since the logger is NORMALLY initialized... the rest of this function never executes.
   return unless ( $this->{initialised} );
 
 # Bit of a nasty hack to reopen connections to log files and the DB
   my $syslogLevel = $this->syslogLevel();
   $this->syslogLevel( NOLOG );
+  $this->syslogLevel( $syslogLevel ) if ( $syslogLevel > NOLOG );
+
   my $logfileLevel = $this->fileLevel();
   $this->fileLevel( NOLOG );
+  $this->fileLevel( $logfileLevel ) if ( $logfileLevel > NOLOG );
+
   my $databaseLevel = $this->databaseLevel();
   $this->databaseLevel( NOLOG );
+  $this->databaseLevel( $databaseLevel ) if ( $databaseLevel > NOLOG );
+
   my $screenLevel = $this->termLevel();
   $this->termLevel( NOLOG );
-
-  $this->syslogLevel( $syslogLevel ) if ( $syslogLevel > NOLOG );
-  $this->fileLevel( $logfileLevel ) if ( $logfileLevel > NOLOG );
-  $this->databaseLevel( $databaseLevel ) if ( $databaseLevel > NOLOG );
-  $this->databaseLevel( $databaseLevel ) if ( $databaseLevel > NOLOG );
+  $this->termLevel( $screenLevel ) if ( $screenLevel > NOLOG );
 }
 
+# Prevents undefined logging levels
 sub limit {
   my $this = shift;
   my $level = shift;
@@ -371,12 +375,16 @@ sub level {
   my $level = shift;
   if ( defined($level) ) {
     $this->{level} = $this->limit( $level );
+
+    # effectiveLevel is the highest logging level used by any of the outputs.
     $this->{effectiveLevel} = NOLOG;
     $this->{effectiveLevel} = $this->{termLevel} if ( $this->{termLevel} > $this->{effectiveLevel} );
     $this->{effectiveLevel} = $this->{databaseLevel} if ( $this->{databaseLevel} > $this->{effectiveLevel} );
     $this->{effectiveLevel} = $this->{fileLevel} if ( $this->{fileLevel} > $this->{effectiveLevel} );
     $this->{effectiveLevel} = $this->{syslogLevel} if ( $this->{syslogLevel} > $this->{effectiveLevel} );
-    $this->{effectiveLevel} = $this->{level} if ( $this->{effectiveLevel} > $this->{effectiveLevel} );
+
+    # ICON: I am remarking this out because I don't see the point of having an effective level, if we are just going to set it to level.
+    #$this->{effectiveLevel} = $this->{level} if ( $this->{level} > $this->{effectiveLevel} );
   }
   return( $this->{level} );
 }
@@ -396,6 +404,7 @@ sub termLevel {
   my $this = shift;
   my $termLevel = shift;
   if ( defined($termLevel) ) {
+    # What is the point of this next lint if we are just going to overwrite it with the next line? I propose we move it down one line or remove it altogether
     $termLevel = NOLOG if ( !$this->{hasTerm} );
     $termLevel = $this->limit( $termLevel );
     if ( $this->{termLevel} != $termLevel ) {
@@ -425,8 +434,17 @@ sub databaseLevel {
           } else {
             $socket = ";host=".$Config{ZM_DB_HOST};
           }
+          my $sslOptions = "";
+          if ( $Config{ZM_DB_SSL_CA_CERT} ) {
+            $sslOptions = ';'.join(';',
+                "mysql_ssl=1",
+                "mysql_ssl_ca_file=".$Config{ZM_DB_SSL_CA_CERT},
+                "mysql_ssl_client_key=".$Config{ZM_DB_SSL_CLIENT_KEY},
+                "mysql_ssl_client_cert=".$Config{ZM_DB_SSL_CLIENT_CERT}
+                );
+          }
           $this->{dbh} = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-              .$socket
+              .$socket.$sslOptions
               , $Config{ZM_DB_USER}
               , $Config{ZM_DB_PASS}
               );

@@ -99,7 +99,6 @@ if ( $Config{ZM_TELEMETRY_DATA} or $force ) {
       my $result = jsonEncode( \%telemetry );
 
       if ( sendData($result) ) {
-
         my $sql = q`UPDATE Config SET Value = ? WHERE Name = 'ZM_TELEMETRY_LAST_UPLOAD'`;
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( $now ) or die( "Can't execute: ".$sth->errstr() );

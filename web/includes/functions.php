@@ -452,7 +452,8 @@ function getEventPath( $event ) {
 }
 
 function getEventDefaultVideoPath( $event ) {
-	return ZM_DIR_EVENTS . '/' . getEventPath($event) . '/' . $event['DefaultVideo'];
+  $Event = new Event( $event );
+  return $Event->getStreamSrc( array( "mode"=>"mpeg", "format"=>"h264" ) );
 }
 
 function deletePath( $path ) {
@@ -641,6 +642,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
+
     switch( $types[$key] ) {
       case 'set' :
         {
@@ -702,6 +704,16 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
           break;
         }
+      case 'toggle' :
+        if ( (!isset($values[$key])) or $values[$key] != $value ) {
+          if ( empty($value) ) {
+            $changes[$key] = "$key = 0";
+          } else {
+            $changes[$key] = "$key = 1";
+            //$changes[$key] = $key . ' = '.dbEscape(trim($value));
+          }
+        }
+        break;
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
@@ -992,7 +1004,7 @@ function zmaCheck( $monitor ) {
 }
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-  $eventPath = getEventPath( $event );
+  $eventPath = ZM_DIR_EVENTS . '/' . getEventPath( $event );
 
   if ( !is_array($frame) )
     $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
@@ -1502,6 +1514,66 @@ function getDiskBlocks() {
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];
   return( $space );
+}
+
+function systemStats() {
+
+    $load = getLoad();
+    $diskPercent = getDiskPercent();
+    $pathMapPercent = getDiskPercent(ZM_PATH_MAP);
+    $cpus = getcpus();
+
+    $normalized_load = $load / $cpus;
+
+    # Colorize the system load stat
+    if ( $normalized_load <= 0.75 ) {
+        $htmlLoad=$load;
+    } elseif ( $normalized_load <= 0.9 ) {
+        $htmlLoad="<span class=\"warning\">$load</span>";
+    } elseif ( $normalized_load <= 1.1 ) {
+        $htmlLoad="<span class=\"error\">$load</span>";
+    } else {
+        $htmlLoad="<span class=\"critical\">$load</span>";
+    }
+
+    # Colorize the disk space stat
+    if ( $diskPercent < 98 ) {
+        $htmlDiskPercent="$diskPercent%";
+    } elseif ( $diskPercent <= 99 ) {
+        $htmlDiskPercent="<span class=\"warning\">$diskPercent%</span>";
+    } else {
+        $htmlDiskPercent="<span class=\"error\">$diskPercent%</span>";
+    }
+
+    # Colorize the PATH_MAP (usually /dev/shm) stat
+    if ( $pathMapPercent < 90 ) {
+        if ( disk_free_space(ZM_PATH_MAP) > 209715200 ) { # have to always have at least 200MiB free
+            $htmlPathMapPercent="$pathMapPercent%";
+        } else {
+            $htmlPathMapPercent="<span class=\"warning\">$pathMapPercent%</span>";
+        }
+    } elseif ( $pathMapPercent < 100 ) {
+        $htmlPathMapPercent="<span class=\"warning\">$pathMapPercent%</span>";
+    } else {
+        $htmlPathMapPercent="<span class=\"critical\">$pathMapPercent%</span>";
+    }
+
+    $htmlString = translate('Load').": $htmlLoad - ".translate('Disk').": $htmlDiskPercent - ".ZM_PATH_MAP.": $htmlPathMapPercent";
+
+    return( $htmlString );
+}
+
+function getcpus() {
+
+    if (is_readable("/proc/cpuinfo") ) { # Works on Linux
+        preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches); 
+        $num_cpus = count($matches[0]);
+    } else { # Works on BSD
+        $matches = explode(":", shell_exec("sysctl hw.ncpu"));
+        $num_cpus = trim($matches[1]);
+    }
+
+    return( $num_cpus );
 }
 
 // Function to fix a problem whereby the built in PHP session handling 
@@ -2138,8 +2210,7 @@ function getSkinFile( $file ) {
   return( $skinFile );
 }
 
-function getSkinIncludes( $file, $includeBase=false, $asOverride=false )
-{
+function getSkinIncludes( $file, $includeBase=false, $asOverride=false ) {
   global $skinBase;
   $skinFile = false;
   foreach ( $skinBase as $skin ) {
@@ -2246,6 +2317,7 @@ function getStreamMode( ) {
     $streamMode = 'single';
     Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
   }
+  return $streamMode;
 } // end function getStreamMode
 
 function folder_size($dir) {

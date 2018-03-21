@@ -18,14 +18,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canEdit( 'System' ) ) {
+  $view = 'error';
+  return;
 }
 $running = daemonCheck();
 
-$states = dbFetchAll( "select * from States" );
+$states = dbFetchAll( 'SELECT * FROM States' );
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('RunState') );
@@ -36,34 +35,29 @@ xhtmlHeaders(__FILE__, translate('RunState') );
       <h2><?php echo translate('RunState') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
 <?php
-if ( empty($_REQUEST['apply']) )
-{
+if ( empty($_REQUEST['apply']) ) {
 ?>
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="apply" value="1"/>
         <p>
-          <select name="runState" onchange="checkState( this );">
+          <select name="runState" onchange="checkState(this);">
 <?php
-    if ( $running )
-    {
+    if ( $running ) {
 ?>
             <option value="stop" selected="selected"><?php echo translate('Stop') ?></option>
             <option value="restart"><?php echo translate('Restart') ?></option>
 <?php
-    }
-    else
-    {
+    } else {
 ?>
             <option value="start" selected="selected"><?php echo translate('Start') ?></option>
 <?php
     }
 ?>
 <?php
-    foreach ( $states as $state )
-    {
+    foreach ( $states as $state ) {
 ?>
             <option value="<?php echo $state['Name'] ?>"><?php echo $state['Name'] ?></option>
 <?php
@@ -75,9 +69,7 @@ if ( empty($_REQUEST['apply']) )
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('NewState') ?></th>
-		<!-- PP - added oninput so that changes are detected immediately -->
-		<!-- PP - retained onchange for older browsers -->
-              <td><input type="text" name="newState" value="" size="16" oninput="checkState( this );" onchange="checkState(this);"/></td>
+              <td><input type="text" name="newState" value="" size="16" oninput="checkState(this);" onchange="checkState(this);"/></td>
             </tr>
           </tbody>
         </table>
@@ -88,9 +80,7 @@ if ( empty($_REQUEST['apply']) )
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
 <?php
-}
-else
-{
+} else {
 ?>
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="state"/>

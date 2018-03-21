@@ -413,15 +413,15 @@ Logger::Debug("sending command to $url");
     // If fast deletes are off and there are lots of events then this step may
     // well time out before completing, in which case zmaudit will still tidy up
     if ( !ZM_OPT_FAST_DELETE ) {
-      $markEids = dbFetchAll('SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($markMid));
+      $markEids = dbFetchAll('SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($this->{'Id'}));
       foreach($markEids as $markEid)
-        deleteEvent( $markEid );
+        deleteEvent($markEid);
 
       deletePath(ZM_DIR_EVENTS.'/'.basename($this->{'Name'}));
       deletePath(ZM_DIR_EVENTS.'/'.$this->{'Id'});
       $Storage = $this->Storage();
       if ( $Storage->Path() != ZM_DIR_EVENTS ) {
-        deletePath($Storage>Path().'/'.basename($this->{'Name'}));
+        deletePath($Storage->Path().'/'.basename($this->{'Name'}));
         deletePath($Storage->Path().'/'.$this->{'Id'});
       }
     } // end if ZM_OPT_FAST_DELETE
@@ -436,5 +436,16 @@ Logger::Debug("sending command to $url");
     // fixSequences();
 
   } // end function delete
+
+  public function Storage( $new = null ) {
+    if ( $new ) {
+      $this->{'Storage'} = $new;
+    }
+    if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) ) {
+      $this->{'Storage'} = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+    }
+    return $this->{'Storage'};
+  }
+
 } // end class Monitor
 ?>

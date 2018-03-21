@@ -1,17 +1,17 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP Project
  * @package       Cake.Test.Case.Controller
  * @since         CakePHP(tm) v 1.2.0.5436
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Controller', 'Controller');
@@ -284,7 +284,7 @@ class TestController extends ControllerTestAppController {
  *
  * @package       Cake.Test.Case.Controller
  */
-class TestComponent extends Object {
+class TestComponent extends CakeObject {
 
 /**
  * beforeRedirect method
@@ -754,9 +754,9 @@ class ControllerTest extends CakeTestCase {
 		$Controller->response->expects($this->once())->method('statusCode')
 			->with($code);
 		$Controller->response->expects($this->once())->method('header')
-			->with('Location', 'http://cakephp.org');
+			->with('Location', 'https://cakephp.org');
 
-		$Controller->redirect('http://cakephp.org', (int)$code, false);
+		$Controller->redirect('https://cakephp.org', (int)$code, false);
 		$this->assertFalse($Controller->autoRender);
 	}
 
@@ -776,9 +776,9 @@ class ControllerTest extends CakeTestCase {
 			->with($code);
 
 		$Controller->response->expects($this->once())->method('header')
-			->with('Location', 'http://cakephp.org');
+			->with('Location', 'https://cakephp.org');
 
-		$Controller->redirect('http://cakephp.org', $msg, false);
+		$Controller->redirect('https://cakephp.org', $msg, false);
 		$this->assertFalse($Controller->autoRender);
 	}
 
@@ -799,9 +799,9 @@ class ControllerTest extends CakeTestCase {
 			->with(301);
 
 		$Controller->response->expects($this->once())->method('header')
-			->with('Location', 'http://cakephp.org');
+			->with('Location', 'https://cakephp.org');
 
-		$Controller->redirect('http://cakephp.org', 301, false);
+		$Controller->redirect('https://cakephp.org', 301, false);
 	}
 
 /**
@@ -815,15 +815,15 @@ class ControllerTest extends CakeTestCase {
 		$Controller->Components = $this->getMock('ComponentCollection', array('trigger'));
 
 		$Controller->Components->expects($this->once())->method('trigger')
-			->will($this->returnValue(array('http://book.cakephp.org')));
+			->will($this->returnValue(array('https://book.cakephp.org')));
 
 		$Controller->response->expects($this->once())->method('statusCode')
 			->with(301);
 
 		$Controller->response->expects($this->once())->method('header')
-			->with('Location', 'http://book.cakephp.org');
+			->with('Location', 'https://book.cakephp.org');
 
-		$Controller->redirect('http://cakephp.org', 301, false);
+		$Controller->redirect('https://cakephp.org', 301, false);
 	}
 
 /**
@@ -856,7 +856,7 @@ class ControllerTest extends CakeTestCase {
 			->with(302);
 
 		$Controller->expects($this->never())->method('_stop');
-		$Controller->redirect('http://cakephp.org', 301);
+		$Controller->redirect('https://cakephp.org', 301);
 	}
 
 /**
@@ -870,11 +870,11 @@ class ControllerTest extends CakeTestCase {
 		$Controller->Components = $this->getMock('ComponentCollection', array('trigger'));
 
 		$Controller->expects($this->once())->method('beforeRedirect')
-			->with('http://cakephp.org')
+			->with('https://cakephp.org')
 			->will($this->returnValue(false));
 		$Controller->response->expects($this->never())->method('header');
 		$Controller->expects($this->never())->method('_stop');
-		$Controller->redirect('http://cakephp.org');
+		$Controller->redirect('https://cakephp.org');
 	}
 
 /**
@@ -889,7 +889,7 @@ class ControllerTest extends CakeTestCase {
 
 		$Controller->expects($this->once())
 			->method('beforeRedirect')
-			->with('http://cakephp.org', null, true)
+			->with('https://cakephp.org', null, true)
 			->will($this->returnValue(array(
 				'url' => 'http://example.org',
 				'status' => 302,
@@ -901,7 +901,7 @@ class ControllerTest extends CakeTestCase {
 			->with('Location', 'http://example.org');
 
 		$Controller->expects($this->once())->method('_stop');
-		$Controller->redirect('http://cakephp.org');
+		$Controller->redirect('https://cakephp.org');
 	}
 
 /**
@@ -1178,6 +1178,48 @@ class ControllerTest extends CakeTestCase {
 	}
 
 /**
+ * data provider for dangerous post conditions.
+ *
+ * @return array
+ */
+	public function dangerousPostConditionsProvider() {
+		return array(
+			array(
+				array('Model' => array('field !=' => 1))
+			),
+			array(
+				array('Model' => array('field AND 1=1 OR' => 'thing'))
+			),
+			array(
+				array('Model' => array('field >' => 1))
+			),
+			array(
+				array('Model' => array('field OR RAND()' => 1))
+			),
+			array(
+				array('Posts' => array('id IS NULL union all select posts.* from posts where id; --' => 1))
+			),
+			array(
+				array('Post.id IS NULL; --' => array('id' => 1))
+			),
+		);
+	}
+
+/**
+ * test postConditions raising an exception on unsafe keys.
+ *
+ * @expectedException RuntimeException
+ * @dataProvider dangerousPostConditionsProvider
+ * @return void
+ */
+	public function testPostConditionsDangerous($data) {
+		$request = new CakeRequest('controller_posts/index');
+
+		$Controller = new Controller($request);
+		$Controller->postConditions($data);
+	}
+
+/**
  * testControllerHttpCodes method
  *
  * @return void
@@ -1332,10 +1374,15 @@ class ControllerTest extends CakeTestCase {
 		$Controller->uses = array('ControllerPost', 'ControllerComment');
 		$Controller->passedArgs[] = '1';
 		$Controller->params['url'] = array();
+		$Controller->params['named'] = array(
+			'posts' => array(
+				'page' => 2,
+				'limit' => 2,
+			),
+		);
 		$Controller->constructClasses();
-		$expected = array('page' => 1, 'limit' => 20, 'maxLimit' => 100, 'paramType' => 'named');
+		$expected = array('page' => 1, 'limit' => 20, 'maxLimit' => 100, 'paramType' => 'named', 'queryScope' => null);
 		$this->assertEquals($expected, $Controller->paginate);
-
 		$results = Hash::extract($Controller->paginate('ControllerPost'), '{n}.ControllerPost.id');
 		$this->assertEquals(array(1, 2, 3), $results);
 
@@ -1347,6 +1394,13 @@ class ControllerTest extends CakeTestCase {
 		$this->assertSame($Controller->params['paging']['ControllerPost']['pageCount'], 3);
 		$this->assertFalse($Controller->params['paging']['ControllerPost']['prevPage']);
 		$this->assertTrue($Controller->params['paging']['ControllerPost']['nextPage']);
+		$this->assertNull($Controller->params['paging']['ControllerPost']['queryScope']);
+
+		$Controller->paginate = array('queryScope' => 'posts');
+		$Controller->paginate('ControllerPost');
+		$this->assertSame($Controller->params['paging']['ControllerPost']['page'], 2);
+		$this->assertSame($Controller->params['paging']['ControllerPost']['pageCount'], 2);
+		$this->assertSame($Controller->params['paging']['ControllerPost']['queryScope'], 'posts');
 	}
 
 /**

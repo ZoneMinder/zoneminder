@@ -2,18 +2,18 @@
 /**
  * MySQL layer for DBO
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Model.Datasource.Database
  * @since         CakePHP(tm) v 0.10.5.1790
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('DboSource', 'Model/Datasource');
@@ -87,10 +87,14 @@ class Mysql extends DboSource {
 		'collate' => array('value' => 'COLLATE', 'quote' => false, 'join' => ' ', 'column' => 'Collation', 'position' => 'beforeDefault'),
 		'comment' => array('value' => 'COMMENT', 'quote' => true, 'join' => ' ', 'column' => 'Comment', 'position' => 'afterDefault'),
 		'unsigned' => array(
-			'value' => 'UNSIGNED', 'quote' => false, 'join' => ' ', 'column' => false, 'position' => 'beforeDefault',
+			'value' => 'UNSIGNED',
+			'quote' => false,
+			'join' => ' ',
+			'column' => false,
+			'position' => 'beforeDefault',
 			'noVal' => true,
 			'options' => array(true),
-			'types' => array('integer', 'float', 'decimal', 'biginteger')
+			'types' => array('integer', 'smallinteger', 'tinyinteger', 'float', 'decimal', 'biginteger')
 		)
 	);
 
@@ -110,6 +114,7 @@ class Mysql extends DboSource {
  * MySQL column definition
  *
  * @var array
+ * @link https://dev.mysql.com/doc/refman/5.7/en/data-types.html MySQL Data Types
  */
 	public $columns = array(
 		'primary_key' => array('name' => 'NOT NULL AUTO_INCREMENT'),
@@ -117,6 +122,8 @@ class Mysql extends DboSource {
 		'text' => array('name' => 'text'),
 		'biginteger' => array('name' => 'bigint', 'limit' => '20'),
 		'integer' => array('name' => 'int', 'limit' => '11', 'formatter' => 'intval'),
+		'smallinteger' => array('name' => 'smallint', 'limit' => '6', 'formatter' => 'intval'),
+		'tinyinteger' => array('name' => 'tinyint', 'limit' => '4', 'formatter' => 'intval'),
 		'float' => array('name' => 'float', 'formatter' => 'floatval'),
 		'decimal' => array('name' => 'decimal', 'formatter' => 'floatval'),
 		'datetime' => array('name' => 'datetime', 'format' => 'Y-m-d H:i:s', 'formatter' => 'date'),
@@ -352,7 +359,9 @@ class Mysql extends DboSource {
 			if (in_array($fields[$column->Field]['type'], $this->fieldParameters['unsigned']['types'], true)) {
 				$fields[$column->Field]['unsigned'] = $this->_unsigned($column->Type);
 			}
-			if (in_array($fields[$column->Field]['type'], array('timestamp', 'datetime')) && strtoupper($column->Default) === 'CURRENT_TIMESTAMP') {
+			if (in_array($fields[$column->Field]['type'], array('timestamp', 'datetime')) &&
+				in_array(strtoupper($column->Default), array('CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP()'))
+			) {
 				$fields[$column->Field]['default'] = null;
 			}
 			if (!empty($column->Key) && isset($this->index[$column->Key])) {
@@ -437,13 +446,7 @@ class Mysql extends DboSource {
 		if (empty($conditions)) {
 			$alias = $joins = false;
 		}
-		$complexConditions = false;
-		foreach ((array)$conditions as $key => $value) {
-			if (strpos($key, $model->alias) === false) {
-				$complexConditions = true;
-				break;
-			}
-		}
+		$complexConditions = $this->_deleteNeedsComplexConditions($model, $conditions);
 		if (!$complexConditions) {
 			$joins = false;
 		}
@@ -457,6 +460,27 @@ class Mysql extends DboSource {
 			return false;
 		}
 		return true;
+	}
+
+/**
+ * Checks whether complex conditions are needed for a delete with the given conditions.
+ *
+ * @param Model $model The model to delete from.
+ * @param mixed $conditions The conditions to use.
+ * @return bool Whether or not complex conditions are needed
+ */
+	protected function _deleteNeedsComplexConditions(Model $model, $conditions) {
+		$fields = array_keys($this->describe($model));
+		foreach ((array)$conditions as $key => $value) {
+			if (in_array(strtolower(trim($key)), $this->_sqlBoolOps, true)) {
+				if ($this->_deleteNeedsComplexConditions($model, $value)) {
+					return true;
+				}
+			} elseif (strpos($key, $model->alias) === false && !in_array($key, $fields, true)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 /**
@@ -768,6 +792,12 @@ class Mysql extends DboSource {
 		if (strpos($col, 'bigint') !== false || $col === 'bigint') {
 			return 'biginteger';
 		}
+		if (strpos($col, 'tinyint') !== false) {
+			return 'tinyinteger';
+		}
+		if (strpos($col, 'smallint') !== false) {
+			return 'smallinteger';
+		}
 		if (strpos($col, 'int') !== false) {
 			return 'integer';
 		}
@@ -834,4 +864,57 @@ class Mysql extends DboSource {
 		return strpos(strtolower($real), 'unsigned') !== false;
 	}
 
+/**
+ * Inserts multiple values into a table. Uses a single query in order to insert
+ * multiple rows.
+ *
+ * @param string $table The table being inserted into.
+ * @param array $fields The array of field/column names being inserted.
+ * @param array $values The array of values to insert. The values should
+ *   be an array of rows. Each row should have values keyed by the column name.
+ *   Each row must have the values in the same order as $fields.
+ * @return bool
+ */
+	public function insertMulti($table, $fields, $values) {
+		$table = $this->fullTableName($table);
+		$holder = implode(', ', array_fill(0, count($fields), '?'));
+		$fields = implode(', ', array_map(array($this, 'name'), $fields));
+		$pdoMap = array(
+			'integer' => PDO::PARAM_INT,
+			'float' => PDO::PARAM_STR,
+			'boolean' => PDO::PARAM_BOOL,
+			'string' => PDO::PARAM_STR,
+			'text' => PDO::PARAM_STR
+		);
+		$columnMap = array();
+		$rowHolder = "({$holder})";
+		$sql = "INSERT INTO {$table} ({$fields}) VALUES ";
+		$countRows = count($values);
+		for ($i = 0; $i < $countRows; $i++) {
+			if ($i !== 0) {
+				$sql .= ',';
+			}
+			$sql .= " $rowHolder";
+		}
+		$statement = $this->_connection->prepare($sql);
+		foreach ($values[key($values)] as $key => $val) {
+			$type = $this->introspectType($val);
+			$columnMap[$key] = $pdoMap[$type];
+		}
+		$valuesList = array();
+		$i = 1;
+		foreach ($values as $value) {
+			foreach ($value as $col => $val) {
+				$valuesList[] = $val;
+				$statement->bindValue($i, $val, $columnMap[$col]);
+				$i++;
+			}
+		}
+		$result = $statement->execute();
+		$statement->closeCursor();
+		if ($this->fullDebug) {
+			$this->logQuery($sql, $valuesList);
+		}
+		return $result;
+	}
 }

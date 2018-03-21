@@ -4,18 +4,18 @@
  *
  * Helpful methods to make unsafe strings usable.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Utility
  * @since         CakePHP(tm) v 0.10.0.1076
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ConnectionManager', 'Model');
@@ -34,9 +34,9 @@ class Sanitize {
 /**
  * Removes any non-alphanumeric characters.
  *
- * @param string $string String to sanitize
+ * @param string|array $string String to sanitize
  * @param array $allowed An array of additional characters that are not to be removed.
- * @return string Sanitized string
+ * @return string|array Sanitized string
  */
 	public static function paranoid($string, $allowed = array()) {
 		$allow = null;

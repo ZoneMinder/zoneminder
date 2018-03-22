@@ -111,6 +111,10 @@ MYSQL_RES * zmDbFetch( const char * query ) {
 
 MYSQL_ROW zmDbFetchOne( const char *query ) {
   MYSQL_RES *result = zmDbFetch( query );
+  if ( ! result ) {
+    return NULL;
+  }
+
   int n_rows = mysql_num_rows( result );
   if ( n_rows != 1 ) {
     Error( "Bogus number of lines return from query, %d returned for query %s.", n_rows, query );
@@ -118,8 +122,8 @@ MYSQL_ROW zmDbFetchOne( const char *query ) {
   }
 
   MYSQL_ROW dbrow = mysql_fetch_row( result );
-  mysql_free_result( result );
   if ( ! dbrow ) {
+    mysql_free_result( result );
     Error("Error getting row from query %s. Error is %s", query, mysql_error( &dbconn ) );
     return NULL;
   }

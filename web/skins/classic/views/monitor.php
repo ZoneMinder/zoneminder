@@ -62,6 +62,7 @@ if ( ! $monitor ) {
   $nextId = getTableAutoInc( 'Monitors' );
   if ( isset( $_REQUEST['dupId'] ) ) {
     $monitor = new Monitor( $_REQUEST['dupId'] );
+    $monitor->GroupIds(); // have to lead before we change the Id
     if ( ZM_OPT_X10 )
       $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
     $clonedName = $monitor->Name();

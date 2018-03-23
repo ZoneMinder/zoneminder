@@ -219,7 +219,9 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
               <?php echo implode('<br/>',
                   array_map(function($group_id){
                     $Group = new Group($group_id);
-                    return implode(' &gt; ', array_map(function($Group){ return $Group->Name(); }, $Group->Parents()));
+                    $Groups = $Group->Parents();
+                    array_push( $Groups, $Group );
+                    return implode(' &gt; ', array_map(function($Group){ return $Group->Name(); }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </td>

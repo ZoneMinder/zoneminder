@@ -173,7 +173,7 @@ int main( int argc, char *argv[] ) {
         zm_reload = false;
       }
       sigprocmask( SIG_UNBLOCK, &block_set, 0 );
-    }
+    } // end while ! zm_terminate
     delete monitor;
   } else {
     fprintf( stderr, "Can't find monitor with id of %d\n", id );

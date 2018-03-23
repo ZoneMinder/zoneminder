@@ -1,17 +1,17 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.View.Helper
  * @since         CakePHP(tm) v 0.10.0.1076
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ClassRegistry', 'Utility');
@@ -26,7 +26,7 @@ App::uses('Inflector', 'Utility');
  *
  * @package       Cake.View.Helper
  * @property      HtmlHelper $Html
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html
  */
 class FormHelper extends AppHelper {
 
@@ -280,7 +280,7 @@ class FormHelper extends AppHelper {
  *
  * @return mixed Either false when there are no errors, or an array of error
  *    strings. An error string could be ''.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::tagIsInvalid
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::tagIsInvalid
  */
 	public function tagIsInvalid() {
 		$entity = $this->entity();
@@ -330,7 +330,7 @@ class FormHelper extends AppHelper {
  *   If `false` no model is used.
  * @param array $options An array of html attributes and options.
  * @return string A formatted opening FORM tag.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#options-for-create
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#options-for-create
  */
 	public function create($model = null, $options = array()) {
 		$created = $id = false;
@@ -382,6 +382,7 @@ class FormHelper extends AppHelper {
 		if (isset($options['action'])) {
 			trigger_error('Using key `action` is deprecated, use `url` directly instead.', E_USER_DEPRECATED);
 		}
+
 		if (is_array($options['url']) && isset($options['url']['action'])) {
 			$options['action'] = $options['url']['action'];
 		}
@@ -393,7 +394,7 @@ class FormHelper extends AppHelper {
 
 		if ($options['action'] === null && $options['url'] === null) {
 			$options['action'] = $this->request->here(false);
-		} elseif (is_array($options['url'])) {
+		} elseif (empty($options['url']) || is_array($options['url'])) {
 			if (empty($options['url']['controller'])) {
 				if (!empty($model)) {
 					$options['url']['controller'] = Inflector::underscore(Inflector::pluralize($model));
@@ -503,7 +504,8 @@ class FormHelper extends AppHelper {
 		}
 		return $this->hidden('_Token.key', array(
 			'value' => $this->request->params['_Token']['key'], 'id' => 'Token' . mt_rand(),
-			'secure' => static::SECURE_SKIP
+			'secure' => static::SECURE_SKIP,
+			'autocomplete' => 'off',
 		));
 	}
 
@@ -530,7 +532,7 @@ class FormHelper extends AppHelper {
  * @param array $secureAttributes will be passed as html attributes into the hidden input elements generated for the
  *   Security Component.
  * @return string a closing FORM tag optional submit button.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#closing-the-form
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#closing-the-form
  */
 	public function end($options = null, $secureAttributes = array()) {
 		$out = null;
@@ -559,6 +561,7 @@ class FormHelper extends AppHelper {
 		$this->setEntity(null);
 		$out .= $this->Html->useTag('formend');
 
+		$this->_unlockedFields = array();
 		$this->_View->modelScope = false;
 		$this->requestType = null;
 		return $out;
@@ -577,12 +580,20 @@ class FormHelper extends AppHelper {
  * @param array $secureAttributes will be passed as html attributes into the hidden
  *    input elements generated for the Security Component.
  * @return string|null A hidden input field with a security hash, otherwise null.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::secure
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::secure
  */
 	public function secure($fields = array(), $secureAttributes = array()) {
 		if (!isset($this->request['_Token']) || empty($this->request['_Token'])) {
 			return null;
 		}
+		$debugSecurity = Configure::read('debug');
+		if (isset($secureAttributes['debugSecurity'])) {
+			$debugSecurity = $debugSecurity && $secureAttributes['debugSecurity'];
+			unset($secureAttributes['debugSecurity']);
+		}
+
+		$originalFields = $fields;
+
 		$locked = array();
 		$unlockedFields = $this->_unlockedFields;
 
@@ -611,13 +622,30 @@ class FormHelper extends AppHelper {
 		$tokenFields = array_merge($secureAttributes, array(
 			'value' => urlencode($fields . ':' . $locked),
 			'id' => 'TokenFields' . mt_rand(),
+			'secure' => static::SECURE_SKIP,
+			'autocomplete' => 'off',
 		));
 		$out = $this->hidden('_Token.fields', $tokenFields);
 		$tokenUnlocked = array_merge($secureAttributes, array(
 			'value' => urlencode($unlocked),
 			'id' => 'TokenUnlocked' . mt_rand(),
+			'secure' => static::SECURE_SKIP,
+			'autocomplete' => 'off',
 		));
 		$out .= $this->hidden('_Token.unlocked', $tokenUnlocked);
+		if ($debugSecurity) {
+			$tokenDebug = array_merge($secureAttributes, array(
+				'value' => urlencode(json_encode(array(
+					$this->_lastAction,
+					$originalFields,
+					$this->_unlockedFields
+				))),
+				'id' => 'TokenDebug' . mt_rand(),
+				'secure' => static::SECURE_SKIP,
+			));
+			$out .= $this->hidden('_Token.debug', $tokenDebug);
+		}
+
 		return $this->Html->useTag('hiddenblock', $out);
 	}
 
@@ -629,7 +657,7 @@ class FormHelper extends AppHelper {
  *
  * @param string $name The dot separated name for the field.
  * @return mixed Either null, or the list of fields.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::unlockField
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::unlockField
  */
 	public function unlockField($name = null) {
 		if ($name === null) {
@@ -659,7 +687,10 @@ class FormHelper extends AppHelper {
 		if (!$field) {
 			$field = $this->entity();
 		} elseif (is_string($field)) {
-			$field = Hash::filter(explode('.', $field));
+			$field = explode('.', $field);
+		}
+		if (is_array($field)) {
+			$field = Hash::filter($field);
 		}
 
 		foreach ($this->_unlockedFields as $unlockField) {
@@ -691,7 +722,7 @@ class FormHelper extends AppHelper {
  *
  * @param string $field This should be "Modelname.fieldname"
  * @return bool If there are errors this method returns true, else false.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::isFieldError
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::isFieldError
  */
 	public function isFieldError($field) {
 		$this->setEntity($field);
@@ -713,7 +744,7 @@ class FormHelper extends AppHelper {
  *   If array contains `attributes` key it will be used as options for error container
  * @param array $options Rendering options for <div /> wrapper tag
  * @return string|null If there are errors this method returns an error message, otherwise null.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::error
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::error
  */
 	public function error($field, $text = null, $options = array()) {
 		$defaults = array('wrap' => true, 'class' => 'error-message', 'escape' => true);
@@ -841,7 +872,7 @@ class FormHelper extends AppHelper {
  *   fieldName.
  * @param array|string $options An array of HTML attributes, or a string, to be used as a class name.
  * @return string The formatted LABEL element
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::label
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::label
  */
 	public function label($fieldName = null, $text = null, $options = array()) {
 		if ($fieldName === null) {
@@ -900,7 +931,7 @@ class FormHelper extends AppHelper {
  * - `legend` Set to false to disable the legend for the generated input set. Or supply a string
  *    to customize the legend text.
  * @return string Completed form inputs.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::inputs
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::inputs
  */
 	public function inputs($fields = null, $blacklist = null, $options = array()) {
 		$fieldset = $legend = true;
@@ -929,9 +960,12 @@ class FormHelper extends AppHelper {
 
 		if (isset($options['legend'])) {
 			$legend = $options['legend'];
+			unset($options['legend']);
 		}
+
 		if (isset($options['fieldset'])) {
 			$fieldset = $options['fieldset'];
+			unset($options['fieldset']);
 		}
 
 		if (empty($fields)) {
@@ -969,7 +1003,7 @@ class FormHelper extends AppHelper {
 		}
 
 		if (is_string($fieldset)) {
-			$fieldsetClass = sprintf(' class="%s"', $fieldset);
+			$fieldsetClass = array('class' => $fieldset);
 		} else {
 			$fieldsetClass = '';
 		}
@@ -1014,7 +1048,7 @@ class FormHelper extends AppHelper {
  * @param string $fieldName This should be "Modelname.fieldname"
  * @param array $options Each type of input takes different options.
  * @return string Completed form widget.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#creating-form-elements
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#creating-form-elements
  */
 	public function input($fieldName, $options = array()) {
 		$this->setEntity($fieldName);
@@ -1058,7 +1092,7 @@ class FormHelper extends AppHelper {
 		if ($type !== 'hidden' && $error !== false) {
 			$errMsg = $this->error($fieldName, $error);
 			if ($errMsg) {
-				$divOptions = $this->addClass($divOptions, 'error');
+				$divOptions = $this->addClass($divOptions, Hash::get($divOptions, 'errorClass', 'error'));
 				if ($errorMessage) {
 					$out['error'] = $errMsg;
 				}
@@ -1078,7 +1112,7 @@ class FormHelper extends AppHelper {
 
 		if (!empty($divOptions['tag'])) {
 			$tag = $divOptions['tag'];
-			unset($divOptions['tag']);
+			unset($divOptions['tag'], $divOptions['errorClass']);
 			$output = $this->Html->tag($tag, $output, $divOptions);
 		}
 		return $output;
@@ -1205,11 +1239,18 @@ class FormHelper extends AppHelper {
 			$type = $fieldDef['type'];
 			$primaryKey = $this->fieldset[$modelKey]['key'];
 			$map = array(
-				'string' => 'text', 'datetime' => 'datetime',
-				'boolean' => 'checkbox', 'timestamp' => 'datetime',
-				'text' => 'textarea', 'time' => 'time',
-				'date' => 'date', 'float' => 'number',
-				'integer' => 'number', 'decimal' => 'number',
+				'string' => 'text',
+				'datetime' => 'datetime',
+				'boolean' => 'checkbox',
+				'timestamp' => 'datetime',
+				'text' => 'textarea',
+				'time' => 'time',
+				'date' => 'date',
+				'float' => 'number',
+				'integer' => 'number',
+				'smallinteger' => 'number',
+				'tinyinteger' => 'number',
+				'decimal' => 'number',
 				'binary' => 'file'
 			);
 
@@ -1309,6 +1350,8 @@ class FormHelper extends AppHelper {
 			is_scalar($fieldDef['length']) &&
 			$fieldDef['length'] < 1000000 &&
 			$fieldDef['type'] !== 'decimal' &&
+			$fieldDef['type'] !== 'time' &&
+			$fieldDef['type'] !== 'datetime' &&
 			$options['type'] !== 'select'
 		);
 		if ($autoLength &&
@@ -1451,7 +1494,7 @@ class FormHelper extends AppHelper {
  * @param string $fieldName Name of a field, like this "Modelname.fieldname"
  * @param array $options Array of HTML attributes.
  * @return string An HTML text input element.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#options-for-select-checkbox-and-radio-inputs
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#options-for-select-checkbox-and-radio-inputs
  */
 	public function checkbox($fieldName, $options = array()) {
 		$valueOptions = array();
@@ -1507,6 +1550,7 @@ class FormHelper extends AppHelper {
  * - `between` - the string between legend and input set or array of strings to insert
  *    strings between each input block
  * - `legend` - control whether or not the widget set has a fieldset & legend
+ * - `fieldset` - sets the class of the fieldset. Fieldset is only generated if legend attribute is provided
  * - `value` - indicate a value that is should be checked
  * - `label` - boolean to indicate whether or not labels for widgets show be displayed
  * - `hiddenField` - boolean to indicate if you want the results of radio() to include
@@ -1519,7 +1563,7 @@ class FormHelper extends AppHelper {
  * @param array $options Radio button options array.
  * @param array $attributes Array of HTML attributes, and special attributes above.
  * @return string Completed radio widget set.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#options-for-select-checkbox-and-radio-inputs
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#options-for-select-checkbox-and-radio-inputs
  */
 	public function radio($fieldName, $options = array(), $attributes = array()) {
 		$attributes['options'] = $options;
@@ -1539,6 +1583,12 @@ class FormHelper extends AppHelper {
 			unset($attributes['legend']);
 		} elseif (count($options) > 1) {
 			$legend = __(Inflector::humanize($this->field()));
+		}
+
+		$fieldsetAttrs = '';
+		if (isset($attributes['fieldset'])) {
+			$fieldsetAttrs = array('class' => $attributes['fieldset']);
+			unset($attributes['fieldset']);
 		}
 
 		$label = true;
@@ -1624,7 +1674,7 @@ class FormHelper extends AppHelper {
 				$hidden = $this->hidden($fieldName, array(
 					'form' => isset($attributes['form']) ? $attributes['form'] : null,
 					'id' => $attributes['id'] . '_',
-					'value' => '',
+					'value' => $hiddenField === true ? '' : $hiddenField,
 					'name' => $attributes['name']
 				));
 			}
@@ -1634,8 +1684,10 @@ class FormHelper extends AppHelper {
 		if (is_array($between)) {
 			$between = '';
 		}
+
 		if ($legend) {
-			$out = $this->Html->useTag('fieldset', '', $this->Html->useTag('legend', $legend) . $between . $out);
+			$out = $this->Html->useTag('legend', $legend) . $between . $out;
+			$out = $this->Html->useTag('fieldset', $fieldsetAttrs, $out);
 		}
 		return $out;
 	}
@@ -1686,7 +1738,7 @@ class FormHelper extends AppHelper {
  * @param string $fieldName Name of a field, in the form "Modelname.fieldname"
  * @param array $options Array of HTML attributes, and special options above.
  * @return string A generated HTML text input element
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::textarea
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::textarea
  */
 	public function textarea($fieldName, $options = array()) {
 		$options = $this->_initInputField($fieldName, $options);
@@ -1708,7 +1760,7 @@ class FormHelper extends AppHelper {
  * @param string $fieldName Name of a field, in the form of "Modelname.fieldname"
  * @param array $options Array of HTML attributes.
  * @return string A generated hidden input
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::hidden
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::hidden
  */
 	public function hidden($fieldName, $options = array()) {
 		$options += array('required' => false, 'secure' => true);
@@ -1733,7 +1785,7 @@ class FormHelper extends AppHelper {
  * @param string $fieldName Name of a field, in the form "Modelname.fieldname"
  * @param array $options Array of HTML attributes.
  * @return string A generated file input.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::file
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::file
  */
 	public function file($fieldName, $options = array()) {
 		$options += array('secure' => true);
@@ -1762,7 +1814,7 @@ class FormHelper extends AppHelper {
  * @param string $title The button's caption. Not automatically HTML encoded
  * @param array $options Array of options and HTML attributes.
  * @return string A HTML button tag.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::button
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::button
  */
 	public function button($title, $options = array()) {
 		$options += array('type' => 'submit', 'escape' => false, 'secure' => false);
@@ -1791,7 +1843,7 @@ class FormHelper extends AppHelper {
  * @param string|array $url URL as string or array
  * @param array $options Array of options and HTML attributes.
  * @return string A HTML button tag.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::postButton
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::postButton
  */
 	public function postButton($title, $url, $options = array()) {
 		$out = $this->create(false, array('id' => false, 'url' => $url));
@@ -1836,7 +1888,7 @@ class FormHelper extends AppHelper {
  * @param bool|string $confirmMessage JavaScript confirmation message. This
  *   argument is deprecated as of 2.6. Use `confirm` key in $options instead.
  * @return string An `<a />` element.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::postLink
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::postLink
  */
 	public function postLink($title, $url = null, $options = array(), $confirmMessage = false) {
 		$options = (array)$options + array('inline' => true, 'block' => null);
@@ -1868,6 +1920,7 @@ class FormHelper extends AppHelper {
 			unset($options['target']);
 		}
 
+		$previousLastAction = $this->_lastAction;
 		$this->_lastAction($url);
 
 		$out = $this->Html->useTag('form', $formUrl, $formOptions);
@@ -1880,7 +1933,7 @@ class FormHelper extends AppHelper {
 		if (isset($options['data']) && is_array($options['data'])) {
 			foreach (Hash::flatten($options['data']) as $key => $value) {
 				$fields[$key] = $value;
-				$out .= $this->hidden($key, array('value' => $value, 'id' => false));
+				$out .= $this->hidden($key, array('value' => $value, 'id' => false, 'secure' => static::SECURE_SKIP));
 			}
 			unset($options['data']);
 		}
@@ -1890,6 +1943,8 @@ class FormHelper extends AppHelper {
 		if ($options['block']) {
 			$this->_View->append($options['block'], $out);
 			$out = '';
+			// Reset security-relevant fields for outer form
+			$this->_lastAction = $previousLastAction;
 		}
 		unset($options['block']);
 
@@ -1918,6 +1973,7 @@ class FormHelper extends AppHelper {
  * - `before` - Content to include before the input.
  * - `after` - Content to include after the input.
  * - `type` - Set to 'reset' for reset inputs. Defaults to 'submit'
+ * - `confirm` - JavaScript confirmation message.
  * - Other attributes will be assigned to the input element.
  *
  * ### Options
@@ -1932,15 +1988,20 @@ class FormHelper extends AppHelper {
  *  OR if the first character is not /, image is relative to webroot/img.
  * @param array $options Array of options. See above.
  * @return string A HTML submit button
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::submit
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::submit
  */
 	public function submit($caption = null, $options = array()) {
+		$confirmMessage = false;
 		if (!is_string($caption) && empty($caption)) {
 			$caption = __d('cake', 'Submit');
 		}
 		$out = null;
 		$div = true;
 
+		if (!empty($options['confirm'])) {
+			$confirmMessage = $options['confirm'];
+			unset($options['confirm']);
+		}
 		if (isset($options['div'])) {
 			$div = $options['div'];
 			unset($options['div']);
@@ -1981,6 +2042,12 @@ class FormHelper extends AppHelper {
 			foreach ($unlockFields as $ignore) {
 				$this->unlockField($ignore);
 			}
+		}
+
+		if ($confirmMessage) {
+			$okCode = 'return true;';
+			$cancelCode = 'event.returnValue = false; return false;';
+			$options['onclick'] = $this->_confirm($confirmMessage, $okCode, $cancelCode, $options);
 		}
 
 		if ($isUrl) {
@@ -2067,7 +2134,7 @@ class FormHelper extends AppHelper {
  *	SELECT element
  * @param array $attributes The HTML attributes of the select element.
  * @return string Formatted SELECT element
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#options-for-select-checkbox-and-radio-inputs
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#options-for-select-checkbox-and-radio-inputs
  */
 	public function select($fieldName, $options = array(), $attributes = array()) {
 		$select = array();
@@ -2219,7 +2286,7 @@ class FormHelper extends AppHelper {
  * @param string $fieldName Prefix name for the SELECT element
  * @param array $attributes HTML attributes for the select element
  * @return string A generated day select box.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::day
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::day
  */
 	public function day($fieldName = null, $attributes = array()) {
 		$attributes += array('empty' => true, 'value' => null);
@@ -2253,7 +2320,7 @@ class FormHelper extends AppHelper {
  * @param int $maxYear Last year in sequence
  * @param array $attributes Attribute array for the select elements.
  * @return string Completed year select input
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::year
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::year
  */
 	public function year($fieldName, $minYear = null, $maxYear = null, $attributes = array()) {
 		if (is_array($minYear)) {
@@ -2315,7 +2382,7 @@ class FormHelper extends AppHelper {
  * @param string $fieldName Prefix name for the SELECT element
  * @param array $attributes Attributes for the select element
  * @return string A generated month select dropdown.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::month
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::month
  */
 	public function month($fieldName, $attributes = array()) {
 		$attributes += array('empty' => true, 'value' => null);
@@ -2355,7 +2422,7 @@ class FormHelper extends AppHelper {
  * @param bool $format24Hours True for 24 hours format
  * @param array $attributes List of HTML attributes
  * @return string Completed hour select input
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::hour
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::hour
  */
 	public function hour($fieldName, $format24Hours = false, $attributes = array()) {
 		if (is_array($format24Hours)) {
@@ -2407,7 +2474,7 @@ class FormHelper extends AppHelper {
  * @param string $fieldName Prefix name for the SELECT element
  * @param array $attributes Array of Attributes
  * @return string Completed minute select input.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::minute
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::minute
  */
 	public function minute($fieldName, $attributes = array()) {
 		$attributes += array('empty' => true, 'value' => null);
@@ -2471,7 +2538,7 @@ class FormHelper extends AppHelper {
  * @param string $fieldName Prefix name for the SELECT element
  * @param array $attributes Array of Attributes
  * @return string Completed meridian select input
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::meridian
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::meridian
  */
 	public function meridian($fieldName, $attributes = array()) {
 		$attributes += array('empty' => true, 'value' => null);
@@ -2526,7 +2593,7 @@ class FormHelper extends AppHelper {
  * @param string $timeFormat 12, 24, or null to not generate time inputs.
  * @param array $attributes Array of Attributes
  * @return string Generated set of select boxes for the date and time formats chosen.
- * @link http://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::dateTime
+ * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/form.html#FormHelper::dateTime
  */
 	public function dateTime($fieldName, $dateFormat = 'DMY', $timeFormat = '12', $attributes = array()) {
 		$attributes += array('empty' => true, 'value' => null);
@@ -2781,6 +2848,11 @@ class FormHelper extends AppHelper {
 		$selectedIsEmpty = ($attributes['value'] === '' || $attributes['value'] === null);
 		$selectedIsArray = is_array($attributes['value']);
 
+		// Cast boolean false into an integer so string comparisons can work.
+		if ($attributes['value'] === false) {
+			$attributes['value'] = 0;
+		}
+
 		$this->_domIdSuffixes = array();
 		foreach ($elements as $name => $title) {
 			$htmlOptions = array();
@@ -2791,7 +2863,7 @@ class FormHelper extends AppHelper {
 					} else {
 						$select[] = $this->Html->useTag('optiongroupend');
 					}
-					$parents[] = $name;
+					$parents[] = (string)$name;
 				}
 				$select = array_merge($select, $this->_selectOptions(
 					$title, $parents, $showParents, $attributes
@@ -3066,7 +3138,7 @@ class FormHelper extends AppHelper {
  * @return void
  */
 	protected function _lastAction($url) {
-		$action = Router::url($url, true);
+		$action = html_entity_decode($this->url($url, true), ENT_QUOTES);
 		$query = parse_url($action, PHP_URL_QUERY);
 		$query = $query ? '?' . $query : '';
 		$this->_lastAction = parse_url($action, PHP_URL_PATH) . $query;

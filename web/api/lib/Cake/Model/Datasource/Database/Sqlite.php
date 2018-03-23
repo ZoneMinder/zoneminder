@@ -2,18 +2,18 @@
 /**
  * SQLite layer for DBO
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Model.Datasource.Database
  * @since         CakePHP(tm) v 0.9.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('DboSource', 'Model/Datasource');
@@ -64,12 +64,15 @@ class Sqlite extends DboSource {
  * SQLite3 column definition
  *
  * @var array
+ * @link https://www.sqlite.org/datatype3.html Datatypes In SQLite Version 3
  */
 	public $columns = array(
 		'primary_key' => array('name' => 'integer primary key autoincrement'),
 		'string' => array('name' => 'varchar', 'limit' => '255'),
 		'text' => array('name' => 'text'),
 		'integer' => array('name' => 'integer', 'limit' => null, 'formatter' => 'intval'),
+		'smallinteger' => array('name' => 'smallint', 'limit' => null, 'formatter' => 'intval'),
+		'tinyinteger' => array('name' => 'tinyint', 'limit' => null, 'formatter' => 'intval'),
 		'biginteger' => array('name' => 'bigint', 'limit' => 20),
 		'float' => array('name' => 'float', 'formatter' => 'floatval'),
 		'decimal' => array('name' => 'decimal', 'formatter' => 'floatval'),
@@ -185,6 +188,9 @@ class Sqlite extends DboSource {
 				'default' => $default,
 				'length' => $this->length($column['type'])
 			);
+			if (in_array($fields[$column['name']]['type'], array('timestamp', 'datetime')) && strtoupper($fields[$column['name']]['default']) === 'CURRENT_TIMESTAMP') {
+				$fields[$column['name']]['default'] = null;
+			}
 			if ($column['pk'] == 1) {
 				$fields[$column['name']]['key'] = $this->index['PRI'];
 				$fields[$column['name']]['null'] = false;
@@ -206,7 +212,7 @@ class Sqlite extends DboSource {
  * @param array $fields The fields to update.
  * @param array $values The values to set columns to.
  * @param mixed $conditions array of conditions to use.
- * @return array
+ * @return bool
  */
 	public function update(Model $model, $fields = array(), $values = null, $conditions = null) {
 		if (empty($values) && !empty($fields)) {
@@ -268,6 +274,12 @@ class Sqlite extends DboSource {
 		);
 		if (in_array($col, $standard)) {
 			return $col;
+		}
+		if ($col === 'tinyint') {
+			return 'tinyinteger';
+		}
+		if ($col === 'smallint') {
+			return 'smallinteger';
 		}
 		if ($col === 'bigint') {
 			return 'biginteger';
@@ -588,4 +600,15 @@ class Sqlite extends DboSource {
 		return $this->useNestedTransactions && version_compare($this->getVersion(), '3.6.8', '>=');
 	}
 
+/**
+ * Returns a locking hint for the given mode.
+ *
+ * Sqlite Datasource doesn't support row-level locking.
+ *
+ * @param mixed $mode Lock mode
+ * @return string|null Null
+ */
+	public function getLockingHint($mode) {
+		return null;
+	}
 }

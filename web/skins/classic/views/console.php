@@ -150,7 +150,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
-    <?php echo $navbar ?>
+    <?php echo $navbar ?><br/>
     <?php echo $filterbar ?>
 
     <div class="container-fluid">
@@ -214,7 +214,7 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
   }
 ?>
             <td class="colName">
-              <a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/>
+              <span class="glyphicon glyphicon-dot <?php echo $fclass ?>"  aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
               <?php echo $monitor['Status'] ?><br/>
               <?php echo implode('<br/>',
                   array_map(function($group_id){
@@ -222,9 +222,9 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
                     return implode(' &gt; ', array_map(function($Group){ return $Group->Name(); }, $Group->Parents()));
                     }, $Monitor->GroupIds() ) ); 
 ?>
-            </td>
+            </div></td>
             <td class="colFunction">
-              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
+              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/><div class="small text-nowrap text-muted">
 <?php 
   $fps_string = '';
   if ( isset($monitor['CaptureFPS']) ) {
@@ -232,12 +232,12 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
   }
 
   if ( isset($monitor['AnalysisFPS']) and ( $monitor['Function'] == 'Mocord' or $monitor['Function'] == 'Modect' ) ) {
-    $fps_string .= ' / ' . $monitor['AnalysisFPS'];
+    $fps_string .= '/' . $monitor['AnalysisFPS'];
   }
-  if ($fps_string) $fps_string .= ' FPS';
+  if ($fps_string) $fps_string .= ' fps';
   echo $fps_string;
 ?>
-              </td>
+              </div></td>
 <?php
   if ( count($servers) ) { ?>
             <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
@@ -277,7 +277,7 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
       foreach ( array_keys( $eventCounts ) as $i ) {
 ?>
             <td class="colEvents"><a <?php echo (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'].'">'  : '') . 
-                $monitor[$i.'Events'] . '<br/>' . human_filesize($monitor[$i.'EventDiskSpace']) ?></a></td>
+                $monitor[$i.'Events'] . '<br/></a><div class="small text-nowrap text-muted">' . human_filesize($monitor[$i.'EventDiskSpace']) ?></div></td>
 <?php
   }
 ?>
@@ -304,7 +304,7 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
               <button type="button" name="addBtn" onclick="addMonitor(this);"
               <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
               >
-              <?php echo translate('AddNewMonitor') ?>
+              <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
               </button>
               <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
               <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
@@ -312,10 +312,10 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
               <?php echo translate('CloneMonitor') ?>
               </button>
               <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
-              <?php echo translate('Edit') ?>
+              <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
               </button>
               <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
-              <?php echo translate('Delete') ?>
+              <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
               </button>
             </td>
 <?php

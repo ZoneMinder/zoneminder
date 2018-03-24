@@ -24,7 +24,6 @@
 body {
     font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
     font-size: 13px;
-    color: #333333;
     font-weight: 300;
     text-align: center;
 }
@@ -79,8 +78,9 @@ a:visited {
 }
 
 a:hover {
-    color: #2488cb;
-    text-decoration: underline;
+    text-decoration: none; 
+    background-color:rgba(72, 84, 96,0.2);
+    border-radius:4px;
 }
 
 label {
@@ -90,12 +90,13 @@ label {
 input,textarea,select,button,.btn-primary {
     border: 1px #ccc solid;
     padding: 5px;
-    border-radius: 2px;
+    border-radius: 1px;
     font-family: inherit;
     font-weight: 400;
     font-size: 100%;
     color: #333333;
-					 text-align: left;
+    text-align: left;
+    border-radius:4px;
 }
 /*
 input[type=text], input[type=password], input[type="url"], textarea, select {
@@ -286,15 +287,15 @@ fieldset > legend {
  * Behavior classes
  */
 .alarm, .errorText {
-    color: #dc143c;
+    color: #ff3f34;
 }
 
 .alert, .warnText {
-    color: #ff8c00;
+    color: #ffa801;
 }
 
 .ok, .infoText {
-    color: #688e23;
+    color: #0fb9b1;
 }
 
 .fakelink {
@@ -512,12 +513,23 @@ input[type=submit]:disabled,
 .navbar{
 	margin-bottom: 0 !important;
 	border-radius: 0;
-	color: #03A9F4 !important;
+	background-color:#485460 !important;
+	color: #0fbcf9 !important;
 }
 
 .navbar-brand {
-	font-weight: bold;
+	font-weight: normal;
 	font-size: 20px;
+}
+.navbar-brand a {
+color:#ffa801;
+}
+
+.navbar-btn {
+  background-color:#95afc0;
+  color:white;
+  padding:4px;
+  border:none;
 }
 
 .container-fluid {
@@ -549,3 +561,32 @@ margin-left: 0;
 .chosen-container {
 text-align: left;
 }
+
+/* Override chosen for dark theme */
+.chosen-single,
+.chosen-container,
+.chosen-container-multi,
+.chosen-results,
+.chosen-search,
+.chosen-drop,
+.chosen-choices,
+li.search-choice {
+    font-size: inherit !important;
+    border-radius:4px;
+    border-color:rgb(200,200,200) !important ;
+	
+}
+
+.glyphicon.glyphicon-dot:before {
+    content: "\25cf";
+    font-size: 1.5em;
+    padding-right:5px;
+}
+
+.gi-1p5x{font-size: 1.5em;}
+.gi-2x{font-size: 2em;}
+.gi-3x{font-size: 3em;}
+.gi-4x{font-size: 4em;}
+.gi-5x{font-size: 5em;}
+/* end chosen override */
+

@@ -370,12 +370,11 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #header {
     width: 100%;
-    line-height: 1;
     text-align: left;
-    background-color: #383836;
+    background-color: #34495e;
     padding: 5px 20px;
     margin: 0 auto 4px auto;
-    color: #f2f2f2;
+    color: white;
     font-weight: 300;
 }
 
@@ -515,6 +514,7 @@ input[type=submit]:disabled,
 	border-radius: 0;
 	background-color:#485460 !important;
 	color: #0fbcf9 !important;
+	border:none;
 }
 
 .navbar-brand {

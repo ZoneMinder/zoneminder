@@ -299,7 +299,7 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
         </tbody>
         <tfoot>
           <tr>
-            <td class="colId"><?php echo count($displayMonitors) ?></td>
+            <td class="colId"><?php echo translate('Total').":".count($displayMonitors) ?></td>
             <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
               <button type="button" name="addBtn" onclick="addMonitor(this);"
               <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>

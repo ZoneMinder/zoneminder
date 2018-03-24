@@ -309,7 +309,7 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
               <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
               <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
               style="display:none;">
-              <?php echo translate('CloneMonitor') ?>
+              <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
               </button>
               <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
               <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>

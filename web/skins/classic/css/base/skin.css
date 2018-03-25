@@ -107,6 +107,20 @@ th {
 */
 }
 
+
+.thead-highlight {
+  background-color:#dfe4ea;
+}
+
+/* rounded table head top corners */
+table th:first-child{
+  border-radius:5px 0 0 0 ;
+}
+table th:last-child{
+  border-radius:0 5px 0 0 ;
+}
+
+
 a:link {
     color: #3498db;
     text-decoration: none;
@@ -632,5 +646,9 @@ li.search-choice {
 .gi-3x{font-size: 3em;}
 .gi-4x{font-size: 4em;}
 .gi-5x{font-size: 5em;}
-/* end chosen override */
 
+.filterBar {
+  margin-top:5px;
+  margin-bottom:5px;
+}
+   

@@ -152,12 +152,12 @@ xhtmlHeaders( __FILE__, translate('Console') );
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
-    <?php echo $navbar ?><br/>
-    <?php echo $filterbar ?>
+    <?php echo $navbar ?>
+    <div class="filterBar"><?php echo $filterbar ?></div>
 
     <div class="container-fluid">
       <table class="table table-striped table-hover table-condensed" id="consoleTable">
-        <thead>
+        <thead class="thead-highlight">
           <tr>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
             <th class="colId"><?php echo translate('Id') ?></th>

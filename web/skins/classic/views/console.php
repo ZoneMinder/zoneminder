@@ -146,6 +146,8 @@ if ( $show_storage_areas ) $left_columns += 1;
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
+
+
   <form name="monitorForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
@@ -160,12 +162,12 @@ xhtmlHeaders( __FILE__, translate('Console') );
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
             <th class="colId"><?php echo translate('Id') ?></th>
 <?php } ?>
-            <th class="colName"><i class="ion-monitor"></i>&nbsp;<?php echo translate('Name') ?></th>
+            <th class="colName"><i class="material-icons md-18">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
             <th class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($servers) ) { ?>
             <th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
-            <th class="colSource"><i class="ion-gear-b"></i>&nbsp;<?php echo translate('Source') ?></th>
+            <th class="colSource"><i class="material-icons md-18">settings</i>&nbsp;<?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
             <th class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }

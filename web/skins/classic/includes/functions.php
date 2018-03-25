@@ -74,7 +74,6 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
-  <link rel="stylesheet" href="css/ionicons.min.css" type="text/css"/>
   
 <?php 
 echo output_link_if_exists( array(
@@ -315,7 +314,7 @@ if ($reload == 'reload') ob_start();
 ?>
 	<div id="reload" class="container-fluid">
     <div id="Bandwidth" class="pull-left">
-      <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='ion-connection-bars'></i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
+      <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
     </div>
     <div id="Version" class="pull-right">
       <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
@@ -324,8 +323,8 @@ if ($reload == 'reload') ob_start();
     <?php } ?>
     </div>
     <ul class="list-inline">
-      <li class="Load"><i class="ion-arrow-graph-up-right"></i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-<i class="ion-social-buffer"></i>
+      <li class="Load"><i class="material-icons">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+<i class="material-icons">storage</i>
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );

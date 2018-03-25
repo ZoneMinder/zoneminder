@@ -603,7 +603,6 @@ margin-left: 0;
 text-align: left;
 }
 
-/* Override chosen for dark theme */
 .chosen-single,
 .chosen-container,
 .chosen-container-multi,
@@ -616,6 +615,10 @@ li.search-choice {
     border-radius:4px;
     border-color:rgb(200,200,200) !important ;
 	
+}
+
+.reduced-text { 
+   font-size:0.9em;
 }
 
 .glyphicon.glyphicon-dot:before {

@@ -60,6 +60,7 @@
 }
 
 .material-icons.md-18 { font-size: 18px; }
+.material-icons.md-36 { font-size: 36px; }
 
 body {
     font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
@@ -586,6 +587,8 @@ color:#ffa801;
   margin-right:8px;
   border:none;
 }
+
+
 
 .container-fluid {
   position: relative;

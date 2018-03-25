@@ -294,7 +294,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 
 <div class="navbar-right">
 <?php if ( ZM_OPT_USE_AUTH and $user ) { ?>
-	<p class="navbar-text"><span class="glyphicon glyphicon-user gi-1p5x"></span> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
+	<p class="navbar-text"><i class="material-icons">account_circle</i> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
 <?php } ?>
 
 <?php if ( canEdit( 'System' ) ) { ?>

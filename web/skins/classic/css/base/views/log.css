@@ -1,6 +1,5 @@
 #logSummary {
-    margin: 4px auto 0;
-    border-collapse: collapse;
+   font-size:10px;
 }
 
 #logSummary tr {
@@ -11,7 +10,6 @@
 #logSummary td {
     border: 1px solid #7f7fb2;
     padding: 0 6px;
-    text-align: center;
     font-size: 10px;
     line-height: 15px;
 }

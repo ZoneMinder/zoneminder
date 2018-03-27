@@ -122,7 +122,7 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
   result_set = zmDbFetch(query);
   if ( ! result_set ) return result_set;
 
-  int n_rows = mysql_num_rows( result_set );
+  int n_rows = mysql_num_rows(result_set);
   if ( n_rows != 1 ) {
     Error("Bogus number of lines return from query, %d returned for query %s.", n_rows, query);
     mysql_free_result(result_set);
@@ -140,6 +140,7 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
   }
   return result_set;
 }
+
 zmDbRow::~zmDbRow() {
   if ( result_set ) {
     mysql_free_result(result_set);

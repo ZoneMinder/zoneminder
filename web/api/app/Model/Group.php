@@ -37,9 +37,9 @@ class Group extends AppModel {
  * @var array
  */
 	public $validate = array(
-		'Name' => array(
+		/*'Name' => array(
 			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+				'rule' => array('notEmpty'),*/
 		'Id' => array(
 			'numeric' => array(
 				'rule' => array('numeric'),

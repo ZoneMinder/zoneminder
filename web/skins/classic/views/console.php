@@ -209,7 +209,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Function'] != 'None';
 $dot_class=$source_class;
-if ( $fclass=='errorText' ) $dot_class='errorText';
+if ( $fclass != 'infoText' ) $dot_class=$fclass;
 
   if ( ZM_WEB_ID_ON_CONSOLE ) {
 ?>

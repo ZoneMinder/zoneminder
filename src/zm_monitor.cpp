@@ -1744,32 +1744,19 @@ bool Monitor::Analyse() {
 void Monitor::Reload() {
   Debug( 1, "Reloading monitor %s", name );
 
-  if ( event )
+  if ( event ) {
     Info( "%s: %03d - Closing event %d, reloading", name, image_count, event->Id() );
-
-  closeEvent();
+    closeEvent();
+  }
 
   static char sql[ZM_SQL_MED_BUFSIZ];
   // This seems to have fallen out of date.
   snprintf( sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = '%d'", id );
 
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
-  }
-
-  MYSQL_RES *result = mysql_store_result( &dbconn );
-  if ( !result ) {
-    Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
-  }
-  int n_monitors = mysql_num_rows( result );
-  if ( n_monitors != 1 ) {
-    Error( "Bogus number of monitors, %d, returned. Can't reload", n_monitors );
-    return;
-  }
-
-  if ( MYSQL_ROW dbrow = mysql_fetch_row( result ) ) {
+  zmDbRow *row = zmDbFetchOne(sql);
+  if ( !row ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
+  } else if ( MYSQL_ROW dbrow = row->mysql_row() ) {
     int index = 0;
     function = (Function)atoi(dbrow[index++]);
     enabled = atoi(dbrow[index++]);
@@ -1820,12 +1807,7 @@ void Monitor::Reload() {
     ready_count = image_count+warmup_count;
 
     ReloadLinkedMonitors( p_linked_monitors );
-  }
-  if ( mysql_errno( &dbconn ) ) {
-    Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
-  }
-  mysql_free_result( result );
+  } // end if row
 
   ReloadZones();
 }

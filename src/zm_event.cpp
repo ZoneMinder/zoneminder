@@ -268,8 +268,8 @@ Event::~Event() {
 
   snprintf( sql, sizeof(sql), "UPDATE Events SET Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
   db_mutex.lock();
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't update event: %s", mysql_error( &dbconn ) );
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't update event: %s", mysql_error(&dbconn));
   } else {
     Debug(1,"Success updating event");
   }

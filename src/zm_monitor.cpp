@@ -1186,14 +1186,14 @@ bool Monitor::CheckSignal( const Image *image ) {
           break;
       }
 
-      if(colours == ZM_COLOUR_GRAY8) {
+      if ( colours == ZM_COLOUR_GRAY8 ) {
         if ( *(buffer+index) != grayscale_val )
           return true;
 
-      } else if(colours == ZM_COLOUR_RGB24) {
+      } else if ( colours == ZM_COLOUR_RGB24 ) {
         const uint8_t *ptr = buffer+(index*colours);
 
-        if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR) {
+        if ( usedsubpixorder == ZM_SUBPIX_ORDER_BGR ) {
           if ( (RED_PTR_BGRA(ptr) != red_val) || (GREEN_PTR_BGRA(ptr) != green_val) || (BLUE_PTR_BGRA(ptr) != blue_val) )
             return true;
         } else {
@@ -1202,8 +1202,8 @@ bool Monitor::CheckSignal( const Image *image ) {
             return true;
         }
 
-      } else if(colours == ZM_COLOUR_RGB32) {
-        if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR) {
+      } else if ( colours == ZM_COLOUR_RGB32 ) {
+        if ( usedsubpixorder == ZM_SUBPIX_ORDER_ARGB || usedsubpixorder == ZM_SUBPIX_ORDER_ABGR ) {
           if ( ARGB_ABGR_ZEROALPHA(*(((const Rgb*)buffer)+index)) != ARGB_ABGR_ZEROALPHA(colour_val) )
             return true;
         } else {
@@ -1212,10 +1212,10 @@ bool Monitor::CheckSignal( const Image *image ) {
             return true;
         }
       }
-    }
-    return( false );
-  }
-  return( true );
+    } // end for < signal_check_points
+    return false;
+  } // end if signal_check_points
+  return true;
 }
 
 bool Monitor::Analyse() {

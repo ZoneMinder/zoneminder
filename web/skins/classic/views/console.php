@@ -208,6 +208,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $fclass .= ' disabledText';
   $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Function'] != 'None';
+$dot_class=$source_class;
+if ( $fclass=='errorText' ) $dot_class='errorText';
 
   if ( ZM_WEB_ID_ON_CONSOLE ) {
 ?>
@@ -216,7 +218,7 @@ $stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Fun
   }
 ?>
             <td class="colName">
-              <span class="glyphicon glyphicon-dot <?php echo $fclass ?>"  aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
+              <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>"  aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
               <?php echo $monitor['Status'] ?><br/>
               <?php echo implode('<br/>',
                   array_map(function($group_id){

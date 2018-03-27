@@ -74,6 +74,7 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
+  
 <?php 
 echo output_link_if_exists( array(
   'css/base/skin.css',
@@ -293,7 +294,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 
 <div class="navbar-right">
 <?php if ( ZM_OPT_USE_AUTH and $user ) { ?>
-	<p class="navbar-text"><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
+	<p class="navbar-text"><i class="material-icons">account_circle</i> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
 <?php } ?>
 
 <?php if ( canEdit( 'System' ) ) { ?>
@@ -311,9 +312,9 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 if ( (!ZM_OPT_USE_AUTH) or $user ) {
 if ($reload == 'reload') ob_start();
 ?>
-	<div id="reload" class="container-fluid">
+	<div id="reload" class="container-fluid reduced-text">
     <div id="Bandwidth" class="pull-left">
-      <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bandwidth_options[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
+      <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
     </div>
     <div id="Version" class="pull-right">
       <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
@@ -322,7 +323,8 @@ if ($reload == 'reload') ob_start();
     <?php } ?>
     </div>
     <ul class="list-inline">
-      <li class="Load"><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+      <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+<i class="material-icons md-18">storage</i>
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );

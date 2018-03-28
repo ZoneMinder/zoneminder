@@ -116,7 +116,7 @@ function getImageSource( monId, time ) {
         return location.protocol + '//' + server.Hostname + 
           //'/cgi-bin/zms?mode=jpeg&replay=single&event=' + event_id +
           //'&frame='+Frame.FrameId +
-'/index.php?view=image&eid=' + event_id + '&fid='+Frame.FrameId +
+'/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
           "&width=" + monitorCanvasObj[monId].width + 
           "&height=" + monitorCanvasObj[monId].height;
       } else {

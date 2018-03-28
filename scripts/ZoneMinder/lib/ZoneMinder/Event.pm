@@ -35,6 +35,7 @@ require Date::Manip;
 require File::Find;
 require File::Path;
 require File::Copy;
+require Number::Bytes::Human;
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -410,8 +411,35 @@ sub delete_files {
   if ( $event_path ) {
     ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
     ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+
+    my $deleted = 0;
+    if ( $$Storage{Type} eq 's3fs' ) {
+      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+Debug("Trying to delete from S3 on $aws_host / $aws_bucket ($$Storage{Url})");
+      eval {
+        require Net::Amazon::S3;
+        my $s3 = Net::Amazon::S3->new( {
+             aws_access_key_id     => $aws_id,
+             aws_secret_access_key => $aws_secret,
+             ( $aws_host ? ( host => $aws_host ) : () ),
+             });
+        my $bucket = $s3->bucket($aws_bucket);
+        if ( ! $bucket ) {
+          Error("S3 bucket $bucket not found.");
+          die;
+        }
+        if ( $bucket->delete_key( $event_path ) ) {
+          $deleted = 1;
+        } else {
+          Error("Failed to delete from S3:".$s3->err . ": " . $s3->errstr);
+        }
+      };
+      Error($@) if $@;
+    } 
+    if ( ! $deleted ) {
       my $command = "/bin/rm -rf $storage_path/$event_path";
-    ZoneMinder::General::executeShellCommand( $command );
+      ZoneMinder::General::executeShellCommand( $command );
+    }
   }
 
   if ( $event->Scheme() eq 'Deep' ) {
@@ -538,11 +566,15 @@ sub MoveTo {
   for my $file (@files) {
     next if $file =~ /^\./;
     ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+    my $starttime = time;
     Debug("Moving file $file to $NewPath");
+    my $size = -s $file;
     if ( ! File::Copy::copy( $file, $NewPath ) ) {
       $error .= "Copy failed: for $file to $NewPath: $!";
       last;
     }
+    my $duration = time - $starttime;
+    Debug("Copy took $duration seconds = " . Number::Bytes::Human::format_bytes($size/$duration) . "/sec");
   } # end foreach file.
 
   if ( $error ) {

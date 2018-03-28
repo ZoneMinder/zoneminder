@@ -574,7 +574,7 @@ sub MoveTo {
       last;
     }
     my $duration = time - $starttime;
-    Debug("Copy took $duration seconds = " . Number::Bytes::Human::format_bytes($size/$duration) . "/sec");
+    Debug("Copied " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($size/$duration) . "/sec");
   } # end foreach file.
 
   if ( $error ) {

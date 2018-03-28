@@ -125,6 +125,7 @@ sub load {
   if ( $data and %$data ) {
     @$self{keys %$data} = values %$data;
   } # end if
+  return $data;
 } # end sub load
 
 sub lock_and_load {
@@ -156,7 +157,7 @@ sub lock_and_load {
     if ( $ZoneMinder::Database::dbh->errstr ) {
       Error( "Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
     } else {
-      Debug("No Results Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
+      Debug("No Results Lock and Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
     } # end if
   } # end if
   if ( $data and %$data ) {

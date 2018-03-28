@@ -61,6 +61,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdigest-sha-perl
         ,libsys-cpu-perl, libsys-cpuload-perl, libsys-meminfo-perl
         ,libdata-uuid-perl
+        ,libnumber-bytes-human-perl
         ,mysql-client | mariadb-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql | php-mysql, php5-gd | php-gd , php5-apcu | php-apcu , php-apc | php-apcu-bc

@@ -54,6 +54,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,liburi-encode-perl
         ,libwww-perl
         ,libdata-uuid-perl 
+        ,libnumber-bytes-human
         ,mysql-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql, php5-gd, php5-apcu, php-apc

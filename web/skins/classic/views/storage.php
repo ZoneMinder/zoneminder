@@ -34,6 +34,7 @@ if ( $_REQUEST['id'] ) {
   $newStorage['Name'] = translate('NewStorage');
   $newStorage['Path'] = '';
   $newStorage['Type'] = 'local';
+  $newStorage['Url'] = '';
   $newStorage['Scheme'] = 'Medium';
   $newStorage['StorageId'] = '';
   $newStorage['ServerId'] = '';
@@ -74,6 +75,10 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
             <tr>
               <th scope="row"><?php echo translate('Path') ?></th>
               <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage['Path'] ?>"/></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('Url') ?></th>
+              <td><input type="text" name="newStorage[Url]" value="<?php echo $newStorage['Url'] ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Server') ?></th>

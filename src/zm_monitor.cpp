@@ -620,11 +620,6 @@ Debug(3, "Success connecting");
 }
 
 Monitor::~Monitor() {
-  if ( event_delete_thread ) {
-    event_delete_thread->join();
-    delete event_delete_thread;
-    event_delete_thread = NULL;
-  }
   if ( timestamps ) {
     delete[] timestamps;
     timestamps = 0;
@@ -641,6 +636,13 @@ Monitor::~Monitor() {
     if ( event ) {
       Info( "%s: image_count:%d - Closing event %d, shutting down", name, image_count, event->Id() );
       closeEvent();
+
+      // closeEvent may start another thread to close the event, so wait for it to finish
+      if ( event_delete_thread ) {
+        event_delete_thread->join();
+        delete event_delete_thread;
+        event_delete_thread = NULL;
+      }
     }
 
     if ( (deinterlacing & 0xff) == 4) {

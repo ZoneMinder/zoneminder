@@ -371,7 +371,6 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
       } else {
         dbQuery( 'INSERT INTO Zones SET MonitorId=?, '.implode( ', ', $changes ), array( $mid ) );
       }
-      //if ( $cookies ) session_write_close();
       if ( daemonCheck() ) {
         if ( $_REQUEST['newZone']['Type'] == 'Privacy' ) {
           zmaControl( $monitor, 'stop' );
@@ -425,8 +424,6 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
         $deletedZid = 1;
       }
       if ( $deletedZid ) {
-        //if ( $cookies )
-        //session_write_close();
         if ( daemonCheck() ) {
           if ( $zone['Type'] == 'Privacy' ) {
             zmaControl( $mid, 'stop' );
@@ -601,8 +598,6 @@ if ( canEdit( 'Monitors' ) ) {
       
       $new_monitor = new Monitor($mid);
       //fixDevices();
-      //if ( $cookies )
-      //session_write_close();
 
       $new_monitor->zmcControl('start');
       $new_monitor->zmaControl('start');

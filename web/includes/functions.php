@@ -73,6 +73,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
 function userLogout() {
   global $user;
   Info( 'User "'.$user['Username'].'" logged out' );
+  session_start();
   unset( $_SESSION['user'] );
   unset( $user );
 

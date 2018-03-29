@@ -232,6 +232,7 @@ if ( $command =~ /^(?:start|restart)$/ ) {
 
 # This is now started unconditionally
     runCommand('zmdc.pl start zmfilter.pl');
+    
     if ( $Config{ZM_RUN_AUDIT} ) {
       if ( $Server and exists $$Server{'zmaudit'} and ! $$Server{'zmaudit'} ) {
         Debug("Not running zmaudit.pl because it is turned off for this server.");
@@ -255,6 +256,9 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     }
     if ( $Config{ZM_TELEMETRY_DATA} ) {
       runCommand('zmdc.pl start zmtelemetry.pl');
+    }
+    if ($Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
+        runCommand('zmdc.pl start zmeventnotification.pl');
     }
     if ( $Server and exists $$Server{'zmstats'} and ! $$Server{'zmstats'} ) {
       Debug("Not running zmstats.pl because it is turned off for this server.");

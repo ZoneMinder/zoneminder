@@ -140,22 +140,22 @@ private:
     return( level );
   }
 
-  bool boolEnv( const std::string &name, bool defaultValue=false );
-  int intEnv( const std::string &name, bool defaultValue=0 );
-  std::string strEnv( const std::string &name, const std::string &defaultValue="" );
-  char *getTargettedEnv( const std::string &name );
+  bool boolEnv(const std::string &name, bool defaultValue=false);
+  int intEnv(const std::string &name, bool defaultValue=0);
+  std::string strEnv(const std::string &name, const std::string &defaultValue="");
+  char *getTargettedEnv(const std::string &name);
 
   void loadEnv();
 
 public:
   const std::string &id() const {
-    return( mId );
+    return mId;
   }
 
-  const std::string &id( const std::string &id );
+  const std::string &id(const std::string &id);
 
   Level level() const {
-    return( mLevel );
+    return mLevel;
   }
   Level level( Level=NOOPT );
 

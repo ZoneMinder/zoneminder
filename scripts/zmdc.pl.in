@@ -104,7 +104,7 @@ my @daemons = (
     'zmtelemetry.pl'
     );
 
-if ($Config{ZM_OPT_USE_ZMEVENTNOTIFICATION})
+if ($Config{ZM_OPT_USE_EVENTNOTIFICATION})
 {
     push @daemons,'zmeventnotification.pl';
 }

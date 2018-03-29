@@ -98,7 +98,7 @@ Logger::Logger() :
 
     char code[4] = "";
     for ( int i = DEBUG1; i <= DEBUG9; i++ ) {
-      snprintf( code, sizeof(code), "DB%d", i );
+      snprintf(code, sizeof(code), "DB%d", i);
       smCodes[i] = code;
       smSyslogPriorities[i] = LOG_DEBUG;
     }
@@ -114,6 +114,7 @@ Logger::~Logger() {
   terminate();
   smCodes.clear();
   smSyslogPriorities.clear();
+  smInitialised = false;
 #if 0
   for ( StringMap::iterator itr = smCodes.begin(); itr != smCodes.end(); itr ++ ) {
       smCodes.erase( itr );
@@ -314,7 +315,7 @@ const std::string &Logger::id(const std::string &id) {
         mIdArgs = mId.substr(pos);
     }
   }
-  return( mId );
+  return mId;
 }
 
 Logger::Level Logger::level(Logger::Level level) {
@@ -335,7 +336,7 @@ Logger::Level Logger::level(Logger::Level level) {
     if ( mEffectiveLevel > mLevel)
       mEffectiveLevel = mLevel;
   }
-  return( mLevel );
+  return mLevel;
 }
 
 Logger::Level Logger::terminalLevel( Logger::Level terminalLevel ) {
@@ -346,7 +347,7 @@ Logger::Level Logger::terminalLevel( Logger::Level terminalLevel ) {
     if ( mTerminalLevel != terminalLevel )
       mTerminalLevel = terminalLevel;
   }
-  return( mTerminalLevel );
+  return mTerminalLevel;
 }
 
 Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
@@ -360,7 +361,7 @@ Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
     } // end if ( mDatabaseLevel != databaseLevel )
   } // end if ( databaseLevel > NOOPT )
 
-  return( mDatabaseLevel );
+  return mDatabaseLevel;
 }
 
 Logger::Level Logger::fileLevel( Logger::Level fileLevel ) {
@@ -373,7 +374,7 @@ Logger::Level Logger::fileLevel( Logger::Level fileLevel ) {
     if ( mFileLevel > NOLOG )
 	    openFile();
   }
-  return( mFileLevel );
+  return mFileLevel;
 }
 
 Logger::Level Logger::syslogLevel( Logger::Level syslogLevel ) {
@@ -387,7 +388,7 @@ Logger::Level Logger::syslogLevel( Logger::Level syslogLevel ) {
         openSyslog();
     }
   }
-  return( mSyslogLevel );
+  return mSyslogLevel;
 }
 
 void Logger::logFile( const std::string &logFile ) {
@@ -449,9 +450,9 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   const char *classString = smCodes[level].c_str();
 
   if ( level < PANIC || level > DEBUG9 )
-    Panic( "Invalid logger level %d", level );
+    Panic("Invalid logger level %d", level);
 
-  gettimeofday( &timeVal, NULL );
+  gettimeofday(&timeVal, NULL);
 
 #if 0
   if ( logRuntime ) {
@@ -463,8 +464,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   } else {
 #endif
     char *timePtr = timeString;
-    timePtr += strftime( timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec) );
-    snprintf( timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec );
+    timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec));
+    snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec);
 #if 0
   }
 #endif
@@ -553,7 +554,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   if ( level <= mSyslogLevel ) {
     int priority = smSyslogPriorities[level];
     //priority |= LOG_DAEMON;
-    syslog( priority, "%s [%s] [%s]", classString, mId.c_str(), syslogStart );
+    syslog( priority, "%s [%d] [%s] [%s]", classString, priority, mId.c_str(), syslogStart );
   }
 
   free(filecopy);
@@ -562,7 +563,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     zmDbClose();
     if ( level <= PANIC )
       abort();
-    exit( -1 );
+    exit(-1);
   }
 }
 

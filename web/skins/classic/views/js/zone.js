@@ -209,7 +209,8 @@ function applyZoneUnits() {
 }
 
 function limitRange( field, minValue, maxValue ) {
-  field.value = constrainValue( parseInt(field.value), parseInt(minValue), parseInt(maxValue) );
+  if ( field.value != '' )
+    field.value = constrainValue( parseInt(field.value), parseInt(minValue), parseInt(maxValue) );
 }
 
 function limitFilter( field ) {
@@ -379,7 +380,12 @@ function drawZonePoints() {
     div.addEvent( 'mouseover', highlightOn.pass( i ) );
     div.addEvent( 'mouseout', highlightOff.pass( i ) );
     div.inject( $('imageFrame') );
-    div.makeDraggable( { 'container': $('imageFrame'), 'onStart': setActivePoint.pass( i ), 'onComplete': fixActivePoint.pass( i ), 'onDrag': updateActivePoint.pass( i ) } );
+    div.makeDraggable( { 
+        'container': $('imageFrame'),
+        'onStart': setActivePoint.pass( i ), 
+        'onComplete': fixActivePoint.pass( i ),
+        'onDrag': updateActivePoint.pass( i )
+        } );
   }
 
   var tables = $('zonePoints').getElements( 'table' );
@@ -443,8 +449,7 @@ function setAlarmState( currentAlarmState ) {
   var newAlarm = ( isAlarmed && !wasAlarmed );
   var oldAlarm = ( !isAlarmed && wasAlarmed );
 
-  if ( newAlarm )
-  {
+  if ( newAlarm ) {
     if ( SOUND_ON_ALARM ) {
       // Enable the alarm sound
       if ( !canPlayPauseAudio )
@@ -491,16 +496,20 @@ function getStreamCmdResponse( respObj, respText ) {
     }
   } else {
     checkStreamForErrors("getStreamCmdResponse", respObj);//log them
-    // Try to reload the image stream.
-    var streamImg = document.getElementById('liveStream');
-    if ( streamImg )
-      streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    if ( ! streamPause ) {
+      // Try to reload the image stream.
+      var streamImg = $('liveStream'+monitorId);
+      if ( streamImg )
+        streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    }
   }
 
-  var streamCmdTimeout = statusRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
-    streamCmdTimeout = streamCmdTimeout/5;
-  streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
+  if ( ! streamPause ) {
+    var streamCmdTimeout = statusRefreshTimeout;
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+      streamCmdTimeout = streamCmdTimeout/5;
+    streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
+  }
 }
 
 var streamPause = false;
@@ -551,24 +560,20 @@ function getStatusCmdResponse( respObj, respText ) {
   } else
     checkStreamForErrors("getStatusCmdResponse", respObj);
 
-  var statusCmdTimeout = statusRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
-    statusCmdTimeout = statusCmdTimeout/5;
-  statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
+  if ( ! streamPause ) {
+    var statusCmdTimeout = statusRefreshTimeout;
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+      statusCmdTimeout = statusCmdTimeout/5;
+    statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
+  }
 }
 
 function statusCmdQuery() {
   statusCmdReq.send();
 }
 
-var tempImage = null;
-
 function fetchImage( streamImage ) {
-  var now = new Date();
-  if ( !tempImage )
-    tempImage = new Element( 'img' );
-  tempImage.setProperty( 'src', streamSrc+'&'+now.getTime() );
-  $(streamImage).setProperty( 'src', tempImage.getProperty( 'src' ) );
+  streamImage.src = streamImage.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
 }
 
 function appletRefresh() {

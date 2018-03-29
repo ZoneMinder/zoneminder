@@ -22,9 +22,10 @@
 // Use skin.js.php for JavaScript that need pre-processing
 //
 
-var popupOptions = "resizable,scrollbars,status=no";
+var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
 
 function checkSize() {
+  if ( 0 ) {
   if (window.outerHeight) {
     var w = window.outerWidth;
     var prevW = w;
@@ -37,6 +38,7 @@ function checkSize() {
     if (w != prevW || h != prevH)
       window.resizeTo(w, h);
   }
+  }
 }
 
 // Deprecated
@@ -45,6 +47,10 @@ function newWindow( url, name, width, height ) {
 }
 
 function getPopupSize( tag, width, height ) {
+  if ( typeof popupSizes == 'undefined' ) {
+    Error( "Can't find any window sizes" );
+    return( { 'width': 0, 'height': 0 } );
+  }
   var popupSize = Object.clone( popupSizes[tag] );
   if ( !popupSize ) {
     Error( "Can't find window size for tag '"+tag+"'" );
@@ -83,7 +89,6 @@ function getPopupSize( tag, width, height ) {
     Warning( "Adjusting to minimum height ("+popupSize.minHeight+") when getting popup size for tag '"+tag+"' because calculated height is " + popupSize.height );
     popupSize.height = popupSize.minHeight;
   }
-  Debug( popupSize );
   return( popupSize );
 }
 
@@ -104,7 +109,7 @@ function createPopup( url, name, tag, width, height ) {
     popupDimensions += ",width="+popupSize.width;
   if ( popupSize.height > 0 )
     popupDimensions += ",height="+popupSize.height;
-  var popup = window.open( url, name, popupOptions+popupDimensions );
+  var popup = window.open( url+"&popup=1", name, popupOptions+popupDimensions );
   if ( ! popup ) {
     // if popup blocking is enabled, the popup won't be defined.
     console.log("Please disable popup blocking.");
@@ -167,8 +172,39 @@ function refreshWindow() {
 }
 
 function refreshParentWindow() {
-  if ( window.opener )
-    window.opener.location.reload( true );
+  if ( refreshParent ) {
+    if ( window.opener ) {
+      if ( refreshParent == true ) 
+        window.opener.location.reload( true );
+      else 
+        window.opener.location.href = refreshParent;
+    }
+  }
+}
+
+if ( currentView != 'none' ) {
+  $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+
+  $j(document).ready(function() {
+    if ($j('.navbar').length) {
+      setInterval(getNavBar, navBarRefresh);
+    }
+  });
+
+  function getNavBar() {
+    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar', setNavBar);
+  }
+
+  function setNavBar(data) {
+    console.log(data);
+    if ( data.auth ) {
+      if ( data.auth != auth_hash ) {
+        // Update authentication token.
+        auth_hash = data.auth;
+      }
+    }
+    $j('#reload').replaceWith(data.message);
+  }
 }
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
@@ -220,6 +256,14 @@ function submitTab( tab ) {
   form.submit();
 }
 
+function toggleCheckbox( element, name ) {
+    var form = element.form;
+    var checked = element.checked;
+    for (var i = 0; i < form.elements.length; i++)
+        if (form.elements[i].name.indexOf(name) == 0)
+          form.elements[i].checked = checked;
+}
+
 function configureDeleteButton( element ) {
   var form = element.form;
   var checked = element.checked;
@@ -247,7 +291,11 @@ if ( refreshParent ) {
 if ( focusWindow ) {
   windowToFront();
 }
-window.addEvent( 'domready', checkSize);
+if ( closePopup ) {
+  closeWindow();
+}
+
+window.addEvent( 'domready', checkSize );
 
 function convertLabelFormat(LabelFormat, monitorName){
 	//convert label format from strftime to moment's format (modified from

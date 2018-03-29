@@ -28,13 +28,13 @@ if ( version_compare( phpversion(), '4.3.0', '<') ) {
 }
 
 # We are requiring these because this file is getting included from the api, which hasn't already included them.
-require_once( 'logger.php' );
-require_once( 'database.php' );
+require_once('logger.php');
+require_once('database.php');
 
 function userLogin( $username, $password='', $passwordHashed=false ) {
   global $user, $cookies;
 
-  $sql = 'SELECT * FROM Users WHERE Enabled = 1';
+  $sql = 'SELECT * FROM Users WHERE Enabled=1';
   $sql_values = NULL;
   if ( ZM_AUTH_TYPE == 'builtin' ) {
     if ( $passwordHashed ) {
@@ -44,7 +44,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     }
     $sql_values = array( $username, $password );
   } else {
-    $sql .= ' AND Username = ?';
+    $sql .= ' AND Username=?';
     $sql_values = array( $username );
   }
   $_SESSION['username'] = $username;
@@ -66,16 +66,13 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     $_SESSION['loginFailed'] = true;
     unset( $user );
   }
-  if ( $cookies )
-    session_write_close();
+  //if ( $cookies )
+    //session_write_close();
 }
 
 function userLogout() {
   global $user;
-  $username = $user['Username'];
-
-  Info( "User \"$username\" logged out" );
-
+  Info( 'User "'.$user['Username'].'" logged out' );
   unset( $_SESSION['user'] );
   unset( $user );
 
@@ -100,7 +97,7 @@ function CORSHeaders() {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       return;
     }
-    foreach( dbFetchAll( 'SELECT * FROM Servers' ) as $row ) {
+    foreach( $servers as $row ) {
       $Server = new Server( $row );
       if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
         $valid = true;
@@ -125,33 +122,61 @@ function getAuthUser( $auth ) {
       }
     }
 
-    $sql = 'select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Enabled = 1';
+    if ( isset( $_SESSION['username'] ) ) {
+      # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
+      # Only really important if you have a lot of users.
+      $sql = "SELECT * FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";
+    } else {
+      $sql = 'SELECT * FROM Users WHERE Enabled = 1';
+    }
+
     foreach ( dbFetchAll( $sql ) as $user ) {
       $now = time();
-      for ( $i = 0; $i < 2; $i++, $now -= (60*60) ) { // Try for last two hours
+      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= (3600) ) { // Try for last two hours
         $time = localtime( $now );
         $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
         $authHash = md5( $authKey );
 
         if ( $auth == $authHash ) {
-          return( $user );
+          return $user;
         }
-      }
-    }
-  }
+      } // end foreach hour
+    } // end foreach user
+  } // end if using auth hash
   Error( "Unable to authenticate user from auth hash '$auth'" );
   return( false );
-}
+} // end getAuthUser($auth)
 
 function generateAuthHash( $useRemoteAddr ) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
-    $time = localtime();
-    if ( $useRemoteAddr ) {
-      $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$time[2].$time[3].$time[4].$time[5];
-    } else {
-      $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$time[2].$time[3].$time[4].$time[5];
-    }
-    $auth = md5( $authKey );
+  if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
+    # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
+    $time = time();
+    $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
+
+    if ( ( !isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
+      # Don't both regenerating Auth Hash if an hour hasn't gone by yet
+      $local_time = localtime();
+      $authKey = '';
+      if ( $useRemoteAddr ) {
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
+      } else {
+        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
+      }
+      #Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
+      $auth = md5( $authKey );
+      if ( session_status() == PHP_SESSION_NONE ) {
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Warning("Session is not active. AuthHash will not be cached. called from $file:$line. OldHash:" . $_SESSION['AuthHash'] . ' generated at ' . $_SESSION['AuthHashGeneratedAt'] . ' < ' . $time . ' - ( ' . ZM_AUTH_HASH_TTL . '* 1800 = ' . ZM_AUTH_HASH_TTL * 1800 );
+      }
+      $_SESSION['AuthHash'] = $auth;
+      $_SESSION['AuthHashGeneratedAt'] = $time;
+      #Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
+    #} else {
+      #Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
+    } # end if AuthHash is not cached
+    return $_SESSION['AuthHash'];
   } else {
     $auth = '';
   }
@@ -247,14 +272,14 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
           if ( isWindows() ) {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'
               classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-              codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
+              codebase="'.ZM_BASE_PROTOCOL.'://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902"
               standby="Loading Microsoft Windows Media Player components..."
               type="'.$mimeType.'">
               <param name="FileName" value="'.$src.'"/>
               <param name="autoStart" value="1"/>
               <param name="showControls" value="0"/>
               <embed type="'.$mimeType.'"
-              pluginspage="http://www.microsoft.com/Windows/MediaPlayer/"
+              pluginspage="'.ZM_BASE_PROTOCOL.'://www.microsoft.com/Windows/MediaPlayer/"
               src="'.$src.'"
               name="'.$title.'"
               width="'.$width.'"
@@ -269,14 +294,14 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
         {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
-            codebase="http://www.apple.com/qtactivex/qtplugin.cab"
+            codebase="'.ZM_BASE_PROTOCOL.'://www.apple.com/qtactivex/qtplugin.cab"
             type="'.$mimeType.'">
             <param name="src" value="'.$src.'"/>
             <param name="autoplay" VALUE="true"/>
             <param name="controller" VALUE="false"/>
             <embed type="'.$mimeType.'"
             src="'.$src.'"
-            pluginspage="http://www.apple.com/quicktime/download/"
+            pluginspage="'.ZM_BASE_PROTOCOL.'://www.apple.com/quicktime/download/"
             name="'.$title.'" width="'.$width.'" height="'.$height.'"
             autoplay="true"
             controller="true">
@@ -287,13 +312,13 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
         {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
-            codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
+            codebase="'.ZM_BASE_PROTOCOL.'://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
             type="'.$mimeType.'">
             <param name="movie" value="'.$src.'"/>
             <param name="quality" value="high"/>
             <param name="bgcolor" value="#ffffff"/>
             <embed type="'.$mimeType.'"
-            pluginspage="http://www.macromedia.com/go/getflashplayer"
+            pluginspage="'.ZM_BASE_PROTOCOL.'://www.macromedia.com/go/getflashplayer"
             src="'.$src.'"
             name="'.$title.'"
             width="'.$width.'"
@@ -318,20 +343,69 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
 }
 
 function outputImageStream( $id, $src, $width, $height, $title='' ) {
-  echo getImageStream( $id, $src, $width, $height, $title );
+  echo getImageStreamHTML( $id, $src, $width, $height, $title );
 }
 
 
-function getImageStream( $id, $src, $width, $height, $title='' ) {
+function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'. validInt($width) .'px;': '').($height ? ' height:'. validInt( $height ).'px;':'').'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'"/>';
   }
 }
 
 function outputControlStream( $src, $width, $height, $monitor, $scale, $target ) {
 ?>
+  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+    <input type="hidden" name="view" value="blank">
+    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
+    <input type="hidden" name="action" value="control">
+    <?php
+    if ( $monitor['CanMoveMap'] ) {
+    ?>
+      <input type="hidden" name="control" value="moveMap">
+    <?php
+    } elseif ( $monitor['CanMoveRel'] ) {
+    ?>
+      <input type="hidden" name="control" value="movePseudoMap">
+    <?php
+    } elseif ( $monitor['CanMoveCon'] ) {
+    ?>
+      <input type="hidden" name="control" value="moveConMap">
+    <?php
+    }
+    ?>
+    <input type="hidden" name="scale" value="<?php echo $scale ?>">
+    <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
+  </form>
+<?php
+}
+
+function outputHelperStream( $id, $src, $width, $height, $title='' ) {
+  echo getHelperStream( $id, $src, $width, $height, $title );
+}
+function getHelperStream( $id, $src, $width, $height, $title='' ) {
+    return '<object type="application/x-java-applet" id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
+    archive="'. ZM_PATH_CAMBOZOLA .'" 
+    align="middle"
+    width="'. $width .'"
+    height="'. $height .'"
+    title="'. $title .'">
+    <param name="accessories" value="none"/>
+    <param name="url" value="'. $src .'"/>
+    </object>';
+}
+
+function outputImageStill( $id, $src, $width, $height, $title='' ) {
+  echo getImageStill( $id, $src, $width, $height, $title='' );
+}
+function getImageStill( $id, $src, $width, $height, $title='' ) {
+  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.(validInt($width)?' width="'.$width.'"':'').(validInt($height)?' height="'.$height.'"':'').'/>';
+}
+
+function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
+  ?>
   <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
@@ -354,56 +428,7 @@ function outputControlStream( $src, $width, $height, $monitor, $scale, $target )
     <input type="hidden" name="scale" value="<?php echo $scale ?>">
     <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
   </form>
-<?php
-}
-
-function outputHelperStream( $id, $src, $width, $height, $title='' ) {
-  echo getHelperStream( $id, $src, $width, $height, $title );
-}
-function getHelperStream( $id, $src, $width, $height, $title='' ) {
-    return '<applet id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
-    archive="'. ZM_PATH_CAMBOZOLA .'" 
-    align="middle"
-    width="'. $width .'"
-    height="'. $height .'"
-    title="'. $title .'">
-    <param name="accessories" value="none"/>
-    <param name="url" value="'. $src .'"/>
-    </applet>';
-}
-
-function outputImageStill( $id, $src, $width, $height, $title='' ) {
-  echo getImageStill( $id, $src, $width, $height, $title='' );
-}
-function getImageStill( $id, $src, $width, $height, $title='' ) {
-  return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"/>';
-}
-
-function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
-?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
-    <input type="hidden" name="view" value="blank">
-    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
-    <input type="hidden" name="action" value="control">
-    <?php
-    if ( $monitor['CanMoveMap'] ) {
-    ?>
-    <input type="hidden" name="control" value="moveMap">
-    <?php
-    } elseif ( $monitor['CanMoveRel'] ) {
-    ?>
-    <input type="hidden" name="control" value="movePseudoMap">
-    <?php
-    } elseif ( $monitor['CanMoveCon'] ) {
-    ?>
-    <input type="hidden" name="control" value="moveConMap">
-    <?php
-    }
-    ?>
-    <input type="hidden" name="scale" value="<?php echo $scale ?>">
-    <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
-    </form>
-<?php
+  <?php
 }
 
 // Incoming args are shell-escaped. This function must escape any further arguments it cannot guarantee.
@@ -443,17 +468,9 @@ function canEdit( $area, $mid=false ) {
   return( $user[$area] == 'Edit' && ( !$mid || visibleMonitor( $mid ) ) );
 }
 
-function getEventPath( $event ) {
-  if ( ZM_USE_DEEP_STORAGE )
-    $eventPath = $event['MonitorId'].'/'.strftime( '%y/%m/%d/%H/%M/%S', strtotime($event['StartTime']) );
-  else
-    $eventPath = $event['MonitorId'].'/'.$event['Id'];
-  return( $eventPath );
-}
-
 function getEventDefaultVideoPath( $event ) {
   $Event = new Event( $event );
-  return $Event->getStreamSrc( array( "mode"=>"mpeg", "format"=>"h264" ) );
+  return $Event->getStreamSrc( array( 'mode'=>'mpeg', 'format'=>'h264' ) );
 }
 
 function deletePath( $path ) {
@@ -464,7 +481,8 @@ function deletePath( $path ) {
   }
 }
 
-function deleteEvent( $event, $mid=false ) { 
+function deleteEvent( $event ) {
+
   if ( empty($event) ) {
     Error( 'Empty event passed to deleteEvent.');
     return;
@@ -472,49 +490,15 @@ function deleteEvent( $event, $mid=false ) {
 
   if ( gettype($event) != 'array' ) {
 # $event could be an eid, so turn it into an event hash
-    $event = dbFetchOne( 'SELECT Id, MonitorId, StartTime FROM Events WHERE Id=?', NULL, array( $event ) );
+    $event = new Event( $event );
+  } else {
+Logger::Debug("Event type: " . gettype($event));
   }
 
   global $user;
 
-  if ( !$mid )
-    $mid = $event['MonitorId'];
-
   if ( $user['Events'] == 'Edit' ) {
-
-    dbQuery( 'DELETE FROM Events WHERE Id = ?', array($event['Id']) );
-    if ( !ZM_OPT_FAST_DELETE ) {
-      dbQuery( 'DELETE FROM Stats WHERE EventId = ?', array($event['Id']) );
-      dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($event['Id']) );
-      if ( ZM_USE_DEEP_STORAGE ) {
-
-# Assumption: All events haev a start time
-        $start_date = date_parse( $event['StartTime'] );
-        $start_date['year'] = $start_date['year'] % 100;
-
-# So this is  because ZM creates a link under the day pointing to the time that the event happened. 
-        $eventlink_path = sprintf('%s/%d/%02d/%02d/%02d/.%d', ZM_DIR_EVENTS, $mid, $start_date['year'], $start_date['month'], $start_date['day'], $event['Id'] );
-
-        if ( $id_files = glob( $eventlink_path ) ) {
-# I know we are using arrays here, but really there can only ever be 1 in the array
-          $eventPath = preg_replace( '/\.'.$event['Id'].'$/', readlink($id_files[0]), $id_files[0] );
-          deletePath( $eventPath );
-          deletePath( $id_files[0] );
-          $pathParts = explode(  '/', $eventPath );
-          for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
-            $deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
-            if ( !glob( $deletePath."/*" ) ) {
-              deletePath( $deletePath );
-            }
-          }
-        } else {
-          Warning( "Found no event files under $eventlink_path" );
-        } # end if found files
-      } else {
-        $eventPath = implode( '/', array( ZM_DIR_EVENTS, $mid, $event['Id'] ) );
-        deletePath( $eventPath );
-      } # USE_DEEP_STORAGE OR NOT
-    } # ! ZM_OPT_FAST_DELETE
+    $event->delete();
   } # CAN EDIT
 }
 
@@ -569,12 +553,19 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
     }
   }
 
-  $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
+  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions( $contents, $values ).'</select>';
+}
+
+function htmlOptions( $contents, $values ) {
+  $html = '';
   foreach ( $contents as $value=>$text ) {
-    $selected = is_array( $values ) ? in_array( $value, $values ) : $value==$values;
+    if ( is_array( $text ) )
+      $text = $text['Name'];
+    else if ( is_object( $text ) )
+      $text = $text->Name();
+    $selected = is_array( $values ) ? in_array( $value, $values ) : !strcmp($value, $values);
     $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
   }
-  $html .= '</select>';
   return $html;
 }
 
@@ -648,10 +639,10 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         {
           if ( is_array( $newValues[$key] ) ) {
             if ( join(',',$newValues[$key]) != $values[$key] ) {
-              $changes[$key] = "$key = ".dbEscape(join(',',$newValues[$key]));
+              $changes[$key] = "`$key` = ".dbEscape(join(',',$newValues[$key]));
             }
           } elseif ( $values[$key] ) {
-            $changes[$key] = "$key = ''";
+            $changes[$key] = "`$key` = ''";
           }
           break;
         }
@@ -718,15 +709,15 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
             if ( ! isset($value) || $value == '' ) {
-              $changes[$key] = "$key = NULL";
+              $changes[$key] = "`$key` = NULL";
             } else {
-              $changes[$key] = $key . ' = '.dbEscape(trim($value));
+              $changes[$key] = "`$key` = ".dbEscape(trim($value));
             }
           }
           break;
         }
-    }
-  }
+    } // end switch
+  } // end foreach newvalues
   foreach( $values as $key=>$value ) {
     if ( !empty($columns[$key]) ) {
       if ( !empty($types[$key]) ) {
@@ -854,7 +845,7 @@ function packageControl( $command ) {
 }
 
 function daemonControl( $command, $daemon=false, $args=false ) {
-  $string = ZM_PATH_BIN."/zmdc.pl $command";
+  $string = escapeshellcmd(ZM_PATH_BIN).'/zmdc.pl '.$command;
   if ( $daemon ) {
     $string .= ' ' . $daemon;
     if ( $args ) {
@@ -862,77 +853,23 @@ function daemonControl( $command, $daemon=false, $args=false ) {
     }
   }
   $string = escapeshellcmd( $string );
-  $string .= ' 2>/dev/null >&- <&- >/dev/null';
+  #$string .= ' 2>/dev/null >&- <&- >/dev/null';
+Logger::Debug("daemonControl $string");
   exec( $string );
 }
 
 function zmcControl( $monitor, $mode=false ) {
-  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
-    $row = NULL;
-    if ( $monitor['Type'] == 'Local' ) {
-      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Device = ?", NULL, array($monitor['Device']) );
-      $zmcArgs = '-d '.$monitor['Device'];
-    } else {
-      $row = dbFetchOne( "SELECT count(if(Function!='None',1,NULL)) AS ActiveCount FROM Monitors WHERE Id = ?", NULL, array($monitor['Id']) );
-      $zmcArgs = '-m '.$monitor['Id'];
-    }
-    $activeCount = $row['ActiveCount'];
-
-    if ( (!$activeCount) || ($mode == 'stop') ) {
-      daemonControl( 'stop', 'zmc', $zmcArgs );
-    } else {
-      if ( $mode == 'restart' ) {
-        daemonControl( 'stop', 'zmc', $zmcArgs );
-      }
-      daemonControl( 'start', 'zmc', $zmcArgs );
-    }
-  } else {
-    $Server = new Server( $monitor['ServerId'] );
-
-    #$url = $Server->Url() . '/zm/api/monitors.json?auth='.generateAuthHash( $_SESSION['remoteAddr'] );
-    $url = $Server->Url() . '/zm/api/monitors.json?user='.$_SESSION['username'].'&pass='.$_SESSION['passwordHash'];
-    $data = array('Monitor[Function]' => $monitor['Function'] );
-
-    // use key 'http' even if you send the request to https://...
-    $options = array(
-        'http' => array(
-          'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-          'method'  => 'POST',
-          'content' => http_build_query($data)
-          )
-        );
-    $context  = stream_context_create($options);
-    $result = file_get_contents($url, false, $context);
-    if ($result === FALSE) { /* Handle error */ }
-  }
+  $Monitor = new Monitor( $monitor );
+  return $Monitor->zmcControl($mode);
 }
 
 function zmaControl( $monitor, $mode=false ) {
   if ( !is_array( $monitor ) ) {
+    $monitor = 
     $monitor = dbFetchOne( 'select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?', NULL, array($monitor) );
   }
-  if ( (!defined('ZM_SERVER_ID')) or ( ZM_SERVER_ID==$monitor['ServerId'] ) ) {
-    if ( !$monitor || $monitor['Function'] == 'None' || $monitor['Function'] == 'Monitor' || $mode == 'stop' ) {
-      if ( ZM_OPT_CONTROL ) {
-        daemonControl( 'stop', 'zmtrack.pl', '-m '.$monitor['Id'] );
-      }
-      daemonControl( 'stop', 'zma', '-m '.$monitor['Id'] );
-    } else {
-      if ( $mode == 'restart' ) {
-        if ( ZM_OPT_CONTROL ) {
-          daemonControl( 'stop', 'zmtrack.pl', '-m '.$monitor['Id'] );
-        }
-        daemonControl( 'stop', 'zma', '-m '.$monitor['Id'] );
-      }
-      daemonControl( 'start', 'zma', '-m '.$monitor['Id'] );
-      if ( ZM_OPT_CONTROL && $monitor['Controllable'] && $monitor['TrackMotion'] && ( $monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord' ) ) {
-        daemonControl( 'start', 'zmtrack.pl', '-m '.$monitor['Id'] );
-      }
-      if ( $mode == 'reload' ) {
-        daemonControl( 'reload', 'zma', '-m '.$monitor['Id'] );
-      }
-    }
-  } // end if we are on the recording server
+  $Monitor = new Monitor( $monitor );
+  $Monitor->zmaControl($mode);
 }
 
 function initDaemonStatus() {
@@ -1004,91 +941,8 @@ function zmaCheck( $monitor ) {
 }
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-  $eventPath = ZM_DIR_EVENTS . '/' . getEventPath( $event );
-
-  if ( !is_array($frame) )
-    $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
-
-  if ( file_exists( $eventPath.'/snapshot.jpg' ) ) {
-      $captImage = 'snapshot.jpg';
-  } else {
-      $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId'] );
-      if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
-          # Generate the frame JPG
-          if ( $event['DefaultVideo'] ) {
-              $command ='ffmpeg -v 0 -i '.$eventPath.'/'.$event['DefaultVideo'].' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
-              system( $command, $retval );
-          } else {
-              Error("Can't create frame images from video because there is no video file for this event " );
-          }
-      }
-  }
-
-  $captPath = $eventPath.'/'.$captImage;
-  $thumbCaptPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$captImage;
-  //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
-
-  $analImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId'] );
-  $analPath = $eventPath.'/'.$analImage;
-  $thumbAnalPath = ZM_DIR_IMAGES.'/'.$event['Id'].'-'.$analImage;
-  //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
-
-  $alarmFrame = $frame['Type']=='Alarm';
-
-  $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
-  $isAnalImage = $hasAnalImage && !$captureOnly;
-
-  if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) ) {
-    $imagePath = $thumbPath = $isAnalImage?$analPath:$captPath;
-    $imageFile = ZM_DIR_EVENTS.'/'.$imagePath;
-    $thumbFile = ZM_DIR_EVENTS.'/'.$thumbPath;
-  } else {
-    if ( version_compare( phpversion(), '4.3.10', '>=') )
-      $fraction = sprintf( '%.3F', $scale/SCALE_BASE );
-    else
-      $fraction = sprintf( '%.3f', $scale/SCALE_BASE );
-    $scale = (int)round( $scale );
-
-    $thumbCaptPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $thumbCaptPath );
-    $thumbAnalPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $thumbAnalPath );
-
-    if ( $isAnalImage ) {
-      $imagePath = $analPath;
-      $thumbPath = $thumbAnalPath;
-    } else {
-      $imagePath = $captPath;
-      $thumbPath = $thumbCaptPath;
-    }
-
-    $thumbFile = $thumbPath;
-    if ( $overwrite || !file_exists( $thumbFile ) || !filesize( $thumbFile ) ) {
-      // Get new dimensions
-      list( $imageWidth, $imageHeight ) = getimagesize( $imagePath );
-      $thumbWidth = $imageWidth * $fraction;
-      $thumbHeight = $imageHeight * $fraction;
-
-      // Resample
-      $thumbImage = imagecreatetruecolor( $thumbWidth, $thumbHeight );
-      $image = imagecreatefromjpeg( $imagePath );
-      imagecopyresampled( $thumbImage, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $imageWidth, $imageHeight );
-
-      if ( !imagejpeg( $thumbImage, $thumbPath ) )
-        Error( "Can't create thumbnail '$thumbPath'" );
-    }
-  }
-
-  $imageData = array(
-      'eventPath' => $eventPath,
-      'imagePath' => $imagePath,
-      'thumbPath' => $thumbPath,
-      'imageFile' => $imagePath,
-      'thumbFile' => $thumbFile,
-      'imageClass' => $alarmFrame?'alarm':'normal',
-      'isAnalImage' => $isAnalImage,
-      'hasAnalImage' => $hasAnalImage,
-      );
-
-  return( $imageData );
+  $Event = new Event( $event );
+  return $Event->getImageSrc( $frame, $scale, $captureOnly, $overwrite );
 }
 
 function viewImagePath( $path, $querySep='&amp;' ) {
@@ -1144,8 +998,10 @@ function createVideo( $event, $format, $rate, $scale, $overwrite=false ) {
       $command .= " -s ".sprintf( "%.2f", ($scale/SCALE_BASE) );
   if ( $overwrite )
     $command .= " -o";
-  $result = exec( escapeshellcmd( $command ), $output, $status );
-  return( $status?'':rtrim($result) );
+  $command = escapeshellcmd( $command );
+  $result = exec( $command, $output, $status );
+Logger::Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
+  return( $status?"":rtrim($result) );
 }
 
 function executeFilter( $filter ) {
@@ -1186,9 +1042,18 @@ function monitorLimitSql() {
   return( $midSql );
 }
 
-function parseSort( $saveToSession=false, $querySep='&amp;' ) {
-  global $sortQuery, $sortColumn, $sortOrder; // Outputs
 
+function parseSort( $saveToSession=false, $querySep='&amp;' ) {
+  global $sortQuery, $sortColumn, $sortOrder, $limitQuery; // Outputs
+  if (isset($_REQUEST['filter']['Query']['sort_field'])) { //Handle both new and legacy filter passing
+    $_REQUEST['sort_field'] = $_REQUEST['filter']['Query']['sort_field'];
+  }
+  if (isset($_REQUEST['filter']['Query']['sort_asc'])) {
+    $_REQUEST['sort_asc'] = $_REQUEST['filter']['Query']['sort_asc'];
+  }
+  if (isset($_REQUEST['filter']['Query']['limit'])) {
+    $_REQUEST['limit'] = $_REQUEST['filter']['Query']['limit'];
+  }
   if ( empty($_REQUEST['sort_field']) ) {
     $_REQUEST['sort_field'] = ZM_WEB_EVENT_SORT_FIELD;
     $_REQUEST['sort_asc'] = (ZM_WEB_EVENT_SORT_ORDER == 'asc');
@@ -1207,9 +1072,17 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
       $sortColumn = 'E.Cause';
       break;
     case 'DateTime' :
+      $sortColumn = 'E.StartTime';
       $_REQUEST['sort_field'] = 'StartTime';
+      break;
+    case 'DiskSpace' :
+      $sortColumn = 'E.DiskSpace';
+      break;
     case 'StartTime' :
       $sortColumn = 'E.StartTime';
+      break;
+    case 'EndTime' :
+      $sortColumn = 'E.EndTime';
       break;
     case 'Length' :
       $sortColumn = 'E.Length';
@@ -1243,6 +1116,9 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
     $_SESSION['sort_field'] = validHtmlStr($_REQUEST['sort_field']);
     $_SESSION['sort_asc'] = validHtmlStr($_REQUEST['sort_asc']);
   }
+  if ($_REQUEST['limit'] != '') {
+    $limitQuery = "&limit=".$_REQUEST['limit'];
+  }
 }
 
 function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
@@ -1250,28 +1126,33 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
   $filter['sql'] = '';
   $filter['fields'] = '';
 
-  if ( isset($filter['terms']) && count($filter['terms']) ) {
-    for ( $i = 0; $i < count($filter['terms']); $i++ ) {
-      if ( isset($filter['terms'][$i]['cnj']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][cnj]").'='.urlencode($filter['terms'][$i]['cnj']);
-        $filter['sql'] .= ' '.$filter['terms'][$i]['cnj'].' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cnj]\" value=\"".htmlspecialchars($filter['terms'][$i]['cnj'])."\"/>\n";
+  $StorageArea = NULL;
+
+  $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
+
+  if ( isset($terms) && count($terms) ) {
+    for ( $i = 0; $i < count($terms); $i++ ) {
+      if ( isset($terms[$i]['cnj']) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($terms[$i]['cnj']);
+        $filter['sql'] .= ' '.$terms[$i]['cnj'].' ';
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($terms[$i]['cnj'])."\"/>\n";
       }
-      if ( isset($filter['terms'][$i]['obr']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][obr]").'='.urlencode($filter['terms'][$i]['obr']);
-        $filter['sql'] .= ' '.str_repeat( '(', $filter['terms'][$i]['obr'] ).' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][obr]\" value=\"".htmlspecialchars($filter['terms'][$i]['obr'])."\"/>\n";
+      if ( isset($terms[$i]['obr']) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($terms[$i]['obr']);
+        $filter['sql'] .= ' '.str_repeat( '(', $terms[$i]['obr'] ).' ';
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($terms[$i]['obr'])."\"/>\n";
       }
-      if ( isset($filter['terms'][$i]['attr']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][attr]").'='.urlencode($filter['terms'][$i]['attr']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][attr]\" value=\"".htmlspecialchars($filter['terms'][$i]['attr'])."\"/>\n";
-        switch ( $filter['terms'][$i]['attr'] ) {
+      if ( isset($terms[$i]['attr']) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($terms[$i]['attr']);
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($terms[$i]['attr'])."\"/>\n";
+        switch ( $terms[$i]['attr'] ) {
           case 'MonitorName':
-            $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $filter['terms'][$i]['attr'] );
+            $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $terms[$i]['attr'] );
             break;
           case 'ServerId':
             $filter['sql'] .= 'M.ServerId';
             break;
+# Unspecified start or end, so assume start, this is to support legacy filters
           case 'DateTime':
             $filter['sql'] .= 'E.StartTime';
             break;
@@ -1284,9 +1165,37 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'Weekday':
             $filter['sql'] .= 'weekday( E.StartTime )';
             break;
+# Starting Time
+          case 'StartDateTime':
+            $filter['sql'] .= 'E.StartTime';
+            break;
+          case 'StartDate':
+            $filter['sql'] .= 'to_days( E.StartTime )';
+            break;
+          case 'StartTime':
+            $filter['sql'] .= 'extract( hour_second from E.StartTime )';
+            break;
+          case 'StartWeekday':
+            $filter['sql'] .= 'weekday( E.StartTime )';
+            break;
+# Ending Time
+          case 'EndDateTime':
+            $filter['sql'] .= 'E.EndTime';
+            break;
+          case 'EndDate':
+            $filter['sql'] .= 'to_days( E.EndTime )';
+            break;
+          case 'EndTime':
+            $filter['sql'] .= 'extract( hour_second from E.EndTime )';
+            break;
+          case 'EndWeekday':
+            $filter['sql'] .= 'weekday( E.EndTime )';
+            break;
           case 'Id':
           case 'Name':
+          case 'DiskSpace':
           case 'MonitorId':
+          case 'StorageId':
           case 'Length':
           case 'Frames':
           case 'AlarmFrames':
@@ -1297,21 +1206,40 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
           case 'Notes':
           case 'StateId':
           case 'Archived':
-            $filter['sql'] .= 'E.'.$filter['terms'][$i]['attr'];
+            $filter['sql'] .= 'E.'.$terms[$i]['attr'];
             break;
           case 'DiskPercent':
-            $filter['sql'] .= getDiskPercent();
+            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
+            if ( ! $StorageArea ) {
+              for ( $j = 0; $j < count($terms); $j++ ) {
+                if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
+                  $StorageArea = new Storage($terms[$j]['val']);
+		  break;
+                }
+              } // end foreach remaining term
+              if ( ! $StorageArea ) $StorageArea = new Storage();
+            } // end no StorageArea found yet
+
+            $filter['sql'] .= getDiskPercent( $StorageArea->Path() );
             break;
           case 'DiskBlocks':
-            $filter['sql'] .= getDiskBlocks();
+            // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
+            if ( ! $StorageArea ) {
+              for ( $j = $i; $j < count($terms); $j++ ) {
+                if ( isset($terms[$i]['attr']) and $terms[$i]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
+                  $StorageArea = new Storage($terms[$i]['val']);
+                }
+              } // end foreach remaining term
+            } // end no StorageArea found yet
+            $filter['sql'] .= getDiskBlocks( $StorageArea );
             break;
           case 'SystemLoad':
             $filter['sql'] .= getLoad();
             break;
         }
         $valueList = array();
-        foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $filter['terms'][$i]['val'] ) ) as $value ) {
-          switch ( $filter['terms'][$i]['attr'] ) {
+        foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $terms[$i]['val'] ) ) as $value ) {
+          switch ( $terms[$i]['attr'] ) {
             case 'MonitorName':
             case 'Name':
             case 'Cause':
@@ -1321,34 +1249,51 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             case 'ServerId':
               if ( $value == 'ZM_SERVER_ID' ) {
                 $value = ZM_SERVER_ID;
+              } else if ( $value == 'NULL' ) {
+
               } else {
                 $value = dbEscape($value);
               }
               break;
+            case 'StorageId':
+              $StorageArea = new Storage( $value );
+              if ( $value != 'NULL' )
+                $value = dbEscape($value);
+              break;
             case 'DateTime':
-              $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
+            case 'StartDateTime':
+            case 'EndDateTime':
+              if ( $value != 'NULL' )
+                $value = "'".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."'";
               break;
             case 'Date':
-              $value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
+            case 'StartDate':
+            case 'EndDate':
+              if ( $value != 'NULL' )
+                $value = "to_days( '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             case 'Time':
+            case 'StartTime':
+            case 'EndTime':
+              if ( $value != 'NULL' )
               $value = "extract( hour_second from '".strftime( STRF_FMT_DATETIME_DB, strtotime( $value ) )."' )";
               break;
             default :
-              $value = dbEscape($value);
+              if ( $value != 'NULL' )
+                $value = dbEscape($value);
               break;
           }
           $valueList[] = $value;
         }
 
-        switch ( $filter['terms'][$i]['op'] ) {
+        switch ( $terms[$i]['op'] ) {
           case '=' :
           case '!=' :
           case '>=' :
           case '>' :
           case '<' :
           case '<=' :
-            $filter['sql'] .= ' '.$filter['terms'][$i]['op'].' '. $value;
+            $filter['sql'] .= ' '.$terms[$i]['op'].' '. $value;
             break;
           case '=~' :
             $filter['sql'] .= ' regexp '.$value;
@@ -1357,22 +1302,33 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             $filter['sql'] .= ' not regexp '.$value;
             break;
           case '=[]' :
+          case 'IN' :
             $filter['sql'] .= ' in ('.join( ',', $valueList ).')';
             break;
           case '![]' :
             $filter['sql'] .= ' not in ('.join( ',', $valueList ).')';
             break;
+          case 'IS' :
+            $filter['sql'] .= " IS $value";
+            break;
+          case 'IS NOT' :
+            $filter['sql'] .= " IS NOT $value";
+            break;
+          default:
+            Warning("Invalid operator in filter: " . $terms[$i]['op'] );
         }
 
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][op]").'='.urlencode($filter['terms'][$i]['op']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][op]\" value=\"".htmlspecialchars($filter['terms'][$i]['op'])."\"/>\n";
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][val]").'='.urlencode($filter['terms'][$i]['val']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][val]\" value=\"".htmlspecialchars($filter['terms'][$i]['val'])."\"/>\n";
-      }
-      if ( isset($filter['terms'][$i]['cbr']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[terms][$i][cbr]").'='.urlencode($filter['terms'][$i]['cbr']);
-        $filter['sql'] .= ' '.str_repeat( ')', $filter['terms'][$i]['cbr'] ).' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[terms][$i][cbr]\" value=\"".htmlspecialchars($filter['terms'][$i]['cbr'])."\"/>\n";
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($terms[$i]['op'])."\"/>\n";
+	if ( isset($terms[$i]['val']) ) {
+		$filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($terms[$i]['val']);
+		$filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
+	}
+      } // end foreach term
+      if ( isset($terms[$i]['cbr']) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($terms[$i]['cbr']);
+        $filter['sql'] .= ' '.str_repeat( ')', $terms[$i]['cbr'] ).' ';
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($terms[$i]['cbr'])."\"/>\n";
       }
     }
     if ( $filter['sql'] )
@@ -1383,14 +1339,19 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
   }
 }
 
+// Please note that the filter is passed in by copy, so you need to use the return value from this function.
+//
 function addFilterTerm( $filter, $position, $term=false ) {
   if ( $position < 0 )
     $position = 0;
-  elseif( $position > count($filter['terms']) )
-    $position = count($filter['terms']);
+  
+  if ( ! isset( $filter['Query']['terms'] ) )
+    $filter['Query']['terms'] = array();
+  elseif( $position > count($filter['Query']['terms']) )
+    $position = count($filter['Query']['terms']);
   if ( $term && $position == 0 )
     unset( $term['cnj'] );
-  array_splice( $filter['terms'], $position, 0, array( $term?$term:array() ) );
+  array_splice( $filter['Query']['terms'], $position, 0, array( $term?$term:array() ) );
 
   return( $filter );
 }
@@ -1398,9 +1359,9 @@ function addFilterTerm( $filter, $position, $term=false ) {
 function delFilterTerm( $filter, $position ) {
   if ( $position < 0 )
     $position = 0;
-  elseif( $position >= count($filter['terms']) )
-    $position = count($filter['terms']);
-  array_splice( $filter['terms'], $position, 1 );
+  elseif( $position >= count($filter['Query']['terms']) )
+    $position = count($filter['Query']['terms']);
+  array_splice( $filter['Query']['terms'], $position, 1 );
 
   return( $filter );
 }
@@ -1509,7 +1470,8 @@ function getDiskPercent($path = ZM_DIR_EVENTS) {
 }
 
 function getDiskBlocks() {
-  $df = shell_exec( 'df '.escapeshellarg(ZM_DIR_EVENTS) );
+  if ( ! $StorageArea ) $StorageArea = new Storage();
+  $df = shell_exec( 'df '.escapeshellarg($StorageArea->Path() ));
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
     $space = $matches[1];
@@ -1916,7 +1878,6 @@ function scalePoints( &$points, $scale ) {
   }
 }
 
-
 function getLanguages() {
   $langs = array();
   foreach ( glob('lang/*_*.php') as $file ) {
@@ -1939,7 +1900,10 @@ function monitorIdsToNames( $ids ) {
     }
   }
   $names = array();
-  foreach ( preg_split( '/\s*,\s*/', $ids ) as $id ) {
+  if ( ! is_array($ids) ) {
+    $ids = preg_split( '/\s*,\s*/', $ids );
+  }
+  foreach ( $ids as $id ) {
     if ( visibleMonitor( $id ) ) {
       if ( isset($mITN_monitors[$id]) ) {
         $names[] = $mITN_monitors[$id]['Name'];
@@ -2032,7 +1996,8 @@ function logState() {
       Logger::WARNING => array( ZM_LOG_ALERT_WAR_COUNT, ZM_LOG_ALARM_WAR_COUNT ),
       );
 
-  $sql = "select Level, count(Level) as LevelCount from Logs where Level < ".Logger::INFO." and TimeKey > unix_timestamp(now() - interval ".ZM_LOG_CHECK_PERIOD." second) group by Level order by Level asc";
+  # This is an expensive request, as it has to hit every row of the Logs Table
+  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
   $counts = dbFetchAll( $sql );
 
   foreach ( $counts as $count ) {
@@ -2180,10 +2145,11 @@ function ajaxResponse( $result=false ) {
   if ( function_exists( 'ajaxCleanup' ) )
     ajaxCleanup();
   $response = array( 'result'=>'Ok' );
-  if ( is_array( $result ) )
+  if ( is_array( $result ) ) {
     $response = array_merge( $response, $result );
-  elseif ( !empty($result) )
+  } elseif ( !empty($result) ) {
     $response['message'] = $result;
+  }
   header( 'Content-type: text/plain' );
   exit( jsonEncode( $response ) );
 }
@@ -2199,6 +2165,21 @@ function detaintPath( $path ) {
   return( $path );
 }
 
+function cache_bust( $file ) {
+  # Use the last modified timestamp to create a link that gets a different filename
+  # To defeat caching.  Should probably use md5 hash
+  $parts = pathinfo($file);
+  global $css;
+  $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
+  $cacheFile = 'cache/'.$dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
+  if ( file_exists( ZM_PATH_WEB.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.'/'.$cacheFile ) ) {
+    return $cacheFile;
+  } else {
+    Warning("Failed linking $file to $cacheFile");
+  }
+  return $file;
+}
+
 function getSkinFile( $file ) {
   global $skinBase;
   $skinFile = false;
@@ -2207,7 +2188,7 @@ function getSkinFile( $file ) {
     if ( file_exists( $tempSkinFile ) )
       $skinFile = $tempSkinFile;
   }
-  return( $skinFile );
+  return  $skinFile;
 }
 
 function getSkinIncludes( $file, $includeBase=false, $asOverride=false ) {
@@ -2263,9 +2244,21 @@ function validHtmlStr( $input ) {
 
 function getStreamHTML( $monitor, $options = array() ) {
 
-  if ( isset($options['scale']) ) {
-    $options['width'] = reScale( $monitor->Width(), $options['scale'] );
-    $options['height'] = reScale( $monitor->Height(), $options['scale'] );
+  if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
+    //Warning("Scale to " . $options['scale'] );
+    $options['width'] = reScale( $monitor->Width(), $options['scale'] ) . 'px';
+    $options['height'] = reScale( $monitor->Height(), $options['scale'] ) . 'px';
+  } else {
+    # scale is empty or 100
+    # There may be a fixed width applied though, in which case we need to leave the height empty
+    if ( ! ( isset($options['width']) and $options['width'] ) ) {
+      $options['width'] = $monitor->Width() . 'px';
+      if ( ! ( isset($options['height']) and $options['height'] ) ) {
+        $options['height'] = $monitor->Height() . 'px';
+      }
+    } else if ( ! isset($options['height']) ) {
+      $options['height'] = '';
+    }
   }
   if ( ! isset($options['mode'] ) ) {
     $options['mode'] = 'stream';
@@ -2273,37 +2266,37 @@ function getStreamHTML( $monitor, $options = array() ) {
   $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
   if ( $monitor->StreamReplayBuffer() )
     $options['buffer'] = $monitor->StreamReplayBuffer();
+  //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
 
-//FIXME, the width and height of the image need to be scaled.
-    if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-        $streamSrc = $monitor->getStreamSrc( array( 'mode'=>'mpeg', 'scale'=>$options['scale'], 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_LIVE_FORMAT ) );
-         return getVideoStream( 'liveStream'.$monitor->Id(), $streamSrc, $options, ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
- } else if ( $options['mode'] == 'stream' and canStream() ) {
+  //FIXME, the width and height of the image need to be scaled.
+  if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamSrc = $monitor->getStreamSrc( array(
+      'mode'=>'mpeg',
+      'scale'=>$options['scale'],
+      'bitrate'=>ZM_WEB_VIDEO_BITRATE,
+      'maxfps'=>ZM_WEB_VIDEO_MAXFPS,
+      'format' => ZM_MPEG_LIVE_FORMAT
+    ) );
+    return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+  } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';
     $streamSrc = $monitor->getStreamSrc( $options );
 
     if ( canStreamNative() )
-      return getImageStream( 'liveStream'.$monitor->Id(), $streamSrc,
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-          );
+      return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
     elseif ( canStreamApplet() )
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-          );
+      // Helper, empty widths and heights really don't work.
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 
+          $options['width'] ? $options['width'] : $monitor->Width(), 
+          $options['height'] ? $options['height'] : $monitor->Height(),
+          $monitor->Name());
   } else {
-    $streamSrc = $monitor->getStreamSrc( $options );
-    if ( $mode == 'stream' ) {
+    if ( $options['mode'] == 'stream' ) {
       Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
-    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc,
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-        );
+    $options['mode'] = 'single';
+    $streamSrc = $monitor->getStreamSrc( $options );
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
   }
 } // end function getStreamHTML
 
@@ -2323,19 +2316,43 @@ function getStreamMode( ) {
 function folder_size($dir) {
     $size = 0;
     foreach (glob(rtrim($dir, '/').'/*', GLOB_NOSORT) as $each) {
-        $size += is_file($each) ? filesize($each) : folderSize($each);
+        $size += is_file($each) ? filesize($each) : folder_size($each);
     }
     return $size;
 } // end function folder_size
 
-function human_filesize($bytes, $decimals = 2) {
-  $sz = 'BKMGTP';
-  $factor = floor((strlen($bytes) - 1) / 3);
-  return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
+function human_filesize($size, $precision = 2) {
+    $units = array('B','kB','MB','GB','TB','PB','EB','ZB','YB');
+    $step = 1024;
+    $i = 0;
+    while (($size / $step) > 0.9) {
+        $size = $size / $step;
+        $i++;
+    }
+    return round($size, $precision).$units[$i];
 }
 
 function csrf_startup() {
     csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
 }
 
+function unparse_url($parsed_url, $substitutions = array() ) { 
+  $fields = array('scheme','host','port','user','pass','path','query','fragment');
+
+  foreach ( $fields as $field ) {
+    if ( isset( $substitutions[$field] ) ) {
+      $parsed_url[$field] = $substitutions[$field];
+    }
+  }
+  $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : ''; 
+  $host     = isset($parsed_url['host']) ? $parsed_url['host'] : ''; 
+  $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : ''; 
+  $user     = isset($parsed_url['user']) ? $parsed_url['user'] : ''; 
+  $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : ''; 
+  $pass     = ($user || $pass) ? "$pass@" : ''; 
+  $path     = isset($parsed_url['path']) ? $parsed_url['path'] : ''; 
+  $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : ''; 
+  $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : ''; 
+  return "$scheme$user$pass$host$port$path$query$fragment"; 
+}
 ?>

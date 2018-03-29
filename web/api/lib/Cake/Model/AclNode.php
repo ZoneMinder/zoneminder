@@ -1,17 +1,17 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Model
  * @since         CakePHP(tm) v 0.2.9
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Model', 'Model');
@@ -39,13 +39,18 @@ class AclNode extends Model {
 
 /**
  * Constructor
+ *
+ * @param bool|int|string|array $id Set this ID for this model on startup,
+ *   can also be an array of options, see above.
+ * @param string $table Name of database table to use.
+ * @param string $ds DataSource connection name.
  */
-	public function __construct() {
+	public function __construct($id = false, $table = null, $ds = null) {
 		$config = Configure::read('Acl.database');
 		if (isset($config)) {
 			$this->useDbConfig = $config;
 		}
-		parent::__construct();
+		parent::__construct($id, $table, $ds);
 	}
 
 /**
@@ -97,7 +102,7 @@ class AclNode extends Model {
 					'alias' => "{$type}{$i}",
 					'type' => 'INNER',
 					'conditions' => array(
-						$db->name("{$type}{$i}.alias") . ' = ' . $db->value($alias, 'string')
+						"{$type}{$i}.alias" => $alias
 					)
 				);
 

@@ -24,11 +24,9 @@
 
 #if HAVE_LIBAVCODEC
 
-class VideoStream
-{
+class VideoStream {
 protected:
-  struct MimeData
-  {
+  struct MimeData {
     const char *format;
     const char *mime_type;
   };
@@ -46,6 +44,7 @@ protected:
   AVOutputFormat *of;
   AVFormatContext *ofc;
   AVStream *ost;
+  AVCodecContext *codec_context;
   AVCodec *codec;
   AVFrame *opicture;
   AVFrame *tmp_opicture;
@@ -55,9 +54,9 @@ protected:
   
   pthread_t streaming_thread;
   bool do_streaming;
-  uint8_t *buffer_copy;
   bool add_timestamp;
   unsigned int timestamp;
+  uint8_t *buffer_copy;
   pthread_mutex_t *buffer_copy_lock;
   int buffer_copy_size;
   int buffer_copy_used;

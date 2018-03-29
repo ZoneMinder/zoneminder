@@ -25,6 +25,11 @@ if ( !canView( 'Stream' ) ) {
   return;
 }
 
+if ( ! isset($_REQUEST['mid']) ) {
+  $view = 'error';
+  return;
+}
+
 // This is for input sanitation
 $mid = intval( $_REQUEST['mid'] ); 
 if ( ! visibleMonitor( $mid ) ) {
@@ -32,13 +37,8 @@ if ( ! visibleMonitor( $mid ) ) {
   return;
 }
 
-$monitor = new Monitor( $mid );
 
-#Whether to show the actual controls
-if ( isset($_REQUEST['showControls']) )
-  $showControls = validInt($_REQUEST['showControls']);
-else
-  $showControls = canView( 'Control' ) && ($monitor->DefaultView() == 'Control');
+$monitor = new Monitor( $mid );
 
 #Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) );
@@ -58,34 +58,17 @@ $showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 
 
 noCacheHeaders();
 
+$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] == 1));
+
 xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
 ?>
 <body>
   <div id="page">
-    <div id="content">
-      <div id="menuBar">
+  <?php if ( !$popup ) echo getNavBarHTML() ?>
+    <div id="header">
         <div id="monitorName"><?php echo $monitor->Name() ?></div>
-        <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>
         <div id="menuControls">
 <?php
-if ( $showPtzControls )
-{
-    if ( canView( 'Control' ) )
-    {
-?>
-          <div id="controlControl"<?php echo $showControls?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showPtzControls(); return( false );"><?php echo translate('Control') ?></a></div>
-<?php
-    }
-    if ( canView( 'Events' ) )
-    {
-?>
-          <div id="eventsControl"<?php echo $showControls?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?php echo translate('Events') ?></a></div>
-<?php
-    }
-}
-?>
-<?php
-
 if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
 ?>
           <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
@@ -94,7 +77,9 @@ if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
 ?>
           <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
         </div>
-      </div>
+        <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back()' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+    </div>
+    <div id="content">
       <div id="imageFeed"><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
       <div id="monitorStatus">
 <?php if ( canEdit( 'Monitors' ) ) { ?>
@@ -134,7 +119,7 @@ if ( $showPtzControls ) {
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;
 ?>
-      <div id="ptzControls" class="ptzControls<?php echo $showControls?'':' hidden' ?>">
+      <div id="ptzControls" class="ptzControls">
 <?php echo ptzControls( $monitor ) ?>
       </div>
 <?php

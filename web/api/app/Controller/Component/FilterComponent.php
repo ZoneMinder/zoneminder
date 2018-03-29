@@ -21,7 +21,7 @@ class FilterComponent extends Component {
 					$query = array($attribute => $array);
 					array_push($conditions, $query);
 				} else {
-					array_push($conditions, array($attribute => $value));
+					$conditions[$attribute] = $value;
 				}
 			}
 

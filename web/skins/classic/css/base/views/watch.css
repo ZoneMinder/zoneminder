@@ -1,0 +1,118 @@
+#header {
+    display: flex;
+    justify-content: space-between;
+}
+
+#menuControls {
+    display: flex;
+    align-items: center;
+}
+
+#menuControls div {
+    margin: 0 0 0 1em;
+}
+
+#imageFeed{
+    text-align: center;
+}
+
+#monitorStatus {
+    margin: 4px auto;
+    text-align: center;
+}
+
+#monitorStatus #enableDisableAlarms {
+    float: left;
+}
+
+#monitorStatus #forceCancelAlarm {
+    float: right;
+}
+
+#monitorStatus #monitorState {
+}
+
+#dvrControls {
+    margin-top: 3px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+#dvrControls input {
+    padding: 10px 10px;
+    width: 50px;
+    margin: 0 3px;
+    font-weight: 900;
+}
+
+#dvrControls input[disabled] {
+    color: #aaaaaa;
+}
+
+#dvrControls input.active {
+    border: 0;
+    background-color: #2ecc71;
+    color: #fff;
+}
+
+#dvrControls input.inactive {
+    border: 0;
+    background-color: #e67e22;
+    color: #fff;
+}
+
+#dvrControls input.unavail {
+    background-color: #ccc;
+    border: 0;
+    cursor: default;
+}
+
+#replayStatus {
+    margin: 3px 0 2px;
+    text-align: center;
+    clear: both;
+}
+
+#replayStatus > span {
+    padding: 0 4px;
+}
+
+#events {
+    margin: 0 auto;
+}
+
+#eventList {
+    width: 100%;
+}
+
+#eventList thead td {
+    font-weight: bold;
+}
+
+#eventList th, #eventList td {
+    text-align: center;
+}
+
+li {
+    display: inline;
+    list-style-type: none;
+}
+
+span.alarm {
+    color: #DC143C;
+    font-weight: bold;
+}
+
+span.alert {
+    color: #FF8C00;
+    font-weight: bold;
+}
+
+#eventList tr.recent {
+    background-color: #B0E0E6;
+}
+
+#eventList tr.highlight {
+    background-color: #DCDCDC;
+}
+

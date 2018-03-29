@@ -27,7 +27,7 @@ zmfilter.pl - ZoneMinder tool to filter events
 
 =head1 SYNOPSIS
 
-zmfilter.pl [-f <filter name>,--filter=<filter name>] | -v, --version
+zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
 
 =head1 DESCRIPTION
 
@@ -37,7 +37,9 @@ matching events.
 
 =head1 OPTIONS
 
+
 -f{filter name}, --filter={filter name}  - The name of a specific filter to run
+--filter_id={filter id}                  - The id of a specific filter to run
 -v, --version                            - Print ZoneMinder version
 
 =cut
@@ -68,11 +70,14 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
 
-my $filter_parm = '';
+my $filter_name = '';
+my $filter_id;
 my $version = 0;
+my $zm_terminate = 0;
 
 GetOptions(
-    'filter=s'      =>\$filter_parm,
+    'filter=s'      =>\$filter_name,
+    'filter_id=s'   =>\$filter_id,
     'version'       =>\$version
     ) or pod2usage(-exitstatus => -1);
 
@@ -81,6 +86,7 @@ if ( $version ) {
   exit(0);
 }
 
+require ZoneMinder::Event;
 require ZoneMinder::Filter;
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
@@ -89,7 +95,20 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ;
 
 logInit();
-logSetSignal();
+sub HupHandler {
+  Info("Received HUP, reloading");
+  &ZoneMinder::Logger::logHupHandler();
+}
+sub TermHandler {
+  Info("Received TERM, exiting");
+  $zm_terminate = 1;
+}
+sub Term {
+  exit( 0 );
+}
+$SIG{HUP} = \&HupHandler;
+$SIG{TERM} = \&TermHandler;
+$SIG{INT} = \&TermHandler;
 
 if ( $Config{ZM_OPT_UPLOAD} ) {
 # Comment these out if you don't have them and don't want to upload
@@ -145,13 +164,15 @@ chdir( EVENT_PATH );
 # SHould not be neccessary... but nice to get a local var.  What if it fails?
 my $dbh = zmDbConnect();
 
-if ( $filter_parm ) {
-  Info( "Scanning for events using filter '$filter_parm'\n" );
+if ( $filter_name ) {
+  Info( "Scanning for events using filter '$filter_name'\n" );
+} elsif ( $filter_id ) {
+  Info( "Scanning for events using filter id '$filter_id'\n" );
 } else {
-  Info( "Scanning for events\n" );
+  Info( "Scanning for events using all filters\n" );
 }
 
-if ( ! $filter_parm ) {
+if ( ! ( $filter_name or $filter_id ) ) {
   Debug("Sleeping due to start delay: " . START_DELAY . ' seconds...' );
   sleep( START_DELAY );
 }
@@ -159,94 +180,119 @@ if ( ! $filter_parm ) {
 my @filters;
 my $last_action = 0;
 
-while( 1 ) {
+while( ! $zm_terminate ) {
   my $now = time;
   if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
     Debug( "Reloading filters\n" );
     $last_action = $now;
-    @filters = getFilters( $filter_parm );
+    @filters = getFilters( { Name=>$filter_name, Id=>$filter_id } );
   }
 
   foreach my $filter ( @filters ) {
-    checkFilter( $filter );
+    last if $zm_terminate;
+    if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
+      my ( $proc ) = $0 =~ /(\S+)/;
+      my ( $id ) = $$filter{Id} =~ /(\d+)/;
+      Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
+
+      system( qq`$proc --filter "$$filter{Name}" &` );
+    } else {
+      checkFilter( $filter );
+    }
   }
 
-  last if $filter_parm;
+  last if $filter_name or $filter_id or $zm_terminate;
 
   Debug( "Sleeping for $delay seconds\n" );
   sleep( $delay );
 }
 
 sub getFilters {
-  my $filter_name = shift;
+  my $sql_filters = @_ ? shift : {};
+  my @sql_values;
 
   my @filters;
   my $sql = 'SELECT * FROM Filters WHERE';
-  if ( $filter_name ) {
-    $sql .= ' Name = ? and';
+  if ( $$sql_filters{Name} ) {
+    $sql .= ' Name = ? AND';
+    push @sql_values, $$sql_filters{Name};
+  } elsif ( $$sql_filters{Id} ) {
+    $sql .= ' Id = ? AND';
+    push @sql_values, $$sql_filters{Id};
   } else {
     $sql .= ' Background = 1 AND';
   }
-  $sql .= '(  AutoArchive = 1
+  $sql .= '( AutoArchive = 1
     or AutoVideo = 1
     or AutoUpload = 1
     or AutoEmail = 1
     or AutoMessage = 1
     or AutoExecute = 1
     or AutoDelete = 1
+    or UpdateDiskSpace = 1
+    or AutoMove = 1
     ) ORDER BY Name';
   my $sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res;
-  if ( $filter_name ) {
-    $res = $sth->execute( $filter_name )
-      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-  } else {
-    $res = $sth->execute()
-      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-  }
+    or Fatal( "Unable to prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( @sql_values )
+    or Fatal( "Unable to execute '$sql': ".$sth->errstr() );
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
     Debug( "Found filter '$db_filter->{Name}'\n" );
-    my $sql = $filter->Sql();
+    my $filter_sql = $filter->Sql();
 
-    if ( ! $sql ) {
+    if ( ! $filter_sql ) {
       Error( "Error parsing Sql. skipping filter '$db_filter->{Name}'\n" );
       next FILTER;
     }
-    push( @filters, $filter );
+    push @filters, $filter;
   }
   $sth->finish();
-  Debug( 'Got ' . @filters . ' filters' );
-  return( @filters );
-}
+  if ( ! @filters ) {
+    Warning("No filter found for $sql with values(@sql_values)");
+  } else {
+    Debug( "Got " . @filters . " filters" );
+  }
+
+  return @filters;
+} # end sub getFilters
 
 sub checkFilter {
   my $filter = shift;
 
-  Debug( "Checking filter '$filter->{Name}'".
-      ($filter->{AutoDelete}?', delete':'').
-      ($filter->{AutoArchive}?', archive':'').
-      ($filter->{AutoVideo}?', video':'').
-      ($filter->{AutoUpload}?', upload':'').
-      ($filter->{AutoEmail}?', email':'').
-      ($filter->{AutoMessage}?', message':'').
-      ($filter->{AutoExecute}?', execute':'').
-      '\n'
-      );
+  my @Events = $filter->Execute();
+  Info(
+      join(' ',
+        'Checking filter', $filter->{Name},
+        join( ', ', 
 
-  foreach my $event ( $filter->Execute() ) {
-    Debug( "Checking event $event->{Id}\n" );
+          ($filter->{AutoDelete}?'delete':()),
+          ($filter->{AutoArchive}?'archive':()),
+          ($filter->{AutoVideo}?'video':()),
+          ($filter->{AutoUpload}?'upload':()),
+          ($filter->{AutoEmail}?'email':()),
+          ($filter->{AutoMessage}?'message':()),
+          ($filter->{AutoExecute}?'execute':()),
+          ($filter->{AutoMove}?'move':()),
+          ($filter->{UpdateDiskSpace}?'update disk space':()),
+          ),
+        'returned' , scalar @Events , 'events',
+        "\n",
+        ) );
+
+  foreach my $event ( @Events ) {
+    last if $zm_terminate;
+    Debug( "Checking event $event->{Id}" );
     my $delete_ok = !undef;
     $dbh->ping();
     if ( $filter->{AutoArchive} ) {
-      Info( "Archiving event $event->{Id}\n" );
-# Do it individually to avoid locking up the table for new events
-      my $sql = 'update Events set Archived = 1 where Id = ?';
+      Info( "Archiving event $event->{Id}" );
+      # Do it individually to avoid locking up the table for new events
+      my $sql = 'UPDATE Events SET Archived = 1 WHERE Id = ?';
       my $sth = $dbh->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+        or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
       my $res = $sth->execute( $event->{Id} )
-        or Error( "Can't execute '$sql': ".$sth->errstr() );
+        or Error( "Unable toexecute '$sql': ".$sth->errstr() );
     }
     if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
       if ( !$event->{Videoed} ) {
@@ -275,34 +321,31 @@ sub checkFilter {
     }
     if ( $filter->{AutoDelete} ) {
       if ( $delete_ok ) {
-        Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId}\n" );
-# Do it individually to avoid locking up the table for new events
-        my $sql = 'delete from Events where Id = ?';
-        my $sth = $dbh->prepare_cached( $sql )
-          or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute( $event->{Id} )
-          or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-        if ( ! $Config{ZM_OPT_FAST_DELETE} ) {
-          my $sql = 'delete from Frames where EventId = ?';
-          my $sth = $dbh->prepare_cached( $sql )
-            or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-          my $res = $sth->execute( $event->{Id} )
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-          $sql = 'delete from Stats where EventId = ?';
-          $sth = $dbh->prepare_cached( $sql )
-            or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-          $res = $sth->execute( $event->{Id} )
-            or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-          deleteEventFiles( $event->{Id}, $event->{MonitorId} );
-        }
+        my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+        $Event->delete();
       } else {
-        Error( "Unable to delete event $event->{Id} as previous operations failed\n" );
+        Error( "Unable toto delete event $event->{Id} as previous operations failed\n" );
       }
+    } # end if AutoDelete
+    if ( $filter->{AutoMove} ) {
+      my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+      my $NewStorage = new ZoneMinder::Storage( $filter->{AutoMoveTo} );
+      $_ = $Event->MoveTo( $NewStorage );
+      Error($_) if $_;
     }
-  }
+
+    if ( $filter->{UpdateDiskSpace} ) {
+      my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+      $ZoneMinder::Database::dbh->begin_work();
+      $Event->lock_and_load();
+
+      my $old_diskspace = $$Event{DiskSpace};
+      if ( $old_diskspace != $Event->DiskSpace(undef) ) {
+        $Event->save();
+      }
+      $ZoneMinder::Database::dbh->commit();
+    } # end if UpdateDiskSpace
+  } # end foreach event
 }
 
 sub generateVideo {
@@ -357,11 +400,11 @@ sub generateVideo {
     }
     return( 0 );
   } else {
-    my $sql = 'update Events set Videoed = 1 where Id = ?';
+    my $sql = 'UPDATE Events SET Videoed = 1 WHERE Id = ?';
     my $sth = $dbh->prepare_cached( $sql )
-      or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+      or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute( $event->{Id} )
-      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+      or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
     if ( wantarray() ) {
       return( $format, $output );
     }
@@ -431,7 +474,7 @@ sub uploadArchFile {
       Debug( "Adding $imageFile\n" );
       my $member = $zip->addFile( $imageFile );
       if ( !$member ) {
-        Error( "Unable to add image file $imageFile to zip archive $archLocPath" );
+        Error( "Unable toto add image file $imageFile to zip archive $archLocPath" );
         $archError = 1;
         last;
       }
@@ -480,20 +523,20 @@ sub uploadArchFile {
           Debug=>$Config{ZM_UPLOAD_DEBUG}
           );
       if ( !$ftp ) {
-        Error( "Can't create FTP connection: $@" );
+        Error( "Unable tocreate FTP connection: $@" );
         return( 0 );
       }
       $ftp->login( $Config{ZM_UPLOAD_USER}, $Config{ZM_UPLOAD_PASS} )
-        or Error( "FTP - Can't login" );
+        or Error( "FTP - Unable tologin" );
       $ftp->binary()
-        or Error( "FTP - Can't go binary" );
+        or Error( "FTP - Unable togo binary" );
       $ftp->cwd( $Config{ZM_UPLOAD_REM_DIR} )
-        or Error( "FTP - Can't cwd" )
+        or Error( "FTP - Unable tocwd" )
         if ( $Config{ZM_UPLOAD_REM_DIR} );
       $ftp->put( $archLocPath )
-        or Error( "FTP - Can't upload '$archLocPath'" );
+        or Error( "FTP - Unable toupload '$archLocPath'" );
       $ftp->quit()
-        or Error( "FTP - Can't quit" );
+        or Error( "FTP - Unable toquit" );
     } else {
       my $host = $Config{ZM_UPLOAD_HOST};
       $host .= ':'.$Config{ZM_UPLOAD_PORT}
@@ -514,21 +557,21 @@ sub uploadArchFile {
       $sftpOptions{more} = [@more_ssh_args];
       my $sftp = Net::SFTP::Foreign->new( $Config{ZM_UPLOAD_HOST}, %sftpOptions );
       if ( $sftp->error ) {
-        Error( "Can't create SFTP connection: ".$sftp->error );
+        Error( "Unable tocreate SFTP connection: ".$sftp->error );
         return( 0 );
       }
       $sftp->setcwd( $Config{ZM_UPLOAD_REM_DIR} )
-        or Error( "SFTP - Can't setcwd: ".$sftp->error )
+        or Error( "SFTP - Unable tosetcwd: ".$sftp->error )
         if $Config{ZM_UPLOAD_REM_DIR};
       $sftp->put( $archLocPath, $archFile )
-        or Error( "SFTP - Can't upload '$archLocPath': ".$sftp->error );
+        or Error( "SFTP - Unable toupload '$archLocPath': ".$sftp->error );
     }
     unlink( $archLocPath );
-    my $sql = 'update Events set Uploaded = 1 where Id = ?';
+    my $sql = 'UPDATE Events SET Uploaded = 1 WHERE Id = ?';
     my $sth = $dbh->prepare_cached( $sql )
-      or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+      or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute( $event->{Id} )
-      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+      or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
   }
   return( 1 );
 }
@@ -546,7 +589,7 @@ sub substituteTags {
 
   my $monitor = {};
   if ( $need_monitor ) {
-    my $db_now = strftime( "%Y-%m-%d %H:%M:%S", localtime() );
+    my $db_now = strftime( '%Y-%m-%d %H:%M:%S', localtime() );
     my $sql = "SELECT
       M.Id,
       count(E.Id) as EventCount,
@@ -566,9 +609,9 @@ sub substituteTags {
         ORDER BY Id"
         ;
     my $sth = $dbh->prepare_cached( $sql )
-      or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+      or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute( $event->{MonitorId} )
-      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+      or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
     $monitor = $sth->fetchrow_hashref();
     $sth->finish();
     return() if ( !$monitor );
@@ -585,9 +628,9 @@ sub substituteTags {
       ORDER BY FrameId"
       ;
     my $sth = $dbh->prepare_cached( $sql )
-      or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+      or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute( $event->{Id} )
-      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+      or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
     while( my $frame = $sth->fetchrow_hashref() ) {
       if ( !$first_alarm_frame ) {
         $first_alarm_frame = $frame;
@@ -746,7 +789,7 @@ sub sendEmail {
           $ssmtp_location = qx('which ssmtp');
         }
         if ( !$ssmtp_location ) {
-          Debug( "Can't find ssmtp, trying MIME::Lite->send" );
+          Debug( "Unable tofind ssmtp, trying MIME::Lite->send" );
           MIME::Lite->send( 'smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60 );
           $mail->send();
         } else {
@@ -778,16 +821,16 @@ sub sendEmail {
     }
   };
   if ( $@ ) {
-    Error( "Can't send email: $@" );
+    Error( "Unable tosend email: $@" );
     return( 0 );
   } else {
     Info( "Notification email sent\n" );
   }
   my $sql = 'update Events set Emailed = 1 where Id = ?';
   my $sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute( $event->{Id} )
-    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+    or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
 
   return( 1 );
 }
@@ -848,7 +891,7 @@ sub sendMessage {
           $ssmtp_location = qx('which ssmtp');
         }
         if ( !$ssmtp_location ) {
-          Debug( "Can't find ssmtp, trying MIME::Lite->send" );
+          Debug( 'Unable tofind ssmtp, trying MIME::Lite->send' );
           MIME::Lite->send( 'smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60 );
           $mail->send();
         } else {
@@ -882,16 +925,16 @@ sub sendMessage {
     }
   };
   if ( $@ ) {
-    Error( "Can't send email: $@" );
+    Error( "Unable tosend email: $@" );
     return( 0 );
   } else {
     Info( "Notification message sent\n" );
   }
   my $sql = 'update Events set Messaged = 1 where Id = ?';
   my $sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute( $event->{Id} )
-    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+    or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
 
   return( 1 );
 }
@@ -919,9 +962,9 @@ sub executeCommand {
   } else {
     my $sql = 'update Events set Executed = 1 where Id = ?';
     my $sth = $dbh->prepare_cached( $sql )
-      or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+      or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute( $event->{Id} )
-      or Fatal( "Can't execute '$sql': ".$sth->errstr() );
+      or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
   }
   return( 1 );
 }

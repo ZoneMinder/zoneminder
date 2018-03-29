@@ -34,28 +34,27 @@ controlOptions[<?php echo $row['Id'] ?>][<?php echo $i ?>] = '<?php echo transla
 }
 ?>
 
-<?php
-if ( empty($_REQUEST['mid']) ) {
-?>
 var monitorNames = new Object();
 <?php
-  foreach ( dbFetchAll( "select Name from Monitors order by Name asc", "Name" ) as $name ) {
+$query = empty($_REQUEST['mid']) ? dbQuery('SELECT Name FROM Monitors') : dbQuery('SELECT Name FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
+if ( $query ) {
+while ( $name = dbFetchNext($query, 'Name') ) {
 ?>
 monitorNames['<?php echo validJsStr($name) ?>'] = true;
 <?php
-  }
-}
+} // end foreach
+} # end if query
 ?>
 
 function validateForm( form ) {
   var errors = new Array();
 
-  if ( form.elements['newMonitor[Name]'].value.search( /[^\w- ]/ ) >= 0 )
+  if ( form.elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
     errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
-  else if ( form.elements.mid.value == 0 && monitorNames[form.elements['newMonitor[Name]'].value] )
+  else if ( monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
 
-  if ( form.elements['newMonitor[AnalysisFPS]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPS]'].value) > 0 ) )
+  if ( form.elements['newMonitor[AnalysisFPSLimit]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPSLimit]'].value) > 0 ) )
     errors[errors.length] = "<?php echo translate('BadAnalysisFPS') ?>";
   if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
     errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";
@@ -97,7 +96,7 @@ function validateForm( form ) {
     errors[errors.length] = "<?php echo translate('BadImageBufferCount') ?>";
   if ( !form.elements['newMonitor[WarmupCount]'].value || !(parseInt(form.elements['newMonitor[WarmupCount]'].value) >= 0 ) )
     errors[errors.length] = "<?php echo translate('BadWarmupCount') ?>";
-  if ( !form.elements['newMonitor[PreEventCount]'].value || !(parseInt(form.elements['newMonitor[PreEventCount]'].value) > 0 ) || (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[ImageBufferCount]'].value)) )
+  if ( !form.elements['newMonitor[PreEventCount]'].value || !(parseInt(form.elements['newMonitor[PreEventCount]'].value) >= 0 ) || (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[ImageBufferCount]'].value)) )
     errors[errors.length] = "<?php echo translate('BadPreEventCount') ?>";
   if ( !form.elements['newMonitor[PostEventCount]'].value || !(parseInt(form.elements['newMonitor[PostEventCount]'].value) >= 0 ) )
     errors[errors.length] = "<?php echo translate('BadPostEventCount') ?>";

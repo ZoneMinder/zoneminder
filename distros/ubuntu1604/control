@@ -12,7 +12,7 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libavutil-dev (>= 6:10~)
               ,libswscale-dev (>= 6:10~)
               ,libbz2-dev
-              ,libgcrypt-dev
+              ,libgcrypt-dev | libgcrypt11-dev
               ,libcurl4-gnutls-dev
               ,libgnutls-openssl-dev
               ,libjpeg8-dev | libjpeg9-dev | libjpeg62-turbo-dev
@@ -59,8 +59,9 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libsoap-wsdl-perl
         ,libio-socket-multicast-perl
         ,libdigest-sha-perl
-        ,libsys-cpu-perl, libsys-meminfo-perl
+        ,libsys-cpu-perl, libsys-cpuload-perl, libsys-meminfo-perl
         ,libdata-uuid-perl
+        ,libnumber-bytes-human-perl
         ,mysql-client | mariadb-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql | php-mysql, php5-gd | php-gd , php5-apcu | php-apcu , php-apc | php-apcu-bc

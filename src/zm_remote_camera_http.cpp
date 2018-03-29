@@ -121,21 +121,17 @@ void RemoteCameraHttp::Initialise()
   state = HEADER;
 }
 
-int RemoteCameraHttp::Connect()
-{
+int RemoteCameraHttp::Connect() {
   struct addrinfo *p;
 
-  for(p = hp; p != NULL; p = p->ai_next)
-  {
+  for ( p = hp; p != NULL; p = p->ai_next ) {
     sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
-    if ( sd < 0 )
-    {
+    if ( sd < 0 ) {
       Warning("Can't create socket: %s", strerror(errno) );
       continue;
     }
 
-    if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 )
-    {
+    if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
       close(sd);
       sd = -1;
       char buf[sizeof(struct in6_addr)];
@@ -151,14 +147,14 @@ int RemoteCameraHttp::Connect()
     break;
   }
 
-  if(p == NULL) {
+  if ( p == NULL ) {
     Error("Unable to connect to the remote camera, aborting");
-    return( -1 );
+    return -1;
   }
 
-  Debug( 3, "Connected to host, socket = %d", sd );
-  return( sd );
-}
+  Debug(3, "Connected to host, socket = %d", sd);
+  return sd;
+} // end int RemoteCameraHttp::Connect()
 
 int RemoteCameraHttp::Disconnect()
 {
@@ -588,10 +584,6 @@ int RemoteCameraHttp::GetResponse()
   else
 #endif // HAVE_LIBPCRE
   {
-    if ( method == REGEXP )
-    {
-      Warning( "Unable to use netcam regexps as not compiled with libpcre" );
-    }
     static const char *http_match = "HTTP/";
     static const char *connection_match = "Connection:";
     static const char *content_length_match = "Content-length:";
@@ -1063,23 +1055,18 @@ int RemoteCameraHttp::GetResponse()
   return( 0 );
 }
 
-int RemoteCameraHttp::PreCapture()
-{
-  if ( sd < 0 )
-  {
+int RemoteCameraHttp::PreCapture() {
+  if ( sd < 0 ) {
     Connect();
-    if ( sd < 0 )
-    {
-      Error( "Unable to connect to camera" );
-      return( -1 );
+    if ( sd < 0 ) {
+      Error("Unable to connect to camera");
+      return -1;
     }
     mode = SINGLE_IMAGE;
     buffer.clear();
   }
-  if ( mode == SINGLE_IMAGE )
-  {
-    if ( SendRequest() < 0 )
-    {
+  if ( mode == SINGLE_IMAGE ) {
+    if ( SendRequest() < 0 ) {
       Error( "Unable to send request" );
       Disconnect();
       return( -1 );
@@ -1088,50 +1075,43 @@ int RemoteCameraHttp::PreCapture()
   return( 0 );
 }
 
-int RemoteCameraHttp::Capture( Image &image )
-{
+int RemoteCameraHttp::Capture( Image &image ) {
   int content_length = GetResponse();
-  if ( content_length == 0 )
-  {
+  if ( content_length == 0 ) {
     Warning( "Unable to capture image, retrying" );
-    return( 1 );
+    return 0;
   }
-  if ( content_length < 0 )
-  {
+  if ( content_length < 0 ) {
     Error( "Unable to get response, disconnecting" );
     Disconnect();
-    return( -1 );
+    return -1;
   }
-  switch( format )
-  {
+  switch( format ) {
     case JPEG :
       {
-        if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length, colours, subpixelorder ) )
-        {
+        if ( !image.DecodeJpeg( buffer.extract( content_length ), content_length, colours, subpixelorder ) ) {
           Error( "Unable to decode jpeg" );
           Disconnect();
-          return( -1 );
+          return -1;
         }
         break;
       }
     case X_RGB :
       {
-        if ( content_length != (long)image.Size() )
-        {
+        if ( content_length != (long)image.Size() ) {
           Error( "Image length mismatch, expected %d bytes, content length was %d", image.Size(), content_length );
           Disconnect();
-          return( -1 );
+          return -1;
         }
         image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
         break;
       }
     case X_RGBZ :
       {
-        if ( !image.Unzip( buffer.extract( content_length ), content_length ) )
-        {
+        if ( !image.Unzip( buffer.extract( content_length ), content_length ) ) {
           Error( "Unable to unzip RGB image" );
           Disconnect();
-          return( -1 );
+          return -1;
         }
         image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
         break;
@@ -1140,13 +1120,12 @@ int RemoteCameraHttp::Capture( Image &image )
       {
         Error( "Unexpected image format encountered" );
         Disconnect();
-        return( -1 );
+        return -1;
       }
   }
-  return( 0 );
+  return 1;
 }
 
-int RemoteCameraHttp::PostCapture()
-{
-  return( 0 );
+int RemoteCameraHttp::PostCapture() {
+  return 0;
 }

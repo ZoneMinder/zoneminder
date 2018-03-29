@@ -58,6 +58,7 @@ if(NOT HOST_OS)
             "ZoneMinder was unable to deterimine the host OS. Please report this. Value of CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 endif(NOT HOST_OS)
 
+set (CMAKE_CXX_STANDARD 11)
 # Default CLFAGS and CXXFLAGS:
 set(CMAKE_C_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
@@ -172,7 +173,7 @@ set(ZM_PATH_ARP "" CACHE PATH
     "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH 
     "Location of ZoneMinder configuration, default system config directory")
-set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/zm/conf.d" CACHE PATH 
+set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH 
     "Location of ZoneMinder configuration subfolder, default: ZM_CONFIG_DIR/conf.d")
 set(ZM_EXTRA_LIBS "" CACHE STRING 
     "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
@@ -575,6 +576,7 @@ if(NOT ZM_NO_FFMPEG)
 		mark_as_advanced(FORCE AVUTIL_LIBRARIES AVUTIL_INCLUDE_DIR)
 		check_include_file("libavutil/avutil.h" HAVE_LIBAVUTIL_AVUTIL_H)
 		check_include_file("libavutil/mathematics.h" HAVE_LIBAVUTIL_MATHEMATICS_H)
+		check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
 		set(optlibsfound "${optlibsfound} AVUtil")
 	else(AVUTIL_LIBRARIES)
 		set(optlibsnotfound "${optlibsnotfound} AVUtil")
@@ -646,13 +648,13 @@ if(NOT ZM_NO_LIBVLC)
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
 
-find_package(Boost 1.36.0)
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
-  list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
-endif()
-
+#find_package(Boost 1.36.0)
+#if(Boost_FOUND)
+  #include_directories(${Boost_INCLUDE_DIRS})
+  ##set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
+  #list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
+#endif()
+#
 # *** END OF LIBRARY CHECKS ***
 
 # Check for gnutls or crypto
@@ -867,7 +869,7 @@ else(zmconfgen_result EQUAL 0)
             "ZoneMinder configuration generator failed. Exit code: ${zmconfgen_result}")
 endif(zmconfgen_result EQUAL 0)
 
-# Install zm.conf and conf.d subfolder
+# Install zm.conf
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "${ZM_CONFIG_SUBDIR}" PATTERN "*.in" EXCLUDE)
 
@@ -886,3 +888,4 @@ if(CCACHE_FOUND)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
+install(DIRECTORY icons DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/")

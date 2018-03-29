@@ -41,46 +41,46 @@ problems.
 =head1 OPTIONS
 
 General options:
-  -v, --verbose               - Produce more verbose output
-  -l, --list                - List the current status of active (or all with -v) monitors
-  -h, --help                 - Display usage information
-  -v, --version              - Print the installed version of ZoneMinder
+  -v, --verbose                           - Produce more verbose output
+  -l, --list                              - List the current status of active (or all with -v) monitors
+  -h, --help                               - Display usage information
+  -v, --version                            - Print the installed version of ZoneMinder
 
 Options for use with devices:
-  -d, --device [device_path]        - Get the current video device settings for [device_path] or all devices
-  -V, --version <V4L version>       - Set the Video 4 Linux API version to use for the query, use 1 or 2
-  -q, --query               - Query the current settings for the device
+  -d, --device [device_path]              - Get the current video device settings for [device_path] or all devices
+  -V, --version <V4L version>             - Set the Video 4 Linux API version to use for the query, use 1 or 2
+  -q, --query                             - Query the current settings for the device
 
 Options for use with monitors:
-  -m, --monitor <monitor_id>        - Specify which monitor to address, default 1 if absent
-  -q, --query               - Query the current settings for the monitor
-  -s, --state               - Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,
-                      3 = alert, 4 = tape
-  -B, --brightness [value]        - Output the current brightness, set to value if given 
-  -C, --contrast [value]          - Output the current contrast, set to value if given 
-  -H, --hue [value]             - Output the current hue, set to value if given 
-  -O, --colour [value]          - Output the current colour, set to value if given 
-  -i, --image [image_index]         - Write captured image to disk as <monitor_name>.jpg, last image captured
-                      or specified ring buffer index if given.
-  -S, --scale <scale_%%ge>        - With --image specify any scaling (in %%) to be applied to the image
-  -t, --timestamp [image_index]       - Output captured image timestamp, last image captured or specified
-                      ring buffer index if given
-  -R, --read_index            - Output ring buffer read index
-  -W, --write_index             - Output ring buffer write index
-  -e, --event               - Output last event index
-  -f, --fps                 - Output last Frames Per Second captured reading
-  -z, --zones               - Write last captured image overlaid with zones to <monitor_name>-Zones.jpg
-  -a, --alarm               - Force alarm in monitor, this will trigger recording until cancelled with -c
-  -n, --noalarm               - Force no alarms in monitor, this will prevent alarms until cancelled with -c
-  -c, --cancel              - Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n
-  -L, --reload              - Signal monitor to reload settings
-  -E, --enable              - Enable detection, wake monitor up
-  -D, --disable               - Disable detection, put monitor to sleep
-  -u, --suspend               - Suspend detection, useful to prevent bogus alarms when panning etc
-  -r, --resume              - Resume detection after a suspend
-  -U, --username <username>         - When running in authenticated mode the username and
-  -P, --password <password>         - password combination of the given user
-  -A, --auth <authentication>       - Pass authentication hash string instead of user details
+  -m, --monitor <monitor_id>              - Specify which monitor to address, default 1 if absent
+  -q, --query                             - Query the current settings for the monitor
+  -s, --state                             - Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,
+                                            3 = alert, 4 = tape
+  -B, --brightness [value]                - Output the current brightness, set to value if given 
+  -C, --contrast [value]                  - Output the current contrast, set to value if given 
+  -H, --hue [value]                       - Output the current hue, set to value if given 
+  -O, --colour [value]                    - Output the current colour, set to value if given 
+  -i, --image [image_index]               - Write captured image to disk as <monitor_name>.jpg, last image captured
+                                            or specified ring buffer index if given.
+  -S, --scale <scale_%%ge>                - With --image specify any scaling (in %%) to be applied to the image
+  -t, --timestamp [image_index]           - Output captured image timestamp, last image captured or specified
+                                            ring buffer index if given
+  -R, --read_index                        - Output ring buffer read index
+  -W, --write_index                       - Output ring buffer write index
+  -e, --event                             - Output last event index
+  -f, --fps                               - Output last Frames Per Second captured reading
+  -z, --zones                             - Write last captured image overlaid with zones to <monitor_name>-Zones.jpg
+  -a, --alarm                             - Force alarm in monitor, this will trigger recording until cancelled with -c
+  -n, --noalarm                           - Force no alarms in monitor, this will prevent alarms until cancelled with -c
+  -c, --cancel                            - Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n
+  -L, --reload                            - Signal monitor to reload settings
+  -E, --enable                            - Enable detection, wake monitor up
+  -D, --disable                           - Disable detection, put monitor to sleep
+  -u, --suspend                           - Suspend detection, useful to prevent bogus alarms when panning etc
+  -r, --resume                            - Resume detection after a suspend
+  -U, --username <username>               - When running in authenticated mode the username and
+  -P, --password <password>               - password combination of the given user
+  -A, --auth <authentication>             - Pass authentication hash string instead of user details
 
 =cut
 
@@ -141,29 +141,29 @@ void Usage( int status=-1 ) {
 }
 
 typedef enum {
-  ZMU_BOGUS    = 0x00000000,
-  ZMU_STATE    = 0x00000001,
-  ZMU_IMAGE    = 0x00000002,
-  ZMU_TIME     = 0x00000004,
-  ZMU_READ_IDX   = 0x00000008,
-  ZMU_WRITE_IDX  = 0x00000010,
-  ZMU_EVENT    = 0x00000020,
-  ZMU_FPS    = 0x00000040,
-  ZMU_ZONES    = 0x00000080,
-  ZMU_ALARM    = 0x00000100,
-  ZMU_NOALARM  = 0x00000200,
-  ZMU_CANCEL   = 0x00000400,
-  ZMU_QUERY    = 0x00000800,
-  ZMU_BRIGHTNESS = 0x00001000,
-  ZMU_CONTRAST   = 0x00002000,
-  ZMU_HUE    = 0x00004000,
-  ZMU_COLOUR   = 0x00008000,
-  ZMU_RELOAD   = 0x00010000,
-  ZMU_ENABLE   = 0x00100000,
-  ZMU_DISABLE  = 0x00200000,
-  ZMU_SUSPEND  = 0x00400000,
-  ZMU_RESUME   = 0x00800000,
-  ZMU_LIST     = 0x10000000,
+	ZMU_BOGUS      = 0x00000000,
+	ZMU_STATE      = 0x00000001,
+	ZMU_IMAGE      = 0x00000002,
+	ZMU_TIME       = 0x00000004,
+	ZMU_READ_IDX   = 0x00000008,
+	ZMU_WRITE_IDX  = 0x00000010,
+	ZMU_EVENT      = 0x00000020,
+	ZMU_FPS        = 0x00000040,
+	ZMU_ZONES      = 0x00000080,
+	ZMU_ALARM      = 0x00000100,
+	ZMU_NOALARM    = 0x00000200,
+	ZMU_CANCEL     = 0x00000400,
+	ZMU_QUERY      = 0x00000800,
+	ZMU_BRIGHTNESS = 0x00001000,
+	ZMU_CONTRAST   = 0x00002000,
+	ZMU_HUE        = 0x00004000,
+	ZMU_COLOUR     = 0x00008000,
+	ZMU_RELOAD     = 0x00010000,
+	ZMU_ENABLE     = 0x00100000,
+	ZMU_DISABLE    = 0x00200000,
+	ZMU_SUSPEND    = 0x00400000,
+	ZMU_RESUME     = 0x00800000,
+	ZMU_LIST       = 0x10000000,
 } Function;
 
 bool ValidateAccess( User *user, int mon_id, int function ) {
@@ -258,9 +258,9 @@ int main( int argc, char *argv[] ) {
   char *auth = 0;
 #if ZM_HAS_V4L
 #if ZM_HAS_V4L2
-  int v4lVersion = 2;
+    int v4lVersion = 2;
 #elif ZM_HAS_V4L1
-  int v4lVersion = 1;
+    int v4lVersion = 1;
 #endif // ZM_HAS_V4L2/1
 #endif // ZM_HAS_V4L
   while (1) {
@@ -372,9 +372,9 @@ int main( int argc, char *argv[] ) {
         auth = optarg;
         break;
 #if ZM_HAS_V4L
-      case 'V':
-        v4lVersion = (atoi(optarg)==1)?1:2;
-        break;
+			case 'V':
+				v4lVersion = (atoi(optarg)==1)?1:2;
+				break;
 #endif // ZM_HAS_V4L
       case 'h':
         Usage( 0 );
@@ -514,10 +514,10 @@ int main( int argc, char *argv[] ) {
       }
       if ( function & ZMU_EVENT ) {
         if ( verbose )
-          printf( "Last event id: %d\n", monitor->GetLastEvent() );
+          printf( "Last event id: %d\n", monitor->GetLastEventId() );
         else {
           if ( have_output ) printf( "%c", separator );
-          printf( "%d", monitor->GetLastEvent() );
+          printf( "%d", monitor->GetLastEventId() );
           have_output = true;
         }
       }
@@ -666,13 +666,13 @@ int main( int argc, char *argv[] ) {
   } else {
     if ( function & ZMU_QUERY ) {
 #if ZM_HAS_V4L
-      char vidString[0x10000] = "";
-      bool ok = LocalCamera::GetCurrentSettings( device, vidString, v4lVersion, verbose );
-      printf( "%s", vidString );
-      exit( ok?0:-1 );
+			char vidString[0x10000] = "";
+			bool ok = LocalCamera::GetCurrentSettings( device, vidString, v4lVersion, verbose );
+			printf( "%s", vidString );
+			exit( ok?0:-1 );
 #else // ZM_HAS_V4L
-      fprintf( stderr, "Error, video4linux is required for device querying\n" );
-      exit( -1 );
+			fprintf( stderr, "Error, video4linux is required for device querying\n" );
+            exit( -1 );
 #endif // ZM_HAS_V4L
     }
 
@@ -693,8 +693,7 @@ int main( int argc, char *argv[] ) {
         Error( "Can't use query result: %s", mysql_error( &dbconn ) );
         exit( mysql_errno( &dbconn ) );
       }
-      int n_monitors = mysql_num_rows( result );
-      Debug( 1, "Got %d monitors", n_monitors );
+      Debug( 1, "Got %d monitors", mysql_num_rows( result ) );
 
       printf( "%4s%5s%6s%9s%14s%6s%6s%8s%8s\n", "Id", "Func", "State", "TrgState", "LastImgTim", "RdIdx", "WrIdx", "LastEvt", "FrmRate" );
       for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ ) {
@@ -713,7 +712,7 @@ int main( int argc, char *argv[] ) {
                 tv.tv_sec, tv.tv_usec/10000,
                 monitor->GetLastReadIndex(),
                 monitor->GetLastWriteIndex(),
-                monitor->GetLastEvent(),
+                monitor->GetLastEventId(),
                 monitor->GetFPS()
               );
               delete monitor;

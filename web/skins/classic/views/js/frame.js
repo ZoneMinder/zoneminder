@@ -8,10 +8,10 @@ function changeScale() {
       last: $j('#lastLink')
       }
 
-  if (img) {
+  if ( img ) {
     let baseWidth = $j('#base_width').val();
     let baseHeight = $j('#base_height').val();
-    if (scale == "auto") {
+    if ( scale == 'auto' ) {
       let newSize = scaleToFit(baseWidth, baseHeight, img, $j('#controls'));
       newWidth = newSize.width;
       newHeight = newSize.height;
@@ -21,8 +21,8 @@ function changeScale() {
       newWidth = baseWidth * scale / SCALE_BASE;
       newHeight = baseHeight * scale / SCALE_BASE;
     }
-    img.css('width', newWidth + "px");
-    img.css('height', newHeight + "px");
+    img.css('width', newWidth + 'px');
+    img.css('height', newHeight + 'px');
   }
   Cookie.write( 'zmWatchScale', scale, { duration: 10*365 } );
   $j.each(controlsLinks, function(k, anchor) {  //Make frames respect scale choices
@@ -31,4 +31,4 @@ function changeScale() {
   });
 }
 
-if (scale == "auto") $j(document).ready(changeScale);
+if (scale == 'auto') $j(document).ready(changeScale);

@@ -155,6 +155,7 @@ while( 1 ) {
         }
       }
     } # end foreach connection
+
     foreach my $connection ( values(%spawned_connections) ) {
       if ( vec( $rout, $connection->fileno(), 1 ) ) {
         Debug( 'Got input from spawned connection '
@@ -186,7 +187,7 @@ while( 1 ) {
     } else {
       Fatal( "Can't select: $!" );
     }
-  }
+  } # end if select returned activitiy
 
 # Check polled connections
   foreach my $connection ( @in_poll_connections ) {
@@ -198,13 +199,13 @@ while( 1 ) {
     }
   }
 
-# Check for alarms that might have happened
+  # Check for alarms that might have happened
   my @out_messages;
   foreach my $monitor ( values(%monitors) ) {
 
     if ( ! zmMemVerify($monitor) ) {
-# Our attempt to verify the memory handle failed. We should reload the monitors.
-# Don't need to zmMemInvalidate because the monitor reload will do it.
+      # Our attempt to verify the memory handle failed. We should reload the monitors.
+      # Don't need to zmMemInvalidate because the monitor reload will do it.
       $needsReload = 1;
       next;
     }
@@ -247,7 +248,7 @@ while( 1 ) {
     }
     $monitor->{LastState} = $state;
     $monitor->{LastEvent} = $last_event;
-  }
+  } # end foreach monitor
   foreach my $connection ( @out_connections ) {
     if ( $connection->canWrite() ) {
       $connection->putMessages( \@out_messages );
@@ -259,18 +260,20 @@ while( 1 ) {
     }
   }
 
-  Debug( "Checking for timed actions\n" ) if int(keys(%actions));
-  my $now = time();
-  foreach my $action_time ( sort( grep { $_ < $now } keys( %actions ) ) ) {
-    Info( "Found actions expiring at $action_time\n" );
-    foreach my $action ( @{$actions{$action_time}} ) {
-      my $connection = $action->{connection};
-      my $message = $action->{message};
-      Info( "Found action '$message'\n" );
-      handleMessage( $connection, $message );
+  if ( my @action_times = keys(%actions) ) {
+    Debug( "Checking for timed actions\n" );
+    my $now = time();
+    foreach my $action_time ( sort( grep { $_ < $now } @action_times ) ) {
+      Info( "Found actions expiring at $action_time\n" );
+      foreach my $action ( @{$actions{$action_time}} ) {
+        my $connection = $action->{connection};
+        my $message = $action->{message};
+        Info( "Found action '$message'\n" );
+        handleMessage( $connection, $message );
+      }
+      delete( $actions{$action_time} );
     }
-    delete( $actions{$action_time} );
-  }
+  } # end if have timed actions
 
 # Allow connections to do their own timed actions
   foreach my $connection ( @connections ) {
@@ -326,20 +329,12 @@ sub loadMonitors {
       next;
     }
 
-    if ( defined($monitors{$monitor->{Id}}->{LastState}) ) {
-      $monitor->{LastState} = $monitors{$monitor->{Id}}->{LastState};
-    } else {
-      $monitor->{LastState} = zmGetMonitorState( $monitor );
-    }
-    if ( defined($monitors{$monitor->{Id}}->{LastEvent}) ) {
-      $monitor->{LastEvent} = $monitors{$monitor->{Id}}->{LastEvent};
-    } else {
-      $monitor->{LastEvent} = zmGetLastEvent( $monitor );
-    }
+    $monitor->{LastState} = zmGetMonitorState( $monitor );
+    $monitor->{LastEvent} = zmGetLastEvent( $monitor );
     $new_monitors{$monitor->{Id}} = $monitor;
-  } # end foreach monitor
+  } # end while fetchrow
   %monitors = %new_monitors;
-} # end sub loadMonitors
+}
 
 sub handleMessage {
   my $connection = shift;
@@ -347,9 +342,9 @@ sub handleMessage {
 
   my ( $id, $action, $score, $cause, $text, $showtext )
     = split( /\|/, $message );
-  $score = 0 if !defined($score);
-  $cause = '' if !defined($cause);
-  $text = '' if !defined($text);
+  $score = 0 if ( !defined($score) );
+  $cause = '' if ( !defined($cause) );
+  $text = '' if ( !defined($text) );
 
   my $monitor = $monitors{$id};
   if ( !$monitor ) {
@@ -358,7 +353,7 @@ sub handleMessage {
   }
   Debug( "Found monitor for id '$id'\n" );
 
-  next if !zmMemVerify( $monitor );
+  next if ( !zmMemVerify( $monitor ) );
 
   Debug( "Handling action '$action'\n" );
   if ( $action =~ /^(enable|disable)(?:\+(\d+))?$/ ) {
@@ -373,7 +368,7 @@ sub handleMessage {
     $monitor_reload_time = 0;
     Info( "Set monitor to $state\n" );
     if ( $delay ) {
-      my $action_text = $id."|".( ($state eq 'enable')
+      my $action_text = $id.'|'.( ($state eq 'enable')
           ? 'disable'
           : 'enable'
           );
@@ -411,7 +406,7 @@ sub handleMessage {
         }
         zmTriggerEventCancel( $monitor );
       }
-    }
+    } # end if trigger is on or off
   } elsif( $action eq 'cancel' ) {
     zmTriggerEventCancel( $monitor );
     zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
@@ -434,10 +429,7 @@ sub handleDelay {
   if ( !$action_array ) {
     $action_array = $actions{$action_time} = [];
   }
-  push @$action_array, {
-    connection  =>  $connection,
-                message =>  $action_text
-  };
+  push( @$action_array, { connection=>$connection, message=>$action_text } );
   Debug( "Added timed event '$action_text', expires at $action_time (+$delay secs)\n" );
 }
 1;

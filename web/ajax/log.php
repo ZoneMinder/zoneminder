@@ -42,26 +42,27 @@ switch ( $_REQUEST['task'] )
           $servers_by_Id[$server->Id()] = $server;
         }
 
-        $minTime = isset($_POST['minTime'])?$_POST['minTime']:NULL;
-        $maxTime = isset($_POST['maxTime'])?$_POST['maxTime']:NULL;
+        $minTime = isset($_REQUEST['minTime'])?$_REQUEST['minTime']:NULL;
+        $maxTime = isset($_REQUEST['maxTime'])?$_REQUEST['maxTime']:NULL;
+
         $limit = 100;
-        if ( isset($_POST['limit']) ) {
-          if ( ( !is_integer( $_POST['limit'] ) and !ctype_digit($_POST['limit']) ) ) {
-            Error("Invalid value for limit " . $_POST['limit'] );
+        if ( isset($_REQUEST['limit']) ) {
+          if ( ( !is_integer( $_REQUEST['limit'] ) and !ctype_digit($_REQUEST['limit']) ) ) {
+            Error("Invalid value for limit " . $_REQUEST['limit'] );
           } else {
-            $limit = $_POST['limit'];
+            $limit = $_REQUEST['limit'];
           }
         }
         $sortField = 'TimeKey';
-        if ( isset($_POST['sortField']) ) {
-          if ( ! in_array( $_POST['sortField'], $filterFields ) and ( $_POST['sortField'] != 'TimeKey' ) ) {
-            Error("Invalid sort field " . $_POST['sortField'] );
+        if ( isset($_REQUEST['sortField']) ) {
+          if ( ! in_array( $_REQUEST['sortField'], $filterFields ) and ( $_REQUEST['sortField'] != 'TimeKey' ) ) {
+            Error("Invalid sort field " . $_REQUEST['sortField'] );
           } else {
-            $sortField = $_POST['sortField'];
+            $sortField = $_REQUEST['sortField'];
           }
         }
-        $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
-        $filter = isset($_POST['filter'])?$_POST['filter']:array();
+        $sortOrder = (isset($_REQUEST['sortOrder']) and $_REQUEST['sortOrder']) == 'asc' ? 'asc':'desc';
+        $filter = isset($_REQUEST['filter'])?$_REQUEST['filter']:array();
 
         $total = dbFetchOne( 'SELECT count(*) AS Total FROM Logs', 'Total' );
         $sql = 'SELECT * FROM Logs';
@@ -93,7 +94,7 @@ switch ( $_REQUEST['task'] )
         $sql .= " order by ".$sortField." ".$sortOrder." limit ".$limit;
         $logs = array();
         foreach ( dbFetchAll( $sql, NULL, $values ) as $log ) {
-            $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
+            $log['DateTime'] = preg_replace( '/^\d+/', strftime( '%Y-%m-%d %H:%M:%S', intval($log['TimeKey']) ), $log['TimeKey'] );
             $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
             $log['Message'] = preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $log['Message'] );
             $logs[] = $log;

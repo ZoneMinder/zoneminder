@@ -29,94 +29,47 @@ span.noneCue {
     background: none;
 }
 
+#header {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+}
+
+#header h2 {
+    line-height: 1.1;
+    margin:5px 0 0 0;
+}
+
 #dataBar {
-    width: 100%;
-    margin: 2px auto;
-    text-align: center;
+    display: flex;
+    flex-wrap:wrap;
+    justify-content: space-between;
 }
 
-#dataBar #dataTable {
+#menuBar1 {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
     width: 100%;
-    table-layout: fixed;
+    text-align: center;
+    margin: 4px 0 0 0;
 }
 
-#dataBar #dataTable td {
-    text-align: center;
-    padding: 2px;
+#menuBar1 #replayControl {
+    margin: 0 4px 0 auto;
+}
+
+#menuBar1 div {
+margin: auto 5px;
+}
+
+#nameControl input[type="button"]{
+height: 100%;
 }
 
 #eventVideo {
    display: inline-block;
    position: relative;
-}
-
-#menuBar1 {
-    width: 100%;
-    padding: 3px 0;
-    text-align: center;
-    clear: both;
-}
-
-#menuBar1 #nameControl {
-    float: left;
-}
-
-#menuBar1 #nameControl #eventName {
-    margin-right: 4px;
-}
-
-#menuBar1 #replayControl {
-    float: right;
-    margin-left: 8px;
-}
-
-#menuBar1 #scaleControl {
-    float: right;
-    margin-left: 8px;
-}
-
-#menuBar2 {
-    width: 100%;
-    padding: 3px 0;
-    margin-bottom: 4px;
-}
-
-#menuBar2 div {
-    text-align: left;
-    float: left;
-    padding: 0 12px;
-}
-
-#menuBar2 #closeWindow {
-    float: right;
-    text-align: right;
-}
-
-#menuBar1:after,
-#menuBar2:after {
-    content: ".";
-    display: block;
-    height: 0;
-    font-size: 0;
-    clear: both;
-    visibility: hidden;
-}
-
-#videoBar1 div {
-    text-align: center;
-    float: center;
-}
-
-#videoBar1 #prevEvent {
-    float: left;
-}
-
-#videoBar1 #dlEvent {
-    float: center;
-}
-
-#videoBar1 #nextEvent {
-    float: right;
 }
 
 #imageFeed {
@@ -152,9 +105,9 @@ span.noneCue {
 }
 
 #dvrControls input {
-    height: 20px;
-    width: 28px;
-    padding-bottom: 3px;
+    height: 1.5em;
+    width: 2em;
+    padding: 0 ;
     margin: 0 3px;
 }
 

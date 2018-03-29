@@ -79,13 +79,13 @@ BEGIN {
   # Search for user created config files. If one or more are found then
   # update the Config hash with those values
   if ( -d ZM_CONFIG_SUBDIR ) {
-      if ( -R ZM_CONFIG_SUBDIR ) {
-          foreach my $filename ( glob ZM_CONFIG_SUBDIR."/*.conf" ) {
-              process_configfile($filename);
-          }
-      } else {
-          print( STDERR "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on ".ZM_CONFIG_SUBDIR.".\n" );
+    if ( -R ZM_CONFIG_SUBDIR ) {
+      foreach my $filename ( glob ZM_CONFIG_SUBDIR."/*.conf" ) {
+        process_configfile($filename);
       }
+    } else {
+      print( STDERR "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on ".ZM_CONFIG_SUBDIR.".\n" );
+    }
   }
 
   use DBI;
@@ -94,14 +94,14 @@ BEGIN {
 
   if ( defined($portOrSocket) ) {
     if ( $portOrSocket =~ /^\// ) {
-      $socket = ";mysql_socket=".$portOrSocket;
+      $socket = ';mysql_socket='.$portOrSocket;
     } else {
-      $socket = ";host=".$host.";port=".$portOrSocket;
+      $socket = ';host='.$host.';port='.$portOrSocket;
     }
   } else {
-    $socket = ";host=".$Config{ZM_DB_HOST}; 
+    $socket = ';host='.$Config{ZM_DB_HOST}; 
   }
-  my $sslOptions = "";
+  my $sslOptions = '';
   if ( $Config{ZM_DB_SSL_CA_CERT} ) {
     $sslOptions = ';'.join(';',
         "mysql_ssl=1",
@@ -115,7 +115,7 @@ BEGIN {
       , $Config{ZM_DB_USER}
       , $Config{ZM_DB_PASS}
       ) or croak( "Can't connect to db" );
-  my $sql = 'select * from Config';
+  my $sql = 'SELECT Name,Value FROM Config';
   my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
   while( my $config = $sth->fetchrow_hashref() ) {
@@ -123,7 +123,8 @@ BEGIN {
   }
   $sth->finish();
 #$dbh->disconnect();
-  if ( ! exists $Config{ZM_SERVER_ID} ) {
+  #
+  if ( ! $Config{ZM_SERVER_ID} ) {
     $Config{ZM_SERVER_ID} = undef;
     $sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
     if ( $Config{ZM_SERVER_NAME} ) {
@@ -140,32 +141,32 @@ BEGIN {
 
   # This subroutine must be inside the BEGIN block
   sub process_configfile {
-      my $config_file = shift;
+    my $config_file = shift;
 
-      if ( -R $config_file ) {
-          open( my $CONFIG, "<", $config_file )
-              or croak( "Can't open config file '$config_file': $!" );
-          foreach my $str ( <$CONFIG> ) {
-              next if ( $str =~ /^\s*$/ );
-              next if ( $str =~ /^\s*#/ );
-              my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
-              if ( ! $name ) {
-                  print( STDERR "Warning, bad line in $config_file: $str\n" );
-                  next;
-              } # end if
-              $name =~ tr/a-z/A-Z/;
-              $Config{$name} = $value;
-          }
-          close( $CONFIG );
-      } else {
-          print( STDERR "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $config_file\n" );
+    if ( -R $config_file ) {
+      open( my $CONFIG, '<', $config_file )
+        or croak( "Can't open config file '$config_file': $!" );
+      foreach my $str ( <$CONFIG> ) {
+        next if ( $str =~ /^\s*$/ );
+        next if ( $str =~ /^\s*#/ );
+        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
+        if ( ! $name ) {
+          print( STDERR "Warning, bad line in $config_file: $str\n" );
+          next;
+        } # end if
+        $name =~ tr/a-z/A-Z/;
+        $Config{$name} = $value;
       }
+      close( $CONFIG );
+    } else {
+      print( STDERR "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $config_file\n" );
+    }
   }
 
 } # end BEGIN
 
 sub loadConfigFromDB {
-  print( "Loading config from DB" );
+  print( 'Loading config from DB' );
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
     print( "Error: unable to load options from database: $DBI::errstr\n" );
@@ -188,7 +189,7 @@ sub loadConfigFromDB {
 #next if ( $option->{category} eq 'hidden' );
     if ( defined($value) ) {
       if ( $option->{type} == $types{boolean} ) {
-        $option->{value} = $value?"yes":"no";
+        $option->{value} = $value?'yes':'no';
       } else {
         $option->{value} = $value;
       }
@@ -201,7 +202,7 @@ sub loadConfigFromDB {
 } # end sub loadConfigFromDB
 
 sub saveConfigToDB {
-  print( "Saving config to DB " . @options . " entries\n" );
+  print( 'Saving config to DB ' . @options . " entries\n" );
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
     print( "Error: unable to save options to database: $DBI::errstr\n" );
@@ -214,7 +215,7 @@ sub saveConfigToDB {
   $dbh->do('LOCK TABLE Config WRITE')
     or croak( "Can't lock Config table: " . $dbh->errstr() );
 
-  my $sql = "delete from Config";
+  my $sql = 'DELETE FROM Config';
   my $res = $dbh->do( $sql )
     or croak( "Can't do '$sql': ".$dbh->errstr() );
 
@@ -228,8 +229,8 @@ sub saveConfigToDB {
     $option->{db_hint} = $option->{type}->{hint};
     $option->{db_pattern} = $option->{type}->{pattern};
     $option->{db_format} = $option->{type}->{format};
-    if ( $option->{db_type} eq "boolean" ) {
-      $option->{db_value} = ($option->{value} eq "yes") ? "1" : "0";
+    if ( $option->{db_type} eq 'boolean' ) {
+      $option->{db_value} = ($option->{value} eq 'yes') ? '1' : '0';
     } else {
       $option->{db_value} = $option->{value};
     }
@@ -237,7 +238,7 @@ sub saveConfigToDB {
       $option->{db_requires} = join( ";",
           map {
             my $value = $_->{value};
-            $value = ($value eq "yes") ? 1 : 0 if ( $options_hash{$_->{name}}->{db_type} eq "boolean" );
+            $value = ($value eq 'yes') ? 1 : 0 if ( $options_hash{$_->{name}}->{db_type} eq 'boolean' );
             ( "$_->{name}=$value" )
           } @$requires
           );

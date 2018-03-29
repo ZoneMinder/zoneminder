@@ -45,6 +45,7 @@ Camera::Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_wid
   } else if(colours == ZM_COLOUR_RGB24 && ((imagesize % 64) != 0 || (imagesize % 12) != 0)) {
     Fatal("Image size is not multiples of 12 and 64");
   }
+    monitor = NULL;
 }
 
 Camera::~Camera() {

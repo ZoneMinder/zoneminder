@@ -8,18 +8,18 @@
  * You should also use this file to include any files that provide global functions/constants
  * that your application uses.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       app.Config
  * @since         CakePHP(tm) v 0.10.8.2117
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 // Setup a 'default' cache configuration for use in the application.
@@ -70,6 +70,7 @@ Cache::config('default', array('engine' => 'Apc'));
  *
  */
 CakePlugin::load('Crud');
+CakePlugin::load('CakePHP-Enum-Behavior');
 
 /**
  * You can attach event listeners to the request lifecycle as Dispatcher Filter. By default CakePHP bundles two filters:
@@ -138,15 +139,36 @@ if ( is_dir($configSubFolder) ) {
 # Now that our array our finalized, define each key => value
 # pair in the array as a constant
 foreach( $configvals as $key => $value) {
-    define( $key, $value );
-    Configure::write( $key, $value );
+  define( $key, $value );
+  Configure::write( $key, $value );
+}
+
+// For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
+if ( ! defined('ZM_SERVER_ID') ) {
+  App::uses('ClassRegistry', 'Utility');
+  $ServerModel = ClassRegistry::init('Server');
+  if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
+    $Server = $ServerModel->find( 'first', array( 'conditions'=>array('Name'=>ZM_SERVER_NAME) ) );
+    if ( ! $Server ) {
+      Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
+    } else {
+      define( 'ZM_SERVER_ID', $Server['Server']['Id'] );
+    }
+  } else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
+    $Server = $ServerModel->find( 'first', array( 'conditions'=>array('Name'=>ZM_SERVER_HOST) ) );
+    if ( ! $Server ) {
+      Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
+    } else {
+      define( 'ZM_SERVER_ID', $Server['Server']['Id'] );
+    }
+  }
 }
 
 function process_configfile($configFile) {
   if ( is_readable( $configFile ) ) {
     $configvals = array();
 
-    $cfg = fopen( $configFile, "r") or die("Could not open config file.");
+    $cfg = fopen( $configFile, 'r') or die('Could not open config file.');
     while ( !feof($cfg) ) {
       $str = fgets( $cfg, 256 );
       if ( preg_match( '/^\s*$/', $str ))

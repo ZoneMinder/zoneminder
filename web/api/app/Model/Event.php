@@ -68,4 +68,28 @@ class Event extends AppModel {
 		)
 	);
 
+   /**
+    *     *  * hasMany associations
+    *         *   *
+    *             *    * @var array
+    *                 *     */
+  public $hasAndBelongsToMany = array(
+    'Group' => array(
+      'className' => 'Group',
+      'joinTable' =>  'Groups_Monitors',
+      'foreignKey' => 'MonitorId',
+      'associationForeignKey' => 'MonitorId',
+      'unique'      =>  true,
+      'dependent' => false,
+      'conditions' => '',
+      'fields' => '',
+      'order' => '',
+      'limit' => '',
+      'offset' => '',
+      'exclusive' => '',
+      'finderQuery' => '',
+      'counterQuery' => ''
+    ),
+  );
+
 }

@@ -67,6 +67,7 @@ our %EXPORT_TAGS = (
       zmIsAlarmed
       zmInAlarm
       zmHasAlarmed
+      zmGetStartupTime
       zmGetLastEvent
       zmGetLastWriteTime
       zmGetLastReadTime
@@ -161,6 +162,7 @@ our $mem_data = {
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
     epadding1        => { type=>'uint32', seq=>$mem_seq++ },
     epadding2        => { type=>'uint32', seq=>$mem_seq++ },
+    startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
@@ -302,11 +304,6 @@ sub zmMemVerify {
 sub zmMemRead {
   my $monitor = shift;
   my $fields = shift;
-  my $nocheck = shift;
-
-  if ( !($nocheck || zmMemVerify( $monitor )) ) {
-    return( undef );
-  }
 
   if ( !ref($fields) ) {
     $fields = [ $fields ];
@@ -360,14 +357,15 @@ sub zmMemRead {
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
       ( $value ) = unpack( 'C'.$size, $data );
     } else {
-      Fatal( "Unexpected type '".$type."' found for '".$field."'" );
+      Error( "Unexpected type '".$type."' found for '".$field."'" );
+      next;
     }
-    push( @values, $value );
+    push @values, $value;
   }
   if ( wantarray() ) {
-    return( @values )
+    return @values;
   }
-  return( $values[0] );
+  return $values[0];
 }
 
 sub zmMemInvalidate {
@@ -375,6 +373,8 @@ sub zmMemInvalidate {
   my $mem_key = zmMemKey($monitor);
   if ( $mem_key ) {
     zmMemDetach( $monitor );
+  } else {
+    print "no memkey in zmMemInvalidate\n";
   }
 }
 
@@ -512,6 +512,10 @@ sub zmHasAlarmed {
     return( $last_event );
   }
   return( undef );
+}
+
+sub zmGetStartupTime {
+  return zmMemRead( $_[0], 'shared_data:startup_time' );
 }
 
 sub zmGetLastEvent {
@@ -652,8 +656,8 @@ if ( zmMemVerify( $monitor ) ) {
   }
 }
 
-( $lri, $lwi ) = zmMemRead( $monitor, [ "shared_data:last_read_index",
-    "shared_data:last_write_index"
+( $lri, $lwi ) = zmMemRead( $monitor, [ 'shared_data:last_read_index',
+    'shared_data:last_write_index'
 ]
 );
 zmMemWrite( $monitor, { 'trigger_data:trigger_showtext' => "Some Text" } );

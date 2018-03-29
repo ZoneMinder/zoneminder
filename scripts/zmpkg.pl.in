@@ -225,6 +225,7 @@ if ( $command =~ /^(?:start|restart)$/ ) {
 
 # This is now started unconditionally
     runCommand('zmdc.pl start zmfilter.pl');
+    
     if ( $Config{ZM_RUN_AUDIT} ) {
       runCommand('zmdc.pl start zmaudit.pl -c');
     }
@@ -240,6 +241,10 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     }
     if ( $Config{ZM_TELEMETRY_DATA} ) {
       runCommand('zmdc.pl start zmtelemetry.pl');
+    }
+    if ($Config{ZM_OPT_USE_ZMEVENTNOTIFICATION} )
+    {
+        runCommand('zmdc.pl start zmeventnotification.pl');
     }
   } else {
     $retval = 1;

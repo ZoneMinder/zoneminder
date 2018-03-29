@@ -375,7 +375,22 @@ our @options = (
     type        => $types{boolean},
     category    => 'system',
   },
-  # PP - Google reCaptcha settings
+  {
+    name        => 'ZM_OPT_USE_EVENTNOTIFICATION',
+    default     => 'no',
+    description => 'Enable 3rd party Event Notification Server',
+    help        => q`
+      zmeventnotification is a 3rd party event notification server
+      that is used to get notifications for alarms detected by ZoneMinder
+      in real time. zmNinja requires this server for push notifications to
+      mobile phones. This option only enables the server if its already installed.
+      Please visit https://github.com/pliablepixels/zmeventserver for installation
+      instructions.
+      `,
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  # Google reCaptcha settings
   {
     name        => 'ZM_OPT_USE_GOOG_RECAPTCHA',
     default     => 'no',

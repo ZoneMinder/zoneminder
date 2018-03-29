@@ -99,6 +99,11 @@ my @daemons = (
     'zmtelemetry.pl'
 );
 
+if ($Config{ZM_OPT_USE_ZMEVENTNOTIFICATION})
+{
+    push @daemons,'zmeventnotification.pl';
+}
+
 my $command = shift @ARGV;
 if( !$command )
 {

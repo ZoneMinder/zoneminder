@@ -1485,7 +1485,7 @@ bool Monitor::Analyse() {
               if ( analysis_fps ) {
                 // If analysis fps is set,
                 // compute the index for pre event images in the dedicated buffer
-                pre_index = image_count%pre_event_buffer_count;
+                pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
 
                 // Seek forward the next filled slot in to the buffer (oldest data)
                 // from the current position
@@ -1540,7 +1540,7 @@ bool Monitor::Analyse() {
                 if ( analysis_fps ) {
                   // If analysis fps is set,
                   // compute the index for pre event images in the dedicated buffer
-                  pre_index = image_count%pre_event_buffer_count;
+                  pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position

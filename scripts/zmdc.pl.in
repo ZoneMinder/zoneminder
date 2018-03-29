@@ -104,6 +104,10 @@ my @daemons = (
     'zmtelemetry.pl'
     );
 
+if ($Config{ZM_OPT_USE_EVENTNOTIFICATION}) {
+    push @daemons,'zmeventnotification.pl';
+}
+
 my $command = shift @ARGV;
 if( ! $command ) {
   print( STDERR "No command given\n" );

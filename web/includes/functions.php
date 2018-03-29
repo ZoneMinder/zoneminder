@@ -47,6 +47,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     $sql .= ' AND Username=?';
     $sql_values = array( $username );
   }
+  session_start();
   $_SESSION['username'] = $username;
   if ( ZM_AUTH_RELAY == 'plain' ) {
     // Need to save this in session
@@ -66,8 +67,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     $_SESSION['loginFailed'] = true;
     unset( $user );
   }
-  //if ( $cookies )
-    //session_write_close();
+  session_write_close();
 }
 
 function userLogout() {

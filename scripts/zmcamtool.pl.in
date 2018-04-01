@@ -102,13 +102,16 @@ GetOptions(
     'version'       =>\$version
 ) or pod2usage(-exitstatus => -1);
 
-$Config{ZM_DB_USER} = $dbUser;
-$Config{ZM_DB_PASS} = $dbPass;
 
 if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");
   exit(0);
 }
+
+$Config{ZM_DB_USER} = $dbUser;
+$Config{ZM_DB_PASS} = $dbPass;
+zmDbConnect( 1 ); # Force reconnect with new credentials
+
 # Check to make sure commandline params make sense
 if ( ((!$help) && ($import + $export + $topreset) != 1 )) {
   print( STDERR qq/Please give only one of the following: "import", "export", or "topreset".\n/ );
@@ -149,80 +152,15 @@ if ($topreset) {
 # SUBROUTINES #
 ###############
 
-# Execute a pre-built sql select query
-sub selectQuery {
-  my $dbh = shift;
-  my $sql = shift;
-  my $monitorid = shift;
-
-  my $sth = $dbh->prepare_cached( $sql )
-    or die( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute($monitorid)
-    or die( "Can't execute: ".$sth->errstr() );
-
-  my @data = $sth->fetchrow_array();
-  $sth->finish();
-
-  return @data;
-}
-
-# Exectute a pre-built sql query
-sub runQuery {
-  my $dbh = shift;
-  my $sql = shift;
-  my $sth = $dbh->prepare_cached( $sql )
-    or die( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute()
-    or die( "Can't execute: ".$sth->errstr() );
-  $sth->finish();
-
-  return $res;
-}
-
-# Build and execute a sql insert query
-sub insertQuery {
-  my $dbh = shift;
-  my $tablename = shift;
-  my @data = @_;
-
-  my $sql = "INSERT INTO $tablename VALUES (NULL,"
-    .(join ', ', ('?') x @data).')'; # Add "?" for each array element
-
-    my $sth = $dbh->prepare_cached( $sql )
-    or die( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute(@data)
-    or die( "Can't execute: ".$sth->errstr() );
-  $sth->finish();
-
-  return $res;
-}
-
-# Build and execute a sql delete query
-sub deleteQuery {
-  my $dbh = shift;
-  my $sqltable = shift;
-  my $sqlname = shift;
-
-  my $sql = "DELETE FROM $sqltable WHERE Name = ?";
-  my $sth = $dbh->prepare_cached( $sql )
-    or die( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute($sqlname)
-    or die( "Can't execute: ".$sth->errstr() );
-  $sth->finish();
-
-  return $res;
-}
-
 # Build and execute a sql select count query
 sub checkExists {
-  my $dbh = shift;
   my $sqltable = shift;
   my $sqlname = shift;
   my $result = 0; 
 
   my $sql = "SELECT count(*) FROM $sqltable WHERE Name = ?";
-  my $sth = $dbh->prepare_cached( $sql )
-    or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+    or die( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
   my $res = $sth->execute($sqlname)
     or die( "Can't execute: ".$sth->errstr() );
 
@@ -274,17 +212,16 @@ sub importsql {
 # Now that we've got what we were looking for,
 # compare to what is already in the dB
 
-  my $dbh = zmDbConnect();
   foreach (keys %controls) {
-    if (!checkExists($dbh,'Controls',$_)) {
+    if (!checkExists('Controls',$_)) {
 # No existing Control was found. Add new control to dB.
-      runQuery($dbh,$controls{$_});
+      zmDbQuery($controls{$_});
       push @newcontrols, $_;
     } elsif ($overwrite) {
 # An existing Control was found and the overwrite flag is set.
 # Overwrite the control.
-      deleteQuery($dbh,'Controls',$_);
-      runQuery($dbh,$controls{$_});
+      zmDbDelete('Controls', {Name=>$_} );
+      zmDbQuery($controls{$_});
       push @overwritecontrols, $_;
     } else {
 # An existing Control was found and the overwrite flag was not set.
@@ -294,15 +231,15 @@ sub importsql {
   }
 
   foreach (keys %monitorpresets) {
-    if (!checkExists($dbh,'MonitorPresets',$_)) {
+    if (!checkExists('MonitorPresets',$_)) {
 # No existing MonitorPreset was found.  Add new MonitorPreset to dB.
-      runQuery($dbh,$monitorpresets{$_});
+      zmDbQuery($monitorpresets{$_});
       push @newpresets, $_;
     } elsif ($overwrite) {
 # An existing MonitorPreset was found and the overwrite flag is set.
 # Overwrite the MonitorPreset.
-      deleteQuery($dbh,'MonitorPresets',$_);
-      runQuery($dbh,$monitorpresets{$_});
+      zmDbDelete('MonitorPresets', {Name=>$_} );
+      zmDbQuery($monitorpresets{$_});
       push @overwritepresets, $_;
     } else {
 # An existing MonitorPreset was found and the overwrite flag was
@@ -373,34 +310,34 @@ sub exportsql {
 }
 
 sub toPreset {
-  my $dbh = zmDbConnect();
   my $monitorid = $ARGV[0];
 
 # Grap the following fields from the Monitors table
-  my $sql = 'SELECT 
-    Name, 
-    Type, 
-    Device, 
-    Channel, 
-    Format, 
-    Protocol, 
-    Method, 
-    Host, 
-    Port, 
-    Path, 
-    SubPath, 
-    Width, 
-    Height, 
-    Palette, 
-    MaxFPS, 
-    Controllable, 
-    ControlId, 
-    ControlDevice, 
-    ControlAddress, 
-    DefaultRate, 
-    DefaultScale 
-      FROM Monitors WHERE Id = ?';
-  my @data = selectQuery($dbh,$sql,$monitorid);
+  my @columns = qw(
+    Name 
+    Type 
+    Device 
+    Channel 
+    Format 
+    Protocol 
+    Method 
+    Host 
+    Port 
+    Path 
+    SubPath 
+    Width 
+    Height 
+    Palette 
+    MaxFPS 
+    Controllable 
+    ControlId 
+    ControlDevice 
+    ControlAddress 
+    DefaultRate 
+    DefaultScale
+  );
+  my $sql = 'SELECT ' . join(',',@columns).' FROM Monitors WHERE Id = ?';
+  my @data = zmDbQuery($sql,$monitorid);
 
   if (!@data) {
     die( "Error: Monitor Id $monitorid does not appear to exist in the database.\n" );
@@ -421,20 +358,22 @@ sub toPreset {
     }
   }
 
-  if (!checkExists($dbh,"MonitorPresets",$data[0])) {
+  my %data = map { $_, shift @data } @columns;
+
+  if (!checkExists($ZoneMinder::Database::dbh,'MonitorPresets',$data{Name})) {
 # No existing Preset was found.  Add new Preset to dB.
-    print "Adding new preset: $data[0]\n";
-    insertQuery($dbh,'MonitorPresets',@data);
+    print "Adding new preset: $data{Name}\n";
+    zmDbInsert('MonitorPresets',\%data);
   } elsif ($overwrite) {
 # An existing Control was found and the overwrite flag is set.
 # Overwrite the control.
     print "Existing preset $data[0] detected.\nOverwriting...\n";
-    deleteQuery($dbh,'MonitorPresets',$data[0]);
-    insertQuery($dbh,'MonitorPresets',@data);
+    zmDbDelete('MonitorPresets', { Name => $data{Name} });
+    zmDbInsert('MonitorPresets',\%data);
   } else {
 # An existing Control was found and the overwrite flag was not set.
 # Do nothing.
-    print "Existing preset $data[0] detected and overwrite flag not set.\nSkipping...\n";
+    print "Existing preset $data{Name} detected and overwrite flag not set.\nSkipping...\n";
   }
 }
 

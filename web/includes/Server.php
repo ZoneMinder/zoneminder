@@ -69,6 +69,7 @@ class Server {
 		if ( $this->Id() ) {
 			return ZM_BASE_PROTOCOL . '://'. $this->Hostname();
 		} else {
+			return ZM_BASE_PROTOCOL . '://'. $_SERVER['SERVER_NAME'];
 			return '';
 		}
 	}

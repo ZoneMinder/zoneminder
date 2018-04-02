@@ -119,7 +119,7 @@ if ( $pages > 1 ) {
 ?>
       </div>
       <div id="controls">
-        <a href="#" onclick="window.history.back();"><?php echo translate('Back') ?></a>
+        <a href="#" onclick="window.history.back();return false;"><?php echo translate('Back') ?></a>
         <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
       </div>
     </div>
@@ -200,16 +200,11 @@ while ( $event_row = dbFetchNext( $results ) ) {
   }
   if ( ZM_WEB_LIST_THUMBS ) {
     if ( $thumbData = $event->createListThumbnail() ) {
+#Logger::Debug(print_r($thumbData,true));
 ?>
               <td class="colThumbnail">
 <?php 
-      if ( ( $event->SaveJPEGs() == 0 ) and file_exists($event->Path().'/snapshot.jpg') ) {
-        Logger::Debug("Using snapshot" . $event->Path().'/snapshot.jpg' );
-        $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid=snapshot&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
-      } else {
-        Logger::Debug("Not Using snapshot" . $event->Path().'/snapshot.jpg' );
-        $imgSrc = '?view=image&amp;eid='.$event->Id().'&amp;fid='.$thumbData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
-      }
+      $imgSrc = $thumbData['url'];
       $streamSrc = $event->getStreamSrc( array( 'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single') );
 
       $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt($thumbData['Height']).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';

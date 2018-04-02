@@ -23,7 +23,15 @@ addons:
     - curl
     - sshfs
     - sed
+    - binfmt-support
+    - qemu
+    - qemu-user-static
+install:
+  - update-binfmts --enable qemu-arm
+
 env:
+  global:
+  - SMPFLAGS=-j4
   matrix:
   - OS=el DIST=6
   - OS=el DIST=6 ARCH=i386 DOCKER_REPO=knnniggett/packpack
@@ -34,6 +42,8 @@ env:
   - OS=ubuntu DIST=xenial
   - OS=ubuntu DIST=trusty ARCH=i386
   - OS=ubuntu DIST=xenial ARCH=i386
+  - OS=raspbian DIST=stretch ARCH=armhf DOCKER_REPO=knnniggett/packpack
+
 compiler:
 - gcc
 services:

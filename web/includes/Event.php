@@ -168,14 +168,21 @@ class Event {
       } else {
         $streamSrc .= $_SERVER['HTTP_HOST'];
       }
-      $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php?view=view_video&eid='.$this->{'Id'};
-      return $streamSrc;
+      $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
+      $args['eid'] = $this->{'Id'};
+      $args['view'] = 'view_video';
+    } else {
+      $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
+
+      $args['source'] = 'event';
+      $args['event'] = $this->{'Id'};
+      if ( ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) && !empty($GLOBALS['connkey']) ) {
+        $args['connkey'] = $GLOBALS['connkey'];
+      }
+      if ( ZM_RAND_STREAM ) {
+        $args['rand'] = time();
+      }
     }
-
-    $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
-
-    $args['source'] = 'event';
-    $args['event'] = $this->{'Id'};
 
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
@@ -187,16 +194,10 @@ class Event {
         $args['user'] = $_SESSION['username'];
       }
     }
-    if ( ( (!isset($args['mode'])) or ( $args['mode'] != 'single' ) ) && !empty($GLOBALS['connkey']) ) {
-      $args['connkey'] = $GLOBALS['connkey'];
-    }
-    if ( ZM_RAND_STREAM ) {
-      $args['rand'] = time();
-    }
 
     $streamSrc .= '?'.http_build_query( $args,'', $querySep );
 
-    return( $streamSrc );
+    return $streamSrc;
   } // end function getStreamSrc
 
   function DiskSpace( $new='' ) {
@@ -211,15 +212,18 @@ class Event {
   }
 
   function createListThumbnail( $overwrite=false ) {
-    if ( (!$this->SaveJPEGs()) and file_exists($this->Path().'/snapshot.jpg') ) {
+	# The idea here is that we don't really want to use the analysis jpeg as the thumbnail.  
+	# The snapshot image will be generated during capturing
+    if ( file_exists($this->Path().'/snapshot.jpg') ) {
+      Logger::Debug("snapshot exists");
       $frame = null;
     } else {
-  # Load the frame with the highest score to use as a thumbnail
-    if ( !($frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1', NULL, array( $this->{'Id'}, $this->{'MaxScore'} ) )) ) {
-      Error("Unable to find a Frame matching max score " . $this->{'MaxScore'} . ' for event ' . $this->{'Id'} );
-      // FIXME: What if somehow the db frame was lost or score was changed?  Should probably try another search for any frame.
-      return( false );
-    }
+      # Load the frame with the highest score to use as a thumbnail
+      if ( !($frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId=? AND Score=? ORDER BY FrameId LIMIT 1', NULL, array( $this->{'Id'}, $this->{'MaxScore'} ) )) ) {
+        Error("Unable to find a Frame matching max score " . $this->{'MaxScore'} . ' for event ' . $this->{'Id'} );
+        // FIXME: What if somehow the db frame was lost or score was changed?  Should probably try another search for any frame.
+        return false;
+      }
     }
 
     if ( ZM_WEB_LIST_THUMB_WIDTH ) {
@@ -234,21 +238,22 @@ class Event {
       Fatal( "No thumbnail width or height specified, please check in Options->Web" );
     }
 
-    $imageData = $this->getImageSrc( $frame, $scale, false, $overwrite );
+    $imageData = $this->getImageSrc($frame, $scale, false, $overwrite);
     if ( ! $imageData ) {
-      return ( false );
+      return false;
     }
     $thumbData = $frame;
     $thumbData['Path'] = $imageData['thumbPath'];
     $thumbData['Width'] = (int)$thumbWidth;
     $thumbData['Height'] = (int)$thumbHeight;
+	$thumbData['url'] = '?view=image&amp;eid='.$this->Id().'&amp;fid='.$imageData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
 
-    return( $thumbData );
+    return $thumbData;
   } // end function createListThumbnail
 
   // frame is an array representing the db row for a frame.
-  function getImageSrc( $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-    $Storage = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL  );
+  function getImageSrc($frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false) {
+    $Storage = new Storage(isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL);
     $Event = $this;
     $eventPath = $Event->Path();
 
@@ -258,10 +263,11 @@ class Event {
       $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
     }
 
-    if ( ( ! $frame ) and file_exists( $eventPath.'/snapshot.jpg' ) ) {
+    if ( ( ! $frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
       # No frame specified, so look for a snapshot to use
       $captImage = 'snapshot.jpg';
       Logger::Debug("Frame not specified, using snapshot");
+	  $frame = array('FrameId'=>'snapshot', 'Type'=>'');
     } else {
       $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId'] );
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
@@ -358,9 +364,10 @@ class Event {
         'imageClass' => $alarmFrame?'alarm':'normal',
         'isAnalImage' => $isAnalImage,
         'hasAnalImage' => $hasAnalImage,
+		'FrameId'		=>	$frame['FrameId'],
         );
 
-    return( $imageData );
+    return $imageData;
   }
 
   public static function find_all( $parameters = null, $options = null ) {

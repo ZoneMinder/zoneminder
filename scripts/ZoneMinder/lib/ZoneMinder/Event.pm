@@ -35,6 +35,7 @@ require Date::Manip;
 require File::Find;
 require File::Path;
 require File::Copy;
+require Number::Bytes::Human;
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -300,8 +301,8 @@ sub GenerateVideo {
       $frame_rate = $fps;
     }
 
-    my $width = $self->{MonitorWidth};
-    my $height = $self->{MonitorHeight};
+    my $width = $self->{Width};
+    my $height = $self->{Height};
     my $video_size = " ${width}x${height}";
 
     if ( $scale ) {
@@ -351,9 +352,9 @@ sub delete {
   $ZoneMinder::Database::dbh->ping();
 
   $ZoneMinder::Database::dbh->begin_work();
-  $event->lock_and_load();
+  #$event->lock_and_load();
 
-  if ( ! $Config{ZM_OPT_FAST_DELETE} ) {
+  {
     my $sql = 'DELETE FROM Frames WHERE EventId=?';
     my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
       or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
@@ -375,19 +376,23 @@ sub delete {
       $ZoneMinder::Database::dbh->commit();
       return;
     }
+  }
 
+# Do it individually to avoid locking up the table for new events
+  {
+    my $sql = 'DELETE FROM Events WHERE Id=?';
+    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+      or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+    my $res = $sth->execute( $event->{Id} )
+      or Error( "Can't execute '$sql': ".$sth->errstr() );
+    $sth->finish();
+  }
+  $ZoneMinder::Database::dbh->commit();
+  if ( (! $Config{ZM_OPT_FAST_DELETE}) and $event->Storage()->DoDelete() ) {
     $event->delete_files( );
   } else {
     Debug('Not deleting frames, stats and files for speed.');
   }
-# Do it individually to avoid locking up the table for new events
-  my $sql = 'DELETE FROM Events WHERE Id=?';
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-  my $res = $sth->execute( $event->{Id} )
-    or Error( "Can't execute '$sql': ".$sth->errstr() );
-  $sth->finish();
-  $ZoneMinder::Database::dbh->commit();
 } # end sub delete
 
 sub delete_files {
@@ -410,8 +415,35 @@ sub delete_files {
   if ( $event_path ) {
     ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
     ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+
+    my $deleted = 0;
+    if ( $$Storage{Type} eq 's3fs' ) {
+      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+Debug("Trying to delete from S3 on $aws_host / $aws_bucket ($$Storage{Url})");
+      eval {
+        require Net::Amazon::S3;
+        my $s3 = Net::Amazon::S3->new( {
+             aws_access_key_id     => $aws_id,
+             aws_secret_access_key => $aws_secret,
+             ( $aws_host ? ( host => $aws_host ) : () ),
+             });
+        my $bucket = $s3->bucket($aws_bucket);
+        if ( ! $bucket ) {
+          Error("S3 bucket $bucket not found.");
+          die;
+        }
+        if ( $bucket->delete_key( $event_path ) ) {
+          $deleted = 1;
+        } else {
+          Error("Failed to delete from S3:".$s3->err . ": " . $s3->errstr);
+        }
+      };
+      Error($@) if $@;
+    } 
+    if ( ! $deleted ) {
       my $command = "/bin/rm -rf $storage_path/$event_path";
-    ZoneMinder::General::executeShellCommand( $command );
+      ZoneMinder::General::executeShellCommand( $command );
+    }
   }
 
   if ( $event->Scheme() eq 'Deep' ) {
@@ -425,6 +457,9 @@ sub delete_files {
 } # end sub delete_files
 
 sub Storage {
+  if ( @_ > 1 ) {
+    $_[0]{Storage} = $_[1];
+  }
   if ( ! $_[0]{Storage} ) {
     $_[0]{Storage} = new ZoneMinder::Storage( $_[0]{StorageId} );
   } 
@@ -470,7 +505,7 @@ sub DiskSpace {
       $_[0]{DiskSpace} = $size;
       Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
     } else {
-      Warning("DiskSpace: Event does not exist at $_[0]{Path}:" . $Event->to_string() );
+      Warning("DiskSpace: Event does not exist at $_[0]{Path}:" . $_[0]->to_string() );
     }
   } # end if ! defined DiskSpace
   return $_[0]{DiskSpace};
@@ -486,8 +521,7 @@ sub MoveTo {
     $ZoneMinder::Database::dbh->commit();
     return "Event has already been moved by someone else.";
   }
-
-  my $OldStorage = $self->Storage();
+  my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
 
   $$self{Storage} = $NewStorage;
@@ -535,10 +569,15 @@ sub MoveTo {
   for my $file (@files) {
     next if $file =~ /^\./;
     ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+    my $starttime = time;
+    Debug("Moving file $file to $NewPath");
+    my $size = -s $file;
     if ( ! File::Copy::copy( $file, $NewPath ) ) {
       $error .= "Copy failed: for $file to $NewPath: $!";
       last;
     }
+    my $duration = time - $starttime;
+    Debug("Copied " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($size/$duration) . "/sec");
   } # end foreach file.
 
   if ( $error ) {

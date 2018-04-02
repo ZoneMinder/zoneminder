@@ -760,7 +760,7 @@ bool Image::ReadRaw( const char *filename ) {
     return false;
   }
 
-  if ( statbuf.st_size != size ) {
+  if ( (unsigned int)statbuf.st_size != size ) {
     fclose(infile);
     Error("Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size);
     return false;

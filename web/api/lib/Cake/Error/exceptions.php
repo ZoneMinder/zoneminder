@@ -3,18 +3,18 @@
  * Exceptions file. Contains the various exceptions CakePHP will throw until they are
  * moved into their permanent location.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html
  * @package       Cake.Error
  * @since         CakePHP(tm) v 2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 /**
@@ -53,14 +53,15 @@ class CakeBaseException extends RuntimeException {
 
 }
 
+if (!class_exists('HttpException', false)) {
 /**
  * Parent class for all of the HTTP related exceptions in CakePHP.
+ *
  * All HTTP status/error related exceptions should extend this class so
  * catch blocks can be specifically typed.
  *
  * @package       Cake.Error
  */
-if (!class_exists('HttpException', false)) {
 	class HttpException extends CakeBaseException {
 	}
 }
@@ -624,5 +625,80 @@ class NotImplementedException extends CakeException {
 		parent::__construct($message, $code);
 	}
 //@codingStandardsIgnoreEnd
+
+}
+
+/**
+ * Security exception - used when SecurityComponent detects any issue with the current request
+ *
+ * @package       Cake.Error
+ */
+class SecurityException extends BadRequestException {
+
+/**
+ * Security Exception type
+ * @var string
+ */
+	protected $_type = 'secure';
+
+/**
+ * Reason for request blackhole
+ *
+ * @var string
+ */
+	protected $_reason = null;
+
+/**
+ * Getter for type
+ *
+ * @return string
+ */
+	public function getType() {
+		return $this->_type;
+	}
+
+/**
+ * Set Message
+ *
+ * @param string $message Exception message
+ * @return void
+ */
+	public function setMessage($message) {
+		$this->message = $message;
+	}
+
+/**
+ * Set Reason
+ *
+ * @param string|null $reason Reason details
+ * @return void
+ */
+	public function setReason($reason = null) {
+		$this->_reason = $reason;
+	}
+
+/**
+ * Get Reason
+ *
+ * @return string
+ */
+	public function getReason() {
+		return $this->_reason;
+	}
+
+}
+
+/**
+ * Auth Security exception - used when SecurityComponent detects any issue with the current request
+ *
+ * @package       Cake.Error
+ */
+class AuthSecurityException extends SecurityException {
+
+/**
+ * Security Exception type
+ * @var string
+ */
+	protected $_type = 'auth';
 
 }

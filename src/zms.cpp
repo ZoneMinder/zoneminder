@@ -41,7 +41,8 @@ bool ValidateAccess( User *user, int mon_id ) {
       allowed = false;
   }
   if ( !allowed ) {
-    Error( "Error, insufficient privileges for requested action" );
+    Error( "Error, insufficient privileges for requested action user %d %s for monitor %d",
+      user->Id(), user->getUsername(), mon_id );
     exit( -1 );
   }
   return( allowed );
@@ -282,10 +283,10 @@ int main( int argc, const char *argv[] ) {
     stream.setStreamMode( replay );
     stream.setStreamQueue( connkey );
     if ( monitor_id && event_time ) {
-      stream.setStreamStart( monitor_id, event_time );
+      stream.setStreamStart(monitor_id, event_time);
     } else {
       Debug(3, "Setting stream start to frame (%d)", frame_id);
-      stream.setStreamStart( event_id, frame_id );
+      stream.setStreamStart(event_id, frame_id);
     }
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType( EventStream::STREAM_JPEG );

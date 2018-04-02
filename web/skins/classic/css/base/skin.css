@@ -21,10 +21,50 @@
  * Primary look and feel styles
  */
 
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(../fonts/MaterialIcons-Regular.eot); /* For IE6-8 */
+  src: local('Material Icons'),
+    local('MaterialIcons-Regular'),
+    url(../fonts/MaterialIcons-Regular.woff2) format('woff2'),
+    url(../fonts/MaterialIcons-Regular.woff) format('woff'),
+    url(../fonts/MaterialIcons-Regular.ttf) format('truetype');
+}
+
+.material-icons {
+  vertical-align:middle;
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Support for IE. */
+  font-feature-settings: 'liga';
+}
+
+.material-icons.md-18 { font-size: 18px; }
+.material-icons.md-36 { font-size: 36px; }
+
 body {
     font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
     font-size: 13px;
-    color: #333333;
     font-weight: 300;
     text-align: center;
 }
@@ -68,6 +108,20 @@ th {
 */
 }
 
+
+.thead-highlight {
+  background-color:#dfe4ea;
+}
+
+/* rounded table head top corners */
+table th:first-child{
+  border-radius:5px 0 0 0 ;
+}
+table th:last-child{
+  border-radius:0 5px 0 0 ;
+}
+
+
 a:link {
     color: #3498db;
     text-decoration: none;
@@ -79,23 +133,25 @@ a:visited {
 }
 
 a:hover {
-    color: #2488cb;
-    text-decoration: underline;
+    text-decoration: none; 
+    background-color:rgba(72, 84, 96,0.2);
+    border-radius:4px;
 }
 
 label {
-    margin-right: 4px;
+    margin: 0 4px;
 }
 
 input,textarea,select,button,.btn-primary {
     border: 1px #ccc solid;
     padding: 5px;
-    border-radius: 2px;
+    border-radius: 1px;
     font-family: inherit;
     font-weight: 400;
     font-size: 100%;
     color: #333333;
-					 text-align: left;
+    text-align: left;
+    border-radius:4px;
 }
 /*
 input[type=text], input[type=password], input[type="url"], textarea, select {
@@ -286,15 +342,15 @@ fieldset > legend {
  * Behavior classes
  */
 .alarm, .errorText {
-    color: #dc143c;
+    color: #ff3f34;
 }
 
 .alert, .warnText {
-    color: #ff8c00;
+    color: #ffa801;
 }
 
 .ok, .infoText {
-    color: #688e23;
+    color: #0fb9b1;
 }
 
 .fakelink {
@@ -369,12 +425,11 @@ th.table-th-sort-rev span.table-th-sort-span {
 
 #header {
     width: 100%;
-    line-height: 1;
     text-align: left;
-    background-color: #383836;
+    background-color: #34495e;
     padding: 5px 20px;
     margin: 0 auto 4px auto;
-    color: #f2f2f2;
+    color: white;
     font-weight: 300;
 }
 
@@ -474,6 +529,7 @@ input[type=submit],
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
+    text-align: center;
 }
 
 button:hover,
@@ -511,13 +567,28 @@ input[type=submit]:disabled,
 .navbar{
 	margin-bottom: 0 !important;
 	border-radius: 0;
-	color: #03A9F4 !important;
+	background-color:#485460 !important;
+	color: #0fbcf9 !important;
+	border:none;
 }
 
 .navbar-brand {
-	font-weight: bold;
+	font-weight: normal;
 	font-size: 20px;
 }
+.navbar-brand a {
+color:#ffa801;
+}
+
+.navbar-btn {
+  background-color:#95afc0;
+  color:white;
+  padding:4px;
+  margin-right:8px;
+  border:none;
+}
+
+
 
 .container-fluid {
   position: relative;
@@ -548,3 +619,39 @@ margin-left: 0;
 .chosen-container {
 text-align: left;
 }
+
+.chosen-single,
+.chosen-container,
+.chosen-container-multi,
+.chosen-results,
+.chosen-search,
+.chosen-drop,
+.chosen-choices,
+li.search-choice {
+    font-size: inherit !important;
+    border-radius:4px;
+    border-color:rgb(200,200,200) !important ;
+	
+}
+
+.reduced-text { 
+   font-size:0.9em;
+}
+
+.glyphicon.glyphicon-dot:before {
+    content: "\25cf";
+    font-size: 1.5em;
+    padding-right:5px;
+}
+
+.gi-1p5x{font-size: 1.5em;}
+.gi-2x{font-size: 2em;}
+.gi-3x{font-size: 3em;}
+.gi-4x{font-size: 4em;}
+.gi-5x{font-size: 5em;}
+
+.filterBar {
+  margin-top:5px;
+  margin-bottom:5px;
+}
+   

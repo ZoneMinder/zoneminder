@@ -47,6 +47,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     $sql .= ' AND Username=?';
     $sql_values = array( $username );
   }
+  session_start();
   $_SESSION['username'] = $username;
   if ( ZM_AUTH_RELAY == 'plain' ) {
     // Need to save this in session
@@ -66,13 +67,13 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     $_SESSION['loginFailed'] = true;
     unset( $user );
   }
-  //if ( $cookies )
-    //session_write_close();
+  session_write_close();
 }
 
 function userLogout() {
   global $user;
   Info( 'User "'.$user['Username'].'" logged out' );
+  session_start();
   unset( $_SESSION['user'] );
   unset( $user );
 
@@ -151,7 +152,9 @@ function generateAuthHash( $useRemoteAddr ) {
   if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
     $time = time();
-    if ( ( ! isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < ( $time - ( ZM_AUTH_HASH_TTL * 1800 ) ) ) ) {
+    $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
+
+    if ( ( !isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
       $local_time = localtime();
       $authKey = '';
@@ -160,6 +163,7 @@ function generateAuthHash( $useRemoteAddr ) {
       } else {
         $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
+      #Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5( $authKey );
       if ( session_status() == PHP_SESSION_NONE ) {
         $backTrace = debug_backtrace();
@@ -171,7 +175,7 @@ function generateAuthHash( $useRemoteAddr ) {
       $_SESSION['AuthHashGeneratedAt'] = $time;
       #Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
     #} else {
-      #Logger::Debug( "Using cached auth " . $_SESSION['AuthHash'] ." beacuse " . $_SESSION['AuthHashGeneratedAt'] . ' < '. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '.( $time - (ZM_AUTH_HASH_TTL * 1800) ));
+      #Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'];
   } else {
@@ -550,20 +554,19 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
     }
   }
 
-  $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
+  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions( $contents, $values ).'</select>';
+}
+
+function htmlOptions( $contents, $values ) {
+  $html = '';
   foreach ( $contents as $value=>$text ) {
     if ( is_array( $text ) )
       $text = $text['Name'];
     else if ( is_object( $text ) )
       $text = $text->Name();
-  //for ( $i = 0; $i < count($contents); $i +=2 ) {
-    //$value = $contents[$i];
-    //$text = $contents[$i+1];
     $selected = is_array( $values ) ? in_array( $value, $values ) : !strcmp($value, $values);
-    //Warning("Selected is $selected from $value and $values");
     $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
   }
-  $html .= '</select>';
   return $html;
 }
 
@@ -631,6 +634,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
+
     switch( $types[$key] ) {
       case 'set' :
         {
@@ -692,6 +696,16 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
           break;
         }
+      case 'toggle' :
+        if ( (!isset($values[$key])) or $values[$key] != $value ) {
+          if ( empty($value) ) {
+            $changes[$key] = "$key = 0";
+          } else {
+            $changes[$key] = "$key = 1";
+            //$changes[$key] = $key . ' = '.dbEscape(trim($value));
+          }
+        }
+        break;
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
@@ -1296,7 +1310,13 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             $filter['sql'] .= ' not in ('.join( ',', $valueList ).')';
             break;
           case 'IS' :
-            $filter['sql'] .= " IS $value";
+            if ( $value == 'Odd' )  {
+              $filter['sql'] .= ' % 2 = 1';
+            } else if ( $value == 'Even' )  {
+              $filter['sql'] .= ' % 2 = 0';
+            } else {
+              $filter['sql'] .= " IS $value";
+            }
             break;
           case 'IS NOT' :
             $filter['sql'] .= " IS NOT $value";

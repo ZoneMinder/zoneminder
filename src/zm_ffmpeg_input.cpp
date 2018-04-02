@@ -121,7 +121,7 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
     }
 
     if ( (stream_id < 0 ) || ( packet.stream_index == stream_id ) ) {
-      Debug(1,"Packet is for our stream (%d)", packet.stream_index );
+      Debug(3,"Packet is for our stream (%d)", packet.stream_index );
 
       AVCodecContext *context = streams[packet.stream_index].context;
 
@@ -169,9 +169,9 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
 
     frameComplete = 1;
 # else
-    ret = zm_avcodec_decode_video( context, frame, &frameComplete, &packet );
+    ret = zm_avcodec_decode_video(context, frame, &frameComplete, &packet);
     if ( ret < 0 ) {
-      av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+      av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
       Error( "Unable to decode frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
       zm_av_packet_unref( &packet );
       continue;
@@ -179,7 +179,7 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
 #endif
   } // end if it's the right stream
 
-      zm_av_packet_unref( &packet );
+    zm_av_packet_unref( &packet );
 
   } // end while ! frameComplete
   return frame;

@@ -110,20 +110,8 @@ class EventStream : public StreamBase {
       ffmpeg_input = NULL;
 
     }
-    void setStreamStart( int init_event_id, unsigned int init_frame_id=0 ) {
-      loadInitialEventData( init_event_id, init_frame_id );
-      if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
-        Fatal( "Unable to load monitor id %d for streaming", event_data->monitor_id );
-        return;
-      }
-    }
-    void setStreamStart( int monitor_id, time_t event_time ) {
-      loadInitialEventData( monitor_id, event_time );
-      if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
-        Fatal( "Unable to load monitor id %d for streaming", monitor_id );
-        return;
-      }
-    }
+    void setStreamStart( int init_event_id, unsigned int init_frame_id );
+    void setStreamStart( int monitor_id, time_t event_time );
     void setStreamMode( StreamMode p_mode ) {
       mode = p_mode;
     }

@@ -98,15 +98,15 @@ This command will add a new http monitor.
 
 ::
 
-  curl -XPOST http://server/zm/api/monitors.json -d "Monitor[Name]=Cliff-Burton \
-  &Monitor[Function]=Modect \
-  &Monitor[Protocol]=http \
-  &Monitor[Method]=simple \
-  &Monitor[Host]=usr:pass@192.168.11.20 \
-  &Monitor[Port]=80 \
-  &Monitor[Path]=/mjpg/video.mjpg \
-  &Monitor[Width]=704 \
-  &Monitor[Height]=480 \
+  curl -XPOST http://server/zm/api/monitors.json -d "Monitor[Name]=Cliff-Burton\
+  &Monitor[Function]=Modect\
+  &Monitor[Protocol]=http\
+  &Monitor[Method]=simple\
+  &Monitor[Host]=usr:pass@192.168.11.20\
+  &Monitor[Port]=80\
+  &Monitor[Path]=/mjpg/video.mjpg\
+  &Monitor[Width]=704\
+  &Monitor[Height]=480\
   &Monitor[Colours]=4"
 
 Edit monitor 1
@@ -304,26 +304,26 @@ Create a Zone
 
 ::
 
-  curl -XPOST http://server/zm/api/zones.json -d "Zone[Name]=Jason-Newsted \
-  &Zone[MonitorId]=3 \
-  &Zone[Type]=Active \
-  &Zone[Units]=Percent \
-  &Zone[NumCoords]=4 \
-  &Zone[Coords]=0,0 639,0 639,479 0,479 \
-  &Zone[AlarmRGB]=16711680 \
-  &Zone[CheckMethod]=Blobs \
-  &Zone[MinPixelThreshold]=25 \
-  &Zone[MaxPixelThreshold]= \
-  &Zone[MinAlarmPixels]=9216 \
-  &Zone[MaxAlarmPixels]= \
-  &Zone[FilterX]=3 \
-  &Zone[FilterY]=3 \
-  &Zone[MinFilterPixels]=9216 \
-  &Zone[MaxFilterPixels]=230400 \
-  &Zone[MinBlobPixels]=6144 \
-  &Zone[MaxBlobPixels]= \
-  &Zone[MinBlobs]=1 \
-  &Zone[MaxBlobs]= \
+  curl -XPOST http://server/zm/api/zones.json -d "Zone[Name]=Jason-Newsted\
+  &Zone[MonitorId]=3\
+  &Zone[Type]=Active\
+  &Zone[Units]=Percent\
+  &Zone[NumCoords]=4\
+  &Zone[Coords]=0,0 639,0 639,479 0,479\
+  &Zone[AlarmRGB]=16711680\
+  &Zone[CheckMethod]=Blobs\
+  &Zone[MinPixelThreshold]=25\
+  &Zone[MaxPixelThreshold]=\
+  &Zone[MinAlarmPixels]=9216\
+  &Zone[MaxAlarmPixels]=\
+  &Zone[FilterX]=3\
+  &Zone[FilterY]=3\
+  &Zone[MinFilterPixels]=9216\
+  &Zone[MaxFilterPixels]=230400\
+  &Zone[MinBlobPixels]=6144\
+  &Zone[MaxBlobPixels]=\
+  &Zone[MinBlobs]=1\
+  &Zone[MaxBlobs]=\
   &Zone[OverloadFrames]=0"
 
 PTZ Control APIs

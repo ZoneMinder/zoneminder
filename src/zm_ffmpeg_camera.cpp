@@ -109,7 +109,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   frameCount = 0;
   startTime = 0;
   mCanCapture = false;
-  mOpenStart = 0;
   videoStore = NULL;
   video_last_pts = 0;
   have_video_keyframe = false;
@@ -161,7 +160,7 @@ void FfmpegCamera::Terminate() {
 
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
-  Info( "Priming capture from %s", mPath.c_str() );
+    Info( "Priming capture from %s, CLosing", mPath.c_str() );
     CloseFfmpeg();
   }
   mVideoStreamId = -1;
@@ -172,7 +171,6 @@ int FfmpegCamera::PrimeCapture() {
 }
 
 int FfmpegCamera::PreCapture() {
-  Debug(1, "PreCapture");
   // If Reopen was called, then ffmpeg is closed and we need to reopen it.
   if ( ! mCanCapture )
     return OpenFfmpeg();
@@ -189,7 +187,7 @@ int FfmpegCamera::Capture( Image &image ) {
 
   int frameComplete = false;
   while ( !frameComplete ) {
-    int avResult = av_read_frame( mFormatContext, &packet );
+    int avResult = av_read_frame(mFormatContext, &packet);
     char errbuf[AV_ERROR_MAX_STRING_SIZE];
     if ( avResult < 0 ) {
       av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
@@ -199,13 +197,11 @@ int FfmpegCamera::Capture( Image &image ) {
           // Check for Connection failure.
           (avResult == -110)
          ) {
-        Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf );
-        ReopenFfmpeg();
-        continue;
+        Info("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf);
+      } else {
+        Error("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf);
       }
-
-      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
-      return( -1 );
+      return -1;
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
@@ -321,7 +317,6 @@ int FfmpegCamera::OpenFfmpeg() {
 
   int ret;
 
-  mOpenStart = time(NULL);
   have_video_keyframe = false;
 
   // Open the input, not necessarily a file
@@ -364,12 +359,21 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   {
     Error("Unable to open input %s due to: %s", mPath.c_str(), strerror(errno));
+#if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
+    av_close_input_file( mFormatContext );
+#else
+    avformat_close_input( &mFormatContext );
+#endif
+    mFormatContext = NULL;
+    av_dict_free(&opts);
+
     return -1;
   }
   AVDictionaryEntry *e=NULL;
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
     Warning( "Option %s not recognized by ffmpeg", e->key);
   }
+  av_dict_free(&opts);
 
   Debug(1, "Opened input");
 
@@ -496,13 +500,20 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   } // end if h264
 #endif
+  if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
+    if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == NULL ) {
+      Debug(1, "Failed to find decoder (h264_mmal)" );
+    } else {
+      Debug(1, "Success finding decoder (h264_mmal)" );
+    }
+  }
 
   if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
   // Try and get the codec from the codec context
     Error("Can't find codec for video stream from %s", mPath.c_str());
     return -1;
   } else {
-    Debug(1, "Video Found decoder");
+    Debug(1, "Video Found decoder %s", mVideoCodec->name);
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
@@ -517,6 +528,7 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning( "Option %s not recognized by ffmpeg", e->key);
     }
     Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+    av_dict_free(&opts);
     return -1;
   } else {
 
@@ -524,6 +536,7 @@ int FfmpegCamera::OpenFfmpeg() {
     if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
       Warning( "Option %s not recognized by ffmpeg", e->key);
     }
+    av_dict_free(&opts);
   }
   }
 
@@ -689,21 +702,20 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
   while ( ! frameComplete ) {
     av_init_packet( &packet );
 
-    ret = av_read_frame( mFormatContext, &packet );
+    ret = av_read_frame(mFormatContext, &packet);
     if ( ret < 0 ) {
-      av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+      av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
       if (
           // Check if EOF.
           (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
           // Check for Connection failure.
           (ret == -110)
          ) {
-          Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
-          ReopenFfmpeg();
+        Info("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf);
+      } else {
+        Error("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf);
       }
-
-      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
-      return( -1 );
+      return -1;
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;

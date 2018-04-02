@@ -17,6 +17,9 @@ private $defaults = array(
   'AnalysisFPSLimit'  =>  null,
   'ZoneCount' =>  0,
   'Triggers'  =>  null,
+  'Type'      =>  'Ffmpeg',
+  'MaxFPS' => null,
+  'AlarmMaxFPS' => null,
 );
 private $status_fields = array(
   'AnalysisFPS' => null,
@@ -392,5 +395,57 @@ Logger::Debug("sending command to $url");
       }
     } // end if we are on the recording server
   }
+  public function GroupIds( ) {
+    if ( !array_key_exists('GroupIds', $this) ) {
+      if ( array_key_exists('Id', $this) and $this->{'Id'} ) {
+        $this->{'GroupIds'} = dbFetchAll( 'SELECT GroupId FROM Groups_Monitors WHERE MonitorId=?', 'GroupId', array($this->{'Id'}) );
+      } else {
+        $this->{'GroupIds'} = array();
+      }
+    }
+    return $this->{'GroupIds'};
+  }
+  public function delete() {
+    $this->zmaControl('stop');
+    $this->zmcControl('stop');
+
+    // If fast deletes are on, then zmaudit will clean everything else up later
+    // If fast deletes are off and there are lots of events then this step may
+    // well time out before completing, in which case zmaudit will still tidy up
+    if ( !ZM_OPT_FAST_DELETE ) {
+      $markEids = dbFetchAll('SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($this->{'Id'}));
+      foreach($markEids as $markEid)
+        deleteEvent($markEid);
+
+      deletePath(ZM_DIR_EVENTS.'/'.basename($this->{'Name'}));
+      deletePath(ZM_DIR_EVENTS.'/'.$this->{'Id'});
+      $Storage = $this->Storage();
+      if ( $Storage->Path() != ZM_DIR_EVENTS ) {
+        deletePath($Storage->Path().'/'.basename($this->{'Name'}));
+        deletePath($Storage->Path().'/'.$this->{'Id'});
+      }
+    } // end if ZM_OPT_FAST_DELETE
+
+    // This is the important stuff
+    dbQuery('DELETE FROM Zones WHERE MonitorId = ?', array($this->{'Id'}));
+    if ( ZM_OPT_X10 )
+      dbQuery('DELETE FROM TriggersX10 WHERE MonitorId=?', array($this->{'Id'}));
+    dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
+
+    // Deleting a Monitor does not affect the order, just creates a gap in the sequence.  Who cares?
+    // fixSequences();
+
+  } // end function delete
+
+  public function Storage( $new = null ) {
+    if ( $new ) {
+      $this->{'Storage'} = $new;
+    }
+    if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) ) {
+      $this->{'Storage'} = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+    }
+    return $this->{'Storage'};
+  }
+
 } // end class Monitor
 ?>

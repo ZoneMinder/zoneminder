@@ -4,18 +4,18 @@
  *
  * Test Case for test generation shell task
  *
- * CakePHP : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP Project
  * @package       Cake.Test.Case.Console.Command.Task
  * @since         CakePHP v 1.2.6
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ShellDispatcher', 'Console');
@@ -315,7 +315,7 @@ class ModelTaskTest extends CakeTestCase {
 		$this->Task->initValidations();
 		$this->Task->interactive = true;
 		$this->Task->expects($this->any())->method('in')
-			->will($this->onConsecutiveCalls('24', 'y', '18', 'n'));
+			->will($this->onConsecutiveCalls('26', 'y', '18', 'n'));
 
 		$result = $this->Task->fieldValidation('text', array('type' => 'string', 'length' => 10, 'null' => false));
 		$expected = array('notBlank' => 'notBlank', 'maxLength' => 'maxLength');
@@ -333,7 +333,7 @@ class ModelTaskTest extends CakeTestCase {
 		$this->Task->interactive = true;
 
 		$this->Task->expects($this->any())->method('in')
-			->will($this->onConsecutiveCalls('999999', '24', 'n'));
+			->will($this->onConsecutiveCalls('999999', '26', 'n'));
 
 		$this->Task->expects($this->at(10))->method('out')
 			->with($this->stringContains('make a valid'));
@@ -368,7 +368,7 @@ class ModelTaskTest extends CakeTestCase {
 		$this->Task->initValidations();
 		$this->Task->interactive = true;
 		$this->Task->expects($this->any())->method('in')
-			->will($this->onConsecutiveCalls('24', 'y', 's'));
+			->will($this->onConsecutiveCalls('26', 'y', 's'));
 
 		$result = $this->Task->fieldValidation('text', array('type' => 'string', 'length' => 10, 'null' => false));
 		$expected = array('notBlank' => 'notBlank', '_skipFields' => true);
@@ -384,7 +384,7 @@ class ModelTaskTest extends CakeTestCase {
 		$this->Task->initValidations();
 		$this->Task->interactive = true;
 		$this->Task->expects($this->any())->method('in')
-			->will($this->onConsecutiveCalls('24', 's'));
+			->will($this->onConsecutiveCalls('26', 's'));
 
 		$result = $this->Task->fieldValidation('text', array('type' => 'string', 'length' => 10, 'null' => false));
 		$expected = array('notBlank' => 'notBlank', '_skipFields' => true);
@@ -400,7 +400,7 @@ class ModelTaskTest extends CakeTestCase {
 	public function testInteractiveDoValidationWithSkipping() {
 		$this->Task->expects($this->any())
 			->method('in')
-			->will($this->onConsecutiveCalls('35', '24', 'n', '10', 's'));
+			->will($this->onConsecutiveCalls('37', '26', 'n', '10', 's'));
 		$this->Task->interactive = true;
 		$Model = $this->getMock('Model');
 		$Model->primaryKey = 'id';

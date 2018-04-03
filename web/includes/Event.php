@@ -201,7 +201,7 @@ class Event {
   } // end function getStreamSrc
 
   function DiskSpace( $new='' ) {
-    if ( $new != '' ) {
+    if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }
     if ( null === $this->{'DiskSpace'} ) {

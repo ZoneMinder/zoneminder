@@ -73,6 +73,7 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
 function userLogout() {
   global $user;
   Info( 'User "'.$user['Username'].'" logged out' );
+  session_start();
   unset( $_SESSION['user'] );
   unset( $user );
 
@@ -1309,7 +1310,13 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             $filter['sql'] .= ' not in ('.join( ',', $valueList ).')';
             break;
           case 'IS' :
-            $filter['sql'] .= " IS $value";
+            if ( $value == 'Odd' )  {
+              $filter['sql'] .= ' % 2 = 1';
+            } else if ( $value == 'Even' )  {
+              $filter['sql'] .= ' % 2 = 0';
+            } else {
+              $filter['sql'] .= " IS $value";
+            }
             break;
           case 'IS NOT' :
             $filter['sql'] .= " IS NOT $value";

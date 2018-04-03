@@ -18,13 +18,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$servers = Server::find_all( null, array('order'=>'lower(Name)'));
+$servers = Server::find_all(null, array('order'=>'lower(Name)'));
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
 session_start();
-foreach ( array('Group', 'ServerId','StorageId','Status','MonitorId') as $var ) {
+foreach ( array('Group','Function','ServerId','StorageId','Status','MonitorId') as $var ) {
   if ( isset( $_REQUEST[$var] ) ) {
     if ( $_REQUEST[$var] != '' ) {
       $_SESSION[$var] = $_REQUEST[$var];
@@ -49,8 +49,13 @@ $html =
   <input type="hidden" name="filtering" value=""/>
 ';
 
+$GroupsById = array();
+foreach ( Group::find_all() as $G ) {
+  $GroupsById[$G->Id()] = $G;
+}
+
 $groupSql = '';
-if ( Group::find_all() ) {
+if ( count($GroupsById) ) {
   $html .= '<span id="groupControl"><label>'. translate('Group') .':</label>';
   # This will end up with the group_id of the deepest selection
   $group_id = isset($_SESSION['Group']) ? $_SESSION['Group'] : null;
@@ -70,7 +75,7 @@ $values = array();
 
 if ( $groupSql )
   $conditions[] = $groupSql;
-foreach ( array('ServerId','StorageId','Status') as $filter ) {
+foreach ( array('ServerId','StorageId','Status','Function') as $filter ) {
   if ( isset($_SESSION[$filter]) ) {
     if ( is_array($_SESSION[$filter]) ) {
       $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter] ) ). ')';
@@ -86,6 +91,23 @@ if ( ! empty( $user['MonitorIds'] ) ) {
   $conditions[] = 'M.Id IN ('.implode(',',array_map( function(){return '?';}, $ids) ).')';
   $values += $ids;
 }
+
+$Functions = array();
+foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
+  $Functions[$optFunction] = translate('Fn'.$optFunction);
+}
+
+$html .= '<span class="FunctionFilter"><label>'.translate('Function').'</label>';
+$html .= htmlSelect('Function[]', $Functions,
+  (isset($_SESSION['Function'])?$_SESSION['Function']:''),
+    array(
+      'onchange'=>'this.form.submit();',
+      'class'=>'chosen',
+      'multiple'=>'multiple',
+      'data-placeholder'=>'All',
+    )
+ );
+$html .= '</span>';
 
 if ( count($ServersById) > 1 ) {
   $html .= '<span class="ServerFilter"><label>'. translate('Server').':</label>';
@@ -115,10 +137,10 @@ if ( count($StorageById) > 1 ) {
 } # end if have Storage Areas
 $html .= '<span class="StatusFilter"><label>'. translate('Status') . ':</label>';
 $status_options = array(
-    'Connected' => translate('Connected'),
-    'Unknown' => translate('Unknown'),
-    'NotRunning' => translate('NotRunning'),
-    'Running' => translate('Running'),
+    'Unknown' => translate('StatusUnknown'),
+    'NotRunning' => translate('StatusNotRunning'),
+    'Running' => translate('StatusRunning'),
+    'Connected' => translate('StatusConnected'),
     );
 $html .= htmlSelect( 'Status[]', $status_options,
   ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),

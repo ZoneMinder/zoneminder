@@ -143,6 +143,7 @@ if ( count($servers) ) $left_columns += 1;
 if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
 if ( $show_storage_areas ) $left_columns += 1;
 
+
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
@@ -192,7 +193,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   if ( (!$monitor['Status']) or ($monitor['Status'] == 'NotRunning') ) {
     $source_class = 'errorText';
   } else {
-    if ( (!$monitor['CaptureFPS']) ) {
+    if ( $monitor['CaptureFPS'] == '0.00' ) {
       $source_class = 'errorText';
     } else if ( (!$monitor['AnalysisFPS']) && ($monitor['Function']!='Monitor') && ($monitor['Function'] != 'Nodect') ) {
       $source_class = 'warnText';
@@ -219,13 +220,13 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
 ?>
             <td class="colName">
               <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>"  aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
-              <?php echo $monitor['Status'] ?><br/>
+              <?php echo translate('Status'.$monitor['Status']) ?><br/>
               <?php echo implode('<br/>',
                   array_map(function($group_id){
                     $Group = new Group($group_id);
                     $Groups = $Group->Parents();
                     array_push( $Groups, $Group );
-                    return implode(' &gt; ', array_map(function($Group){ return $Group->Name(); }, $Groups ));
+                    return implode(' &gt; ', array_map(function($Group){ return '<a href="'. ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview&GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </div></td>
@@ -323,6 +324,7 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
               <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
               <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
               </button>
+              <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
             </td>
 <?php
   foreach ( array_keys( $eventCounts ) as $i ) {

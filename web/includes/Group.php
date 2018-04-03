@@ -2,19 +2,19 @@
 
 class Group {
 
-public $defaults = array(
-    'Id'              =>  null,
-    'Name'            =>  '',
-    'ParentId'        =>  null,
-);
+  public $defaults = array(
+      'Id'              =>  null,
+      'Name'            =>  '',
+      'ParentId'        =>  null,
+      );
 
   public function __construct( $IdOrRow=NULL ) {
     $row = NULL;
     if ( $IdOrRow ) {
-      if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id=?', NULL, array( $IdOrRow ) );
+      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
+        $row = dbFetchOne('SELECT * FROM Groups WHERE Id=?', NULL, array($IdOrRow));
         if ( ! $row ) {
-          Error('Unable to load Group record for Id=' . $IdOrRow );
+          Error('Unable to load Group record for Id=' . $IdOrRow);
         }
       } elseif ( is_array( $IdOrRow ) ) {
         $row = $IdOrRow;
@@ -68,7 +68,6 @@ public $defaults = array(
           $func = function(){return '?';};
           $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
           $values += $value;
-
         } else {
           $fields[] = $field.'=?';
           $values[] = $value;

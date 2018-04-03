@@ -38,6 +38,7 @@ if ( $_REQUEST['id'] ) {
   $newStorage['Scheme'] = 'Medium';
   $newStorage['StorageId'] = '';
   $newStorage['ServerId'] = '';
+  $newStorage['DoDelete'] = 1;
 }
 
 $type_options = array( 'local' => translate('Local'), 's3fs' => translate('s3fs') );
@@ -91,6 +92,13 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
             <tr>
               <th scope="row"><?php echo translate('StorageScheme') ?></th>
               <td><?php echo htmlSelect( 'newStorage[Scheme]', $scheme_options, $newStorage['Scheme'] ); ?></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('StorageDoDelete') ?></th>
+              <td>
+              <input type="radio" name="newStorage[DoDelete]" value="1"<?php echo $newStorage['DoDelete'] ? 'checked="checked"' : '' ?>/>Yes
+              <input type="radio" name="newStorage[DoDelete]" value="0"<?php echo $newStorage['DoDelete'] ? '' : 'checked="checked"' ?>/>No
+              </td>
             </tr>
           </tbody>
         </table>

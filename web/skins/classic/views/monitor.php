@@ -18,8 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-require_once( 'includes/Server.php');
-require_once( 'includes/Storage.php');
+require_once('includes/Server.php');
+require_once('includes/Storage.php');
 
 if ( !canView( 'Monitors' ) ) {
   $view = 'error';

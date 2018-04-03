@@ -152,11 +152,11 @@ bool EventStream::loadEventData(int event_id) {
   }
   mysql_free_result( result );
 
-  Storage * storage = new Storage( event_data->storage_id );
+  Storage * storage = new Storage(event_data->storage_id);
   const char *storage_path = storage->Path();
 
   if ( event_data->scheme == Storage::DEEP ) {
-    struct tm *event_time = localtime( &event_data->start_time );
+    struct tm *event_time = localtime(&event_data->start_time);
 
     if ( storage_path[0] == '/' )
       snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d", storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
@@ -182,20 +182,19 @@ bool EventStream::loadEventData(int event_id) {
 
   updateFrameRate( (double)event_data->frame_count/event_data->duration );
 
-
-  snprintf( sql, sizeof(sql), "select FrameId, unix_timestamp( `TimeStamp` ), Delta from Frames where EventId = %d order by FrameId asc", event_id );
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  snprintf(sql, sizeof(sql), "select FrameId, unix_timestamp( `TimeStamp` ), Delta from Frames where EventId = %d order by FrameId asc", event_id);
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
-  result = mysql_store_result( &dbconn );
+  result = mysql_store_result(&dbconn);
   if ( !result ) {
-    Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+    Error("Can't use query result: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
-  event_data->n_frames = mysql_num_rows( result );
+  event_data->n_frames = mysql_num_rows(result);
 
   event_data->frames = new FrameData[event_data->frame_count];
   int last_id = 0;
@@ -236,15 +235,14 @@ bool EventStream::loadEventData(int event_id) {
 
   if ( event_data->video_file[0] ) {
     char filepath[PATH_MAX];
-    snprintf( filepath, sizeof(filepath), "%s/%s", event_data->path, event_data->video_file );
+    snprintf(filepath, sizeof(filepath), "%s/%s", event_data->path, event_data->video_file);
     ffmpeg_input = new FFmpeg_Input();
     if ( 0 > ffmpeg_input->Open( filepath ) ) {
-      Warning("Unable to open ffmpeg_input %s/%s", event_data->path, event_data->video_file );
+      Warning("Unable to open ffmpeg_input %s/%s", event_data->path, event_data->video_file);
       delete ffmpeg_input;
       ffmpeg_input = NULL;
     }
   }
-
 
   if ( forceEventChange || mode == MODE_ALL_GAPLESS ) {
     if ( replay_rate > 0 )
@@ -252,13 +250,13 @@ bool EventStream::loadEventData(int event_id) {
     else
       curr_stream_time = event_data->frames[event_data->frame_count-1].timestamp;
   }
-  Debug( 2, "Event:%ld, Frames:%ld, Duration: %.2f", event_data->event_id, event_data->frame_count, event_data->duration );
+  Debug(2, "Event:%ld, Frames:%ld, Duration: %.2f", event_data->event_id, event_data->frame_count, event_data->duration);
 
-  return( true );
+  return true;
 } // bool EventStream::loadEventData( int event_id )
 
-void EventStream::processCommand( const CmdMsg *msg ) {
-  Debug( 2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] );
+void EventStream::processCommand(const CmdMsg *msg) {
+  Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
   // Check for incoming command
   switch( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
@@ -527,7 +525,7 @@ void EventStream::processCommand( const CmdMsg *msg ) {
     }
   }
   // quit after sending a status, if this was a quit request
-  if ((MsgCommand)msg->msg_data[0]==CMD_QUIT)
+  if ( (MsgCommand)msg->msg_data[0]==CMD_QUIT )
     exit(0);
 
   updateFrameRate( (double)event_data->frame_count/event_data->duration );
@@ -599,10 +597,10 @@ void EventStream::checkEventLoaded() {
 Image * EventStream::getImage( ) {
   static char filepath[PATH_MAX];
 
-  Debug( 2, "EventStream::getImage path(%s) frame(%d)", event_data->path, curr_frame_id );
-  snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
-  Debug( 2, "EventStream::getImage path(%s) ", filepath, curr_frame_id );
-  Image *image = new Image( filepath );
+  Debug(2, "EventStream::getImage path(%s) frame(%d)", event_data->path, curr_frame_id);
+  snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id);
+  Debug(2, "EventStream::getImage path(%s) ", filepath, curr_frame_id);
+  Image *image = new Image(filepath);
   return image;
 }
 
@@ -632,13 +630,14 @@ bool EventStream::sendFrame( int delta_us ) {
 
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {
+Debug(2,"Streaming MPEG");
     Image image( filepath );
 
-    Image *send_image = prepareImage( &image );
+    Image *send_image = prepareImage(&image);
 
     if ( !vid_stream ) {
-      vid_stream = new VideoStream( "pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height() );
-      fprintf( stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType() );
+      vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
+      fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
     /* double pts = */ vid_stream->EncodeFrame( send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_us*1000 );
@@ -654,7 +653,7 @@ bool EventStream::sendFrame( int delta_us ) {
 
     fprintf( stdout, "--ZoneMinderFrame\r\n" );
 
-    if ( type != STREAM_JPEG )
+    if ( (type != STREAM_JPEG) || (!filepath[0]) )
       send_raw = false;
 
     if ( send_raw ) {
@@ -675,13 +674,14 @@ bool EventStream::sendFrame( int delta_us ) {
       Image *image = NULL;
 
       if ( filepath[0] ) {
+Debug(1, "Loading image");
         image = new Image( filepath );
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
         AVFrame *frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id() );
         if ( frame ) {
-          image = new Image( frame );
+          image = new Image(frame);
           av_frame_free(&frame);
         } else {
           Error("Failed getting a frame.");
@@ -692,16 +692,16 @@ bool EventStream::sendFrame( int delta_us ) {
         return false;
       }
       
-      Image *send_image = prepareImage( image );
+      Image *send_image = prepareImage(image);
 
       switch( type ) {
         case STREAM_JPEG :
-          send_image->EncodeJpeg( img_buffer, &img_buffer_size );
+          send_image->EncodeJpeg(img_buffer, &img_buffer_size);
           break;
         case STREAM_ZIP :
 #if HAVE_ZLIB_H
           unsigned long zip_buffer_size;
-          send_image->Zip( img_buffer, &zip_buffer_size );
+          send_image->Zip(img_buffer, &zip_buffer_size);
           img_buffer_size = zip_buffer_size;
           break;
 #else

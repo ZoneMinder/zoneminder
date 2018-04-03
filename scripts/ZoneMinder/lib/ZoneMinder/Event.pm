@@ -35,6 +35,8 @@ require Date::Manip;
 require File::Find;
 require File::Path;
 require File::Copy;
+require File::Slurp;
+require File::Basename;
 require Number::Bytes::Human;
 
 #our @ISA = qw(ZoneMinder::Object);
@@ -419,7 +421,6 @@ sub delete_files {
     my $deleted = 0;
     if ( $$Storage{Type} eq 's3fs' ) {
       my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
-Debug("Trying to delete from S3 on $aws_host / $aws_bucket ($$Storage{Url})");
       eval {
         require Net::Amazon::S3;
         my $s3 = Net::Amazon::S3->new( {
@@ -547,38 +548,93 @@ sub MoveTo {
   }
   Debug("Moving event $$self{Id} from $OldPath to $NewPath");
 
+  my $moved = 0;
+
+  if ( $$NewStorage{Type} eq 's3fs' ) {
+    my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+    eval {
+      require Net::Amazon::S3;
+      my $s3 = Net::Amazon::S3->new( {
+          aws_access_key_id     => $aws_id,
+          aws_secret_access_key => $aws_secret,
+          ( $aws_host ? ( host => $aws_host ) : () ),
+          });
+      my $bucket = $s3->bucket($aws_bucket);
+      if ( ! $bucket ) {
+        Error("S3 bucket $bucket not found.");
+        die;
+      }
+
+      my $event_path = 'events/'.$self->RelativePath();
+Info("Making dir ectory $event_path/");
+      if ( ! $bucket->add_key( $event_path.'/','' ) ) {
+        die "Unable to add key for $event_path/";
+      }
+
+      my @files = glob("$OldPath/*");
+Debug("Files to move @files");
+      for my $file (@files) {
+        next if $file =~ /^\./;
+        ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+         my $starttime = time;
+        Debug("Moving file $file to $NewPath");
+        my $size = -s $file;
+        if ( ! $size ) {
+          Info("Not moving file with 0 size");
+        }
+        my $file_contents = File::Slurp::read_file($file);
+        if ( ! $file_contents ) {
+          die "Loaded empty file, but it had a size. Giving up";
+        }
+
+        my $filename = $event_path.'/'.File::Basename::basename($file);
+        if ( ! $bucket->add_key( $filename, $file_contents ) ) {
+          die "Unable to add key for $filename";
+        }
+        my $duration = time - $starttime;
+        Debug("PUT to S3 " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($size/$duration) . "/sec");
+      } # end foreach file.
+
+      $moved = 1;
+    };
+    Error($@) if $@;
+    die $@ if $@;
+  } # end if s3
+
   my $error = '';
-  File::Path::make_path( $NewPath, {error => \my $err} );
-  if ( @$err ) {
-    for my $diag (@$err) {
-      my ($file, $message) = %$diag;
-      next if $message eq 'File exists';
-      if ($file eq '') {
-        $error .= "general error: $message\n";
-      } else {
-        $error .= "problem making $file: $message\n";
+  if ( ! $moved ) {
+    File::Path::make_path( $NewPath, {error => \my $err} );
+    if ( @$err ) {
+      for my $diag (@$err) {
+        my ($file, $message) = %$diag;
+        next if $message eq 'File exists';
+        if ($file eq '') {
+          $error .= "general error: $message\n";
+        } else {
+          $error .= "problem making $file: $message\n";
+        }
       }
     }
-  }
-  if ( $error ) {
-    $ZoneMinder::Database::dbh->commit();
-    return $error;
-  }
-  my @files = glob("$OldPath/*");
-
-  for my $file (@files) {
-    next if $file =~ /^\./;
-    ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
-    my $starttime = time;
-    Debug("Moving file $file to $NewPath");
-    my $size = -s $file;
-    if ( ! File::Copy::copy( $file, $NewPath ) ) {
-      $error .= "Copy failed: for $file to $NewPath: $!";
-      last;
+    if ( $error ) {
+      $ZoneMinder::Database::dbh->commit();
+      return $error;
     }
-    my $duration = time - $starttime;
-    Debug("Copied " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($size/$duration) . "/sec");
-  } # end foreach file.
+    my @files = glob("$OldPath/*");
+
+    for my $file (@files) {
+      next if $file =~ /^\./;
+      ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+      my $starttime = time;
+      Debug("Moving file $file to $NewPath");
+      my $size = -s $file;
+      if ( ! File::Copy::copy( $file, $NewPath ) ) {
+        $error .= "Copy failed: for $file to $NewPath: $!";
+        last;
+      }
+      my $duration = time - $starttime;
+      Debug("Copied " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . ($duration?Number::Bytes::Human::format_bytes($size/$duration):'inf') . "/sec");
+    } # end foreach file.
+  } # end if ! moved
 
   if ( $error ) {
     $ZoneMinder::Database::dbh->commit();
@@ -593,8 +649,8 @@ sub MoveTo {
     $ZoneMinder::Database::dbh->commit();
     return $error;
   }
-  $self->delete_files( $OldStorage );
   $ZoneMinder::Database::dbh->commit();
+  $self->delete_files( $OldStorage );
   return $error;
 } # end sub MoveTo
 

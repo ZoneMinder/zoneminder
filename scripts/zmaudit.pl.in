@@ -246,7 +246,7 @@ MAIN: while( $loop ) {
 
       {
         my @day_dirs = glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]");
-        Debug(qq`Checking for Deep Events under using glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]") returned `. scalar @day_dirs . " events");
+        Debug(qq`Checking for Deep Events under $$Storage{Path} using glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]") returned `. scalar @day_dirs . ' events');
         foreach my $day_dir ( @day_dirs ) {
           Debug( "Checking day dir $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
@@ -294,7 +294,7 @@ MAIN: while( $loop ) {
         } # end foreach day dir
       }
 
-      Debug("Checking for Medium Scheme Events under $monitor_dir");
+      Debug("Checking for Medium Scheme Events under $$Storage{Path}/$monitor_dir");
       {
         my @event_dirs = glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*");
         Debug(qq`glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned ` . scalar @event_dirs . " entries." );

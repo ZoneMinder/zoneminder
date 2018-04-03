@@ -209,15 +209,6 @@ Event::Event(
         delete videowriter;
         videowriter = NULL;
       }
-
-      snprintf( timecodes_name, sizeof(timecodes_name), "%d-%s", id, "video.timecodes" );
-      snprintf( timecodes_file, sizeof(timecodes_file), staticConfig.video_file_format, path, timecodes_name );
-
-      /* Create timecodes file */
-      timecodes_fd = fopen(timecodes_file, "wb");
-      if ( timecodes_fd == NULL ) {
-        Error("Failed creating timecodes file");
-      }
     }
   } else {
     /* No video object */
@@ -238,12 +229,6 @@ Event::~Event() {
     }
     delete videowriter;
     videowriter = NULL;
-
-    /* Close the timecodes file */
-    if ( timecodes_fd ) {
-      fclose(timecodes_fd);
-      timecodes_fd = NULL;
-    }
   }
 
 
@@ -268,10 +253,9 @@ Event::~Event() {
 
   snprintf( sql, sizeof(sql), "UPDATE Events SET Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
   db_mutex.lock();
-  if ( mysql_query(&dbconn, sql) ) {
+  while ( mysql_query(&dbconn, sql) ) {
     Error("Can't update event: %s", mysql_error(&dbconn));
-  } else {
-    Debug(1,"Success updating event");
+    sleep(1);
   }
   db_mutex.unlock();
 }
@@ -338,11 +322,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
     Error("Failed encoding video frame");
   }
 
-  /* Add the frame to the timecodes file */
-  if ( timecodes_fd )
-    fprintf(timecodes_fd, "%u\n", timeMS);
-
-  return( true );
+  return true;
 }
 
 void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
@@ -579,8 +559,9 @@ Debug(3, "Writing video");
           id
           );
       db_mutex.lock();
-      if ( mysql_query( &dbconn, sql ) ) {
+      while ( mysql_query( &dbconn, sql ) ) {
         Error( "Can't update event: %s", mysql_error( &dbconn ) );
+        sleep(1);
       }
       db_mutex.unlock();
     }

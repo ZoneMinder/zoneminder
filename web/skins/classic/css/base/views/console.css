@@ -96,3 +96,6 @@
 .FunctionFilter select {
   min-width: 90px;
 }
+.StatusFilter select {
+  min-width: 130px;
+}

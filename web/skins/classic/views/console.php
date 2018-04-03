@@ -143,6 +143,7 @@ if ( count($servers) ) $left_columns += 1;
 if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
 if ( $show_storage_areas ) $left_columns += 1;
 
+
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
@@ -323,6 +324,7 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
               <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
               <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
               </button>
+              <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
             </td>
 <?php
   foreach ( array_keys( $eventCounts ) as $i ) {

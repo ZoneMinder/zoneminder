@@ -1438,7 +1438,7 @@ bool Monitor::Analyse() {
             //snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
               Debug( 3, "Detected new event at (%d.%d)", timestamp->tv_sec,timestamp->tv_usec );
 
-            if ( section_length ) {
+            if ( section_length && ( timestamp->tv_sec >= section_length ) ) {
               // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
               int section_mod = timestamp->tv_sec % section_length;
               Debug( 3, "Section length (%d) Last Section Mod(%d), new section mod(%d)", section_length, last_section_mod, section_mod );

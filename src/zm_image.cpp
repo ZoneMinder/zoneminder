@@ -795,57 +795,51 @@ bool Image::WriteRaw( const char *filename ) const {
   return true;
 }
 
-bool Image::ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder)
-{
+bool Image::ReadJpeg(const char *filename, unsigned int p_colours, unsigned int p_subpixelorder) {
   unsigned int new_width, new_height, new_colours, new_subpixelorder;
   struct jpeg_decompress_struct *cinfo = readjpg_dcinfo;
 
-  if ( !cinfo )
-  {
+  if ( !cinfo ) {
     cinfo = readjpg_dcinfo = new jpeg_decompress_struct;
-    cinfo->err = jpeg_std_error( &jpg_err.pub );
+    cinfo->err = jpeg_std_error(&jpg_err.pub);
     jpg_err.pub.error_exit = zm_jpeg_error_exit;
     jpg_err.pub.emit_message = zm_jpeg_emit_message;
-    jpeg_create_decompress( cinfo );
+    jpeg_create_decompress(cinfo);
   }
 
   FILE *infile;
-  if ( (infile = fopen( filename, "rb" )) == NULL )
-  {
-    Error( "Can't open %s: %s", filename, strerror(errno) );
-    return( false );
+  if ( (infile = fopen(filename, "rb")) == NULL ) {
+    Error("Can't open %s: %s", filename, strerror(errno));
+    return false;
   }
 
-  if ( setjmp( jpg_err.setjmp_buffer ) )
-  {
-    jpeg_abort_decompress( cinfo );
-    fclose( infile );
-    return( false );
+  if ( setjmp(jpg_err.setjmp_buffer) ) {
+    jpeg_abort_decompress(cinfo);
+    fclose(infile);
+    return false;
   }
 
-  jpeg_stdio_src( cinfo, infile );
+  jpeg_stdio_src(cinfo, infile);
 
-  jpeg_read_header( cinfo, TRUE );
+  jpeg_read_header(cinfo, TRUE);
 
-  if ( cinfo->num_components != 1 && cinfo->num_components != 3 )
-  {
+  if ( cinfo->num_components != 1 && cinfo->num_components != 3 ) {
     Error( "Unexpected colours when reading jpeg image: %d", colours );
-    jpeg_abort_decompress( cinfo );
-    fclose( infile );
-    return( false );
+    jpeg_abort_decompress(cinfo);
+    fclose(infile);
+    return false;
   }
 
   /* Check if the image has at least one huffman table defined. If not, use the standard ones */
   /* This is required for the MJPEG capture palette of USB devices */
-  if(cinfo->dc_huff_tbl_ptrs[0] == NULL) {
+  if ( cinfo->dc_huff_tbl_ptrs[0] == NULL ) {
     zm_use_std_huff_tables(cinfo);
   }
 
   new_width = cinfo->image_width;
   new_height = cinfo->image_height;
 
-  if ( width != new_width || height != new_height )
-  {
+  if ( width != new_width || height != new_height ) {
     Debug(9,"Image dimensions differ. Old: %ux%u New: %ux%u",width,height,new_width,new_height);
   }
 

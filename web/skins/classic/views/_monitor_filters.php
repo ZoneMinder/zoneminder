@@ -137,10 +137,10 @@ if ( count($StorageById) > 1 ) {
 } # end if have Storage Areas
 $html .= '<span class="StatusFilter"><label>'. translate('Status') . ':</label>';
 $status_options = array(
-    'Connected' => translate('Connected'),
-    'Unknown' => translate('Unknown'),
-    'NotRunning' => translate('NotRunning'),
-    'Running' => translate('Running'),
+    'Unknown' => translate('StatusUnknown'),
+    'NotRunning' => translate('StatusNotRunning'),
+    'Running' => translate('StatusRunning'),
+    'Connected' => translate('StatusConnected'),
     );
 $html .= htmlSelect( 'Status[]', $status_options,
   ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),

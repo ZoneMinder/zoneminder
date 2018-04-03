@@ -554,7 +554,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   if ( level <= mSyslogLevel ) {
     int priority = smSyslogPriorities[level];
     //priority |= LOG_DAEMON;
-    syslog( priority, "%s [%d] [%s] [%s]", classString, priority, mId.c_str(), syslogStart );
+    syslog( priority, "%s [%s] [%s]", classString, mId.c_str(), syslogStart );
   }
 
   free(filecopy);

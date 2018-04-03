@@ -1,4 +1,3 @@
-var date = new Date();
 
 function evaluateLoadTimes() {
   // Only consider it a completed event if we load ALL monitors, then zero all and start again
@@ -84,7 +83,7 @@ console.log(Frame);
       }
     } // end foreach frame in the event.
     if ( ! Frame ) {
-console.log("Difn't find frame for " + time );
+console.log("Didn't find frame for " + time );
       return null;
     }
   } // end foreach event
@@ -237,6 +236,7 @@ console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval + " 
     setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else {
+//console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval );
     outputUpdate(playSecsperInterval + currentTimeSecs);
   }
   return;
@@ -398,7 +398,7 @@ function drawGraph() {
   underSlider=undefined;   // flag we don't have a slider cached
   drawSliderOnGraph(currentTimeSecs);
   return;
-}
+} // end function drawGraph
 
 function redrawScreen() {
   if ( liveMode == 1 ) {
@@ -503,13 +503,30 @@ function mmove(event) {
   }
 }
 
-function secs2inputstr (s) {
-  var st = (new Date(s * 1000)).format("%Y-%m-%dT%H:%M:%S");
-  return st;
+function secs2inputstr(s) {
+  if ( ! parseInt(s) ) {
+    console.log("Invalid value for " + s + " seconds");
+    return '';
+  }
+    
+  var m = moment(s*1000);
+  if ( ! m ) {
+    console.log("No valid date for " + s + " seconds");
+    return '';
+  }
+  return m.format("YYYY-MM-DDTHH:mm:ss");
 }
-function secs2dbstr (s) {
-  var st = (new Date(s * 1000)).format("%Y-%m-%d %H:%M:%S");
-  return st;
+function secs2dbstr(s) {
+  if ( ! parseInt(s) ) {
+    console.log("Invalid value for " + s + " seconds");
+    return '';
+  }
+  var m = moment(s*1000);
+  if ( ! m ) {
+    console.log("No valid date for " + s + " milliseconds");
+    return '';
+  }
+  return m.format("YYYY-MM-DD HH:mm:ss");
 }
 
 function setFit(value) {
@@ -560,10 +577,11 @@ function setLive(value) {
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // The section below are to reload this program with new parameters
 
-function clicknav(minSecs,maxSecs,live) {// we use the current time if we can
+function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
   
-  var now = Math.floor( date.getTime() / 1000 );
-  var tz_difference = ( -1 * date.getTimezoneOffset() * 60 ) - server_utc_offset;
+  var date = new Date();
+  var now = Math.floor(date.getTime() / 1000);
+  var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
   now -= tz_difference;
 
   var minStr = "";
@@ -603,12 +621,14 @@ function clicknav(minSecs,maxSecs,live) {// we use the current time if we can
 } // end function clicknav
 
 function click_lastHour() {
+  var date = new Date();
   var now = Math.floor( date.getTime() / 1000 );
   now -= -1 * date.getTimezoneOffset() * 60;
   now += server_utc_offset;
   clicknav(now - 3599, now, 0);
 }
 function click_lastEight() {
+  var date = new Date();
   var now = Math.floor( date.getTime() / 1000 );
   now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
   clicknav(now - 3600*8 + 1, now, 0);

@@ -105,6 +105,15 @@ function getImageSource( monId, time ) {
   }
   var Frame = getFrame(monId, time);
   if ( Frame ) {
+    // Adjust for bulk frames
+    var  frame_id;
+    if ( Frame.NextFrameId ) {
+      var duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
+      frame_id = Frame.FrameId + parseInt( (Frame.NextFrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
+//console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + Frame.NextFrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
+    //} else {
+      //console.log("No NextFrame");
+    }
     Event = events[Frame.EventId];
 
     var storage = Storage[Event.StorageId];
@@ -123,8 +132,9 @@ function getImageSource( monId, time ) {
       }
     }
     //console.log("No storage found for " + eStorageId[i] );
-    return '/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
-    return "/cgi-bin/zms?mode=jpeg&replay=single&event=" + Frame.EventId + '&frame='+Frame.FrameId + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    return '/index.php?view=image&eid=' + Frame.EventId + '&fid='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    //return "/cgi-bin/zms?mode=single&replay=single&event=" + Frame.EventId + '&time='+time+ "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    return "/cgi-bin/zms?mode=jpeg&replay=single&event=" + Frame.EventId + '&frame='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame
   return '';
   //return "no data";
@@ -236,7 +246,7 @@ console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval + " 
     setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else {
-//console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval );
+console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval );
     outputUpdate(playSecsperInterval + currentTimeSecs);
   }
   return;

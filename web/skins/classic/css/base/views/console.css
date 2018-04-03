@@ -93,3 +93,6 @@
 #consoleTable .colLeftButtons {
     text-align: left;
 }
+.FunctionFilter select {
+  min-width: 90px;
+}

@@ -915,22 +915,24 @@ void Monitor::actionEnable() {
   shared_data->action |= RELOAD;
 
   static char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf( sql, sizeof(sql), "update Monitors set Enabled = 1 where Id = '%d'", id );
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  snprintf(sql, sizeof(sql), "UPDATE Monitors SET Enabled = 1 WHERE Id = %d", id);
+  db_mutex.lock();
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
   }
+  db_mutex.unlock();
 }
 
 void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
 
   static char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf( sql, sizeof(sql), "update Monitors set Enabled = 0 where Id = '%d'", id );
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  snprintf(sql, sizeof(sql), "update Monitors set Enabled = 0 where Id = %d", id);
+  db_mutex.lock();
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
   }
+  db_mutex.unlock();
 }
 
 void Monitor::actionSuspend() {
@@ -1237,9 +1239,11 @@ bool Monitor::Analyse() {
         fps = new_fps;
         static char sql[ZM_SQL_SML_BUFSIZ];
         snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, fps, fps);
+        db_mutex.lock();
         if ( mysql_query(&dbconn, sql) ) {
           Error("Can't run query: %s", mysql_error(&dbconn));
         }
+        db_mutex.unlock();
       } // end if fps != new_fps
 
       last_fps_time = now.tv_sec;
@@ -2446,9 +2450,11 @@ Debug(4, "Return from Capture (%d)", captureResult);
           fps = new_fps;
           static char sql[ZM_SQL_SML_BUFSIZ];
           snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps );
+          db_mutex.lock();
           if ( mysql_query( &dbconn, sql ) ) {
             Error( "Can't run query: %s", mysql_error( &dbconn ) );
           }
+          db_mutex.unlock();
         } // end if new_fps != fps
       } // end if time has changed since last update
     } // end if captureResult

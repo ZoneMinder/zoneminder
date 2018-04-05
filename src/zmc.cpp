@@ -251,9 +251,9 @@ int main(int argc, char *argv[]) {
       continue;
     }
     for ( int i = 0; i < n_monitors; i ++ ) {
-      snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')", monitors[i]->Id() );
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error( "Can't run query: %s", mysql_error( &dbconn ) );
+      snprintf(sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')", monitors[i]->Id());
+      if ( mysql_query(&dbconn, sql) ) {
+        Error("Can't run query: %s", mysql_error(&dbconn));
       }
     }
 

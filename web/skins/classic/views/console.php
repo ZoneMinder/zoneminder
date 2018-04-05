@@ -105,8 +105,17 @@ $show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
 $maxWidth = 0;
 $maxHeight = 0;
 $zoneCount = 0;
+
+$status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   $monitor = &$displayMonitors[$i];
+  if ( ! $monitor['Status'] ) {
+     $monitor['Status'] = 'NotRunning';
+  }
+  if ( !isset($status_counts[$monitor['Status']]) )
+    $status_counts[$monitor['Status']] = 0;
+  $status_counts[$monitor['Status']] += 1;
+
   if ( $monitor['Function'] != 'None' ) {
     $scaleWidth = reScale( $monitor['Width'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
     $scaleHeight = reScale( $monitor['Height'], $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
@@ -155,6 +164,16 @@ xhtmlHeaders( __FILE__, translate('Console') );
 
     <?php echo $navbar ?>
     <div class="filterBar"><?php echo $filterbar ?></div>
+  <div class="statusBreakdown">
+<?php
+  $html = '';
+  foreach ( array_keys($status_counts) as $status ) {
+      
+    $html .= '<span class="status"><label>'.translate('Status'.$status).'</label>'.round(100*($status_counts[$status]/count($displayMonitors)),1).'%</span>';
+  }
+  echo $html;
+?>
+  </div>
 
     <div class="container-fluid">
       <table class="table table-striped table-hover table-condensed" id="consoleTable">

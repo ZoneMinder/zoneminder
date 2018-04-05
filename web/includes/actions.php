@@ -566,7 +566,7 @@ if ( canEdit( 'Monitors' ) ) {
       }
       if ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) or array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds() ) ) {
         if ( $Monitor->Id() )
-          dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', null, array($Mid));
+          dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', null, array($mid));
 
         if ( isset($_POST['newMonitor']['GroupIds']) ) {
           foreach ( $_POST['newMonitor']['GroupIds'] as $group_id ) {

@@ -46,7 +46,10 @@ class AppController extends Controller {
 				'category' => 'Crud.Category'
 			],
 			'listeners' => ['Api', 'ApiTransformation']
-		]
+		#],
+    #'DebugKit.Toolbar' => [
+    #  'bootstrap' => true, 'routes' => true
+    ]
 	];
 
 	// Global beforeFilter function
@@ -72,7 +75,7 @@ class AppController extends Controller {
     $config = $this->Config->find('first', $options);
     $zmOptAuth = $config['Config']['Value'];
 
-    if ( $zmOptAuth=='1' ) {
+    if ( $zmOptAuth == '1' ) {
       $this->loadModel('User');
       if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
         $user = $this->User->find('first', array ('conditions' => array (
@@ -108,15 +111,17 @@ class AppController extends Controller {
           throw new UnauthorizedException(__('User not found'));
           return;
         } else {
-          $this->Session->Write( 'user.Username', $user['Username'] );
-          $this->Session->Write( 'user.Enabled', $user['Enabled'] );
+          if ( ! $this->Session->Write('user.Username', $user['Username']) )
+              $this->log("Error writing session var user.Username");
+          if ( ! $this->Session->Write('user.Enabled', $user['Enabled']) )
+            $this->log("Error writing session var user.Enabled");
         }
-      }
+      } # end if REQUEST['auth']
 
-      if( ! $this->Session->Read('user.Username') ) {
+      if ( ! $this->Session->read('user.Username') ) {
         throw new UnauthorizedException(__('Not Authenticated'));
         return;
-      } else if ( ! $this->Session->Read('user.Enabled') ) {
+      } else if ( ! $this->Session->read('user.Enabled') ) {
         throw new UnauthorizedException(__('User is not enabled'));
         return;
       }

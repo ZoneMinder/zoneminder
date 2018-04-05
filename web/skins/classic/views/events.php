@@ -205,14 +205,14 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>
-              <td class="colStorage"><?php echo $storage_areas[$event->StorageId()]->Name() ?></td>
+              <td class="colStorage"><?php echo isset($storage_areas[$event->StorageId()]) ? $storage_areas[$event->StorageId()]->Name() : '' ?></td>
           
 <?php
   }
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
     $disk_space_total += $event->DiskSpace();
 ?>
-              <td class="colDiskSpace"><?php echo human_filesize( $event->DiskSpace() ) ?></td>
+              <td class="colDiskSpace"><?php echo human_filesize($event->DiskSpace()) ?></td>
 <?php
   }
   if ( ZM_WEB_LIST_THUMBS ) {

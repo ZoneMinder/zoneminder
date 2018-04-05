@@ -205,7 +205,7 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>
-              <td class="colStorage"><?php echo isset($storage_areas[$event->StorageId()]) ? $storage_areas[$event->StorageId()]->Name() : '' ?></td>
+              <td class="colStorage"><?php echo isset($StorageById[$event->StorageId()]) ? $StorageById[$event->StorageId()]->Name() : '' ?></td>
           
 <?php
   }

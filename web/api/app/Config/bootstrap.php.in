@@ -163,26 +163,3 @@ if ( ! defined('ZM_SERVER_ID') ) {
     }
   }
 }
-
-function process_configfile($configFile) {
-  if ( is_readable( $configFile ) ) {
-    $configvals = array();
-
-    $cfg = fopen( $configFile, 'r') or die('Could not open config file.');
-    while ( !feof($cfg) ) {
-      $str = fgets( $cfg, 256 );
-      if ( preg_match( '/^\s*$/', $str ))
-        continue;
-      elseif ( preg_match( '/^\s*#/', $str ))
-        continue;
-      elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches ))
-        $configvals[$matches[1]] = $matches[2];
-    }
-    fclose( $cfg );
-    return( $configvals );
-  } else {
-    error_log( "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $configFile." );
-    return( false );
-  }
-}
-

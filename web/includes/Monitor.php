@@ -340,12 +340,12 @@ private $control_fields = array(
       $url = $Server->Url() . '/zm/api/monitors/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
-          $url .= '&auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
         } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-          $url = '&user='.$_SESSION['username'];
-          $url = '&pass='.$_SESSION['password'];
+          $url = '?user='.$_SESSION['username'];
+          $url = '?pass='.$_SESSION['password'];
         } elseif ( ZM_AUTH_RELAY == 'none' ) {
-          $url = '&user='.$_SESSION['username'];
+          $url = '?user='.$_SESSION['username'];
         }
       }
 Logger::Debug("sending command to $url");

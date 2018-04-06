@@ -148,6 +148,7 @@ if ( ZM_OPT_USE_AUTH ) {
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+require_once( 'includes/auth.php' );
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;

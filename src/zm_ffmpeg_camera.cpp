@@ -362,9 +362,11 @@ int FfmpegCamera::OpenFfmpeg() {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
     av_close_input_file( mFormatContext );
 #else
-    avformat_close_input( &mFormatContext );
+    if ( mFormatContext ) {
+      avformat_close_input( &mFormatContext );
+      mFormatContext = NULL;
+    }
 #endif
-    mFormatContext = NULL;
     av_dict_free(&opts);
 
     return -1;

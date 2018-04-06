@@ -158,7 +158,7 @@ class Event {
     } # ! ZM_OPT_FAST_DELETE
   } # end Event->delete
 
-  public function getStreamSrc( $args=array(), $querySep='&amp;' ) {
+  public function getStreamSrc( $args=array(), $querySep='&' ) {
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc = ZM_BASE_PROTOCOL.'://';
       $Monitor = $this->Monitor();

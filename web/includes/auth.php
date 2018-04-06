@@ -157,7 +157,4 @@ function canEdit( $area, $mid=false ) {
   return( $user[$area] == 'Edit' && ( !$mid || visibleMonitor( $mid ) ) );
 }
 
-function csrf_startup() {
-    csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
-}
 ?>

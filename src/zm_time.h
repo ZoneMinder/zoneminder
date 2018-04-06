@@ -77,8 +77,6 @@ struct DeltaTimeval
 #define MSEC_PER_SEC 1000
 
 extern struct timeval tv;
-typedef typeof(tv.tv_sec) ast_time_t;
-typedef typeof(tv.tv_usec) ast_suseconds_t;
 
 inline int tvDiffUsec( struct timeval first, struct timeval last )
 {

@@ -7,8 +7,7 @@ class HostController extends AppController {
 
 	public function daemonCheck($daemon=false, $args=false) {
     $string = Configure::read('ZM_PATH_BIN')."/zmdc.pl check";
-    if ( $daemon )
-    {
+    if ( $daemon ) {
         $string .= " $daemon";
         if ( $args )
             $string .= " $args";
@@ -30,6 +29,13 @@ class HostController extends AppController {
 			'_serialize' => array('load')
 		));
 	}
+
+  function getAuthHash() {
+    $this->set(array(
+      'auth_hash'=> generateAuthHash( ZM_AUTH_HASH_IPS ),
+      '_serialize'  =>  array('auth_hash')
+    ) );
+  }
 
 	// If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor
@@ -99,15 +105,14 @@ class HostController extends AppController {
 		));
 	}
 
-    function getTimeZone()
-    {
-        //http://php.net/manual/en/function.date-default-timezone-get.php
-        $tz = date_default_timezone_get();
-        $this->set(array(
-            'tz' => $tz,
-			'_serialize' => array('tz')
-        ));
-    }
+  function getTimeZone() {
+    //http://php.net/manual/en/function.date-default-timezone-get.php
+    $tz = date_default_timezone_get();
+    $this->set(array(
+      'tz' => $tz,
+      '_serialize' => array('tz')
+    ));
+  }
 
 	function getVersion() {
 		//throw new UnauthorizedException(__('API Disabled'));

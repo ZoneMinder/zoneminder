@@ -110,16 +110,16 @@ echo output_link_if_exists( array(
   }
 ?>
 
-  <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
-  <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
-  <script type="text/javascript" src="js/mootools.ext.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
+  <script src="tools/mootools/mootools-core.js"></script>
+  <script src="tools/mootools/mootools-more.js"></script>
+  <script src="js/mootools.ext.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
-  <script type="text/javascript">
+  <script>
   //<![CDATA[
   <!--
   var $j = jQuery.noConflict();
@@ -128,7 +128,7 @@ echo output_link_if_exists( array(
   //-->
   //]]>
   </script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
+  <script src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
 <?php
   if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) {
 ?>
@@ -152,7 +152,7 @@ echo output_link_if_exists( array(
   }
   if ( $skinJsPhpFile ) {
 ?>
-  <script type="text/javascript">
+  <script>
   //<![CDATA[
   <!--
 <?php
@@ -165,7 +165,7 @@ echo output_link_if_exists( array(
   }
   if ( $viewJsPhpFile ) {
 ?>
-  <script type="text/javascript">
+  <script>
   //<![CDATA[
   <!--
 <?php
@@ -178,14 +178,14 @@ echo output_link_if_exists( array(
   }
 	if ( $cssJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo cache_bust($cssJsFile) ?>"></script>
+  <script src="<?php echo cache_bust($cssJsFile) ?>"></script>
 <?php
 } else {
 ?>
-  <script type="text/javascript" src="skins/classic/js/base.js"></script>
+  <script src="skins/classic/js/base.js"></script>
 <?php } ?>
-  <script type="text/javascript" src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script type="text/javascript" src="js/logger.js"></script>
+  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
+  <script src="js/logger.js"></script>
 <?php
   if ( $viewJsFile ) {
 ?>

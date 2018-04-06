@@ -2436,7 +2436,7 @@ Debug(4, "Return from Capture (%d)", captureResult);
 
     image_count++;
 
-    if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
+    if ( image_count && fps_report_interval && ( (!(image_count%fps_report_interval)) || image_count < 5 ) ) {
       time_t now = image_buffer[index].timestamp->tv_sec;
       // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
       if ( now != last_fps_time ) {

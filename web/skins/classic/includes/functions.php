@@ -140,16 +140,11 @@ echo output_link_if_exists( array(
   <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
   <script src="skins/<?php echo $skin ?>/js/video.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
-  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
-<?php
-  } else if ( $view == 'montagereview' ) {
-?>
-  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
-<?php
-  } else if ( $view == 'watch' ) {
-?>
 <?php
   }
+?>
+  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
+<?php
   if ( $skinJsPhpFile ) {
 ?>
   <script>
@@ -265,10 +260,14 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 <?php 
   if ( canView( 'Stream' ) ) {
 ?>
-  <li><a href="?view=cycle"<?php echo $view=='cycle'?' class="selected"':''?>><?php echo translate('Cycle') ?></a></li>
+      <li><a href="?view=cycle"<?php echo $view=='cycle'?' class="selected"':''?>><?php echo translate('Cycle') ?></a></li>
       <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
 <?php
    }
+   // if canview_reports
+?>
+      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
+<?php
 if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   $terms = $_REQUEST['filter']['Query']['terms'];
   $count = 0;

@@ -115,7 +115,6 @@ echo " };\n";
     $minTime = strftime($minTimeSecs);
   } else {
     $minTimeSecs = strtotime($minTime);
-
     $maxTimeSecs = strtotime($maxTime);
   }
 

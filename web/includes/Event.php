@@ -49,7 +49,9 @@ class Event {
       $this->{'Storage'} = $new;
     }
     if ( ! ( array_key_exists( 'Storage', $this ) and $this->{'Storage'} ) ) {
-      $this->{'Storage'} = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+      $this->{'Storage'} = isset($this->{'StorageId'}) ? 
+        Storage::find_one(array('Id'=>$this->{'StorageId'})) :
+            new Storage(NULL);
     }
     return $this->{'Storage'};
   }

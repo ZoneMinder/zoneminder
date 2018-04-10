@@ -1,5 +1,7 @@
 <?php
 
+$group_cache = array();
+
 class Group {
 
   public $defaults = array(
@@ -9,6 +11,8 @@ class Group {
       );
 
   public function __construct( $IdOrRow=NULL ) {
+    global $group_cache;
+
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
@@ -33,13 +37,14 @@ class Group {
         $this->{$k} = $v;
       }
     }
+    $group_cache[$row['Id']] = $this;
   } // end function __construct
 
-  public function __call( $fn, array $args ) {
-    if ( count( $args )  ) {
+  public function __call($fn, array $args) {
+    if ( count($args) ) {
       $this->{$fn} = $args[0];
     }
-    if ( array_key_exists( $fn, $this ) ) {
+    if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
     } else if ( array_key_exists( $fn, $this->defaults ) ) {
       $this->{$fn} = $this->defaults{$fn};
@@ -50,6 +55,25 @@ class Group {
       $file = $backTrace[1]['file'];
       $line = $backTrace[1]['line'];
       Warning( "Unknown function call Group->$fn from $file:$line" );
+    }
+  }
+
+  public static function find_one( $parameters = null, $options = null ) {
+    global $group_cache;
+    if (
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($group_cache[$parameters['Id']]) ) {
+      return $group_cache[$parameters['Id']];
+    }
+    $results = Group::find_all($parameters, $options);
+    if ( count($results) > 1 ) {
+      Error("Group::find_one Returned more than 1");
+      return $results[0];
+    } else if ( count($results) ) {
+      return $results[0];
+    } else {
+      return null;
     }
   }
 
@@ -289,7 +313,7 @@ $group_options[$Group->Id()] = str_repeat( '&nbsp;', $depth ) .  $Group->Name();
 
 public function Parent( ) {
   if ( $this->{'ParentId'} ) {
-    return new Group($this->{'ParentId'});
+    return Group::find_one(array('Id'=>$this->{'ParentId'}));
   }
   return null;
 }

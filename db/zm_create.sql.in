@@ -182,7 +182,7 @@ CREATE TABLE `Devices` (
 
 DROP TABLE IF EXISTS `Events`;
 CREATE TABLE `Events` (
-  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Id` bigint unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `StorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
@@ -220,7 +220,7 @@ CREATE TABLE `Events` (
 
 DROP TABLE IF EXISTS `Events_Hour`;
 CREATE TABLE `Events_Hour` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -231,7 +231,7 @@ CREATE TABLE `Events_Hour` (
 
 DROP TABLE IF EXISTS `Events_Day`;
 CREATE TABLE `Events_Day` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -242,7 +242,7 @@ CREATE TABLE `Events_Day` (
 
 DROP TABLE IF EXISTS `Events_Week`;
 CREATE TABLE `Events_Week` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -253,7 +253,7 @@ CREATE TABLE `Events_Week` (
 
 DROP TABLE IF EXISTS `Events_Month`;
 CREATE TABLE `Events_Month` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -265,7 +265,7 @@ CREATE TABLE `Events_Month` (
 
 DROP TABLE IF EXISTS `Events_Archived`;
 CREATE TABLE `Events_Archived` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
@@ -304,8 +304,8 @@ CREATE TABLE `Filters` (
 
 DROP TABLE IF EXISTS `Frames`;
 CREATE TABLE `Frames` (
-  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `EventId` int(10) unsigned NOT NULL default '0',
+  `Id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `EventId` BIGINT UNSIGNED NOT NULL default '0',
   `FrameId` int(10) unsigned NOT NULL default '0',
   `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,

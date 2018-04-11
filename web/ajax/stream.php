@@ -12,7 +12,7 @@ if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) )
 {
     ajaxError( "socket_create() failed: ".socket_strerror(socket_last_error()) );
 }
-$locSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.sock';
+$locSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'sock';
 if ( !@socket_bind( $socket, $locSockFile ) )
 {
     ajaxError( "socket_bind( $locSockFile ) failed: ".socket_strerror(socket_last_error()) );

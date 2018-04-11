@@ -10,11 +10,12 @@ if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
   ajaxError( "Unexpected received message type '$type'" );
 }
 
-$key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.lock', 'Z');
+# The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
+$key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock', 'Z');
 $semaphore = sem_get($key,1);
 if ( sem_acquire($semaphore,1) !== false ) {
-  if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) ) {
-    ajaxError( 'socket_create() failed: '.socket_strerror(socket_last_error()) );
+  if ( !($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0)) ) {
+    ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
   }
 
   $localSocketFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'w.sock';

@@ -239,8 +239,8 @@ int main(int argc, char *argv[]) {
       time_t now = (time_t)time(NULL);
       monitors[i]->setStartupTime(now);
 
-      snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')", monitors[i]->Id() );
-      if ( mysql_query( &dbconn, sql ) ) {
+      snprintf(sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')", monitors[i]->Id());
+      if ( mysql_query(&dbconn, sql) ) {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
       }
     }

@@ -310,10 +310,6 @@ int FfmpegCamera::PostCapture() {
 
 int FfmpegCamera::OpenFfmpeg() {
 
-  Debug(2, "OpenFfmpeg called.");
-  uint32_t last_event_id = monitor->GetLastEventId() ;
-  uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
-  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id);
 
   int ret;
 
@@ -347,24 +343,26 @@ int FfmpegCamera::OpenFfmpeg() {
     Warning("Could not set rtsp_transport method '%s'\n", method.c_str());
   }
 
-  Debug ( 1, "Calling avformat_open_input for %s", mPath.c_str() );
+  Debug(1, "Calling avformat_open_input for %s", mPath.c_str());
 
-  mFormatContext = avformat_alloc_context( );
+  //mFormatContext = avformat_alloc_context( );
   // Speed up find_stream_info
   //FIXME can speed up initial analysis but need sensible parameters...
   //mFormatContext->probesize = 32;
   //mFormatContext->max_analyze_duration = 32;
 
-  if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
+  if ( avformat_open_input(&mFormatContext, mPath.c_str(), NULL, &opts) != 0 )
 #endif
   {
     Error("Unable to open input %s due to: %s", mPath.c_str(), strerror(errno));
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
-    av_close_input_file( mFormatContext );
+    av_close_input_file(mFormatContext);
 #else
-    avformat_close_input( &mFormatContext );
+    if ( mFormatContext ) {
+      avformat_close_input(&mFormatContext);
+      mFormatContext = NULL;
+    }
 #endif
-    mFormatContext = NULL;
     av_dict_free(&opts);
 
     return -1;

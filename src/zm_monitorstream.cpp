@@ -78,19 +78,16 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
   // Check for incoming command
   switch( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
-    {
-      Debug( 1, "Got PAUSE command" );
+      Debug(1, "Got PAUSE command");
 
       // Set paused flag
       paused = true;
       // Set delayed flag
       delayed = true;
-      last_frame_sent = TV_2_FLOAT( now );
+      last_frame_sent = TV_2_FLOAT(now);
       break;
-    }
     case CMD_PLAY :
-    {
-      Debug( 1, "Got PLAY command" );
+      Debug(1, "Got PLAY command");
       if ( paused ) {
         // Clear paused flag
         paused = false;
@@ -99,10 +96,8 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
       }
       replay_rate = ZM_RATE_BASE;
       break;
-    }
     case CMD_VARPLAY :
-    {
-      Debug( 1, "Got VARPLAY command" );
+      Debug(1, "Got VARPLAY command");
       if ( paused ) {
         // Clear paused flag
         paused = false;
@@ -111,20 +106,16 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
       }
       replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
       break;
-    }
     case CMD_STOP :
-    {
-      Debug( 1, "Got STOP command" );
+      Debug(1, "Got STOP command");
 
       // Clear paused flag
       paused = false;
       // Clear delayed_play flag
       delayed = false;
       break;
-    }
     case CMD_FASTFWD :
-    {
-      Debug( 1, "Got FAST FWD command" );
+      Debug(1, "Got FAST FWD command");
       if ( paused ) {
         // Clear paused flag
         paused = false;
@@ -132,8 +123,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
         delayed = true;
       }
       // Set play rate
-      switch ( replay_rate )
-      {
+      switch ( replay_rate ) {
         case 2 * ZM_RATE_BASE :
           replay_rate = 5 * ZM_RATE_BASE;
           break;
@@ -152,9 +142,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
           break;
       }
       break;
-    }
     case CMD_SLOWFWD :
-    {
       Debug( 1, "Got SLOW FWD command" );
       // Set paused flag
       paused = true;
@@ -165,9 +153,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
       // Set step
       step = 1;
       break;
-    }
     case CMD_SLOWREV :
-    {
       Debug( 1, "Got SLOW REV command" );
       // Set paused flag
       paused = true;
@@ -178,9 +164,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
       // Set step
       step = -1;
       break;
-    }
     case CMD_FASTREV :
-    {
       Debug( 1, "Got FAST REV command" );
       if ( paused ) {
         // Clear paused flag
@@ -208,9 +192,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
           break;
       }
       break;
-    }
     case CMD_ZOOMIN :
-    {
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
       y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
       Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
@@ -233,9 +215,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
           break;
       }
       break;
-    }
     case CMD_ZOOMOUT :
-    {
       Debug( 1, "Got ZOOM OUT command" );
       switch ( zoom ) {
         case 500:
@@ -256,36 +236,25 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
           break;
       }
       break;
-    }
     case CMD_PAN :
-    {
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
       y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
       Debug( 1, "Got PAN command, to %d,%d", x, y );
       break;
-    }
     case CMD_SCALE :
-    {
       scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
       Debug( 1, "Got SCALE command, to %d", scale );
       break;
-    }
     case CMD_QUIT :
-    {
       Info ("User initiated exit - CMD_QUIT");
       break;
-    }
     case CMD_QUERY :
-    {
       Debug( 1, "Got QUERY command, sending STATUS" );
       break;
-    }
     default :
-    {
       Error( "Got unexpected command %d", msg->msg_data[0] );
       break;
-    }
-  }
+  } // end switch command
 
   struct {
     int id;
@@ -331,7 +300,7 @@ void MonitorStream::processCommand( const CmdMsg *msg ) {
   status_msg.msg_type = MSG_DATA_WATCH;
   memcpy( &status_msg.msg_data, &status_data, sizeof(status_data) );
   int nbytes = 0;
-  if ( (nbytes = sendto( sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr) )) < 0 ) {
+  if ( (nbytes = sendto(sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr))) < 0 ) {
     //if ( errno != EAGAIN )
     {
       Error( "Can't sendto on sd %d: %s", sd, strerror(errno) );
@@ -346,7 +315,7 @@ Debug(2, "NUmber of bytes sent to (%s): (%d)", rem_addr.sun_path, nbytes );
     exit(0);
   }
 
-  Debug(2,"Updating framrate");
+  Debug(2,"Updating framerate");
   updateFrameRate( monitor->GetFPS() );
 } // end void MonitorStream::processCommand( const CmdMsg *msg )
 

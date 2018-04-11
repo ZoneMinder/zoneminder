@@ -199,6 +199,9 @@ private $control_fields = array(
     if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
       $Server = new Server( $this->{'ServerId'} );
       $streamSrc .= $Server->Hostname();
+      if ( ZM_MIN_STREAMING_PORT ) {
+        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
+      }
     } else if ( ZM_MIN_STREAMING_PORT ) {
       $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
     } else {

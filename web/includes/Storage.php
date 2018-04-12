@@ -1,18 +1,14 @@
 <?php
-require_once( 'database.php' );
+require_once('database.php');
 
-#$storage_cache = array();
+$storage_cache = array();
 class Storage {
   public function __construct( $IdOrRow = NULL ) {
+    global $storage_cache;
+    
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-
-	#if ( isset( $storage_cache[$IdOrRow] ) ) {
-#Warning("using cached object for $dOrRow");
-	  #return $storage_cache[$IdOrRow];
-	#} else {
-#Warning("Not using cached object for $dOrRow");
         $row = dbFetchOne( 'SELECT * FROM Storage WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
           Error("Unable to load Storage record for Id=" . $IdOrRow );
@@ -25,7 +21,7 @@ class Storage {
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
-      #$storage_cache[$IdOrRow] = $this;
+      $storage_cache[$IdOrRow] = $this;
     } else {
       $this->{'Name'} = '';
       $this->{'Path'} = '';
@@ -70,7 +66,25 @@ class Storage {
         Warning( "Unknown function call Storage->$fn from $file:$line" );
     }
   }
-public static function find_all( $parameters = null, $options = null ) {
+  public static function find_one( $parameters = null, $options = null ) {
+    global $storage_cache;
+    if ( 
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($storage_cache[$parameters['Id']]) ) {
+      return $storage_cache[$parameters['Id']];
+    }
+    $results = Storage::find_all( $parameters, $options );
+    if ( count($results) > 1 ) {
+      Error("Storage Returned more than 1");
+      return $results[0];
+    } else if ( count($results) ) {
+      return $results[0];
+    } else {
+      return null;
+    }
+  }
+  public static function find_all( $parameters = null, $options = null ) {
     $filters = array();
     $sql = 'SELECT * FROM Storage ';
     $values = array();
@@ -97,9 +111,11 @@ public static function find_all( $parameters = null, $options = null ) {
     $sql .= ' ORDER BY ' . $options['order'];
     }
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage');
-    foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
+    if ( $result ) {
+      $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage');
+      foreach ( $results as $row => $obj ) {
+        $filters[] = $obj;
+      }
     }
     return $filters;
   }

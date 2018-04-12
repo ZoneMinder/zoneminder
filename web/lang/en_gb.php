@@ -621,6 +621,7 @@ $SLANG = array(
     'ReplayGapless'         => 'Gapless Events',
     'Replay'                => 'Replay',
     'ReplaySingle'          => 'Single Event',
+    'ReportEventAudit'      => 'Audit Events Report',
     'ResetEventCounts'      => 'Reset Event Counts',
     'Reset'                 => 'Reset',
     'Restarting'            => 'Restarting',

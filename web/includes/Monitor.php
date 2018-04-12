@@ -199,6 +199,9 @@ private $control_fields = array(
     if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
       $Server = new Server( $this->{'ServerId'} );
       $streamSrc .= $Server->Hostname();
+      if ( ZM_MIN_STREAMING_PORT ) {
+        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
+      }
     } else if ( ZM_MIN_STREAMING_PORT ) {
       $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
     } else {
@@ -348,7 +351,7 @@ private $control_fields = array(
           $url = '?user='.$_SESSION['username'];
         }
       }
-Logger::Debug("sending command to $url");
+      Logger::Debug("sending command to $url");
       $data = array('Monitor[Function]' => $this->{'Function'} );
 
       // use key 'http' even if you send the request to https://...
@@ -442,10 +445,11 @@ Logger::Debug("sending command to $url");
       $this->{'Storage'} = $new;
     }
     if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) ) {
-      $this->{'Storage'} = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+      $this->{'Storage'} = isset($this->{'StorageId'}) ? 
+        Storage::find_one(array('Id'=>$this->{'StorageId'})) : 
+          new Storage(NULL);
     }
     return $this->{'Storage'};
   }
-
 } // end class Monitor
 ?>

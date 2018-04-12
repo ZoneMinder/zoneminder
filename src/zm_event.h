@@ -92,9 +92,9 @@ class Event {
     char timecodes_name[PATH_MAX];
     char timecodes_file[PATH_MAX];
     int        last_db_frame;
+    Storage::Schemes  scheme;
 
     void createNotes( std::string &notes );
-    Storage::Schemes  scheme;
 
   public:
     static bool OpenFrameSocket( int );

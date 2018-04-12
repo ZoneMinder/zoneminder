@@ -73,6 +73,7 @@ Event::Event(
   }
 
   Storage * storage = monitor->getStorage();
+  scheme = storage->Scheme();
 
   unsigned int state_id = 0;
   zmDbRow dbrow;
@@ -80,8 +81,8 @@ Event::Event(
     state_id = atoi(dbrow[0]);
   }
 
-  static char sql[ZM_SQL_MED_BUFSIZ];
-  struct tm *stime = localtime( &start_time.tv_sec );
+  char sql[ZM_SQL_MED_BUFSIZ];
+  struct tm *stime = localtime(&start_time.tv_sec);
   snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
@@ -97,15 +98,15 @@ Event::Event(
       storage->SchemeString().c_str()
       );
   db_mutex.lock();
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't insert event: %s. sql was (%s)", mysql_error(&dbconn), sql);
     db_mutex.unlock();
     return;
   }
-  id = mysql_insert_id( &dbconn );
+  id = mysql_insert_id(&dbconn);
   db_mutex.unlock();
   if ( untimedEvent ) {
-    Warning( "Event %d has zero time, setting to current", id );
+    Warning("Event %d has zero time, setting to current", id);
   }
   end_time.tv_sec = 0;
   frames = 0;
@@ -219,20 +220,7 @@ Event::Event(
 
 Event::~Event() {
 
-  // We cose the videowriter first, because it might take some time, and we don't want to lock the db if we can avoid it
-
-  /* Close the video file */
-  if ( videowriter != NULL ) {
-    int nRet = videowriter->Close();
-    if ( nRet != 0 ) {
-      Error("Failed closing video stream");
-    }
-    delete videowriter;
-    videowriter = NULL;
-  }
-
-
-  static char sql[ZM_SQL_MED_BUFSIZ];
+  char sql[ZM_SQL_MED_BUFSIZ];
   struct DeltaTimeval delta_time;
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec );
@@ -255,9 +243,25 @@ Event::~Event() {
   db_mutex.lock();
   while ( mysql_query(&dbconn, sql) ) {
     Error("Can't update event: %s", mysql_error(&dbconn));
+    db_mutex.unlock();
     sleep(1);
+    db_mutex.lock();
   }
   db_mutex.unlock();
+
+  /* Close the video file
+   * 
+   * This can take some time, as it may have a lot of frames cached
+   * 
+   */
+  if ( videowriter != NULL ) {
+    int nRet = videowriter->Close();
+    if ( nRet != 0 ) {
+      Error("Failed closing video stream");
+    }
+    delete videowriter;
+    videowriter = NULL;
+  }
 }
 
 void Event::createNotes( std::string &notes ) {

@@ -54,7 +54,7 @@ class EventStream : public StreamBase {
     };
 
     struct EventData {
-      unsigned long   event_id;
+      unsigned long long  event_id;
       unsigned long   monitor_id;
       unsigned long   storage_id;
       unsigned long   frame_count;
@@ -83,8 +83,8 @@ class EventStream : public StreamBase {
     FFmpeg_Input  *ffmpeg_input;
 
   protected:
-    bool loadEventData( int event_id );
-    bool loadInitialEventData( int init_event_id, unsigned int init_frame_id );
+    bool loadEventData( unsigned long long event_id );
+    bool loadInitialEventData( unsigned long long init_event_id, unsigned int init_frame_id );
     bool loadInitialEventData( int monitor_id, time_t event_time );
 
     void checkEventLoaded();
@@ -110,7 +110,7 @@ class EventStream : public StreamBase {
       ffmpeg_input = NULL;
 
     }
-    void setStreamStart( int init_event_id, unsigned int init_frame_id );
+    void setStreamStart( unsigned long long init_event_id, unsigned int init_frame_id );
     void setStreamStart( int monitor_id, time_t event_time );
     void setStreamMode( StreamMode p_mode ) {
       mode = p_mode;

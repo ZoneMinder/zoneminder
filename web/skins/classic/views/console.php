@@ -176,6 +176,16 @@ xhtmlHeaders( __FILE__, translate('Console') );
   </div>
 
     <div class="container-fluid">
+<?php
+for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
+  $monitor = $displayMonitors[$monitor_i];
+  $Monitor = new Monitor($monitor);
+
+  if ( $monitor_i % 100 == 0 ) {
+    if ( $monitor_i ) {
+      echo '</table>';
+    }
+?>
       <table class="table table-striped table-hover table-condensed" id="consoleTable">
         <thead class="thead-highlight">
           <tr>
@@ -203,9 +213,7 @@ xhtmlHeaders( __FILE__, translate('Console') );
         </thead>
         <tbody id="consoleTableBody">
 <?php
-for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
-  $monitor = $displayMonitors[$monitor_i];
-  $Monitor = new Monitor($monitor);
+} # monitor_i % 100
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
 <?php

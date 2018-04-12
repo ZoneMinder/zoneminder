@@ -350,6 +350,10 @@ sub delete {
     Warning( "Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from $caller:$line\n" );
     return;
   }
+  if ( ! -e $event->Storage()->Path() ) {
+    Warning("Not deleting event because storage path doesn't exist");
+    return;
+  }
   Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}\n" );
   $ZoneMinder::Database::dbh->ping();
 

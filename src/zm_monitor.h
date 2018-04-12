@@ -174,7 +174,7 @@ protected:
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
   typedef struct {
     uint32_t size;
-    uint32_t current_event;
+    uint64_t current_event;
     char event_file[4096];
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
     //uint32_t frameNumber;
@@ -204,7 +204,7 @@ protected:
     volatile VideoStoreData *video_store_data;
 
     int        last_state;
-    int        last_event;
+    uint64_t   last_event;
 
 
     public:
@@ -212,7 +212,7 @@ protected:
       ~MonitorLink();
 
       inline int Id() const {
-        return( id );
+        return id;
       }
       inline const char *Name() const {
         return( name );
@@ -401,40 +401,40 @@ public:
   }
 
   inline int Id() const {
-    return( id );
+    return id;
   }
   inline const char *Name() const {
-    return( name );
+    return name;
   }
   inline Storage *getStorage() {
     if ( ! storage ) {
       storage = new Storage( storage_id );
     }
-    return( storage );
+    return storage;
   }
   inline Function GetFunction() const {
     return( function );
   }
   inline bool Enabled() {
     if ( function <= MONITOR )
-      return( false );
-    return( enabled );
+      return false;
+    return enabled;
   }
   inline const char *EventPrefix() const {
-    return( event_prefix );
+    return event_prefix;
   }
   inline bool Ready() {
     if ( function <= MONITOR )
-      return( false );
+      return false;
     return( image_count > ready_count );
   }
   inline bool Active() {
     if ( function <= MONITOR )
-      return( false );
+      return false;
     return( enabled && shared_data->active );
   }
   inline bool Exif() {
-    return( embed_exif );
+    return embed_exif;
   }
   Orientation getOrientation() const;
 
@@ -446,8 +446,8 @@ public:
   int GetOptSaveJPEGs() const { return savejpegs; }
   VideoWriter GetOptVideoWriter() const { return videowriter; }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
-  uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
-  void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }
+  uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
+  void SetVideoWriterEventId( uint64_t p_event_id ) { video_store_data->current_event = p_event_id; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
@@ -461,7 +461,7 @@ public:
   int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;
   unsigned int GetLastWriteIndex() const;
-  uint32_t GetLastEventId() const;
+  uint64_t GetLastEventId() const;
   double GetFPS() const;
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();

@@ -87,7 +87,7 @@ std::string CameraType_Strings[] = {
   "LibVLC",
   "CURL",
 };
-  
+
 
 std::vector<std::string> split(const std::string &s, char delim) {
   std::vector<std::string> elems;
@@ -1073,8 +1073,8 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
   Polygon extra_zone;
 
   if ( zone_string ) {
-    if ( !Zone::ParseZoneString( zone_string, exclude_id, extra_colour, extra_zone ) ) {
-      Error( "Failed to parse zone string, ignoring" );
+    if ( !Zone::ParseZoneString(zone_string, exclude_id, extra_colour, extra_zone) ) {
+      Error("Failed to parse zone string, ignoring");
     }
   }
 
@@ -1083,29 +1083,29 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
     Debug(3, "Trying to load from local zmc");
     int index = shared_data->last_write_index;
     Snapshot *snap = &image_buffer[index];
-    zone_image = new Image( *snap->image );
+    zone_image = new Image(*snap->image);
   } else {
     Debug(3, "Trying to load from event");
     // Grab the most revent event image
-    std::string sql = stringtf( "SELECT MAX(Id) FROM Events WHERE MonitorId=%d AND Frames > 0", id );
+    std::string sql = stringtf("SELECT MAX(Id) FROM Events WHERE MonitorId=%d AND Frames > 0", id);
     zmDbRow eventid_row;
-    if ( eventid_row.fetch( sql.c_str() ) ) {
-      int event_id = atoi( eventid_row[0] );
+    if ( eventid_row.fetch(sql.c_str()) ) {
+      int event_id = atoi(eventid_row[0]);
 
-      Debug( 3, "Got event %d", event_id );
+      Debug(3, "Got event %d", event_id);
       EventStream *stream = new EventStream();
-      stream->setStreamStart( event_id, (unsigned int)1 );
+      stream->setStreamStart(event_id, (unsigned int)1);
       zone_image = stream->getImage();
       delete stream;
       stream = NULL;
     } else {
-      Error("Unable to load an event for monitor %d", id );
+      Error("Unable to load an event for monitor %d", id);
       return;
     }
   }
 
-  if(zone_image->Colours() == ZM_COLOUR_GRAY8) {
-    zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
+  if ( zone_image->Colours() == ZM_COLOUR_GRAY8 ) {
+    zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   }
 
   for( int i = 0; i < n_zones; i++ ) {
@@ -1585,7 +1585,7 @@ bool Monitor::Analyse() {
                       alarm_cause +=",";
                     }
                   }
-                } 
+                }
                 alarm_cause = cause+" "+alarm_cause;
                 strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
                 //set up video store data
@@ -1994,7 +1994,7 @@ int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose p
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
  "Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
- "SaveJPEGs, VideoWriter, EncoderParameters, 
+ "SaveJPEGs, VideoWriter, EncoderParameters,
 "OutputCodec, Encoder, OutputContainer,"
 " RecordAudio, "
  "Brightness, Contrast, Hue, Colour, "

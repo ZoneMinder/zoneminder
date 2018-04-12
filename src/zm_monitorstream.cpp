@@ -462,6 +462,10 @@ void MonitorStream::runStream() {
   std::string swap_path;
   bool buffered_playback = false;
 
+  // Last image and timestamp when paused, will be resent occasionally to prevent timeout
+  Image *paused_image = NULL;
+  struct timeval paused_timestamp;
+
   // 15 is the max length for the swap path suffix, /zmswap-whatever, assuming max 6 digits for monitor id
   const int max_swap_len_suffix = 15; 
 
@@ -521,11 +525,25 @@ void MonitorStream::runStream() {
 
     gettimeofday(&now, NULL);
 
+    bool was_paused = paused;
     if ( connkey ) {
       while(checkCommandQueue()) {
 Debug(2, "Have checking command Queue for connkey: %d", connkey );
         got_command = true;
       }
+    }
+
+    if ( paused ) {
+      if ( !was_paused ) {
+        int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+        Debug(1,"Saving paused image from index %d",index);
+        paused_image = new Image( *monitor->image_buffer[index].image );
+        paused_timestamp = *(monitor->image_buffer[index].timestamp);
+      }
+    } else if ( paused_image ) {
+      Debug(1,"Clearing paused_image");
+      delete paused_image;
+      paused_image = NULL;
     }
 
     if ( buffered_playback && delayed ) {
@@ -539,14 +557,14 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
         replay_rate = ZM_RATE_BASE;
       } else {
         if ( !paused ) {
-          int temp_index = MOD_ADD( temp_read_index, 0, temp_image_buffer_count );
+          int temp_index = MOD_ADD(temp_read_index, 0, temp_image_buffer_count);
           //Debug( 3, "tri: %d, ti: %d", temp_read_index, temp_index );
           SwapImage *swap_image = &temp_image_buffer[temp_index];
 
           if ( !swap_image->valid ) {
             paused = true;
             delayed = true;
-            temp_read_index = MOD_ADD( temp_read_index, (replay_rate>=0?-1:1), temp_image_buffer_count );
+            temp_read_index = MOD_ADD(temp_read_index, (replay_rate>=0?-1:1), temp_image_buffer_count);
           } else {
             //Debug( 3, "siT: %f, lfT: %f", TV_2_FLOAT( swap_image->timestamp ), TV_2_FLOAT( last_frame_timestamp ) );
             double expected_delta_time = ((TV_2_FLOAT( swap_image->timestamp ) - TV_2_FLOAT( last_frame_timestamp )) * ZM_RATE_BASE)/replay_rate;
@@ -559,12 +577,12 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
               if ( temp_index%frame_mod == 0 ) {
                 Debug( 2, "Sending delayed frame %d", temp_index );
                 // Send the next frame
-                if ( ! sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp ) )
+                if ( ! sendFrame(temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp) )
                   zm_terminate = true;
-                memcpy( &last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp) );
+                memcpy(&last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp));
                 //frame_sent = true;
               }
-              temp_read_index = MOD_ADD( temp_read_index, (replay_rate>0?1:-1), temp_image_buffer_count );
+              temp_read_index = MOD_ADD(temp_read_index, (replay_rate>0?1:-1), temp_image_buffer_count);
             }
           }
         } else if ( step != 0 ) {
@@ -579,7 +597,8 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
           //frame_sent = true;
           step = 0;
         } else {
-          int temp_index = MOD_ADD( temp_read_index, 0, temp_image_buffer_count );
+          //paused?
+          int temp_index = MOD_ADD(temp_read_index, 0, temp_image_buffer_count);
 
            double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
            if ( got_command || actual_delta_time > 5 ) {
@@ -590,8 +609,9 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
               zm_terminate = true;
             //frame_sent = true;
           }
-        }
-      }
+        } // end if (!paused) or step or paused
+      } // end if have exceeded buffer or not
+
       if ( temp_read_index == temp_write_index ) {
         // Go back to live viewing
         Warning( "Rewound over write index, resuming live play" );
@@ -602,25 +622,40 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
         replay_rate = ZM_RATE_BASE;
       }
     } // end if ( buffered_playback && delayed )
+
     if ( last_read_index != monitor->shared_data->last_write_index ) {
+      // have a new image to send
       int index = monitor->shared_data->last_write_index % monitor->image_buffer_count; // % shouldn't be neccessary
       last_read_index = monitor->shared_data->last_write_index;
-      Debug( 3, "index: %d: frame_mod: %d frame count: %d", index, frame_mod, frame_count );
+      Debug( 2, "index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)", index, frame_mod, frame_count, paused, delayed );
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
           // Send the next frame
           Monitor::Snapshot *snap = &monitor->image_buffer[index];
 
             //Debug(2, "sending Frame.");
-          if ( !sendFrame( snap->image, snap->timestamp ) ) {
+          if ( !sendFrame(snap->image, snap->timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
           }
           // Perhaps we should use NOW instead. 
-          memcpy( &last_frame_timestamp, snap->timestamp, sizeof(last_frame_timestamp) );
+          memcpy(&last_frame_timestamp, snap->timestamp, sizeof(last_frame_timestamp));
           //frame_sent = true;
 
           temp_read_index = temp_write_index;
+        } else {
+          double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
+          if ( actual_delta_time > 5 ) {
+            if ( paused_image ) {
+              // Send keepalive
+              Debug(2, "Sending keepalive frame ");
+              // Send the next frame
+              if ( !sendFrame(paused_image, &paused_timestamp) )
+                zm_terminate = true;
+            } else {
+              Debug(2, "Would have sent keepalive frame, but had no paused_image ");
+            }
+           }
         }
       } // end if should send frame
 
@@ -639,9 +674,7 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
             if ( temp_write_index == temp_read_index ) {
               // Go back to live viewing
               Warning( "Exceeded temporary buffer, resuming live play" );
-              // Clear paused flag
               paused = false;
-              // Clear delayed_play flag
               delayed = false;
               replay_rate = ZM_RATE_BASE;
             }
@@ -659,7 +692,7 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
 
     unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
     Debug(4, "Sleeping for (%d)", sleep_time);
-    usleep( sleep_time );
+    usleep(sleep_time);
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {
         Debug(2, "now(%d) - start(%d) > ttl(%d) break", now.tv_sec, stream_start_time, ttl);

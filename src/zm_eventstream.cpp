@@ -43,30 +43,30 @@
 bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
   static char sql[ZM_SQL_SML_BUFSIZ];
 
-  snprintf( sql, sizeof(sql), "select Id from Events where MonitorId = %d and unix_timestamp( EndTime ) > %ld order by Id asc limit 1", monitor_id, event_time );
+  snprintf(sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %d AND unix_timestamp(EndTime) > %ld ORDER BY Id ASC LIMIT 1", monitor_id, event_time);
 
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
-  MYSQL_RES *result = mysql_store_result( &dbconn );
+  MYSQL_RES *result = mysql_store_result(&dbconn);
   if ( !result ) {
-    Error( "Can't use query result: %s", mysql_error( &dbconn ) );
+    Error("Can't use query result: %s", mysql_error(&dbconn));
     exit( mysql_errno( &dbconn ) );
   }
-  MYSQL_ROW dbrow = mysql_fetch_row( result );
+  MYSQL_ROW dbrow = mysql_fetch_row(result);
 
-  if ( mysql_errno( &dbconn ) ) {
-    Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  if ( mysql_errno(&dbconn) ) {
+    Error("Can't fetch row: %s", mysql_error(&dbconn));
+    exit( mysql_errno(&dbconn));
   }
 
-  int init_event_id = atoi( dbrow[0] );
+  int init_event_id = atoi(dbrow[0]);
 
-  mysql_free_result( result );
+  mysql_free_result(result);
 
-  loadEventData( init_event_id );
+  loadEventData(init_event_id);
 
   if ( event_time ) {
     curr_stream_time = event_time;
@@ -778,20 +778,19 @@ void EventStream::runStream() {
 
   checkInitialised();
 
-
   if ( type == STREAM_JPEG )
-    fprintf( stdout, "Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n" );
+    fputs("Content-Type: multipart/x-mixed-replace;boundary=ZoneMinderFrame\r\n\r\n", stdout);
 
   if ( !event_data ) {
-    sendTextFrame( "No event data found" );
-    exit( 0 );
+    sendTextFrame("No event data found");
+    exit(0);
   }
 
-  Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration );
-  updateFrameRate( (double)event_data->frame_count/event_data->duration );
+  Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration);
+  updateFrameRate((double)event_data->frame_count/event_data->duration);
 
   while( !zm_terminate ) {
-    gettimeofday( &now, NULL );
+    gettimeofday(&now, NULL);
 
     unsigned int delta_us = 0;
     send_frame = false;
@@ -824,11 +823,11 @@ void EventStream::runStream() {
           in_event = false;
       }
       if ( !in_event ) {
-        double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
+        double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
         if ( actual_delta_time > 1 ) {
           static char frame_text[64];
-          snprintf( frame_text, sizeof(frame_text), "Time to next event = %d seconds", (int)time_to_event );
-          if ( !sendTextFrame( frame_text ) )
+          snprintf(frame_text, sizeof(frame_text), "Time to next event = %d seconds", (int)time_to_event);
+          if ( !sendTextFrame(frame_text) )
             zm_terminate = true;
         }
         //else
@@ -857,16 +856,16 @@ void EventStream::runStream() {
       send_frame = true;
     } else if ( !send_frame ) {
       // We are paused, and doing nothing
-      double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
+      double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
       if ( actual_delta_time > MAX_STREAM_DELAY ) {
         // Send keepalive
-        Debug( 2, "Sending keepalive frame" );
+        Debug(2, "Sending keepalive frame");
         send_frame = true;
       }
     }
 
     if ( send_frame )
-      if ( !sendFrame( delta_us ) )
+      if ( !sendFrame(delta_us) )
         zm_terminate = true;
 
     curr_stream_time = frame_data->timestamp;

@@ -668,18 +668,17 @@ LocalCamera::LocalCamera(
 #endif
 }
 
-LocalCamera::~LocalCamera()
-{
+LocalCamera::~LocalCamera() {
   if ( device_prime && capture )
     Terminate();
 
 #if HAVE_LIBSWSCALE
   /* Clean up swscale stuff */
-  if(capture && conversion_type == 1) {
+  if ( capture && conversion_type == 1 ) {
     sws_freeContext(imgConversionContext);
     imgConversionContext = NULL;
 
-    av_frame_free( &tmpPicture );
+    av_frame_free(&tmpPicture);
   }
 #endif
 }
@@ -1112,62 +1111,55 @@ void LocalCamera::Initialise()
 #endif // ZM_HAS_V4L1
 }
 
-void LocalCamera::Terminate()
-{
+void LocalCamera::Terminate() {
 #if ZM_HAS_V4L2
-  if ( v4l_version == 2 )
-  {
-    Debug( 3, "Terminating video stream" );
+  if ( v4l_version == 2 ) {
+    Debug(3, "Terminating video stream");
     //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     // enum v4l2_buf_type type = v4l2_data.fmt.type;
     enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
-    if ( vidioctl( vid_fd, VIDIOC_STREAMOFF, &type ) < 0 )
-      Error( "Failed to stop capture stream: %s", strerror(errno) );
+    if ( vidioctl(vid_fd, VIDIOC_STREAMOFF, &type) < 0 )
+      Error("Failed to stop capture stream: %s", strerror(errno));
 
-    Debug( 3, "Unmapping video buffers" );
+    Debug(3, "Unmapping video buffers");
     for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
 #if HAVE_LIBSWSCALE
       /* Free capture pictures */
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-      av_frame_free( &capturePictures[i] );
+      av_frame_free(&capturePictures[i]);
 #else
-      av_freep( &capturePictures[i] );
+      av_freep(&capturePictures[i]);
 #endif
 #endif
-      if ( munmap( v4l2_data.buffers[i].start, v4l2_data.buffers[i].length ) < 0 )
-        Error( "Failed to munmap buffer %d: %s", i, strerror(errno) );
+      if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
+        Error("Failed to munmap buffer %d: %s", i, strerror(errno));
     }
-
-  }
-  else
+  } else
 #endif // ZM_HAS_V4L2
 
-
 #if ZM_HAS_V4L1
-    if ( v4l_version == 1 )
-    {
+    if ( v4l_version == 1 ) {
 #if HAVE_LIBSWSCALE
-      for(int i=0; i < v4l1_data.frames.frames; i++) {    
+      for( int i=0; i < v4l1_data.frames.frames; i++ ) {
         /* Free capture pictures */
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-        av_frame_free( &capturePictures[i] );
+        av_frame_free(&capturePictures[i]);
 #else
-        av_freep( &capturePictures[i] );
+        av_freep(&capturePictures[i]);
 #endif
       }
 #endif
 
-      Debug( 3, "Unmapping video buffers" );
+      Debug(3, "Unmapping video buffers");
       if ( munmap((char*)v4l1_data.bufptr, v4l1_data.frames.size) < 0 )
-        Error( "Failed to munmap buffers: %s", strerror(errno) );
+        Error("Failed to munmap buffers: %s", strerror(errno));
 
       delete[] v4l1_data.buffers;
     }
 #endif // ZM_HAS_V4L1
 
-  close( vid_fd );
-
-}
+  close(vid_fd);
+} // end Terminate
 
 uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   /* Automatic format selection */

@@ -129,13 +129,13 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   } else {
     Panic("Unexpected colours: %d",colours);
   }
-
 }
 
 FfmpegCamera::~FfmpegCamera() {
 
   if ( videoStore ) {
     delete videoStore;
+    videoStore = NULL;
   }
   CloseFfmpeg();
 
@@ -630,14 +630,6 @@ int FfmpegCamera::OpenFfmpeg() {
 
   return 0;
 } // int FfmpegCamera::OpenFfmpeg()
-
-int FfmpegCamera::ReopenFfmpeg() {
-
-  Debug(2, "ReopenFfmpeg called.");
-
-  CloseFfmpeg();
-  return OpenFfmpeg();
-}
 
 int FfmpegCamera::CloseFfmpeg() {
 

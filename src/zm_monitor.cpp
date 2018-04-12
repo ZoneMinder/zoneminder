@@ -1587,7 +1587,7 @@ bool Monitor::Analyse() {
                   }
                 }
                 alarm_cause = cause+" "+alarm_cause;
-                strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
+                strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
@@ -1815,6 +1815,7 @@ void Monitor::Reload() {
     ready_count = image_count+warmup_count;
 
     ReloadLinkedMonitors( p_linked_monitors );
+    delete row;
   } // end if row
 
   ReloadZones();

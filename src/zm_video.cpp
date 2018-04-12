@@ -97,6 +97,11 @@ X264MP4Writer::X264MP4Writer(
   }
   codec_pf = AV_PIX_FMT_YUV420P;
 
+  if ( ! swscaleobj.init() ) {
+    Error("Failed init swscaleobj");
+    return;
+  }
+    
   swscaleobj.SetDefaults(zm_pf, codec_pf, width, height);
 
   /* Calculate the image sizes. We will need this for parameter checking */

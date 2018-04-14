@@ -293,7 +293,7 @@ const char *VideoStream::MimeType( ) const {
 	return mime_type;
 }
 
-void VideoStream::OpenStream( ) {
+bool VideoStream::OpenStream( ) {
 	int ret;
 
 	/* now that all the parameters are set, we can open the 
@@ -308,7 +308,8 @@ void VideoStream::OpenStream( ) {
 		if ( (ret = avcodec_open2(codec_context, codec, 0)) < 0 )
 #endif
 		{
-			Fatal( "Could not open codec. Error code %d \"%s\"", ret, av_err2str(ret) );
+			Error("Could not open codec. Error code %d \"%s\"", ret, av_err2str(ret));
+      return false;
 		}
 
 		Debug( 1, "Opened codec" );
@@ -316,22 +317,24 @@ void VideoStream::OpenStream( ) {
 		/* allocate the encoded raw picture */
 		opicture = zm_av_frame_alloc( );
     if ( !opicture ) {
-      Panic( "Could not allocate opicture" );
+      Error("Could not allocate opicture");
+      return false;
     }
     opicture->width = codec_context->width;
     opicture->height = codec_context->height;
     opicture->format = codec_context->pix_fmt;
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-    int size = av_image_get_buffer_size( codec_context->pix_fmt, codec_context->width, codec_context->height, 1 );
+    int size = av_image_get_buffer_size(codec_context->pix_fmt, codec_context->width, codec_context->height, 1);
 #else
-    int size = avpicture_get_size( codec_context->pix_fmt, codec_context->width, codec_context->height );
+    int size = avpicture_get_size(codec_context->pix_fmt, codec_context->width, codec_context->height);
 #endif
 
-    uint8_t *opicture_buf = (uint8_t *)av_malloc( size );
+    uint8_t *opicture_buf = (uint8_t *)av_malloc(size);
     if ( !opicture_buf ) {
       av_frame_free( &opicture );
-      Panic( "Could not allocate opicture_buf" );
+      Error( "Could not allocate opicture_buf" );
+      return false;
     }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
     av_image_fill_arrays(opicture->data, opicture->linesize,
@@ -352,7 +355,8 @@ void VideoStream::OpenStream( ) {
 			tmp_opicture = avcodec_alloc_frame( );
 #endif
       if ( !tmp_opicture ) {
-        Panic( "Could not allocate tmp_opicture" );
+        Error( "Could not allocate tmp_opicture" );
+        return false;
       }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
       int size = av_image_get_buffer_size( pf, codec_context->width, codec_context->height,1 );
@@ -362,7 +366,8 @@ void VideoStream::OpenStream( ) {
       uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
       if ( !tmp_opicture_buf ) {
         av_frame_free( &tmp_opicture );
-        Panic( "Could not allocate tmp_opicture_buf" );
+        Error( "Could not allocate tmp_opicture_buf" );
+        return false;
       }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
       av_image_fill_arrays(tmp_opicture->data,
@@ -385,12 +390,14 @@ void VideoStream::OpenStream( ) {
 		ret = url_fopen( &ofc->pb, filename, AVIO_FLAG_WRITE );
 #endif
 		if ( ret < 0 ) {
-			Fatal( "Could not open '%s'", filename );
+			Error("Could not open '%s'", filename);
+      return false;
 		}
 
-		Debug( 1, "Opened output \"%s\"", filename );
+		Debug(1, "Opened output \"%s\"", filename);
 	} else {
-		Fatal( "of->flags & AVFMT_NOFILE" );
+		Error( "of->flags & AVFMT_NOFILE" );
+    return false;
 	}
 
 	video_outbuf = NULL;
@@ -417,14 +424,16 @@ void VideoStream::OpenStream( ) {
 #endif
 
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
-    ret = av_write_header( ofc );
+  ret = av_write_header(ofc);
 #else
-    ret = avformat_write_header(ofc, NULL);
+  ret = avformat_write_header(ofc, NULL);
 #endif
 
-    if ( ret < 0 ) {
-        Fatal( "?_write_header failed with error %d \"%s\"", ret, av_err2str( ret ) );
-    }
+  if ( ret < 0 ) {
+    Error("?_write_header failed with error %d \"%s\"", ret, av_err2str(ret));
+    return false;
+  }
+  return true;
 }
 
 VideoStream::VideoStream( const char *in_filename, const char *in_format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height ) :
@@ -550,19 +559,20 @@ VideoStream::~VideoStream( ) {
 }
 
 double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _add_timestamp, unsigned int _timestamp ) {
-	if ( pthread_mutex_lock( buffer_copy_lock ) != 0 ) {
+	if ( pthread_mutex_lock(buffer_copy_lock) != 0 ) {
 		Fatal( "EncodeFrame: pthread_mutex_lock failed." );
 	}
 	
 	if (buffer_copy_size < buffer_size) {
 		if ( buffer_copy ) {
-			av_free( buffer_copy );
+			av_free(buffer_copy);
 		}
 		
 		// Allocate a buffer to store source images for the streaming thread to encode.
-		buffer_copy = (uint8_t *)av_malloc( buffer_size );
+		buffer_copy = (uint8_t *)av_malloc(buffer_size);
 		if ( !buffer_copy ) {
-			Panic( "Could not allocate buffer_copy" );
+			Error( "Could not allocate buffer_copy" );
+      pthread_mutex_unlock(buffer_copy_lock);
       return 0;
 		}
 		buffer_copy_size = buffer_size;
@@ -573,7 +583,7 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _a
 	buffer_copy_used = buffer_size;
 	memcpy(buffer_copy, buffer, buffer_size);
 	
-	if ( pthread_mutex_unlock( buffer_copy_lock ) != 0 ) {
+	if ( pthread_mutex_unlock(buffer_copy_lock) != 0 ) {
 		Fatal( "EncodeFrame: pthread_mutex_unlock failed." );
 	}
 	

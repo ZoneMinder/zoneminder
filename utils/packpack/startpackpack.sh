@@ -102,10 +102,25 @@ commonprep () {
         git clone https://github.com/packpack/packpack.git packpack
     fi
 
+    # Rpm builds are broken in latest packpack master. Temporarily roll back.
+    git -C packpack checkout 7cf23ee
+
     # Patch packpack
     patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch
     if [ $? -eq 0 ]; then
         patch -p1 < utils/packpack/packpack-rpm.patch
+    fi
+
+    # Skip deb lintian checks to speed up the build
+    patch --dry-run --silent -f -p1 < utils/packpack/nolintian.patch
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/nolintian.patch
+    fi
+
+    # fix 32bit rpm builds
+    patch --dry-run --silent -f -p1 < utils/packpack/setarch.patch
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/setarch.patch
     fi
 
     # The rpm specfile requires we download the tarball and manually move it into place
@@ -295,7 +310,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         execpackpack
 
     # Steps common to Debian based distros
-    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
+    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
         echo "Begin ${OS} ${DIST} build..."
 
         setdebpkgname

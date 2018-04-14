@@ -1,27 +1,28 @@
 //
 // ZoneMinder Monitor Class Interfaces, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_MONITOR_H
 #define ZM_MONITOR_H
 
 #include <vector>
 #include <sstream>
+#include <thread>
 
 #include "zm.h"
 #include "zm_coord.h"
@@ -70,7 +71,17 @@ public:
     NODECT
   } Function;
 
-  typedef enum { 
+  typedef enum {
+    LOCAL,
+    REMOTE,
+    FILE,
+    FFMPEG,
+    LIBVLC,
+    CURL,
+    NVSOCKET,
+  } CameraType;
+
+  typedef enum {
     ROTATE_0=1,
     ROTATE_90,
     ROTATE_180,
@@ -103,7 +114,7 @@ protected:
   /* sizeof(SharedData) expected to be 344 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
-    uint32_t last_write_index;  /* +4    */ 
+    uint32_t last_write_index;  /* +4    */
     uint32_t last_read_index;   /* +8    */
     uint32_t state;             /* +12   */
     uint32_t last_event_id;     /* +16   */
@@ -121,10 +132,10 @@ protected:
     uint32_t imagesize;         /* +52   */
     uint32_t epadding1;         /* +56   */
     uint32_t epadding2;         /* +60   */
-    /* 
+    /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
-     */  
+     */
     union {                     /* +64   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
@@ -138,6 +149,8 @@ protected:
       uint64_t extrapad3;
     };
     uint8_t control_state[256];  /* +88   */
+
+    char alarm_cause[256];
 
   } SharedData;
 
@@ -158,7 +171,7 @@ protected:
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
   typedef struct {
     uint32_t size;
-    uint32_t current_event;
+    uint64_t current_event;
     char event_file[4096];
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
   } VideoStoreData;
@@ -188,27 +201,18 @@ protected:
     volatile TriggerData  *trigger_data;
     volatile VideoStoreData *video_store_data;
 
-
     int        last_state;
-    int        last_event_id;
+    uint64_t   last_event_id;
 
     public:
       MonitorLink( int p_id, const char *p_name );
       ~MonitorLink();
 
-      inline int Id() const {
-        return( id );
-      }
-      inline const char *Name() const {
-        return( name );
-      }
+      inline int Id() const { return id; }
+      inline const char *Name() const { return name; }
 
-      inline bool isConnected() const {   
-        return( connected );
-      }
-      inline time_t getLastConnectTime() const {
-        return( last_connect_time );
-      }
+      inline bool isConnected() const { return connected; }
+      inline time_t getLastConnectTime() const { return last_connect_time; }
 
       bool connect();
       bool disconnect();
@@ -221,11 +225,29 @@ protected:
   protected:
   // These are read from the DB and thereafter remain unchanged
   unsigned int    id;
-  char            name[64];
+  char      name[64];
   unsigned int    server_id;          // Id of the Server object
   unsigned int    storage_id;         // Id of the Storage Object, which currently will just provide a path, but in future may do more.
+  CameraType      type;
   Function        function;           // What the monitor is doing
   bool            enabled;            // Whether the monitor is enabled or asleep
+
+  std::string protocol;
+  std::string method;
+  std::string options;
+  std::string host;
+  std::string port;
+  std::string user;
+  std::string pass;
+  std::string path;
+
+  char  device[64];
+  int palette;
+  int channel;
+  int format;
+
+  unsigned int    camera_width;
+  unsigned int    camera_height;
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
   bool            v4l_multi_buffer;
@@ -234,8 +256,9 @@ protected:
   unsigned int    deinterlacing;
   unsigned int    deinterlacing_value;
   bool            videoRecording;
+  bool rtsp_describe;
 
-  int savejpegspref;
+  int savejpegs;
   int colours;
   VideoWriter videowriter;
   std::string encoderparams;
@@ -245,10 +268,13 @@ protected:
     _AVPIXELFORMAT      imagePixFormat;
   unsigned int  subpixelorder;
   bool       record_audio;      // Whether to store the audio that we receive
+
+
   int        brightness;        // The statically saved brightness of the camera
   int        contrast;        // The statically saved contrast of the camera
   int        hue;          // The statically saved hue of the camera
   int        colour;          // The statically saved colour of the camera
+
   char       event_prefix[64];    // The prefix applied to event names as they are created
   char       label_format[64];    // The format of the timestamp on the images
   Coord      label_coord;      // The coordinates of the timestamp on the images
@@ -272,7 +298,7 @@ protected:
   int        fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
   int        ref_blend_perc;      // Percentage of new image going into reference image.
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
-  bool      track_motion;      // Whether this monitor tries to track detected motion 
+  bool      track_motion;      // Whether this monitor tries to track detected motion
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
 
@@ -292,7 +318,7 @@ protected:
   int        first_alarm_count;
   int        last_alarm_count;
   bool       last_signal;
-    int last_section_mod;
+  int        last_section_mod;
   int        buffer_count;
   int        prealarm_count;
   State      state;
@@ -318,8 +344,8 @@ protected:
   TriggerData    *trigger_data;
   VideoStoreData  *video_store_data;
 
-    struct timeval *shared_timestamps;
-    unsigned char *shared_images;
+  struct timeval *shared_timestamps;
+  unsigned char *shared_images;
   ZMPacket *image_buffer;
   ZMPacket    next_buffer; /* Used by four field deinterlacing */
 
@@ -335,16 +361,18 @@ protected:
   Image      **images;
 
   const unsigned char  *privacy_bitmask;
+  std::thread   *event_delete_thread; // Used to close events, but continue processing.
 
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;
 
 public:
-  explicit Monitor( int p_id );
+  explicit Monitor();
+  explicit Monitor(int p_id);
 
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-  Monitor( 
+  Monitor(
     int p_id,
     const char *p_name,
     unsigned int p_server_id,
@@ -398,37 +426,31 @@ public:
   inline int ShmValid() const {
     return( shared_data->valid );
   }
+  Camera *getCamera();
 
-  inline int Id() const {
-    return( id );
-  }
-  inline const char *Name() const {
-    return( name );
-  }
+  inline int Id() const { return id; }
+  inline const char *Name() const { return name; }
   inline Storage *getStorage() {
     if ( ! storage ) {
-      storage = new Storage( storage_id );
+      storage = new Storage(storage_id);
     }
-    return( storage );
+    return storage;
   }
   inline Function GetFunction() const {
-    return( function );
-  }
-  inline Camera *getCamera() {
-    return camera;
+    return function;
   }
   inline bool Enabled() {
     if ( function <= MONITOR )
-      return( false );
-    return( enabled );
+      return false;
+    return enabled;
   }
   inline const char *EventPrefix() const {
-    return( event_prefix );
+    return event_prefix;
   }
   inline bool Ready() {
     if ( function <= MONITOR ) {
       Error("Should not be calling Ready if the function doesn't include motion detection");
-      return( false );
+      return false;
     }
     if ( image_count >= ready_count ) {
       return true;
@@ -438,57 +460,59 @@ public:
   }
   inline bool Active() {
     if ( function <= MONITOR )
-      return( false );
+      return false;
     return( enabled && shared_data->active );
   }
   inline bool Exif() {
-    return( embed_exif );
+    return embed_exif;
   }
   inline bool RecordAudio() {
     return record_audio;
   }
+
+  /*
+  inline Purpose Purpose() { return purpose };
+  inline Purpose Purpose( Purpose p ) { purpose = p; };
+  */
+
   Orientation getOrientation() const;
 
   unsigned int Width() const { return width; }
   unsigned int Height() const { return height; }
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
-    
-  int GetOptSaveJPEGs() const { return( savejpegspref ); }
-  VideoWriter GetOptVideoWriter() const { return( videowriter ); }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
-  const std::string &GetEncoderOptions() const { return( encoderparams ); }
+
+  int GetOptSaveJPEGs() const { return savejpegs; }
+  VideoWriter GetOptVideoWriter() const { return videowriter; }
+  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
+  const std::string &GetEncoderOptions() const { return encoderparams; }
   const std::string &OutputCodec() const { return output_codec; }
   const std::string &OutputContainer() const { return output_container; }
 
-  uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
-  void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }
- 
+  uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
+  void SetVideoWriterEventId( uint64_t p_event_id ) { video_store_data->current_event = p_event_id; }
+
   unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
-  ZMPacket *getSnapshot( int index=-1 );
-  struct timeval GetTimestamp( int index=-1 );
+  ZMPacket *getSnapshot( int index=-1 ) const;
+  struct timeval GetTimestamp( int index=-1 ) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
-  unsigned int GetAnalysisUpdateDelay() const { return( analysis_update_delay ); }
-  int GetCaptureDelay() const { return( capture_delay ); }
-  int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }
+  unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  int GetCaptureDelay() const { return capture_delay; }
+  int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;
   unsigned int GetLastWriteIndex() const;
-  uint32_t GetLastEventId() const;
+  uint64_t GetLastEventId() const;
   double GetFPS() const;
   void UpdateAnalysisFPS();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();
-  TriggerState GetTriggerState() const { return( (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL )); }
-	inline time_t getStartupTime() const {
-		return( shared_data->startup_time );
-	}
-	inline void setStartupTime( time_t p_time ) {
-		shared_data->startup_time = p_time;
-	}
+  TriggerState GetTriggerState() const { return (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL ); }
+	inline time_t getStartupTime() const { return shared_data->startup_time; }
+	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
   void get_ref_image();
 
   void actionReload();
@@ -525,15 +549,17 @@ public:
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );
 
+  static int LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
 #if ZM_HAS_V4L
-  static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose );
+  static int LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose);
 #endif // ZM_HAS_V4L
-  static int LoadRemoteMonitors( const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose );
-  static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose );
+  static int LoadRemoteMonitors(const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose);
+  static int LoadFileMonitors(const char *file, Monitor **&monitors, Purpose purpose);
 #if HAVE_LIBAVFORMAT
-  static int LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose );
+  static int LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose purpose);
 #endif // HAVE_LIBAVFORMAT
-  static Monitor *Load( unsigned int id, bool load_zones, Purpose purpose );
+  static Monitor *Load(unsigned int id, bool load_zones, Purpose purpose);
+  void Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose);
   //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );
   //void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );
   //void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );

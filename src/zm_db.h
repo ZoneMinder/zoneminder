@@ -33,6 +33,8 @@ class zmDbRow {
     zmDbRow( MYSQL_RES *, MYSQL_ROW *row );
     ~zmDbRow();
 
+    MYSQL_ROW mysql_row() const { return row; };
+
     char *operator[](unsigned int index) const {
       return row[index];
     }

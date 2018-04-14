@@ -3,7 +3,6 @@
 
 #include "zm_ffmpeg.h"
 extern "C"  {
-
 #ifdef HAVE_LIBAVRESAMPLE
 #include "libavresample/avresample.h"
 #endif
@@ -53,7 +52,7 @@ int audio_in_stream_index;
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
 #ifdef HAVE_LIBAVRESAMPLE
-AVAudioResampleContext* resample_ctx;
+  AVAudioResampleContext* resample_ctx;
 #endif
   uint8_t *converted_in_samples;
     

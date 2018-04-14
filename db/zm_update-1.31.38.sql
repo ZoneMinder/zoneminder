@@ -176,7 +176,7 @@ BEGIN
           WHERE Id=OLD.MonitorId;
       END IF;
     END IF;
-  ELSE IF ( NEW.Archived AND diff ) THEN
+  ELSEIF ( NEW.Archived AND diff ) THEN
     UPDATE Events_Archived SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
   END IF;
 
@@ -205,10 +205,10 @@ FOR EACH ROW
   INSERT INTO Events_Week (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   INSERT INTO Events_Month (EventId,MonitorId,StartTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartTime,0);
   UPDATE Monitors SET
-  HourEvents = COALESCE(DayEvents,0)+1,
+  HourEvents = COALESCE(HourEvents,0)+1,
   DayEvents = COALESCE(DayEvents,0)+1,
-  WeekEvents = COALESCE(DayEvents,0)+1,
-  MonthEvents = COALESCE(DayEvents,0)+1,
+  WeekEvents = COALESCE(WeekEvents,0)+1,
+  MonthEvents = COALESCE(MonthEvents,0)+1,
   TotalEvents = COALESCE(TotalEvents,0)+1
   WHERE Id=NEW.MonitorId;
 END;
@@ -260,3 +260,17 @@ FOR EACH ROW
 //
 
 DELIMITER ;
+
+UPDATE Monitors SET
+TotalEvents=(SELECT COUNT(*) FROM Events WHERE MonitorId=Monitors.Id),
+TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+HourEvents=(SELECT COUNT(*) FROM Events_Hour WHERE MonitorId=Monitors.Id),
+HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Hour WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+DayEvents=(SELECT COUNT(*) FROM Events_Day WHERE MonitorId=Monitors.Id),
+DayEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Day WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+WeekEvents=(SELECT COUNT(Id) FROM Events_Week WHERE MonitorId=Monitors.Id),
+WeekEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Week WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+MonthEvents=(SELECT COUNT(Id) FROM Events_Month WHERE MonitorId=Monitors.Id),
+MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Month WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
+ArchivedEvents=(SELECT COUNT(Id) FROM Events_Archived WHERE MonitorId=Monitors.Id),
+ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events_Archived WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL);

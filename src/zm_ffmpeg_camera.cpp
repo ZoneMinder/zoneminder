@@ -1,21 +1,21 @@
 //
 // ZoneMinder Ffmpeg Camera Class Implementation, $Date: 2009-01-16 12:18:50 +0000 (Fri, 16 Jan 2009) $, $Revision: 2713 $
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm.h"
 
@@ -120,12 +120,12 @@ FfmpegCamera::~FfmpegCamera() {
 
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
-    Info( "Priming capture from %s, CLosing", mPath.c_str() );
+    Info("Priming capture from %s, Closing", mPath.c_str());
     CloseFfmpeg();
   }
   mVideoStreamId = -1;
   mAudioStreamId = -1;
-  Info( "Priming capture from %s", mPath.c_str() );
+  Info("Priming capture from %s", mPath.c_str());
 
   return ! OpenFfmpeg();
 }
@@ -134,7 +134,7 @@ int FfmpegCamera::PreCapture() {
   return 0;
 }
 
-int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
+int FfmpegCamera::Capture(ZMPacket &zm_packet) {
   if ( ! mCanCapture ) {
     return -1;
   }
@@ -143,19 +143,22 @@ int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
 
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
 
-  if ( (ret = av_read_frame( mFormatContext, &packet )) < 0 ) {
+  if ( (ret = av_read_frame(mFormatContext, &packet)) < 0 ) {
     if (
         // Check if EOF.
         (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
         // Check for Connection failure.
         (ret == -110)
        ) {
-      Info( "av_read_frame returned \"%s\". Reopening stream.", av_make_error_string(ret).c_str() );
-      ReopenFfmpeg();
-      return 0;
-    }
-    Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, av_make_error_string(ret).c_str() );
-    return -1;
+        Info("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret,
+            av_make_error_string(ret).c_str()
+            );
+      } else {
+        Error("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret,
+            av_make_error_string(ret).c_str()
+            );
+      }
+      return -1;
   }
   dumpPacket(&packet, "ffmpeg_camera in");
   if ( 0 && ( packet.dts < 0 ) ) {
@@ -163,8 +166,8 @@ int FfmpegCamera::Capture( ZMPacket &zm_packet ) {
     return 0;
   }
 
-  zm_packet.set_packet( &packet );
-  zm_av_packet_unref( &packet );
+  zm_packet.set_packet(&packet);
+  zm_av_packet_unref(&packet);
   return 1;
 } // FfmpegCamera::Capture
 
@@ -175,13 +178,12 @@ int FfmpegCamera::PostCapture() {
 
 int FfmpegCamera::OpenFfmpeg() {
 
-  Debug(2, "OpenFfmpeg called.");
   int ret;
 
   // Open the input, not necessarily a file
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
-  Debug ( 1, "Calling av_open_input_file" );
-  if ( av_open_input_file( &mFormatContext, mPath.c_str(), NULL, 0, NULL ) != 0 )
+  Debug(1, "Calling av_open_input_file");
+  if ( av_open_input_file(&mFormatContext, mPath.c_str(), NULL, 0, NULL) != 0 )
 #else
   // Handle options
   AVDictionary *opts = NULL;
@@ -201,27 +203,33 @@ int FfmpegCamera::OpenFfmpeg() {
   } else if ( method == "rtpRtspHttp" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
   } else {
-    Warning("Unknown method (%s)", method.c_str() );
+    Warning("Unknown method (%s)", method.c_str());
   }
 
   if ( ret < 0 ) {
     Warning("Could not set rtsp_transport method '%s'\n", method.c_str());
   }
 
-  Debug ( 1, "Calling avformat_alloc_context for %s", mPath.c_str() );
+  Debug(1, "Calling avformat_open_input for %s", mPath.c_str());
 
-  mFormatContext = avformat_alloc_context( );
+  //mFormatContext = avformat_alloc_context( );
+  // Speed up find_stream_info
+  //FIXME can speed up initial analysis but need sensible parameters...
+  //mFormatContext->probesize = 32;
+  //mFormatContext->max_analyze_duration = 32;
 
-  if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
+  if ( avformat_open_input(&mFormatContext, mPath.c_str(), NULL, &opts) != 0 )
 #endif
   {
     Error("Unable to open input %s due to: %s", mPath.c_str(), strerror(errno));
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
-    av_close_input_file( mFormatContext );
+    av_close_input_file(mFormatContext);
 #else
-    avformat_close_input( &mFormatContext );
+    if ( mFormatContext ) {
+      avformat_close_input(&mFormatContext);
+      mFormatContext = NULL;
+    }
 #endif
-    mFormatContext = NULL;
     av_dict_free(&opts);
 
     return -1;
@@ -229,7 +237,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   AVDictionaryEntry *e = NULL;
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-    Warning( "Option %s not recognized by ffmpeg", e->key);
+    Warning("Option %s not recognized by ffmpeg", e->key);
   }
   av_dict_free(&opts);
 
@@ -237,12 +245,12 @@ int FfmpegCamera::OpenFfmpeg() {
 
   Debug(1, "Opened input");
 
-  Info( "Stream open %s, parsing streams...", mPath.c_str() );
+  Info("Stream open %s, parsing streams...", mPath.c_str());
 
 #if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
-  if ( av_find_stream_info( mFormatContext ) < 0 )
+  if ( av_find_stream_info(mFormatContext) < 0 )
 #else
-  if ( avformat_find_stream_info( mFormatContext, 0 ) < 0 )
+  if ( avformat_find_stream_info(mFormatContext, 0) < 0 )
 #endif
   {
     Error("Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno));
@@ -270,7 +278,7 @@ int FfmpegCamera::OpenFfmpeg() {
         // if we break, then we won't find the audio stream
         continue;
       } else {
-        Debug(2, "Have another video stream." );
+        Debug(2, "Have another video stream.");
       }
     }
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -285,14 +293,14 @@ int FfmpegCamera::OpenFfmpeg() {
       if ( mAudioStreamId == -1 ) {
         mAudioStreamId = i;
       } else {
-        Debug(2, "Have another audio stream." );
+        Debug(2, "Have another audio stream.");
       }
     }
   } // end foreach stream
   if ( mVideoStreamId == -1 )
-    Fatal( "Unable to locate video stream in %s", mPath.c_str() );
+    Fatal("Unable to locate video stream in %s", mPath.c_str());
   if ( mAudioStreamId == -1 )
-    Debug( 3, "Unable to locate audio stream in %s", mPath.c_str() );
+    Debug(3, "Unable to locate audio stream in %s", mPath.c_str());
 
   Debug(3, "Found video stream at index %d", mVideoStreamId);
   Debug(3, "Found audio stream at index %d", mAudioStreamId);
@@ -319,7 +327,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
     if ( ! mVideoCodec ) {
       // Try to open an hwaccel codec.
-      if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_vaapi")) == NULL ) { 
+      if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_vaapi")) == NULL ) {
         Debug(1, "Failed to find decoder (h264_vaapi)" );
       } else {
         Debug(1, "Success finding decoder (h264_vaapi)" );
@@ -327,7 +335,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
     if ( ! mVideoCodec ) {
       // Try to open an hwaccel codec.
-      if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_qsv")) == NULL ) { 
+      if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_qsv")) == NULL ) {
         Debug(1, "Failed to find decoder (h264_qsv)" );
       } else {
         Debug(1, "Success finding decoder (h264_qsv)" );
@@ -347,13 +355,20 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   } // end if h264
 #endif
+  if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
+    if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == NULL ) {
+      Debug(1, "Failed to find decoder (h264_mmal)" );
+    } else {
+      Debug(1, "Success finding decoder (h264_mmal)" );
+    }
+  }
 
   if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
   // Try and get the codec from the codec context
     Error("Can't find codec for video stream from %s", mPath.c_str());
     return -1;
   } else {
-    Debug(1, "Video Found decoder");
+    Debug(1, "Video Found decoder %s", mVideoCodec->name);
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
 
     // Open the codec
@@ -366,15 +381,15 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
       AVDictionaryEntry *e = NULL;
       while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Warning( "Option %s not recognized by ffmpeg", e->key);
+        Warning("Option %s not recognized by ffmpeg", e->key);
       }
-      Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+      Error("Unable to open codec for video stream from %s", mPath.c_str());
       av_dict_free(&opts);
       return -1;
     } else {
       AVDictionaryEntry *e = NULL;
       if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Warning( "Option %s not recognized by ffmpeg", e->key);
+        Warning("Option %s not recognized by ffmpeg", e->key);
       }
       av_dict_free(&opts);
     }
@@ -387,8 +402,8 @@ int FfmpegCamera::OpenFfmpeg() {
   }
   if ( mAudioStreamId >= 0 ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    mAudioCodecContext = avcodec_alloc_context3( NULL );
-    avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
+    mAudioCodecContext = avcodec_alloc_context3(NULL);
+    avcodec_parameters_to_context(mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar);
 #else
     mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
 #endif
@@ -399,34 +414,26 @@ int FfmpegCamera::OpenFfmpeg() {
       zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
       // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-      Debug ( 1, "Calling avcodec_open" );
+      Debug(1, "Calling avcodec_open");
       if ( avcodec_open(mAudioCodecContext, mAudioCodec) < 0 )
 #else
-        Debug ( 1, "Calling avcodec_open2" );
+        Debug(1, "Calling avcodec_open2");
       if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 )
 #endif
-        Fatal( "Unable to open codec for video stream from %s", mPath.c_str() );
+        Fatal("Unable to open codec for video stream from %s", mPath.c_str());
     }
-    Debug ( 1, "Opened audio codec" );
+    Debug(1, "Opened audio codec");
   } // end if have audio stream
 
 
   if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
-    Warning( "Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height );
+    Warning("Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
 
   mCanCapture = true;
 
   return 1;
 } // int FfmpegCamera::OpenFfmpeg()
-
-int FfmpegCamera::ReopenFfmpeg() {
-
-  Debug(2, "ReopenFfmpeg called.");
-
-  CloseFfmpeg();
-  return OpenFfmpeg();
-}
 
 int FfmpegCamera::CloseFfmpeg() {
 
@@ -461,14 +468,14 @@ int FfmpegCamera::CloseFfmpeg() {
 
   if ( mFormatContext ) {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
-    av_close_input_file( mFormatContext );
+    av_close_input_file(mFormatContext);
 #else
-    avformat_close_input( &mFormatContext );
+    avformat_close_input(&mFormatContext);
 #endif
     mFormatContext = NULL;
   }
 
   return 0;
-} // end int FfmpegCamera::CloseFfmpeg()
+} // end FfmpegCamera::Close
 
 #endif // HAVE_LIBAVFORMAT

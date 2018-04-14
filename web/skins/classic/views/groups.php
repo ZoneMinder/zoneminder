@@ -51,7 +51,7 @@ xhtmlHeaders(__FILE__, translate('Groups') );
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="setgroup"/>
         <table id="contentTable" class="major">
-          <thead>
+          <thead class="thead-highlight">
             <tr>
               <th class="colName" colspan="<?php echo $max_depth ?>"><?php echo translate('Name') ?></th>
               <th class="colIds"><?php echo translate('Monitors') ?></th>

@@ -62,22 +62,22 @@ void Logger::usrHandler( int sig ) {
     logger->level( logger->level()+1 );
   else if ( sig == SIGUSR2 )
     logger->level( logger->level()-1 );
-  Info( "Logger - Level changed to %d", logger->level() );
+  Info("Logger - Level changed to %d", logger->level());
 }
 
 Logger::Logger() :
-  mLevel( INFO ),
-  mTermLevel( NOLOG ),
-  mDatabaseLevel( NOLOG ),
-  mFileLevel( NOLOG ),
-  mSyslogLevel( NOLOG ),
-  mEffectiveLevel( NOLOG ),
+  mLevel(INFO),
+  mTerminalLevel(NOLOG),
+  mDatabaseLevel(NOLOG),
+  mFileLevel(NOLOG),
+  mSyslogLevel(NOLOG),
+  mEffectiveLevel(NOLOG),
   //mLogPath( staticConfig.PATH_LOGS.c_str() ),
   //mLogFile( mLogPath+"/"+mId+".log" ),
-  mDbConnected( false ),
-  mLogFileFP( NULL ),
-  mHasTerm( false ),
-  mFlush( false ) {
+  mDbConnected(false),
+  mLogFileFP(NULL),
+  mHasTerminal(false),
+  mFlush(false) {
 
   if ( smInstance ) {
     Panic( "Attempt to create second instance of Logger class" );
@@ -99,7 +99,7 @@ Logger::Logger() :
 
     char code[4] = "";
     for ( int i = DEBUG1; i <= DEBUG9; i++ ) {
-      snprintf( code, sizeof(code), "DB%d", i );
+      snprintf(code, sizeof(code), "DB%d", i);
       smCodes[i] = code;
       smSyslogPriorities[i] = LOG_DEBUG;
     }
@@ -108,13 +108,14 @@ Logger::Logger() :
   }
 
   if ( fileno(stderr) && isatty(fileno(stderr)) )
-    mHasTerm = true;
+    mHasTerminal = true;
 }
 
 Logger::~Logger() {
   terminate();
   smCodes.clear();
   smSyslogPriorities.clear();
+  smInitialised = false;
 #if 0
   for ( StringMap::iterator itr = smCodes.begin(); itr != smCodes.end(); itr ++ ) {
       smCodes.erase( itr );
@@ -125,7 +126,7 @@ Logger::~Logger() {
 #endif
 }
 
-void Logger::initialise( const std::string &id, const Options &options ) {
+void Logger::initialise(const std::string &id, const Options &options) {
   char *envPtr;
 
   if ( !id.empty() )
@@ -133,7 +134,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
 
   std::string tempLogFile;
 
-  if ( (envPtr = getTargettedEnv( "LOG_FILE" )) )
+  if ( (envPtr = getTargettedEnv("LOG_FILE")) )
     tempLogFile = envPtr;
   else if ( options.mLogFile.size() )
     tempLogFile = options.mLogFile;
@@ -145,13 +146,13 @@ void Logger::initialise( const std::string &id, const Options &options ) {
   }
 
   Level tempLevel = INFO;
-  Level tempTermLevel = mTermLevel;
+  Level tempTerminalLevel = mTerminalLevel;
   Level tempDatabaseLevel = mDatabaseLevel;
   Level tempFileLevel = mFileLevel;
   Level tempSyslogLevel = mSyslogLevel;
 
-  if ( options.mTermLevel != NOOPT )
-    tempTermLevel = options.mTermLevel;
+  if ( options.mTerminalLevel != NOOPT )
+    tempTerminalLevel = options.mTerminalLevel;
 
   if ( options.mDatabaseLevel != NOOPT )
     tempDatabaseLevel = options.mDatabaseLevel;
@@ -170,22 +171,22 @@ void Logger::initialise( const std::string &id, const Options &options ) {
 
   // Legacy
   if ( (envPtr = getenv( "LOG_PRINT" )) )
-    tempTermLevel = atoi(envPtr) ? DEBUG9 : NOLOG;
+    tempTerminalLevel = atoi(envPtr) ? DEBUG9 : NOLOG;
 
-  if ( (envPtr = getTargettedEnv( "LOG_LEVEL" )) )
+  if ( (envPtr = getTargettedEnv("LOG_LEVEL")) )
     tempLevel = atoi(envPtr);
 
-  if ( (envPtr = getTargettedEnv( "LOG_LEVEL_TERM" )) )
-    tempTermLevel = atoi(envPtr);
-  if ( (envPtr = getTargettedEnv( "LOG_LEVEL_DATABASE" )) )
+  if ( (envPtr = getTargettedEnv("LOG_LEVEL_TERM")) )
+    tempTerminalLevel = atoi(envPtr);
+  if ( (envPtr = getTargettedEnv("LOG_LEVEL_DATABASE")) )
     tempDatabaseLevel = atoi(envPtr);
-  if ( (envPtr = getTargettedEnv( "LOG_LEVEL_FILE" )) )
+  if ( (envPtr = getTargettedEnv("LOG_LEVEL_FILE")) )
     tempFileLevel = atoi(envPtr);
-  if ( (envPtr = getTargettedEnv( "LOG_LEVEL_SYSLOG" )) )
+  if ( (envPtr = getTargettedEnv("LOG_LEVEL_SYSLOG")) )
     tempSyslogLevel = atoi(envPtr);
 
   if ( config.log_debug ) {
-    StringVector targets = split( config.log_debug_target, "|" );
+    StringVector targets = split(config.log_debug_target, "|");
     for ( unsigned int i = 0; i < targets.size(); i++ ) {
       const std::string &target = targets[i];
       if ( target == mId || target == "_"+mId || target == "_"+mIdRoot || target == "" ) {
@@ -202,20 +203,19 @@ void Logger::initialise( const std::string &id, const Options &options ) {
     // if we don't have debug turned on, then the max effective log level is INFO
     if ( tempSyslogLevel > INFO ) tempSyslogLevel = INFO;
     if ( tempFileLevel > INFO ) tempFileLevel = INFO;
-    if ( tempTermLevel > INFO ) tempTermLevel = INFO;
+    if ( tempTerminalLevel > INFO ) tempTerminalLevel = INFO;
     if ( tempDatabaseLevel > INFO ) tempDatabaseLevel = INFO;
     if ( tempLevel > INFO ) tempLevel = INFO;
   } // end if config.log_debug
 
+  logFile(tempLogFile);
 
-  logFile( tempLogFile );
+  terminalLevel(tempTerminalLevel);
+  databaseLevel(tempDatabaseLevel);
+  fileLevel(tempFileLevel);
+  syslogLevel(tempSyslogLevel);
 
-  termLevel( tempTermLevel );
-  databaseLevel( tempDatabaseLevel );
-  fileLevel( tempFileLevel );
-  syslogLevel( tempSyslogLevel );
-
-  level( tempLevel );
+  level(tempLevel);
 
   mFlush = false;
   if ( (envPtr = getenv("LOG_FLUSH")) ) {
@@ -224,27 +224,27 @@ void Logger::initialise( const std::string &id, const Options &options ) {
     mFlush = true;
   }
 
-  //mRuntime = (envPtr = getenv( "LOG_RUNTIME")) ? atoi( envPtr ) : false;
   {
     struct sigaction action;
-    memset( &action, 0, sizeof(action) );
+    memset(&action, 0, sizeof(action));
     action.sa_handler = usrHandler;
     action.sa_flags = SA_RESTART;
 
-    if ( sigaction( SIGUSR1, &action, 0 ) < 0 ) {
-      Fatal( "sigaction(), error = %s", strerror(errno) );
+    // Does this REALLY need to be fatal?
+    if ( sigaction(SIGUSR1, &action, 0) < 0 ) {
+      Fatal("sigaction(), error = %s", strerror(errno));
     }
-    if ( sigaction( SIGUSR2, &action, 0 ) < 0) {
-      Fatal( "sigaction(), error = %s", strerror(errno) );
+    if ( sigaction(SIGUSR2, &action, 0) < 0) {
+      Fatal("sigaction(), error = %s", strerror(errno));
     }
   }
 
   mInitialised = true;
 
-  Debug( 1, "LogOpts: level=%s/%s, screen=%s, database=%s, logfile=%s->%s, syslog=%s",
+  Debug(1, "LogOpts: level=%s/%s, screen=%s, database=%s, logfile=%s->%s, syslog=%s",
       smCodes[mLevel].c_str(),
       smCodes[mEffectiveLevel].c_str(),
-      smCodes[mTermLevel].c_str(),
+      smCodes[mTerminalLevel].c_str(),
       smCodes[mDatabaseLevel].c_str(),
       smCodes[mFileLevel].c_str(),
       mLogFile.c_str(),
@@ -253,7 +253,7 @@ void Logger::initialise( const std::string &id, const Options &options ) {
 }
 
 void Logger::terminate() {
-  Debug(1, "Terminating Logger" );
+  Debug(1, "Terminating Logger");
 
   if ( mFileLevel > NOLOG )
     closeFile();
@@ -265,66 +265,67 @@ void Logger::terminate() {
     closeDatabase();
 }
 
-bool Logger::boolEnv( const std::string &name, bool defaultValue ) {
-  const char *envPtr = getenv( name.c_str() );
-  return( envPtr ? atoi( envPtr ) : defaultValue );
+// These don't belong here, they have nothing to do with logging
+bool Logger::boolEnv(const std::string &name, bool defaultValue) {
+  const char *envPtr = getenv(name.c_str());
+  return envPtr ? atoi(envPtr) : defaultValue;
 }
 
-int Logger::intEnv( const std::string &name, bool defaultValue ) {
-  const char *envPtr = getenv( name.c_str() );
-  return( envPtr ? atoi( envPtr ) : defaultValue );
+int Logger::intEnv(const std::string &name, bool defaultValue) {
+  const char *envPtr = getenv(name.c_str());
+  return envPtr ? atoi(envPtr) : defaultValue;
 }
 
-std::string Logger::strEnv( const std::string &name, const std::string &defaultValue ) {
-  const char *envPtr = getenv( name.c_str() );
-  return( envPtr ? envPtr : defaultValue );
+std::string Logger::strEnv(const std::string &name, const std::string &defaultValue) {
+  const char *envPtr = getenv(name.c_str());
+  return envPtr ? envPtr : defaultValue;
 }
 
-char *Logger::getTargettedEnv( const std::string &name ) {
+char *Logger::getTargettedEnv(const std::string &name) {
   std::string envName = name+"_"+mId;
-  char *envPtr = getenv( envName.c_str() );
+  char *envPtr = getenv(envName.c_str());
   if ( !envPtr && mId != mIdRoot ) {
     envName = name+"_"+mIdRoot;
-    envPtr = getenv( envName.c_str() );
+    envPtr = getenv(envName.c_str());
   }
   if ( !envPtr )
-    envPtr = getenv( name.c_str() );
+    envPtr = getenv(name.c_str());
   return envPtr;
 }
 
-const std::string &Logger::id( const std::string &id ) {
+const std::string &Logger::id(const std::string &id) {
   std::string tempId = id;
 
   size_t pos;
   // Remove whitespace
   while ( (pos = tempId.find_first_of( " \t" )) != std::string::npos ) {
-    tempId.replace( pos, 1, "" );
+    tempId.replace(pos, 1, "");
   }
   // Replace non-alphanum with underscore
-  while ( (pos = tempId.find_first_not_of( "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_" )) != std::string::npos ) {
-    tempId.replace( pos, 1, "_" );
+  while ( (pos = tempId.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")) != std::string::npos ) {
+    tempId.replace(pos, 1, "_");
   }
   if ( mId != tempId ) {
     mId = tempId;
-    pos = mId.find( '_' );
+    pos = mId.find('_');
     if ( pos != std::string::npos ) {
-      mIdRoot = mId.substr( 0, pos );
+      mIdRoot = mId.substr(0, pos);
       if ( ++pos < mId.size() )
-        mIdArgs = mId.substr( pos );
+        mIdArgs = mId.substr(pos);
     }
   }
-  return( mId );
+  return mId;
 }
 
-Logger::Level Logger::level( Logger::Level level ) {
+Logger::Level Logger::level(Logger::Level level) {
   if ( level > NOOPT ) {
     level = limit(level);
     if ( mLevel != level )
       mLevel = level;
 
     mEffectiveLevel = NOLOG;
-    if ( mTermLevel > mEffectiveLevel )
-      mEffectiveLevel = mTermLevel;
+    if ( mTerminalLevel > mEffectiveLevel )
+      mEffectiveLevel = mTerminalLevel;
     if ( mDatabaseLevel > mEffectiveLevel )
       mEffectiveLevel = mDatabaseLevel;
     if ( mFileLevel > mEffectiveLevel )
@@ -334,18 +335,18 @@ Logger::Level Logger::level( Logger::Level level ) {
     if ( mEffectiveLevel > mLevel)
       mEffectiveLevel = mLevel;
   }
-  return( mLevel );
+  return mLevel;
 }
 
-Logger::Level Logger::termLevel( Logger::Level termLevel ) {
-  if ( termLevel > NOOPT ) {
-    if ( !mHasTerm )
-      termLevel = NOLOG;
-    termLevel = limit(termLevel);
-    if ( mTermLevel != termLevel )
-      mTermLevel = termLevel;
+Logger::Level Logger::terminalLevel( Logger::Level terminalLevel ) {
+  if ( terminalLevel > NOOPT ) {
+    if ( !mHasTerminal )
+      terminalLevel = NOLOG;
+    terminalLevel = limit(terminalLevel);
+    if ( mTerminalLevel != terminalLevel )
+      mTerminalLevel = terminalLevel;
   }
-  return( mTermLevel );
+  return mTerminalLevel;
 }
 
 Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
@@ -359,7 +360,7 @@ Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
     } // end if ( mDatabaseLevel != databaseLevel )
   } // end if ( databaseLevel > NOOPT )
 
-  return( mDatabaseLevel );
+  return mDatabaseLevel;
 }
 
 Logger::Level Logger::fileLevel( Logger::Level fileLevel ) {
@@ -372,7 +373,7 @@ Logger::Level Logger::fileLevel( Logger::Level fileLevel ) {
     if ( mFileLevel > NOLOG )
 	    openFile();
   }
-  return( mFileLevel );
+  return mFileLevel;
 }
 
 Logger::Level Logger::syslogLevel( Logger::Level syslogLevel ) {
@@ -386,7 +387,7 @@ Logger::Level Logger::syslogLevel( Logger::Level syslogLevel ) {
         openSyslog();
     }
   }
-  return( mSyslogLevel );
+  return mSyslogLevel;
 }
 
 void Logger::logFile( const std::string &logFile ) {
@@ -448,9 +449,9 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   const char *classString = smCodes[level].c_str();
 
   if ( level < PANIC || level > DEBUG9 )
-    Panic( "Invalid logger level %d", level );
+    Panic("Invalid logger level %d", level);
 
-  gettimeofday( &timeVal, NULL );
+  gettimeofday(&timeVal, NULL);
 
 #if 0
   if ( logRuntime ) {
@@ -462,8 +463,8 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   } else {
 #endif
     char *timePtr = timeString;
-    timePtr += strftime( timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec) );
-    snprintf( timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec );
+    timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec));
+    snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec);
 #if 0
   }
 #endif
@@ -517,7 +518,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   char *syslogEnd = logPtr;
   strncpy( logPtr, "]\n", sizeof(logString)-(logPtr-logString) );   
 
-  if ( level <= mTermLevel ) {
+  if ( level <= mTerminalLevel ) {
     puts( logString );
     fflush( stdout );
   }
@@ -541,10 +542,10 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     mysql_real_escape_string( &dbconn, escapedString, syslogStart, strlen(syslogStart) );
 
     snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
-    if ( mysql_query( &dbconn, sql ) ) {
+    if (mysql_query(&dbconn, sql)) {
       Level tempDatabaseLevel = mDatabaseLevel;
-      databaseLevel( NOLOG );
-      Error( "Can't insert log entry: sql(%s) error(%s)", sql,  mysql_error( &dbconn ) );
+      databaseLevel(NOLOG);
+      Error("Can't insert log entry: sql(%s) error(%s)", sql, mysql_error(&dbconn));
       databaseLevel(tempDatabaseLevel);
     }
     db_mutex.unlock();
@@ -561,7 +562,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     zmDbClose();
     if ( level <= PANIC )
       abort();
-    exit( -1 );
+    exit(-1);
   }
 }
 

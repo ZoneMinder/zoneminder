@@ -4,6 +4,7 @@ App::uses('AppModel', 'Model');
  * Group Model
  *
  * @property Event $Event
+ * @property Zone $Zone
  */
 class Group extends AppModel {
 
@@ -22,6 +23,15 @@ class Group extends AppModel {
 	public $primaryKey = 'Id';
 
 /**
+ * Display field
+ *
+ * @var string
+ */
+	public $displayField = 'Name';
+
+	public $recursive = -1;
+
+/**
  * Validation rules
  *
  * @var array
@@ -29,7 +39,10 @@ class Group extends AppModel {
 	public $validate = array(
 		'Name' => array(
 			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+				'rule' => array('notEmpty'))),
+		'Id' => array(
+			'numeric' => array(
+				'rule' => array('numeric'),
 				//'message' => 'Your custom message here',
 				//'allowEmpty' => false,
 				//'required' => false,
@@ -39,7 +52,6 @@ class Group extends AppModel {
 		),
 	);
 
-	public $recursive = -1;
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**

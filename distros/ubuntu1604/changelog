@@ -1,7 +1,3 @@
-zoneminder (1.31.4-vivid1) vivid; urgency=medium
-
-  * Release 1.31.4
-
- -- Isaac Connor <iconnor@tesla.com>  Thu, 21 Sep 2017 09:55:31 -0700
-
-
+zoneminder (1.31.39~20180223.27-stretch-1) unstable; urgency=low
+  * 
+ -- Isaac Connor <iconnor@connortechnology.com>  Fri, 23 Feb 2018 14:15:59 -0500

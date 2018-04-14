@@ -89,7 +89,7 @@ public:
   bool IscURL() const { return( type == CURL_SRC ); }
   unsigned int Width() const { return( width ); }
   unsigned int Height() const { return( height ); }
-  unsigned int Colours() const { return( colours ); }
+  unsigned int Colours() const { return colours; }
   unsigned int SubpixelOrder() const { return( subpixelorder ); }
   unsigned int Pixels() const { return( pixels ); }
   unsigned int ImageSize() const { return( imagesize ); }

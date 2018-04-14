@@ -1,20 +1,24 @@
 <?php
 
+$group_cache = array();
+
 class Group {
 
-public $defaults = array(
-    'Id'              =>  null,
-    'Name'            =>  '',
-    'ParentId'        =>  null,
-);
+  public $defaults = array(
+      'Id'              =>  null,
+      'Name'            =>  '',
+      'ParentId'        =>  null,
+      );
 
   public function __construct( $IdOrRow=NULL ) {
+    global $group_cache;
+
     $row = NULL;
     if ( $IdOrRow ) {
-      if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id=?', NULL, array( $IdOrRow ) );
+      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
+        $row = dbFetchOne('SELECT * FROM Groups WHERE Id=?', NULL, array($IdOrRow));
         if ( ! $row ) {
-          Error('Unable to load Group record for Id=' . $IdOrRow );
+          Error('Unable to load Group record for Id=' . $IdOrRow);
         }
       } elseif ( is_array( $IdOrRow ) ) {
         $row = $IdOrRow;
@@ -33,13 +37,14 @@ public $defaults = array(
         $this->{$k} = $v;
       }
     }
+    $group_cache[$row['Id']] = $this;
   } // end function __construct
 
-  public function __call( $fn, array $args ) {
-    if ( count( $args )  ) {
+  public function __call($fn, array $args) {
+    if ( count($args) ) {
       $this->{$fn} = $args[0];
     }
-    if ( array_key_exists( $fn, $this ) ) {
+    if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
     } else if ( array_key_exists( $fn, $this->defaults ) ) {
       $this->{$fn} = $this->defaults{$fn};
@@ -50,6 +55,25 @@ public $defaults = array(
       $file = $backTrace[1]['file'];
       $line = $backTrace[1]['line'];
       Warning( "Unknown function call Group->$fn from $file:$line" );
+    }
+  }
+
+  public static function find_one( $parameters = null, $options = null ) {
+    global $group_cache;
+    if (
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($group_cache[$parameters['Id']]) ) {
+      return $group_cache[$parameters['Id']];
+    }
+    $results = Group::find_all($parameters, $options);
+    if ( count($results) > 1 ) {
+      Error("Group::find_one Returned more than 1");
+      return $results[0];
+    } else if ( count($results) ) {
+      return $results[0];
+    } else {
+      return null;
     }
   }
 
@@ -68,7 +92,6 @@ public $defaults = array(
           $func = function(){return '?';};
           $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
           $values += $value;
-
         } else {
           $fields[] = $field.'=?';
           $values[] = $value;
@@ -135,7 +158,7 @@ public $defaults = array(
     return $this->{'MonitorIds'};
   }
 
-  public static function get_group_dropdown() {
+  public static function get_group_dropdown( ) {
 
     session_start();
     $selected_group_id = 0;
@@ -148,13 +171,23 @@ public $defaults = array(
     }
     session_write_close();
 
+    return htmlSelect( 'Group[]', Group::get_dropdown_options(), isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
+          'onchange' => 'this.form.submit();',
+          'class'=>'chosen',
+          'multiple'=>'multiple',
+          'data-placeholder'=>'All',
+          ) );
+
+  } # end public static function get_group_dropdown
+
+  public static function get_dropdown_options() {
     $Groups = array();
     foreach ( Group::find_all( ) as $Group ) {
       $Groups[$Group->Id()] = $Group;
     }
 
 # This  array is indexed by parent_id
-global $children;
+    global $children;
     $children = array();
 
     foreach ( $Groups as $id=>$Group ) {
@@ -181,16 +214,10 @@ global $children;
         $group_options += get_options( $Group );
       }
     }
-    return htmlSelect( 'Group[]', $group_options, isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
-          'onchange' => 'this.form.submit();',
-          'class'=>'chosen',
-          'multiple'=>'multiple',
-          'data-placeholder'=>'All',
-          ) );
+    return $group_options;
+  }
 
-  } # end public static function get_group_dropdown
-
-  public static function get_group_dropdowns() {
+  public static function get_group_dropdowns( $selected = null ) {
     # This will end up with the group_id of the deepest selection
     $group_id = 0;
     $depth = 0;
@@ -205,6 +232,7 @@ global $children;
         break;
 
       $parent_group_ids = array();
+if ( ! $selected ) {
       $selected_group_id = 0;
       if ( isset($_REQUEST['group'.$depth]) ) {
         $selected_group_id = $group_id = $_SESSION['group'.$depth] = $_REQUEST['group'.$depth];
@@ -213,6 +241,9 @@ global $children;
       } else if ( isset($_REQUEST['filtering']) ) {
         unset($_SESSION['group'.$depth]);
       }
+} else {
+  $selected_group_id = $selected;
+}
 
       foreach ( $Groups as $Group ) {
         if ( ! isset( $groups[$depth] ) ) {
@@ -278,6 +309,23 @@ $group_options[$Group->Id()] = str_repeat( '&nbsp;', $depth ) .  $Group->Name();
 
   echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') );
   return $monitor_id;
+}
+
+public function Parent( ) {
+  if ( $this->{'ParentId'} ) {
+    return Group::find_one(array('Id'=>$this->{'ParentId'}));
+  }
+  return null;
+}
+
+public function Parents() {
+  $Parents = array();
+  $Parent = $this->Parent();
+  while( $Parent ) {
+    array_unshift($Parents, $Parent);
+    $Parent = $Parent->Parent();
+  }
+  return $Parents;
 }
 
 } # end class Group

@@ -148,6 +148,7 @@ if ( ZM_OPT_USE_AUTH ) {
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+require_once( 'includes/auth.php' );
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -186,6 +187,9 @@ if ( ZM_OPT_USE_AUTH ) {
     generateAuthHash( ZM_AUTH_HASH_IPS );
   }
 }
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that sets session variables must re-open it.
+session_write_close();
 
 if ( isset($_REQUEST['action']) ) {
   $action = detaintPath($_REQUEST['action']);
@@ -212,9 +216,6 @@ if ( ZM_OPT_USE_AUTH and ! isset($user) ) {
   $request = null;
 }
 
-# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
-# Any file/page that sets session variables must re-open it.
-session_write_close();
 
 if ( $redirect ) {
   header('Location: '.$redirect);

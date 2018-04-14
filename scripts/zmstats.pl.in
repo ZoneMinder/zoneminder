@@ -83,10 +83,10 @@ while( 1 ) {
     $dbh = zmDbConnect();
   }
 
-  $dbh->do('DELETE FROM Events_Hour WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
-  $dbh->do('DELETE FROM Events_Day WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 day)');
-  $dbh->do('DELETE FROM Events_Week WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 week)');
-  $dbh->do('DELETE FROM Events_Month WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 month)');
+  $dbh->do('DELETE FROM Events_Hour WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 hour)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Day WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 day)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Week WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 week)') or Error($dbh->errstr());
+  $dbh->do('DELETE FROM Events_Month WHERE StartTime < DATE_SUB(NOW(), INTERVAL 1 month)') or Error($dbh->errstr());
 
   sleep( $Config{ZM_STATS_UPDATE_INTERVAL} );
 } # end while (1)

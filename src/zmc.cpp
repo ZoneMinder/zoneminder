@@ -239,8 +239,8 @@ int main(int argc, char *argv[]) {
       time_t now = (time_t)time(NULL);
       monitors[i]->setStartupTime(now);
 
-      snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')", monitors[i]->Id() );
-      if ( mysql_query( &dbconn, sql ) ) {
+      snprintf(sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')", monitors[i]->Id());
+      if ( mysql_query(&dbconn, sql) ) {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
       }
     }
@@ -251,9 +251,9 @@ int main(int argc, char *argv[]) {
       continue;
     }
     for ( int i = 0; i < n_monitors; i ++ ) {
-      snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')", monitors[i]->Id() );
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error( "Can't run query: %s", mysql_error( &dbconn ) );
+      snprintf(sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')", monitors[i]->Id());
+      if ( mysql_query(&dbconn, sql) ) {
+        Error("Can't run query: %s", mysql_error(&dbconn));
       }
     }
 
@@ -325,6 +325,10 @@ int main(int argc, char *argv[]) {
       } // end foreach n_monitors
       //Debug(2,"unblocking");
       sigprocmask(SIG_UNBLOCK, &block_set, 0);
+      if ( result < 0 ) {
+        // Failure, try reconnecting
+        break;
+      }
       if ( zm_reload ) {
         for ( int i = 0; i < n_monitors; i++ ) {
           monitors[i]->Reload();
@@ -332,10 +336,6 @@ int main(int argc, char *argv[]) {
         logTerm();
         logInit( log_id_string );
         zm_reload = false;
-        if ( result < 0 ) {
-          // Failure, try reconnecting
-          break;
-        }
       } // end if zm_reload
     } // end while ! zm_terminate and connected
 

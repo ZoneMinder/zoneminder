@@ -391,8 +391,7 @@ Debug(2,"Using mjpeg");
 
     if ( audio_in_ctx->codec_id != AV_CODEC_ID_AAC ) {
       static char error_buffer[256];
-      avcodec_string(error_buffer, sizeof(error_buffer), audio_in_ctx,
-                     0);
+      avcodec_string(error_buffer, sizeof(error_buffer), audio_in_ctx, 0);
       Debug(2, "Got something other than AAC (%s)", error_buffer);
 
       if ( !setup_resampler() ) {
@@ -641,13 +640,12 @@ VideoStore::~VideoStore() {
   // allocation/de-allocation constantly, or whether we can just re-use it.
   // Just do a file open/close/writeheader/etc.
   // What if we were only doing audio recording?
-  
   if ( video_out_stream ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
     avcodec_free_context(&video_in_ctx);
 #endif
-    video_in_ctx=NULL;
+    video_in_ctx = NULL;
 
     avcodec_close(video_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -658,13 +656,13 @@ VideoStore::~VideoStore() {
   }
   if ( audio_out_stream ) {
     if ( audio_in_codec ) {
-    avcodec_close(audio_in_ctx);
+      avcodec_close(audio_in_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    // We allocate and copy in newer ffmpeg, so need to free it
-    avcodec_free_context(&audio_in_ctx);
+      // We allocate and copy in newer ffmpeg, so need to free it
+      avcodec_free_context(&audio_in_ctx);
 #endif
-    audio_in_ctx = NULL;
-    audio_in_codec = NULL;
+      audio_in_ctx = NULL;
+      audio_in_codec = NULL;
     } // end if audio_in_codec
 
     avcodec_close(audio_out_ctx);
@@ -676,6 +674,10 @@ VideoStore::~VideoStore() {
     if ( resample_ctx ) {
       avresample_close(resample_ctx);
       avresample_free(&resample_ctx);
+    }
+    if ( in_frame ) {
+      av_frame_free(&in_frame);
+      in_frame = NULL;
     }
     if ( out_frame ) {
       av_frame_free(&out_frame);
@@ -701,7 +703,7 @@ VideoStore::~VideoStore() {
 
   /* free the stream */
   avformat_free_context(oc);
-}
+} // VideoStore::~VideoStore()
 
 bool VideoStore::setup_resampler() {
   //I think this is unneccessary, we should be able to just pass in the decoder from the input.
@@ -785,7 +787,7 @@ bool VideoStore::setup_resampler() {
   ret = avcodec_open2(audio_out_ctx, audio_out_codec, &opts);
   av_dict_free(&opts);
   if ( ret < 0 ) {
-    Fatal("could not open codec (%d) (%s)\n", ret, av_make_error_string(ret).c_str());
+    Error("could not open codec (%d) (%s)\n", ret, av_make_error_string(ret).c_str());
     audio_out_codec = NULL;
     audio_out_ctx = NULL;
     audio_out_stream = NULL;
@@ -914,7 +916,6 @@ bool VideoStore::setup_resampler() {
   return false;
 #endif
 }  // end bool VideoStore::setup_resampler()
-
 
 int VideoStore::writePacket( ZMPacket *ipkt ) {
   if ( ipkt->packet.stream_index == video_in_stream_index ) {

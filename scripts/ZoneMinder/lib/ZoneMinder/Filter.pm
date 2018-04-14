@@ -205,7 +205,7 @@ sub Sql {
 
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
           foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
-            if ( $term->{attr} =~ /^Monitor/ ) {
+            if ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
             } elsif ( $term->{attr} eq 'ServerId' ) {
               Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
@@ -276,7 +276,13 @@ sub Sql {
           } elsif ( $term->{op} eq '!~' ) {
             $self->{Sql} .= " not regexp $value";
           } elsif ( $term->{op} eq 'IS' ) {
-            $self->{Sql} .= " IS $value";
+            if ( $value eq 'Odd' ) {
+              $self->{Sql} .= ' % 2 = 1';
+            } elsif ( $value eq 'Even' ) {
+              $self->{Sql} .= ' % 2 = 0';
+            } else {
+              $self->{Sql} .= " IS $value";
+            }
           } elsif ( $term->{op} eq 'IS NOT' ) {
             $self->{Sql} .= " IS NOT $value";
           } elsif ( $term->{op} eq '=[]' ) {

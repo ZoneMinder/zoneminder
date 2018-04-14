@@ -300,11 +300,11 @@ void zm_dump_codecpar ( const AVCodecParameters *par );
 #endif
 
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
-    #define zm_av_packet_unref( packet ) av_packet_unref( packet )
-    #define zm_av_packet_ref( dst, src ) av_packet_ref( dst, src )
+    #define zm_av_packet_unref(packet) av_packet_unref(packet)
+    #define zm_av_packet_ref(dst, src) av_packet_ref(dst, src)
 #else
-    #define zm_av_packet_unref( packet ) av_free_packet( packet )
-unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src );
+    #define zm_av_packet_unref(packet) av_free_packet(packet)
+unsigned int zm_av_packet_ref(AVPacket *dst, AVPacket *src);
 #endif
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       #define zm_avcodec_decode_video( context, rawFrame, frameComplete, packet ) avcodec_decode_video2( context, rawFrame, frameComplete, packet )

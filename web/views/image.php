@@ -108,6 +108,10 @@ Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousB
     Logger::Debug( "$path does not exist");
 # Generate the frame JPG
     if ( $show == 'capture' and $Event->DefaultVideo() ) {
+      if ( ! file_exists($Event->Path().'/'.$Event->DefaultVideo()) ) {
+        header('HTTP/1.0 404 Not Found');
+        Fatal("Can't create frame images from video becuase there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
+      }
       $command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path;
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;

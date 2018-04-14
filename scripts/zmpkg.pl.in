@@ -205,6 +205,7 @@ if ( $command =~ /^(?:start|restart)$/ ) {
       $sql = 'SELECT * FROM Monitors';
     }
 
+    {
     my $sth = $dbh->prepare_cached( $sql )
       or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute( @values )
@@ -226,9 +227,24 @@ if ( $command =~ /^(?:start|restart)$/ ) {
       }
     }
     $sth->finish();
-
+    }
+    {
+    my $sql = 'SELECT Id FROM Filters WHERE Background=1';
+    my $sth = $dbh->prepare_cached($sql)
+      or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute()
+      or Fatal( "Can't execute: ".$sth->errstr() );
+    if ( $sth->rows ) {
+      while( my $filter = $sth->fetchrow_hashref() ) {
 # This is now started unconditionally
-    runCommand('zmdc.pl start zmfilter.pl');
+        runCommand("zmdc.pl start zmfilter.pl --filter_id=$$filter{Id}");
+      }
+    } else {
+      runCommand('zmdc.pl start zmfilter.pl');
+    }
+    $sth->finish();
+    }
+
     if ( $Config{ZM_RUN_AUDIT} ) {
       if ( $Server and exists $$Server{'zmaudit'} and ! $$Server{'zmaudit'} ) {
         Debug("Not running zmaudit.pl because it is turned off for this server.");
@@ -252,6 +268,9 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     }
     if ( $Config{ZM_TELEMETRY_DATA} ) {
       runCommand('zmdc.pl start zmtelemetry.pl');
+    }
+    if ($Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
+        runCommand('zmdc.pl start zmeventnotification.pl');
     }
     if ( $Server and exists $$Server{'zmstats'} and ! $$Server{'zmstats'} ) {
       Debug("Not running zmstats.pl because it is turned off for this server.");

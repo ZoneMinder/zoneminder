@@ -27,14 +27,18 @@
 SWScale::SWScale() : gotdefaults(false), swscale_ctx(NULL), input_avframe(NULL), output_avframe(NULL) {
   Debug(4,"SWScale object created");
 
+}
+
+bool SWScale::init() {
   /* Allocate AVFrame for the input */
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
   input_avframe = av_frame_alloc();
 #else
   input_avframe = avcodec_alloc_frame();
 #endif
-  if(input_avframe == NULL) {
-    Fatal("Failed allocating AVFrame for the input");
+  if ( input_avframe == NULL ) {
+    Error("Failed allocating AVFrame for the input");
+    return false;
   }
 
   /* Allocate AVFrame for the output */
@@ -43,21 +47,23 @@ SWScale::SWScale() : gotdefaults(false), swscale_ctx(NULL), input_avframe(NULL),
 #else
   output_avframe = avcodec_alloc_frame();
 #endif
-  if(output_avframe == NULL) {
-    Fatal("Failed allocating AVFrame for the output");
+  if ( output_avframe == NULL ) {
+    Error("Failed allocating AVFrame for the output");
+    return false;
   }
+  return true;
 }
 
 SWScale::~SWScale() {
 
   /* Free up everything */
-  av_frame_free( &input_avframe );
-  //input_avframe = NULL;
+  if ( input_avframe )
+    av_frame_free(&input_avframe);
 
-  av_frame_free( &output_avframe );
-  //output_avframe = NULL;
+  if ( output_avframe )
+    av_frame_free(&output_avframe);
 
-  if(swscale_ctx) {
+  if ( swscale_ctx ) {
     sws_freeContext(swscale_ctx);
     swscale_ctx = NULL;
   }

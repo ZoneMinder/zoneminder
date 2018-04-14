@@ -327,6 +327,7 @@ sub checkFilter {
         Error( "Unable toto delete event $event->{Id} as previous operations failed\n" );
       }
     } # end if AutoDelete
+
     if ( $filter->{AutoMove} ) {
       my $Event = new ZoneMinder::Event( $$event{Id}, $event );
       my $NewStorage = new ZoneMinder::Storage( $filter->{AutoMoveTo} );

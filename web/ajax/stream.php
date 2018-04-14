@@ -10,11 +10,12 @@ if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
   ajaxError( "Unexpected received message type '$type'" );
 }
 
-$key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf("%06d",$_REQUEST['connkey']).'w.lock', 'Z');
+# The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
+$key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock', 'Z');
 $semaphore = sem_get($key,1);
 if ( sem_acquire($semaphore,1) !== false ) {
-  if ( !($socket = @socket_create( AF_UNIX, SOCK_DGRAM, 0 )) ) {
-    ajaxError( 'socket_create() failed: '.socket_strerror(socket_last_error()) );
+  if ( !($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0)) ) {
+    ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
   }
 
   $localSocketFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'w.sock';
@@ -133,13 +134,11 @@ if ( sem_acquire($semaphore,1) !== false ) {
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
     if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
-      session_start();
       $time = time();
       // Regenerate auth hash after half the lifetime of the hash
       if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
-        $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+        $data['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
       } 
-      session_write_close();
     }
     ajaxResponse( array( 'status'=>$data ) );
     break;
@@ -151,13 +150,11 @@ if ( sem_acquire($semaphore,1) !== false ) {
     $data['rate'] /= RATE_BASE;
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
     if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
-      session_start();
       $time = time();
       // Regenerate auth hash after half the lifetime of the hash
       if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
-        $data['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+        $data['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
       } 
-      session_write_close();
     }
     ajaxResponse( array( 'status'=>$data ) );
     break;

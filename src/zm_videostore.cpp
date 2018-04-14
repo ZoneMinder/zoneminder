@@ -549,7 +549,7 @@ VideoStore::~VideoStore() {
   if ( oc->pb ) {
     if ( ( video_out_ctx->codec_id != video_in_ctx->codec_id ) || audio_out_codec ) {
       Debug(2,"Different codecs between in and out");
-      flush_output();
+      flush_codecs();
     } // end if buffers
 
     // Flush Queues

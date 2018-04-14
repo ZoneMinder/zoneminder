@@ -96,7 +96,7 @@ sub find_one {
 
 sub Execute {
   my $self = $_[0];
-  my $sql = $self->Sql();
+  my $sql = $self->Sql(undef);
 
   if ( $self->{HasDiskPercent} ) {
 		my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );

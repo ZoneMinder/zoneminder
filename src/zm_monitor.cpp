@@ -1593,9 +1593,14 @@ bool Monitor::Analyse() {
   ZMPacket *snap;
   // Is it possible for snap->score to be ! -1?
   while ( ( snap = packetqueue->get_analysis_packet() ) && ( snap->score == -1 ) ) {
-    snap->lock();
     unsigned int index = snap->image_index;
     Debug(2, "Analysis index (%d), last_Write(%d)", index, shared_data->last_write_index);
+    if ( index == shared_data->last_read_index ) {
+      Debug(2, "Returning because we are re-analyzing");
+      return 0;
+    }
+
+    snap->lock();
     packets_processed += 1;
 
     if ( snap->image_index == -1 ) {

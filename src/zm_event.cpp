@@ -98,6 +98,7 @@ Event::Event(
       monitor->GetOptSaveJPEGs(),
       storage->SchemeString().c_str()
       );
+
   db_mutex.lock();
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't insert event: %s. sql was (%s)", mysql_error(&dbconn), sql);
@@ -192,7 +193,7 @@ Event::Event(
   if ( monitor->GetOptVideoWriter() != 0 ) {
     std::string container = monitor->OutputContainer();
     if ( container == "auto" || container == "" ) {
-      if ( monitor->OutputCodec() == "h264" ) {
+      if ( monitor->OutputCodec() == AV_CODEC_ID_H264 ) {
         container = "mp4";
       } else {
         container = "mkv";
@@ -414,7 +415,7 @@ void Event::AddFrames(int n_frames, Image **images, struct timeval **timestamps)
 
 void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, struct timeval **timestamps) {
   static char sql[ZM_SQL_LGE_BUFSIZ];
-  strncpy( sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql) );
+  strncpy(sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql));
   int frameCount = 0;
   for ( int i = start_frame; i < n_frames && i - start_frame < ZM_SQL_BATCH_SIZE; i++ ) {
     if ( timestamps[i]->tv_sec <= 0 ) {

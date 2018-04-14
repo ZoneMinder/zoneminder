@@ -461,3 +461,15 @@ void dumpPacket(AVPacket *pkt, const char *text) {
            pkt->duration);
   Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
 }
+
+void zm_free_codec( AVCodecContext **ctx ) {
+  if ( *ctx ) {
+    avcodec_close(*ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // We allocate and copy in newer ffmpeg, so need to free it
+    avcodec_free_context(ctx);
+#endif
+    *ctx = NULL;
+    audio_in_codec = NULL;
+  } // end if 
+}

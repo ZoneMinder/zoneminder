@@ -143,7 +143,7 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
 
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
 
-  if ( (ret = av_read_frame(mFormatContext, &packet)) < 0 ) {
+  if ( (ret = av_read_frame( mFormatContext, &packet )) < 0 ) {
     if (
         // Check if EOF.
         (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
@@ -476,6 +476,6 @@ int FfmpegCamera::CloseFfmpeg() {
   }
 
   return 0;
-} // end FfmpegCamera::Close
+} // end int FfmpegCamera::CloseFfmpeg()
 
 #endif // HAVE_LIBAVFORMAT

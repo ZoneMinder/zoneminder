@@ -130,8 +130,8 @@ sub Execute {
 }
 
 sub Sql {
-  my $self = $_[0];
-  $$self{Sql} = shift if @_;;
+  my $self = shift;
+  $$self{Sql} = shift if @_;
   if ( ! $$self{Sql} ) {
     my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query});
     my $sql = 'SELECT E.*,

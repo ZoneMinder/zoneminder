@@ -163,6 +163,4 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, int frame_number) {
       break;
   } // end while frame_number > streams.frame_count
   return frame;
-} //  end AVFrame *FFmpeg_Input::get_frame
-
-
+} // end AVFrame *FFmpeg_Input::get_frame

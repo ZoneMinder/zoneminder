@@ -262,7 +262,8 @@ protected:
   int colours;
   VideoWriter videowriter;
   std::string encoderparams;
-  std::string         output_codec;
+  int     output_codec;
+  std::string         encoder;
   std::string         output_container;
   std::vector<EncoderParameter_t> encoderparamsvec;
     _AVPIXELFORMAT      imagePixFormat;
@@ -372,51 +373,6 @@ public:
 
 // OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
 //bool OurCheckAlarms( Zone *zone, const Image *pImage );
-  Monitor(
-    int p_id,
-    const char *p_name,
-    unsigned int p_server_id,
-    unsigned int p_storage_id,
-    int p_function,
-    bool p_enabled,
-    const char *p_linked_monitors,
-    Camera *p_camera,
-    int p_orientation,
-    unsigned int p_deinterlacing,
-    int p_savejpegs,
-    int p_colours,
-    VideoWriter p_videowriter,
-    std::string &p_encoderparams,
-    std::string &p_output_codec,
-    std::string &p_output_container,
-    bool  p_record_audio,
-    const char *p_event_prefix,
-    const char *p_label_format,
-    const Coord &p_label_coord,
-    int label_size,
-    int p_image_buffer_count,
-    int p_warmup_count,
-    int p_pre_event_count,
-    int p_post_event_count,
-    int p_stream_replay_buffer,
-    int p_alarm_frame_count,
-    int p_section_length,
-    int p_frame_skip,
-    int p_motion_frame_skip,
-    double p_analysis_fps,
-    unsigned int p_analysis_update_delay,
-    int p_capture_delay,
-    int p_alarm_capture_delay,
-    int p_fps_report_interval,
-    int p_ref_blend_perc,
-    int p_alarm_ref_blend_perc,
-    bool p_track_motion,
-    Rgb p_signal_check_colour,
-    bool p_embed_exif,
-    Purpose p_purpose,
-    int p_n_zones=0,
-    Zone *p_zones[]=0
-  );
   ~Monitor();
 
   void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -486,7 +442,8 @@ public:
   VideoWriter GetOptVideoWriter() const { return videowriter; }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
   const std::string &GetEncoderOptions() const { return encoderparams; }
-  const std::string &OutputCodec() const { return output_codec; }
+  const int OutputCodec() const { return output_codec; }
+  const std::string &Encoder() const { return encoder; }
   const std::string &OutputContainer() const { return output_container; }
 
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
@@ -510,7 +467,7 @@ public:
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();
-  TriggerState GetTriggerState() const { return (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL ); }
+  TriggerState GetTriggerState() const { return (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL); }
 	inline time_t getStartupTime() const { return shared_data->startup_time; }
 	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
   void get_ref_image();
@@ -527,9 +484,9 @@ public:
   int actionContrast( int p_contrast=-1 );
 
   int PrimeCapture();
-  int PreCapture();
+  int PreCapture() const;
   int Capture();
-  int PostCapture();
+  int PostCapture() const;
 
   void CheckAction();
 

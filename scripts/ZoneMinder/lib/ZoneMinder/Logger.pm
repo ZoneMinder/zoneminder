@@ -679,7 +679,7 @@ sub Dump {
 sub debug {
   my $log = shift;
   $log->logPrint(DEBUG, @_);
- }
+}
 
 sub Debug( @ ) {
   fetch()->logPrint(DEBUG, @_);

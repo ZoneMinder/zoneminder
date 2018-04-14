@@ -18,6 +18,15 @@ class VideoStore;
 class VideoStore {
 private:
 
+struct CodecData {
+  const int codec_id;
+  const char *codec_codec;
+  const char *codec_name;
+  const enum AVPixelFormat pix_fmt;
+  
+};
+static struct CodecData codec_data[];
+
   Monitor *monitor;
 	AVOutputFormat *out_format;
 	AVFormatContext *oc;
@@ -89,6 +98,7 @@ public:
   int writeAudioFramePacket( ZMPacket *pkt );
   int writePacket( ZMPacket *pkt );
   int write_packets( zm_packetqueue &queue );
+  void flush_codecs();
 };
 
 #endif //havelibav

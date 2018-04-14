@@ -71,7 +71,7 @@ std::string load_monitor_sql =
 "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
 "Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
 "SaveJPEGs, VideoWriter, EncoderParameters, "
-"OutputCodec, OutputContainer, "
+"OutputCodec, Encoder, OutputContainer, "
 "RecordAudio, "
 "Brightness, Contrast, Hue, Colour, "
 "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
@@ -292,7 +292,7 @@ Monitor::Monitor()
   colours(0),
   videowriter(DISABLED),
   encoderparams(""),
-  output_codec(""),
+  output_codec(0),
   output_container(""),
   record_audio(0),
 //event_prefix
@@ -460,7 +460,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   /* Parse encoder parameters */
   ParseEncoderParameters(encoderparams.c_str(), &encoderparamsvec);
 
-  output_codec = dbrow[col] ? dbrow[col] : ""; col++;
+  output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  encoder = dbrow[col] ? dbrow[col] : ""; col++;
   output_container = dbrow[col] ? dbrow[col] : ""; col++;
   record_audio = (*dbrow[col] != '0'); col++;
 
@@ -883,25 +884,7 @@ bool Monitor::connect() {
 } // Monitor::connect
 
 Monitor::~Monitor() {
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
-  }
-  delete packetqueue;
-  packetqueue = NULL;
 
-  if ( timestamps ) {
-    delete[] timestamps;
-    timestamps = 0;
-  }
-  if ( images ) {
-    delete[] images;
-    images = 0;
-  }
-  if ( privacy_bitmask ) {
-    delete[] privacy_bitmask;
-    privacy_bitmask = NULL;
-  }
   if ( mem_ptr ) {
     if ( event ) {
       Info( "%s: image_count:%d - Closing event %llu, shutting down", name, image_count, event->Id() );
@@ -914,12 +897,17 @@ Monitor::~Monitor() {
         event_delete_thread = NULL;
       }
     }
+    if ( event_delete_thread ) {
+      event_delete_thread->join();
+      delete event_delete_thread;
+      event_delete_thread = NULL;
+    }
 
     if ( deinterlacing_value == 4 ) {
       delete next_buffer.image;
     }
 #if 1
-    for ( int i = 0; i < image_buffer_count; i++ ) {
+    for ( int i=0; i < image_buffer_count; i++ ) {
       delete image_buffer[i].image;
     }
 #endif
@@ -932,15 +920,15 @@ Monitor::~Monitor() {
       shared_data->last_read_time = 0;
     } else if ( purpose == CAPTURE ) {
       shared_data->valid = false;
-      memset( mem_ptr, 0, mem_size );
+      memset(mem_ptr, 0, mem_size);
     }
 
 #if ZM_MEM_MAPPED
-    if ( msync( mem_ptr, mem_size, MS_SYNC ) < 0 )
-      Error( "Can't msync: %s", strerror(errno) );
-    if ( munmap( mem_ptr, mem_size ) < 0 )
-      Fatal( "Can't munmap: %s", strerror(errno) );
-    close( map_fd );
+    if ( msync(mem_ptr, mem_size, MS_SYNC) < 0 )
+      Error("Can't msync: %s", strerror(errno));
+    if ( munmap(mem_ptr, mem_size) < 0 )
+      Fatal("Can't munmap: %s", strerror(errno));
+    close(map_fd);
 
     if ( purpose == CAPTURE ) {
       // How about we store this in the object on instantiation so that we don't have to do this again.
@@ -953,20 +941,41 @@ Monitor::~Monitor() {
     }
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
-    if ( shmctl( shm_id, IPC_STAT, &shm_data ) < 0 ) {
-      Error( "Can't shmctl: %s", strerror(errno) );
-      exit( -1 );
+    if ( shmctl(shm_id, IPC_STAT, &shm_data) < 0 ) {
+      Error("Can't shmctl: %s", strerror(errno));
+      exit(-1);
     }
     if ( shm_data.shm_nattch <= 1 ) {
-      if ( shmctl( shm_id, IPC_RMID, 0 ) < 0 ) {
-        Error( "Can't shmctl: %s", strerror(errno) );
-        exit( -1 );
+      if ( shmctl(shm_id, IPC_RMID, 0) < 0 ) {
+        Error("Can't shmctl: %s", strerror(errno));
+        exit(-1);
       }
     }
 #endif // ZM_MEM_MAPPED
   } // end if mem_ptr
 
-  for ( int i = 0; i < n_zones; i++ ) {
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
+
+  if ( timestamps ) {
+    delete[] timestamps;
+    timestamps = 0;
+  }
+  if ( images ) {
+    delete[] images;
+    images = 0;
+  }
+
+  delete packetqueue;
+  packetqueue = NULL;
+
+  if ( privacy_bitmask ) {
+    delete[] privacy_bitmask;
+    privacy_bitmask = NULL;
+  }
+  for ( int i=0; i < n_zones; i++ ) {
     delete zones[i];
   }
   delete[] zones;
@@ -975,29 +984,29 @@ Monitor::~Monitor() {
   delete storage;
 }
 
-void Monitor::AddZones( int p_n_zones, Zone *p_zones[] ) {
-  for ( int i = 0; i < n_zones; i++ )
+void Monitor::AddZones(int p_n_zones, Zone *p_zones[]) {
+  for ( int i=0; i < n_zones; i++ )
     delete zones[i];
   delete[] zones;
   n_zones = p_n_zones;
   zones = p_zones;
 }
 
-void Monitor::AddPrivacyBitmask( Zone *p_zones[] ) {
+void Monitor::AddPrivacyBitmask(Zone *p_zones[]) {
   if ( privacy_bitmask ) {
     delete[] privacy_bitmask;
     privacy_bitmask = NULL;
   }
   Image *privacy_image = NULL;
 
-  for ( int i = 0; i < n_zones; i++ ) {
+  for ( int i=0; i < n_zones; i++ ) {
     if ( p_zones[i]->IsPrivacy() ) {
       if ( !privacy_image ) {
-        privacy_image = new Image( width, height, 1, ZM_SUBPIX_ORDER_NONE);
+        privacy_image = new Image(width, height, 1, ZM_SUBPIX_ORDER_NONE);
         privacy_image->Clear();
       }
-      privacy_image->Fill( 0xff, p_zones[i]->GetPolygon() );
-      privacy_image->Outline( 0xff, p_zones[i]->GetPolygon() );
+      privacy_image->Fill(0xff, p_zones[i]->GetPolygon());
+      privacy_image->Outline(0xff, p_zones[i]->GetPolygon());
     }
   } // end foreach zone
   if ( privacy_image )
@@ -1550,15 +1559,15 @@ void Monitor::UpdateAnalysisFPS() {
     if ( new_analysis_fps != analysis_fps ) {
       analysis_fps = new_analysis_fps;
 
-      static char sql[ZM_SQL_SML_BUFSIZ];
-      snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, analysis_fps, analysis_fps );
+      char sql[ZM_SQL_SML_BUFSIZ];
+      snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, analysis_fps, analysis_fps);
       db_mutex.lock();
       if ( mysql_query( &dbconn, sql ) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
       db_mutex.unlock();
+      last_analysis_fps_time = now.tv_sec;
     }
-    last_analysis_fps_time = now.tv_sec;
   }
 }
 
@@ -1589,17 +1598,19 @@ bool Monitor::Analyse() {
     Debug(2, "Analysis index (%d), last_Write(%d)", index, shared_data->last_write_index);
     packets_processed += 1;
 
-    struct timeval *timestamp = snap->timestamp;
-    Image *snap_image = snap->image;
     if ( snap->image_index == -1 ) {
       snap->unlock();
       Debug(2, "skipping because audio");
+      // We want to skip, but if we return, we may sleep.
+      //
       if ( ! packetqueue->increment_analysis_it() ) {
         Debug(2, "No more packets to analyse");
         return false;
       }
       continue;
     }
+    struct timeval *timestamp = snap->timestamp;
+    Image *snap_image = snap->image;
 
     // signal is set by capture
     bool signal = shared_data->signal;
@@ -1727,6 +1738,19 @@ bool Monitor::Analyse() {
               // Create event
               event = new Event( this, *timestamp, "Continuous", noteSetMap );
               shared_data->last_event_id = event->Id();
+
+                // lets construct alarm cause. It will contain cause + names of zones alarmed
+                std::string alarm_cause="Continuous";
+                for ( int i=0; i < n_zones; i++) {
+                    if (zones[i]->Alarmed()) {
+                        alarm_cause += std::string(zones[i]->Label());
+                        if (i < n_zones-1) {
+                            alarm_cause +=",";
+                        }
+                    }
+                } 
+                alarm_cause = cause+" "+alarm_cause;
+                strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
               video_store_data->recording = event->StartTime();
               Info( "%s: %03d - Opening new event %llu, section start", name, analysis_image_count, event->Id() );
               /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -1738,22 +1762,34 @@ bool Monitor::Analyse() {
 
           if ( score ) {
             Debug(9, "Score: (%d)", score );
-              if ( state == IDLE || state == TAPE || state == PREALARM ) {
-                if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
-                  Info( "%s: %03d - Gone into alarm state", name, analysis_image_count );
-                  shared_data->state = state = ALARM;
-                  if ( ! event ) {
-                    event = new Event( this, *timestamp, cause, noteSetMap );
-                    shared_data->last_event_id = event->Id();
-                  }
-                } else if ( state != PREALARM ) {
-                  Info( "%s: %03d - Gone into prealarm state", name, analysis_image_count );
-                  shared_data->state = state = PREALARM;
-                }
-              } else if ( state == ALERT ) {
-                Info( "%s: %03d - Gone back into alarm state", name, analysis_image_count );
+            if ( state == IDLE || state == TAPE || state == PREALARM ) {
+              if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
+                Info( "%s: %03d - Gone into alarm state", name, analysis_image_count );
                 shared_data->state = state = ALARM;
+                if ( ! event ) {
+                // lets construct alarm cause. It will contain cause + names of zones alarmed
+                std::string alarm_cause="";
+                for ( int i=0; i < n_zones; i++) {
+                    if (zones[i]->Alarmed()) {
+                        alarm_cause += std::string(zones[i]->Label());
+                        if (i < n_zones-1) {
+                            alarm_cause +=",";
+                        }
+                    }
+                } 
+                alarm_cause = cause+" "+alarm_cause;
+                strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
+                  event = new Event( this, *timestamp, cause, noteSetMap );
+                  shared_data->last_event_id = event->Id();
+                }
+              } else if ( state != PREALARM ) {
+                Info( "%s: %03d - Gone into prealarm state", name, analysis_image_count );
+                shared_data->state = state = PREALARM;
               }
+            } else if ( state == ALERT ) {
+              Info( "%s: %03d - Gone back into alarm state", name, analysis_image_count );
+              shared_data->state = state = ALARM;
+            }
             last_alarm_count = analysis_image_count;
           } else { // no score?
             if ( state == ALARM ) {
@@ -1817,9 +1853,14 @@ bool Monitor::Analyse() {
             // Alert means this frame has no motion, but we were alarmed and are still recording.
             if ( noteSetMap.size() > 0 )
               event->updateNotes( noteSetMap );
-          } else if ( state == TAPE ) {
-            if ( !(analysis_image_count%(frame_skip+1)) ) {
-            }
+          //} else if ( state == TAPE ) {
+            //if ( !(analysis_image_count%(frame_skip+1)) ) {
+              //if ( config.bulk_frame_interval > 1 ) {
+                //event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
+              //} else {
+                //event->AddFrame( snap_image, *timestamp );
+              //}
+            //}
           }
           if ( function == MODECT || function == MOCORD ) {
             ref_image.Blend( *snap_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ) );
@@ -1921,12 +1962,12 @@ void Monitor::ReloadZones() {
   zones = 0;
   n_zones = Zone::Load(this, zones);
   //DumpZoneImage();
-}
+} // end void Monitor::ReloadZones()
 
 void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
   Debug(1, "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors);
   if ( n_linked_monitors ) {
-    for( int i = 0; i < n_linked_monitors; i++ ) {
+    for( int i=0; i < n_linked_monitors; i++ ) {
       delete linked_monitors[i];
     }
     delete[] linked_monitors;
@@ -1938,6 +1979,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
     int n_link_ids = 0;
     unsigned int link_ids[256];
 
+    // This nasty code picks out strings of digits from p_linked_monitors and tries to load them. 
     char link_id_str[8];
     char *dest_ptr = link_id_str;
     const char *src_ptr = p_linked_monitors;
@@ -1979,35 +2021,35 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
       linked_monitors = new MonitorLink *[n_link_ids];
       int count = 0;
       for ( int i = 0; i < n_link_ids; i++ ) {
-        Debug( 1, "Checking linked monitor %d", link_ids[i] );
+        Debug(1, "Checking linked monitor %d", link_ids[i]);
 
         static char sql[ZM_SQL_SML_BUFSIZ];
-        snprintf( sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
+        snprintf(sql, sizeof(sql), "SELECT Id, Name FROM Monitors WHERE Id = %d AND Function != 'None' AND Function != 'Monitor' AND Enabled = 1", link_ids[i] );
         db_mutex.lock();
-        if ( mysql_query( &dbconn, sql ) ) {
-          Error( "Can't run query: %s", mysql_error( &dbconn ) );
+        if ( mysql_query(&dbconn, sql) ) {
+          Error("Can't run query: %s", mysql_error(&dbconn));
           db_mutex.unlock();
-          exit( mysql_errno( &dbconn ) );
+          continue;
         }
 
-        MYSQL_RES *result = mysql_store_result( &dbconn );
+        MYSQL_RES *result = mysql_store_result(&dbconn);
         db_mutex.unlock();
         if ( !result ) {
-          Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-          exit( mysql_errno( &dbconn ) );
+          Error("Can't use query result: %s", mysql_error(&dbconn));
+          continue;
         }
-        int n_monitors = mysql_num_rows( result );
+        int n_monitors = mysql_num_rows(result);
         if ( n_monitors == 1 ) {
-          MYSQL_ROW dbrow = mysql_fetch_row( result );
-          Debug( 1, "Linking to monitor %d", link_ids[i] );
-          linked_monitors[count++] = new MonitorLink( link_ids[i], dbrow[1] );
+          MYSQL_ROW dbrow = mysql_fetch_row(result);
+          Debug(1, "Linking to monitor %d", link_ids[i]);
+          linked_monitors[count++] = new MonitorLink(link_ids[i], dbrow[1]);
         } else {
-          Warning( "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] );
+          Warning("Can't link to monitor %d, invalid id, function or not enabled", link_ids[i]);
         }
-        mysql_free_result( result );
-      }
+        mysql_free_result(result);
+      } // end foreach n_link_id
       n_linked_monitors = count;
-    }
+    } // end if n_link_ids > 0
   }
 }
 
@@ -2129,7 +2171,7 @@ int Monitor::Capture() {
       return 0;
     }
   } else {
-    Debug(2,"Before capture");
+    Debug(4, "Capturing");
     captureResult = camera->Capture(*packet);
     gettimeofday( packet->timestamp, NULL );
     if ( captureResult < 0 ) {
@@ -2589,18 +2631,17 @@ unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
 int Monitor::PrimeCapture() {
   int ret = camera->PrimeCapture();
   if ( ret == 0 ) {
+    if ( packetqueue ) 
+      delete packetqueue;
     video_stream_id = camera->get_VideoStreamId();
     packetqueue = new zm_packetqueue(image_buffer_count, video_stream_id);
   }
   Debug(2, "Video stream id is (%d), minimum_packets to keep in buffer(%d)", video_stream_id, pre_event_buffer_count);
   return ret;
 }
-int Monitor::PreCapture() {
-  return camera->PreCapture();
-}
-int Monitor::PostCapture() {
-  return camera->PostCapture();
-}
+
+int Monitor::PreCapture() const { return camera->PreCapture(); }
+int Monitor::PostCapture() const { return camera->PostCapture() ; }
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 // Wait for camera to get an image, and then assign it as the base reference image. So this should be done as the first task in the analysis thread startup.

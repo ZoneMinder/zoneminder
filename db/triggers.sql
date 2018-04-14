@@ -60,7 +60,6 @@ FOR EACH ROW
   //
 
 
-delimiter //
 DROP TRIGGER IF EXISTS Events_Week_delete_trigger//
 CREATE TRIGGER Events_Week_delete_trigger BEFORE DELETE ON Events_Week
 FOR EACH ROW BEGIN

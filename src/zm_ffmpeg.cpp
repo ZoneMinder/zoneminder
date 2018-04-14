@@ -441,18 +441,17 @@ void dumpPacket(AVPacket *pkt, const char *text) {
   char b[10240];
 
   snprintf(b, sizeof(b),
-           " pts: %" PRId64 ", dts: %" PRId64
-           ", data: %p, size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
+           " pts: %" PRIu64 ", dts: %" PRIu64
+           ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
            ", duration: %" 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-           PRId64
+           PRIu64
 #else
            "d"
 #endif
            "\n",
            pkt->pts, 
            pkt->dts,
-           pkt->data,
            pkt->size,
            pkt->stream_index,
            pkt->flags,
@@ -470,6 +469,5 @@ void zm_free_codec( AVCodecContext **ctx ) {
     avcodec_free_context(ctx);
 #endif
     *ctx = NULL;
-    audio_in_codec = NULL;
   } // end if 
 }

@@ -250,7 +250,7 @@ ZMPacket *zm_packetqueue::get_analysis_packet() {
 bool zm_packetqueue::increment_analysis_it( ) {
   // We do this instead of distance becuase distance will traverse the entire list in the worst case
   std::list<ZMPacket *>::iterator next_it = analysis_it;
-  next_it ++;
+  ++ next_it;
   if ( next_it == pktQueue.end() ) {
     return false;
   }

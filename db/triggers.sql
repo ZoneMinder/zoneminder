@@ -203,7 +203,7 @@ CREATE TRIGGER event_delete_trigger BEFORE DELETE ON Events
 FOR EACH ROW
 BEGIN
   IF ( OLD.DiskSpace ) THEN
-    UPDATE Storage SET DiskSpace = COALESCE(DiskSpace,0) - OLD.DiskSpace WHERE Id = OLD.StorageId;
+    UPDATE Storage SET DiskSpace = COALESCE(DiskSpace,0) - CAST(OLD.DiskSpace AS SIGNED) WHERE Id = OLD.StorageId;
   END IF;
   DELETE FROM Events_Hour WHERE EventId=OLD.Id;
   DELETE FROM Events_Day WHERE EventId=OLD.Id;

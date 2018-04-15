@@ -35,6 +35,7 @@ if [ "$1" = "configure" ]; then
       else
         DBSERVICE="mysql.service"
       fi
+      echo "Detected db service is $DBSERVICE"
       if systemctl is-failed --quiet $DBSERVICE; then
         echo "$DBSERVICE is in a failed state; it will not be started."
         echo "If you have already resolved the problem preventing $DBSERVICE from running,"
@@ -53,13 +54,20 @@ if [ "$1" = "configure" ]; then
         mysqladmin --defaults-file=/etc/mysql/debian.cnf -f reload
         # test if database if already present...
         if ! $(echo quit | mysql --defaults-file=/etc/mysql/debian.cnf zm > /dev/null 2> /dev/null) ; then
+            echo "Creating zm db"
             cat /usr/share/zoneminder/db/zm_create.sql | mysql --defaults-file=/etc/mysql/debian.cnf
             # This creates the user.
             echo "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute  on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost identified by \"${ZM_DB_PASS}\";" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
         else
+            echo "Updating permissions"
             echo "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute  on ${ZM_DB_NAME}.* to '${ZM_DB_USER}'@localhost;" | mysql --defaults-file=/etc/mysql/debian.cnf mysql
         fi
-  
+
+        zmupdate.pl --nointeractive
+        zmupdate.pl --nointeractive -f
+
+        # Add any new PTZ control configurations to the database (will not overwrite)
+        zmcamtool.pl --import >/dev/null 2>&1
       else
         echo 'NOTE: MySQL/MariaDB not running; please start mysql and run dpkg-reconfigure zoneminder when it is running.'
       fi

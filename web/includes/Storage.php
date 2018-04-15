@@ -21,7 +21,7 @@ class Storage {
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
-      $storage_cache[$IdOrRow] = $this;
+      $storage_cache[$row['Id']] = $this;
     } else {
       $this->{'Name'} = '';
       $this->{'Path'} = '';

@@ -145,7 +145,7 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
 }
 
 // Event scope actions, view permissions only required
-if ( canView( 'Events' ) ) {
+if ( canView('Events') ) {
 
   if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'filter' ) ) {
     if ( $action == 'addterm' ) {
@@ -155,7 +155,7 @@ if ( canView( 'Events' ) ) {
     } else if ( canEdit( 'Events' ) ) {
       if ( $action == 'delete' ) {
         if ( ! empty($_REQUEST['Id']) ) {
-          dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
+          dbQuery('DELETE FROM Filters WHERE Id=?', array($_REQUEST['Id']));
         }
       } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) ) {
        # or ( $action == 'submit' ) ) {
@@ -189,9 +189,9 @@ if ( canView( 'Events' ) ) {
         $sql .= ', Concurrent  = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
 
         if ( $_REQUEST['Id'] and ( $action == 'Save' ) ) {
-          dbQuery( 'UPDATE Filters SET ' . $sql. ' WHERE Id=?', array($_REQUEST['Id']) );
+          dbQuery('UPDATE Filters SET ' . $sql. ' WHERE Id=?', array($_REQUEST['Id']));
         } else {
-          dbQuery( 'INSERT INTO Filters SET' . $sql );
+          dbQuery('INSERT INTO Filters SET' . $sql);
           $_REQUEST['Id'] = dbInsertId();
         }
         if ( $action == 'execute' ) {
@@ -207,7 +207,7 @@ if ( canView( 'Events' ) ) {
     // Event scope actions, edit permissions required
     if ( canEdit('Events') ) {
       if ( ($action == 'rename') && isset($_REQUEST['eventName']) && !empty($_REQUEST['eid']) ) {
-        dbQuery( 'UPDATE Events SET Name=? WHERE Id=?', array( $_REQUEST['eventName'], $_REQUEST['eid'] ) );
+        dbQuery('UPDATE Events SET Name=? WHERE Id=?', array($_REQUEST['eventName'], $_REQUEST['eid']));
       } else if ( $action == 'eventdetail' ) {
         if ( !empty($_REQUEST['eid']) ) {
           dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['eid'] ) );

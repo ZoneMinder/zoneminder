@@ -82,6 +82,7 @@ BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: ffmpeg-devel
+BuildRequires:	desktop-file-utils
 
 # Required for mp4 container support
 BuildRequires: libmp4v2-devel
@@ -166,6 +167,12 @@ too much degradation of performance.
 
 %install
 %make_install
+
+desktop-file-install					\
+	--dir %{buildroot}%{_datadir}/applications	\
+	--delete-original				\
+	--mode 644					\
+	%{buildroot}%{_datadir}/applications/zoneminder.desktop
 
 # Remove unwanted files and folders
 find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
@@ -341,6 +348,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{_bindir}/zmtelemetry.pl
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl
+%{_bindir}/zmstats.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
@@ -351,6 +359,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 
 %{_libexecdir}/zoneminder/
 %{_datadir}/zoneminder/
+%{_datadir}/applications/*%{name}.desktop
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events

@@ -2366,14 +2366,16 @@ int Monitor::Capture() {
       captureResult = camera->Capture(*capture_image);
     }
   }
-Debug(4, "Return from Capture (%d)", captureResult);
+
   if ( captureResult < 0 ) {
+    Warning("Return from Capture (%d), signal loss", captureResult);
     // Unable to capture image for temporary reason
     // Fake a signal loss image
     Rgb signalcolor;
     signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
     capture_image->Fill(signalcolor);
   } else if ( captureResult > 0 ) {
+    Debug(4, "Return from Capture (%d)", captureResult);
 
     /* Deinterlacing */
     if ( deinterlacing_value == 1 ) {
@@ -2406,7 +2408,7 @@ Debug(4, "Return from Capture (%d)", captureResult);
           break;
         }
       }
-    }
+    } // end if have rotation
 
     if ( capture_image->Size() > camera->ImageSize() ) {
       Error( "Captured image %d does not match expected size %d check width, height and colour depth",capture_image->Size(),camera->ImageSize() );
@@ -2451,17 +2453,17 @@ Debug(4, "Return from Capture (%d)", captureResult);
         last_fps_time = now;
         if ( new_fps != fps ) {
           fps = new_fps;
-          static char sql[ZM_SQL_SML_BUFSIZ];
-          snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps );
           db_mutex.lock();
-          if ( mysql_query( &dbconn, sql ) ) {
-            Error( "Can't run query: %s", mysql_error( &dbconn ) );
+          static char sql[ZM_SQL_SML_BUFSIZ];
+          snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps);
+          if ( mysql_query(&dbconn, sql) ) {
+            Error("Can't run query: %s", mysql_error(&dbconn));
           }
           db_mutex.unlock();
         } // end if new_fps != fps
       } // end if time has changed since last update
-    } // end if captureResult
-  }
+    } // end if it might be time to report the fps
+  } // end if captureResult
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing
   if ( shared_data->action & GET_SETTINGS ) {

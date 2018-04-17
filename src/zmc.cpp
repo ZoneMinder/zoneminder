@@ -295,16 +295,19 @@ int main(int argc, char *argv[]) {
         if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
           if ( monitors[i]->PreCapture() < 0 ) {
             Error("Failed to pre-capture monitor %d %d (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+            monitors[i]->Close();
             result = -1;
             break;
           }
           if ( monitors[i]->Capture() < 0 ) {
             Error("Failed to capture image from monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+            monitors[i]->Close();
             result = -1;
             break;
           }
           if ( monitors[i]->PostCapture() < 0 ) {
             Error("Failed to post-capture monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+            monitors[i]->Close();
             result = -1;
             break;
           }
@@ -339,7 +342,6 @@ int main(int argc, char *argv[]) {
     delete [] capture_delays;
     delete [] next_delays;
     delete [] last_capture_times;
-    sleep(10);
   } // end while ! zm_terminate outer connection loop
 
   for ( int i = 0; i < n_monitors; i++ ) {

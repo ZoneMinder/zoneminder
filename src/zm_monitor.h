@@ -485,6 +485,7 @@ public:
   int PreCapture() const;
   int Capture();
   int PostCapture() const;
+  int Close();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
    // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.

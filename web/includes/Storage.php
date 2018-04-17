@@ -140,30 +140,37 @@ class Storage {
     return $usage;
   }
   public function disk_total_space() {
-    if ( ! array_key_exists( 'disk_total_space', $this ) ) {
-      $this->{'disk_total_space'} = disk_total_space( $this->Path() );
+    if ( ! array_key_exists('disk_total_space', $this) ) {
+      $this->{'disk_total_space'} = disk_total_space($this->Path());
     }
     return $this->{'disk_total_space'};
   }
+
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( (! array_key_exists( 'DiskSpace', $this )) or (!$this->{'DiskSpace'}) ) {
-      $used = 0;
+    if ( (! array_key_exists('disk_used_space', $this)) or (!$this->{'disk_used_space'}) ) {
       if ( $this->{'Type'} == 's3fs' ) {
-        $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
-
-        foreach ( Event::find_all( array( 'StorageId'=>$this->Id(), 'DiskSpace'=>null ) ) as $Event ) {
-          $Event->Storage( $this ); // Prevent further db hit
-          $used += $Event->DiskSpace();
-        }
+        $this->{'disk_used_space'} = $this->disk_event_space();
       } else { 
         $path = $this->Path();
-        $used = disk_total_space( $path ) - disk_free_space( $path );;
+        $this->{'disk_used_space'} = disk_total_space($path) - disk_free_space($path);
+      }
+    }
+    return $this->{'disk_used_space'};
+  } // end function disk_used_space
+
+  public function event_disk_space() {
+    # This isn't a function like this in php, so we have to add up the space used in each event.
+    if ( (! array_key_exists('DiskSpace', $this)) or (!$this->{'DiskSpace'}) ) {
+      $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
+
+      foreach ( Event::find_all( array('StorageId'=>$this->Id(), 'DiskSpace'=>null) ) as $Event ) {
+        $Event->Storage( $this ); // Prevent further db hit
+        $used += $Event->DiskSpace();
       }
       $this->{'DiskSpace'} = $used;
     }
-		
     return $this->{'DiskSpace'};
-  }
+  } // end function event_disk_space
 }
 ?>

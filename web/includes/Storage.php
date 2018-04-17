@@ -97,7 +97,7 @@ class Storage {
           $fields[] = $field.' IS NULL';
         } else if ( is_array( $value ) ) {
           $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
           $values += $value;
 
         } else {
@@ -105,10 +105,10 @@ class Storage {
           $values[] = $value;
         }
       }
-      $sql .= implode(' AND ', $fields );
+      $sql .= implode(' AND ', $fields);
     }
     if ( $options and isset($options['order']) ) {
-    $sql .= ' ORDER BY ' . $options['order'];
+      $sql .= ' ORDER BY ' . $options['order'];
     }
     $result = dbQuery($sql, $values);
     if ( $result ) {
@@ -164,6 +164,12 @@ class Storage {
     }
 		
     return $this->{'DiskSpace'};
+  }
+  public function Server() {
+    if ( ! array_key_exists('Server',$this) ) {
+      $this->{'Server'}= new Server( $this->{'ServerId'} );
+    }
+    return $this->{'Server'};
   }
 }
 ?>

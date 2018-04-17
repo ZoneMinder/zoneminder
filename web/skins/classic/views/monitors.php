@@ -49,7 +49,7 @@ xhtmlHeaders(__FILE__, translate('Function'));
     <div id="content">
 The following monitors will have these settings update when you click Save:<br/><br/>
       <?php echo implode('<br/>', array_map( function($m){return $m->Id().' ' .$m->Name();}, $monitors ) ); ?>
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="$j('#contentButtons').hide();return true;">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="save"/>
         <input type="hidden" name="object" value="Monitor"/>
@@ -88,8 +88,8 @@ echo htmlSelect( 'newMonitor[Function]', $options, $monitor->Function() );
           <input type="checkbox" name="newMonitor[Enabled]" id="newMonitor[Enabled]" value="1"<?php if ( !empty($monitors[0]->Enabled()) ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <button type="submit" value="Save"><?php echo translate('Save') ?></button>
+          <button onclick="closeWindow()"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

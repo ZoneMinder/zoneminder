@@ -61,8 +61,8 @@ if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($display
 
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   $time = time();
-  $maxTime = strftime('%FT%T',$time) - 3600;
-  $minTime = strftime('%FT%T',$time - 2*3600);
+  $maxTime = strftime('%FT%T',$time - 3600);
+  $minTime = strftime('%FT%T',$time - (2*3600) );
 }
 if ( isset($_REQUEST['minTime']) )
   $minTime = validHtmlStr($_REQUEST['minTime']);

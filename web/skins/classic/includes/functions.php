@@ -266,7 +266,6 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
    }
    // if canview_reports
 ?>
-      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 <?php
 if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   $terms = $_REQUEST['filter']['Query']['terms'];
@@ -288,6 +287,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 <?php
   }
 ?>
+      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 		</ul>
 <?php } // end if canView('Monitors') ?>
 

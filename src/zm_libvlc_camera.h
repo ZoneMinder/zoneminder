@@ -72,6 +72,7 @@ public:
   int Capture( Image &image );
   int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
   int PostCapture();
+  int Close() { return 0; };
 };
 
 #endif // HAVE_LIBVLC

@@ -2770,6 +2770,7 @@ unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
 int Monitor::PrimeCapture() const { return camera->PrimeCapture(); }
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture() ; }
+int Monitor::Close() { return camera->Close(); };
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 Monitor::Snapshot *Monitor::getSnapshot() const {

@@ -164,16 +164,16 @@ function dbFetchOne( $sql, $col=false, $params=NULL ) {
     return false;
   }
 
-  if ( $result && $dbRow = $result->fetch( PDO::FETCH_ASSOC ) ) {
+  if ( $result && $dbRow = $result->fetch(PDO::FETCH_ASSOC) ) {
     if ( $col ) {
-      if ( ! isset( $dbRow[$col] ) ) {
-        Warning( "$col does not exist in the returned row " . print_r($dbRow, true) );
+      if ( ! array_key_exists($col, $dbRow[$col]) ) {
+        Warning("$col does not exist in the returned row " . print_r($dbRow, true));
       }
       return $dbRow[$col];
     } 
     return $dbRow;
   }
-  return( false );
+  return false;
 }
 
 function dbFetchAll( $sql, $col=false, $params=NULL ) {

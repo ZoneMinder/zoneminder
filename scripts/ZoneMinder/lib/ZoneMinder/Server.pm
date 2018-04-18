@@ -107,6 +107,17 @@ sub Hostname {
   return $_[0]{Hostname};
 } # end sub Hostname
 
+sub CpuLoad {
+  my $output = qx(uptime);
+  my @sysloads = split ', ', (split ': ', $output)[-1];
+
+  if (join(', ',@sysloads) =~ /(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*$/) {
+    return @sysloads;
+  }
+
+  return (undef, undef, undef);
+} # end sub CpuLoad
+
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!

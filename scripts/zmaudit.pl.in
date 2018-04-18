@@ -537,7 +537,7 @@ MAIN: while( $loop ) {
   $cleaned = 0;
   Debug("Checking for Orphaned Frames");
   my $selectOrphanedFramesSql = 'SELECT DISTINCT EventId FROM Frames
-    WHERE EventId NOT IN (SELECT Id FROM Events)';
+    WHERE (SELECT COUNT(*) FROM Events WHERE Events.Id=EventId)=0';
   my $selectOrphanedFramesSth = $dbh->prepare_cached( $selectOrphanedFramesSql )
     or Fatal( "Can't prepare '$selectOrphanedFramesSql': ".$dbh->errstr() );
   $res = $selectOrphanedFramesSth->execute()

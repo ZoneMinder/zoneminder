@@ -716,18 +716,14 @@ Logger::Debug("daemonControl $string");
   exec( $string );
 }
 
-function zmcControl( $monitor, $mode=false ) {
+function zmcControl($monitor, $mode=false) {
   $Monitor = new Monitor( $monitor );
   return $Monitor->zmcControl($mode);
 }
 
-function zmaControl( $monitor, $mode=false ) {
-  if ( !is_array( $monitor ) ) {
-    $monitor = 
-    $monitor = dbFetchOne( 'select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?', NULL, array($monitor) );
-  }
-  $Monitor = new Monitor( $monitor );
-  $Monitor->zmaControl($mode);
+function zmaControl($monitor, $mode=false) {
+  $Monitor = new Monitor($monitor);
+  return $Monitor->zmaControl($mode);
 }
 
 function initDaemonStatus() {

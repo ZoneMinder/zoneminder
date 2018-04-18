@@ -168,6 +168,7 @@ private $control_fields = array(
       }
     } # end if isset($IdOrRow)
   } // end function __construct
+
   public function Server() {
     return new Server( $this->{'ServerId'} );
   }

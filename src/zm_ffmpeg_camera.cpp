@@ -137,7 +137,7 @@ FfmpegCamera::~FfmpegCamera() {
     delete videoStore;
     videoStore = NULL;
   }
-  CloseFfmpeg();
+  Close();
 
   if ( capture ) {
     Terminate();
@@ -161,7 +161,7 @@ void FfmpegCamera::Terminate() {
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
     Info( "Priming capture from %s, CLosing", mPath.c_str() );
-    CloseFfmpeg();
+    Close();
   }
   mVideoStreamId = -1;
   mAudioStreamId = -1;
@@ -631,7 +631,7 @@ int FfmpegCamera::OpenFfmpeg() {
   return 0;
 } // int FfmpegCamera::OpenFfmpeg()
 
-int FfmpegCamera::CloseFfmpeg() {
+int FfmpegCamera::Close() {
 
   Debug(2, "CloseFfmpeg called.");
 

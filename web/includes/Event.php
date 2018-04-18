@@ -162,6 +162,8 @@ class Event {
   } # end Event->delete
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {
+
+
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc = ZM_BASE_PROTOCOL.'://';
       $Monitor = $this->Monitor();
@@ -175,7 +177,19 @@ class Event {
       $args['eid'] = $this->{'Id'};
       $args['view'] = 'view_video';
     } else {
-      $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
+      $streamSrc = ZM_BASE_PROTOCOL.'://';
+      if ( $this->Storage()->ServerId() ) {
+        $Server = $this->Storage()->Server();
+        $streamSrc .= $Server->Hostname();
+        if ( ZM_MIN_STREAMING_PORT ) {
+          $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+        }
+      } else if ( ZM_MIN_STREAMING_PORT ) {
+        $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+      } else {
+        $streamSrc .= $_SERVER['HTTP_HOST'];
+      }
+      $streamSrc .= ZM_PATH_ZMS;
 
       $args['source'] = 'event';
       $args['event'] = $this->{'Id'};
@@ -256,7 +270,7 @@ class Event {
 
   // frame is an array representing the db row for a frame.
   function getImageSrc($frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false) {
-    $Storage = new Storage(isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL);
+    $Storage = $this->Storage();
     $Event = $this;
     $eventPath = $Event->Path();
 

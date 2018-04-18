@@ -634,7 +634,7 @@ Monitor::~Monitor() {
   }
   if ( mem_ptr ) {
     if ( event ) {
-      Info( "%s: image_count:%d - Closing event %llu, shutting down", name, image_count, event->Id() );
+      Info( "%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id() );
       closeEvent();
 
       // closeEvent may start another thread to close the event, so wait for it to finish
@@ -809,7 +809,7 @@ unsigned int Monitor::GetLastWriteIndex() const {
 }
 
 uint64_t Monitor::GetLastEventId() const {
-  Debug(2, "mem_ptr(%x), State(%d) last_read_index(%d) last_read_time(%d) last_event(%llu)",
+  Debug(2, "mem_ptr(%x), State(%d) last_read_index(%d) last_read_time(%d) last_event(%" PRIu64 ")",
       mem_ptr,
       shared_data->state,
       shared_data->last_read_index,
@@ -1092,7 +1092,7 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
     if ( eventid_row.fetch(sql.c_str()) ) {
       uint64_t event_id = atoll(eventid_row[0]);
 
-      Debug(3, "Got event %llu", event_id);
+      Debug(3, "Got event %" PRIu64, event_id);
       EventStream *stream = new EventStream();
       stream->setStreamStart(event_id, (unsigned int)1);
       zone_image = stream->getImage();
@@ -1369,7 +1369,7 @@ bool Monitor::Analyse() {
           }
           Warning( "%s: %s", SIGNAL_CAUSE, signalText );
           if ( event && !signal ) {
-            Info( "%s: %03d - Closing event %llu, signal loss", name, image_count, event->Id() );
+            Info( "%s: %03d - Closing event %" PRIu64 ", signal loss", name, image_count, event->Id() );
             closeEvent();
             last_section_mod = 0;
           }
@@ -1454,7 +1454,7 @@ bool Monitor::Analyse() {
                     //shared_data->state = state = IDLE;
                     //Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
                   //} else {
-                    Info( "%s: %03d - Closing event %llu, section end forced ", name, image_count, event->Id() );
+                    Info( "%s: %03d - Closing event %" PRIu64 ", section end forced ", name, image_count, event->Id() );
                   //}
                   closeEvent();
                   last_section_mod = 0;
@@ -1476,7 +1476,7 @@ bool Monitor::Analyse() {
             snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
             video_store_data->recording = event->StartTime();
 
-            Info( "%s: %03d - Opening new event %llu, section start", name, image_count, event->Id() );
+            Info( "%s: %03d - Opening new event %" PRIu64 ", section start", name, image_count, event->Id() );
 
             /* To prevent cancelling out an existing alert\prealarm\alarm state */
             if ( state == IDLE ) {
@@ -1592,7 +1592,7 @@ bool Monitor::Analyse() {
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
 
-                Info( "%s: %03d - Opening new event %llu, alarm start", name, image_count, event->Id() );
+                Info( "%s: %03d - Opening new event %" PRIu64 ", alarm start", name, image_count, event->Id() );
 
                 if ( pre_event_images ) {
                   if ( analysis_fps ) {
@@ -1630,11 +1630,11 @@ bool Monitor::Analyse() {
             shared_data->state = state = ALERT;
           } else if ( state == ALERT ) {
             if ( image_count-last_alarm_count > post_event_count ) {
-              Info( "%s: %03d - Left alarm state (%llu) - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() );
+              Info( "%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images", name, image_count, event->Id(), event->Frames(), event->AlarmFrames() );
               //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
               if ( function != MOCORD || event_close_mode == CLOSE_ALARM ) {
                 shared_data->state = state = IDLE;
-                Info( "%s: %03d - Closing event %llu, alarm end%s", name, image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
+                Info( "%s: %03d - Closing event %" PRIu64 ", alarm end%s", name, image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
                 closeEvent();
               } else {
                 shared_data->state = state = TAPE;
@@ -1716,7 +1716,7 @@ bool Monitor::Analyse() {
       }
     } else {
       if ( event ) {
-        Info( "%s: %03d - Closing event %llu, trigger off", name, image_count, event->Id() );
+        Info( "%s: %03d - Closing event %" PRIu64 ", trigger off", name, image_count, event->Id() );
         closeEvent();
       }
       shared_data->state = state = IDLE;
@@ -1753,7 +1753,7 @@ void Monitor::Reload() {
   Debug( 1, "Reloading monitor %s", name );
 
   if ( event ) {
-    Info( "%s: %03d - Closing event %llu, reloading", name, image_count, event->Id() );
+    Info( "%s: %03d - Closing event %" PRIu64 ", reloading", name, image_count, event->Id() );
     closeEvent();
   }
 
@@ -2366,14 +2366,16 @@ int Monitor::Capture() {
       captureResult = camera->Capture(*capture_image);
     }
   }
-Debug(4, "Return from Capture (%d)", captureResult);
+
   if ( captureResult < 0 ) {
+    Warning("Return from Capture (%d), signal loss", captureResult);
     // Unable to capture image for temporary reason
     // Fake a signal loss image
     Rgb signalcolor;
     signalcolor = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
     capture_image->Fill(signalcolor);
   } else if ( captureResult > 0 ) {
+    Debug(4, "Return from Capture (%d)", captureResult);
 
     /* Deinterlacing */
     if ( deinterlacing_value == 1 ) {
@@ -2406,7 +2408,7 @@ Debug(4, "Return from Capture (%d)", captureResult);
           break;
         }
       }
-    }
+    } // end if have rotation
 
     if ( capture_image->Size() > camera->ImageSize() ) {
       Error( "Captured image %d does not match expected size %d check width, height and colour depth",capture_image->Size(),camera->ImageSize() );
@@ -2451,17 +2453,17 @@ Debug(4, "Return from Capture (%d)", captureResult);
         last_fps_time = now;
         if ( new_fps != fps ) {
           fps = new_fps;
-          static char sql[ZM_SQL_SML_BUFSIZ];
-          snprintf( sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps );
           db_mutex.lock();
-          if ( mysql_query( &dbconn, sql ) ) {
-            Error( "Can't run query: %s", mysql_error( &dbconn ) );
+          static char sql[ZM_SQL_SML_BUFSIZ];
+          snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps);
+          if ( mysql_query(&dbconn, sql) ) {
+            Error("Can't run query: %s", mysql_error(&dbconn));
           }
           db_mutex.unlock();
         } // end if new_fps != fps
       } // end if time has changed since last update
-    } // end if captureResult
-  }
+    } // end if it might be time to report the fps
+  } // end if captureResult
 
   // Icon: I'm not sure these should be here. They have nothing to do with capturing
   if ( shared_data->action & GET_SETTINGS ) {
@@ -2768,6 +2770,7 @@ unsigned int Monitor::SubpixelOrder() const { return camera->SubpixelOrder(); }
 int Monitor::PrimeCapture() const { return camera->PrimeCapture(); }
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture() ; }
+int Monitor::Close() { return camera->Close(); };
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 Monitor::Snapshot *Monitor::getSnapshot() const {

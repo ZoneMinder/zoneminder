@@ -73,7 +73,7 @@ class Event {
     static int pre_alarm_count;
     static PreAlarmData pre_alarm_data[MAX_PRE_ALARM_FRAMES];
 
-    unsigned long long int  id;
+    uint64_t  id;
     Monitor      *monitor;
     struct timeval  start_time;
     struct timeval  end_time;
@@ -103,7 +103,7 @@ class Event {
     Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent=false );
     ~Event();
 
-    unsigned long long int Id() const { return id; }
+    uint64_t Id() const { return id; }
     const std::string &Cause() { return cause; }
     int Frames() const { return frames; }
     int AlarmFrames() const { return alarm_frames; }

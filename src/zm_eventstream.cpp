@@ -62,7 +62,7 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
     exit( mysql_errno(&dbconn));
   }
 
-  unsigned long long init_event_id = atoll(dbrow[0]);
+  uint64_t init_event_id = atoll(dbrow[0]);
 
   mysql_free_result(result);
 
@@ -87,7 +87,7 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
   return true;
 }
 
-bool EventStream::loadInitialEventData( unsigned long long init_event_id, unsigned int init_frame_id ) {
+bool EventStream::loadInitialEventData( uint64_t init_event_id, unsigned int init_frame_id ) {
   loadEventData(init_event_id);
 
   if ( init_frame_id ) {
@@ -105,10 +105,10 @@ bool EventStream::loadInitialEventData( unsigned long long init_event_id, unsign
   return true;
 }
 
-bool EventStream::loadEventData(unsigned long long event_id) {
+bool EventStream::loadEventData(uint64_t event_id) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
-  snprintf(sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo, Scheme FROM Events WHERE Id = %llu", event_id);
+  snprintf(sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo, Scheme FROM Events WHERE Id = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -167,26 +167,26 @@ bool EventStream::loadEventData(unsigned long long event_id) {
   } else if ( event_data->scheme == Storage::MEDIUM ) {
     struct tm *event_time = localtime( &event_data->start_time );
     if ( storage_path[0] == '/' )
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%04d-%02d-%02d/%llu",
+      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%04d-%02d-%02d/%" PRIu64,
           storage_path, event_data->monitor_id, event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, event_data->event_id );
     else
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%04d-%02d-%02d/%llu",
+      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%04d-%02d-%02d/%" PRIu64,
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, 
           event_data->event_id );
 
   } else {
     if ( storage_path[0] == '/' )
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%llu",
+      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%" PRIu64,
           storage_path, event_data->monitor_id, event_data->event_id );
     else
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%llu", 
+      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%" PRIu64, 
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_data->event_id );
   }
   delete storage; storage = NULL;
 
   updateFrameRate( (double)event_data->frame_count/event_data->duration );
 
-  snprintf(sql, sizeof(sql), "SELECT FrameId, unix_timestamp( `TimeStamp` ), Delta FROM Frames where EventId = %llu ORDER BY FrameId ASC", event_id);
+  snprintf(sql, sizeof(sql), "SELECT FrameId, unix_timestamp( `TimeStamp` ), Delta FROM Frames where EventId = %" PRIu64 " ORDER BY FrameId ASC", event_id);
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     exit(mysql_errno(&dbconn));
@@ -254,7 +254,7 @@ bool EventStream::loadEventData(unsigned long long event_id) {
     else
       curr_stream_time = event_data->frames[event_data->frame_count-1].timestamp;
   }
-  Debug(2, "Event:%llu, Frames:%ld, Duration: %.2f", event_data->event_id, event_data->frame_count, event_data->duration);
+  Debug(2, "Event:%" PRIu64 ", Frames:%ld, Duration: %.2f", event_data->event_id, event_data->frame_count, event_data->duration);
 
   return true;
 } // bool EventStream::loadEventData( int event_id )
@@ -450,7 +450,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
         break;
   }
   struct {
-    unsigned long long event_id;
+    uint64_t event_id;
     int progress;
     int rate;
     int zoom;
@@ -462,7 +462,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
   status_data.rate = replay_rate;
   status_data.zoom = zoom;
   status_data.paused = paused;
-  Debug( 2, "Event:%llu, Paused:%d, progress:%d Rate:%d, Zoom:%d",
+  Debug( 2, "Event:%" PRIu64 ", Paused:%d, progress:%d Rate:%d, Zoom:%d",
     status_data.event_id,
     status_data.paused,
     status_data.progress,
@@ -492,10 +492,10 @@ void EventStream::checkEventLoaded() {
   static char sql[ZM_SQL_SML_BUFSIZ];
 
   if ( curr_frame_id <= 0 ) {
-    snprintf( sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id < %llu ORDER BY Id DESC LIMIT 1", event_data->monitor_id, event_data->event_id );
+    snprintf( sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id < %" PRIu64 " ORDER BY Id DESC LIMIT 1", event_data->monitor_id, event_data->event_id );
     reload_event = true;
   } else if ( (unsigned int)curr_frame_id > event_data->frame_count ) {
-    snprintf( sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id > %llu ORDER BY Id ASC LIMIT 1", event_data->monitor_id, event_data->event_id );
+    snprintf( sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id > %" PRIu64 " ORDER BY Id ASC LIMIT 1", event_data->monitor_id, event_data->event_id );
     reload_event = true;
   }
 
@@ -520,8 +520,8 @@ void EventStream::checkEventLoaded() {
       }
 
       if ( dbrow ) {
-        unsigned long long event_id = atoll(dbrow[0]);
-        Debug( 1, "Loading new event %llu", event_id );
+        uint64_t event_id = atoll(dbrow[0]);
+        Debug( 1, "Loading new event %" PRIu64, event_id );
 
         loadEventData(event_id);
 
@@ -846,7 +846,7 @@ void EventStream::runStream() {
 
   closeComms();
 }
-void EventStream::setStreamStart( unsigned long long init_event_id, unsigned int init_frame_id=0 ) {
+void EventStream::setStreamStart( uint64_t init_event_id, unsigned int init_frame_id=0 ) {
   loadInitialEventData( init_event_id, init_frame_id );
   if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
     Fatal( "Unable to load monitor id %d for streaming", event_data->monitor_id );

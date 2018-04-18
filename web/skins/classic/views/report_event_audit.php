@@ -61,8 +61,8 @@ if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($display
 
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   $time = time();
-  $maxTime = strftime('%FT%T',$time) - 3600;
-  $minTime = strftime('%FT%T',$time - 2*3600);
+  $maxTime = strftime('%FT%T',$time - 3600);
+  $minTime = strftime('%FT%T',$time - (2*3600) );
 }
 if ( isset($_REQUEST['minTime']) )
   $minTime = validHtmlStr($_REQUEST['minTime']);
@@ -149,11 +149,13 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
   $Monitor = new Monitor($monitor);
+
+  $montagereview_link = "?view=montagereview&live=0&MonitorId=". $monitor['Id'] . '&minTime='.$minTime.'&maxTime='.$maxTime;
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
-            <td class="colId"><a href="?view=watch&amp;mid=<?php echo $monitor['Id']?>"><?php echo $monitor['Id'] ?></a></td>
+            <td class="colId"><a href="<?php echo $montagereview_link ?>"><?php echo $monitor['Id'] ?></a></td>
             <td class="colName">
-              <a href="?view=watch&amp;mid=<?php echo $monitor['Id']?>"><?php echo $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
+              <a href="<?php echo $montagereview_link ?>"><?php echo $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
               <?php echo implode('<br/>',
                   array_map(function($group_id){
                     $Group = new Group($group_id);

@@ -174,7 +174,7 @@ protected:
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
   typedef struct {
     uint32_t size;
-    uint64_t current_event;
+    unsigned long long current_event;
     char event_file[4096];
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
     //uint32_t frameNumber;
@@ -447,7 +447,7 @@ public:
   VideoWriter GetOptVideoWriter() const { return videowriter; }
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
-  void SetVideoWriterEventId( uint64_t p_event_id ) { video_store_data->current_event = p_event_id; }
+  void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
@@ -485,6 +485,7 @@ public:
   int PreCapture() const;
   int Capture();
   int PostCapture() const;
+  int Close();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
    // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.

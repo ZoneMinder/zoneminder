@@ -2,7 +2,7 @@
 %global zmgid_final apache
 
 # Crud is configured as a git submodule
-%global crud_version 3.0.10
+%global crud_version 3.1.0
 
 %if "%{zmuid_final}" == "nginx"
 %global with_nginx 1

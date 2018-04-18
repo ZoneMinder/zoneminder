@@ -211,7 +211,7 @@ class Group {
     $group_options = array();
     foreach ( $Groups as $id=>$Group ) {
       if ( ! $Group->ParentId() ) {
-        $group_options += get_options( $Group );
+        $group_options += get_options($Group);
       }
     }
     return $group_options;
@@ -280,6 +280,4 @@ public function Parents() {
 }
 
 } # end class Group
-
-
 ?>

@@ -166,7 +166,7 @@ function dbFetchOne( $sql, $col=false, $params=NULL ) {
 
   if ( $result && $dbRow = $result->fetch(PDO::FETCH_ASSOC) ) {
     if ( $col ) {
-      if ( ! array_key_exists($col, $dbRow[$col]) ) {
+      if ( ! array_key_exists($col, $dbRow) ) {
         Warning("$col does not exist in the returned row " . print_r($dbRow, true));
       }
       return $dbRow[$col];

@@ -114,7 +114,7 @@ sub Name {
 } # end sub Path
 
 sub DoDelete {
-  $self = shift;
+  my $self = shift;
   $$self{DoDelete} = shift if @_;
   if ( ! defined $$self{DoDelete} ) {
     $$self{DoDelete} = 1;

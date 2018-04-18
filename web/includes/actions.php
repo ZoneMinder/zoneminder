@@ -564,7 +564,14 @@ if ( canEdit( 'Monitors' ) ) {
         Error("Users with Monitors restrictions cannot create new monitors.");
         return;
       }
-      if ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) or array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds() ) ) {
+
+      if (
+        ( !isset($_POST['newMonitor']['GroupIds']) )
+        or
+        ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) )
+        or 
+        array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds())
+      ) {
         if ( $Monitor->Id() )
           dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
 

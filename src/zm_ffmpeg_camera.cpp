@@ -677,6 +677,11 @@ int FfmpegCamera::Close() {
     mFormatContext = NULL;
   }
 
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
+
   return 0;
 } // end FfmpegCamera::Close
 

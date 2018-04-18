@@ -14,12 +14,6 @@ message( SEND_ERROR "The git submodules are not available. Please run
 git submodule update --init --recursive")
 endif( NOT EXISTS "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Lib/CrudControllerTrait.php" )
 
-# This is a hack that should be removed after Crud PR 582 is merged
-# See issue 581 for more details: https://github.com/FriendsOfCake/crud/issues/581
-file(READ "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Controller/Crud/CrudBaseObject.php" CRUDBASEOBJECT)
-string(REPLACE "CrudBaseObject extends Object" "CrudBaseObject extends CakeObject" NEWCRUDBASEOBJECT "${CRUDBASEOBJECT}")
-file(WRITE "${CMAKE_SOURCE_DIR}/web/api/app/Plugin/Crud/Controller/Crud/CrudBaseObject.php" ${NEWCRUDBASEOBJECT})
-
 # CMake does not allow out-of-source build if CMakeCache.exists 
 # in the source folder. Abort and notify the user
 if(

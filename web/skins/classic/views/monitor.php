@@ -980,19 +980,19 @@ if ( $monitor->Type() == 'Local' ) {
         </select></td></tr>
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
-<?php
-      if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
-?>
+        <tr>
+          <td><?php echo translate('SignalCheckPoints') ?></td>
+          <td>
+            <input type="number" name="newMonitor[SignalCheckPoints]" value="<?php echo validInt($monitor->SignalCheckPoints()) ?>"/>
+          </td>
+        </tr>
         <tr>
           <td><?php echo translate('SignalCheckColour') ?></td>
           <td>
-            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/>
+            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle('backgroundColor', this.value)"/>
             <span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo $monitor->SignalCheckColour()?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
           </td>
         </tr>
-<?php
-      }
-?>
         <tr>
           <td><?php echo translate('WebColour') ?></td>
           <td>

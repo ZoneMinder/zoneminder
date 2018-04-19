@@ -241,7 +241,7 @@ use ZoneMinder::Server qw(CpuLoad);
 #use Data::Dumper;
 
 # We count 10 of these, so total timeout is this value *10.
-use constant KILL_DELAY => 1; # seconds
+use constant KILL_DELAY => 10; # seconds
 
 our %cmd_hash;
 our %pid_hash;

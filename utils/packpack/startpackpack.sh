@@ -123,14 +123,26 @@ commonprep () {
         patch -p1 < utils/packpack/setarch.patch
     fi
 
-    # The rpm specfile requires we download the tarball and manually move it into place
+    # The rpm specfile requires we download each submodule as a tarball then manually move it into place
     # Might as well do this for Debian as well, rather than git submodule init
-    CRUDVER="3.0.10"
+    CRUDVER="3.1.0-zm"
     if [ -e "build/crud-${CRUDVER}.tar.gz" ]; then
         echo "Found existing Crud ${CRUDVER} tarball..."
     else
         echo "Retrieving Crud ${CRUDVER} submodule..."
-        curl -L https://github.com/FriendsOfCake/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
+        curl -L https://github.com/ZoneMinder/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Crud tarball retreival failed..."
+            exit 1
+        fi
+    fi
+
+    CEBVER="1.0-zm"
+    if [ -e "build/crud-${CEBVER}.tar.gz" ]; then
+        echo "Found existing CakePHP-Enum-Behavior ${CEBVER} tarball..."
+    else
+        echo "Retrieving CakePHP-Enum-Behavior ${CEBVER} submodule..."
+        curl -L https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/v${CEBVER}.tar.gz > build/crud-${CEBVER}.tar.gz
         if [ $? -ne 0 ]; then
             echo "ERROR: Crud tarball retreival failed..."
             exit 1
@@ -138,7 +150,7 @@ commonprep () {
     fi
 }
 
-# Uncompress the Crud tarball and move it into place
+# Uncompress the submodule tarballs and move them into place
 movecrud () {
     if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
         echo "Crud plugin already installed..."
@@ -147,6 +159,14 @@ movecrud () {
         tar -xzf build/crud-${CRUDVER}.tar.gz
         rmdir web/api/app/Plugin/Crud
         mv -f crud-${CRUDVER} web/api/app/Plugin/Crud
+    fi
+    if [ -e "web/api/app/Plugin/CakePHP-Enum-Behavior/readme.md" ]; then
+        echo "CakePHP-Enum-Behavior plugin already installed..."
+    else     
+        echo "Unpacking CakePHP-Enum-Behavior plugin..."
+        tar -xzf build/cakephp-enum-behavior-${CEBVER}.tar.gz
+        rmdir web/api/app/Plugin/CakePHP-Enum-Behavior
+        mv -f crud-${CEBVER} web/api/app/Plugin/CakePHP-Enum-Behavior
     fi
 }
 

@@ -77,7 +77,7 @@ std::string load_monitor_sql =
 "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
 "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
 "SectionLength, FrameSkip, MotionFrameSkip, "
-"FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckColour FROM Monitors";
+"FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckPoints, SignalCheckColour FROM Monitors";
 
 std::string CameraType_Strings[] = {
   "Local",
@@ -304,6 +304,7 @@ Monitor::Monitor(
   int p_ref_blend_perc,
   int p_alarm_ref_blend_perc,
   bool p_track_motion,
+  int p_signal_check_points,
   Rgb p_signal_check_colour,
   bool p_embed_exif,
   Purpose p_purpose,
@@ -341,6 +342,7 @@ Monitor::Monitor(
   ref_blend_perc( p_ref_blend_perc ),
   alarm_ref_blend_perc( p_alarm_ref_blend_perc ),
   track_motion( p_track_motion ),
+  signal_check_points(p_signal_check_points),
   signal_check_colour( p_signal_check_colour ),
   embed_exif( p_embed_exif ),
   delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
@@ -1164,7 +1166,7 @@ bool Monitor::CheckSignal( const Image *image ) {
   static Rgb colour_val; /* RGB32 color */
   static int usedsubpixorder;
 
-  if ( config.signal_check_points > 0 ) {
+  if ( signal_check_points > 0 ) {
     if ( static_undef ) {
       static_undef = false;
       usedsubpixorder = camera->SubpixelOrder();
@@ -1182,7 +1184,7 @@ bool Monitor::CheckSignal( const Image *image ) {
     int colours = image->Colours();
 
     int index = 0;
-    for ( int i = 0; i < config.signal_check_points; i++ ) {
+    for ( int i = 0; i < signal_check_points; i++ ) {
       while( true ) {
         // Why the casting to long long? also note that on a 64bit cpu, long long is 128bits
         index = (int)(((long long)rand()*(long long)(pixels-1))/RAND_MAX);
@@ -1220,7 +1222,7 @@ bool Monitor::CheckSignal( const Image *image ) {
         }
       }
     } // end for < signal_check_points
-    Debug(1,"SignalCheck: %d points, colour_val(%d)", config.signal_check_points, colour_val);
+    Debug(1,"SignalCheck: %d points, colour_val(%d)", signal_check_points, colour_val);
     return false;
   } // end if signal_check_points
   return true;
@@ -1803,6 +1805,7 @@ void Monitor::Reload() {
     alarm_ref_blend_perc = atoi(dbrow[index++]);
     track_motion = atoi(dbrow[index++]);
 
+    signal_check_points = dbrow[index]?atoi(dbrow[index]):0;index++;
 
     if ( dbrow[index][0] == '#' )
       signal_check_colour = strtol(dbrow[index]+1,0,16);
@@ -2090,7 +2093,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   int ref_blend_perc = atoi(dbrow[col]); col++;
   int alarm_ref_blend_perc = atoi(dbrow[col]); col++;
   int track_motion = atoi(dbrow[col]); col++;
-
+  int signal_check_points = dbrow[col] ? atoi(dbrow[col]) : 0;col++;
   int signal_check_color = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
   bool embed_exif = (*dbrow[col] != '0'); col++;
 
@@ -2290,6 +2293,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       ref_blend_perc,
       alarm_ref_blend_perc,
       track_motion,
+      signal_check_points,
       signal_check_color,
       embed_exif,
       purpose,
@@ -2437,7 +2441,7 @@ int Monitor::Capture() {
       TimestampImage( capture_image, image_buffer[index].timestamp );
     }
     // Maybe we don't need to do this on all camera types
-    shared_data->signal = CheckSignal(capture_image);
+    shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;
     shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
 

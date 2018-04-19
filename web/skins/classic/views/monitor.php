@@ -133,6 +133,7 @@ if ( ! $monitor ) {
           'DefaultView' => 'Events',
           'DefaultRate' => '100',
           'DefaultScale' => '100',
+          'SignalCheckPoints' => '10',
           'SignalCheckColour' => '#0000c0',
           'WebColour' => 'red',
           'Exif' => '0',
@@ -659,8 +660,9 @@ if ( $tab != 'misc' ) {
       <input type="hidden" name="newMonitor[Exif]" value="<?php echo validHtmlStr($monitor->Exif()) ?>"/>
 <?php
 }
-if ( ZM_HAS_V4L && ($tab != 'misc' || $monitor->Type()!= 'Local') ) {
+if ( $tab != 'misc' ) {
 ?>
+      <input type="hidden" name="newMonitor[SignalCheckPoints]" value="<?php echo validHtmlStr($monitor->SignalCheckPoints()) ?>"/>
       <input type="hidden" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>"/>
 <?php
 }

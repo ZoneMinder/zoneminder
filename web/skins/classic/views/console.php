@@ -177,16 +177,9 @@ xhtmlHeaders( __FILE__, translate('Console') );
 
     <div class="container-fluid">
 <?php
-for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
-  $monitor = $displayMonitors[$monitor_i];
-  $Monitor = new Monitor($monitor);
-
-  if ( $monitor_i % 100 == 0 ) {
-    if ( $monitor_i ) {
-      echo '</table>';
-    }
+ob_start();
 ?>
-      <table class="table table-striped table-hover table-condensed" id="consoleTable">
+      <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
@@ -211,8 +204,19 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php } ?>
           </tr>
         </thead>
-        <tbody id="consoleTableBody">
+        <tbody class="consoleTableBody">
 <?php
+$table_head = ob_get_contents();
+ob_end_clean();
+for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
+  $monitor = $displayMonitors[$monitor_i];
+  $Monitor = new Monitor($monitor);
+
+  if ( $monitor_i % 100 == 0 ) {
+    if ( $monitor_i ) {
+      echo '</table>';
+    }
+    echo $table_head;
 } # monitor_i % 100
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">

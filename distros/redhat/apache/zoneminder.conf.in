@@ -9,6 +9,23 @@ RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteRule ^/?(zm)(.*) https://%{SERVER_NAME}/$1$2 [R,L]
 
+# Order matters. This alias must come first.
+Alias /zm/cache "@ZM_CACHEDIR@"
+<Directory "@ZM_CACHEDIR@">
+    SSLRequireSSL
+    Options -Indexes +MultiViews +FollowSymLinks
+    AllowOverride None
+    <IfModule mod_authz_core.c>
+       # Apache 2.4
+       Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        # Apache 2.2
+        Order deny,allow
+        Allow from all
+    </IfModule>
+</Directory>
+
 Alias /zm "@ZM_WEBDIR@"
 <Directory "@ZM_WEBDIR@">
     # explicitly set index.php as the only directoryindex

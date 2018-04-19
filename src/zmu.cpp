@@ -514,10 +514,10 @@ int main( int argc, char *argv[] ) {
       }
       if ( function & ZMU_EVENT ) {
         if ( verbose )
-          printf( "Last event id: %d\n", monitor->GetLastEventId() );
+          printf( "Last event id: %" PRIu64 "\n", monitor->GetLastEventId() );
         else {
           if ( have_output ) printf( "%c", separator );
-          printf( "%d", monitor->GetLastEventId() );
+          printf( "%" PRIu64, monitor->GetLastEventId() );
           have_output = true;
         }
       }
@@ -704,7 +704,7 @@ int main( int argc, char *argv[] ) {
             Monitor *monitor = Monitor::Load( mon_id, false, Monitor::QUERY );
             if ( monitor && monitor->connect() ) {
               struct timeval tv = monitor->GetTimestamp();
-              printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
+              printf( "%4d%5d%6d%9d%11ld.%02ld%6d%6d%8" PRIu64 "%8.2f\n",
                 monitor->Id(),
                 function,
                 monitor->GetState(),

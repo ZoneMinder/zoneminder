@@ -20,6 +20,7 @@ function setButtonStates( element ) {
   if ( checked ) {
     form.editBtn.disabled = false;
     form.deleteBtn.disabled = false;
+    form.selectBtn.disabled = false;
     if ( checked == 1 ) {
       $j(form.cloneBtn).css('display','inline');
     } else {
@@ -29,6 +30,7 @@ function setButtonStates( element ) {
     form.cloneBtn.hide();
     form.editBtn.disabled = true;
     form.deleteBtn.disabled = true;
+    form.selectBtn.disabled = true;
   }
 }
 
@@ -90,6 +92,23 @@ function deleteMonitor( element ) {
     form.elements['action'].value = 'delete';
     form.submit();
   }
+}
+
+function selectMonitor(element) {
+  var form = element.form;
+  var url = thisUrl+'?view=console';
+  for ( var i = 0; i < form.elements.length; i++ ) {
+    if (
+        form.elements[i].type == "checkbox"
+        &&
+        form.elements[i].name == "markMids[]"
+        &&
+        form.elements[i].checked
+       ) {
+      url += '&MonitorId='+form.elements[i].value;
+    }
+  }
+  window.location.replace(url);
 }
 
 function reloadWindow() {

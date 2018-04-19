@@ -239,7 +239,8 @@ sub getFilters {
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     my $filter = new ZoneMinder::Filter( $$db_filter{Id}, $db_filter );
     Debug( "Found filter '$db_filter->{Name}'\n" );
-    my $filter_sql = $filter->Sql();
+    # The undef here is to make sure the Sql gets regenerated because the Filter object may be cached
+    my $filter_sql = $filter->Sql(undef);
 
     if ( ! $filter_sql ) {
       Error( "Error parsing Sql. skipping filter '$db_filter->{Name}'\n" );
@@ -327,6 +328,7 @@ sub checkFilter {
         Error( "Unable toto delete event $event->{Id} as previous operations failed\n" );
       }
     } # end if AutoDelete
+
     if ( $filter->{AutoMove} ) {
       my $Event = new ZoneMinder::Event( $$event{Id}, $event );
       my $NewStorage = new ZoneMinder::Storage( $filter->{AutoMoveTo} );

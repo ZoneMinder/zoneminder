@@ -129,15 +129,15 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   } else {
     Panic("Unexpected colours: %d",colours);
   }
-
 }
 
 FfmpegCamera::~FfmpegCamera() {
 
   if ( videoStore ) {
     delete videoStore;
+    videoStore = NULL;
   }
-  CloseFfmpeg();
+  Close();
 
   if ( capture ) {
     Terminate();
@@ -161,7 +161,7 @@ void FfmpegCamera::Terminate() {
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
     Info( "Priming capture from %s, CLosing", mPath.c_str() );
-    CloseFfmpeg();
+    Close();
   }
   mVideoStreamId = -1;
   mAudioStreamId = -1;
@@ -171,7 +171,6 @@ int FfmpegCamera::PrimeCapture() {
 }
 
 int FfmpegCamera::PreCapture() {
-  Debug(1, "PreCapture");
   // If Reopen was called, then ffmpeg is closed and we need to reopen it.
   if ( ! mCanCapture )
     return OpenFfmpeg();
@@ -188,7 +187,7 @@ int FfmpegCamera::Capture( Image &image ) {
 
   int frameComplete = false;
   while ( !frameComplete ) {
-    int avResult = av_read_frame( mFormatContext, &packet );
+    int avResult = av_read_frame(mFormatContext, &packet);
     char errbuf[AV_ERROR_MAX_STRING_SIZE];
     if ( avResult < 0 ) {
       av_strerror(avResult, errbuf, AV_ERROR_MAX_STRING_SIZE);
@@ -198,16 +197,11 @@ int FfmpegCamera::Capture( Image &image ) {
           // Check for Connection failure.
           (avResult == -110)
          ) {
-        Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf );
-        if ( ReopenFfmpeg() < 0 ) {
-          // OpenFfmpeg will do enough logging.
-          return -1;
-        }
-        continue;
+        Info("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf);
+      } else {
+        Error("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf);
       }
-
-      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, avResult, errbuf );
-      return( -1 );
+      return -1;
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
@@ -316,10 +310,6 @@ int FfmpegCamera::PostCapture() {
 
 int FfmpegCamera::OpenFfmpeg() {
 
-  Debug(2, "OpenFfmpeg called.");
-  uint32_t last_event_id = monitor->GetLastEventId() ;
-  uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
-  Debug(2, "last_event(%d), our current (%d)", last_event_id, video_writer_event_id);
 
   int ret;
 
@@ -353,24 +343,26 @@ int FfmpegCamera::OpenFfmpeg() {
     Warning("Could not set rtsp_transport method '%s'\n", method.c_str());
   }
 
-  Debug ( 1, "Calling avformat_open_input for %s", mPath.c_str() );
+  Debug(1, "Calling avformat_open_input for %s", mPath.c_str());
 
-  mFormatContext = avformat_alloc_context( );
+  //mFormatContext = avformat_alloc_context( );
   // Speed up find_stream_info
   //FIXME can speed up initial analysis but need sensible parameters...
   //mFormatContext->probesize = 32;
   //mFormatContext->max_analyze_duration = 32;
 
-  if ( avformat_open_input( &mFormatContext, mPath.c_str(), NULL, &opts ) != 0 )
+  if ( avformat_open_input(&mFormatContext, mPath.c_str(), NULL, &opts) != 0 )
 #endif
   {
     Error("Unable to open input %s due to: %s", mPath.c_str(), strerror(errno));
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
-    av_close_input_file( mFormatContext );
+    av_close_input_file(mFormatContext);
 #else
-    avformat_close_input( &mFormatContext );
+    if ( mFormatContext ) {
+      avformat_close_input(&mFormatContext);
+      mFormatContext = NULL;
+    }
 #endif
-    mFormatContext = NULL;
     av_dict_free(&opts);
 
     return -1;
@@ -506,13 +498,20 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   } // end if h264
 #endif
+  if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
+    if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == NULL ) {
+      Debug(1, "Failed to find decoder (h264_mmal)" );
+    } else {
+      Debug(1, "Success finding decoder (h264_mmal)" );
+    }
+  }
 
   if ( (!mVideoCodec) and ( (mVideoCodec = avcodec_find_decoder(mVideoCodecContext->codec_id)) == NULL ) ) {
   // Try and get the codec from the codec context
     Error("Can't find codec for video stream from %s", mPath.c_str());
     return -1;
   } else {
-    Debug(1, "Video Found decoder");
+    Debug(1, "Video Found decoder %s", mVideoCodec->name);
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
   // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
@@ -632,15 +631,7 @@ int FfmpegCamera::OpenFfmpeg() {
   return 0;
 } // int FfmpegCamera::OpenFfmpeg()
 
-int FfmpegCamera::ReopenFfmpeg() {
-
-  Debug(2, "ReopenFfmpeg called.");
-
-  CloseFfmpeg();
-  return OpenFfmpeg();
-}
-
-int FfmpegCamera::CloseFfmpeg() {
+int FfmpegCamera::Close() {
 
   Debug(2, "CloseFfmpeg called.");
 
@@ -686,6 +677,11 @@ int FfmpegCamera::CloseFfmpeg() {
     mFormatContext = NULL;
   }
 
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
+
   return 0;
 } // end FfmpegCamera::Close
 
@@ -701,21 +697,20 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
   while ( ! frameComplete ) {
     av_init_packet( &packet );
 
-    ret = av_read_frame( mFormatContext, &packet );
+    ret = av_read_frame(mFormatContext, &packet);
     if ( ret < 0 ) {
-      av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
+      av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
       if (
           // Check if EOF.
           (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
           // Check for Connection failure.
           (ret == -110)
          ) {
-          Info( "av_read_frame returned \"%s\". Reopening stream.", errbuf);
-          ReopenFfmpeg();
+        Info("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf);
+      } else {
+        Error("Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf);
       }
-
-      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
-      return( -1 );
+      return -1;
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;

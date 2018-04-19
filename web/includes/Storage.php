@@ -1,18 +1,14 @@
 <?php
-require_once( 'database.php' );
+require_once('database.php');
 
-#$storage_cache = array();
+$storage_cache = array();
 class Storage {
   public function __construct( $IdOrRow = NULL ) {
+    global $storage_cache;
+    
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-
-	#if ( isset( $storage_cache[$IdOrRow] ) ) {
-#Warning("using cached object for $dOrRow");
-	  #return $storage_cache[$IdOrRow];
-	#} else {
-#Warning("Not using cached object for $dOrRow");
         $row = dbFetchOne( 'SELECT * FROM Storage WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
           Error("Unable to load Storage record for Id=" . $IdOrRow );
@@ -25,7 +21,7 @@ class Storage {
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
-      #$storage_cache[$IdOrRow] = $this;
+      $storage_cache[$row['Id']] = $this;
     } else {
       $this->{'Name'} = '';
       $this->{'Path'} = '';
@@ -70,7 +66,25 @@ class Storage {
         Warning( "Unknown function call Storage->$fn from $file:$line" );
     }
   }
-public static function find_all( $parameters = null, $options = null ) {
+  public static function find_one( $parameters = null, $options = null ) {
+    global $storage_cache;
+    if ( 
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($storage_cache[$parameters['Id']]) ) {
+      return $storage_cache[$parameters['Id']];
+    }
+    $results = Storage::find_all( $parameters, $options );
+    if ( count($results) > 1 ) {
+      Error("Storage Returned more than 1");
+      return $results[0];
+    } else if ( count($results) ) {
+      return $results[0];
+    } else {
+      return null;
+    }
+  }
+  public static function find_all( $parameters = null, $options = null ) {
     $filters = array();
     $sql = 'SELECT * FROM Storage ';
     $values = array();
@@ -83,7 +97,7 @@ public static function find_all( $parameters = null, $options = null ) {
           $fields[] = $field.' IS NULL';
         } else if ( is_array( $value ) ) {
           $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
           $values += $value;
 
         } else {
@@ -91,15 +105,17 @@ public static function find_all( $parameters = null, $options = null ) {
           $values[] = $value;
         }
       }
-      $sql .= implode(' AND ', $fields );
+      $sql .= implode(' AND ', $fields);
     }
     if ( $options and isset($options['order']) ) {
-    $sql .= ' ORDER BY ' . $options['order'];
+      $sql .= ' ORDER BY ' . $options['order'];
     }
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage');
-    foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
+    if ( $result ) {
+      $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage');
+      foreach ( $results as $row => $obj ) {
+        $filters[] = $obj;
+      }
     }
     return $filters;
   }
@@ -124,30 +140,43 @@ public static function find_all( $parameters = null, $options = null ) {
     return $usage;
   }
   public function disk_total_space() {
-    if ( ! array_key_exists( 'disk_total_space', $this ) ) {
-      $this->{'disk_total_space'} = disk_total_space( $this->Path() );
+    if ( ! array_key_exists('disk_total_space', $this) ) {
+      $this->{'disk_total_space'} = disk_total_space($this->Path());
     }
     return $this->{'disk_total_space'};
   }
+
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( (! array_key_exists( 'DiskSpace', $this )) or (!$this->{'DiskSpace'}) ) {
-      $used = 0;
+    if ( (! array_key_exists('disk_used_space', $this)) or (!$this->{'disk_used_space'}) ) {
       if ( $this->{'Type'} == 's3fs' ) {
-        $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
-
-        foreach ( Event::find_all( array( 'StorageId'=>$this->Id(), 'DiskSpace'=>null ) ) as $Event ) {
-          $Event->Storage( $this ); // Prevent further db hit
-          $used += $Event->DiskSpace();
-        }
+        $this->{'disk_used_space'} = $this->disk_event_space();
       } else { 
         $path = $this->Path();
-        $used = disk_total_space( $path ) - disk_free_space( $path );;
+        $this->{'disk_used_space'} = disk_total_space($path) - disk_free_space($path);
+      }
+    }
+    return $this->{'disk_used_space'};
+  } // end function disk_used_space
+
+  public function event_disk_space() {
+    # This isn't a function like this in php, so we have to add up the space used in each event.
+    if ( (! array_key_exists('DiskSpace', $this)) or (!$this->{'DiskSpace'}) ) {
+      $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
+
+      foreach ( Event::find_all( array('StorageId'=>$this->Id(), 'DiskSpace'=>null) ) as $Event ) {
+        $Event->Storage( $this ); // Prevent further db hit
+        $used += $Event->DiskSpace();
       }
       $this->{'DiskSpace'} = $used;
     }
-		
     return $this->{'DiskSpace'};
+  } // end function event_disk_space
+  public function Server() {
+    if ( ! array_key_exists('Server',$this) ) {
+      $this->{'Server'}= new Server( $this->{'ServerId'} );
+    }
+    return $this->{'Server'};
   }
 }
 ?>

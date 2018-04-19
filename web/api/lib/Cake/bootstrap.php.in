@@ -57,6 +57,13 @@ if (!defined('APP')) {
 }
 
 /**
+ * Config Directory
+ */
+if (!defined('CONFIG')) {
+	define('CONFIG', ROOT . DS . APP_DIR . DS . 'Config' . DS);
+}
+
+/**
  * Path to the application's libs directory.
  */
 	define('APPLIBS', APP . 'Lib' . DS);
@@ -148,6 +155,7 @@ App::uses('ErrorHandler', 'Error');
 App::uses('Configure', 'Core');
 App::uses('CakePlugin', 'Core');
 App::uses('Cache', 'Cache');
+App::uses('CakeObject', 'Core');
 App::uses('Object', 'Core');
 App::uses('Multibyte', 'I18n');
 

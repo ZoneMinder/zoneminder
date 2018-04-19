@@ -58,6 +58,8 @@ if(NOT HOST_OS)
             "ZoneMinder was unable to deterimine the host OS. Please report this. Value of CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 endif(NOT HOST_OS)
 
+set (CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # Default CLFAGS and CXXFLAGS:
 set(CMAKE_C_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
@@ -482,24 +484,24 @@ if(MP4V2_LIBRARIES)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
 
         # mp4v2.h
 	find_path(MP4V2_INCLUDE_DIR mp4v2.h)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4v2.h" HAVE_MP4V2_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4v2.h" HAVE_MP4V2_H)
 
 	# mp4.h
 	find_path(MP4V2_INCLUDE_DIR mp4.h)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4.h" HAVE_MP4_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4.h" HAVE_MP4_H)
 
 	mark_as_advanced(FORCE MP4V2_LIBRARIES MP4V2_INCLUDE_DIR)
 	set(optlibsfound "${optlibsfound} mp4v2")

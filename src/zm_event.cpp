@@ -73,6 +73,7 @@ Event::Event(
   }
 
   Storage * storage = monitor->getStorage();
+  scheme = storage->Scheme();
 
   unsigned int state_id = 0;
   zmDbRow dbrow;
@@ -80,8 +81,8 @@ Event::Event(
     state_id = atoi(dbrow[0]);
   }
 
-  static char sql[ZM_SQL_MED_BUFSIZ];
-  struct tm *stime = localtime( &start_time.tv_sec );
+  char sql[ZM_SQL_MED_BUFSIZ];
+  struct tm *stime = localtime(&start_time.tv_sec);
   snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
@@ -96,13 +97,16 @@ Event::Event(
       monitor->GetOptSaveJPEGs(),
       storage->SchemeString().c_str()
       );
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't insert event: %s. sql was (%s)", mysql_error( &dbconn ), sql );
-    exit( mysql_errno( &dbconn ) );
+  db_mutex.lock();
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't insert event: %s. sql was (%s)", mysql_error(&dbconn), sql);
+    db_mutex.unlock();
+    return;
   }
-  id = mysql_insert_id( &dbconn );
+  id = mysql_insert_id(&dbconn);
+  db_mutex.unlock();
   if ( untimedEvent ) {
-    Warning( "Event %d has zero time, setting to current", id );
+    Warning("Event %d has zero time, setting to current", id);
   }
   end_time.tv_sec = 0;
   frames = 0;
@@ -110,7 +114,6 @@ Event::Event(
   tot_score = 0;
   max_score = 0;
 
-  struct stat statbuf;
   char id_file[PATH_MAX];
 
   if ( storage->Scheme() == Storage::DEEP ) {
@@ -144,7 +147,7 @@ Event::Event(
         time_path_ptr += snprintf( time_path_ptr, sizeof(time_path)-(time_path_ptr-time_path), "%s%02d", i>3?"/":"", dt_parts[i] );
     }
     // Create event id symlink
-    snprintf( id_file, sizeof(id_file), "%s/.%d", date_path, id );
+    snprintf( id_file, sizeof(id_file), "%s/.%" PRIu64, date_path, id );
     if ( symlink( time_path, id_file ) < 0 )
       Error( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
   } else if ( storage->Scheme() == Storage::MEDIUM ) {
@@ -157,14 +160,14 @@ Event::Event(
       if ( errno != EEXIST )
         Error( "Can't mkdir %s: %s", path, strerror(errno));
     }
-    path_ptr += snprintf( path_ptr, sizeof(path), "/%d", id );
+    path_ptr += snprintf( path_ptr, sizeof(path), "/%" PRIu64, id );
     if ( mkdir( path, 0755 ) ) {
       // FIXME This should not be fatal.  Should probably move to a different storage area.
       if ( errno != EEXIST )
         Error( "Can't mkdir %s: %s", path, strerror(errno));
     }
   } else {
-    snprintf( path, sizeof(path), "%s/%d/%d", storage->Path(), monitor->Id(), id );
+    snprintf( path, sizeof(path), "%s/%d/%" PRIu64, storage->Path(), monitor->Id(), id );
     if ( mkdir( path, 0755 ) ) {
       if ( errno != EEXIST ) {
         Error( "Can't mkdir %s: %s", path, strerror(errno));
@@ -172,7 +175,7 @@ Event::Event(
     }
 
     // Create empty id tag file
-    snprintf( id_file, sizeof(id_file), "%s/.%d", path, id );
+    snprintf( id_file, sizeof(id_file), "%s/.%" PRIu64, path, id );
     if ( FILE *id_fp = fopen( id_file, "w" ) )
       fclose( id_fp );
     else
@@ -186,7 +189,7 @@ Event::Event(
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
-    snprintf( video_name, sizeof(video_name), "%d-%s", id, "video.mp4" );
+    snprintf( video_name, sizeof(video_name), "%" PRIu64 "-%s", id, "video.mp4" );
     snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
     Debug(1,"Writing video file to %s", video_file );
 
@@ -207,15 +210,6 @@ Event::Event(
         delete videowriter;
         videowriter = NULL;
       }
-
-      snprintf( timecodes_name, sizeof(timecodes_name), "%d-%s", id, "video.timecodes" );
-      snprintf( timecodes_file, sizeof(timecodes_file), staticConfig.video_file_format, path, timecodes_name );
-
-      /* Create timecodes file */
-      timecodes_fd = fopen(timecodes_file, "wb");
-      if ( timecodes_fd == NULL ) {
-        Error("Failed creating timecodes file");
-      }
     }
   } else {
     /* No video object */
@@ -225,22 +219,8 @@ Event::Event(
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
 Event::~Event() {
-  static char sql[ZM_SQL_MED_BUFSIZ];
-  struct DeltaTimeval delta_time;
-  DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
-  Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec );
 
-  if ( frames > last_db_frame ) {
-
-    Debug( 1, "Adding closing frame %d to DB", frames );
-    snprintf( sql, sizeof(sql), 
-        "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ( %d, %d, from_unixtime( %ld ), %s%ld.%02ld )",
-        id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
-    }
-  }
+  // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
 
   /* Close the video file */
   if ( videowriter != NULL ) {
@@ -250,22 +230,43 @@ Event::~Event() {
     }
     delete videowriter;
     videowriter = NULL;
+  }
 
-    /* Close the timecodes file */
-    if ( timecodes_fd ) {
-      fclose(timecodes_fd);
-      timecodes_fd = NULL;
+  // Should not be static because we are multi-threaded
+  char sql[ZM_SQL_MED_BUFSIZ];
+  struct DeltaTimeval delta_time;
+  DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
+  Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
+
+  if ( frames > last_db_frame ) {
+    Debug(1, "Adding closing frame %d to DB", frames);
+    snprintf(sql, sizeof(sql), 
+        "INSERT INTO Frames ( EventId, FrameId, TimeStamp, Delta ) VALUES ( %" PRIu64 ", %d, from_unixtime( %ld ), %s%ld.%02ld )",
+        id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
+    db_mutex.lock();
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't insert frame: %s", mysql_error(&dbconn));
+    } else {
+      Debug(1,"Success writing last frame");
     }
+    db_mutex.unlock();
   }
 
-  snprintf( sql, sizeof(sql), "update Events set Name='%s%d', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' where Id = %d", monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't update event: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  snprintf(sql, sizeof(sql), 
+      "UPDATE Events SET Name='%s %" PRIu64 "', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' WHERE Id = %" PRIu64,
+      monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
+  db_mutex.lock();
+  while ( mysql_query(&dbconn, sql) ) {
+    Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
+    db_mutex.unlock();
+    sleep(1);
+    db_mutex.lock();
   }
-}
+  db_mutex.unlock();
 
-void Event::createNotes( std::string &notes ) {
+} // Event::~Event()
+
+void Event::createNotes(std::string &notes) {
   notes.clear();
   for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter ) {
     notes += mapIter->first;
@@ -327,11 +328,7 @@ bool Event::WriteFrameVideo( const Image *image, const struct timeval timestamp,
     Error("Failed encoding video frame");
   }
 
-  /* Add the frame to the timecodes file */
-  if ( timecodes_fd )
-    fprintf(timecodes_fd, "%u\n", timeMS);
-
-  return( true );
+  return true;
 }
 
 void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
@@ -426,10 +423,12 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
 
     mysql_real_escape_string( &dbconn, escapedNotes, notes.c_str(), notes.length() );
 
-    snprintf( sql, sizeof(sql), "update Events set Notes = '%s' where Id = %d", escapedNotes, id );
+    snprintf( sql, sizeof(sql), "UPDATE Events SET Notes = '%s' WHERE Id = %" PRIu64, escapedNotes, id );
+    db_mutex.lock();
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert event: %s", mysql_error( &dbconn ) );
     }
+    db_mutex.unlock();
 #endif
   }
 }
@@ -482,7 +481,7 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     }
 
     int sql_len = strlen(sql);
-    snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %d, %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+    snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %" PRIu64 ", %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
 
     frameCount++;
   }
@@ -490,9 +489,11 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
   if ( frameCount ) {
     Debug( 1, "Adding %d/%d frames to DB", frameCount, n_frames );
     *(sql+strlen(sql)-2) = '\0';
+    db_mutex.lock();
     if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't insert frames: %s, sql was (%s)", mysql_error( &dbconn ), sql );
     }
+    db_mutex.unlock();
     last_db_frame = frames;
   } else {
     Debug( 1, "No valid pre-capture frames to add" );
@@ -541,16 +542,21 @@ Debug(3, "Writing video");
 
     Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, Event::frame_type_names[frame_type] );
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf( sql, sizeof(sql), "insert into Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %d, %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type_names[frame_type], timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't insert frame: %s", mysql_error( &dbconn ) );
-      exit( mysql_errno( &dbconn ) );
+    snprintf(sql, sizeof(sql), "INSERT INTO Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) values ( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )", id, frames, frame_type_names[frame_type], timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score);
+    db_mutex.lock();
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't insert frame: %s", mysql_error(&dbconn));
+      Error("SQL was %s", sql);
+      db_mutex.unlock();
+      return;
     }
+    db_mutex.unlock();
     last_db_frame = frames;
 
     // We are writing a Bulk frame
     if ( frame_type == BULK ) {
-      snprintf( sql, sizeof(sql), "update Events set Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %d", 
+      snprintf( sql, sizeof(sql), 
+          "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %" PRIu64, 
           ( delta_time.positive?"":"-" ),
           delta_time.sec, delta_time.fsec,
           frames, 
@@ -560,10 +566,14 @@ Debug(3, "Writing video");
           max_score,
           id
           );
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error( "Can't update event: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
+      db_mutex.lock();
+      while ( mysql_query(&dbconn, sql) ) {
+        Error("Can't update event: %s", mysql_error(&dbconn));
+        db_mutex.unlock();
+        sleep(1);
+        db_mutex.lock();
       }
+      db_mutex.unlock();
     }
   } // end if db_frame
 
@@ -578,9 +588,9 @@ Debug(3, "Writing video");
       max_score = score;
 
     if ( alarm_image ) {
-      snprintf( event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames );
+      snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames);
 
-      Debug( 1, "Writing analysis frame %d", frames );
+      Debug(1, "Writing analysis frame %d", frames);
       if ( monitor->GetOptSaveJPEGs() & 2 ) {
         WriteFrameImage(alarm_image, timestamp, event_file, true);
       }

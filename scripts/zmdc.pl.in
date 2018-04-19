@@ -104,6 +104,10 @@ my @daemons = (
     'zmtelemetry.pl'
     );
 
+if ($Config{ZM_OPT_USE_EVENTNOTIFICATION}) {
+    push @daemons,'zmeventnotification.pl';
+}
+
 my $command = shift @ARGV;
 if( ! $command ) {
   print( STDERR "No command given\n" );
@@ -151,8 +155,8 @@ my $server_up = connect( CLIENT, $saddr );
 
 if ( ! $server_up ) {
   if ( $Config{ZM_SERVER_ID} ) {
-use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
-use Sys::CpuLoad;
+    use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+    use ZoneMinder::Server qw(CpuLoad);
     if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
           'NotRunning', &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
       Error("Failed Updating status of Server record to Not RUnning for Id=$Config{ZM_SERVER_ID}" . $dbh->errstr());
@@ -233,11 +237,11 @@ use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
 use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
-use Sys::CpuLoad;
+use ZoneMinder::Server qw(CpuLoad);
 #use Data::Dumper;
 
-# We count 100 of these, so total timeout is this value *100.
-use constant KILL_DELAY => 100*1000; # 1/10th of a second
+# We count 10 of these, so total timeout is this value *10.
+use constant KILL_DELAY => 10; # seconds
 
 our %cmd_hash;
 our %pid_hash;
@@ -289,9 +293,8 @@ sub run {
 
   if ( $Config{ZM_SERVER_ID} ) {
     require ZoneMinder::Server;
-  dPrint( ZoneMinder::Logger::INFO, 'Loading Server record' );
     $Server = new ZoneMinder::Server( $Config{ZM_SERVER_ID} );
-  dPrint( ZoneMinder::Logger::INFO, 'Loading Server record have ' . $$Server{Name} );
+    dPrint( ZoneMinder::Logger::INFO, 'Loading Server record have ' . $$Server{Name} );
   }
 
   while( 1 ) {
@@ -299,8 +302,8 @@ sub run {
     if ( $Config{ZM_SERVER_ID} ) {
       if ( ! ( $secs_count % 60 ) ) {
         $dbh = zmDbConnect() if ! $dbh->ping();
-        my @cpuload = Sys::CpuLoad::load();
-        dPrint( ZoneMinder::Logger::INFO, 'Updating Server record' );
+        my @cpuload = CpuLoad();
+        dPrint( ZoneMinder::Logger::DEBUG, 'Updating Server record' );
         if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
             'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
           Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
@@ -385,6 +388,7 @@ sub cPrint {
   }
 }
 
+# I think the purpose of this is to echo the logs to the client process so it can then display them. 
 sub dPrint {
   my $logLevel = shift;
   if ( fileno(CLIENT) ) {
@@ -523,7 +527,7 @@ sub kill_until_dead {
   my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset ) or die "dying at block...\n";
   while( $process and $$process{pid} and kill( 0, $$process{pid} ) ) {
-    if ( $count++ > 100 ) {
+    if ( $count++ > 10 ) {
       dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
           .strftime( '%y/%m/%d %H:%M:%S', localtime() )
           .". Sending KILL to pid $$process{pid}\n"
@@ -532,8 +536,9 @@ sub kill_until_dead {
       last;
     }
 
+    # THe purpose of the signal blocking is to simplify the concurrency
     sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
-    usleep( KILL_DELAY );
+    sleep( KILL_DELAY );
     sigprocmask(SIG_BLOCK, $blockset, $sigset ) or die "dying at block...\n";
   }
   sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";

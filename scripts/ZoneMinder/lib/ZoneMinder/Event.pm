@@ -35,6 +35,9 @@ require Date::Manip;
 require File::Find;
 require File::Path;
 require File::Copy;
+require File::Slurp;
+require File::Basename;
+require Number::Bytes::Human;
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -300,8 +303,8 @@ sub GenerateVideo {
       $frame_rate = $fps;
     }
 
-    my $width = $self->{MonitorWidth};
-    my $height = $self->{MonitorHeight};
+    my $width = $self->{Width};
+    my $height = $self->{Height};
     my $video_size = " ${width}x${height}";
 
     if ( $scale ) {
@@ -347,13 +350,17 @@ sub delete {
     Warning( "Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from $caller:$line\n" );
     return;
   }
+  if ( ! -e $event->Storage()->Path() ) {
+    Warning("Not deleting event because storage path doesn't exist");
+    return;
+  }
   Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}\n" );
   $ZoneMinder::Database::dbh->ping();
 
   $ZoneMinder::Database::dbh->begin_work();
-  $event->lock_and_load();
+  #$event->lock_and_load();
 
-  if ( ! $Config{ZM_OPT_FAST_DELETE} ) {
+  {
     my $sql = 'DELETE FROM Frames WHERE EventId=?';
     my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
       or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
@@ -375,19 +382,23 @@ sub delete {
       $ZoneMinder::Database::dbh->commit();
       return;
     }
+  }
 
+# Do it individually to avoid locking up the table for new events
+  {
+    my $sql = 'DELETE FROM Events WHERE Id=?';
+    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+      or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
+    my $res = $sth->execute( $event->{Id} )
+      or Error( "Can't execute '$sql': ".$sth->errstr() );
+    $sth->finish();
+  }
+  $ZoneMinder::Database::dbh->commit();
+  if ( (! $Config{ZM_OPT_FAST_DELETE}) and $event->Storage()->DoDelete() ) {
     $event->delete_files( );
   } else {
-    Debug('Not deleting frames, stats and files for speed.');
+    Debug('Not deleting event files from '.$event->Path().' for speed.');
   }
-# Do it individually to avoid locking up the table for new events
-  my $sql = 'DELETE FROM Events WHERE Id=?';
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-  my $res = $sth->execute( $event->{Id} )
-    or Error( "Can't execute '$sql': ".$sth->errstr() );
-  $sth->finish();
-  $ZoneMinder::Database::dbh->commit();
 } # end sub delete
 
 sub delete_files {
@@ -410,8 +421,34 @@ sub delete_files {
   if ( $event_path ) {
     ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
     ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+
+    my $deleted = 0;
+    if ( $$Storage{Type} eq 's3fs' ) {
+      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+      eval {
+        require Net::Amazon::S3;
+        my $s3 = Net::Amazon::S3->new( {
+             aws_access_key_id     => $aws_id,
+             aws_secret_access_key => $aws_secret,
+             ( $aws_host ? ( host => $aws_host ) : () ),
+             });
+        my $bucket = $s3->bucket($aws_bucket);
+        if ( ! $bucket ) {
+          Error("S3 bucket $bucket not found.");
+          die;
+        }
+        if ( $bucket->delete_key( $event_path ) ) {
+          $deleted = 1;
+        } else {
+          Error("Failed to delete from S3:".$s3->err . ": " . $s3->errstr);
+        }
+      };
+      Error($@) if $@;
+    } 
+    if ( ! $deleted ) {
       my $command = "/bin/rm -rf $storage_path/$event_path";
-    ZoneMinder::General::executeShellCommand( $command );
+      ZoneMinder::General::executeShellCommand( $command );
+    }
   }
 
   if ( $event->Scheme() eq 'Deep' ) {
@@ -425,6 +462,9 @@ sub delete_files {
 } # end sub delete_files
 
 sub Storage {
+  if ( @_ > 1 ) {
+    $_[0]{Storage} = $_[1];
+  }
   if ( ! $_[0]{Storage} ) {
     $_[0]{Storage} = new ZoneMinder::Storage( $_[0]{StorageId} );
   } 
@@ -479,6 +519,22 @@ sub DiskSpace {
 sub MoveTo {
   my ( $self, $NewStorage ) = @_;
 
+  my $OldStorage = $self->Storage(undef);
+  my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
+  if ( ! -e $OldPath ) {
+    return "Old path $OldPath does not exist.";
+  }
+  # First determine if we can move it to the dest.
+  # We do this before bothering to lock the event
+  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
+  if ( ! $$NewStorage{Id} ) {
+    return "New storage does not have an id.  Moving will not happen.";
+  } elsif ( !$NewPath ) {
+    return "New path ($NewPath) is empty.";
+  } elsif ( ! -e $NewPath ) {
+    return "New path $NewPath does not exist.";
+  }
+
   $ZoneMinder::Database::dbh->begin_work();
   $self->lock_and_load();
   # data is reloaded, so need to check that the move hasn't already happened.
@@ -487,25 +543,12 @@ sub MoveTo {
     return "Event has already been moved by someone else.";
   }
 
-  my $OldStorage = $self->Storage();
-  my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
+  if ( $$OldStorage{Id} != $$self{StorageId} ) {
+    $ZoneMinder::Database::dbh->commit();
+    return "Old Storage path changed, Event has moved somewhere else.";
+  }
 
   $$self{Storage} = $NewStorage;
-
-  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
-  if ( ! $$NewStorage{Id} ) {
-    $ZoneMinder::Database::dbh->commit();
-    return "New storage does not have an id.  Moving will not happen.";
-  } elsif ( !$NewPath ) {
-    $ZoneMinder::Database::dbh->commit();
-    return "New path ($NewPath) is empty.";
-  } elsif ( ! -e $NewPath ) {
-    $ZoneMinder::Database::dbh->commit();
-    return "New path $NewPath does not exist.";
-  } elsif ( ! -e $OldPath ) {
-    $ZoneMinder::Database::dbh->commit();
-    return "Old path $OldPath does not exist.";
-  }
   ( $NewPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
     $ZoneMinder::Database::dbh->commit();
@@ -513,33 +556,93 @@ sub MoveTo {
   }
   Debug("Moving event $$self{Id} from $OldPath to $NewPath");
 
+  my $moved = 0;
+
+  if ( $$NewStorage{Type} eq 's3fs' ) {
+    my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+    eval {
+      require Net::Amazon::S3;
+      my $s3 = Net::Amazon::S3->new( {
+          aws_access_key_id     => $aws_id,
+          aws_secret_access_key => $aws_secret,
+          ( $aws_host ? ( host => $aws_host ) : () ),
+          });
+      my $bucket = $s3->bucket($aws_bucket);
+      if ( ! $bucket ) {
+        Error("S3 bucket $bucket not found.");
+        die;
+      }
+
+      my $event_path = 'events/'.$self->RelativePath();
+Info("Making dir ectory $event_path/");
+      if ( ! $bucket->add_key( $event_path.'/','' ) ) {
+        die "Unable to add key for $event_path/";
+      }
+
+      my @files = glob("$OldPath/*");
+Debug("Files to move @files");
+      for my $file (@files) {
+        next if $file =~ /^\./;
+        ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+         my $starttime = time;
+        Debug("Moving file $file to $NewPath");
+        my $size = -s $file;
+        if ( ! $size ) {
+          Info("Not moving file with 0 size");
+        }
+        my $file_contents = File::Slurp::read_file($file);
+        if ( ! $file_contents ) {
+          die "Loaded empty file, but it had a size. Giving up";
+        }
+
+        my $filename = $event_path.'/'.File::Basename::basename($file);
+        if ( ! $bucket->add_key( $filename, $file_contents ) ) {
+          die "Unable to add key for $filename";
+        }
+        my $duration = time - $starttime;
+        Debug("PUT to S3 " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($size/$duration) . "/sec");
+      } # end foreach file.
+
+      $moved = 1;
+    };
+    Error($@) if $@;
+    die $@ if $@;
+  } # end if s3
+
   my $error = '';
-  File::Path::make_path( $NewPath, {error => \my $err} );
-  if ( @$err ) {
-    for my $diag (@$err) {
-      my ($file, $message) = %$diag;
-      next if $message eq 'File exists';
-      if ($file eq '') {
-        $error .= "general error: $message\n";
-      } else {
-        $error .= "problem making $file: $message\n";
+  if ( ! $moved ) {
+    File::Path::make_path( $NewPath, {error => \my $err} );
+    if ( @$err ) {
+      for my $diag (@$err) {
+        my ($file, $message) = %$diag;
+        next if $message eq 'File exists';
+        if ($file eq '') {
+          $error .= "general error: $message\n";
+        } else {
+          $error .= "problem making $file: $message\n";
+        }
       }
     }
-  }
-  if ( $error ) {
-    $ZoneMinder::Database::dbh->commit();
-    return $error;
-  }
-  my @files = glob("$OldPath/*");
-
-  for my $file (@files) {
-    next if $file =~ /^\./;
-    ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
-    if ( ! File::Copy::copy( $file, $NewPath ) ) {
-      $error .= "Copy failed: for $file to $NewPath: $!";
-      last;
+    if ( $error ) {
+      $ZoneMinder::Database::dbh->commit();
+      return $error;
     }
-  } # end foreach file.
+    my @files = glob("$OldPath/*");
+
+    for my $file (@files) {
+      next if $file =~ /^\./;
+      ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+      my $starttime = time;
+      Debug("Moving file $file to $NewPath");
+      my $size = -s $file;
+      if ( ! File::Copy::copy( $file, $NewPath ) ) {
+        $error .= "Copy failed: for $file to $NewPath: $!";
+        last;
+      }
+      my $duration = time - $starttime;
+      Debug("Copied " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . ($duration?Number::Bytes::Human::format_bytes($size/$duration):'inf') . "/sec");
+    } # end foreach file.
+  } # end if ! moved
 
   if ( $error ) {
     $ZoneMinder::Database::dbh->commit();
@@ -554,8 +657,8 @@ sub MoveTo {
     $ZoneMinder::Database::dbh->commit();
     return $error;
   }
-  $self->delete_files( $OldStorage );
   $ZoneMinder::Database::dbh->commit();
+  $self->delete_files( $OldStorage );
   return $error;
 } # end sub MoveTo
 

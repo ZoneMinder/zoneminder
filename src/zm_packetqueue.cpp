@@ -101,7 +101,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
   }
   if ( it != pktQueue.rend() ) {
     // We want to keep this packet, so advance to the next
-    it ++;
+    ++it;
   }
   unsigned int delete_count = 0;
   while ( it != pktQueue.rend() ) {

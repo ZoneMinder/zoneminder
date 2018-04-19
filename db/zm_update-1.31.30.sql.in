@@ -10,10 +10,10 @@ CREATE TABLE `Monitor_Status` (
 SET SESSION sql_mode='NO_AUTO_VALUE_ON_ZERO';
 
 SET @s = (SELECT IF(
-    (SELECT COUNT(*) FROM Storage WHERE Name = 'Default' AND Id=0 AND Path='/var/cache/zoneminder/events'
+    (SELECT COUNT(*) FROM Storage WHERE Name = 'Default' AND Id=0 AND Path='@ZM_DIR_EVENTS@'
     ) > 0,
     "SELECT 'Default Storage Area already exists.'",
-    "INSERT INTO Storage (Id,Name,Path,Scheme,ServerId) VALUES (0,'Default','/var/cache/zoneminder/events','Medium',NULL)"
+    "INSERT INTO Storage (Id,Name,Path,Scheme,ServerId) VALUES (0,'Default','@ZM_DIR_EVENTS@','Medium',NULL)"
     ));
 
 PREPARE stmt FROM @s;

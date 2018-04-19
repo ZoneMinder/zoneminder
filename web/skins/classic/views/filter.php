@@ -188,7 +188,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
-          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>"/>
+          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>" oninput="updateButtons(this);"/>
         </p>
         <table id="fieldsTable" class="filterTable">
           <tbody>
@@ -398,11 +398,11 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>
-              <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( !empty($filter->Background()) ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( !empty($filter->Background()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);"/>
             </p>
             <p>
               <label for="Concurrent"><?php echo translate('ConcurrentFilter') ?></label>
-              <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( !empty($filter->Concurrent()) ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( !empty($filter->Concurrent()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);"/>
             </p>
         </div>
         <hr/>

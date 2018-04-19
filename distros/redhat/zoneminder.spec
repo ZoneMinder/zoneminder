@@ -377,6 +377,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/cache/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder

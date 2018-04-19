@@ -522,7 +522,6 @@ sub MoveTo {
   my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! -e $OldPath ) {
-    $ZoneMinder::Database::dbh->commit();
     return "Old path $OldPath does not exist.";
   }
   # First determine if we can move it to the dest.

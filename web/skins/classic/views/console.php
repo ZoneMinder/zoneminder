@@ -249,9 +249,11 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
               <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>"  aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
               <?php echo implode('<br/>',
                   array_map(function($group_id){
-                    $Group = new Group($group_id);
-                    $Groups = $Group->Parents();
-                    array_push( $Groups, $Group );
+                    $Group = Group::find_one(array('Id'=>$group_id));
+                    if ( $Group ) {
+                      $Groups = $Group->Parents();
+                      array_push( $Groups, $Group );
+                    }
                     return implode(' &gt; ', array_map(function($Group){ return '<a href="'. ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview&GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>

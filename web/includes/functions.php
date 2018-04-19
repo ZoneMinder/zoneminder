@@ -2132,7 +2132,7 @@ function getStreamHTML( $monitor, $options = array() ) {
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array(
       'mode'=>'mpeg',
-      'scale'=>$options['scale'],
+      'scale'=>(isset($options['scale'])?$options['scale']:100),
       'bitrate'=>ZM_WEB_VIDEO_BITRATE,
       'maxfps'=>ZM_WEB_VIDEO_MAXFPS,
       'format' => ZM_MPEG_LIVE_FORMAT

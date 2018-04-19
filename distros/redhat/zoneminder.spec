@@ -9,9 +9,6 @@
 
 %if "%{zmuid_final}" == "nginx"
 %global with_nginx 1
-%global wwwconfdir %{_sysconfdir}/nginx/default.d
-%else
-%global wwwconfdir %{_sysconfdir}/httpd/conf.d
 %endif
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
@@ -321,7 +318,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/*.conf
 %ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 
-%config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
+%config(noreplace) %attr(644,root,root) /etc/zm/www/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %if 0%{?with_nginx}

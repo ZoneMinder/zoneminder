@@ -62,17 +62,16 @@ install(CODE "execute_process(COMMAND ln -sf ../../../../../../var/lib/zoneminde
 # Link to Cambozola
 install(CODE "execute_process(COMMAND ln -sf ../../java/cambozola.jar \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/cambozola.jar\")")
 
-# Install auxiliary files required to run zoneminder on CentOS
+# Install auxiliary files
 install(FILES misc/redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY jscalendar-1.0/ DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/tools/jscalendar)
 
+# Install zoneminder service files
 install(FILES zoneminder.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 
 if(ZM_WEB_USER STREQUAL "nginx")
-    install(FILES zoneminder.conf DESTINATION /etc/nginx/default.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
     install(FILES zoneminder.php-fpm.conf DESTINATION /etc/php-fpm.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ RENAME zoneminder.conf)
-else(ZM_WEB_USER STREQUAL "nginx")
-    install(FILES zoneminder.conf DESTINATION /etc/httpd/conf.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 endif(ZM_WEB_USER STREQUAL "nginx")
 
 if(ZM_TARGET_DISTRO STREQUAL "el6")

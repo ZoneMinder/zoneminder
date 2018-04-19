@@ -1,7 +1,10 @@
 What's New
 ==========
 
-1. ***EOL NOTICE***
+1. See the ZoneMinder release notes for a list of new features:
+     https://github.com/ZoneMinder/zoneminder/releases
+
+2. ***EOL NOTICE***
    It has become increasingly difficult to maintain the ZoneMinder project such
    that it remains compatible with EL6 distros. The version of php shipped with
    EL6 distros and the version of ffmpeg which will build against EL6 are too
@@ -11,28 +14,7 @@ What's New
    replacing core packages, such as php, will not be supported by us. You are
    on your own should you choose to go down that path.
 
-2. ZoneMinder now uses a conf.d subfolder to process custom changes to
-   variables found in zm.conf. Changes to zm.conf will be overwritten
-   during an upgrade. Instead, create a file with a ".conf" extension under
-   th2 conf.d folder and make your changes there.
-
-3. ZoneMinder now supports recording directly to video container! This feature
-   is new and should be treated as experimental. Refer to the documentation
-   regarding how to use this feature.
-
-4. The Apache ScriptAlias has been changed from "/cgi-bin/zm/zms" to 
-   "/cgi-bin-zm/zms". This has been to done match the configuration of
-   CentOS7/Fedora and simplify the build process.
-
-   IMPORTANT: You must manually verify the value of PATH_ZMS under Options.
-   Make sure it is set to "/cgi-bin-zm/nph-zms". Failure to do so will result
-   in a broken system. You have been warned.
-
-5. This package uses the HTTPS protocol by default to access the web portal.
-   Requests using HTTP will auto-redirect to HTTPS. See README.https for
-   more information.
-
-6. The php package that ships with CentOS 6 does not support the new ZoneMinder
+3. The php package that ships with CentOS 6 does not support the new ZoneMinder
    API. If you require API functionality (such as using a mobile app) then you
    should consider an upgrade to CentOS 7 or use Fedora.
 
@@ -81,15 +63,23 @@ New installs
    If you are not sure of the proper timezone specification to use, look at
    http://php.net/date.timezone
 
-5. Install mod_ssl or configure /etc/httpd/conf.d/zoneminder.conf to meet your
-   needs. This package comes preconfigured for HTTPS using the default self
-   signed certificate on your system. The recommended way to complete this step
-   is to simply install mod_ssl:
+5. Configure the web server
 
-	sudo yum install mod_ssl
+   This package uses the HTTPS protocol by default to access the web portal,
+   using rhe default self signed certificate on your system. Requests using
+   HTTP will auto-redirect to HTTPS. 
 
-   If this does not meet your needs, then read README.https to
-   learn about alternatives. When in doubt, install mod_ssl.
+   Inspect the web server configuration file and verify it meets your needs:
+
+       /etc/zm/www/zoneminder.conf
+
+   If you are running other web enabled services then you may need to edit
+   this file to suite. See README.https to learn about other alternatives. 
+
+   When in doubt, proceed with the default:
+
+        sudo ln -s /etc/zm/www/zoneminder.conf /etc/httpd/conf.d/
+	sudo dnf install mod_ssl
 
 6. Configure the web server to start automatically:
 
@@ -137,7 +127,7 @@ Upgrades
    See step 2 of the Installation section to add missing permissions.
 
 3. Verify the ZoneMinder Apache configuration file in the folder 
-   /etc/httpd/conf.d. You will have a file called "zoneminder.conf" and there
+   /etc/zm/www. You will have a file called "zoneminder.conf" and there
    may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
    Verify the SSL REquirements meet your needs. Read README.https if necessary.

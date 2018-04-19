@@ -397,7 +397,7 @@ sub delete {
   if ( (! $Config{ZM_OPT_FAST_DELETE}) and $event->Storage()->DoDelete() ) {
     $event->delete_files( );
   } else {
-    Debug('Not deleting event files for speed.');
+    Debug('Not deleting event files from '.$event->Path().' for speed.');
   }
 } # end sub delete
 

@@ -2,7 +2,10 @@
 %global zmgid_final apache
 
 # Crud is configured as a git submodule
-%global crud_version 3.1.0
+%global crud_version 3.1.0-zm
+
+# CakePHP-Enum-Behavior is configured as a git submodule
+%global ceb_version 1.0-zm
 
 %if "%{zmuid_final}" == "nginx"
 %global with_nginx 1
@@ -41,11 +44,13 @@ Group: System Environment/Daemons
 # Mootools is inder the MIT license: http://mootools.net/
 # CakePHP is under the MIT license: https://github.com/cakephp/cakephp
 # Crud is under the MIT license: https://github.com/FriendsOfCake/crud
+# CakePHP-Enum-Behavior is under the MIT license: https://github.com/asper/CakePHP-Enum-Behavior
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
 Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zoneminder-%{version}.tar.gz
-Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
+Source1: https://github.com/ZoneMinder/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
+Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 
 %{?with_init_systemd:BuildRequires: systemd-devel}
 %{?with_init_systemd:BuildRequires: mariadb-devel}
@@ -147,6 +152,11 @@ too much degradation of performance.
 %autosetup -p 1 -a 1 -n ZoneMinder-%{version}
 %{__rm} -rf ./web/api/app/Plugin/Crud
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
+
+# The all powerful autosetup macro does not work after the second source tarball
+%{__gzip} -dc %{_topdir}/SOURCES/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
+%{__rm} -rf ./web/api/app/Plugin/CakePHP-Enum-Behavior
+%{__mv} -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Behavior
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes

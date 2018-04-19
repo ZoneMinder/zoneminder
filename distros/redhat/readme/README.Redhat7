@@ -32,13 +32,13 @@ New installs
    /etc/zm/conf.d and set your credentials there. For example, create the file
    /etc/zm/conf.d/zm-db-user.conf and add the following content to it:
       
-      ZM_DB_USER = {username of the sql account you want to use}
-      ZM_DB_PASS = {password of the sql account you want to use}
+     ZM_DB_USER = {username of the sql account you want to use}
+     ZM_DB_PASS = {password of the sql account you want to use}
 
    Once the file has been saved, set proper file & ownership permissions on it:
   
-      sudo chown root:apache *.conf
-      sudo chmod 640 *.conf 
+     sudo chown root:apache *.conf
+     sudo chmod 640 *.conf 
 
 4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
    timezone.  PHP will complain loudly if this is not set, or if it is set
@@ -72,25 +72,54 @@ New installs
 
    Inspect the web server configuration file and verify it meets your needs:
 
-       /etc/zm/www/zoneminder.conf
+     /etc/zm/www/zoneminder.conf
 
    If you are running other web enabled services then you may need to edit
    this file to suite. See README.https to learn about other alternatives. 
 
    When in doubt, proceed with the default:
 
-        sudo ln -s /etc/zm/www/zoneminder.conf /etc/httpd/conf.d/
-	sudo dnf install mod_ssl
+     sudo ln -s /etc/zm/www/zoneminder.conf /etc/httpd/conf.d/
+     sudo dnf install mod_ssl
 
 7. Now start the web server:
 
-	sudo systemctl enable httpd
-	sudo systemctl start httpd
+     sudo systemctl enable httpd
+     sudo systemctl start httpd
 
 8. Now start zoneminder:
 
-	sudo systemctl enable zoneminder
-	sudo systemctl start zoneminder
+     sudo systemctl enable zoneminder
+     sudo systemctl start zoneminder
+
+9. Optionally configure the firewall
+
+   All Redhat distros ship with the firewall enabled. That means you will not
+   be able to access the ZoneMinder web console from a remote machine until
+   changes are made to the firewall.
+
+   What follows are a set of minimal commands to allow remote access to the
+   ZoneMinder web console and also allow ZoneMinder's ONVIF discovery to
+   work. The following commands do not put any restrictions on which remote
+   machine(s) have access to the listed ports or services.
+
+     sudo firewall-cmd --permanent --zone=public --add-service=http
+     sudo firewall-cmd --permanent --zone=public --add-service=https
+     sudo firewall-cmd --permanent --zone=public --add-port=3702/udp
+     sudo firewall-cmd --reload
+
+   Additional changes to the firewall may be required, depending on your
+   security requirements and how you use the system. It is up to you to verify
+   these commands are sufficient.
+
+10. Access the ZoneMinder web console
+
+   You may now access the ZoneMinder web console from your web browser using
+   an appropriate url. Here are some examples:
+
+     http://localhost/zm (works from the local machine only)
+     http://{machine name}/zm (works only if dns is configured for your network)
+     http://{ip address}/zm
 
 Upgrades
 ========

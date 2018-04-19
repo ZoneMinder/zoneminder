@@ -107,6 +107,35 @@ New installs
 
    Then point your web browser to http://<machine name or ip>/zm
 
+9. Optionally configure the firewall
+
+   All Redhat distros ship with the firewall enabled. That means you will not
+   be able to access the ZoneMinder web console from a remote machine until
+   changes are made to the firewall.
+
+   What follows are a set of minimal commands to allow remote access to the
+   ZoneMinder web console and also allow ZoneMinder's ONVIF discovery to
+   work. The following commands do not put any restrictions on which remote
+   machine(s) have access to the listed ports or services.
+
+     sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+     sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+     sudo iptables -A INPUT -p udp --dport 3702 -j ACCEPT
+     iptables-save | sudo tee /etc/sysconfig/iptables
+
+   Additional changes to the firewall may be required, depending on your
+   security requirements and how you use the system. It is up to you to verify
+   these commands are sufficient.
+
+10. Access the ZoneMinder web console
+
+   You may now access the ZoneMinder web console from your web browser using
+   an appropriate url. Here are some examples:
+
+     http://localhost/zm (works from the local machine only)
+     http://{machine name}/zm (works only if dns is configured for your network)
+     http://{ip address}/zm
+
 Upgrades
 ========
 

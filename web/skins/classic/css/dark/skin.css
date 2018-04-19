@@ -495,20 +495,6 @@ input[type=submit]:disabled,
   border-color: #666666;
 }
 
-/*
- * Console table for the main event table
- */
-
-#consoleTable td, #consoleTable th {
-    padding: 5px;
-    border-bottom: 1px solid #000000;
-}
-
-#consoleTable input[type=button] {
-    margin-right: 3px !important;
-}
-
-
 .navbar{
   margin-bottom: 0 !important;
   border-radius: 0;

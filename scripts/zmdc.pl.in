@@ -155,8 +155,8 @@ my $server_up = connect( CLIENT, $saddr );
 
 if ( ! $server_up ) {
   if ( $Config{ZM_SERVER_ID} ) {
-use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
-use use ZoneMinder::Server qw(CpuLoad);
+    use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+    use ZoneMinder::Server qw(CpuLoad);
     if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
           'NotRunning', &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
       Error("Failed Updating status of Server record to Not RUnning for Id=$Config{ZM_SERVER_ID}" . $dbh->errstr());

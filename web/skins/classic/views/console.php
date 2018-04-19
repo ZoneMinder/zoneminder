@@ -247,7 +247,6 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
 ?>
             <td class="colName">
               <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>"  aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
-              <?php echo translate('Status'.$monitor['Status']) ?><br/>
               <?php echo implode('<br/>',
                   array_map(function($group_id){
                     $Group = Group::find_one(array('Id'=>$group_id));
@@ -260,7 +259,9 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
 ?>
             </div></td>
             <td class="colFunction">
-              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/><div class="small text-nowrap text-muted">
+              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
+              <?php echo translate('Status'.$monitor['Status']) ?><br/>
+              <div class="small text-nowrap text-muted">
 <?php 
   $fps_string = '';
   if ( isset($monitor['CaptureFPS']) ) {

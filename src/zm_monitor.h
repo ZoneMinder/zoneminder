@@ -284,6 +284,7 @@ protected:
   int        ref_blend_perc;      // Percentage of new image going into reference image.
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
   bool      track_motion;      // Whether this monitor tries to track detected motion 
+  int         signal_check_points;  // Number of points in the image to check for signal
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool              embed_exif; // Whether to embed Exif data into each image frame or not
 
@@ -384,6 +385,7 @@ public:
     int p_ref_blend_perc,
     int p_alarm_ref_blend_perc,
     bool p_track_motion,
+    int p_signal_check_points,
     Rgb p_signal_check_colour,
     bool p_embed_exif,
     Purpose p_purpose,

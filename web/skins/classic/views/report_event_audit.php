@@ -98,7 +98,7 @@ $EventsByMonitor = array();
 while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   $Event = new Event($event);
   if ( ! isset($EventsByMonitor[$event['MonitorId']]) )
-    $EventsByMonitor[$event['MonitorId']] = array( 'Events'=>array(), 'MinGap'=>0, 'MaxGap'=>0, 'FileMissing'=>0, );
+    $EventsByMonitor[$event['MonitorId']] = array( 'Events'=>array(), 'MinGap'=>0, 'MaxGap'=>0, 'FileMissing'=>0, 'ZeroSize'=>0 );
 
   if ( count($EventsByMonitor[$event['MonitorId']]['Events']) ) {
     $last_event = end($EventsByMonitor[$event['MonitorId']]['Events']);
@@ -112,6 +112,8 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   } # end if has previous events
   if ( ! file_exists( $Event->Path().'/'.$Event->DefaultVideo() ) ) {
     $EventsByMonitor[$event['MonitorId']]['FileMissing'] += 1;
+  } else if ( ! filesize( $Event->Path().'/'.$Event->DefaultVideo() ) ) {
+    $EventsByMonitor[$event['MonitorId']]['ZeroSize'] += 1;
   }
   $EventsByMonitor[$event['MonitorId']]['Events'][] = $Event;
 } # end foreach event
@@ -142,6 +144,7 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
             <th class="colMinGap"><?php echo translate('MinGap') ?></th> 
             <th class="colMaxGap"><?php echo translate('MaxGap') ?></th> 
             <th class="colMissingFiles"><?php echo translate('MissingFiles') ?></th> 
+            <th class="colZeroSize"><?php echo translate('ZeroSize') ?></th> 
           </tr>
         </thead>
         <tbody>
@@ -169,6 +172,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colMinGap"><?php echo isset($EventsByMonitor[$Monitor->Id()])?$EventsByMonitor[$Monitor->Id()]['MinGap']:0 ?></td>
             <td class="colMaxGap"><?php echo isset($EventsByMonitor[$Monitor->Id()])?$EventsByMonitor[$Monitor->Id()]['MaxGap']:0 ?></td>
             <td class="colFileMissing"><?php echo isset($EventsByMonitor[$Monitor->Id()])?$EventsByMonitor[$Monitor->Id()]['FileMissing']:0 ?></td>
+            <td class="colZeroSize"><?php echo isset($EventsByMonitor[$Monitor->Id()])?$EventsByMonitor[$Monitor->Id()]['ZeroSize']:0 ?></td>
           </tr>
 <?php
 } # end for each monitor

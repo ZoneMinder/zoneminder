@@ -1184,6 +1184,7 @@ bool Monitor::CheckSignal( const Image *image ) {
     int index = 0;
     for ( int i = 0; i < config.signal_check_points; i++ ) {
       while( true ) {
+        // Why the casting to long long? also note that on a 64bit cpu, long long is 128bits
         index = (int)(((long long)rand()*(long long)(pixels-1))/RAND_MAX);
         if ( !config.timestamp_on_capture || !label_format[0] )
           break;
@@ -1219,6 +1220,7 @@ bool Monitor::CheckSignal( const Image *image ) {
         }
       }
     } // end for < signal_check_points
+    Debug(1,"SignalCheck: %d points, colour_val(%d)", config.signal_check_points, colour_val);
     return false;
   } // end if signal_check_points
   return true;

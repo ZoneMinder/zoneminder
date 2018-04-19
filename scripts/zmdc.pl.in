@@ -237,7 +237,7 @@ use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
 use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
-use use ZoneMinder::Server qw(CpuLoad);
+use ZoneMinder::Server qw(CpuLoad);
 #use Data::Dumper;
 
 # We count 10 of these, so total timeout is this value *10.

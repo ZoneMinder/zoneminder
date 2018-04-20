@@ -208,6 +208,7 @@ ob_start();
 <?php
 $table_head = ob_get_contents();
 ob_end_clean();
+echo $table_head;
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
   $Monitor = new Monitor($monitor);

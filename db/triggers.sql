@@ -60,7 +60,6 @@ FOR EACH ROW
   //
 
 
-delimiter //
 DROP TRIGGER IF EXISTS Events_Week_delete_trigger//
 CREATE TRIGGER Events_Week_delete_trigger BEFORE DELETE ON Events_Week
 FOR EACH ROW BEGIN
@@ -89,9 +88,6 @@ FOR EACH ROW
   END;
   //
 
-DELIMITER ;
-
-delimiter //
 DROP TRIGGER IF EXISTS Events_Month_delete_trigger//
 CREATE TRIGGER Events_Month_delete_trigger BEFORE DELETE ON Events_Month
 FOR EACH ROW BEGIN
@@ -120,39 +116,26 @@ FOR EACH ROW
   END;
   //
 
-drop procedure if exists update_storage_stats;
-create procedure update_storage_stats(IN StorageId smallint(5), IN space BIGINT)
-
-sql security invoker
-
-deterministic
-
-begin
-
-  update Storage set DiskSpace = COALESCE(DiskSpace,0) + COALESCE(space,0) where Id = StorageId;
-
-end;
-
-//
+drop procedure if exists update_storage_stats//
 
 drop trigger if exists event_update_trigger//
 
 CREATE TRIGGER event_update_trigger AFTER UPDATE ON Events 
 FOR EACH ROW
 BEGIN
-    declare diff BIGINT default 0;
+  declare diff BIGINT default 0;
 
-    set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
+  set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
   IF ( NEW.StorageId = OLD.StorageID ) THEN
     IF ( diff ) THEN
-      call update_storage_stats(OLD.StorageId, diff);
+      UPDATE Storage SET DiskSpace = COALESCE(DiskSpace,0) + diff WHERE Id = OLD.StorageId;
     END IF;
   ELSE
     IF ( NEW.DiskSpace ) THEN
-      call update_storage_stats(NEW.StorageId, NEW.DiskSpace);
+      UPDATE Storage SET DiskSpace = COALESCE(DiskSpace,0) + NEW.DiskSpace WHERE Id = NEW.StorageId;
     END IF;
     IF ( OLD.DiskSpace ) THEN
-      call update_storage_stats(OLD.StorageId, -OLD.DiskSpace);
+      UPDATE Storage SET DiskSpace = COALESCE(DiskSpace,0) - OLD.DiskSpace WHERE Id = OLD.StorageId;
     END IF;
   END IF;
 
@@ -220,7 +203,7 @@ CREATE TRIGGER event_delete_trigger BEFORE DELETE ON Events
 FOR EACH ROW
 BEGIN
   IF ( OLD.DiskSpace ) THEN
-    call update_storage_stats(OLD.StorageId, -OLD.DiskSpace);
+    UPDATE Storage SET DiskSpace = COALESCE(DiskSpace,0) - CAST(OLD.DiskSpace AS SIGNED) WHERE Id = OLD.StorageId;
   END IF;
   DELETE FROM Events_Hour WHERE EventId=OLD.Id;
   DELETE FROM Events_Day WHERE EventId=OLD.Id;

@@ -151,7 +151,7 @@ too much degradation of performance.
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
 # The all powerful autosetup macro does not work after the second source tarball
-%{__gzip} -dc %{_topdir}/SOURCES/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
+%{__gzip} -dc %{_sourcedir}/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
 %{__rm} -rf ./web/api/app/Plugin/CakePHP-Enum-Behavior
 %{__mv} -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Behavior
 

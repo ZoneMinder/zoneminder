@@ -17,12 +17,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
 
-foreach ( getSkinIncludes( 'includes/timeline_functions.php' ) as $includeFile )
+foreach ( getSkinIncludes('includes/timeline_functions.php') as $includeFile )
   require_once $includeFile;
 
 //
@@ -142,7 +142,7 @@ foreach( dbFetchAll( $monitorsSql ) as $row ) {
 
 # The as E, and joining with Monitors is required for the filterSQL filters.
 $rangeSql = 'SELECT min(E.StartTime) AS MinTime, max(E.EndTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartTime) AND NOT isnull(E.EndTime)';
-$eventsSql = 'SELECT * FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartTime)';
+$eventsSql = 'SELECT E.* FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartTime)';
 $eventsValues = array();
 
 if ( !empty($user['MonitorIds']) ) {
@@ -175,20 +175,20 @@ if ( isset($range) ) {
     if ( !($range%1) ) {
       $maxTimeT--;
     }
-    $minTime = strftime( STRF_FMT_DATETIME_DB, $minTimeT );
-    $maxTime = strftime( STRF_FMT_DATETIME_DB, $maxTimeT );
+    $minTime = strftime(STRF_FMT_DATETIME_DB, $minTimeT);
+    $maxTime = strftime(STRF_FMT_DATETIME_DB, $maxTimeT);
   } elseif ( isset($minTime) ) {
     $minTimeT = strtotime($minTime);
     $maxTimeT = $minTimeT + $range;
     $midTimeT = $minTimeT + $halfRange;
-    $midTime = strftime( STRF_FMT_DATETIME_DB, $midTimeT );
-    $maxTime = strftime( STRF_FMT_DATETIME_DB, $maxTimeT );
+    $midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
+    $maxTime = strftime(STRF_FMT_DATETIME_DB, $maxTimeT);
   } elseif ( isset($maxTime) ) {
     $maxTimeT = strtotime($maxTime);
     $minTimeT = $maxTimeT - $range;
     $midTimeT = $minTimeT + $halfRange;
-    $minTime = strftime( STRF_FMT_DATETIME_DB, $minTimeT );
-    $midTime = strftime( STRF_FMT_DATETIME_DB, $midTimeT );
+    $minTime = strftime(STRF_FMT_DATETIME_DB, $minTimeT);
+    $midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
   }
 } elseif ( isset($minTime) && isset($maxTime) ) {
   $minTimeT = strtotime($minTime);
@@ -196,7 +196,7 @@ if ( isset($range) ) {
   $range = ($maxTimeT - $minTimeT) + 1;
   $halfRange = (int)($range/2);
   $midTimeT = $minTimeT + $halfRange;
-  $midTime = strftime( STRF_FMT_DATETIME_DB, $midTimeT );
+  $midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
 }
 
 if ( isset($minTime) && isset($maxTime) ) {
@@ -246,9 +246,9 @@ if ( isset($minTime) && isset($maxTime) ) {
 
 //echo "MnT: $tempMinTime, MxT: $tempMaxTime, ExP: $tempExpandable<br>";
 if ( $tree ) {
-  appendDatetimeRange( $tree, $minTime, $maxTime );
+  appendDatetimeRange($tree, $minTime, $maxTime);
 
-  $filterQuery = parseTreeToQuery( $tree );
+  $filterQuery = parseTreeToQuery($tree);
 } else {
   $filterQuery = false;
 }
@@ -266,19 +266,19 @@ $scales = array(
   array( 'name'=>'second',   'factor'=>1,            'align'=>1,  'zoomout'=>10,   'label'=>STRF_TL_AXIS_LABEL_SECOND ),
 );
 
-$majXScale = getDateScale( $scales, $range, $chart['grid']['x']['major']['min'], $chart['grid']['x']['major']['max'] );
+$majXScale = getDateScale($scales, $range, $chart['grid']['x']['major']['min'], $chart['grid']['x']['major']['max']);
 
 // Adjust the range etc for scale
 $minTimeT -= $minTimeT%($majXScale['factor']*$majXScale['align']);
-$minTime = strftime( STRF_FMT_DATETIME_DB, $minTimeT );
+$minTime = strftime(STRF_FMT_DATETIME_DB, $minTimeT);
 $maxTimeT += (($majXScale['factor']*$majXScale['align'])-$maxTimeT%($majXScale['factor']*$majXScale['align']))-1;
 if ( $maxTimeT > time() )
   $maxTimeT = time();
-$maxTime = strftime( STRF_FMT_DATETIME_DB, $maxTimeT );
+$maxTime = strftime(STRF_FMT_DATETIME_DB, $maxTimeT);
 $range = ($maxTimeT - $minTimeT) + 1;
 $halfRange = (int)($range/2);
 $midTimeT = $minTimeT + $halfRange;
-$midTime = strftime( STRF_FMT_DATETIME_DB, $midTimeT );
+$midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
 
 //echo "R:$range<br>";
 //echo "MnT:$minTime<br>";
@@ -297,8 +297,8 @@ $eventsSql .= ' ORDER BY E.Id ASC';
 
 $chart['data'] = array(
   'x' => array(
-    'lo' => strtotime( $minTime ),
-    'hi' => strtotime( $maxTime ),
+    'lo' => strtotime($minTime),
+    'hi' => strtotime($maxTime),
   ),
   'y' => array(
     'lo' => 0,
@@ -318,18 +318,14 @@ if ( ! $events_result ) {
   return;
 }
 
-$first_event = $event = $events_result->fetch( PDO::FETCH_ASSOC );
+$first_event = $event = $events_result->fetch(PDO::FETCH_ASSOC);
 if ( $event ) {
   do {
-
-    if ( !isset($monitorIds[$event['MonitorId']]) )
+    if ( !isset($monitorIds[$event['MonitorId']]) ) {
       $monitorIds[$event['MonitorId']] = true;
-
-    if ( !isset($monEventSlots[$event['MonitorId']]) )
       $monEventSlots[$event['MonitorId']] = array();
-
-    if ( !isset($monFrameSlots[$event['MonitorId']]) )
       $monFrameSlots[$event['MonitorId']] = array();
+    }
 
     $currEventSlots = &$monEventSlots[$event['MonitorId']];
     $currFrameSlots = &$monFrameSlots[$event['MonitorId']];
@@ -363,6 +359,7 @@ if ( $event ) {
 
     if ( $event['MaxScore'] > 0 ) {
       if ( $startIndex == $endIndex ) {
+        # Only fills 1 slot, so just get the max Score
         $framesSql = 'SELECT FrameId,Score FROM Frames WHERE EventId = ? AND Score > 0 ORDER BY Score DESC LIMIT 1';
         $frame = dbFetchOne($framesSql, NULL, array($event['Id']));
 
@@ -381,6 +378,7 @@ if ( $event ) {
           $chart['data']['y']['hi'] = $event['MaxScore'];
         }
       } else {
+        # Fills multiple Slots, so need multiple scores to generate the graph over multiple slots.
         $framesSql = 'SELECT FrameId,Delta,unix_timestamp(TimeStamp) AS TimeT,Score FROM Frames WHERE EventId = ? AND Score > 0';
         $result = dbQuery($framesSql, array($event['Id']));
         while( $frame = dbFetchNext($result) ) {
@@ -437,7 +435,10 @@ if ( false ) {
 $chart['data']['y']['range'] = ($chart['data']['y']['hi'] - $chart['data']['y']['lo']) + 1;
 $chart['data']['y']['density'] = $chart['data']['y']['range']/$chart['graph']['height'];
 
-$majYScale = getYScale( $chart['data']['y']['range'], $chart['grid']['y']['major']['min'], $chart['grid']['y']['major']['max'] );
+$majYScale = getYScale(
+  $chart['data']['y']['range'],
+  $chart['grid']['y']['major']['min'],
+  $chart['grid']['y']['major']['max']);
 
 $maxWidth = 0;
 $maxHeight = 0;
@@ -478,9 +479,9 @@ foreach( array_keys($monEventSlots) as $monitorId ) {
       unset( $currSlot );
     }
   }
-  if ( isset( $currSlot ) )
-    unset( $currSlot );
-}
+  if ( isset($currSlot) )
+    unset($currSlot);
+} // end foreach Event Monitors
 //print_r( $monEventSlots );
 
 // Stack events

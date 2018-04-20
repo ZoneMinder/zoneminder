@@ -283,6 +283,8 @@ sub checkFilter {
 
   foreach my $event ( @Events ) {
     last if $zm_terminate;
+    my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+
     Debug( "Checking event $event->{Id}" );
     my $delete_ok = !undef;
     $dbh->ping();
@@ -302,7 +304,7 @@ sub checkFilter {
     }
     if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} ) {
       if ( !$event->{Emailed} ) {
-        $delete_ok = undef if ( !sendEmail( $filter, $event ) );
+        $delete_ok = undef if ( !sendEmail( $filter, $Event ) );
       }
     }
     if ( $Config{ZM_OPT_MESSAGE} && $filter->{AutoMessage} ) {
@@ -322,7 +324,6 @@ sub checkFilter {
     }
     if ( $filter->{AutoDelete} ) {
       if ( $delete_ok ) {
-        my $Event = new ZoneMinder::Event( $$event{Id}, $event );
         $Event->delete();
       } else {
         Error( "Unable toto delete event $event->{Id} as previous operations failed\n" );
@@ -330,14 +331,12 @@ sub checkFilter {
     } # end if AutoDelete
 
     if ( $filter->{AutoMove} ) {
-      my $Event = new ZoneMinder::Event( $$event{Id}, $event );
       my $NewStorage = new ZoneMinder::Storage( $filter->{AutoMoveTo} );
       $_ = $Event->MoveTo( $NewStorage );
       Error($_) if $_;
     }
 
     if ( $filter->{UpdateDiskSpace} ) {
-      my $Event = new ZoneMinder::Event( $$event{Id}, $event );
       $ZoneMinder::Database::dbh->begin_work();
       $Event->lock_and_load();
 
@@ -399,25 +398,25 @@ sub generateVideo {
   chomp( $output );
   my $status = $? >> 8;
   if ( $status || logDebugging() ) {
-    Debug( "Output: $output\n" );
+    Debug("Output: $output\n");
   }
   if ( $status ) {
-    Error( "Video generation '$command' failed with status: $status\n" );
+    Error("Video generation '$command' failed with status: $status\n");
     if ( wantarray() ) {
       return( undef, undef );
     }
-    return( 0 );
+    return 0;
   } else {
     my $sql = 'UPDATE Events SET Videoed = 1 WHERE Id = ?';
     my $sth = $dbh->prepare_cached( $sql )
-      or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
+      or Fatal( "Unable to prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute( $event->{Id} )
-      or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
+      or Fatal("Unable toexecute '$sql': ".$sth->errstr());
     if ( wantarray() ) {
       return( $format, $output );
     }
   }
-  return( 1 );
+  return 1;
 }
 
 # Returns an image absolute path for given event and frame
@@ -425,13 +424,14 @@ sub generateVideo {
 # If neither capture nor analyse image exists it will try to extract a frame from .mp4 file if exists
 # An empty string is returned if no one from methods above works
 sub generateImage {
-  my $event = shift;
+  my $Event = shift;
   my $frame = shift;
   my $analyse = do { @_ ? shift : 0 }; # don't return analyse image by default
 
-  my $capture_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg', getEventPath($event), $frame->{FrameId});
-  my $analyse_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-analyse.jpg', getEventPath($event), $frame->{FrameId}) if $analyse;
-  my $video_path =  sprintf('%s/%d-video.mp4', getEventPath($event), $event->{Id});
+  my $event_path = $Event->Path();
+  my $capture_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg', $event_path, $frame->{FrameId});
+  my $analyse_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-analyse.jpg', $event_path, $frame->{FrameId}) if $analyse;
+  my $video_path =  sprintf('%s/%d-video.mp4', $event_path, $Event->{Id});
   my $image_path = '';
 
 # check if the image file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
@@ -587,7 +587,7 @@ sub uploadArchFile {
 sub substituteTags {
   my $text = shift;
   my $filter = shift;
-  my $event = shift;
+  my $Event = shift;
   my $attachments_ref = shift;
 
 # First we'd better check what we need to get
@@ -595,35 +595,7 @@ sub substituteTags {
 # monitor information?
   my $need_monitor = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
 
-  my $monitor = {};
-  if ( $need_monitor ) {
-    my $db_now = strftime( '%Y-%m-%d %H:%M:%S', localtime() );
-    my $sql = "SELECT
-      M.Id,
-      count(E.Id) as EventCount,
-      count(if(E.Archived,1,NULL))
-        as ArchEventCount,
-      count(if(E.StartTime>'$db_now' - INTERVAL 1 HOUR && E.Archived = 0,1,NULL))
-        as HourEventCount,
-      count(if(E.StartTime>'$db_now' - INTERVAL 1 DAY && E.Archived = 0,1,NULL))
-        as DayEventCount,
-      count(if(E.StartTime>'$db_now' - INTERVAL 7 DAY && E.Archived = 0,1,NULL))
-        as WeekEventCount,
-      count(if(E.StartTime>'$db_now' - INTERVAL 1 MONTH && E.Archived = 0,1,NULL))
-        as MonthEventCount
-        FROM Monitors as M LEFT JOIN Events as E on E.MonitorId = M.Id
-        WHERE MonitorId = ?
-        GROUP BY E.MonitorId
-        ORDER BY Id"
-        ;
-    my $sth = $dbh->prepare_cached( $sql )
-      or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $event->{MonitorId} )
-      or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
-    $monitor = $sth->fetchrow_hashref();
-    $sth->finish();
-    return() if ( !$monitor );
-  }
+  my $Monitor = $Event->Monitor() if $need_monitor;
 
 # Do we need the image information too?
   my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA)%/;
@@ -637,7 +609,7 @@ sub substituteTags {
       ;
     my $sth = $dbh->prepare_cached( $sql )
       or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $event->{Id} )
+    my $res = $sth->execute( $Event->{Id} )
       or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
     while( my $frame = $sth->fetchrow_hashref() ) {
       if ( !$first_alarm_frame ) {
@@ -653,38 +625,38 @@ sub substituteTags {
 
   my $url = $Config{ZM_URL};
   $text =~ s/%ZP%/$url/g;
-  $text =~ s/%MN%/$event->{MonitorName}/g;
-  $text =~ s/%MET%/$monitor->{EventCount}/g;
-  $text =~ s/%MEH%/$monitor->{HourEventCount}/g;
-  $text =~ s/%MED%/$monitor->{DayEventCount}/g;
-  $text =~ s/%MEW%/$monitor->{WeekEventCount}/g;
-  $text =~ s/%MEM%/$monitor->{MonthEventCount}/g;
-  $text =~ s/%MEA%/$monitor->{ArchEventCount}/g;
-  $text =~ s/%MP%/$url?view=watch&mid=$event->{MonitorId}/g;
-  $text =~ s/%MPS%/$url?view=watchfeed&mid=$event->{MonitorId}&mode=stream/g;
-  $text =~ s/%MPI%/$url?view=watchfeed&mid=$event->{MonitorId}&mode=still/g;
-  $text =~ s/%EP%/$url?view=event&mid=$event->{MonitorId}&eid=$event->{Id}/g;
-  $text =~ s/%EPS%/$url?view=event&mode=stream&mid=$event->{MonitorId}&eid=$event->{Id}/g;
-  $text =~ s/%EPI%/$url?view=event&mode=still&mid=$event->{MonitorId}&eid=$event->{Id}/g;
-  $text =~ s/%EI%/$event->{Id}/g;
-  $text =~ s/%EN%/$event->{Name}/g;
-  $text =~ s/%EC%/$event->{Cause}/g;
-  $text =~ s/%ED%/$event->{Notes}/g;
-  $text =~ s/%ET%/$event->{StartTime}/g;
-  $text =~ s/%EL%/$event->{Length}/g;
-  $text =~ s/%EF%/$event->{Frames}/g;
-  $text =~ s/%EFA%/$event->{AlarmFrames}/g;
-  $text =~ s/%EST%/$event->{TotScore}/g;
-  $text =~ s/%ESA%/$event->{AvgScore}/g;
-  $text =~ s/%ESM%/$event->{MaxScore}/g;
+  $text =~ s/%MN%/$Event->{MonitorName}/g;
+  $text =~ s/%MET%/$Monitor->{TotalEvents}/g;
+  $text =~ s/%MEH%/$Monitor->{HourEvents}/g;
+  $text =~ s/%MED%/$Monitor->{DayEvents}/g;
+  $text =~ s/%MEW%/$Monitor->{WeekEvents}/g;
+  $text =~ s/%MEM%/$Monitor->{MonthEvents}/g;
+  $text =~ s/%MEA%/$Monitor->{ArchivedEvents}/g;
+  $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
+  $text =~ s/%MPS%/$url?view=watchfeed&mid=$Event->{MonitorId}&mode=stream/g;
+  $text =~ s/%MPI%/$url?view=watchfeed&mid=$Event->{MonitorId}&mode=still/g;
+  $text =~ s/%EP%/$url?view=event&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
+  $text =~ s/%EPS%/$url?view=event&mode=stream&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
+  $text =~ s/%EPI%/$url?view=event&mode=still&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
+  $text =~ s/%EI%/$Event->{Id}/g;
+  $text =~ s/%EN%/$Event->{Name}/g;
+  $text =~ s/%EC%/$Event->{Cause}/g;
+  $text =~ s/%ED%/$Event->{Notes}/g;
+  $text =~ s/%ET%/$Event->{StartTime}/g;
+  $text =~ s/%EL%/$Event->{Length}/g;
+  $text =~ s/%EF%/$Event->{Frames}/g;
+  $text =~ s/%EFA%/$Event->{AlarmFrames}/g;
+  $text =~ s/%EST%/$Event->{TotScore}/g;
+  $text =~ s/%ESA%/$Event->{AvgScore}/g;
+  $text =~ s/%ESM%/$Event->{MaxScore}/g;
 
   if ( $first_alarm_frame ) {
-    $text =~ s/%EPI1%/$url?view=frame&mid=$event->{MonitorId}&eid=$event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
-    $text =~ s/%EPIM%/$url?view=frame&mid=$event->{MonitorId}&eid=$event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPI1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPIM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
     if ( $attachments_ref && $text =~ s/%EI1%//g ) {
-      my $path = generateImage( $event, $first_alarm_frame );
+      my $path = generateImage($Event, $first_alarm_frame);
       if ( -e $path ) {
-        push( @$attachments_ref, { type=>'image/jpeg', path=>$path } );
+        push @$attachments_ref, { type=>'image/jpeg', path=>$path };
       }
     }
 
@@ -693,16 +665,16 @@ sub substituteTags {
       if ( !@$attachments_ref
           || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
          ) {
-        my $path = generateImage( $event, $max_alarm_frame );
+        my $path = generateImage($Event, $max_alarm_frame);
         if ( -e $path ) {
-          push( @$attachments_ref, { type=>'image/jpeg', path=>$path } );
+          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         }
       }
     }
     if ( $attachments_ref && $text =~ s/%EI1A%//g ) {
-      my $path = generateImage( $event, $first_alarm_frame, 'analyse' );
+      my $path = generateImage($Event, $first_alarm_frame, 'analyse');
       if ( -e $path ) {
-        push( @$attachments_ref, { type=>'image/jpeg', path=>$path } );
+        push @$attachments_ref, { type=>'image/jpeg', path=>$path };
       }
     }
     if ( $attachments_ref && $text =~ s/%EIMA%//g ) {
@@ -710,9 +682,9 @@ sub substituteTags {
       if ( !@$attachments_ref
           || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
          ) {
-        my $path = generateImage( $event, $max_alarm_frame, 'analyse');
+        my $path = generateImage($Event, $max_alarm_frame, 'analyse');
         if ( -e $path ) {
-          push( @$attachments_ref, { type=>'image/jpeg', path=>$path } );
+          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         }
       }
     }
@@ -720,49 +692,49 @@ sub substituteTags {
 
   if ( $attachments_ref && $Config{ZM_OPT_FFMPEG} ) {
     if ( $text =~ s/%EV%//g ) {
-      my ( $format, $path ) = generateVideo( $filter, $event );
+      my ( $format, $path ) = generateVideo($filter, $Event);
       if ( !$format ) {
-        return( undef );
+        return undef;
       }
       push( @$attachments_ref, { type=>"video/$format", path=>$path } );
     }
     if ( $text =~ s/%EVM%//g ) {
-      my ( $format, $path ) = generateVideo( $filter, $event, 1 );
+      my ( $format, $path ) = generateVideo($filter, $Event, 1);
       if ( !$format ) {
-        return( undef );
+        return undef;
       }
-      push( @$attachments_ref, { type=>"video/$format", path=>$path } );
+      push @$attachments_ref, { type=>"video/$format", path=>$path };
     }
   }
   $text =~ s/%FN%/$filter->{Name}/g;
   ( my $filter_name = $filter->{Name} ) =~ s/ /+/g;
-  $text =~ s/%FP%/$url?view=filter&mid=$event->{MonitorId}&filter_name=$filter_name/g;
+  $text =~ s/%FP%/$url?view=filter&mid=$Event->{MonitorId}&filter_name=$filter_name/g;
 
-  return( $text );
+  return $text;
 } # end subsitituteTags
 
 sub sendEmail {
   my $filter = shift;
-  my $event = shift;
+  my $Event = shift;
 
   if ( ! $Config{ZM_FROM_EMAIL} ) {
-    Error( "No 'from' email address defined, not sending email" );
-    return( 0 );
+    Error("No 'from' email address defined, not sending email");
+    return 0;
   }
   if ( ! $Config{ZM_EMAIL_ADDRESS} ) {
-    Error( 'No email address defined, not sending email' );
-    return( 0 );
+    Error('No email address defined, not sending email');
+    return 0;
   }
 
-  Info( "Creating notification email\n" );
+  Info("Creating notification email\n");
 
-  my $subject = substituteTags( $Config{ZM_EMAIL_SUBJECT}, $filter, $event );
-  return( 0 ) if ( !$subject );
+  my $subject = substituteTags($Config{ZM_EMAIL_SUBJECT}, $filter, $Event);
+  return 0 if !$subject;
   my @attachments;
-  my $body = substituteTags( $Config{ZM_EMAIL_BODY}, $filter, $event, \@attachments );
-  return( 0 ) if ( !$body );
+  my $body = substituteTags($Config{ZM_EMAIL_BODY}, $filter, $Event, \@attachments);
+  return 0 if !$body;
 
-  Info( "Sending notification email '$subject'\n" );
+  Info("Sending notification email '$subject'\n");
 
   eval {
     if ( $Config{ZM_NEW_MAIL_MODULES} ) {
@@ -835,9 +807,9 @@ sub sendEmail {
     Info( "Notification email sent\n" );
   }
   my $sql = 'update Events set Emailed = 1 where Id = ?';
-  my $sth = $dbh->prepare_cached( $sql )
+  my $sth = $dbh->prepare_cached($sql)
     or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute( $event->{Id} )
+  my $res = $sth->execute($Event->{Id})
     or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
 
   return( 1 );

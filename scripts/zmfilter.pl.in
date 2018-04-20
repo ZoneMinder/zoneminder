@@ -426,7 +426,7 @@ sub generateVideo {
 sub generateImage {
   my $Event = shift;
   my $frame = shift;
-  my $analyse = do { @_ ? shift : 0 }; # don't return analyse image by default
+  my $analyse = @_ ? shift : 0; # don't return analyse image by default
 
   my $event_path = $Event->Path();
   my $capture_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg', $event_path, $frame->{FrameId});
@@ -439,8 +439,18 @@ sub generateImage {
     $image_path = $analyse_image_path;
   } elsif ( -r $capture_image_path ) {
     $image_path = $capture_image_path;
-  } elsif ( -e $video_path ) {
-    if ( !system('ffmpeg -y -v 0 -i '.$video_path." -vf 'select=gte(n\\,".$frame->{FrameId}."),setpts=PTS-STARTPTS' -vframes 1 -f image2 ".$capture_image_path) ) {
+  } elsif ( -r $video_path ) {
+    my $command ="ffmpeg -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
+    #$command = "ffmpeg -y -v 0 -i $video_path -vf 'select=gte(n\\,$$frame{FrameId}),setpts=PTS-STARTPTS' -vframes 1 -f image2 $capture_image_path";
+    my $output = qx($command);
+    chomp( $output );
+    my $status = $? >> 8;
+    if ( $status || logDebugging() ) {
+      Debug("Output: $output\n");
+    }
+    if ( $status ) {
+      Error("Failed $command status $status");
+    } else {
       $image_path = $capture_image_path;
     }
   }
@@ -611,6 +621,7 @@ sub substituteTags {
       or Fatal( "Unable toprepare '$sql': ".$dbh->errstr() );
     my $res = $sth->execute( $Event->{Id} )
       or Fatal( "Unable toexecute '$sql': ".$sth->errstr() );
+    my $rows = 0;
     while( my $frame = $sth->fetchrow_hashref() ) {
       if ( !$first_alarm_frame ) {
         $first_alarm_frame = $frame;
@@ -619,7 +630,9 @@ sub substituteTags {
         $max_alarm_frame = $frame;
         $max_alarm_score = $frame->{Score};
       }
+      $rows ++;
     }
+    Debug("Frames: rows: $rows first alarm frame: $first_alarm_frame max_alaarm_frame: $max_alarm_frame, score: $max_alarm_score");
     $sth->finish();
   }
 
@@ -660,14 +673,16 @@ sub substituteTags {
       }
     }
 
-    if ( $attachments_ref && $text =~ s/%EIM%//g ) {
+    if ( $attachments_ref && ( $text =~ s/%EIM%//g ) ) {
   # Don't attach the same image twice
       if ( !@$attachments_ref
-          || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
+          || ( $first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
          ) {
         my $path = generateImage($Event, $max_alarm_frame);
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+        } else {
+          Warning("No image for EIM");
         }
       }
     }
@@ -675,6 +690,8 @@ sub substituteTags {
       my $path = generateImage($Event, $first_alarm_frame, 'analyse');
       if ( -e $path ) {
         push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+      } else {
+        Warning("No image for EI1A");
       }
     }
     if ( $attachments_ref && $text =~ s/%EIMA%//g ) {
@@ -685,6 +702,8 @@ sub substituteTags {
         my $path = generateImage($Event, $max_alarm_frame, 'analyse');
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+        } else {
+          Warning("No image for EIMA");
         }
       }
     }

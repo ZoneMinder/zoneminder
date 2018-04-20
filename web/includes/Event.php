@@ -1,5 +1,7 @@
 <?php
 
+$event_cache = array();
+
 class Event {
 
   private $fields = array(
@@ -35,6 +37,8 @@ class Event {
         foreach ($row as $k => $v) {
           $this->{$k} = $v;
         }
+        global $event_cache;
+        $event_cache[$row['Id']] = $this;
       } else {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
@@ -385,6 +389,25 @@ class Event {
         );
 
     return $imageData;
+  }
+
+  public static function find_one( $parameters = null, $options = null ) {
+    global $event_cache;
+    if (
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($event_cache[$parameters['Id']]) ) {
+      return $event_cache[$parameters['Id']];
+    }
+    $results = Event::find_all( $parameters, $options );
+    if ( count($results) > 1 ) {
+      Error("Event Returned more than 1");
+      return $results[0];
+    } else if ( count($results) ) {
+      return $results[0];
+    } else {
+      return null;
+    }
   }
 
   public static function find_all( $parameters = null, $options = null ) {

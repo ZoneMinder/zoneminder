@@ -109,83 +109,83 @@ $statusData = array(
               'MaxScore' => true,
               ),
             ),
-            'event' => array(
-                'permission' => 'Events',
-                'table' => 'Events',
-                'limit' => 1,
-                'selector' => 'Events.Id',
-                'elements' => array(
-                  'Id' => array( 'sql' => 'Events.Id' ),
-                  'MonitorId' => true,
-                  'MonitorName' => array('sql' => '(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)'),
-                  'Name' => true,
-                  'Cause' => true,
-                  'StartTime' => true,
-                  'StartTimeShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
-                  'EndTime' => true,
-                  'Width' => true,
-                  'Height' => true,
-                  'Length' => true,
-                  'Frames' => true,
-                  'DefaultVideo' => true,
-                  'AlarmFrames' => true,
-                  'TotScore' => true,
-                  'AvgScore' => true,
-                  'MaxScore' => true,
-                  'Archived' => true,
-                  'Videoed' => true,
-                  'Uploaded' => true,
-                  'Emailed' => true,
-                  'Messaged' => true,
-                  'Executed' => true,
-                  'Notes' => true,
-                  'MinFrameId' => array( 'sql' => '(SELECT min(Frames.FrameId) FROM Frames WHERE EventId=Events.Id)' ),
-                  'MaxFrameId' => array( 'sql' => '(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)' ),
-                  'MinFrameDelta' => array( 'sql' => '(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
-                  'MaxFrameDelta' => array( 'sql' => '(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
-                  ),
-                  ),
-                  'frames' => array(
-                      'permission' => 'Events',
-                      'table' => 'Frames',
-                      'selector' => 'EventId',
-                      'elements' => array(
-                        'EventId' => true,
-                        'FrameId' => true,
-                        'Type' => true,
-                        'Delta' => true,
-                      ),
-                  ),
-                  'frame' => array(
-                      'permission' => 'Events',
-                      'table' => 'Frames',
-                      'limit' => 1,
-                      'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>'Events.Id' ), 'Frames.FrameId' ),
-                      'elements' => array(
-                        //'Id' => array( 'sql' => 'Frames.FrameId' ),
-                        'FrameId' => true,
-                        'EventId' => true,
-                        'Type' => true,
-                        'TimeStamp' => true,
-                        'TimeStampShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
-                        'Delta' => true,
-                        'Score' => true,
-                        //'Image' => array( 'postFunc' => 'getFrameImage' ),
-                        ),
-                      ),
-                  'frameimage' => array(
-                      'permission' => 'Events',
-                      'func' => 'getFrameImage()'
-                      ),
-                  'nearframe' => array(
-                      'permission' => 'Events',
-                      'func' => 'getNearFrame()'
-                      ),
-                  'nearevents' => array(
-                      'permission' => 'Events',
-                      'func' => 'getNearEvents()'
-                      )
-                  );
+      'event' => array(
+        'permission' => 'Events',
+        'table' => 'Events',
+        'limit' => 1,
+        'selector' => 'Events.Id',
+        'elements' => array(
+          'Id' => array( 'sql' => 'Events.Id' ),
+          'MonitorId' => true,
+          'MonitorName' => array('sql' => '(SELECT Monitors.Name FROM Monitors WHERE Monitors.Id = Events.MonitorId)'),
+          'Name' => true,
+          'Cause' => true,
+          'StartTime' => true,
+          'StartTimeShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
+          'EndTime' => true,
+          'Width' => true,
+          'Height' => true,
+          'Length' => true,
+          'Frames' => true,
+          'DefaultVideo' => true,
+          'AlarmFrames' => true,
+          'TotScore' => true,
+          'AvgScore' => true,
+          'MaxScore' => true,
+          'Archived' => true,
+          'Videoed' => true,
+          'Uploaded' => true,
+          'Emailed' => true,
+          'Messaged' => true,
+          'Executed' => true,
+          'Notes' => true,
+          'MinFrameId' => array( 'sql' => '(SELECT min(Frames.FrameId) FROM Frames WHERE EventId=Events.Id)' ),
+          'MaxFrameId' => array( 'sql' => '(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+          'MinFrameDelta' => array( 'sql' => '(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+          'MaxFrameDelta' => array( 'sql' => '(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+          ),
+        ),
+        'frames' => array(
+            'permission' => 'Events',
+            'table' => 'Frames',
+            'selector' => 'EventId',
+            'elements' => array(
+              'EventId' => true,
+              'FrameId' => true,
+              'Type' => true,
+              'Delta' => true,
+            ),
+        ),
+        'frame' => array(
+            'permission' => 'Events',
+            'table' => 'Frames',
+            'limit' => 1,
+            'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>'Events.Id' ), 'Frames.FrameId' ),
+            'elements' => array(
+              //'Id' => array( 'sql' => 'Frames.FrameId' ),
+              'FrameId' => true,
+              'EventId' => true,
+              'Type' => true,
+              'TimeStamp' => true,
+              'TimeStampShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
+              'Delta' => true,
+              'Score' => true,
+              //'Image' => array( 'postFunc' => 'getFrameImage' ),
+              ),
+            ),
+        'frameimage' => array(
+            'permission' => 'Events',
+            'func' => 'getFrameImage()'
+            ),
+        'nearframe' => array(
+            'permission' => 'Events',
+            'func' => 'getNearFrame()'
+            ),
+        'nearevents' => array(
+            'permission' => 'Events',
+            'func' => 'getNearEvents()'
+            )
+        );
 
 function collectData() {
   global $statusData;
@@ -302,8 +302,8 @@ function collectData() {
       }
     }
   }
-#print_r( $data );
-  return( $data );
+  #Logger::Debug(print_r($data, true));
+  return $data;
 }
 
 $data = collectData();
@@ -345,8 +345,8 @@ function getFrameImage() {
   $eventId = $_REQUEST['id'][0];
   $frameId = $_REQUEST['id'][1];
 
-  $sql = 'select * from Frames where EventId = ? and FrameId = ?';
-  if ( !($frame = dbFetchOne( $sql, NULL, array( $eventId, $frameId ) )) ) {
+  $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
+  if ( !($frame = dbFetchOne( $sql, NULL, array($eventId, $frameId ) )) ) {
     $frame = array();
     $frame['EventId'] = $eventId;
     $frame['FrameId'] = $frameId;

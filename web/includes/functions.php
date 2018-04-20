@@ -2031,9 +2031,9 @@ function cache_bust( $file ) {
   $parts = pathinfo($file);
   global $css;
   $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
-  $cacheFile = 'cache/'.$dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
-  if ( file_exists( ZM_PATH_WEB.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.'/'.$cacheFile ) ) {
-    return $cacheFile;
+  $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
+  if ( file_exists( ZM_DIR_CACHE.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile ) ) {
+    return 'cache/'.$cacheFile;
   } else {
     Warning("Failed linking $file to $cacheFile");
   }

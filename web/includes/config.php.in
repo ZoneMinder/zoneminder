@@ -26,6 +26,7 @@ define( 'ZM_CONFIG_SUBDIR', '@ZM_CONFIG_SUBDIR@' ); // Path to config subfolder
 // Define, and override any given in config file
 define( 'ZM_VERSION', '@VERSION@' );               // Version
 define( 'ZM_DIR_TEMP', '@ZM_TMPDIR@' );
+define( 'ZM_DIR_CACHE', '@ZM_CACHEDIR@' );
 global $configvals;
 
 $configFile = ZM_CONFIG;

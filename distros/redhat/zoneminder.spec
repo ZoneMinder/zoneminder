@@ -9,9 +9,6 @@
 
 %if "%{zmuid_final}" == "nginx"
 %global with_nginx 1
-%global wwwconfdir %{_sysconfdir}/nginx/default.d
-%else
-%global wwwconfdir %{_sysconfdir}/httpd/conf.d
 %endif
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
@@ -36,7 +33,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.31.41
+Version: 1.31.42
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -154,7 +151,7 @@ too much degradation of performance.
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
 # The all powerful autosetup macro does not work after the second source tarball
-%{__gzip} -dc %{_topdir}/SOURCES/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
+%{__gzip} -dc %{_sourcedir}/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
 %{__rm} -rf ./web/api/app/Plugin/CakePHP-Enum-Behavior
 %{__mv} -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Behavior
 
@@ -321,7 +318,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/*.conf
 %ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 
-%config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
+%config(noreplace) %attr(644,root,root) /etc/zm/www/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %if 0%{?with_nginx}
@@ -377,6 +374,7 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/cache/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder

@@ -975,7 +975,7 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
   }
 }
 
-function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
+function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $filter['query'] = ''; 
   $filter['sql'] = '';
   $filter['fields'] = '';
@@ -993,7 +993,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
       }
       if ( isset($terms[$i]['obr']) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($terms[$i]['obr']);
-        $filter['sql'] .= ' '.str_repeat( '(', $terms[$i]['obr'] ).' ';
+        $filter['sql'] .= ' '.str_repeat('(', $terms[$i]['obr']).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($terms[$i]['obr'])."\"/>\n";
       }
       if ( isset($terms[$i]['attr']) ) {
@@ -1001,7 +1001,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($terms[$i]['attr'])."\"/>\n";
         switch ( $terms[$i]['attr'] ) {
           case 'MonitorName':
-            $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $terms[$i]['attr'] );
+            $filter['sql'] .= 'M.'.preg_replace('/^Monitor/', '', $terms[$i]['attr']);
             break;
           case 'ServerId':
             $filter['sql'] .= 'M.ServerId';
@@ -1068,7 +1068,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
               for ( $j = 0; $j < count($terms); $j++ ) {
                 if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
                   $StorageArea = new Storage($terms[$j]['val']);
-		  break;
+                  break;
                 }
               } // end foreach remaining term
               if ( ! $StorageArea ) $StorageArea = new Storage();

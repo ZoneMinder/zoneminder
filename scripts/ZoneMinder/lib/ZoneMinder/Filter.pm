@@ -172,7 +172,7 @@ sub Sql {
             $self->{Sql} .= 'to_days( E.StartTime )';
           } elsif ( $term->{attr} eq 'StartDate' ) {
             $self->{Sql} .= 'to_days( E.StartTime )';
-          } elsif ( $term->{attr} eq 'Time' ) {
+          } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' ) {
             $self->{Sql} .= 'extract( hour_second from E.StartTime )';
           } elsif ( $term->{attr} eq 'Weekday' ) {
             $self->{Sql} .= 'weekday( E.StartTime )';

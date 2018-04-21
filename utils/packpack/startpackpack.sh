@@ -144,7 +144,7 @@ commonprep () {
         echo "Retrieving CakePHP-Enum-Behavior ${CEBVER} submodule..."
         curl -L https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/${CEBVER}.tar.gz > build/cakephp-enum-behavior-${CEBVER}.tar.gz
         if [ $? -ne 0 ]; then
-            echo "ERROR: Crud tarball retreival failed..."
+            echo "ERROR: CakePHP-Enum-Behavior tarball retreival failed..."
             exit 1
         fi
     fi

@@ -26,6 +26,8 @@ addons:
     - binfmt-support
     - qemu
     - qemu-user-static
+    - dnsutils
+    - traceroute
 install:
   - update-binfmts --enable qemu-arm
 

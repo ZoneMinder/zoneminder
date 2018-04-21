@@ -316,7 +316,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
 
         # Give our downloaded repo rpm a common name so redhat_package.mk can find it
         if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
-            echo "Retrieving ${reporpm} repo rpm..."gd
+            echo "Retrieving ${reporpm} repo rpm..."
             curl $dlurl > build/external-repo.noarch.rpm
         else
             echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."

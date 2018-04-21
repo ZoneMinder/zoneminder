@@ -103,7 +103,7 @@ commonprep () {
     fi
 
     # Rpm builds are broken in latest packpack master. Temporarily roll back.
-    git -C packpack checkout 7cf23ee
+    #git -C packpack checkout 7cf23ee
 
     # Patch packpack
     patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch
@@ -144,7 +144,7 @@ commonprep () {
         echo "Retrieving CakePHP-Enum-Behavior ${CEBVER} submodule..."
         curl -L https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/${CEBVER}.tar.gz > build/cakephp-enum-behavior-${CEBVER}.tar.gz
         if [ $? -ne 0 ]; then
-            echo "ERROR: Crud tarball retreival failed..."
+            echo "ERROR: CakePHP-Enum-Behavior tarball retreival failed..."
             exit 1
         fi
     fi
@@ -279,10 +279,43 @@ execpackpack () {
     fi
 }
 
+# Check for connectivity with the deploy target host
+checkdeploytarget () {
+    echo
+    echo "Checking Internet connectivity with the deploy host ${DEPLOYTARGET}"
+    echo
+
+    ping -c 1 ${DEPLOYTARGET}
+
+    if [  $? -ne 0 ]; then
+        echo
+        echo "*** WARNING: THERE WAS A PROBLEM CONNECTING TO THE DEPLOY HOST ***"
+        echo
+        echo "Printing additional diagnostic information..."
+
+        echo
+        echo "*** NSLOOKUP ***"
+        echo
+        nslookup ${DEPLOYTARGET}
+
+        echo
+        echo "*** TRACEROUTE ***"
+        echo
+        traceroute -w 2 -m 15 ${DEPLOYTARGET}
+    fi
+}
+
 ################
 # MAIN PROGRAM #
 ################
 
+# Set the hostname we will deploy packages to
+DEPLOYTARGET="zmrepo.zoneminder.com"
+
+# If we are running inside Travis then verify we can connect to the target host machine
+if [ "${TRAVIS}" == "true" ]; then
+    checkdeploytarget
+fi
 checksanity
 
 # We don't want to build packages for all supported distros after every commit
@@ -305,7 +338,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
 
         # We use zmrepo to build el6 only. All other redhat distros use rpm fusion
         if [ "${OS}" == "el" ] && [ "${DIST}" == "6" ]; then
-            baseurl="https://zmrepo.zoneminder.com/el/${DIST}/x86_64/"
+            baseurl="https://${DEPLOYHOST}/el/${DIST}/x86_64/"
             reporpm="zmrepo"
             # Let repoquery determine the full url and filename to the latest zmrepo package
             dlurl=`repoquery --archlist=noarch --repofrompath=zmpackpack,${baseurl} --repoid=zmpackpack --qf="%{location}" ${reporpm} 2> /dev/null`
@@ -316,7 +349,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
 
         # Give our downloaded repo rpm a common name so redhat_package.mk can find it
         if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
-            echo "Retrieving ${reporpm} repo rpm..."gd
+            echo "Retrieving ${reporpm} repo rpm..."
             curl $dlurl > build/external-repo.noarch.rpm
         else
             echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."

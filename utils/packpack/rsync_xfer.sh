@@ -27,7 +27,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
     echo
 
     mkdir -p ./zmrepo
-    ssh_mntchk="$(sshfs zmrepo@zmrepo.zoneminder.com:./ ./zmrepo -o workaround=rename,reconnect)"
+    ssh_mntchk="$(sshfs zmrepo@zmrepo.zoneminder.com:./ ./zmrepo -o workaround=rename,reconnect 2>&1)"
 
     if [ -z "$ssh_mntchk" ]; then
         echo

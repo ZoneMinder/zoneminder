@@ -103,7 +103,7 @@ commonprep () {
     fi
 
     # Rpm builds are broken in latest packpack master. Temporarily roll back.
-    git -C packpack checkout 7cf23ee
+    #git -C packpack checkout 7cf23ee
 
     # Patch packpack
     patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch

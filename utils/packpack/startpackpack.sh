@@ -341,7 +341,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
             baseurl="https://${DEPLOYHOST}/el/${DIST}/x86_64/"
             reporpm="zmrepo"
             # Let repoquery determine the full url and filename to the latest zmrepo package
-            dlurl=`repoquery --archlist=noarch --repofrompath=zmpackpack,${baseurl} --repoid=zmpackpack --qf="%{location}" ${reporpm} 2> /dev/null`
+            dlurl=$(repoquery --archlist=noarch --repofrompath=zmpackpack,${baseurl} --repoid=zmpackpack --qf="%{location}" ${reporpm} 2>&1)
         else
             reporpm="rpmfusion-free-release"
             dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"

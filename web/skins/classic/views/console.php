@@ -213,12 +213,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
   $Monitor = new Monitor($monitor);
 
-  if ( $monitor_i % 100 == 0 ) {
-    if ( $monitor_i ) {
-      echo '</table>';
-    }
+  if ( $monitor_i and ( $monitor_i % 100 == 0 ) ) {
+    echo '</table>';
     echo $table_head;
-} # monitor_i % 100
+  } # monitor_i % 100
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
 <?php

@@ -22,13 +22,6 @@
 %global with_apcu_bc 1
 %endif
 
-# Include files for SysV init or systemd
-%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
-%global with_init_systemd 1
-%else
-%global with_init_sysv 1
-%endif
-
 %global readme_suffix %{?rhel:Redhat%{?rhel}}%{!?rhel:Fedora}
 %global _hardened_build 1
 
@@ -49,12 +42,10 @@ Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zon
 Source1: https://github.com/ZoneMinder/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 
-%{?with_init_systemd:BuildRequires: systemd-devel}
-%{?with_init_systemd:BuildRequires: mariadb-devel}
-%{?with_init_systemd:BuildRequires: perl-podlators}
-%{?with_init_systemd:BuildRequires: polkit-devel}
-%{?with_init_sysv:BuildRequires: mysql-devel}
-%{?el6:BuildRequires: epel-rpm-macros}
+BuildRequires: systemd-devel
+BuildRequires: mariadb-devel
+BuildRequires: perl-podlators
+BuildRequires: polkit-devel
 BuildRequires: cmake >= 2.8.7
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
@@ -119,19 +110,10 @@ Requires: perl(LWP::Protocol::https)
 Requires: ca-certificates
 Requires: zip
 
-%{?with_init_systemd:Requires(post): systemd}
-%{?with_init_systemd:Requires(post): systemd-sysv}
-%{?with_init_systemd:Requires(preun): systemd}
-%{?with_init_systemd:Requires(postun): systemd}
-
-%{?with_init_sysv:Requires(post): /sbin/chkconfig}
-%{?with_init_sysv:Requires(post): %{_bindir}/checkmodule}
-%{?with_init_sysv:Requires(post): %{_bindir}/semodule_package}
-%{?with_init_sysv:Requires(post): %{_sbindir}/semodule}
-%{?with_init_sysv:Requires(preun): /sbin/chkconfig}
-%{?with_init_sysv:Requires(preun): /sbin/service}
-%{?with_init_sysv:Requires(preun): %{_sbindir}/semodule}
-%{?with_init_sysv:Requires(postun): /sbin/service}
+Requires(post): systemd
+Requires(post): systemd-sysv
+Requires(preun): systemd
+Requires(postun): systemd
 
 Requires(post): %{_bindir}/gpasswd
 Requires(post): %{_bindir}/less
@@ -192,24 +174,10 @@ find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php
 %{__ln_s} ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
 
 %post
-%if 0%{?with_init_sysv}
-/sbin/chkconfig --add zoneminder
-/sbin/chkconfig zoneminder on
-
-# Create and load zoneminder selinux policy module
-echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wait.\n"
-%{_bindir}/checkmodule -M -m -o %{_docdir}/%{name}-%{version}/local_zoneminder.mod %{_docdir}/%{name}-%{version}/local_zoneminder.te > /dev/null 2>&1 || :
-%{_bindir}/semodule_package -o %{_docdir}/%{name}-%{version}/local_zoneminder.pp -m %{_docdir}/%{name}-%{version}/local_zoneminder.mod > /dev/null 2>&1 || :
-%{_sbindir}/semodule -i %{_docdir}/%{name}-%{version}/local_zoneminder.pp > /dev/null 2>&1 || :
-
-%endif
-
-%if 0%{?with_init_systemd}
 # Initial installation
 if [ $1 -eq 1 ] ; then
     %systemd_post %{name}.service
 fi
-%endif
 
 # Upgrade from a previous version of zoneminder 
 if [ $1 -eq 2 ] ; then
@@ -263,34 +231,11 @@ EOF
 %endif
 
 %preun
-%if 0%{?with_init_sysv}
-if [ $1 -eq 0 ]; then
-    /sbin/service zoneminder stop > /dev/null 2>&1 || :
-    /sbin/chkconfig --del zoneminder
-    echo -e "\nRemoving ZoneMinder SELinux policy module. Please wait.\n"
-    %{_sbindir}/semodule -r local_zoneminder.pp
-fi
-%endif
-
-%if 0%{?with_init_systemd}
 %systemd_preun %{name}.service
-%endif
 
 %postun
-%if 0%{?with_init_sysv}
-if [ $1 -ge 1 ]; then
-    /sbin/service zoneminder condrestart > /dev/null 2>&1 || :
-fi
-
-# Remove the doc folder. 
-rm -rf %{_docdir}/%{name}-%{version}
-%endif
-
-%if 0%{?with_init_systemd}
 %systemd_postun_with_restart %{name}.service
-%endif
 
-%if 0%{?with_init_systemd}
 %triggerun -- zoneminder < 1.25.0-4
 # Save the current service runlevel info
 # User must manually run systemd-sysv-convert --apply zoneminder
@@ -300,7 +245,6 @@ rm -rf %{_docdir}/%{name}-%{version}
 # Run these because the SysV package being removed won't do them
 /sbin/chkconfig --del zoneminder >/dev/null 2>&1 || :
 /bin/systemctl try-restart zoneminder.service >/dev/null 2>&1 || :
-%endif
 
 %files
 %license COPYING
@@ -325,18 +269,11 @@ rm -rf %{_docdir}/%{name}-%{version}
 %config(noreplace) %{_sysconfdir}/php-fpm.d/zoneminder.conf
 %endif
 
-%if 0%{?with_init_systemd}
 %{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
 %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 %{_bindir}/zmsystemctl.pl
-%endif
-
-%if 0%{?with_init_sysv}
-%doc distros/redhat/misc/local_zoneminder.te
-%attr(755,root,root) %{_initrddir}/zoneminder
-%endif
 
 %{_bindir}/zma
 %{_bindir}/zmaudit.pl
@@ -380,6 +317,12 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Sun Apr 22 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.31.42-1
+- Remove support for sysvinit a.k.a. el6
+- use desktop-file-install for new zoneminder.desktop file
+- add new web cache folder
+- 1.31.42 development snapshot
+
 * Tue May 09 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.4-1
 - modify autosetup macro parameters
 - modify requirements for php-pecl-acpu-bc package

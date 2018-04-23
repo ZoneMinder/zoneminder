@@ -23,7 +23,6 @@
 #include "zm.h"
 #include "zm_db.h"
 
-// From what I read, we need one of these per thread
 MYSQL dbconn;
 Mutex db_mutex;
 
@@ -31,8 +30,9 @@ bool zmDbConnected = false;
 
 bool zmDbConnect() {
   // For some reason having these lines causes memory corruption and crashing on newer debian/ubuntu
-  //if ( zmDbConnected ) 
-    //return;
+	// But they really need to be here in order to prevent a double open of mysql
+  if ( zmDbConnected ) 
+    return true;
 
   if ( !mysql_init(&dbconn) ) {
     Error("Can't initialise database connection: %s", mysql_error(&dbconn));

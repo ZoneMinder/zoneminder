@@ -196,6 +196,14 @@ bool ValidateAccess( User *user, int mon_id, int function ) {
   return( allowed );
 }
 
+int exit_zmu(int exit_code) {
+  logTerm();
+  zmDbClose();
+
+  exit(exit_code);
+  return exit_code;
+}
+
 int main( int argc, char *argv[] ) {
   if ( access(ZM_CONFIG, R_OK) != 0 ) {
     fprintf( stderr, "Can't open %s: %s\n", ZM_CONFIG, strerror(errno) );
@@ -739,11 +747,4 @@ int main( int argc, char *argv[] ) {
   delete user;
 
   return exit_zmu(0);
-}
-int exit_zmu(int exit_code) {
-  logTerm();
-  zmDbClose();
-
-  exit(exit_code);
-  return exit_code;
 }

@@ -262,9 +262,9 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    long *capture_delays = new long[n_monitors];
-    long *alarm_capture_delays = new long[n_monitors];
-    long *next_delays = new long[n_monitors];
+    int *capture_delays = new int[n_monitors];
+    int *alarm_capture_delays = new int[n_monitors];
+    int *next_delays = new int[n_monitors];
     struct timeval * last_capture_times = new struct timeval[n_monitors];
     for ( int i = 0; i < n_monitors; i++ ) {
       last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;

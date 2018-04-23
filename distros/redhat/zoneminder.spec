@@ -317,7 +317,7 @@ EOF
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
-* Sun Apr 22 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.31.42-1
+* Sun Apr 22 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.31.42-1
 - Remove support for sysvinit a.k.a. el6
 - use desktop-file-install for new zoneminder.desktop file
 - add new web cache folder

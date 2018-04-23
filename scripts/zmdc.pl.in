@@ -528,9 +528,10 @@ sub kill_until_dead {
   sigprocmask(SIG_BLOCK, $blockset, $sigset ) or die "dying at block...\n";
   while( $process and $$process{pid} and kill( 0, $$process{pid} ) ) {
     if ( $count++ > 10 ) {
-      dPrint( ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
-          .strftime( '%y/%m/%d %H:%M:%S', localtime() )
-          .". Sending KILL to pid $$process{pid}\n"
+      dPrint(ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
+          .strftime('%y/%m/%d %H:%M:%S', localtime())
+          .' after ' . ( KILL_DELAY * $count ) . ' seconds.'
+          ." Sending KILL to pid $$process{pid}\n"
           );
       kill( 'KILL', $$process{pid} );
       last;

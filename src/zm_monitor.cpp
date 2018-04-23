@@ -1819,7 +1819,7 @@ void Monitor::Reload() {
       shared_data->active = true;
     ready_count = image_count+warmup_count;
 
-    ReloadLinkedMonitors( p_linked_monitors );
+    ReloadLinkedMonitors(p_linked_monitors);
     delete row;
   } // end if row
 
@@ -1837,8 +1837,8 @@ void Monitor::ReloadZones() {
   //DumpZoneImage();
 }
 
-void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
-  Debug( 1, "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors );
+void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
+  Debug(1, "Reloading linked monitors for monitor %s, '%s'", name, p_linked_monitors);
   if ( n_linked_monitors ) {
     for( int i = 0; i < n_linked_monitors; i++ ) {
       delete linked_monitors[i];
@@ -1868,8 +1868,8 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
       if ( dest_ptr != link_id_str ) {
         *dest_ptr = '\0';
         unsigned int link_id = atoi(link_id_str);
-        if ( link_id > 0 && link_id != id) {
-          Debug( 3, "Found linked monitor id %d", link_id );
+        if ( link_id > 0 && link_id != id ) {
+          Debug(3, "Found linked monitor id %d", link_id);
           int j;
           for ( j = 0; j < n_link_ids; j++ ) {
             if ( link_ids[j] == link_id )
@@ -1889,39 +1889,42 @@ void Monitor::ReloadLinkedMonitors( const char *p_linked_monitors ) {
         break;
     }
     if ( n_link_ids > 0 ) {
-      Debug( 1, "Linking to %d monitors", n_link_ids );
+      Debug(1, "Linking to %d monitors", n_link_ids);
       linked_monitors = new MonitorLink *[n_link_ids];
       int count = 0;
       for ( int i = 0; i < n_link_ids; i++ ) {
-        Debug( 1, "Checking linked monitor %d", link_ids[i] );
+        Debug(1, "Checking linked monitor %d", link_ids[i]);
 
+        db_mutex.lock();
         static char sql[ZM_SQL_SML_BUFSIZ];
-        snprintf( sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
-        if ( mysql_query( &dbconn, sql ) ) {
-          Error( "Can't run query: %s", mysql_error( &dbconn ) );
-          exit( mysql_errno( &dbconn ) );
+        snprintf(sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
+        if ( mysql_query(&dbconn, sql) ) {
+          Error("Can't run query: %s", mysql_error(&dbconn));
+					db_mutex.unlock();
+          continue;
         }
 
-        MYSQL_RES *result = mysql_store_result( &dbconn );
+        MYSQL_RES *result = mysql_store_result(&dbconn);
         if ( !result ) {
-          Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-          exit( mysql_errno( &dbconn ) );
+          Error("Can't use query result: %s", mysql_error(&dbconn));
+					db_mutex.unlock();
+          continue;
         }
-        int n_monitors = mysql_num_rows( result );
+        db_mutex.unlock();
+        int n_monitors = mysql_num_rows(result);
         if ( n_monitors == 1 ) {
-          MYSQL_ROW dbrow = mysql_fetch_row( result );
-          Debug( 1, "Linking to monitor %d", link_ids[i] );
-          linked_monitors[count++] = new MonitorLink( link_ids[i], dbrow[1] );
+          MYSQL_ROW dbrow = mysql_fetch_row(result);
+          Debug(1, "Linking to monitor %d", link_ids[i]);
+          linked_monitors[count++] = new MonitorLink(link_ids[i], dbrow[1]);
         } else {
-          Warning( "Can't link to monitor %d, invalid id, function or not enabled", link_ids[i] );
+          Warning("Can't link to monitor %d, invalid id, function or not enabled", link_ids[i]);
         }
-        mysql_free_result( result );
-      }
+        mysql_free_result(result);
+      } // end foreach link_id
       n_linked_monitors = count;
-    }
-  }
-}
-
+    } // end if has link_ids
+  } // end if p_linked_monitors
+} // end void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors)
 
 int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose) {
 

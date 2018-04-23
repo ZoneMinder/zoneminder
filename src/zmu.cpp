@@ -422,7 +422,7 @@ int main( int argc, char *argv[] ) {
     if ( strcmp( config.auth_relay, "none" ) == 0 ) {
       if ( !username ) {
         fprintf( stderr, "Error, username must be supplied\n" );
-        exit( -1 );
+        exit_zmu( -1 );
       }
 
       if ( username ) {
@@ -431,7 +431,7 @@ int main( int argc, char *argv[] ) {
     } else {
       if ( !(username && password) && !auth ) {
         fprintf( stderr, "Error, username and password or auth string must be supplied\n" );
-        exit( -1 );
+        exit_zmu( -1 );
       }
 
       //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
@@ -449,7 +449,7 @@ int main( int argc, char *argv[] ) {
     }
     if ( !user ) {
       fprintf( stderr, "Error, unable to authenticate user\n" );
-      exit( -1 );
+      exit_zmu( -1 );
     }
     ValidateAccess( user, mon_id, function );
   }
@@ -463,7 +463,7 @@ int main( int argc, char *argv[] ) {
       }
       if ( ! monitor->connect() ) {
         Error( "Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name() );
-        exit( -1 );
+        exit_zmu( -1 );
       } 
 
       char separator = ' ';
@@ -661,7 +661,7 @@ int main( int argc, char *argv[] ) {
       delete monitor;
     } else {
       fprintf( stderr, "Error, invalid monitor id %d\n", mon_id );
-      exit( -1 );
+      exit_zmu( -1 );
     }
   } else {
     if ( function & ZMU_QUERY ) {
@@ -669,10 +669,10 @@ int main( int argc, char *argv[] ) {
 			char vidString[0x10000] = "";
 			bool ok = LocalCamera::GetCurrentSettings( device, vidString, v4lVersion, verbose );
 			printf( "%s", vidString );
-			exit( ok?0:-1 );
+			exit_zmu( ok?0:-1 );
 #else // ZM_HAS_V4L
 			fprintf( stderr, "Error, video4linux is required for device querying\n" );
-            exit( -1 );
+      exit_zmu( -1 );
 #endif // ZM_HAS_V4L
     }
 
@@ -685,13 +685,13 @@ int main( int argc, char *argv[] ) {
 
       if ( mysql_query( &dbconn, sql.c_str() ) ) {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
+        exit_zmu( mysql_errno( &dbconn ) );
       }
 
       MYSQL_RES *result = mysql_store_result( &dbconn );
       if ( !result ) {
         Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
+        exit_zmu( mysql_errno( &dbconn ) );
       }
       Debug( 1, "Got %d monitors", mysql_num_rows( result ) );
 
@@ -738,8 +738,12 @@ int main( int argc, char *argv[] ) {
   }
   delete user;
 
+  return exit_zmu(0);
+}
+int exit_zmu(int exit_code) {
   logTerm();
   zmDbClose();
 
-  return( 0 );
+  exit(exit_code);
+  return exit_code;
 }

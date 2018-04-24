@@ -1,0 +1,95 @@
+#layout {
+    margin-right: 10px;
+}
+
+#content {
+    width: 99%;
+}
+
+#monitors:after {
+  content: ".";
+  display: block;
+  height: 0;
+  font-size: 0;
+  clear: both;
+  visibility: hidden;
+}
+
+#monitors .monitor {
+  min-width: 180px;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+}
+
+#monitors .alarm {
+    color: #ff0000;
+    border: none;
+}
+
+#monitors .alert {
+    color: #ffa500;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    border: none;
+}
+
+#monitors .imageFeed {
+    text-align: center;
+    vertical-align: middle;
+  position: relative;
+}
+
+#monitors .imageFeed img,
+#monitors .imageFeed svg {
+    border: 2px solid #ffffff;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    display: block;
+}
+
+#monitors .imageFeed img.idle {
+    border: 2px solid #ffffff;
+}
+
+#monitors .imageFeed img.alarm {
+    border: 2px solid #ff0000;
+}
+
+#monitors .imageFeed img.alert {
+    border: 2px solid #ffa500;
+}
+
+#monitors .monitorState {
+    margin: 2px auto;
+    text-align: center;
+    border: 0;
+    padding: 0;
+    min-height: 16px;
+}
+#monitors .alert .monitorState {
+    border: 0;
+}
+
+.zones polygon {
+  fill-opacity: 0.25;
+}
+.Active {
+  stroke: #ff0000;
+  fill: #ff0000;
+}
+.Inclusive {
+  stroke: #FFA500;
+  fill: #FFA500;
+}
+.Exclusive {
+  stroke: #800080;
+  fill: #800080;
+}
+.Preclusive {
+  stroke: #0000FF;
+  fill: #0000FF;
+}
+

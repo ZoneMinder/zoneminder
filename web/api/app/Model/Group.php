@@ -37,6 +37,9 @@ class Group extends AppModel {
  * @var array
  */
 	public $validate = array(
+		'Name' => array(
+			'notEmpty' => array(
+				'rule' => array('notEmpty'))),
 		'Id' => array(
 			'numeric' => array(
 				'rule' => array('numeric'),
@@ -49,4 +52,29 @@ class Group extends AppModel {
 		),
 	);
 
+	//The Associations below have been created with all possible keys, those that are not needed can be removed
+
+/**
+ * hasMany associations
+ *
+ * @var array
+ */
+	public $hasMany = array(
+		'Monitor' => array(
+			'className' => 'Monitor',
+      'joinTable' =>  'Groups_Monitors',
+			'foreignKey' => 'GroupId',
+			'associationForeignKey' => 'MonitorId',
+      'unique'=>true,
+			'dependent' => false,
+			'conditions' => '',
+			'fields' => '',
+			'order' => '',
+			'limit' => '',
+			'offset' => '',
+			'exclusive' => '',
+			'finderQuery' => '',
+			'counterQuery' => ''
+		),
+  );
 }

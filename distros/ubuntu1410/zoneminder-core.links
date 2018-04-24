@@ -1,0 +1,3 @@
+var/cache/zoneminder/events usr/share/zoneminder/events
+var/cache/zoneminder/images usr/share/zoneminder/images
+var/cache/zoneminder/temp   usr/share/zoneminder/temp

@@ -191,16 +191,24 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     zmMemTidy();
     runCommand('zmdc.pl startup');
 
+    my $Server = undef;
+    my $sql;
+    my @values;
     if ( $Config{ZM_SERVER_ID} ) {
+      require ZoneMinder::Server;
       Info("Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}\n");
+      $Server = new ZoneMinder::Server( $Config{ZM_SERVER_ID} );
+      $sql = 'SELECT * FROM Monitors WHERE ServerId=?';
+      @values = ( $Config{ZM_SERVER_ID} );
     } else {
       Info('Single server configuration detected. Starting up services.');
+      $sql = 'SELECT * FROM Monitors';
     }
 
-    my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
+    {
     my $sth = $dbh->prepare_cached( $sql )
       or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
+    my $res = $sth->execute( @values )
       or Fatal( "Can't execute: ".$sth->errstr() );
     while( my $monitor = $sth->fetchrow_hashref() ) {
       if ( $monitor->{Function} ne 'None' && $monitor->{Type} ne 'WebSite' ) {
@@ -222,14 +230,37 @@ if ( $command =~ /^(?:start|restart)$/ ) {
       }
     }
     $sth->finish();
-
+    }
+    {
+    my $sql = 'SELECT Id FROM Filters WHERE Background=1';
+    my $sth = $dbh->prepare_cached($sql)
+      or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute()
+      or Fatal( "Can't execute: ".$sth->errstr() );
+    if ( $sth->rows ) {
+      while( my $filter = $sth->fetchrow_hashref() ) {
 # This is now started unconditionally
-    runCommand('zmdc.pl start zmfilter.pl');
+        runCommand("zmdc.pl start zmfilter.pl --filter_id=$$filter{Id}");
+      }
+    } else {
+      runCommand('zmdc.pl start zmfilter.pl');
+    }
+    $sth->finish();
+    }
+
     if ( $Config{ZM_RUN_AUDIT} ) {
-      runCommand('zmdc.pl start zmaudit.pl -c');
+      if ( $Server and exists $$Server{'zmaudit'} and ! $$Server{'zmaudit'} ) {
+        Debug("Not running zmaudit.pl because it is turned off for this server.");
+      } else {
+        runCommand('zmdc.pl start zmaudit.pl -c');
+      }
     }
     if ( $Config{ZM_OPT_TRIGGERS} ) {
-      runCommand('zmdc.pl start zmtrigger.pl');
+      if ( $Server and exists $$Server{'zmtrigger'} and ! $$Server{'zmtrigger'} ) {
+        Debug("Not running zmtrigger.pl because it is turned off for this server.");
+      } else {
+        runCommand('zmdc.pl start zmtrigger.pl');
+      }
     }
     if ( $Config{ZM_OPT_X10} ) {
       runCommand('zmdc.pl start zmx10.pl -c start');
@@ -240,6 +271,14 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     }
     if ( $Config{ZM_TELEMETRY_DATA} ) {
       runCommand('zmdc.pl start zmtelemetry.pl');
+    }
+    if ($Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
+        runCommand('zmdc.pl start zmeventnotification.pl');
+    }
+    if ( $Server and exists $$Server{'zmstats'} and ! $$Server{'zmstats'} ) {
+      Debug("Not running zmstats.pl because it is turned off for this server.");
+    } else {
+      runCommand('zmdc.pl start zmstats.pl');
     }
   } else {
     $retval = 1;

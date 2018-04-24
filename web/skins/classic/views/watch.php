@@ -25,6 +25,11 @@ if ( !canView( 'Stream' ) ) {
   return;
 }
 
+if ( ! isset($_REQUEST['mid']) ) {
+  $view = 'error';
+  return;
+}
+
 // This is for input sanitation
 $mid = intval( $_REQUEST['mid'] ); 
 if ( ! visibleMonitor( $mid ) ) {
@@ -32,18 +37,11 @@ if ( ! visibleMonitor( $mid ) ) {
   return;
 }
 
+
 $monitor = new Monitor( $mid );
 
-#Whether to show the actual controls
-if ( $monitor->Type() != 'WebSite' ) {
-  if  ( isset($_REQUEST['showControls']) )
-    $showControls = validInt($_REQUEST['showControls']);
-  else
-    $showControls = canView( 'Control' ) && ($monitor->DefaultView() == 'Control');
-}
-
 #Whether to show the controls button
-$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) && $monitor->Type() != 'WebSite' );
+$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) );
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validInt($_REQUEST['scale']);
@@ -56,38 +54,20 @@ if ( isset( $_REQUEST['scale'] ) ) {
 $connkey = generateConnKey();
 
 $streamMode = getStreamMode();
-$showDvrControls = ( $streamMode == 'jpeg' && $monitor->StreamReplayBuffer() != 0 && $monitor->Type() != 'WebSite' );
 
 noCacheHeaders();
+
+$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] == 1));
 
 xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
 ?>
 <body>
   <div id="page">
-    <div id="content">
-      <div id="menuBar">
+  <?php if ( !$popup ) echo getNavBarHTML() ?>
+    <div id="header">
         <div id="monitorName"><?php echo $monitor->Name() ?></div>
-        <div id="closeControl"><a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a></div>
         <div id="menuControls">
 <?php
-if ( $showPtzControls )
-{
-    if ( canView( 'Control' ) )
-    {
-?>
-          <div id="controlControl"<?php echo $showControls?' class="hidden"':'' ?>><a id="controlLink" href="#" onclick="showPtzControls(); return( false );"><?php echo translate('Control') ?></a></div>
-<?php
-    }
-    if ( canView( 'Events' ) && $monitor->Type() != 'WebSite' )
-    {
-?>
-          <div id="eventsControl"<?php echo $showControls?'':' class="hidden"' ?>><a id="eventsLink" href="#" onclick="showEvents(); return( false );"><?php echo translate('Events') ?></a></div>
-<?php
-    }
-}
-?>
-<?php
-
 if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
 ?>
           <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
@@ -96,14 +76,16 @@ if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
 ?>
           <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
         </div>
-      </div>
+        <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back()' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+    </div>
+    <div id="content">
       <div id="imageFeed"><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
       <div id="monitorStatus">
 <?php if ( canEdit( 'Monitors' ) ) { ?>
         <div id="enableDisableAlarms"><a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms(); return( false );" class="hidden"><?php echo translate('EnableAlarms') ?></a><a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms(); return( false );" class="hidden"><?php echo translate('DisableAlarms') ?></a></div>
 <?php
 }
-if ( canEdit( 'Monitors' ) && $monitor->Type() != 'WebSite' ) {
+if ( canEdit( 'Monitors' ) ) {
 ?>
         <div id="forceCancelAlarm">
             <a id="forceAlarmLink" href="#" onclick="cmdForceAlarm();"><?php echo translate('ForceAlarm') ?></a>
@@ -111,19 +93,34 @@ if ( canEdit( 'Monitors' ) && $monitor->Type() != 'WebSite' ) {
         </div>
 <?php
 }
-if ( $monitor->Type() != 'WebSite' ) {
 ?>
         <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
       </div>
-      <div id="dvrControls"<?php echo $showDvrControls?'':' class="hidden"' ?>>
-        <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" onclick="streamCmdFastRev( true )"/>
-        <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowRev( true )"/>
-        <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" onclick="streamCmdPause( true )"/>
-        <input type="button" value="[]" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" onclick="streamCmdStop( true )"/>
-        <input type="button" value="|&gt;" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" onclick="streamCmdPlay( true )"/>
-        <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowFwd( true )"/>
-        <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" onclick="streamCmdFastFwd( true )"/>
+      <div id="dvrControls">
+<?php
+if ( $streamMode == 'jpeg' ) {
+  if ( $monitor->StreamReplayBuffer() != 0 ) {
+?>
+        <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" onclick="streamCmdFastRev(true)"/>
+        <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowRev(true)"/>
+<?php 
+  }
+?>
+        <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" onclick="streamCmdPause(true)"/>
+        <input type="button" value="[]" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" onclick="streamCmdStop(true)"/>
+        <input type="button" value="|&gt;" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" onclick="streamCmdPlay(true)"/>
+<?php
+  if ( $monitor->StreamReplayBuffer() != 0 ) {
+?>
+        <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowFwd(true)"/>
+        <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" onclick="streamCmdFastFwd(true)"/>
+<?php
+  }
+?>
         <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" onclick="streamCmdZoomOut()"/>
+<?php
+  } // end if streamMode==jpeg
+?>
       </div>
       <div id="replayStatus"<?php echo $streamMode=="single"?' class="hidden"':'' ?>>
         <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue"></span></span>
@@ -133,12 +130,11 @@ if ( $monitor->Type() != 'WebSite' ) {
         <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
       </div>
 <?php
-}
 if ( $showPtzControls ) {
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
         require_once $includeFile;
 ?>
-      <div id="ptzControls" class="ptzControls<?php echo $showControls?'':' hidden' ?>">
+      <div id="ptzControls" class="ptzControls">
 <?php echo ptzControls( $monitor ) ?>
       </div>
 <?php

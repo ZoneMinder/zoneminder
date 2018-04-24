@@ -1,24 +1,18 @@
 --
--- This updates a 1.30.1 database to 1.30.2
---
--- Add WebSite enum to Monitor.Type
--- Add Refresh column to Monitors table
+-- Update Filters table to have a Concurrent Column
 --
 
-ALTER TABLE `zm`.`Monitors` 
-CHANGE COLUMN `Type` `Type` ENUM('Local', 'Remote', 'File', 'Ffmpeg', 'Libvlc', 'cURL', 'WebSite') NOT NULL DEFAULT 'Local' ;
-
+SELECT 'Checking for Concurrent in Filters';
 SET @s = (SELECT IF(
-    (SELECT COUNT(*)
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE table_name = 'Monitors'
-    AND table_schema = DATABASE()
-    AND column_name = 'Refresh'
-    ) > 0,
-"SELECT 'Column Refresh exists in Monitors'",
-"ALTER TABLE Monitors ADD `Refresh` int(10) unsigned default NULL"
+  (SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE table_name = 'Filters'
+  AND table_schema = DATABASE()
+  AND column_name = 'Concurrent'
+  ) > 0,
+"SELECT 'Column Concurrent already exists in Filters'",
+"ALTER TABLE Filters ADD COLUMN `Concurrent` tinyint(1) unsigned NOT NULL default '0' AFTER Background"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
-

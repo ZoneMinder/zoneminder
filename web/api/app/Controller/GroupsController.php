@@ -7,8 +7,6 @@ App::uses('AppController', 'Controller');
  * @property PaginatorComponent $Paginator
  */
 class GroupsController extends AppController {
-
-
 /**
  * Components
  *
@@ -16,18 +14,14 @@ class GroupsController extends AppController {
  */
 	public $components = array('Paginator', 'RequestHandler');
 
-
-public function beforeFilter() {
-	parent::beforeFilter();
-        $canView = $this->Session->Read('groupsPermission');
-	if ($canView =='None')
-	{
-		throw new UnauthorizedException(__('Insufficient Privileges'));
-		return;
-	}
-
-}
-
+  public function beforeFilter() {
+    parent::beforeFilter();
+    $canView = $this->Session->Read('groupsPermission');
+    if ( $canView == 'None' ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+  }
 
 /**
  * index method
@@ -35,12 +29,12 @@ public function beforeFilter() {
  * @return void
  */
 	public function index() {
-                $this->Group->recursive = 0;
-        	$groups = $this->Group->find('all');
-        	$this->set(array(
-        	    'groups' => $groups,
-        	    '_serialize' => array('groups')
-        	));
+		$this->Group->recursive = -1;
+		$groups = $this->Group->find('all');
+		$this->set(array(
+			'groups' => $groups,
+			'_serialize' => array('groups')
+		));
 	}
 
 /**
@@ -51,12 +45,12 @@ public function beforeFilter() {
  * @return void
  */
 	public function view($id = null) {
-		$this->Group->recursive = 0;
+		$this->Group->recursive = -1;
 		if (!$this->Group->exists($id)) {
 			throw new NotFoundException(__('Invalid group'));
 		}
-		
-		$group = $this->Group->find('first');
+		$options = array('conditions' => array('Group.' . $this->Group->primaryKey => $id));
+		$group = $this->Group->find('first', $options);
 		$this->set(array(
 			'group' => $group,
 			'_serialize' => array('group')
@@ -71,10 +65,9 @@ public function beforeFilter() {
 	public function add() {
 		if ($this->request->is('post')) {
 
-			if ($this->Session->Read('groupPermission') != 'Edit')
-			{
-				 throw new UnauthorizedException(__('Insufficient privileges'));
-				return;
+			if ($this->Session->Read('groupPermission') != 'Edit') {
+        throw new UnauthorizedException(__('Insufficient privileges'));
+        return;
 			}
 
 			$this->Group->create();
@@ -82,6 +75,8 @@ public function beforeFilter() {
 				return $this->flash(__('The group has been saved.'), array('action' => 'index'));
 			}
 		}
+		$monitors = $this->Group->Monitor->find('list');
+		$this->set(compact('monitors'));
 	}
 
 /**
@@ -92,25 +87,28 @@ public function beforeFilter() {
  * @return void
  */
 	public function edit($id = null) {
-		$this->Group->id = $id;
-
 		if (!$this->Group->exists($id)) {
 			throw new NotFoundException(__('Invalid group'));
 		}
-		if ($this->Session->Read('groupPermission') != 'Edit')
-		{
-			 throw new UnauthorizedException(__('Insufficient privileges'));
-			return;
-		}
-		if ($this->Group->save($this->request->data)) {
-			$message = 'Saved';
+		if ( $this->request->is(array('post', 'put'))) {
+      if ( $this->Session->Read('groupPermission') != 'Edit' ) {
+        throw new UnauthorizedException(__('Insufficient privileges'));
+        return;
+      }
+			if ($this->Group->save($this->request->data)) {
+				return $this->flash(__('The group has been saved.'), array('action' => 'index'));
+      } else {
+        $message = 'Error';
+			}
 		} else {
-			$message = 'Error';
+			$options = array('conditions' => array('Group.' . $this->Group->primaryKey => $id));
+			$this->request->data = $this->Group->find('first', $options);
 		}
-
+		$monitors = $this->Group->Monitor->find('list');
 		$this->set(array(
 			'message' => $message,
-			'_serialize' => array('message')
+      'monitors'=> $monitors,
+			'_serialize' => array('message',)
 		));
 	}
 
@@ -126,20 +124,16 @@ public function beforeFilter() {
 		if (!$this->Group->exists()) {
 			throw new NotFoundException(__('Invalid group'));
 		}
-		if ($this->Session->Read('groupPermission') != 'Edit')
-		{
+		$this->request->allowMethod('post', 'delete');
+		if ( $this->Session->Read('groupPermission') != 'Edit' ) {
 			 throw new UnauthorizedException(__('Insufficient privileges'));
 			return;
 		}
-		$this->request->allowMethod('post', 'delete');
-
 
 		if ($this->Group->delete()) {
 			return $this->flash(__('The group has been deleted.'), array('action' => 'index'));
 		} else {
 			return $this->flash(__('The group could not be deleted. Please, try again.'), array('action' => 'index'));
 		}
-	}
-
-}
-
+	} // end function delete
+} // end class GroupController

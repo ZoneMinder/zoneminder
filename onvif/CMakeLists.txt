@@ -3,5 +3,3 @@
 # Process the perl modules subdirectory
 add_subdirectory(proxy)
 add_subdirectory(modules)
-add_subdirectory(scripts)
-

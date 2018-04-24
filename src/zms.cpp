@@ -25,6 +25,8 @@
 #include "zm_user.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
+#include "zm_monitorstream.h"
+#include "zm_eventstream.h"
 
 bool ValidateAccess( User *user, int mon_id ) {
   bool allowed = true;
@@ -39,7 +41,8 @@ bool ValidateAccess( User *user, int mon_id ) {
       allowed = false;
   }
   if ( !allowed ) {
-    Error( "Error, insufficient privileges for requested action" );
+    Error( "Error, insufficient privileges for requested action user %d %s for monitor %d",
+      user->Id(), user->getUsername(), mon_id );
     exit( -1 );
   }
   return( allowed );
@@ -50,12 +53,12 @@ int main( int argc, const char *argv[] ) {
 
   srand( getpid() * time( 0 ) );
 
-  enum { ZMS_MONITOR, ZMS_EVENT } source = ZMS_MONITOR;
+  enum { ZMS_UNKNOWN, ZMS_MONITOR, ZMS_EVENT } source = ZMS_UNKNOWN;
   enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
   char format[32] = "";
   int monitor_id = 0;
   time_t event_time = 0;
-  int event_id = 0;
+  uint64_t event_id = 0;
   unsigned int frame_id = 1;
   unsigned int scale = 100;
   unsigned int rate = 100;
@@ -82,12 +85,6 @@ int main( int argc, const char *argv[] ) {
   
   zmLoadConfig();
 
-  logInit( "zms" );
-  
-  hwcaps_detect();
-
-  zmSetDefaultTermHandler();
-  zmSetDefaultDieHandler();
 
   const char *query = getenv( "QUERY_STRING" );
   if ( query ) {
@@ -119,12 +116,16 @@ int main( int argc, const char *argv[] ) {
         strncpy( format, value, sizeof(format) );
       } else if ( !strcmp( name, "monitor" ) ) {
         monitor_id = atoi( value );
+        if ( source == ZMS_UNKNOWN )
+          source = ZMS_MONITOR;
       } else if ( !strcmp( name, "time" ) ) {
         event_time = atoi( value );
       } else if ( !strcmp( name, "event" ) ) {
         event_id = strtoull( value, (char **)NULL, 10 );
+        source = ZMS_EVENT;
       } else if ( !strcmp( name, "frame" ) ) {
         frame_id = strtoull( value, (char **)NULL, 10 );
+        source = ZMS_EVENT;
       } else if ( !strcmp( name, "scale" ) ) {
         scale = atoi( value );
       } else if ( !strcmp( name, "rate" ) ) {
@@ -151,7 +152,7 @@ int main( int argc, const char *argv[] ) {
           //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
           {
             if ( !strcmp( name, "auth" ) ) {
-              strncpy( auth, value, sizeof(auth) );
+              strncpy( auth, value, sizeof(auth)-1 );
             }
           }
           //else if ( strcmp( config.auth_relay, "plain" ) == 0 )
@@ -161,12 +162,21 @@ int main( int argc, const char *argv[] ) {
             }
             if ( !strcmp( name, "pass" ) ) {
               password = UriDecode( value );
+              Debug( 1, "Have %s for password", password.c_str() );
             }
           }
         }
       }
-    }
+    } // end foreach parm
+  } // end if query
+
+  char log_id_string[32] = "zms";
+  if ( monitor_id ) {
+    snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
+  } else {
+    snprintf(log_id_string, sizeof(log_id_string), "zms_e%" PRIu64, event_id);
   }
+  logInit( log_id_string );
 
   if ( config.opt_use_auth ) {
     User *user = 0;
@@ -197,6 +207,10 @@ int main( int argc, const char *argv[] ) {
     }
     ValidateAccess( user, monitor_id );
   }
+
+  hwcaps_detect();
+  zmSetDefaultTermHandler();
+  zmSetDefaultDieHandler();
 
   setbuf( stdout, 0 );
   if ( nph ) {
@@ -258,6 +272,10 @@ int main( int argc, const char *argv[] ) {
     }
     stream.runStream();
   } else if ( source == ZMS_EVENT ) {
+    if ( ! event_id ) {
+      Fatal( "Can't view an event without specifying an event_id." );
+    }
+    Debug(3,"Doing event stream scale(%d)", scale );
     EventStream stream;
     stream.setStreamScale( scale );
     stream.setStreamReplayRate( rate );
@@ -265,9 +283,10 @@ int main( int argc, const char *argv[] ) {
     stream.setStreamMode( replay );
     stream.setStreamQueue( connkey );
     if ( monitor_id && event_time ) {
-      stream.setStreamStart( monitor_id, event_time );
+      stream.setStreamStart(monitor_id, event_time);
     } else {
-      stream.setStreamStart( event_id, frame_id );
+      Debug(3, "Setting stream start to frame (%d)", frame_id);
+      stream.setStreamStart(event_id, frame_id);
     }
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType( EventStream::STREAM_JPEG );
@@ -283,9 +302,11 @@ int main( int argc, const char *argv[] ) {
       zmDbClose();
       return( -1 );
 #endif // HAVE_LIBAVCODEC
-    }
+    } // end if jpeg or mpeg
     stream.runStream();
-  }
+  } else {
+    Error("Neither a monitor or event was specified.");
+  } // end if monitor or event
 
   logTerm();
   zmDbClose();

@@ -46,7 +46,10 @@ class AppController extends Controller {
 				'category' => 'Crud.Category'
 			],
 			'listeners' => ['Api', 'ApiTransformation']
-		]
+		#],
+    #'DebugKit.Toolbar' => [
+    #  'bootstrap' => true, 'routes' => true
+    ]
 	];
 
 	// Global beforeFilter function
@@ -72,7 +75,9 @@ class AppController extends Controller {
     $config = $this->Config->find('first', $options);
     $zmOptAuth = $config['Config']['Value'];
 
-    if ( $zmOptAuth=='1' ) {
+    if ( $zmOptAuth == '1' ) {
+      require_once "../../../includes/auth.php";
+
       $this->loadModel('User');
       if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
         $user = $this->User->find('first', array ('conditions' => array (
@@ -89,34 +94,23 @@ class AppController extends Controller {
       }
 
       if ( isset($_REQUEST['auth']) ) {
-        require_once "../../../includes/functions.php";
-
-        // Define some defines required by getAuthUser in functions.php
-        $defines = array('ZM_AUTH_HASH_IPS', 'ZM_AUTH_HASH_SECRET', 'ZM_AUTH_RELAY', 'ZM_OPT_USE_AUTH');
-        $configQuery = array(
-                             'conditions' => array('OR' => array('Name' => $defines)),
-                             'fields' => array('Name', 'Value')
-                             );
-        $config = $this->Config->find('list', $configQuery);
-
-        foreach ($defines as $define) {
-          define($define, $config[$define]);
-        }
 
         $user = getAuthUser($_REQUEST['auth']);
         if ( ! $user ) {
           throw new UnauthorizedException(__('User not found'));
           return;
         } else {
-          $this->Session->Write( 'user.Username', $user['Username'] );
-          $this->Session->Write( 'user.Enabled', $user['Enabled'] );
+          if ( ! $this->Session->Write('user.Username', $user['Username']) )
+              $this->log("Error writing session var user.Username");
+          if ( ! $this->Session->Write('user.Enabled', $user['Enabled']) )
+            $this->log("Error writing session var user.Enabled");
         }
-      }
+      } # end if REQUEST['auth']
 
-      if( ! $this->Session->Read('user.Username') ) {
+      if ( ! $this->Session->read('user.Username') ) {
         throw new UnauthorizedException(__('Not Authenticated'));
         return;
-      } else if ( ! $this->Session->Read('user.Enabled') ) {
+      } else if ( ! $this->Session->read('user.Enabled') ) {
         throw new UnauthorizedException(__('User is not enabled'));
         return;
       }
@@ -129,9 +123,8 @@ class AppController extends Controller {
       $this->Session->Write('controlPermission',$userMonitors['User']['Control']);
       $this->Session->Write('systemPermission',$userMonitors['User']['System']);
       $this->Session->Write('monitorPermission',$userMonitors['User']['Monitors']);
-    }
-    else // if auth is not on, you can do everything
-    {
+    } else {
+      // if auth is not on, you can do everything
       //$userMonitors = $this->User->find('first', $options);
       $this->Session->Write('allowedMonitors','');
       $this->Session->Write('streamPermission','View');

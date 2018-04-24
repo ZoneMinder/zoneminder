@@ -15,6 +15,7 @@ function toggleCheckbox( element, name ) {
   form.editBtn.disabled = !checked;
   form.archiveBtn.disabled = unarchivedEvents?!checked:true;
   form.unarchiveBtn.disabled = archivedEvents?!checked:true;
+  form.downloadBtn.disabled = !checked;
   form.exportBtn.disabled = !checked;
   form.deleteBtn.disabled = !checked;
 }
@@ -38,6 +39,7 @@ function configureButton( element, name ) {
   form.editBtn.disabled = !checked;
   form.archiveBtn.disabled = (!checked)||(!unarchivedEvents);
   form.unarchiveBtn.disabled = (!checked)||(!archivedEvents);
+  form.downloadBtn.disabled = !checked;
   form.exportBtn.disabled = !checked;
   form.deleteBtn.disabled = !checked;
 }
@@ -55,7 +57,7 @@ function deleteEvents( element, name ) {
   }
   if ( count > 0 ) {
     if ( confirm( confirmDeleteEventsString ) ) {
-      form.action.value = 'delete';
+      form.elements['action'].value = 'delete';
       form.submit();
     }
   }
@@ -72,6 +74,19 @@ function editEvents( element, name ) {
     }
   }
   createPopup( '?view=eventdetail&'+eids.join( '&' ), 'zmEventDetail', 'eventdetail' );
+}
+
+function downloadVideo( element, name ) {
+  var form = element.form;
+  var eids = new Array();
+  for (var i = 0; i < form.elements.length; i++) {
+    if (form.elements[i].name.indexOf(name) == 0) {
+      if ( form.elements[i].checked ) {
+        eids[eids.length] = 'eids[]='+form.elements[i].value;
+      }
+    }
+  }
+  createPopup( '?view=download&'+eids.join( '&' ), 'zmDownload', 'download' );
 }
 
 function exportEvents( element, name ) {
@@ -98,19 +113,20 @@ function viewEvents( element, name ) {
     }
   }
   if ( events.length > 0 ) {
-    createPopup( '?view=event&eid='+events[0]+'&filter[terms][0][attr]=Id&&filter[terms][0][op]=%3D%5B%5D&&filter[terms][0][val]='+events.join('%2C')+sortQuery+'&page=1&play=1', 'zmEvent', 'event', maxWidth, maxHeight );
+    let filter = '&filter[Query][terms][0][attr]=Id&filter[Query][terms][0][op]=%3D%5B%5D&filter[Query][terms][0][val]='+events.join('%2C');
+    window.location.href = thisUrl+'?view=event&eid='+events[0]+filter+sortQuery+'&page=1&play=1';
   }
 }
 
 function archiveEvents( element, name ) {
   var form = element.form;
-  form.action.value = 'archive';
+  form.elements['action'].value = 'archive';
   form.submit();
 }
 
-function unarchiveEvents( element, name ) {
+function unarchiveEvents(element, name) {
   var form = element.form;
-  form.action.value = 'unarchive';
+  form.elements['action'].value = 'unarchive';
   form.submit();
 }
 
@@ -119,3 +135,11 @@ if ( openFilterWindow ) {
   createPopup( '?view=filter&page='+thisPage+filterQuery, 'zmFilter', 'filter' );
   location.replace( '?view='+currentView+'&page='+thisPage+filterQuery );
 }
+
+function initPage () {
+  if (window.history.length == 1) {
+    $j('#controls').children().eq(0).html('');
+  }
+}
+
+$j(document).ready(initPage);

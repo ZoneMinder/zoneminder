@@ -6,7 +6,7 @@ function vjsReplay() {
     case 'none':
       break;
     case 'single':
-      player.play();
+      vid.play();
       break;
     case 'all':
       if (nextEventId == 0) {
@@ -210,7 +210,7 @@ function getCmdResponse( respObj, respText ) {
   var eventId = streamStatus.event;
   if ( eventId != lastEventId && lastEventId != 0) { //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
     eventQuery( eventId );
-    initialAlarmCues(eventId);
+    initialAlarmCues(eventId);  //zms uses this instead of a page reload, must call ajax+render
     lastEventId = eventId;
   }
   if (lastEventId == 0) lastEventId = eventId; //Only fires on first load.
@@ -255,7 +255,6 @@ function vjsPause () {
   streamPause();
 }
 
-// Called when stream becomes paused, just updates the button status
 function streamPause( ) {
   $j('#modeValue').html('Paused');
   $j('#rateValue').html('0');
@@ -488,8 +487,10 @@ var currEventId = null;
 var CurEventDefVideoPath = null;
 
 function getEventResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getEventResponse", respObj ) )
+  if ( checkStreamForErrors( "getEventResponse", respObj ) ) {
+    console.log("getEventResponse: errors" );
     return;
+  }
 
   eventData = respObj.event;
   var eventStills = $('eventStills');
@@ -520,6 +521,7 @@ function getEventResponse( respObj, respText ) {
       $('unarchiveEvent').addClass( 'hidden' );
     }
   }
+  // Technically, events can be different sizes, so may need to update the size of the image, but it might be better to have it stay scaled...
   //var eventImg = $('eventImage');
   //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
   if (vid && CurEventDefVideoPath) {
@@ -812,9 +814,6 @@ function getActResponse( respObj, respText ) {
   if ( checkStreamForErrors( "getActResponse", respObj ) )
     return;
 
-  if ( respObj.refreshParent )
-    refreshParentWindow();
-
   if ( respObj.refreshEvent )
     eventQuery( eventData.Id );
 }
@@ -929,7 +928,7 @@ function updateProgressBar() {
 // Handles seeking when clicking on the progress bar.
 function progressBarNav (){
   $j('#progressBar').click(function(e){
-    var x = e.offsetX;
+    var x = e.pageX - $j(this).offset().left;
     var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
     streamSeek (seekTime);
   });
@@ -979,6 +978,9 @@ function initPage() {
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   if (scale == "auto") changeScale();
+  if (window.history.length == 1) {
+    $j('#closeWindow').html('');
+  }
 }
 
 // Kick everything off

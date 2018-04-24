@@ -1,17 +1,17 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Network.Email
  * @since         CakePHP(tm) v 2.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Multibyte', 'I18n');
@@ -70,7 +70,7 @@ class CakeEmail {
  *
  * @var string
  */
-	const EMAIL_PATTERN = '/^((?:[\p{L}0-9.!#$%&\'*+\/=?^_`{|}~-]+)*@[\p{L}0-9-.]+)$/ui';
+	const EMAIL_PATTERN = '/^((?:[\p{L}0-9.!#$%&\'*+\/=?^_`{|}~-]+)*@[\p{L}0-9-_.]+)$/ui';
 
 /**
  * Recipient of the email
@@ -830,7 +830,10 @@ class CakeEmail {
 				$return[] = $email;
 			} else {
 				$encoded = $this->_encode($alias);
-				if ($encoded === $alias && preg_match('/[^a-z0-9 ]/i', $encoded)) {
+				if (
+					$encoded === $alias && preg_match('/[^a-z0-9 ]/i', $encoded) ||
+					strpos($encoded, ',') !== false
+				) {
 					$encoded = '"' . str_replace('"', '\"', $encoded) . '"';
 				}
 				$return[] = sprintf('%s <%s>', $encoded, $email);
@@ -1081,6 +1084,9 @@ class CakeEmail {
 					$name = basename($fileInfo['file']);
 				}
 			}
+			if (!isset($fileInfo['mimetype']) && isset($fileInfo['file']) && function_exists('mime_content_type')) {
+				$fileInfo['mimetype'] = mime_content_type($fileInfo['file']);
+			}
 			if (!isset($fileInfo['mimetype'])) {
 				$fileInfo['mimetype'] = 'application/octet-stream';
 			}
@@ -1184,7 +1190,7 @@ class CakeEmail {
 			}
 			CakeLog::write(
 				$config['level'],
-				PHP_EOL . $contents['headers'] . PHP_EOL . $contents['message'],
+				PHP_EOL . $contents['headers'] . PHP_EOL . PHP_EOL . $contents['message'],
 				$config['scope']
 			);
 		}
@@ -1203,7 +1209,7 @@ class CakeEmail {
  * @throws SocketException
  */
 	public static function deliver($to = null, $subject = null, $message = null, $transportConfig = 'fast', $send = true) {
-		$class = __CLASS__;
+		$class = get_called_class();
 		/** @var CakeEmail $instance */
 		$instance = new $class($transportConfig);
 		if ($to !== null) {
@@ -1238,7 +1244,7 @@ class CakeEmail {
 		if (is_string($config)) {
 			if (!$this->_configInstance) {
 				if (!class_exists($this->_configClass) && !config('email')) {
-					throw new ConfigureException(__d('cake_dev', '%s not found.', APP . 'Config' . DS . 'email.php'));
+					throw new ConfigureException(__d('cake_dev', '%s not found.', CONFIG . 'email.php'));
 				}
 				$this->_configInstance = new $this->_configClass();
 			}

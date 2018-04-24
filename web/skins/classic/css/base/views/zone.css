@@ -1,0 +1,118 @@
+#settingsPanel {
+    float: left;
+    margin: 0 2px;
+}
+
+#zoneSettings {
+    border-collapse: collapse;
+}
+
+#zoneSettings th, #zoneSettings td {
+    border: 1px solid #7f7fb2;
+    padding: 3px;
+    text-align: left;
+}
+
+#zoneSettings th[scope=row] {
+    padding: 4px 3px 3px;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+#definitionPanel {
+    float: left;
+    margin: 0 2px;
+    text-align: center;
+}
+
+#definitionPanel input[type=submit], #definitionPanel input[type=submit] {
+    margin: 0 4px;
+}
+
+#imagePanel {
+    position: relative;
+}
+
+/* NB: The size of the imageFrame determines the area within which the markers
+ * may be moved.  When adjusting the padding and margins of the imageFrame and
+ * the DIVs within it, test that the markers behave sensibly when dragged to
+ * the extreme edges of the imageFrame. */
+#imageFrame {
+    position: relative;
+    padding: 0 3px 3px 0; /* Compensate for negative margins in the markers just below. */
+}
+
+#imageFrame div {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    margin-left: -3px;
+    margin-top: -3px;
+    z-index: 5;
+}
+
+#imageFrame div {
+    background-image: url(/zm/skins/classic/graphics/point-g.png);
+}
+
+#imageFrame div.highlight {
+    background-image: url(/zm/skins/classic/graphics/point-o.png);
+}
+
+#imageFrame div.active {
+    background-image: url(../../../graphics/point-r.png);
+}
+
+#zonePoints {
+    margin: 8px 0;
+    border-collapse: collapse;
+}
+
+#zonePoints td {
+    vertical-align: top;
+}
+
+#zonePoints table {
+    border-collapse: collapse;
+}
+
+#zonePoints table tr.highlight {
+    background-color: #f0e68c;
+}
+
+#zonePoints table tr.active {
+    background-color: #ffa07a;
+}
+
+#zonePoints table th, #zonePoints table td {
+    border: 1px solid #7f7fb2;
+    padding: 3px;
+    text-align: center;
+}
+
+#zonePoints table a {
+    margin: 0 2px;
+}
+.zones polygon {
+	fill-opacity: 0.25;
+  stroke-width: 0;
+}
+.zones polygon.Editing {
+  stroke-width: 2px;
+}
+.Active {
+	stroke: #ff0000;
+	fill: #ff0000;
+}
+.Inclusive {
+	stroke: #FFA500;
+	fill: #FFA500;
+}
+.Exclusive {
+	stroke: #800080;
+	fill: #800080;
+}
+.Preclusive {
+	stroke: #0000FF;
+	fill: #0000FF;
+}

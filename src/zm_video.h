@@ -21,6 +21,7 @@
 #include "zm_utils.h"
 #include "zm_ffmpeg.h"
 #include "zm_buffer.h"
+#include "zm_swscale.h"
 
 /*
 #define HAVE_LIBX264 1

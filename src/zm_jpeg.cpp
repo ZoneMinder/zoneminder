@@ -276,8 +276,7 @@ static boolean fill_input_buffer (j_decompress_ptr cinfo)
   memcpy( src->buffer, src->inbuffer, (size_t) src->inbuffer_size );
   nbytes = src->inbuffer_size;
 
-  if ( nbytes <= 0 )
-  {
+  if ( nbytes == 0 ) {
     if ( src->start_of_data )  /* Treat empty input file as fatal error */
       ERREXIT(cinfo, JERR_INPUT_EMPTY);
     WARNMS(cinfo, JWRN_JPEG_EOF);

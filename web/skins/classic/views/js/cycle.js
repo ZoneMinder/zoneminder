@@ -1,5 +1,5 @@
 function nextCycleView() {
-  window.location.replace( '?view=cycle&group='+currGroup+'&mid='+nextMid+'&mode='+mode, cycleRefreshTimeout );
+  window.location.replace( '?view=cycle&mid='+nextMid+'&mode='+mode, cycleRefreshTimeout );
 }
 
 function initCycle() {

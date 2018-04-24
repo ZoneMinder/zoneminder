@@ -528,6 +528,7 @@ CREATE TABLE `Monitor_Status` (
   `Status`  enum('Unknown','NotRunning','Running','Connected','Signal') NOT NULL default 'Unknown',
   `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
   `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
+  `CaptureBandwidth`  INT NOT NULL default 0,
   PRIMARY KEY (`MonitorId`)
 ) ENGINE=MEMORY;
 --

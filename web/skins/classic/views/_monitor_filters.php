@@ -152,7 +152,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
   ) );
   $html .= '</span>';
 
-  $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS, S.AnalysisFPS AS AnalysisFPS
+  $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS, S.AnalysisFPS AS AnalysisFPS, S.CaptureBandwidth AS CaptureBandwidth
   FROM Monitors AS M LEFT JOIN Monitor_Status AS S ON MonitorId=Id ' .
   ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll($sql, null, $values);

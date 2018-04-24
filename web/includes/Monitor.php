@@ -24,6 +24,7 @@ private $defaults = array(
 private $status_fields = array(
   'AnalysisFPS' => null,
   'CaptureFPS' => null,
+  'CaptureBandwidth' => null,
 );
 private $control_fields = array(
   'Name' => '',

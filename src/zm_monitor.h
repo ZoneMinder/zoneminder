@@ -288,6 +288,8 @@ protected:
   bool              embed_exif; // Whether to embed Exif data into each image frame or not
 
   double      fps;
+  unsigned int  last_camera_bytes;
+  
   Image      delta_image;
   Image      ref_image;
   Image       alarm_image;  // Used in creating analysis images, will be initialized in Analysis

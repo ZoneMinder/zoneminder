@@ -380,6 +380,7 @@ Monitor::Monitor(
   ParseEncoderParameters(encoderparams.c_str(), &encoderparamsvec);
 
   fps = 0.0;
+  last_camera_bytes = 0;
   event_count = 0;
   image_count = 0;
   ready_count = warmup_count;
@@ -2457,15 +2458,21 @@ int Monitor::Capture() {
       if ( now != last_fps_time ) {
         // # of images per interval / the amount of time it took
         double new_fps = double(fps_report_interval)/(now-last_fps_time);
+        unsigned int new_camera_bytes = camera->Bytes();
+        unsigned int new_capture_bandwidth = (new_camera_bytes - last_camera_bytes)/(now-last_fps_time);
+        last_camera_bytes = new_camera_bytes;
         //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
         //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
-        Info("%s: images:%d - Capturing at %.2lf fps", name, image_count, new_fps);
+        Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec", name, image_count, new_fps, new_capture_bandwidth);
         last_fps_time = now;
         if ( new_fps != fps ) {
           fps = new_fps;
+
           db_mutex.lock();
           static char sql[ZM_SQL_SML_BUFSIZ];
-          snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,CaptureFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf", id, fps, fps);
+          snprintf(sql, sizeof(sql),
+              "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth) VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf, CaptureBandwidth=%u",
+              id, fps, new_capture_bandwidth, fps, new_capture_bandwidth);
           if ( mysql_query(&dbconn, sql) ) {
             Error("Can't run query: %s", mysql_error(&dbconn));
           }

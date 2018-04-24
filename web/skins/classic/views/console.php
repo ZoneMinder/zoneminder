@@ -275,6 +275,7 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
     $fps_string .= '/' . $monitor['AnalysisFPS'];
   }
   if ($fps_string) $fps_string .= ' fps';
+  $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
   echo $fps_string;
 ?>
               </div></td>

@@ -410,14 +410,15 @@ Monitor::Monitor(
        + (image_buffer_count*camera->ImageSize())
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
-  Debug( 1, "mem.size=%d", mem_size );
+  Debug(1, "mem.size SharedData=%d TriggerData=%d VideoStoreData=%d total=%d",
+     sizeof(SharedData), sizeof(TriggerData), sizeof(VideoStoreData), mem_size);
   mem_ptr = NULL;
 
-  storage = new Storage( storage_id );
-  Debug(1, "Storage path: %s", storage->Path() );
+  storage = new Storage(storage_id);
+  Debug(1, "Storage path: %s", storage->Path());
   // Should maybe store this for later use
   char monitor_dir[PATH_MAX] = "";
-  snprintf( monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id );
+  snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
 
   if ( purpose == CAPTURE ) {
     struct stat statbuf;
@@ -916,9 +917,9 @@ void Monitor::actionReload() {
 void Monitor::actionEnable() {
   shared_data->action |= RELOAD;
 
+  db_mutex.lock();
   static char sql[ZM_SQL_SML_BUFSIZ];
   snprintf(sql, sizeof(sql), "UPDATE Monitors SET Enabled = 1 WHERE Id = %d", id);
-  db_mutex.lock();
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
   }

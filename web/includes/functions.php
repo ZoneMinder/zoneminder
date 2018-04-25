@@ -1987,4 +1987,259 @@ function jsonDecode( $value ) {
         $out .= $value[$i];         
       }
     } else if ( !$unescape ) {
-      if ( $value[$i] =
+      if ( $value[$i] == '\\' )
+        $unescape = true;
+      else
+        $out .= $value[$i];
+    } else {
+      if ( $value[$i] != '/' )
+        $out .= '\\';
+      $out .= $value[$i];
+      $unescape = false;
+    }
+    if ( $value[$i] == '"' ) {
+      $comment = !$comment;
+    }
+  }
+  eval( $out.';' );
+  return( $result );
+}
+
+define( 'HTTP_STATUS_OK', 200 );
+define( 'HTTP_STATUS_BAD_REQUEST', 400 );
+define( 'HTTP_STATUS_FORBIDDEN', 403 );
+
+function ajaxError( $message, $code=HTTP_STATUS_OK ) {
+  Error( $message );
+  if ( function_exists( 'ajaxCleanup' ) )
+    ajaxCleanup();
+  if ( $code == HTTP_STATUS_OK ) {
+    $response = array( 'result'=>'Error', 'message'=>$message );
+    header( 'Content-type: text/plain' );
+    exit( jsonEncode( $response ) );
+  }
+  header( "HTTP/1.0 $code $message" );
+  exit();
+}
+
+function ajaxResponse( $result=false ) {
+  if ( function_exists( 'ajaxCleanup' ) )
+    ajaxCleanup();
+  $response = array( 'result'=>'Ok' );
+  if ( is_array( $result ) ) {
+    $response = array_merge( $response, $result );
+  } elseif ( !empty($result) ) {
+    $response['message'] = $result;
+  }
+  header( 'Content-type: text/plain' );
+  exit( jsonEncode( $response ) );
+}
+
+function generateConnKey() {
+  return( rand( 1, 999999 ) );
+}
+
+function detaintPath( $path ) {
+  // Remove any absolute paths, or relative ones that want to go up
+  $path = preg_replace( '/\.(?:\.+[\\/][\\/]*)+/', '', $path );
+  $path = preg_replace( '/^[\\/]+/', '', $path );
+  return( $path );
+}
+
+function cache_bust( $file ) {
+  # Use the last modified timestamp to create a link that gets a different filename
+  # To defeat caching.  Should probably use md5 hash
+  $parts = pathinfo($file);
+  global $css;
+  $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
+  $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
+  if ( file_exists( ZM_DIR_CACHE.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile ) ) {
+    return 'cache/'.$cacheFile;
+  } else {
+    Warning("Failed linking $file to $cacheFile");
+  }
+  return $file;
+}
+
+function getSkinFile( $file ) {
+  global $skinBase;
+  $skinFile = false;
+  foreach ( $skinBase as $skin ) {
+    $tempSkinFile = detaintPath( 'skins'.'/'.$skin.'/'.$file );
+    if ( file_exists( $tempSkinFile ) )
+      $skinFile = $tempSkinFile;
+  }
+  return  $skinFile;
+}
+
+function getSkinIncludes( $file, $includeBase=false, $asOverride=false ) {
+  global $skinBase;
+  $skinFile = false;
+  foreach ( $skinBase as $skin ) {
+    $tempSkinFile = detaintPath( 'skins'.'/'.$skin.'/'.$file );
+    if ( file_exists( $tempSkinFile ) )
+      $skinFile = $tempSkinFile;
+  }
+  $includeFiles = array();
+  if ( $asOverride ) {
+    if ( $skinFile )
+      $includeFiles[] = $skinFile;
+    else if ( $includeBase )
+      $includeFiles[] = $file;
+  } else {
+    if ( $includeBase )
+      $includeFiles[] = $file;
+    if ( $skinFile )
+      $includeFiles[] = $skinFile;
+  }
+  return( $includeFiles );
+}
+
+function requestVar( $name, $default='' ) {
+  return( isset($_REQUEST[$name])?validHtmlStr($_REQUEST[$name]):$default );
+}
+
+// For numbers etc in javascript or tags etc
+function validInt( $input ) {
+  return( preg_replace( '/\D/', '', $input ) );
+}
+
+function validNum( $input ) {
+  return( preg_replace( '/[^\d.-]/', '', $input ) );
+}
+
+// For general strings
+function validStr( $input ) {
+  return( strip_tags( $input ) );
+}
+
+// For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
+function validJsStr( $input ) {
+  return( strip_tags( addslashes( $input ) ) );
+}
+
+// For general text in pages outside of tags or quotes so quotes converted to entities
+function validHtmlStr( $input ) {
+  return( htmlspecialchars( $input, ENT_QUOTES ) );
+}
+
+function getStreamHTML( $monitor, $options = array() ) {
+
+  if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
+    //Warning("Scale to " . $options['scale'] );
+    $options['width'] = reScale( $monitor->Width(), $options['scale'] ) . 'px';
+    $options['height'] = reScale( $monitor->Height(), $options['scale'] ) . 'px';
+  } else {
+    # scale is empty or 100
+    # There may be a fixed width applied though, in which case we need to leave the height empty
+    if ( ! ( isset($options['width']) and $options['width'] ) ) {
+      $options['width'] = $monitor->Width() . 'px';
+      if ( ! ( isset($options['height']) and $options['height'] ) ) {
+        $options['height'] = $monitor->Height() . 'px';
+      }
+    } else if ( ! isset($options['height']) ) {
+      $options['height'] = '';
+    }
+  }
+  if ( ! isset($options['mode'] ) ) {
+    $options['mode'] = 'stream';
+  }
+  $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  if ( $monitor->StreamReplayBuffer() )
+    $options['buffer'] = $monitor->StreamReplayBuffer();
+  //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+
+  if ( $monitor->Type() == "WebSite" ) {
+         return getWebSiteUrl( 'liveStream'.$monitor->Id(), $monitor->Path(),
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+        );
+  //FIXME, the width and height of the image need to be scaled.
+  } else if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamSrc = $monitor->getStreamSrc( array(
+      'mode'=>'mpeg',
+      'scale'=>(isset($options['scale'])?$options['scale']:100),
+      'bitrate'=>ZM_WEB_VIDEO_BITRATE,
+      'maxfps'=>ZM_WEB_VIDEO_MAXFPS,
+      'format' => ZM_MPEG_LIVE_FORMAT
+    ) );
+    return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+  } else if ( $options['mode'] == 'stream' and canStream() ) {
+    $options['mode'] = 'jpeg';
+    $streamSrc = $monitor->getStreamSrc( $options );
+
+    if ( canStreamNative() )
+      return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
+    elseif ( canStreamApplet() )
+      // Helper, empty widths and heights really don't work.
+      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 
+          $options['width'] ? $options['width'] : $monitor->Width(), 
+          $options['height'] ? $options['height'] : $monitor->Height(),
+          $monitor->Name());
+  } else {
+    if ( $options['mode'] == 'stream' ) {
+      Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
+    }
+    $options['mode'] = 'single';
+    $streamSrc = $monitor->getStreamSrc( $options );
+    return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
+  }
+} // end function getStreamHTML
+
+function getStreamMode( ) {
+  $streamMode = '';
+  if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+    $streamMode = 'mpeg';
+  } elseif ( canStream() ) {
+    $streamMode = 'jpeg';
+  } else {
+    $streamMode = 'single';
+    Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
+  }
+  return $streamMode;
+} // end function getStreamMode
+
+function folder_size($dir) {
+    $size = 0;
+    foreach (glob(rtrim($dir, '/').'/*', GLOB_NOSORT) as $each) {
+        $size += is_file($each) ? filesize($each) : folder_size($each);
+    }
+    return $size;
+} // end function folder_size
+
+function human_filesize($size, $precision = 2) {
+    $units = array('B','kB','MB','GB','TB','PB','EB','ZB','YB');
+    $step = 1024;
+    $i = 0;
+    while (($size / $step) > 0.9) {
+        $size = $size / $step;
+        $i++;
+    }
+    return round($size, $precision).$units[$i];
+}
+
+function csrf_startup() {
+    csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
+}
+
+function unparse_url($parsed_url, $substitutions = array() ) { 
+  $fields = array('scheme','host','port','user','pass','path','query','fragment');
+
+  foreach ( $fields as $field ) {
+    if ( isset( $substitutions[$field] ) ) {
+      $parsed_url[$field] = $substitutions[$field];
+    }
+  }
+  $scheme   = isset($parsed_url['scheme']) ? $parsed_url['scheme'] . '://' : ''; 
+  $host     = isset($parsed_url['host']) ? $parsed_url['host'] : ''; 
+  $port     = isset($parsed_url['port']) ? ':' . $parsed_url['port'] : ''; 
+  $user     = isset($parsed_url['user']) ? $parsed_url['user'] : ''; 
+  $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : ''; 
+  $pass     = ($user || $pass) ? "$pass@" : ''; 
+  $path     = isset($parsed_url['path']) ? $parsed_url['path'] : ''; 
+  $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : ''; 
+  $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : ''; 
+  return "$scheme$user$pass$host$port$path$query$fragment"; 
+}
+?>

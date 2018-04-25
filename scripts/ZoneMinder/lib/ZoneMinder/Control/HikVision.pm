@@ -54,28 +54,6 @@ my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
 
-sub new {
-    my $class = shift;
-    my $id = shift;
-    my $self = ZoneMinder::Control->new( $id );
-    bless( $self, $class );
-    srand( time() );
-    return $self;
-}
-
-our $AUTOLOAD;
-
-sub AUTOLOAD {
-    my $self = shift;
-    my $class = ref($self) || croak( "$self not object" );
-    my $name = $AUTOLOAD;
-    $name =~ s/.*://;
-    if ( exists($self->{$name}) )
-    {
-        return( $self->{$name} );
-    }
-    Fatal( "Can't access $name member of object of class $class" );
-}
 sub open {
     my $self = shift;
     $self->loadMonitor();

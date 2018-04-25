@@ -27,58 +27,6 @@ if ( version_compare( phpversion(), '4.3.0', '<') ) {
   }
 }
 
-# We are requiring these because this file is getting included from the api, which hasn't already included them.
-require_once('logger.php');
-require_once('database.php');
-
-function userLogin( $username, $password='', $passwordHashed=false ) {
-  global $user, $cookies;
-
-  $sql = 'SELECT * FROM Users WHERE Enabled=1';
-  $sql_values = NULL;
-  if ( ZM_AUTH_TYPE == 'builtin' ) {
-    if ( $passwordHashed ) {
-      $sql .= ' AND Username=? AND Password=?';
-    } else {
-      $sql .= ' AND Username=? AND Password=password(?)';
-    }
-    $sql_values = array( $username, $password );
-  } else {
-    $sql .= ' AND Username=?';
-    $sql_values = array( $username );
-  }
-  $_SESSION['username'] = $username;
-  if ( ZM_AUTH_RELAY == 'plain' ) {
-    // Need to save this in session
-    $_SESSION['password'] = $password;
-  }
-  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-  if ( $dbUser = dbFetchOne( $sql, NULL, $sql_values ) ) {
-    Info( "Login successful for user \"$username\"" );
-    $_SESSION['user'] = $user = $dbUser;
-    unset($_SESSION['loginFailed']);
-    if ( ZM_AUTH_TYPE == 'builtin' ) {
-      $_SESSION['passwordHash'] = $user['Password'];
-    }
-    session_regenerate_id();
-  } else {
-    Warning( "Login denied for user \"$username\"" );
-    $_SESSION['loginFailed'] = true;
-    unset( $user );
-  }
-  //if ( $cookies )
-    //session_write_close();
-}
-
-function userLogout() {
-  global $user;
-  Info( 'User "'.$user['Username'].'" logged out' );
-  unset( $_SESSION['user'] );
-  unset( $user );
-
-  session_destroy();
-}
-
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -109,78 +57,6 @@ function CORSHeaders() {
       Warning( $_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.' );
     }
   }
-}
-
-function getAuthUser( $auth ) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' && !empty($auth) ) {
-    $remoteAddr = '';
-    if ( ZM_AUTH_HASH_IPS ) {
-      $remoteAddr = $_SERVER['REMOTE_ADDR'];
-      if ( !$remoteAddr ) {
-        Error( "Can't determine remote address for authentication, using empty string" );
-        $remoteAddr = '';
-      }
-    }
-
-    if ( isset( $_SESSION['username'] ) ) {
-      # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
-      # Only really important if you have a lot of users.
-      $sql = "SELECT * FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";
-    } else {
-      $sql = 'SELECT * FROM Users WHERE Enabled = 1';
-    }
-
-    foreach ( dbFetchAll( $sql ) as $user ) {
-      $now = time();
-      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= (3600) ) { // Try for last two hours
-        $time = localtime( $now );
-        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-        $authHash = md5( $authKey );
-
-        if ( $auth == $authHash ) {
-          return $user;
-        }
-      } // end foreach hour
-    } // end foreach user
-  } // end if using auth hash
-  Error( "Unable to authenticate user from auth hash '$auth'" );
-  return( false );
-} // end getAuthUser($auth)
-
-function generateAuthHash( $useRemoteAddr ) {
-  if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
-    # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
-    $time = time();
-    $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
-
-    if ( ( !isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
-      # Don't both regenerating Auth Hash if an hour hasn't gone by yet
-      $local_time = localtime();
-      $authKey = '';
-      if ( $useRemoteAddr ) {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
-      } else {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
-      }
-      #Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
-      $auth = md5( $authKey );
-      if ( session_status() == PHP_SESSION_NONE ) {
-        $backTrace = debug_backtrace();
-        $file = $backTrace[1]['file'];
-        $line = $backTrace[1]['line'];
-        Warning("Session is not active. AuthHash will not be cached. called from $file:$line. OldHash:" . $_SESSION['AuthHash'] . ' generated at ' . $_SESSION['AuthHashGeneratedAt'] . ' < ' . $time . ' - ( ' . ZM_AUTH_HASH_TTL . '* 1800 = ' . ZM_AUTH_HASH_TTL * 1800 );
-      }
-      $_SESSION['AuthHash'] = $auth;
-      $_SESSION['AuthHashGeneratedAt'] = $time;
-      #Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
-    #} else {
-      #Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
-    } # end if AuthHash is not cached
-    return $_SESSION['AuthHash'];
-  } else {
-    $auth = '';
-  }
-  return( $auth );
 }
 
 function getStreamSrc( $args, $querySep='&amp;' ) {
@@ -450,24 +326,6 @@ function getZmuCommand( $args ) {
   return( $zmuCommand );
 }
 
-function visibleMonitor( $mid ) {
-  global $user;
-
-  return( empty($user['MonitorIds']) || in_array( $mid, explode( ',', $user['MonitorIds'] ) ) );
-}
-
-function canView( $area, $mid=false ) {
-  global $user;
-
-  return( ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor( $mid ) ) );
-}
-
-function canEdit( $area, $mid=false ) {
-  global $user;
-
-  return( $user[$area] == 'Edit' && ( !$mid || visibleMonitor( $mid ) ) );
-}
-
 function getEventDefaultVideoPath( $event ) {
   $Event = new Event( $event );
   return $Event->getStreamSrc( array( 'mode'=>'mpeg', 'format'=>'h264' ) );
@@ -553,20 +411,19 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
     }
   }
 
-  $html = "<select name=\"$name\" id=\"$name\"$behaviourText>";
+  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions( $contents, $values ).'</select>';
+}
+
+function htmlOptions( $contents, $values ) {
+  $html = '';
   foreach ( $contents as $value=>$text ) {
     if ( is_array( $text ) )
       $text = $text['Name'];
     else if ( is_object( $text ) )
       $text = $text->Name();
-  //for ( $i = 0; $i < count($contents); $i +=2 ) {
-    //$value = $contents[$i];
-    //$text = $contents[$i+1];
     $selected = is_array( $values ) ? in_array( $value, $values ) : !strcmp($value, $values);
-    //Warning("Selected is $selected from $value and $values");
     $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
   }
-  $html .= '</select>';
   return $html;
 }
 
@@ -634,6 +491,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
 
     if ( !isset($types[$key]) )
       $types[$key] = false;
+
     switch( $types[$key] ) {
       case 'set' :
         {
@@ -695,6 +553,16 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
           break;
         }
+      case 'toggle' :
+        if ( (!isset($values[$key])) or $values[$key] != $value ) {
+          if ( empty($value) ) {
+            $changes[$key] = "$key = 0";
+          } else {
+            $changes[$key] = "$key = 1";
+            //$changes[$key] = $key . ' = '.dbEscape(trim($value));
+          }
+        }
+        break;
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
@@ -848,18 +716,14 @@ Logger::Debug("daemonControl $string");
   exec( $string );
 }
 
-function zmcControl( $monitor, $mode=false ) {
+function zmcControl($monitor, $mode=false) {
   $Monitor = new Monitor( $monitor );
   return $Monitor->zmcControl($mode);
 }
 
-function zmaControl( $monitor, $mode=false ) {
-  if ( !is_array( $monitor ) ) {
-    $monitor = 
-    $monitor = dbFetchOne( 'select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?', NULL, array($monitor) );
-  }
-  $Monitor = new Monitor( $monitor );
-  $Monitor->zmaControl($mode);
+function zmaControl($monitor, $mode=false) {
+  $Monitor = new Monitor($monitor);
+  return $Monitor->zmaControl($mode);
 }
 
 function initDaemonStatus() {
@@ -1111,7 +975,7 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
   }
 }
 
-function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
+function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $filter['query'] = ''; 
   $filter['sql'] = '';
   $filter['fields'] = '';
@@ -1129,7 +993,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
       }
       if ( isset($terms[$i]['obr']) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($terms[$i]['obr']);
-        $filter['sql'] .= ' '.str_repeat( '(', $terms[$i]['obr'] ).' ';
+        $filter['sql'] .= ' '.str_repeat('(', $terms[$i]['obr']).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($terms[$i]['obr'])."\"/>\n";
       }
       if ( isset($terms[$i]['attr']) ) {
@@ -1137,7 +1001,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($terms[$i]['attr'])."\"/>\n";
         switch ( $terms[$i]['attr'] ) {
           case 'MonitorName':
-            $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $terms[$i]['attr'] );
+            $filter['sql'] .= 'M.'.preg_replace('/^Monitor/', '', $terms[$i]['attr']);
             break;
           case 'ServerId':
             $filter['sql'] .= 'M.ServerId';
@@ -1204,7 +1068,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
               for ( $j = 0; $j < count($terms); $j++ ) {
                 if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
                   $StorageArea = new Storage($terms[$j]['val']);
-		  break;
+                  break;
                 }
               } // end foreach remaining term
               if ( ! $StorageArea ) $StorageArea = new Storage();
@@ -1299,7 +1163,13 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             $filter['sql'] .= ' not in ('.join( ',', $valueList ).')';
             break;
           case 'IS' :
-            $filter['sql'] .= " IS $value";
+            if ( $value == 'Odd' )  {
+              $filter['sql'] .= ' % 2 = 1';
+            } else if ( $value == 'Even' )  {
+              $filter['sql'] .= ' % 2 = 0';
+            } else {
+              $filter['sql'] .= " IS $value";
+            }
             break;
           case 'IS NOT' :
             $filter['sql'] .= " IS NOT $value";
@@ -2161,9 +2031,9 @@ function cache_bust( $file ) {
   $parts = pathinfo($file);
   global $css;
   $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
-  $cacheFile = 'cache/'.$dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
-  if ( file_exists( ZM_PATH_WEB.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.'/'.$cacheFile ) ) {
-    return $cacheFile;
+  $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
+  if ( file_exists( ZM_DIR_CACHE.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile ) ) {
+    return 'cache/'.$cacheFile;
   } else {
     Warning("Failed linking $file to $cacheFile");
   }
@@ -2262,7 +2132,7 @@ function getStreamHTML( $monitor, $options = array() ) {
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array(
       'mode'=>'mpeg',
-      'scale'=>$options['scale'],
+      'scale'=>(isset($options['scale'])?$options['scale']:100),
       'bitrate'=>ZM_WEB_VIDEO_BITRATE,
       'maxfps'=>ZM_WEB_VIDEO_MAXFPS,
       'format' => ZM_MPEG_LIVE_FORMAT

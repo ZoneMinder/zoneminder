@@ -97,6 +97,11 @@ X264MP4Writer::X264MP4Writer(
   }
   codec_pf = AV_PIX_FMT_YUV420P;
 
+  if ( ! swscaleobj.init() ) {
+    Error("Failed init swscaleobj");
+    return;
+  }
+    
   swscaleobj.SetDefaults(zm_pf, codec_pf, width, height);
 
   /* Calculate the image sizes. We will need this for parameter checking */
@@ -211,6 +216,7 @@ int X264MP4Writer::Open() {
 int X264MP4Writer::Close() {
   /* Flush all pending frames */
   for ( int i = (x264_encoder_delayed_frames(x264enc) + 1); i > 0; i-- ) {
+Debug(1,"Encoding delayed frame");
     x264encodeloop(true);
   }
 
@@ -220,6 +226,7 @@ int X264MP4Writer::Close() {
   /* Close MP4 handle */
   MP4Close(mp4h);
 
+  Debug(1,"Optimising");
   /* Required for proper HTTP streaming */
   MP4Optimize((path + ".incomplete").c_str(), path.c_str());
 
@@ -228,7 +235,7 @@ int X264MP4Writer::Close() {
 
   bOpen = false;
 
-  Debug(7, "Video closed. Total frames: %d", frame_count);
+  Debug(1, "Video closed. Total frames: %d", frame_count);
 
   return 0;
 }
@@ -413,7 +420,7 @@ void X264MP4Writer::x264encodeloop(bool bFlush) {
   }
 
   if ( frame_size > 0 || bFlush ) {
-    Debug(8, "x264 Frame: %d PTS: %d DTS: %d Size: %d\n",
+    Debug(1, "x264 Frame: %d PTS: %d DTS: %d Size: %d\n",
         frame_count, x264picout.i_pts, x264picout.i_dts, frame_size);
 
     /* Handle the previous frame */
@@ -490,7 +497,7 @@ void X264MP4Writer::x264encodeloop(bool bFlush) {
     }
 
   } else if ( frame_size == 0 ) {
-    Debug(7, "x264 encode returned zero. Delayed frames: %d",
+    Debug(1, "x264 encode returned zero. Delayed frames: %d",
         x264_encoder_delayed_frames(x264enc));
   } else {
     Error("x264 encode failed: %d", frame_size);

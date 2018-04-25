@@ -58,6 +58,8 @@ if(NOT HOST_OS)
             "ZoneMinder was unable to deterimine the host OS. Please report this. Value of CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 endif(NOT HOST_OS)
 
+set (CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # Default CLFAGS and CXXFLAGS:
 set(CMAKE_C_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
@@ -139,6 +141,8 @@ set(ZM_WEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/www" 
     "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
 set(ZM_CGIDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
     "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
+set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH 
+    "Location of the web server cache busting files, default: /var/cache/zoneminder")
 set(ZM_CONTENTDIR "/var/lib/zoneminder" CACHE PATH 
     "Location of dynamic content (events and images), default: /var/lib/zoneminder")
 set(ZM_DB_HOST "localhost" CACHE STRING 
@@ -203,7 +207,7 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
-    "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc24, fc25, el6, el7, OS13, FreeBSD")
+    "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc27, fc26, el7, OS13, FreeBSD")
 set(ZM_SYSTEMD "OFF" CACHE BOOL 
     "Set to ON to force building ZM with systemd support. default: OFF")
 
@@ -482,24 +486,24 @@ if(MP4V2_LIBRARIES)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
 
         # mp4v2.h
 	find_path(MP4V2_INCLUDE_DIR mp4v2.h)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4v2.h" HAVE_MP4V2_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4v2.h" HAVE_MP4V2_H)
 
 	# mp4.h
 	find_path(MP4V2_INCLUDE_DIR mp4.h)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4.h" HAVE_MP4_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4.h" HAVE_MP4_H)
 
 	mark_as_advanced(FORCE MP4V2_LIBRARIES MP4V2_INCLUDE_DIR)
 	set(optlibsfound "${optlibsfound} mp4v2")

@@ -1,17 +1,17 @@
 <?php
 /**
- * CakePHP(tm) Tests <http://book.cakephp.org/view/1196/Testing>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/view/1196/Testing>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/view/1196/Testing CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/view/1196/Testing CakePHP(tm) Tests
  * @package       Cake.Test.Case.Routing.Filter
  * @since         CakePHP(tm) v 2.2
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('AssetDispatcher', 'Routing/Filter');
@@ -19,7 +19,7 @@ App::uses('CakeEvent', 'Event');
 App::uses('CakeResponse', 'Network');
 
 /**
- * Class AssetDispatcherTest
+ * AssetDispatcherTest
  *
  * @package       Cake.Test.Case.Routing.Filter
  */
@@ -154,13 +154,10 @@ class AssetDispatcherTest extends CakeTestCase {
 
 		$response = $this->getMock('CakeResponse', array('_sendHeader', 'checkNotModified'));
 		$request = new CakeRequest('theme/test_theme/img/cake.power.gif');
-
 		$response->expects($this->once())->method('checkNotModified')
 			->with($request)
 			->will($this->returnValue(true));
-		$response->expects($this->never())->method('send');
 		$event = new CakeEvent('DispatcherTest', $this, compact('request', 'response'));
-
 		$this->assertSame($response, $filter->beforeDispatch($event));
 		$this->assertEquals($time->format('D, j M Y H:i:s') . ' GMT', $response->modified());
 	}
@@ -193,13 +190,9 @@ class AssetDispatcherTest extends CakeTestCase {
 			'Plugin' => array(CAKE . 'Test' . DS . 'test_app' . DS . 'Plugin' . DS),
 			'View' => array(CAKE . 'Test' . DS . 'test_app' . DS . 'View' . DS)
 		), App::RESET);
-
 		$response = $this->getMock('CakeResponse', array('_sendHeader'));
 		$request = new CakeRequest('theme/test_theme/../../../../../../VERSION.txt');
 		$event = new CakeEvent('Dispatcher.beforeRequest', $this, compact('request', 'response'));
-
-		$response->expects($this->never())->method('send');
-
 		$filter = new AssetDispatcher();
 		$this->assertNull($filter->beforeDispatch($event));
 		$this->assertFalse($event->isStopped());

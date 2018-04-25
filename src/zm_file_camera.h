@@ -47,6 +47,7 @@ public:
   int Capture( Image &image );
   int PostCapture();
   int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
+int Close() { return 0; };
 };
 
 #endif // ZM_FILE_CAMERA_H

@@ -2,18 +2,18 @@
 /**
  * ModelTest file
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.Model
  * @since         CakePHP(tm) v 1.2.0.4206
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Model', 'Model');
@@ -59,7 +59,7 @@ abstract class BaseModelTest extends CakeTestCase {
 		'core.feature_set', 'core.exterior_type_category', 'core.document', 'core.device',
 		'core.document_directory', 'core.primary_model', 'core.secondary_model', 'core.something',
 		'core.something_else', 'core.join_thing', 'core.join_a', 'core.join_b', 'core.join_c',
-		'core.join_a_b', 'core.join_a_c', 'core.uuid', 'core.data_test', 'core.posts_tag',
+		'core.join_a_b', 'core.join_a_c', 'core.uuid', 'core.uuid_native', 'core.data_test', 'core.posts_tag',
 		'core.the_paper_monkies', 'core.person', 'core.underscore_field', 'core.node',
 		'core.dependency', 'core.story', 'core.stories_tag', 'core.cd', 'core.book', 'core.basket',
 		'core.overall_favorite', 'core.account', 'core.content', 'core.content_account',
@@ -71,6 +71,9 @@ abstract class BaseModelTest extends CakeTestCase {
 		'core.fruits_uuid_tag', 'core.uuid_tag', 'core.product_update_all', 'core.group_update_all',
 		'core.player', 'core.guild', 'core.guilds_player', 'core.armor', 'core.armors_player',
 		'core.bidding', 'core.bidding_message', 'core.site', 'core.domain', 'core.domains_site',
+		'core.uuidnativeitem', 'core.uuidnativeportfolio', 'core.uuidnativeitems_uuidnativeportfolio',
+		'core.uuidnativeitems_uuidnativeportfolio_numericid',
+		'core.translated_article', 'core.translate_article',
 	);
 
 /**

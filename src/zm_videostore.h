@@ -3,8 +3,6 @@
 
 #include "zm_ffmpeg.h"
 extern "C"  {
-#include "libavutil/audio_fifo.h"
-
 #ifdef HAVE_LIBAVRESAMPLE
 #include "libavresample/avresample.h"
 #endif
@@ -40,18 +38,13 @@ private:
   // The following are used when encoding the audio stream to AAC
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
-  AVAudioFifo *fifo;
-  int out_frame_size;
 #ifdef HAVE_LIBAVRESAMPLE
-AVAudioResampleContext* resample_ctx;
+  AVAudioResampleContext* resample_ctx;
 #endif
   uint8_t *converted_in_samples;
     
 	const char *filename;
 	const char *format;
-    
-  bool keyframeMessage;
-  int keyframeSkipNumber;
     
   // These are for in
   int64_t video_last_pts;

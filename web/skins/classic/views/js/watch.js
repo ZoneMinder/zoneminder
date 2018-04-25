@@ -1,6 +1,8 @@
-function setButtonState( element, butClass ) {
-  element.className = butClass;
-  element.disabled = (butClass != 'inactive');
+function setButtonState(element, butClass) {
+  if ( element ) {
+    element.className = butClass;
+    element.disabled = (butClass != 'inactive');
+  }
 }
 
 function showEvents() {

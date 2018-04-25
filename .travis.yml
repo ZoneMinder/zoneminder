@@ -26,17 +26,15 @@ addons:
     - binfmt-support
     - qemu
     - qemu-user-static
+    - dnsutils
+    - traceroute
 install:
   - update-binfmts --enable qemu-arm
 
 env:
   global:
-  - DEB_BUILD_OPTIONS="parallel=4"
-  - DEBUILD_LINTIAN="no"
-  - SMPFLAGS="-j4"
+  - SMPFLAGS=-j4
   matrix:
-  - OS=el DIST=6
-  - OS=el DIST=6 ARCH=i386 DOCKER_REPO=knnniggett/packpack
   - OS=el DIST=7
   - OS=fedora DIST=26 DOCKER_REPO=knnniggett/packpack
   - OS=fedora DIST=27 DOCKER_REPO=knnniggett/packpack

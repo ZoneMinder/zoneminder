@@ -34,9 +34,11 @@ if ( $_REQUEST['id'] ) {
   $newStorage['Name'] = translate('NewStorage');
   $newStorage['Path'] = '';
   $newStorage['Type'] = 'local';
+  $newStorage['Url'] = '';
   $newStorage['Scheme'] = 'Medium';
   $newStorage['StorageId'] = '';
   $newStorage['ServerId'] = '';
+  $newStorage['DoDelete'] = 1;
 }
 
 $type_options = array( 'local' => translate('Local'), 's3fs' => translate('s3fs') );
@@ -76,6 +78,10 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
               <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage['Path'] ?>"/></td>
             </tr>
             <tr>
+              <th scope="row"><?php echo translate('Url') ?></th>
+              <td><input type="text" name="newStorage[Url]" value="<?php echo $newStorage['Url'] ?>"/></td>
+            </tr>
+            <tr>
               <th scope="row"><?php echo translate('Server') ?></th>
               <td><?php echo htmlSelect( 'newStorage[ServerId]', array(''=>'Remote / No Specific Server') + $ServersById, $newStorage['ServerId'] ); ?></td>
             </tr>
@@ -86,6 +92,13 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
             <tr>
               <th scope="row"><?php echo translate('StorageScheme') ?></th>
               <td><?php echo htmlSelect( 'newStorage[Scheme]', $scheme_options, $newStorage['Scheme'] ); ?></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('StorageDoDelete') ?></th>
+              <td>
+              <input type="radio" name="newStorage[DoDelete]" value="1"<?php echo $newStorage['DoDelete'] ? 'checked="checked"' : '' ?>/>Yes
+              <input type="radio" name="newStorage[DoDelete]" value="0"<?php echo $newStorage['DoDelete'] ? '' : 'checked="checked"' ?>/>No
+              </td>
             </tr>
           </tbody>
         </table>

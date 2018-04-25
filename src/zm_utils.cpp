@@ -49,7 +49,7 @@ std::string trimSet(std::string str, std::string trimset) {
     return str.substr( startpos, endpos-startpos+1 );
 }
 
-std::string trimSpaces(std::string str) {
+std::string trimSpaces(const std::string &str) {
   return trimSet(str, " \t");
 }
 

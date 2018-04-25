@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <sstream>
+#include <thread>
 
 #include "zm.h"
 #include "zm_coord.h"
@@ -66,6 +67,15 @@ public:
     NODECT
   } Function;
 
+  typedef enum {
+    LOCAL,
+    REMOTE,
+    FILE,
+    FFMPEG,
+    LIBVLC,
+    CURL,
+  } CameraType;
+
   typedef enum { 
     ROTATE_0=1,
     ROTATE_90,
@@ -96,45 +106,47 @@ protected:
 
   typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
-  /* sizeof(SharedData) expected to be 336 bytes on 32bit and 64bit */
+  /* sizeof(SharedData) expected to be 340 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
     uint32_t last_write_index;  /* +4    */ 
     uint32_t last_read_index;   /* +8    */
     uint32_t state;             /* +12   */
-    uint32_t last_event;        /* +16   */
-    uint32_t action;            /* +20   */
-    int32_t brightness;         /* +24   */
-    int32_t hue;                /* +28   */
-    int32_t colour;             /* +32   */
-    int32_t contrast;           /* +36   */
-    int32_t alarm_x;            /* +40   */
-    int32_t alarm_y;            /* +44   */
-    uint8_t valid;              /* +48   */
-    uint8_t active;             /* +49   */
-    uint8_t signal;             /* +50   */
-    uint8_t format;             /* +51   */
-    uint32_t imagesize;         /* +52   */
-    uint32_t epadding1;         /* +56   */
-    uint32_t epadding2;         /* +60   */
+    uint64_t last_event;        /* +16   */
+    uint32_t action;            /* +24   */
+    int32_t brightness;         /* +28   */
+    int32_t hue;                /* +32   */
+    int32_t colour;             /* +36   */
+    int32_t contrast;           /* +40   */
+    int32_t alarm_x;            /* +44   */
+    int32_t alarm_y;            /* +48   */
+    uint8_t valid;              /* +52   */
+    uint8_t active;             /* +53   */
+    uint8_t signal;             /* +54   */
+    uint8_t format;             /* +55   */
+    uint32_t imagesize;         /* +56   */
+    uint32_t epadding1;         /* +60   */
+    uint32_t epadding2;         /* +64   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      */  
-    union {                     /* +64   */
+    union {                     /* +68   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +72   */
+    union {                     /* +76   */
       time_t last_write_time;
       uint64_t extrapad2;
     };
-    union {            /* +80   */
+    union {            /* +84   */
       time_t last_read_time;
       uint64_t extrapad3;
     };
-    uint8_t control_state[256];  /* +88   */
+    uint8_t control_state[256];  /* +92   */
 
+    char alarm_cause[256];
+    
   } SharedData;
 
   typedef enum { TRIGGER_CANCEL, TRIGGER_ON, TRIGGER_OFF } TriggerState;
@@ -162,7 +174,7 @@ protected:
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
   typedef struct {
     uint32_t size;
-    uint32_t current_event;
+    uint64_t current_event;
     char event_file[4096];
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
     //uint32_t frameNumber;
@@ -192,15 +204,14 @@ protected:
     volatile VideoStoreData *video_store_data;
 
     int        last_state;
-    int        last_event;
-
+    uint64_t   last_event;
 
     public:
       MonitorLink( int p_id, const char *p_name );
       ~MonitorLink();
 
       inline int Id() const {
-        return( id );
+        return id;
       }
       inline const char *Name() const {
         return( name );
@@ -227,6 +238,7 @@ protected:
   char            name[64];
   unsigned int    server_id;          // Id of the Server object
   unsigned int    storage_id;         // Id of the Storage Object, which currently will just provide a path, but in future may do more.
+  CameraType      type;
   Function        function;           // What the monitor is doing
   bool            enabled;            // Whether the monitor is enabled or asleep
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
@@ -237,7 +249,7 @@ protected:
   unsigned int    deinterlacing;
   bool            videoRecording;
 
-  int savejpegspref;
+  int savejpegs;
   VideoWriter videowriter;
   std::string encoderparams;
   std::vector<EncoderParameter_t> encoderparamsvec;
@@ -271,10 +283,13 @@ protected:
   int        ref_blend_perc;      // Percentage of new image going into reference image.
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
   bool      track_motion;      // Whether this monitor tries to track detected motion 
+  int         signal_check_points;  // Number of points in the image to check for signal
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool              embed_exif; // Whether to embed Exif data into each image frame or not
 
   double      fps;
+  unsigned int  last_camera_bytes;
+  
   Image      delta_image;
   Image      ref_image;
   Image       alarm_image;  // Used in creating analysis images, will be initialized in Analysis
@@ -304,8 +319,6 @@ protected:
 #endif // ZM_MEM_MAPPED
   off_t        mem_size;
   unsigned char  *mem_ptr;
-  Storage      *storage;
-
   SharedData    *shared_data;
   TriggerData    *trigger_data;
   VideoStoreData  *video_store_data;
@@ -315,8 +328,8 @@ protected:
   Snapshot    *pre_event_buffer;
 
   Camera      *camera;
-
-  Event      *event;
+  Event       *event;
+  Storage     *storage;
 
   int      n_zones;
   Zone      **zones;
@@ -325,6 +338,7 @@ protected:
   Image      **images;
 
   const unsigned char  *privacy_bitmask;
+  std::thread   *event_delete_thread; // Used to close events, but continue processing.
 
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;
@@ -370,6 +384,7 @@ public:
     int p_ref_blend_perc,
     int p_alarm_ref_blend_perc,
     bool p_track_motion,
+    int p_signal_check_points,
     Rgb p_signal_check_colour,
     bool p_embed_exif,
     Purpose p_purpose,
@@ -387,40 +402,40 @@ public:
   }
 
   inline int Id() const {
-    return( id );
+    return id;
   }
   inline const char *Name() const {
-    return( name );
+    return name;
   }
   inline Storage *getStorage() {
     if ( ! storage ) {
       storage = new Storage( storage_id );
     }
-    return( storage );
+    return storage;
   }
   inline Function GetFunction() const {
     return( function );
   }
   inline bool Enabled() {
     if ( function <= MONITOR )
-      return( false );
-    return( enabled );
+      return false;
+    return enabled;
   }
   inline const char *EventPrefix() const {
-    return( event_prefix );
+    return event_prefix;
   }
   inline bool Ready() {
     if ( function <= MONITOR )
-      return( false );
+      return false;
     return( image_count > ready_count );
   }
   inline bool Active() {
     if ( function <= MONITOR )
-      return( false );
+      return false;
     return( enabled && shared_data->active );
   }
   inline bool Exif() {
-    return( embed_exif );
+    return embed_exif;
   }
   Orientation getOrientation() const;
 
@@ -429,36 +444,32 @@ public:
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
     
-  int GetOptSaveJPEGs() const { return( savejpegspref ); }
-  VideoWriter GetOptVideoWriter() const { return( videowriter ); }
-  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return( &encoderparamsvec ); }
-  uint32_t GetVideoWriterEventId() const { return video_store_data->current_event; }
-  void SetVideoWriterEventId( uint32_t p_event_id ) { video_store_data->current_event = p_event_id; }
+  int GetOptSaveJPEGs() const { return savejpegs; }
+  VideoWriter GetOptVideoWriter() const { return videowriter; }
+  const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
+  uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
+  void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
-  Snapshot *getSnapshot();
+  Snapshot *getSnapshot() const;
   struct timeval GetTimestamp( int index=-1 ) const;
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
-  unsigned int GetAnalysisUpdateDelay() const { return( analysis_update_delay ); }
-  int GetCaptureDelay() const { return( capture_delay ); }
-  int GetAlarmCaptureDelay() const { return( alarm_capture_delay ); }
+  unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  int GetCaptureDelay() const { return capture_delay; }
+  int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;
   unsigned int GetLastWriteIndex() const;
-  uint32_t GetLastEventId() const;
+  uint64_t GetLastEventId() const;
   double GetFPS() const;
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();
-  TriggerState GetTriggerState() const { return( (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL )); }
-	inline time_t getStartupTime() const {
-		return( shared_data->startup_time );
-	}
-	inline void setStartupTime( time_t p_time ) {
-		shared_data->startup_time = p_time;
-	}
+  TriggerState GetTriggerState() const { return (TriggerState)(trigger_data?trigger_data->trigger_state:TRIGGER_CANCEL); }
+	inline time_t getStartupTime() const { return shared_data->startup_time; }
+	inline void setStartupTime( time_t p_time ) { shared_data->startup_time = p_time; }
 
   void actionReload();
   void actionEnable();
@@ -471,10 +482,11 @@ public:
   int actionColour( int p_colour=-1 );
   int actionContrast( int p_contrast=-1 );
 
-  int PrimeCapture();
-  int PreCapture();
+  int PrimeCapture() const;
+  int PreCapture() const;
   int Capture();
-  int PostCapture();
+  int PostCapture() const;
+  int Close();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
    // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
@@ -492,15 +504,17 @@ public:
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );
 
+  static int LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
 #if ZM_HAS_V4L
-  static int LoadLocalMonitors( const char *device, Monitor **&monitors, Purpose purpose );
+  static int LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose);
 #endif // ZM_HAS_V4L
-  static int LoadRemoteMonitors( const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose );
-  static int LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose );
+  static int LoadRemoteMonitors(const char *protocol, const char *host, const char*port, const char*path, Monitor **&monitors, Purpose purpose);
+  static int LoadFileMonitors(const char *file, Monitor **&monitors, Purpose purpose);
 #if HAVE_LIBAVFORMAT
-  static int LoadFfmpegMonitors( const char *file, Monitor **&monitors, Purpose purpose );
+  static int LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose purpose);
 #endif // HAVE_LIBAVFORMAT
-  static Monitor *Load( unsigned int id, bool load_zones, Purpose purpose );
+  static Monitor *Load(unsigned int id, bool load_zones, Purpose purpose);
+  static Monitor *Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose);
   //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );
   //void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );
   //void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );

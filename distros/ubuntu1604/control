@@ -16,7 +16,7 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libcurl4-gnutls-dev
               ,libgnutls-openssl-dev
               ,libjpeg8-dev | libjpeg9-dev | libjpeg62-turbo-dev
-              ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev
+              ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
               ,libpcre3-dev
               ,libpolkit-gobject-1-dev
               ,libv4l-dev (>= 0.8.3) [!hurd-any]
@@ -39,7 +39,7 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libmp4v2-2, libx264-142|libx264-148, libswscale-ffmpeg3|libswscale4|libswscale3
+        ,libmp4v2-2, libx264-142|libx264-148|libx264-152, libswscale-ffmpeg3|libswscale4|libswscale3
         ,ffmpeg | libav-tools
         ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
@@ -59,9 +59,11 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libsoap-wsdl-perl
         ,libio-socket-multicast-perl
         ,libdigest-sha-perl
-        ,libsys-cpu-perl, libsys-cpuload-perl, libsys-meminfo-perl
+        ,libsys-cpu-perl, libsys-meminfo-perl
         ,libdata-uuid-perl
-        ,mysql-client | virtual-mysql-client
+        ,libnumber-bytes-human-perl
+        ,libfile-slurp-perl
+        ,mysql-client | mariadb-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql | php-mysql, php5-gd | php-gd , php5-apcu | php-apcu , php-apc | php-apcu-bc
         ,policykit-1
@@ -70,7 +72,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libpcre3
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
-           ,mysql-server | virtual-mysql-server
+           ,mysql-server | mariadb-server | virtual-mysql-server
            ,zoneminder-doc (>= ${source:Version})
            ,ffmpeg
 Suggests: fcgiwrap, logrotate

@@ -182,7 +182,7 @@ CREATE TABLE `Devices` (
 
 DROP TABLE IF EXISTS `Events`;
 CREATE TABLE `Events` (
-  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Id` bigint unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `StorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
@@ -210,6 +210,7 @@ CREATE TABLE `Events` (
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   `DiskSpace`   bigint unsigned default NULL,
   `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
+  `Locked`    BOOLEAN NOT NULL DEFAULT False,
   PRIMARY KEY (`Id`),
   KEY `Events_MonitorId_idx` (`MonitorId`),
   KEY `Events_StorageId_idx` (`StorageId`),
@@ -219,7 +220,7 @@ CREATE TABLE `Events` (
 
 DROP TABLE IF EXISTS `Events_Hour`;
 CREATE TABLE `Events_Hour` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -230,7 +231,7 @@ CREATE TABLE `Events_Hour` (
 
 DROP TABLE IF EXISTS `Events_Day`;
 CREATE TABLE `Events_Day` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -241,7 +242,7 @@ CREATE TABLE `Events_Day` (
 
 DROP TABLE IF EXISTS `Events_Week`;
 CREATE TABLE `Events_Week` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -252,7 +253,7 @@ CREATE TABLE `Events_Week` (
 
 DROP TABLE IF EXISTS `Events_Month`;
 CREATE TABLE `Events_Month` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -264,7 +265,7 @@ CREATE TABLE `Events_Month` (
 
 DROP TABLE IF EXISTS `Events_Archived`;
 CREATE TABLE `Events_Archived` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
@@ -303,8 +304,8 @@ CREATE TABLE `Filters` (
 
 DROP TABLE IF EXISTS `Frames`;
 CREATE TABLE `Frames` (
-  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `EventId` int(10) unsigned NOT NULL default '0',
+  `Id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `EventId` BIGINT UNSIGNED NOT NULL default '0',
   `FrameId` int(10) unsigned NOT NULL default '0',
   `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
@@ -498,6 +499,7 @@ CREATE TABLE `Monitors` (
   `DefaultView` enum('Events','Control') NOT NULL default 'Events',
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
+  `SignalCheckPoints` INT UNSIGNED NOT NULL default '0',
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
@@ -526,6 +528,7 @@ CREATE TABLE `Monitor_Status` (
   `Status`  enum('Unknown','NotRunning','Running','Connected','Signal') NOT NULL default 'Unknown',
   `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
   `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
+  `CaptureBandwidth`  INT NOT NULL default 0,
   PRIMARY KEY (`MonitorId`)
 ) ENGINE=MEMORY;
 --
@@ -701,16 +704,18 @@ CREATE TABLE `Storage` (
 	`Path`	varchar(64)	NOT NULL default '',
 	`Name`	varchar(64) NOT NULL default '',
 	`Type`	enum('local','s3fs') NOT NULL default 'local',
+  `Url` varchar(255) default NULL,
   `DiskSpace`   bigint default NULL,
   `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   `ServerId` int(10) unsigned,
+  `DoDelete`  BOOLEAN NOT NULL DEFAULT true,
 	PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default', 'local', NULL, 'Medium', 0 );
+insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, NULL, 'Medium', 0, true );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
@@ -771,6 +776,7 @@ INSERT INTO `Controls` VALUES (NULL,'Floureon 1080P','Ffmpeg','Floureon',0,0,0,1
 INSERT INTO `Controls` VALUES (NULL,'Reolink RLC-423','Ffmpeg','Reolink',0,0,1,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,64,1,1,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Reolink RLC-411','Ffmpeg','Reolink',0,0,1,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Reolink RLC-420','Ffmpeg','Reolink',0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'D-LINK DCS-3415','Remote','DCS3415',0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
 
 --
 -- Add some monitor preset values

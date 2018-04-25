@@ -18,8 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-require_once( 'includes/Server.php');
-require_once( 'includes/Storage.php');
+require_once('includes/Server.php');
+require_once('includes/Storage.php');
 
 if ( !canView( 'Monitors' ) ) {
   $view = 'error';
@@ -62,6 +62,7 @@ if ( ! $monitor ) {
   $nextId = getTableAutoInc( 'Monitors' );
   if ( isset( $_REQUEST['dupId'] ) ) {
     $monitor = new Monitor( $_REQUEST['dupId'] );
+    $monitor->GroupIds(); // have to lead before we change the Id
     if ( ZM_OPT_X10 )
       $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
     $clonedName = $monitor->Name();
@@ -89,12 +90,12 @@ if ( ! $monitor ) {
           'Pass' => '',
           'Colours' => 4,
           'Palette' => 0,
-          'Width' => '1280',
-          'Height' => '962',
+          'Width' => '',
+          'Height' => '',
           'Orientation' => '0',
           'Deinterlacing' => 0,
           'RTSPDescribe' => 0,
-          'SaveJPEGs' => '4',
+          'SaveJPEGs' => '0',
           'VideoWriter' => '1',
           'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
           'RecordAudio' => '0',
@@ -102,9 +103,9 @@ if ( ! $monitor ) {
           'LabelX' => 0,
           'LabelY' => 0,
           'LabelSize' => 1,
-          'ImageBufferCount' => 40,
-          'WarmupCount' => 1,
-          'PreEventCount' => 1,
+          'ImageBufferCount' => 20,
+          'WarmupCount' => 0,
+          'PreEventCount' => 0,
           'PostEventCount' => 5,
           'StreamReplayBuffer' => 0,
           'AlarmFrameCount' => 1,
@@ -132,6 +133,7 @@ if ( ! $monitor ) {
           'DefaultView' => 'Events',
           'DefaultRate' => '100',
           'DefaultScale' => '100',
+          'SignalCheckPoints' => '10',
           'SignalCheckColour' => '#0000c0',
           'WebColour' => 'red',
           'Exif' => '0',
@@ -519,7 +521,7 @@ foreach ( $tabs as $name=>$value ) {
   ?>
     </ul>
     <div class="clear"></div>
-    <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this )">
+    <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="if(validateForm(this)){$j('#contentButtons').hide();return true;}else{return false;};">
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
       <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
       <input type="hidden" name="action" value="monitor"/>
@@ -658,8 +660,9 @@ if ( $tab != 'misc' ) {
       <input type="hidden" name="newMonitor[Exif]" value="<?php echo validHtmlStr($monitor->Exif()) ?>"/>
 <?php
 }
-if ( ZM_HAS_V4L && ($tab != 'misc' || $monitor->Type()!= 'Local') ) {
+if ( $tab != 'misc' ) {
 ?>
+      <input type="hidden" name="newMonitor[SignalCheckPoints]" value="<?php echo validHtmlStr($monitor->SignalCheckPoints()) ?>"/>
       <input type="hidden" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>"/>
 <?php
 }
@@ -708,7 +711,7 @@ switch ( $tab ) {
         <tr>
           <td><?php echo translate('LinkedMonitors') ?></td>
           <td>
-            <select name="monitorIds" size="4" multiple="multiple" onchange="updateLinkedMonitors( this )">
+            <select name="monitorIds" class="chosen" multiple="multiple" onchange="updateLinkedMonitors( this )">
 <?php
       $monitors = dbFetchAll( 'select Id,Name from Monitors order by Sequence asc' );
       if ( $monitor->LinkedMonitors() )
@@ -726,6 +729,9 @@ switch ( $tab ) {
             </select>
           </td>
         </tr>
+<tr><td><?php echo translate('Groups'); ?></td><td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
+echo htmlOptions(Group::get_dropdown_options( ), $monitor->GroupIds() );
+?></td></tr>
         <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" size="6"/></td></tr>
 <?php
       if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
@@ -976,19 +982,19 @@ if ( $monitor->Type() == 'Local' ) {
         </select></td></tr>
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
-<?php
-      if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
-?>
+        <tr>
+          <td><?php echo translate('SignalCheckPoints') ?></td>
+          <td>
+            <input type="number" name="newMonitor[SignalCheckPoints]" value="<?php echo validInt($monitor->SignalCheckPoints()) ?>"/>
+          </td>
+        </tr>
         <tr>
           <td><?php echo translate('SignalCheckColour') ?></td>
           <td>
-            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/>
+            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle('backgroundColor', this.value)"/>
             <span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo $monitor->SignalCheckColour()?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
           </td>
         </tr>
-<?php
-      }
-?>
         <tr>
           <td><?php echo translate('WebColour') ?></td>
           <td>
@@ -1008,11 +1014,14 @@ if ( $monitor->Type() == 'Local' ) {
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <button type="submit" value="Save"<?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button onclick="closeWindow()"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>
     </div>
   </body>
+  <script type="text/javascript">
+  $j('.chosen').chosen();
+  </script>
 </html>

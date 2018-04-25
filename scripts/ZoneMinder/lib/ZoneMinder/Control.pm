@@ -47,7 +47,7 @@ sub new {
   my $class = shift;
   my $id = shift;
   my $self = {};
-  $self->{name} = "PelcoD";
+  $self->{name} = $class;
   if ( !defined($id) ) {
     Fatal( "No monitor defined when invoking protocol ".$self->{name} );
   }
@@ -83,7 +83,7 @@ sub open {
 
 sub close {
   my $self = shift;
-  Fatal( "No close method defined for protocol ".$self->{name} );
+  Error( "No close method defined for protocol ".$self->{name} );
 }
 
 sub loadMonitor {

@@ -1,5 +1,7 @@
 <?php
 
+$event_cache = array();
+
 class Event {
 
   private $fields = array(
@@ -15,12 +17,12 @@ class Event {
   public function __construct( $IdOrRow = null ) {
     $row = NULL;
     if ( $IdOrRow ) {
-      if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT *,unix_timestamp(StartTime) as Time FROM Events WHERE Id=?', NULL, array( $IdOrRow ) );
+      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
+        $row = dbFetchOne('SELECT *,unix_timestamp(StartTime) as Time FROM Events WHERE Id=?', NULL, array($IdOrRow));
         if ( ! $row ) {
           Error('Unable to load Event record for Id=' . $IdOrRow );
         }
-      } elseif ( is_array( $IdOrRow ) ) {
+      } elseif ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
       } else {
         $backTrace = debug_backtrace();
@@ -31,16 +33,18 @@ class Event {
         return;
       }
 
-    if ( $row ) {
-      foreach ($row as $k => $v) {
-        $this->{$k} = $v;
-      }
-    } else {
+      if ( $row ) {
+        foreach ($row as $k => $v) {
+          $this->{$k} = $v;
+        }
+        global $event_cache;
+        $event_cache[$row['Id']] = $this;
+      } else {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
-      Error('No row for Event ' . $IdOrRow . " from $file:$line");
-    }
+        Error('No row for Event ' . $IdOrRow . " from $file:$line");
+      }
     } # end if isset($IdOrRow)
   } // end function __construct
 
@@ -48,8 +52,11 @@ class Event {
     if ( $new ) {
       $this->{'Storage'} = $new;
     }
-    if ( ! ( array_key_exists( 'Storage', $this ) and $this->{'Storage'} ) ) {
-      $this->{'Storage'} = new Storage( isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL );
+    if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) ) {
+      if ( isset($this->{'StorageId'}) and $this->{'StorageId'} )
+        $this->{'Storage'} = Storage::find_one(array('Id'=>$this->{'StorageId'}));
+      if ( ! ( array_key_exists('Storage', $this) and $this->{'Storage'} ) )
+        $this->{'Storage'} = new Storage(NULL);
     }
     return $this->{'Storage'};
   }
@@ -68,12 +75,12 @@ class Event {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
-        Warning( "Unknown function call Event->$fn from $file:$line" );
+        Warning("Unknown function call Event->$fn from $file:$line");
     }
   }
 
   public function Time() {
-    if ( ! isset( $this->{'Time'} ) ) {
+    if ( ! isset($this->{'Time'}) ) {
       $this->{'Time'} = strtotime($this->{'StartTime'});
     }
     return $this->{'Time'};
@@ -95,7 +102,7 @@ class Event {
       $event_path = $this->{'MonitorId'} .'/'.$this->{'Id'};
     }
 
-    return( $event_path );
+    return $event_path;
   } // end function Relative_Path()
 
   public function Link_Path() {
@@ -158,7 +165,9 @@ class Event {
     } # ! ZM_OPT_FAST_DELETE
   } # end Event->delete
 
-  public function getStreamSrc( $args=array(), $querySep='&amp;' ) {
+  public function getStreamSrc( $args=array(), $querySep='&' ) {
+
+
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc = ZM_BASE_PROTOCOL.'://';
       $Monitor = $this->Monitor();
@@ -172,7 +181,19 @@ class Event {
       $args['eid'] = $this->{'Id'};
       $args['view'] = 'view_video';
     } else {
-      $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
+      $streamSrc = ZM_BASE_PROTOCOL.'://';
+      if ( $this->Storage()->ServerId() ) {
+        $Server = $this->Storage()->Server();
+        $streamSrc .= $Server->Hostname();
+        if ( ZM_MIN_STREAMING_PORT ) {
+          $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+        }
+      } else if ( ZM_MIN_STREAMING_PORT ) {
+        $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+      } else {
+        $streamSrc .= $_SERVER['HTTP_HOST'];
+      }
+      $streamSrc .= ZM_PATH_ZMS;
 
       $args['source'] = 'event';
       $args['event'] = $this->{'Id'};
@@ -201,12 +222,12 @@ class Event {
   } // end function getStreamSrc
 
   function DiskSpace( $new='' ) {
-    if ( $new != '' ) {
+    if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }
     if ( null === $this->{'DiskSpace'} ) {
-      $this->{'DiskSpace'} = folder_size( $this->Path() );
-      dbQuery( 'UPDATE Events SET DiskSpace=? WHERE Id=?', array( $this->{'DiskSpace'}, $this->{'Id'} ) );
+      $this->{'DiskSpace'} = folder_size($this->Path());
+      dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
     }
     return $this->{'DiskSpace'};
   }
@@ -253,7 +274,7 @@ class Event {
 
   // frame is an array representing the db row for a frame.
   function getImageSrc($frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false) {
-    $Storage = new Storage(isset($this->{'StorageId'}) ? $this->{'StorageId'} : NULL);
+    $Storage = $this->Storage();
     $Event = $this;
     $eventPath = $Event->Path();
 
@@ -368,6 +389,25 @@ class Event {
         );
 
     return $imageData;
+  }
+
+  public static function find_one( $parameters = null, $options = null ) {
+    global $event_cache;
+    if (
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($event_cache[$parameters['Id']]) ) {
+      return $event_cache[$parameters['Id']];
+    }
+    $results = Event::find_all( $parameters, $options );
+    if ( count($results) > 1 ) {
+      Error("Event Returned more than 1");
+      return $results[0];
+    } else if ( count($results) ) {
+      return $results[0];
+    } else {
+      return null;
+    }
   }
 
   public static function find_all( $parameters = null, $options = null ) {

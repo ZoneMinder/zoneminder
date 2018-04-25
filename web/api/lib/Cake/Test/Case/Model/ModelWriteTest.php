@@ -2,18 +2,18 @@
 /**
  * ModelWriteTest file
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.Model
  * @since         CakePHP(tm) v 1.2.0.4206
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('MockTransactionDboSource', 'Model/Datasource');
@@ -41,7 +41,7 @@ class TestAuthor extends Author {
 /**
  * Helper method to set a datasource object
  *
- * @param Object $object The datasource object
+ * @param DataSource $object The datasource object
  * @return void
  */
 	public function setDataSourceObject($object) {
@@ -81,7 +81,7 @@ class TestPost extends Post {
 /**
  * Helper method to set a datasource object
  *
- * @param Object $object The datasource object
+ * @param DataSource $object The datasource object
  * @return void
  */
 	public function setDataSourceObject($object) {
@@ -271,6 +271,26 @@ class ModelWriteTest extends BaseModelTest {
 	}
 
 /**
+ * testAutoSaveUuidNative method
+ *
+ * @return void
+ */
+	public function testAutoSaveUuidNative() {
+		$this->skipIf(!($this->db instanceof Postgres), 'This test is compatible with Postgres only.');
+
+		$this->loadFixtures('UuidNative');
+		$TestModel = new UuidNative();
+
+		$TestModel->save(array('title' => 'Test record'));
+		$result = $TestModel->findByTitle('Test record');
+		$this->assertEquals(
+			array('id', 'title', 'count', 'created', 'updated'),
+			array_keys($result['UuidNative'])
+		);
+		$this->assertEquals(36, strlen($result['UuidNative']['id']));
+	}
+
+/**
  * Ensure that if the id key is null but present the save doesn't fail (with an
  * x sql error: "Column id specified twice")
  *
@@ -290,6 +310,27 @@ class ModelWriteTest extends BaseModelTest {
 			array_keys($result['Uuid'])
 		);
 		$this->assertEquals(36, strlen($result['Uuid']['id']));
+	}
+
+/**
+ * Ensure that if the id key is null but present the save doesn't fail (with an
+ * x sql error: "Column id specified twice")
+ *
+ * @return void
+ */
+	public function testSaveUuidNullNative() {
+		$this->skipIf(!($this->db instanceof Postgres), 'This test is compatible with Postgres only.');
+
+		$this->loadFixtures('UuidNative');
+		$TestModel = new UuidNative();
+
+		$TestModel->save(array('title' => 'Test record', 'id' => null));
+		$result = $TestModel->findByTitle('Test record');
+		$this->assertEquals(
+			array('id', 'title', 'count', 'created', 'updated'),
+			array_keys($result['UuidNative'])
+		);
+		$this->assertEquals(36, strlen($result['UuidNative']['id']));
 	}
 
 /**
@@ -1632,8 +1673,19 @@ class ModelWriteTest extends BaseModelTest {
 		$this->assertFalse(empty($result));
 		$this->assertEquals($data['Tag'], $result['Tag']);
 
-		$TestModel->unbindModel(array('belongsTo' => array('User'), 'hasMany' => array('Comment')));
-		$result = $TestModel->find('first', array('fields' => array('id', 'user_id', 'title', 'body'), 'conditions' => array('Article.id' => 2)));
+		$TestModel->unbindModel(array(
+			'belongsTo' => array('User'),
+			'hasMany' => array('Comment'),
+		));
+		$TestModel->bindModel(array(
+			'hasAndBelongsToMany' => array(
+				'Tag' => array('order' => 'Tag.id'),
+			),
+		), false);
+		$result = $TestModel->find('first', array(
+			'fields' => array('id', 'user_id', 'title', 'body'),
+			'conditions' => array('Article.id' => 2),
+		));
 		$expected = array(
 			'Article' => array(
 				'id' => '2',
@@ -1653,7 +1705,9 @@ class ModelWriteTest extends BaseModelTest {
 					'tag' => 'tag2',
 					'created' => '2007-03-18 12:24:23',
 					'updated' => '2007-03-18 12:26:31'
-		)));
+				),
+			),
+		);
 		$this->assertEquals($expected, $result);
 
 		$data = array('Article' => array('id' => '2'), 'Tag' => array('Tag' => array(2, 3)));
@@ -2939,6 +2993,26 @@ class ModelWriteTest extends BaseModelTest {
 	}
 
 /**
+ * testHabtmUuidWithUuidId method
+ *
+ * @return void
+ */
+	public function testHabtmUuidWithUuidIdNative() {
+		$this->skipIf(!($this->db instanceof Postgres), 'This test is compatible with Postgres only.');
+		$this->loadFixtures('Uuidnativeportfolio', 'Uuidnativeitem', 'UuidnativeitemsUuidnativeportfolio', 'UuidnativeitemsUuidnativeportfolioNumericid');
+		$TestModel = new Uuidnativeportfolio();
+
+		$data = array('Uuidnativeportfolio' => array('name' => 'Portfolio 3'));
+		$data['Uuidnativeitem']['Uuidnativeitem'] = array('483798c8-c7cc-430e-8cf9-4fcc40cf8569');
+		$TestModel->create($data);
+		$TestModel->save();
+		$id = $TestModel->id;
+		$result = $TestModel->read(null, $id);
+		$this->assertEquals(1, count($result['Uuidnativeitem']));
+		$this->assertEquals(36, strlen($result['Uuidnativeitem'][0]['UuidnativeitemsUuidnativeportfolio']['id']));
+	}
+
+/**
  * test HABTM saving when join table has no primary key and only 2 columns.
  *
  * @return void
@@ -3005,6 +3079,25 @@ class ModelWriteTest extends BaseModelTest {
 		$id = $TestModel->id;
 		$result = $TestModel->read(null, $id);
 		$this->assertEquals(1, count($result['Uuidportfolio']));
+	}
+
+/**
+ * testHabtmUuidWithNumericId method
+ *
+ * @return void
+ */
+	public function testHabtmUuidWithNumericIdNative() {
+		$this->skipIf(!($this->db instanceof Postgres), 'This test is compatible with Postgres only.');
+		$this->loadFixtures('Uuidnativeportfolio', 'Uuidnativeitem', 'UuidnativeitemsUuidnativeportfolioNumericid');
+		$TestModel = new Uuidnativeitem();
+
+		$data = array('Uuidnativeitem' => array('name' => 'Item 7', 'published' => 0));
+		$data['Uuidnativeportfolio']['Uuidnativeportfolio'] = array('480af662-eb8c-47d3-886b-230540cf8569');
+		$TestModel->create($data);
+		$TestModel->save();
+		$id = $TestModel->id;
+		$result = $TestModel->read(null, $id);
+		$this->assertEquals(1, count($result['Uuidnativeportfolio']));
 	}
 
 /**
@@ -3274,7 +3367,9 @@ class ModelWriteTest extends BaseModelTest {
 				array(
 					'comment' => 'Article comment',
 					'user_id' => 1
-		)));
+				)
+			)
+		);
 		$Article = new Article();
 		$result = $Article->saveAll($data);
 		$this->assertFalse(empty($result));
@@ -3283,7 +3378,7 @@ class ModelWriteTest extends BaseModelTest {
 		$this->assertEquals(2, count($result['Tag']));
 		$this->assertEquals('tag1', $result['Tag'][0]['tag']);
 		$this->assertEquals(1, count($result['Comment']));
-		$this->assertEquals(1, count($result['Comment'][0]['comment']));
+		$this->assertEquals('Article comment', $result['Comment'][0]['comment']);
 	}
 
 /**
@@ -5313,7 +5408,6 @@ class ModelWriteTest extends BaseModelTest {
 /**
  * test that saveAll behaves like plain save() when supplied empty data
  *
- * @link https://cakephp.lighthouseapp.com/projects/42648/tickets/277-test-saveall-with-validation-returns-incorrect-boolean-when-saving-empty-data
  * @return void
  */
 	public function testSaveAllEmptyData() {
@@ -5555,7 +5649,9 @@ class ModelWriteTest extends BaseModelTest {
 				array(
 					'comment' => 'Article comment',
 					'user_id' => 1
-		)));
+				)
+			)
+		);
 		$Article = new Article();
 		$result = $Article->saveAssociated($data);
 		$this->assertFalse(empty($result));
@@ -5564,7 +5660,7 @@ class ModelWriteTest extends BaseModelTest {
 		$this->assertEquals(2, count($result['Tag']));
 		$this->assertEquals('tag1', $result['Tag'][0]['tag']);
 		$this->assertEquals(1, count($result['Comment']));
-		$this->assertEquals(1, count($result['Comment'][0]['comment']));
+		$this->assertEquals('Article comment', $result['Comment'][0]['comment']);
 	}
 
 /**
@@ -6781,7 +6877,6 @@ class ModelWriteTest extends BaseModelTest {
 /**
  * test that saveMany behaves like plain save() when suplied empty data
  *
- * @link https://cakephp.lighthouseapp.com/projects/42648/tickets/277-test-saveall-with-validation-returns-incorrect-boolean-when-saving-empty-data
  * @return void
  */
 	public function testSaveManyEmptyData() {
@@ -6800,7 +6895,6 @@ class ModelWriteTest extends BaseModelTest {
 /**
  * test that saveAssociated behaves like plain save() when supplied empty data
  *
- * @link https://cakephp.lighthouseapp.com/projects/42648/tickets/277-test-saveall-with-validation-returns-incorrect-boolean-when-saving-empty-data
  * @return void
  */
 	public function testSaveAssociatedEmptyData() {

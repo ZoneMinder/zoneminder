@@ -10,6 +10,7 @@ class SWScale {
   public:
     SWScale();
     ~SWScale();
+    bool  init();
     int SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
     int ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size);
     int ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size);

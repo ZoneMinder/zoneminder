@@ -51,45 +51,51 @@
     width: 20%;
 }
 
-#consoleTable {
+.consoleTable {
     width: 100%;
 }
 
-#consoleTable tr.highlight {
+.consoleTable tr.highlight {
     background-color: #eeeeee;
 }
 
-#consoleTable thead th {
+.consoleTable thead th {
     padding-bottom: 4px;
     vertical-align: middle;
 }
 
-#consoleTable tfoot td {
+.consoleTable tfoot td {
     padding-top: 4px;
     vertical-align: middle;
 }
 
-#consoleTable th,td {
+.consoleTable th,td {
     text-align: left;
 }
 
-#consoleTable .colMark {
+.consoleTable .colMark {
     width: 52px;
     text-align: center;
 }
 
-#consoleTable .colEvents {
+.consoleTable .colEvents {
     text-align: right;
 }
 
-#consoleTable .colZones {
+.consoleTable .colZones {
     text-align: right;
 }
-#consoleTable .colFunction {
+.consoleTable .colFunction {
     width: 120px;
     text-align: center;
 }
 
-#consoleTable .colLeftButtons {
+.consoleTable .colLeftButtons {
     text-align: left;
+}
+.FunctionFilter select {
+  min-width: 90px;
+}
+.StatusFilter select {
+  min-width: 130px;
 }

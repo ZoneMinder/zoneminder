@@ -228,6 +228,7 @@ int main(int argc, char *argv[]) {
   sigset_t block_set;
   sigemptyset(&block_set);
 
+  sigaddset(&block_set, SIGHUP);
   sigaddset(&block_set, SIGUSR1);
   sigaddset(&block_set, SIGUSR2);
 

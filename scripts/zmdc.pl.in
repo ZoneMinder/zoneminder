@@ -530,7 +530,7 @@ sub check_for_processes_to_kill {
   foreach my $command ( %terminating_processes ) {
     my $process = $cmd_hash{$command};
 Debug("Have process $command at pid $$process{pid} $$process{term_sent_at}");
-    if ( $$process{term_sent_at} - time > KILL_DELAY ) {
+    if ( $$process{term_sent_at} and ( $$process{term_sent_at} - time > KILL_DELAY ) ) {
       dPrint(ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
         .strftime('%y/%m/%d %H:%M:%S', localtime())
         .' after ' . KILL_DELAY . ' seconds.'

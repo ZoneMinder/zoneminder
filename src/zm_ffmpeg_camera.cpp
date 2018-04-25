@@ -146,13 +146,7 @@ FfmpegCamera::~FfmpegCamera() {
 }
 
 void FfmpegCamera::Initialise() {
-  if ( logDebugging() )
-    av_log_set_level( AV_LOG_DEBUG ); 
-  else
-    av_log_set_level( AV_LOG_QUIET ); 
-
-  av_register_all();
-  avformat_network_init();
+  FFMPEGInit();
 }
 
 void FfmpegCamera::Terminate() {
@@ -298,6 +292,7 @@ int FfmpegCamera::Capture( Image &image ) {
     } else {
       Debug( 4, "Different stream_index %d", packet.stream_index );
     } // end if packet.stream_index == mVideoStreamId
+    bytes += packet.size;
     zm_av_packet_unref( &packet );
   } // end while ! frameComplete
   return 1;
@@ -714,6 +709,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
+    bytes += packet.size;
     dumpPacket(&packet);
 
     //Video recording

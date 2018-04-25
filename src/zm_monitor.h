@@ -106,44 +106,44 @@ protected:
 
   typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
-  /* sizeof(SharedData) expected to be 336 bytes on 32bit and 64bit */
+  /* sizeof(SharedData) expected to be 340 bytes on 32bit and 64bit */
   typedef struct {
     uint32_t size;              /* +0    */
     uint32_t last_write_index;  /* +4    */ 
     uint32_t last_read_index;   /* +8    */
     uint32_t state;             /* +12   */
-    uint32_t last_event;        /* +16   */
-    uint32_t action;            /* +20   */
-    int32_t brightness;         /* +24   */
-    int32_t hue;                /* +28   */
-    int32_t colour;             /* +32   */
-    int32_t contrast;           /* +36   */
-    int32_t alarm_x;            /* +40   */
-    int32_t alarm_y;            /* +44   */
-    uint8_t valid;              /* +48   */
-    uint8_t active;             /* +49   */
-    uint8_t signal;             /* +50   */
-    uint8_t format;             /* +51   */
-    uint32_t imagesize;         /* +52   */
-    uint32_t epadding1;         /* +56   */
-    uint32_t epadding2;         /* +60   */
+    uint64_t last_event;        /* +16   */
+    uint32_t action;            /* +24   */
+    int32_t brightness;         /* +28   */
+    int32_t hue;                /* +32   */
+    int32_t colour;             /* +36   */
+    int32_t contrast;           /* +40   */
+    int32_t alarm_x;            /* +44   */
+    int32_t alarm_y;            /* +48   */
+    uint8_t valid;              /* +52   */
+    uint8_t active;             /* +53   */
+    uint8_t signal;             /* +54   */
+    uint8_t format;             /* +55   */
+    uint32_t imagesize;         /* +56   */
+    uint32_t epadding1;         /* +60   */
+    uint32_t epadding2;         /* +64   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      */  
-    union {                     /* +64   */
+    union {                     /* +68   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +72   */
+    union {                     /* +76   */
       time_t last_write_time;
       uint64_t extrapad2;
     };
-    union {            /* +80   */
+    union {            /* +84   */
       time_t last_read_time;
       uint64_t extrapad3;
     };
-    uint8_t control_state[256];  /* +88   */
+    uint8_t control_state[256];  /* +92   */
 
     char alarm_cause[256];
     
@@ -174,7 +174,7 @@ protected:
   //sizeOf(VideoStoreData) expected to be 4104 bytes on 32bit and 64bit
   typedef struct {
     uint32_t size;
-    unsigned long long current_event;
+    uint64_t current_event;
     char event_file[4096];
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
     //uint32_t frameNumber;
@@ -205,7 +205,6 @@ protected:
 
     int        last_state;
     uint64_t   last_event;
-
 
     public:
       MonitorLink( int p_id, const char *p_name );
@@ -289,6 +288,8 @@ protected:
   bool              embed_exif; // Whether to embed Exif data into each image frame or not
 
   double      fps;
+  unsigned int  last_camera_bytes;
+  
   Image      delta_image;
   Image      ref_image;
   Image       alarm_image;  // Used in creating analysis images, will be initialized in Analysis
@@ -318,8 +319,6 @@ protected:
 #endif // ZM_MEM_MAPPED
   off_t        mem_size;
   unsigned char  *mem_ptr;
-  Storage      *storage;
-
   SharedData    *shared_data;
   TriggerData    *trigger_data;
   VideoStoreData  *video_store_data;
@@ -329,8 +328,8 @@ protected:
   Snapshot    *pre_event_buffer;
 
   Camera      *camera;
-
-  Event      *event;
+  Event       *event;
+  Storage     *storage;
 
   int      n_zones;
   Zone      **zones;

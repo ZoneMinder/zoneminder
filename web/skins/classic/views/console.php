@@ -105,6 +105,7 @@ $show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
 $maxWidth = 0;
 $maxHeight = 0;
 $zoneCount = 0;
+$total_capturing_bandwidth=0;
 
 $status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
@@ -176,6 +177,23 @@ xhtmlHeaders( __FILE__, translate('Console') );
   </div>
 
     <div class="container-fluid">
+              <button type="button" name="addBtn" onclick="addMonitor(this);"
+              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+              >
+              <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
+              </button>
+              <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
+              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+              style="display:none;">
+              <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
+              </button>
+              <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
+              <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
+              </button>
+              <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
+              <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
+              </button>
+              <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
 <?php
 ob_start();
 ?>
@@ -275,6 +293,8 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
     $fps_string .= '/' . $monitor['AnalysisFPS'];
   }
   if ($fps_string) $fps_string .= ' fps';
+  $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
+  $total_capturing_bandwidth += $monitor['CaptureBandwidth'];
   echo $fps_string;
 ?>
               </div></td>
@@ -339,27 +359,19 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
         </tbody>
         <tfoot>
           <tr>
+<?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
             <td class="colId"><?php echo translate('Total').":".count($displayMonitors) ?></td>
-            <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
-              <button type="button" name="addBtn" onclick="addMonitor(this);"
-              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
-              >
-              <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
-              </button>
-              <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
-              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
-              style="display:none;">
-              <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
-              </button>
-              <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
-              <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
-              </button>
-              <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
-              <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
-              </button>
-              <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
-            </td>
+<?php } ?>
+            <td class="colName"></td>
+            <td class="colFunction"><?php echo human_filesize($total_capturing_bandwidth ).'/s' ?></td>
+<?php if ( count($servers) ) { ?>
+            <td class="colServer"></td>
+<?php } ?>
+            <td class="colSource"></td>
+<?php if ( $show_storage_areas ) { ?>
+            <td class="colStorage"></td>
 <?php
+}
   foreach ( array_keys( $eventCounts ) as $i ) {
     parseFilter( $eventCounts[$i]['filter'] );
 ?>

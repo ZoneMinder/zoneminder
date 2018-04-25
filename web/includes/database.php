@@ -183,7 +183,7 @@ function dbFetchAll( $sql, $col=false, $params=NULL ) {
   $dbRows = array();
   while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
     $dbRows[] = $col?$dbRow[$col]:$dbRow;
-  return( $dbRows );
+  return $dbRows;
 }
 
 function dbFetchAssoc( $sql, $indexCol, $dataCol=false ) {

@@ -27,9 +27,9 @@ void FFMPEGInit() {
   static bool bInit = false;
 
   if ( !bInit ) {
-    if ( logDebugging() )
-      av_log_set_level( AV_LOG_DEBUG ); 
-    else
+    //if ( logDebugging() )
+      //av_log_set_level( AV_LOG_DEBUG ); 
+    //else
       av_log_set_level( AV_LOG_QUIET ); 
     av_register_all();
     avformat_network_init();

@@ -486,7 +486,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
     $types = array();
 
   foreach( $newValues as $key=>$value ) {
-    if ( $columns && !$columns[$key] )
+    if ( $columns && !isset($columns[$key]) )
       continue;
 
     if ( !isset($types[$key]) )

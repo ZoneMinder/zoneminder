@@ -309,7 +309,7 @@ private $control_fields = array(
     return $filters;
   }
 
-  public function save( $new_values = null ) {
+  public function save($new_values = null) {
 
     if ( $new_values ) {
       foreach ( $new_values as $k=>$v ) {
@@ -317,12 +317,12 @@ private $control_fields = array(
       }
     }
     
-    $fields = array_keys( $this->defaults );
+    $fields = array_keys($this->defaults);
 
-    $sql = 'UPDATE Monitors SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
-    $values = array_map( function($field){return $this->{$field};}, $fields );
+    $sql = 'UPDATE Monitors SET '.implode(', ', array_map(function($field) {return $field.'=?';}, $fields )) . ' WHERE Id=?';
+    $values = array_map(function($field){return $this->{$field};}, $fields);
     $values[] = $this->{'Id'};
-    dbQuery( $sql, $values );
+    dbQuery($sql, $values);
   } // end function save
 
   function zmcControl( $mode=false ) {

@@ -346,14 +346,13 @@ sub run {
         }
         close(CLIENT);
       } else {
-        Fatal('Bogus descriptor');
+        Error('Bogus descriptor');
       }
     } elsif ( $nfound < 0 ) {
       if ( $! == EINTR ) {
 # Dead child, will be reaped
 #print( "Probable dead child\n" );
 # See if it needs to start up again
-        restartPending();
       } elsif ( $! == EPIPE ) {
         Error("Can't select: $!");
       } else {
@@ -361,12 +360,13 @@ sub run {
       }
     } else {
 #print( "Select timed out\n" );
-      restartPending();
     }
 
+    restartPending();
     check_for_processes_to_kill();
 
   } # end while
+
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '
       .strftime( '%y/%m/%d %H:%M:%S', localtime() )
       ."\n"

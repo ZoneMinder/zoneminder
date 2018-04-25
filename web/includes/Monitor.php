@@ -181,7 +181,7 @@ private $control_fields = array(
       return $this->{$fn};
         #array_unshift($args, $this);
         #call_user_func_array( $this->{$fn}, $args);
-		} else {
+    } else {
       if ( array_key_exists($fn, $this->control_fields) ) {
         return $this->control_fields{$fn};
       } else if ( array_key_exists( $fn, $this->defaults ) ) {
@@ -254,22 +254,26 @@ private $control_fields = array(
     return $this->{'Height'};
   }
 
-  public function set( $data ) {
+  public function set($data) {
     foreach ($data as $k => $v) {
-      if ( is_array( $v ) ) {
-        # perhaps should turn into a comma-separated string
-        $this->{$k} = implode(',',$v);
-      } else if ( is_string( $v ) ) {
-        $this->{$k} = trim( $v );
-      } else if ( is_integer( $v ) ) {
-        $this->{$k} = $v;
-      } else if ( is_bool( $v ) ) {
-        $this->{$k} = $v;
+      if ( method_exists($this, $k) ) {
+        $this->{$k}($v);
       } else {
-        Error( "Unknown type $k => $v of var " . gettype( $v ) );
-        $this->{$k} = $v;
-      }
-    }
+        if ( is_array( $v ) ) {
+# perhaps should turn into a comma-separated string
+          $this->{$k} = implode(',',$v);
+        } else if ( is_string( $v ) ) {
+          $this->{$k} = trim( $v );
+        } else if ( is_integer( $v ) ) {
+          $this->{$k} = $v;
+        } else if ( is_bool( $v ) ) {
+          $this->{$k} = $v;
+        } else {
+          Error( "Unknown type $k => $v of var " . gettype( $v ) );
+          $this->{$k} = $v;
+        }
+      } # end if method_exists
+    } # end foreach $data as $k=>$v
   }
   public static function find_all( $parameters = null, $options = null ) {
     $filters = array();
@@ -305,7 +309,7 @@ private $control_fields = array(
     return $filters;
   }
 
-  public function save( $new_values = null ) {
+  public function save($new_values = null) {
 
     if ( $new_values ) {
       foreach ( $new_values as $k=>$v ) {
@@ -313,12 +317,12 @@ private $control_fields = array(
       }
     }
     
-    $fields = array_keys( $this->defaults );
+    $fields = array_keys($this->defaults);
 
-    $sql = 'UPDATE Monitors SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
-    $values = array_map( function($field){return $this->{$field};}, $fields );
+    $sql = 'UPDATE Monitors SET '.implode(', ', array_map(function($field) {return $field.'=?';}, $fields )) . ' WHERE Id=?';
+    $values = array_map(function($field){return $this->{$field};}, $fields);
     $values[] = $this->{'Id'};
-    dbQuery( $sql, $values );
+    dbQuery($sql, $values);
   } // end function save
 
   function zmcControl( $mode=false ) {
@@ -400,10 +404,20 @@ private $control_fields = array(
       }
     } // end if we are on the recording server
   }
-  public function GroupIds( ) {
+  public function GroupIds( $new='') {
+    if ( $new != '' ) {
+      if(!is_array($new)) {
+        $this->{'GroupIds'} = array($new);
+      } else {
+        $this->{'GroupIds'} = $new;
+      }
+    }
+
     if ( !array_key_exists('GroupIds', $this) ) {
       if ( array_key_exists('Id', $this) and $this->{'Id'} ) {
-        $this->{'GroupIds'} = dbFetchAll( 'SELECT GroupId FROM Groups_Monitors WHERE MonitorId=?', 'GroupId', array($this->{'Id'}) );
+        $this->{'GroupIds'} = dbFetchAll('SELECT GroupId FROM Groups_Monitors WHERE MonitorId=?', 'GroupId', array($this->{'Id'}) );
+        if ( ! $this->{'GroupIds'} )
+          $this->{'GroupIds'} = array();
       } else {
         $this->{'GroupIds'} = array();
       }

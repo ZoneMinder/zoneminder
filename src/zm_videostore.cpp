@@ -711,8 +711,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   opkt.dts = video_next_dts;
   opkt.duration = 0;
 
-  int duration;
-  if (!video_last_pts) {
+  int64_t duration;
+  if ( !video_last_pts ) {
     duration = 0;
   } else {
     duration =
@@ -723,7 +723,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
         video_last_pts,
         duration);
     if (duration < 0) {
-      duration = ipkt->duration;
+      duration = ipkt->duration ? ipkt->duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
     }
   }
 

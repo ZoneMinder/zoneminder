@@ -196,7 +196,7 @@ $sourceTypes = array(
     'Ffmpeg' => translate('Ffmpeg'),
     'Libvlc' => translate('Libvlc'),
     'cURL'   => 'cURL (HTTP(S) only)',
-    'WebSite'=> 'Web Site'
+    'WebSite'=> 'Web Site',
     'NVSocket'	=> translate('NVSocket')
     );
 if ( !ZM_HAS_V4L )

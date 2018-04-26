@@ -110,6 +110,9 @@ $status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   $monitor = &$displayMonitors[$i];
   if ( ! $monitor['Status'] ) {
+    if ( $monitor['Type'] == 'WebSite' )
+     $monitor['Status'] = 'Running';
+    else
      $monitor['Status'] = 'NotRunning';
   }
   if ( !isset($status_counts[$monitor['Status']]) )
@@ -238,7 +241,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   if ( !$monitor['Enabled'] )
     $fclass .= ' disabledText';
   $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-$stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Function'] != 'None';
+$stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Function'] != 'None');
 $dot_class=$source_class;
 if ( $fclass != 'infoText' ) $dot_class=$fclass;
 

@@ -220,7 +220,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
 <?php
-  if ( (!$monitor['Status']) or ($monitor['Status'] == 'NotRunning') ) {
+  if ( (!$monitor['Status'] || $monitor['Status'] == 'NotRunning') && $monitor['Type']!='WebSite' ) {
     $source_class = 'errorText';
   } else {
     if ( $monitor['CaptureFPS'] == '0.00' ) {
@@ -293,7 +293,7 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
     }
   } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
     $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
-  } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
+  } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' || $monitor['Type'] == 'WebSite' ) {
     $url_parts = parse_url( $monitor['Path'] );
     unset($url_parts['user']);
     unset($url_parts['pass']);

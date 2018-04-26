@@ -139,7 +139,7 @@ if ( $showPtzControls ) {
       </div>
 <?php
 }
-if ( canView( 'Events' ) ) {
+if ( canView( 'Events' ) && $monitor->Type() != 'WebSite' ) {
 ?>
       <div id="events">
         <table id="eventList" cellspacing="0">

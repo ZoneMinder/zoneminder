@@ -207,7 +207,7 @@ $frameSql .= ' ORDER BY Id DESC';
 
 $monitors = array();
 foreach( $displayMonitors as $row ) {
-  if ( $row['Function'] == 'None' )
+  if ( $row['Function'] == 'None' || $row['Type'] == 'WebSite' )
     continue;
   $Monitor = new Monitor( $row );
   $monitors[] = $Monitor;

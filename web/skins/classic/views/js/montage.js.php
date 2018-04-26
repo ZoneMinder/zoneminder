@@ -37,6 +37,8 @@ monitorData[monitorData.length] = {
   'height':<?php echo $monitor->Height() ?>,
   'server_url': '<?php echo $monitor->Server()->Url().$_SERVER['PHP_SELF'] ?>',
   'onclick': function(){createPopup( '?view=watch&mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );}
+  'type': '<?php echo $monitor->Type() ?>',
+  'refresh': '<?php echo $monitor->Refresh() ?>'
 };
 <?php
 } // end foreach monitor

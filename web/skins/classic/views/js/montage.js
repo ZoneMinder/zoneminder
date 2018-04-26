@@ -14,6 +14,13 @@ function Monitor( monitorData ) {
   this.streamCmdTimer = null;
   this.type = monitorData.type;
   this.refresh = monitorData.refresh;
+  this.start = function( delay ) {
+    if ( this.streamCmdQuery )
+      this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
+    else
+      console.log("No streamCmdQuery");
+  };
+
 
   this.setStateClass = function( element, stateClass ) {
     if ( !element.hasClass( stateClass ) ) {
@@ -70,7 +77,7 @@ function Monitor( monitorData ) {
         else
           stateClass = "idle";
 
-        if ( !COMPACT_MONTAGE  && this.type != 'WebSite' ) {
+        if ( (!COMPACT_MONTAGE) && (this.type != 'WebSite') ) {
           $('fpsValue'+this.id).set( 'text', this.status.fps );
           $('stateValue'+this.id).set( 'text', stateStrings[this.alarmState] );
           this.setStateClass( $('monitorState'+this.id), stateClass );
@@ -155,10 +162,10 @@ function Monitor( monitorData ) {
       onFailure: this.onFailure.bind(this),
       link: 'cancel'
     } );
+    console.log("queueing for " + this.id + " " + this.connKey );
+    requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
   }
 
-  console.log("queueing for " + this.id + " " + this.connKey );
-  requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }
 
 function selectLayout( element ) {
@@ -390,11 +397,10 @@ function reloadWebSite(ndx) {
 
 var monitors = new Array();
 function initPage() {
-console.log("initPage");
   for ( var i = 0; i < monitorData.length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-	var interval = monitors[i].refresh;
+    var interval = monitors[i].refresh;
     monitors[i].start( delay );
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
         setInterval(reloadWebSite, interval*1000, i);
@@ -403,6 +409,8 @@ console.log("initPage");
   selectLayout('#zmMontageLayout');
 
   for ( var i = 0; i < monitorData.length; i++ ) {
+    if ( monitors[i].type == 'WebSite' )
+      continue;
     var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
     console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
     monitors[i].streamCmdQuery.delay( delay, monitors[i] );

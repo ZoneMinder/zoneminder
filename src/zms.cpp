@@ -19,6 +19,7 @@
 
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <cinttypes>
 
 #include "zm.h"
 #include "zm_db.h"

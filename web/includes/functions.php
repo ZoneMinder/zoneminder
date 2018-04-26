@@ -507,7 +507,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
     $types = array();
 
   foreach( $newValues as $key=>$value ) {
-    if ( $columns && !$columns[$key] )
+    if ( $columns && !isset($columns[$key]) )
       continue;
 
     if ( !isset($types[$key]) )
@@ -516,11 +516,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
     switch( $types[$key] ) {
       case 'set' :
         {
-          if ( is_array( $newValues[$key] ) ) {
-            if ( join(',',$newValues[$key]) != $values[$key] ) {
+          if ( is_array($newValues[$key]) ) {
+            if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
               $changes[$key] = "`$key` = ".dbEscape(join(',',$newValues[$key]));
             }
-          } elseif ( $values[$key] ) {
+          } else if ( (!isset($values[$key])) or $values[$key] ) {
             $changes[$key] = "`$key` = ''";
           }
           break;
@@ -569,7 +569,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         }
       case 'raw' :
         {
-          if ( $values[$key] != $value ) {
+          if ( (!isset($values[$key])) or ($values[$key] != $value) ) {
             $changes[$key] = $key . ' = '.dbEscape($value);
           }
           break;

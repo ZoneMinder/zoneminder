@@ -41,7 +41,7 @@ if ( ! visibleMonitor( $mid ) ) {
 $monitor = new Monitor( $mid );
 
 #Whether to show the controls button
-$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView( 'Control' ) );
+$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validInt($_REQUEST['scale']);
@@ -80,6 +80,7 @@ if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
     </div>
     <div id="content">
       <div id="imageFeed"><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
+<?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
 <?php if ( canEdit( 'Monitors' ) ) { ?>
         <div id="enableDisableAlarms"><a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms(); return( false );" class="hidden"><?php echo translate('EnableAlarms') ?></a><a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms(); return( false );" class="hidden"><?php echo translate('DisableAlarms') ?></a></div>
@@ -119,7 +120,7 @@ if ( $streamMode == 'jpeg' ) {
 ?>
         <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" onclick="streamCmdZoomOut()"/>
 <?php
-  } // end if streamMode==jpeg
+} // end if streamMode==jpeg
 ?>
       </div>
       <div id="replayStatus"<?php echo $streamMode=="single"?' class="hidden"':'' ?>>
@@ -129,6 +130,7 @@ if ( $streamMode == 'jpeg' ) {
         <span id="level"><?php echo translate('Buffer') ?>: <span id="levelValue"></span>%</span>
         <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
       </div>
+<?php } // end if $monitor->Type() != 'WebSite' ?>
 <?php
 if ( $showPtzControls ) {
     foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )

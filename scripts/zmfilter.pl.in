@@ -646,8 +646,8 @@ sub substituteTags {
   $text =~ s/%MEM%/$Monitor->{MonthEvents}/g;
   $text =~ s/%MEA%/$Monitor->{ArchivedEvents}/g;
   $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
-  $text =~ s/%MPS%/$url?view=watchfeed&mid=$Event->{MonitorId}&mode=stream/g;
-  $text =~ s/%MPI%/$url?view=watchfeed&mid=$Event->{MonitorId}&mode=still/g;
+  $text =~ s/%MPS%/$url?view=watch&mid=$Event->{MonitorId}&mode=stream/g;
+  $text =~ s/%MPI%/$url?view=watch&mid=$Event->{MonitorId}&mode=still/g;
   $text =~ s/%EP%/$url?view=event&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
   $text =~ s/%EPS%/$url?view=event&mode=stream&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
   $text =~ s/%EPI%/$url?view=event&mode=still&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;

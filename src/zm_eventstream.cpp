@@ -27,6 +27,7 @@
 #include <getopt.h>
 #include <arpa/inet.h>
 #include <glob.h>
+#include <cinttypes>
 
 #include "zm.h"
 #include "zm_db.h"

@@ -495,14 +495,16 @@ if ( canEdit( 'Monitors' ) ) {
 $tabs = array();
 $tabs['general'] = translate('General');
 $tabs['source'] = translate('Source');
-$tabs['storage'] = translate('Storage');
-$tabs['timestamp'] = translate('Timestamp');
-$tabs['buffers'] = translate('Buffers');
-if ( ZM_OPT_CONTROL && canView( 'Control' ) )
-  $tabs['control'] = translate('Control');
-if ( ZM_OPT_X10 )
-  $tabs['x10'] = translate('X10');
-$tabs['misc'] = translate('Misc');
+if ( $monitor->Type() != 'WebSite' ) {
+  $tabs['storage'] = translate('Storage');
+  $tabs['timestamp'] = translate('Timestamp');
+  $tabs['buffers'] = translate('Buffers');
+  if ( ZM_OPT_CONTROL && canView( 'Control' ) )
+    $tabs['control'] = translate('Control');
+  if ( ZM_OPT_X10 )
+    $tabs['x10'] = translate('X10');
+  $tabs['misc'] = translate('Misc');
+}
 
 if ( isset($_REQUEST['tab']) )
   $tab = validHtmlStr($_REQUEST['tab']);
@@ -869,6 +871,13 @@ include('_monitor_source_nvsocket.php');
           <tr><td><?php echo 'URL' ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" size="36"/></td></tr>
           <tr><td><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>" size="12"/></td></tr>
           <tr><td><?php echo 'Password' ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" size="12"/></td></tr>
+<?php
+      } elseif ( $monitor->Type() == 'WebSite' ) {
+?>
+          <tr><td><?php echo translate('WebSiteUrl') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" size="36"/></td></tr>
+          <tr><td><?php echo translate('Width') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4";"/></td></tr>
+        <tr><td><?php echo translate('Height') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4";"/></td></tr>
+        <tr><td><?php echo 'Web Site Refresh (Optional)' ?></td><td><input type="number" name="newMonitor[Refresh]" value="<?php echo $monitor->Refresh()?>"/></td></tr>
 <?php
       } elseif ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
 ?>

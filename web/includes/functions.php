@@ -280,6 +280,27 @@ function getImageStill( $id, $src, $width, $height, $title='' ) {
   return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.(validInt($width)?' width="'.$width.'"':'').(validInt($height)?' height="'.$height.'"':'').'/>';
 }
 
+function getWebSiteUrl( $id, $src, $width, $height, $title='' ) {
+    # Prevent unsightly warnings when php cannot verify the ssl certificate
+    stream_context_set_default( [
+        'ssl' => [
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+        ],
+    ]);
+    # The End User can turn off the following warning under Options -> Web
+    if ( ZM_WEB_XFRAME_WARN ) {
+        $header = get_headers($src, 1);
+        # If the target website has set X-Frame-Options, check it for "sameorigin" and warn the end user
+        if (array_key_exists('X-Frame-Options', $header)) {
+            $header = $header['X-Frame-Options'];
+            if ( stripos($header, 'sameorigin') === 0 )
+                Warning("Web site $src has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.");
+        }
+    }
+    return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';
+}
+
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
   ?>
   <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
@@ -486,7 +507,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
     $types = array();
 
   foreach( $newValues as $key=>$value ) {
-    if ( $columns && !$columns[$key] )
+    if ( $columns && !isset($columns[$key]) )
       continue;
 
     if ( !isset($types[$key]) )
@@ -495,11 +516,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
     switch( $types[$key] ) {
       case 'set' :
         {
-          if ( is_array( $newValues[$key] ) ) {
-            if ( join(',',$newValues[$key]) != $values[$key] ) {
+          if ( is_array($newValues[$key]) ) {
+            if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
               $changes[$key] = "`$key` = ".dbEscape(join(',',$newValues[$key]));
             }
-          } elseif ( $values[$key] ) {
+          } else if ( (!isset($values[$key])) or $values[$key] ) {
             $changes[$key] = "`$key` = ''";
           }
           break;
@@ -548,7 +569,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         }
       case 'raw' :
         {
-          if ( $values[$key] != $value ) {
+          if ( (!isset($values[$key])) or ($values[$key] != $value) ) {
             $changes[$key] = $key . ' = '.dbEscape($value);
           }
           break;
@@ -2128,8 +2149,14 @@ function getStreamHTML( $monitor, $options = array() ) {
     $options['buffer'] = $monitor->StreamReplayBuffer();
   //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
 
+  if ( $monitor->Type() == "WebSite" ) {
+         return getWebSiteUrl( 'liveStream'.$monitor->Id(), $monitor->Path(),
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+        );
   //FIXME, the width and height of the image need to be scaled.
-  if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+  } else if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array(
       'mode'=>'mpeg',
       'scale'=>(isset($options['scale'])?$options['scale']:100),

@@ -169,10 +169,12 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
             </div></td>
             <td class="colEvents"><?php echo isset($EventsByMonitor[$Monitor->Id()])?count($EventsByMonitor[$Monitor->Id()]['Events']):0 ?></td>
-            <td class="colMinGap"><?php echo isset($EventsByMonitor[$Monitor->Id()])?$EventsByMonitor[$Monitor->Id()]['MinGap']:0 ?></td>
-            <td class="colMaxGap"><?php echo isset($EventsByMonitor[$Monitor->Id()])?$EventsByMonitor[$Monitor->Id()]['MaxGap']:0 ?></td>
-            <td class="colFileMissing"><?php echo isset($EventsByMonitor[$Monitor->Id()])?$EventsByMonitor[$Monitor->Id()]['FileMissing']:0 ?></td>
-            <td class="colZeroSize"><?php echo isset($EventsByMonitor[$Monitor->Id()])?$EventsByMonitor[$Monitor->Id()]['ZeroSize']:0 ?></td>
+            <td class="colFirstEvent"><?php echo $FirstEvent ? $FirstEvent->link_to($FirstEvent->Id().' at ' . $FirstEvent->StartTime()) : 'none'?></td>
+            <td class="colLastEvent"><?php echo $LastEvent ? $LastEvent->link_to($LastEvent->Id().' at ' . $LastEvent->StartTime()) : 'none'?></td>
+            <td class="colMinGap"><?php echo $MinGap ?></td>
+            <td class="colMaxGap"><?php echo $MaxGap ?></td>
+            <td class="colFileMissing<?php echo $FileMissing ? ' errorText' : ''?>"><?php echo $FileMissing ?></td>
+            <td class="colZeroSize<?php echo $ZeroSize ? ' errorText' : ''?>"><?php echo $ZeroSize ?></td>
           </tr>
 <?php
 } # end for each monitor

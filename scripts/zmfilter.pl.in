@@ -94,7 +94,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS})
   ;
 
-logInit();
+logInit($filter_id?(id=>'zmfilter_'.$filter_id.'.log'):());
 sub HupHandler {
   Info("Received HUP, reloading");
   &ZoneMinder::Logger::logHupHandler();

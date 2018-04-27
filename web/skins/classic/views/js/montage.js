@@ -12,6 +12,15 @@ function Monitor( monitorData ) {
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
   this.streamCmdTimer = null;
+  this.type = monitorData.type;
+  this.refresh = monitorData.refresh;
+  this.start = function( delay ) {
+    if ( this.streamCmdQuery )
+      this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
+    else
+      console.log("No streamCmdQuery");
+  };
+
 
   this.setStateClass = function( element, stateClass ) {
     if ( !element.hasClass( stateClass ) ) {
@@ -68,7 +77,7 @@ function Monitor( monitorData ) {
         else
           stateClass = "idle";
 
-        if ( !COMPACT_MONTAGE ) {
+        if ( (!COMPACT_MONTAGE) && (this.type != 'WebSite') ) {
           $('fpsValue'+this.id).set( 'text', this.status.fps );
           $('stateValue'+this.id).set( 'text', stateStrings[this.alarmState] );
           this.setStateClass( $('monitorState'+this.id), stateClass );
@@ -137,22 +146,26 @@ function Monitor( monitorData ) {
       this.streamCmdReq.cancel();
     }
     //console.log("Starting CmdQuery for " + this.connKey );
-    this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
+    if ( this.type != 'WebSite' ) {
+        this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
+    }
   };
 
-  this.streamCmdReq = new Request.JSON( {
-    url: this.server_url,
-    method: 'get',
-    timeout: 1000+AJAX_TIMEOUT,
-    onSuccess: this.getStreamCmdResponse.bind( this ),
-    onTimeout: this.streamCmdQuery.bind( this, true ),
-    onError: this.onError.bind(this),
-    onFailure: this.onFailure.bind(this),
-    link: 'cancel'
-  } );
+  if ( this.type != 'WebSite' ) {
+    this.streamCmdReq = new Request.JSON( {
+      url: this.server_url,
+      method: 'get',
+      timeout: 1000+AJAX_TIMEOUT,
+      onSuccess: this.getStreamCmdResponse.bind( this ),
+      onTimeout: this.streamCmdQuery.bind( this, true ),
+      onError: this.onError.bind(this),
+      onFailure: this.onFailure.bind(this),
+      link: 'cancel'
+    } );
+    console.log("queueing for " + this.id + " " + this.connKey );
+    requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
+  }
 
-  console.log("queueing for " + this.id + " " + this.connKey );
-  requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
 }
 
 function selectLayout( element ) {
@@ -378,15 +391,26 @@ function cancel_layout(button) {
   selectLayout('#zmMontageLayout');
 }
 
+function reloadWebSite(ndx) {
+    document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
+}
+
 var monitors = new Array();
 function initPage() {
-console.log("initPage");
   for ( var i = 0; i < monitorData.length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);
+    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    var interval = monitors[i].refresh;
+    monitors[i].start( delay );
+    if ( monitors[i].type == 'WebSite' && interval > 0 ) {
+        setInterval(reloadWebSite, interval*1000, i);
+    }    
   }
   selectLayout('#zmMontageLayout');
 
   for ( var i = 0; i < monitorData.length; i++ ) {
+    if ( monitors[i].type == 'WebSite' )
+      continue;
     var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
     console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
     monitors[i].streamCmdQuery.delay( delay, monitors[i] );

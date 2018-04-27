@@ -299,10 +299,12 @@ if ( isset($_REQUEST['object']) and $_REQUEST['object'] == 'Monitor' ) {
         continue;
       }
       $Monitor = new Monitor( $mid );
-      $Monitor->zmaControl('stop');
-      $Monitor->zmcControl('stop');
+      if ( $Monitor->Type() != 'WebSite' ) {
+        $Monitor->zmaControl('stop');
+        $Monitor->zmcControl('stop');
+      }
       $Monitor->save( $_REQUEST['newMonitor'] );
-      if ($Monitor->Function() != 'None' ) {
+      if ($Monitor->Function() != 'None' && $Monitor->Type() != 'WebSite' ) {
         $Monitor->zmcControl('start');
         if ( $Monitor->Enabled() ) {
           $Monitor->zmaControl('start');
@@ -330,7 +332,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
 
       $monitor['Function'] = $newFunction;
       $monitor['Enabled'] = $newEnabled;
-      if ( daemonCheck() ) {
+      if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
         $restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
         zmaControl( $monitor, 'stop' );
         zmcControl( $monitor, $restart?'restart':'' );
@@ -371,7 +373,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
       } else {
         dbQuery( 'INSERT INTO Zones SET MonitorId=?, '.implode( ', ', $changes ), array( $mid ) );
       }
-      if ( daemonCheck() ) {
+      if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
         if ( $_REQUEST['newZone']['Type'] == 'Privacy' ) {
           zmaControl( $monitor, 'stop' );
           zmcControl( $monitor, 'restart' );
@@ -399,7 +401,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
       }
     }
     if($changes>0) {
-      if ( daemonCheck() ) {
+      if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
         zmaControl( $mid, 'restart' );
       }
       $refreshParent = true;
@@ -424,7 +426,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
         $deletedZid = 1;
       }
       if ( $deletedZid ) {
-        if ( daemonCheck() ) {
+        if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
           if ( $zone['Type'] == 'Privacy' ) {
             zmaControl( $mid, 'stop' );
             zmcControl( $mid, 'restart' );
@@ -492,8 +494,10 @@ if ( canEdit( 'Monitors' ) ) {
       if ( $mid ) {
 
         # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
-        zmaControl( $monitor, 'stop' );
-        zmcControl( $monitor, 'stop' );
+        if ( $monitor['Type'] != 'WebSite' ) {
+            zmaControl( $monitor, 'stop' );
+            zmcControl( $monitor, 'stop' );
+        }
         dbQuery( 'UPDATE Monitors SET '.implode( ', ', $changes ).' WHERE Id=?', array($mid) );
         // Groups will be added below
         if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
@@ -606,8 +610,10 @@ if ( canEdit( 'Monitors' ) ) {
       $new_monitor = new Monitor($mid);
       //fixDevices();
 
-      $new_monitor->zmcControl('start');
-      $new_monitor->zmaControl('start');
+      if ( $monitor['Type'] != 'WebSite' ) {
+        $new_monitor->zmcControl('start');
+        $new_monitor->zmaControl('start');
+      }
 
       if ( $new_monitor->Controllable() ) {
         require_once( 'control_functions.php' );

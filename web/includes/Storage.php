@@ -13,7 +13,7 @@ class Storage {
         if ( ! $row ) {
           Error("Unable to load Storage record for Id=" . $IdOrRow );
         }
-      } elseif ( is_array( $IdOrRow ) ) {
+      } else if ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
       }
     }

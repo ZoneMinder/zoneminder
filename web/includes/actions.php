@@ -145,7 +145,7 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
 }
 
 // Event scope actions, view permissions only required
-if ( canView( 'Events' ) ) {
+if ( canView('Events') ) {
 
   if ( isset( $_REQUEST['object'] ) and ( $_REQUEST['object'] == 'filter' ) ) {
     if ( $action == 'addterm' ) {
@@ -155,7 +155,7 @@ if ( canView( 'Events' ) ) {
     } else if ( canEdit( 'Events' ) ) {
       if ( $action == 'delete' ) {
         if ( ! empty($_REQUEST['Id']) ) {
-          dbQuery( 'DELETE FROM Filters WHERE Id=?', array( $_REQUEST['Id'] ) );
+          dbQuery('DELETE FROM Filters WHERE Id=?', array($_REQUEST['Id']));
         }
       } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) ) {
        # or ( $action == 'submit' ) ) {
@@ -189,9 +189,9 @@ if ( canView( 'Events' ) ) {
         $sql .= ', Concurrent  = '. ( !empty($_REQUEST['filter']['Concurrent']) ? 1 : 0);
 
         if ( $_REQUEST['Id'] and ( $action == 'Save' ) ) {
-          dbQuery( 'UPDATE Filters SET ' . $sql. ' WHERE Id=?', array($_REQUEST['Id']) );
+          dbQuery('UPDATE Filters SET ' . $sql. ' WHERE Id=?', array($_REQUEST['Id']));
         } else {
-          dbQuery( 'INSERT INTO Filters SET' . $sql );
+          dbQuery('INSERT INTO Filters SET' . $sql);
           $_REQUEST['Id'] = dbInsertId();
         }
         if ( $action == 'execute' ) {
@@ -207,7 +207,7 @@ if ( canView( 'Events' ) ) {
     // Event scope actions, edit permissions required
     if ( canEdit('Events') ) {
       if ( ($action == 'rename') && isset($_REQUEST['eventName']) && !empty($_REQUEST['eid']) ) {
-        dbQuery( 'UPDATE Events SET Name=? WHERE Id=?', array( $_REQUEST['eventName'], $_REQUEST['eid'] ) );
+        dbQuery('UPDATE Events SET Name=? WHERE Id=?', array($_REQUEST['eventName'], $_REQUEST['eid']));
       } else if ( $action == 'eventdetail' ) {
         if ( !empty($_REQUEST['eid']) ) {
           dbQuery( 'UPDATE Events SET Cause=?, Notes=? WHERE Id=?', array( $_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $_REQUEST['eid'] ) );
@@ -299,10 +299,12 @@ if ( isset($_REQUEST['object']) and $_REQUEST['object'] == 'Monitor' ) {
         continue;
       }
       $Monitor = new Monitor( $mid );
-      $Monitor->zmaControl('stop');
-      $Monitor->zmcControl('stop');
+      if ( $Monitor->Type() != 'WebSite' ) {
+        $Monitor->zmaControl('stop');
+        $Monitor->zmcControl('stop');
+      }
       $Monitor->save( $_REQUEST['newMonitor'] );
-      if ($Monitor->Function() != 'None' ) {
+      if ($Monitor->Function() != 'None' && $Monitor->Type() != 'WebSite' ) {
         $Monitor->zmcControl('start');
         if ( $Monitor->Enabled() ) {
           $Monitor->zmaControl('start');
@@ -330,7 +332,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
 
       $monitor['Function'] = $newFunction;
       $monitor['Enabled'] = $newEnabled;
-      if ( daemonCheck() ) {
+      if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
         $restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
         zmaControl( $monitor, 'stop' );
         zmcControl( $monitor, $restart?'restart':'' );
@@ -371,7 +373,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
       } else {
         dbQuery( 'INSERT INTO Zones SET MonitorId=?, '.implode( ', ', $changes ), array( $mid ) );
       }
-      if ( daemonCheck() ) {
+      if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
         if ( $_REQUEST['newZone']['Type'] == 'Privacy' ) {
           zmaControl( $monitor, 'stop' );
           zmcControl( $monitor, 'restart' );
@@ -399,7 +401,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
       }
     }
     if($changes>0) {
-      if ( daemonCheck() ) {
+      if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
         zmaControl( $mid, 'restart' );
       }
       $refreshParent = true;
@@ -424,7 +426,7 @@ if ( !empty($_REQUEST['mid']) && canEdit( 'Monitors', $_REQUEST['mid'] ) ) {
         $deletedZid = 1;
       }
       if ( $deletedZid ) {
-        if ( daemonCheck() ) {
+        if ( daemonCheck() && $monitor['Type'] != 'WebSite' ) {
           if ( $zone['Type'] == 'Privacy' ) {
             zmaControl( $mid, 'stop' );
             zmcControl( $mid, 'restart' );
@@ -458,7 +460,7 @@ if ( canEdit( 'Monitors' ) ) {
         $x10Monitor = array();
       }
     }
-    $Monitor = new Monitor( $monitor );
+    $Monitor = new Monitor($monitor);
 
     // Define a field type for anything that's not simple text equivalent
     $types = array(
@@ -475,7 +477,7 @@ if ( canEdit( 'Monitors' ) ) {
 
     if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
       Logger::Debug("Auto selecting server");
-      $_REQUEST['newMonitor']['ServerId'] = dbFetchOne( 'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id' );
+      $_REQUEST['newMonitor']['ServerId'] = dbFetchOne('SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
       Logger::Debug("Auto selecting server: Got " . $_REQUEST['newMonitor']['ServerId'] );
       if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
         $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
@@ -485,15 +487,17 @@ if ( canEdit( 'Monitors' ) ) {
       Logger::Debug("NOT Auto selecting server" . $_REQUEST['newMonitor']['ServerId']);
     }
 
-    $columns = getTableColumns( 'Monitors' );
-    $changes = getFormChanges( $monitor, $_REQUEST['newMonitor'], $types, $columns );
+    $columns = getTableColumns('Monitors');
+    $changes = getFormChanges($monitor, $_REQUEST['newMonitor'], $types, $columns);
 
     if ( count( $changes ) ) {
       if ( $mid ) {
 
         # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
-        zmaControl( $monitor, 'stop' );
-        zmcControl( $monitor, 'stop' );
+        if ( $monitor['Type'] != 'WebSite' ) {
+            zmaControl( $monitor, 'stop' );
+            zmcControl( $monitor, 'stop' );
+        }
         dbQuery( 'UPDATE Monitors SET '.implode( ', ', $changes ).' WHERE Id=?', array($mid) );
         // Groups will be added below
         if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
@@ -564,7 +568,16 @@ if ( canEdit( 'Monitors' ) ) {
         Error("Users with Monitors restrictions cannot create new monitors.");
         return;
       }
-      if ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) or array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds() ) ) {
+
+      $restart = true;
+    } # end if count(changes)
+      if (
+        ( !isset($_POST['newMonitor']['GroupIds']) )
+        or
+        ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) )
+        or 
+        array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds())
+      ) {
         if ( $Monitor->Id() )
           dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
 
@@ -574,8 +587,6 @@ if ( canEdit( 'Monitors' ) ) {
           }
         }
       } // end if there has been a change of groups
-      $restart = true;
-    } # end if count(changes)
 
     if ( ZM_OPT_X10 ) {
       $x10Changes = getFormChanges( $x10Monitor, $_REQUEST['newX10Monitor'] );
@@ -599,8 +610,10 @@ if ( canEdit( 'Monitors' ) ) {
       $new_monitor = new Monitor($mid);
       //fixDevices();
 
-      $new_monitor->zmcControl('start');
-      $new_monitor->zmaControl('start');
+      if ( $monitor['Type'] != 'WebSite' ) {
+        $new_monitor->zmcControl('start');
+        $new_monitor->zmaControl('start');
+      }
 
       if ( $new_monitor->Controllable() ) {
         require_once( 'control_functions.php' );

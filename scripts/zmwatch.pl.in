@@ -84,6 +84,7 @@ while( 1 ) {
   while( my $monitor = $sth->fetchrow_hashref() ) {
     my $now = time(); 
     next if $monitor->{Function} eq 'None';
+    next if $monitor->{Type} eq 'WebSite';
     my $restart = 0;
     if ( zmMemVerify( $monitor ) ) {
 # Check we have got an image recently
@@ -147,11 +148,11 @@ while( 1 ) {
       if ( !defined($image_time) ) {
 # Can't read from shared data
         $restart = 1;
-        Error( "Error reading shared data for $$monitor{Id} $$monitor{Name}\n");
+        Error("Error reading shared data for $$monitor{Id} $$monitor{Name}\n");
       } elsif ( !$image_time ) {
 # We can't get the last capture time so can't be sure it's died.
         $restart = 1;
-        Error( "Error getting last analyse time for $$monitor{Id} $$monitor{Name}\n");
+        Error("Last analyse time for $$monitor{Id} $$monitor{Name} was zero.\n");
       } else {
 
         my $max_image_delay = ( $monitor->{MaxFPS}

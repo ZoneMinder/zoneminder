@@ -1,7 +1,0 @@
-@ZM_LOGDIR@/*log
-{
-	weekly
-	notifempty
-	missingok
-	create 660 @WEB_USER@ @WEB_GROUP@
-}

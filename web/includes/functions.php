@@ -280,6 +280,27 @@ function getImageStill( $id, $src, $width, $height, $title='' ) {
   return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.(validInt($width)?' width="'.$width.'"':'').(validInt($height)?' height="'.$height.'"':'').'/>';
 }
 
+function getWebSiteUrl( $id, $src, $width, $height, $title='' ) {
+    # Prevent unsightly warnings when php cannot verify the ssl certificate
+    stream_context_set_default( [
+        'ssl' => [
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+        ],
+    ]);
+    # The End User can turn off the following warning under Options -> Web
+    if ( ZM_WEB_XFRAME_WARN ) {
+        $header = get_headers($src, 1);
+        # If the target website has set X-Frame-Options, check it for "sameorigin" and warn the end user
+        if (array_key_exists('X-Frame-Options', $header)) {
+            $header = $header['X-Frame-Options'];
+            if ( stripos($header, 'sameorigin') === 0 )
+                Warning("Web site $src has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.");
+        }
+    }
+    return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';
+}
+
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
   ?>
   <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
@@ -486,7 +507,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
     $types = array();
 
   foreach( $newValues as $key=>$value ) {
-    if ( $columns && !$columns[$key] )
+    if ( $columns && !isset($columns[$key]) )
       continue;
 
     if ( !isset($types[$key]) )
@@ -495,11 +516,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
     switch( $types[$key] ) {
       case 'set' :
         {
-          if ( is_array( $newValues[$key] ) ) {
-            if ( join(',',$newValues[$key]) != $values[$key] ) {
+          if ( is_array($newValues[$key]) ) {
+            if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
               $changes[$key] = "`$key` = ".dbEscape(join(',',$newValues[$key]));
             }
-          } elseif ( $values[$key] ) {
+          } else if ( (!isset($values[$key])) or $values[$key] ) {
             $changes[$key] = "`$key` = ''";
           }
           break;
@@ -548,7 +569,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         }
       case 'raw' :
         {
-          if ( $values[$key] != $value ) {
+          if ( (!isset($values[$key])) or ($values[$key] != $value) ) {
             $changes[$key] = $key . ' = '.dbEscape($value);
           }
           break;
@@ -716,18 +737,14 @@ Logger::Debug("daemonControl $string");
   exec( $string );
 }
 
-function zmcControl( $monitor, $mode=false ) {
+function zmcControl($monitor, $mode=false) {
   $Monitor = new Monitor( $monitor );
   return $Monitor->zmcControl($mode);
 }
 
-function zmaControl( $monitor, $mode=false ) {
-  if ( !is_array( $monitor ) ) {
-    $monitor = 
-    $monitor = dbFetchOne( 'select C.*, M.* from Monitors as M left join Controls as C on (M.ControlId = C.Id ) where M.Id=?', NULL, array($monitor) );
-  }
-  $Monitor = new Monitor( $monitor );
-  $Monitor->zmaControl($mode);
+function zmaControl($monitor, $mode=false) {
+  $Monitor = new Monitor($monitor);
+  return $Monitor->zmaControl($mode);
 }
 
 function initDaemonStatus() {
@@ -979,7 +996,7 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
   }
 }
 
-function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
+function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $filter['query'] = ''; 
   $filter['sql'] = '';
   $filter['fields'] = '';
@@ -997,7 +1014,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
       }
       if ( isset($terms[$i]['obr']) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($terms[$i]['obr']);
-        $filter['sql'] .= ' '.str_repeat( '(', $terms[$i]['obr'] ).' ';
+        $filter['sql'] .= ' '.str_repeat('(', $terms[$i]['obr']).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($terms[$i]['obr'])."\"/>\n";
       }
       if ( isset($terms[$i]['attr']) ) {
@@ -1005,10 +1022,17 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($terms[$i]['attr'])."\"/>\n";
         switch ( $terms[$i]['attr'] ) {
           case 'MonitorName':
-            $filter['sql'] .= 'M.'.preg_replace( '/^Monitor/', '', $terms[$i]['attr'] );
+            $filter['sql'] .= 'M.'.preg_replace('/^Monitor/', '', $terms[$i]['attr']);
             break;
           case 'ServerId':
+          case 'MonitorServerId':
             $filter['sql'] .= 'M.ServerId';
+            break;
+          case 'StorageServerId':
+            $filter['sql'] .= 'S.ServerId';
+            break;
+          case 'FilterServerId':
+            $filter['sql'] .= ZM_SERVER_ID;
             break;
 # Unspecified start or end, so assume start, this is to support legacy filters
           case 'DateTime':
@@ -1072,7 +1096,7 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
               for ( $j = 0; $j < count($terms); $j++ ) {
                 if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
                   $StorageArea = new Storage($terms[$j]['val']);
-		  break;
+                  break;
                 }
               } // end foreach remaining term
               if ( ! $StorageArea ) $StorageArea = new Storage();
@@ -1104,6 +1128,9 @@ function parseFilter( &$filter, $saveToSession=false, $querySep='&amp;' ) {
             case 'Notes':
               $value = dbEscape($value);
               break;
+            case 'MonitorServerId':
+            case 'FilterServerId':
+            case 'StorageServerId':
             case 'ServerId':
               if ( $value == 'ZM_SERVER_ID' ) {
                 $value = ZM_SERVER_ID;
@@ -2035,9 +2062,9 @@ function cache_bust( $file ) {
   $parts = pathinfo($file);
   global $css;
   $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
-  $cacheFile = 'cache/'.$dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
-  if ( file_exists( ZM_PATH_WEB.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_PATH_WEB.'/'.$cacheFile ) ) {
-    return $cacheFile;
+  $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
+  if ( file_exists( ZM_DIR_CACHE.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile ) ) {
+    return 'cache/'.$cacheFile;
   } else {
     Warning("Failed linking $file to $cacheFile");
   }
@@ -2132,11 +2159,17 @@ function getStreamHTML( $monitor, $options = array() ) {
     $options['buffer'] = $monitor->StreamReplayBuffer();
   //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
 
+  if ( $monitor->Type() == "WebSite" ) {
+         return getWebSiteUrl( 'liveStream'.$monitor->Id(), $monitor->Path(),
+          ( isset($options['width']) ? $options['width'] : NULL ),
+          ( isset($options['height']) ? $options['height'] : NULL ),
+          $monitor->Name()
+        );
   //FIXME, the width and height of the image need to be scaled.
-  if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
+  } else if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array(
       'mode'=>'mpeg',
-      'scale'=>$options['scale'],
+      'scale'=>(isset($options['scale'])?$options['scale']:100),
       'bitrate'=>ZM_WEB_VIDEO_BITRATE,
       'maxfps'=>ZM_WEB_VIDEO_MAXFPS,
       'format' => ZM_MPEG_LIVE_FORMAT

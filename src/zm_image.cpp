@@ -1649,30 +1649,24 @@ void Image::Blend( const Image &image, int transparency )
   AssignDirect( width, height, colours, subpixelorder, new_buffer, size, ZM_BUFTYPE_ZM);
 }
 
-Image *Image::Merge( unsigned int n_images, Image *images[] )
-{
-  if ( n_images <= 0 ) return( 0 );
-  if ( n_images == 1 ) return( new Image( *images[0] ) );
+Image *Image::Merge( unsigned int n_images, Image *images[] ) {
+  if ( n_images == 1 ) return new Image(*images[0]);
 
   unsigned int width = images[0]->width;
   unsigned int height = images[0]->height;
   unsigned int colours = images[0]->colours;
-  for ( unsigned int i = 1; i < n_images; i++ )
-  {
-    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
-    {
+  for ( unsigned int i = 1; i < n_images; i++ ) {
+    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) ) {
       Panic( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
     }
   }
 
   Image *result = new Image( width, height, images[0]->colours, images[0]->subpixelorder);
   unsigned int size = result->size;
-  for ( unsigned int i = 0; i < size; i++ )
-  {
+  for ( unsigned int i = 0; i < size; i++ ) {
     unsigned int total = 0;
     uint8_t *pdest = result->buffer;
-    for ( unsigned int j = 0; j < n_images; j++ )
-    {
+    for ( unsigned int j = 0; j < n_images; j++ ) {
       uint8_t *psrc = images[j]->buffer;
       total += *psrc;
       psrc++;
@@ -1680,21 +1674,17 @@ Image *Image::Merge( unsigned int n_images, Image *images[] )
     *pdest = total/n_images;
     pdest++;
   }
-  return( result );
+  return result;
 }
 
-Image *Image::Merge( unsigned int n_images, Image *images[], double weight )
-{
-  if ( n_images <= 0 ) return( 0 );
-  if ( n_images == 1 ) return( new Image( *images[0] ) );
+Image *Image::Merge( unsigned int n_images, Image *images[], double weight ) {
+  if ( n_images == 1 ) return new Image(*images[0]);
 
   unsigned int width = images[0]->width;
   unsigned int height = images[0]->height;
   unsigned int colours = images[0]->colours;
-  for ( unsigned int i = 1; i < n_images; i++ )
-  {
-    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
-    {
+  for ( unsigned int i = 1; i < n_images; i++ ) {
+    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) ) {
       Panic( "Attempt to merge different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
     }
   }
@@ -1702,55 +1692,46 @@ Image *Image::Merge( unsigned int n_images, Image *images[], double weight )
   Image *result = new Image( *images[0] );
   unsigned int size = result->size;
   double factor = 1.0*weight;
-  for ( unsigned int i = 1; i < n_images; i++ )
-  {
+  for ( unsigned int i = 1; i < n_images; i++ ) {
     uint8_t *pdest = result->buffer;
     uint8_t *psrc = images[i]->buffer;
-    for ( unsigned int j = 0; j < size; j++ )
-    {
+    for ( unsigned int j = 0; j < size; j++ ) {
       *pdest = (uint8_t)(((*pdest)*(1.0-factor))+((*psrc)*factor));
       pdest++;
       psrc++;
     }
     factor *= weight;
   }
-  return( result );
+  return result;
 }
 
 Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb threshold, const Rgb ref_colour )
 {
-  if ( n_images <= 0 ) return( 0 );
-  if ( n_images == 1 ) return( new Image( *images[0] ) );
+  if ( n_images == 1 ) return new Image(*images[0]);
 
   unsigned int width = images[0]->width;
   unsigned int height = images[0]->height;
   unsigned int colours = images[0]->colours;
-  for ( unsigned int i = 1; i < n_images; i++ )
-  {
-    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) )
-    {
+  for ( unsigned int i = 1; i < n_images; i++ ) {
+    if ( !(width == images[i]->width && height == images[i]->height && colours == images[i]->colours) ) {
       Panic( "Attempt to highlight different sized images, expected %dx%dx%d, got %dx%dx%d, for image %d", width, height, colours, images[i]->width, images[i]->height, images[i]->colours, i );
     }
   }
 
   Image *result = new Image( width, height, images[0]->colours, images[0]->subpixelorder );
   unsigned int size = result->size;
-  for ( unsigned int c = 0; c < colours; c++ )
-  {
+  for ( unsigned int c = 0; c < colours; c++ ) {
     unsigned int ref_colour_rgb = RGB_VAL(ref_colour,c);
 
-    for ( unsigned int i = 0; i < size; i++ )
-    {
+    for ( unsigned int i = 0; i < size; i++ ) {
       unsigned int count = 0;
       uint8_t *pdest = result->buffer+c;
-      for ( unsigned int j = 0; j < n_images; j++ )
-      {
+      for ( unsigned int j = 0; j < n_images; j++ ) {
         uint8_t *psrc = images[j]->buffer+c;
 
 	    unsigned int diff = ((*psrc)-ref_colour_rgb) > 0 ? (*psrc)-ref_colour_rgb : ref_colour_rgb - (*psrc);
 
-	    if (diff >= RGB_VAL(threshold,c))
-        {
+	    if (diff >= RGB_VAL(threshold,c)) {
           count++;
         }
         psrc += colours;

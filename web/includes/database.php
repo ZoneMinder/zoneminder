@@ -133,10 +133,7 @@ function dbQuery( $sql, $params=NULL ) {
       }
     } else {
       if ( defined('ZM_DB_DEBUG') ) {
-        if ( $params )
-          Warning("SQL: $sql" . implode(',',$params) );
-        else
-          Warning("SQL: $sql:"  );
+				Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):'') );
       }
       $result = $dbConn->query($sql);
     }
@@ -164,16 +161,16 @@ function dbFetchOne( $sql, $col=false, $params=NULL ) {
     return false;
   }
 
-  if ( $result && $dbRow = $result->fetch( PDO::FETCH_ASSOC ) ) {
+  if ( $result && $dbRow = $result->fetch(PDO::FETCH_ASSOC) ) {
     if ( $col ) {
-      if ( ! isset( $dbRow[$col] ) ) {
-        Warning( "$col does not exist in the returned row " . print_r($dbRow, true) );
+      if ( ! array_key_exists($col, $dbRow) ) {
+        Warning("$col does not exist in the returned row " . print_r($dbRow, true));
       }
       return $dbRow[$col];
     } 
     return $dbRow;
   }
-  return( false );
+  return false;
 }
 
 function dbFetchAll( $sql, $col=false, $params=NULL ) {
@@ -186,7 +183,7 @@ function dbFetchAll( $sql, $col=false, $params=NULL ) {
   $dbRows = array();
   while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
     $dbRows[] = $col?$dbRow[$col]:$dbRow;
-  return( $dbRows );
+  return $dbRows;
 }
 
 function dbFetchAssoc( $sql, $indexCol, $dataCol=false ) {

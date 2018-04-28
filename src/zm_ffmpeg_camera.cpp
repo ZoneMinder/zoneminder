@@ -129,15 +129,15 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   } else {
     Panic("Unexpected colours: %d",colours);
   }
-
 }
 
 FfmpegCamera::~FfmpegCamera() {
 
   if ( videoStore ) {
     delete videoStore;
+    videoStore = NULL;
   }
-  CloseFfmpeg();
+  Close();
 
   if ( capture ) {
     Terminate();
@@ -146,13 +146,7 @@ FfmpegCamera::~FfmpegCamera() {
 }
 
 void FfmpegCamera::Initialise() {
-  if ( logDebugging() )
-    av_log_set_level( AV_LOG_DEBUG ); 
-  else
-    av_log_set_level( AV_LOG_QUIET ); 
-
-  av_register_all();
-  avformat_network_init();
+  FFMPEGInit();
 }
 
 void FfmpegCamera::Terminate() {
@@ -161,7 +155,7 @@ void FfmpegCamera::Terminate() {
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
     Info( "Priming capture from %s, CLosing", mPath.c_str() );
-    CloseFfmpeg();
+    Close();
   }
   mVideoStreamId = -1;
   mAudioStreamId = -1;
@@ -298,6 +292,7 @@ int FfmpegCamera::Capture( Image &image ) {
     } else {
       Debug( 4, "Different stream_index %d", packet.stream_index );
     } // end if packet.stream_index == mVideoStreamId
+    bytes += packet.size;
     zm_av_packet_unref( &packet );
   } // end while ! frameComplete
   return 1;
@@ -631,15 +626,7 @@ int FfmpegCamera::OpenFfmpeg() {
   return 0;
 } // int FfmpegCamera::OpenFfmpeg()
 
-int FfmpegCamera::ReopenFfmpeg() {
-
-  Debug(2, "ReopenFfmpeg called.");
-
-  CloseFfmpeg();
-  return OpenFfmpeg();
-}
-
-int FfmpegCamera::CloseFfmpeg() {
+int FfmpegCamera::Close() {
 
   Debug(2, "CloseFfmpeg called.");
 
@@ -685,6 +672,11 @@ int FfmpegCamera::CloseFfmpeg() {
     mFormatContext = NULL;
   }
 
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
+
   return 0;
 } // end FfmpegCamera::Close
 
@@ -717,6 +709,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     }
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
+    bytes += packet.size;
     dumpPacket(&packet);
 
     //Video recording

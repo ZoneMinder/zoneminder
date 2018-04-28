@@ -1,5 +1,7 @@
 <?php
 
+$group_cache = array();
+
 class Group {
 
   public $defaults = array(
@@ -9,6 +11,8 @@ class Group {
       );
 
   public function __construct( $IdOrRow=NULL ) {
+    global $group_cache;
+
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
@@ -16,7 +20,7 @@ class Group {
         if ( ! $row ) {
           Error('Unable to load Group record for Id=' . $IdOrRow);
         }
-      } elseif ( is_array( $IdOrRow ) ) {
+      } elseif ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
       } else {
         $backTrace = debug_backtrace();
@@ -32,14 +36,15 @@ class Group {
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
+      $group_cache[$row['Id']] = $this;
     }
   } // end function __construct
 
-  public function __call( $fn, array $args ) {
-    if ( count( $args )  ) {
+  public function __call($fn, array $args) {
+    if ( count($args) ) {
       $this->{$fn} = $args[0];
     }
-    if ( array_key_exists( $fn, $this ) ) {
+    if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
     } else if ( array_key_exists( $fn, $this->defaults ) ) {
       $this->{$fn} = $this->defaults{$fn};
@@ -50,6 +55,25 @@ class Group {
       $file = $backTrace[1]['file'];
       $line = $backTrace[1]['line'];
       Warning( "Unknown function call Group->$fn from $file:$line" );
+    }
+  }
+
+  public static function find_one($parameters = null, $options = null) {
+    global $group_cache;
+    if (
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($group_cache[$parameters['Id']]) ) {
+      return $group_cache[$parameters['Id']];
+    }
+    $results = Group::find_all($parameters, $options);
+    if ( count($results) > 1 ) {
+      Error("Group::find_one Returned more than 1");
+      return $results[0];
+    } else if ( count($results) ) {
+      return $results[0];
+    } else {
+      return null;
     }
   }
 
@@ -85,13 +109,13 @@ class Group {
   }
 
   public function delete() {
-    if ( array_key_exists( 'Id', $this ) ) {
-      dbQuery( 'DELETE FROM Groups WHERE Id=?', array($this->{'Id'}) );
+    if ( array_key_exists('Id', $this) ) {
       dbQuery( 'DELETE FROM Groups_Monitors WHERE GroupId=?', array($this->{'Id'}) );
+      dbQuery( 'DELETE FROM Groups WHERE Id=?', array($this->{'Id'}) );
       if ( isset($_COOKIE['zmGroup']) ) {
         if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
-          unset( $_COOKIE['zmGroup'] );
-          setcookie( 'zmGroup', '', time()-3600*24*2 );
+          unset($_COOKIE['zmGroup']);
+          setcookie('zmGroup', '', time()-3600*24*2);
         }
       }
     }
@@ -99,16 +123,16 @@ class Group {
 
   public function set( $data ) {
     foreach ($data as $k => $v) {
-      if ( is_array( $v ) ) {
+      if ( is_array($v) ) {
         $this->{$k} = $v;
-      } else if ( is_string( $v ) ) {
+      } else if ( is_string($v) ) {
         $this->{$k} = trim( $v );
-      } else if ( is_integer( $v ) ) {
+      } else if ( is_integer($v) ) {
         $this->{$k} = $v;
-      } else if ( is_bool( $v ) ) {
+      } else if ( is_bool($v) ) {
         $this->{$k} = $v;
       } else {
-        Error( "Unknown type $k => $v of var " . gettype( $v ) );
+        Error("Unknown type $k => $v of var " . gettype($v));
         $this->{$k} = $v;
       }
     }
@@ -117,10 +141,10 @@ class Group {
     if ( isset($new) ) {
       $this->{'depth'} = $new;
     }
-    if ( ! array_key_exists( 'depth', $this ) or ( $this->{'depth'} == null ) ) {
+    if ( ! array_key_exists('depth', $this) or ($this->{'depth'} == null) ) {
       $this->{'depth'} = 1;
       if ( $this->{'ParentId'} != null ) {
-        $Parent = new Group( $this->{'ParentId'} );
+        $Parent = Group::find_one(array('Id'=>$this->{'ParentId'}));
         $this->{'depth'} += $Parent->depth();
       }
     }
@@ -128,8 +152,8 @@ class Group {
   } // end public function depth
 
   public function MonitorIds( ) {
-    if ( ! array_key_exists( 'MonitorIds', $this ) ) {
-      $this->{'MonitorIds'} = dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($this->{'Id'}) );
+    if ( ! array_key_exists('MonitorIds', $this) ) {
+      $this->{'MonitorIds'} = dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($this->{'Id'}));
     }
     return $this->{'MonitorIds'};
   }
@@ -174,12 +198,12 @@ class Group {
       }
     }
 
-    function get_options( $Group ) {
+    function get_options($Group) {
       global $children;
-      $options = array( $Group->Id() => str_repeat('&nbsp;&nbsp;&nbsp;', $Group->depth() ) .  $Group->Name() );
+      $options = array($Group->Id() => str_repeat('&nbsp;&nbsp;&nbsp;', $Group->depth()) . $Group->Name());
       if ( isset($children[$Group->Id()]) ) {
         foreach ( $children[$Group->Id()] as $child ) {
-          $options += get_options( $child );
+          $options += get_options($child);
         }
       }
       return $options;
@@ -187,83 +211,34 @@ class Group {
     $group_options = array();
     foreach ( $Groups as $id=>$Group ) {
       if ( ! $Group->ParentId() ) {
-        $group_options += get_options( $Group );
+        $group_options += get_options($Group);
       }
     }
     return $group_options;
   }
 
-  public static function get_group_dropdowns( $selected = null ) {
-    # This will end up with the group_id of the deepest selection
-    $group_id = 0;
-    $depth = 0;
-    $groups = array();
-    $parent_group_ids = null;
-    session_start();
-
-    $group_options = array(0=>'All'); 
-    while(1) {
-      $Groups = Group::find_all( array('ParentId'=>$parent_group_ids) );
-      if ( ! count( $Groups ) )
-        break;
-
-      $parent_group_ids = array();
-if ( ! $selected ) {
-      $selected_group_id = 0;
-      if ( isset($_REQUEST['group'.$depth]) ) {
-        $selected_group_id = $group_id = $_SESSION['group'.$depth] = $_REQUEST['group'.$depth];
-      } else if ( isset( $_SESSION['group'.$depth] ) ) {
-        $selected_group_id = $group_id = $_SESSION['group'.$depth];
-      } else if ( isset($_REQUEST['filtering']) ) {
-        unset($_SESSION['group'.$depth]);
-      }
-} else {
-  $selected_group_id = $selected;
-}
-
-      foreach ( $Groups as $Group ) {
-        if ( ! isset( $groups[$depth] ) ) {
-          $groups[$depth] = array(0=>'All');
-        }
-$group_options[$Group->Id()] = str_repeat( '&nbsp;', $depth ) .  $Group->Name();
-        $groups[$depth][$Group->Id()] = $Group->Name();
-        if ( $selected_group_id and ( $selected_group_id == $Group->Id() ) )
-          $parent_group_ids[] = $Group->Id();
-      }
-
-      //echo htmlSelect( 'group'.$depth, $groups[$depth], $selected_group_id, "this.form.submit();" );
-      if ( ! count($parent_group_ids) ) break;
-      $depth += 1;
-    }
-      echo htmlSelect( 'groups', $group_options, $selected_group_id, 'this.form.submit();' );
-    session_write_close();
-
-    return $group_id;
-  } # end public static function get_group_dropdowns()
-
-
-  public static function get_group_sql( $group_id ) {
+  public static function get_group_sql($group_id) {
     $groupSql = '';
     if ( $group_id ) {
-      if ( is_array( $group_id ) ) {
+      if ( is_array($group_id) ) {
         $group_id_sql_part = ' IN ('.implode(',', array_map(function(){return '?';}, $group_id ) ).')';
 
-        $MonitorIds = dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId'.$group_id_sql_part, 'MonitorId', $group_id );
+        $MonitorIds = dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId'.$group_id_sql_part, 'MonitorId', $group_id);
 
-        $MonitorIds = array_merge( $MonitorIds, dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId'.$group_id_sql_part.')', 'MonitorId', $group_id ) );
+        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId'.$group_id_sql_part.')', 'MonitorId', $group_id));
       } else { 
-        $MonitorIds = dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($group_id) );
+        $MonitorIds = dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($group_id));
 
-        $MonitorIds = array_merge( $MonitorIds, dbFetchAll( 'SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId = ?)', 'MonitorId', array($group_id) ) );
+        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId = ?)', 'MonitorId', array($group_id)));
       }
-      $groupSql = " find_in_set( M.Id, '".implode( ',', $MonitorIds )."' )";
+      $groupSql = " find_in_set( M.Id, '".implode(',', $MonitorIds)."' )";
     }
     return $groupSql;
   } # end public static function get_group_sql( $group_id )
 
-  public static function get_monitors_dropdown( $options = null ) {
+  public static function get_monitors_dropdown($options = null) {
   $monitor_id = 0;
-  if ( isset( $_REQUEST['monitor_id'] ) ) {
+  if ( isset($_REQUEST['monitor_id']) ) {
     $monitor_id = $_REQUEST['monitor_id'];
   } else if ( isset($_COOKIE['zmMonitorId']) ) {
     $monitor_id = $_COOKIE['zmMonitorId'];
@@ -276,20 +251,20 @@ $group_options[$Group->Id()] = str_repeat( '&nbsp;', $depth ) .  $Group->Name();
 	  }
 	  $monitors_dropdown = array(''=>'All');
 
-	foreach ( dbFetchAll( $sql ) as $monitor ) {
-    if ( !visibleMonitor( $monitor['Id'] ) ) {
+	foreach ( dbFetchAll($sql) as $monitor ) {
+    if ( !visibleMonitor($monitor['Id']) ) {
       continue;
     }
     $monitors_dropdown[$monitor['Id']] = $monitor['Name'];
   }
 
-  echo htmlSelect( 'monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);') );
+  echo htmlSelect('monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);'));
   return $monitor_id;
 }
 
 public function Parent( ) {
   if ( $this->{'ParentId'} ) {
-    return new Group($this->{'ParentId'});
+    return Group::find_one(array('Id'=>$this->{'ParentId'}));
   }
   return null;
 }
@@ -305,6 +280,4 @@ public function Parents() {
 }
 
 } # end class Group
-
-
 ?>

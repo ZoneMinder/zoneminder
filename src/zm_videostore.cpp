@@ -20,7 +20,7 @@
 
 #define __STDC_FORMAT_MACROS 1
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <stdlib.h>
 #include <string.h>
 
@@ -219,8 +219,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
     if (audio_in_ctx->codec_id != AV_CODEC_ID_AAC) {
       static char error_buffer[256];
-      avcodec_string(error_buffer, sizeof(error_buffer), audio_in_ctx,
-                     0);
+      avcodec_string(error_buffer, sizeof(error_buffer), audio_in_ctx, 0);
       Debug(2, "Got something other than AAC (%s)", error_buffer);
 
       if (!setup_resampler()) {
@@ -361,8 +360,8 @@ VideoStore::~VideoStore() {
         // Put encoder into flushing mode
         avcodec_send_frame(audio_out_ctx, NULL);
         ret = avcodec_receive_packet(audio_out_ctx, &pkt);
-        if (ret < 0) {
-          if (AVERROR_EOF != ret) {
+        if ( ret < 0 ) {
+          if ( AVERROR_EOF != ret ) {
             Error("ERror encoding audio while flushing (%d) (%s)", ret,
                 av_err2str(ret));
           }
@@ -372,13 +371,13 @@ VideoStore::~VideoStore() {
         int got_packet = 0;
         ret =
           avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet);
-        if (ret < 0) {
+        if ( ret < 0 ) {
           Error("ERror encoding audio while flushing (%d) (%s)", ret,
               av_err2str(ret));
           break;
         }
         Debug(1, "Have audio encoder, need to flush it's out");
-        if (!got_packet) {
+        if ( !got_packet ) {
           break;
         }
 #endif
@@ -387,7 +386,7 @@ VideoStore::~VideoStore() {
         pkt.pts = audio_next_pts;
         pkt.dts = audio_next_dts;
 
-        if (pkt.duration > 0)
+        if ( pkt.duration > 0 )
           pkt.duration =
             av_rescale_q(pkt.duration, audio_out_ctx->time_base,
                 audio_out_stream->time_base);
@@ -429,12 +428,12 @@ VideoStore::~VideoStore() {
   // allocation/de-allocation constantly, or whether we can just re-use it.
   // Just do a file open/close/writeheader/etc.
   // What if we were only doing audio recording?
-  if (video_out_stream) {
+  if ( video_out_stream ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
     avcodec_free_context(&video_in_ctx);
 #endif
-    video_in_ctx=NULL;
+    video_in_ctx = NULL;
 
     avcodec_close(video_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -445,13 +444,13 @@ VideoStore::~VideoStore() {
   }
   if ( audio_out_stream ) {
     if ( audio_in_codec ) {
-    avcodec_close(audio_in_ctx);
+      avcodec_close(audio_in_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    // We allocate and copy in newer ffmpeg, so need to free it
-    avcodec_free_context(&audio_in_ctx);
+      // We allocate and copy in newer ffmpeg, so need to free it
+      avcodec_free_context(&audio_in_ctx);
 #endif
-    audio_in_ctx = NULL;
-    audio_in_codec = NULL;
+      audio_in_ctx = NULL;
+      audio_in_codec = NULL;
     } // end if audio_in_codec
 
     avcodec_close(audio_out_ctx);
@@ -460,19 +459,19 @@ VideoStore::~VideoStore() {
 #endif
     audio_out_ctx = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
-    if (resample_ctx) {
+    if ( resample_ctx ) {
       avresample_close(resample_ctx);
       avresample_free(&resample_ctx);
     }
-    if (in_frame) {
+    if ( in_frame ) {
       av_frame_free(&in_frame);
       in_frame = NULL;
     }
-    if (out_frame) {
+    if ( out_frame ) {
       av_frame_free(&out_frame);
       out_frame = NULL;
     }
-    if (converted_in_samples) {
+    if ( converted_in_samples ) {
       av_free(converted_in_samples);
       converted_in_samples = NULL;
     }
@@ -481,11 +480,10 @@ VideoStore::~VideoStore() {
 
   /* free the stream */
   avformat_free_context(oc);
-}
+} // VideoStore::~VideoStore()
 
 bool VideoStore::setup_resampler() {
 #ifdef HAVE_LIBAVRESAMPLE
-  static char error_buffer[256];
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // Newer ffmpeg wants to keep everything separate... so have to lookup our own
@@ -576,9 +574,8 @@ bool VideoStore::setup_resampler() {
   }
   ret = avcodec_open2(audio_out_ctx, audio_out_codec, &opts);
   av_dict_free(&opts);
-  if (ret < 0) {
-    av_strerror(ret, error_buffer, sizeof(error_buffer));
-    Fatal("could not open codec (%d) (%s)\n", ret, error_buffer);
+  if ( ret < 0 ) {
+    Error("could not open codec (%d) (%s)\n", ret, av_make_error_string(ret).c_str());
     audio_out_codec = NULL;
     audio_out_ctx = NULL;
     audio_out_stream = NULL;
@@ -714,8 +711,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   opkt.dts = video_next_dts;
   opkt.duration = 0;
 
-  int duration;
-  if (!video_last_pts) {
+  int64_t duration;
+  if ( !video_last_pts ) {
     duration = 0;
   } else {
     duration =
@@ -726,7 +723,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
         video_last_pts,
         duration);
     if (duration < 0) {
-      duration = ipkt->duration;
+      duration = ipkt->duration ? ipkt->duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
     }
   }
 

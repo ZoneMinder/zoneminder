@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */ 
+#include <cinttypes>
 
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
@@ -27,9 +28,9 @@ void FFMPEGInit() {
   static bool bInit = false;
 
   if ( !bInit ) {
-    if ( logDebugging() )
-      av_log_set_level( AV_LOG_DEBUG ); 
-    else
+    //if ( logDebugging() )
+      //av_log_set_level( AV_LOG_DEBUG ); 
+    //else
       av_log_set_level( AV_LOG_QUIET ); 
     av_register_all();
     avformat_network_init();
@@ -243,7 +244,7 @@ void zm_dump_codecpar ( const AVCodecParameters *par ) {
 }
 #endif
 
-void zm_dump_codec ( const AVCodecContext *codec ) {
+void zm_dump_codec(const AVCodecContext *codec) {
   Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d) format(%s)",
     codec->codec_type,
     codec->codec_id,
@@ -425,7 +426,7 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
 #endif
 
 # else
-  int frameComplete;
+  int frameComplete = 0;
   while ( !frameComplete ) {
     if ( (ret = zm_avcodec_decode_video( context, frame, &frameComplete, &packet )) < 0 ) {
       Error( "Unable to decode frame at frame: %s, continuing",

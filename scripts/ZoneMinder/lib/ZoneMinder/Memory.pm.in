@@ -147,7 +147,7 @@ our $mem_data = {
     last_write_index => { type=>'uint32', seq=>$mem_seq++ },
     last_read_index  => { type=>'uint32', seq=>$mem_seq++ },
     state            => { type=>'uint32', seq=>$mem_seq++ },
-    last_event       => { type=>'uint32', seq=>$mem_seq++ },
+    last_event       => { type=>'uint64', seq=>$mem_seq++ },
     action           => { type=>'uint32', seq=>$mem_seq++ },
     brightness       => { type=>'int32', seq=>$mem_seq++ },
     hue              => { type=>'int32', seq=>$mem_seq++ },
@@ -167,7 +167,6 @@ our $mem_data = {
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
     alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
-
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {

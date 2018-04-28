@@ -108,10 +108,10 @@ private:
   bool mFlush;
 
 private:
-  static void usrHandler( int sig );
+  static void usrHandler(int sig);
 
 public:
-  friend void logInit( const char *name, const Options &options );
+  friend void logInit(const char *name, const Options &options);
   friend void logTerm();
 
   static Logger *fetch() {
@@ -120,7 +120,7 @@ public:
       Options options;
       smInstance->initialise( "undef", options );
     }
-    return( smInstance );
+    return smInstance;
   }
 
 private:
@@ -128,16 +128,16 @@ private:
   ~Logger();
 
 public:
-  void initialise( const std::string &id, const Options &options );
+  void initialise(const std::string &id, const Options &options);
   void terminate();
 
 private:
-  int limit( int level ) {
+  int limit(int level) {
     if ( level > DEBUG9 )
-      return( DEBUG9 );
+      return DEBUG9;
     if ( level < NOLOG )
-      return( NOLOG );
-    return( level );
+      return NOLOG;
+    return level;
   }
 
   bool boolEnv(const std::string &name, bool defaultValue=false);
@@ -157,19 +157,19 @@ public:
   Level level() const {
     return mLevel;
   }
-  Level level( Level=NOOPT );
+  Level level(Level=NOOPT);
 
   bool debugOn() {
-    return( mEffectiveLevel >= DEBUG1 );
+    return mEffectiveLevel >= DEBUG1;
   }
 
-  Level terminalLevel( Level=NOOPT );
-  Level databaseLevel( Level=NOOPT );
-  Level fileLevel( Level=NOOPT );
-  Level syslogLevel( Level=NOOPT );
+  Level terminalLevel(Level=NOOPT);
+  Level databaseLevel(Level=NOOPT);
+  Level fileLevel(Level=NOOPT);
+  Level syslogLevel(Level=NOOPT);
 
 private:
-  void logFile( const std::string &logFile );
+  void logFile(const std::string &logFile);
   void openFile();
   void closeFile();
   void openSyslog();
@@ -177,22 +177,19 @@ private:
   void closeDatabase();
 
 public:
-  void logPrint( bool hex, const char * const filepath, const int line, const int level, const char *fstring, ... );
+  void logPrint(bool hex, const char * const filepath, const int line, const int level, const char *fstring, ...);
 };
 
-void logInit( const char *name, const Logger::Options &options=Logger::Options() );
+void logInit(const char *name, const Logger::Options &options=Logger::Options());
 void logTerm();
 inline const std::string &logId() {
-  return( Logger::fetch()->id() );
+  return Logger::fetch()->id();
 }
 inline Logger::Level logLevel() {
-  return( Logger::fetch()->level() );
-}
-inline void logCapLevel( Logger::Level level ) {
-  Logger::fetch()->level( level );
+  return Logger::fetch()->level();
 }
 inline Logger::Level logDebugging() {
-  return( Logger::fetch()->debugOn() );
+  return Logger::fetch()->debugOn();
 }
 
 #define logPrintf(logLevel,params...)  {\

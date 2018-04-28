@@ -119,6 +119,7 @@ $frameSql = '
 
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
+ $monitor_ids_sql = '';
 if ( ! empty($user['MonitorIds']) ) {
   $eventsSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
   $frameSql  .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
@@ -206,7 +207,7 @@ $frameSql .= ' ORDER BY Id DESC';
 
 $monitors = array();
 foreach( $displayMonitors as $row ) {
-  if ( $row['Function'] == 'None' )
+  if ( $row['Function'] == 'None' || $row['Type'] == 'WebSite' )
     continue;
   $Monitor = new Monitor( $row );
   $monitors[] = $Monitor;

@@ -63,7 +63,7 @@ DROP TABLE IF EXISTS `Controls`;
 CREATE TABLE `Controls` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','Ffmpeg','Libvlc','cURL') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','Ffmpeg','Libvlc','cURL','WebSite') NOT NULL default 'Local',
   `Protocol` varchar(64) default NULL,
   `CanWake` tinyint(3) unsigned NOT NULL default '0',
   `CanSleep` tinyint(3) unsigned NOT NULL default '0',
@@ -182,7 +182,7 @@ CREATE TABLE `Devices` (
 
 DROP TABLE IF EXISTS `Events`;
 CREATE TABLE `Events` (
-  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Id` bigint unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `StorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
@@ -220,7 +220,7 @@ CREATE TABLE `Events` (
 
 DROP TABLE IF EXISTS `Events_Hour`;
 CREATE TABLE `Events_Hour` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -231,7 +231,7 @@ CREATE TABLE `Events_Hour` (
 
 DROP TABLE IF EXISTS `Events_Day`;
 CREATE TABLE `Events_Day` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -242,7 +242,7 @@ CREATE TABLE `Events_Day` (
 
 DROP TABLE IF EXISTS `Events_Week`;
 CREATE TABLE `Events_Week` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -253,7 +253,7 @@ CREATE TABLE `Events_Week` (
 
 DROP TABLE IF EXISTS `Events_Month`;
 CREATE TABLE `Events_Month` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
   `DiskSpace`   bigint unsigned default NULL,
@@ -265,7 +265,7 @@ CREATE TABLE `Events_Month` (
 
 DROP TABLE IF EXISTS `Events_Archived`;
 CREATE TABLE `Events_Archived` (
-  `EventId` int(10) unsigned NOT NULL,
+  `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `DiskSpace`   bigint unsigned default NULL,
   PRIMARY KEY (`EventId`),
@@ -304,8 +304,8 @@ CREATE TABLE `Filters` (
 
 DROP TABLE IF EXISTS `Frames`;
 CREATE TABLE `Frames` (
-  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `EventId` int(10) unsigned NOT NULL default '0',
+  `Id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `EventId` BIGINT UNSIGNED NOT NULL default '0',
   `FrameId` int(10) unsigned NOT NULL default '0',
   `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
@@ -499,6 +499,7 @@ CREATE TABLE `Monitors` (
   `DefaultView` enum('Events','Control') NOT NULL default 'Events',
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
+  `SignalCheckPoints` INT UNSIGNED NOT NULL default '0',
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
@@ -527,6 +528,7 @@ CREATE TABLE `Monitor_Status` (
   `Status`  enum('Unknown','NotRunning','Running','Connected','Signal') NOT NULL default 'Unknown',
   `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
   `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
+  `CaptureBandwidth`  INT NOT NULL default 0,
   PRIMARY KEY (`MonitorId`)
 ) ENGINE=MEMORY;
 --
@@ -713,7 +715,7 @@ CREATE TABLE `Storage` (
 --
 -- Create a default storage location
 --
-insert into Storage VALUES (NULL, '/var/cache/zoneminder/events', 'Default', 'local', NULL, 'Medium', 0 );
+insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, NULL, 'Medium', 0, true );
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
@@ -890,7 +892,7 @@ INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('4 Wide', '{ "default":{
 INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('5 Wide', '{ "default":{"float":"left", "width":"19%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
 
 -- We generally don't alter triggers, we drop and re-create them, so let's keep them in a separate file that we can just source in update scripts.
-source @ZM_PATH_DATA@/db/triggers.sql
+source @PKGDATADIR@/db/triggers.sql
 --
 -- Apply the initial configuration
 --

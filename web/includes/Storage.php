@@ -124,7 +124,7 @@ public static function find_all( $parameters = null, $options = null ) {
     return $usage;
   }
   public function disk_total_space() {
-    if ( ! array_key_exists( 'disk_total_space', $this ) ) {
+    if ( ! array_key_exists('disk_total_space', $this ) ) {
       $this->{'disk_total_space'} = disk_total_space( $this->Path() );
     }
     return $this->{'disk_total_space'};
@@ -142,7 +142,7 @@ public static function find_all( $parameters = null, $options = null ) {
         }
       } else { 
         $path = $this->Path();
-        $used = disk_total_space( $path ) - disk_free_space( $path );;
+        $used = disk_total_space($path) - disk_free_space($path);
       }
       $this->{'DiskSpace'} = $used;
     }

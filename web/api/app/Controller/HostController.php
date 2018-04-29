@@ -31,6 +31,7 @@ class HostController extends AppController {
 	}
 
  function getAuthKey() {
+    $appendPassword = 0;
 	$this->loadModel('Config');
     $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
     $authVal = "";
@@ -42,7 +43,9 @@ class HostController extends AppController {
             $authVal = 'auth='.generateAuthHash($zmAuthHashIps);
         }
         elseif ($zmAuthRelay == 'plain') {
-            $authVal = "user=".$this->Session->read('user.Username')."&pass=".$this->Session->read('user.Password');
+            // user will need to append the store password here
+            $authVal = "user=".$this->Session->read('user.Username')."&pass=";
+            $appendPassword = 1;
         }
         elseif ($zmAuthRelay == 'none') {
             $authVal = "user=".$this->Session->read('user.Username');
@@ -50,7 +53,8 @@ class HostController extends AppController {
     }
     $this->set(array(
       'auth_key'=> $authVal,
-      '_serialize'  =>  array('auth_key')
+      'append_password'=>$appendPassword,
+      '_serialize'  =>  array('auth_key', 'append_password')
     ) );
  }
 

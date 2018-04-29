@@ -30,12 +30,29 @@ class HostController extends AppController {
 		));
 	}
 
-  function getAuthHash() {
+ function getAuthKey() {
+	$this->loadModel('Config');
+    $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
+    $authVal = "";
+    if ($isZmAuth) {
+        $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
+        if ($zmAuthRelay == 'hashed') {
+            
+           $zmAuthHashIps= $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
+            $authVal = 'auth='.generateAuthHash($zmAuthHashIps);
+        }
+        elseif ($zmAuthRelay == 'plain') {
+            $authVal = "user=".$this->Session->read('user.Username')."&pass=".$this->Session->read('user.Password');
+        }
+        elseif ($zmAuthRelay == 'none') {
+            $authVal = "user=".$this->Session->read('user.Username');
+        }    
+    }
     $this->set(array(
-      'auth_hash'=> generateAuthHash( ZM_AUTH_HASH_IPS ),
-      '_serialize'  =>  array('auth_hash')
+      'auth_key'=> $authVal,
+      '_serialize'  =>  array('auth_key')
     ) );
-  }
+ }
 
 	// If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor

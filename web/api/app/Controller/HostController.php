@@ -31,6 +31,8 @@ class HostController extends AppController {
 	}
 
  function getAuthKey() {
+    // ignore debug warnings from other functions
+    $this->view='Json';
     $appendPassword = 0;
 	$this->loadModel('Config');
     $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];

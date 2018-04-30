@@ -14,7 +14,7 @@ If you are using an older version of ZoneMinder, please follow the legacy steps 
 
 **Step 2:** Mount your dedicated drive, partition, or network share to the local filesystem in any folder of your choosing.
 We recommend you use systemd to manage the mount points. 
-Instructions on how to accomplish this can be found `here <https://zoneminder.blogspot.com/p/blog-page.html>`_ and `here <https://wiki.zoneminder.com/Common_Issues_with_Zoneminder_Installation_on_Ubuntu#Use_Systemd_to_Mount_Internal_Drive_or_NAS>`_.
+Instructions on how to accomplish this can be found `here <https://zoneminder.blogspot.com/p/blog-page.html>`__ and `here <https://wiki.zoneminder.com/Common_Issues_with_Zoneminder_Installation_on_Ubuntu#Use_Systemd_to_Mount_Internal_Drive_or_NAS>`__.
 Note that bind mounting ZoneMinder's images folder is optional. Newer version of ZoneMinder write very little, if anything, to the images folder.
 Verify the dedicated drive, partition, or network share is successfully mounted before proceeding to the next step.
 

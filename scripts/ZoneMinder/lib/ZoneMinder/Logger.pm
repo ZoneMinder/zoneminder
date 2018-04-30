@@ -583,6 +583,8 @@ sub logPrint {
       syslog($priorities{$level}, $code.' [%s]', $string);
     }
     print($LOGFILE $message) if $level <= $this->{fileLevel};
+    print(STDERR $message) if $level <= $this->{termLevel};
+
     if ( $level <= $this->{databaseLevel} ) {
       if ( ( $this->{dbh} and $this->{dbh}->ping() ) or ( $this->{dbh} = zmDbConnect() ) ) {
 
@@ -609,7 +611,6 @@ sub logPrint {
         print(STDERR "Can't log to database: ");
       }
     } # end if doing db logging
-    print(STDERR $message) if $level <= $this->{termLevel};
   } # end if level < effectivelevel
 }
 

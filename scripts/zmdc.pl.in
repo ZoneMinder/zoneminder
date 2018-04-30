@@ -301,10 +301,9 @@ sub run {
     if ( $Config{ZM_SERVER_ID} ) {
       if ( ! ( $secs_count % 60 ) ) {
         Debug("Connecting");
-        while ( !$zm_terminate and ! ($dbh and $dbh->ping()) ) {
-          Warning("Not connected to db.  Reconnecting");
+        while ( (!$zm_terminate) and !($dbh and $dbh->ping()) ) {
+          Warning("Not connected to db ($dbh). Reconnecting");
           $dbh = zmDbConnect();
-          Debug("Conneted? : $dbh");
         }
         my @cpuload = CpuLoad();
         Debug("UPdating Server record @cpuload");

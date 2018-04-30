@@ -18,6 +18,7 @@
 // 
 
 #include "zm.h"
+#include "zm_signal.h"
 
 #if HAVE_LIBAVFORMAT
 
@@ -180,7 +181,7 @@ int FfmpegCamera::Capture( Image &image ) {
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
 
   int frameComplete = false;
-  while ( !frameComplete ) {
+  while ( !frameComplete && !zm_terminate) {
     int avResult = av_read_frame(mFormatContext, &packet);
     char errbuf[AV_ERROR_MAX_STRING_SIZE];
     if ( avResult < 0 ) {
@@ -295,12 +296,12 @@ int FfmpegCamera::Capture( Image &image ) {
     bytes += packet.size;
     zm_av_packet_unref( &packet );
   } // end while ! frameComplete
-  return 1;
+  return frameComplete ? 1 : 0;
 } // FfmpegCamera::Capture
 
 int FfmpegCamera::PostCapture() {
   // Nothing to do here
-  return( 0 );
+  return 0;
 }
 
 int FfmpegCamera::OpenFfmpeg() {

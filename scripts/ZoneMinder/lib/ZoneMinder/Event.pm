@@ -529,6 +529,8 @@ sub MoveTo {
   my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
     return "New storage does not have an id.  Moving will not happen.";
+  } elsif ( $$NewStorage{Id} == $$self{StorageId} ) {
+    return "Event is already located at " . $NewPath;
   } elsif ( !$NewPath ) {
     return "New path ($NewPath) is empty.";
   } elsif ( ! -e $NewPath ) {

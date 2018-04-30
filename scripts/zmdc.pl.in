@@ -242,6 +242,7 @@ use constant KILL_DELAY => 60; # seconds to wait between sending TERM and sendin
 our %cmd_hash;
 our %pid_hash;
 our %terminating_processes;
+our $zm_terminate = 0;
 
 sub run {
   my $fd = 0;
@@ -276,9 +277,9 @@ sub run {
   listen(SERVER, SOMAXCONN) or Fatal("Can't listen: $!");
 
   $SIG{CHLD} = \&reaper;
-  $SIG{INT} = \&shutdownAll;
-  $SIG{TERM} = \&shutdownAll;
-  $SIG{ABRT} = \&shutdownAll;
+  $SIG{INT} = \&shutdown_sig_handler;
+  $SIG{TERM} = \&shutdown_sig_handler;
+  $SIG{ABRT} = \&shutdown_sig_handler;
   $SIG{HUP} = \&logrot;
 
   my $rin = '';
@@ -295,12 +296,17 @@ sub run {
     dPrint(ZoneMinder::Logger::INFO, 'Loading Server record have ' . $$Server{Name});
   }
 
-  while( 1 ) {
+  while( !$zm_terminate ) {
     
     if ( $Config{ZM_SERVER_ID} ) {
       if ( ! ( $secs_count % 60 ) ) {
-        $dbh = zmDbConnect() if ! $dbh->ping();
+        Debug("Connecting");
+        while ( (!$zm_terminate) and !($dbh and $dbh->ping()) ) {
+          Warning("Not connected to db ($dbh). Reconnecting");
+          $dbh = zmDbConnect();
+        }
         my @cpuload = CpuLoad();
+        Debug("UPdating Server record @cpuload");
         if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
             'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
           Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
@@ -308,7 +314,9 @@ sub run {
       }
       $secs_count += 1;
     }
+Debug("Before select");
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
+Debug("Aftere select $nfound");
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
@@ -330,7 +338,8 @@ sub run {
 # Do nothing, this is all we're here for
           dPrint(ZoneMinder::Logger::WARNING, "Already running, ignoring command '$command'\n");
         } elsif ( $command eq 'shutdown' ) {
-          shutdownAll();
+          # Breka out of while loop
+          last;
         } elsif ( $command eq 'check' ) {
           check($daemon, @args);
         } elsif ( $command eq 'status' ) {
@@ -346,14 +355,13 @@ sub run {
         }
         close(CLIENT);
       } else {
-        Fatal('Bogus descriptor');
+        Error('Bogus descriptor');
       }
     } elsif ( $nfound < 0 ) {
       if ( $! == EINTR ) {
 # Dead child, will be reaped
 #print( "Probable dead child\n" );
 # See if it needs to start up again
-        restartPending();
       } elsif ( $! == EPIPE ) {
         Error("Can't select: $!");
       } else {
@@ -361,12 +369,15 @@ sub run {
       }
     } else {
 #print( "Select timed out\n" );
-      restartPending();
     }
 
+Debug("restartPending");
+    restartPending();
+Debug("check_for_processes_to_kill");
     check_for_processes_to_kill();
 
   } # end while
+
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '
       .strftime( '%y/%m/%d %H:%M:%S', localtime() )
       ."\n"
@@ -377,9 +388,7 @@ sub run {
       Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
     }
   }
-  unlink(main::SOCK_FILE) or Error('Unable to unlink ' . main::SOCK_FILE .". Error message was: $!") if ( -e main::SOCK_FILE );
-  unlink(ZM_PID) or Error('Unable to unlink ' . ZM_PID .". Error message was: $!") if ( -e ZM_PID );
-  exit();
+  shutdownAll();
 }
 
 sub cPrint {
@@ -426,10 +435,12 @@ sub start {
   }
 
   my $sigset = POSIX::SigSet->new;
-  my $blockset = POSIX::SigSet->new( SIGCHLD );
+  my $blockset = POSIX::SigSet->new(SIGCHLD);
+  Debug("Blocking SIGCHLD");
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
+  Debug("forking");
   if ( my $cpid = fork() ) {
-    logReinit();
+    #logReinit();
 
     $process->{pid} = $cpid;
     $process->{started} = time();
@@ -442,6 +453,7 @@ sub start {
 
     $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
+    Debug("unblocko child");
   } elsif ( defined($cpid) ) {
 # Force reconnection to the db.
     $dbh = zmDbConnect(1);
@@ -527,16 +539,18 @@ sub check_for_processes_to_kill {
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or die "dying at block...\n";
-  foreach my $command ( %terminating_processes ) {
+  foreach my $command ( keys %terminating_processes ) {
     my $process = $cmd_hash{$command};
-Debug("Have process $command at pid $$process{pid} $$process{term_sent_at}");
-    if ( $$process{term_sent_at} - time > KILL_DELAY ) {
+    my $now = time;
+    Debug("Have process $command at pid $$process{pid} $$process{term_sent_at} - $now = " . ( $$process{term_sent_at} - $now )  );
+    if ( $$process{term_sent_at} and ( $$process{term_sent_at} - $now > KILL_DELAY ) ) {
       dPrint(ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
         .strftime('%y/%m/%d %H:%M:%S', localtime())
         .' after ' . KILL_DELAY . ' seconds.'
         ." Sending KILL to pid $$process{pid}\n"
       );
       kill('KILL', $$process{pid});
+      delete $terminating_processes{$command};
     }
   }
   sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
@@ -595,8 +609,14 @@ sub logrot {
   }
 }
 
+sub shutdown_sig_handler {
+  $zm_terminate = 1;
+}
+
 sub reaper {
   my $saved_status = $!;
+
+  # Wait for a child to terminate
   while ( (my $cpid = waitpid(-1, WNOHANG)) > 0 ) {
     my $status = $?;
 
@@ -620,8 +640,8 @@ sub reaper {
 
     my $out_str = "'$process->{command}' ";
     if ( $exit_signal ) {
+      # 15 == TERM, 14 == ALARM
       if ( $exit_signal == 15 || $exit_signal == 14 ) {
-# TERM or ALRM
         $out_str .= 'exited';
       } else {
         $out_str .= 'crashed';
@@ -659,22 +679,26 @@ sub reaper {
           $process->{delay} = $Config{ZM_MAX_RESTART_DELAY};
         }
       }
+      Debug("Delay for $$process{command} is now $$process{delay}");
     } else {
       delete $cmd_hash{$$process{command}};
     }
-  }
+  } # end while waitpid
   $SIG{CHLD} = \&reaper;
   $! = $saved_status;
+Debug("Leaving reaper");
 }
 
 sub restartPending {
-# Restart any pending processes
-  foreach my $process ( values( %cmd_hash ) ) {
+# Restart any pending processes, we list them first because cmd_hash may change in foreach
+  my @processes =  values %cmd_hash;
+  foreach my $process ( @processes ) {
     if ( $process->{pending} && $process->{pending} <= time() ) {
       dPrint(ZoneMinder::Logger::INFO, "Starting pending process, $process->{command}\n");
       start($process->{daemon}, @{$process->{args}});
     }
   }
+  dPrint(ZoneMinder::Logger::INFO, "done restartPending");
 }
 
 sub shutdownAll {
@@ -683,9 +707,14 @@ sub shutdownAll {
     next if ! $pid_hash{$pid};
     send_stop(1, $pid_hash{$pid});
   }
-  while ( %terminating_processes ) {
+  my $count= KILL_DELAY;
+  while ( (keys %terminating_processes) and $count) {
     check_for_processes_to_kill();
-    sleep(1) if %terminating_processes;
+    if ( %terminating_processes ) {
+      Debug("Still " .  %terminating_processes . ' to die. count is: ' . $count . ' sleeping');
+      sleep(1);
+      $count --;
+    }
   }
   dPrint(ZoneMinder::Logger::INFO, "Server shutdown at "
       .strftime('%y/%m/%d %H:%M:%S', localtime())

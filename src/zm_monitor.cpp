@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <glob.h>
+#include <cinttypes>
 
 #include "zm.h"
 #include "zm_db.h"
@@ -1245,9 +1246,9 @@ bool Monitor::Analyse() {
       Info("%s: %d - Analysing at %.2f fps", name, image_count, new_fps);
       if ( fps != new_fps ) {
         fps = new_fps;
+        db_mutex.lock();
         static char sql[ZM_SQL_SML_BUFSIZ];
         snprintf(sql, sizeof(sql), "INSERT INTO Monitor_Status (MonitorId,AnalysisFPS) VALUES (%d, %.2lf) ON DUPLICATE KEY UPDATE AnalysisFPS = %.2lf", id, fps, fps);
-        db_mutex.lock();
         if ( mysql_query(&dbconn, sql) ) {
           Error("Can't run query: %s", mysql_error(&dbconn));
         }

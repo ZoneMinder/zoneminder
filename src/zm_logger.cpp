@@ -543,7 +543,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     mysql_real_escape_string( &dbconn, escapedString, syslogStart, strlen(syslogStart) );
 
     snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
-    if (mysql_query(&dbconn, sql)) {
+    if ( mysql_query(&dbconn, sql) ) {
       Level tempDatabaseLevel = mDatabaseLevel;
       databaseLevel(NOLOG);
       Error("Can't insert log entry: sql(%s) error(%s)", sql, mysql_error(&dbconn));

@@ -101,7 +101,10 @@ $attrTypes = array(
     'DiskSpace'   => translate('AttrDiskSpace'),
     'SystemLoad'  => translate('AttrSystemLoad'),
     'StorageId'   => translate('AttrStorageArea'),
-    'ServerId'    => translate('AttrServer'),
+    'ServerId'    => translate('AttrMonitorServer'),
+    'FilterServerId'     => translate('AttrFilterServer'),
+    'MonitorServerId'    => translate('AttrMonitorServer'),
+    'StorageServerId'    => translate('AttrStorageServer'),
     'StateId'     => translate('AttrStateId'),
     );
 
@@ -268,7 +271,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $monitors, $term['val'] ); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'ServerId' ) {
+    } elseif ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $servers, $term['val'] ); ?></td>

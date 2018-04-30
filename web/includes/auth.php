@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-function userLogin( $username, $password='', $passwordHashed=false ) {
+function userLogin($username, $password='', $passwordHashed=false) {
   global $user, $cookies;
 
   $sql = 'SELECT * FROM Users WHERE Enabled=1';
@@ -29,10 +29,10 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     } else {
       $sql .= ' AND Username=? AND Password=password(?)';
     }
-    $sql_values = array( $username, $password );
+    $sql_values = array($username, $password);
   } else {
     $sql .= ' AND Username=?';
-    $sql_values = array( $username );
+    $sql_values = array($username);
   }
   session_start();
   $_SESSION['username'] = $username;
@@ -41,8 +41,8 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     $_SESSION['password'] = $password;
   }
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-  if ( $dbUser = dbFetchOne( $sql, NULL, $sql_values ) ) {
-    Info( "Login successful for user \"$username\"" );
+  if ( $dbUser = dbFetchOne($sql, NULL, $sql_values) ) {
+    Info("Login successful for user \"$username\"");
     $_SESSION['user'] = $user = $dbUser;
     unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == 'builtin' ) {
@@ -50,30 +50,30 @@ function userLogin( $username, $password='', $passwordHashed=false ) {
     }
     session_regenerate_id();
   } else {
-    Warning( "Login denied for user \"$username\"" );
+    Warning("Login denied for user \"$username\"");
     $_SESSION['loginFailed'] = true;
-    unset( $user );
+    unset($user);
   }
   session_write_close();
-}
+} # end function userLogin
 
 function userLogout() {
   global $user;
-  Info( 'User "'.$user['Username'].'" logged out' );
+  Info('User "'.$user['Username'].'" logged out');
   session_start();
-  unset( $_SESSION['user'] );
-  unset( $user );
+  unset($_SESSION['user']);
+  unset($user);
 
   session_destroy();
 }
 
-function getAuthUser( $auth ) {
+function getAuthUser($auth) {
   if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' && !empty($auth) ) {
     $remoteAddr = '';
     if ( ZM_AUTH_HASH_IPS ) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
       if ( !$remoteAddr ) {
-        Error( "Can't determine remote address for authentication, using empty string" );
+        Error("Can't determine remote address for authentication, using empty string");
         $remoteAddr = '';
       }
     }
@@ -103,7 +103,7 @@ function getAuthUser( $auth ) {
   return false;
 } // end getAuthUser($auth)
 
-function generateAuthHash( $useRemoteAddr ) {
+function generateAuthHash($useRemoteAddr) {
   if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
     $time = time();
@@ -119,7 +119,7 @@ function generateAuthHash( $useRemoteAddr ) {
         $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
       #Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
-      $auth = md5( $authKey );
+      $auth = md5($authKey);
       session_start();
       $_SESSION['AuthHash'] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
@@ -135,22 +135,22 @@ function generateAuthHash( $useRemoteAddr ) {
   return $auth;
 }
 
-function visibleMonitor( $mid ) {
+function visibleMonitor($mid) {
   global $user;
 
-  return( empty($user['MonitorIds']) || in_array( $mid, explode( ',', $user['MonitorIds'] ) ) );
+  return ( empty($user['MonitorIds']) || in_array($mid, explode(',', $user['MonitorIds'])) );
 }
 
-function canView( $area, $mid=false ) {
+function canView($area, $mid=false) {
   global $user;
 
-  return( ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor( $mid ) ) );
+  return ( ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
 }
 
-function canEdit( $area, $mid=false ) {
+function canEdit($area, $mid=false) {
   global $user;
 
-  return( $user[$area] == 'Edit' && ( !$mid || visibleMonitor( $mid ) ) );
+  return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
 }
 
 ?>

@@ -6,14 +6,14 @@ class HostController extends AppController {
 	public $components = array('RequestHandler');
 
 	public function daemonCheck($daemon=false, $args=false) {
-    $string = Configure::read('ZM_PATH_BIN')."/zmdc.pl check";
+    $string = Configure::read('ZM_PATH_BIN').'/zmdc.pl check';
     if ( $daemon ) {
         $string .= " $daemon";
         if ( $args )
             $string .= " $args";
     }
-    $result = exec( $string );
-    $result = preg_match( '/running/', $result );
+    $result = exec($string);
+    $result = preg_match('/running/', $result);
 
 		$this->set(array(
 			'result' => $result,
@@ -31,10 +31,18 @@ class HostController extends AppController {
 	}
 
   function getAuthHash() {
-    $this->set(array(
-      'auth_hash'=> generateAuthHash( ZM_AUTH_HASH_IPS ),
-      '_serialize'  =>  array('auth_hash')
-    ) );
+    if ( $zmOptAuth == '1' ) {
+      require_once '../../../includes/auth.php';
+      $this->set(array(
+        'auth_hash'  => generateAuthHash(ZM_AUTH_HASH_IPS),
+        '_serialize' => array('auth_hash')
+      ) );
+    } else {
+      $this->set(array(
+        'auth_hash'  => '',
+        '_serialize' => array('auth_hash')
+      ) );
+    }
   }
 
 	// If $mid is set, only return disk usage for that monitor

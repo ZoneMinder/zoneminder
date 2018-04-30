@@ -102,6 +102,7 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
 
   if ( count($EventsByMonitor[$event['MonitorId']]['Events']) ) {
     $last_event = end($EventsByMonitor[$event['MonitorId']]['Events']);
+#Logger::Debug(print_r($last_event,true));
     $gap = $last_event->EndTimeSecs() - $event['StartTimeSecs'];
  
     if ( $gap < $EventsByMonitor[$event['MonitorId']]['MinGap'] )
@@ -140,7 +141,10 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
           <tr>
             <th class="colId"><?php echo translate('Id') ?></th>
             <th class="colName"><i class="material-icons md-18">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
+            <th class="colServer"><?php echo translate('Server') ?></th>
             <th class="colEvents"><?php echo translate('Events') ?></th>
+            <th class="colFirstEvent"><?php echo translate('FirstEvent') ?></th>
+            <th class="colLastEvent"><?php echo translate('LastEvent') ?></th>
             <th class="colMinGap"><?php echo translate('MinGap') ?></th> 
             <th class="colMaxGap"><?php echo translate('MaxGap') ?></th> 
             <th class="colMissingFiles"><?php echo translate('MissingFiles') ?></th> 
@@ -152,8 +156,25 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
   $Monitor = new Monitor($monitor);
-
   $montagereview_link = "?view=montagereview&live=0&MonitorId=". $monitor['Id'] . '&minTime='.$minTime.'&maxTime='.$maxTime;
+
+  if ( isset($EventsByMonitor[$Monitor->Id()]) ) {
+    $EventCounts = $EventsByMonitor[$Monitor->Id()];
+    $MinGap = $EventCounts['MinGap'];
+    $MaxGap = $EventCounts['MaxGap'];
+    $FileMissing = $EventCounts['FileMissing'];
+    $ZeroSize = $EventCounts['ZeroSize'];
+    $FirstEvent = $EventCounts['Events'][0];
+    $LastEvent = end($EventCounts['Events']);
+  } else {
+    $MinGap = 0;
+    $MaxGap = 0;
+    $FileMissing = 0;
+    $ZeroSize = 0;
+    $FirstEvent = 0;
+    $LastEvent = 0;
+  }
+
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
             <td class="colId"><a href="<?php echo $montagereview_link ?>"><?php echo $monitor['Id'] ?></a></td>
@@ -168,6 +189,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </div></td>
+            <td class="colServer"><?php echo $Monitor->Server()->Name()?></td>
             <td class="colEvents"><?php echo isset($EventsByMonitor[$Monitor->Id()])?count($EventsByMonitor[$Monitor->Id()]['Events']):0 ?></td>
             <td class="colFirstEvent"><?php echo $FirstEvent ? $FirstEvent->link_to($FirstEvent->Id().' at ' . $FirstEvent->StartTime()) : 'none'?></td>
             <td class="colLastEvent"><?php echo $LastEvent ? $LastEvent->link_to($LastEvent->Id().' at ' . $LastEvent->StartTime()) : 'none'?></td>

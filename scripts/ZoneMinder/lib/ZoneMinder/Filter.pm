@@ -161,9 +161,9 @@ sub Sql {
             my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
             $self->{Sql} .= 'M.'.$temp_attr_name;
           } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
-            $self->{Sql} .= 'M.'.$term->{attr};
+            $self->{Sql} .= 'M.ServerId';
           } elsif ( $term->{attr} eq 'StorageServerId' ) {
-            $self->{Sql} .= 'S.'.$term->{attr};
+            $self->{Sql} .= 'S.ServerId';
           } elsif ( $term->{attr} eq 'FilterServerId' ) {
             $self->{Sql} .= $Config{ZM_SERVER_ID};
 # StartTime options

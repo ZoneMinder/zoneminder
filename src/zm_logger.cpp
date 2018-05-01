@@ -531,8 +531,6 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     } else {
       puts("Logging to file, but file not open\n");
     }
-  } else {
-    puts("Not logging to file because level <= mFileLevel");
   }
   *syslogEnd = '\0';
   if ( level <= mDatabaseLevel ) {

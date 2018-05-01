@@ -29,7 +29,7 @@ $filterNames = array( ''=>translate('ChooseFilter') );
 $filter = NULL;
 
 foreach ( dbFetchAll( 'SELECT * FROM Filters ORDER BY Name' ) as $row ) {
-  $filterNames[$row['Id']] = $row['Name'];
+  $filterNames[$row['Id']] = $row['Id'] . ' ' . $row['Name'];
   if ( $row['Background'] )
     $filterNames[$row['Id']] .= '*';
   if ( $row['Concurrent'] )

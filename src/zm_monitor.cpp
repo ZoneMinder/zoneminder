@@ -2542,7 +2542,7 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
 bool Monitor::closeEvent() {
   if ( event ) {
     if ( function == RECORD || function == MOCORD ) {
-      gettimeofday( &(event->EndTime()), NULL );
+      gettimeofday(&(event->EndTime()), NULL);
     }
     if ( event_delete_thread ) {
       event_delete_thread->join();
@@ -2554,9 +2554,8 @@ bool Monitor::closeEvent() {
       event = NULL;
       delete e;
       e = NULL;
-    }, event );
+    }, event);
     video_store_data->recording = (struct timeval){0};
-    event = NULL;
     return true;
   }
   return false;

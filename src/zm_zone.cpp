@@ -819,17 +819,22 @@ bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, P
 
 int Zone::Load(Monitor *monitor, Zone **&zones) {
   static char sql[ZM_SQL_MED_BUFSIZ];
+
+  db_mutex.lock();
   snprintf(sql, sizeof(sql), "select Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,FilterX,FilterY,MinFilterPixels,MaxFilterPixels,MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,OverloadFrames,ExtendAlarmFrames from Zones where MonitorId = %d order by Type, Id", monitor->Id());
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
+    db_mutex.unlock();
 		return 0;
   }
 
   MYSQL_RES *result = mysql_store_result( &dbconn );
   if ( !result ) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
+    db_mutex.unlock();
     return 0;
   }
+  db_mutex.unlock();
   int n_zones = mysql_num_rows(result);
   Debug(1, "Got %d zones for monitor %s", n_zones, monitor->Name());
   delete[] zones;

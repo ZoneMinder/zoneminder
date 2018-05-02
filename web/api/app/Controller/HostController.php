@@ -30,20 +30,36 @@ class HostController extends AppController {
 		));
 	}
 
-  function getAuthHash() {
-    if ( $zmOptAuth == '1' ) {
-      require_once '../../../includes/auth.php';
-      $this->set(array(
-        'auth_hash'  => generateAuthHash(ZM_AUTH_HASH_IPS),
-        '_serialize' => array('auth_hash')
-      ) );
-    } else {
-      $this->set(array(
-        'auth_hash'  => '',
-        '_serialize' => array('auth_hash')
-      ) );
+ function getCredentials() {
+    // ignore debug warnings from other functions
+    $this->view='Json';
+    $appendPassword = 0;
+	$this->loadModel('Config');
+    $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
+    $authVal = "";
+    if ($isZmAuth) {
+        $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
+        if ($zmAuthRelay == 'hashed') {
+            
+           $zmAuthHashIps= $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
+            $authVal = 'auth='.generateAuthHash($zmAuthHashIps);
+        }
+        elseif ($zmAuthRelay == 'plain') {
+            // user will need to append the store password here
+            $authVal = "user=".$this->Session->read('user.Username')."&pass=";
+            $appendPassword = 1;
+        }
+        elseif ($zmAuthRelay == 'none') {
+            $authVal = "user=".$this->Session->read('user.Username');
+        }    
     }
-  }
+    $this->set(array(
+      'auth_key'=> $authVal,
+      'append_password'=>$appendPassword,
+      '_serialize'  =>  array('auth_key', 'append_password')
+    ) );
+ }
+
 
 	// If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor

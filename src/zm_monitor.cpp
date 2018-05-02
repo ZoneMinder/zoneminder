@@ -2549,12 +2549,17 @@ bool Monitor::closeEvent() {
       delete event_delete_thread;
       event_delete_thread = NULL;
     }
+#if 0
     event_delete_thread = new std::thread([](Event *event) {
       Event * e = event;
       event = NULL;
       delete e;
       e = NULL;
     }, event);
+#else
+    delete event;
+    event = NULL;
+#endif
     video_store_data->recording = (struct timeval){0};
     return true;
   }
@@ -2792,4 +2797,26 @@ Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 Monitor::Snapshot *Monitor::getSnapshot() const {
   return &image_buffer[ shared_data->last_write_index%image_buffer_count ];
+}
+
+std::list<Group *>  Monitor::Groups() {
+  // At the moment, only load groups once.
+  if ( ! groups.size() ) {
+    std::string sql = stringtf("SELECT GroupId FROM Groups_Monitors WHERE MonitorId=%d",id);
+    MYSQL_RES *result = zmDbFetch(sql.c_str());
+    if ( !result ) {
+      Error("Can't load groups: %s", mysql_error(&dbconn));
+      return groups;
+    }
+    int n_groups = mysql_num_rows(result);
+    Debug( 1, "Got %d groups", n_groups );
+    while ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {
+      groups.push_back( new Group(dbrow) );
+    }
+    if ( mysql_errno(&dbconn) ) {
+      Error("Can't fetch row: %s", mysql_error(&dbconn));
+    }
+    mysql_free_result(result);
+  }
+  return groups;
 }

@@ -29,7 +29,7 @@ $filterNames = array( ''=>translate('ChooseFilter') );
 $filter = NULL;
 
 foreach ( dbFetchAll( 'SELECT * FROM Filters ORDER BY Name' ) as $row ) {
-  $filterNames[$row['Id']] = $row['Name'];
+  $filterNames[$row['Id']] = $row['Id'] . ' ' . $row['Name'];
   if ( $row['Background'] )
     $filterNames[$row['Id']] .= '*';
   if ( $row['Concurrent'] )
@@ -101,7 +101,10 @@ $attrTypes = array(
     'DiskSpace'   => translate('AttrDiskSpace'),
     'SystemLoad'  => translate('AttrSystemLoad'),
     'StorageId'   => translate('AttrStorageArea'),
-    'ServerId'    => translate('AttrServer'),
+    'ServerId'    => translate('AttrMonitorServer'),
+    'FilterServerId'     => translate('AttrFilterServer'),
+    'MonitorServerId'    => translate('AttrMonitorServer'),
+    'StorageServerId'    => translate('AttrStorageServer'),
     'StateId'     => translate('AttrStateId'),
     );
 
@@ -268,7 +271,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $monitors, $term['val'] ); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'ServerId' ) {
+    } elseif ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $servers, $term['val'] ); ?></td>

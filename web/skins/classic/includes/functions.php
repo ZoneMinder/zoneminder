@@ -244,7 +244,7 @@ function getNavBarHTML($reload = null) {
   if ( logToDatabase() > Logger::NOLOG ) { 
     if ( ! ZM_RUN_AUDIT ) {
     # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
-     dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.')');
+     dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
     }
     echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
   }

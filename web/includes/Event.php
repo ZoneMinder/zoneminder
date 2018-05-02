@@ -451,6 +451,11 @@ class Event {
     $values[] = $this->{'Id'};
     dbQuery( $sql, $values );
   }
+  public function link_to($text=null) {
+    if ( !$text )
+      $text = $this->{'Id'};
+    return '<a href="?view=event&amp;eid='. $this->{'Id'}.'">'.$text.'</a>';
+  }
 
 } # end class
 

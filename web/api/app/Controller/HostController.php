@@ -6,14 +6,14 @@ class HostController extends AppController {
 	public $components = array('RequestHandler');
 
 	public function daemonCheck($daemon=false, $args=false) {
-    $string = Configure::read('ZM_PATH_BIN')."/zmdc.pl check";
+    $string = Configure::read('ZM_PATH_BIN').'/zmdc.pl check';
     if ( $daemon ) {
         $string .= " $daemon";
         if ( $args )
             $string .= " $args";
     }
-    $result = exec( $string );
-    $result = preg_match( '/running/', $result );
+    $result = exec($string);
+    $result = preg_match('/running/', $result);
 
 		$this->set(array(
 			'result' => $result,
@@ -30,7 +30,7 @@ class HostController extends AppController {
 		));
 	}
 
- function getAuthKey() {
+ function getCredentials() {
     // ignore debug warnings from other functions
     $this->view='Json';
     $appendPassword = 0;
@@ -59,6 +59,7 @@ class HostController extends AppController {
       '_serialize'  =>  array('auth_key', 'append_password')
     ) );
  }
+
 
 	// If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor

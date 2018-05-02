@@ -45,7 +45,7 @@ if ( ! $monitor ) {
   $nextId = getTableAutoInc( 'Monitors' );
   if ( isset( $_REQUEST['dupId'] ) ) {
     $monitor = new Monitor( $_REQUEST['dupId'] );
-    $monitor->GroupIds(); // have to lead before we change the Id
+    $monitor->GroupIds(); // have to load before we change the Id
     if ( ZM_OPT_X10 )
       $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
     $clonedName = $monitor->Name();
@@ -538,6 +538,11 @@ if ( $tab != 'general' ) {
       <input type="hidden" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>"/>
       <input type="hidden" name="newMonitor[ServerId]" value="<?php echo validHtmlStr($monitor->ServerId() ) ?>"/>
       <input type="hidden" name="newMonitor[StorageId]" value="<?= validHtmlStr($monitor->StorageId() ) ?>"/>
+<?php
+foreach ( $monitor->GroupIds() as $group_id ) {
+echo '<input type="hidden" name="newMonitor[GroupIds][]" value="'.$group_id.'"/>';
+}
+?>
       <input type="hidden" name="newMonitor[Type]" value="<?php echo validHtmlStr($monitor->Type()) ?>"/>
       <input type="hidden" name="newMonitor[Function]" value="<?php echo validHtmlStr($monitor->Function()) ?>"/>
       <input type="hidden" name="newMonitor[Enabled]" value="<?php echo validHtmlStr($monitor->Enabled()) ?>"/>

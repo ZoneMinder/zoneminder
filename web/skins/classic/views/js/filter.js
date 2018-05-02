@@ -142,7 +142,9 @@ function parseRows (rows) {
       inputTds.eq(6).find(':input[value="-"]').prop('disabled', false);
     }
 
-    if (inputTds.eq(2).children().val() == "Archived") { //Archived types
+    var attr = inputTds.eq(2).children().val();
+
+    if ( attr == "Archived") { //Archived types
       inputTds.eq(3).html('equal to<input type="hidden" name="filter[Query][terms][' + rowNum + '][op]" value="=">');
       let archiveSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let i = 0; i < archiveTypes.length; i++) {
@@ -151,7 +153,7 @@ function parseRows (rows) {
       let archiveVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).chosen({width: "101%"});
 
-    } else if (inputTds.eq(2).children().val().indexOf('Weekday') >= 0) {  //Weekday selection
+    } else if ( attr.indexOf('Weekday') >= 0 ) {  //Weekday selection
       let weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let i = 0; i < weekdays.length; i++) {
         weekdaySelect.append('<option value="' + i + '">' + weekdays[i] + '</option>');
@@ -159,7 +161,7 @@ function parseRows (rows) {
       let weekdayVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(weekdaySelect).children().val(weekdayVal).chosen({width: "101%"});
 
-    } else if (inputTds.eq(2).children().val() == 'StateId') { //Run state
+    } else if ( attr == 'StateId' ) { //Run state
       let stateSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let key in states) {
         stateSelect.append('<option value="' + key + '">' + states[key] + '</option>');
@@ -167,8 +169,7 @@ function parseRows (rows) {
       let stateVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(stateSelect).children().val(stateVal).chosen({width: "101%"});
 
-
-    } else if (inputTds.eq(2).children().val() == 'ServerId') { //Select Server
+    } else if ( attr == 'ServerId' || attr == 'MonitorServerId' || attr == 'StorageServerId' || attr == 'FilterServerId' ) { //Select Server
       let serverSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let key in servers) {
         serverSelect.append('<option value="' + key + '">' + servers[key] + '</option>');
@@ -176,21 +177,15 @@ function parseRows (rows) {
       let serverVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(serverSelect).children().val(serverVal).chosen({width: "101%"});
 
-    } else if (inputTds.eq(2).children().val() == 'StorageId') { //Choose by storagearea
+    } else if ( attr == 'StorageId' ) { //Choose by storagearea
       let storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
 			for ( key in storageareas ) {
-console.log(key + ' ' + storageareas[key]);
         storageSelect.append('<option value="' + key + '">' + storageareas[key] + '</option>');
-}
-/*
-      for (let i=0; i < storageareas.length; i++) {
-        storageSelect.append('<option value="' + i + '">' + storageareas[i] + '</option>');
       }
-*/
       let storageVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
 
-    } else if (inputTds.eq(2).children().val() == 'MonitorName') { //Monitor names
+    } else if ( attr == 'MonitorName' ) { //Monitor names
       let monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let key in monitors) {
         monitorSelect.append('<option value="' + key + '">' + monitors[key] + '</option>');
@@ -208,15 +203,15 @@ console.log(key + ' ' + storageareas[key]);
       let textVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(textInput).children().val(textVal);
     }
-    if (inputTds.eq(2).children().val().endsWith('DateTime')) { //Start/End DateTime
+    if ( attr.endsWith('DateTime') ) { //Start/End DateTime
       inputTds.eq(4).children().datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
-    } else if (inputTds.eq(2).children().val().endsWith('Date')) { //Start/End Date
+    } else if ( attr.endsWith('Date') ) { //Start/End Date
       inputTds.eq(4).children().datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
-    } else if (inputTds.eq(2).children().val().endsWith('Time')) { //Start/End Time
+    } else if ( attr.endsWith('Time')) { //Start/End Time
       inputTds.eq(4).children().timepicker({timeFormat: "HH:mm:ss", constrainInput: false});
     }
 
-    let attr = inputTds.find("[name$='attr\\]']") // Set attr list id and name
+    attr = inputTds.find("[name$='attr\\]']") // Set attr list id and name
     let term = attr.attr('name').split(/[[\]]{1,2}/);
     term.length--;
     term.shift();

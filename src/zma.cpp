@@ -146,7 +146,7 @@ int main( int argc, char *argv[] ) {
     monitor->UpdateAdaptiveSkip();
     last_analysis_update_time = time( 0 );
 
-    while( !zm_terminate ) {
+    while( (!zm_terminate) && monitor->ShmValid() ) {
       // Process the next image
       sigprocmask(SIG_BLOCK, &block_set, 0);
 

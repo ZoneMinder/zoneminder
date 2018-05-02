@@ -187,13 +187,14 @@ int RemoteCameraNVSocket::Capture( Image &image ) {
     Warning( "Unable to capture image, retrying" );
     return 0;
   }
-  if ( Read( sd, buffer, imagesize ) < imagesize ) {
-    Warning( "Unable to capture image, retrying" );
+	int bytes_read = Read(sd, buffer, imagesize);
+  if ( (bytes_read < 0) || ( (unsigned int)bytes_read < imagesize ) ) {
+    Warning("Unable to capture image, retrying");
     return 0;
   }
   uint32_t end;
   if ( Read(sd, (char *) &end , sizeof(end)) < 0 ) {
-    Warning( "Unable to capture image, retrying" );
+    Warning("Unable to capture image, retrying");
     return 0;
   }
   if ( end != 0xFFFFFFFF) {
@@ -201,7 +202,7 @@ int RemoteCameraNVSocket::Capture( Image &image ) {
     return 0;
   }
 
-  image.Assign( width, height, colours, subpixelorder, buffer, imagesize );
+  image.Assign(width, height, colours, subpixelorder, buffer, imagesize);
   return 1;
 }
 

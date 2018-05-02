@@ -133,10 +133,7 @@ function dbQuery( $sql, $params=NULL ) {
       }
     } else {
       if ( defined('ZM_DB_DEBUG') ) {
-        if ( $params )
-          Warning("SQL: $sql" . implode(',',$params) );
-        else
-          Warning("SQL: $sql:"  );
+				Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):'') );
       }
       $result = $dbConn->query($sql);
     }
@@ -186,7 +183,7 @@ function dbFetchAll( $sql, $col=false, $params=NULL ) {
   $dbRows = array();
   while( $dbRow = $result->fetch( PDO::FETCH_ASSOC ) )
     $dbRows[] = $col?$dbRow[$col]:$dbRow;
-  return( $dbRows );
+  return $dbRows;
 }
 
 function dbFetchAssoc( $sql, $indexCol, $dataCol=false ) {

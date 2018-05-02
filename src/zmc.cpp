@@ -1,21 +1,21 @@
 //
 // ZoneMinder Capture Daemon, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 /*
 
@@ -39,7 +39,7 @@ zmc - The ZoneMinder Capture daemon
 =head1 DESCRIPTION
 
 This binary's job is to sit on a video device and suck frames off it as fast as
-possible, this should run at more or less constant speed. 
+possible, this should run at more or less constant speed.
 
 =head1 OPTIONS
 
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
         std::cout << ZM_VERSION << "\n";
         exit(0);
       default:
-        //fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
+        // fprintf(stderr, "?? getopt returned character code 0%o ??\n", c);
         break;
     }
   }
@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
     Usage();
   }
 
-  int modes = ( (device[0]?1:0) + (host[0]?1:0) + (file[0]?1:0) + (monitor_id > 0 ? 1 : 0));
+  int modes = ( (device[0]?1:0) + (host[0]?1:0) + (file[0]?1:0) + (monitor_id > 0 ? 1 : 0) );
   if ( modes > 1 ) {
     fprintf(stderr, "Only one of device, host/port/path, file or monitor id allowed\n");
     Usage();
@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
   if ( device[0] ) {
     n_monitors = Monitor::LoadLocalMonitors(device, monitors, Monitor::CAPTURE);
   } else
-#endif // ZM_HAS_V4L
+#endif  // ZM_HAS_V4L
   if ( host[0] ) {
     if ( !port )
       port = "80";
@@ -221,27 +221,31 @@ int main(int argc, char *argv[]) {
   }
 
   Info("Starting Capture version %s", ZM_VERSION);
+  zmSetDefaultHupHandler();
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
   sigset_t block_set;
   sigemptyset(&block_set);
 
+  sigaddset(&block_set, SIGHUP);
   sigaddset(&block_set, SIGUSR1);
   sigaddset(&block_set, SIGUSR2);
 
   int result = 0;
 
-  while( ! zm_terminate ) {
+  while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
-    for ( int i = 0; i < n_monitors; i ++ ) {
+    for ( int i = 0; i < n_monitors; i++ ) {
       time_t now = (time_t)time(NULL);
       monitors[i]->setStartupTime(now);
 
-      snprintf(sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')", monitors[i]->Id());
+      snprintf(sql, sizeof(sql),
+          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Running')",
+          monitors[i]->Id());
       if ( mysql_query(&dbconn, sql) ) {
-        Error( "Can't run query: %s", mysql_error( &dbconn ) );
+        Error("Can't run query: %s", mysql_error(&dbconn));
       }
     }
     // Outer primary loop, handles connection to camera
@@ -250,16 +254,18 @@ int main(int argc, char *argv[]) {
       sleep(10);
       continue;
     }
-    for ( int i = 0; i < n_monitors; i ++ ) {
-      snprintf(sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')", monitors[i]->Id());
+    for ( int i = 0; i < n_monitors; i++ ) {
+      snprintf(sql, sizeof(sql),
+          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')",
+          monitors[i]->Id());
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
     }
 
-    long *capture_delays = new long[n_monitors];
-    long *alarm_capture_delays = new long[n_monitors];
-    long *next_delays = new long[n_monitors];
+    int *capture_delays = new int[n_monitors];
+    int *alarm_capture_delays = new int[n_monitors];
+    int *next_delays = new int[n_monitors];
     struct timeval * last_capture_times = new struct timeval[n_monitors];
     for ( int i = 0; i < n_monitors; i++ ) {
       last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
@@ -290,7 +296,7 @@ int main(int argc, char *argv[]) {
           if ( next_delays[j] <= min_delay ) {
             min_delay = next_delays[j];
           }
-        } // end foreach monitor
+        }  // end foreach monitor
 
         if ( next_delays[i] <= min_delay || next_delays[i] <= 0 ) {
           if ( monitors[i]->PreCapture() < 0 ) {
@@ -330,7 +336,7 @@ int main(int argc, char *argv[]) {
           monitors[i]->Reload();
         }
         logTerm();
-        logInit( log_id_string );
+        logInit(log_id_string);
         zm_reload = false;
       }
       if ( result < 0 ) {
@@ -346,9 +352,11 @@ int main(int argc, char *argv[]) {
 
   for ( int i = 0; i < n_monitors; i++ ) {
     static char sql[ZM_SQL_SML_BUFSIZ];
-    snprintf( sql, sizeof(sql), "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','NotRunning')", monitors[i]->Id() );
-    if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't run query: %s", mysql_error( &dbconn ) );
+    snprintf(sql, sizeof(sql),
+        "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','NotRunning')",
+        monitors[i]->Id());
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't run query: %s", mysql_error(&dbconn));
     }
     delete monitors[i];
   }

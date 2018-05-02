@@ -1025,7 +1025,14 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             $filter['sql'] .= 'M.'.preg_replace('/^Monitor/', '', $terms[$i]['attr']);
             break;
           case 'ServerId':
+          case 'MonitorServerId':
             $filter['sql'] .= 'M.ServerId';
+            break;
+          case 'StorageServerId':
+            $filter['sql'] .= 'S.ServerId';
+            break;
+          case 'FilterServerId':
+            $filter['sql'] .= ZM_SERVER_ID;
             break;
 # Unspecified start or end, so assume start, this is to support legacy filters
           case 'DateTime':
@@ -1121,6 +1128,9 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             case 'Notes':
               $value = dbEscape($value);
               break;
+            case 'MonitorServerId':
+            case 'FilterServerId':
+            case 'StorageServerId':
             case 'ServerId':
               if ( $value == 'ZM_SERVER_ID' ) {
                 $value = ZM_SERVER_ID;

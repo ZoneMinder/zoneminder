@@ -460,7 +460,7 @@ if ( canEdit( 'Monitors' ) ) {
         $x10Monitor = array();
       }
     }
-    $Monitor = new Monitor( $monitor );
+    $Monitor = new Monitor($monitor);
 
     // Define a field type for anything that's not simple text equivalent
     $types = array(
@@ -477,7 +477,7 @@ if ( canEdit( 'Monitors' ) ) {
 
     if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
       Logger::Debug("Auto selecting server");
-      $_REQUEST['newMonitor']['ServerId'] = dbFetchOne( 'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id' );
+      $_REQUEST['newMonitor']['ServerId'] = dbFetchOne('SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
       Logger::Debug("Auto selecting server: Got " . $_REQUEST['newMonitor']['ServerId'] );
       if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
         $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
@@ -487,8 +487,8 @@ if ( canEdit( 'Monitors' ) ) {
       Logger::Debug("NOT Auto selecting server" . $_REQUEST['newMonitor']['ServerId']);
     }
 
-    $columns = getTableColumns( 'Monitors' );
-    $changes = getFormChanges( $monitor, $_REQUEST['newMonitor'], $types, $columns );
+    $columns = getTableColumns('Monitors');
+    $changes = getFormChanges($monitor, $_REQUEST['newMonitor'], $types, $columns);
 
     if ( count( $changes ) ) {
       if ( $mid ) {
@@ -569,6 +569,8 @@ if ( canEdit( 'Monitors' ) ) {
         return;
       }
 
+      $restart = true;
+    } # end if count(changes)
       if (
         ( !isset($_POST['newMonitor']['GroupIds']) )
         or
@@ -585,8 +587,6 @@ if ( canEdit( 'Monitors' ) ) {
           }
         }
       } // end if there has been a change of groups
-      $restart = true;
-    } # end if count(changes)
 
     if ( ZM_OPT_X10 ) {
       $x10Changes = getFormChanges( $x10Monitor, $_REQUEST['newX10Monitor'] );

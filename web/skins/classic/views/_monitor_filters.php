@@ -135,6 +135,7 @@ if ( count($StorageById) > 1 ) {
     ) );
   $html .= '</span>';
 } # end if have Storage Areas
+
 $html .= '<span class="StatusFilter"><label>'. translate('Status') . ':</label>';
 $status_options = array(
     'Unknown' => translate('StatusUnknown'),
@@ -186,15 +187,11 @@ $html .= htmlSelect( 'Status[]', $status_options,
     if ( count($selected_monitor_ids) and ! in_array($monitors[$i]['Id'], $selected_monitor_ids) ) {
       continue;
     }
-    if ( isset($_SESSION['StatusFilter']) ) {
-      if ( $monitors[$i]['Status'] != $_SESSION['StatusFilter'] ) {
-        continue;
-      }
-    }
     $displayMonitors[] = $monitors[$i];
-  }
-  $html .= '<span id="monitorControl"><label>'.translate('Monitor').':</label>';
-  $html .= htmlSelect( 'MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
+  } # end foreach monitor
+
+  $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').':</label>';
+  $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
       'onchange'=>'this.form.submit();',
       'class'=>'chosen',

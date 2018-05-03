@@ -74,6 +74,7 @@ private:
   }
 
 public:
+  int trylock();
   void lock();
   void lock( int secs );
   void lock( double secs );

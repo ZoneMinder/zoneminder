@@ -346,7 +346,7 @@ class Event {
 
     if ( $frame and ! is_array($frame) ) {
       # Must be an Id
-      Debug("Assuming that $frame is an Id");
+      Logger::Debug("Assuming that $frame is an Id");
       $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
     }
 
@@ -354,7 +354,7 @@ class Event {
       # No frame specified, so look for a snapshot to use
       $captImage = 'snapshot.jpg';
       Logger::Debug("Frame not specified, using snapshot");
-	  $frame = array('FrameId'=>'snapshot', 'Type'=>'');
+      $frame = array('FrameId'=>'snapshot', 'Type'=>'');
     } else {
       $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId'] );
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
@@ -384,9 +384,8 @@ class Event {
     }
 
     $captPath = $eventPath.'/'.$captImage;
-    if ( ! file_exists( $captPath ) ) {
+    if ( ! file_exists($captPath) ) {
       Error( "Capture file does not exist at $captPath" );
-      return '';
     }
     $thumbCaptPath = ZM_DIR_IMAGES.'/'.$this->{'Id'}.'-'.$captImage;
     
@@ -451,7 +450,7 @@ class Event {
         'imageClass' => $alarmFrame?'alarm':'normal',
         'isAnalImage' => $isAnalImage,
         'hasAnalImage' => $hasAnalImage,
-		'FrameId'		=>	$frame['FrameId'],
+        'FrameId'		=>	$frame['FrameId'],
         );
 
     return $imageData;

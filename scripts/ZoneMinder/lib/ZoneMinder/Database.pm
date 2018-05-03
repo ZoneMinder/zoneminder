@@ -101,11 +101,14 @@ sub zmDbConnect {
           );
     }
 
+    eval {
     $dbh = DBI->connect( 'DBI:mysql:database='.$Config{ZM_DB_NAME}
-        .$socket . $sslOptions . ($options?';'.join(';', map { $_.'='.$$options{$_} } keys %{$options} ) : '' )
+        .$socket . $sslOptions . ($options?';'.join(';', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
         , $Config{ZM_DB_USER}
         , $Config{ZM_DB_PASS}
         );
+    };
+    Error("Error reconnecting to db: errstr:$DBI::errstr error val:$@") if (! $dbh) or $@;
     $dbh->trace(0) if $dbh;
   }
   return $dbh;

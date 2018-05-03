@@ -437,7 +437,7 @@ sub delete_files {
           Error("S3 bucket $bucket not found.");
           die;
         }
-        if ( $bucket->delete_key( $event_path ) ) {
+        if ( $bucket->delete_key($event_path) ) {
           $deleted = 1;
         } else {
           Error("Failed to delete from S3:".$s3->err . ": " . $s3->errstr);
@@ -456,7 +456,7 @@ sub delete_files {
     Debug("Deleting files for Event $$event{Id} from $storage_path/$link_path.");
     if ( $link_path ) {
       ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
-        unlink( $storage_path.'/'.$link_path ) or Error( "Unable to unlink '$storage_path/$link_path': $!" );
+        unlink($storage_path.'/'.$link_path) or Error( "Unable to unlink '$storage_path/$link_path': $!" );
     }
   }
 } # end sub delete_files
@@ -466,7 +466,7 @@ sub Storage {
     $_[0]{Storage} = $_[1];
   }
   if ( ! $_[0]{Storage} ) {
-    $_[0]{Storage} = new ZoneMinder::Storage( $_[0]{StorageId} );
+    $_[0]{Storage} = new ZoneMinder::Storage($_[0]{StorageId});
   } 
   return $_[0]{Storage};
 }
@@ -630,6 +630,10 @@ Debug("Files to move @files");
       return $error;
     }
     my @files = glob("$OldPath/*");
+    if ( ! @files ) {
+      $ZoneMinder::Database::dbh->commit();
+      return "No files to move.";
+    }
 
     for my $file (@files) {
       next if $file =~ /^\./;
@@ -659,8 +663,10 @@ Debug("Files to move @files");
     $ZoneMinder::Database::dbh->commit();
     return $error;
   }
+Debug("Committing");
   $ZoneMinder::Database::dbh->commit();
   $self->delete_files( $OldStorage );
+Debug("Done deleting files, returning");
   return $error;
 } # end sub MoveTo
 

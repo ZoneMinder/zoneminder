@@ -50,12 +50,12 @@ Event::Event(
     const std::string &p_cause,
     const StringSetMap &p_noteSetMap,
     bool p_videoEvent ) :
-  monitor( p_monitor ),
-  start_time( p_start_time ),
-  cause( p_cause ),
-  noteSetMap( p_noteSetMap ),
-  videoEvent( p_videoEvent ),
-  videowriter( NULL )
+  monitor(p_monitor),
+  start_time(p_start_time),
+  cause(p_cause),
+  noteSetMap(p_noteSetMap),
+  videoEvent(p_videoEvent),
+  videowriter(NULL)
 {
 
   std::string notes;
@@ -121,7 +121,7 @@ Event::Event(
 
   if ( storage->Scheme() == Storage::DEEP ) {
     char *path_ptr = path;
-    path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d", storage->Path(), monitor->Id() );
+    path_ptr += snprintf(path_ptr, sizeof(path), "%s/%d", storage->Path(), monitor->Id());
 
     int dt_parts[6];
     dt_parts[0] = stime->tm_year-100;
@@ -135,54 +135,55 @@ Event::Event(
     char time_path[PATH_MAX] = "";
     char *time_path_ptr = time_path;
     for ( unsigned int i = 0; i < sizeof(dt_parts)/sizeof(*dt_parts); i++ ) {
-      path_ptr += snprintf( path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i] );
+      path_ptr += snprintf(path_ptr, sizeof(path)-(path_ptr-path), "/%02d", dt_parts[i]);
 
       errno = 0;
-      if ( mkdir( path, 0755 ) ) {
+      if ( mkdir(path, 0755) ) {
         // FIXME This should not be fatal.  Should probably move to a different storage area.
         if ( errno != EEXIST ) {
-          Error( "Can't mkdir %s: %s", path, strerror(errno));
+          Error("Can't mkdir %s: %s", path, strerror(errno));
         }
       }
       if ( i == 2 )
-        strncpy( date_path, path, sizeof(date_path) );
+        strncpy(date_path, path, sizeof(date_path));
       else if ( i >= 3 )
-        time_path_ptr += snprintf( time_path_ptr, sizeof(time_path)-(time_path_ptr-time_path), "%s%02d", i>3?"/":"", dt_parts[i] );
+        time_path_ptr += snprintf(time_path_ptr, sizeof(time_path)-(time_path_ptr-time_path), "%s%02d", i>3?"/":"", dt_parts[i]);
     }
     // Create event id symlink
-    snprintf( id_file, sizeof(id_file), "%s/.%" PRIu64, date_path, id );
-    if ( symlink( time_path, id_file ) < 0 )
-      Error( "Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
+    snprintf(id_file, sizeof(id_file), "%s/.%" PRIu64, date_path, id);
+    if ( symlink(time_path, id_file) < 0 )
+      Error("Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
   } else if ( storage->Scheme() == Storage::MEDIUM ) {
     char *path_ptr = path;
-    path_ptr += snprintf( path_ptr, sizeof(path), "%s/%d/%04d-%02d-%02d",
+    path_ptr += snprintf(
+        path_ptr, sizeof(path), "%s/%d/%04d-%02d-%02d",
         storage->Path(), monitor->Id(), stime->tm_year+1900, stime->tm_mon+1, stime->tm_mday
         );
-    if ( mkdir( path, 0755 ) ) {
+    if ( mkdir(path, 0755) ) {
       // FIXME This should not be fatal.  Should probably move to a different storage area.
       if ( errno != EEXIST )
-        Error( "Can't mkdir %s: %s", path, strerror(errno));
+        Error("Can't mkdir %s: %s", path, strerror(errno));
     }
-    path_ptr += snprintf( path_ptr, sizeof(path), "/%" PRIu64, id );
-    if ( mkdir( path, 0755 ) ) {
+    path_ptr += snprintf(path_ptr, sizeof(path), "/%" PRIu64, id);
+    if ( mkdir(path, 0755) ) {
       // FIXME This should not be fatal.  Should probably move to a different storage area.
       if ( errno != EEXIST )
-        Error( "Can't mkdir %s: %s", path, strerror(errno));
+        Error("Can't mkdir %s: %s", path, strerror(errno));
     }
   } else {
-    snprintf( path, sizeof(path), "%s/%d/%" PRIu64, storage->Path(), monitor->Id(), id );
-    if ( mkdir( path, 0755 ) ) {
+    snprintf(path, sizeof(path), "%s/%d/%" PRIu64, storage->Path(), monitor->Id(), id);
+    if ( mkdir(path, 0755) ) {
       if ( errno != EEXIST ) {
-        Error( "Can't mkdir %s: %s", path, strerror(errno));
+        Error("Can't mkdir %s: %s", path, strerror(errno));
       }
     }
 
     // Create empty id tag file
-    snprintf( id_file, sizeof(id_file), "%s/.%" PRIu64, path, id );
-    if ( FILE *id_fp = fopen( id_file, "w" ) )
-      fclose( id_fp );
+    snprintf(id_file, sizeof(id_file), "%s/.%" PRIu64, path, id);
+    if ( FILE *id_fp = fopen(id_file, "w") )
+      fclose(id_fp);
     else
-      Error( "Can't fopen %s: %s", id_file, strerror(errno));
+      Error("Can't fopen %s: %s", id_file, strerror(errno));
   } // deep storage or not
 
   last_db_frame = 0;
@@ -192,8 +193,8 @@ Event::Event(
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
-    snprintf( video_name, sizeof(video_name), "%" PRIu64 "-%s", id, "video.mp4" );
-    snprintf( video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name );
+    snprintf(video_name, sizeof(video_name), "%" PRIu64 "-%s", id, "video.mp4");
+    snprintf(video_file, sizeof(video_file), staticConfig.video_file_format, path, video_name);
     Debug(1,"Writing video file to %s", video_file );
 
     /* X264 MP4 video writer */
@@ -283,9 +284,7 @@ void Event::createNotes(std::string &notes) {
   }
 }
 
-int Event::sd = -1;
-
-bool Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame ) {
+bool Event::WriteFrameImage(Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame) {
 
   int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
   bool rc;
@@ -294,11 +293,11 @@ Debug(3, "Writing image to %s", event_file );
   if ( !config.timestamp_on_capture ) {
     // stash the image we plan to use in another pointer regardless if timestamped.
     Image *ts_image = new Image(*image);
-    monitor->TimestampImage( ts_image, &timestamp );
-    rc = ts_image->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) ); // exif is only timestamp at present this switches on or off for write
+    monitor->TimestampImage(ts_image, &timestamp);
+    rc = ts_image->WriteJpeg(event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0})); // exif is only timestamp at present this switches on or off for write
     delete(ts_image);
   } else {
-    rc = image->WriteJpeg( event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0}) ); // exif is only timestamp at present this switches on or off for write
+    rc = image->WriteJpeg(event_file, thisquality, (monitor->Exif() ? timestamp : (timeval){0,0})); // exif is only timestamp at present this switches on or off for write
   }
 
   return rc;
@@ -444,21 +443,21 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
 
 void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps ) {
   static char sql[ZM_SQL_LGE_BUFSIZ];
-  strncpy( sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql) );
+  strncpy(sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql));
   int frameCount = 0;
   for ( int i = start_frame; i < n_frames && i - start_frame < ZM_SQL_BATCH_SIZE; i++ ) {
     if ( timestamps[i]->tv_sec <= 0 ) {
-      Debug( 1, "Not adding pre-capture frame %d, zero or less than 0 timestamp", i );
+      Debug(1, "Not adding pre-capture frame %d, zero or less than 0 timestamp", i);
       continue;
     }
 
     frames++;
 
     static char event_file[PATH_MAX];
-    snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
+    snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
     if ( monitor->GetOptSaveJPEGs() & 1 ) {
-      Debug( 1, "Writing pre-capture frame %d", frames );
-      WriteFrameImage( images[i], *(timestamps[i]), event_file );
+      Debug(1, "Writing pre-capture frame %d", frames);
+      WriteFrameImage(images[i], *(timestamps[i]), event_file);
     } else {
       //If this is the first frame, we should add a thumbnail to the event directory
       // ICON: We are working through the pre-event frames so this snapshot won't 
@@ -466,12 +465,12 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
       // so I am changing this to 1, but we should overwrite it later with a better snapshot.
       if ( frames == 1 ) {
         char snapshot_file[PATH_MAX];
-        snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
-        WriteFrameImage( images[i], *(timestamps[i]), snapshot_file );
+        snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
+        WriteFrameImage(images[i], *(timestamps[i]), snapshot_file);
       }
     }
     if ( videowriter != NULL ) {
-      WriteFrameVideo( images[i], *(timestamps[i]), videowriter );
+      WriteFrameVideo(images[i], *(timestamps[i]), videowriter);
     }
 
     struct DeltaTimeval delta_time;
@@ -484,47 +483,47 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     }
 
     int sql_len = strlen(sql);
-    snprintf( sql+sql_len, sizeof(sql)-sql_len, "( %" PRIu64 ", %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec );
+    snprintf(sql+sql_len, sizeof(sql)-sql_len, "( %" PRIu64 ", %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
 
     frameCount++;
   } // end foreach frame
 
   if ( frameCount ) {
-    Debug( 1, "Adding %d/%d frames to DB", frameCount, n_frames );
+    Debug(1, "Adding %d/%d frames to DB", frameCount, n_frames);
     *(sql+strlen(sql)-2) = '\0';
     db_mutex.lock();
     if ( mysql_query( &dbconn, sql ) ) {
-      Error( "Can't insert frames: %s, sql was (%s)", mysql_error( &dbconn ), sql );
+      Error("Can't insert frames: %s, sql was (%s)", mysql_error(&dbconn), sql);
     }
     db_mutex.unlock();
     last_db_frame = frames;
   } else {
-    Debug( 1, "No valid pre-capture frames to add" );
+    Debug(1, "No valid pre-capture frames to add");
   }
 }
 
-void Event::AddFrame( Image *image, struct timeval timestamp, int score, Image *alarm_image ) {
+void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {
   if ( !timestamp.tv_sec ) {
-    Debug( 1, "Not adding new frame, zero timestamp" );
+    Debug(1, "Not adding new frame, zero timestamp");
     return;
   }
 
   frames++;
 
   static char event_file[PATH_MAX];
-  snprintf( event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames );
+  snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
 
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
-    Debug( 1, "Writing capture frame %d to %s", frames, event_file );
-    if ( ! WriteFrameImage( image, timestamp, event_file ) ) {
+    Debug(1, "Writing capture frame %d to %s", frames, event_file);
+    if ( ! WriteFrameImage(image, timestamp, event_file) ) {
       Error("Failed to write frame image");
     }
   } else {
     //If this is the first frame, we should add a thumbnail to the event directory
     if ( frames == 1 ) {
       char snapshot_file[PATH_MAX];
-      snprintf( snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path );
-      WriteFrameImage( image, timestamp, snapshot_file );
+      snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
+      WriteFrameImage(image, timestamp, snapshot_file);
     }
   }
   if ( videowriter != NULL ) {
@@ -533,7 +532,7 @@ Debug(3, "Writing video");
   }
 
   struct DeltaTimeval delta_time;
-  DELTA_TIMEVAL( delta_time, timestamp, start_time, DT_PREC_2 );
+  DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
 
   FrameType frame_type = score>0?ALARM:(score<0?BULK:NORMAL);
   // < 0 means no motion detection is being done.

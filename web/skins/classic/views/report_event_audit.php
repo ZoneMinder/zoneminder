@@ -27,48 +27,43 @@ ob_end_clean();
 noCacheHeaders();
 xhtmlHeaders( __FILE__, translate('Console') );
 
-
-if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($displayMonitors) != 0) {
-  $filter = array(
-      'Query' => array(
-        'terms' => array(
-          array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'),
-          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'),
-        )
-      ),
-    );
-  if ( count($selected_monitor_ids) ) {
-    $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
-  } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
-# this should be redundant
-    for ($i=0; $i < count($displayMonitors); $i++) {
-      if ($i == '0') {
-        $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1');
-      } else if ($i == (count($displayMonitors)-1)) {
-        $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1');
-      } else {
-        $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or');
-      }
-    }
-  }
-  parseFilter( $filter );
-  # This is to enable the download button
-  session_start();
-  $_SESSION['montageReviewFilter'] = $filter;
-  session_write_close();
-  $filterQuery = $filter['query'];
-}
-
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   $time = time();
   $maxTime = strftime('%FT%T',$time - 3600);
   $minTime = strftime('%FT%T',$time - (2*3600) );
-}
-if ( isset($_REQUEST['minTime']) )
+} else if ( isset($_REQUEST['minTime']) ) {
   $minTime = validHtmlStr($_REQUEST['minTime']);
-
-if ( isset($_REQUEST['maxTime']) )
+} else if ( isset($_REQUEST['maxTime']) ) {
   $maxTime = validHtmlStr($_REQUEST['maxTime']);
+}
+
+$filter = array(
+    'Query' => array(
+      'terms' => array(
+        array('attr'=>'StartDateTime', 'op'=>'>=', 'val'=>$minTime, 'obr'=>'1'),
+        array('attr'=>'StartDateTime', 'op'=>'<=', 'val'=>$maxTime, 'cnj'=>'and', 'cbr'=>'1'),
+      )
+    ),
+  );
+if ( count($selected_monitor_ids) ) {
+  $filter['Query']['terms'][] = (array('attr'=>'MonitorId', 'op'=>'IN', 'val'=>implode(',',$selected_monitor_ids), 'cnj'=>'and'));
+} else if ( ( $group_id != 0 || isset($_SESSION['ServerId']) || isset($_SESSION['StorageId']) || isset($_SESSION['Status']) ) ) {
+# this should be redundant
+  for ($i=0; $i < count($displayMonitors); $i++) {
+    if ($i == '0') {
+      $filter['Query']['terms'][] = array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'and', 'obr'=>'1');
+    } else if ($i == (count($displayMonitors)-1)) {
+      $filter['Query']['terms'][] = array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or', 'cbr'=>'1');
+    } else {
+      $filter['Query']['terms'][] = array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or');
+    }
+  }
+}
+parseFilter($filter);
+$filterQuery = $filter['query'];
+Logger::Debug($filterQuery);
+
+
 
 $eventsSql = 'SELECT *,
     UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
@@ -83,14 +78,12 @@ if ( count($selected_monitor_ids) ) {
   $eventsSql .= ' AND MonitorId IN (' . implode(',',$selected_monitor_ids).')';
 }
 if ( isset($minTime) && isset($maxTime) ) {
-  $minTimeSecs = strtotime($minTime);
-  $maxTimeSecs = strtotime($maxTime);
   $eventsSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
 }
 $eventsSql .= ' ORDER BY Id ASC';
 
-$result = dbQuery( $eventsSql );
-if ( ! $result ) {
+$result = dbQuery($eventsSql);
+if ( !$result ) {
   Fatal('SQL-ERR');
   return;
 }
@@ -98,7 +91,7 @@ $EventsByMonitor = array();
 while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   $Event = new Event($event);
   if ( ! isset($EventsByMonitor[$event['MonitorId']]) )
-    $EventsByMonitor[$event['MonitorId']] = array( 'Events'=>array(), 'MinGap'=>0, 'MaxGap'=>0, 'FileMissing'=>0, 'ZeroSize'=>0 );
+    $EventsByMonitor[$event['MonitorId']] = array( 'Events'=>array(), 'MinGap'=>0, 'MaxGap'=>0, 'FileMissing'=>0, 'ZeroSize'=>array() );
 
   if ( count($EventsByMonitor[$event['MonitorId']]['Events']) ) {
     $last_event = end($EventsByMonitor[$event['MonitorId']]['Events']);
@@ -114,7 +107,7 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   if ( ! file_exists( $Event->Path().'/'.$Event->DefaultVideo() ) ) {
     $EventsByMonitor[$event['MonitorId']]['FileMissing'] += 1;
   } else if ( ! filesize( $Event->Path().'/'.$Event->DefaultVideo() ) ) {
-    $EventsByMonitor[$event['MonitorId']]['ZeroSize'] += 1;
+    $EventsByMonitor[$event['MonitorId']]['ZeroSize'][] = $Event;
   }
   $EventsByMonitor[$event['MonitorId']]['Events'][] = $Event;
 } # end foreach event
@@ -158,6 +151,13 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $Monitor = new Monitor($monitor);
   $montagereview_link = "?view=montagereview&live=0&MonitorId=". $monitor['Id'] . '&minTime='.$minTime.'&maxTime='.$maxTime;
 
+  $monitor_filter = addFilterTerm(
+      $filter,
+      count($filter['Query']['terms']),
+      array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'=', 'val'=>$monitor['Id'])
+    );
+  parseFilter($monitor_filter);
+
   if ( isset($EventsByMonitor[$Monitor->Id()]) ) {
     $EventCounts = $EventsByMonitor[$Monitor->Id()];
     $MinGap = $EventCounts['MinGap'];
@@ -184,19 +184,19 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
                   array_map(function($group_id){
                     $Group = new Group($group_id);
                     $Groups = $Group->Parents();
-                    array_push( $Groups, $Group );
+                    array_push($Groups, $Group);
                     return implode(' &gt; ', array_map(function($Group){ return '<a href="'. ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview&GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </div></td>
             <td class="colServer"><?php echo $Monitor->Server()->Name()?></td>
-            <td class="colEvents"><?php echo isset($EventsByMonitor[$Monitor->Id()])?count($EventsByMonitor[$Monitor->Id()]['Events']):0 ?></td>
+            <td class="colEvents"><a href="?view=<?php echo ZM_WEB_EVENTS_VIEW ?>&amp;page=1<?php echo $monitor_filter['query'] ?>"><?php echo isset($EventsByMonitor[$Monitor->Id()])?count($EventsByMonitor[$Monitor->Id()]['Events']):0 ?></a></td>
             <td class="colFirstEvent"><?php echo $FirstEvent ? $FirstEvent->link_to($FirstEvent->Id().' at ' . $FirstEvent->StartTime()) : 'none'?></td>
             <td class="colLastEvent"><?php echo $LastEvent ? $LastEvent->link_to($LastEvent->Id().' at ' . $LastEvent->StartTime()) : 'none'?></td>
             <td class="colMinGap"><?php echo $MinGap ?></td>
             <td class="colMaxGap"><?php echo $MaxGap ?></td>
             <td class="colFileMissing<?php echo $FileMissing ? ' errorText' : ''?>"><?php echo $FileMissing ?></td>
-            <td class="colZeroSize<?php echo $ZeroSize ? ' errorText' : ''?>"><?php echo $ZeroSize ?></td>
+            <td class="colZeroSize<?php echo count($ZeroSize) ? ' errorText' : ''?>"><?php echo count($ZeroSize) ?></td>
           </tr>
 <?php
 } # end for each monitor

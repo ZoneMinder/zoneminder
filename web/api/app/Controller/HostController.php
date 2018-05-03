@@ -32,31 +32,32 @@ class HostController extends AppController {
 
  function getCredentials() {
     // ignore debug warnings from other functions
-    $this->view='Json';
-    $appendPassword = 0;
+	$this->view='Json';
+	$credentials = "";
+	$appendPassword = 0;
+	
 	$this->loadModel('Config');
     $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
-    $authVal = "";
+ 
     if ($isZmAuth) {
         $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
         if ($zmAuthRelay == 'hashed') {
-            
            $zmAuthHashIps= $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
-            $authVal = 'auth='.generateAuthHash($zmAuthHashIps);
+            $credentials = 'auth='.generateAuthHash($zmAuthHashIps);
         }
         elseif ($zmAuthRelay == 'plain') {
             // user will need to append the store password here
-            $authVal = "user=".$this->Session->read('user.Username')."&pass=";
+            $credentials = "user=".$this->Session->read('user.Username')."&pass=";
             $appendPassword = 1;
         }
         elseif ($zmAuthRelay == 'none') {
-            $authVal = "user=".$this->Session->read('user.Username');
+            $credentials = "user=".$this->Session->read('user.Username');
         }    
     }
     $this->set(array(
-      'auth_key'=> $authVal,
+      'credentials'=> $credentials,
       'append_password'=>$appendPassword,
-      '_serialize'  =>  array('auth_key', 'append_password')
+      '_serialize'  =>  array('credentials', 'append_password')
     ) );
  }
 

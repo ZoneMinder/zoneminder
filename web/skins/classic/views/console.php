@@ -304,31 +304,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
 <?php
   }
-  $source = '';
-  if ( $monitor['Type'] == 'Local' ) {
-    $source = $monitor['Device'].' ('.$monitor['Channel'].')';
-  } elseif ( $monitor['Type'] == 'Remote' ) {
-    $source = preg_replace( '/^.*@/', '', $monitor['Host'] );
-    if ( $monitor['Port'] != '80' and $monitor['Port'] != '554' ) {
-      $source .= ':'.$monitor['Port'];
-    }
-  } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
-    $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
-  } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' || $monitor['Type'] == 'WebSite' ) {
-    $url_parts = parse_url( $monitor['Path'] );
-    unset($url_parts['user']);
-    unset($url_parts['pass']);
-    unset($url_parts['scheme']);
-    unset($url_parts['query']);
-    unset($url_parts['path']);
-    if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
-      unset($url_parts['port']);
-    $source = unparse_url( $url_parts );
-  }
-  if ( $source == '' ) {
-    $source = 'Monitor ' . $monitor['Id'];
-  }
-  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.$source.'</span>', canEdit( 'Monitors' ) ).'</td>';
+  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.$Monitor->Source().'</span>', canEdit('Monitors') ).'</td>';
   if ( $show_storage_areas ) {
 ?>
             <td class="colStorage"><?php if ( isset($StorageById[$monitor['StorageId']]) ) { echo $StorageById[ $monitor['StorageId'] ]->Name(); } ?></td>
@@ -342,7 +318,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php
   }
 ?>
-            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView( 'Monitors' ) ) ?></td>
+            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView('Monitors') ) ?></td>
 <?php
   if ( canEdit('Monitors') ) {
 ?>

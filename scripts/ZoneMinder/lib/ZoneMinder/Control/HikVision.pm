@@ -125,6 +125,7 @@ sub PutCmd {
               Warning("Control Device appears to be incorrect.
                 Control Device should be set to \"$1\".
                 Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
+              $self->{Monitor}{ControlDevice} = $1;
             }
           }
         }

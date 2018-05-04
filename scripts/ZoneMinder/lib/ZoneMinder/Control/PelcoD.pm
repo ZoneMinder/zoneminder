@@ -66,8 +66,7 @@ sub open
     $self->{state} = 'open';
 }
 
-sub close
-{
+sub close {
     my $self = shift;
     $self->{state} = 'closed';
     $self->{port}->close();

@@ -158,6 +158,7 @@ sub new {
   ( $this->{fileName} = $0 ) =~ s|^.*/||;
   $this->{logPath} = $Config{ZM_PATH_LOGS};
   $this->{logFile} = $this->{logPath}.'/'.$this->{id}.'.log';
+  ($this->{logFile}) = $this->{logFile} =~ /^([\w\.\/]+)$/;
 
   $this->{trace} = 0;
 
@@ -207,6 +208,7 @@ sub initialise( @ ) {
   if ( my $logFile = $this->getTargettedEnv('LOG_FILE') ) {
     $tempLogFile = $logFile;
   }
+  ($tempLogFile) = $tempLogFile =~ /^([\w\.\/]+)$/;
 
   my $tempLevel = INFO;
   my $tempTermLevel = $this->{termLevel};
@@ -581,28 +583,34 @@ sub logPrint {
       syslog($priorities{$level}, $code.' [%s]', $string);
     }
     print($LOGFILE $message) if $level <= $this->{fileLevel};
+    print(STDERR $message) if $level <= $this->{termLevel};
+
     if ( $level <= $this->{databaseLevel} ) {
-      my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
-      $this->{sth} = $this->{dbh}->prepare_cached($sql);
-      if ( !$this->{sth} ) {
-        $this->{databaseLevel} = NOLOG;
-        Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
-      } else {
-        my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
-            , $this->{id}
-            , $$
-            , $level
-            , $code
-            , $string
-            , $this->{fileName}
-            );
-        if ( !$res ) {
+      if ( ( $this->{dbh} and $this->{dbh}->ping() ) or ( $this->{dbh} = zmDbConnect() ) ) {
+
+        my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
+        $this->{sth} = $this->{dbh}->prepare_cached($sql);
+        if ( !$this->{sth} ) {
           $this->{databaseLevel} = NOLOG;
-          Error("Can't execute log entry '$sql': ".$this->{sth}->errstr());
+          Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
+        } else {
+          my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
+              , $this->{id}
+              , $$
+              , $level
+              , $code
+              , $string
+              , $this->{fileName}
+              );
+          if ( !$res ) {
+            $this->{databaseLevel} = NOLOG;
+            Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
+          }
         }
+      } else {
+        print(STDERR "Can't log to database: ");
       }
     } # end if doing db logging
-    print(STDERR $message) if $level <= $this->{termLevel};
   } # end if level < effectivelevel
 }
 

@@ -167,32 +167,31 @@ class Event {
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {
 
+    $streamSrc = ZM_BASE_PROTOCOL.'://';
+    if ( $this->Storage()->ServerId() ) {
+      $Server = $this->Storage()->Server();
+      $streamSrc .= $Server->Hostname();
+      if ( ZM_MIN_STREAMING_PORT ) {
+        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+      }
+    } else if ( $this->Monitor()->ServerId() ) {
+      # Assume that the server that recorded it has it
+      $Server = $this->Monitor()->Server();
+      $streamSrc .= $Server->Hostname();
+      if ( ZM_MIN_STREAMING_PORT ) {
+        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+      }
+    } else if ( ZM_MIN_STREAMING_PORT ) {
+      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+    } else {
+      $streamSrc .= $_SERVER['HTTP_HOST'];
+    }
 
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
-      $streamSrc = ZM_BASE_PROTOCOL.'://';
-      $Monitor = $this->Monitor();
-      if ( $Monitor->ServerId() ) {
-        $Server = $Monitor->Server();
-        $streamSrc .= $Server->Hostname();
-      } else {
-        $streamSrc .= $_SERVER['HTTP_HOST'];
-      }
       $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
       $args['eid'] = $this->{'Id'};
       $args['view'] = 'view_video';
     } else {
-      $streamSrc = ZM_BASE_PROTOCOL.'://';
-      if ( $this->Storage()->ServerId() ) {
-        $Server = $this->Storage()->Server();
-        $streamSrc .= $Server->Hostname();
-        if ( ZM_MIN_STREAMING_PORT ) {
-          $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-        }
-      } else if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      } else {
-        $streamSrc .= $_SERVER['HTTP_HOST'];
-      }
       $streamSrc .= ZM_PATH_ZMS;
 
       $args['source'] = 'event';
@@ -207,16 +206,16 @@ class Event {
 
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
-        $args['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+        $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
-      } elseif ( ZM_AUTH_RELAY == "none" ) {
+      } elseif ( ZM_AUTH_RELAY == 'none' ) {
         $args['user'] = $_SESSION['username'];
       }
     }
 
-    $streamSrc .= '?'.http_build_query( $args,'', $querySep );
+    $streamSrc .= '?'.http_build_query($args,'', $querySep);
 
     return $streamSrc;
   } // end function getStreamSrc
@@ -247,28 +246,97 @@ class Event {
       }
     }
 
-    if ( ZM_WEB_LIST_THUMB_WIDTH ) {
-      $thumbWidth = ZM_WEB_LIST_THUMB_WIDTH;
-      $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
-      $thumbHeight = reScale( $this->{'Height'}, $scale );
-    } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
-      $thumbHeight = ZM_WEB_LIST_THUMB_HEIGHT;
-      $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'};
-      $thumbWidth = reScale( $this->{'Width'}, $scale );
-    } else {
-      Fatal( "No thumbnail width or height specified, please check in Options->Web" );
-    }
-
     $imageData = $this->getImageSrc($frame, $scale, false, $overwrite);
     if ( ! $imageData ) {
       return false;
     }
-    $thumbData['Width'] = (int)$thumbWidth;
-    $thumbData['Height'] = (int)$thumbHeight;
-	$thumbData['url'] = '?view=image&amp;eid='.$this->Id().'&amp;fid='.$imageData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
+    $thumbData = $frame;
+    $thumbData['Path'] = $imageData['thumbPath'];
+    $thumbData['Width'] = $this->ThumbnailWidth();
+    $thumbData['Height'] = $this->ThumbnailHeight();
+    $thumbData['url'] = '?view=image&amp;eid='.$this->Id().'&amp;fid='.$imageData['FrameId'].'&amp;width='.$thumbData['Width'].'&amp;height='.$thumbData['Height'];
 
     return $thumbData;
   } // end function createListThumbnail
+
+  function ThumbnailWidth( ) {
+    if ( ! ( array_key_exists('ThumbnailWidth', $this) ) ) {
+      if ( ZM_WEB_LIST_THUMB_WIDTH ) {
+        $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
+        $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
+        $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
+      } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
+        $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
+        $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'};
+        $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
+      } else {
+        Fatal( "No thumbnail width or height specified, please check in Options->Web" );
+      }
+    }
+    return $this->{'ThumbnailWidth'};
+  } // end function ThumbnailWidth
+
+  function ThumbnailHeight( ) {
+    if ( ! ( array_key_exists('ThumbnailHeight', $this) ) ) {
+      if ( ZM_WEB_LIST_THUMB_WIDTH ) {
+        $this->{'ThumbnailWidth'} = ZM_WEB_LIST_THUMB_WIDTH;
+        $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_WIDTH)/$this->{'Width'};
+        $this->{'ThumbnailHeight'} = reScale( $this->{'Height'}, $scale );
+      } elseif ( ZM_WEB_LIST_THUMB_HEIGHT ) {
+        $this->{'ThumbnailHeight'} = ZM_WEB_LIST_THUMB_HEIGHT;
+        $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$this->{'Height'};
+        $this->{'ThumbnailWidth'} = reScale( $this->{'Width'}, $scale );
+      } else {
+        Fatal( "No thumbnail width or height specified, please check in Options->Web" );
+      }
+    }
+    return $this->{'ThumbnailHeight'};
+  } // end function ThumbnailHeight
+
+  function getThumbnailSrc( $args=array(), $querySep='&' ) {
+    # The thumbnail is theoretically the image with the most motion.
+# We always store at least 1 image when capturing
+
+    $streamSrc = ZM_BASE_PROTOCOL.'://';
+    if ( $this->Storage()->ServerId() ) {
+      $Server = $this->Storage()->Server();
+      $streamSrc .= $Server->Hostname();
+      if ( ZM_MIN_STREAMING_PORT ) {
+        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+      }
+    } else if ( $this->Monitor()->ServerId() ) {
+      $Server = $this->Monitor()->Server();
+      $streamSrc .= $Server->Hostname();
+      if ( ZM_MIN_STREAMING_PORT ) {
+        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+      }
+
+    } else if ( ZM_MIN_STREAMING_PORT ) {
+      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
+    } else {
+      $streamSrc .= $_SERVER['HTTP_HOST'];
+    } 
+
+    $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
+    $args['eid'] = $this->{'Id'};
+    $args['fid'] = 'snapshot';
+    $args['view'] = 'image';
+    $args['width'] = $this->ThumbnailWidth();
+    $args['height'] = $this->ThumbnailHeight();
+
+    if ( ZM_OPT_USE_AUTH ) {
+      if ( ZM_AUTH_RELAY == 'hashed' ) {
+        $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+      } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+        $args['user'] = $_SESSION['username'];
+        $args['pass'] = $_SESSION['password'];
+      } elseif ( ZM_AUTH_RELAY == 'none' ) {
+        $args['user'] = $_SESSION['username'];
+      }
+    }
+
+    return $streamSrc.'?'.http_build_query($args,'', $querySep);
+  } // end function getThumbnailSrc
 
   // frame is an array representing the db row for a frame.
   function getImageSrc($frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false) {
@@ -278,7 +346,7 @@ class Event {
 
     if ( $frame and ! is_array($frame) ) {
       # Must be an Id
-      Debug("Assuming that $frame is an Id");
+      Logger::Debug("Assuming that $frame is an Id");
       $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
     }
 
@@ -286,7 +354,7 @@ class Event {
       # No frame specified, so look for a snapshot to use
       $captImage = 'snapshot.jpg';
       Logger::Debug("Frame not specified, using snapshot");
-	  $frame = array('FrameId'=>'snapshot', 'Type'=>'');
+      $frame = array('FrameId'=>'snapshot', 'Type'=>'');
     } else {
       $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId'] );
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
@@ -316,9 +384,8 @@ class Event {
     }
 
     $captPath = $eventPath.'/'.$captImage;
-    if ( ! file_exists( $captPath ) ) {
+    if ( ! file_exists($captPath) ) {
       Error( "Capture file does not exist at $captPath" );
-      return '';
     }
     $thumbCaptPath = ZM_DIR_IMAGES.'/'.$this->{'Id'}.'-'.$captImage;
     
@@ -383,7 +450,7 @@ class Event {
         'imageClass' => $alarmFrame?'alarm':'normal',
         'isAnalImage' => $isAnalImage,
         'hasAnalImage' => $hasAnalImage,
-		'FrameId'		=>	$frame['FrameId'],
+        'FrameId'		=>	$frame['FrameId'],
         );
 
     return $imageData;
@@ -448,6 +515,11 @@ class Event {
     $values = array_map( function($field){return $this->{$field};}, $this->fields );
     $values[] = $this->{'Id'};
     dbQuery( $sql, $values );
+  }
+  public function link_to($text=null) {
+    if ( !$text )
+      $text = $this->{'Id'};
+    return '<a href="?view=event&amp;eid='. $this->{'Id'}.'">'.$text.'</a>';
   }
 
 } # end class

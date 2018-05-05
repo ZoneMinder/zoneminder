@@ -146,7 +146,7 @@ protected:
 
 	/* Internal functions */
 	int x264config();
-	void x264encodeloop(bool bFlush = false);
+	int x264encodeloop(bool bFlush = false);
 
 	/* x264 objects */
 	x264_t* x264enc;

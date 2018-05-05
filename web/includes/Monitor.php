@@ -238,24 +238,25 @@ private $control_fields = array(
     return( $streamSrc );
   } // end function getStreamSrc
 
-  public function Width( $new = null ) {
+  public function Width($new = null) {
     if ( $new )
       $this->{'Width'} = $new;
 
-    if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
-      return $this->{'Height'};
-    }
-    return $this->{'Width'};
-  }
+    $field = ( $this->Orientation() == '90' or $this->Orientation() == '270' ) ? 'Height' : 'Width';
+    if ( array_key_exists($field, $this) )
+      return $this->{$field};
+    return $this->defaults{$field};
+  } // end function Width
 
-  public function Height( $new=null ) {
+  public function Height($new=null) {
     if ( $new )
       $this->{'Height'} = $new;
-    if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
-      return $this->{'Width'};
-    }
-    return $this->{'Height'};
-  }
+
+    $field = ( $this->Orientation() == '90' or $this->Orientation() == '270' ) ?  'Width' : 'Height';
+    if ( array_key_exists($field, $this) )
+      return $this->{$field};
+    return $this->defaults{$field};
+  } // end function Height
 
   public function set($data) {
     foreach ($data as $k => $v) {
@@ -470,5 +471,33 @@ private $control_fields = array(
     }
     return $this->{'Storage'};
   }
+
+  public function Source( ) {
+    $source = '';
+    if ( $this->{'Type'} == 'Local' ) {
+      $source = $this->{'Device'}.' ('.$this->{'Channel'}.')';
+    } elseif ( $this->{'Type'} == 'Remote' ) {
+      $source = preg_replace( '/^.*@/', '', $this->{'Host'} );
+      if ( $this->{'Port'} != '80' and $this->{'Port'} != '554' ) {
+        $source .= ':'.$this->{'Port'};
+      }
+    } elseif ( $this->{'Type'} == 'File' || $this->{'Type'} == 'cURL' ) {
+      $source = preg_replace( '/^.*\//', '', $this->{'Path'} );
+    } elseif ( $this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite' ) {
+      $url_parts = parse_url( $this->{'Path'} );
+      unset($url_parts['user']);
+      unset($url_parts['pass']);
+      unset($url_parts['scheme']);
+      unset($url_parts['query']);
+      unset($url_parts['path']);
+      if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
+        unset($url_parts['port']);
+      $source = unparse_url($url_parts);
+    }
+    if ( $source == '' ) {
+      $source = 'Monitor ' . $this->{'Id'};
+    }
+    return $source;
+  } // end function Source
 } // end class Monitor
 ?>

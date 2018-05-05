@@ -157,15 +157,13 @@ if ( $show_storage_areas ) $left_columns += 1;
 xhtmlHeaders( __FILE__, translate('Console') );
 ?>
 <body>
-
-
   <form name="monitorForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
     <?php echo $navbar ?>
     <div class="filterBar"><?php echo $filterbar ?></div>
-  <div class="statusBreakdown">
+    <div class="statusBreakdown">
 <?php
   $html = '';
   foreach ( array_keys($status_counts) as $status ) {
@@ -174,26 +172,26 @@ xhtmlHeaders( __FILE__, translate('Console') );
   }
   echo $html;
 ?>
-  </div>
+    </div>
 
     <div class="container-fluid">
-              <button type="button" name="addBtn" onclick="addMonitor(this);"
-              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
-              >
-              <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
-              </button>
-              <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
-              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
-              style="display:none;">
-              <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
-              </button>
-              <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
-              <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
-              </button>
-              <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
-              <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
-              </button>
-              <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
+      <button type="button" name="addBtn" onclick="addMonitor(this);"
+      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+      >
+      <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
+      </button>
+      <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
+      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+      style="display:none;">
+      <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
+      </button>
+      <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
+      <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
+      </button>
+      <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
+      <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
+      </button>
+      <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
 <?php
 ob_start();
 ?>
@@ -212,13 +210,13 @@ ob_start();
 <?php if ( $show_storage_areas ) { ?>
             <th class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
-      foreach ( array_keys( $eventCounts ) as $j ) {
+      foreach ( array_keys($eventCounts) as $j ) {
         echo '<th class="colEvents">'. $j .'</th>';
       }
 ?>
             <th class="colZones"><a href="<?php echo $_SERVER['PHP_SELF'] ?>?view=zones_overview"><?php echo translate('Zones') ?></a></th>
 <?php if ( canEdit('Monitors') ) { ?>
-            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markMids[]');setButtonStates(this);"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/> <?php echo translate('All') ?></th>
+            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markMids[]');setButtonStates(this);"/> <?php echo translate('All') ?></th>
 <?php } ?>
           </tr>
         </thead>
@@ -255,10 +253,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     $fclass = 'infoText';
   if ( !$monitor['Enabled'] )
     $fclass .= ' disabledText';
-  $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-$stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Function'] != 'None');
-$dot_class=$source_class;
-if ( $fclass != 'infoText' ) $dot_class=$fclass;
+  $scale = max(reScale(SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
+  $stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Function'] != 'None');
+  $dot_class=$source_class;
+  if ( $fclass != 'infoText' ) $dot_class=$fclass;
 
   if ( ZM_WEB_ID_ON_CONSOLE ) {
 ?>
@@ -303,45 +301,21 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
             <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
 <?php
   }
-  $source = '';
-  if ( $monitor['Type'] == 'Local' ) {
-    $source = $monitor['Device'].' ('.$monitor['Channel'].')';
-  } elseif ( $monitor['Type'] == 'Remote' ) {
-    $source = preg_replace( '/^.*@/', '', $monitor['Host'] );
-    if ( $monitor['Port'] != '80' and $monitor['Port'] != '554' ) {
-      $source .= ':'.$monitor['Port'];
-    }
-  } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
-    $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
-  } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' || $monitor['Type'] == 'WebSite' ) {
-    $url_parts = parse_url( $monitor['Path'] );
-    unset($url_parts['user']);
-    unset($url_parts['pass']);
-    unset($url_parts['scheme']);
-    unset($url_parts['query']);
-    unset($url_parts['path']);
-    if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
-      unset($url_parts['port']);
-    $source = unparse_url( $url_parts );
-  }
-  if ( $source == '' ) {
-    $source = 'Monitor ' . $monitor['Id'];
-  }
-  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.$source.'</span>', canEdit( 'Monitors' ) ).'</td>';
+  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.$Monitor->Source().'</span>', canEdit('Monitors') ).'</td>';
   if ( $show_storage_areas ) {
 ?>
             <td class="colStorage"><?php if ( isset($StorageById[$monitor['StorageId']]) ) { echo $StorageById[ $monitor['StorageId'] ]->Name(); } ?></td>
 <?php
   }
 
-      foreach ( array_keys( $eventCounts ) as $i ) {
+      foreach ( array_keys($eventCounts) as $i ) {
 ?>
             <td class="colEvents"><a <?php echo (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['query'].'">'  : '') . 
                 $monitor[$i.'Events'] . '<br/></a><div class="small text-nowrap text-muted">' . human_filesize($monitor[$i.'EventDiskSpace']) ?></div></td>
 <?php
   }
 ?>
-            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView( 'Monitors' ) ) ?></td>
+            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView('Monitors') ) ?></td>
 <?php
   if ( canEdit('Monitors') ) {
 ?>

@@ -71,6 +71,7 @@ The 1.2 at the start is basically adding 20% on top of the calculation to accoun
 
 The math breakdown for 4 cameras running at 1280x960 capture, 50 frame buffer, 24 bit color space:
 ::
+
 	1280*960 = 1,228,800 (bytes)
 	1,228,800 * (3 bytes for 24 bit) = 3,686,400 (bytes) 
 	3,686,400 * 50 = 184,320,000 (bytes)

@@ -139,12 +139,6 @@ sub open
     } # end if ! $res->is_success
 }
 
-sub close
-{
-    my $self = shift;
-    $self->{state} = 'closed';
-}
-
 sub printMsg
 {
     my $self = shift;

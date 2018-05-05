@@ -20,7 +20,7 @@ public $defaults = array(
     'limit'           =>  100,
     'Query'           =>  array(),
     'sort_field'      =>  ZM_WEB_EVENT_SORT_FIELD,
-    'sort_asc'        =>  (ZM_WEB_EVENT_SORT_ORDER == 'asc'),
+    'sort_asc'        =>  (ZM_WEB_EVENT_SORT_ORDER == 'asc' ? 'asc' : 'desc'),
 );
 
   public function __construct( $IdOrRow=NULL ) {

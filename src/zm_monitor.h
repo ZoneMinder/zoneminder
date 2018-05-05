@@ -35,6 +35,7 @@
 #include "zm_thread.h"
 
 class Monitor;
+#include "zm_group.h"
 #include "zm_camera.h"
 #include "zm_storage.h"
 #include "zm_utils.h"
@@ -369,6 +370,8 @@ protected:
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;
 
+  std::list<Group *> groups;
+
 public:
   explicit Monitor();
   explicit Monitor(int p_id);
@@ -508,6 +511,7 @@ public:
 
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );
+  std::list<Group *>  Groups();
 
   static int LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
 #if ZM_HAS_V4L

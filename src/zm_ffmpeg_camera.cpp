@@ -18,6 +18,7 @@
 //
 
 #include "zm.h"
+#include "zm_signal.h"
 
 #if HAVE_LIBAVFORMAT
 
@@ -143,7 +144,7 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
 
   // If the reopen thread has a value, but mCanCapture != 0, then we have just reopened the connection to the ffmpeg device, and we can clean up the thread.
 
-  if ( (ret = av_read_frame( mFormatContext, &packet )) < 0 ) {
+  if ( (ret = av_read_frame(mFormatContext, &packet)) < 0 ) {
     if (
         // Check if EOF.
         (ret == AVERROR_EOF || (mFormatContext->pb && mFormatContext->pb->eof_reached)) ||
@@ -162,7 +163,7 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
   }
   dumpPacket(&packet, "ffmpeg_camera in");
   if ( 0 && ( packet.dts < 0 ) ) {
-    zm_av_packet_unref( &packet );
+    zm_av_packet_unref(&packet);
     return 0;
   }
 

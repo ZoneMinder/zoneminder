@@ -61,6 +61,9 @@ Mutex::~Mutex() {
     Error("Unable to destroy pthread mutex: %s", strerror(errno));
 }
 
+int Mutex::trylock() {
+  return pthread_mutex_trylock(&mMutex);
+}
 void Mutex::lock() {
   if ( pthread_mutex_lock(&mMutex) < 0 )
     throw ThreadException( stringtf( "Unable to lock pthread mutex: %s", strerror(errno) ) );

@@ -948,10 +948,10 @@ bool Image::WriteJpeg(const char *filename, struct timeval timestamp) const {
   return Image::WriteJpeg(filename, 0, timestamp);
 }
 
-bool Image::WriteJpeg( const char *filename, int quality_override, struct timeval timestamp  ) const {
+bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval timestamp) const {
   if ( config.colour_jpeg_files && colours == ZM_COLOUR_GRAY8 ) {
-    Image temp_image( *this );
-    temp_image.Colourise( ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB );
+    Image temp_image(*this);
+    temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.WriteJpeg(filename, quality_override, timestamp);
   }
   int quality = quality_override?quality_override:config.jpeg_file_quality;
@@ -967,9 +967,9 @@ bool Image::WriteJpeg( const char *filename, int quality_override, struct timeva
   }
 
   FILE *outfile;
-  if ( (outfile = fopen( filename, "wb" )) == NULL ) {
-    Error( "Can't open %s: %s", filename, strerror(errno) );
-    return( false );
+  if ( (outfile = fopen(filename, "wb")) == NULL ) {
+    Error("Can't open %s: %s", filename, strerror(errno));
+    return false;
   }
   jpeg_stdio_dest( cinfo, outfile );
 

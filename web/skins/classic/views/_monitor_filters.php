@@ -24,7 +24,7 @@ foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
 session_start();
-foreach ( array('Group','Function','ServerId','StorageId','Status','MonitorId') as $var ) {
+foreach ( array('Group','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
   if ( isset( $_REQUEST[$var] ) ) {
     if ( $_REQUEST[$var] != '' ) {
       $_SESSION[$var] = $_REQUEST[$var];
@@ -92,6 +92,10 @@ if ( ! empty( $user['MonitorIds'] ) ) {
   $values += $ids;
 }
 
+$html .= '<span class="MonitorNameFilter"><label>'.translate('Name').'</label>';
+$html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?$_SESSION['MonitorName']:'').'" onkeydown="if(event&&event.keyCode==13){this.form.submit();}" placeholder="text or regular expression"/>';
+$html .= '</span>';
+
 $Functions = array();
 foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
   $Functions[$optFunction] = translate('Fn'.$optFunction);
@@ -135,6 +139,7 @@ if ( count($StorageById) > 1 ) {
     ) );
   $html .= '</span>';
 } # end if have Storage Areas
+
 $html .= '<span class="StatusFilter"><label>'. translate('Status') . ':</label>';
 $status_options = array(
     'Unknown' => translate('StatusUnknown'),
@@ -150,6 +155,10 @@ $html .= htmlSelect( 'Status[]', $status_options,
     'multiple'=>'multiple',
     'data-placeholder'=>'All'
   ) );
+  $html .= '</span>';
+
+  $html .= '<span class="SourceFilter"><label>'.translate('Source').':</label>';
+  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?$_SESSION['Source']:'').'" onkeydown="if(event&&event.keyCode==13){this.form.submit();}" placeholder="text or regular expression"/>';
   $html .= '</span>';
 
   $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS, S.AnalysisFPS AS AnalysisFPS, S.CaptureBandwidth AS CaptureBandwidth
@@ -181,20 +190,51 @@ $html .= htmlSelect( 'Status[]', $status_options,
       Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
       continue;
     }
+
+    if ( isset($_SESSION['MonitorName']) ) {
+      $Monitor = new Monitor($monitors[$i]);
+      ini_set('track_errors', 'on');
+      $php_errormsg = '';
+      @preg_match($_SESSION['MonitorName'], '');
+      if ( !$php_errormsg ) {
+# regexp is valid
+        if ( !preg_match($_SESSION['MonitorName'], $Monitor->Name()) ) {
+          continue;
+        }
+      } else {
+        if ( ! strstr($Monitor->Name(), $_SESSION['MonitorName']) ) {
+          continue;
+        }
+      }
+    }
+
+    if ( isset($_SESSION['Source']) ) {
+      $Monitor = new Monitor($monitors[$i]);
+      ini_set('track_errors', 'on');
+      $php_errormsg = '';
+      @preg_match($_SESSION['Source'], '');
+      if ( !$php_errormsg ) {
+# regexp is valid
+        if ( !preg_match($_SESSION['Source'], $Monitor->Source()) ) {
+          continue;
+        }
+      } else {
+        if ( ! strstr($Monitor->Source(), $_SESSION['Source']) ) {
+          continue;
+        }
+      }
+    }
+
     $monitors_dropdown[$monitors[$i]['Id']] = $monitors[$i]['Name'];
 
     if ( count($selected_monitor_ids) and ! in_array($monitors[$i]['Id'], $selected_monitor_ids) ) {
       continue;
     }
-    if ( isset($_SESSION['StatusFilter']) ) {
-      if ( $monitors[$i]['Status'] != $_SESSION['StatusFilter'] ) {
-        continue;
-      }
-    }
     $displayMonitors[] = $monitors[$i];
-  }
-  $html .= '<span id="monitorControl"><label>'.translate('Monitor').':</label>';
-  $html .= htmlSelect( 'MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
+  } # end foreach monitor
+
+  $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').':</label>';
+  $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
       'onchange'=>'this.form.submit();',
       'class'=>'chosen',

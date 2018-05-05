@@ -217,7 +217,8 @@ int X264MP4Writer::Close() {
   /* Flush all pending frames */
   for ( int i = (x264_encoder_delayed_frames(x264enc) + 1); i > 0; i-- ) {
 Debug(1,"Encoding delayed frame");
-    x264encodeloop(true);
+    if ( x264encodeloop(true) < 0 )
+      break;
   }
 
   /* Close the encoder */
@@ -408,7 +409,7 @@ int X264MP4Writer::x264config() {
   return 0;
 }
 
-void X264MP4Writer::x264encodeloop(bool bFlush) {
+int X264MP4Writer::x264encodeloop(bool bFlush) {
   x264_nal_t* nals;
   int i_nals;
   int frame_size;
@@ -502,6 +503,7 @@ void X264MP4Writer::x264encodeloop(bool bFlush) {
   } else {
     Error("x264 encode failed: %d", frame_size);
   }
+  return frame_size;
 }
 #endif  // ZM_VIDEOWRITER_X264MP4
 

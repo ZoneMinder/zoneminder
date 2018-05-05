@@ -218,22 +218,16 @@ while ( $event_row = dbFetchNext($results) ) {
   if ( ZM_WEB_LIST_THUMBS ) {
     if ( $thumbData = $event->createListThumbnail() ) {
 #Logger::Debug(print_r($thumbData,true));
-?>
-              <td class="colThumbnail">
-<?php 
+      echo '<td class="colThumbnail">';
       $imgSrc = $thumbData['url'];
-      $streamSrc = $event->getStreamSrc( array( 'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single') );
+      $streamSrc = $event->getStreamSrc(array('mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single'));
 
       $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($thumbData['Width']) .'px;height:'. validInt($thumbData['Height']).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
       echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';
-?>
-              </td>
-<?php
+      echo '</td>';
     } else {
       Logger::Debug("No thumbnail data");
-?>
-              <td class="colThumbnail">&nbsp;</td>
-<?php
+      echo '<td class="colThumbnail">&nbsp;</td>';
     }
   } // end if ZM_WEB_LIST_THUMBS
 ?>
@@ -256,7 +250,7 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
 }
 ?>
-              <td class="colDiskSpace"><?php echo human_filesize( $disk_space_total ) ?></td>
+              <td class="colDiskSpace"><?php echo human_filesize($disk_space_total) ?></td>
 <?php
   if ( ZM_WEB_LIST_THUMBS ) {
 ?><td></td>

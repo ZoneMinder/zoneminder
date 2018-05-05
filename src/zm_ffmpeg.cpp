@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */ 
+#include <cinttypes>
 
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
@@ -27,9 +28,9 @@ void FFMPEGInit() {
   static bool bInit = false;
 
   if ( !bInit ) {
-    if ( logDebugging() )
-      av_log_set_level( AV_LOG_DEBUG ); 
-    else
+    //if ( logDebugging() )
+      //av_log_set_level( AV_LOG_DEBUG ); 
+    //else
       av_log_set_level( AV_LOG_QUIET ); 
     av_register_all();
     avformat_network_init();

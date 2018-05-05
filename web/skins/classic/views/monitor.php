@@ -26,23 +26,6 @@ if ( !canView( 'Monitors' ) ) {
   return;
 }
 
-$tabs = array();
-$tabs['general'] = translate('General');
-$tabs['source'] = translate('Source');
-$tabs['storage'] = translate('Storage');
-$tabs['timestamp'] = translate('Timestamp');
-$tabs['buffers'] = translate('Buffers');
-if ( ZM_OPT_CONTROL && canView( 'Control' ) )
-  $tabs['control'] = translate('Control');
-if ( ZM_OPT_X10 )
-  $tabs['x10'] = translate('X10');
-$tabs['misc'] = translate('Misc');
-
-if ( isset($_REQUEST['tab']) )
-  $tab = validHtmlStr($_REQUEST['tab']);
-else
-  $tab = 'general';
-
 $Server = null;
 if ( defined( 'ZM_SERVER_ID' ) ) {
   $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
@@ -62,7 +45,7 @@ if ( ! $monitor ) {
   $nextId = getTableAutoInc( 'Monitors' );
   if ( isset( $_REQUEST['dupId'] ) ) {
     $monitor = new Monitor( $_REQUEST['dupId'] );
-    $monitor->GroupIds(); // have to lead before we change the Id
+    $monitor->GroupIds(); // have to load before we change the Id
     if ( ZM_OPT_X10 )
       $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
     $clonedName = $monitor->Name();
@@ -133,6 +116,7 @@ if ( ! $monitor ) {
           'DefaultView' => 'Events',
           'DefaultRate' => '100',
           'DefaultScale' => '100',
+          'SignalCheckPoints' => '10',
           'SignalCheckColour' => '#0000c0',
           'WebColour' => 'red',
           'Exif' => '0',
@@ -141,6 +125,7 @@ if ( ! $monitor ) {
           'V4LCapturesPerFrame'  =>  1,
           'ServerId'  =>  'auto',
           'StorageId'  => '1',
+          'Refresh' => '',
           ) );
     } # end if $_REQUEST['dupID']
 } # end if $_REQUEST['mid']
@@ -211,7 +196,8 @@ $sourceTypes = array(
     'Ffmpeg' => translate('Ffmpeg'),
     'Libvlc' => translate('Libvlc'),
     'cURL'   => 'cURL (HTTP(S) only)',
-    'NVSocket'	=>	translate('NVSocket')
+    'WebSite'=> 'Web Site',
+    'NVSocket'	=> translate('NVSocket')
     );
 if ( !ZM_HAS_V4L )
   unset($sourceTypes['Local']);
@@ -526,6 +512,25 @@ if ( canEdit( 'Monitors' ) ) {
   <div id="content">
     <ul class="tabList">
 <?php
+$tabs = array();
+$tabs['general'] = translate('General');
+$tabs['source'] = translate('Source');
+if ( $monitor->Type() != 'WebSite' ) {
+  $tabs['storage'] = translate('Storage');
+  $tabs['timestamp'] = translate('Timestamp');
+  $tabs['buffers'] = translate('Buffers');
+  if ( ZM_OPT_CONTROL && canView( 'Control' ) )
+    $tabs['control'] = translate('Control');
+  if ( ZM_OPT_X10 )
+    $tabs['x10'] = translate('X10');
+  $tabs['misc'] = translate('Misc');
+}
+
+if ( isset($_REQUEST['tab']) )
+  $tab = validHtmlStr($_REQUEST['tab']);
+else
+  $tab = 'general';
+
 foreach ( $tabs as $name=>$value ) {
   if ( $tab == $name ) {
 ?>
@@ -553,6 +558,11 @@ if ( $tab != 'general' ) {
       <input type="hidden" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>"/>
       <input type="hidden" name="newMonitor[ServerId]" value="<?php echo validHtmlStr($monitor->ServerId() ) ?>"/>
       <input type="hidden" name="newMonitor[StorageId]" value="<?= validHtmlStr($monitor->StorageId() ) ?>"/>
+<?php
+foreach ( $monitor->GroupIds() as $group_id ) {
+echo '<input type="hidden" name="newMonitor[GroupIds][]" value="'.$group_id.'"/>';
+}
+?>
       <input type="hidden" name="newMonitor[Type]" value="<?php echo validHtmlStr($monitor->Type()) ?>"/>
       <input type="hidden" name="newMonitor[Function]" value="<?php echo validHtmlStr($monitor->Function()) ?>"/>
       <input type="hidden" name="newMonitor[Enabled]" value="<?php echo validHtmlStr($monitor->Enabled()) ?>"/>
@@ -597,7 +607,7 @@ if ( $tab != 'source' || ($monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Lib
       <input type="hidden" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>"/>
 <?php
 }
-if ( $tab != 'source' || ($monitor->Type()!= 'Remote' && $monitor->Type()!= 'File' && $monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Libvlc' && $monitor->Type()!= 'cURL') ) {
+if ( $tab != 'source' || ($monitor->Type()!= 'Remote' && $monitor->Type()!= 'File' && $monitor->Type()!= 'Ffmpeg' && $monitor->Type()!= 'Libvlc' && $monitor->Type()!= 'cURL' && $monitor->Type() != 'WebSite') ) {
 ?>
       <input type="hidden" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/>
       <input type="hidden" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
@@ -682,8 +692,9 @@ if ( $tab != 'misc' ) {
       <input type="hidden" name="newMonitor[Exif]" value="<?php echo validHtmlStr($monitor->Exif()) ?>"/>
 <?php
 }
-if ( ZM_HAS_V4L && ($tab != 'misc' || $monitor->Type()!= 'Local') ) {
+if ( $tab != 'misc' ) {
 ?>
+      <input type="hidden" name="newMonitor[SignalCheckPoints]" value="<?php echo validHtmlStr($monitor->SignalCheckPoints()) ?>"/>
       <input type="hidden" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>"/>
 <?php
 }
@@ -729,6 +740,9 @@ switch ( $tab ) {
 ?>
         </select></td></tr>
         <tr><td><?php echo translate('Enabled') ?></td><td><input type="checkbox" name="newMonitor[Enabled]" value="1"<?php if ( $monitor->Enabled() ) { ?> checked="checked"<?php } ?>/></td></tr>
+<?php
+      if ( $monitor->Type != 'WebSite' ) {
+?>
         <tr>
           <td><?php echo translate('LinkedMonitors') ?></td>
           <td>
@@ -818,6 +832,7 @@ echo htmlOptions(Group::get_dropdown_options( ), $monitor->GroupIds() );
       ?>
         </td></tr>
         <?php
+        }
         break;
     }
   case 'source' :
@@ -885,6 +900,13 @@ include('_monitor_source_nvsocket.php');
           <tr><td><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>" size="12"/></td></tr>
           <tr><td><?php echo 'Password' ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" size="12"/></td></tr>
 <?php
+      } elseif ( $monitor->Type() == 'WebSite' ) {
+?>
+          <tr><td><?php echo translate('WebSiteUrl') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" size="36"/></td></tr>
+          <tr><td><?php echo translate('Width') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4";"/></td></tr>
+        <tr><td><?php echo translate('Height') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4";"/></td></tr>
+        <tr><td><?php echo 'Web Site Refresh (Optional)' ?></td><td><input type="number" name="newMonitor[Refresh]" value="<?php echo $monitor->Refresh()?>"/></td></tr>
+<?php
       } elseif ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
 ?>
           <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" size="36"/></td></tr>
@@ -892,7 +914,7 @@ include('_monitor_source_nvsocket.php');
           <tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($monitor->Type()), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>" size="36"/></td></tr>
 <?php
       }
-if ( $monitor->Type() != 'NVSocket' ) {
+if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
 ?>
         <tr><td><?php echo translate('TargetColorspace') ?></td><td><?php echo htmlSelect('newMonitor[Colours]', $Colours, $monitor->Colours() ); ?>
 </td></tr>
@@ -906,7 +928,7 @@ if ( $monitor->Type() == 'Local' ) {
 ?>
             <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
             <?php
-        } else {
+        } else if ( $monitor->Type() != 'WebSite' ) {
 ?>
             <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
 <?php
@@ -1006,19 +1028,19 @@ if ( $monitor->Type() == 'Local' ) {
         </select></td></tr>
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
-<?php
-      if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
-?>
+        <tr>
+          <td><?php echo translate('SignalCheckPoints') ?></td>
+          <td>
+            <input type="number" name="newMonitor[SignalCheckPoints]" value="<?php echo validInt($monitor->SignalCheckPoints()) ?>"/>
+          </td>
+        </tr>
         <tr>
           <td><?php echo translate('SignalCheckColour') ?></td>
           <td>
-            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle( 'backgroundColor', this.value )"/>
+            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle('backgroundColor', this.value)"/>
             <span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo $monitor->SignalCheckColour()?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
           </td>
         </tr>
-<?php
-      }
-?>
         <tr>
           <td><?php echo translate('WebColour') ?></td>
           <td>

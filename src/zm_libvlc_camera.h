@@ -69,6 +69,7 @@ public:
   int PreCapture();
   int Capture( ZMPacket &p );
   int PostCapture();
+  int Close() { return 0; };
 };
 
 #endif // HAVE_LIBVLC

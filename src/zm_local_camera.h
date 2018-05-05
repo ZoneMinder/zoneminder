@@ -158,6 +158,7 @@ public:
   int PreCapture();
   int Capture(ZMPacket &p);
   int PostCapture();
+  int Close() { return 0; };
   static bool GetCurrentSettings( const char *device, char *output, int version, bool verbose );
   AVStream* get_VideoStream();
 };

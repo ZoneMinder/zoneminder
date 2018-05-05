@@ -69,7 +69,7 @@ class FfmpegCamera : public Camera {
     AVPacket packet;       
 
     int OpenFfmpeg();
-    int CloseFfmpeg();
+    int Close();
     bool mCanCapture;
 #endif // HAVE_LIBAVFORMAT
 

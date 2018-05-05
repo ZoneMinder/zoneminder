@@ -1724,26 +1724,6 @@ our @options = (
     category      =>  'config',
   },
   {
-    name        => 'ZM_SIGNAL_CHECK_POINTS',
-    default     => '10',
-    description => 'How many points in a captured image to check for signal loss',
-    help        => q`
-      For locally attached video cameras ZoneMinder can check for
-      signal loss by looking at a number of random points on each
-      captured image. If all of these points are set to the same
-      fixed colour then the camera is assumed to have lost signal.
-      When this happens any open events are closed and a short one
-      frame signal loss event is generated, as is another when the
-      signal returns. This option defines how many points on each
-      image to check. Note that this is a maximum, any points found
-      to not have the check colour will abort any further checks so
-      in most cases on a couple of points will actually be checked.
-      Network and file based cameras are never checked.
-      `,
-    type        => $types{integer},
-    category    => 'config',
-  },
-  {
     name        => 'ZM_V4L_MULTI_BUFFER',
     default     => 'yes',
     description => 'Use more than one buffer for Video 4 Linux devices',
@@ -2962,6 +2942,23 @@ our @options = (
       circumstances but they may become more widespread in the
       future. It is suggested that you leave this option on unless
       you encounter problems playing some content.
+      `,
+    type        => $types{boolean},
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_XFRAME_WARN',
+    default     => 'yes',
+    description => 'Warn when website X-Frame-Options is set to sameorigin',
+    help        => q`
+      When creating a Web Site monitor, if the target web site has
+      X-Frame-Options set to sameorigin in the header, the site will
+      not display in ZoneMinder. This is a design feature in most modern
+      browsers. When this condiction has occured, ZoneMinder will write a
+      warning to the log file. To get around this, one can install a browser
+      plugin or extension to ignore X-Frame headers, and then the page will
+      display properly. Once the plugin or extenstion has ben installed,
+      the end user may choose to turn this warning off.
       `,
     type        => $types{boolean},
     category    => 'web',

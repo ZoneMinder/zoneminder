@@ -113,7 +113,7 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
 
 FfmpegCamera::~FfmpegCamera() {
 
-  CloseFfmpeg();
+  Close();
 
   avformat_network_deinit();
 }
@@ -121,7 +121,7 @@ FfmpegCamera::~FfmpegCamera() {
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
     Info("Priming capture from %s, Closing", mPath.c_str());
-    CloseFfmpeg();
+    Close();
   }
   mVideoStreamId = -1;
   mAudioStreamId = -1;
@@ -166,6 +166,7 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
     return 0;
   }
 
+  bytes += packet.size;
   zm_packet.set_packet(&packet);
   zm_av_packet_unref(&packet);
   return 1;
@@ -435,7 +436,7 @@ int FfmpegCamera::OpenFfmpeg() {
   return 1;
 } // int FfmpegCamera::OpenFfmpeg()
 
-int FfmpegCamera::CloseFfmpeg() {
+int FfmpegCamera::Close() {
 
   Debug(2, "CloseFfmpeg called.");
 
@@ -476,6 +477,6 @@ int FfmpegCamera::CloseFfmpeg() {
   }
 
   return 0;
-} // end int FfmpegCamera::CloseFfmpeg()
+} // end FfmpegCamera::Close
 
 #endif // HAVE_LIBAVFORMAT

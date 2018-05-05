@@ -117,38 +117,38 @@ protected:
     uint32_t last_write_index;  /* +4    */
     uint32_t last_read_index;   /* +8    */
     uint32_t state;             /* +12   */
-    uint32_t last_event_id;     /* +16   */
-    uint32_t action;            /* +20   */
-    int32_t brightness;         /* +24   */
-    int32_t hue;                /* +28   */
-    int32_t colour;             /* +32   */
-    int32_t contrast;           /* +36   */
-    int32_t alarm_x;            /* +40   */
-    int32_t alarm_y;            /* +44   */
-    uint8_t valid;              /* +48   */
-    uint8_t active;             /* +49   */
-    uint8_t signal;             /* +50   */
-    uint8_t format;             /* +51   */
-    uint32_t imagesize;         /* +52   */
-    uint32_t epadding1;         /* +56   */
-    uint32_t epadding2;         /* +60   */
+    uint64_t last_event_id;     /* +16   */
+    uint32_t action;            /* +24   */
+    int32_t brightness;         /* +28   */
+    int32_t hue;                /* +32   */
+    int32_t colour;             /* +36   */
+    int32_t contrast;           /* +40   */
+    int32_t alarm_x;            /* +44   */
+    int32_t alarm_y;            /* +48   */
+    uint8_t valid;              /* +52   */
+    uint8_t active;             /* +53   */
+    uint8_t signal;             /* +54   */
+    uint8_t format;             /* +55   */
+    uint32_t imagesize;         /* +56   */
+    uint32_t epadding1;         /* +60   */
+    uint32_t epadding2;         /* +64   */
     /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      */
-    union {                     /* +64   */
+    union {                     /* +68   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +72   */
+    union {                     /* +76   */
       time_t last_write_time;
       uint64_t extrapad2;
     };
-    union {            /* +80   */
+    union {            /* +84   */
       time_t last_read_time;
       uint64_t extrapad3;
     };
-    uint8_t control_state[256];  /* +88   */
+    uint8_t control_state[256];  /* +92   */
 
     char alarm_cause[256];
 
@@ -299,13 +299,16 @@ protected:
   int        fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
   int        ref_blend_perc;      // Percentage of new image going into reference image.
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
-  bool      track_motion;      // Whether this monitor tries to track detected motion
+  bool      track_motion;      // Whether this monitor tries to track detected motion 
+  int         signal_check_points;  // Number of points in the image to check for signal
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
 
   double      capture_fps;       // Current capturing fps
   double      analysis_fps;      // Current analysis fps
 
+  unsigned int  last_camera_bytes;
+  
   Image      delta_image;
   Image      ref_image;
   Image       alarm_image;  // Used in creating analysis images, will be initialized in Analysis
@@ -339,8 +342,6 @@ protected:
 #endif // ZM_MEM_MAPPED
   off_t        mem_size;
   unsigned char  *mem_ptr;
-  Storage      *storage;
-
   SharedData    *shared_data;
   TriggerData    *trigger_data;
   VideoStoreData  *video_store_data;
@@ -353,7 +354,8 @@ protected:
   int video_stream_id; // will be filled in PrimeCapture
 
   Camera      *camera;
-  Event      *event;
+  Event       *event;
+  Storage     *storage;
 
   int      n_zones;
   Zone      **zones;
@@ -487,6 +489,7 @@ public:
   int PreCapture() const;
   int Capture();
   int PostCapture() const;
+  int Close();
 
   void CheckAction();
 

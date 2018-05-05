@@ -266,7 +266,6 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
    }
    // if canview_reports
 ?>
-      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 <?php
 if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   $terms = $_REQUEST['filter']['Query']['terms'];
@@ -288,6 +287,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 <?php
   }
 ?>
+      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 		</ul>
 <?php } // end if canView('Monitors') ?>
 
@@ -340,7 +340,17 @@ if ($reload == 'reload') ob_start();
   if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
     array_push( $storage_areas, new Storage() );
   }
-  $func =  function($S){ return '<span title="'.human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()).'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
+  $func = function($S){
+    $class = '';
+    if ( $S->disk_usage_percent() > 98 ) {
+      $class = "error";
+    } else if ( $S->disk_usage_percent() > 90 ) {
+      $class = "warning";
+    }
+    $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
+      ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
+
+    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) >= 4 ) 
     $storage_areas = Storage::find_all( array('ServerId'=>null) );

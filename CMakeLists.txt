@@ -143,6 +143,8 @@ set(ZM_WEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/www" 
     "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
 set(ZM_CGIDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
     "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
+set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH 
+    "Location of the web server cache busting files, default: /var/cache/zoneminder")
 set(ZM_CONTENTDIR "/var/lib/zoneminder" CACHE PATH 
     "Location of dynamic content (events and images), default: /var/lib/zoneminder")
 set(ZM_DB_HOST "localhost" CACHE STRING 
@@ -207,7 +209,7 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
-    "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc24, fc25, el6, el7, OS13, FreeBSD")
+    "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc27, fc26, el7, OS13, FreeBSD")
 set(ZM_SYSTEMD "OFF" CACHE BOOL 
     "Set to ON to force building ZM with systemd support. default: OFF")
 

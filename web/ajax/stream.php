@@ -145,7 +145,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
   }
   case MSG_DATA_EVENT :
   {
-    $data =  unpack( "ltype/ievent/iprogress/irate/izoom/Cpaused", $msg );
+    $data =  unpack( "ltype/Pevent/iprogress/irate/izoom/Cpaused", $msg );
     //$data['progress'] = sprintf( "%.2f", $data['progress'] );
     $data['rate'] /= RATE_BASE;
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );

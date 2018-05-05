@@ -189,13 +189,14 @@ int RemoteCameraNVSocket::Capture( ZMPacket &zm_packet ) {
     Warning( "Unable to capture image, retrying" );
     return 0;
   }
-  if ( Read( sd, buffer, imagesize ) < imagesize ) {
-    Warning( "Unable to capture image, retrying" );
+	int bytes_read = Read(sd, buffer, imagesize);
+  if ( (bytes_read < 0) || ( (unsigned int)bytes_read < imagesize ) ) {
+    Warning("Unable to capture image, retrying");
     return 0;
   }
   uint32_t end;
   if ( Read(sd, (char *) &end , sizeof(end)) < 0 ) {
-    Warning( "Unable to capture image, retrying" );
+    Warning("Unable to capture image, retrying");
     return 0;
   }
   if ( end != 0xFFFFFFFF) {
@@ -203,7 +204,7 @@ int RemoteCameraNVSocket::Capture( ZMPacket &zm_packet ) {
     return 0;
   }
 
-  zm_packet.image->Assign( width, height, colours, subpixelorder, buffer, imagesize );
+  zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
   zm_packet.keyframe = 1;
   return 1;
 }

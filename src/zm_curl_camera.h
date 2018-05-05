@@ -73,6 +73,7 @@ public:
 
   void Initialise();
   void Terminate();
+  int Close() { return 0; };
 
   int PrimeCapture();
   int PreCapture();

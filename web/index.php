@@ -145,6 +145,9 @@ if ( ZM_OPT_USE_AUTH ) {
 } else {
   $user = $defaultUser;
 }
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that sets session variables must re-open it.
+session_write_close();
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
@@ -158,7 +161,7 @@ CORSHeaders();
 
 // Check for valid content dirs
 if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
-  Error( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+  Warning("Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
 }
 
 # Globals
@@ -187,9 +190,6 @@ if ( ZM_OPT_USE_AUTH ) {
     generateAuthHash( ZM_AUTH_HASH_IPS );
   }
 }
-# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
-# Any file/page that sets session variables must re-open it.
-session_write_close();
 
 if ( isset($_REQUEST['action']) ) {
   $action = detaintPath($_REQUEST['action']);

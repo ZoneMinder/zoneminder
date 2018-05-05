@@ -397,7 +397,7 @@ sub delete {
   if ( (! $Config{ZM_OPT_FAST_DELETE}) and $event->Storage()->DoDelete() ) {
     $event->delete_files( );
   } else {
-    Debug('Not deleting frames, stats and files for speed.');
+    Debug('Not deleting event files from '.$event->Path().' for speed.');
   }
 } # end sub delete
 
@@ -519,6 +519,22 @@ sub DiskSpace {
 sub MoveTo {
   my ( $self, $NewStorage ) = @_;
 
+  my $OldStorage = $self->Storage(undef);
+  my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
+  if ( ! -e $OldPath ) {
+    return "Old path $OldPath does not exist.";
+  }
+  # First determine if we can move it to the dest.
+  # We do this before bothering to lock the event
+  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
+  if ( ! $$NewStorage{Id} ) {
+    return "New storage does not have an id.  Moving will not happen.";
+  } elsif ( !$NewPath ) {
+    return "New path ($NewPath) is empty.";
+  } elsif ( ! -e $NewPath ) {
+    return "New path $NewPath does not exist.";
+  }
+
   $ZoneMinder::Database::dbh->begin_work();
   $self->lock_and_load();
   # data is reloaded, so need to check that the move hasn't already happened.
@@ -526,25 +542,13 @@ sub MoveTo {
     $ZoneMinder::Database::dbh->commit();
     return "Event has already been moved by someone else.";
   }
-  my $OldStorage = $self->Storage(undef);
-  my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
+
+  if ( $$OldStorage{Id} != $$self{StorageId} ) {
+    $ZoneMinder::Database::dbh->commit();
+    return "Old Storage path changed, Event has moved somewhere else.";
+  }
 
   $$self{Storage} = $NewStorage;
-
-  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
-  if ( ! $$NewStorage{Id} ) {
-    $ZoneMinder::Database::dbh->commit();
-    return "New storage does not have an id.  Moving will not happen.";
-  } elsif ( !$NewPath ) {
-    $ZoneMinder::Database::dbh->commit();
-    return "New path ($NewPath) is empty.";
-  } elsif ( ! -e $NewPath ) {
-    $ZoneMinder::Database::dbh->commit();
-    return "New path $NewPath does not exist.";
-  } elsif ( ! -e $OldPath ) {
-    $ZoneMinder::Database::dbh->commit();
-    return "Old path $OldPath does not exist.";
-  }
   ( $NewPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
     $ZoneMinder::Database::dbh->commit();

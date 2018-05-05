@@ -73,18 +73,19 @@ class Frame {
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
 				Error("Invalid value for limit($limit) passed to Frame::find from $file:$line");
-				return;
+				return array();
 			}
 		}
-		$results = dbFetchAll( $sql, NULL, $values );
+		$results = dbFetchAll($sql, NULL, $values);
 		if ( $results ) {
 		  return array_map( function($id){ return new Frame($id); }, $results );
 		}
+    return array();
 	}
 
 	public static function find_one( $parameters = array() ) {
 	  $results = Frame::find( $parameters, 1 );
-	  if ( ! sizeof( $results ) ) {
+	  if ( ! sizeof($results) ) {
 		  return;
 	  }
 	  return $results[0];

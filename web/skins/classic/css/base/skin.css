@@ -341,11 +341,11 @@ fieldset > legend {
 /*
  * Behavior classes
  */
-.alarm, .errorText {
+.alarm, .errorText, .error {
     color: #ff3f34;
 }
 
-.alert, .warnText {
+.alert, .warnText, .warning {
     color: #ffa801;
 }
 

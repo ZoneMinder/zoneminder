@@ -101,7 +101,10 @@ $attrTypes = array(
     'DiskSpace'   => translate('AttrDiskSpace'),
     'SystemLoad'  => translate('AttrSystemLoad'),
     'StorageId'   => translate('AttrStorageArea'),
-    'ServerId'    => translate('AttrServer'),
+    'ServerId'    => translate('AttrMonitorServer'),
+    'FilterServerId'     => translate('AttrFilterServer'),
+    'MonitorServerId'    => translate('AttrMonitorServer'),
+    'StorageServerId'    => translate('AttrStorageServer'),
     'StateId'     => translate('AttrStateId'),
     );
 
@@ -188,7 +191,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
-          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>"/>
+          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>" oninput="updateButtons(this);"/>
         </p>
         <table id="fieldsTable" class="filterTable">
           <tbody>
@@ -268,7 +271,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $monitors, $term['val'] ); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'ServerId' ) {
+    } elseif ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $servers, $term['val'] ); ?></td>
@@ -398,11 +401,11 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>
-              <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( !empty($filter->Background()) ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( !empty($filter->Background()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);"/>
             </p>
             <p>
               <label for="Concurrent"><?php echo translate('ConcurrentFilter') ?></label>
-              <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( !empty($filter->Concurrent()) ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( !empty($filter->Concurrent()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);"/>
             </p>
         </div>
         <hr/>

@@ -105,11 +105,15 @@ $show_storage_areas = count($storage_areas) > 1 and canEdit( 'System' ) ? 1 : 0;
 $maxWidth = 0;
 $maxHeight = 0;
 $zoneCount = 0;
+$total_capturing_bandwidth=0;
 
 $status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   $monitor = &$displayMonitors[$i];
   if ( ! $monitor['Status'] ) {
+    if ( $monitor['Type'] == 'WebSite' )
+     $monitor['Status'] = 'Running';
+    else
      $monitor['Status'] = 'NotRunning';
   }
   if ( !isset($status_counts[$monitor['Status']]) )
@@ -173,17 +177,27 @@ xhtmlHeaders( __FILE__, translate('Console') );
   </div>
 
     <div class="container-fluid">
+              <button type="button" name="addBtn" onclick="addMonitor(this);"
+              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+              >
+              <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
+              </button>
+              <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
+              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+              style="display:none;">
+              <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
+              </button>
+              <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
+              <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
+              </button>
+              <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
+              <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
+              </button>
+              <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
 <?php
-for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
-  $monitor = $displayMonitors[$monitor_i];
-  $Monitor = new Monitor($monitor);
-
-  if ( $monitor_i % 100 == 0 ) {
-    if ( $monitor_i ) {
-      echo '</table>';
-    }
+ob_start();
 ?>
-      <table class="table table-striped table-hover table-condensed" id="consoleTable">
+      <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
@@ -208,13 +222,23 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php } ?>
           </tr>
         </thead>
-        <tbody id="consoleTableBody">
+        <tbody class="consoleTableBody">
 <?php
-} # monitor_i % 100
+$table_head = ob_get_contents();
+ob_end_clean();
+echo $table_head;
+for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
+  $monitor = $displayMonitors[$monitor_i];
+  $Monitor = new Monitor($monitor);
+
+  if ( $monitor_i and ( $monitor_i % 100 == 0 ) ) {
+    echo '</table>';
+    echo $table_head;
+  } # monitor_i % 100
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
 <?php
-  if ( (!$monitor['Status']) or ($monitor['Status'] == 'NotRunning') ) {
+  if ( (!$monitor['Status'] || $monitor['Status'] == 'NotRunning') && $monitor['Type']!='WebSite' ) {
     $source_class = 'errorText';
   } else {
     if ( $monitor['CaptureFPS'] == '0.00' ) {
@@ -232,7 +256,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   if ( !$monitor['Enabled'] )
     $fclass .= ' disabledText';
   $scale = max( reScale( SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
-$stream_available = canView('Stream') && $monitor['CaptureFPS'] && $monitor['Function'] != 'None';
+$stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Function'] != 'None');
 $dot_class=$source_class;
 if ( $fclass != 'infoText' ) $dot_class=$fclass;
 
@@ -244,18 +268,21 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
 ?>
             <td class="colName">
               <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>"  aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
-              <?php echo translate('Status'.$monitor['Status']) ?><br/>
               <?php echo implode('<br/>',
                   array_map(function($group_id){
-                    $Group = new Group($group_id);
-                    $Groups = $Group->Parents();
-                    array_push( $Groups, $Group );
+                    $Group = Group::find_one(array('Id'=>$group_id));
+                    if ( $Group ) {
+                      $Groups = $Group->Parents();
+                      array_push( $Groups, $Group );
+                    }
                     return implode(' &gt; ', array_map(function($Group){ return '<a href="'. ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview&GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </div></td>
             <td class="colFunction">
-              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/><div class="small text-nowrap text-muted">
+              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
+              <?php echo translate('Status'.$monitor['Status']) ?><br/>
+              <div class="small text-nowrap text-muted">
 <?php 
   $fps_string = '';
   if ( isset($monitor['CaptureFPS']) ) {
@@ -266,6 +293,8 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
     $fps_string .= '/' . $monitor['AnalysisFPS'];
   }
   if ($fps_string) $fps_string .= ' fps';
+  $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
+  $total_capturing_bandwidth += $monitor['CaptureBandwidth'];
   echo $fps_string;
 ?>
               </div></td>
@@ -284,7 +313,7 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
     }
   } elseif ( $monitor['Type'] == 'File' || $monitor['Type'] == 'cURL' ) {
     $source = preg_replace( '/^.*\//', '', $monitor['Path'] );
-  } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' ) {
+  } elseif ( $monitor['Type'] == 'Ffmpeg' || $monitor['Type'] == 'Libvlc' || $monitor['Type'] == 'WebSite' ) {
     $url_parts = parse_url( $monitor['Path'] );
     unset($url_parts['user']);
     unset($url_parts['pass']);
@@ -330,27 +359,19 @@ if ( $fclass != 'infoText' ) $dot_class=$fclass;
         </tbody>
         <tfoot>
           <tr>
+<?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
             <td class="colId"><?php echo translate('Total').":".count($displayMonitors) ?></td>
-            <td class="colLeftButtons" colspan="<?php echo $left_columns -1?>">
-              <button type="button" name="addBtn" onclick="addMonitor(this);"
-              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
-              >
-              <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
-              </button>
-              <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
-              <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
-              style="display:none;">
-              <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
-              </button>
-              <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
-              <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
-              </button>
-              <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
-              <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
-              </button>
-              <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
-            </td>
+<?php } ?>
+            <td class="colName"></td>
+            <td class="colFunction"><?php echo human_filesize($total_capturing_bandwidth ).'/s' ?></td>
+<?php if ( count($servers) ) { ?>
+            <td class="colServer"></td>
+<?php } ?>
+            <td class="colSource"></td>
+<?php if ( $show_storage_areas ) { ?>
+            <td class="colStorage"></td>
 <?php
+}
   foreach ( array_keys( $eventCounts ) as $i ) {
     parseFilter( $eventCounts[$i]['filter'] );
 ?>

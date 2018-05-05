@@ -235,24 +235,25 @@ private $control_fields = array(
     return( $streamSrc );
   } // end function getStreamSrc
 
-  public function Width( $new = null ) {
+  public function Width($new = null) {
     if ( $new )
       $this->{'Width'} = $new;
 
-    if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
-      return $this->{'Height'};
-    }
-    return $this->{'Width'};
-  }
+    $field = ( $this->Orientation() == '90' or $this->Orientation() == '270' ) ? 'Height' : 'Width';
+    if ( array_key_exists($field, $this) )
+      return $this->{$field};
+    return $this->defaults{$field};
+  } // end function Width
 
-  public function Height( $new=null ) {
+  public function Height($new=null) {
     if ( $new )
       $this->{'Height'} = $new;
-    if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
-      return $this->{'Width'};
-    }
-    return $this->{'Height'};
-  }
+
+    $field = ( $this->Orientation() == '90' or $this->Orientation() == '270' ) ?  'Width' : 'Height';
+    if ( array_key_exists($field, $this) )
+      return $this->{$field};
+    return $this->defaults{$field};
+  } // end function Height
 
   public function set($data) {
     foreach ($data as $k => $v) {

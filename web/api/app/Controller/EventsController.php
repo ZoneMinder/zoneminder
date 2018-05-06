@@ -101,8 +101,8 @@ class EventsController extends AppController {
  * @return void
  */
 	public function view($id = null) {
+ 
     $this->loadModel('Config');
-
     $this->Event->recursive = 1;
     if (!$this->Event->exists($id)) {
       throw new NotFoundException(__('Invalid event'));
@@ -117,10 +117,13 @@ class EventsController extends AppController {
     }
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
-    $event = $this->Event->find('first', $options);
 
+   
+    $event = $this->Event->find('first', $options);
+    
     # Get the previous and next events for any monitor
     $this->Event->id = $id;
+
     $event_neighbors = $this->Event->find('neighbors');
     $event['Event']['Next'] = $event_neighbors['next']['Event']['Id'];
     $event['Event']['Prev'] = $event_neighbors['prev']['Event']['Id'];
@@ -222,9 +225,11 @@ class EventsController extends AppController {
   public function search() {
     $this->Event->recursive = -1;
     $conditions = array();
+    $limit = $this->request->query("limit");
 
     foreach ($this->params['named'] as $param_name => $value) {
       // Transform params into mysql
+
       if (preg_match("/interval/i", $value, $matches)) {
         $condition = array("$param_name >= (date_sub(now(), $value))");
       } else {
@@ -234,7 +239,8 @@ class EventsController extends AppController {
     }
 
     $results = $this->Event->find('all', array(
-      'conditions' => $conditions
+      'conditions' => $conditions,
+      'limit' => $limit,
     ));
 
     $this->set(array(

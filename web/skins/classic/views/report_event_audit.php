@@ -27,14 +27,15 @@ ob_end_clean();
 noCacheHeaders();
 xhtmlHeaders( __FILE__, translate('Console') );
 
-if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
-  $time = time();
-  $maxTime = strftime('%FT%T',$time - 3600);
-  $minTime = strftime('%FT%T',$time - (2*3600) );
-} else if ( isset($_REQUEST['minTime']) ) {
+if ( isset($_REQUEST['minTime']) ) {
   $minTime = validHtmlStr($_REQUEST['minTime']);
-} else if ( isset($_REQUEST['maxTime']) ) {
+} else {
+  $minTime = strftime('%FT%T',time() - (2*3600) );
+}
+if ( isset($_REQUEST['maxTime']) ) {
   $maxTime = validHtmlStr($_REQUEST['maxTime']);
+} else {
+  $maxTime = strftime('%FT%T',time() - 3600);
 }
 
 $filter = array(
@@ -63,8 +64,6 @@ parseFilter($filter);
 $filterQuery = $filter['query'];
 Logger::Debug($filterQuery);
 
-
-
 $eventsSql = 'SELECT *,
     UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
     UNIX_TIMESTAMP(EndTime) AS EndTimeSecs
@@ -91,7 +90,7 @@ $EventsByMonitor = array();
 while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   $Event = new Event($event);
   if ( ! isset($EventsByMonitor[$event['MonitorId']]) )
-    $EventsByMonitor[$event['MonitorId']] = array( 'Events'=>array(), 'MinGap'=>0, 'MaxGap'=>0, 'FileMissing'=>0, 'ZeroSize'=>array() );
+    $EventsByMonitor[$event['MonitorId']] = array( 'Events'=>array(), 'MinGap'=>0, 'MaxGap'=>0, 'FileMissing'=>array(), 'ZeroSize'=>array() );
 
   if ( count($EventsByMonitor[$event['MonitorId']]['Events']) ) {
     $last_event = end($EventsByMonitor[$event['MonitorId']]['Events']);
@@ -104,8 +103,8 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
       $EventsByMonitor[$event['MonitorId']]['MaxGap'] = $gap;
 
   } # end if has previous events
-  if ( ! file_exists( $Event->Path().'/'.$Event->DefaultVideo() ) ) {
-    $EventsByMonitor[$event['MonitorId']]['FileMissing'] += 1;
+  if ( ! $Event->file_exists() ) {
+    $EventsByMonitor[$event['MonitorId']]['FileMissing'][] = $Event;
   } else if ( ! filesize( $Event->Path().'/'.$Event->DefaultVideo() ) ) {
     $EventsByMonitor[$event['MonitorId']]['ZeroSize'][] = $Event;
   }
@@ -169,11 +168,32 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   } else {
     $MinGap = 0;
     $MaxGap = 0;
-    $FileMissing = 0;
-    $ZeroSize = 0;
+    $FileMissing = array();
+    $ZeroSize = array();
     $FirstEvent = 0;
     $LastEvent = 0;
   }
+
+  if ( count($FileMissing) ) {
+    $FileMissing_filter = array(
+        'Query' => array(
+          'terms' => array(
+            array('attr'=>'Id','op'=>'IN', 'val'=>implode(',',array_map(function($Event){return $Event->Id();},$FileMissing)))
+            )
+          )
+        );
+    parseFilter($FileMissing_filter);
+  }
+  if ( count($ZeroSize) ) {
+    $ZeroSize_filter = array(
+        'Query' => array(
+          'terms' => array(
+            array('attr'=>'Id','op'=>'IN', 'val'=>implode(',',array_map(function($Event){return $Event->Id();},$ZeroSize)))
+            )
+          )
+        );
+  }
+
 
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
@@ -195,8 +215,12 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colLastEvent"><?php echo $LastEvent ? $LastEvent->link_to($LastEvent->Id().' at ' . $LastEvent->StartTime()) : 'none'?></td>
             <td class="colMinGap"><?php echo $MinGap ?></td>
             <td class="colMaxGap"><?php echo $MaxGap ?></td>
-            <td class="colFileMissing<?php echo $FileMissing ? ' errorText' : ''?>"><?php echo $FileMissing ?></td>
-            <td class="colZeroSize<?php echo count($ZeroSize) ? ' errorText' : ''?>"><?php echo count($ZeroSize) ?></td>
+            <td class="colFileMissing<?php echo count($FileMissing) ? ' errorText' : ''?>">
+            <?php echo count($FileMissing) ?  '<a href="?view='.ZM_WEB_EVENTS_VIEW .'&amp;page=1'.$FileMissing_filter['query'].'">'.count($FileMissing).'</a>' : '0' ?>
+            </td>
+            <td class="colZeroSize<?php echo count($ZeroSize) ? ' errorText' : ''?>">
+            <?php echo count($ZeroSize) ? '<a href="?view='.ZM_WEB_EVENTS_VIEW .'&amp;page=1'.$ZeroSize_filter['query'].'">'.count($FileMissing).'</a>' : '0' ?>
+            </td>
           </tr>
 <?php
 } # end for each monitor

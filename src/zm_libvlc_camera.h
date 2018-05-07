@@ -41,8 +41,7 @@ struct LibvlcPrivateData
   ThreadData<bool> newImage;
 };
 
-class LibvlcCamera : public Camera
-{
+class LibvlcCamera : public Camera {
 protected:
   std::string mPath;
   std::string mMethod;

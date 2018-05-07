@@ -691,7 +691,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
   
   int frameComplete = false;
   while ( ! frameComplete ) {
-    av_init_packet( &packet );
+    av_init_packet(&packet);
 
     ret = av_read_frame(mFormatContext, &packet);
     if ( ret < 0 ) {
@@ -739,11 +739,11 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           videoStore = NULL;
           have_video_keyframe = false;
 
-          monitor->SetVideoWriterEventId( 0 );
+          monitor->SetVideoWriterEventId(0);
         } // end if videoStore
       } // end if end of recording
 
-      if ( last_event_id and ! videoStore ) {
+      if ( last_event_id and !videoStore ) {
         //Instantiate the video storage module
 
         if ( record_audio ) {
@@ -820,7 +820,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
         delete videoStore;
         videoStore = NULL;
         have_video_keyframe = false;
-        monitor->SetVideoWriterEventId( 0 );
+        monitor->SetVideoWriterEventId(0);
       }
 
       // Buffer video packets, since we are not recording.
@@ -828,18 +828,18 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       if ( packet.stream_index == mVideoStreamId ) {
         if ( keyframe ) {
           Debug(3, "Clearing queue");
-          packetqueue.clearQueue( monitor->GetPreEventCount(), mVideoStreamId );
-          packetqueue.queuePacket( &packet );
+          packetqueue.clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
+          packetqueue.queuePacket(&packet);
         } else if ( packetqueue.size() ) {
           // it's a keyframe or we already have something in the queue
-          packetqueue.queuePacket( &packet );
+          packetqueue.queuePacket(&packet);
         } 
       } else if ( packet.stream_index == mAudioStreamId ) {
       // The following lines should ensure that the queue always begins with a video keyframe
 //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
         if ( record_audio && packetqueue.size() ) { 
           // if it's audio, and we are doing audio, and there is already something in the queue
-          packetqueue.queuePacket( &packet );
+          packetqueue.queuePacket(&packet);
         }
       }
     } // end if recording or not
@@ -851,25 +851,25 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
         if ( videoStore ) {
               
           //Write the packet to our video store
-          int ret = videoStore->writeVideoFramePacket( &packet );
+          int ret = videoStore->writeVideoFramePacket(&packet);
           if ( ret < 0 ) { //Less than zero and we skipped a frame
-            zm_av_packet_unref( &packet );
+            zm_av_packet_unref(&packet);
             return 0;
           }
           have_video_keyframe = true;
         }
       } // end if keyframe or have_video_keyframe
 
-        Debug(4, "about to decode video" );
+      Debug(4, "about to decode video");
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-        ret = avcodec_send_packet( mVideoCodecContext, &packet );
-        if ( ret < 0 ) {
-          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-          zm_av_packet_unref( &packet );
-          continue;
-        }
+      ret = avcodec_send_packet(mVideoCodecContext, &packet);
+      if ( ret < 0 ) {
+        av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+        Error("Unable to send packet at frame %d: %s, continuing", frameCount, errbuf);
+        zm_av_packet_unref(&packet);
+        continue;
+      }
 #if HAVE_AVUTIL_HWCONTEXT_H
         if ( hwaccel ) {
           ret = avcodec_receive_frame( mVideoCodecContext, hwFrame );
@@ -888,11 +888,11 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           }
         } else {
 #endif
-          ret = avcodec_receive_frame( mVideoCodecContext, mRawFrame );
+          ret = avcodec_receive_frame(mVideoCodecContext, mRawFrame);
           if ( ret < 0 ) {
-            av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-            Warning( "Unable to receive frame %d: %s, continuing", frameCount, errbuf );
-            zm_av_packet_unref( &packet );
+            av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            Warning("Unable to receive frame %d: %s, continuing", frameCount, errbuf);
+            zm_av_packet_unref(&packet);
             continue;
           }
         
@@ -902,10 +902,10 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
         frameComplete = 1;
 # else
-        ret = zm_avcodec_decode_video( mVideoCodecContext, mRawFrame, &frameComplete, &packet );
+        ret = zm_avcodec_decode_video(mVideoCodecContext, mRawFrame, &frameComplete, &packet);
         if ( ret < 0 ) {
-          av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-          Error( "Unable to decode frame at frame %d: %s, continuing", frameCount, errbuf );
+          av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+          Error("Unable to decode frame at frame %d: %s, continuing", frameCount, errbuf);
           zm_av_packet_unref( &packet );
           continue;
         }
@@ -921,15 +921,13 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           if ( directbuffer == NULL ) {
             Error("Failed requesting writeable buffer for the captured image.");
             zm_av_packet_unref( &packet );
-            return (-1);
+            return -1;
           }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
           av_image_fill_arrays(mFrame->data, mFrame->linesize, directbuffer, imagePixFormat, width, height, 1);
 #else
           avpicture_fill( (AVPicture *)mFrame, directbuffer, imagePixFormat, width, height);
 #endif
-
-
           if (sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize,
                 0, mVideoCodecContext->height, mFrame->data, mFrame->linesize) < 0) {
             Error("Unable to convert raw format %u to target format %u at frame %d",

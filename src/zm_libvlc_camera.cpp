@@ -220,6 +220,8 @@ int LibvlcCamera::PreCapture() {
 
 // Should not return -1 as cancels capture. Always wait for image if available.
 int LibvlcCamera::Capture(Image &image) {   
+
+  // newImage is a mutex/condition based flag to tell us when there is an image available
   while( !mLibvlcData.newImage.getValueImmediate() ) {
     if (zm_terminate)
       return 0;

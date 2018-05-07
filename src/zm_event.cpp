@@ -69,7 +69,7 @@ Event::Event(
     untimedEvent = true;
     start_time = now;
   } else if ( start_time.tv_sec > now.tv_sec ) {
-    Error("StartTime in the future %d.%d > %d.%d",
+    Error("StartTime in the future %u.%u > %u.%u",
         start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec
         );
     start_time = now;

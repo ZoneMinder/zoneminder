@@ -302,7 +302,7 @@ sub run {
       if ( ! ( $secs_count % 60 ) ) {
         Debug("Connecting");
         while ( (!$zm_terminate) and !($dbh and $dbh->ping()) ) {
-          Warning("Not connected to db ($dbh)".($dbh?" ping(".$dbh->ping().")":''). " errstr($DBI::errstr). Reconnecting");
+          Warning("Not connected to db ($dbh)".($dbh?" ping(".$dbh->ping().")":''). ($DBI::errstr?" errstr($DBI::errstr)":'').' Reconnecting');
           $dbh = zmDbConnect();
         }
         my @cpuload = CpuLoad();

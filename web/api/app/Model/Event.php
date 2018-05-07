@@ -44,7 +44,15 @@ class Event extends AppModel {
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''
-		)
+		),
+    'Storage' =>  array(
+      'className' => 'Storage',
+      'joinTable' => 'Storage',
+      'foreignKey' => 'StorageId',
+      'conditions' => '',
+      'fields' => '',
+      'order' => ''
+      )
 	);
 
 /**
@@ -92,4 +100,35 @@ class Event extends AppModel {
     ),
   );
 
+ public function Relative_Path($event) {
+    $event_path = '';
+
+    if ( $event['Scheme'] == 'Deep' ) {
+      $event_path = $event['MonitorId'] .'/'.strftime('%y/%m/%d/%H/%M/%S', strtotime($event['StartTime']));
+    } else if ( $event['Scheme'] == 'Medium' ) {
+      $event_path = $event['MonitorId'] .'/'.strftime('%Y-%m-%d', strtotime($event['StartTime'])) . '/'.$event['Id'];
+    } else {
+      $event_path = $event['MonitorId'] .'/'.$event['Id'];
+    }
+
+    return $event_path;
+  } // end function Relative_Path()
+
+
+  public function fileExists( $event ) {
+    //$data = $this->findById($id);
+    //return $data['Event']['dataset_filename'];
+    $storage = $this->Storage->findById( $event['StorageId'] );
+
+    if ( $event['DefaultVideo'] ) {
+      if ( file_exists( $storage['Storage']['Path'].'/'.$this->Relative_Path($event).'/'.$event['DefaultVideo'] ) ) {
+        return 1;
+      } else {
+        Logger::Debug("FIle does not exist at " . $storage['Storage']['Path'].'/'.$this->Relative_Path($event).'/'.$event['DefaultVideo'] );
+      }
+    } else {
+Logger::Debug("No DefaultVideo in Event" . $this->Event);
+      return 0;
+    }
+  }
 }

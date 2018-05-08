@@ -341,11 +341,13 @@ int FfmpegCamera::OpenFfmpeg() {
 
   Debug(1, "Calling avformat_open_input for %s", mPath.c_str());
 
-  //mFormatContext = avformat_alloc_context( );
+  mFormatContext = avformat_alloc_context( );
   // Speed up find_stream_info
   //FIXME can speed up initial analysis but need sensible parameters...
   //mFormatContext->probesize = 32;
   //mFormatContext->max_analyze_duration = 32;
+  mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
+  mFormatContext->interrupt_callback.opaque = this;
 
   if ( avformat_open_input(&mFormatContext, mPath.c_str(), NULL, &opts) != 0 )
 #endif
@@ -978,6 +980,10 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
   return frameCount;
 } // end FfmpegCamera::CaptureAndRecord
 
+int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
+  //FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
 
+  return zm_terminate;
+}
 
 #endif // HAVE_LIBAVFORMAT

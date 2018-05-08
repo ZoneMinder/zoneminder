@@ -99,11 +99,12 @@ class FfmpegCamera : public Camera {
     void Initialise();
     void Terminate();
 
+    static int FfmpegInterruptCallback(void*ctx);
+
     int PrimeCapture();
     int PreCapture();
     int Capture( Image &image );
     int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
     int PostCapture();
 };
-
 #endif // ZM_FFMPEG_CAMERA_H

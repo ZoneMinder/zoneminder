@@ -439,7 +439,8 @@ sub start {
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
   Debug("forking");
   if ( my $cpid = fork() ) {
-    #logReinit();
+    # This logReinit is required.  Not sure why.
+    logReinit();
 
     $process->{pid} = $cpid;
     $process->{started} = time();
@@ -503,6 +504,10 @@ sub start {
 sub send_stop {
   my ( $final, $process ) = @_;
 
+  my $sigset = POSIX::SigSet->new;
+  my $blockset = POSIX::SigSet->new(SIGCHLD);
+  sigprocmask(SIG_BLOCK, $blockset, $sigset) or die "dying at block...\n";
+
   my $command = $process->{command};
   if ( $process->{pending} ) {
 
@@ -511,12 +516,19 @@ sub send_stop {
         .strftime('%y/%m/%d %H:%M:%S', localtime())
         ."\n"
         );
+  sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
     return();
   }
 
   my $pid = $process->{pid};
+  if ( !$pid ) {
+    dPrint(ZoneMinder::Logger::ERROR, "No process with command of '$command' is running\n");
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
+    return();
+  }
   if ( !$pid_hash{$pid} ) {
     dPrint(ZoneMinder::Logger::ERROR, "No process with command of '$command' pid $pid is running\n");
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
     return();
   }
 
@@ -525,11 +537,12 @@ sub send_stop {
       ."\n"
       );
   $process->{keepalive} = !$final;
-  $process->{term_sent_at} = time;
+  $process->{term_sent_at} = time if ! $process->{term_sent_at};
   $process->{pending} = 0;
   $terminating_processes{$command} = $process;
 
   kill('TERM', $pid);
+  sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
   return $pid;
 } # end sub send_stop
 
@@ -540,6 +553,16 @@ sub check_for_processes_to_kill {
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or die "dying at block...\n";
   foreach my $command ( keys %terminating_processes ) {
     my $process = $cmd_hash{$command};
+    if ( ! $process ) {
+      Debug("No process found for $command");
+      delete $terminating_processes{$command};
+      next;
+    }
+    if ( ! $$process{pid} ) {
+      Warning("Have no pid for $command.");
+      delete $terminating_processes{$command};
+      next;
+    }
     my $now = time;
     Debug("Have process $command at pid $$process{pid} $now - $$process{term_sent_at} = " . ( $now - $$process{term_sent_at} ));
     if ( $$process{term_sent_at} and ( $now - $$process{term_sent_at} > KILL_DELAY ) ) {
@@ -685,7 +708,7 @@ sub reaper {
   } # end while waitpid
   $SIG{CHLD} = \&reaper;
   $! = $saved_status;
-Debug("Leaving reaper");
+  Debug("Leaving reaper");
 }
 
 sub restartPending {
@@ -697,7 +720,7 @@ sub restartPending {
       start($process->{daemon}, @{$process->{args}});
     }
   }
-  dPrint(ZoneMinder::Logger::INFO, "done restartPending");
+  Debug("done restartPending");
 }
 
 sub shutdownAll {
@@ -706,29 +729,17 @@ sub shutdownAll {
     next if ! $pid_hash{$pid};
     send_stop(1, $pid_hash{$pid});
   }
-  my $count = KILL_DELAY;
-  while ( (keys %terminating_processes) and $count) {
+  while ( keys %terminating_processes ) {
     check_for_processes_to_kill();
     if ( %terminating_processes ) {
-      Debug("Still " .  %terminating_processes . ' to die. count is: ' . $count . ' sleeping');
+      Debug("Still " .  %terminating_processes . ' to die. sleeping');
       sleep(1);
-      $count --;
     }
   }
-  foreach my $command ( keys %terminating_processes ) {
-    my $process = $cmd_hash{$command};
-
-    dPrint(ZoneMinder::Logger::WARNING, "'$$process{command}' has not stopped at "
-        .strftime('%y/%m/%d %H:%M:%S', localtime())
-        .' after ' . KILL_DELAY . ' seconds.'
-        ." Sending KILL to pid $$process{pid}\n"
-        );
-    kill('KILL', $$process{pid});
-    dPrint(ZoneMinder::Logger::INFO, "Server shutdown at "
-        .strftime('%y/%m/%d %H:%M:%S', localtime())
-        ."\n"
-        );
-  }
+  dPrint(ZoneMinder::Logger::INFO, 'Server shutdown at '
+    .strftime('%y/%m/%d %H:%M:%S', localtime())
+    ."\n"
+  );
   unlink(main::SOCK_FILE) or Error("Unable to unlink " . main::SOCK_FILE .". Error message was: $!") if ( -e main::SOCK_FILE );
   unlink(ZM_PID) or Error("Unable to unlink " . ZM_PID .". Error message was: $!") if ( -e ZM_PID );
   close(CLIENT);

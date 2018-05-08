@@ -105,7 +105,7 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   } # end if has previous events
   if ( ! $Event->file_exists() ) {
     $EventsByMonitor[$event['MonitorId']]['FileMissing'][] = $Event;
-  } else if ( ! filesize( $Event->Path().'/'.$Event->DefaultVideo() ) ) {
+  } else if ( ! $Event->file_size() ) {
     $EventsByMonitor[$event['MonitorId']]['ZeroSize'][] = $Event;
   }
   $EventsByMonitor[$event['MonitorId']]['Events'][] = $Event;

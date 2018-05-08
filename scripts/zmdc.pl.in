@@ -685,7 +685,7 @@ sub reaper {
   } # end while waitpid
   $SIG{CHLD} = \&reaper;
   $! = $saved_status;
-Debug("Leaving reaper");
+  Debug("Leaving reaper");
 }
 
 sub restartPending {
@@ -697,7 +697,7 @@ sub restartPending {
       start($process->{daemon}, @{$process->{args}});
     }
   }
-  dPrint(ZoneMinder::Logger::INFO, "done restartPending");
+  Debug("done restartPending");
 }
 
 sub shutdownAll {

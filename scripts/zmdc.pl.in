@@ -537,7 +537,7 @@ sub send_stop {
       ."\n"
       );
   $process->{keepalive} = !$final;
-  $process->{term_sent_at} = time;
+  $process->{term_sent_at} = time if ! $process->{term_sent_at};
   $process->{pending} = 0;
   $terminating_processes{$command} = $process;
 

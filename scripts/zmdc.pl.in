@@ -541,6 +541,10 @@ sub check_for_processes_to_kill {
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or die "dying at block...\n";
   foreach my $command ( keys %terminating_processes ) {
     my $process = $cmd_hash{$command};
+    if ( ! $process ) {
+      Debug("No process found for $command");
+      next;
+    }
     my $now = time;
     Debug("Have process $command at pid $$process{pid} $now - $$process{term_sent_at} = " . ( $now - $$process{term_sent_at} ));
     if ( $$process{term_sent_at} and ( $now - $$process{term_sent_at} > KILL_DELAY ) ) {

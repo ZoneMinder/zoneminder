@@ -504,6 +504,10 @@ sub start {
 sub send_stop {
   my ( $final, $process ) = @_;
 
+  my $sigset = POSIX::SigSet->new;
+  my $blockset = POSIX::SigSet->new(SIGCHLD);
+  sigprocmask(SIG_BLOCK, $blockset, $sigset) or die "dying at block...\n";
+
   my $command = $process->{command};
   if ( $process->{pending} ) {
 
@@ -512,12 +516,19 @@ sub send_stop {
         .strftime('%y/%m/%d %H:%M:%S', localtime())
         ."\n"
         );
+  sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
     return();
   }
 
   my $pid = $process->{pid};
+  if ( !$pid ) {
+    dPrint(ZoneMinder::Logger::ERROR, "No process with command of '$command' is running\n");
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
+    return();
+  }
   if ( !$pid_hash{$pid} ) {
     dPrint(ZoneMinder::Logger::ERROR, "No process with command of '$command' pid $pid is running\n");
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
     return();
   }
 
@@ -531,6 +542,7 @@ sub send_stop {
   $terminating_processes{$command} = $process;
 
   kill('TERM', $pid);
+  sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
   return $pid;
 } # end sub send_stop
 

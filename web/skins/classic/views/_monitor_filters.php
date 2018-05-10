@@ -195,16 +195,15 @@ $html .= htmlSelect( 'Status[]', $status_options,
       $Monitor = new Monitor($monitors[$i]);
       ini_set('track_errors', 'on');
       $php_errormsg = '';
-      @preg_match($_SESSION['MonitorName'], '');
-      if ( !$php_errormsg ) {
-# regexp is valid
-        if ( !preg_match($_SESSION['MonitorName'], $Monitor->Name()) ) {
-          continue;
-        }
-      } else {
-        if ( ! strstr($Monitor->Name(), $_SESSION['MonitorName']) ) {
-          continue;
-        }
+      $regexp = $_SESSION['MonitorName'];
+
+      @preg_match($regexp, '');
+      if ( $php_errormsg ) {
+        $regexp = '/'.preg_quote($regexp,'/').'/i';
+      }
+
+      if ( !preg_match($regexp, $Monitor->Name()) ) {
+        continue;
       }
     }
 
@@ -212,16 +211,14 @@ $html .= htmlSelect( 'Status[]', $status_options,
       $Monitor = new Monitor($monitors[$i]);
       ini_set('track_errors', 'on');
       $php_errormsg = '';
-      @preg_match($_SESSION['Source'], '');
-      if ( !$php_errormsg ) {
-# regexp is valid
-        if ( !preg_match($_SESSION['Source'], $Monitor->Source()) ) {
-          continue;
-        }
-      } else {
-        if ( ! strstr($Monitor->Source(), $_SESSION['Source']) ) {
-          continue;
-        }
+      $regexp = $_SESSION['Source'];
+
+      @preg_match($regexp, '');
+      if ( $php_errormsg ) {
+        $regexp = '/'.preg_quote($regexp,'/').'/i';
+      }
+      if ( !preg_match($regexp, $Monitor->Source()) ) {
+        continue;
       }
     }
 

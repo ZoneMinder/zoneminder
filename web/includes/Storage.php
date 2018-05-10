@@ -172,6 +172,7 @@ class Storage {
     }
     return $this->{'DiskSpace'};
   } // end function event_disk_space
+
   public function Server() {
     if ( ! array_key_exists('Server',$this) ) {
       $this->{'Server'}= new Server( $this->{'ServerId'} );

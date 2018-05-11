@@ -586,7 +586,7 @@ sub logPrint {
     print(STDERR $message) if $level <= $this->{termLevel};
 
     if ( $level <= $this->{databaseLevel} ) {
-      if ( ( $this->{dbh} and $this->{dbh}->ping() ) or ( $this->{dbh} = zmDbConnect() ) ) {
+      if ( ( $this->{dbh} and $this->{dbh}->ping() ) or ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
 
         my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
         $this->{sth} = $this->{dbh}->prepare_cached($sql);

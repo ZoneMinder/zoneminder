@@ -60,18 +60,19 @@ $path = null;
 
 if ( empty($_REQUEST['path']) ) {
 
+  $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
+
   if ( ! empty($_REQUEST['fid']) ) {
     if ( $_REQUEST['fid'] == 'snapshot' ) {
-      $Event = new Event( $_REQUEST['eid'] );
+      $Event = new Event($_REQUEST['eid']);
       $Frame = new Frame();
       $Frame->FrameId('snapshot');
       $path = $Event->Path().'/snapshot.jpg';
     } else {
 
-      $show = empty($_REQUEST['show']) ? 'capture' : $_REQUEST['show'];
 
-      if ( ! empty($_REQUEST['eid'] ) ) {
-        $Event = Event::find_one(array('Id'=> $_REQUEST['eid']));
+      if ( !empty($_REQUEST['eid']) ) {
+        $Event = Event::find_one(array('Id'=>$_REQUEST['eid']));
         if ( ! $Event ) {
           header('HTTP/1.0 404 Not Found');
           Fatal('Event ' . $_REQUEST['eid'].' Not found');
@@ -80,18 +81,18 @@ if ( empty($_REQUEST['path']) ) {
 
         $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));
         if ( ! $Frame ) {
-          $previousBulkFrame = dbFetchOne('SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1', NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
-          $nextBulkFrame = dbFetchOne( "SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1", NULL, array($_REQUEST['eid'], $_REQUEST['fid'] ) );
+          $previousBulkFrame = dbFetchOne('SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1', NULL, array($_REQUEST['eid'], $_REQUEST['fid']));
+          $nextBulkFrame = dbFetchOne('SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1', NULL, array($_REQUEST['eid'], $_REQUEST['fid']));
           if ( $previousBulkFrame and $nextBulkFrame ) {
-            $Frame = new Frame( $previousBulkFrame );
-            $Frame->FrameId( $_REQUEST['fid'] );
+            $Frame = new Frame($previousBulkFrame);
+            $Frame->FrameId($_REQUEST['fid']);
 
             $percentage = ($Frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
 
-            $Frame->Delta( $previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100 );
+            $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
 Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
           } else {
-          Fatal("No Frame found for event(".$_REQUEST['eid'].") and frame id(".$_REQUEST['fid'].")");
+          Fatal('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
           }
         }
         // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
@@ -122,13 +123,13 @@ Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousB
     return;
   }
 
-  if ( ! file_exists( $path ) ) {
-    Logger::Debug( "$path does not exist");
-# Generate the frame JPG
+  if ( ! file_exists($path) ) {
+    Logger::Debug("$path does not exist");
+    # Generate the frame JPG
     if ( $show == 'capture' and $Event->DefaultVideo() ) {
       if ( ! file_exists($Event->Path().'/'.$Event->DefaultVideo()) ) {
         header('HTTP/1.0 404 Not Found');
-        Fatal("Can't create frame images from video becuase there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
+        Fatal("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
       }
       $command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path;
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
@@ -146,7 +147,7 @@ Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousB
       $Event->save();
     } else {
       header('HTTP/1.0 404 Not Found');
-      Fatal("Can't create frame images from video becuase there is no video file for this event (".$Event->DefaultVideo() );
+      Fatal("Can't create frame $show images from video because there is no video file for this event (".$Event->DefaultVideo() );
     }
   }
 

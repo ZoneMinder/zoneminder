@@ -203,7 +203,7 @@ Event::Event(
       }
     }
         
-    snprintf(video_name, sizeof(video_name), "%llu-%s.%s", id, "video", container.c_str());
+    snprintf(video_name, sizeof(video_name), "%" PRIu64 "-%s.%s", id, "video", container.c_str());
     snprintf(video_file, sizeof(video_file), staticConfig.video_file_format, path.c_str(), video_name);
     Debug(1,"Writing video file to %s", video_file);
     Camera * camera = monitor->getCamera();

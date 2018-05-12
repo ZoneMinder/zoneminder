@@ -20,7 +20,6 @@
 #include "zm.h"
 #include "zm_camera.h"
 
-<<<<<<< HEAD
 Camera::Camera(
     unsigned int p_monitor_id,
     SourceType p_type,
@@ -52,7 +51,6 @@ Camera::Camera(
     mVideoCodecContext(NULL),
     mAudioCodecContext(NULL),
     video_stream(NULL),
-    record_audio(p_record_audio),
     bytes(0)
 {
   pixels = width * height;

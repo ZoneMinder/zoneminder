@@ -53,6 +53,7 @@ use HTTP::Cookies;
 my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
+my ($user,$pass,$host,$port);
 
 sub open {
   my $self = shift;
@@ -65,7 +66,6 @@ sub open {
   #
   # Extract the username/password host/port from ControlAddress
   #
-  my ($user,$pass,$host,$port);
   if ( $self->{Monitor}{ControlAddress} =~ /^([^:]+):([^@]+)@(.+)/ ) { # user:pass@host...
     $user = $1;
     $pass = $2;
@@ -126,6 +126,8 @@ sub PutCmd {
                 Control Device should be set to \"$1\".
                 Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
               $self->{Monitor}{ControlDevice} = $1;
+              $self->{UA}->credentials("$host:$port", $self->{Monitor}{ControlDevice}, $user, $pass);
+              return PutCmd($self,$cmd,$content);
             }
           }
         }

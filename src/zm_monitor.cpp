@@ -1543,7 +1543,7 @@ bool Monitor::Analyse() {
         }
         if ( score ) {
           if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
-            if ( Event::PreAlarmCount() >= (alarm_frame_count-1) ) {
+            if ( Event::PreAlarmCount() > alarm_frame_count ) {
               Info( "%s: %03d - Gone into alarm state", name, image_count );
               shared_data->state = state = ALARM;
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
@@ -2799,19 +2799,21 @@ Monitor::Snapshot *Monitor::getSnapshot() const {
   return &image_buffer[ shared_data->last_write_index%image_buffer_count ];
 }
 
-std::list<Group *>  Monitor::Groups() {
+std::vector<Group *>  Monitor::Groups() {
   // At the moment, only load groups once.
   if ( ! groups.size() ) {
-    std::string sql = stringtf("SELECT GroupId FROM Groups_Monitors WHERE MonitorId=%d",id);
+    std::string sql = stringtf(
+        "SELECT Id,ParentId,Name FROM Groups WHERE Groups.Id IN "
+        "(SELECT GroupId FROM Groups_Monitors WHERE MonitorId=%d)",id);
     MYSQL_RES *result = zmDbFetch(sql.c_str());
     if ( !result ) {
       Error("Can't load groups: %s", mysql_error(&dbconn));
       return groups;
     }
     int n_groups = mysql_num_rows(result);
-    Debug( 1, "Got %d groups", n_groups );
+    Debug(1, "Got %d groups", n_groups);
     while ( MYSQL_ROW dbrow = mysql_fetch_row(result) ) {
-      groups.push_back( new Group(dbrow) );
+      groups.push_back(new Group(dbrow));
     }
     if ( mysql_errno(&dbconn) ) {
       Error("Can't fetch row: %s", mysql_error(&dbconn));
@@ -2820,3 +2822,13 @@ std::list<Group *>  Monitor::Groups() {
   }
   return groups;
 }
+
+StringVector Monitor::GroupNames() {
+  StringVector groupnames;
+  for(Group * g: Groups()) {
+    groupnames.push_back(std::string(g->Name()));
+Debug(1,"Groups: %s", g->Name());
+  }
+  return groupnames;
+} 
+  

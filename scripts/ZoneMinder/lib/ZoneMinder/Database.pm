@@ -108,9 +108,18 @@ sub zmDbConnect {
         , $Config{ZM_DB_PASS}
         );
     };
-    Error("Error reconnecting to db: errstr:$DBI::errstr error val:$@") if (! $dbh) or $@;
-    $dbh->trace(0) if $dbh;
-  }
+    if ( !$dbh or  $@ ) {
+      Error("Error reconnecting to db: errstr:$DBI::errstr error val:$@");
+    } else {
+      $dbh->{AutoCommit} = 1;
+      Fatal('Can\'t set AutoCommit on in database connection')
+        unless $dbh->{AutoCommit};
+      $dbh->{mysql_auto_reconnect} = 1;
+      Fatal('Can\'t set mysql_auto_reconnect on in database connection')
+        unless $dbh->{mysql_auto_reconnect};
+      $dbh->trace( 0 );
+    } # end if success connecting
+  } # end if ! connected
   return $dbh;
 } # end sub zmDbConnect
 

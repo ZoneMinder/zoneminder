@@ -370,7 +370,7 @@ protected:
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;
 
-  std::list<Group *> groups;
+  std::vector<Group *> groups;
 
 public:
   explicit Monitor();
@@ -511,7 +511,8 @@ public:
 
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );
-  std::list<Group *>  Groups();
+  std::vector<Group *>  Groups();
+  StringVector GroupNames();
 
   static int LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose);  // Returns # of Monitors loaded, 0 on failure.
 #if ZM_HAS_V4L

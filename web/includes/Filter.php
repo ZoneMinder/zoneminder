@@ -20,10 +20,12 @@ public $defaults = array(
     'limit'           =>  100,
     'Query'           =>  array(),
     'sort_field'      =>  ZM_WEB_EVENT_SORT_FIELD,
-    'sort_asc'        =>  (ZM_WEB_EVENT_SORT_ORDER == 'asc' ? 'asc' : 'desc'),
+    'sort_asc'        =>  '',
 );
 
   public function __construct( $IdOrRow=NULL ) {
+    # Set the proper value for sort_asc here because we can't do it above
+    $this->defaults{'sort_asc'}  =(ZM_WEB_EVENT_SORT_ORDER == 'asc' ? 'asc' : 'desc');
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {

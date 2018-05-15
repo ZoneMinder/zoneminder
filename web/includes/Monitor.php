@@ -1,6 +1,6 @@
 <?php
-require_once( 'database.php' );
-require_once( 'Server.php' );
+require_once('database.php');
+require_once('Server.php');
 
 class Monitor {
 
@@ -130,12 +130,12 @@ private $control_fields = array(
   public function __construct( $IdOrRow = NULL ) {
     if ( $IdOrRow ) {
       $row = NULL;
-      if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT * FROM Monitors WHERE Id=?', NULL, array( $IdOrRow ) );
+      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
+        $row = dbFetchOne('SELECT * FROM Monitors WHERE Id=?', NULL, array($IdOrRow));
         if ( ! $row ) {
-          Error("Unable to load Monitor record for Id=" . $IdOrRow );
+          Error("Unable to load Monitor record for Id=" . $IdOrRow);
         }
-      } elseif ( is_array( $IdOrRow ) ) {
+      } elseif ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
       } else {
         Error("Unknown argument passed to Monitor Constructor ($IdOrRow)");
@@ -147,7 +147,7 @@ private $control_fields = array(
           $this->{$k} = $v;
         }
         if ( $this->{'Controllable'} ) {
-          $s = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $this->{'ControlId'} ) );
+          $s = dbFetchOne('SELECT * FROM Controls WHERE Id=?', NULL, array($this->{'ControlId'}) );
           foreach ($s as $k => $v) {
             if ( $k == 'Id' ) {
               continue;
@@ -165,13 +165,13 @@ private $control_fields = array(
         }
 
       } else {
-        Error('No row for Monitor ' . $IdOrRow );
+        Error('No row for Monitor ' . $IdOrRow);
       }
     } # end if isset($IdOrRow)
   } // end function __construct
 
   public function Server() {
-    return new Server( $this->{'ServerId'} );
+    return new Server($this->{'ServerId'});
   }
   public function __call($fn, array $args){
     if ( count($args) ) {
@@ -240,18 +240,18 @@ private $control_fields = array(
       $this->{'Width'} = $new;
 
     if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
-      return $this->{'Height'};
+      return array_key_exists('Height', $this) ? $this->{'Height'} : $this->defaults{'Height'};
     }
-    return $this->{'Width'};
+    return array_key_exists('Width',$this) ? $this->{'Width'} : $this->defaults{'Width'};
   }
 
   public function Height( $new=null ) {
     if ( $new )
       $this->{'Height'} = $new;
     if ( $this->Orientation() == '90' or $this->Orientation() == '270' ) {
-      return $this->{'Width'};
+      return array_key_exists('Width',$this) ? $this->{'Width'} : $this->defaults{'Width'};
     }
-    return $this->{'Height'};
+    return array_key_exists('Height', $this) ? $this->{'Height'} : $this->defaults{'Height'};
   }
 
   public function set($data) {
@@ -483,9 +483,9 @@ private $control_fields = array(
       $url_parts = parse_url( $this->{'Path'} );
       unset($url_parts['user']);
       unset($url_parts['pass']);
-      unset($url_parts['scheme']);
+      #unset($url_parts['scheme']);
       unset($url_parts['query']);
-      unset($url_parts['path']);
+      #unset($url_parts['path']);
       if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
         unset($url_parts['port']);
       $source = unparse_url($url_parts);

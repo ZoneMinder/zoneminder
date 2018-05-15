@@ -1544,7 +1544,8 @@ bool Monitor::Analyse() {
         if ( score ) {
           if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
             if ( Event::PreAlarmCount() > alarm_frame_count ) {
-              Info( "%s: %03d - Gone into alarm state", name, image_count );
+              Info("%s: %03d - Gone into alarm state %u > %u",
+                  name, image_count, Event::PreAlarmCount(), alarm_frame_count);
               shared_data->state = state = ALARM;
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;

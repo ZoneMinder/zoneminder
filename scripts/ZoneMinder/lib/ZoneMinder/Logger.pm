@@ -429,54 +429,10 @@ sub databaseLevel {
     if ( $this->{databaseLevel} != $databaseLevel ) {
       if ( $databaseLevel > NOLOG and $this->{databaseLevel} <= NOLOG ) {
         if ( !$this->{dbh} ) {
-          my $socket;
-          my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-
-          if ( defined($portOrSocket) ) {
-            if ( $portOrSocket =~ /^\// ) {
-              $socket = ';mysql_socket='.$portOrSocket;
-            } else {
-              $socket = ';host='.$host.';port='.$portOrSocket;
-            }
-          } else {
-            $socket = ';host='.$Config{ZM_DB_HOST};
-          }
-          my $sslOptions = '';
-          if ( $Config{ZM_DB_SSL_CA_CERT} ) {
-            $sslOptions = join(';','',
-                'mysql_ssl=1',
-                'mysql_ssl_ca_file='.$Config{ZM_DB_SSL_CA_CERT},
-                'mysql_ssl_client_key='.$Config{ZM_DB_SSL_CLIENT_KEY},
-                'mysql_ssl_client_cert='.$Config{ZM_DB_SSL_CLIENT_CERT}
-                );
-          }
-          $this->{dbh} = DBI->connect( 'DBI:mysql:database='.$Config{ZM_DB_NAME}
-              .$socket.$sslOptions
-              , $Config{ZM_DB_USER}
-              , $Config{ZM_DB_PASS}
-              );
-          if ( !$this->{dbh} ) {
-            $databaseLevel = NOLOG;
-            Error( 'Unable to write log entries to DB, can\'t connect to database '
-                .$Config{ZM_DB_NAME}
-                .' on host '
-                .$Config{ZM_DB_HOST}
-                );
-          } else {
-            $this->{dbh}->{AutoCommit} = 1;
-            Fatal('Can\'t set AutoCommit on in database connection' )
-              unless( $this->{dbh}->{AutoCommit} );
-            $this->{dbh}->{mysql_auto_reconnect} = 1;
-            Fatal('Can\'t set mysql_auto_reconnect on in database connection' )
-              unless( $this->{dbh}->{mysql_auto_reconnect} );
-            $this->{dbh}->trace( 0 );
-          }
+          $this->{dbh} = ZoneMinder::Database::zmDbConnect();
         }
       } elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG ) {
-        if ( $this->{dbh} ) {
-          $this->{dbh}->disconnect();
-          undef($this->{dbh});
-        }
+        undef($this->{dbh});
       }
       $this->{databaseLevel} = $databaseLevel;
     }

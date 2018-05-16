@@ -34,7 +34,7 @@ function buildFetchParms( parms ) {
         fetchParms += '&filter['+key+']='+value;
       }
       );
-  return( fetchParms );
+  return fetchParms;
 }
 
 function fetchNextLogs() {
@@ -247,6 +247,7 @@ function updateFilterSelectors() {
           }
           if ( filter[key] )
             selector.set('value', filter[key]);
+
           }
   );
 }
@@ -257,11 +258,11 @@ function initPage() {
     logCodes[''+i] = 'DB'+i;
   logTable = new HtmlTable( $('logTable'),
       {
-zebra: true,
-sortable: true,
-sortReverse: true
-}
-);
+        zebra: true,
+        sortable: true,
+        sortReverse: true
+      }
+      );
   logTable.addEvent( 'sort', function( tbody, index ) {
       var header = tbody.getParent( 'table' ).getElement( 'thead' );
       var columns = header.getElement( 'tr' ).getElements( 'th' );

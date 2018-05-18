@@ -244,7 +244,6 @@ function updateFilterSelectors() {
                   selector.options[selector.options.length] = new Option(value, label);
                 }
                 );
-            }
           }
           if ( filter[key] )
             selector.set('value', filter[key]);

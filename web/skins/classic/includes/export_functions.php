@@ -732,11 +732,6 @@ function loadintoIframe(iframeid, url){
     return( ob_get_clean() );
 }
 
-
-
-
-
-
 function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc ) {
 
   if ( (!canView('Events')) or ! $eid ) {
@@ -816,7 +811,7 @@ function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exp
     }
     $files = array();
   }
-  return( array_values( $exportFileList ) );
+  return array_values($exportFileList);
 }
 
 function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat, $exportStructure = false ) {     
@@ -900,5 +895,5 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
     unlink($monitorPath.'/'.$html_eventMaster);
   }
 
-  return( '?view=archive%26type='.$exportFormat );
+  return '?view=archive%26type='.$exportFormat;
 }

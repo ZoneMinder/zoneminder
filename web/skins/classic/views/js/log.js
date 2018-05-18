@@ -229,21 +229,22 @@ function updateFilterSelectors() {
           if ( key == 'Level' ) {
             Object.each(values,
                 function( value, label ) {
-                selector.options[selector.options.length] = new Option( value, label );
+                  selector.options[selector.options.length] = new Option(value, label);
                 }
             );
           } else if ( key == 'ServerId' ) {
             Object.each(values,
                 function( value, label ) {
-                  selector.options[selector.options.length] = new Option( value, label );
+                  selector.options[selector.options.length] = new Option(value, label);
                 }
                 );
           } else {
-            values.each(
-                function( value ) {
-                  selector.options[selector.options.length] = new Option( value );
+            Object.each(values,
+                function( value, label ) {
+                  selector.options[selector.options.length] = new Option(value, label);
                 }
                 );
+            }
           }
           if ( filter[key] )
             selector.set('value', filter[key]);

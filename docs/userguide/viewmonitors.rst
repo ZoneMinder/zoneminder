@@ -1,7 +1,7 @@
 Viewing Monitors
 ================
 
-ZoneMinder allows you to view a live feed of your configured monitors. Once can access this view by clicking on the "Name" column of any of the monitors
+ZoneMinder allows you to view a live feed of your configured monitors. One can access this view by clicking on the "Name" column of any of the monitors
 
 .. image:: images/viewmonitor-main.png
 	:width: 500px

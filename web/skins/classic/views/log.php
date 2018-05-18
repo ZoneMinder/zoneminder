@@ -31,7 +31,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
   <div id="page">
     <div id="header">
       <table class="table">
-     	  <tr class="row"> 
+     	  <tr class="row">
           <td class="col text-center">
 		        <div id="logSummary">
             <?php echo translate('State') ?>: <span id="logState"></span>/
@@ -54,37 +54,37 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
           </td>
       </tr>
 	  </table>
-	
+
   </div> <!--header-->
   <div id="content">
     <div id="filters">
-	
+
       <table class="table-condensed">
         <tr class="row">
           <td class="col">
-            <?php echo translate('Component') ?> 
+            <?php echo translate('Component') ?>
             <select class="form-control chosen" id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select>
           </td>
           <td class="col">
-            <?php echo translate('Server') ?> 
+            <?php echo translate('Server') ?>
             <select class="form-control chosen" id="filter[ServerId]" onchange="filterLog(this)"><option value="">-----</option></select>
           </td>
           <td class="col">
-            <?php echo translate('Pid') ?> 
+            <?php echo translate('Pid') ?>
             <select class="form-control chosen" id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select>
           </td>
         </tr>
         <tr class="row">
           <td class="col">
-            <?php echo translate('Level') ?> 
+            <?php echo translate('Level') ?>
             <select class="form-control chosen" id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select>
           </td>
           <td class="col">
-            <?php echo translate('File') ?> 
+            <?php echo translate('File') ?>
             <select class="form-control chosen" id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select>
           </td>
           <td  class="col">
-            <?php echo translate('Line') ?> 
+            <?php echo translate('Line') ?>
             <select class="form-control chosen" id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select>
           </td>
         </tr>

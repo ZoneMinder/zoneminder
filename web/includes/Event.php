@@ -27,7 +27,7 @@ class Event {
 'Videoed',
 'Uploaded',
 'Emailed',
-'Messages',
+'Messaged',
 'Executed',
 'Notes',
 'StateId',

@@ -526,6 +526,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   capture_fps = 0.0;
   analysis_fps = 0.0;
+  last_camera_bytes = 0;
   event_count = 0;
   image_count = 0;
   analysis_image_count = 0;
@@ -564,6 +565,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   //this0>delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
   //ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),
   Debug(1, "Loaded monitor %d(%s), %d zones", id, name, n_zones);
+  getCamera();
 } // Monitor::Load
 
 Camera * Monitor::getCamera() {
@@ -1756,18 +1758,18 @@ bool Monitor::Analyse() {
               event = new Event( this, *timestamp, "Continuous", noteSetMap );
               shared_data->last_event_id = event->Id();
 
-                // lets construct alarm cause. It will contain cause + names of zones alarmed
-                std::string alarm_cause="Continuous";
-                for ( int i=0; i < n_zones; i++) {
-                    if (zones[i]->Alarmed()) {
-                        alarm_cause += std::string(zones[i]->Label());
-                        if (i < n_zones-1) {
-                            alarm_cause +=",";
-                        }
-                    }
-                } 
-                alarm_cause = cause+" "+alarm_cause;
-                strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
+              // lets construct alarm cause. It will contain cause + names of zones alarmed
+              std::string alarm_cause="Continuous";
+              for ( int i=0; i < n_zones; i++) {
+                if (zones[i]->Alarmed()) {
+                  alarm_cause += std::string(zones[i]->Label());
+                  if (i < n_zones-1) {
+                    alarm_cause +=",";
+                  }
+                }
+              } 
+              alarm_cause = cause+" "+alarm_cause;
+              strncpy( shared_data->alarm_cause,alarm_cause.c_str() , sizeof(shared_data->alarm_cause) );
               video_store_data->recording = event->StartTime();
               Info( "%s: %03d - Opening new event %" PRIu64 ", section start", name, analysis_image_count, event->Id() );
               /* To prevent cancelling out an existing alert\prealarm\alarm state */
@@ -2086,7 +2088,7 @@ int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose)
   monitors = new Monitor *[n_monitors];
   for( int i=0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
     monitors[i] = new Monitor();
-    monitors[i]->Load(dbrow);
+    monitors[i]->Load(dbrow, true, purpose);
     // need to load zones and set Purpose, 1, purpose);
   }
   if ( mysql_errno(&dbconn) ) {

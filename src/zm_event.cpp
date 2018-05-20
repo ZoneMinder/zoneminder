@@ -82,6 +82,9 @@ Event::Event(
     state_id = atoi(dbrow[0]);
   }
 
+  // Copy it in case opening the mp4 doesn't work we can set it to another value
+  save_jpegs = monitor->GetOptSaveJPEGs();
+
   char sql[ZM_SQL_MED_BUFSIZ];
   snprintf(sql, sizeof(sql),
       "INSERT INTO Events "
@@ -217,6 +220,7 @@ Event::Event(
     if ( ! videoStore->open() ) {
       delete videoStore;
       videoStore = NULL;
+      save_jpegs |= 1; // Turn on jpeg storage
     }
   }
 
@@ -433,7 +437,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
 
     static char event_file[PATH_MAX];
     snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
-    if ( monitor->GetOptSaveJPEGs() & 1 ) {
+    if ( save_jpegs & 1 ) {
       Debug(1, "Writing pre-capture frame %d", frames);
       WriteFrameImage(images[i], *(timestamps[i]), event_file);
     } else {
@@ -506,7 +510,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   static char event_file[PATH_MAX];
   snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
 
-  if ( monitor->GetOptSaveJPEGs() & 1 ) {
+  if ( save_jpegs & 1 ) {
     Debug(1, "Writing capture frame %d to %s", frames, event_file);
     if ( ! WriteFrameImage(image, timestamp, event_file) ) {
       Error("Failed to write frame image");
@@ -586,7 +590,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames);
 
       Debug(1, "Writing analysis frame %d", frames);
-      if ( monitor->GetOptSaveJPEGs() & 2 ) {
+      if ( save_jpegs & 2 ) {
         WriteFrameImage(alarm_image, timestamp, event_file, true);
       }
     }

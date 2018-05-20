@@ -150,17 +150,7 @@ class Storage {
     # This isn't a function like this in php, so we have to add up the space used in each event.
     if ( (! array_key_exists('disk_used_space', $this)) or (!$this->{'disk_used_space'}) ) {
       if ( $this->{'Type'} == 's3fs' ) {
-<<<<<<< HEAD
-        $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
-if ( 0 ) {
-	      foreach ( Event::find_all( array( 'StorageId'=>$this->Id(), 'DiskSpace'=>null ) ) as $Event ) {
-		      $Event->Storage( $this ); // Prevent further db hit
-		      $used += $Event->DiskSpace();
-	      }
-}
-=======
         $this->{'disk_used_space'} = $this->disk_event_space();
->>>>>>> storageareas
       } else { 
         $path = $this->Path();
         $this->{'disk_used_space'} = disk_total_space($path) - disk_free_space($path);

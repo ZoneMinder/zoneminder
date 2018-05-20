@@ -56,7 +56,7 @@ var popupSizes = {
     'onvifprobe':   { 'width': 700, 'height': 550 },
     'optionhelp':   { 'width': 400, 'height': 320 },
     'options':      { 'width': 1000, 'height': 660 },
-    'preset':       { 'width': 300, 'height': 120 },
+    'preset':       { 'width': 300, 'height': 220 },
     'server':       { 'width': 600, 'height': 405 },
     'settings':     { 'width': 220, 'height': 235 },
     'state':        { 'width': 400, 'height': 170 },

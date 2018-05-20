@@ -239,6 +239,10 @@ int main(int argc, char *argv[]) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
     for ( int i = 0; i < n_monitors; i++ ) {
+      if ( ! monitors[i]->getCamera() ) {
+      }
+      if ( ! monitors[i]->connect() ) {
+      }
       time_t now = (time_t)time(NULL);
       monitors[i]->setStartupTime(now);
 

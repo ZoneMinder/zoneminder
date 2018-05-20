@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
@@ -53,16 +53,12 @@ xhtmlHeaders(__FILE__, translate('Export') );
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
 <?php
-if ( !empty($_REQUEST['eid']) )
-{
+if ( !empty($_REQUEST['eid']) ) {
 ?>
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
 <?php
-}
-elseif ( !empty($_REQUEST['eids']) )
-{
-    foreach ( $_REQUEST['eids'] as $eid )
-    {
+} elseif ( !empty($_REQUEST['eids']) ) {
+    foreach ( $_REQUEST['eids'] as $eid ) {
 ?>
         <input type="hidden" name="eids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
@@ -70,7 +66,7 @@ elseif ( !empty($_REQUEST['eids']) )
     unset( $eid );
 }
 ?>
-        <table id="contentTable" class="minor" cellspacing="0">
+        <table id="contentTable" class="minor">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('ExportDetails') ?></th>
@@ -101,7 +97,7 @@ elseif ( !empty($_REQUEST['eids']) )
             </tr>
           </tbody>
         </table>
-        <button id="exportButton" name="exportButton" value="Export" onclick="exportEvent(this.form);" disabled="disabled"><?php echo translate('Export') ?></button>
+        <button type="button" id="exportButton" name="exportButton" value="Export" onclick="exportEvent(this.form);" disabled="disabled"><?php echo translate('Export') ?></button>
       </form>
     </div>
 <?php

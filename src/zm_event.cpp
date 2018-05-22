@@ -520,7 +520,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     }
   } else {
     //If this is the first frame, we should add a thumbnail to the event directory
-    if ( frames == 1 ) {
+    if ( frames == 1 || score > (int)max_score ) {
       char snapshot_file[PATH_MAX];
       snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
       WriteFrameImage(image, timestamp, snapshot_file);

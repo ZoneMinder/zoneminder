@@ -1397,9 +1397,12 @@ bool Monitor::Analyse() {
           int motion_score = last_motion_score;
           if ( !(image_count % (motion_frame_skip+1) ) ) {
             // Get new score.
-            motion_score = DetectMotion( *snap_image, zoneSet );
+            motion_score = DetectMotion(*snap_image, zoneSet);
 
-            Debug( 3, "After motion detection, last_motion_score(%d), new motion score(%d)", last_motion_score, motion_score );
+            Debug(3,
+                "After motion detection, last_motion_score(%d), new motion score(%d)",
+                last_motion_score, motion_score
+                );
             // Why are we updating the last_motion_score too?
             last_motion_score = motion_score;
           }
@@ -1542,7 +1545,7 @@ bool Monitor::Analyse() {
           } // end if ! event
         }
         if ( score ) {
-          if ( (state == IDLE || state == TAPE || state == PREALARM ) ) {
+          if ( state == IDLE || state == TAPE || state == PREALARM ) {
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
               Info("%s: %03d - Gone into alarm state %u > %u",
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count);
@@ -1551,7 +1554,7 @@ bool Monitor::Analyse() {
                 int pre_index;
                 int pre_event_images = pre_event_count;
 
-                if ( analysis_fps ) {
+                if ( analysis_fps && pre_event_count ) {
                   // If analysis fps is set,
                   // compute the index for pre event images in the dedicated buffer
                   pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
@@ -1564,7 +1567,7 @@ bool Monitor::Analyse() {
                     pre_event_images--;
                   }
 
-                  event = new Event( this, *(pre_event_buffer[pre_index].timestamp), cause, noteSetMap );
+                  event = new Event(this, *(pre_event_buffer[pre_index].timestamp), cause, noteSetMap);
                 } else {
                   // If analysis fps is not set (analysis performed at capturing framerate),
                   // compute the index for pre event images in the capturing buffer
@@ -1581,7 +1584,7 @@ bool Monitor::Analyse() {
                     pre_event_images--;
                   }
 
-                  event = new Event( this, *(image_buffer[pre_index].timestamp), cause, noteSetMap );
+                  event = new Event(this, *(image_buffer[pre_index].timestamp), cause, noteSetMap);
                 }
                 shared_data->last_event = event->Id();
                 // lets construct alarm cause. It will contain cause + names of zones alarmed

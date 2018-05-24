@@ -465,6 +465,8 @@ private $control_fields = array(
       $this->{'Storage'} = isset($this->{'StorageId'}) ? 
         Storage::find_one(array('Id'=>$this->{'StorageId'})) : 
           new Storage(NULL);
+      if ( ! $this->{'Storage'} )
+        $this->{'Storage'} = new Storage(NULL);
     }
     return $this->{'Storage'};
   }

@@ -288,6 +288,8 @@ protected:
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool              embed_exif; // Whether to embed Exif data into each image frame or not
 
+  bool last_signal;
+
   double      fps;
   unsigned int  last_camera_bytes;
   

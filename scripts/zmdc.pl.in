@@ -119,13 +119,13 @@ if ( $command eq 'version' ) {
 }
 my $needs_daemon = $command !~ /(?:startup|shutdown|status|check|logrot|version)/;
 my $daemon = shift @ARGV;
-if ( $needs_daemon && ! $daemon ) {
+if ( $needs_daemon && !$daemon ) {
   print(STDERR "No daemon given\n");
   pod2usage(-exitstatus => -1);
 }
 my @args;
 
-my $daemon_patt = '('.join( '|', @daemons ).')';
+my $daemon_patt = '('.join('|', @daemons).')';
 if ( $needs_daemon ) {
   if ( $daemon =~ /^${daemon_patt}$/ ) {
     $daemon = $1;
@@ -139,7 +139,7 @@ foreach my $arg ( @ARGV ) {
 # Detaint arguments, if they look ok
 #if ( $arg =~ /^(-{0,2}[\w]+)/ )
   if ( $arg =~ /^(-{0,2}[\w\/?&=.-]+)$/ ) {
-    push( @args, $1 );
+    push @args, $1;
   } else {
     print(STDERR "Bogus argument '$arg' found");
     exit(-1);
@@ -306,7 +306,7 @@ sub run {
           $dbh = zmDbConnect();
         }
         my @cpuload = CpuLoad();
-        Debug("UPdating Server record @cpuload");
+        Debug("Updating Server record @cpuload");
         if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
             'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
           Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
@@ -382,7 +382,7 @@ Debug("check_for_processes_to_kill");
       ."\n"
       );
   if ( $Config{ZM_SERVER_ID} ) {
-    $dbh = zmDbConnect() if ! $dbh->ping();
+    $dbh = zmDbConnect() if ! ($dbh and $dbh->ping());
     if ( ! defined $dbh->do(q{UPDATE Servers SET Status='NotRunning' WHERE Id=?}, undef, $Config{ZM_SERVER_ID}) ) {
       Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
     }
@@ -399,7 +399,9 @@ sub cPrint {
 # I think the purpose of this is to echo the logs to the client process so it can then display them. 
 sub dPrint {
   my $logLevel = shift;
+  # One thought here, if no client exists to read these... does it block?
   if ( fileno(CLIENT) ) {
+    Debug("Have fileno for CLIENT, printing ");
     print CLIENT @_
   }
   if ( $logLevel == ZoneMinder::Logger::DEBUG ) {
@@ -439,8 +441,10 @@ sub start {
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
   Debug("forking");
   if ( my $cpid = fork() ) {
+  Debug("before logReinit");
     # This logReinit is required.  Not sure why.
     logReinit();
+  Debug("aftere logReinit");
 
     $process->{pid} = $cpid;
     $process->{started} = time();
@@ -808,7 +812,7 @@ sub status {
     foreach my $process ( values %cmd_hash ) {
       if ( $process->{pending} ) {
         dPrint(ZoneMinder::Logger::DEBUG, "'$process->{command}' pending at "
-            .strftime( '%y/%m/%d %H:%M:%S', localtime($process->{pending}))
+            .strftime('%y/%m/%d %H:%M:%S', localtime($process->{pending}))
             ."\n"
             );
       }

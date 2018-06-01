@@ -192,7 +192,13 @@ if ( currentView != 'none' ) {
   });
 
   function getNavBar() {
-    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar', setNavBar);
+    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar')
+      .done(setNavBar)
+      .fail(function( jqxhr, textStatus, error ) {
+        var err = textStatus + ", " + error;
+        console.log( "Request Failed: " + err );
+        window.location.href = thisUrl;
+      });
   }
 
   function setNavBar(data) {

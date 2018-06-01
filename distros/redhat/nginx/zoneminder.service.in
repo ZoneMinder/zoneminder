@@ -4,7 +4,7 @@
 [Unit]
 Description=ZoneMinder CCTV recording and security system
 After=network.target mariadb.service nginx.service php-fpm.service fcgiwrap.service
-Requires=mariadb.service nginx.service php-fpm.service fcgiwrap.service
+Requires=nginx.service php-fpm.service fcgiwrap.service
 
 [Service]
 User=@WEB_USER@

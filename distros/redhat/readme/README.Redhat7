@@ -4,6 +4,11 @@ What's New
 1. See the ZoneMinder release notes for a list of new features:
      https://github.com/ZoneMinder/zoneminder/releases
 
+2. The contents of the ZoneMinder Apache config file have changed. In
+   addition, this ZoneMinder package now requires you to manually symlink the
+   ZoneMinder Apache config file. See new install step 6 and upgrade step 3
+   below for details.
+
 New installs
 ============
 

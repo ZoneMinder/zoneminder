@@ -24,7 +24,7 @@
 #include "zm_db.h"
 
 MYSQL dbconn;
-Mutex db_mutex;
+RecursiveMutex db_mutex;
 
 bool zmDbConnected = false;
 
@@ -91,15 +91,15 @@ void zmDbClose() {
 }
 
 MYSQL_RES * zmDbFetch(const char * query) {
-  if ( ! zmDbConnected ) {
+  if ( !zmDbConnected ) {
     Error("Not connected.");
     return NULL;
   }
   db_mutex.lock();
 
   if ( mysql_query(&dbconn, query) ) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
     db_mutex.unlock();
+    Error("Can't run query: %s", mysql_error(&dbconn));
     return NULL;
   }
   Debug(4, "Success running query: %s", query);

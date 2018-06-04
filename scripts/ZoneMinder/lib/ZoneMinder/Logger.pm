@@ -474,7 +474,7 @@ sub openSyslog {
 
 sub closeSyslog {
   my $this = shift;
-#closelog();
+  closelog();
 }
 
 sub logFile {

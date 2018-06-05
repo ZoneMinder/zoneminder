@@ -315,7 +315,6 @@ sub run {
       $secs_count += 1;
     }
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
-Debug("Aftere select $nfound");
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);

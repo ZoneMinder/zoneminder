@@ -332,25 +332,18 @@ class MonitorsController extends AppController {
   }
 
   public function daemonControl($id, $command, $monitor=null, $daemon=null) {
-    $args = '';
     $daemons = array();
 
-    if (!$monitor) {
+    if ( !$monitor ) {
       // Need to see if it is local or remote
       $monitor = $this->Monitor->find('first', array(
-        'fields' => array('Type', 'Function'),
+        'fields' => array('Type', 'Function', 'Device'),
         'conditions' => array('Id' => $id)
       ));
       $monitor = $monitor['Monitor'];
     }
 
-    if ($monitor['Type'] == 'Local') {
-      $args = '-d ' . $monitor['Device'];
-    } else {
-      $args = '-m ' . $id;
-    }
-
-    if ($monitor['Function'] == 'Monitor') {
+    if ( $monitor['Function'] == 'Monitor' ) {
       array_push($daemons, 'zmc');
     } else {
       array_push($daemons, 'zmc', 'zma');
@@ -359,6 +352,13 @@ class MonitorsController extends AppController {
     $zm_path_bin = Configure::read('ZM_PATH_BIN');
 
     foreach ($daemons as $daemon) {
+      $args = '';
+      if ( $daemon == 'zmc' and $monitor['Type'] == 'Local') {
+        $args = '-d ' . $monitor['Device'];
+      } else {
+        $args = '-m ' . $id;
+      }
+
       $shellcmd = escapeshellcmd("$zm_path_bin/zmdc.pl $command $daemon $args");
       $status = exec( $shellcmd );
     }

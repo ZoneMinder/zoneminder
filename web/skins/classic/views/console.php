@@ -318,7 +318,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 <?php
   }
 ?>
-            <td class="colZones"><?php echo makePopupLink( '?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array( 'zones', $monitor['Width'], $monitor['Height'] ), $monitor['ZoneCount'], $running && canView('Monitors') ) ?></td>
+            <td class="colZones"><?php echo makePopupLink('?view=zones&amp;mid='.$monitor['Id'], 'zmZones', array('zones', $monitor['Width'], $monitor['Height']), $monitor['ZoneCount'], canView('Monitors')) ?></td>
 <?php
   if ( canEdit('Monitors') ) {
 ?>

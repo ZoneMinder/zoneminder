@@ -70,12 +70,14 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
 
+my $daemon = 0;
 my $filter_name = '';
 my $filter_id;
 my $version = 0;
 my $zm_terminate = 0;
 
 GetOptions(
+  'daemon'          =>\$daemon,
     'filter=s'      =>\$filter_name,
     'filter_id=s'   =>\$filter_id,
     'version'       =>\$version
@@ -201,7 +203,7 @@ while( !$zm_terminate ) {
     }
   }
 
-  last if $filter_name or $filter_id or $zm_terminate;
+  last if (!$daemon and ($filter_name or $filter_id)) or $zm_terminate;
 
   Debug("Sleeping for $delay seconds\n");
   sleep($delay);

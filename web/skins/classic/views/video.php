@@ -82,6 +82,8 @@ if ( isset($_REQUEST['deleteIndex']) ) {
 }
 
 if ( isset($_REQUEST['downloadIndex']) ) {
+  // can't be output buffering, as this file might be large
+  ob_end_clean();
   $downloadIndex = validInt($_REQUEST['downloadIndex']);
   header('Pragma: public');
   header('Expires: 0');

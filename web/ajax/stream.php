@@ -22,13 +22,9 @@ if ( sem_acquire($semaphore,1) !== false ) {
   if ( file_exists( $localSocketFile ) ) {
     Warning("sock file $localSocketFile already exists?!  Is someone else talking to zms?");
     // They could be.  We can maybe have concurrent requests from a browser.  
-  } else {
-    Logger::Debug("socket file does not exist, we should be good to connect.");
   }
   if ( ! socket_bind( $socket, $localSocketFile ) ) {
-    ajaxError( "socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()) );
-  } else {
-    Logger::Debug("Bound to $localSocketFile");
+    ajaxError("socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()) );
   }
 
   switch ( $_REQUEST['command'] ) {
@@ -81,7 +77,6 @@ if ( sem_acquire($semaphore,1) !== false ) {
   $eSockets = NULL;
 
   $timeout = MSG_TIMEOUT - ( time() - $start_time );
-  Logger::Debug("TImeout is: $timeout/1000 seconds. " );
 
   $numSockets = socket_select( $rSockets, $wSockets, $eSockets, intval($timeout/1000), ($timeout%1000)*1000 );
 

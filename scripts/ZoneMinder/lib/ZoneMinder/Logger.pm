@@ -245,7 +245,8 @@ sub initialise( @ ) {
   $tempSyslogLevel = $level if defined($level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG'));
 
   if ( $Config{ZM_LOG_DEBUG} ) {
-    foreach my $target ( split( /\|/, $Config{ZM_LOG_DEBUG_TARGET} ) ) {
+    # Splitting on an empty string doesn't return an empty string, it returns an empty array
+    foreach my $target ( $Config{ZM_LOG_DEBUG_TARGET} ? split(/\|/, $Config{ZM_LOG_DEBUG_TARGET}) : '' ) {
       if ( $target eq $this->{id}
           || $target eq '_'.$this->{id}
           || $target eq $this->{idRoot}
@@ -392,6 +393,12 @@ sub level {
 
     # ICON: I am remarking this out because I don't see the point of having an effective level, if we are just going to set it to level.
     #$this->{effectiveLevel} = $this->{level} if ( $this->{level} > $this->{effectiveLevel} );
+    # ICON: The point is that LOG_DEBUG can be set either in db or in env var and will get passed in here.
+    # So this will turn on debug, even if not output has Debug level turned on.  I think it should be the other way around
+
+    # ICON: Let's try this line instead.  effectiveLevel is 1 DEBUG from above, but LOG_DEBUG is off, then $this->level will be 0, and
+    # so effectiveLevel will become 0
+    $this->{effectiveLevel} = $this->{level} if ( $this->{level} < $this->{effectiveLevel} );
   }
   return $this->{level};
 }

@@ -246,6 +246,8 @@ our $zm_terminate = 0;
 
 sub run {
   my $fd = 0;
+
+  # THis also closes dbh and CLIENT and SERVER
   while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
     POSIX::close($fd++);
   }
@@ -287,29 +289,23 @@ sub run {
   my $win = $rin;
   my $ein = $win;
   my $timeout = 1;
-  my $Server = undef;
   my $secs_count = 0;
-
-  if ( $Config{ZM_SERVER_ID} ) {
-    require ZoneMinder::Server;
-    $Server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
-    dPrint(ZoneMinder::Logger::INFO, 'Loading Server record have ' . $$Server{Name});
-  }
 
   while( !$zm_terminate ) {
     
     if ( $Config{ZM_SERVER_ID} ) {
       if ( ! ( $secs_count % 60 ) ) {
-        Debug("Connecting");
         while ( (!$zm_terminate) and !($dbh and $dbh->ping()) ) {
-          Warning("Not connected to db ($dbh)".($dbh?" ping(".$dbh->ping().")":''). ($DBI::errstr?" errstr($DBI::errstr)":'').' Reconnecting');
+          Warning("Not connected to db ($dbh)".($dbh?' ping('.$dbh->ping().')':''). ($DBI::errstr?" errstr($DBI::errstr)":'').' Reconnecting');
           $dbh = zmDbConnect();
         }
+        last if $zm_terminate;
+
         my @cpuload = CpuLoad();
         Debug("Updating Server record @cpuload");
         if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
             'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
-          Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
+          Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
         }
       }
       $secs_count += 1;
@@ -377,7 +373,7 @@ Debug("check_for_processes_to_kill");
   } # end while
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '
-      .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+      .strftime('%y/%m/%d %H:%M:%S', localtime())
       ."\n"
       );
   if ( $Config{ZM_SERVER_ID} ) {
@@ -436,14 +432,10 @@ sub start {
 
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
-  Debug("Blocking SIGCHLD");
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
-  Debug("forking");
   if ( my $cpid = fork() ) {
-  Debug("before logReinit");
     # This logReinit is required.  Not sure why.
     logReinit();
-  Debug("aftere logReinit");
 
     $process->{pid} = $cpid;
     $process->{started} = time();
@@ -456,7 +448,6 @@ sub start {
 
     $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
-    Debug("unblocking child");
   } elsif ( defined($cpid) ) {
 # Force reconnection to the db.
     $dbh = zmDbConnect(1);
@@ -519,7 +510,7 @@ sub send_stop {
         .strftime('%y/%m/%d %H:%M:%S', localtime())
         ."\n"
         );
-  sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
     return();
   }
 
@@ -704,14 +695,13 @@ sub reaper {
           $process->{delay} = $Config{ZM_MAX_RESTART_DELAY};
         }
       }
-      Debug("Delay for $$process{command} is now $$process{delay}");
+      #Debug("Delay for $$process{command} is now $$process{delay}");
     } else {
       delete $cmd_hash{$$process{command}};
     }
   } # end while waitpid
   $SIG{CHLD} = \&reaper;
   $! = $saved_status;
-  Debug("Leaving reaper");
 }
 
 sub restartPending {
@@ -723,7 +713,6 @@ sub restartPending {
       start($process->{daemon}, @{$process->{args}});
     }
   }
-  Debug("done restartPending");
 }
 
 sub shutdownAll {

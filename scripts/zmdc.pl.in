@@ -245,6 +245,16 @@ our %terminating_processes;
 our $zm_terminate = 0;
 
 sub run {
+
+  # Call this first otherwise stdout/stderror redirects to the pidfile = bad
+  if ( open(my $PID, '>', ZM_PID) ) {
+    print($PID $$);
+    close($PID);
+  } else {
+    # Log not initialized at this point so use die instead
+    die "Can't open pid file at ".ZM_PID."\n";
+  }
+
   my $fd = 0;
   while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
     POSIX::close($fd++);
@@ -258,13 +268,6 @@ sub run {
       .strftime('%y/%m/%d %H:%M:%S', localtime())
       ."\n"
       );
-
-  if ( open(my $PID, '>', ZM_PID) ) {
-    print($PID $$);
-    close($PID);
-  } else {
-    Error("Can't open pid file at " . ZM_PID);
-  }
 
   # Tell any existing processes to die, wait 1 second between TERM and KILL
   killAll(1);

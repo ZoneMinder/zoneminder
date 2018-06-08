@@ -262,6 +262,8 @@ sub run {
 
   setpgrp();
 
+  # dbh got closed with the rest of the fd's above, so need to reconnect.
+  my $dbh = zmDbConnect(1);
   logInit();
 
   dPrint(ZoneMinder::Logger::INFO, 'Server starting at '
@@ -273,7 +275,6 @@ sub run {
   killAll(1);
 
   dPrint(ZoneMinder::Logger::INFO, 'Socket should be open at ' .main::SOCK_FILE);
-  my $dbh = zmDbConnect(1);
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
   unlink(main::SOCK_FILE) or Error('Unable to unlink ' . main::SOCK_FILE .". Error message was: $!") if -e main::SOCK_FILE;
   bind(SERVER, $saddr) or Fatal("Can't bind to " . main::SOCK_FILE . ": $!");

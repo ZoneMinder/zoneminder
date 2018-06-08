@@ -245,6 +245,16 @@ our %terminating_processes;
 our $zm_terminate = 0;
 
 sub run {
+
+  # Call this first otherwise stdout/stderror redirects to the pidfile = bad
+  if ( open(my $PID, '>', ZM_PID) ) {
+    print($PID $$);
+    close($PID);
+  } else {
+    # Log not initialized at this point so use die instead
+    die "Can't open pid file at ".ZM_PID."\n";
+  }
+
   my $fd = 0;
 
   # THis also closes dbh and CLIENT and SERVER
@@ -254,6 +264,8 @@ sub run {
 
   setpgrp();
 
+  # dbh got closed with the rest of the fd's above, so need to reconnect.
+  my $dbh = zmDbConnect(1);
   logInit();
 
   dPrint(ZoneMinder::Logger::INFO, 'Server starting at '
@@ -261,18 +273,10 @@ sub run {
       ."\n"
       );
 
-  if ( open(my $PID, '>', ZM_PID) ) {
-    print($PID $$);
-    close($PID);
-  } else {
-    Error("Can't open pid file at " . ZM_PID);
-  }
-
   # Tell any existing processes to die, wait 1 second between TERM and KILL
   killAll(1);
 
   dPrint(ZoneMinder::Logger::INFO, 'Socket should be open at ' .main::SOCK_FILE);
-  my $dbh = zmDbConnect(1);
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
   unlink(main::SOCK_FILE) or Error('Unable to unlink ' . main::SOCK_FILE .". Error message was: $!") if -e main::SOCK_FILE;
   bind(SERVER, $saddr) or Fatal("Can't bind to " . main::SOCK_FILE . ": $!");
@@ -365,9 +369,7 @@ sub run {
 #print( "Select timed out\n" );
     }
 
-Debug("restartPending");
     restartPending();
-Debug("check_for_processes_to_kill");
     check_for_processes_to_kill();
 
   } # end while
@@ -396,7 +398,6 @@ sub dPrint {
   my $logLevel = shift;
   # One thought here, if no client exists to read these... does it block?
   if ( fileno(CLIENT) ) {
-    Debug("Have fileno for CLIENT, printing ");
     print CLIENT @_
   }
   if ( $logLevel == ZoneMinder::Logger::DEBUG ) {
@@ -435,7 +436,7 @@ sub start {
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
   if ( my $cpid = fork() ) {
     # This logReinit is required.  Not sure why.
-    logReinit();
+    #logReinit();
 
     $process->{pid} = $cpid;
     $process->{started} = time();

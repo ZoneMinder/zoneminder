@@ -633,7 +633,7 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
           // Send the next frame
           Monitor::Snapshot *snap = &monitor->image_buffer[index];
 
-            //Debug(2, "sending Frame.");
+          Debug(2, "sending Frame.");
           if ( !sendFrame(snap->image, snap->timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
@@ -687,7 +687,7 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
       } // end if buffered playback
       frame_count++;
     } else {
-      Debug(5,"Waiting for capture");
+      Debug(4,"Waiting for capture last_write_index=%u", monitor->shared_data->last_write_index);
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index ) 
 
     unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));

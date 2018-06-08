@@ -149,21 +149,8 @@ if ( $command =~ /^(start|stop|restart)$/ ) {
   $command = $1;
 
   if ( systemdRunning() && !calledBysystem() ) {
-    Info("Redirecting command through systemctl");
-    my $path = qx(which systemctl);
-    Info("Path is $path");
-    Info("Status is $?");
-    my $status = $? >> 8;
-    Info("Status is $status");
-    ( $path ) = $path =~ /^(.*)$/;
-
-    if ( !$path || $status ) {
-      Fatal('Unable to determine systemctl executable. Is systemd in use?');
-    }
-    Info("exec $path $command zoneminder");
-    exec("$path $command zoneminder");
-  } else {
-    Debug("called by SystemD");
+    qx(@BINDIR@/zmsystemctl.pl $command);
+    $command = '';
   }
 }
 

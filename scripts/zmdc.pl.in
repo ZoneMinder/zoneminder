@@ -246,7 +246,7 @@ our $zm_terminate = 0;
 
 sub run {
 
-  # Call this first to win the race condition with systemd
+  # Call this first otherwise stdout/stderror redirects to the pidfile = bad
   if ( open(my $PID, '>', ZM_PID) ) {
     print($PID $$);
     close($PID);

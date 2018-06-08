@@ -223,7 +223,7 @@ ob_start();
 <?php } ?>
           </tr>
         </thead>
-        <tbody class="consoleTableBody">
+        <tbody id="consoleTableBody">
 <?php
 $table_head = ob_get_contents();
 ob_end_clean();

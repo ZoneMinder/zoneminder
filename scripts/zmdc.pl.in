@@ -245,6 +245,16 @@ our %terminating_processes;
 our $zm_terminate = 0;
 
 sub run {
+
+  # Call this first otherwise stdout/stderror redirects to the pidfile = bad
+  if ( open(my $PID, '>', ZM_PID) ) {
+    print($PID $$);
+    close($PID);
+  } else {
+    # Log not initialized at this point so use die instead
+    die "Can't open pid file at ".ZM_PID."\n";
+  }
+
   my $fd = 0;
   while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
     POSIX::close($fd++);
@@ -252,6 +262,8 @@ sub run {
 
   setpgrp();
 
+  # dbh got closed with the rest of the fd's above, so need to reconnect.
+  my $dbh = zmDbConnect(1);
   logInit();
 
   dPrint(ZoneMinder::Logger::INFO, 'Server starting at '
@@ -259,18 +271,10 @@ sub run {
       ."\n"
       );
 
-  if ( open(my $PID, '>', ZM_PID) ) {
-    print($PID $$);
-    close($PID);
-  } else {
-    Error("Can't open pid file at " . ZM_PID);
-  }
-
   # Tell any existing processes to die, wait 1 second between TERM and KILL
   killAll(1);
 
   dPrint(ZoneMinder::Logger::INFO, 'Socket should be open at ' .main::SOCK_FILE);
-  my $dbh = zmDbConnect(1);
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
   unlink(main::SOCK_FILE) or Error('Unable to unlink ' . main::SOCK_FILE .". Error message was: $!") if -e main::SOCK_FILE;
   bind(SERVER, $saddr) or Fatal("Can't bind to " . main::SOCK_FILE . ": $!");

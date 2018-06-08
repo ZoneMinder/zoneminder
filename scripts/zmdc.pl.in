@@ -373,9 +373,7 @@ sub run {
 #print( "Select timed out\n" );
     }
 
-Debug("restartPending");
     restartPending();
-Debug("check_for_processes_to_kill");
     check_for_processes_to_kill();
 
   } # end while
@@ -404,7 +402,6 @@ sub dPrint {
   my $logLevel = shift;
   # One thought here, if no client exists to read these... does it block?
   if ( fileno(CLIENT) ) {
-    Debug("Have fileno for CLIENT, printing ");
     print CLIENT @_
   }
   if ( $logLevel == ZoneMinder::Logger::DEBUG ) {
@@ -440,14 +437,10 @@ sub start {
 
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
-  Debug("Blocking SIGCHLD");
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
-  Debug("forking");
   if ( my $cpid = fork() ) {
-  Debug("before logReinit");
     # This logReinit is required.  Not sure why.
-    logReinit();
-  Debug("aftere logReinit");
+    #logReinit();
 
     $process->{pid} = $cpid;
     $process->{started} = time();
@@ -460,7 +453,6 @@ sub start {
 
     $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
-    Debug("unblocking child");
   } elsif ( defined($cpid) ) {
 # Force reconnection to the db.
     $dbh = zmDbConnect(1);
@@ -523,7 +515,7 @@ sub send_stop {
         .strftime('%y/%m/%d %H:%M:%S', localtime())
         ."\n"
         );
-  sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
     return();
   }
 
@@ -715,7 +707,6 @@ sub reaper {
   } # end while waitpid
   $SIG{CHLD} = \&reaper;
   $! = $saved_status;
-  Debug("Leaving reaper");
 }
 
 sub restartPending {
@@ -727,7 +718,6 @@ sub restartPending {
       start($process->{daemon}, @{$process->{args}});
     }
   }
-  Debug("done restartPending");
 }
 
 sub shutdownAll {

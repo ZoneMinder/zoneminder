@@ -529,29 +529,29 @@ sub logPrint {
 
   if ( $level <= $this->{effectiveLevel} ) {
     $string =~ s/[\r\n]+$//g;
-
-    my $code = $codes{$level};
+    if ( $level <= $this->{syslogLevel} ) {
+      syslog($priorities{$level}, $codes{$level}.' [%s]', $string);
+    }
 
     my ($seconds, $microseconds) = gettimeofday();
-    my $message = sprintf(
-        '%s.%06d %s[%d].%s [%s]'
-        , strftime('%x %H:%M:%S', localtime($seconds))
-        , $microseconds
-        , $this->{id}
-        , $$
-        , $code
-        , $string
-        );
-    if ( $this->{trace} ) {
-      $message = Carp::shortmess($message);
-    } else {
-      $message = $message."\n";
+    if ( $level <= $this->{fileLevel} or $level <= $this->{termLevel} ) {
+      my $message = sprintf(
+          '%s.%06d %s[%d].%s [%s]'
+          , strftime('%x %H:%M:%S', localtime($seconds))
+          , $microseconds
+          , $this->{id}
+          , $$
+          , $codes{$level}
+          , $string
+          );
+      if ( $this->{trace} ) {
+        $message = Carp::shortmess($message);
+      } else {
+        $message = $message."\n";
+      }
+      print($LOGFILE $message) if $level <= $this->{fileLevel};
+      print(STDERR $message) if $level <= $this->{termLevel};
     }
-    if ( $level <= $this->{syslogLevel} ) {
-      syslog($priorities{$level}, $code.' [%s]', $string);
-    }
-    print($LOGFILE $message) if $level <= $this->{fileLevel};
-    print(STDERR $message) if $level <= $this->{termLevel};
 
     if ( $level <= $this->{databaseLevel} ) {
       if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
@@ -575,7 +575,7 @@ sub logPrint {
           , $this->{id}
           , $$
           , $level
-          , $code
+          , $codes{$level}
           , $string
           , $this->{fileName}
           );

@@ -279,6 +279,9 @@ sub initialise( @ ) {
 
   $this->{initialised} = !undef;
 
+  # this function can get called on a previously initialized log Object, so clean any sth's
+  $this->{sth} = undef;
+
   Debug( 'LogOpts: level='.$codes{$this->{level}}
       .'/'.$codes{$this->{effectiveLevel}}
       .', screen='.$codes{$this->{termLevel}}
@@ -320,6 +323,8 @@ sub reinitialise {
   my $screenLevel = $this->termLevel();
   $this->termLevel(NOLOG);
   $this->termLevel($screenLevel) if $screenLevel > NOLOG;
+
+  $this->{sth} = undef;
 }
 
 # Prevents undefined logging levels

@@ -279,6 +279,9 @@ sub initialise( @ ) {
 
   $this->{initialised} = !undef;
 
+  # this function can get called on a previously initialized log Object, so clean any sth's
+  $this->{sth} = undef;
+
   Debug( 'LogOpts: level='.$codes{$this->{level}}
       .'/'.$codes{$this->{effectiveLevel}}
       .', screen='.$codes{$this->{termLevel}}
@@ -320,6 +323,8 @@ sub reinitialise {
   my $screenLevel = $this->termLevel();
   $this->termLevel(NOLOG);
   $this->termLevel($screenLevel) if $screenLevel > NOLOG;
+
+  $this->{sth} = undef;
 }
 
 # Prevents undefined logging levels
@@ -549,30 +554,34 @@ sub logPrint {
     print(STDERR $message) if $level <= $this->{termLevel};
 
     if ( $level <= $this->{databaseLevel} ) {
-      if ( ( $this->{dbh} and $this->{dbh}->ping() ) or ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
-
-        
-        my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
-        $this->{sth} = $this->{dbh}->prepare_cached($sql) if ! $this->{sth};
-        if ( !$this->{sth} ) {
+      if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
+        $this->{sth} = undef;
+        if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
+          print(STDERR "Can't log to database: ");
           $this->{databaseLevel} = NOLOG;
-          Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
-        } else {
-          my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
-              , $this->{id}
-              , $$
-              , $level
-              , $code
-              , $string
-              , $this->{fileName}
-              );
-          if ( !$res ) {
-            $this->{databaseLevel} = NOLOG;
-            Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
-          }
+          return;
         }
-      } else {
-        print(STDERR "Can't log to database: ");
+      }
+
+      my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
+      $this->{sth} = $this->{dbh}->prepare_cached($sql) if ! $this->{sth};
+      if ( !$this->{sth} ) {
+        $this->{databaseLevel} = NOLOG;
+        Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
+        return;
+      } 
+
+      my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
+          , $this->{id}
+          , $$
+          , $level
+          , $code
+          , $string
+          , $this->{fileName}
+          );
+      if ( !$res ) {
+        $this->{databaseLevel} = NOLOG;
+        Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
       }
     } # end if doing db logging
   } # end if level < effectivelevel

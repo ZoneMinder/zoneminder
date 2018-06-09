@@ -242,6 +242,7 @@ use constant KILL_DELAY => 60; # seconds to wait between sending TERM and sendin
 our %cmd_hash;
 our %pid_hash;
 our %terminating_processes;
+our %pids_to_reap;
 our $zm_terminate = 0;
 
 sub run {
@@ -280,7 +281,7 @@ sub run {
   bind(SERVER, $saddr) or Fatal("Can't bind to " . main::SOCK_FILE . ": $!");
   listen(SERVER, SOMAXCONN) or Fatal("Can't listen: $!");
 
-  $SIG{CHLD} = \&reaper;
+  $SIG{CHLD} = \&chld_sig_handler;
   $SIG{INT} = \&shutdown_sig_handler;
   $SIG{TERM} = \&shutdown_sig_handler;
   $SIG{ABRT} = \&shutdown_sig_handler;
@@ -373,10 +374,9 @@ sub run {
 #print( "Select timed out\n" );
     }
 
-Debug("restartPending");
     restartPending();
-Debug("check_for_processes_to_kill");
-    check_for_processes_to_kill();
+    check_for_processes_to_kill() if %terminating_processes;
+    reaper() if %pids_to_reap;
 
   } # end while
 
@@ -394,6 +394,7 @@ Debug("check_for_processes_to_kill");
 }
 
 sub cPrint {
+  # One thought here, if no client exists to read these... does it block?
   if ( fileno(CLIENT) ) {
     print CLIENT @_
   }
@@ -402,11 +403,7 @@ sub cPrint {
 # I think the purpose of this is to echo the logs to the client process so it can then display them. 
 sub dPrint {
   my $logLevel = shift;
-  # One thought here, if no client exists to read these... does it block?
-  if ( fileno(CLIENT) ) {
-    Debug("Have fileno for CLIENT, printing ");
-    print CLIENT @_
-  }
+  cPrint(@_):
   if ( $logLevel == ZoneMinder::Logger::DEBUG ) {
     Debug(@_);
   } elsif ( $logLevel == ZoneMinder::Logger::INFO ) {
@@ -440,14 +437,10 @@ sub start {
 
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
-  Debug("Blocking SIGCHLD");
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
-  Debug("forking");
   if ( my $cpid = fork() ) {
-  Debug("before logReinit");
     # This logReinit is required.  Not sure why.
-    logReinit();
-  Debug("aftere logReinit");
+    #logReinit();
 
     $process->{pid} = $cpid;
     $process->{started} = time();
@@ -460,7 +453,6 @@ sub start {
 
     $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
-    Debug("unblocking child");
   } elsif ( defined($cpid) ) {
 # Force reconnection to the db.
     $dbh = zmDbConnect(1);
@@ -642,15 +634,25 @@ sub shutdown_sig_handler {
   $zm_terminate = 1;
 }
 
-sub reaper {
+sub chld_sig_handler {
   my $saved_status = $!;
 
   # Wait for a child to terminate
   while ( (my $cpid = waitpid(-1, WNOHANG)) > 0 ) {
-    my $status = $?;
+    $pids_to_reap{$cpid} = { status=>$?, stopped=>time() };
+  } # end while waitpid
+  $SIG{CHLD} = \&chld_sig_handler;
+  $! = $saved_status;
+}
 
+sub reaper {
+  foreach my $cpid ( keys %pids_to_reap ) {
     my $process = $pid_hash{$cpid};
+Debug("Reaping pricess $cpid");
     delete $pid_hash{$cpid};
+    my $reap_info = $pids_to_reap{$cpid};
+    my ( $status, $stopped ) = @$reap_info{'status','stopped'};
+    delete $pids_to_reap{$cpid};
 
     if ( !$process ) {
       dPrint(ZoneMinder::Logger::INFO, "Can't find child with pid of '$cpid'\n");
@@ -659,7 +661,7 @@ sub reaper {
     delete $terminating_processes{$$process{command}};
     delete $$process{term_sent_at};
 
-    $process->{stopped} = time();
+    $process->{stopped} = $stopped;
     $process->{runtime} = ($process->{stopped}-$process->{started});
     delete $process->{pid};
 
@@ -712,11 +714,9 @@ sub reaper {
     } else {
       delete $cmd_hash{$$process{command}};
     }
-  } # end while waitpid
-  $SIG{CHLD} = \&reaper;
-  $! = $saved_status;
-  Debug("Leaving reaper");
-}
+Debug("Reaping pricess $cpid");
+  } # end foreach pid_to_reap
+} # end sub reaper
 
 sub restartPending {
 # Restart any pending processes, we list them first because cmd_hash may change in foreach
@@ -727,7 +727,6 @@ sub restartPending {
       start($process->{daemon}, @{$process->{args}});
     }
   }
-  Debug("done restartPending");
 }
 
 sub shutdownAll {

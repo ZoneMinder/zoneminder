@@ -119,13 +119,13 @@ if ( $command eq 'version' ) {
 }
 my $needs_daemon = $command !~ /(?:startup|shutdown|status|check|logrot|version)/;
 my $daemon = shift @ARGV;
-if ( $needs_daemon && ! $daemon ) {
+if ( $needs_daemon && !$daemon ) {
   print(STDERR "No daemon given\n");
   pod2usage(-exitstatus => -1);
 }
 my @args;
 
-my $daemon_patt = '('.join( '|', @daemons ).')';
+my $daemon_patt = '('.join('|', @daemons).')';
 if ( $needs_daemon ) {
   if ( $daemon =~ /^${daemon_patt}$/ ) {
     $daemon = $1;
@@ -139,7 +139,7 @@ foreach my $arg ( @ARGV ) {
 # Detaint arguments, if they look ok
 #if ( $arg =~ /^(-{0,2}[\w]+)/ )
   if ( $arg =~ /^(-{0,2}[\w\/?&=.-]+)$/ ) {
-    push( @args, $1 );
+    push @args, $1;
   } else {
     print(STDERR "Bogus argument '$arg' found");
     exit(-1);
@@ -245,6 +245,16 @@ our %terminating_processes;
 our $zm_terminate = 0;
 
 sub run {
+
+  # Call this first otherwise stdout/stderror redirects to the pidfile = bad
+  if ( open(my $PID, '>', ZM_PID) ) {
+    print($PID $$);
+    close($PID);
+  } else {
+    # Log not initialized at this point so use die instead
+    die "Can't open pid file at ".ZM_PID."\n";
+  }
+
   my $fd = 0;
   while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
     POSIX::close($fd++);
@@ -252,6 +262,8 @@ sub run {
 
   setpgrp();
 
+  # dbh got closed with the rest of the fd's above, so need to reconnect.
+  my $dbh = zmDbConnect(1);
   logInit();
 
   dPrint(ZoneMinder::Logger::INFO, 'Server starting at '
@@ -259,18 +271,10 @@ sub run {
       ."\n"
       );
 
-  if ( open(my $PID, '>', ZM_PID) ) {
-    print($PID $$);
-    close($PID);
-  } else {
-    Error("Can't open pid file at " . ZM_PID);
-  }
-
   # Tell any existing processes to die, wait 1 second between TERM and KILL
   killAll(1);
 
   dPrint(ZoneMinder::Logger::INFO, 'Socket should be open at ' .main::SOCK_FILE);
-  my $dbh = zmDbConnect(1);
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
   unlink(main::SOCK_FILE) or Error('Unable to unlink ' . main::SOCK_FILE .". Error message was: $!") if -e main::SOCK_FILE;
   bind(SERVER, $saddr) or Fatal("Can't bind to " . main::SOCK_FILE . ": $!");
@@ -306,7 +310,7 @@ sub run {
           $dbh = zmDbConnect();
         }
         my @cpuload = CpuLoad();
-        Debug("UPdating Server record @cpuload");
+        Debug("Updating Server record @cpuload");
         if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
             'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
           Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
@@ -315,7 +319,6 @@ sub run {
       $secs_count += 1;
     }
     my $nfound = select(my $rout = $rin, undef, undef, $timeout);
-Debug("Aftere select $nfound");
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
@@ -370,9 +373,7 @@ Debug("Aftere select $nfound");
 #print( "Select timed out\n" );
     }
 
-Debug("restartPending");
     restartPending();
-Debug("check_for_processes_to_kill");
     check_for_processes_to_kill();
 
   } # end while
@@ -382,7 +383,7 @@ Debug("check_for_processes_to_kill");
       ."\n"
       );
   if ( $Config{ZM_SERVER_ID} ) {
-    $dbh = zmDbConnect() if ! $dbh->ping();
+    $dbh = zmDbConnect() if ! ($dbh and $dbh->ping());
     if ( ! defined $dbh->do(q{UPDATE Servers SET Status='NotRunning' WHERE Id=?}, undef, $Config{ZM_SERVER_ID}) ) {
       Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
     }
@@ -399,6 +400,7 @@ sub cPrint {
 # I think the purpose of this is to echo the logs to the client process so it can then display them. 
 sub dPrint {
   my $logLevel = shift;
+  # One thought here, if no client exists to read these... does it block?
   if ( fileno(CLIENT) ) {
     print CLIENT @_
   }
@@ -435,12 +437,10 @@ sub start {
 
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
-  Debug("Blocking SIGCHLD");
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
-  Debug("forking");
   if ( my $cpid = fork() ) {
     # This logReinit is required.  Not sure why.
-    logReinit();
+    #logReinit();
 
     $process->{pid} = $cpid;
     $process->{started} = time();
@@ -453,7 +453,6 @@ sub start {
 
     $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
-    Debug("unblocking child");
   } elsif ( defined($cpid) ) {
 # Force reconnection to the db.
     $dbh = zmDbConnect(1);
@@ -516,7 +515,7 @@ sub send_stop {
         .strftime('%y/%m/%d %H:%M:%S', localtime())
         ."\n"
         );
-  sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
     return();
   }
 
@@ -708,7 +707,6 @@ sub reaper {
   } # end while waitpid
   $SIG{CHLD} = \&reaper;
   $! = $saved_status;
-  Debug("Leaving reaper");
 }
 
 sub restartPending {
@@ -720,7 +718,6 @@ sub restartPending {
       start($process->{daemon}, @{$process->{args}});
     }
   }
-  Debug("done restartPending");
 }
 
 sub shutdownAll {
@@ -808,7 +805,7 @@ sub status {
     foreach my $process ( values %cmd_hash ) {
       if ( $process->{pending} ) {
         dPrint(ZoneMinder::Logger::DEBUG, "'$process->{command}' pending at "
-            .strftime( '%y/%m/%d %H:%M:%S', localtime($process->{pending}))
+            .strftime('%y/%m/%d %H:%M:%S', localtime($process->{pending}))
             ."\n"
             );
       }

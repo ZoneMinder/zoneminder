@@ -373,18 +373,13 @@ function xhtmlFooter() {
   global $view;
   global $skin;
   global $running;
-if ( canEdit('System') ) {
-  include("skins/$skin/views/state.php");
+  if ( canEdit('System') ) {
+    include("skins/$skin/views/state.php");
+  }
 ?>
-<?php
-}
-?>
-</body>
-<script type="text/javascript">
-$j('.chosen').chosen();
-</script>
+  </body>
+  <script type="text/javascript">$j('.chosen').chosen();</script>
 </html>
 <?php
 } // end xhtmlFooter
-
 ?>

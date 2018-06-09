@@ -95,6 +95,15 @@ bool Mutex::locked() {
   return( state == EBUSY );
 }
 
+RecursiveMutex::RecursiveMutex() {
+  pthread_mutexattr_t attr;
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+  if ( pthread_mutex_init(&mMutex, &attr) < 0 )
+    Error("Unable to create pthread mutex: %s", strerror(errno));
+}
+
 Condition::Condition( Mutex &mutex ) : mMutex( mutex ) {
   if ( pthread_cond_init( &mCondition, NULL ) < 0 )
     throw ThreadException( stringtf( "Unable to create pthread condition: %s", strerror(errno) ) );

@@ -245,7 +245,8 @@ sub initialise( @ ) {
   $tempSyslogLevel = $level if defined($level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG'));
 
   if ( $Config{ZM_LOG_DEBUG} ) {
-    foreach my $target ( split( /\|/, $Config{ZM_LOG_DEBUG_TARGET} ) ) {
+    # Splitting on an empty string doesn't return an empty string, it returns an empty array
+    foreach my $target ( $Config{ZM_LOG_DEBUG_TARGET} ? split(/\|/, $Config{ZM_LOG_DEBUG_TARGET}) : '' ) {
       if ( $target eq $this->{id}
           || $target eq '_'.$this->{id}
           || $target eq $this->{idRoot}
@@ -277,6 +278,9 @@ sub initialise( @ ) {
   $this->{autoFlush} = $ENV{LOG_FLUSH}?1:0 if defined($ENV{LOG_FLUSH});
 
   $this->{initialised} = !undef;
+
+  # this function can get called on a previously initialized log Object, so clean any sth's
+  $this->{sth} = undef;
 
   Debug( 'LogOpts: level='.$codes{$this->{level}}
       .'/'.$codes{$this->{effectiveLevel}}
@@ -319,6 +323,8 @@ sub reinitialise {
   my $screenLevel = $this->termLevel();
   $this->termLevel(NOLOG);
   $this->termLevel($screenLevel) if $screenLevel > NOLOG;
+
+  $this->{sth} = undef;
 }
 
 # Prevents undefined logging levels
@@ -392,6 +398,12 @@ sub level {
 
     # ICON: I am remarking this out because I don't see the point of having an effective level, if we are just going to set it to level.
     #$this->{effectiveLevel} = $this->{level} if ( $this->{level} > $this->{effectiveLevel} );
+    # ICON: The point is that LOG_DEBUG can be set either in db or in env var and will get passed in here.
+    # So this will turn on debug, even if not output has Debug level turned on.  I think it should be the other way around
+
+    # ICON: Let's try this line instead.  effectiveLevel is 1 DEBUG from above, but LOG_DEBUG is off, then $this->level will be 0, and
+    # so effectiveLevel will become 0
+    $this->{effectiveLevel} = $this->{level} if ( $this->{level} < $this->{effectiveLevel} );
   }
   return $this->{level};
 }
@@ -474,7 +486,7 @@ sub openSyslog {
 
 sub closeSyslog {
   my $this = shift;
-#closelog();
+  closelog();
 }
 
 sub logFile {
@@ -517,54 +529,59 @@ sub logPrint {
 
   if ( $level <= $this->{effectiveLevel} ) {
     $string =~ s/[\r\n]+$//g;
-
-    my $code = $codes{$level};
+    if ( $level <= $this->{syslogLevel} ) {
+      syslog($priorities{$level}, $codes{$level}.' [%s]', $string);
+    }
 
     my ($seconds, $microseconds) = gettimeofday();
-    my $message = sprintf(
-        '%s.%06d %s[%d].%s [%s]'
-        , strftime('%x %H:%M:%S', localtime($seconds))
-        , $microseconds
-        , $this->{id}
-        , $$
-        , $code
-        , $string
-        );
-    if ( $this->{trace} ) {
-      $message = Carp::shortmess($message);
-    } else {
-      $message = $message."\n";
+    if ( $level <= $this->{fileLevel} or $level <= $this->{termLevel} ) {
+      my $message = sprintf(
+          '%s.%06d %s[%d].%s [%s]'
+          , strftime('%x %H:%M:%S', localtime($seconds))
+          , $microseconds
+          , $this->{id}
+          , $$
+          , $codes{$level}
+          , $string
+          );
+      if ( $this->{trace} ) {
+        $message = Carp::shortmess($message);
+      } else {
+        $message = $message."\n";
+      }
+      print($LOGFILE $message) if $level <= $this->{fileLevel};
+      print(STDERR $message) if $level <= $this->{termLevel};
     }
-    if ( $level <= $this->{syslogLevel} ) {
-      syslog($priorities{$level}, $code.' [%s]', $string);
-    }
-    print($LOGFILE $message) if $level <= $this->{fileLevel};
-    print(STDERR $message) if $level <= $this->{termLevel};
 
     if ( $level <= $this->{databaseLevel} ) {
-      if ( ( $this->{dbh} and $this->{dbh}->ping() ) or ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
-
-        my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
-        $this->{sth} = $this->{dbh}->prepare_cached($sql);
-        if ( !$this->{sth} ) {
+      if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
+        $this->{sth} = undef;
+        if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
+          print(STDERR "Can't log to database: ");
           $this->{databaseLevel} = NOLOG;
-          Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
-        } else {
-          my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
-              , $this->{id}
-              , $$
-              , $level
-              , $code
-              , $string
-              , $this->{fileName}
-              );
-          if ( !$res ) {
-            $this->{databaseLevel} = NOLOG;
-            Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
-          }
+          return;
         }
-      } else {
-        print(STDERR "Can't log to database: ");
+      }
+
+      my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
+      $this->{sth} = $this->{dbh}->prepare_cached($sql) if ! $this->{sth};
+      if ( !$this->{sth} ) {
+        $this->{databaseLevel} = NOLOG;
+        Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
+        return;
+      } 
+
+      my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
+          , $this->{id}
+          , $$
+          , $level
+          , $codes{$level}
+          , $string
+          , $this->{fileName}
+          );
+      if ( !$res ) {
+        $this->{databaseLevel} = NOLOG;
+        Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
       }
     } # end if doing db logging
   } # end if level < effectivelevel

@@ -32,7 +32,7 @@
 //     If both scale and either width or height are specified, scale is ignored
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
@@ -85,7 +85,13 @@ if ( empty($_REQUEST['path']) ) {
         $Frame->Delta(1);
         $Frame->FrameId('snapshot');
       }
-      $path = $Event->Path().'/snapshot.jpg';
+      $Monitor = $Event->Monitor();
+      if ( $Monitor->SaveJPEGs() & 1 ) {
+        # If we store Frames as jpgs, then we don't store a snapshot
+        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
+      } else {
+        $path = $Event->Path().'/snapshot.jpg';
+      }
     } else {
 
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));

@@ -736,6 +736,8 @@ sub shutdownAll {
     send_stop(1, $pid_hash{$pid});
   }
   while ( keys %terminating_processes ) {
+
+    reaper() if %pids_to_reap;
     check_for_processes_to_kill();
     if ( %terminating_processes ) {
       Debug("Still " .  %terminating_processes . ' to die. sleeping');

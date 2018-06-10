@@ -403,7 +403,7 @@ sub cPrint {
 # I think the purpose of this is to echo the logs to the client process so it can then display them. 
 sub dPrint {
   my $logLevel = shift;
-  cPrint(@_):
+  cPrint(@_);
   if ( $logLevel == ZoneMinder::Logger::DEBUG ) {
     Debug(@_);
   } elsif ( $logLevel == ZoneMinder::Logger::INFO ) {

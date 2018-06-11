@@ -310,7 +310,7 @@ sub reinitialise {
 
 # Bit of a nasty hack to reopen connections to log files and the DB
   my $syslogLevel = $this->syslogLevel();
-  $this->syslogLevel( NOLOG );
+  $this->syslogLevel(NOLOG);
   $this->syslogLevel($syslogLevel) if $syslogLevel > NOLOG;
 
   my $logfileLevel = $this->fileLevel();
@@ -321,11 +321,10 @@ sub reinitialise {
   $this->databaseLevel(NOLOG);
   $this->databaseLevel($databaseLevel) if $databaseLevel > NOLOG;
 
-  my $screenLevel = $this->termLevel();
+  $this->{hasTerm} = -t STDERR;
+  my $termLevel = $this->termLevel();
   $this->termLevel(NOLOG);
-  $this->termLevel($screenLevel) if $screenLevel > NOLOG;
-
-  $this->{sth} = undef;
+  $this->termLevel($termLevel) if $termLevel > NOLOG;
 }
 
 # Prevents undefined logging levels
@@ -440,10 +439,11 @@ sub databaseLevel {
   if ( defined($databaseLevel) ) {
     $databaseLevel = $this->limit($databaseLevel);
     if ( $databaseLevel > NOLOG ) {
-      $this->{dbh} = ZoneMinder::Database::zmDbConnect(1);
-    } elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG ) {
+      $this->{dbh} = ZoneMinder::Database::zmDbConnect();
+    } else {
       undef($this->{dbh});
     }
+    $this->{sth} = undef;
     $this->{databaseLevel} = $databaseLevel;
   }
   return $this->{databaseLevel};

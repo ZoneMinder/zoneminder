@@ -492,8 +492,8 @@ if ( canEdit( 'Monitors' ) ) {
 
         # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
         if ( $monitor['Type'] != 'WebSite' ) {
-            zmaControl( $monitor, 'stop' );
-            zmcControl( $monitor, 'stop' );
+          zmaControl($monitor, 'stop');
+          zmcControl($monitor, 'stop');
         }
         dbQuery( 'UPDATE Monitors SET '.implode( ', ', $changes ).' WHERE Id=?', array($mid) );
         // Groups will be added below
@@ -567,6 +567,8 @@ if ( canEdit( 'Monitors' ) ) {
       }
 
       $restart = true;
+    } else {
+      Logger::Debug("No action due to no changes to Monitor");
     } # end if count(changes)
 
     if (

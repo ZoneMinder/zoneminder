@@ -439,16 +439,12 @@ sub databaseLevel {
   my $databaseLevel = shift;
   if ( defined($databaseLevel) ) {
     $databaseLevel = $this->limit($databaseLevel);
-    if ( $this->{databaseLevel} != $databaseLevel ) {
-      if ( $databaseLevel > NOLOG and $this->{databaseLevel} <= NOLOG ) {
-        if ( !$this->{dbh} ) {
-          $this->{dbh} = ZoneMinder::Database::zmDbConnect();
-        }
-      } elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG ) {
-        undef($this->{dbh});
-      }
-      $this->{databaseLevel} = $databaseLevel;
+    if ( $databaseLevel > NOLOG ) {
+      $this->{dbh} = ZoneMinder::Database::zmDbConnect();
+    } elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG ) {
+      undef($this->{dbh});
     }
+    $this->{databaseLevel} = $databaseLevel;
   }
   return $this->{databaseLevel};
 }
@@ -557,11 +553,13 @@ sub logPrint {
     if ( $level <= $this->{databaseLevel} ) {
       if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
         $this->{sth} = undef;
-        if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
-          #print(STDERR "Can't log to database: ");
-          $this->{databaseLevel} = NOLOG;
+
+        my $databaseLevel = $this->{databaseLevel};
+        $this->{databaseLevel} = NOLOG;
+        if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect(1) ) ) {
           return;
         }
+        $this->{databaseLevel} = $databaseLevel;
       }
 
       my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';

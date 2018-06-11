@@ -433,7 +433,7 @@ sub start {
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
   if ( my $cpid = fork() ) {
     # This logReinit is required.  Not sure why.
-    #logReinit();
+    logReinit();
 
     $process->{pid} = $cpid;
     $process->{started} = time();

@@ -440,7 +440,7 @@ sub databaseLevel {
   if ( defined($databaseLevel) ) {
     $databaseLevel = $this->limit($databaseLevel);
     if ( $databaseLevel > NOLOG ) {
-      $this->{dbh} = ZoneMinder::Database::zmDbConnect();
+      $this->{dbh} = ZoneMinder::Database::zmDbConnect(1);
     } elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG ) {
       undef($this->{dbh});
     }

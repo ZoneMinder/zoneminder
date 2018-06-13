@@ -17,12 +17,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+#include <cinttypes>
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_zone.h"
 #include "zm_image.h"
 #include "zm_monitor.h"
-#include <cinttypes>
 
 void Zone::Setup( 
   Monitor *p_monitor,

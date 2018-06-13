@@ -257,11 +257,9 @@ execpackpack () {
     fi
 
     if [ "${TRAVIS}" == "true"  ]; then
-        utils/packpack/heartbeat.sh &
-        mypid=$!
-        packpack/packpack $parms > buildlog.txt 2>&1
-        kill $mypid
-        tail -n 3000 buildlog.txt | grep -v ONVIF
+        # Travis will fail the build if the output gets too long
+        # To mitigate that, use grep to filter out some of the noise
+        packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Manifying|Installing /build|cp lib)'
     else
         packpack/packpack $parms
     fi

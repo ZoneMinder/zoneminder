@@ -259,7 +259,7 @@ execpackpack () {
     if [ "${TRAVIS}" == "true"  ]; then
         # Travis will fail the build if the output gets too long
         # To mitigate that, use grep to filter out some of the noise
-        packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Manifying|Installing /build|cp lib)'
+        packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
     else
         packpack/packpack $parms
     fi

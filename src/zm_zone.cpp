@@ -22,6 +22,7 @@
 #include "zm_zone.h"
 #include "zm_image.h"
 #include "zm_monitor.h"
+#include <cinttypes>
 
 void Zone::Setup( 
   Monitor *p_monitor,

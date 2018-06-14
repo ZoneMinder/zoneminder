@@ -259,7 +259,12 @@ execpackpack () {
     if [ "${TRAVIS}" == "true"  ]; then
         # Travis will fail the build if the output gets too long
         # To mitigate that, use grep to filter out some of the noise
-        packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+        if [ "${ARCH}" != "armhf" ]; then
+            packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+        else
+            # Travis never ceases to amaze. For the case of arm emulation, Travis fails the build due to too little output over a 10 minute period. Facepalm.
+            packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+        fi
     else
         packpack/packpack $parms
     fi

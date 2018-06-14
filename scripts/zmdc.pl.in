@@ -431,7 +431,11 @@ sub start {
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
+  # Apparently the child closing the db connection can affect the parent.
+  zmDbDisconnect();
   if ( my $cpid = fork() ) {
+
+    $dbh = zmDbConnect(1);
     # This logReinit is required.  Not sure why.
     logReinit();
 

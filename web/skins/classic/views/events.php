@@ -142,7 +142,6 @@ if ( $pages > 1 ) {
 $count = 0;
 $disk_space_total = 0;
 
-Logger::Debug("EventSql: $eventsSql");
 $results = dbQuery($eventsSql);
 while ( $event_row = dbFetchNext($results) ) {
   $event = new Event($event_row);
@@ -173,7 +172,7 @@ while ( $event_row = dbFetchNext($results) ) {
     }
     if ( ZM_WEB_EVENT_DISK_SPACE ) {
 ?>
-              <th class="colDiskSpace"><a href="<?php echo sortHeader( 'DiskSpace' ) ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag( 'DiskSpace' ) ?></a></th>
+              <th class="colDiskSpace"><a href="<?php echo sortHeader('DiskSpace') ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag('DiskSpace') ?></a></th>
 <?php
     }
     if ( ZM_WEB_LIST_THUMBS ) {
@@ -182,7 +181,7 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
     }
 ?>
-              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox( this, 'markEids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></th>
+              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markEids');"/></th>
             </tr>
 <?php
   }
@@ -226,7 +225,7 @@ while ( $event_row = dbFetchNext($results) ) {
       echo '</td>';
   } // end if ZM_WEB_LIST_THUMBS
 ?>
-              <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event->Id() ?>" onclick="configureButton( this, 'markEids' );"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event->Id() ?>" onclick="configureButton(this, 'markEids');"/></td>
             </tr>
 <?php
 }

@@ -11,13 +11,13 @@ function toggleCheckbox( element, name ) {
   for (var i = 0; i < form.elements.length; i++)
     if (form.elements[i].name.indexOf(name) == 0)
       form.elements[i].checked = checked;
-  form.viewBtn.disabled = !checked;
-  form.editBtn.disabled = !checked;
+  form.viewBtn.disabled = !(canViewEvents && checked);
+  form.editBtn.disabled = !(canEditEvents && checked);
   form.archiveBtn.disabled = unarchivedEvents?!checked:true;
-  form.unarchiveBtn.disabled = archivedEvents?!checked:true;
-  form.downloadBtn.disabled = !checked;
-  form.exportBtn.disabled = !checked;
-  form.deleteBtn.disabled = !checked;
+  form.unarchiveBtn.disabled = !(canEditEvents && archivedEvents && checked);
+  form.downloadBtn.disabled = !(canViewEvents && checked);
+  form.exportBtn.disabled = !(canViewEvents && checked);
+  form.deleteBtn.disabled = !(canEditEvents && checked);
 }
 
 function configureButton( element, name ) {
@@ -35,16 +35,20 @@ function configureButton( element, name ) {
   }
   if ( !element.checked )
     form.toggleCheck.checked = false;
-  form.viewBtn.disabled = !checked;
-  form.editBtn.disabled = !checked;
+  form.viewBtn.disabled = !(canViewEvents && checked);
+  form.editBtn.disabled = !(canEditEvents && checked);
   form.archiveBtn.disabled = (!checked)||(!unarchivedEvents);
-  form.unarchiveBtn.disabled = (!checked)||(!archivedEvents);
-  form.downloadBtn.disabled = !checked;
-  form.exportBtn.disabled = !checked;
-  form.deleteBtn.disabled = !checked;
+  form.unarchiveBtn.disabled = !(canEditEvents && checked && archivedEvents);
+  form.downloadBtn.disabled = !(canViewEvents && checked);
+  form.exportBtn.disabled = !(canViewEvents && checked);
+  form.deleteBtn.disabled = !(canEditEvents && checked);
 }
 
 function deleteEvents( element, name ) {
+  if ( ! canEditEvents ) {
+    alert("You do not have permission to delete events.");
+    return;
+  }
   var form = element.form;
   var count = 0;
   for (var i = 0; i < form.elements.length; i++) {
@@ -64,6 +68,10 @@ function deleteEvents( element, name ) {
 }
 
 function editEvents( element, name ) {
+  if ( ! canEditEvents ) {
+    alert("You do not have permission to delete events.");
+    return;
+  }
   var form = element.form;
   var eids = new Array();
   for (var i = 0; i < form.elements.length; i++) {
@@ -125,6 +133,10 @@ function archiveEvents( element, name ) {
 }
 
 function unarchiveEvents(element, name) {
+  if ( ! canEditEvents ) {
+    alert("You do not have permission to delete events.");
+    return;
+  }
   var form = element.form;
   form.elements['action'].value = 'unarchive';
   form.submit();

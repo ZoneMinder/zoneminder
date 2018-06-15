@@ -17,11 +17,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+#define __STDC_FORMAT_MACROS 1
+#include <cinttypes>
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_zone.h"
 #include "zm_image.h"
 #include "zm_monitor.h"
+
 
 void Zone::Setup( 
   Monitor *p_monitor,

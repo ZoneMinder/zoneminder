@@ -335,13 +335,13 @@ private $control_fields = array(
       }
 
       if ( $mode == 'stop' ) {
-        daemonControl( 'stop', 'zmc', $zmcArgs );
+        daemonControl('stop', 'zmc', $zmcArgs);
       } else {
         if ( $mode == 'restart' ) {
-          daemonControl( 'stop', 'zmc', $zmcArgs );
+          daemonControl('stop', 'zmc', $zmcArgs);
         }
         if ( $this->{'Function'} != 'None' ) {
-          daemonControl( 'start', 'zmc', $zmcArgs );
+          daemonControl('start', 'zmc', $zmcArgs);
         }
       }
     } else if ( $this->ServerId() ) {
@@ -378,6 +378,8 @@ private $control_fields = array(
       } catch ( Exception $e ) {
         Error("Except $e thrown trying to restart zmc");
       }
+    } else {
+      Error("Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.");
     }
   } // end function zmcControl
 
@@ -385,9 +387,9 @@ private $control_fields = array(
     if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
         if ( ZM_OPT_CONTROL ) {
-          daemonControl( 'stop', 'zmtrack.pl', '-m '.$this->{'Id'} );
+          daemonControl('stop', 'zmtrack.pl', '-m '.$this->{'Id'});
         }
-        daemonControl( 'stop', 'zma', '-m '.$this->{'Id'} );
+        daemonControl('stop', 'zma', '-m '.$this->{'Id'});
       } else {
         if ( $mode == 'restart' ) {
           if ( ZM_OPT_CONTROL ) {
@@ -404,7 +406,8 @@ private $control_fields = array(
         }
       }
     } // end if we are on the recording server
-  }
+  } // end public function zmaControl
+
   public function GroupIds( $new='') {
     if ( $new != '' ) {
       if(!is_array($new)) {

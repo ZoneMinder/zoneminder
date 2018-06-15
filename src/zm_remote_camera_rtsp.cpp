@@ -533,7 +533,7 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, timeval recording, char* ev
       zm_av_packet_unref( &packet );
     } // end while ! framecomplete and buffer.size()
   if(frameComplete)
-    return (0);
+    return (1);
   } /* getFrame() */
 
 } // end while true

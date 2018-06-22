@@ -10,9 +10,31 @@ class Event {
 'MonitorId',
 'StorageId',
 'Name',
-'DiskSpace',
+'Cause',
+'StartTime',
+'EndTime',
+'Width',
+'Height',
+'Length',
+'Frames',
+'AlarmFrames',
+'DefaultVideo',
 'SaveJPEGs',
+'TotScore',
+'AvgScore',
+'MaxScore',
+'Archived',
+'Videoed',
+'Uploaded',
+'Emailed',
+'Messaged',
+'Executed',
+'Notes',
+'StateId',
+'Orientation',
+'DiskSpace',
 'Scheme',
+'Locked',
 );
   public function __construct( $IdOrRow = null ) {
     $row = NULL;
@@ -565,6 +587,50 @@ class Event {
     } # end if not local
     return false;
   } # end public function file_exists()
+
+  public function file_size() {
+    if ( file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
+      return filesize($this->Path().'/'.$this->DefaultVideo());
+    }
+    $Storage= $this->Storage();
+    $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
+    if ( $Server->Id() != ZM_SERVER_ID ) {
+
+      $url = $Server->Url() . '/zm/api/events/'.$this->{'Id'}.'.json';
+      if ( ZM_OPT_USE_AUTH ) {
+        if ( ZM_AUTH_RELAY == 'hashed' ) {
+          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+        } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+          $url = '?user='.$_SESSION['username'];
+          $url = '?pass='.$_SESSION['password'];
+        } elseif ( ZM_AUTH_RELAY == 'none' ) {
+          $url = '?user='.$_SESSION['username'];
+        }
+      }
+      Logger::Debug("sending command to $url");
+      // use key 'http' even if you send the request to https://...
+      $options = array(
+          'http' => array(
+            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method'  => 'GET',
+            'content' => ''
+            )
+          );
+      $context  = stream_context_create($options);
+      try {
+        $result = file_get_contents($url, false, $context);
+        if ($result === FALSE) { /* Handle error */
+          Error("Error restarting zmc using $url");
+        }
+        $event_data = json_decode($result,true);
+        Logger::Debug(print_r($event_data['event']['Event'],1));
+        return $event_data['event']['Event']['fileSize'];
+      } catch ( Exception $e ) {
+        Error("Except $e thrown trying to get event data");
+      }
+    } # end if not local
+    return 0;
+  } # end public function file_size()
 
 } # end class
 

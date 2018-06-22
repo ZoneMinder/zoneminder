@@ -218,7 +218,9 @@ $html .= htmlSelect( 'Status[]', $status_options,
         $regexp = '/'.preg_quote($regexp,'/').'/i';
       }
       if ( !preg_match($regexp, $Monitor->Source()) ) {
-        continue;
+        if ( !preg_match($regexp, $Monitor->Path()) ) {
+          continue;
+        }
       }
     }
 

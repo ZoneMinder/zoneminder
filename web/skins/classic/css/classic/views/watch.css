@@ -38,13 +38,6 @@
     text-align: center;
 }
 
-#dvrControls input {
-    height: 20px;
-    width: 28px;
-    padding-bottom: 3px;
-    margin: 0 3px;
-}
-
 #dvrControls input[disabled] {
     color: #aaaaaa;
 }

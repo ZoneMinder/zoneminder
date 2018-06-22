@@ -69,7 +69,8 @@ Event::Event(
     untimedEvent = true;
     start_time = now;
   } else if ( start_time.tv_sec > now.tv_sec ) {
-    Error("StartTime in the future %u.%u > %u.%u",
+    Error(
+        "StartTime in the future %u.%u > %u.%u",
         start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec
         );
     start_time = now;
@@ -520,7 +521,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     }
   } else {
     //If this is the first frame, we should add a thumbnail to the event directory
-    if ( frames == 1 ) {
+    if ( frames == 1 || score > (int)max_score ) {
       char snapshot_file[PATH_MAX];
       snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
       WriteFrameImage(image, timestamp, snapshot_file);

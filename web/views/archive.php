@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
@@ -43,11 +43,15 @@ if ( $archivetype ) {
   if ( $mimetype ) {
     $filename = "zmExport.$file_ext";
     $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
+    Logger::Debug("downloading archive from $filename_path");
     if ( is_readable($filename_path) ) {
-      header( "Content-type: application/$mimetype" );
-      header( "Content-Disposition: attachment; filename=$filename");
+      header("Content-type: application/$mimetype" );
+      header("Content-Disposition: inline; filename=$filename");
+      header('Content-Length: ' . filesize($filename_path) );
       set_time_limit(0);
-      readfile( $filename_path );
+      if ( ! @readfile( $filename_path ) ) {
+        Error("Error sending $filename_path");
+      }
     } else {
       Error("$filename_path does not exist or is not readable.");
     }

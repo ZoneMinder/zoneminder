@@ -602,7 +602,7 @@ Debug("Files to move @files");
           die "Unable to add key for $filename";
         }
         my $duration = time - $starttime;
-        Debug("PUT to S3 " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($size/$duration) . "/sec");
+        Debug("PUT to S3 " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
       } # end foreach file.
 
       $moved = 1;

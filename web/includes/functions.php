@@ -355,7 +355,7 @@ function getEventDefaultVideoPath( $event ) {
 function deletePath( $path ) {
   if ( is_dir( $path ) ) {
     system( escapeshellcmd( 'rm -rf '.$path ) );
-  } else {
+  } else if ( file_exists($path) ) {
     unlink( $path );
   }
 }

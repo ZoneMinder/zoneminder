@@ -198,6 +198,7 @@ sub initialise( @ ) {
   my $this = shift;
   my %options = @_;
 
+  $this->{hasTerm} = -t STDERR;
   $this->{id} = $options{id} if defined($options{id});
 
   $this->{logPath} = $options{logPath} if defined($options{logPath});
@@ -245,7 +246,8 @@ sub initialise( @ ) {
   $tempSyslogLevel = $level if defined($level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG'));
 
   if ( $Config{ZM_LOG_DEBUG} ) {
-    foreach my $target ( split( /\|/, $Config{ZM_LOG_DEBUG_TARGET} ) ) {
+    # Splitting on an empty string doesn't return an empty string, it returns an empty array
+    foreach my $target ( $Config{ZM_LOG_DEBUG_TARGET} ? split(/\|/, $Config{ZM_LOG_DEBUG_TARGET}) : '' ) {
       if ( $target eq $this->{id}
           || $target eq '_'.$this->{id}
           || $target eq $this->{idRoot}
@@ -277,6 +279,9 @@ sub initialise( @ ) {
   $this->{autoFlush} = $ENV{LOG_FLUSH}?1:0 if defined($ENV{LOG_FLUSH});
 
   $this->{initialised} = !undef;
+
+  # this function can get called on a previously initialized log Object, so clean any sth's
+  $this->{sth} = undef;
 
   Debug( 'LogOpts: level='.$codes{$this->{level}}
       .'/'.$codes{$this->{effectiveLevel}}
@@ -319,6 +324,8 @@ sub reinitialise {
   my $screenLevel = $this->termLevel();
   $this->termLevel(NOLOG);
   $this->termLevel($screenLevel) if $screenLevel > NOLOG;
+
+  $this->{sth} = undef;
 }
 
 # Prevents undefined logging levels
@@ -392,6 +399,12 @@ sub level {
 
     # ICON: I am remarking this out because I don't see the point of having an effective level, if we are just going to set it to level.
     #$this->{effectiveLevel} = $this->{level} if ( $this->{level} > $this->{effectiveLevel} );
+    # ICON: The point is that LOG_DEBUG can be set either in db or in env var and will get passed in here.
+    # So this will turn on debug, even if not output has Debug level turned on.  I think it should be the other way around
+
+    # ICON: Let's try this line instead.  effectiveLevel is 1 DEBUG from above, but LOG_DEBUG is off, then $this->level will be 0, and
+    # so effectiveLevel will become 0
+    $this->{effectiveLevel} = $this->{level} if ( $this->{level} < $this->{effectiveLevel} );
   }
   return $this->{level};
 }
@@ -429,54 +442,10 @@ sub databaseLevel {
     if ( $this->{databaseLevel} != $databaseLevel ) {
       if ( $databaseLevel > NOLOG and $this->{databaseLevel} <= NOLOG ) {
         if ( !$this->{dbh} ) {
-          my $socket;
-          my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-
-          if ( defined($portOrSocket) ) {
-            if ( $portOrSocket =~ /^\// ) {
-              $socket = ';mysql_socket='.$portOrSocket;
-            } else {
-              $socket = ';host='.$host.';port='.$portOrSocket;
-            }
-          } else {
-            $socket = ';host='.$Config{ZM_DB_HOST};
-          }
-          my $sslOptions = '';
-          if ( $Config{ZM_DB_SSL_CA_CERT} ) {
-            $sslOptions = join(';','',
-                'mysql_ssl=1',
-                'mysql_ssl_ca_file='.$Config{ZM_DB_SSL_CA_CERT},
-                'mysql_ssl_client_key='.$Config{ZM_DB_SSL_CLIENT_KEY},
-                'mysql_ssl_client_cert='.$Config{ZM_DB_SSL_CLIENT_CERT}
-                );
-          }
-          $this->{dbh} = DBI->connect( 'DBI:mysql:database='.$Config{ZM_DB_NAME}
-              .$socket.$sslOptions
-              , $Config{ZM_DB_USER}
-              , $Config{ZM_DB_PASS}
-              );
-          if ( !$this->{dbh} ) {
-            $databaseLevel = NOLOG;
-            Error( 'Unable to write log entries to DB, can\'t connect to database '
-                .$Config{ZM_DB_NAME}
-                .' on host '
-                .$Config{ZM_DB_HOST}
-                );
-          } else {
-            $this->{dbh}->{AutoCommit} = 1;
-            Fatal('Can\'t set AutoCommit on in database connection' )
-              unless( $this->{dbh}->{AutoCommit} );
-            $this->{dbh}->{mysql_auto_reconnect} = 1;
-            Fatal('Can\'t set mysql_auto_reconnect on in database connection' )
-              unless( $this->{dbh}->{mysql_auto_reconnect} );
-            $this->{dbh}->trace( 0 );
-          }
+          $this->{dbh} = ZoneMinder::Database::zmDbConnect();
         }
       } elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG ) {
-        if ( $this->{dbh} ) {
-          $this->{dbh}->disconnect();
-          undef($this->{dbh});
-        }
+        undef($this->{dbh});
       }
       $this->{databaseLevel} = $databaseLevel;
     }
@@ -586,29 +555,34 @@ sub logPrint {
     print(STDERR $message) if $level <= $this->{termLevel};
 
     if ( $level <= $this->{databaseLevel} ) {
-      if ( ( $this->{dbh} and $this->{dbh}->ping() ) or ( $this->{dbh} = zmDbConnect() ) ) {
-
-        my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
-        $this->{sth} = $this->{dbh}->prepare_cached($sql);
-        if ( !$this->{sth} ) {
+      if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
+        $this->{sth} = undef;
+        if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
+          #print(STDERR "Can't log to database: ");
           $this->{databaseLevel} = NOLOG;
-          Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
-        } else {
-          my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
-              , $this->{id}
-              , $$
-              , $level
-              , $code
-              , $string
-              , $this->{fileName}
-              );
-          if ( !$res ) {
-            $this->{databaseLevel} = NOLOG;
-            Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
-          }
+          return;
         }
-      } else {
-        print(STDERR "Can't log to database: ");
+      }
+
+      my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
+      $this->{sth} = $this->{dbh}->prepare_cached($sql) if ! $this->{sth};
+      if ( !$this->{sth} ) {
+        $this->{databaseLevel} = NOLOG;
+        Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
+        return;
+      } 
+
+      my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
+          , $this->{id}
+          , $$
+          , $level
+          , $code
+          , $string
+          , $this->{fileName}
+          );
+      if ( !$res ) {
+        $this->{databaseLevel} = NOLOG;
+        Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
       }
     } # end if doing db logging
   } # end if level < effectivelevel

@@ -551,7 +551,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     } else {
       Level tempDatabaseLevel = mDatabaseLevel;
       databaseLevel(NOLOG);
-      Error("Can't insert log entry: sql(%s) error(db is locked)", sql);
+      Error("Can't insert log entry: sql(%s) error(db is locked)", logString);
       databaseLevel(tempDatabaseLevel);
     }
   }

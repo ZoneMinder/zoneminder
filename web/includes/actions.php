@@ -476,15 +476,12 @@ if ( canEdit( 'Monitors' ) ) {
         );
 
     if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
-      Logger::Debug("Auto selecting server");
       $_REQUEST['newMonitor']['ServerId'] = dbFetchOne('SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
       Logger::Debug("Auto selecting server: Got " . $_REQUEST['newMonitor']['ServerId'] );
       if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
         $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
         Logger::Debug("Auto selecting server to " . ZM_SERVER_ID);
       }
-    } else {
-      Logger::Debug("NOT Auto selecting server" . $_REQUEST['newMonitor']['ServerId']);
     }
 
     $columns = getTableColumns('Monitors');
@@ -495,8 +492,8 @@ if ( canEdit( 'Monitors' ) ) {
 
         # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
         if ( $monitor['Type'] != 'WebSite' ) {
-            zmaControl( $monitor, 'stop' );
-            zmcControl( $monitor, 'stop' );
+          zmaControl($monitor, 'stop');
+          zmcControl($monitor, 'stop');
         }
         dbQuery( 'UPDATE Monitors SET '.implode( ', ', $changes ).' WHERE Id=?', array($mid) );
         // Groups will be added below
@@ -570,23 +567,26 @@ if ( canEdit( 'Monitors' ) ) {
       }
 
       $restart = true;
+    } else {
+      Logger::Debug("No action due to no changes to Monitor");
     } # end if count(changes)
-      if (
-        ( !isset($_POST['newMonitor']['GroupIds']) )
-        or
-        ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) )
-        or 
-        array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds())
-      ) {
-        if ( $Monitor->Id() )
-          dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
 
-        if ( isset($_POST['newMonitor']['GroupIds']) ) {
-          foreach ( $_POST['newMonitor']['GroupIds'] as $group_id ) {
-            dbQuery('INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($group_id, $mid));
-          }
+    if (
+      ( !isset($_POST['newMonitor']['GroupIds']) )
+      or
+      ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) )
+      or 
+      array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds())
+    ) {
+      if ( $Monitor->Id() )
+        dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
+
+      if ( isset($_POST['newMonitor']['GroupIds']) ) {
+        foreach ( $_POST['newMonitor']['GroupIds'] as $group_id ) {
+          dbQuery('INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($group_id, $mid));
         }
-      } // end if there has been a change of groups
+      }
+    } // end if there has been a change of groups
 
     if ( ZM_OPT_X10 ) {
       $x10Changes = getFormChanges( $x10Monitor, $_REQUEST['newX10Monitor'] );

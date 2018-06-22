@@ -559,7 +559,7 @@ CREATE TABLE `Servers` (
   `Name` varchar(64) NOT NULL default '',
   `State_Id`	int(10) unsigned,
   `Status` enum('Unknown','NotRunning','Running') NOT NULL default 'Unknown',
-  `Load` DECIMAL(5,1),
+  `CpuLoad` DECIMAL(5,1) default NULL,
   `TotalMem` bigint unsigned default null,
   `FreeMem` bigint unsigned default null,
   `TotalSwap` bigint  unsigned default null,

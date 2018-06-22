@@ -1,0 +1,24 @@
+input.small {
+    width: 6em;
+}
+
+input.medium {
+    width: 9em;
+}
+
+input.large {
+    width: 20em;
+}
+
+#contentTable.optionTable th, #contentTable.optionTable td {
+    vertical-align: top;
+}
+
+#contentTable.userTable th, #contentTable.userTable td {
+    text-align: center;
+}
+
+#contentTable.userTable .colMonitor, #contentTable.userTable .colUsername {
+    text-align: left;
+}
+

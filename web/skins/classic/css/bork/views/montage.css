@@ -1,0 +1,45 @@
+#header {
+    width: 97%;
+}
+
+#layout {
+    margin-right: 10px;
+}
+
+#content {
+    width: 100%;
+}
+
+#monitors .alarm {
+    color: #ff0000;
+}
+
+#monitors .alert {
+    color: #ffa500;
+}
+
+#monitors .imageFeed {
+    text-align: center;
+    vertical-align: middle;
+}
+
+#monitors .imageFeed img {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.25), 0 6px 20px 0 rgba(0, 0, 0, 0.25);   
+}
+
+#monitors .imageFeed img.idle {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.25), 0 6px 20px 0 rgba(0, 0, 0, 0.25);
+}
+
+#monitors .imageFeed img.alarm {
+    box-shadow: 0 0px 8px 0 rgba(255, 0, 0, 0.6), 0 0px 20px 0 rgba(255, 0, 0, 0.6);
+}
+
+#monitors .imageFeed img.alert {
+    box-shadow: 0 0px 8px 0 rgba(255, 200, 0, 0.6), 0 0px 20px 0 rgba(255, 200, 0, 0.6);
+}
+
+#monitors .monitorState {
+    margin: 2px auto;
+    text-align: center;
+}

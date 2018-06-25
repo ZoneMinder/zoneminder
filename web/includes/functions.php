@@ -334,11 +334,11 @@ function getZmuCommand( $args ) {
 
   if ( ZM_OPT_USE_AUTH ) {
     if ( ZM_AUTH_RELAY == 'hashed' ) {
-      $zmuCommand .= ' -A '.generateAuthHash( false );
+      $zmuCommand .= ' -A '.generateAuthHash(false, true);
     } elseif ( ZM_AUTH_RELAY == 'plain' ) {
       $zmuCommand .= ' -U ' .escapeshellarg($_SESSION['username']).' -P '.escapeshellarg($_SESSION['password']);
     } elseif ( ZM_AUTH_RELAY == 'none' ) {
-      $zmuCommand .= " -U ".escapeshellarg($_SESSION['username']);
+      $zmuCommand .= ' -U '.escapeshellarg($_SESSION['username']);
     }
   }
 

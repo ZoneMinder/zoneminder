@@ -846,6 +846,11 @@ function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $expo
     $exportFileList[] = $monitorPath.'/'.$html_eventMaster;
   }
 
+  if ( ! file_exists(ZM_DIR_EXPORTS) ) {
+    if ( ! mkdir(ZM_DIR_EXPORTS) ) {
+      Fatal("Can't create exports dir at '".ZM_DIR_EXPORTS."'");
+    }
+  }
   $listFile = ZM_DIR_EXPORTS.'/'.$export_listFile;
   if ( !($fp = fopen($listFile, 'w')) ) {
     Fatal( "Can't open event export list file '$listFile'" );

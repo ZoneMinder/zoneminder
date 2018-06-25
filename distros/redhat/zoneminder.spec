@@ -75,7 +75,7 @@ BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: ffmpeg-devel
-BuildRequires:	desktop-file-utils
+BuildRequires: desktop-file-utils
 
 # Required for mp4 container support
 BuildRequires: libmp4v2-devel
@@ -89,6 +89,7 @@ BuildRequires: x264-devel
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
+%{?fedora:Requires: php-json}
 Requires: php-pecl-apcu
 %{?with_apcu_bc:Requires: php-pecl-apcu-bc}
 Requires: cambozola

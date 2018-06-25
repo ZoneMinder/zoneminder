@@ -56,8 +56,14 @@ class ConfigsController extends AppController {
 	public function viewByName($name = null) {
 		$config = $this->Config->findByName($name, array('fields' => 'Value'));
 
-		if (!$config) {
-			throw new NotFoundException(__('Invalid config'));
+		if ( !$config ) {
+      global $configvals;
+      if ( $configvals[$name] ) {
+        $config = array( 'Config'=>array('Value'=>$configvals[$name]) );
+      } else {
+        throw new NotFoundException(__('Invalid config'));
+      }
+    } else {
 		}
 
 		$this->set(array(

@@ -2711,7 +2711,7 @@ our @options = (
   },
   {
     name        => 'ZM_TELEMETRY_DATA',
-    default     => 'yes',
+    default     => 'no',
     description => 'Send usage information to ZoneMinder',
     help        => q`
       Enable collection of usage information of the local system and send
@@ -2961,6 +2961,37 @@ our @options = (
       the end user may choose to turn this warning off.
       `,
     type        => $types{boolean},
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_FILTER_SOURCE',
+    default     => 'Hostname',
+    description => 'How to filter information in the source column.',
+    help        => q`
+      This option only affects monitors with a source type of Ffmpeg,
+      Libvlc, or WebSite. This setting controls what information is
+      displayed in the Source column on the console. Selecting 'None'
+      will not filter anything. The entire source string will be
+      displayed, which may contain sensitive information. Selecting
+      'NoCredentials' will strip out usernames and passwords from the
+      string. If there are any port numbers in the string and they are
+      common (80, 554, etc) then those will be removed as well.
+      Selecting 'Hostname' will filter out all information except for
+      the hostname or ip address. When in doubt, stay with the default
+      'Hostname'. This feature uses the php function 'url_parts' to
+      identify the various pieces of the url. If the url in question
+      is unusual or not standard in some way, then filtering may not
+      produce the desired results.
+      `,
+    type        => {
+      db_type     =>'string',
+      hint        =>'None|Hostname|NoCredentials',
+      pattern     =>qr|^([NH])|i,
+      format      =>q( ($1 =~ /^Non/)
+          ? 'None'
+          : ($1 =~ /^H/ ? 'Hostname' : 'NoCredentials' )
+          )
+    },
     category    => 'web',
   },
   {

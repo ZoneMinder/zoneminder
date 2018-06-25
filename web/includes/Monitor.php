@@ -215,7 +215,7 @@ private $control_fields = array(
 
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
-        $args['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+        $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];

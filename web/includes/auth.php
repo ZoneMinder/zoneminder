@@ -104,7 +104,6 @@ function getAuthUser($auth) {
 } // end getAuthUser($auth)
 
 function generateAuthHash($useRemoteAddr, $force=false) {
-  $auth = '';
   if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
     $time = time();
@@ -121,18 +120,21 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       }
       #Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5($authKey);
-      if ( ! $force ) {
+      if ( !$force ) {
         session_start();
         $_SESSION['AuthHash'] = $auth;
         $_SESSION['AuthHashGeneratedAt'] = $time;
         session_write_close();
+      } else {
+        return $auth;
       }
       #Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
       #} else {
       #Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
     } # end if AuthHash is not cached
-  }
-  return $auth;
+    return $_SESSION['AuthHash'];
+  } # end if using AUTH and AUTH_RELAY
+  return '';
 }
 
 function visibleMonitor($mid) {

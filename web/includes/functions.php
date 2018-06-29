@@ -1484,8 +1484,16 @@ function getDiskPercent($path = ZM_DIR_EVENTS) {
   #get mountpoint
   $df = shell_exec( 'stat -c %m '.$path );
   $df = shell_exec( 'quota -w -f '.$df );
-  if ( preg_match( '/\s+(\d+)\*?\s+(\d+)\*?(\s+\d+){2}/ms', $df, $matches ) ) {
+  if ( preg_match( '/\s+(\d+)\*?\s+(\d+)\*?\s+(\d+)\s+(\d+)/ms', $df, $matches ) ) {
     $space = round (100 * $matches[1] / ($matches[2]+1));
+    if ($matches[4] > 0) {               # quota grace period
+      $remaining = $matches[4] - time();
+      if ($remaining < 0) {
+        Error ('Exceeded quota grace period by ' . gmstrftime ('%T',-$remaining) . '!');
+      } elseif ($remaining < 259200 ) {  # 3 days
+        Warning ('Only ' . gmstrftime ('%T',$remaining) . ' of quota grace period left');
+      }
+    }
   } else {
     $total = disk_total_space($path);
     if ( $total === false ) {
@@ -1506,9 +1514,17 @@ function getDiskBlocks() {
   $space = -1;
   #get mountpoint
   $df = shell_exec( 'stat -c %m '.escapeshellarg(ZM_DIR_EVENTS));
-  $df = shell_exec( 'quota -w -f '.$df );
-  if ( preg_match( '/\s+(\d+)\*?\s+(\d+)\*?(\s+\d+){2}/ms', $df, $matches ) ) {
+  $df = shell_exec( 'quota -w -p -f '.$df );
+  if ( preg_match( '/\s+(\d+)\*?\s+(\d+)\*?\s+(\d+)\s+(\d+)/ms', $df, $matches ) ) {
     $space = $matches[1];
+    if ($matches[4] > 0) {             	 # quota grace period
+      $remaining = $matches[4] - time();
+      if ($remaining < 0) {
+        Error ('Exceeded quota grace period by ' . gmstrftime ('%T',-$remaining) . '!');
+      } elseif ($remaining < 259200 ) {  # 3 days
+        Warning ('Only ' . gmstrftime ('%T',$remaining) . ' of quota grace period left');
+      }
+    }
   } else {
     $df = shell_exec( 'df '.escapeshellarg(ZM_DIR_EVENTS) );
     if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) ) {

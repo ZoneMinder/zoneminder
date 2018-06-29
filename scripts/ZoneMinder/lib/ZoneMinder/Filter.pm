@@ -328,8 +328,8 @@ sub getDiskPercent {
   my $df = qx( $command );
     #untaint, ugly 
   ($df) = ($df =~ /^(.*)$/gs);
-  $df = qx( quota -w -f $df );
-  if ( $df =~ /\s+(\d+)\*?\s+(\d+)\*?(\s+\d+){2}/ms ) {
+    $df = qx( quota -w -p -f $df );
+    if ( $df =~ /\s+(\d+)\*?\s+(\d+)\*?\s+(\d+)\s+(\d+)/ms ) {
     $space = int (100 * $1 / ($2 +1));
   } else {
     my $command = "df " . ($_[0] ? $_[0] : '.');
@@ -349,8 +349,8 @@ sub getDiskBlocks {
   my $df = qx( $command );
   #untaint, ugly 
   ($df) = ($df =~ /^(.*)$/gs);
-  $df = qx( quota -w -f $df );
-  if ( $df =~ /\s+(\d+)\*?\s+(\d+)\*?(\s+\d+){2}/ms ) {
+    $df = qx( quota -w -p -f $df );
+    if ( $df =~ /\s+(\d+)\*?\s+(\d+)\*?\s+(\d+)\s+(\d+)/ms ) {
     $space = $1;
   } else {
   my $command = "df .";

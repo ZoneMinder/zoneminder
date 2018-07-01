@@ -654,7 +654,7 @@ sub jsonDecode {
   $out =~ s/=>null/=>undef/g;
   $out =~ s/`/'/g;
   $out =~ s/qx/qq/g;
-  ( $out ) = $out =~ m/^({.+})$/; # Detaint and check it's a valid object syntax
+  ( $out ) = $out =~ m/^(\{.+\})$/; # Detaint and check it's a valid object syntax
     my $result = eval $out;
   Fatal( $@ ) if ( $@ );
   return( $result );

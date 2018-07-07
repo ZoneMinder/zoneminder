@@ -557,8 +557,8 @@ our $hasJSONAny = 0;
 sub _testJSON {
   return if ( $testedJSON );
   my $result = eval {
-    require JSON::Any;
-    JSON::Any->import();
+    require JSON::MaybeXS;
+    JSON::MaybeXS->import();
   };
   $testedJSON = 1;
   $hasJSONAny = 1 if ( $result );
@@ -581,7 +581,7 @@ sub jsonEncode {
 
   _testJSON();
   if ( $hasJSONAny ) {
-    my $string = eval { JSON::Any->objToJson( $value ) };
+    my $string = eval { JSON::MaybeXS->encode_json( $value ) };
     Fatal( "Unable to encode object to JSON: $@" ) unless( $string );
     return( $string );
   }
@@ -616,7 +616,7 @@ sub jsonDecode {
 
   _testJSON();
   if ( $hasJSONAny ) {
-    my $object = eval { JSON::Any->jsonToObj( $value ) };
+    my $object = eval { JSON::MaybeXS->decode_json( $value ) };
     Fatal( "Unable to decode JSON string '$value': $@" ) unless( $object );
     return( $object );
   }

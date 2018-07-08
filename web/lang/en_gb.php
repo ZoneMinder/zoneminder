@@ -324,6 +324,7 @@ $SLANG = array(
     'Exclude'               => 'Exclude',
     'Execute'               => 'Execute',
     'ExportDetails'         => 'Export Event Details',
+    'ExportMatches'         => 'Export Matches',
     'Exif'                  => 'Embed EXIF data into image',
     'Export'                => 'Export',
     'DownloadVideo'         => 'Download Video',

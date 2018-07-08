@@ -191,6 +191,7 @@ if ( isset($_REQUEST['displayinterval']) )
 
 #$eventsSql .= ' GROUP BY E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
 
+$minTimeSecs = $maxTimeSecs = 0;
 if ( isset($minTime) && isset($maxTime) ) {
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);

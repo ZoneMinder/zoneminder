@@ -198,6 +198,8 @@ if ( isset($minTime) && isset($maxTime) ) {
   $eventsSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
   $frameSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
   $frameSql .= ") AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
+} else {
+  $frameSql .= ')';
 }
 #$frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
 #$frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';

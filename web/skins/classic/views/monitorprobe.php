@@ -321,7 +321,7 @@ if ( $status )
     Fatal( "Unable to probe network cameras, status is '$status'" );
 foreach ( $output as $line )
 {
-    if ( !preg_match( '/^.*([\d.]+).*([0-9a-f:]+).*/', $line, $matches ) )
+    if ( !preg_match( '/(\d+\.\d+\.\d+\.\d+).*(([0-9a-f]{2}:){5})/', $line, $matches ) )
         continue;
     $ip = $matches[1];
     $host = $ip;

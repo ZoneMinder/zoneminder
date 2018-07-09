@@ -124,7 +124,7 @@ function getImageSource( monId, time ) {
         return location.protocol + '//' + server.Hostname + 
           //'/cgi-bin/zms?mode=jpeg&replay=single&event=' + event_id +
           //'&frame='+Frame.FrameId +
-'/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
+          '/zm/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
           "&width=" + monitorCanvasObj[monId].width + 
           "&height=" + monitorCanvasObj[monId].height;
       } else {
@@ -132,7 +132,7 @@ function getImageSource( monId, time ) {
       }
     }
     //console.log("No storage found for " + eStorageId[i] );
-    return '/index.php?view=image&eid=' + Frame.EventId + '&fid='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    return '/zm/index.php?view=image&eid=' + Frame.EventId + '&fid='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
     //return "/cgi-bin/zms?mode=single&replay=single&event=" + Frame.EventId + '&time='+time+ "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
     return "/cgi-bin/zms?mode=jpeg&replay=single&event=" + Frame.EventId + '&frame='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame

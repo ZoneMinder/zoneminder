@@ -30,10 +30,6 @@ var timeLabelsFractOfRow = 0.9;
 
 // Because we might not have time as the criteria, figure out the min/max time when we run the query
 
-if ( ! $maxTimeSecs )
-  $maxTimeSecs = time();
-if ( ! $minTimeSecs )
-  $minTimeSecs = strtotime('2010-01-01 01:01:01');
 
 // This builds the list of events that are eligible from this range
 
@@ -41,16 +37,16 @@ $index = 0;
 $anyAlarms = false;
 $maxScore=0;
 
-if ( ! $liveMode ) {
-  $result = dbQuery( $eventsSql );
-  if ( ! $result ) {
+if ( !$liveMode ) {
+  $result = dbQuery($eventsSql);
+  if ( !$result ) {
     Fatal('SQL-ERR');
     return;
   }
 
   $EventsById = array();
 
-  while( $event = $result->fetch( PDO::FETCH_ASSOC ) ) {
+  while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
     $event_id = $event['Id'];
     $EventsById[$event_id] = $event;
   }
@@ -82,8 +78,9 @@ if ( ! $liveMode ) {
     $StartTimeSecs = $event['StartTimeSecs'];
     $EndTimeSecs = $event['EndTimeSecs'];
 
-    if ( $minTimeSecs > $StartTimeSecs ) $minTimeSecs = $StartTimeSecs;
-    if ( $maxTimeSecs < $EndTimeSecs ) $maxTimeSecs = $EndTimeSecs;
+    # It isn't neccessary to do this for each event. We should be able to just look at the first and last
+    if ( !$minTimeSecs or $minTimeSecs > $StartTimeSecs ) $minTimeSecs = $StartTimeSecs;
+    if ( !$maxTimeSecs or $maxTimeSecs < $EndTimeSecs ) $maxTimeSecs = $EndTimeSecs;
 
     $event_json = json_encode($event, JSON_PRETTY_PRINT);
     echo " $event_id : $event_json,\n";

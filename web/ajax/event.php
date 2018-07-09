@@ -1,10 +1,10 @@
 <?php
 
 if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
-  ajaxError( 'No event id(s) supplied' );
+  ajaxError('No event id(s) supplied');
 }
 
-if ( canView( 'Events' ) ) {
+if ( canView('Events') ) {
   switch ( $_REQUEST['action'] ) {
     case 'video' :
       {
@@ -37,7 +37,7 @@ if ( canView( 'Events' ) ) {
       }
     case 'export' :
       {
-        require_once( ZM_SKIN_PATH.'/includes/export_functions.php' );
+        require_once(ZM_SKIN_PATH.'/includes/export_functions.php');
 
 # We use session vars in here, so we need to restart the session because we stopped it in index.php to improve concurrency.
         session_start();
@@ -46,22 +46,27 @@ if ( canView( 'Events' ) ) {
           $exportDetail = $_SESSION['export']['detail'] = $_REQUEST['exportDetail'];
         else
           $exportDetail = false;
+
         if ( !empty($_REQUEST['exportFrames']) )
           $exportFrames = $_SESSION['export']['frames'] = $_REQUEST['exportFrames'];
         else
           $exportFrames = false;
+
         if ( !empty($_REQUEST['exportImages']) )
           $exportImages = $_SESSION['export']['images'] = $_REQUEST['exportImages'];
         else
           $exportImages = false;
+
         if ( !empty($_REQUEST['exportVideo']) )
           $exportVideo = $_SESSION['export']['video'] = $_REQUEST['exportVideo'];
         else
           $exportVideo = false;
+
         if ( !empty($_REQUEST['exportMisc']) )
           $exportMisc = $_SESSION['export']['misc'] = $_REQUEST['exportMisc'];
         else
           $exportMisc = false;
+
         if ( !empty($_REQUEST['exportFormat']) )
           $exportFormat = $_SESSION['export']['format'] = $_REQUEST['exportFormat'];
         else
@@ -70,10 +75,19 @@ if ( canView( 'Events' ) ) {
         session_write_close();
 
         $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
-        if ( $exportFile = exportEvents( $exportIds, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat ) )
-          ajaxResponse( array( 'exportFile'=>$exportFile ) );
+        if ( $exportFile = exportEvents(
+          $exportIds,
+          (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
+          $exportDetail,
+          $exportFrames,
+          $exportImages,
+          $exportVideo,
+          $exportMisc,
+          $exportFormat
+        ) )
+          ajaxResponse(array('exportFile'=>$exportFile));
         else
-          ajaxError( 'Export Failed' );
+          ajaxError('Export Failed');
         break;
       }
     case 'download' :

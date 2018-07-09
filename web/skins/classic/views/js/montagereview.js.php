@@ -118,13 +118,13 @@ echo " };\n";
   echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
 } // end if initialmodeislive
 
-echo "var Storage = []\n";
+echo "\nvar Storage = [];\n";
 foreach ( Storage::find_all() as $Storage ) {
 echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
 }
-echo "var Servers = []\n";
+echo "\nvar Servers = []\n";
 foreach ( Server::find_all() as $Server ) {
-echo 'Servers[' . $Server->Id() . '] = ' . json_encode($Server). ";\n";
+echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
 }
 echo "
 var monitorName = [];\n";

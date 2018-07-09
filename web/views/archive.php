@@ -24,6 +24,7 @@ if ( !canView('Events') ) {
 }
 
 $archivetype = $_REQUEST['type'];
+$connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
 
 if ( $archivetype ) {
   switch ($archivetype) {
@@ -41,7 +42,7 @@ if ( $archivetype ) {
   }
 
   if ( $mimetype ) {
-    $filename = "zmExport.$file_ext";
+    $filename = "zmExport_$connkey.$file_ext";
     $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
     Logger::Debug("downloading archive from $filename_path");
     if ( is_readable($filename_path) ) {
@@ -49,7 +50,7 @@ if ( $archivetype ) {
       header("Content-Disposition: inline; filename=$filename");
       header('Content-Length: ' . filesize($filename_path) );
       set_time_limit(0);
-      if ( ! @readfile( $filename_path ) ) {
+      if ( ! @readfile($filename_path) ) {
         Error("Error sending $filename_path");
       }
     } else {

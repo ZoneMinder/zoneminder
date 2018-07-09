@@ -119,6 +119,8 @@ echo output_link_if_exists( array(
   <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
+  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
+
   <script>
   //<![CDATA[
   <!--

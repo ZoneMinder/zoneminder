@@ -189,25 +189,19 @@ class Event {
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {
 
-    $streamSrc = ZM_BASE_PROTOCOL.'://';
+    $streamSrc = '';
     if ( $this->Storage()->ServerId() ) {
       $Server = $this->Storage()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
     } else if ( $this->Monitor()->ServerId() ) {
       # Assume that the server that recorded it has it
       $Server = $this->Monitor()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
-    } else if ( ZM_MIN_STREAMING_PORT ) {
-      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
     } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'];
+      $Server = new Server;
     }
+    $streamSrc .= $Server->Url(
+      ZM_MIN_STREAMING_PORT ?
+      ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
+      null);
 
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
@@ -319,25 +313,19 @@ class Event {
     # The thumbnail is theoretically the image with the most motion.
 # We always store at least 1 image when capturing
 
-    $streamSrc = ZM_BASE_PROTOCOL.'://';
+    $streamSrc = '';
     if ( $this->Storage()->ServerId() ) {
       $Server = $this->Storage()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
     } else if ( $this->Monitor()->ServerId() ) {
+      # Assume that the server that recorded it has it
       $Server = $this->Monitor()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
-
-    } else if ( ZM_MIN_STREAMING_PORT ) {
-      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
     } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'];
-    } 
+      $Server = new Server;
+    }
+    $streamSrc .= $Server->Url(
+      ZM_MIN_STREAMING_PORT ?
+      ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
+      null);
 
     $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
     $args['eid'] = $this->{'Id'};

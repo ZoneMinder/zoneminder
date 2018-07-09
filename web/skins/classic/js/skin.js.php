@@ -31,7 +31,7 @@ var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 var currentView = '<?php echo $view ?>';
 var thisUrl = "<?php echo ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
 var skinPath = "<?php echo ZM_SKIN_PATH ?>";
-var serverId = '<?php echo ZM_SERVER_ID ?>';
+var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 
 var canEditSystem = <?php echo canEdit('System' )?'true':'false' ?>;
 var canViewSystem = <?php echo canView('System' )?'true':'false' ?>;

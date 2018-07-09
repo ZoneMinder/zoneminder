@@ -240,7 +240,7 @@ function timerFire() {
 
   if ( liveMode ) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if (currentTimeSecs + playSecsperInterval >= maxTimeSecs) {
+  } else if ( currentTimeSecs + playSecsperInterval >= maxTimeSecs ) {
     // beyond the end just stop
 console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
@@ -472,7 +472,9 @@ function redrawScreen() {
 function outputUpdate(time) {
   drawSliderOnGraph(time);
   for ( var i=0; i < numMonitors; i++ ) {
-    loadImage2Monitor(monitorPtr[i],getImageSource(monitorPtr[i],time));
+    var src = getImageSource(monitorPtr[i],time);
+    console.log("New image src: " + src);
+    loadImage2Monitor(monitorPtr[i],src);
   }
   currentTimeSecs = time;
 }

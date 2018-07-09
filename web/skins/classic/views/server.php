@@ -24,7 +24,7 @@ if ( !canEdit( 'System' ) ) {
 }
 
 if ( $_REQUEST['id'] ) {
-	if ( !($newServer = dbFetchOne( 'SELECT * FROM Servers WHERE Id = ?', NULL, ARRAY($_REQUEST['id'])) ) ) {
+	if ( !($newServer = dbFetchOne('SELECT * FROM Servers WHERE Id = ?', NULL, ARRAY($_REQUEST['id']))) ) {
 		$view = 'error';
 		return;
 	}
@@ -32,6 +32,7 @@ if ( $_REQUEST['id'] ) {
 	$newServer = array();
 	$newServer['Name'] = translate('NewServer');
 	$newServer['Hostname'] = '';
+  $newServer['PathPrefix'] = '/zm';
 	$newServer['zmstats'] = '';
 	$newServer['zmaudit'] = '';
 	$newServer['zmtrigger'] = '';
@@ -39,7 +40,7 @@ if ( $_REQUEST['id'] ) {
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name'] );
+xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name']);
 ?>
 <body>
   <div id="page">
@@ -47,7 +48,7 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name'] );
       <h2><?php echo translate('Server').' - '.$newServer['Name'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this, <?php echo empty($newServer['Name'])?'true':'false' ?> )">
+      <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm(this, <?php echo empty($newServer['Name'])?'true':'false' ?>)">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="object" value="server"/>
         <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>
@@ -60,6 +61,10 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name'] );
             <tr>
               <th scope="row"><?php echo translate('Hostname') ?></th>
               <td><input type="text" name="newServer[Hostname]" value="<?php echo $newServer['Hostname'] ?>"/></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('PathPrefix') ?></th>
+              <td><input type="text" name="newServer[PathPrefix]" value="<?php echo $newServer['PathPrefix'] ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('RunStats') ?></th>

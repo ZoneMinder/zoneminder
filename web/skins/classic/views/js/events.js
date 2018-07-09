@@ -99,6 +99,7 @@ function downloadVideo( element, name ) {
 
 function exportEvents( element, name ) {
   var form = element.form;
+  if ( 0 ) {
   var eids = new Array();
   for (var i = 0; i < form.elements.length; i++) {
     if (form.elements[i].name.indexOf(name) == 0) {
@@ -108,6 +109,9 @@ function exportEvents( element, name ) {
     }
   }
   createPopup( '?view=export&'+eids.join( '&' ), 'zmExport', 'export' );
+  }
+  form.action='?view=export';
+  form.submit();
 }
 
 function viewEvents( element, name ) {

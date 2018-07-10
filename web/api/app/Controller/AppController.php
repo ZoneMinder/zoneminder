@@ -35,16 +35,6 @@ class AppController extends Controller {
 
 	public $components = [
 		'Session', //  We are going to use SessionHelper to check PHP session vars
-    'Auth'  =>  [
-        'authenticate'  =>  [
-            'Form'  =>  [
-                'fields' => [
-                    'username' => 'Username' ,
-                    'password' => 'Password'
-                ]
-            ]
-        ]
-    ],
 		'RequestHandler',
 		'Crud.Crud' => [
 			'actions' => [
@@ -92,12 +82,13 @@ class AppController extends Controller {
       if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
         $user = $this->User->find('first', array ('conditions' => array (
                 'User.Username' => $_REQUEST['user'],
-                'User.Password' => $_REQUEST['pass'],
+                'User.Password' => DboSource::expression('PASSWORD(\''.$_REQUEST['pass'].'\')'),
                 )) );
         if ( ! $user ) {
           throw new UnauthorizedException(__('User not found'));
           return;
         } else {
+          $this->Session->Write( 'user', $user['User'] );
           $this->Session->Write( 'user.Username', $user['User']['Username'] );
           $this->Session->Write( 'user.Enabled', $user['User']['Enabled'] );
         }

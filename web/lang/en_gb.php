@@ -662,6 +662,7 @@ $SLANG = array(
     'ShowFilterWindow'      => 'Show Filter Window',
     'ShowTimeline'          => 'Show Timeline',
     'SignalCheckColour'     => 'Signal Check Colour',
+    'SignalCheckPoints'     => 'Signal Check Points',
     'Size'                  => 'Size',
     'SkinDescription'       => 'Change the skin for this session',
     'CSSDescription'        => 'Change the css for this session',

@@ -173,7 +173,7 @@ if ( !empty($_REQUEST['preset']) ) {
   }
 }
 if ( !empty($_REQUEST['probe']) ) {
-  $probe = unserialize(base64_decode($_REQUEST['probe']));
+  $probe = unserialize($_REQUEST['probe']);
   foreach ( $probe as $name=>$value ) {
     if ( isset($value) ) {
       # Does isset handle NULL's?  I don't think this code is correct. 

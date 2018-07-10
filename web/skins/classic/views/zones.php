@@ -26,10 +26,10 @@ if ( !canView( 'Monitors' ) ) {
 $mid = validInt($_REQUEST['mid']);
 $monitor = new Monitor( $mid );
 # Width() and Height() are already rotated
-  $minX = 0;
-  $maxX = $monitor->Width()-1;
-  $minY = 0;
-  $maxY = $monitor->Height()-1;
+$minX = 0;
+$maxX = $monitor->Width()-1;
+$minY = 0;
+$maxY = $monitor->Height()-1;
 
 $zones = array();
 foreach( dbFetchAll( 'SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($mid) ) as $row ) {
@@ -71,8 +71,7 @@ xhtmlHeaders(__FILE__, translate('Zones') );
           </thead>
           <tbody>
 <?php
-foreach( $zones as $zone )
-{
+foreach( $zones as $zone ) {
 ?>
             <tr>
               <td class="colName"><a href="#" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
@@ -86,12 +85,12 @@ foreach( $zones as $zone )
           </tbody>
         </table>
         <div class="ZonesImage" style="position:relative; clear:both;">
-      <?php echo getStreamHTML( $monitor ); ?>
-      <svg class="zones" width="<?php echo $monitor->Width() ?>" height="<?php echo $monitor->Height() ?>" style="position:absolute; top: 0; left: 0; background: none;">
+        <?php echo getStreamHTML( $monitor ); ?>
+        <svg class="zones" width="<?php echo $monitor->Width() ?>" height="<?php echo $monitor->Height() ?>" style="position:absolute; top: 0; left: 0; background: none;">
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>
-        <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
+          <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
 <?php
       } // end foreach zone
 ?>

@@ -332,7 +332,7 @@ int RtpCtrlThread::run()
       timeout = false;
       last_receive = time(NULL);
     }
-    for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); iter++ )
+    for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter )
     {
       if ( UdpInetSocket *socket = dynamic_cast<UdpInetSocket *>(*iter) )
       {

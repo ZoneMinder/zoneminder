@@ -44,7 +44,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libpcre3
     , ffmpeg | libav-tools, libavdevice53 | libavdevice55 | libavdevice57
     , rsyslog | system-log-daemon
-    , netpbm , libjpeg8
+    , netpbm
     , zip
     , libvlccore5 | libvlccore7 | libvlccore8, libvlc5
     , libpolkit-gobject-1-0, php5-gd

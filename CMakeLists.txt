@@ -58,6 +58,8 @@ if(NOT HOST_OS)
             "ZoneMinder was unable to deterimine the host OS. Please report this. Value of CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 endif(NOT HOST_OS)
 
+set (CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # Default CLFAGS and CXXFLAGS:
 set(CMAKE_C_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
@@ -69,20 +71,38 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # GCC below 6.0 doesn't support __target__("fpu=neon") attribute, required for compiling ARM Neon code, otherwise compilation fails.
 # Must use -mfpu=neon compiler flag instead, but only do that for processors that support neon, otherwise strip the neon code alltogether,
 # because passing -fmpu=neon is unsafe to processors that don't support neon
-IF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
-	IF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-		EXEC_PROGRAM(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
-		IF(neonresult EQUAL 0)
-			set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
-			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
-			set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
-		ELSE(neonresult EQUAL 0)
-			add_definitions(-DZM_STRIP_NEON=1)
-			message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
-		ENDIF(neonresult EQUAL 0)
-	ENDIF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-ENDIF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+
+# Arm neon support only tested on Linux. If your arm hardware is running a non-Linux distro and is using gcc then contact us.
+IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ZM_SYSTEM_PROC)
+    IF((ZM_SYSTEM_PROC STREQUAL "") OR (ZM_SYSTEM_PROC STREQUAL "unknown"))
+        execute_process(COMMAND uname -m OUTPUT_VARIABLE ZM_SYSTEM_PROC ERROR_VARIABLE ZM_SYSTEM_PROC_ERR)
+
+        # maybe make the following error checks fatal
+        IF(ZM_SYSTEM_PROC_ERR)
+            message(WARNING "\nAn error occurred while attempting to determine the system processor:\n${ZM_SYSTEM_PROC_ERR}")
+        ENDIF(ZM_SYSTEM_PROC_ERR)
+        IF(NOT ZM_SYSTEM_PROC)
+           message(WARNING "\nUnable to determine the system processor. This may cause a build failure.\n")
+        ENDIF(ZM_SYSTEM_PROC)
+
+    ENDIF((ZM_SYSTEM_PROC STREQUAL "") OR (ZM_SYSTEM_PROC STREQUAL "unknown"))
+
+    IF(ZM_SYSTEM_PROC MATCHES "^arm")
+	    IF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+                EXEC_PROGRAM(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
+		    IF(neonresult EQUAL 0)
+                        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
+                        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
+                        set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
+                        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
+		    ELSE(neonresult EQUAL 0)
+                        add_definitions(-DZM_STRIP_NEON=1)
+                        message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
+                    ENDIF(neonresult EQUAL 0)
+            ENDIF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+    ENDIF(ZM_SYSTEM_PROC MATCHES "^arm")
+ENDIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 # Modules that we need:
 include (GNUInstallDirs)
@@ -121,6 +141,8 @@ set(ZM_WEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/www" 
     "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
 set(ZM_CGIDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
     "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
+set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH 
+    "Location of the web server cache busting files, default: /var/cache/zoneminder")
 set(ZM_CONTENTDIR "/var/lib/zoneminder" CACHE PATH 
     "Location of dynamic content (events and images), default: /var/lib/zoneminder")
 set(ZM_DB_HOST "localhost" CACHE STRING 
@@ -137,11 +159,11 @@ set(ZM_WEB_USER "" CACHE STRING
 set(ZM_WEB_GROUP "" CACHE STRING 
     "The group apache or the local web server runs on, 
     Leave empty to be the same as the web user")
-set(ZM_DIR_EVENTS "events" CACHE PATH 
-    "Location where events are recorded to, default: events")
-set(ZM_DIR_IMAGES "events" CACHE PATH
+set(ZM_DIR_EVENTS "${ZM_CONTENTDIR}/events" CACHE PATH 
+    "Location where events are recorded to, default: ZM_CONTENTDIR/events")
+set(ZM_DIR_IMAGES "${ZM_CONTENTDIR}/images" CACHE PATH
     "Location where images, not directly associated with events,
-     are recorded to, default: images")
+     are recorded to, default: ZM_CONTENTDIR/images")
 set(ZM_DIR_SOUNDS "sounds" CACHE PATH
     "Location to look for optional sound files, default: sounds")
 set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
@@ -185,7 +207,7 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
-    "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc24, fc25, el6, el7, OS13, FreeBSD")
+    "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc27, fc26, el7, OS13, FreeBSD")
 set(ZM_SYSTEMD "OFF" CACHE BOOL 
     "Set to ON to force building ZM with systemd support. default: OFF")
 
@@ -464,24 +486,24 @@ if(MP4V2_LIBRARIES)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
 
         # mp4v2.h
 	find_path(MP4V2_INCLUDE_DIR mp4v2.h)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4v2.h" HAVE_MP4V2_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4v2.h" HAVE_MP4V2_H)
 
 	# mp4.h
 	find_path(MP4V2_INCLUDE_DIR mp4.h)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4.h" HAVE_MP4_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4.h" HAVE_MP4_H)
 
 	mark_as_advanced(FORCE MP4V2_LIBRARIES MP4V2_INCLUDE_DIR)
 	set(optlibsfound "${optlibsfound} mp4v2")
@@ -557,6 +579,7 @@ if(NOT ZM_NO_FFMPEG)
 		mark_as_advanced(FORCE AVUTIL_LIBRARIES AVUTIL_INCLUDE_DIR)
 		check_include_file("libavutil/avutil.h" HAVE_LIBAVUTIL_AVUTIL_H)
 		check_include_file("libavutil/mathematics.h" HAVE_LIBAVUTIL_MATHEMATICS_H)
+		check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
 		set(optlibsfound "${optlibsfound} AVUtil")
 	else(AVUTIL_LIBRARIES)
 		set(optlibsnotfound "${optlibsnotfound} AVUtil")
@@ -628,13 +651,13 @@ if(NOT ZM_NO_LIBVLC)
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
 
-find_package(Boost 1.36.0)
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
-  list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
-endif()
-
+#find_package(Boost 1.36.0)
+#if(Boost_FOUND)
+  #include_directories(${Boost_INCLUDE_DIRS})
+  ##set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
+  #list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
+#endif()
+#
 # *** END OF LIBRARY CHECKS ***
 
 # Check for gnutls or crypto
@@ -801,11 +824,12 @@ endif(ZM_PERL_SEARCH_PATH)
 
 # If this is an out-of-source build, copy the files we need to the binary directory
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
-	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf.d" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/conf.d")
+	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf.d" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}" PATTERN "*.in" EXCLUDE)
 endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 
 # Generate files from the .in files
 configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
+configure_file(conf.d/01-system-paths.conf.in "${CMAKE_CURRENT_BINARY_DIR}/conf.d/01-system-paths.conf" @ONLY)
 configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
 configure_file(zmconfgen.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl" @ONLY)
 configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh" @ONLY)
@@ -848,9 +872,9 @@ else(zmconfgen_result EQUAL 0)
             "ZoneMinder configuration generator failed. Exit code: ${zmconfgen_result}")
 endif(zmconfgen_result EQUAL 0)
 
-# Install zm.conf and conf.d subfolder
+# Install zm.conf
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "${ZM_CONFIG_SUBDIR}")
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "${ZM_CONFIG_SUBDIR}" PATTERN "*.in" EXCLUDE)
 
 # Uninstall target
 configure_file(
@@ -867,3 +891,4 @@ if(CCACHE_FOUND)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
+install(DIRECTORY icons DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/")

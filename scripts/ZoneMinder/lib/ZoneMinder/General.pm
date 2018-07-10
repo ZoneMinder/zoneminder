@@ -30,6 +30,7 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
+require ZoneMinder::Storage;
 
 our @ISA = qw(Exporter ZoneMinder::Base);
 
@@ -172,8 +173,7 @@ sub runCommand {
   chomp( $output );
   if ( $status || logDebugging() ) {
     if ( $status ) {
-      Error( "Unable to run \"$command\", output is \"$output\"\n" );
-      exit( -1 );
+      Error( "Unable to run \"$command\", output is \"$output\", status is $status\n" );
     } else {
       Debug( "Output: $output\n" );
     }
@@ -184,26 +184,13 @@ sub runCommand {
 sub getEventPath {
   my $event = shift;
 
-  my $event_path = "";
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    $event_path = $Config{ZM_DIR_EVENTS}
-    .'/'.$event->{MonitorId}
-    .'/'.strftime( "%y/%m/%d/%H/%M/%S",
-        localtime($event->{Time})
-        )
-      ;
-  } else {
-    $event_path = $Config{ZM_DIR_EVENTS}
-    .'/'.$event->{MonitorId}
-    .'/'.$event->{Id}
-    ;
-  }
+  my $Storage = new ZoneMinder::Storage( $$event{StorageId} );
+  my $event_path = join( '/', 
+      $Storage->Path(),
+      $event->{MonitorId},
+      ( $Config{ZM_USE_DEEP_STORAGE} ? strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) ) : $event->{Id} ),
+      );
 
-  if ( index($Config{ZM_DIR_EVENTS},'/') != 0 ) {
-    $event_path = $Config{ZM_PATH_WEB}
-    .'/'.$event_path
-      ;
-  }
   return( $event_path );
 }
 
@@ -212,10 +199,8 @@ sub createEventPath {
 # WARNING assumes running from events directory
 #
   my $event = shift;
-  my $eventRootPath = ($Config{ZM_DIR_EVENTS}=~m|/|)
-    ? $Config{ZM_DIR_EVENTS}
-  : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS});
-  my $eventPath = $eventRootPath.'/'.$event->{MonitorId};
+  my $Storage = new ZoneMinder::Storage( $$event{Id} );
+  my $eventPath = $Storage->Path() . '/'.$event->{MonitorId};
 
   if ( $Config{ZM_USE_DEEP_STORAGE} ) {
     my @startTime = localtime( $event->{StartTime} );
@@ -572,8 +557,8 @@ our $hasJSONAny = 0;
 sub _testJSON {
   return if ( $testedJSON );
   my $result = eval {
-    require JSON::Any;
-    JSON::Any->import();
+    require JSON::MaybeXS;
+    JSON::MaybeXS->import();
   };
   $testedJSON = 1;
   $hasJSONAny = 1 if ( $result );
@@ -596,7 +581,7 @@ sub jsonEncode {
 
   _testJSON();
   if ( $hasJSONAny ) {
-    my $string = eval { JSON::Any->objToJson( $value ) };
+    my $string = eval { JSON::MaybeXS->encode_json( $value ) };
     Fatal( "Unable to encode object to JSON: $@" ) unless( $string );
     return( $string );
   }
@@ -631,7 +616,7 @@ sub jsonDecode {
 
   _testJSON();
   if ( $hasJSONAny ) {
-    my $object = eval { JSON::Any->jsonToObj( $value ) };
+    my $object = eval { JSON::MaybeXS->decode_json( $value ) };
     Fatal( "Unable to decode JSON string '$value': $@" ) unless( $object );
     return( $object );
   }
@@ -706,7 +691,7 @@ None by default.
 
 Mention other useful documentation such as the documentation of
 related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
+    in UNIX), or any relevant external documentation such as RFCs or
 standards.
 
 If you have a mailing list set up for your module, mention it here.

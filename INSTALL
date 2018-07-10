@@ -45,9 +45,20 @@ Possible configuration options:
 	ZM_DB_NAME		Name of ZoneMinder database, default: zm
 	ZM_DB_USER		Name of ZoneMinder database user, default: zmuser
 	ZM_DB_PASS		Password of ZoneMinder database user, default: zmpass
+	ZM_DB_SSL_CA_CERT	Path to SSL CA certificate, default: empty; SSL not enabled
+	ZM_DB_SSL_CLIENT_KEY	Path to SSL client key, default: empty; SSL not enabled
+	ZM_DB_SSL_CLIENT_CERT	Path to SSL client certificate, default: empty; SSL not enabled
 	ZM_WEB_USER		The user apache or the local web server runs on. Leave empty for automatic detection. If that fails, you can use this variable to force
 	ZM_WEB_GROUP		The group apache or the local web server runs on, Leave empty to be the same as the web user
+        ZM_DIR_EVENTS           Location where events are recorded to, default: ZM_CONTENTDIR/events
+        ZM_DIR_IMAGES           Location where images, not directly associated with events, are recorded to, default: ZM_CONTENTDIR/images
+        ZM_DIR_SOUNDS           Location to look for optional sound files, default: sounds
+        ZM_PATH_ZMS             Web url to zms streaming server, default: /cgi-bin/nph-zms
 Advanced:
+        ZM_PATH_MAP             Location to save mapped memory files, default: /dev/shm
+        ZM_PATH_ARP             Full path to compatible arp binary. Leave empty for automatic detection.
+        ZM_CONFIG_DIR           Location of the main ZoneMinder config file, zm.conf. default: /etc/zm
+        ZM_CONFIG_SUBDIR        Location of custom config files. default: ZM_CONFIG_DIR/conf.d
 	ZM_EXTRA_LIBS		A list of optional libraries, separated by semicolons, e.g. ssl;theora
 	ZM_MYSQL_ENGINE		MySQL engine to use with database, default: InnoDB
 	ZM_NO_MMAP		Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF

@@ -1,5 +1,5 @@
 var logParms = "view=request&request=log&task=query";
-var logReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse } );
+var logReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse } );
 var logTimer = undefined;
 var logTable = undefined;
 
@@ -11,7 +11,7 @@ var logCodes = new Object({
     '-4': 'PNC',
 });
 
-var minSampleTime = 1000;
+var minSampleTime = 2000;
 var maxSampleTime = 16000;
 var minLogTime = 0;
 var maxLogTime = 0;
@@ -34,7 +34,7 @@ function buildFetchParms( parms ) {
         fetchParms += '&filter['+key+']='+value;
       }
       );
-  return( fetchParms );
+  return fetchParms;
 }
 
 function fetchNextLogs() {
@@ -56,11 +56,12 @@ function logResponse( respObj ) {
       try {
         respObj.logs.each(
             function( log ) {
-              if ( !maxLogTime || log.TimeKey > maxLogTime )
+              if ( ( !maxLogTime ) || ( log.TimeKey > maxLogTime ) )
                 maxLogTime = log.TimeKey;
-              if ( !minLogTime || log.TimeKey < minLogTime )
+              if ( ( !minLogTime ) || ( log.TimeKey < minLogTime ) )
                 minLogTime = log.TimeKey;
               var row = logTable.push( [{ content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
+              
               delete log.Message;
               row.tr.store( 'log', log );
               if ( log.Level <= -3 )
@@ -106,8 +107,8 @@ function logResponse( respObj ) {
       logTimeout *= 2;
       if ( logTimeout > maxSampleTime )
         logTimeout = maxSampleTime;
-    }
-  }
+    } // end logs.length > 0
+  } // end if result == Ok
   logTimer = fetchNextLogs.delay( logTimeout );
 }
 
@@ -228,24 +229,25 @@ function updateFilterSelectors() {
           if ( key == 'Level' ) {
             Object.each(values,
                 function( value, label ) {
-                selector.options[selector.options.length] = new Option( value, label );
+                  selector.options[selector.options.length] = new Option(value, label);
                 }
             );
           } else if ( key == 'ServerId' ) {
             Object.each(values,
                 function( value, label ) {
-                  selector.options[selector.options.length] = new Option( value, label );
+                  selector.options[selector.options.length] = new Option(value, label);
                 }
                 );
           } else {
-            values.each(
-                function( value ) {
-                  selector.options[selector.options.length] = new Option( value );
+            Object.each(values,
+                function( value, label ) {
+                  selector.options[selector.options.length] = new Option(value, label);
                 }
                 );
           }
           if ( filter[key] )
             selector.set('value', filter[key]);
+
           }
   );
 }
@@ -256,11 +258,11 @@ function initPage() {
     logCodes[''+i] = 'DB'+i;
   logTable = new HtmlTable( $('logTable'),
       {
-zebra: true,
-sortable: true,
-sortReverse: true
-}
-);
+        zebra: true,
+        sortable: true,
+        sortReverse: true
+      }
+      );
   logTable.addEvent( 'sort', function( tbody, index ) {
       var header = tbody.getParent( 'table' ).getElement( 'thead' );
       var columns = header.getElement( 'tr' ).getElements( 'th' );
@@ -286,7 +288,7 @@ sortReverse: true
     warningPrefix: "",
     errorPrefix: ""
   });
-  new Asset.css( "/css/spinner.css" );
+  new Asset.css( "css/spinner.css" );
   fetchNextLogs();
 }
 

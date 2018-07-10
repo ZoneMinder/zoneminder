@@ -1,71 +1,79 @@
+#content .vjsMessage {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    z-index: 10;
+    margin: 0;
+    font-size: 200%;
+    color: white;
+    background-color: black;
+    display: inline-block;
+}
+
+.alarmCue {
+    background-color: #222222;
+    height: 1.25em;
+    text-align: left;
+    margin: 0 auto 0 auto;
+    border-radius: 0 0 .3em .3em;
+}
+
+.alarmCue span {
+    background-color:red;
+    height: 100%;
+    display: inline-block;
+    border-radius: 0;
+}
+
+span.noneCue {
+    background: none;
+}
+
+#header {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+}
+
+#header h2 {
+    line-height: 1.1;
+    margin:5px 0 0 0;
+}
+
 #dataBar {
-    width: 100%;
-    margin: 2px auto;
-    text-align: center;
-}
-
-#dataBar #dataTable {
-    width: 100%;
-}
-
-#dataBar #dataTable td {
-    text-align: center;
-    padding: 2px;
+    display: flex;
+    flex-wrap:wrap;
+    justify-content: space-between;
 }
 
 #menuBar1 {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
     width: 100%;
-    padding: 3px 0;
     text-align: center;
-    clear: both;
-}
-
-#menuBar1 #nameControl {
-    float: left;
-}
-
-#menuBar1 #nameControl #eventName {
-    margin-right: 4px;
+    margin: 4px 0 0 0;
 }
 
 #menuBar1 #replayControl {
-    float: right;
-    margin-left: 8px;
+    margin: 0 4px 0 auto;
 }
 
-#menuBar1 #scaleControl {
-    float: right;
-    margin-left: 8px;
+#menuBar1 div {
+margin: auto 5px;
 }
 
-#menuBar2 {
-    width: 100%;
-    padding: 3px 0;
-    margin-bottom: 4px;
+#nameControl input[type="button"]{
+height: 100%;
 }
 
-#menuBar2 div {
-    text-align: left;
-    float: left;
-    padding: 0 12px;
-}
-
-#menuBar2 #closeWindow {
-    float: right;
-    text-align: right;
-}
-
-#menuBar1:after,
-#menuBar2:after {
-    content: ".";
-    display: block;
-    height: 0;
-    font-size: 0;
-    clear: both;
-    visibility: hidden;
+#eventVideo {
+    display: inline-block;
 }
 
 #imageFeed {
+    display: inline-block;
+    position: relative;
     text-align: center;
 }
 
@@ -96,9 +104,9 @@
 }
 
 #dvrControls input {
-    height: 20px;
-    width: 28px;
-    padding-bottom: 3px;
+    height: 1.5em;
+    width: 2em;
+    padding: 0;
     margin: 0 3px;
 }
 
@@ -130,39 +138,30 @@
 
 #progressBar {
     position: relative;
-    border: 1px solid #666666;
-    height: 15px;
-    margin: 0 auto;
+    top: -1.25em;
+    height: 1.25em;
+    margin: 0 auto -1.25em auto;
 }
 
 #progressBar .progressBox {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    height: 15px;
-    background: #eeeeee;
-    border-left: 1px solid #999999;
-}
-
-#progressBar .complete {
-    background: #aaaaaa;
+    transition: width .1s;
+    height: 100%;
+    background: rgba(170, 170, 170, .7);
+    border-radius: 0 0 .3em .3em;
 }
 
 #eventStills {
-    width: 100%;
     position: relative;
 }
 
 #eventThumbsPanel {
     position: relative;
-    width: 100%;
     margin: 4px auto;
     z-index: 1;
 }
 
 #eventThumbs {
     margin: 0 auto;
-    width: 100%;
     overflow: hidden;
     height: 300px;
 }
@@ -181,14 +180,19 @@
 }
 
 #eventImagePanel {
+    display: none;
     position: absolute;
+    top: 0;
+    left: 0;
     z-index: 10;
+    width: 100%;
 }
 
 #eventImageFrame {
     border: 2px solid gray;
     background-color: white;
     padding: 4px;
+    display: inline-block;
 }
 
 #eventImage {
@@ -196,6 +200,14 @@
 
 #eventImageBar {
     margin-top: 2px;
+}
+
+#eventImageBar::after {
+  visibility: hidden;
+  display: block;
+  content: "";
+  clear: both;
+  height: 0;
 }
 
 #eventImageStats {
@@ -213,6 +225,7 @@
 
 #eventImageNav {
     position: relative;
+    margin: 0 0 4px 0;
 }
 
 #eventImageNav input {
@@ -221,20 +234,20 @@
 }
 
 #thumbsSliderPanel {
-    width: 400px;
-    margin: 4px auto 0;
-    background: #888888;
-    padding: 1px;
+    width: 80%;
+    margin: 0px auto 4px auto;
 }
 
 #thumbsSlider {
-    width: 400px;
-    height: 10px;
-    background: #dddddd;
+    width: 100%;
+    height: 1.25em;
+    position: relative;
+    top: -1.25em;
+    margin: 0 0 -1.25em 0;
 }
 
 #thumbsKnob {
-    width: 8px;
-    height: 10px;
-    background-color: #444444;
+    width: 1em;
+    height: 100%;
+    background-color: #999999;
 }

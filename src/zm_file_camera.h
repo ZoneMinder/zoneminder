@@ -31,8 +31,7 @@
 // Class representing 'file' cameras, i.e. those which are
 // accessed using a single file which contains the latest jpeg data
 //
-class FileCamera : public Camera
-{
+class FileCamera : public Camera {
 protected:
   char path[PATH_MAX];
 
@@ -48,6 +47,7 @@ public:
   int Capture( Image &image );
   int PostCapture();
   int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
+int Close() { return 0; };
 };
 
 #endif // ZM_FILE_CAMERA_H

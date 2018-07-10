@@ -17,12 +17,13 @@ if ( canView( 'Events' ) ) {
         } else {
           $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.monitorLimitSql();
           if ( !($event = dbFetchOne( $sql, NULL, array( $_REQUEST['id'] ) )) )
-            ajaxError( "Video Generation Failure, can't load event" );
-          else
+            ajaxError( 'Video Generation Failure, Unable to load event' );
+          else {
             if ( $videoFile = createVideo( $event, $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], !empty($_REQUEST['overwrite']) ) )
               ajaxResponse( array( 'response'=>$videoFile ) );
             else
-              ajaxError( "Video Generation Failed" );
+              ajaxError( 'Video Generation Failed' );
+          }
         }
         $ok = true;
         break;
@@ -75,6 +76,19 @@ if ( canView( 'Events' ) ) {
           ajaxError( 'Export Failed' );
         break;
       }
+    case 'download' :
+      {
+        require_once( ZM_SKIN_PATH.'/includes/export_functions.php' );
+        $exportVideo = 1;
+        $exportFormat = $_REQUEST['exportFormat'];
+        $exportStructure = 'flat';
+        $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
+        if ( $exportFile = exportEvents( $exportIds, false, false, false, $exportVideo, false, $exportFormat, $exportStructure ) )
+          ajaxResponse( array( 'exportFile'=>$exportFile ) );
+        else
+          ajaxError( 'Export Failed' );
+        break;
+      }
   }
 }
 
@@ -85,7 +99,7 @@ if ( canEdit( 'Events' ) ) {
         if ( !empty($_REQUEST['eventName']) )
           dbQuery( 'UPDATE Events SET Name = ? WHERE Id = ?', array( $_REQUEST['eventName'], $_REQUEST['id'] ) );
         else
-          ajaxError( "No new event name supplied" );
+          ajaxError( 'No new event name supplied' );
         ajaxResponse( array( 'refreshEvent'=>true, 'refreshParent'=>true ) );
         break;
       }

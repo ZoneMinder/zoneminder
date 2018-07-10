@@ -3,8 +3,7 @@ var events = {};
 function showEvent( eid, fid, width, height ) {    
   var url = '?view=event&eid='+eid+'&fid='+fid;
   url += filterQuery;
-  var pop=createPopup( url, 'zmEvent', 'event', width, height );
-  pop.vid=$('preview');
+  window.location.href = url;
 
   //video element is blocking video elements elsewhere in chrome possible interaction with mouseover event?
   //FIXME unless an exact cause can be determined should store all video controls and do something to the other controls when we want to load a new video seek etc or whatever may block
@@ -65,8 +64,10 @@ function frameDataResponse( respObj, respText ) {
     return;
   }
 
-  if ( !event['frames'] )
+  if ( !event['frames'] ) {
+    console.log("No frames data in event response");
     event['frames'] = new Object();
+  }
 
   event['frames'][frame.FrameId] = frame;
   event['frames'][frame.FrameId]['html'] = createEventHtml( event, frame );
@@ -87,14 +88,14 @@ function requestFrameData( eventId, frameId ) {
   }
 }
 
-function previewEvent( eventId, frameId ) {
+function previewEvent(eventId, frameId) {
 
   if ( events[eventId] ) {
     var event = events[eventId];
     if ( event['frames'] ) {
       if ( event['frames'][frameId] ) {
         showEventDetail( event['frames'][frameId]['html'] );
-        var imagePath = '/index.php?view=image&eid='+eventId+'&fid='+frameId;
+        var imagePath = 'index.php?view=image&eid='+eventId+'&fid='+frameId;
         var videoName = event.DefaultVideo;
         loadEventImage( imagePath, eventId, frameId, event.Width, event.Height, event.Frames/event.Length, videoName, event.Length, event.StartTime, monitors[event.MonitorId]);
         return;
@@ -110,14 +111,14 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
   if ( videoName && vid ) {
     vid.show();
     imageSrc.hide();
-    var newsource=imagePath.slice(0,imagePath.lastIndexOf('/'))+"/"+videoName;
+    var newsource=imagePath.slice(0,imagePath.lastIndexOf('/'))+'/'+videoName;
     //console.log(newsource);
     //console.log(sources[0].src.slice(-newsource.length));
     if ( newsource != vid.currentSrc.slice(-newsource.length) || vid.readyState == 0 ) {
       //console.log("loading new");
       //it is possible to set a long source list here will that be unworkable?
       var sources = vid.getElementsByTagName('source');
-      sources[0].src=newsource;
+      sources[0].src = newsource;
       var tracks = vid.getElementsByTagName('track');
       if(tracks.length){
         tracks[0].parentNode.removeChild(tracks[0]);
@@ -132,25 +133,25 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
   } else {
     if ( vid ) vid.hide();
     imageSrc.show();
-    imageSrc.setProperty( 'src', imagePath );
-    imageSrc.removeEvent( 'click' );
-    imageSrc.addEvent( 'click', showEvent.pass( [ eid, fid, width, height ] ) );
+    imageSrc.setProperty('src', imagePath);
+    imageSrc.removeEvent('click');
+    imageSrc.addEvent('click', showEvent.pass([ eid, fid, width, height ]));
   }
 
   var eventData = $('eventData');
-  eventData.removeEvent( 'click' );
-  eventData.addEvent( 'click', showEvent.pass( [eid, fid, width, height] ) );
+  eventData.removeEvent('click');
+  eventData.addEvent('click', showEvent.pass([eid, fid, width, height]));
 }
 
 function tlZoomBounds( minTime, maxTime ) {
   console.log( "Zooming" );
-  window.location = '?view='+currentView+filterQuery+'&minTime='+minTime+'&maxTime='+maxTime;
+  location.replace('?view='+currentView+filterQuery+'&minTime='+minTime+'&maxTime='+maxTime);
 }
 
 function tlZoomRange( midTime, range ) {
-  window.location = '?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range;
+  location.replace('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range);
 }
 
 function tlPan( midTime, range ) {
-  window.location = '?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range;
+  location.replace('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+range);
 }

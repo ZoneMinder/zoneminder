@@ -18,90 +18,63 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canEdit( 'System' ) ) {
+  $view = 'error';
+  return;
 }
-$running = daemonCheck();
-
-$states = dbFetchAll( "select * from States" );
-$focusWindow = true;
-
-xhtmlHeaders(__FILE__, translate('RunState') );
 ?>
-<body>
-  <div id="page">
-    <div id="header">
-      <h2><?php echo translate('RunState') ?></h2>
-    </div>
-    <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-<?php
-if ( empty($_REQUEST['apply']) )
-{
-?>
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="action" value=""/>
-        <input type="hidden" name="apply" value="1"/>
-        <p>
-          <select name="runState" onchange="checkState( this );">
-<?php
-    if ( $running )
-    {
-?>
-            <option value="stop" selected="selected"><?php echo translate('Stop') ?></option>
-            <option value="restart"><?php echo translate('Restart') ?></option>
-<?php
-    }
-    else
-    {
-?>
-            <option value="start" selected="selected"><?php echo translate('Start') ?></option>
-<?php
-    }
-?>
-<?php
-    foreach ( $states as $state )
-    {
-?>
-            <option value="<?php echo $state['Name'] ?>"><?php echo $state['Name'] ?></option>
-<?php
-    }
-?>
-          </select>
-        </p>
-        <table id="contentTable" class="minor" cellspacing="0">
-          <tbody>
-            <tr>
-              <th scope="row"><?php echo translate('NewState') ?></th>
-		<!-- PP - added oninput so that changes are detected immediately -->
-		<!-- PP - retained onchange for older browsers -->
-              <td><input type="text" name="newState" value="" size="16" oninput="checkState( this );" onchange="checkState(this);"/></td>
-            </tr>
-          </tbody>
-        </table>
-        <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>"/>
-          <input type="button" name="saveBtn" value="<?php echo translate('Save') ?>" disabled="disabled" onclick="saveState( this );"/>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled" onclick="deleteState( this );"/> 
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+<div id="modalState" class="modal fade">
+  <form class="form-horizontal" name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h2 class="modal-title"><?php echo translate('RunState') ?></h2>
         </div>
+        <div class="modal-body">
+          <input type="hidden" name="view" value="<?php echo $view ?>"/>
+          <input type="hidden" name="action" value="state"/>
+          <input type="hidden" name="apply" value="1"/>
+
+	        <div class="form-group">
+	          <label for="runState" class="col-sm-3 control-label">Change State</label>
+	          <div class="col-sm-9">
+              <select id="runState" name="runState" class="form-control">
+<?php 
+if ( $running ) {
+?>
+                <option value="stop" selected="selected"><?php echo translate('Stop') ?></option>
+                <option value="restart"><?php echo translate('Restart') ?></option>
+<?php
+} else {
+?>
+                <option value="start" selected="selected"><?php echo translate('Start') ?></option>
 <?php
 }
-else
-{
+$states = dbFetchAll( 'SELECT * FROM States' );
+foreach ( $states as $state ) {
 ?>
-        <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="action" value="state"/>
-        <input type="hidden" name="runState" value="<?php echo validHtmlStr($_REQUEST['runState']) ?>"/>
-        <p><?php echo translate('ApplyingStateChange') ?></p>
-        <p><?php echo translate('PleaseWait') ?></p>
+                <option value="<?php echo $state['Name'] ?>"><?php echo $state['Name'] ?></option>
 <?php
 }
 ?>
-      </form>
-    </div>
-  </div>
-</body>
-</html>
+              </select>
+	          </div><!--col-sm-9-->
+	        </div><!--form-group-->
+	        <div class="form-group">
+            <label for="newState" class="col-sm-3 control-label"><?php echo translate('NewState') ?></label>
+		        <div class="col-sm-9">
+              <input class="form-control" type="text" id="newState"/>
+		        </div>
+	        </div>
+        </div> <!-- modal-body -->
+        <div class="modal-footer">
+          <button class="btn btn-primary" type="button" id="btnApply"><?php echo translate('Apply') ?></button>
+          <button class="btn btn-primary" type="button" id="btnSave" disabled><?php echo translate('Save') ?></button>
+          <button class="btn btn-danger" type="button" id="btnDelete" disabled><?php echo translate('Delete') ?></button>
+          <p class="pull-left hidden" id="pleasewait"><?php echo translate('PleaseWait') ?></p>
+	      </div><!-- footer -->
+      </div> <!-- content -->
+    </div> <!-- dialog -->
+  </form>
+</div> <!-- state -->

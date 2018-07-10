@@ -697,6 +697,7 @@ $SLANG = array(
     'Stills'                => 'Stills',
     'Stopped'               => 'Stopped',
     'Stop'                  => 'Stop',
+    'StorageArea'           => 'Storage Area',
     'StorageScheme'         => 'Scheme',
     'StreamReplayBuffer'    => 'Stream Replay Image Buffer',
     'Stream'                => 'Stream',

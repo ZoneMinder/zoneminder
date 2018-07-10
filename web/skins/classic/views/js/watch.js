@@ -661,6 +661,10 @@ function watchdogOk( type ) {
   watchdogInactive[type] = false;
 }
 
+function reloadWebSite() {
+    document.getElementById('imageFeed').innerHTML = document.getElementById('imageFeed').innerHTML;
+}
+
 function initPage() {
   if ( monitorType != 'WebSite' ) {
     if ( streamMode == "single" ) {

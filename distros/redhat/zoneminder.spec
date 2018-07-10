@@ -74,8 +74,11 @@ BuildRequires: gcc-c++
 BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
-BuildRequires: ffmpeg-devel
 BuildRequires: desktop-file-utils
+
+# ZoneMinder looks for and records the location of the ffmpeg binary during build
+BuildRequires: ffmpeg
+BuildRequires: ffmpeg-devel
 
 # Required for mp4 container support
 BuildRequires: libmp4v2-devel

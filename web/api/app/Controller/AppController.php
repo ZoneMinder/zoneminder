@@ -80,19 +80,15 @@ class AppController extends Controller {
 
       $this->loadModel('User');
       if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
-        $user = $this->User->find('first', array ('conditions' => array (
-                'User.Username' => $_REQUEST['user'],
-                'User.Password' => DboSource::expression('PASSWORD(\''.$_REQUEST['pass'].'\')'),
-                )) );
-        if ( ! $user ) {
+        $user = userLogin($_REQUEST['user'],$_REQUEST['pass']);
+        if ( !$user ) {
           throw new UnauthorizedException(__('User not found'));
           return;
         } else {
-          $this->Session->Write( 'user', $user['User'] );
-          $this->Session->Write( 'user.Username', $user['User']['Username'] );
-          $this->Session->Write( 'username', $user['User']['Username'] );
-          $this->Session->Write( 'passwordHash', $user['User']['Password'] );
-          $this->Session->Write( 'user.Enabled', $user['User']['Enabled'] );
+          if ( ! $this->Session->Write('user.Username', $user['Username']) )
+            $this->log("Error writing session var user.Username");
+          if ( ! $this->Session->Write('user.Enabled', $user['Enabled']) )
+            $this->log("Error writing session var user.Enabled");
         }
       }
 
@@ -104,7 +100,7 @@ class AppController extends Controller {
           return;
         } else {
           if ( ! $this->Session->Write('user.Username', $user['Username']) )
-              $this->log("Error writing session var user.Username");
+            $this->log("Error writing session var user.Username");
           if ( ! $this->Session->Write('user.Enabled', $user['Enabled']) )
             $this->log("Error writing session var user.Enabled");
         }

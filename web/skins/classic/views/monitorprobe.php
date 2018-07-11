@@ -26,7 +26,7 @@ if ( !canEdit('Monitors') ) {
 // Probe Local Cameras 
 function probeV4L() {
 
-	$cameras = array();
+  $cameras = array();
 
   $command = getZmuCommand(' --query --device');
   if ( !empty($_REQUEST['device']) )
@@ -110,6 +110,7 @@ function probeV4L() {
 		$device['inputs'] = $inputs;
 		$devices[] = $device;
 	} # end foreach output line
+  return cameras;
 } # end function probeV4L
 
 // Probe Network Cameras

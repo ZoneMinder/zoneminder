@@ -77,14 +77,17 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
 <?php } ?>
       </div>
       <div class="controlHeader">
-      <?php echo $filterbar ?>
+        <form method="get">
+          <input type="hidden" name="view" value="cycle"/>
+          <?php echo $filterbar ?>
+        </form>
       </div>
     </div>
     <div id="content">
       <div id="imageFeed">
       <?php 
         if ( $monitor ) {
-          echo getStreamHTML($monitor, array('scale'=>$scale, 'mode'=>$mode));
+          echo getStreamHTML($monitor, array('scale'=>$scale, 'mode'=>$mode, 'width'=>'100%'));
         } else {
           echo "There are no monitors to view.";
         }

@@ -55,6 +55,10 @@ RemoteCamera::~RemoteCamera() {
       freeaddrinfo(hp);
     hp = NULL;
   }
+	if ( mAuthenticator ) {
+		delete mAuthenticator;
+		mAuthenticator = NULL;
+	}
 }
 
 void RemoteCamera::Initialise() {

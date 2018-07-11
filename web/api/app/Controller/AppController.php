@@ -90,6 +90,8 @@ class AppController extends Controller {
         } else {
           $this->Session->Write( 'user', $user['User'] );
           $this->Session->Write( 'user.Username', $user['User']['Username'] );
+          $this->Session->Write( 'username', $user['User']['Username'] );
+          $this->Session->Write( 'passwordHash', $user['User']['Password'] );
           $this->Session->Write( 'user.Enabled', $user['User']['Enabled'] );
         }
       }

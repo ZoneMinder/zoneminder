@@ -19,7 +19,7 @@
 // 
 
 function userLogin($username, $password='', $passwordHashed=false) {
-  global $user, $cookies;
+  global $user;
 
   $sql = 'SELECT * FROM Users WHERE Enabled=1';
   $sql_values = NULL;
@@ -34,7 +34,12 @@ function userLogin($username, $password='', $passwordHashed=false) {
     $sql .= ' AND Username=?';
     $sql_values = array($username);
   }
-  session_start();
+  $close_session = 0;
+  if ( !is_session_started() ) {
+    Logger::Debug("Starting session in userLogin");
+    session_start();
+    $close_session = 1;
+  }
   $_SESSION['username'] = $username;
   if ( ZM_AUTH_RELAY == 'plain' ) {
     // Need to save this in session
@@ -54,7 +59,8 @@ function userLogin($username, $password='', $passwordHashed=false) {
     $_SESSION['loginFailed'] = true;
     unset($user);
   }
-  session_write_close();
+  if ( $close_session )
+    session_write_close();
   return $user;
 } # end function userLogin
 
@@ -167,6 +173,8 @@ function is_session_started() {
     } else {
       return session_id() === '' ? FALSE : TRUE;
     }
+  } else {
+    Warning("php_sapi_name === 'cli'");
   }
   return FALSE;
 }

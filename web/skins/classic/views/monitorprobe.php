@@ -26,7 +26,7 @@ if ( !canEdit('Monitors') ) {
 // Probe Local Cameras 
 function probeV4L() {
 
-	$cameras = array();
+  $cameras = array();
 
   $command = getZmuCommand(' --query --device');
   if ( !empty($_REQUEST['device']) )
@@ -110,6 +110,7 @@ function probeV4L() {
 		$device['inputs'] = $inputs;
 		$devices[] = $device;
 	} # end foreach output line
+  return $cameras;
 } # end function probeV4L
 
 // Probe Network Cameras
@@ -206,7 +207,7 @@ function probeVivotek($ip) {
       'Width'    => 352,
       'Height'   => 240,
     ),
-  );
+  );t
   if ( $lines = @file($url) ) {
     foreach ( $lines as $line ) {
       $line = rtrim($line);
@@ -242,91 +243,70 @@ function probeWansview($ip) {
 }
 
 function probeNetwork() {
-	// Calling arp without the full path was reported to fail on some systems
-	// Use the builtin unix command "type" to tell us where the command is
-	$arp_command = '';
-	$result = explode(' ', ZM_PATH_ARP);
-	if ( !is_executable($result[0]) ) {
-		if ( ZM_PATH_ARP ) {
-			Warning("User assigned ARP tool not found. Verify ZM_PATH_ARP points to a valid arp tool and is executable by the web user account.");
-		}
-		$result = exec('type -p arp', $output, $status);
-		if ( $status ) {
-			Warning("Unable to determine path for arp command, type -p arp returned '$status' output is: " . implode("\n", $output));
-			unset($output);
-			$result = exec('which arp', $output, $status);
-			if ( $status ) {
-				Warning("Unable to determine path for arp command, which arp returned '$status'");
-				if ( file_exists('/usr/sbin/arp') ) {
-					$arp_command = '/usr/sbin/arp -a';
-				}
-			} else {
-				$arp_command = $output[0].' -a';
-			}
-		} else {
-			$arp_command = $output[0].' -a';
-		}
-	} else {
-		$arp_command = ZM_PATH_ARP;
-	}
-	// Now that we know where arp is, call it using the full path
-	unset($output);
-	$result = exec(escapeshellcmd($arp_command), $output, $status);
-	if ( $status ) {
-		Error("Unable to probe network cameras, status is '$status'");
-		return;
-	}
+    $cameras = array();
+    $arp_command = ZM_PATH_ARP;
+    $result = explode(' ', $arp_command);
+    if ( !is_executable($result[0]) ) {
+        Error("ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.");
+        return;
+    }
 
-	$monitors = array();
-	foreach ( dbFetchAll("SELECT Id, Name, Host FROM Monitors WHERE Type = 'Remote' ORDER BY Host") as $monitor ) {
-		if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
-			//echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
-			$monitors[gethostbyname($matches[2])] = $monitor;
-		} else {
-			//echo "2: ".$monitor['Host']." = ".gethostbyname($monitor['Host'])."<br/>";
-			$monitors[gethostbyname($monitor['Host'])] = $monitor;
-		}
-	}
+    $result = exec(escapeshellcmd($arp_command), $output, $status);
+    if ( $status ) {
+        Error("Unable to probe network cameras, status is '$status'");
+        return;
+    }
 
-	$macBases = array(
-			'00:40:8c' => array('type'=>'Axis', 'probeFunc'=>'probeAxis'),
-			'00:80:f0' => array('type'=>'Panasonic','probeFunc'=>'probePana'),
-			'00:0f:7c' => array('type'=>'ACTi','probeFunc'=>'probeACTi'),
-			'00:02:d1' => array('type'=>'Vivotek','probeFunc'=>'probeVivotek'),
-			'7c:dd:90' => array('type'=>'Wansview','probeFunc'=>'probeWansview'),
-			'78:a5:dd' => array('type'=>'Wansview','probeFunc'=>'probeWansview')
-			);
+    $monitors = array();
+    foreach ( dbFetchAll("SELECT Id, Name, Host FROM Monitors WHERE Type = 'Remote' ORDER BY Host") as $monitor ) {
+        if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
+            //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
+            $monitors[gethostbyname($matches[2])] = $monitor;
+        } else {
+            //echo "2: ".$monitor['Host']." = ".gethostbyname($monitor['Host'])."<br/>";
+            $monitors[gethostbyname($monitor['Host'])] = $monitor;
+        }
+    }
 
-	foreach ( $output as $line ) {
-		if ( !preg_match('/(\d+\.\d+\.\d+\.\d+).*(([0-9a-f]{2}:){5})/', $line, $matches) )
-			continue;
-		$ip = $matches[1];
-		$host = $ip;
-		$mac = $matches[2];
-		//echo "I:$ip, H:$host, M:$mac<br/>";
-		$macRoot = substr($mac,0,8);
-		if ( isset($macBases[$macRoot]) ) {
-			$macBase = $macBases[$macRoot];
-			$camera = call_user_func($macBase['probeFunc'], $ip);
-			$sourceDesc = htmlspecialchars(serialize($camera['monitor']));
-			$sourceString = $camera['model'].' @ '.$host;
-			if ( isset($monitors[$ip]) ) {
-				$monitor = $monitors[$ip];
-				$sourceString .= ' ('.$monitor['Name'].')';
-			} else {
-				$sourceString .= ' - '.translate('Available');
-			}
-			$cameras[$sourceDesc] = $sourceString;
-		}
-	} # end foreach output line
-	return $cameras;
+    $macBases = array(
+        '00:40:8c' => array('type'=>'Axis', 'probeFunc'=>'probeAxis'),
+        '00:80:f0' => array('type'=>'Panasonic','probeFunc'=>'probePana'),
+        '00:0f:7c' => array('type'=>'ACTi','probeFunc'=>'probeACTi'),
+        '00:02:d1' => array('type'=>'Vivotek','probeFunc'=>'probeVivotek'),
+        '7c:dd:90' => array('type'=>'Wansview','probeFunc'=>'probeWansview'),
+        '78:a5:dd' => array('type'=>'Wansview','probeFunc'=>'probeWansview')
+        );
+
+    foreach ( $output as $line ) {
+        if ( !preg_match('/(\d+\.\d+\.\d+\.\d+).*(([0-9a-f]{2}:){5})/', $line, $matches) )
+            continue;
+        $ip = $matches[1];
+        $host = $ip;
+        $mac = $matches[2];
+        //echo "I:$ip, H:$host, M:$mac<br/>";
+        $macRoot = substr($mac,0,8);
+        if ( isset($macBases[$macRoot]) ) {
+            $macBase = $macBases[$macRoot];
+            $camera = call_user_func($macBase['probeFunc'], $ip);
+            $sourceDesc = htmlspecialchars(serialize($camera['monitor']));
+            $sourceString = $camera['model'].' @ '.$host;
+            if ( isset($monitors[$ip]) ) {
+                $monitor = $monitors[$ip];
+                $sourceString .= ' ('.$monitor['Name'].')';
+            } else {
+                $sourceString .= ' - '.translate('Available');
+            }
+                $cameras[$sourceDesc] = $sourceString;
+        }
+    } # end foreach output line
+    return $cameras;
 } # end function probeNetwork()
 
 $cameras = array();
 $cameras[0] = translate('ChooseDetectedCamera');
 
 if ( ZM_HAS_V4L2 )
-	$cameras += probeV4L();
+    $cameras += probeV4L();
 $cameras += probeNetwork();
 
 if ( count($cameras) <= 1 )

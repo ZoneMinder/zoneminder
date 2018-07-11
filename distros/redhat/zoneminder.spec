@@ -52,6 +52,7 @@ BuildRequires: pcre-devel
 BuildRequires: libjpeg-turbo-devel
 BuildRequires: findutils
 BuildRequires: coreutils
+BuildRequires: net-tools
 BuildRequires: perl
 BuildRequires: perl-generators
 BuildRequires: perl(Archive::Tar)

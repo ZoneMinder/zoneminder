@@ -347,14 +347,14 @@ sub delete {
   my $event = $_[0];
   if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartTime} ) ) {
     my ( $caller, undef, $line ) = caller;
-    Warning( "Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from $caller:$line\n" );
+    Warning("Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from $caller:$line\n");
     return;
   }
   if ( ! -e $event->Storage()->Path() ) {
     Warning("Not deleting event because storage path doesn't exist");
     return;
   }
-  Info( "Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}\n" );
+  Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}\n");
   $ZoneMinder::Database::dbh->ping();
 
   $ZoneMinder::Database::dbh->begin_work();
@@ -362,9 +362,9 @@ sub delete {
 
   {
     my $sql = 'DELETE FROM Frames WHERE EventId=?';
-    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
+    my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
       or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-    my $res = $sth->execute( $event->{Id} )
+    my $res = $sth->execute($event->{Id})
       or Error( "Can't execute '$sql': ".$sth->errstr() );
     $sth->finish();
     if ( $ZoneMinder::Database::dbh->errstr() ) {
@@ -373,10 +373,10 @@ sub delete {
     }
 
     $sql = 'DELETE FROM Stats WHERE EventId=?';
-    $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-      or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-    $res = $sth->execute( $event->{Id} )
-      or Error( "Can't execute '$sql': ".$sth->errstr() );
+    $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
+      or Error("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
+    $res = $sth->execute($event->{Id})
+      or Error("Can't execute '$sql': ".$sth->errstr());
     $sth->finish();
     if ( $ZoneMinder::Database::dbh->errstr() ) {
       $ZoneMinder::Database::dbh->commit();
@@ -387,10 +387,10 @@ sub delete {
 # Do it individually to avoid locking up the table for new events
   {
     my $sql = 'DELETE FROM Events WHERE Id=?';
-    my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-      or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-    my $res = $sth->execute( $event->{Id} )
-      or Error( "Can't execute '$sql': ".$sth->errstr() );
+    my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
+      or Error("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
+    my $res = $sth->execute($event->{Id})
+      or Error("Can't execute '$sql': ".$sth->errstr());
     $sth->finish();
   }
   $ZoneMinder::Database::dbh->commit();

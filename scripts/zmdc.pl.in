@@ -370,7 +370,6 @@ sub run {
     restartPending();
     check_for_processes_to_kill() if %terminating_processes;
     reaper() if %pids_to_reap;
-
   } # end while
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '
@@ -437,7 +436,7 @@ sub start {
 
     $dbh = zmDbConnect(1);
     # This logReinit is required.  Not sure why.
-    logReinit();
+    #logReinit();
 
     $process->{pid} = $cpid;
     $process->{started} = time();
@@ -514,7 +513,7 @@ sub send_stop {
         .strftime('%y/%m/%d %H:%M:%S', localtime())
         ."\n"
         );
-  sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
     return();
   }
 
@@ -647,7 +646,6 @@ sub chld_sig_handler {
 sub reaper {
   foreach my $cpid ( keys %pids_to_reap ) {
     my $process = $pid_hash{$cpid};
-Debug("Reaping pricess $cpid");
     delete $pid_hash{$cpid};
     my $reap_info = $pids_to_reap{$cpid};
     my ( $status, $stopped ) = @$reap_info{'status','stopped'};
@@ -713,7 +711,6 @@ Debug("Reaping pricess $cpid");
     } else {
       delete $cmd_hash{$$process{command}};
     }
-Debug("Reaping pricess $cpid");
   } # end foreach pid_to_reap
 } # end sub reaper
 

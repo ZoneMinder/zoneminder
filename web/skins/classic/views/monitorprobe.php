@@ -242,12 +242,13 @@ function probeWansview($ip) {
 }
 
 function probeNetwork() {
+    $cameras = array();
     $arp_command = ZM_PATH_ARP;
     $result = explode(' ', $arp_command);
     if ( !is_executable($result[0]) ) {
         Error("ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.");
         return;
-    endif
+    }
 
     $result = exec(escapeshellcmd($arp_command), $output, $status);
     if ( $status ) {
@@ -304,7 +305,7 @@ $cameras = array();
 $cameras[0] = translate('ChooseDetectedCamera');
 
 if ( ZM_HAS_V4L2 )
-	$cameras += probeV4L();
+    $cameras += probeV4L();
 $cameras += probeNetwork();
 
 if ( count($cameras) <= 1 )

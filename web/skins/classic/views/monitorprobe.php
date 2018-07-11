@@ -207,7 +207,7 @@ function probeVivotek($ip) {
       'Width'    => 352,
       'Height'   => 240,
     ),
-  );
+  );t
   if ( $lines = @file($url) ) {
     foreach ( $lines as $line ) {
       $line = rtrim($line);
@@ -273,7 +273,7 @@ function probeNetwork() {
         '00:80:f0' => array('type'=>'Panasonic','probeFunc'=>'probePana'),
         '00:0f:7c' => array('type'=>'ACTi','probeFunc'=>'probeACTi'),
         '00:02:d1' => array('type'=>'Vivotek','probeFunc'=>'probeVivotek'),
-        '7c:dd:90' => array(t'type'=>'Wansview','probeFunc'=>'probeWansview'),
+        '7c:dd:90' => array('type'=>'Wansview','probeFunc'=>'probeWansview'),
         '78:a5:dd' => array('type'=>'Wansview','probeFunc'=>'probeWansview')
         );
 

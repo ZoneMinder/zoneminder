@@ -46,7 +46,7 @@ bool ValidateAccess( User *user, int mon_id ) {
       user->Id(), user->getUsername(), mon_id );
     exit( -1 );
   }
-  return( allowed );
+  return allowed;
 }
 
 int main( int argc, const char *argv[] ) {

@@ -411,6 +411,7 @@ if ( ZM_OPT_MESSAGE ) {
         <hr/>
         <div id="contentButtons">
           <button onclick="submitToEvents(this);"> <?php echo translate('ListMatches') ?></button>
+          <button onclick="submitToExport(this);"> <?php echo translate('ExportMatches') ?></button>
           <button name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit( 'Events' ) ) {

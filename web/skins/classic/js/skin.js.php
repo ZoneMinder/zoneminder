@@ -34,6 +34,8 @@ var skinPath = "<?php echo ZM_SKIN_PATH ?>";
 
 var canEditSystem = <?php echo canEdit('System' )?'true':'false' ?>;
 var canViewSystem = <?php echo canView('System' )?'true':'false' ?>;
+var canEditEvents = <?php echo canEdit('Events' )?'true':'false' ?>;
+var canViewEvents = <?php echo canView('Events' )?'true':'false' ?>;
 
 var canEditGroups = <?php echo canEdit('Groups' )?'true':'false' ?>;
 

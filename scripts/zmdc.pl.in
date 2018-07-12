@@ -172,7 +172,7 @@ if ( !$server_up ) {
     exit();
   } elsif ( $command ne 'startup' ) {
     print("Unable to connect to server using socket at " . SOCK_FILE . "\n");
-    exit( -1 );
+    exit(-1);
   }
 
   # The server isn't there
@@ -210,7 +210,7 @@ if ( ($command eq 'check') && !$daemon ) {
 
 # The server is there, connect to it
 CLIENT->autoflush();
-my $message = join(';', $command, ( $daemon ? $daemon : () ), @args );
+my $message = join(';', $command, ( $daemon ? $daemon : () ), @args);
 print(CLIENT  $message);
 shutdown(CLIENT, 1);
 while( my $line = <CLIENT> ) {
@@ -242,6 +242,7 @@ use constant KILL_DELAY => 60; # seconds to wait between sending TERM and sendin
 our %cmd_hash;
 our %pid_hash;
 our %terminating_processes;
+our %pids_to_reap;
 our $zm_terminate = 0;
 
 sub run {
@@ -280,7 +281,7 @@ sub run {
   bind(SERVER, $saddr) or Fatal("Can't bind to " . main::SOCK_FILE . ": $!");
   listen(SERVER, SOMAXCONN) or Fatal("Can't listen: $!");
 
-  $SIG{CHLD} = \&reaper;
+  $SIG{CHLD} = \&chld_sig_handler;
   $SIG{INT} = \&shutdown_sig_handler;
   $SIG{TERM} = \&shutdown_sig_handler;
   $SIG{ABRT} = \&shutdown_sig_handler;
@@ -291,14 +292,7 @@ sub run {
   my $win = $rin;
   my $ein = $win;
   my $timeout = 1;
-  my $Server = undef;
   my $secs_count = 0;
-
-  if ( $Config{ZM_SERVER_ID} ) {
-    require ZoneMinder::Server;
-    $Server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
-    dPrint(ZoneMinder::Logger::INFO, 'Loading Server record have ' . $$Server{Name});
-  }
 
   while( !$zm_terminate ) {
     
@@ -306,7 +300,7 @@ sub run {
       if ( ! ( $secs_count % 60 ) ) {
         Debug("Connecting");
         while ( (!$zm_terminate) and !($dbh and $dbh->ping()) ) {
-          Warning("Not connected to db ($dbh)".($dbh?" ping(".$dbh->ping().")":''). ($DBI::errstr?" errstr($DBI::errstr)":'').' Reconnecting');
+          Warning("Not connected to db ($dbh)".($dbh?' ping('.$dbh->ping().')':''). ($DBI::errstr?" errstr($DBI::errstr)":'').' Reconnecting');
           $dbh = zmDbConnect();
         }
         my @cpuload = CpuLoad();
@@ -340,7 +334,7 @@ sub run {
 # Do nothing, this is all we're here for
           dPrint(ZoneMinder::Logger::WARNING, "Already running, ignoring command '$command'\n");
         } elsif ( $command eq 'shutdown' ) {
-          # Breka out of while loop
+          # Break out of while loop
           last;
         } elsif ( $command eq 'check' ) {
           check($daemon, @args);
@@ -374,8 +368,8 @@ sub run {
     }
 
     restartPending();
-    check_for_processes_to_kill();
-
+    check_for_processes_to_kill() if %terminating_processes;
+    reaper() if %pids_to_reap;
   } # end while
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '
@@ -392,6 +386,7 @@ sub run {
 }
 
 sub cPrint {
+  # One thought here, if no client exists to read these... does it block?
   if ( fileno(CLIENT) ) {
     print CLIENT @_
   }
@@ -400,10 +395,7 @@ sub cPrint {
 # I think the purpose of this is to echo the logs to the client process so it can then display them. 
 sub dPrint {
   my $logLevel = shift;
-  # One thought here, if no client exists to read these... does it block?
-  if ( fileno(CLIENT) ) {
-    print CLIENT @_
-  }
+  cPrint(@_);
   if ( $logLevel == ZoneMinder::Logger::DEBUG ) {
     Debug(@_);
   } elsif ( $logLevel == ZoneMinder::Logger::INFO ) {
@@ -438,7 +430,11 @@ sub start {
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
+  # Apparently the child closing the db connection can affect the parent.
+  zmDbDisconnect();
   if ( my $cpid = fork() ) {
+
+    $dbh = zmDbConnect(1);
     # This logReinit is required.  Not sure why.
     #logReinit();
 
@@ -454,7 +450,9 @@ sub start {
     $cmd_hash{$process->{command}} = $pid_hash{$cpid} = $process;
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
   } elsif ( defined($cpid) ) {
-# Force reconnection to the db.
+    # Child process
+    
+    # Force reconnection to the db. $dbh got copied, but isn't really valid anymore.
     $dbh = zmDbConnect(1);
     logReinit();
 
@@ -471,7 +469,7 @@ sub start {
 
     my @good_args;
     foreach my $arg ( @args ) {
-# Detaint arguments, if they look ok
+      # Detaint arguments, if they look ok
       if ( $arg =~ /^(-{0,2}[\w\/?&=.-]+)$/ ) {
         push @good_args, $1;
       } else {
@@ -487,8 +485,8 @@ sub start {
       POSIX::close($fd++);
     }
 
-# Child process
     $SIG{CHLD} = 'DEFAULT';
+    $SIG{HUP} = 'DEFAULT';
     $SIG{INT} = 'DEFAULT';
     $SIG{TERM} = 'DEFAULT';
     $SIG{ABRT} = 'DEFAULT';
@@ -634,15 +632,24 @@ sub shutdown_sig_handler {
   $zm_terminate = 1;
 }
 
-sub reaper {
+sub chld_sig_handler {
   my $saved_status = $!;
 
   # Wait for a child to terminate
   while ( (my $cpid = waitpid(-1, WNOHANG)) > 0 ) {
-    my $status = $?;
+    $pids_to_reap{$cpid} = { status=>$?, stopped=>time() };
+  } # end while waitpid
+  $SIG{CHLD} = \&chld_sig_handler;
+  $! = $saved_status;
+}
 
+sub reaper {
+  foreach my $cpid ( keys %pids_to_reap ) {
     my $process = $pid_hash{$cpid};
     delete $pid_hash{$cpid};
+    my $reap_info = $pids_to_reap{$cpid};
+    my ( $status, $stopped ) = @$reap_info{'status','stopped'};
+    delete $pids_to_reap{$cpid};
 
     if ( !$process ) {
       dPrint(ZoneMinder::Logger::INFO, "Can't find child with pid of '$cpid'\n");
@@ -651,7 +658,7 @@ sub reaper {
     delete $terminating_processes{$$process{command}};
     delete $$process{term_sent_at};
 
-    $process->{stopped} = time();
+    $process->{stopped} = $stopped;
     $process->{runtime} = ($process->{stopped}-$process->{started});
     delete $process->{pid};
 
@@ -704,10 +711,8 @@ sub reaper {
     } else {
       delete $cmd_hash{$$process{command}};
     }
-  } # end while waitpid
-  $SIG{CHLD} = \&reaper;
-  $! = $saved_status;
-}
+  } # end foreach pid_to_reap
+} # end sub reaper
 
 sub restartPending {
 # Restart any pending processes, we list them first because cmd_hash may change in foreach
@@ -727,6 +732,8 @@ sub shutdownAll {
     send_stop(1, $pid_hash{$pid});
   }
   while ( keys %terminating_processes ) {
+
+    reaper() if %pids_to_reap;
     check_for_processes_to_kill();
     if ( %terminating_processes ) {
       Debug("Still " .  %terminating_processes . ' to die. sleeping');

@@ -334,11 +334,11 @@ function getZmuCommand( $args ) {
 
   if ( ZM_OPT_USE_AUTH ) {
     if ( ZM_AUTH_RELAY == 'hashed' ) {
-      $zmuCommand .= ' -A '.generateAuthHash( false );
+      $zmuCommand .= ' -A '.generateAuthHash(false, true);
     } elseif ( ZM_AUTH_RELAY == 'plain' ) {
       $zmuCommand .= ' -U ' .escapeshellarg($_SESSION['username']).' -P '.escapeshellarg($_SESSION['password']);
     } elseif ( ZM_AUTH_RELAY == 'none' ) {
-      $zmuCommand .= " -U ".escapeshellarg($_SESSION['username']);
+      $zmuCommand .= ' -U '.escapeshellarg($_SESSION['username']);
     }
   }
 
@@ -2063,7 +2063,7 @@ function cache_bust( $file ) {
   global $css;
   $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
   $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
-  if ( file_exists( ZM_DIR_CACHE.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile ) ) {
+  if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
     return 'cache/'.$cacheFile;
   } else {
     Warning("Failed linking $file to $cacheFile");
@@ -2159,12 +2159,13 @@ function getStreamHTML( $monitor, $options = array() ) {
     $options['buffer'] = $monitor->StreamReplayBuffer();
   //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
 
-  if ( $monitor->Type() == "WebSite" ) {
-         return getWebSiteUrl( 'liveStream'.$monitor->Id(), $monitor->Path(),
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-        );
+  if ( $monitor->Type() == 'WebSite' ) {
+    return getWebSiteUrl(
+      'liveStream'.$monitor->Id(), $monitor->Path(),
+      ( isset($options['width']) ? $options['width'] : NULL ),
+      ( isset($options['height']) ? $options['height'] : NULL ),
+      $monitor->Name()
+    );
   //FIXME, the width and height of the image need to be scaled.
   } else if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array(
@@ -2177,7 +2178,7 @@ function getStreamHTML( $monitor, $options = array() ) {
     return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
   } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';
-    $streamSrc = $monitor->getStreamSrc( $options );
+    $streamSrc = $monitor->getStreamSrc($options);
 
     if ( canStreamNative() )
       return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());

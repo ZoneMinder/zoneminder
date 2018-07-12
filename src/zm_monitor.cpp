@@ -1544,7 +1544,7 @@ bool Monitor::Analyse() {
         if ( score ) {
           if ( state == IDLE || state == TAPE || state == PREALARM ) {
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
-              Info("%s: %03d - Gone into alarm state %u > %u",
+              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u",
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count);
               shared_data->state = state = ALARM;
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
@@ -1576,6 +1576,9 @@ Error("Creating new event when one exists");
                     pre_index = ((index + image_buffer_count) - ((alarm_frame_count - 1) + pre_event_count))%image_buffer_count;
                   else
                     pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
+
+                  Debug(4,"Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d) % %d",
+                      pre_index, index, image_buffer_count, pre_event_count, image_buffer_count);
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position

@@ -85,7 +85,7 @@ New installs
    When in doubt, proceed with the default:
 
      sudo ln -s /etc/zm/www/zoneminder.conf /etc/httpd/conf.d/
-     sudo dnf install mod_ssl
+     sudo yum install mod_ssl
 
 7. Now start the web server:
 

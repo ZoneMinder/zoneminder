@@ -685,14 +685,14 @@ int FfmpegCamera::Close() {
 
 //Function to handle capture and store
 int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event_file ) {
-  if ( ! mCanCapture ) {
+  if ( !mCanCapture ) {
     return -1;
   }
   int ret;
   static char errbuf[AV_ERROR_MAX_STRING_SIZE];
   
   int frameComplete = false;
-  while ( ! frameComplete ) {
+  while ( !frameComplete ) {
     av_init_packet(&packet);
 
     ret = av_read_frame(mFormatContext, &packet);
@@ -874,18 +874,18 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       }
 #if HAVE_AVUTIL_HWCONTEXT_H
         if ( hwaccel ) {
-          ret = avcodec_receive_frame( mVideoCodecContext, hwFrame );
+          ret = avcodec_receive_frame(mVideoCodecContext, hwFrame);
           if ( ret < 0 ) {
-            av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-            Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-            zm_av_packet_unref( &packet );
+            av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            Error("Unable to send packet at frame %d: %s, continuing", frameCount, errbuf);
+            zm_av_packet_unref(&packet);
             continue;
           }
           ret = av_hwframe_transfer_data(mRawFrame, hwFrame, 0);
           if (ret < 0) {
-            av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-            Error( "Unable to transfer frame at frame %d: %s, continuing", frameCount, errbuf );
-            zm_av_packet_unref( &packet );
+            av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            Error("Unable to transfer frame at frame %d: %s, continuing", frameCount, errbuf);
+            zm_av_packet_unref(&packet);
             continue;
           }
         } else {

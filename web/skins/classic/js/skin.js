@@ -182,7 +182,7 @@ function refreshParentWindow() {
   }
 }
 
-if ( currentView != 'none' ) {
+if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
@@ -197,6 +197,8 @@ if ( currentView != 'none' ) {
       .fail(function( jqxhr, textStatus, error ) {
         var err = textStatus + ", " + error;
         console.log( "Request Failed: " + err );
+        // The idea is that this should only fail due to auth, so reload the page
+        // which should go to login if it can't stay logged in.
         window.location.href = thisUrl;
       });
   }

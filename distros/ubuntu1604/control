@@ -11,6 +11,8 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libavformat-dev  (>= 6:10~)
               ,libavutil-dev (>= 6:10~)
               ,libswscale-dev (>= 6:10~)
+              ,ffmpeg | libav-tools
+              ,net-tools
               ,libbz2-dev
               ,libgcrypt-dev | libgcrypt11-dev
               ,libcurl4-gnutls-dev

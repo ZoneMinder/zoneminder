@@ -114,23 +114,23 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
       // as it produces the same error as when you don't answer a recaptcha
       if (isset($responseData['error-codes']) && is_array($responseData['error-codes'])) {
         if (!in_array('invalid-input-secret',$responseData['error-codes'])) {	
-          Error ('reCaptcha authentication failed');
+          Error('reCaptcha authentication failed');
           userLogout();
           $view='login';
           $refreshParent = true;
+          return;
         } else {
           //Let them login but show an error
           echo '<script type="text/javascript">alert("'.translate('RecaptchaWarning').'"); </script>';
-          Error ('Invalid recaptcha secret detected');
+          Error('Invalid recaptcha secret detected');
         }
       }
     } // end if success==false
-
   } // end if using reCaptcha
 
-  $username = validStr( $_REQUEST['username'] );
+  $username = validStr($_REQUEST['username']);
   $password = isset($_REQUEST['password'])?validStr($_REQUEST['password']):'';
-  userLogin( $username, $password );
+  userLogin($username, $password);
   $refreshParent = true;
   $view = 'console';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';

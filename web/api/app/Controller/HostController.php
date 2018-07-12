@@ -30,12 +30,41 @@ class HostController extends AppController {
 		));
 	}
 
-  function getCredentials() {
-    // ignore debug warnings from other functions
-    $this->view='Json';
-    $credentials = '';
-    $appendPassword = 0;
 
+	
+	function login() {
+
+		// AppController will take care of user=&pass=
+		$cred = $this->_getCredentials();
+		$ver = $this->_getVersion();
+		$this->set(array(
+			'credentials' => $cred[0],
+			'append_password'=>$cred[1],
+			'version' => $ver[0],
+			'apiversion' => $ver[1],
+			'_serialize' => array('credentials',
+														'append_password',
+														'version',
+														'apiversion'
+			)));
+	
+	}
+
+	// clears out session
+	function logout() {
+		global $user;
+		$this->Session->Write('user', null);
+
+		$this->set(array(
+			'result' => 'ok',
+			'_serialize' => array('result')
+		));
+
+	}
+	
+	private function _getCredentials() {
+		$credentials = '';
+    $appendPassword = 0;
     $this->loadModel('Config');
     $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
 
@@ -51,13 +80,23 @@ class HostController extends AppController {
       } else if ( $zmAuthRelay == 'none' ) {
         $credentials = 'user='.$this->Session->read('user.Username');
       }
-    }
+		}
+		return array($credentials, $appendPassword);
+
+	}
+
+  function getCredentials() {
+    // ignore debug warnings from other functions
+    $this->view='Json';
+    $val = $this->_getCredentials();
     $this->set(array(
-      'credentials'=> $credentials,
-      'append_password'=>$appendPassword,
+      'credentials'=> $val[0],
+      'append_password'=>$val[1],
       '_serialize'  =>  array('credentials', 'append_password')
     ) );
-  }
+	}
+	
+	
 
 	// If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor
@@ -136,17 +175,17 @@ class HostController extends AppController {
     ));
   }
 
-	function getVersion() {
-		//throw new UnauthorizedException(__('API Disabled'));
+	private function _getVersion() {
 		$version = Configure::read('ZM_VERSION');
-		// not going to use the ZM_API_VERSION
-		// requires recompilation and dependency on ZM upgrade
-		//$apiversion = Configure::read('ZM_API_VERSION');
 		$apiversion = '1.0';
+		return array($version, $apiversion);
+	}
 
+	function getVersion() {
+		$val = $this->_getVersion();
 		$this->set(array(
-			'version' => $version,
-			'apiversion' => $apiversion,
+			'version' => $val[0],
+			'apiversion' => $val[1],
 			'_serialize' => array('version', 'apiversion')
 		));
 	}

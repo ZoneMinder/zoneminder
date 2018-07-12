@@ -51,6 +51,8 @@ require_once( 'includes/Event.php' );
 require_once( 'includes/Group.php' );
 require_once( 'includes/Monitor.php' );
 
+if ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') $_SERVER['HTTPS']='on';
+
 if ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ) {
   $protocol = 'https';
 } else {

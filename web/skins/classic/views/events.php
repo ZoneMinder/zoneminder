@@ -153,17 +153,17 @@ while ( $event_row = dbFetchNext($results) ) {
   if ( ($count++%ZM_WEB_EVENTS_PER_PAGE) == 0 ) {
 ?>
             <tr>
-              <th class="colId"><a href="<?php echo sortHeader( 'Id' ) ?>"><?php echo translate('Id') ?><?php echo sortTag( 'Id' ) ?></a></th>
-              <th class="colName"><a href="<?php echo sortHeader( 'Name' ) ?>"><?php echo translate('Name') ?><?php echo sortTag( 'Name' ) ?></a></th>
-              <th class="colMonitor"><a href="<?php echo sortHeader( 'MonitorName' ) ?>"><?php echo translate('Monitor') ?><?php echo sortTag( 'MonitorName' ) ?></a></th>
-              <th class="colCause"><a href="<?php echo sortHeader( 'Cause' ) ?>"><?php echo translate('Cause') ?><?php echo sortTag( 'Cause' ) ?></a></th>
-              <th class="colTime"><a href="<?php echo sortHeader( 'StartTime' ) ?>"><?php echo translate('Time') ?><?php echo sortTag( 'StartTime' ) ?></a></th>
-              <th class="colDuration"><a href="<?php echo sortHeader( 'Length' ) ?>"><?php echo translate('Duration') ?><?php echo sortTag( 'Length' ) ?></a></th>
-              <th class="colFrames"><a href="<?php echo sortHeader( 'Frames' ) ?>"><?php echo translate('Frames') ?><?php echo sortTag( 'Frames' ) ?></a></th>
-              <th class="colAlarmFrames"><a href="<?php echo sortHeader( 'AlarmFrames' ) ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag( 'AlarmFrames' ) ?></a></th>
-              <th class="colTotScore"><a href="<?php echo sortHeader( 'TotScore' ) ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag( 'TotScore' ) ?></a></th>
-              <th class="colAvgScore"><a href="<?php echo sortHeader( 'AvgScore' ) ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
-              <th class="colMaxScore"><a href="<?php echo sortHeader( 'MaxScore' ) ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
+              <th class="colId"><a href="<?php echo sortHeader('Id') ?>"><?php echo translate('Id') ?><?php echo sortTag('Id') ?></a></th>
+              <th class="colName"><a href="<?php echo sortHeader('Name') ?>"><?php echo translate('Name') ?><?php echo sortTag('Name') ?></a></th>
+              <th class="colMonitor"><a href="<?php echo sortHeader('MonitorName') ?>"><?php echo translate('Monitor') ?><?php echo sortTag('MonitorName') ?></a></th>
+              <th class="colCause"><a href="<?php echo sortHeader('Cause') ?>"><?php echo translate('Cause') ?><?php echo sortTag('Cause') ?></a></th>
+              <th class="colTime"><a href="<?php echo sortHeader('StartTime') ?>"><?php echo translate('Time') ?><?php echo sortTag('StartTime') ?></a></th>
+              <th class="colDuration"><a href="<?php echo sortHeader('Length') ?>"><?php echo translate('Duration') ?><?php echo sortTag('Length') ?></a></th>
+              <th class="colFrames"><a href="<?php echo sortHeader('Frames') ?>"><?php echo translate('Frames') ?><?php echo sortTag('Frames') ?></a></th>
+              <th class="colAlarmFrames"><a href="<?php echo sortHeader('AlarmFrames') ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag('AlarmFrames') ?></a></th>
+              <th class="colTotScore"><a href="<?php echo sortHeader('TotScore') ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag('TotScore') ?></a></th>
+              <th class="colAvgScore"><a href="<?php echo sortHeader('AvgScore') ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag('AvgScore') ?></a></th>
+              <th class="colMaxScore"><a href="<?php echo sortHeader('MaxScore') ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag('MaxScore') ?></a></th>
 <?php
     if ( count($storage_areas) > 1 ) { 
 ?>
@@ -181,7 +181,7 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
     }
 ?>
-              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markEids');"/></th>
+              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'eids[]');"/></th>
             </tr>
 <?php
   }
@@ -225,7 +225,7 @@ while ( $event_row = dbFetchNext($results) ) {
       echo '</td>';
   } // end if ZM_WEB_LIST_THUMBS
 ?>
-              <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event->Id() ?>" onclick="configureButton(this, 'markEids');"/></td>
+              <td class="colMark"><input type="checkbox" name="eids[]" value="<?php echo $event->Id() ?>" onclick="configureButton(this, 'eids[]');"/></td>
             </tr>
 <?php
 }
@@ -266,13 +266,27 @@ if ( $pagination ) {
 if ( true || canEdit( 'Events' ) ) {
 ?>
         <div id="contentButtons">
-          <input type="button" name="viewBtn" value="<?php echo translate('View') ?>" onclick="viewEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="archiveBtn" value="<?php echo translate('Archive') ?>" onclick="archiveEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="unarchiveBtn" value="<?php echo translate('Unarchive') ?>" onclick="unarchiveEvents( this, 'markEids' );" disabled="disabled"/>
-          <input type="button" name="editBtn" value="<?php echo translate('Edit') ?>" onclick="editEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="exportBtn" value="<?php echo translate('Export') ?>" onclick="exportEvents( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="downloadBtn" value="<?php echo translate('DownloadVideo') ?>" onclick="downloadVideo( this, 'markEids' )" disabled="disabled"/>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteEvents( this, 'markEids' );" disabled="disabled"/>
+          <button type="button" name="viewBtn" value="View" onclick="viewEvents(this, 'eids[]');" disabled="disabled">
+          <?php echo translate('View') ?>"
+          </button>
+          <button type="button" name="archiveBtn" value="Archive" onclick="archiveEvents(this, 'eids[]')" disabled="disabled">
+          <?php echo translate('Archive') ?>
+          </button>
+          <button type="button" name="unarchiveBtn" value="Unarchive" onclick="unarchiveEvents(this, 'eids[]');" disabled="disabled">
+          <?php echo translate('Unarchive') ?>
+          </button>
+          <button type="button" name="editBtn" value="Edit" onclick="editEvents(this, 'eids[]')" disabled="disabled">
+          <?php echo translate('Edit') ?>
+          </button>
+          <button type="button" name="exportBtn" value="Export" onclick="exportEvents(this, 'eids[]')" disabled="disabled">
+          <?php echo translate('Export') ?>
+          </button>
+          <button type="button" name="downloadBtn" value="DownloadVideo" onclick="downloadVideo(this, 'eids[]')" disabled="disabled">
+          <?php echo translate('DownloadVideo') ?>
+          </button>
+          <button type="button" name="deleteBtn" value="Delete" onclick="deleteEvents(this, 'eids[]');" disabled="disabled">
+          <?php echo translate('Delete') ?>
+          </button>
         </div>
 <?php
 }

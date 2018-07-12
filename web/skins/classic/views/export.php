@@ -67,13 +67,15 @@ if ( $user['MonitorIds'] ) {
   $eventsSql .= ' 1';
 }
 
-if ( !empty($_REQUEST['eid']) ) {
+if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
+  Logger::Debug("Loading events by single eid");
   $eventsSql .= ' AND E.Id=?';
   $eventsValues[] = $_REQUEST['eid'];
-} elseif ( !empty($_REQUEST['eids']) ) {
+} elseif ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
+  Logger::Debug("Loading events by eids");
   $eventsSql .= ' AND E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
   $eventsValues += $_REQUEST['eids'];
-} else if ( !empty($_REQUEST['filter']) ) {
+} else if ( isset($_REQUEST['filter']) ) {
   parseSort();
   parseFilter($_REQUEST['filter']);
   $filterQuery = $_REQUEST['filter']['query'];
@@ -194,7 +196,7 @@ while ( $event_row = dbFetchNext($results) ) {
     }
     if ( !empty($_REQUEST['generated']) ) {
 ?>
-      <button href="<?php echo validHtmlStr($_REQUEST['exportFile']) ?>"><?php echo translate('Download') ?></button>
+      <button type="button" onclick="startDownload('<?php echo validHtmlStr($_REQUEST['exportFile']) ?>');"><?php echo translate('Download') ?></button>
 <?php
     }
 ?>

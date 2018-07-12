@@ -70,76 +70,9 @@ class AppController extends Controller {
       throw new UnauthorizedException(__('API Disabled'));
       return; 
 		}
-		
-    $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
-    $config = $this->Config->find('first', $options);
-    $zmOptAuth = $config['Config']['Value'];
+    
+  
 
-    if ( $zmOptAuth == '1' ) {
-      require_once "../../../includes/auth.php";
-
-      global $user;
-      $user = $this->Session->read('user');
-
-     
-      if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
-        $user = userLogin($_REQUEST['user'],$_REQUEST['pass']);
-        if ( !$user ) {
-          throw new UnauthorizedException(__('User not found or incorrect password'));
-          return;
-        }
-      }
-
-      if ( isset($_REQUEST['auth']) ) {
-        $user = getAuthUser($_REQUEST['auth']);
-        if ( ! $user ) {
-          throw new UnauthorizedException(__('User not found or incorrect password'));
-          return;
-        }
-      } # end if REQUEST['auth']
-
-      if ( 0 and $user ) {
-        # We have to redo the session variables because cakephp's Session code will overwrite the normal php session
-        # Actually I'm not sure that is true.  Getting indeterminate behaviour
-        Logger::Debug("user.Username: " . $this->Session->read('user.Username'));
-        if ( ! $this->Session->Write('user', $user) )
-          $this->log("Error writing session var user");
-        Logger::Debug("user.Username: " . $this->Session->read('user.Username'));
-        if ( ! $this->Session->Write('user.Username', $user['Username']) )
-          $this->log("Error writing session var user.Username");
-        if ( ! $this->Session->Write('password', $user['Password']) )
-          $this->log("Error writing session var user.Username");
-        if ( ! $this->Session->Write('user.Enabled', $user['Enabled']) )
-          $this->log("Error writing session var user.Enabled");
-        if ( ! $this->Session->Write('remoteAddr', $_SERVER['REMOTE_ADDR']) )
-          $this->log("Error writing session var remoteAddr");
-      }
-
-     
-
-      if ( ! $this->Session->read('user.Username') ) {
-        throw new UnauthorizedException(__('Not Authenticated'));
-        return;
-      } else if ( ! $this->Session->read('user.Enabled') ) {
-        throw new UnauthorizedException(__('User is not enabled'));
-        return;
-      }
-
-      $this->Session->Write('allowedMonitors',$user['MonitorIds']);
-      $this->Session->Write('streamPermission',$user['Stream']);
-      $this->Session->Write('eventPermission',$user['Events']);
-      $this->Session->Write('controlPermission',$user['Control']);
-      $this->Session->Write('systemPermission',$user['System']);
-      $this->Session->Write('monitorPermission',$user['Monitors']);
-    } else {
-      // if auth is not on, you can do everything
-      //$userMonitors = $this->User->find('first', $options);
-      $this->Session->Write('allowedMonitors','');
-      $this->Session->Write('streamPermission','View');
-      $this->Session->Write('eventPermission','Edit');
-      $this->Session->Write('controlPermission','Edit');
-      $this->Session->Write('systemPermission','Edit');
-      $this->Session->Write('monitorPermission','Edit');
-    }
+   
   } # end function beforeFilter()
 }

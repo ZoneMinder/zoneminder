@@ -78,35 +78,41 @@ class AppController extends Controller {
     if ( $zmOptAuth == '1' ) {
       require_once "../../../includes/auth.php";
 
-      $this->loadModel('User');
+      global $user;
+      $user = $this->Session->read('user');
+
       if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
-        $user = $this->User->find('first', array ('conditions' => array (
-                'User.Username' => $_REQUEST['user'],
-                'User.Password' => DboSource::expression('PASSWORD(\''.$_REQUEST['pass'].'\')'),
-                )) );
-        if ( ! $user ) {
+        $user = userLogin($_REQUEST['user'],$_REQUEST['pass']);
+        if ( !$user ) {
           throw new UnauthorizedException(__('User not found'));
           return;
-        } else {
-          $this->Session->Write( 'user', $user['User'] );
-          $this->Session->Write( 'user.Username', $user['User']['Username'] );
-          $this->Session->Write( 'user.Enabled', $user['User']['Enabled'] );
         }
       }
 
       if ( isset($_REQUEST['auth']) ) {
-
         $user = getAuthUser($_REQUEST['auth']);
         if ( ! $user ) {
           throw new UnauthorizedException(__('User not found'));
           return;
-        } else {
-          if ( ! $this->Session->Write('user.Username', $user['Username']) )
-              $this->log("Error writing session var user.Username");
-          if ( ! $this->Session->Write('user.Enabled', $user['Enabled']) )
-            $this->log("Error writing session var user.Enabled");
         }
       } # end if REQUEST['auth']
+
+      if ( 0 and $user ) {
+        # We have to redo the session variables because cakephp's Session code will overwrite the normal php session
+        # Actually I'm not sure that is true.  Getting indeterminate behaviour
+        Logger::Debug("user.Username: " . $this->Session->read('user.Username'));
+        if ( ! $this->Session->Write('user', $user) )
+          $this->log("Error writing session var user");
+        Logger::Debug("user.Username: " . $this->Session->read('user.Username'));
+        if ( ! $this->Session->Write('user.Username', $user['Username']) )
+          $this->log("Error writing session var user.Username");
+        if ( ! $this->Session->Write('password', $user['Password']) )
+          $this->log("Error writing session var user.Username");
+        if ( ! $this->Session->Write('user.Enabled', $user['Enabled']) )
+          $this->log("Error writing session var user.Enabled");
+        if ( ! $this->Session->Write('remoteAddr', $_SERVER['REMOTE_ADDR']) )
+          $this->log("Error writing session var remoteAddr");
+      }
 
       if ( ! $this->Session->read('user.Username') ) {
         throw new UnauthorizedException(__('Not Authenticated'));
@@ -116,14 +122,12 @@ class AppController extends Controller {
         return;
       }
 
-      $options = array ('conditions' => array ('User.Username' => $this->Session->Read('user.Username')));
-      $userMonitors = $this->User->find('first', $options);
-      $this->Session->Write('allowedMonitors',$userMonitors['User']['MonitorIds']);
-      $this->Session->Write('streamPermission',$userMonitors['User']['Stream']);
-      $this->Session->Write('eventPermission',$userMonitors['User']['Events']);
-      $this->Session->Write('controlPermission',$userMonitors['User']['Control']);
-      $this->Session->Write('systemPermission',$userMonitors['User']['System']);
-      $this->Session->Write('monitorPermission',$userMonitors['User']['Monitors']);
+      $this->Session->Write('allowedMonitors',$user['MonitorIds']);
+      $this->Session->Write('streamPermission',$user['Stream']);
+      $this->Session->Write('eventPermission',$user['Events']);
+      $this->Session->Write('controlPermission',$user['Control']);
+      $this->Session->Write('systemPermission',$user['System']);
+      $this->Session->Write('monitorPermission',$user['Monitors']);
     } else {
       // if auth is not on, you can do everything
       //$userMonitors = $this->User->find('first', $options);
@@ -134,8 +138,5 @@ class AppController extends Controller {
       $this->Session->Write('systemPermission','Edit');
       $this->Session->Write('monitorPermission','Edit');
     }
-		
-		
   } # end function beforeFilter()
-
 }

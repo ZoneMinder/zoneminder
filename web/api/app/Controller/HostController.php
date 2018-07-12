@@ -2,7 +2,7 @@
 App::uses('AppController', 'Controller');
 
 class HostController extends AppController {
-	
+
 	public $components = array('RequestHandler');
 
 	public function daemonCheck($daemon=false, $args=false) {
@@ -30,37 +30,34 @@ class HostController extends AppController {
 		));
 	}
 
- function getCredentials() {
+  function getCredentials() {
     // ignore debug warnings from other functions
-	$this->view='Json';
-	$credentials = "";
-	$appendPassword = 0;
-	
-	$this->loadModel('Config');
+    $this->view='Json';
+    $credentials = '';
+    $appendPassword = 0;
+
+    $this->loadModel('Config');
     $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
- 
-    if ($isZmAuth) {
-        $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
-        if ($zmAuthRelay == 'hashed') {
-           $zmAuthHashIps= $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
-            $credentials = 'auth='.generateAuthHash($zmAuthHashIps);
-        }
-        elseif ($zmAuthRelay == 'plain') {
-            // user will need to append the store password here
-            $credentials = "user=".$this->Session->read('user.Username')."&pass=";
-            $appendPassword = 1;
-        }
-        elseif ($zmAuthRelay == 'none') {
-            $credentials = "user=".$this->Session->read('user.Username');
-        }    
+
+    if ( $isZmAuth ) {
+      $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
+      if ( $zmAuthRelay == 'hashed' ) {
+        $zmAuthHashIps= $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
+        $credentials = 'auth='.generateAuthHash($zmAuthHashIps);
+      } else if ( $zmAuthRelay == 'plain' ) {
+        // user will need to append the store password here
+        $credentials = 'user='.$this->Session->read('user.Username').'&pass=';
+        $appendPassword = 1;
+      } else if ( $zmAuthRelay == 'none' ) {
+        $credentials = 'user='.$this->Session->read('user.Username');
+      }
     }
     $this->set(array(
       'credentials'=> $credentials,
       'append_password'=>$appendPassword,
       '_serialize'  =>  array('credentials', 'append_password')
     ) );
- }
-
+  }
 
 	// If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor
@@ -70,7 +67,7 @@ class HostController extends AppController {
 		$this->loadModel('Monitor');
 
 		// If $mid is passed, see if it is valid
-		if ($mid) {	
+		if ($mid) {
 			if (!$this->Monitor->exists($mid)) {
 				throw new NotFoundException(__('Invalid monitor'));
 			}

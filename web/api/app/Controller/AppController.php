@@ -81,10 +81,11 @@ class AppController extends Controller {
       global $user;
       $user = $this->Session->read('user');
 
+     
       if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
         $user = userLogin($_REQUEST['user'],$_REQUEST['pass']);
         if ( !$user ) {
-          throw new UnauthorizedException(__('User not found'));
+          throw new UnauthorizedException(__('User not found or incorrect password'));
           return;
         }
       }
@@ -92,7 +93,7 @@ class AppController extends Controller {
       if ( isset($_REQUEST['auth']) ) {
         $user = getAuthUser($_REQUEST['auth']);
         if ( ! $user ) {
-          throw new UnauthorizedException(__('User not found'));
+          throw new UnauthorizedException(__('User not found or incorrect password'));
           return;
         }
       } # end if REQUEST['auth']
@@ -113,6 +114,8 @@ class AppController extends Controller {
         if ( ! $this->Session->Write('remoteAddr', $_SERVER['REMOTE_ADDR']) )
           $this->log("Error writing session var remoteAddr");
       }
+
+     
 
       if ( ! $this->Session->read('user.Username') ) {
         throw new UnauthorizedException(__('Not Authenticated'));

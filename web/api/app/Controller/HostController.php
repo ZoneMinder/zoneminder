@@ -44,6 +44,8 @@ class HostController extends AppController {
       global $user;
       $user = $this->Session->read('user');
 
+      
+     
       $mUser = $this->request->data('user');
       $mPassword = $this->request->data('pass');
       $mAuth = $this->request->data('auth');
@@ -87,13 +89,15 @@ class HostController extends AppController {
 
      
 
-      /*if ( ! $this->Session->read('user.Username') ) {
+      // I don't think this is really needed - the Username part
+      // Enabled check is ok
+      if ( !$user['Username'] ) {
         throw new UnauthorizedException(__('Not Authenticated'));
         return;
-      } else if ( ! $this->Session->read('user.Enabled') ) {
+      } else if ( !$user['Enabled'] ) {
         throw new UnauthorizedException(__('User is not enabled'));
         return;
-      }*/
+      }
 
 
       $this->Session->Write('allowedMonitors',$user['MonitorIds']);

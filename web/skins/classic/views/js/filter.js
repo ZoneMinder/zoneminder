@@ -81,7 +81,7 @@ function submitToEvents( element ) {
 
 function submitToExport(element) {
   var form = element.form;
-  createPopup('?view=export&filter='+$j(form).serialize(), 'zmExport', 'export' );
+  window.location.assign('?view=export&filter='+$j(form).serialize());
   //createPopup('?view=export&filter_id='+form.elements['Id'].value, 'zmExport', 'export' );
 }
 

@@ -61,7 +61,7 @@ function userLogin($username, $password='', $passwordHashed=false) {
   }
   if ( $close_session )
     session_write_close();
-  return $user;
+  return isset($user) ? $user: null;
 } # end function userLogin
 
 function userLogout() {

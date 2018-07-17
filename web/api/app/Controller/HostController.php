@@ -39,8 +39,8 @@ class HostController extends AppController {
     $zmOptAuth = $config['Config']['Value'];
 
     if ( $zmOptAuth == '1' ) {
-      require_once "../../../includes/auth.php";
 
+      require_once "../../../includes/auth.php";
       global $user;
       $user = $this->Session->read('user');
 
@@ -152,6 +152,8 @@ class HostController extends AppController {
     $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
 
     if ( $isZmAuth ) {
+      require_once "../../../includes/auth.php"; # in the event we directly call getCredentials.json
+      $this->Session->read('user'); # this is needed for command line/curl to recognize a session
       $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
       if ( $zmAuthRelay == 'hashed' ) {
         $zmAuthHashIps= $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];

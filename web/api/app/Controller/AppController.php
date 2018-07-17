@@ -72,10 +72,8 @@ class AppController extends Controller {
     }
   // We need to reject methods that are not authenticated
   // besides login and logout
-    if (strcasecmp($this->params->controller, "host") && 
-        strcasecmp($this->params->action, "login") &&
+    if ( strcasecmp($this->params->action, "login") &&
         strcasecmp($this->params->action,"logout")) {
-
           if (!$this->Session->read('user.Username')) {
                 throw new UnauthorizedException(__('Not Authenticated'));
                 return;

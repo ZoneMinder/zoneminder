@@ -36,6 +36,12 @@ if ( isset($_SESSION['export']) ) {
     $_REQUEST['exportMisc'] = $_SESSION['export']['misc'];
   if ( isset($_SESSION['export']['format']) )
     $_REQUEST['exportFormat'] = $_SESSION['export']['format'];
+} else {
+  $_REQUEST['exportDetail'] =
+  $_REQUEST['exportFrames'] =
+  $_REQUEST['exportImages'] =
+  $_REQUEST['exportVideo'] =
+  $_REQUEST['exportMisc'] = 1;
 }
 
 $focusWindow = true;

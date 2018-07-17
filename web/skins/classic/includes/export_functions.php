@@ -268,17 +268,17 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
 } else { // end if DefaultVideo
 ?>
 <ilayer id="slidensmain" width=&{slidewidth}; height=&{slideheight}; bgColor=&{slidebgcolor}; visibility=hide>
-  <layer id="slidenssub" width=&{slidewidth}; left=auto top=auto></layer>
+  <layer id="slidenssub" width="&{slidewidth};" left="auto" top="auto"></layer>
 </ilayer>
 <div id="imagevideo" align="center"></div>
 <br>
 <div align="center">
-  <button onclick="stepbackward()">&lt; Step</button>
-  <button id="btnrwd" onclick="rewind()" >Rwd</button>
-  <button id="btnplay" onclick="playstop()">Stop</button>
-  <button onclick="stepforward()">Step &gt;</button>
-  <button id="btnspeedup" onclick="speedup()">speedup</button>
-  <button id="btnspeeddown" onclick="speeddown()">slowdown</button>
+  <button type="button" onclick="stepbackward()">&lt; Step</button>
+  <button type="button" id="btnrwd" onclick="rewind()" >Rwd</button>
+  <button type="button" id="btnplay" onclick="playstop()">Stop</button>
+  <button type="button" onclick="stepforward()">Step &gt;</button>
+  <button type="button" id="btnspeedup" onclick="speedup()">speedup</button>
+  <button type="button" id="btnspeeddown" onclick="speeddown()">slowdown</button>
 </div>
 <div align="center"><div class="horizontal_track" >
 	<div class="horizontal_slit" >&nbsp;</div>
@@ -303,7 +303,7 @@ var variableslide=[<?php echo $slides?>];
 //configure the below 3 variables to set the dimension/background color of the slideshow
 
 var slidewidth=eventWidth+'px'; //set to width of LARGEST image in your slideshow
-var slideheight=eventHeight+'px'; //set to height of LARGEST iamge in your slideshow, plus any text description
+var slideheight=eventHeight+'px'; //set to height of LARGEST image in your slideshow, plus any text description
 var slidebgcolor='#ffffff';
 
 //configure the below variable to determine the delay between image rotations (in miliseconds)
@@ -324,7 +324,7 @@ var currentslide = -1;
 var mytimer = null;
 
 //if (ie||dom) document.write('<div id="slidedom" style="width:'+slidewidth+'px;height:'+slideheight+'; background-color:'+slidebgcolor+'"></div>');
-if (ie||dom) document.getElementById('imagevideo').innerHTML = '<div id="slidedom" style="width:'+slidewidth+'px;height:'+slideheight+'; background-color:'+slidebgcolor+'"><img src="" name="imageslideframe"></div>';
+if (ie||dom) document.getElementById('imagevideo').innerHTML = '<div id="slidedom" style="width:'+slidewidth+';height:'+slideheight+'; background-color:'+slidebgcolor+'"><img src="" name="imageslideframe"></div>';
 
 function rotateimages(){
 	if (currentslide==variableslide.length-1) currentslide=0;
@@ -378,7 +378,6 @@ function stepforward() {
 	else currentslide++;
 
 	changeimage();
-
 }
 
 function stepbackward() {
@@ -867,11 +866,16 @@ function exportEvents(
   }
   foreach ( $eids as $eid ) {
     $event = new Event($eid);
-    if ( !mkdir($export_dir.'/'.$event->Id()) )
-      Error("Can't mkdir $export_dir/".$event->Id());
-    $exportFileList = array_merge($exportFileList, exportFileList($event, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc));
-    foreach ( $exportFileList as $file ) {
-      exec('cp -as '.$event->Path().'/../'.$file." $export_dir/$file");
+    $event_dir = $export_dir.'/'.$event->Id();
+    if ( !mkdir($event_dir) )
+      Error("Can't mkdir $event_dir");
+    $event_exportFileList = exportFileList($event, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc);
+    $exportFileList = array_merge($exportFileList,$event_exportFileList);
+    foreach ( $event_exportFileList as $file ) {
+     if ( preg_match('/\.html$/', $file ) )
+        continue;
+      Logger::Debug('cp -as '.$event->Path().'/../'.$file.' '.$export_dir.'/'.$file);
+      exec('cp -as '.$event->Path().'/../'.$file.' '.$export_dir.'/'.$file);
     }
   }
 
@@ -905,11 +909,11 @@ function exportEvents(
   fwrite($fp, "$listFile\n");
   fclose($fp);
 
+  chdir(ZM_DIR_EXPORTS);
   $archive = '';
   if ( $exportFormat == 'tar' ) {
     $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.tar.gz';
     @unlink($archive);
-    chdir(ZM_DIR_EXPORTS);
     $command = 'nice -10 tar --create --gzip --dereference --file='.escapeshellarg($archive).' zmExport_'.$connkey.'/';
     #$command = 'nice -10 tar --create --gzip --file='.escapeshellarg($archive).' --files-from='.escapeshellarg($listFile);
     if ( $exportStructure == 'flat' ) {
@@ -920,17 +924,17 @@ function exportEvents(
     $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.zip';
     @unlink($archive);
     if ( $exportStructure == 'flat' ) {
-      $command = 'nice -10 zip -q -j '.escapeshellarg($archive).' ' . $export_dir;
+      $command = 'nice -10 zip -j '.escapeshellarg($archive).' zmExport_'.$connkey.'/';
       #$command = 'cat '.escapeshellarg($listFile).' | nice -10 zip -q -j '.escapeshellarg($archive).' -@';
     } else {
-      $command = 'nice -10 zip -q '.escapeshellarg($archive).' ' . $export_dir;
+      $command = 'nice -10 zip -r '.escapeshellarg($archive).' zmExport_' . $connkey.'/';
       #$command = 'cat '.escapeshellarg($listFile).' | nice -10 zip -q '.escapeshellarg($archive).' -@';
     }
   } else {
     Error("No exportFormat specified.");
     return false;
   } // if $exportFormat
-
+  Logger::Debug("Command is $command");
   exec($command, $output, $status);
   if ( $status ) {
     Error("Command '$command' returned with status $status");

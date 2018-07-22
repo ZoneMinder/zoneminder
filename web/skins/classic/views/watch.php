@@ -37,7 +37,6 @@ if ( ! visibleMonitor($mid) ) {
   return;
 }
 
-
 $monitor = new Monitor($mid);
 
 #Whether to show the controls button
@@ -68,7 +67,7 @@ xhtmlHeaders( __FILE__, $monitor->Name().' - '.translate('Feed') );
         <div id="monitorName"><?php echo $monitor->Name() ?></div>
         <div id="menuControls">
 <?php
-if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
+if ( canView('Control') && $monitor->Type() == 'Local' ) {
 ?>
           <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
 <?php

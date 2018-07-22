@@ -1234,11 +1234,11 @@ bool Monitor::CheckSignal( const Image *image ) {
 bool Monitor::Analyse() {
   if ( shared_data->last_read_index == shared_data->last_write_index ) {
     // I wonder how often this happens. Maybe if this happens we should sleep or something?
-    return( false );
+    return false;
   }
 
   struct timeval now;
-  gettimeofday( &now, NULL );
+  gettimeofday(&now, NULL);
 
   if ( image_count && fps_report_interval && !(image_count%fps_report_interval) ) {
     if ( now.tv_sec != last_fps_time ) {
@@ -1547,7 +1547,7 @@ bool Monitor::Analyse() {
         if ( score ) {
           if ( state == IDLE || state == TAPE || state == PREALARM ) {
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
-              Info("%s: %03d - Gone into alarm state %u > %u",
+              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u",
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count);
               shared_data->state = state = ALARM;
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
@@ -1575,6 +1575,9 @@ bool Monitor::Analyse() {
                     pre_index = ((index + image_buffer_count) - ((alarm_frame_count - 1) + pre_event_count))%image_buffer_count;
                   else
                     pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
+
+                  Debug(4,"Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d) % %d",
+                      pre_index, index, image_buffer_count, pre_event_count, image_buffer_count);
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position

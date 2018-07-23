@@ -257,15 +257,6 @@ sub moveConDownLeft
     $self->sendCmd( $cmd );
 }
 
-#Stop
-sub moveStop
-{
-    my $self = shift;
-    Debug( "Move Stop" );
-    my $cmd = "decoder_control.cgi?command=1";
-    $self->sendCmd( $cmd );
-}
-
 #Set Camera Preset
 #Presets must be translated into values internal to the camera
 #Those values are: 30,32,34,36,38,40,42,44 for presets 1-8 respectively

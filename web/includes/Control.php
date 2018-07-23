@@ -103,7 +103,7 @@ private $defaults = array(
     if ( $IdOrRow ) {
       $row = NULL;
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT * FROM Control WHERE Id=?', NULL, array( $IdOrRow ) );
+        $row = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
           Error("Unable to load Control record for Id=" . $IdOrRow );
         }
@@ -190,7 +190,7 @@ private $defaults = array(
     $sql .= ' ORDER BY ' . $options['order'];
     }
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Control');
+    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Controls');
     foreach ( $results as $row => $obj ) {
       $filters[] = $obj;
     }

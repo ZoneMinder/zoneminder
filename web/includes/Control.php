@@ -12,6 +12,7 @@ private $defaults = array(
     'CanMoveRel' => 0,
     'CanMoveCon' => 0,
     'CanPan' => 0,
+    'CanReset' => 0,
     'MinPanRange' => NULL,
     'MaxPanRange' => NULL,
     'MinPanStep' => NULL,
@@ -190,7 +191,7 @@ private $defaults = array(
     $sql .= ' ORDER BY ' . $options['order'];
     }
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Controls');
+    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Control');
     foreach ( $results as $row => $obj ) {
       $filters[] = $obj;
     }

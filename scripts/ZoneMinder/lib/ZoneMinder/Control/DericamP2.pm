@@ -138,7 +138,7 @@ sub reset
 {
     my $self = shift;
     Debug( "Camera Reset" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-step=0&-act=home&-speed=45";
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-act=home";
     $self->sendCmd( $cmd );
 }
 

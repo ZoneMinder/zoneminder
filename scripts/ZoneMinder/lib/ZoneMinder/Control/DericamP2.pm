@@ -142,6 +142,15 @@ sub reset
     $self->sendCmd( $cmd );
 }
 
+# Stop the Camera
+sub moveStop
+{
+    my $self = shift;
+    Debug( "Camera Stop" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-act=stop";
+    $self->sendCmd( $cmd );
+}
+
 #Up Arrow
 sub moveConUp
 {

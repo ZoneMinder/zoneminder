@@ -329,7 +329,7 @@ sub irisConClose
 }
 
 # Increase Contrast
-sub whiteAbsIn
+sub whiteConIn
 {
     my $self = shift;
     my $params = shift;
@@ -344,7 +344,7 @@ sub whiteAbsIn
 }
 
 # Decrease Contrast
-sub whiteAbsOut
+sub whiteConOut
 {
     my $self = shift;
     my $params = shift;
@@ -359,6 +359,60 @@ sub whiteAbsOut
 }
 
 #TODO Saturation cgi-bin/hi3510/param.cgi?cmd=setimageattr&-saturation=44 [0-255]
+sub satIncrease
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    my $tmp_step = 0
+
+    $tmp_step += $step;
+    $tmp_step = 255 if ($step > 255);
+    Debug( "Increase Saturation" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-saturation=".$tmp_step;
+    $self->sendCmd( $cmd );
+}
+
+sub satDecrease
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    my $tmp_step = 255
+
+    $tmp_step -= $step;
+    $tmp_step = 0 if ($step < 0);
+    Debug( "Decrease Saturation" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-saturation=".$tmp_step;
+    $self->sendCmd( $cmd );
+}
 #TODO Sharpness cgi-bin/hi3510/param.cgi?cmd=setimageattr&-sharpness=37 [0-100]
+sub sharpIncrease
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    my $tmp_step = 0
+
+    $tmp_step += $step;
+    $tmp_step = 255 if ($step > 255);
+    Debug( "Increase Saturation" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-sharpness=".$tmp_step;
+    $self->sendCmd( $cmd );
+}
+
+sub sharpDecrease
+{
+    my $self = shift;
+    my $params = shift;
+    my $step = $self->getParam( $params, 'step' );
+    my $tmp_step = 255
+
+    $tmp_step -= $step;
+    $tmp_step = 0 if ($step < 0);
+    Debug( "Decrease Saturation" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-sharpness=".$tmp_step;
+    $self->sendCmd( $cmd );
+}
 
 1;

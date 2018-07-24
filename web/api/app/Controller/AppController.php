@@ -75,18 +75,20 @@ class AppController extends Controller {
     global $user;
     $user = $this->Session->read('user');
     
-    // We need to reject methods that are not authenticated
-    // besides login and logout
-    if ( strcasecmp($this->params->action, 'login') &&
-      strcasecmp($this->params->action, 'logout')) {
-      if ( !$this->Session->read('user.Username') ) {
-        throw new UnauthorizedException(__('Not Authenticated'));
-        return;
-      } else if ( !$this->Session->read('user.Enabled') ) {
-        throw new UnauthorizedException(__('User is not enabled'));
-        return;
-      }
-    } # end if ! login or logout
+    if ( ZM_OPT_USE_AUTH ) {
+      // We need to reject methods that are not authenticated
+      // besides login and logout
+      if ( strcasecmp($this->params->action, 'login') &&
+        strcasecmp($this->params->action, 'logout')) {
+        if ( !( $user and $user['Username'] ) ) {
+          throw new UnauthorizedException(__('Not Authenticated'));
+          return;
+        } else if ( !( $user and $user['Enabled'] ) ) {
+          throw new UnauthorizedException(__('User is not enabled'));
+          return;
+        }
+      } # end if ! login or logout
+    } # end if ZM_OPT_AUTH
    
   } # end function beforeFilter()
 }

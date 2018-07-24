@@ -54,7 +54,7 @@ var popupSizes = {
     'monitorselect':{ 'width': 160, 'height': 200 },
     'montage':      { 'width': -1, 'height': -1 },
     'onvifprobe':   { 'width': 700, 'height': 550 },
-    'optionhelp':   { 'width': 400, 'height': 320 },
+    'optionhelp':   { 'width': 400, 'height': 400 },
     'options':      { 'width': 1000, 'height': 660 },
     'preset':       { 'width': 300, 'height': 220 },
     'server':       { 'width': 600, 'height': 405 },

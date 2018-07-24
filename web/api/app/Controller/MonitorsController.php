@@ -18,10 +18,13 @@ class MonitorsController extends AppController {
   public function beforeRender() {
     $this->set($this->Monitor->enumValues());
   }
+
   public function beforeFilter() {
     parent::beforeFilter();
-    $canView = $this->Session->Read('monitorPermission');
-    if ($canView == 'None') {
+    global $user;
+    # We already tested for auth in appController, so we just need to test for specific permission
+    $canView = (!$user) || ($user['Monitors'] != 'None');
+    if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -35,7 +38,7 @@ class MonitorsController extends AppController {
   public function index() {
     $this->Monitor->recursive = 0;
 
-    if ($this->request->params['named']) {  
+    if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
       //$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
       $conditions = $this->request->params['named'];
@@ -44,13 +47,13 @@ class MonitorsController extends AppController {
     }
 
     global $user;
-    $allowedMonitors=preg_split ('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY);
-    if (!empty($allowedMonitors)) {
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    if ( $allowedMonitors ) {
       $conditions['Monitor.Id' ] = $allowedMonitors;
     }
     $find_array = array('conditions'=>$conditions,'contain'=>array('Group'));
 
-    if ( isset( $conditions['GroupId'] ) ) {
+    if ( isset($conditions['GroupId']) ) {
       $find_array['joins'] = array(
         array(
           'table' => 'Groups_Monitors',
@@ -85,11 +88,12 @@ class MonitorsController extends AppController {
  */
   public function view($id = null) {
     $this->Monitor->recursive = 0;
-    if (!$this->Monitor->exists($id)) {
+    if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
-    if (!empty($allowedMonitors)) {
+    global $user;
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    if ( $allowedMonitors ) {
       $restricted = array('Monitor.' . $this->Monitor->primaryKey => $allowedMonitors);
     } else {
       $restricted = '';
@@ -148,7 +152,8 @@ class MonitorsController extends AppController {
     if (!$this->Monitor->exists($id)) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    if ($this->Session->Read('monitorPermission') != 'Edit') {
+    global $user;
+    if ( $user and $user['Monitors'] != 'Edit' ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -164,9 +169,17 @@ class MonitorsController extends AppController {
       // - restart or stop this monitor after change
       $func = $Monitor['Function'];
       // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
-      $this->daemonControl( $this->Monitor->id, 'stop' );
-      if ( ( $func != 'None' ) and ( (!defined('ZM_SERVER_ID')) or ($Monitor['ServerId']==ZM_SERVER_ID) ) ) {
-        $this->daemonControl( $this->Monitor->id, 'start' );
+      $this->daemonControl($this->Monitor->id, 'stop');
+      if (
+        ( $func != 'None' )
+        and
+        (
+          (!defined('ZM_SERVER_ID'))
+          or
+          ($Monitor['ServerId']==ZM_SERVER_ID)
+        )
+      ) {
+        $this->daemonControl($this->Monitor->id, 'start');
       }
     } else {
       $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
@@ -188,10 +201,10 @@ class MonitorsController extends AppController {
  */
   public function delete($id = null) {
     $this->Monitor->id = $id;
-    if (!$this->Monitor->exists()) {
+    if ( !$this->Monitor->exists() ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    if ($this->Session->Read('systemPermission') != 'Edit') {
+    if ( $this->Session->Read('systemPermission') != 'Edit' ) {
        throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -199,7 +212,7 @@ class MonitorsController extends AppController {
 
     $this->daemonControl($this->Monitor->id, 'stop');
 
-    if ($this->Monitor->delete()) {
+    if ( $this->Monitor->delete() ) {
       return $this->flash(__('The monitor has been deleted.'), array('action' => 'index'));
     } else {
       return $this->flash(__('The monitor could not be deleted. Please, try again.'), array('action' => 'index'));
@@ -207,7 +220,7 @@ class MonitorsController extends AppController {
   }
 
   public function sourceTypes() {
-    $sourceTypes = $this->Monitor->query("describe Monitors Type;");
+    $sourceTypes = $this->Monitor->query('describe Monitors Type;');
 
     preg_match('/^enum\((.*)\)$/', $sourceTypes[0]['COLUMNS']['Type'], $matches);
     foreach( explode(',', $matches[1]) as $value ) {
@@ -253,19 +266,18 @@ class MonitorsController extends AppController {
     // form auth key based on auth credentials
     $this->loadModel('Config');
     $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
-                $config = $this->Config->find('first', $options);
+    $config = $this->Config->find('first', $options);
     $zmOptAuth = $config['Config']['Value'];
 
-
     $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY'));
-                $config = $this->Config->find('first', $options);
+    $config = $this->Config->find('first', $options);
     $zmAuthRelay = $config['Config']['Value'];
   
-    $auth='';
+    $auth = '';
     if ( $zmOptAuth ) {
       if ( $zmAuthRelay == 'hashed' ) {
         $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_SECRET'));
-                    $config = $this->Config->find('first', $options);
+        $config = $this->Config->find('first', $options);
         $zmAuthHashSecret = $config['Config']['Value'];
 
         $time = localtime();
@@ -294,7 +306,7 @@ class MonitorsController extends AppController {
     $id = $this->request->params['named']['id'];
     $daemon = $this->request->params['named']['daemon'];
 
-    if (!$this->Monitor->exists($id)) {
+    if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
 
@@ -307,7 +319,7 @@ class MonitorsController extends AppController {
     $monitor = Set::extract('/Monitor/.', $monitor);
 
     // Pass -d for local, otherwise -m
-    if ($monitor[0]['Type'] == 'Local') {
+    if ( $monitor[0]['Type'] == 'Local' ) {
       $args = '-d '. $monitor[0]['Device'];  
     } else {
       $args = '-m '. $monitor[0]['Id'];
@@ -316,7 +328,7 @@ class MonitorsController extends AppController {
     // Build the command, and execute it
     $zm_path_bin = Configure::read('ZM_PATH_BIN');
     $command = escapeshellcmd("$zm_path_bin/zmdc.pl status $daemon $args");
-    $status = exec( $command );
+    $status = exec($command);
 
     // If 'not' is present, the daemon is not running, so return false
     // https://github.com/ZoneMinder/ZoneMinder/issues/799#issuecomment-108996075
@@ -352,9 +364,9 @@ class MonitorsController extends AppController {
     
     $zm_path_bin = Configure::read('ZM_PATH_BIN');
 
-    foreach ($daemons as $daemon) {
+    foreach ( $daemons as $daemon ) {
       $args = '';
-      if ( $daemon == 'zmc' and $monitor['Type'] == 'Local') {
+      if ( $daemon == 'zmc' and $monitor['Type'] == 'Local' ) {
         $args = '-d ' . $monitor['Device'];
       } else {
         $args = '-m ' . $id;
@@ -364,5 +376,4 @@ class MonitorsController extends AppController {
       $status = exec( $shellcmd );
     }
   }
-
 } // end class MonitorsController

@@ -8,9 +8,9 @@ class HostController extends AppController {
   public function daemonCheck($daemon=false, $args=false) {
     $string = Configure::read('ZM_PATH_BIN').'/zmdc.pl check';
     if ( $daemon ) {
-        $string .= " $daemon";
-        if ( $args )
-            $string .= " $args";
+      $string .= " $daemon";
+      if ( $args )
+        $string .= " $args";
     }
     $result = exec($string);
     $result = preg_match('/running/', $result);
@@ -29,8 +29,6 @@ class HostController extends AppController {
       '_serialize' => array('load')
     ));
   }
-
-
   
   function login() {
 
@@ -42,33 +40,27 @@ class HostController extends AppController {
 
       require_once "../../../includes/auth.php";
       global $user;
-      $user = $this->Session->read('user');
+      # $user is loaded from Session in AppController
 
-      
-     
       $mUser = $this->request->data('user');
       $mPassword = $this->request->data('pass');
       $mAuth = $this->request->data('auth');
-   
       
-      if ( $mUser and $mPassword)  {
+      if ( $mUser and $mPassword ) {
         $user = userLogin($mUser, $mPassword);
         if ( !$user ) {
           throw new UnauthorizedException(__('User not found or incorrect password'));
           return;
         }
-      }
-
-      elseif ( $mAuth ) {
+      } else if ( $mAuth ) {
         $user = getAuthUser($mAuth);
-        if ( ! $user ) {
+        if ( !$user ) {
           throw new UnauthorizedException(__('User not found or incorrect password'));
           return;
         }
-      }
-      else {
-          throw new UnauthorizedException(__('missing credentials'));
-  } 
+      } else {
+        throw new UnauthorizedException(__('missing credentials'));
+      } 
 
       if ( 0 and $user ) {
         # We have to redo the session variables because cakephp's Session code will overwrite the normal php session
@@ -87,8 +79,6 @@ class HostController extends AppController {
           $this->log("Error writing session var remoteAddr");
       }
 
-     
-
       // I don't think this is really needed - the Username part
       // Enabled check is ok
       if ( !$user['Username'] ) {
@@ -98,7 +88,6 @@ class HostController extends AppController {
         throw new UnauthorizedException(__('User is not enabled'));
         return;
       }
-
 
       $this->Session->Write('allowedMonitors',$user['MonitorIds']);
       $this->Session->Write('streamPermission',$user['Stream']);
@@ -117,7 +106,6 @@ class HostController extends AppController {
       $this->Session->Write('monitorPermission','Edit');
     }
 
-
     $cred = $this->_getCredentials();
     $ver = $this->_getVersion();
     $this->set(array(
@@ -130,8 +118,7 @@ class HostController extends AppController {
                             'version',
                             'apiversion'
       )));
-  
-  }
+  } // end function login()
 
   // clears out session
   function logout() {
@@ -143,7 +130,7 @@ class HostController extends AppController {
       '_serialize' => array('result')
     ));
 
-  }
+  } // end function logout()
   
   private function _getCredentials() {
     $credentials = '';
@@ -167,8 +154,7 @@ class HostController extends AppController {
       }
     }
     return array($credentials, $appendPassword);
-
-  }
+  } // end function _getCredentials
 
   function getCredentials() {
     // ignore debug warnings from other functions
@@ -180,8 +166,6 @@ class HostController extends AppController {
       '_serialize'  =>  array('credentials', 'append_password')
     ) );
   }
-  
-  
 
   // If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor

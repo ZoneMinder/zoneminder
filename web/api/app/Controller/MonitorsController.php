@@ -43,7 +43,8 @@ class MonitorsController extends AppController {
       $conditions = array();
     }
 
-    $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
+    global $user;
+    $allowedMonitors=preg_split ('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY);
     if (!empty($allowedMonitors)) {
       $conditions['Monitor.Id' ] = $allowedMonitors;
     }

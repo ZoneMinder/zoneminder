@@ -119,8 +119,10 @@ class MonitorsController extends AppController {
   public function add() {
     if ( $this->request->is('post') ) {
 
-      if ( $this->Session->Read('systemPermission') != 'Edit' ) {
-         throw new UnauthorizedException(__('Insufficient privileges'));
+      global $user;
+      $canAdd = (!$user) || ($user['System'] == 'Edit' );
+      if ( !$canAdd ) {
+        throw new UnauthorizedException(__('Insufficient privileges'));
         return;
       }
 
@@ -153,7 +155,8 @@ class MonitorsController extends AppController {
       throw new NotFoundException(__('Invalid monitor'));
     }
     global $user;
-    if ( $user and $user['Monitors'] != 'Edit' ) {
+    $canEdit = (!$user) || ($user['Monitors'] == 'Edit');
+    if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }

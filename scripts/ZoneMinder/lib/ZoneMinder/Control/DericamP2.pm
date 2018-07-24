@@ -1,7 +1,7 @@
 # ==========================================================================
 #
 # ZoneMinder Dericam P2 Control Protocol Module
-# Copyright (C) Jan M. Hochstein
+# Copyright (C) Roman Dissertori
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -94,28 +94,6 @@ sub sendCmd
     return( $result );
 }
 
-sub getCamParams
-{
-    my $self = shift;
-
-    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/get_camera_params.cgi" );
-    my $res = $self->{ua}->request($req);
-
-    if ( $res->is_success )
-    {
-        # Parse results setting values in %FCParams
-        my $content = $res->decoded_content;
-
-        while ($content =~ s/var\s+([^=]+)=([^;]+);//ms) {
-            $CamParams{$1} = $2;
-        }
-    }
-    else
-    {
-        Error( "Error check failed:'".$res->status_line()."'" );
-    }
-}
-
 #autoStop
 #This makes use of the ZoneMinder Auto Stop Timeout on the Control Tab
 sub autoStop
@@ -139,6 +117,15 @@ sub reset
     my $self = shift;
     Debug( "Camera Reset" );
     my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-act=home";
+    $self->sendCmd( $cmd );
+}
+
+# Reboot Camera (on Sleep button)
+sub sleep
+{
+    my $self = shift;
+    Debug( "Camera Reboot" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-act=sysreboot";
     $self->sendCmd( $cmd );
 }
 
@@ -199,22 +186,18 @@ sub moveConRight
 sub zoomConTele
 {
     my $self = shift;
-    my $stop_command = "17";
     Debug( "Zoom Tele" );
     my $cmd = "decoder_control.cgi?command=18";
     $self->sendCmd( $cmd );
-    $self->autoStop( $stop_command, $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Zoom Out
 sub zoomConWide
 {
     my $self = shift;
-    my $stop_command = "19";
     Debug( "Zoom Wide" );
     my $cmd = "decoder_control.cgi?command=16";
     $self->sendCmd( $cmd );
-    $self->autoStop( $stop_command, $self->{Monitor}->{AutoStopTimeout} );
 }
 
 #Diagonally Up Right Arrow
@@ -297,51 +280,51 @@ sub presetGoto
     }
 }
 
-#Horizontal Patrol - Vertical Patrols are not supported
+#Horizontal Patrol
 sub horizontalPatrol
 {
     my $self = shift;
     Debug( "Horizontal Patrol" );
-    my $cmd = "decoder_control.cgi?command=20";
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-step=0&-act=hscan";
     $self->sendCmd( $cmd );
 }
 
-#Horizontal Patrol Stop
-sub horizontalPatrolStop
+#Vertical Patrol
+sub verticalPatrol
 {
     my $self = shift;
-    Debug( "Horizontal Patrol Stop" );
-    my $cmd = "decoder_control.cgi?command=21";
+    Debug( "Vertical Patrol" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-step=0&-act=vscan";
     $self->sendCmd( $cmd );
 }
 
 # Increase Brightness
-sub irisAbsOpen
+sub irisConOpen
 {
     my $self = shift;
     my $params = shift;
-    $self->getCamParams() unless($CamParams{'brightness'});
     my $step = $self->getParam( $params, 'step' );
+    my $tmp_step = 0
 
-    $CamParams{'brightness'} += $step;
-    $CamParams{'brightness'} = 255 if ($CamParams{'brightness'} > 255);
-    Debug( "Iris $CamParams{'brightness'}" );
-    my $cmd = "camera_control.cgi?param=1&value=".$CamParams{'brightness'};
+    $tmp_step += $step;
+    $tmp_step = 100 if ($step > 100);
+    Debug( "Iris increase Brightness" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-brightness=".$tmp_step;
     $self->sendCmd( $cmd );
 }
 
 # Decrease Brightness
-sub irisAbsClose
+sub irisConClose
 {
     my $self = shift;
     my $params = shift;
-    $self->getCamParams() unless($CamParams{'brightness'});
     my $step = $self->getParam( $params, 'step' );
+    my $tmp_step = 100
 
-    $CamParams{'brightness'} -= $step;
-    $CamParams{'brightness'} = 0 if ($CamParams{'brightness'} < 0);
-    Debug( "Iris $CamParams{'brightness'}" );
-    my $cmd = "camera_control.cgi?param=1&value=".$CamParams{'brightness'};
+    $tmp_step -= $step;
+    $tmp_step = 0 if ($step < 0);
+    Debug( "Iris decrease Brightness" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-brightness=".$tmp_step;
     $self->sendCmd( $cmd );
 }
 
@@ -350,13 +333,13 @@ sub whiteAbsIn
 {
     my $self = shift;
     my $params = shift;
-    $self->getCamParams() unless($CamParams{'contrast'});
     my $step = $self->getParam( $params, 'step' );
+    my $tmp_step = 0
 
-    $CamParams{'contrast'} += $step;
-    $CamParams{'contrast'} = 6 if ($CamParams{'contrast'} > 6);
-    Debug( "Iris $CamParams{'contrast'}" );
-    my $cmd = "camera_control.cgi?param=2&value=".$CamParams{'contrast'};
+    $tmp_step += $step;
+    $tmp_step = 100 if ($step > 100);
+    Debug( "Iris increase Contrast" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-contrast=".$tmp_step;
     $self->sendCmd( $cmd );
 }
 
@@ -365,14 +348,17 @@ sub whiteAbsOut
 {
     my $self = shift;
     my $params = shift;
-    $self->getCamParams() unless($CamParams{'contrast'});
     my $step = $self->getParam( $params, 'step' );
+    my $tmp_step = 100
 
-    $CamParams{'contrast'} -= $step;
-    $CamParams{'contrast'} = 0 if ($CamParams{'contrast'} < 0);
-    Debug( "Iris $CamParams{'contrast'}" );
-    my $cmd = "camera_control.cgi?param=2&value=".$CamParams{'contrast'};
+    $tmp_step -= $step;
+    $tmp_step = 0 if ($step < 0);
+    Debug( "Iris decrease Contrast" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-contrast=".$tmp_step;
     $self->sendCmd( $cmd );
 }
+
+#TODO Saturation cgi-bin/hi3510/param.cgi?cmd=setimageattr&-saturation=44 [0-255]
+#TODO Sharpness cgi-bin/hi3510/param.cgi?cmd=setimageattr&-sharpness=37 [0-100]
 
 1;

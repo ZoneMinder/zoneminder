@@ -94,6 +94,29 @@ sub sendCmd
     return( $result );
 }
 
+sub getCamParams
+{
+    my $self = shift;
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=getimageattr";
+    
+    my $req = $self->sendCmd( $cmd );
+    my $res = $self->{ua}->request($req);
+
+    if ( $res->is_success )
+    {
+        # Parse results setting values in %FCParams
+        my $content = $res->decoded_content;
+
+        while ($content =~ s/var\s+([^=]+)=([^;]+);//ms) {
+            $CamParams{$1} = $2;
+        }
+    }
+    else
+    {
+        Error( "Error check failed:'".$res->status_line()."'" );
+    }
+}
+
 #autoStop
 #This makes use of the ZoneMinder Auto Stop Timeout on the Control Tab
 sub autoStop
@@ -116,7 +139,12 @@ sub reset
 {
     my $self = shift;
     Debug( "Camera Reset" );
+    # Move to default position
     my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-act=home";
+    $self->sendCmd( $cmd );
+    
+    # Reset all other values to default
+    $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-image_type=1&-default=on";
     $self->sendCmd( $cmd );
 }
 
@@ -251,7 +279,7 @@ sub presetSet
     Debug( "Set Preset $preset" );
 
     if (( $preset >= 1 ) && ( $preset <= 8 )) {
-        my $cmd = "decoder_control.cgi?command=".(($preset*2) + 28);
+        my $cmd = "cgi-bin/hi3510/param.cgi?cmd=preset&-act=set&-number=".(($preset*2) + 28);
         $self->sendCmd( $cmd );
     }
 }
@@ -267,7 +295,7 @@ sub presetGoto
     Debug( "Goto Preset $preset" );
 
     if (( $preset >= 1 ) && ( $preset <= 8 )) {
-        my $cmd = "decoder_control.cgi?command=".(($preset*2) + 29);
+        my $cmd = "cgi-bin/hi3510/param.cgi?cmd=preset&-act=goto&-number=".(($preset*2) + 29);
         $self->sendCmd( $cmd );
     }
 
@@ -276,7 +304,7 @@ sub presetGoto
     }
 
     if ( $preset == 10 ) {
-        $self->horizontalPatrolStop();
+        $self->verticalPatrol();
     }
 }
 
@@ -303,13 +331,13 @@ sub Open
 {
     my $self = shift;
     my $params = shift;
+    $self->getCamParams() unless($CamParams{'brightness'});
     my $step = $self->getParam( $params, 'step' );
-    my $tmp_step = 0
 
-    $tmp_step += $step;
-    $tmp_step = 100 if ($step > 100);
-    Debug( "Iris increase Brightness" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-brightness=".$tmp_step;
+    $CamParams{'brightness'} += $step;
+    $CamParams{'brightness'} = 100 if ($CamParams{'brightness'} > 100);
+    Debug( "Increase Brightness" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-brightness=".$CamParams{'brightness'};
     $self->sendCmd( $cmd );
 }
 
@@ -318,13 +346,13 @@ sub Close
 {
     my $self = shift;
     my $params = shift;
+    $self->getCamParams() unless($CamParams{'brightness'});
     my $step = $self->getParam( $params, 'step' );
-    my $tmp_step = 100
 
-    $tmp_step -= $step;
-    $tmp_step = 0 if ($step < 0);
-    Debug( "Iris decrease Brightness" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-brightness=".$tmp_step;
+    $CamParams{'brightness'} -= $step;
+    $CamParams{'brightness'} = 0 if ($CamParams{'brightness'} < 0);
+    Debug( "Decrease Brightness" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-brightness=".$CamParams{'brightness'};
     $self->sendCmd( $cmd );
 }
 
@@ -333,13 +361,13 @@ sub whiteConIn
 {
     my $self = shift;
     my $params = shift;
+    $self->getCamParams() unless($CamParams{'contrast'});
     my $step = $self->getParam( $params, 'step' );
-    my $tmp_step = 0
 
-    $tmp_step += $step;
-    $tmp_step = 100 if ($step > 100);
-    Debug( "Iris increase Contrast" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-contrast=".$tmp_step;
+    $CamParams{'contrast'} += $step;
+    $CamParams{'contrast'} = 100 if ($CamParams{'contrast'} > 100);
+    Debug( "Increase Contrast" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-contrast=".$CamParams{'contrast'};
     $self->sendCmd( $cmd );
 }
 
@@ -348,13 +376,13 @@ sub whiteConOut
 {
     my $self = shift;
     my $params = shift;
+    $self->getCamParams() unless($CamParams{'contrast'});
     my $step = $self->getParam( $params, 'step' );
-    my $tmp_step = 100
 
-    $tmp_step -= $step;
-    $tmp_step = 0 if ($step < 0);
-    Debug( "Iris decrease Contrast" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-contrast=".$tmp_step;
+    $CamParams{'contrast'} -= $step;
+    $CamParams{'contrast'} = 0 if ($CamParams{'contrast'} < 0);
+    Debug( "Decrease Contrast" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-contrast=".$CamParams{'contrast'};
     $self->sendCmd( $cmd );
 }
 
@@ -363,13 +391,13 @@ sub satIncrease
 {
     my $self = shift;
     my $params = shift;
+    $self->getCamParams() unless($CamParams{'saturation'});
     my $step = $self->getParam( $params, 'step' );
-    my $tmp_step = 0
 
-    $tmp_step += $step;
-    $tmp_step = 255 if ($step > 255);
+    $CamParams{'saturation'} += $step;
+    $CamParams{'saturation'} = 255 if ($CamParams{'saturation'} > 255);
     Debug( "Increase Saturation" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-saturation=".$tmp_step;
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-saturation=".$CamParams{'saturation'};
     $self->sendCmd( $cmd );
 }
 
@@ -377,13 +405,13 @@ sub satDecrease
 {
     my $self = shift;
     my $params = shift;
+    $self->getCamParams() unless($CamParams{'saturation'});
     my $step = $self->getParam( $params, 'step' );
-    my $tmp_step = 255
 
-    $tmp_step -= $step;
-    $tmp_step = 0 if ($step < 0);
+    $CamParams{'saturation'} -= $step;
+    $CamParams{'saturation'} = 0 if ($CamParams{'saturation'} < 0);
     Debug( "Decrease Saturation" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-saturation=".$tmp_step;
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-saturation=".$CamParams{'saturation'};
     $self->sendCmd( $cmd );
 }
 #TODO Sharpness cgi-bin/hi3510/param.cgi?cmd=setimageattr&-sharpness=37 [0-100]
@@ -391,13 +419,13 @@ sub sharpIncrease
 {
     my $self = shift;
     my $params = shift;
+    $self->getCamParams() unless($CamParams{'sharpness'});
     my $step = $self->getParam( $params, 'step' );
-    my $tmp_step = 0
 
-    $tmp_step += $step;
-    $tmp_step = 255 if ($step > 255);
-    Debug( "Increase Saturation" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-sharpness=".$tmp_step;
+    $CamParams{'sharpness'} += $step;
+    $CamParams{'sharpness'} = 100 if ($CamParams{'sharpness'} > 100);
+    Debug( "Increase Sharpness" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-sharpness=".$CamParams{'sharpness'};
     $self->sendCmd( $cmd );
 }
 
@@ -405,13 +433,42 @@ sub sharpDecrease
 {
     my $self = shift;
     my $params = shift;
+    $self->getCamParams() unless($CamParams{'sharpness'});
     my $step = $self->getParam( $params, 'step' );
-    my $tmp_step = 255
 
-    $tmp_step -= $step;
-    $tmp_step = 0 if ($step < 0);
-    Debug( "Decrease Saturation" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-sharpness=".$tmp_step;
+    $CamParams{'sharpness'} -= $step;
+    $CamParams{'sharpness'} = 0 if ($CamParams{'sharpness'} < 0);
+    Debug( "Decrease Sharpness" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-sharpness=".$CamParams{'sharpness'};
+    $self->sendCmd( $cmd );
+}
+
+#TODO Hue cgi-bin/hi3510/param.cgi?cmd=setimageattr&-hue=37 [0-100]
+sub hueIncrease
+{
+    my $self = shift;
+    my $params = shift;
+    $self->getCamParams() unless($CamParams{'hue'});
+    my $step = $self->getParam( $params, 'step' );
+
+    $CamParams{'hue'} += $step;
+    $CamParams{'hue'} = 100 if ($CamParams{'hue'} > 100);
+    Debug( "Increase Hue" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-hue=".$CamParams{'hue'};
+    $self->sendCmd( $cmd );
+}
+
+sub hueDecrease
+{
+    my $self = shift;
+    my $params = shift;
+    $self->getCamParams() unless($CamParams{'hue'});
+    my $step = $self->getParam( $params, 'step' );
+
+    $CamParams{'hue'} -= $step;
+    $CamParams{'hue'} = 0 if ($CamParams{'hue'} < 0);
+    Debug( "Decrease Hue" );
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=setimageattr&-hue=".$CamParams{'hue'};
     $self->sendCmd( $cmd );
 }
 

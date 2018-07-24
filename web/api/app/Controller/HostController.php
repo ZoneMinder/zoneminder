@@ -38,7 +38,7 @@ class HostController extends AppController {
 
     if ( $zmOptAuth == '1' ) {
 
-      require_once "../../../includes/auth.php";
+      require_once '../../../includes/auth.php';
       global $user;
       # $user is loaded from Session in AppController
 

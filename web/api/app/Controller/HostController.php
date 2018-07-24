@@ -62,23 +62,6 @@ class HostController extends AppController {
         throw new UnauthorizedException(__('missing credentials'));
       } 
 
-      if ( 0 and $user ) {
-        # We have to redo the session variables because cakephp's Session code will overwrite the normal php session
-        # Actually I'm not sure that is true.  Getting indeterminate behaviour
-        Logger::Debug("user.Username: " . $this->Session->read('user.Username'));
-        if ( ! $this->Session->Write('user', $user) )
-          $this->log("Error writing session var user");
-        Logger::Debug("user.Username: " . $this->Session->read('user.Username'));
-        if ( ! $this->Session->Write('user.Username', $user['Username']) )
-          $this->log("Error writing session var user.Username");
-        if ( ! $this->Session->Write('password', $user['Password']) )
-          $this->log("Error writing session var user.Username");
-        if ( ! $this->Session->Write('user.Enabled', $user['Enabled']) )
-          $this->log("Error writing session var user.Enabled");
-        if ( ! $this->Session->Write('remoteAddr', $_SERVER['REMOTE_ADDR']) )
-          $this->log("Error writing session var remoteAddr");
-      }
-
       // I don't think this is really needed - the Username part
       // Enabled check is ok
       if ( !$user['Username'] ) {
@@ -89,21 +72,15 @@ class HostController extends AppController {
         return;
       }
 
-      $this->Session->Write('allowedMonitors',$user['MonitorIds']);
-      $this->Session->Write('streamPermission',$user['Stream']);
       $this->Session->Write('eventPermission',$user['Events']);
       $this->Session->Write('controlPermission',$user['Control']);
       $this->Session->Write('systemPermission',$user['System']);
-      $this->Session->Write('monitorPermission',$user['Monitors']);
     } else {
       // if auth is not on, you can do everything
       //$userMonitors = $this->User->find('first', $options);
-      $this->Session->Write('allowedMonitors','');
-      $this->Session->Write('streamPermission','View');
       $this->Session->Write('eventPermission','Edit');
       $this->Session->Write('controlPermission','Edit');
       $this->Session->Write('systemPermission','Edit');
-      $this->Session->Write('monitorPermission','Edit');
     }
 
     $cred = $this->_getCredentials();

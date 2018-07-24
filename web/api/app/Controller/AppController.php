@@ -69,10 +69,12 @@ class AppController extends Controller {
     if ( $zmOptApi != '1' ) {
       throw new UnauthorizedException(__('API Disabled'));
       return; 
-    } else {
-      global $user;
-      $user = $this->Session->read('user');
-    }
+    } 
+
+    # For use throughout the app. If not logged in, this will be null.
+    global $user;
+    $user = $this->Session->read('user');
+    
     // We need to reject methods that are not authenticated
     // besides login and logout
     if ( strcasecmp($this->params->action, 'login') &&

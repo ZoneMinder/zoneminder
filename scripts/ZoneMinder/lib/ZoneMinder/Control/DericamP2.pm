@@ -299,7 +299,7 @@ sub verticalPatrol
 }
 
 # Increase Brightness
-sub irisConOpen
+sub Open
 {
     my $self = shift;
     my $params = shift;
@@ -314,7 +314,7 @@ sub irisConOpen
 }
 
 # Decrease Brightness
-sub irisConClose
+sub Close
 {
     my $self = shift;
     my $params = shift;

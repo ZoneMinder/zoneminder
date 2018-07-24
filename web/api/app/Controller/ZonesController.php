@@ -56,6 +56,7 @@ class ZonesController extends AppController {
       '_serialize' => array('zones')
     ));
   }
+
   /**
    * add method
    *
@@ -137,7 +138,7 @@ class ZonesController extends AppController {
     }
   }
 
-  public function createZoneImage( $id = null ) {
+  public function createZoneImage($id = null) {
     $this->loadModel('Monitor');
     $this->Monitor->id = $id;
     if ( !$this->Monitor->exists() ) {
@@ -158,7 +159,7 @@ class ZonesController extends AppController {
     chdir($images_path);
 
     $command = escapeshellcmd("$zm_path_bin/zmu -z -m $id");
-    system( $command, $status );
+    system($command, $status);
 
     $this->set(array(
       'status' => $status,

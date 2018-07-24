@@ -8,12 +8,12 @@ App::uses('AppController', 'Controller');
  */
 class EventsController extends AppController {
 
-/**
- * Components
- *
- * @var array
- */
-	public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
+  /**
+   * Components
+   *
+   * @var array
+   */
+  public $components = array('RequestHandler', 'Scaler', 'Image', 'Paginator');
 
   public function beforeFilter() {
     parent::beforeFilter();
@@ -25,15 +25,15 @@ class EventsController extends AppController {
     }
   }
 
-/**
- * index method
- *
- * @return void
- * This also creates a thumbnail for each event.
- */
-	public function index() {
-		$this->Event->recursive = -1;
-		
+  /**
+   * index method
+   *
+   * @return void
+   * This also creates a thumbnail for each event.
+   */
+  public function index() {
+    $this->Event->recursive = -1;
+
     global $user;
     $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
 
@@ -43,26 +43,26 @@ class EventsController extends AppController {
       $mon_options = '';
     }
 
-		if ( $this->request->params['named'] ) {
-			//$this->FilterComponent = $this->Components->load('Filter');
-			//$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+    if ( $this->request->params['named'] ) {
+      //$this->FilterComponent = $this->Components->load('Filter');
+      //$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
       $conditions = $this->request->params['named'];
-		} else {
-			$conditions = array();
-		}
+    } else {
+      $conditions = array();
+    }
     $settings = array(
-			// https://github.com/ZoneMinder/ZoneMinder/issues/995
-			// 'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
-			//  25 events per page which is what the above
-			// default is, is way too low for an API
-			// changing this to 100 so we don't kill ZM
-			// with many event APIs. In future, we can
-			// make a nice ZM_API_ITEMS_PER_PAGE for all pagination
-			// API
-		
-			'limit' => '100',
-			'order' => array('StartTime'),
-			'paramType' => 'querystring',
+      // https://github.com/ZoneMinder/ZoneMinder/issues/995
+      // 'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
+      //  25 events per page which is what the above
+      // default is, is way too low for an API
+      // changing this to 100 so we don't kill ZM
+      // with many event APIs. In future, we can
+      // make a nice ZM_API_ITEMS_PER_PAGE for all pagination
+      // API
+
+      'limit' => '100',
+      'order' => array('StartTime'),
+      'paramType' => 'querystring',
     );
     if ( isset($conditions['GroupId']) ) {
       $settings['joins'] = array(
@@ -78,36 +78,36 @@ class EventsController extends AppController {
     }
     $settings['conditions'] = array($conditions, $mon_options);
 
-		// How many events to return 
-		$this->loadModel('Config');
-		$limit = $this->Config->find('list', array(
-			'conditions' => array('Name' => 'ZM_WEB_EVENTS_PER_PAGE'),
-			'fields' => array('Name', 'Value')
-		));
-		$this->Paginator->settings = $settings;
-		$events = $this->Paginator->paginate('Event');
+    // How many events to return 
+    $this->loadModel('Config');
+    $limit = $this->Config->find('list', array(
+      'conditions' => array('Name' => 'ZM_WEB_EVENTS_PER_PAGE'),
+      'fields' => array('Name', 'Value')
+    ));
+    $this->Paginator->settings = $settings;
+    $events = $this->Paginator->paginate('Event');
 
-		// For each event, get the frameID which has the largest score
-		foreach ( $events as $key => $value ) {
-			$maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
-			$events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
-		}
+    // For each event, get the frameID which has the largest score
+    foreach ( $events as $key => $value ) {
+      $maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
+      $events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
+    }
 
-		$this->set(compact('events'));
-	} // end public function index()
+    $this->set(compact('events'));
+  } // end public function index()
 
-/**
- * view method
- *
- * @throws NotFoundException
- * @param string $id
- * @return void
- */
-	public function view($id = null) {
+  /**
+   * view method
+   *
+   * @throws NotFoundException
+   * @param string $id
+   * @return void
+   */
+  public function view($id = null) {
     $this->loadModel('Config');
 
     $this->Event->recursive = 1;
-    if (!$this->Event->exists($id)) {
+    if ( !$this->Event->exists($id) ) {
       throw new NotFoundException(__('Invalid event'));
     }
 
@@ -232,7 +232,7 @@ class EventsController extends AppController {
 
     foreach ($this->params['named'] as $param_name => $value) {
       // Transform params into mysql
-      if (preg_match('/interval/i', $value, $matches)) {
+      if ( preg_match('/interval/i', $value, $matches) ) {
         $condition = array("$param_name >= (date_sub(now(), $value))");
       } else {
         $condition = array($param_name => $value);
@@ -261,7 +261,7 @@ class EventsController extends AppController {
     $moreconditions = '';
     foreach ($this->request->params['named'] as $name => $param) {
       $moreconditions = $moreconditions . ' AND '.$name.$param;
-    }	
+    }  
 
     $query = $this->Event->query("SELECT MonitorId, COUNT(*) AS Count FROM Events WHERE (StartTime >= (DATE_SUB(NOW(), interval $interval)) $moreconditions) GROUP BY MonitorId;");
 
@@ -289,12 +289,12 @@ class EventsController extends AppController {
 
     // Find the max Frame for this Event.  Error out otherwise.
     $this->loadModel('Frame');
-    if (! $frame = $this->Frame->find('first', array(
+    if ( !( $frame = $this->Frame->find('first', array(
       'conditions' => array(
         'EventId' => $event['Event']['Id'],
         'Score' => $event['Event']['MaxScore']
       )
-    ))) {
+    ))) ) {
       throw new NotFoundException(__('Can not find Frame for Event ' . $event['Event']['Id']));
     }
 
@@ -315,8 +315,8 @@ class EventsController extends AppController {
           'ZM_DIR_IMAGES',
           $thumbs,
           'ZM_DIR_EVENTS'
-      )
-    )),
+        )
+      )),
       'fields' => array('Name', 'Value')
     ));
     $config['ZM_WEB_SCALE_THUMBS'] = $config[$thumbs];
@@ -345,7 +345,7 @@ class EventsController extends AppController {
 
   public function archive($id = null) {
     $this->Event->recursive = -1;
-    if (!$this->Event->exists($id)) {
+    if ( !$this->Event->exists($id) ) {
       throw new NotFoundException(__('Invalid event'));
     }
 
@@ -370,7 +370,7 @@ class EventsController extends AppController {
   public function getMaxScoreAlarmFrameId($id = null) {
     $this->Event->recursive = -1;
 
-    if (!$this->Event->exists($id)) {
+    if ( !$this->Event->exists($id) ) {
       throw new NotFoundException(__('Invalid event'));
     }
 
@@ -387,7 +387,7 @@ class EventsController extends AppController {
         'Score' => $event['Event']['MaxScore']
       )
     ))) {
-      throw new NotFoundException(__("Can not find Frame for Event " . $event['Event']['Id']));
+      throw new NotFoundException(__('Can not find Frame for Event ' . $event['Event']['Id']));
     }
     return $frame['Frame']['Id'];
   }

@@ -127,7 +127,7 @@ class MonitorsController extends AppController {
       }
 
       $this->Monitor->create();
-      if ($this->Monitor->save($this->request->data)) {
+      if ( $this->Monitor->save($this->request->data) ) {
         $this->daemonControl($this->Monitor->id, 'start');
         //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
         $message = 'Saved';
@@ -151,7 +151,7 @@ class MonitorsController extends AppController {
   public function edit($id = null) {
     $this->Monitor->id = $id;
 
-    if (!$this->Monitor->exists($id)) {
+    if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
     global $user;
@@ -243,7 +243,7 @@ class MonitorsController extends AppController {
   public function alarm() {
     $id = $this->request->params['named']['id'];
     $cmd = strtolower($this->request->params['named']['command']);
-    if (!$this->Monitor->exists($id)) {
+    if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
     if ( $cmd != 'on' && $cmd != 'off' && $cmd != 'status' ) {

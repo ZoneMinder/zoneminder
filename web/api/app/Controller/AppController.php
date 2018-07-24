@@ -78,8 +78,11 @@ class AppController extends Controller {
     if ( ZM_OPT_USE_AUTH ) {
       // We need to reject methods that are not authenticated
       // besides login and logout
-      if ( strcasecmp($this->params->action, 'login') &&
-        strcasecmp($this->params->action, 'logout')) {
+      if (
+        strcasecmp($this->params->action, 'login')
+        &&
+        strcasecmp($this->params->action, 'logout')
+      ) {
         if ( !( $user and $user['Username'] ) ) {
           throw new UnauthorizedException(__('Not Authenticated'));
           return;

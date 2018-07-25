@@ -524,7 +524,10 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+#else
   audio_out_ctx->refcounted_frames = 1;
+#endif
 
   if (audio_out_codec->supported_samplerates) {
     int found = 0;

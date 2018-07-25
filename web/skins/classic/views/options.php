@@ -260,8 +260,8 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           <thead class="thead-highlight">
             <tr>
               <th class="colId"><?php echo translate('Id') ?></th>
-              <th class="colName"><?php echo translate('name') ?></th>
-              <th class="colPath"><?php echo translate('path') ?></th>
+              <th class="colName"><?php echo translate('Name') ?></th>
+              <th class="colPath"><?php echo translate('Path') ?></th>
               <th class="colType"><?php echo translate('Type') ?></th>
               <th class="colScheme"><?php echo translate('StorageScheme') ?></th>
               <th class="colServer"><?php echo translate('Server') ?></th>

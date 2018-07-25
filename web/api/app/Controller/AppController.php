@@ -66,25 +66,24 @@ class AppController extends Controller {
     $config = $this->Config->find('first', $options);
     $zmOptApi = $config['Config']['Value'];
 
-    if ($zmOptApi !='1') {
+    if ( $zmOptApi != '1' ) {
       throw new UnauthorizedException(__('API Disabled'));
       return; 
     }
   // We need to reject methods that are not authenticated
   // besides login and logout
-    if (strcasecmp($this->params->controller, "host") && 
-        strcasecmp($this->params->action, "login") &&
-        strcasecmp($this->params->action,"logout")) {
-
-          if (!$this->Session->read('user.Username')) {
-                throw new UnauthorizedException(__('Not Authenticated'));
-                return;
-            } else if (!$this->Session->read('user.Enabled')) {
-                throw new UnauthorizedException(__('User is not enabled'));
-                return;
-            } 
-
+    if (
+      strcasecmp($this->params->action, 'login')
+      &&
+      strcasecmp($this->params->action,"logout")
+    ) {
+      if ( !$this->Session->read('user.Username') ) {
+        throw new UnauthorizedException(__('Not Authenticated'));
+        return;
+      } else if ( !$this->Session->read('user.Enabled') ) {
+        throw new UnauthorizedException(__('User is not enabled'));
+        return;
+      } 
     }
-   
   } # end function beforeFilter()
 }

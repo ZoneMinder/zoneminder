@@ -2474,19 +2474,17 @@ int Monitor::Capture() {
         //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
         Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec", name, image_count, new_fps, new_capture_bandwidth);
         last_fps_time = now;
-        if ( new_fps != fps ) {
-          fps = new_fps;
-
-          db_mutex.lock();
-          static char sql[ZM_SQL_SML_BUFSIZ];
-          snprintf(sql, sizeof(sql),
-              "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth) VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf, CaptureBandwidth=%u",
-              id, fps, new_capture_bandwidth, fps, new_capture_bandwidth);
-          if ( mysql_query(&dbconn, sql) ) {
-            Error("Can't run query: %s", mysql_error(&dbconn));
-          }
-          db_mutex.unlock();
-        } // end if new_fps != fps
+        fps = new_fps;
+        db_mutex.lock();
+        static char sql[ZM_SQL_SML_BUFSIZ];
+        snprintf(sql, sizeof(sql),
+            "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth) VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf, CaptureBandwidth=%u",
+            id, fps, new_capture_bandwidth, fps, new_capture_bandwidth);
+        if ( mysql_query(&dbconn, sql) ) {
+          Error("Can't run query: %s", mysql_error(&dbconn));
+        }
+        db_mutex.unlock();
+        Debug(4,sql);
       } // end if time has changed since last update
     } // end if it might be time to report the fps
   } // end if captureResult

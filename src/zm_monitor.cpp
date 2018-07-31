@@ -1530,6 +1530,7 @@ bool Monitor::Analyse() {
                   }
                 } else {
                   for ( int i = 0; i < pre_event_images; i++ ) {
+                    Debug(3, "Doing pre-event_image %d of %d", i, pre_event_images);
                     timestamps[i] = image_buffer[pre_index].timestamp;
                     images[i] = image_buffer[pre_index].image;
                     pre_index = (pre_index + 1)%image_buffer_count;
@@ -1577,8 +1578,8 @@ Error("Creating new event when one exists");
                   else
                     pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
 
-                  Debug(4,"Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d) % %d",
-                      pre_index, index, image_buffer_count, pre_event_count, image_buffer_count);
+                  Debug(4,"Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d)",
+                      pre_index, index, image_buffer_count, pre_event_count);
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position

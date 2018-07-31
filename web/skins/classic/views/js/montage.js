@@ -347,7 +347,7 @@ function edit_layout(button) {
   for ( var i = 0; i < monitors.length; i++ ) {
     var monitor = monitors[i];
     monitor_feed = $j('#imageFeed'+monitor.id)[0];
-    monitor_feed.onclick='';
+    monitor_feed.click('');
   };
 
   $j('#monitors .monitorFrame').draggable({
@@ -359,7 +359,7 @@ function edit_layout(button) {
 } // end function edit_layout
 
 function save_layout(button) {
-  var form=button.form;
+  var form = button.form;
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
   for ( var i = 0; i < monitors.length; i++ ) {

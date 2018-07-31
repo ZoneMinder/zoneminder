@@ -33,6 +33,7 @@ use LWP::UserAgent;
 use Sys::MemInfo qw(totalmem);
 use Sys::CPU qw(cpu_count);
 use POSIX qw(strftime uname);
+use JSON::MaybeXS;
 
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
@@ -87,7 +88,7 @@ while( 1 ) {
 # We should keep *BSD systems in mind when calling system commands
     my %telemetry;
     $telemetry{uuid} = getUUID($dbh);
-    $telemetry{ip} = getIP();
+    ($telemetry{city}, $telemetry{region}, $telemetry{country}, $telemetry{latitude}, $telemetry{longitude}) = getGeo();
     $telemetry{timestamp} = strftime( '%Y-%m-%dT%H:%M:%S%z', localtime() );
     $telemetry{monitor_count} = countQuery($dbh,'Monitors');
     $telemetry{event_count} = countQuery($dbh,'Events');
@@ -203,22 +204,25 @@ sub getUUID {
   return $uuid;
 }
 
-# Retrieves the local server's external IP address
-sub getIP {   
-  my $ipaddr = '0.0.0.0';
+# Retrieve this server's general location information from a GeoIP database
+sub getGeo {
+  my $unknown = 'Unknown';
+  my $endpoint = 'https://ipinfo.io/geo';
   my $ua = LWP::UserAgent->new;
-  my $server_endpoint = 'https://wiki.zoneminder.com/ip.php';
-
-  my $req = HTTP::Request->new(GET => $server_endpoint);
+  my $req = HTTP::Request->new(GET => $endpoint);
   my $resp = $ua->request($req);
+  my $resp_msg = $resp->decoded_content;
+  my $resp_code = $resp->code;
 
   if ($resp->is_success) {
-    $ipaddr = $resp->decoded_content;
+    my $content = decode_json( $resp_msg );
+    (my $latitude, my $longitude) = split /,/, $content->{loc};
+    return ($content->{city}, $content->{region}, $content->{country}, $latitude, $longitude);
+  } else {
+    Warning("Geoip data retrieval returned HTTP POST error code: $resp_code");
+    Debug("Geoip data retrieval failure response message: $resp_msg");
+    return ($unknown, $unknown, $unknown, $unknown);
   }
-
-  Debug("Found external ip address of: $ipaddr");
-
-  return $ipaddr;
 }
 
 # As the name implies, just your average mysql count query

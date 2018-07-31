@@ -609,17 +609,19 @@ bool Monitor::connect() {
     next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
     next_buffer.timestamp = new struct timeval;
   }
-  if ( ( purpose == ANALYSIS ) && analysis_fps ) {
-    // Size of pre event buffer must be greater than pre_event_count
-    // if alarm_frame_count > 1, because in this case the buffer contains
-    // alarmed images that must be discarded when event is created
-    pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
-    pre_event_buffer = new Snapshot[pre_event_buffer_count];
-    for ( int i = 0; i < pre_event_buffer_count; i++ ) {
-      pre_event_buffer[i].timestamp = new struct timeval;
-      *pre_event_buffer[i].timestamp = {0,0};
-      pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
-    }
+  if ( purpose == ANALYSIS ) {
+		if ( analysis_fps ) {
+			// Size of pre event buffer must be greater than pre_event_count
+			// if alarm_frame_count > 1, because in this case the buffer contains
+			// alarmed images that must be discarded when event is created
+			pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
+			pre_event_buffer = new Snapshot[pre_event_buffer_count];
+			for ( int i = 0; i < pre_event_buffer_count; i++ ) {
+				pre_event_buffer[i].timestamp = new struct timeval;
+				*pre_event_buffer[i].timestamp = {0,0};
+				pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+			}
+		}
 
     timestamps = new struct timeval *[pre_event_count];
     images = new Image *[pre_event_count];
@@ -1530,7 +1532,6 @@ bool Monitor::Analyse() {
                   }
                 } else {
                   for ( int i = 0; i < pre_event_images; i++ ) {
-                    Debug(3, "Doing pre-event_image %d of %d", i, pre_event_images);
                     timestamps[i] = image_buffer[pre_index].timestamp;
                     images[i] = image_buffer[pre_index].image;
                     pre_index = (pre_index + 1)%image_buffer_count;
@@ -1624,7 +1625,6 @@ Error("Creating new event when one exists");
                       pre_index = (pre_index + 1)%image_buffer_count;
                     }
                   }
-
                   event->AddFrames( pre_event_images, images, timestamps );
                 }
                 if ( alarm_frame_count ) {

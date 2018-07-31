@@ -248,15 +248,13 @@ function changeSize() {
     var monitor = monitors[x];
   
     // Scale the frame
-      monitor_frame = $j('#monitorFrame'+monitor.id);
-      if ( ! monitor_frame ) {
-        console.log("Error finding frame for " + monitor.id );
-        continue;
-      }
-      if ( width )
-        monitor_frame.css('width',width+'px');
-      if ( height )
-        monitor_frame.css('height',height+'px');
+    monitor_frame = $j('#monitorFrame'+monitor.id);
+    if ( ! monitor_frame ) {
+      console.log("Error finding frame for " + monitor.id );
+      continue;
+    }
+      monitor_frame.css('width',width?width+'px':'');
+      monitor_frame.css('height',height?height+'px':'');
     /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = $( 'liveStream'+monitor.id );
     if ( streamImg ) {

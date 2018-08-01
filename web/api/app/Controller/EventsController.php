@@ -153,7 +153,9 @@ class EventsController extends AppController {
    */
   public function add() {
 
-    if ( $this->Session->Read('eventPermission') != 'Edit' ) {
+    global $user;
+    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -177,7 +179,9 @@ class EventsController extends AppController {
    */
   public function edit($id = null) {
 
-    if ( $this->Session->Read('eventPermission') != 'Edit' ) {
+    global $user;
+    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -208,7 +212,9 @@ class EventsController extends AppController {
    * @return void
    */
   public function delete($id = null) {
-    if ( $this->Session->Read('eventPermission') != 'Edit' ) {
+    global $user;
+    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }

@@ -32,57 +32,6 @@ class HostController extends AppController {
   
   function login() {
 
-    $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
-    $config = $this->Config->find('first', $options);
-    $zmOptAuth = $config['Config']['Value'];
-
-    if ( $zmOptAuth == '1' ) {
-
-      require_once '../../../includes/auth.php';
-      global $user;
-      # $user is loaded from Session in AppController
-
-      $mUser = $this->request->data('user');
-      $mPassword = $this->request->data('pass');
-      $mAuth = $this->request->data('auth');
-      
-      if ( $mUser and $mPassword ) {
-        $user = userLogin($mUser, $mPassword);
-        if ( !$user ) {
-          throw new UnauthorizedException(__('User not found or incorrect password'));
-          return;
-        }
-      } else if ( $mAuth ) {
-        $user = getAuthUser($mAuth);
-        if ( !$user ) {
-          throw new UnauthorizedException(__('User not found or incorrect password'));
-          return;
-        }
-      } else {
-        throw new UnauthorizedException(__('missing credentials'));
-      } 
-
-      // I don't think this is really needed - the Username part
-      // Enabled check is ok
-      if ( !$user['Username'] ) {
-        throw new UnauthorizedException(__('Not Authenticated'));
-        return;
-      } else if ( !$user['Enabled'] ) {
-        throw new UnauthorizedException(__('User is not enabled'));
-        return;
-      }
-
-      $this->Session->Write('eventPermission',$user['Events']);
-      $this->Session->Write('controlPermission',$user['Control']);
-      $this->Session->Write('systemPermission',$user['System']);
-    } else {
-      // if auth is not on, you can do everything
-      //$userMonitors = $this->User->find('first', $options);
-      $this->Session->Write('eventPermission','Edit');
-      $this->Session->Write('controlPermission','Edit');
-      $this->Session->Write('systemPermission','Edit');
-    }
-
     $cred = $this->_getCredentials();
     $ver = $this->_getVersion();
     $this->set(array(

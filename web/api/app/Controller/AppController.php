@@ -90,17 +90,6 @@ class AppController extends Controller {
         }
       }
 
-      //$this->Session->Write('eventPermission',$user['Events']);
-      //$this->Session->Write('controlPermission',$user['Control']);
-      //$this->Session->Write('systemPermission',$user['System']);
-    //} else {
-      //// if auth is not on, you can do everything
-      ////$userMonitors = $this->User->find('first', $options);
-      //$this->Session->Write('eventPermission','Edit');
-      //$this->Session->Write('controlPermission','Edit');
-      //$this->Session->Write('systemPermission','Edit');
-    //}
-
       // We need to reject methods that are not authenticated
       // besides login and logout
       if ( strcasecmp($this->params->action, 'logout') ) {

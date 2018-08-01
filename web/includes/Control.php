@@ -12,6 +12,9 @@ private $defaults = array(
     'CanMoveRel' => 0,
     'CanMoveCon' => 0,
     'CanPan' => 0,
+    'CanReset' => 0,
+    'CanSleep' => 0,
+    'CanWake' => 0,
     'MinPanRange' => NULL,
     'MaxPanRange' => NULL,
     'MinPanStep' => NULL,
@@ -103,7 +106,7 @@ private $defaults = array(
     if ( $IdOrRow ) {
       $row = NULL;
       if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT * FROM Control WHERE Id=?', NULL, array( $IdOrRow ) );
+        $row = dbFetchOne( 'SELECT * FROM Controls WHERE Id=?', NULL, array( $IdOrRow ) );
         if ( ! $row ) {
           Error("Unable to load Control record for Id=" . $IdOrRow );
         }

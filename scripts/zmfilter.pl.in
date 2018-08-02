@@ -98,6 +98,11 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
 
 logInit($filter_id?(id=>'zmfilter_'.$filter_id):());
 sub HupHandler {
+  # This idea at this time is to just exit, freeing up the memory. 
+  # zmfilter.pl will be respawned by zmdc.
+  TermHandler();
+  return;
+
   Info('Received HUP, reloading');
   ZoneMinder::Object::init_cache();
   &ZoneMinder::Logger::logHupHandler();

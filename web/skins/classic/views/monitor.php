@@ -173,7 +173,7 @@ if ( !empty($_REQUEST['preset']) ) {
   }
 }
 if ( !empty($_REQUEST['probe']) ) {
-  $probe = unserialize(base64_decode($_REQUEST['probe']));
+  $probe = unserialize($_REQUEST['probe']);
   foreach ( $probe as $name=>$value ) {
     if ( isset($value) ) {
       # Does isset handle NULL's?  I don't think this code is correct. 
@@ -452,11 +452,6 @@ $savejpegopts = array(
     'Frames + Analysis images (if available)'             => 3,
     );
 
-$videowriteropts = array(
-    'Disabled'                                            => 0,
-    'X264 Encode'                                         => 1,
-    'H264 Camera Passthrough'                             => 2          
-    );
 
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
 ?>
@@ -922,7 +917,17 @@ if ( $monitor->Type() == 'Local' ) {
   case 'storage' :
 ?>
             <tr><td><?php echo translate('SaveJPEGs') ?></td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->SaveJPEGs() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
-            <tr><td><?php echo translate('VideoWriter') ?></td><td><select name="newMonitor[VideoWriter]"><?php foreach ( $videowriteropts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->VideoWriter() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('VideoWriter') ?></td><td>
+<?php 
+	$videowriteropts = array(
+			0 => 'Disabled',
+			1 => 'X264 Encode',
+			);
+	if ($monitor->Type() == 'Ffmpeg' )
+		$videowriteropts[2]='H264 Camera Passthrough';
+	echo htmlselect( 'newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter() );
+?>
+            </td></tr>
             <tr><td><?php echo translate('OptionalEncoderParam') ?></td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea></td></tr>
             <tr><td><?php echo translate('RecordAudio') ?></td><td><input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/></td></tr>
 <?php

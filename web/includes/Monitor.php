@@ -9,17 +9,19 @@ private $defaults = array(
   'Name' => '',
   'StorageId' => 0,
   'ServerId' => 0,
+  'Type'      =>  'Ffmpeg',
   'Function' => 'None',
   'Enabled' => 1,
+  'LinkedMonitors' => null,
   'Width' => null,
   'Height' => null,
   'Orientation' => null,
   'AnalysisFPSLimit'  =>  null,
   'ZoneCount' =>  0,
   'Triggers'  =>  null,
-  'Type'      =>  'Ffmpeg',
   'MaxFPS' => null,
   'AlarmMaxFPS' => null,
+  'Refresh' => null,
 );
 private $status_fields = array(
   'AnalysisFPS' => null,
@@ -215,7 +217,7 @@ private $control_fields = array(
 
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
-        $args['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+        $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
@@ -335,13 +337,13 @@ private $control_fields = array(
       }
 
       if ( $mode == 'stop' ) {
-        daemonControl( 'stop', 'zmc', $zmcArgs );
+        daemonControl('stop', 'zmc', $zmcArgs);
       } else {
         if ( $mode == 'restart' ) {
-          daemonControl( 'stop', 'zmc', $zmcArgs );
+          daemonControl('stop', 'zmc', $zmcArgs);
         }
         if ( $this->{'Function'} != 'None' ) {
-          daemonControl( 'start', 'zmc', $zmcArgs );
+          daemonControl('start', 'zmc', $zmcArgs);
         }
       }
     } else if ( $this->ServerId() ) {
@@ -378,6 +380,8 @@ private $control_fields = array(
       } catch ( Exception $e ) {
         Error("Except $e thrown trying to restart zmc");
       }
+    } else {
+      Error("Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.");
     }
   } // end function zmcControl
 
@@ -385,9 +389,9 @@ private $control_fields = array(
     if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
         if ( ZM_OPT_CONTROL ) {
-          daemonControl( 'stop', 'zmtrack.pl', '-m '.$this->{'Id'} );
+          daemonControl('stop', 'zmtrack.pl', '-m '.$this->{'Id'});
         }
-        daemonControl( 'stop', 'zma', '-m '.$this->{'Id'} );
+        daemonControl('stop', 'zma', '-m '.$this->{'Id'});
       } else {
         if ( $mode == 'restart' ) {
           if ( ZM_OPT_CONTROL ) {
@@ -404,7 +408,8 @@ private $control_fields = array(
         }
       }
     } // end if we are on the recording server
-  }
+  } // end public function zmaControl
+
   public function GroupIds( $new='') {
     if ( $new != '' ) {
       if(!is_array($new)) {
@@ -484,14 +489,20 @@ private $control_fields = array(
       $source = preg_replace( '/^.*\//', '', $this->{'Path'} );
     } elseif ( $this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite' ) {
       $url_parts = parse_url( $this->{'Path'} );
-      unset($url_parts['user']);
-      unset($url_parts['pass']);
-      #unset($url_parts['scheme']);
-      unset($url_parts['query']);
-      #unset($url_parts['path']);
-      if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
-        unset($url_parts['port']);
-      $source = unparse_url($url_parts);
+      if ( ZM_WEB_FILTER_SOURCE == "Hostname" ) { # Filter out everything but the hostname
+        $source = $url_parts['host'];
+      } elseif ( ZM_WEB_FILTER_SOURCE == "NoCredentials" ) { # Filter out sensitive and common items
+        unset($url_parts['user']);
+        unset($url_parts['pass']);
+        #unset($url_parts['scheme']);
+        unset($url_parts['query']);
+        #unset($url_parts['path']);
+        if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
+          unset($url_parts['port']);
+        $source = unparse_url($url_parts);
+      } else { # Don't filter anything 
+        $source = $this->{'Path'};
+      }
     }
     if ( $source == '' ) {
       $source = 'Monitor ' . $this->{'Id'};

@@ -124,7 +124,7 @@ function getImageSource( monId, time ) {
         return location.protocol + '//' + server.Hostname + 
           //'/cgi-bin/zms?mode=jpeg&replay=single&event=' + event_id +
           //'&frame='+Frame.FrameId +
-'/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
+          '/zm/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
           "&width=" + monitorCanvasObj[monId].width + 
           "&height=" + monitorCanvasObj[monId].height;
       } else {
@@ -132,7 +132,7 @@ function getImageSource( monId, time ) {
       }
     }
     //console.log("No storage found for " + eStorageId[i] );
-    return '/index.php?view=image&eid=' + Frame.EventId + '&fid='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    return '/zm/index.php?view=image&eid=' + Frame.EventId + '&fid='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
     //return "/cgi-bin/zms?mode=single&replay=single&event=" + Frame.EventId + '&time='+time+ "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
     return "/cgi-bin/zms?mode=jpeg&replay=single&event=" + Frame.EventId + '&frame='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame
@@ -240,7 +240,7 @@ function timerFire() {
 
   if ( liveMode ) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if (currentTimeSecs + playSecsperInterval >= maxTimeSecs) {
+  } else if ( currentTimeSecs + playSecsperInterval >= maxTimeSecs ) {
     // beyond the end just stop
 console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
@@ -472,7 +472,9 @@ function redrawScreen() {
 function outputUpdate(time) {
   drawSliderOnGraph(time);
   for ( var i=0; i < numMonitors; i++ ) {
-    loadImage2Monitor(monitorPtr[i],getImageSource(monitorPtr[i],time));
+    var src = getImageSource(monitorPtr[i],time);
+    console.log("New image src: " + src);
+    loadImage2Monitor(monitorPtr[i],src);
   }
   currentTimeSecs = time;
 }

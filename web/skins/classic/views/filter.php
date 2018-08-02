@@ -410,17 +410,20 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <button onclick="submitToEvents(this);"> <?php echo translate('ListMatches') ?></button>
-          <button name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
+          <button type="button" onclick="submitToEvents(this);"> <?php echo translate('ListMatches') ?></button>
+          <button type="button" onclick="submitToExport(this);"> <?php echo translate('ExportMatches') ?></button>
+          <button type="button" name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit( 'Events' ) ) {
 ?>
-          <button name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
-          <button name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
+          <button type="button" name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
+          <button type="button" name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>
-          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, '<?php echo $filter->Name() ?>' );"/>
+          <button type="button" value="Delete " onclick="deleteFilter( this, '<?php echo $filter->Name() ?>' );">
+          <?php echo translate('Delete') ?>
+          </button>
 <?php 
   }
 }

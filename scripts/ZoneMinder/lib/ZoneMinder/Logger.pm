@@ -198,6 +198,7 @@ sub initialise( @ ) {
   my $this = shift;
   my %options = @_;
 
+  $this->{hasTerm} = -t STDERR;
   $this->{id} = $options{id} if defined($options{id});
 
   $this->{logPath} = $options{logPath} if defined($options{logPath});
@@ -557,7 +558,7 @@ sub logPrint {
       if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
         $this->{sth} = undef;
         if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
-          print(STDERR "Can't log to database: ");
+          #print(STDERR "Can't log to database: ");
           $this->{databaseLevel} = NOLOG;
           return;
         }

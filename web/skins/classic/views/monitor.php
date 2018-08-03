@@ -924,7 +924,9 @@ if ( $monitor->Type() == 'Local' ) {
 			1 => 'X264 Encode',
 			);
 	if ($monitor->Type() == 'Ffmpeg' )
-		$videowriteropts[2]='H264 Camera Passthrough';
+		$videowriteropts[2] = 'H264 Camera Passthrough';
+  else
+    $videowriteropts[2] = array('text'=>'H264 Camera Passthrough - only for FFMPEG','disabled'=>1);
 	echo htmlselect( 'newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter() );
 ?>
             </td></tr>

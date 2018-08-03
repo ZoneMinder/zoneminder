@@ -72,9 +72,9 @@ class AppController extends Controller {
     if ( ZM_OPT_USE_AUTH ) {
       require_once '../../../includes/auth.php';
 
-      $mUser = $this->request->data('user');
-      $mPassword = $this->request->data('pass');
-      $mAuth = $this->request->data('auth');
+      $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+      $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+      $mAuth = $this->request->query('auth') ? $this->request->query('auth') : $this->request->data('auth');
 
       if ( $mUser and $mPassword ) {
         $user = userLogin($mUser, $mPassword);
@@ -89,7 +89,6 @@ class AppController extends Controller {
           return;
         }
       }
-
       // We need to reject methods that are not authenticated
       // besides login and logout
       if ( strcasecmp($this->params->action, 'logout') ) {

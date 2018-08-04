@@ -15,6 +15,10 @@ if ( ZM_CHECK_FOR_UPDATES && canEdit('System') && ZM_DYN_LAST_VERSION && ( verNu
     }
   }
 }
+if ( ZM_SHOW_PRIVACY && canEdit('System') ) {
+  $showPrivacyPopup = true;
+}
 ?>
 var showVersionPopup = <?php echo isset($showVersionPopup )?'true':'false' ?>;
 var showDonatePopup = <?php echo isset($showDonatePopup )?'true':'false' ?>;
+var showPrivacyPopup = <?php echo isset($showPrivacyPopup )?'true':'false' ?>;

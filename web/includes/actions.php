@@ -863,6 +863,22 @@ if ( canEdit( 'System' ) ) {
         }
     } // end switch option
   }
+  if ( $action == 'privacy' && isset($_REQUEST['option'] ) {
+    $option = $_REQUEST['option'];
+    switch( $option ) {
+      case 'decline' :
+        {
+          dbQuery( "update Config set Value = '0' where Name = 'ZM_SHOW_PRIVACY'" );
+          break;
+        }
+      case 'accept' :
+        {
+          dbQuery( "update Config set Value = '0' where Name = 'ZM_SHOW_PRIVACY'" );
+          dbQuery( "update Config set Value = '1' where Name = 'ZM_TELEMETRY_DATA'" );
+          break;
+        }
+    } // end switch option
+  }
   if ( $action == 'options' && isset($_REQUEST['tab']) ) {
     $configCat = $configCats[$_REQUEST['tab']];
     $changed = false;

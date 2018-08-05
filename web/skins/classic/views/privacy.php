@@ -40,7 +40,7 @@ xhtmlHeaders(__FILE__, translate('Privacy') );
       <h1>ZoneMinder - <?php echo translate('Privacy') ?></h1>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm(this);">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="privacy"/>
         <p><u><?php echo translate('PrivacyAbout') ?></u></p>
@@ -62,6 +62,14 @@ xhtmlHeaders(__FILE__, translate('Privacy') );
         <p><?php echo translate('PrivacyTelemetryText') ?></p>
         <p><?php echo translate('PrivacyConclusionText') ?></p>
         <p><?php echo buildSelect( "option", $options ); ?></p>
+
+        <fieldset style="display:inline;">  
+          <legend>Telemetry Consent</legend>
+          <input type="radio" id="notify-on" name="notify" value="on">
+          <label for="notify-on"><?php echo translate('Accept') ?></label>
+          <input type="radio" id="notify-off" name="notify" value="off">
+          <label for="notify-off"><?php echo translate('Decline') ?></label>
+        </fieldset>
 
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )">

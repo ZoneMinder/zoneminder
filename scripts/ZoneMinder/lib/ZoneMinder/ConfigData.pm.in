@@ -3883,15 +3883,6 @@ our @options = (
     category    => 'dynamic',
   },
   {
-    name        => 'ZM_DYN_SHOW_DONATE_REMINDER',
-    default     => 'yes',
-    description => 'Remind about donations or not',
-    help        => '',
-    type        => $types{boolean},
-    readonly    => 1,
-    category    => 'dynamic',
-  },
-  {
     name        => 'ZM_SHOW_PRIVACY',
     default     => 'yes',
     description => 'Present the privacy statment',

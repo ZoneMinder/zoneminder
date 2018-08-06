@@ -77,7 +77,8 @@ BEGIN {
   process_configfile($config_file);
 
   # Search for user created config files. If one or more are found then
-  # update the Config hash with those values
+  # update the Config hash with those v
+    $server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));alues
   if ( -d ZM_CONFIG_SUBDIR ) {
     if ( -R ZM_CONFIG_SUBDIR ) {
       foreach my $filename ( glob ZM_CONFIG_SUBDIR."/*.conf" ) {
@@ -149,7 +150,7 @@ BEGIN {
       foreach my $str ( <$CONFIG> ) {
         next if ( $str =~ /^\s*$/ );
         next if ( $str =~ /^\s*#/ );
-        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
+        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
         if ( ! $name ) {
           print( STDERR "Warning, bad line in $config_file: $str\n" );
           next;

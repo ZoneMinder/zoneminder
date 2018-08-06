@@ -77,8 +77,7 @@ BEGIN {
   process_configfile($config_file);
 
   # Search for user created config files. If one or more are found then
-  # update the Config hash with those v
-    $server_id = dbFetchOne('SELECT Id FROM Servers WHERE Name=?', 'Id', array(ZM_SERVER_NAME));alues
+  # update the Config hash with those values
   if ( -d ZM_CONFIG_SUBDIR ) {
     if ( -R ZM_CONFIG_SUBDIR ) {
       foreach my $filename ( glob ZM_CONFIG_SUBDIR."/*.conf" ) {

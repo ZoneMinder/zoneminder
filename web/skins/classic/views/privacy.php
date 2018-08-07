@@ -40,26 +40,27 @@ xhtmlHeaders(__FILE__, translate('Privacy') );
       <h1>ZoneMinder - <?php echo translate('Privacy') ?></h1>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm(this);">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="privacy"/>
-        <p><u><?php echo translate('PrivacyAbout') ?></u></p>
+        <h6><?php echo translate('PrivacyAbout') ?></h6>
         <p><?php echo translate('PrivacyAboutText') ?></p>
         <br>
 
-        <p><u><?php echo translate('PrivacyContact') ?></u></p>
+        <h6><?php echo translate('PrivacyContact') ?></h6>
         <p><?php echo translate('PrivacyContactText') ?></p>
         <br>
 
-        <p><u><?php echo translate('PrivacyCookies') ?></u></p>
+        <h6><?php echo translate('PrivacyCookies') ?></h6>
         <p><?php echo translate('PrivacyCookiesText') ?></p>
         <br>
 
-        <p><u><?php echo translate('PrivacyTelemetry') ?></u></p>
+        <h6><?php echo translate('PrivacyTelemetry') ?></h6>
         <p><?php echo translate('PrivacyTelemetryText') ?></p>
         <br>
 
         <p><?php echo translate('PrivacyTelemetryList') ?></p>
+        <p><?php echo translate('PrivacyMonitorList') ?></p>
         <p><?php echo translate('PrivacyConclusionText') ?></p>
         <p><?php echo buildSelect( "option", $options ); ?></p>
 

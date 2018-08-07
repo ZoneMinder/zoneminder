@@ -18,7 +18,7 @@ class ServersController extends AppController {
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
-    $canView = (!$user) || ($user['system'] != 'None');
+    $canView = (!$user) || ($user['System'] != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

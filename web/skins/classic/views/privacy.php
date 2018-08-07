@@ -59,7 +59,7 @@ xhtmlHeaders(__FILE__, translate('Privacy') );
         <p><?php echo translate('PrivacyTelemetryText') ?></p>
         <br>
 
-        <p><?php echo translate('PrivacyTelemetryText') ?></p>
+        <p><?php echo translate('PrivacyTelemetryList') ?></p>
         <p><?php echo translate('PrivacyConclusionText') ?></p>
         <p><?php echo buildSelect( "option", $options ); ?></p>
 

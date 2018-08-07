@@ -871,6 +871,7 @@ if ( canEdit( 'System' ) ) {
           dbQuery( "update Config set Value = '0' where Name = 'ZM_SHOW_PRIVACY'" );
           dbQuery( "update Config set Value = '0' where Name = 'ZM_TELEMETRY_DATA'" );
           $view = 'console';
+          $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
           break;
         }
       case 'accept' :
@@ -878,6 +879,7 @@ if ( canEdit( 'System' ) ) {
           dbQuery( "update Config set Value = '0' where Name = 'ZM_SHOW_PRIVACY'" );
           dbQuery( "update Config set Value = '1' where Name = 'ZM_TELEMETRY_DATA'" );
           $view = 'console';
+          $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
           break;
         }
       default: # Enable the privacy statement if we somehow submit something other than accept or decline

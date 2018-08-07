@@ -63,17 +63,8 @@ xhtmlHeaders(__FILE__, translate('Privacy') );
         <p><?php echo translate('PrivacyConclusionText') ?></p>
         <p><?php echo buildSelect( "option", $options ); ?></p>
 
-        <fieldset style="display:inline;">  
-          <legend>Telemetry Consent</legend>
-          <input type="radio" id="notify-on" name="notify" value="on">
-          <label for="notify-on"><?php echo translate('Accept') ?></label>
-          <input type="radio" id="notify-off" name="notify" value="off">
-          <label for="notify-off"><?php echo translate('Decline') ?></label>
-        </fieldset>
-
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )">
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()">
         </div>
       </form>
     </div>

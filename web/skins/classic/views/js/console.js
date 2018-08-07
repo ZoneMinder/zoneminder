@@ -121,8 +121,6 @@ function initPage() {
     createPopup( '?view=version', 'zmVersion', 'version' );
   if ( showDonatePopup )
     createPopup( '?view=donate', 'zmDonate', 'donate' );
-  if ( showPrivacyPopup )
-    createPopup( '?view=privacy', 'zmPrivacy', 'privacy' );
 
   // Makes table sortable
   $j( function() {

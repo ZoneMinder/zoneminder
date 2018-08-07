@@ -869,6 +869,7 @@ if ( canEdit( 'System' ) ) {
       case 'decline' :
         {
           dbQuery( "update Config set Value = '0' where Name = 'ZM_SHOW_PRIVACY'" );
+          dbQuery( "update Config set Value = '0' where Name = 'ZM_TELEMETRY_DATA'" );
           break;
         }
       case 'accept' :
@@ -877,6 +878,8 @@ if ( canEdit( 'System' ) ) {
           dbQuery( "update Config set Value = '1' where Name = 'ZM_TELEMETRY_DATA'" );
           break;
         }
+      default: # Enable the privacy statement if we somehow submit something other than accept or decline
+          dbQuery( "update Config set Value = '1' where Name = 'ZM_SHOW_PRIVACY'" );
     } // end switch option
   }
   if ( $action == 'options' && isset($_REQUEST['tab']) ) {

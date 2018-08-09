@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+
 /**
  * Events Controller
  *
@@ -16,8 +17,9 @@ class EventsController extends AppController {
 
   public function beforeFilter() {
     parent::beforeFilter();
-    $canView = $this->Session->Read('eventPermission');
-    if ( $canView == 'None' ) {
+    global $user;
+    $canView = (!$user) || ($user['Events'] != 'None');
+    if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -32,15 +34,16 @@ class EventsController extends AppController {
   public function index() {
     $this->Event->recursive = -1;
 
-    $allowedMonitors = preg_split('@,@', $this->Session->Read('allowedMonitors'), NULL, PREG_SPLIT_NO_EMPTY);
+    global $user;
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
 
-    if ( !empty($allowedMonitors) ) {
+    if ( $allowedMonitors ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
     } else {
       $mon_options = '';
     }
 
-    if ( $this->request->params['named'] ) {	
+    if ( $this->request->params['named'] ) {
       //$this->FilterComponent = $this->Components->load('Filter');
       //$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
       $conditions = $this->request->params['named'];
@@ -85,13 +88,13 @@ class EventsController extends AppController {
     $events = $this->Paginator->paginate('Event');
 
     // For each event, get the frameID which has the largest score
-    foreach ($events as $key => $value) {
+    foreach ( $events as $key => $value ) {
       $maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
       $events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
     }
 
     $this->set(compact('events'));
-  }
+  } // end public function index()
 
   /**
    * view method
@@ -108,9 +111,10 @@ class EventsController extends AppController {
       throw new NotFoundException(__('Invalid event'));
     }
 
-    $allowedMonitors = preg_split('@,@', $this->Session->Read('allowedMonitors'), NULL, PREG_SPLIT_NO_EMPTY);
+    global $user;
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
 
-    if ( !empty($allowedMonitors) ) {
+    if ( $allowedMonitors ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
     } else {
       $mon_options = '';
@@ -149,7 +153,9 @@ class EventsController extends AppController {
    */
   public function add() {
 
-    if ( $this->Session->Read('eventPermission') != 'Edit' ) {
+    global $user;
+    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -173,7 +179,9 @@ class EventsController extends AppController {
    */
   public function edit($id = null) {
 
-    if ( $this->Session->Read('eventPermission') != 'Edit' ) {
+    global $user;
+    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -204,7 +212,9 @@ class EventsController extends AppController {
    * @return void
    */
   public function delete($id = null) {
-    if ( $this->Session->Read('eventPermission') != 'Edit' ) {
+    global $user;
+    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -257,9 +267,9 @@ class EventsController extends AppController {
     $moreconditions = '';
     foreach ($this->request->params['named'] as $name => $param) {
       $moreconditions = $moreconditions . ' AND '.$name.$param;
-    }	
+    }  
 
-    $query = $this->Event->query("select MonitorId, COUNT(*) AS Count from Events WHERE (StartTime >= (DATE_SUB(NOW(), interval $interval)) $moreconditions) GROUP BY MonitorId;");
+    $query = $this->Event->query("SELECT MonitorId, COUNT(*) AS Count FROM Events WHERE (StartTime >= (DATE_SUB(NOW(), interval $interval)) $moreconditions) GROUP BY MonitorId;");
 
     foreach ($query as $result) {
       $results[$result['Events']['MonitorId']] = $result[0]['Count'];
@@ -336,7 +346,7 @@ class EventsController extends AppController {
     $thumbData['Width'] = (int)$thumbWidth;
     $thumbData['Height'] = (int)$thumbHeight;
 
-    return( $thumbData );
+    return $thumbData;
   }
 
   public function archive($id = null) {

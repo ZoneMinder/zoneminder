@@ -16,8 +16,10 @@ class ZonesController extends AppController {
 
   public function beforeFilter() {
     parent::beforeFilter();
-    $canView = $this->Session->Read('monitorPermission');
-    if ( $canView =='None' ) {
+
+    global $user;
+    $canView = (!$user) || $user['Monitors'] != 'None';
+    if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -38,12 +40,12 @@ class ZonesController extends AppController {
       '_serialize' => array('zones')
     ));
   }
-
   public function index() {
     $this->Zone->recursive = -1;
 
-    $allowedMonitors = preg_split('@,@', $this->Session->Read('allowedMonitors'), NULL, PREG_SPLIT_NO_EMPTY);
-    if ( !empty($allowedMonitors) ) {
+    global $user;
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'],NULL, PREG_SPLIT_NO_EMPTY) : null;
+    if ( $allowedMonitors ) {
       $mon_options = array('Zones.MonitorId' => $allowedMonitors);
     } else {
       $mon_options = '';
@@ -62,6 +64,14 @@ class ZonesController extends AppController {
    */
   public function add() {
     if ( $this->request->is('post') ) {
+
+      global $user;
+      $canEdit = (!$user) || $user['Monitors'] == 'Edit';
+      if ( !$canEdit ) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+        return;
+      }
+
       $this->Zone->create();
       if ( $this->Zone->save($this->request->data) ) {
         return $this->flash(__('The zone has been saved.'), array('action' => 'index'));
@@ -85,6 +95,12 @@ class ZonesController extends AppController {
       throw new NotFoundException(__('Invalid zone'));
     }
     if ( $this->request->is(array('post', 'put')) ) {
+      global $user;
+      $canEdit = (!$user) || $user['Monitors'] == 'Edit';
+      if ( !$canEdit ) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+        return;
+      }
       if ( $this->Zone->save($this->request->data) ) {
         return $this->flash(__('The zone has been saved.'), array('action' => 'index'));
       }
@@ -109,6 +125,12 @@ class ZonesController extends AppController {
       throw new NotFoundException(__('Invalid zone'));
     }
     $this->request->allowMethod('post', 'delete');
+    global $user;
+    $canEdit = (!$user) || $user['Monitors'] == 'Edit';
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
     if ( $this->Zone->delete() ) {
       return $this->flash(__('The zone has been deleted.'), array('action' => 'index'));
     } else {
@@ -144,4 +166,4 @@ class ZonesController extends AppController {
       '_serialize' => array('status')
     ));
   }
-}
+} // end class

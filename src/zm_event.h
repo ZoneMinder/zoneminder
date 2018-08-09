@@ -75,7 +75,7 @@ class Event {
     static int pre_alarm_count;
     static PreAlarmData pre_alarm_data[MAX_PRE_ALARM_FRAMES];
 
-    unsigned int  id;
+    uint64_t  id;
     Monitor      *monitor;
     struct timeval  start_time;
     struct timeval  end_time;
@@ -85,15 +85,16 @@ class Event {
     int        alarm_frames;
     unsigned int  tot_score;
     unsigned int  max_score;
-    char      path[PATH_MAX];
+    std::string path;
     VideoStore *videoStore;
     char video_name[64];
     char video_file[PATH_MAX];
     int        last_db_frame;
     bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.
+    Storage::Schemes  scheme;
+    int save_jpegs;
 
     void createNotes( std::string &notes );
-    Storage::Schemes  scheme;
 
   public:
     static bool OpenFrameSocket( int );
@@ -102,15 +103,15 @@ class Event {
     Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap );
     ~Event();
 
-    int Id() const { return( id ); }
-    const std::string &Cause() { return( cause ); }
-    int Frames() const { return( frames ); }
-    int AlarmFrames() const { return( alarm_frames ); }
+    uint64_t Id() const { return id; }
+    const std::string &Cause() { return cause; }
+    int Frames() const { return frames; }
+    int AlarmFrames() const { return alarm_frames; }
 
-    const struct timeval &StartTime() const { return( start_time ); }
-    const struct timeval &EndTime() const { return( end_time ); }
-    struct timeval &StartTime() { return( start_time ); }
-    struct timeval &EndTime() { return( end_time ); }
+    const struct timeval &StartTime() const { return start_time; }
+    const struct timeval &EndTime() const { return end_time; }
+    struct timeval &StartTime() { return start_time; }
+    struct timeval &EndTime() { return end_time; }
 
     bool SendFrameImage( const Image *image, bool alarm_frame=false );
     bool WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame=false );
@@ -132,7 +133,7 @@ class Event {
       return( subpath );
     }
     static const char *getSubPath( time_t *time ) {
-      return( Event::getSubPath( localtime( time ) ) );
+      return Event::getSubPath( localtime( time ) );
     }
 
     char* getEventFile(void) {
@@ -141,7 +142,7 @@ class Event {
 
   public:
     static int PreAlarmCount() {
-      return( pre_alarm_count );
+      return pre_alarm_count;
     }
     static void EmptyPreAlarmFrames() {
       if ( pre_alarm_count > 0 ) {

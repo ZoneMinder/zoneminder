@@ -125,6 +125,9 @@ class EventsController extends AppController {
     $event['Event']['Next'] = $event_neighbors['next']['Event']['Id'];
     $event['Event']['Prev'] = $event_neighbors['prev']['Event']['Id'];
 
+    $event['Event']['fileExists'] = $this->Event->fileExists($event['Event']);
+    $event['Event']['fileSize'] = $this->Event->fileSize($event['Event']);
+
     # Also get the previous and next events for the same monitor
     $event_monitor_neighbors = $this->Event->find('neighbors', array(
       'conditions'=>array('Event.MonitorId'=>$event['Event']['MonitorId'])

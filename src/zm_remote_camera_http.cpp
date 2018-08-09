@@ -21,6 +21,7 @@
 #include "zm_rtsp_auth.h"
 
 #include "zm_mem_utils.h"
+#include "zm_signal.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -185,24 +186,24 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected ) {
 
   struct timeval temp_timeout = timeout;
 
-  int n_found = select( sd+1, &rfds, NULL, NULL, &temp_timeout );
+  int n_found = select(sd+1, &rfds, NULL, NULL, &temp_timeout);
   if( n_found == 0 ) {
-    Debug( 4, "Select timed out timeout was %d secs %d usecs", temp_timeout.tv_sec, temp_timeout.tv_usec );
+    Debug( 1, "Select timed out timeout was %d secs %d usecs", temp_timeout.tv_sec, temp_timeout.tv_usec );
     int error = 0;
     socklen_t len = sizeof (error);
     int retval = getsockopt (sd, SOL_SOCKET, SO_ERROR, &error, &len);
     if(retval != 0 ) {
       Debug( 1, "error getting socket error code %s", strerror(retval) );
     }
-    if (error != 0) {
+    if (error != 0 ) {
       return -1;
     }
     // Why are we disconnecting?  It's just a timeout, meaning that data wasn't available.
     //Disconnect();
-    return( 0 );
+    return 0;
   } else if ( n_found < 0) {
-    Error( "Select error: %s", strerror(errno) );
-    return( -1 );
+    Error("Select error: %s", strerror(errno));
+    return -1;
   }
 
   unsigned int total_bytes_to_read = 0;
@@ -298,13 +299,14 @@ int RemoteCameraHttp::GetResponse() {
             static RegExpr *content_length_expr = 0;
             static RegExpr *content_type_expr = 0;
 
-            while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+            while ( !( buffer_len = ReadData(buffer) ) && !zm_terminate ) {
 							Debug(4, "Timeout waiting for REGEXP HEADER");
             }
             if ( buffer_len < 0 ) {
               Error( "Unable to read header data" );
               return( -1 );
             }
+						bytes += buffer_len;
             if ( !header_expr )
               header_expr = new RegExpr( "^(.+?\r?\n\r?\n)", PCRE_DOTALL );
             if ( header_expr->Match( (char*)buffer, buffer.size() ) == 2 ) {
@@ -449,13 +451,14 @@ int RemoteCameraHttp::GetResponse() {
               state = CONTENT;
             } else {
               Debug( 3, "Unable to extract subheader from stream, retrying" );
-              while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+              while ( !( buffer_len = ReadData(buffer) ) && !zm_terminate ) {
 								Debug(4, "Timeout waiting to extract subheader");
               }
               if ( buffer_len < 0 ) {
                 Error( "Unable to extract subheader data" );
                 return( -1 );
               }
+							bytes += buffer_len;
             }
             break;
           }
@@ -480,23 +483,27 @@ int RemoteCameraHttp::GetResponse() {
             }
 
             if ( content_length ) {
-              while ( (long)buffer.size() < content_length ) {
+              while ( ((long)buffer.size() < content_length ) && ! zm_terminate ) {
                 Debug(3, "Need more data buffer %d < content length %d", buffer.size(), content_length );
-                if ( ReadData( buffer ) < 0 ) {
+								int bytes_read = ReadData( buffer );
+
+                if ( bytes_read < 0 ) {
                   Error( "Unable to read content" );
                   return( -1 );
                 }
+								bytes += bytes_read;
               }
               Debug( 3, "Got end of image by length, content-length = %d", content_length );
             } else {
               while ( !content_length ) {
-                while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+                while ( !( buffer_len = ReadData(buffer) ) && !zm_terminate ) {
                   Debug(4, "Timeout waiting for content");
                 }
                 if ( buffer_len < 0 ) {
                   Error( "Unable to read content" );
                   return( -1 );
                 }
+								bytes += buffer_len;
                 static RegExpr *content_expr = 0;
                 if ( mode == MULTI_IMAGE ) {
                   if ( !content_expr ) {
@@ -603,13 +610,14 @@ int RemoteCameraHttp::GetResponse() {
           }
         case HEADERCONT :
           {
-            while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+            while ( !( buffer_len = ReadData(buffer) ) && !zm_terminate ) {
 								Debug(4, "Timeout waiting for HEADERCONT");
             }
             if ( buffer_len < 0 ) {
               Error( "Unable to read header" );
               return( -1 );
             }
+						bytes += buffer_len;
 
             char *crlf = 0;
             char *header_ptr = (char *)buffer;
@@ -888,13 +896,14 @@ int RemoteCameraHttp::GetResponse() {
               state = CONTENT;
             } else {
               Debug( 3, "Unable to extract subheader from stream, retrying" );
-              while ( ! ( buffer_len = ReadData( buffer ) ) ) {
+              while ( !( buffer_len = ReadData(buffer) ) &&!zm_terminate ) {
 								Debug(1, "Timeout waiting to extra subheader non regexp");
               }
               if ( buffer_len < 0 ) {
                 Error( "Unable to read subheader" );
                 return( -1 );
               }
+							bytes += buffer_len;
               state = SUBHEADERCONT;
             }
             break;
@@ -927,18 +936,19 @@ int RemoteCameraHttp::GetResponse() {
             }
 
             if ( content_length ) {
-              while ( (long)buffer.size() < content_length ) {
-                //int buffer_len = ReadData( buffer, content_length-buffer.size() );
+              while ( ( (long)buffer.size() < content_length ) && ! zm_terminate ) {
 								Debug(4, "getting more data");
-                if ( ReadData( buffer ) < 0 ) {
-                  Error( "Unable to read content" );
-                  return( -1 );
+                int bytes_read = ReadData(buffer);
+                if ( bytes_read < 0 ) {
+                  Error("Unable to read content");
+                  return -1;
                 }
+								bytes += bytes_read;
               }
               Debug( 3, "Got end of image by length, content-length = %d", content_length );
             } else {
               // Read until we find the end of image or the stream closes.
-              while ( !content_length ) {
+              while ( !content_length && !zm_terminate ) {
 								Debug(4, "!content_length, ReadData");
                 buffer_len = ReadData( buffer );
                 if ( buffer_len < 0 )
@@ -946,6 +956,7 @@ int RemoteCameraHttp::GetResponse() {
                   Error( "Unable to read content" );
                   return( -1 );
                 }
+								bytes += buffer_len;
                 int buffer_size = buffer.size();
                 if ( buffer_len ) {
                   // Got some data

@@ -54,7 +54,7 @@ class EventStream : public StreamBase {
     };
 
     struct EventData {
-      unsigned long   event_id;
+      uint64_t  event_id;
       unsigned long   monitor_id;
       unsigned long   storage_id;
       unsigned long   frame_count;
@@ -83,8 +83,8 @@ class EventStream : public StreamBase {
     FFmpeg_Input  *ffmpeg_input;
 
   protected:
-    bool loadEventData( int event_id );
-    bool loadInitialEventData( int init_event_id, unsigned int init_frame_id );
+    bool loadEventData( uint64_t event_id );
+    bool loadInitialEventData( uint64_t init_event_id, unsigned int init_frame_id );
     bool loadInitialEventData( int monitor_id, time_t event_time );
 
     void checkEventLoaded();
@@ -110,20 +110,8 @@ class EventStream : public StreamBase {
       ffmpeg_input = NULL;
 
     }
-    void setStreamStart( int init_event_id, unsigned int init_frame_id=0 ) {
-      loadInitialEventData( init_event_id, init_frame_id );
-      if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
-        Fatal( "Unable to load monitor id %d for streaming", event_data->monitor_id );
-        return;
-      }
-    }
-    void setStreamStart( int monitor_id, time_t event_time ) {
-      loadInitialEventData( monitor_id, event_time );
-      if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
-        Fatal( "Unable to load monitor id %d for streaming", monitor_id );
-        return;
-      }
-    }
+    void setStreamStart( uint64_t init_event_id, unsigned int init_frame_id );
+    void setStreamStart( int monitor_id, time_t event_time );
     void setStreamMode( StreamMode p_mode ) {
       mode = p_mode;
     }

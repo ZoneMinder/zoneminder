@@ -53,6 +53,8 @@ protected:
   int           contrast;
   bool          capture;
   bool          record_audio;
+  unsigned int bytes;
+
 
     int                 mVideoStreamId;
     int                 mAudioStreamId;
@@ -89,10 +91,11 @@ public:
   bool IscURL() const { return( type == CURL_SRC ); }
   unsigned int Width() const { return( width ); }
   unsigned int Height() const { return( height ); }
-  unsigned int Colours() const { return( colours ); }
+  unsigned int Colours() const { return colours; }
   unsigned int SubpixelOrder() const { return( subpixelorder ); }
   unsigned int Pixels() const { return( pixels ); }
   unsigned int ImageSize() const { return( imagesize ); }
+  unsigned int Bytes() const { return bytes; };
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return( -1 ); }
   virtual int Hue( int/*p_hue*/=-1 ) { return( -1 ); }
@@ -113,6 +116,7 @@ public:
   virtual AVCodecContext     *get_AudioCodecContext() { return NULL; };
   int            get_VideoStreamId() { return mVideoStreamId; };
   int            get_AudioStreamId() { return mAudioStreamId; };
+  virtual int Close()=0;
 };
 
 #endif // ZM_CAMERA_H

@@ -204,7 +204,11 @@ foreach ( $monitors as $monitor ) {
     }
   }
 
-              echo getStreamHTML( $monitor, $monitor_options );
+              if ( $monitor->Type() == "WebSite" ) {
+                  echo getWebSiteUrl( 'liveStream'.$monitor->Id(), $monitor->Path(), reScale( $monitor->Width(), $scale ), reScale( $monitor->Height(), $scale ), $monitor->Name() );
+              } else {
+                  echo getStreamHTML( $monitor, $monitor_options );
+              }
               if ( $showZones ) { 
                 $height = null;
                 $width = null;
@@ -255,7 +259,7 @@ foreach ( $monitors as $monitor ) {
 <?php } # end if showZones ?>
             </div>
 <?php
-    if ( !ZM_WEB_COMPACT_MONTAGE ) {
+    if ( (!ZM_WEB_COMPACT_MONTAGE) && ($monitor->Type() != 'WebSite') ) {
 ?>
             <div id="monitorState<?php echo $monitor->Id() ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps</div>
 <?php

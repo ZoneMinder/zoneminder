@@ -69,11 +69,8 @@ class FfmpegCamera : public Camera {
     AVPacket packet;       
 
     int OpenFfmpeg();
-    int ReopenFfmpeg();
-    int CloseFfmpeg();
-    bool mIsOpening;
+    int Close();
     bool mCanCapture;
-    int mOpenStart;
 #endif // HAVE_LIBAVFORMAT
 
   public:
@@ -97,6 +94,8 @@ class FfmpegCamera : public Camera {
     const std::string &Options() const { return( mOptions ); } 
     const std::string &Method() const { return( mMethod ); }
 
+    static int FfmpegInterruptCallback(void*ctx);
+
     int PrimeCapture();
     int PreCapture();
     int Capture(ZMPacket &p);
@@ -114,5 +113,4 @@ class FfmpegCamera : public Camera {
   AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
   AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };
 };
-
 #endif // ZM_FFMPEG_CAMERA_H

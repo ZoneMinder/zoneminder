@@ -30,10 +30,10 @@
 struct timespec getTimeout( int secs ) {
   struct timespec timeout;
   struct timeval temp_timeout;
-  gettimeofday( &temp_timeout, 0 );
+  gettimeofday(&temp_timeout, 0);
   timeout.tv_sec = temp_timeout.tv_sec + secs;
   timeout.tv_nsec = temp_timeout.tv_usec*1000;
-  return( timeout );
+  return timeout;
 }
 
 struct timespec getTimeout( double secs ) {
@@ -46,23 +46,26 @@ struct timespec getTimeout( double secs ) {
     timeout.tv_sec += 1;
     timeout.tv_nsec -= 1000000000;
   }
-  return( timeout );
+  return timeout;
 }
 
 Mutex::Mutex() {
-  if ( pthread_mutex_init( &mMutex, NULL ) < 0 )
-    Fatal( "Unable to create pthread mutex: %s", strerror(errno) );
+  if ( pthread_mutex_init(&mMutex, NULL) < 0 )
+    Error("Unable to create pthread mutex: %s", strerror(errno));
 }
 
 Mutex::~Mutex() {
   if ( locked() )
-    Warning( "Destroying mutex when locked" );
-  if ( pthread_mutex_destroy( &mMutex ) < 0 )
-    Fatal( "Unable to destroy pthread mutex: %s", strerror(errno) );
+    Warning("Destroying mutex when locked");
+  if ( pthread_mutex_destroy(&mMutex) < 0 )
+    Error("Unable to destroy pthread mutex: %s", strerror(errno));
 }
 
+int Mutex::trylock() {
+  return pthread_mutex_trylock(&mMutex);
+}
 void Mutex::lock() {
-  if ( pthread_mutex_lock( &mMutex ) < 0 )
+  if ( pthread_mutex_lock(&mMutex) < 0 )
     throw ThreadException( stringtf( "Unable to lock pthread mutex: %s", strerror(errno) ) );
   //Debug(3, "Lock");
 }
@@ -101,7 +104,7 @@ Condition::Condition( Mutex &mutex ) : mMutex( mutex ) {
 
 Condition::~Condition() {
   if ( pthread_cond_destroy( &mCondition ) < 0 )
-    Fatal( "Unable to destroy pthread condition: %s", strerror(errno) );
+    Error("Unable to destroy pthread condition: %s", strerror(errno));
 }
 
 void Condition::wait() {
@@ -141,44 +144,29 @@ template <class T> const T ThreadData<T>::getValue() const {
   mMutex.lock();
   const T valueCopy = mValue;
   mMutex.unlock();
-  return( valueCopy );
+  return valueCopy;
 }
 
-template <class T> T ThreadData<T>::setValue( const T value ) {
+template <class T> T ThreadData<T>::setValue(const T value) {
   mMutex.lock();
   const T valueCopy = mValue = value;
   mMutex.unlock();
-  return( valueCopy );
+  return valueCopy;
 }
 
 template <class T> const T ThreadData<T>::getUpdatedValue() const {
-  Debug( 8, "Waiting for value update, %p", this );
+  Debug(8, "Waiting for value update, %p", this);
   mMutex.lock();
   mChanged = false;
-  //do {
-    mCondition.wait();
-  //} while ( !mChanged );
+  mCondition.wait();
   const T valueCopy = mValue;
   mMutex.unlock();
-  Debug( 9, "Got value update, %p", this );
-  return( valueCopy );
+  Debug(9, "Got value update, %p", this);
+  return valueCopy;
 }
 
-template <class T> const T ThreadData<T>::getUpdatedValue( double secs ) const {
-  Debug( 8, "Waiting for value update, %.2f secs, %p", secs, this );
-  mMutex.lock();
-  mChanged = false;
-  //do {
-    mCondition.wait( secs );
-  //} while ( !mChanged );
-  const T valueCopy = mValue;
-  mMutex.unlock();
-  Debug( 9, "Got value update, %p", this );
-  return( valueCopy );
-}
-
-template <class T> const T ThreadData<T>::getUpdatedValue( int secs ) const {
-  Debug( 8, "Waiting for value update, %d secs, %p", secs, this );
+template <class T> const T ThreadData<T>::getUpdatedValue(double secs) const {
+  Debug(8, "Waiting for value update, %.2f secs, %p", secs, this);
   mMutex.lock();
   mChanged = false;
   //do {
@@ -186,28 +174,41 @@ template <class T> const T ThreadData<T>::getUpdatedValue( int secs ) const {
   //} while ( !mChanged );
   const T valueCopy = mValue;
   mMutex.unlock();
-  Debug( 9, "Got value update, %p", this );
-  return( valueCopy );
+  Debug(9, "Got value update, %p", this );
+  return valueCopy;
 }
 
-template <class T> void ThreadData<T>::updateValueSignal( const T value ) {
-  Debug( 8, "Updating value with signal, %p", this );
+template <class T> const T ThreadData<T>::getUpdatedValue(int secs) const {
+  Debug(8, "Waiting for value update, %d secs, %p", secs, this);
+  mMutex.lock();
+  mChanged = false;
+  //do {
+    mCondition.wait(secs);
+  //} while ( !mChanged );
+  const T valueCopy = mValue;
+  mMutex.unlock();
+  Debug(9, "Got value update, %p", this);
+  return valueCopy;
+}
+
+template <class T> void ThreadData<T>::updateValueSignal(const T value) {
+  Debug(8, "Updating value with signal, %p", this);
   mMutex.lock();
   mValue = value;
   mChanged = true;
   mCondition.signal();
   mMutex.unlock();
-  Debug( 9, "Updated value, %p", this );
+  Debug(9, "Updated value, %p", this);
 }
 
 template <class T> void ThreadData<T>::updateValueBroadcast( const T value ) {
-  Debug( 8, "Updating value with broadcast, %p", this );
+  Debug(8, "Updating value with broadcast, %p", this);
   mMutex.lock();
   mValue = value;
   mChanged = true;
   mCondition.broadcast();
   mMutex.unlock();
-  Debug( 9, "Updated value, %p", this );
+  Debug(9, "Updated value, %p", this);
 }
 
 Thread::Thread() :

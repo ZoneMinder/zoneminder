@@ -6,15 +6,14 @@ class HostController extends AppController {
 	public $components = array('RequestHandler');
 
 	public function daemonCheck($daemon=false, $args=false) {
-    $string = Configure::read('ZM_PATH_BIN')."/zmdc.pl check";
-    if ( $daemon )
-    {
+    $string = Configure::read('ZM_PATH_BIN').'/zmdc.pl check';
+    if ( $daemon ) {
         $string .= " $daemon";
         if ( $args )
             $string .= " $args";
     }
-    $result = exec( $string );
-    $result = preg_match( '/running/', $result );
+    $result = exec($string);
+    $result = preg_match('/running/', $result);
 
 		$this->set(array(
 			'result' => $result,
@@ -30,6 +29,38 @@ class HostController extends AppController {
 			'_serialize' => array('load')
 		));
 	}
+
+ function getCredentials() {
+    // ignore debug warnings from other functions
+	$this->view='Json';
+	$credentials = "";
+	$appendPassword = 0;
+	
+	$this->loadModel('Config');
+    $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
+ 
+    if ($isZmAuth) {
+        $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
+        if ($zmAuthRelay == 'hashed') {
+           $zmAuthHashIps= $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
+            $credentials = 'auth='.generateAuthHash($zmAuthHashIps);
+        }
+        elseif ($zmAuthRelay == 'plain') {
+            // user will need to append the store password here
+            $credentials = "user=".$this->Session->read('user.Username')."&pass=";
+            $appendPassword = 1;
+        }
+        elseif ($zmAuthRelay == 'none') {
+            $credentials = "user=".$this->Session->read('user.Username');
+        }    
+    }
+    $this->set(array(
+      'credentials'=> $credentials,
+      'append_password'=>$appendPassword,
+      '_serialize'  =>  array('credentials', 'append_password')
+    ) );
+ }
+
 
 	// If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor
@@ -99,15 +130,14 @@ class HostController extends AppController {
 		));
 	}
 
-    function getTimeZone()
-    {
-        //http://php.net/manual/en/function.date-default-timezone-get.php
-        $tz = date_default_timezone_get();
-        $this->set(array(
-            'tz' => $tz,
-			'_serialize' => array('tz')
-        ));
-    }
+  function getTimeZone() {
+    //http://php.net/manual/en/function.date-default-timezone-get.php
+    $tz = date_default_timezone_get();
+    $this->set(array(
+      'tz' => $tz,
+      '_serialize' => array('tz')
+    ));
+  }
 
 	function getVersion() {
 		//throw new UnauthorizedException(__('API Disabled'));

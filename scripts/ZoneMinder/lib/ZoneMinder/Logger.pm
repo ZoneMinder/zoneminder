@@ -1,4 +1,4 @@
-# ==========================================================================
+############################################################################
 #
 # ZoneMinder Logger Module, $Date$, $Revision$
 # Copyright (C) 2001-2008  Philip Coombes
@@ -17,7 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# ==========================================================================
+############################################################################
 #
 # This module contains the debug definitions and functions used by the rest
 # of the ZoneMinder scripts
@@ -81,11 +81,11 @@ our @EXPORT = qw();
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
-# ==========================================================================
+############################################################################
 #
 # Logger Facilities
 #
-# ==========================================================================
+############################################################################
 
 use ZoneMinder::Config qw(:all);
 
@@ -158,6 +158,7 @@ sub new {
   ( $this->{fileName} = $0 ) =~ s|^.*/||;
   $this->{logPath} = $Config{ZM_PATH_LOGS};
   $this->{logFile} = $this->{logPath}.'/'.$this->{id}.'.log';
+  ($this->{logFile}) = $this->{logFile} =~ /^([\w\.\/]+)$/;
 
   $this->{trace} = 0;
 
@@ -207,6 +208,7 @@ sub initialise( @ ) {
   if ( my $logFile = $this->getTargettedEnv('LOG_FILE') ) {
     $tempLogFile = $logFile;
   }
+  ($tempLogFile) = $tempLogFile =~ /^([\w\.\/]+)$/;
 
   my $tempLevel = INFO;
   my $tempTermLevel = $this->{termLevel};
@@ -427,54 +429,10 @@ sub databaseLevel {
     if ( $this->{databaseLevel} != $databaseLevel ) {
       if ( $databaseLevel > NOLOG and $this->{databaseLevel} <= NOLOG ) {
         if ( !$this->{dbh} ) {
-          my $socket;
-          my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-
-          if ( defined($portOrSocket) ) {
-            if ( $portOrSocket =~ /^\// ) {
-              $socket = ';mysql_socket='.$portOrSocket;
-            } else {
-              $socket = ';host='.$host.';port='.$portOrSocket;
-            }
-          } else {
-            $socket = ';host='.$Config{ZM_DB_HOST};
-          }
-          my $sslOptions = '';
-          if ( $Config{ZM_DB_SSL_CA_CERT} ) {
-            $sslOptions = join(';','',
-                'mysql_ssl=1',
-                'mysql_ssl_ca_file='.$Config{ZM_DB_SSL_CA_CERT},
-                'mysql_ssl_client_key='.$Config{ZM_DB_SSL_CLIENT_KEY},
-                'mysql_ssl_client_cert='.$Config{ZM_DB_SSL_CLIENT_CERT}
-                );
-          }
-          $this->{dbh} = DBI->connect( 'DBI:mysql:database='.$Config{ZM_DB_NAME}
-              .$socket.$sslOptions
-              , $Config{ZM_DB_USER}
-              , $Config{ZM_DB_PASS}
-              );
-          if ( !$this->{dbh} ) {
-            $databaseLevel = NOLOG;
-            Error( 'Unable to write log entries to DB, can\'t connect to database '
-                .$Config{ZM_DB_NAME}
-                .' on host '
-                .$Config{ZM_DB_HOST}
-                );
-          } else {
-            $this->{dbh}->{AutoCommit} = 1;
-            Fatal('Can\'t set AutoCommit on in database connection' )
-              unless( $this->{dbh}->{AutoCommit} );
-            $this->{dbh}->{mysql_auto_reconnect} = 1;
-            Fatal('Can\'t set mysql_auto_reconnect on in database connection' )
-              unless( $this->{dbh}->{mysql_auto_reconnect} );
-            $this->{dbh}->trace( 0 );
-          }
+          $this->{dbh} = ZoneMinder::Database::zmDbConnect();
         }
       } elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG ) {
-        if ( $this->{dbh} ) {
-          $this->{dbh}->disconnect();
-          undef($this->{dbh});
-        }
+        undef($this->{dbh});
       }
       $this->{databaseLevel} = $databaseLevel;
     }
@@ -581,28 +539,34 @@ sub logPrint {
       syslog($priorities{$level}, $code.' [%s]', $string);
     }
     print($LOGFILE $message) if $level <= $this->{fileLevel};
+    print(STDERR $message) if $level <= $this->{termLevel};
+
     if ( $level <= $this->{databaseLevel} ) {
-      my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
-      $this->{sth} = $this->{dbh}->prepare_cached($sql);
-      if ( !$this->{sth} ) {
-        $this->{databaseLevel} = NOLOG;
-        Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
-      } else {
-        my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
-            , $this->{id}
-            , $$
-            , $level
-            , $code
-            , $string
-            , $this->{fileName}
-            );
-        if ( !$res ) {
+      if ( ( $this->{dbh} and $this->{dbh}->ping() ) or ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
+
+        my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
+        $this->{sth} = $this->{dbh}->prepare_cached($sql);
+        if ( !$this->{sth} ) {
           $this->{databaseLevel} = NOLOG;
-          Error("Can't execute log entry '$sql': ".$this->{sth}->errstr());
+          Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
+        } else {
+          my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
+              , $this->{id}
+              , $$
+              , $level
+              , $code
+              , $string
+              , $this->{fileName}
+              );
+          if ( !$res ) {
+            $this->{databaseLevel} = NOLOG;
+            Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
+          }
         }
+      } else {
+        print(STDERR "Can't log to database: ");
       }
     } # end if doing db logging
-    print(STDERR $message) if $level <= $this->{termLevel};
   } # end if level < effectivelevel
 }
 

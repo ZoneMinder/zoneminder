@@ -45,9 +45,7 @@ The following notes are based on real problems which have occurred by those who 
 How to Install ZoneMinder
 -------------------------
 
-These instructions apply to all redhat distros and compatible clones, except for RHEL/CentOS 6.
-
-ZoneMinder releases are now being hosted at RPM Fusion. New users should navigate the `RPM Fusion site <https://rpmfusion.org>`_ then follow the instructions to enable that repo. RHEL/CentOS users must also navaigate to the `EPEL Site <https://fedoraproject.org/wiki/EPEL>`_ and enable that repo as well. Once enabled, install ZoneMinder from the commandline:
+ZoneMinder releases are now being hosted at RPM Fusion. New users should navigate the `RPM Fusion site <https://rpmfusion.org>`__ then follow the instructions to enable that repo. RHEL/CentOS users must also navaigate to the `EPEL Site <https://fedoraproject.org/wiki/EPEL>`_ and enable that repo as well. Once enabled, install ZoneMinder from the commandline:
 
 ::
 
@@ -56,13 +54,6 @@ ZoneMinder releases are now being hosted at RPM Fusion. New users should navigat
 Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
 Once ZoneMinder has been installed, it is critically important that you read the README file under /usr/share/doc/zoneminder. ZoneMinder will not run without completing the steps outlined in the README.
-
-How to Install ZoneMinder on RHEL/CentOS 6
-------------------------------------------
-
-We continue to encounter build problems, caused by the age of this distro. It is unforuntate, but we can see the writing on the wall. We do not have a date set, but the end of the line for this distros is near. 
-
-Please be advised that we do not recommend any new ZoneMinder installations using CentOS 6. However, for the time being, ZoneMinder rpms will continue to be hosted at `zmrepo <https://www.zoneminder.com>`_. 
 
 How to Install Nightly Development Builds
 -----------------------------------------
@@ -74,9 +65,9 @@ The feedback we get from those who use these development packages is extremely h
 How to Change from Zmrepo to RPM Fusion
 ---------------------------------------
 
-As mentioned above, the place to get the latest ZoneMinder release is now `RPM Fusion <https://rpmfusion.org>`_. If you are currently using ZoneMinder release packages from Zmrepo, then the following steps will change you over to RPM Fusion:
+As mentioned above, the place to get the latest ZoneMinder release is now `RPM Fusion <https://rpmfusion.org>`__. If you are currently using ZoneMinder release packages from Zmrepo, then the following steps will change you over to RPM Fusion:
 
-- Navigate to the `RPM Fusion site <https://rpmfusion.org>`_ and enable RPM Fusion on your system
+- Navigate to the `RPM Fusion site <https://rpmfusion.org>`__ and enable RPM Fusion on your system
 - Now issue the following from the command line:
 
 ::
@@ -132,7 +123,7 @@ Your build environment is now set up.
 
 Build from SRPM
 ***************
-To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <https://rpmfusion.org/>`_. If instead you wish to rebuild the latest source rpm from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
+To continue, you need a ZoneMinder SRPM. If you wish to rebuild a ZoneMinder release, then browse the `RPM Fusion site <https://rpmfusion.org/>`__. If instead you wish to rebuild the latest source rpm from our master branch then browse the `Zmrepo site <http://zmrepo.zoneminder.com/>`_.
 
 For this example, I'll use one of the source rpms from zmrepo:   
 

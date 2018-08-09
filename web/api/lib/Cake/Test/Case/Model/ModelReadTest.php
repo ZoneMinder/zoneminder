@@ -2,18 +2,18 @@
 /**
  * ModelReadTest file
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.Model
  * @since         CakePHP(tm) v 1.2.0.4206
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 require_once dirname(__FILE__) . DS . 'ModelTestBase.php';
@@ -192,6 +192,81 @@ class ModelReadTest extends BaseModelTest {
 		$this->assertEquals($expected, $result);
 	}
 
+	public function skipIfIsStrictGroupBy() {
+		$isOnlyFullGroupBy = false;
+		if ($this->db instanceof Mysql) {
+			$sqlMode = $this->db->query('SELECT @@sql_mode AS sql_mode;');
+			if (strpos($sqlMode[0][0]['sql_mode'], 'ONLY_FULL_GROUP_BY') > -1) {
+				$isOnlyFullGroupBy = true;
+			}
+		}
+		$isStrictGroupBy = $isOnlyFullGroupBy ||
+			$this->db instanceof Postgres ||
+			$this->db instanceof Sqlite ||
+			$this->db instanceof Oracle ||
+			$this->db instanceof Sqlserver;
+		$message = 'Postgres, Oracle, SQLite, SQL Server and MySQL in ONLY_FULL_GROUP_BY ' .
+			'mode have strict GROUP BY and are incompatible with this test.';
+		$this->skipIf($isStrictGroupBy, $message);
+	}
+
+/**
+ * testGroupByAndOrder method
+ *
+ * This test will never pass with Postgres or Oracle as all fields in a select must be
+ * part of an aggregate function or in the GROUP BY statement.
+ *
+ * @return void
+ */
+	public function testGroupByAndOrder() {
+		$this->skipIfIsStrictGroupBy();
+		$this->loadFixtures('Project', 'Thread', 'Message');
+		$Thread = new Thread();
+		$result = $Thread->find('all', array(
+			'group' => 'Thread.project_id',
+			'order' => 'Thread.id ASC',
+		));
+		$expected = array(
+			array(
+				'Thread' => array(
+					'id' => 1,
+					'project_id' => 1,
+					'name' => 'Project 1, Thread 1',
+				),
+				'Project' => array(
+					'id' => 1,
+					'name' => 'Project 1',
+				),
+				'Message' => array(
+					array(
+						'id' => 1,
+						'thread_id' => 1,
+						'name' => 'Thread 1, Message 1',
+					),
+				),
+			),
+			array (
+				'Thread' => array(
+					'id' => 3,
+					'project_id' => 2,
+					'name' => 'Project 2, Thread 1',
+				),
+				'Project' => array(
+					'id' => 2,
+					'name' => 'Project 2',
+				),
+				'Message' => array(
+					array(
+						'id' => 3,
+						'thread_id' => 3,
+						'name' => 'Thread 3, Message 1',
+					),
+				),
+			),
+		);
+		$this->assertEquals($expected, $result);
+	}
+
 /**
  * testGroupBy method
  *
@@ -201,54 +276,11 @@ class ModelReadTest extends BaseModelTest {
  * @return void
  */
 	public function testGroupBy() {
-		$isStrictGroupBy = $this->db instanceof Postgres || $this->db instanceof Sqlite || $this->db instanceof Oracle || $this->db instanceof Sqlserver;
-		$message = 'Postgres, Oracle, SQLite and SQL Server have strict GROUP BY and are incompatible with this test.';
-
-		$this->skipIf($isStrictGroupBy, $message);
+		$this->skipIfIsStrictGroupBy();
 
 		$this->loadFixtures('Project', 'Product', 'Thread', 'Message', 'Bid');
 		$Thread = new Thread();
 		$Product = new Product();
-
-		$result = $Thread->find('all', array(
-			'group' => 'Thread.project_id',
-			'order' => 'Thread.id ASC'
-		));
-
-		$expected = array(
-			array(
-				'Thread' => array(
-					'id' => 1,
-					'project_id' => 1,
-					'name' => 'Project 1, Thread 1'
-				),
-				'Project' => array(
-					'id' => 1,
-					'name' => 'Project 1'
-				),
-				'Message' => array(
-					array(
-						'id' => 1,
-						'thread_id' => 1,
-						'name' => 'Thread 1, Message 1'
-			))),
-			array(
-				'Thread' => array(
-					'id' => 3,
-					'project_id' => 2,
-					'name' => 'Project 2, Thread 1'
-				),
-				'Project' => array(
-					'id' => 2,
-					'name' => 'Project 2'
-				),
-				'Message' => array(
-					array(
-						'id' => 3,
-						'thread_id' => 3,
-						'name' => 'Thread 3, Message 1'
-		))));
-		$this->assertEquals($expected, $result);
 
 		$rows = $Thread->find('all', array(
 			'group' => 'Thread.project_id',
@@ -353,6 +385,33 @@ class ModelReadTest extends BaseModelTest {
 	}
 
 /**
+ * Test find method with having clause
+ *
+ * @return void
+ */
+	public function testHaving() {
+		$this->loadFixtures('Comment');
+
+		$Comment = ClassRegistry::init('Comment');
+		$comments = $Comment->find('all', array(
+			'fields' => array('user_id', 'COUNT(*) AS count'),
+			'group' => array('user_id'),
+			'having' => array('COUNT(*) >' => 1),
+			'order' => array('COUNT(*)' => 'DESC'),
+			'recursive' => -1,
+		));
+
+		$results = Hash::combine($comments, '{n}.Comment.user_id', '{n}.0.count');
+
+		$expected = array(
+			1 => 3,
+			2 => 2,
+		);
+
+		$this->assertEquals($expected, $results);
+	}
+
+/**
  * testOldQuery method
  *
  * @return void
@@ -403,7 +462,7 @@ class ModelReadTest extends BaseModelTest {
 		$query .= '.id = ? AND ' . $this->db->fullTableName('articles') . '.published = ?';
 
 		$params = array(1, 'Y');
-		$result = $Article->query($query, $params);
+		$result = $Article->query($query, $params, true);
 		$expected = array(
 			'0' => array(
 				$this->db->fullTableName('articles', false, false) => array(
@@ -438,7 +497,7 @@ class ModelReadTest extends BaseModelTest {
 		$query .= ' WHERE ' . $this->db->fullTableName('articles') . '.title LIKE ?';
 
 		$params = array('%First%');
-		$result = $Article->query($query, $params);
+		$result = $Article->query($query, $params, true);
 		$this->assertTrue(is_array($result));
 		$this->assertTrue(
 			isset($result[0][$this->db->fullTableName('articles', false, false)]['title']) ||
@@ -449,7 +508,7 @@ class ModelReadTest extends BaseModelTest {
 		$query = 'SELECT title FROM ';
 		$query .= $this->db->fullTableName('articles') . ' WHERE title = ? AND published = ?';
 		$params = array('First? Article', 'Y');
-		$Article->query($query, $params);
+		$Article->query($query, $params, true);
 
 		$result = $this->db->getQueryCache($query, $params);
 		$this->assertFalse($result === false);
@@ -6425,6 +6484,145 @@ class ModelReadTest extends BaseModelTest {
 		$this->assertEquals($expected, $result);
 	}
 
+	public function testBuildQueryAllI18nConditions() {
+		$this->skipIf(!$this->db instanceof Mysql, 'This test is only compatible with Mysql.');
+		$this->loadFixtures('TranslateArticle', 'TranslatedArticle', 'User');
+		$TestModel = new TranslatedArticle();
+		$TestModel->cacheQueries = false;
+		$TestModel->locale = 'eng';
+		$expected = array(
+			'conditions' => array(
+				'NOT' => array('I18n__title.content' => ''),
+			),
+			'fields' => null,
+			'joins' => array(
+				array(
+					'type' => 'INNER',
+					'alias' => 'I18n__title',
+					'table' => (object)array(
+						'tablePrefix' => '',
+						'table' => 'article_i18n',
+						'schemaName' => 'cakephp_test',
+					),
+					'conditions' => array(
+						'TranslatedArticle.id' => (object)array(
+							'type' => 'identifier',
+							'value' => 'I18n__title.foreign_key',
+						),
+						'I18n__title.model' => 'TranslatedArticle',
+						'I18n__title.field' => 'title',
+						'I18n__title.locale' => 'eng',
+					),
+				),
+				array(
+					'type' => 'INNER',
+					'alias' => 'I18n__body',
+					'table' => (object)array(
+						'tablePrefix' => '',
+						'table' => 'article_i18n',
+						'schemaName' => 'cakephp_test',
+					),
+					'conditions' => array(
+						'TranslatedArticle.id' => (object)array(
+							'type' => 'identifier',
+							'value' => 'I18n__body.foreign_key',
+						),
+						'I18n__body.model' => 'TranslatedArticle',
+						'I18n__body.field' => 'body',
+						'I18n__body.locale' => 'eng',
+					),
+				),
+			),
+			'limit' => 2,
+			'offset' => null,
+			'order' => array(
+				'TranslatedArticle.id' => 'ASC',
+			),
+			'page' => 1,
+			'group' => null,
+			'callbacks' => true,
+			'recursive' => 0,
+		);
+		$query = array(
+			'recursive' => 0,
+			'conditions' => array(
+				'NOT' => array('I18n__title.content' => ''),
+			),
+			'limit' => 2,
+		);
+		$result = $TestModel->buildQuery('all', $query);
+		$this->assertEquals($expected, $result);
+	}
+
+	public function testBuildQueryCountI18nConditions() {
+		$this->skipIf(!$this->db instanceof Mysql, 'This test is only compatible with Mysql.');
+		$this->loadFixtures('TranslateArticle', 'TranslatedArticle', 'User');
+		$TestModel = new TranslatedArticle();
+		$TestModel->cacheQueries = false;
+		$TestModel->locale = 'eng';
+		$expected = array(
+			'conditions' => array(
+				'NOT' => array('I18n__title.content' => ''),
+			),
+			'fields' => 'COUNT(DISTINCT(`TranslatedArticle`.`id`)) AS count',
+			'joins' => array(
+				array(
+					'type' => 'INNER',
+					'alias' => 'TranslateArticleModel',
+					'table' => (object)array(
+						'tablePrefix' => '',
+						'table' => 'article_i18n',
+						'schemaName' => 'cakephp_test',
+					),
+					'conditions' => array(
+						'`TranslatedArticle`.`id`' => (object)array(
+							'type' => 'identifier',
+							'value' => '`TranslateArticleModel`.`foreign_key`',
+						),
+						'`TranslateArticleModel`.`model`' => 'TranslatedArticle',
+						'`TranslateArticleModel`.`locale`' => 'eng',
+					),
+				),
+				array(
+					'type' => 'INNER',
+					'alias' => 'I18n__title',
+					'table' => (object)array(
+						'tablePrefix' => '',
+						'table' => 'article_i18n',
+						'schemaName' => 'cakephp_test',
+					),
+					'conditions' => array(
+						'TranslatedArticle.id' => (object)array(
+							'type' => 'identifier',
+							'value' => 'I18n__title.foreign_key',
+						),
+						'I18n__title.model' => 'TranslatedArticle',
+						'I18n__title.field' => 'title',
+						'I18n__title.locale' => 'eng',
+					),
+				),
+			),
+			'limit' => 2,
+			'offset' => null,
+			'order' => array(
+				0 => false,
+			),
+			'page' => 1,
+			'group' => null,
+			'callbacks' => true,
+			'recursive' => 0,
+		);
+		$query = array(
+			'recursive' => 0,
+			'conditions' => array(
+				'NOT' => array('I18n__title.content' => ''),
+			),
+			'limit' => 2,
+		);
+		$result = $TestModel->buildQuery('count', $query);
+		$this->assertEquals($expected, $result);
+	}
+
 /**
  * test find('all') method
  *
@@ -6682,6 +6880,62 @@ class ModelReadTest extends BaseModelTest {
 		$result = $TestModel->find('all', array(
 			'conditions' => array('User.user' => array('larry')),
 		));
+		$this->assertEquals($expected, $result);
+	}
+
+	public function testFindAllI18nConditions() {
+		$this->loadFixtures('TranslateArticle', 'TranslatedArticle', 'User');
+		$TestModel = new TranslatedArticle();
+		$TestModel->cacheQueries = false;
+		$TestModel->locale = 'eng';
+		$options = array(
+			'recursive' => 0,
+			'conditions' => array(
+				'NOT' => array('I18n__title.content' => ''),
+			),
+			'limit' => 2,
+		);
+		$result = $TestModel->find('all', $options);
+		$expected = array(
+			array(
+				'TranslatedArticle' => array(
+					'id' => '1',
+					'user_id' => '1',
+					'published' => 'Y',
+					'created' => '2007-03-18 10:39:23',
+					'updated' => '2007-03-18 10:41:31',
+					'locale' => 'eng',
+					'title' => 'Title (eng) #1',
+					'body' => 'Body (eng) #1',
+				),
+				'User' => array(
+					'id' => '1',
+					'user' => 'mariano',
+					'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+					'created' => '2007-03-17 01:16:23',
+					'updated' => '2007-03-17 01:18:31',
+				),
+			),
+			array(
+				'TranslatedArticle' => array(
+					'id' => '2',
+					'user_id' => '3',
+					'published' => 'Y',
+					'created' => '2007-03-18 10:41:23',
+					'updated' => '2007-03-18 10:43:31',
+					'locale' => 'eng',
+					'title' => 'Title (eng) #2',
+					'body' => 'Body (eng) #2',
+				),
+				'User' => array(
+					'id' => '3',
+					'user' => 'larry',
+					'password' => '5f4dcc3b5aa765d61d8327deb882cf99',
+					'created' => '2007-03-17 01:20:23',
+					'updated' => '2007-03-17 01:22:31',
+				),
+			),
+		);
 		$this->assertEquals($expected, $result);
 	}
 
@@ -6961,6 +7215,34 @@ class ModelReadTest extends BaseModelTest {
 	}
 
 /**
+ * test find('list') method
+ *
+ * @return void
+ */
+	public function testFindListZeroValue() {
+		$this->loadFixtures('Article');
+
+		$model = new Article();
+		$model->displayField = 'title';
+		$model->save(array(
+			'title' => 'Zeroth Article',
+			'user_id' => 0,
+			'published' => 'Y'
+		));
+
+		$result = $model->find('list', array(
+			'fields' => array('title', 'user_id')
+		));
+		$expected = array(
+			'Zeroth Article' => 0,
+			'First Article' => 1,
+			'Second Article' => 3,
+			'Third Article' => 1,
+		);
+		$this->assertEquals($expected, $result);
+	}
+
+/**
  * Test that find(list) works with array conditions that have only one element.
  *
  * @return void
@@ -7013,6 +7295,12 @@ class ModelReadTest extends BaseModelTest {
 
 		$result = $TestModel->field('COUNT(*)', true);
 		$this->assertEquals(4, $result);
+
+		$TestModel->id = null;
+		$result = $TestModel->field('user', array(
+			'user' => 'mariano'
+		));
+		$this->assertEquals('mariano', $result);
 	}
 
 /**
@@ -7084,6 +7372,22 @@ class ModelReadTest extends BaseModelTest {
 		$this->assertEquals($expected, $result);
 	}
 
+	public function testFindCountI18nConditions() {
+		$this->loadFixtures('TranslateArticle', 'TranslatedArticle', 'User');
+		$TestModel = new TranslatedArticle();
+		$TestModel->cacheQueries = false;
+		$TestModel->locale = 'eng';
+		$options = array(
+			'recursive' => 0,
+			'conditions' => array(
+				'NOT' => array('I18n__title.content' => ''),
+			),
+			'limit' => 2,
+		);
+		$result = $TestModel->find('count', $options);
+		$this->assertEquals(3, $result);
+	}
+
 /**
  * Test that find('first') does not use the id set to the object.
  *
@@ -7119,7 +7423,7 @@ class ModelReadTest extends BaseModelTest {
 	}
 
 /**
- * Test find(count) with Db::expression
+ * Test find(count) with DboSource::expression
  *
  * @return void
  */
@@ -7139,6 +7443,38 @@ class ModelReadTest extends BaseModelTest {
 			'Project.name' => $db->expression('\'Project 3\'')
 		)));
 		$this->assertEquals(1, $result);
+	}
+
+/**
+ * Test 'order' with DboSource::expression
+ */
+	public function testOrderWithDbExpressions() {
+		$this->loadFixtures('User');
+
+		$User = new User();
+
+		$results = $User->find('all', array(
+			'fields' => array('id'),
+			'recursive' => -1,
+			'order' => $this->db->expression('CASE id WHEN 4 THEN 0 ELSE id END'),
+		));
+
+		$expected = array(
+			array(
+				'User' => array('id' => 4),
+			),
+			array(
+				'User' => array('id' => 1),
+			),
+			array(
+				'User' => array('id' => 2),
+			),
+			array(
+				'User' => array('id' => 3),
+			),
+		);
+
+		$this->assertEquals($expected, $results);
 	}
 
 /**
@@ -8125,6 +8461,29 @@ class ModelReadTest extends BaseModelTest {
 		$this->assertEquals($expected, $result);
 	}
 
+	public function testVirtualFieldsMysqlGroup() {
+		$this->skipIf(!($this->db instanceof Mysql), 'The rest of virtualFields test only compatible with Mysql.');
+		$this->skipIfIsStrictGroupBy();
+		$this->loadFixtures('Post');
+		$Post = ClassRegistry::init('Post');
+		$Post->create();
+		$Post->virtualFields = array(
+			'low_title' => 'lower(Post.title)',
+			'unique_test_field' => 'COUNT(Post.id)',
+		);
+		$expectation = array(
+			'Post' => array(
+				'low_title' => 'first post',
+				'unique_test_field' => 1,
+			),
+		);
+		$result = $Post->find('first', array(
+			'fields' => array_keys($Post->virtualFields),
+			'group' => array('low_title'),
+		));
+		$this->assertEquals($expectation, $result);
+	}
+
 /**
  * testVirtualFieldsMysql()
  *
@@ -8135,42 +8494,17 @@ class ModelReadTest extends BaseModelTest {
  */
 	public function testVirtualFieldsMysql() {
 		$this->skipIf(!($this->db instanceof Mysql), 'The rest of virtualFields test only compatible with Mysql.');
-
-		$this->loadFixtures('Post', 'Author');
-		$Post = ClassRegistry::init('Post');
-
-		$Post->create();
-		$Post->virtualFields = array(
-			'low_title' => 'lower(Post.title)',
-			'unique_test_field' => 'COUNT(Post.id)'
-		);
-
-		$expectation = array(
-			'Post' => array(
-				'low_title' => 'first post',
-				'unique_test_field' => 1
-			)
-		);
-
-		$result = $Post->find('first', array(
-			'fields' => array_keys($Post->virtualFields),
-			'group' => array('low_title')
-		));
-
-		$this->assertEquals($expectation, $result);
-
+		$this->loadFixtures('Author');
 		$Author = ClassRegistry::init('Author');
 		$Author->virtualFields = array(
 			'full_name' => 'CONCAT(Author.user, " ", Author.id)'
 		);
-
 		$result = $Author->find('first', array(
 			'conditions' => array('Author.user' => 'mariano'),
 			'fields' => array('Author.password', 'Author.full_name'),
 			'recursive' => -1
 		));
 		$this->assertTrue(isset($result['Author']['full_name']));
-
 		$result = $Author->find('first', array(
 			'conditions' => array('Author.user' => 'mariano'),
 			'fields' => array('Author.full_name', 'Author.password'),
@@ -8530,5 +8864,119 @@ class ModelReadTest extends BaseModelTest {
 			)
 		);
 		$this->assertEquals($expected, $results, 'Model related with belongsTo afterFind callback fails');
+	}
+
+/**
+ * Pull out the username from a result set.
+ *
+ * @param array $result The results.
+ * @return string The username.
+ */
+	public static function extractUserNameFromQueryResult(array $result) {
+		return isset($result[0][0]) ? $result[0][0]['user'] : $result[0]['u']['user'];
+	}
+
+/**
+ * Test that query() doesn't override the 2nd argument with a default.
+ *
+ * @return void
+ */
+	public function testQueryRespectsCacheQueriesAsSecondArgument() {
+		$model = new User();
+		$model->save(array('user' => 'Chuck'));
+		$userTableName = $this->db->fullTableName('users');
+
+		$getUserNameFromDb = function ($cacheArgument) use ($model, $userTableName) {
+			$query = sprintf('SELECT u.user FROM %s u WHERE id=%d', $userTableName, $model->id);
+			$users = $model->query($query, $cacheArgument);
+			return ModelReadTest::extractUserNameFromQueryResult($users);
+		};
+
+		$model->cacheQueries = true;
+		$this->assertSame('Chuck', $getUserNameFromDb(true));
+		$this->assertSame('Chuck', $getUserNameFromDb(false));
+
+		$model->updateAll(array('User.user' => "'Sylvester'"), array('User.id' => $model->id));
+		$model->cacheQueries = false;
+		$this->assertSame('Chuck', $getUserNameFromDb(true));
+		$this->assertSame('Sylvester', $getUserNameFromDb(false));
+	}
+
+/**
+ * Test that query() doesn't override the cache param in the 3nd argument
+ * with a default.
+ *
+ * @return void
+ */
+	public function testQueryRespectsCacheQueriesAsThirdArgument() {
+		$model = new User();
+		$model->save(array('user' => 'Chuck'));
+		$userTableName = $this->db->fullTableName('users');
+
+		$getUserNameFromDb = function ($cacheArgument) use ($model, $userTableName) {
+			$query = sprintf('SELECT u.user FROM %s u WHERE id=?', $userTableName);
+			$users = $model->query($query, array($model->id), $cacheArgument);
+			return ModelReadTest::extractUserNameFromQueryResult($users);
+		};
+
+		$model->cacheQueries = true;
+		$this->assertSame('Chuck', $getUserNameFromDb(true));
+		$this->assertSame('Chuck', $getUserNameFromDb(false));
+
+		$model->updateAll(array('User.user' => "'Sylvester'"), array('User.id' => $model->id));
+		$model->cacheQueries = false;
+		$this->assertSame('Chuck', $getUserNameFromDb(true));
+		$this->assertSame('Sylvester', $getUserNameFromDb(false));
+	}
+
+/**
+ * Test that query() uses the cacheQueries property when there is one argument.
+ *
+ * @return void
+ */
+	public function testQueryTakesModelCacheQueriesValueAsDefaultForOneArgument() {
+		$model = new User();
+		$model->save(array('user' => 'Chuck'));
+		$userTableName = $this->db->fullTableName('users');
+
+		$getUserNameFromDb = function () use ($model, $userTableName) {
+			$query = sprintf('SELECT u.user FROM %s u WHERE id=%d', $userTableName, $model->id);
+			$users = $model->query($query);
+			return ModelReadTest::extractUserNameFromQueryResult($users);
+		};
+
+		$model->cacheQueries = true;
+		$this->assertSame('Chuck', $getUserNameFromDb());
+		$model->updateAll(array('User.user' => "'Sylvester'"), array('User.id' => $model->id));
+
+		$this->assertSame('Chuck', $getUserNameFromDb());
+		$model->cacheQueries = false;
+		$this->assertSame('Sylvester', $getUserNameFromDb());
+	}
+
+/**
+ * Test that query() uses the cacheQueries property when there are two arguments.
+ *
+ * @return void
+ */
+	public function testQueryTakesModelCacheQueriesValueAsDefaultForTwoArguments() {
+		$model = new User();
+		$model->save(array('user' => 'Chuck'));
+		$userTableName = $this->db->fullTableName('users');
+
+		$getUserNameFromDb = function () use ($model, $userTableName) {
+			$query = sprintf('SELECT u.user FROM %s u WHERE id=?', $userTableName);
+			$users = $model->query($query, array($model->id));
+			return ModelReadTest::extractUserNameFromQueryResult($users);
+		};
+
+		$model->cacheQueries = true;
+		$this->assertSame('Chuck', $getUserNameFromDb());
+
+		$model->updateAll(array('User.user' => "'Sylvester'"), array('User.id' => $model->id));
+		$this->assertSame('Chuck', $getUserNameFromDb());
+
+		$model->cacheQueries = false;
+		$this->assertSame('Sylvester', $getUserNameFromDb());
 	}
 }

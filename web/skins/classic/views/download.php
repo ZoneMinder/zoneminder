@@ -66,7 +66,10 @@ if ( !empty($_REQUEST['eid']) ) {
     $Event = new Event( $_REQUEST['eid'] );
     echo 'Downloading event ' . $_REQUEST['eid'] . ' Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
 } else if ( !empty($_REQUEST['eids']) ) {
+    $total_size = 0;
     foreach ( $_REQUEST['eids'] as $eid ) {
+        $Event = new Event($eid);
+        $total_size += $Event->DiskSpace();
 ?>
         <input type="hidden" name="eids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
@@ -74,7 +77,7 @@ if ( !empty($_REQUEST['eid']) ) {
     unset( $eid );
     echo "Downloading " . count($_REQUEST['eids']) . ' events.  Resulting file should be approximately ' . human_filesize($total_size);
 } else {
-echo '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
+    echo '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
 }
 ?>
         <table id="contentTable" class="minor" cellspacing="0">

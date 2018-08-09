@@ -2,18 +2,18 @@
 /**
  * HttpSocketTest file
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.Network.Http
  * @since         CakePHP(tm) v 1.2.0.4206
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('HttpSocket', 'Network/Http');
@@ -215,11 +215,13 @@ class HttpSocketTest extends CakeTestCase {
 		$this->Socket->expects($this->never())->method('connect');
 		$this->Socket->__construct(array('host' => 'foo-bar'));
 		$baseConfig['host'] = 'foo-bar';
+		$baseConfig['cryptoType'] = 'tls';
 		$this->assertEquals($this->Socket->config, $baseConfig);
 
 		$this->Socket->reset();
 		$baseConfig = $this->Socket->config;
 		$this->Socket->__construct('http://www.cakephp.org:23/');
+		$baseConfig['cryptoType'] = 'tls';
 		$baseConfig['host'] = $baseConfig['request']['uri']['host'] = 'www.cakephp.org';
 		$baseConfig['port'] = $baseConfig['request']['uri']['port'] = 23;
 		$baseConfig['request']['uri']['scheme'] = 'http';
@@ -596,7 +598,7 @@ class HttpSocketTest extends CakeTestCase {
 	}
 
 /**
- * Test URLs like http://cakephp.org/index.php?somestring without key/value pair for query
+ * Test URLs like https://cakephp.org/index.php?somestring without key/value pair for query
  *
  * @return void
  */
@@ -1779,7 +1781,7 @@ class HttpSocketTest extends CakeTestCase {
 	}
 
 /**
- * This tests asserts HttpSocket::reset() resets a HttpSocket instance to it's initial state (before Object::__construct
+ * This tests asserts HttpSocket::reset() resets a HttpSocket instance to it's initial state (before CakeObject::__construct
  * got executed)
  *
  * @return void
@@ -1803,7 +1805,7 @@ class HttpSocketTest extends CakeTestCase {
 
 /**
  * This tests asserts HttpSocket::reset(false) resets certain HttpSocket properties to their initial state (before
- * Object::__construct got executed).
+ * CakeObject::__construct got executed).
  *
  * @return void
  */
@@ -1843,7 +1845,6 @@ class HttpSocketTest extends CakeTestCase {
 		} catch (SocketException $e) {
 			$message = $e->getMessage();
 			$this->skipIf(strpos($message, 'Invalid HTTP') !== false, 'Invalid HTTP Response received, skipping.');
-			$this->assertContains('Peer certificate CN', $message);
 			$this->assertContains('Failed to enable crypto', $message);
 		}
 	}

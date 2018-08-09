@@ -74,6 +74,7 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
+  
 <?php 
 echo output_link_if_exists( array(
   'css/base/skin.css',
@@ -109,16 +110,16 @@ echo output_link_if_exists( array(
   }
 ?>
 
-  <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
-  <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
-  <script type="text/javascript" src="js/mootools.ext.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
+  <script src="tools/mootools/mootools-core.js"></script>
+  <script src="tools/mootools/mootools-more.js"></script>
+  <script src="js/mootools.ext.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
-  <script type="text/javascript">
+  <script>
   //<![CDATA[
   <!--
   var $j = jQuery.noConflict();
@@ -127,7 +128,7 @@ echo output_link_if_exists( array(
   //-->
   //]]>
   </script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
+  <script src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
 <?php
   if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) {
 ?>
@@ -139,19 +140,14 @@ echo output_link_if_exists( array(
   <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
   <script src="skins/<?php echo $skin ?>/js/video.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
-  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
-<?php
-  } else if ( $view == 'montagereview' ) {
-?>
-  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
-<?php
-  } else if ( $view == 'watch' ) {
-?>
 <?php
   }
+?>
+  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
+<?php
   if ( $skinJsPhpFile ) {
 ?>
-  <script type="text/javascript">
+  <script>
   //<![CDATA[
   <!--
 <?php
@@ -164,7 +160,7 @@ echo output_link_if_exists( array(
   }
   if ( $viewJsPhpFile ) {
 ?>
-  <script type="text/javascript">
+  <script>
   //<![CDATA[
   <!--
 <?php
@@ -177,14 +173,14 @@ echo output_link_if_exists( array(
   }
 	if ( $cssJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo cache_bust($cssJsFile) ?>"></script>
+  <script src="<?php echo cache_bust($cssJsFile) ?>"></script>
 <?php
 } else {
 ?>
-  <script type="text/javascript" src="skins/classic/js/base.js"></script>
+  <script src="skins/classic/js/base.js"></script>
 <?php } ?>
-  <script type="text/javascript" src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script type="text/javascript" src="js/logger.js"></script>
+  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
+  <script src="js/logger.js"></script>
 <?php
   if ( $viewJsFile ) {
 ?>
@@ -248,7 +244,7 @@ function getNavBarHTML($reload = null) {
   if ( logToDatabase() > Logger::NOLOG ) { 
     if ( ! ZM_RUN_AUDIT ) {
     # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
-     dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.')');
+     dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
     }
     echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
   }
@@ -264,10 +260,13 @@ if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
 <?php 
   if ( canView( 'Stream' ) ) {
 ?>
-  <li><a href="?view=cycle"<?php echo $view=='cycle'?' class="selected"':''?>><?php echo translate('Cycle') ?></a></li>
+      <li><a href="?view=cycle"<?php echo $view=='cycle'?' class="selected"':''?>><?php echo translate('Cycle') ?></a></li>
       <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
 <?php
    }
+   // if canview_reports
+?>
+<?php
 if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   $terms = $_REQUEST['filter']['Query']['terms'];
   $count = 0;
@@ -288,12 +287,13 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 <?php
   }
 ?>
+      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 		</ul>
 <?php } // end if canView('Monitors') ?>
 
 <div class="navbar-right">
 <?php if ( ZM_OPT_USE_AUTH and $user ) { ?>
-	<p class="navbar-text"><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
+	<p class="navbar-text"><i class="material-icons">account_circle</i> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
 <?php } ?>
 
 <?php if ( canEdit( 'System' ) ) { ?>
@@ -311,9 +311,9 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 if ( (!ZM_OPT_USE_AUTH) or $user ) {
 if ($reload == 'reload') ob_start();
 ?>
-	<div id="reload" class="container-fluid">
+	<div id="reload" class="container-fluid reduced-text">
     <div id="Bandwidth" class="pull-left">
-      <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bandwidth_options[$_COOKIE['zmBandwidth']] . ' ' . translate('BandwidthHead'), ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
+      <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
     </div>
     <div id="Version" class="pull-right">
       <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
@@ -322,7 +322,8 @@ if ($reload == 'reload') ob_start();
     <?php } ?>
     </div>
     <ul class="list-inline">
-      <li class="Load"><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+      <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+<i class="material-icons md-18">storage</i>
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
@@ -339,7 +340,17 @@ if ($reload == 'reload') ob_start();
   if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
     array_push( $storage_areas, new Storage() );
   }
-  $func =  function($S){ return '<span title="'.human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()).'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
+  $func = function($S){
+    $class = '';
+    if ( $S->disk_usage_percent() > 98 ) {
+      $class = "error";
+    } else if ( $S->disk_usage_percent() > 90 ) {
+      $class = "warning";
+    }
+    $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
+      ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
+
+    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) >= 4 ) 
     $storage_areas = Storage::find_all( array('ServerId'=>null) );

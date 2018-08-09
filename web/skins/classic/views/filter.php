@@ -29,7 +29,7 @@ $filterNames = array( ''=>translate('ChooseFilter') );
 $filter = NULL;
 
 foreach ( dbFetchAll( 'SELECT * FROM Filters ORDER BY Name' ) as $row ) {
-  $filterNames[$row['Id']] = $row['Name'];
+  $filterNames[$row['Id']] = $row['Id'] . ' ' . $row['Name'];
   if ( $row['Background'] )
     $filterNames[$row['Id']] .= '*';
   if ( $row['Concurrent'] )
@@ -101,7 +101,10 @@ $attrTypes = array(
     'DiskSpace'   => translate('AttrDiskSpace'),
     'SystemLoad'  => translate('AttrSystemLoad'),
     'StorageId'   => translate('AttrStorageArea'),
-    'ServerId'    => translate('AttrServer'),
+    'ServerId'    => translate('AttrMonitorServer'),
+    'FilterServerId'     => translate('AttrFilterServer'),
+    'MonitorServerId'    => translate('AttrMonitorServer'),
+    'StorageServerId'    => translate('AttrStorageServer'),
     'StateId'     => translate('AttrStateId'),
     );
 
@@ -188,7 +191,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
-          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>"/>
+          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>" oninput="updateButtons(this);"/>
         </p>
         <table id="fieldsTable" class="filterTable">
           <tbody>
@@ -268,7 +271,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $monitors, $term['val'] ); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'ServerId' ) {
+    } elseif ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $servers, $term['val'] ); ?></td>
@@ -343,17 +346,17 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
         <div id="actionsTable" class="filterTable">
             <p>
               <label><?php echo translate('FilterArchiveEvents') ?></label>
-              <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( !empty($filter->AutoArchive()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( $filter->AutoArchive() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
             </p>
             <p><label><?php echo translate('FilterUpdateDiskSpace') ?></label>
-              <input type="checkbox" name="filter[UpdateDiskSpace]" value="1"<?php echo empty($filter->UpdateDiskSpace()) ? '' : ' checked="checked"' ?> onclick="updateButtons(this);"/>
+              <input type="checkbox" name="filter[UpdateDiskSpace]" value="1"<?php echo !$filter->UpdateDiskSpace() ? '' : ' checked="checked"' ?> onclick="updateButtons(this);"/>
             </p>
 <?php
 if ( ZM_OPT_FFMPEG ) {
 ?>
             <p>
               <label><?php echo translate('FilterVideoEvents') ?></label>
-              <input type="checkbox" name="filter[AutoVideo]" value="1"<?php if ( !empty($filter->AutoVideo()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoVideo]" value="1"<?php if ( $filter->AutoVideo() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
             </p>
 <?php
 }
@@ -361,7 +364,7 @@ if ( ZM_OPT_UPLOAD ) {
 ?>
             <p>
               <label><?php echo translate('FilterUploadEvents') ?></label>
-              <input type="checkbox" name="filter[AutoUpload]" value="1"<?php if ( !empty($filter->AutoUpload()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoUpload]" value="1"<?php if ( $filter->AutoUpload() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
             </p>
 <?php
 }
@@ -369,7 +372,7 @@ if ( ZM_OPT_EMAIL ) {
 ?>
             <p>
               <label><?php echo translate('FilterEmailEvents') ?></label>
-              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( !empty($filter->AutoEmail()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
             </p>
 <?php
 }
@@ -377,7 +380,7 @@ if ( ZM_OPT_MESSAGE ) {
 ?>
             <p>
               <label><?php echo translate('FilterMessageEvents') ?></label>
-              <input type="checkbox" name="filter[AutoMessage]" value="1"<?php if ( !empty($filter->AutoMessage()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoMessage]" value="1"<?php if ( $filter->AutoMessage() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
             </p>
 <?php
 }
@@ -385,24 +388,24 @@ if ( ZM_OPT_MESSAGE ) {
             <p>
               <label><?php echo translate('FilterExecuteEvents') ?></label>
               
-                <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( !empty($filter->AutoExecute()) ) { ?> checked="checked"<?php } ?>/>
+                <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
                 <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?$filter->AutoExecuteCmd():'' ?>" maxlength="255" onchange="updateButtons( this )"/>
             </p>
             <p>
               <label><?php echo translate('FilterDeleteEvents') ?></label>
-              <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( !empty($filter->AutoDelete()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this)"/>
+              <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this)"/>
             </p>
             <p><label><?php echo translate('FilterMoveEvents') ?></label>
-              <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( !empty($filter->AutoMove()) ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);if(this.checked){$j(this.form.elements['filter[AutoMoveTo]']).css('display','inline');}else{this.form.elements['filter[AutoMoveTo]'].hide();};"/>
+              <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);if(this.checked){$j(this.form.elements['filter[AutoMoveTo]']).css('display','inline');}else{this.form.elements['filter[AutoMoveTo]'].hide();};"/>
               <?php echo htmlSelect( "filter[AutoMoveTo]", $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;' ) ); ?>
             </p>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>
-              <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( !empty($filter->Background()) ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( $filter->Background() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);"/>
             </p>
             <p>
               <label for="Concurrent"><?php echo translate('ConcurrentFilter') ?></label>
-              <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( !empty($filter->Concurrent()) ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( $filter->Concurrent() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);"/>
             </p>
         </div>
         <hr/>

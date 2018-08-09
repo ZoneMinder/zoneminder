@@ -191,8 +191,8 @@ Image *ZMPacket::set_image( Image *i ) {
   return image;
 }
 
-AVPacket *ZMPacket::set_packet( AVPacket *p ) {
-  if ( zm_av_packet_ref( &packet, p ) < 0 ) {
+AVPacket *ZMPacket::set_packet(AVPacket *p) {
+  if ( zm_av_packet_ref(&packet, p) < 0 ) {
     Error("error refing packet");
   }
   dumpPacket(&packet, "zmpacket:");

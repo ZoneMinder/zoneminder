@@ -19,6 +19,7 @@
 
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <cinttypes>
 
 #include "zm.h"
 #include "zm_db.h"
@@ -58,7 +59,7 @@ int main( int argc, const char *argv[] ) {
   char format[32] = "";
   int monitor_id = 0;
   time_t event_time = 0;
-  int event_id = 0;
+  uint64_t event_id = 0;
   unsigned int frame_id = 1;
   unsigned int scale = 100;
   unsigned int rate = 100;
@@ -174,7 +175,7 @@ int main( int argc, const char *argv[] ) {
   if ( monitor_id ) {
     snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
   } else {
-    snprintf(log_id_string, sizeof(log_id_string), "zms_e%d", event_id);
+    snprintf(log_id_string, sizeof(log_id_string), "zms_e%" PRIu64, event_id);
   }
   logInit( log_id_string );
 
@@ -283,10 +284,10 @@ int main( int argc, const char *argv[] ) {
     stream.setStreamMode( replay );
     stream.setStreamQueue( connkey );
     if ( monitor_id && event_time ) {
-      stream.setStreamStart( monitor_id, event_time );
+      stream.setStreamStart(monitor_id, event_time);
     } else {
       Debug(3, "Setting stream start to frame (%d)", frame_id);
-      stream.setStreamStart( event_id, frame_id );
+      stream.setStreamStart(event_id, frame_id);
     }
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType( EventStream::STREAM_JPEG );

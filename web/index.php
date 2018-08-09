@@ -145,9 +145,13 @@ if ( ZM_OPT_USE_AUTH ) {
 } else {
   $user = $defaultUser;
 }
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that sets session variables must re-open it.
+session_write_close();
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+require_once( 'includes/auth.php' );
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -157,7 +161,7 @@ CORSHeaders();
 
 // Check for valid content dirs
 if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
-  Error( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+  Warning("Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
 }
 
 # Globals
@@ -196,7 +200,7 @@ isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' && $view != 'video' && $request != 'control' && $view != 'frames') {
+if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' && $view != 'video' && $request != 'control' && $view != 'frames' && $view != 'archive' ) {
   require_once( 'includes/csrf/csrf-magic.php' );
   #Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();
@@ -212,9 +216,6 @@ if ( ZM_OPT_USE_AUTH and ! isset($user) ) {
   $request = null;
 }
 
-# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
-# Any file/page that sets session variables must re-open it.
-session_write_close();
 
 if ( $redirect ) {
   header('Location: '.$redirect);

@@ -55,6 +55,22 @@ DocumentRoot    /usr/share/zoneminder/www
 qq`
 ErrorLog        $$opts{error_log}
 
+Alias /zm/cache "/var/cache/zoneminder/cache"
+Alias /cache "/var/cache/zoneminder/cache"
+<Directory "/var/cache/zoneminder/cache">
+  Options -Indexes +FollowSymLinks
+  AllowOverride None
+  <IfModule mod_authz_core.c>
+    # Apache 2.4
+    Require all granted
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    # Apache 2.2
+    Order deny,allow
+    Allow from all
+  </IfModule>
+</Directory>
+
 ScriptAlias /zm/cgi-bin/ /usr/lib/zoneminder/cgi-bin/
 ScriptAlias /cgi-bin/ /usr/lib/zoneminder/cgi-bin/
 <Directory "/usr/lib/zoneminder/cgi-bin">
@@ -67,7 +83,6 @@ ScriptAlias /cgi-bin/ /usr/lib/zoneminder/cgi-bin/
 </Directory>
 
 Alias /zm /usr/share/zoneminder/www
-
 <Directory /usr/share/zoneminder/www>
   php_flag register_globals off
   Options +Indexes +FollowSymLinks
@@ -81,6 +96,32 @@ Alias /zm /usr/share/zoneminder/www
   Allow from all
 
 </Directory>
+
+# For better visibility, the following directives have been migrated from the
+# default .htaccess files included with the CakePHP project.
+# Parameters not set here are inherited from the parent directive above.
+<Directory "/usr/share/zoneminder/www/api">
+  RewriteEngine on
+  RewriteRule ^$ app/webroot/ [L]
+  RewriteRule (.*) app/webroot/$1 [L]
+  RewriteBase /zm/api
+</Directory>
+
+<Directory "/usr/share/zoneminder/www/api/app">
+  RewriteEngine on
+  RewriteRule ^$ webroot/ [L]
+  RewriteRule (.*) webroot/$1 [L]
+  RewriteBase /zm/api
+</Directory>
+
+<Directory "/usr/share/zoneminder/www/api/app/webroot">
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^ index.php [L]
+  RewriteBase /zm/api
+</Directory>
+
 `;
 if ( $$opts{protocol} eq 'https' ) {
   $template .= qq`

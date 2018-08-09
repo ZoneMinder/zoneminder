@@ -59,7 +59,7 @@ public:
   ~User();
   User( User &u ) { Copy(u); }
   void Copy( const User &u );
-  User operator=(const User &u) {
+  User& operator=(const User &u) {
     Copy(u); return *this;
   }
 

@@ -85,6 +85,7 @@ public:
   int PreCapture();
   int Capture( ZMPacket &p );
   int PostCapture();
+  int Close() { return 0; };
 };
 
 #endif // ZM_REMOTE_CAMERA_RTSP_H

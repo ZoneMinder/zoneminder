@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP Project
  * @since         CakePHP(tm) v 1.2.0.5432
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Debugger', 'Utility');
@@ -153,6 +153,24 @@ class DebuggerTest extends CakeTestCase {
 		$this->assertRegExp('/<a[^>]+>Code/', $result[1]);
 		$this->assertRegExp('/<a[^>]+>Context/', $result[2]);
 		$this->assertContains('$wrong = &#039;&#039;', $result[3], 'Context should be HTML escaped.');
+	}
+
+/**
+ * test encodes error messages
+ *
+ * @return void
+ */
+	public function testOutputEncodeDescription() {
+		set_error_handler('Debugger::showError');
+		$this->_restoreError = true;
+
+		ob_start();
+		$a = array();
+		$b = $a['<script>alert(1)</script>'];
+		$result = ob_get_clean();
+
+		$this->assertNotContains('<script>alert(1)', $result);
+		$this->assertContains('&lt;script&gt;alert(1)', $result);
 	}
 
 /**

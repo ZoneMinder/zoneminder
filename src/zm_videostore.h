@@ -3,7 +3,6 @@
 
 #include "zm_ffmpeg.h"
 extern "C"  {
-
 #ifdef HAVE_LIBAVRESAMPLE
 #include "libavresample/avresample.h"
 #endif
@@ -18,6 +17,15 @@ class VideoStore;
 
 class VideoStore {
 private:
+
+struct CodecData {
+  const int codec_id;
+  const char *codec_codec;
+  const char *codec_name;
+  const enum AVPixelFormat pix_fmt;
+  
+};
+static struct CodecData codec_data[];
 
   Monitor *monitor;
 	AVOutputFormat *out_format;
@@ -53,7 +61,7 @@ int audio_in_stream_index;
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
 #ifdef HAVE_LIBAVRESAMPLE
-AVAudioResampleContext* resample_ctx;
+  AVAudioResampleContext* resample_ctx;
 #endif
   uint8_t *converted_in_samples;
     
@@ -90,6 +98,7 @@ public:
   int writeAudioFramePacket( ZMPacket *pkt );
   int writePacket( ZMPacket *pkt );
   int write_packets( zm_packetqueue &queue );
+  void flush_codecs();
 };
 
 #endif //havelibav

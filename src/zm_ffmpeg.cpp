@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */ 
+#include <cinttypes>
 
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
@@ -27,9 +28,9 @@ void FFMPEGInit() {
   static bool bInit = false;
 
   if ( !bInit ) {
-    if ( logDebugging() )
-      av_log_set_level( AV_LOG_DEBUG ); 
-    else
+    //if ( logDebugging() )
+      //av_log_set_level( AV_LOG_DEBUG ); 
+    //else
       av_log_set_level( AV_LOG_QUIET ); 
     av_register_all();
     avformat_network_init();
@@ -243,7 +244,7 @@ void zm_dump_codecpar ( const AVCodecParameters *par ) {
 }
 #endif
 
-void zm_dump_codec ( const AVCodecContext *codec ) {
+void zm_dump_codec(const AVCodecContext *codec) {
   Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d) format(%s)",
     codec->codec_type,
     codec->codec_id,
@@ -425,7 +426,7 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
 #endif
 
 # else
-  int frameComplete;
+  int frameComplete = 0;
   while ( !frameComplete ) {
     if ( (ret = zm_avcodec_decode_video( context, frame, &frameComplete, &packet )) < 0 ) {
       Error( "Unable to decode frame at frame: %s, continuing",
@@ -436,22 +437,22 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
 #endif
   return 1;
 } // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
+
 void dumpPacket(AVPacket *pkt, const char *text) {
   char b[10240];
 
   snprintf(b, sizeof(b),
-           " pts: %" PRId64 ", dts: %" PRId64
-           ", data: %p, size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
+           " pts: %" PRIu64 ", dts: %" PRIu64
+           ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
            ", duration: %" 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-           PRId64
+           PRIu64
 #else
            "d"
 #endif
            "\n",
            pkt->pts, 
            pkt->dts,
-           pkt->data,
            pkt->size,
            pkt->stream_index,
            pkt->flags,
@@ -459,4 +460,15 @@ void dumpPacket(AVPacket *pkt, const char *text) {
            pkt->pos,
            pkt->duration);
   Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
+}
+
+void zm_free_codec( AVCodecContext **ctx ) {
+  if ( *ctx ) {
+    avcodec_close(*ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // We allocate and copy in newer ffmpeg, so need to free it
+    avcodec_free_context(ctx);
+#endif
+    *ctx = NULL;
+  } // end if 
 }

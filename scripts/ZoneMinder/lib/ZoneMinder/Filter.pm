@@ -96,7 +96,7 @@ sub find_one {
 
 sub Execute {
   my $self = $_[0];
-  my $sql = $self->Sql();
+  my $sql = $self->Sql(undef);
 
   if ( $self->{HasDiskPercent} ) {
 		my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );
@@ -130,9 +130,10 @@ sub Execute {
 }
 
 sub Sql {
-  my $self = $_[0];
+  my $self = shift;
+  $$self{Sql} = shift if @_;
   if ( ! $$self{Sql} ) {
-    my $filter_expr = ZoneMinder::General::jsonDecode( $self->{Query} );
+    my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query});
     my $sql = 'SELECT E.*,
        unix_timestamp(E.StartTime) as Time,
        M.Name as MonitorName,
@@ -159,9 +160,12 @@ sub Sql {
           if ( $term->{attr} =~ /^Monitor/ ) {
             my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
             $self->{Sql} .= 'M.'.$temp_attr_name;
-          } elsif ( $term->{attr} =~ /^Server/ ) {
-            $self->{Sql} .= 'S.'.$term->{attr};
-
+          } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
+            $self->{Sql} .= 'M.ServerId';
+          } elsif ( $term->{attr} eq 'StorageServerId' ) {
+            $self->{Sql} .= 'S.ServerId';
+          } elsif ( $term->{attr} eq 'FilterServerId' ) {
+            $self->{Sql} .= $Config{ZM_SERVER_ID};
 # StartTime options
           } elsif ( $term->{attr} eq 'DateTime' ) {
             $self->{Sql} .= 'E.StartTime';
@@ -171,7 +175,7 @@ sub Sql {
             $self->{Sql} .= 'to_days( E.StartTime )';
           } elsif ( $term->{attr} eq 'StartDate' ) {
             $self->{Sql} .= 'to_days( E.StartTime )';
-          } elsif ( $term->{attr} eq 'Time' ) {
+          } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' ) {
             $self->{Sql} .= 'extract( hour_second from E.StartTime )';
           } elsif ( $term->{attr} eq 'Weekday' ) {
             $self->{Sql} .= 'weekday( E.StartTime )';
@@ -205,9 +209,9 @@ sub Sql {
 
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
           foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
-            if ( $term->{attr} =~ /^Monitor/ ) {
+            if ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} eq 'ServerId' ) {
+            } elsif ( $term->{attr} =~ /ServerId/) {
               Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
@@ -240,7 +244,7 @@ sub Sql {
                 }
                 $value = "'$value'";
               }
-            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or  $term->{attr} eq 'EndDate' ) {
+            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
               if ( $temp_value eq 'NULL' ) {
                 $value = $temp_value;
               } else {
@@ -276,7 +280,13 @@ sub Sql {
           } elsif ( $term->{op} eq '!~' ) {
             $self->{Sql} .= " not regexp $value";
           } elsif ( $term->{op} eq 'IS' ) {
-            $self->{Sql} .= " IS $value";
+            if ( $value eq 'Odd' ) {
+              $self->{Sql} .= ' % 2 = 1';
+            } elsif ( $value eq 'Even' ) {
+              $self->{Sql} .= ' % 2 = 0';
+            } else {
+              $self->{Sql} .= " IS $value";
+            }
           } elsif ( $term->{op} eq 'IS NOT' ) {
             $self->{Sql} .= " IS NOT $value";
           } elsif ( $term->{op} eq '=[]' ) {

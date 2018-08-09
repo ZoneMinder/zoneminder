@@ -90,6 +90,7 @@ foreach ( $tabs as $name=>$value ) {
         </ul>
       </div>
       <div class="col-sm-10 col-sm-offset-2">
+	<br/>
         <div id="options">
 <?php 
 if ( $tab == 'skins' ) {
@@ -100,7 +101,7 @@ if ( $tab == 'skins' ) {
             <div class="form-group">
               <label for="skin-choice" class="col-sm-3 control-label">SKIN</label>
               <div class="col-sm-6">
-                <select name="skin-choice" class="form-control">
+                <select name="skin-choice" class="form-control chosen">
 <?php
 foreach($skin_options as $dir) {
   echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
@@ -113,7 +114,7 @@ foreach($skin_options as $dir) {
             <div class="form-group">
               <label for="css-choice" class="col-sm-3 control-label">CSS</label>
               <div class="col-sm-6">
-                <select name="css-choice" class="form-control">
+                <select name="css-choice" class="form-control chosen">
 <?php
 foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) ) as $dir) {
   echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
@@ -136,7 +137,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <table id="contentTable" class="table table-striped" cellspacing="0">
-          <thead>
+          <thead class="thead-highlight">
             <tr>
               <th class="colUsername"><?php echo translate('Username') ?></th>
               <th class="colLanguage"><?php echo translate('Language') ?></th>
@@ -201,7 +202,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="object" value="server"/>
         <table id="contentTable" class="table table-striped">
-          <thead>
+          <thead class="thead-highlight">
             <tr>
               <th class="colName"><?php echo translate('Name') ?></th>
               <th class="colHostname"><?php echo translate('Hostname') ?></th>
@@ -223,11 +224,17 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
             <tr>
               <td class="colName"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Name']), $canEdit ) ?></td>
               <td class="colHostname"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Hostname']), $canEdit ) ?></td>
-              <td class="colStatus"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Status']), $canEdit ) ?></td>
+              <td class="colStatus
+<?php if ( $row['Status'] == 'NotRunning' ) { echo 'danger'; } ?>
+"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['Status']), $canEdit ) ?></td>
               <td class="colMonitorCount"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', validHtmlStr($row['MonitorCount']), $canEdit ) ?></td>
-              <td class="colCpuLoad"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server',$row['CpuLoad'], $canEdit ) ?></td>
-              <td class="colMemory"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', human_filesize($row['FreeMem']) . ' / ' . human_filesize($row['TotalMem']), $canEdit ) ?></td>
-              <td class="colSwap"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', human_filesize($row['FreeSwap']) . ' / ' . human_filesize($row['TotalSwap']) , $canEdit ) ?></td>
+              <td class="colCpuLoad
+<?php if ( $row['CpuLoad'] > 5 ) { echo 'danger'; } ?>
+"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server',$row['CpuLoad'], $canEdit ) ?></td>
+              <td class="colMemory
+<?php if ( $row['FreeMem']/$row['TotalMem'] < .1 ) { echo 'danger'; } ?>"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', human_filesize($row['FreeMem']) . ' / ' . human_filesize($row['TotalMem']), $canEdit ) ?></td>
+              <td class="colSwap
+<?php if ( (!$row['TotalSwap']) or ($row['FreeSwap']/$row['TotalSwap'] < .1) ) { echo 'danger'; } ?>"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', human_filesize($row['FreeSwap']) . ' / ' . human_filesize($row['TotalSwap']) , $canEdit ) ?></td>
               <td class="colStats"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', $row['zmstats'] ? 'yes' : 'no', $canEdit ) ?></td>
               <td class="colAudit"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', $row['zmaudit'] ? 'yes' : 'no', $canEdit ) ?></td>
               <td class="colTrigger"><?php echo makePopupLink( '?view=server&amp;id='.$row['Id'], 'zmServer', 'server', $row['zmtrigger'] ? 'yes' : 'no', $canEdit ) ?></td>
@@ -250,7 +257,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="object" value="storage"/>
         <table id="contentTable" class="table table-striped" cellspacing="0">
-          <thead>
+          <thead class="thead-highlight">
             <tr>
               <th class="colId"><?php echo translate('Id') ?></th>
               <th class="colName"><?php echo translate('name') ?></th>
@@ -258,21 +265,22 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <th class="colType"><?php echo translate('Type') ?></th>
               <th class="colScheme"><?php echo translate('StorageScheme') ?></th>
               <th class="colServer"><?php echo translate('Server') ?></th>
+              <th class="colDiskSpace"><?php echo translate('DiskSpace') ?></th>
               <th class="colMark"><?php echo translate('Mark') ?></th>
             </tr>
           </thead>
           <tbody>
-<?php foreach( dbFetchAll( 'SELECT * FROM Storage ORDER BY Name' ) as $row ) { ?>
+<?php foreach( Storage::find_all( null, array('order'=>'lower(Name)') ) as $Storage ) { ?>
             <tr>
-              <td class="colId"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Id']), $canEdit ) ?></td>
-              <td class="colName"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Name']), $canEdit ) ?></td>
-              <td class="colPath"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Path']), $canEdit ) ?></td>
-              <td class="colType"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Type']), $canEdit ) ?></td>
-              <td class="colScheme"><?php echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($row['Scheme']), $canEdit ) ?></td>
+              <td class="colId"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Id()), $canEdit ) ?></td>
+              <td class="colName"><?php echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
+              <td class="colPath"><?php echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Path()), $canEdit ) ?></td>
+              <td class="colType"><?php echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Type()), $canEdit ) ?></td>
+              <td class="colScheme"><?php echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Scheme()), $canEdit ) ?></td>
               <td class="colServer"><?php
-$Server = new Server($row['ServerId']);
-              echo makePopupLink( '?view=storage&amp;id='.$row['Id'], 'zmStorage', 'storage', validHtmlStr($Server->Name()), $canEdit ) ?></td>
-              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" onclick="configureDeleteButton(this);"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
+              echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
+              <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?><?td>
+              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" onclick="configureDeleteButton(this);"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php } #end foreach Server ?>
           </tbody>

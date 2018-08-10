@@ -423,15 +423,9 @@ Monitor::Monitor(
   snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
 
   if ( purpose == CAPTURE ) {
-    struct stat statbuf;
-
-    if ( stat(monitor_dir, &statbuf) ) {
-      if ( errno == ENOENT || errno == ENOTDIR ) {
-        if ( mkdir(monitor_dir, 0755) ) {
-          Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
-        }
-      } else {
-        Warning("Error stat'ing %s, may be fatal. error is %s", monitor_dir, strerror(errno));
+    if ( mkdir(monitor_dir, 0755) ) {
+      if ( errno != EEXIST ) {
+        Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
       }
     }
 

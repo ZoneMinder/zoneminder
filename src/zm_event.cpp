@@ -141,9 +141,8 @@ Event::Event(
       errno = 0;
       if ( mkdir(path, 0755) ) {
         // FIXME This should not be fatal.  Should probably move to a different storage area.
-        if ( errno != EEXIST ) {
+        if ( errno != EEXIST )
           Error("Can't mkdir %s: %s", path, strerror(errno));
-        }
       }
       if ( i == 2 )
         strncpy(date_path, path, sizeof(date_path));

@@ -67,7 +67,8 @@ Event::Event(
     untimedEvent = true;
     start_time = now;
   } else if ( start_time.tv_sec > now.tv_sec ) {
-    Error("StartTime in the future %u.%u > %u.%u",
+    Error(
+        "StartTime in the future %u.%u > %u.%u",
         start_time.tv_sec, start_time.tv_usec, now.tv_sec, now.tv_usec
         );
     start_time = now;
@@ -89,8 +90,8 @@ Event::Event(
   snprintf(sql, sizeof(sql),
       "INSERT INTO Events "
       "( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme )"
-     " VALUES "
-     "( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
+      " VALUES "
+      "( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,
@@ -183,12 +184,13 @@ Event::Event(
     }
 
     // Create empty id tag file
-    std::string id_file = stringtf("%s/.%" PRIu64, path, id);
+    std::string id_file = stringtf("%s/.%" PRIu64, path.c_str(), id);
     if ( FILE *id_fp = fopen(id_file.c_str(), "w") )
       fclose(id_fp);
     else
       Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
   } // deep storage or not
+  Debug(2,"Created event %d at %s", id, path.c_str());
 
   last_db_frame = 0;
 
@@ -288,7 +290,7 @@ bool Event::WriteFrameImage(Image *image, struct timeval timestamp, const char *
 
   int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
   bool rc;
-Debug(3, "Writing image to %s", event_file );
+Debug(3, "Writing image to %s", event_file);
 
   if ( !config.timestamp_on_capture ) {
     // stash the image we plan to use in another pointer regardless if timestamped.
@@ -436,7 +438,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
     frames++;
 
     static char event_file[PATH_MAX];
-    snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
+    snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path.c_str(), frames);
     if ( save_jpegs & 1 ) {
       Debug(1, "Writing pre-capture frame %d", frames);
       WriteFrameImage(images[i], *(timestamps[i]), event_file);
@@ -446,7 +448,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
       // neccessarily be of the motion.  But some events are less than 10 frames, 
       // so I am changing this to 1, but we should overwrite it later with a better snapshot.
       if ( frames == 1 ) {
-        std::string snapshot_file = std::string(path) + "/snapshot.jpg";
+        std::string snapshot_file = path + "/snapshot.jpg";
         WriteFrameImage(images[i], *(timestamps[i]), snapshot_file.c_str());
       }
     }
@@ -508,7 +510,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   frames++;
 
   static char event_file[PATH_MAX];
-  snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
+  snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path.c_str(), frames);
 
   if ( save_jpegs & 1 ) {
     Debug(1, "Writing capture frame %d to %s", frames, event_file);
@@ -519,9 +521,9 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     //If this is the first frame, we should add a thumbnail to the event directory
     // On the first frame, max_score will be zero, this effectively makes us write out a thumbnail
     // for the first frame as well.
-    if ( score > max_score ) {
-      std::string snapshot_file = std::string(path) + "/snapshot.jpg";
-      WriteFrameImage( image, timestamp, snapshot_file.c_str() );
+    if ( frames == 1 || score > (int)max_score ) {
+      std::string snapshot_file = path + "/snapshot.jpg";
+      WriteFrameImage(image, timestamp, snapshot_file.c_str());
     }
   }
 
@@ -587,11 +589,12 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       max_score = score;
 
     if ( alarm_image ) {
-      snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames);
-
-      Debug(1, "Writing analysis frame %d", frames);
       if ( save_jpegs & 2 ) {
-        WriteFrameImage(alarm_image, timestamp, event_file, true);
+        snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path.c_str(), frames);
+        Debug(1, "Writing analysis frame %d", frames);
+        if ( ! WriteFrameImage(alarm_image, timestamp, event_file, true) ) {
+          Error("Failed to write analysis frame image");
+        }
       }
     }
   }

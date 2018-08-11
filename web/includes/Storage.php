@@ -140,20 +140,31 @@ class Storage {
     return $usage;
   }
   public function disk_total_space() {
-    if ( ! array_key_exists('disk_total_space', $this) ) {
-      $this->{'disk_total_space'} = disk_total_space($this->Path());
+    if ( !array_key_exists('disk_total_space', $this) ) {
+      $path = $this->Path();
+      if ( file_exists($path) ) {
+        $this->{'disk_total_space'} = disk_total_space($path);
+      } else {
+        Error("Path $path does not exist.");
+        $this->{'disk_total_space'} = 0;
+      }
     }
     return $this->{'disk_total_space'};
   }
 
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( (! array_key_exists('disk_used_space', $this)) or (!$this->{'disk_used_space'}) ) {
+    if ( ( !array_key_exists('disk_used_space', $this)) or !$this->{'disk_used_space'} ) {
       if ( $this->{'Type'} == 's3fs' ) {
         $this->{'disk_used_space'} = $this->disk_event_space();
       } else { 
         $path = $this->Path();
-        $this->{'disk_used_space'} = disk_total_space($path) - disk_free_space($path);
+        if ( file_exists($path) ) {
+          $this->{'disk_used_space'} = disk_total_space($path) - disk_free_space($path);
+        } else {
+          Error("Path $path does not exist.");
+          $this->{'disk_used_space'} = 0;
+        }
       }
     }
     return $this->{'disk_used_space'};

@@ -367,6 +367,6 @@ int RemoteCameraRtsp::Capture( ZMPacket &zm_packet ) {
 } // end int RemoteCameraRtsp::Capture(ZMPacket &packet)
 
 int RemoteCameraRtsp::PostCapture() {
-  return( 0 );
+  return 0;
 }
 #endif // HAVE_LIBAVFORMAT

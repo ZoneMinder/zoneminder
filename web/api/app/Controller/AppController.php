@@ -27,114 +27,80 @@ App::uses('CrudControllerTrait', 'Crud.Lib');
  * Add your application-wide methods in the class below, your controllers
  * will inherit them.
  *
- * @package		app.Controller
- * @link		http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
+ * @package   app.Controller
+ * @link    http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  */
 class AppController extends Controller {
-	use CrudControllerTrait;
+  use CrudControllerTrait;
 
-	public $components = [
-		'Session', //  We are going to use SessionHelper to check PHP session vars
-		'RequestHandler',
-		'Crud.Crud' => [
-			'actions' => [
-				'index' => 'Crud.Index',
-				'add'   => 'Crud.Add',
-				'edit'  => 'Crud.Edit',
-				'view'  => 'Crud.View',
-				'keyvalue' => 'Crud.List',
-				'category' => 'Crud.Category'
-			],
-			'listeners' => ['Api', 'ApiTransformation']
-		#],
+  public $components = [
+    'Session', //  We are going to use SessionHelper to check PHP session vars
+    'RequestHandler',
+    'Crud.Crud' => [
+      'actions' => [
+        'index' => 'Crud.Index',
+        'add'   => 'Crud.Add',
+        'edit'  => 'Crud.Edit',
+        'view'  => 'Crud.View',
+        'keyvalue' => 'Crud.List',
+        'category' => 'Crud.Category'
+      ],
+      'listeners' => ['Api', 'ApiTransformation']
+    #],
     #'DebugKit.Toolbar' => [
     #  'bootstrap' => true, 'routes' => true
     ]
-	];
+  ];
 
-	// Global beforeFilter function
-	//Zoneminder sets the username session variable
-	// to the logged in user. If this variable is set
-	// then you are logged in
-	// its pretty simple to extend this to also check
-	// for role and deny API access in future 
-	// Also checking to do this only if ZM_OPT_USE_AUTH is on
-	public function beforeFilter() {
-		$this->loadModel('Config');
-		
-    $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_API'));
-    $config = $this->Config->find('first', $options);
-    $zmOptApi = $config['Config']['Value'];
-
-		if ($zmOptApi !='1') {
+  // Global beforeFilter function
+  //Zoneminder sets the username session variable
+  // to the logged in user. If this variable is set
+  // then you are logged in
+  // its pretty simple to extend this to also check
+  // for role and deny API access in future 
+  // Also checking to do this only if ZM_OPT_USE_AUTH is on
+  public function beforeFilter() {
+    if ( ! ZM_OPT_USE_API ) {
       throw new UnauthorizedException(__('API Disabled'));
       return; 
-		}
-		
-    $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
-    $config = $this->Config->find('first', $options);
-    $zmOptAuth = $config['Config']['Value'];
+    } 
 
-    if ( $zmOptAuth == '1' ) {
-      require_once "../../../includes/auth.php";
+    # For use throughout the app. If not logged in, this will be null.
+    global $user;
+    $user = $this->Session->read('user');
+    
+    if ( ZM_OPT_USE_AUTH ) {
+      require_once '../../../includes/auth.php';
 
-      $this->loadModel('User');
-      if ( isset($_REQUEST['user']) and isset($_REQUEST['pass']) ) {
-        $user = $this->User->find('first', array ('conditions' => array (
-                'User.Username' => $_REQUEST['user'],
-                'User.Password' => $_REQUEST['pass'],
-                )) );
-        if ( ! $user ) {
-          throw new UnauthorizedException(__('User not found'));
+      $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+      $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+      $mAuth = $this->request->query('auth') ? $this->request->query('auth') : $this->request->data('auth');
+
+      if ( $mUser and $mPassword ) {
+        $user = userLogin($mUser, $mPassword);
+        if ( !$user ) {
+          throw new UnauthorizedException(__('User not found or incorrect password'));
           return;
-        } else {
-          $this->Session->Write( 'user.Username', $user['User']['Username'] );
-          $this->Session->Write( 'user.Enabled', $user['User']['Enabled'] );
+        }
+      } else if ( $mAuth ) {
+        $user = getAuthUser($mAuth);
+        if ( !$user ) {
+          throw new UnauthorizedException(__('Invalid Auth Key'));
+          return;
         }
       }
-
-      if ( isset($_REQUEST['auth']) ) {
-
-        $user = getAuthUser($_REQUEST['auth']);
-        if ( ! $user ) {
-          throw new UnauthorizedException(__('User not found'));
+      // We need to reject methods that are not authenticated
+      // besides login and logout
+      if ( strcasecmp($this->params->action, 'logout') ) {
+        if ( !( $user and $user['Username'] ) ) {
+          throw new UnauthorizedException(__('Not Authenticated'));
           return;
-        } else {
-          if ( ! $this->Session->Write('user.Username', $user['Username']) )
-              $this->log("Error writing session var user.Username");
-          if ( ! $this->Session->Write('user.Enabled', $user['Enabled']) )
-            $this->log("Error writing session var user.Enabled");
+        } else if ( !( $user and $user['Enabled'] ) ) {
+          throw new UnauthorizedException(__('User is not enabled'));
+          return;
         }
-      } # end if REQUEST['auth']
-
-      if ( ! $this->Session->read('user.Username') ) {
-        throw new UnauthorizedException(__('Not Authenticated'));
-        return;
-      } else if ( ! $this->Session->read('user.Enabled') ) {
-        throw new UnauthorizedException(__('User is not enabled'));
-        return;
-      }
-
-      $options = array ('conditions' => array ('User.Username' => $this->Session->Read('user.Username')));
-      $userMonitors = $this->User->find('first', $options);
-      $this->Session->Write('allowedMonitors',$userMonitors['User']['MonitorIds']);
-      $this->Session->Write('streamPermission',$userMonitors['User']['Stream']);
-      $this->Session->Write('eventPermission',$userMonitors['User']['Events']);
-      $this->Session->Write('controlPermission',$userMonitors['User']['Control']);
-      $this->Session->Write('systemPermission',$userMonitors['User']['System']);
-      $this->Session->Write('monitorPermission',$userMonitors['User']['Monitors']);
-    } else {
-      // if auth is not on, you can do everything
-      //$userMonitors = $this->User->find('first', $options);
-      $this->Session->Write('allowedMonitors','');
-      $this->Session->Write('streamPermission','View');
-      $this->Session->Write('eventPermission','Edit');
-      $this->Session->Write('controlPermission','Edit');
-      $this->Session->Write('systemPermission','Edit');
-      $this->Session->Write('monitorPermission','Edit');
-    }
-		
-		
+      } # end if ! login or logout
+    } # end if ZM_OPT_AUTH
+   
   } # end function beforeFilter()
-
 }

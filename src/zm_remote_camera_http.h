@@ -73,7 +73,7 @@ public:
   int Capture( ZMPacket &p );
   int PostCapture();
   AVStream* get_VideoStream();
-  int Close() { return 0; };
+  int Close() { Disconnect(); return 0; };
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

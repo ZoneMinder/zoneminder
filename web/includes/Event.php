@@ -246,7 +246,7 @@ class Event {
     if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }
-    if ( null === $this->{'DiskSpace'} ) {
+    if ( (!array_key_exists('DiskSpace',$this)) or (null === $this->{'DiskSpace'}) ) {
       $this->{'DiskSpace'} = folder_size($this->Path());
       dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
     }

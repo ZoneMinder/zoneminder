@@ -79,6 +79,12 @@ function submitToEvents( element ) {
   history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
 
+function submitToExport(element) {
+  var form = element.form;
+  window.location.assign('?view=export&filter='+$j(form).serialize());
+  //createPopup('?view=export&filter_id='+form.elements['Id'].value, 'zmExport', 'export' );
+}
+
 function executeFilter( element ) {
   var form = element.form;
   form.action = thisUrl + '?view=events';

@@ -227,7 +227,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'.$width.'px;' : '' ).($height ? ' height:'. $height.'px;' : '' ).'"/>';
   }
 }
 
@@ -334,11 +334,11 @@ function getZmuCommand( $args ) {
 
   if ( ZM_OPT_USE_AUTH ) {
     if ( ZM_AUTH_RELAY == 'hashed' ) {
-      $zmuCommand .= ' -A '.generateAuthHash( false );
+      $zmuCommand .= ' -A '.generateAuthHash(false, true);
     } elseif ( ZM_AUTH_RELAY == 'plain' ) {
       $zmuCommand .= ' -U ' .escapeshellarg($_SESSION['username']).' -P '.escapeshellarg($_SESSION['password']);
     } elseif ( ZM_AUTH_RELAY == 'none' ) {
-      $zmuCommand .= " -U ".escapeshellarg($_SESSION['username']);
+      $zmuCommand .= ' -U '.escapeshellarg($_SESSION['username']);
     }
   }
 
@@ -355,7 +355,7 @@ function getEventDefaultVideoPath( $event ) {
 function deletePath( $path ) {
   if ( is_dir( $path ) ) {
     system( escapeshellcmd( 'rm -rf '.$path ) );
-  } else {
+  } else if ( file_exists($path) ) {
     unlink( $path );
   }
 }
@@ -432,20 +432,38 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
     }
   }
 
-  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions( $contents, $values ).'</select>';
+  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions($contents, $values).'</select>';
 }
 
-function htmlOptions( $contents, $values ) {
-  $html = '';
-  foreach ( $contents as $value=>$text ) {
-    if ( is_array( $text ) )
-      $text = $text['Name'];
-    else if ( is_object( $text ) )
-      $text = $text->Name();
-    $selected = is_array( $values ) ? in_array( $value, $values ) : !strcmp($value, $values);
-    $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
+function htmlOptions($contents, $values) {
+  $options_html = '';
+
+  foreach ( $contents as $value=>$option ) {
+    $disabled = 0;
+    $text = '';
+    if ( is_array($option) ) {
+
+      if ( isset($option['Name']) )
+        $text = $option['Name'];
+      else if ( isset($option['text']) )
+        $text = $option['text'];
+
+      if ( isset($option['disabled']) ) {
+        $disabled = $option['disabled'];
+        Error("Setting to disabled");
+      }
+    } else if ( is_object($option) ) {
+      $text = $option->Name();
+    } else {
+      $text = $option;
+    }
+    $selected = is_array($values) ? in_array($value, $values) : !strcmp($value, $values);
+    $options_html .= "<option value=\"$value\"".
+      ($selected?' selected="selected"':'').
+      ($disabled?' disabled="disabled"':'').
+      ">$text</option>";
   }
-  return $html;
+  return $options_html;
 }
 
 function truncText( $text, $length, $deslash=1 ) {       
@@ -2063,7 +2081,7 @@ function cache_bust( $file ) {
   global $css;
   $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
   $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
-  if ( file_exists( ZM_DIR_CACHE.'/'.$cacheFile ) or symlink( ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile ) ) {
+  if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
     return 'cache/'.$cacheFile;
   } else {
     Warning("Failed linking $file to $cacheFile");
@@ -2137,15 +2155,15 @@ function getStreamHTML( $monitor, $options = array() ) {
 
   if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
     //Warning("Scale to " . $options['scale'] );
-    $options['width'] = reScale( $monitor->Width(), $options['scale'] ) . 'px';
-    $options['height'] = reScale( $monitor->Height(), $options['scale'] ) . 'px';
+    $options['width'] = reScale( $monitor->Width(), $options['scale'] );
+    $options['height'] = reScale( $monitor->Height(), $options['scale'] );
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty
     if ( ! ( isset($options['width']) and $options['width'] ) ) {
-      $options['width'] = $monitor->Width() . 'px';
+      $options['width'] = $monitor->Width();
       if ( ! ( isset($options['height']) and $options['height'] ) ) {
-        $options['height'] = $monitor->Height() . 'px';
+        $options['height'] = $monitor->Height();
       }
     } else if ( ! isset($options['height']) ) {
       $options['height'] = '';
@@ -2159,12 +2177,13 @@ function getStreamHTML( $monitor, $options = array() ) {
     $options['buffer'] = $monitor->StreamReplayBuffer();
   //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
 
-  if ( $monitor->Type() == "WebSite" ) {
-         return getWebSiteUrl( 'liveStream'.$monitor->Id(), $monitor->Path(),
-          ( isset($options['width']) ? $options['width'] : NULL ),
-          ( isset($options['height']) ? $options['height'] : NULL ),
-          $monitor->Name()
-        );
+  if ( $monitor->Type() == 'WebSite' ) {
+    return getWebSiteUrl(
+      'liveStream'.$monitor->Id(), $monitor->Path(),
+      ( isset($options['width']) ? $options['width'] : NULL ),
+      ( isset($options['height']) ? $options['height'] : NULL ),
+      $monitor->Name()
+    );
   //FIXME, the width and height of the image need to be scaled.
   } else if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array(
@@ -2177,7 +2196,7 @@ function getStreamHTML( $monitor, $options = array() ) {
     return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
   } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';
-    $streamSrc = $monitor->getStreamSrc( $options );
+    $streamSrc = $monitor->getStreamSrc($options);
 
     if ( canStreamNative() )
       return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());

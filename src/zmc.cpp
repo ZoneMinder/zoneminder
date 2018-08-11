@@ -386,5 +386,5 @@ int main(int argc, char *argv[]) {
   logTerm();
   zmDbClose();
 
-  return result;
+	return zm_terminate ? 0 : result;
 }

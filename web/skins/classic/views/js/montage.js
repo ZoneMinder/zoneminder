@@ -248,15 +248,13 @@ function changeSize() {
     var monitor = monitors[x];
   
     // Scale the frame
-      monitor_frame = $j('#monitorFrame'+monitor.id);
-      if ( ! monitor_frame ) {
-        console.log("Error finding frame for " + monitor.id );
-        continue;
-      }
-      if ( width )
-        monitor_frame.css('width',width+'px');
-      if ( height )
-        monitor_frame.css('height',height+'px');
+    monitor_frame = $j('#monitorFrame'+monitor.id);
+    if ( ! monitor_frame ) {
+      console.log("Error finding frame for " + monitor.id );
+      continue;
+    }
+      monitor_frame.css('width',width?width+'px':'');
+      monitor_frame.css('height',height?height+'px':'');
     /*Stream could be an applet so can't use moo tools*/ 
     var streamImg = $( 'liveStream'+monitor.id );
     if ( streamImg ) {
@@ -347,7 +345,7 @@ function edit_layout(button) {
   for ( var i = 0; i < monitors.length; i++ ) {
     var monitor = monitors[i];
     monitor_feed = $j('#imageFeed'+monitor.id)[0];
-    monitor_feed.onclick='';
+    monitor_feed.click('');
   };
 
   $j('#monitors .monitorFrame').draggable({
@@ -359,7 +357,7 @@ function edit_layout(button) {
 } // end function edit_layout
 
 function save_layout(button) {
-  var form=button.form;
+  var form = button.form;
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
   for ( var i = 0; i < monitors.length; i++ ) {

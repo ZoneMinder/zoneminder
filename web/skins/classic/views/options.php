@@ -260,8 +260,8 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           <thead class="thead-highlight">
             <tr>
               <th class="colId"><?php echo translate('Id') ?></th>
-              <th class="colName"><?php echo translate('name') ?></th>
-              <th class="colPath"><?php echo translate('path') ?></th>
+              <th class="colName"><?php echo translate('Name') ?></th>
+              <th class="colPath"><?php echo translate('Path') ?></th>
               <th class="colType"><?php echo translate('Type') ?></th>
               <th class="colScheme"><?php echo translate('StorageScheme') ?></th>
               <th class="colServer"><?php echo translate('Server') ?></th>
@@ -279,7 +279,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colScheme"><?php echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Scheme()), $canEdit ) ?></td>
               <td class="colServer"><?php
               echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
-              <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?><?td>
+              <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" onclick="configureDeleteButton(this);"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php } #end foreach Server ?>

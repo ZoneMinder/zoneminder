@@ -104,7 +104,10 @@ public:
 
   bool CanCapture() const { return( capture ); }
 
-  bool SupportsNativeVideo() const { return( (type == FFMPEG_SRC )||(type == REMOTE_SRC)); }
+  bool SupportsNativeVideo() const {
+    return (type == FFMPEG_SRC);
+    //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
+  }
 
   virtual int PrimeCapture() { return( 0 ); }
   virtual int PreCapture()=0;

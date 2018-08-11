@@ -108,7 +108,7 @@ sub zmDbConnect {
         , $Config{ZM_DB_PASS}
         );
     };
-    if ( !$dbh or  $@ ) {
+    if ( !$dbh or $@ ) {
       Error("Error reconnecting to db: errstr:$DBI::errstr error val:$@");
     } else {
       $dbh->{AutoCommit} = 1;

@@ -27,18 +27,6 @@ else(ZM_WEB_USER STREQUAL "nginx")
     configure_file(systemd/zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
 endif(ZM_WEB_USER STREQUAL "nginx")
 
-# Unpack jscalendar & move files into position
-message(STATUS "Unpacking and Installing jscalendar...")
-execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/misc/jscalendar.sh 
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
-                ERROR_VARIABLE unzip_jsc
-               )
-if("${unzip_jsc}" STREQUAL "")
-    message(STATUS "jscalendar successfully installed.")
-else("${unzip_jsc}" STREQUAL "")
-    message(FATAL_ERROR "\nAn error occurred while jscalendar was being processed:\n${unzip_jsc}")
-endif("${unzip_jsc}" STREQUAL "")
-
 # Create several empty folders
 file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events images temp)
 
@@ -58,7 +46,6 @@ install(CODE "execute_process(COMMAND ln -sf ../../java/cambozola.jar \"\$ENV{DE
 
 # Install auxiliary files
 install(FILES misc/redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(DIRECTORY jscalendar-1.0/ DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/tools/jscalendar)
 
 # Install zoneminder service files
 install(FILES zoneminder.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)

@@ -114,23 +114,23 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
       // as it produces the same error as when you don't answer a recaptcha
       if (isset($responseData['error-codes']) && is_array($responseData['error-codes'])) {
         if (!in_array('invalid-input-secret',$responseData['error-codes'])) {	
-          Error ('reCaptcha authentication failed');
+          Error('reCaptcha authentication failed');
           userLogout();
           $view='login';
           $refreshParent = true;
+          return;
         } else {
           //Let them login but show an error
           echo '<script type="text/javascript">alert("'.translate('RecaptchaWarning').'"); </script>';
-          Error ('Invalid recaptcha secret detected');
+          Error('Invalid recaptcha secret detected');
         }
       }
     } // end if success==false
-
   } // end if using reCaptcha
 
-  $username = validStr( $_REQUEST['username'] );
+  $username = validStr($_REQUEST['username']);
   $password = isset($_REQUEST['password'])?validStr($_REQUEST['password']):'';
-  userLogin( $username, $password );
+  userLogin($username, $password);
   $refreshParent = true;
   $view = 'console';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
@@ -476,15 +476,12 @@ if ( canEdit( 'Monitors' ) ) {
         );
 
     if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
-      Logger::Debug("Auto selecting server");
       $_REQUEST['newMonitor']['ServerId'] = dbFetchOne('SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
       Logger::Debug("Auto selecting server: Got " . $_REQUEST['newMonitor']['ServerId'] );
       if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
         $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
         Logger::Debug("Auto selecting server to " . ZM_SERVER_ID);
       }
-    } else {
-      Logger::Debug("NOT Auto selecting server" . $_REQUEST['newMonitor']['ServerId']);
     }
 
     $columns = getTableColumns('Monitors');
@@ -495,8 +492,8 @@ if ( canEdit( 'Monitors' ) ) {
 
         # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
         if ( $monitor['Type'] != 'WebSite' ) {
-            zmaControl( $monitor, 'stop' );
-            zmcControl( $monitor, 'stop' );
+          zmaControl($monitor, 'stop');
+          zmcControl($monitor, 'stop');
         }
         dbQuery( 'UPDATE Monitors SET '.implode( ', ', $changes ).' WHERE Id=?', array($mid) );
         // Groups will be added below
@@ -570,23 +567,26 @@ if ( canEdit( 'Monitors' ) ) {
       }
 
       $restart = true;
+    } else {
+      Logger::Debug("No action due to no changes to Monitor");
     } # end if count(changes)
-      if (
-        ( !isset($_POST['newMonitor']['GroupIds']) )
-        or
-        ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) )
-        or 
-        array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds())
-      ) {
-        if ( $Monitor->Id() )
-          dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
 
-        if ( isset($_POST['newMonitor']['GroupIds']) ) {
-          foreach ( $_POST['newMonitor']['GroupIds'] as $group_id ) {
-            dbQuery('INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($group_id, $mid));
-          }
+    if (
+      ( !isset($_POST['newMonitor']['GroupIds']) )
+      or
+      ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) )
+      or 
+      array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds())
+    ) {
+      if ( $Monitor->Id() )
+        dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
+
+      if ( isset($_POST['newMonitor']['GroupIds']) ) {
+        foreach ( $_POST['newMonitor']['GroupIds'] as $group_id ) {
+          dbQuery('INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($group_id, $mid));
         }
-      } // end if there has been a change of groups
+      }
+    } // end if there has been a change of groups
 
     if ( ZM_OPT_X10 ) {
       $x10Changes = getFormChanges( $x10Monitor, $_REQUEST['newX10Monitor'] );
@@ -732,7 +732,7 @@ if ( canEdit( 'System' ) ) {
         $_SESSION['zmMontageLayout'] = $Layout->Id();
         setcookie('zmMontageLayout', $Layout->Id(), 1 );
         session_write_close();
-        $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview';
+        $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montage';
       } // end if save
 
     } else if ( $_REQUEST['object'] == 'server' ) {

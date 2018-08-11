@@ -317,9 +317,6 @@ if ($reload == 'reload') ob_start();
     </div>
     <div id="Version" class="pull-right">
       <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
-    <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>
-        <h3 id="development"><?php echo ZM_WEB_CONSOLE_BANNER ?></h3>
-    <?php } ?>
     </div>
     <ul class="list-inline">
       <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
@@ -359,6 +356,9 @@ if ($reload == 'reload') ob_start();
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
   </ul>
+    <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>
+        <h3 id="development"><?php echo ZM_WEB_CONSOLE_BANNER ?></h3>
+    <?php } ?>	
 <!-- End .footer/reload --></div>
 <?php
 if ($reload == 'reload') return( ob_get_clean() );
@@ -373,18 +373,13 @@ function xhtmlFooter() {
   global $view;
   global $skin;
   global $running;
-if ( canEdit('System') ) {
-  include("skins/$skin/views/state.php");
+  if ( canEdit('System') ) {
+    include("skins/$skin/views/state.php");
+  }
 ?>
-<?php
-}
-?>
-</body>
-<script type="text/javascript">
-$j('.chosen').chosen();
-</script>
+  </body>
+  <script type="text/javascript">$j('.chosen').chosen();</script>
 </html>
 <?php
 } // end xhtmlFooter
-
 ?>

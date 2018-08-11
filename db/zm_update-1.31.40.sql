@@ -12,7 +12,7 @@ PREPARE stmt FROM @s;
 EXECUTE stmt;
 
 
-ALTER TABLE `Monitors` MODIFY `OutputCodec`     int(10) UNSIGNED NOT NULL default 0;
+ALTER TABLE `Monitors` MODIFY `OutputCodec`     INT UNSIGNED default 0;
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()

@@ -890,6 +890,18 @@ bool Monitor::connect() {
       exit(-1);
     }
   }
+  if ( purpose == ANALYSIS ) {
+		if ( analysis_fps ) {
+			// Size of pre event buffer must be greater than pre_event_count
+			// if alarm_frame_count > 1, because in this case the buffer contains
+			// alarmed images that must be discarded when event is created
+			pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
+		}
+
+    timestamps = new struct timeval *[pre_event_count];
+    images = new Image *[pre_event_count];
+    last_signal = shared_data->signal;
+  }
 
   Debug(3, "Success connecting");
   return true;
@@ -1523,7 +1535,6 @@ bool Monitor::CheckSignal( const Image *image ) {
 void Monitor::CheckAction() {
   struct timeval now;
   gettimeofday(&now, NULL);
-
   if ( shared_data->action ) {
     // Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
     if ( shared_data->action & RELOAD ) {
@@ -1595,8 +1606,8 @@ bool Monitor::Analyse() {
   // last_write_index is the last capture
   // last_read_index is the last analysis
   
-  if ( ! Enabled() ) {
-    Warning("SHouldn't be doing Analyze when not Enabled");
+  if ( !Enabled() ) {
+    Warning("Shouldn't be doing Analyze when not Enabled");
     return false;
   }
 
@@ -1726,7 +1737,7 @@ bool Monitor::Analyse() {
                     cause += ", ";
                   cause += LINKED_CAUSE;
                 }
-                noteSet.insert( linked_monitors[i]->Name() );
+                noteSet.insert(linked_monitors[i]->Name());
                 score += 50;
               }
             } // end foreach linked_monitor
@@ -2326,19 +2337,17 @@ int Monitor::Capture() {
           //Info( "%d -> %d -> %d", fps_report_interval, now, last_fps_time );
           //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
           Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec", name, image_count, new_capture_fps, new_capture_bandwidth);
-          if ( new_capture_fps != capture_fps ) {
-            capture_fps = new_capture_fps;
-            last_fps_time = now;
-            static char sql[ZM_SQL_SML_BUFSIZ];
-            db_mutex.lock();
-            snprintf(sql, sizeof(sql),
-              "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth) VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf, CaptureBandwidth=%u",
-              id, capture_fps, new_capture_bandwidth, capture_fps, new_capture_bandwidth);
-            if ( mysql_query(&dbconn, sql) ) {
-              Error("Can't run query: %s", mysql_error(&dbconn));
-            }
-            db_mutex.unlock();
-          } // end if fps has changed
+          capture_fps = new_capture_fps;
+          last_fps_time = now;
+          static char sql[ZM_SQL_SML_BUFSIZ];
+          db_mutex.lock();
+          snprintf(sql, sizeof(sql),
+            "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth) VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf, CaptureBandwidth=%u",
+            id, capture_fps, new_capture_bandwidth, capture_fps, new_capture_bandwidth);
+          if ( mysql_query(&dbconn, sql) ) {
+            Error("Can't run query: %s", mysql_error(&dbconn));
+          }
+          db_mutex.unlock();
         }
       } // end if report fps
     } else { // result == 0

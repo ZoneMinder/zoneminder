@@ -24,7 +24,8 @@ if ( !canView('Events') ) {
 }
 
 $total_size = 0;
-if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
+if (isset($_SESSION['montageReviewFilter']) and !isset($_REQUEST['eids']) ) {
+  # Handles montageReview filter
   $eventsSql = 'SELECT E.Id,E.DiskSpace FROM Events as E WHERE 1';
   $eventsSql .= $_SESSION['montageReviewFilter']['sql'];
   $results = dbQuery($eventsSql);
@@ -45,6 +46,7 @@ if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
 }
 
 $focusWindow = true;
+$connkey = isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Download') );
 ?>
@@ -58,23 +60,28 @@ xhtmlHeaders(__FILE__, translate('Download') );
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
 <?php
 if ( !empty($_REQUEST['eid']) ) {
 ?>
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
     <?php
-    $Event = new Event( $_REQUEST['eid'] );
+    $Event = new Event($_REQUEST['eid']);
     echo 'Downloading event ' . $_REQUEST['eid'] . ' Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
 } else if ( !empty($_REQUEST['eids']) ) {
     $total_size = 0;
     foreach ( $_REQUEST['eids'] as $eid ) {
-        $Event = new Event($eid);
-        $total_size += $Event->DiskSpace();
+      if ( ! validInt($eid) ) {
+        Warning("Invalid event id in eids[] $eid");
+        continue;
+      }
+      $Event = new Event($eid);
+      $total_size += $Event->DiskSpace();
 ?>
         <input type="hidden" name="eids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
     }
-    unset( $eid );
+    unset($eid);
     echo "Downloading " . count($_REQUEST['eids']) . ' events.  Resulting file should be approximately ' . human_filesize($total_size);
 } else {
     echo '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
@@ -96,7 +103,9 @@ if ( !empty($_REQUEST['eid']) ) {
             </tr>
           </tbody>
         </table>
-        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('GenerateDownload') ?>" onclick="exportEvent(this.form);" />
+        <button type="button" id="exportButton" name="exportButton" value="GenerateDownload" onclick="exportEvent(this.form);">
+        <?php echo translate('GenerateDownload') ?>
+        </button>
       </form>
     </div>
 <?php

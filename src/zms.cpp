@@ -46,7 +46,7 @@ bool ValidateAccess( User *user, int mon_id ) {
       user->Id(), user->getUsername(), mon_id );
     exit( -1 );
   }
-  return( allowed );
+  return allowed;
 }
 
 int main( int argc, const char *argv[] ) {
@@ -74,45 +74,44 @@ int main( int argc, const char *argv[] ) {
   unsigned int playback_buffer = 0;
 
   bool nph = false;
-  const char *basename = strrchr( argv[0], '/' );
-  if (basename) //if we found a / lets skip past it
+  const char *basename = strrchr(argv[0], '/');
+  if ( basename ) //if we found a / lets skip past it
     basename++;
   else //argv[0] will not always contain the full path, but rather just the script name
     basename = argv[0];
   const char *nph_prefix = "nph-";
-  if ( basename && !strncmp( basename, nph_prefix, strlen(nph_prefix) ) ) {
+  if ( basename && !strncmp(basename, nph_prefix, strlen(nph_prefix)) ) {
     nph = true;
   }
   
   zmLoadConfig();
 
-
-  const char *query = getenv( "QUERY_STRING" );
+  const char *query = getenv("QUERY_STRING");
   if ( query ) {
-    Debug( 1, "Query: %s", query );
+    Debug(1, "Query: %s", query);
   
     char temp_query[1024];
-    strncpy( temp_query, query, sizeof(temp_query) );
+    strncpy(temp_query, query, sizeof(temp_query));
     char *q_ptr = temp_query;
     char *parms[16]; // Shouldn't be more than this
     int parm_no = 0;
-    while( (parm_no < 16) && (parms[parm_no] = strtok( q_ptr, "&" )) ) {
+    while( (parm_no < 16) && (parms[parm_no] = strtok(q_ptr, "&")) ) {
       parm_no++;
       q_ptr = NULL;
     }
   
     for ( int p = 0; p < parm_no; p++ ) {
-      char *name = strtok( parms[p], "=" );
-      char *value = strtok( NULL, "=" );
+      char *name = strtok(parms[p], "=");
+      char *value = strtok(NULL, "=");
       if ( !value )
         value = (char *)"";
-      if ( !strcmp( name, "source" ) ) {
-        source = !strcmp( value, "event" )?ZMS_EVENT:ZMS_MONITOR;
-      } else if ( !strcmp( name, "mode" ) ) {
-        mode = !strcmp( value, "jpeg" )?ZMS_JPEG:ZMS_MPEG;
-        mode = !strcmp( value, "raw" )?ZMS_RAW:mode;
-        mode = !strcmp( value, "zip" )?ZMS_ZIP:mode;
-        mode = !strcmp( value, "single" )?ZMS_SINGLE:mode;
+      if ( !strcmp(name, "source") ) {
+        source = !strcmp(value, "event")?ZMS_EVENT:ZMS_MONITOR;
+      } else if ( !strcmp(name, "mode") ) {
+        mode = !strcmp(value, "jpeg")?ZMS_JPEG:ZMS_MPEG;
+        mode = !strcmp(value, "raw")?ZMS_RAW:mode;
+        mode = !strcmp(value, "zip")?ZMS_ZIP:mode;
+        mode = !strcmp(value, "single")?ZMS_SINGLE:mode;
       } else if ( !strcmp( name, "format" ) ) {
         strncpy( format, value, sizeof(format) );
       } else if ( !strcmp( name, "monitor" ) ) {
@@ -182,32 +181,32 @@ int main( int argc, const char *argv[] ) {
   if ( config.opt_use_auth ) {
     User *user = 0;
 
-    if ( strcmp( config.auth_relay, "none" ) == 0 ) {
+    if ( strcmp(config.auth_relay, "none") == 0 ) {
       if ( username.length() ) {
-        user = zmLoadUser( username.c_str() );
+        user = zmLoadUser(username.c_str());
       }
     } else {
       //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
       {
         if ( *auth ) {
-          user = zmLoadAuthUser( auth, config.auth_hash_ips );
+          user = zmLoadAuthUser(auth, config.auth_hash_ips);
         }
       }
       //else if ( strcmp( config.auth_relay, "plain" ) == 0 )
       {
         if ( username.length() && password.length() ) {
-          user = zmLoadUser( username.c_str(), password.c_str() );
+          user = zmLoadUser(username.c_str(), password.c_str());
         }
       }
     }
     if ( !user ) {
-      Error( "Unable to authenticate user" );
+      Error("Unable to authenticate user");
       logTerm();
       zmDbClose();
-      return( -1 );
+      return -1;
     }
-    ValidateAccess( user, monitor_id );
-  }
+    ValidateAccess(user, monitor_id);
+  } // end if config.opt_use_auth
 
   hwcaps_detect();
   zmSetDefaultTermHandler();

@@ -39,7 +39,7 @@
 #include <cstdarg>
 
 bool Logger::smInitialised = false;
-Logger *Logger::smInstance = 0;
+Logger *Logger::smInstance = NULL;
 
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
@@ -59,9 +59,9 @@ static void subtractTime( struct timeval * const tp1, struct timeval * const tp2
 void Logger::usrHandler( int sig ) {
   Logger *logger = fetch();
   if ( sig == SIGUSR1 )
-    logger->level( logger->level()+1 );
+    logger->level(logger->level()+1);
   else if ( sig == SIGUSR2 )
-    logger->level( logger->level()-1 );
+    logger->level(logger->level()-1);
   Info("Logger - Level changed to %d", logger->level());
 }
 
@@ -80,7 +80,7 @@ Logger::Logger() :
   mFlush(false) {
 
   if ( smInstance ) {
-    Panic( "Attempt to create second instance of Logger class" );
+    Panic("Attempt to create second instance of Logger class");
   }
 
   if ( !smInitialised ) {
@@ -134,11 +134,11 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   std::string tempLogFile;
 
-  if ( (envPtr = getTargettedEnv("LOG_FILE")) )
+  if ( (envPtr = getTargettedEnv("LOG_FILE")) ) {
     tempLogFile = envPtr;
-  else if ( options.mLogFile.size() )
+  } else if ( options.mLogFile.size() ) {
     tempLogFile = options.mLogFile;
-  else {
+  } else {
     if ( options.mLogPath.size() ) {
       mLogPath = options.mLogPath;
     }
@@ -170,7 +170,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
     tempSyslogLevel = config.log_level_syslog >= DEBUG1 ? DEBUG9 : config.log_level_syslog;
 
   // Legacy
-  if ( (envPtr = getenv( "LOG_PRINT" )) )
+  if ( (envPtr = getenv("LOG_PRINT")) )
     tempTerminalLevel = atoi(envPtr) ? DEBUG9 : NOLOG;
 
   if ( (envPtr = getTargettedEnv("LOG_LEVEL")) )
@@ -219,7 +219,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   mFlush = false;
   if ( (envPtr = getenv("LOG_FLUSH")) ) {
-    mFlush = atoi( envPtr );
+    mFlush = atoi(envPtr);
   } else if ( config.log_debug ) {
     mFlush = true;
   }
@@ -570,12 +570,12 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   }
 }
 
-void logInit( const char *name, const Logger::Options &options ) {
+void logInit(const char *name, const Logger::Options &options) {
   if ( !Logger::smInstance )
     Logger::smInstance = new Logger();
   Logger::Options tempOptions = options;
   tempOptions.mLogPath = staticConfig.PATH_LOGS;
-  Logger::smInstance->initialise( name, tempOptions );
+  Logger::smInstance->initialise(name, tempOptions);
 }
 
 void logTerm() {

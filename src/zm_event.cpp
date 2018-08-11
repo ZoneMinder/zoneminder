@@ -199,6 +199,7 @@ Event::Event(
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
+    Debug(2,"Video writer was %d", monitor->GetOptVideoWriter());
     std::string container = monitor->OutputContainer();
     if ( container == "auto" || container == "" ) {
       if ( monitor->OutputCodec() == AV_CODEC_ID_H264 ) {
@@ -234,6 +235,7 @@ Event::~Event() {
 
   /* Close the video file */
   if ( videoStore ) {
+    Debug(2,"Deleting video store");
     delete videoStore;
     videoStore = NULL;
   }
@@ -463,7 +465,8 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
     }
 
     int sql_len = strlen(sql);
-    snprintf(sql+sql_len, sizeof(sql)-sql_len, "( %" PRIu64 ", %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
+    snprintf(sql+sql_len, sizeof(sql)-sql_len, "( %" PRIu64 ", %d, from_unixtime(%ld), %s%ld.%02ld ), ",
+        id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
 
     frameCount++;
   } // end foreach frame
@@ -472,7 +475,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
     Debug(1, "Adding %d/%d frames to DB", frameCount, n_frames);
     *(sql+strlen(sql)-2) = '\0';
     db_mutex.lock();
-    if ( mysql_query( &dbconn, sql ) ) {
+    if ( mysql_query(&dbconn, sql) ) {
       Error("Can't insert frames: %s, sql was (%s)", mysql_error(&dbconn), sql);
     }
     db_mutex.unlock();
@@ -482,7 +485,7 @@ void Event::AddFramesInternal(int n_frames, int start_frame, Image **images, str
   }
 }
 
-void Event::AddPacket( ZMPacket *packet, int score, Image *alarm_image ) {
+void Event::AddPacket(ZMPacket *packet, int score, Image *alarm_image) {
 
   have_video_keyframe = have_video_keyframe || ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && packet->keyframe );
   if ( videoStore ) {
@@ -492,8 +495,6 @@ void Event::AddPacket( ZMPacket *packet, int score, Image *alarm_image ) {
       Debug(2, "No video keyframe yet, not writing");
     }
     //FIXME if it fails, we should write a jpeg
-  } else {
-    Debug(2,"AddPacket but no videostore?!");
   }
   if ( have_video_keyframe && ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) ) {
     AddFrame(packet->image, *packet->timestamp, score, alarm_image);

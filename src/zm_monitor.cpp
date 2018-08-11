@@ -2420,12 +2420,12 @@ bool Monitor::closeEvent() {
     if ( function == RECORD || function == MOCORD ) {
       gettimeofday(&(event->EndTime()), NULL);
     }
+#if 0
     if ( event_delete_thread ) {
       event_delete_thread->join();
       delete event_delete_thread;
       event_delete_thread = NULL;
     }
-#if 0
     event_delete_thread = new std::thread([](Event *event) {
       Event * e = event;
       event = NULL;
@@ -2691,14 +2691,15 @@ void Monitor::get_ref_image() {
       ( shared_data->last_write_time == 0 )
       && ! zm_terminate
       ) {
-    Warning( "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)", shared_data->last_write_index, shared_data->last_write_time );
-    usleep( 50000 );
+    Info("Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)",
+        shared_data->last_write_index, shared_data->last_write_time);
+    usleep(50000);
   }
   if ( zm_terminate )
     return;
   int last_write_index = shared_data->last_write_index ;
 
-  Warning("Waiting for capture daemon unlock");
+  Debug(2,"Waiting for capture daemon unlock");
   image_buffer[last_write_index].mutex.lock();
   ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[last_write_index].image->Buffer(), camera->ImageSize());
   image_buffer[last_write_index].mutex.unlock();

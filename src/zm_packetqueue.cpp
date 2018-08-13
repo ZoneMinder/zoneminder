@@ -97,7 +97,7 @@ ZMPacket* zm_packetqueue::popPacket( ) {
 
 	ZMPacket *packet = pktQueue.front();
   if ( *analysis_it == packet )
-    analysis_it ++;
+    ++analysis_it;
 
 	pktQueue.pop_front();
   if ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) {
@@ -164,7 +164,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
   }
   if ( it != pktQueue.rend() ) {
     // We want to keep this packet, so advance to the next
-    it ++;
+    ++it;
     packets_to_delete--;
   }
   int delete_count = 0;

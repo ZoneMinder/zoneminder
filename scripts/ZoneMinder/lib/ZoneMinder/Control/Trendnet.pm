@@ -1,7 +1,7 @@
 #===========================================================================
 #
-# ZoneMinder Trendnet TV-IP862IC IP Control Protocol Module, $Date: $, $Revision: $
-# Copyright (C) 2014 Vincent Giovannone
+# ZoneMinder Trendnet IP Control Protocol Module, $Date: $, $Revision: $
+# Copyright (C) 2018 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC
 #
 #
 # ==========================================================================
@@ -18,12 +18,11 @@
 # ==========================================================================
 #
 # This module contains the implementation of the Trendnet # IP camera control
-# protocol. Has been testing with TV-IP862IC and TV-IP672PI 
+# protocol. Has been tested with TV-IP862IC
 #
 #  Under control capability:
 #
-#   *  Main:  name it (suggest TVIP672PI), type is FFMPEG (or remote if you're using MJPEG), protocol is TVIP672PI
-#   *  Main (more):  Can wake, can sleep, can reset
+#   *  Main:  Can wake, can sleep, can reset
 #   *  Move:  Can move, can move diagonally, can move mapped, can move relative
 #   *  Pan:  Can pan
 #   *  Tilt:  Can tilt
@@ -37,12 +36,8 @@
 #    You can also put the authentication information here and change the
 #    protocol to https using something like https://admin:password@192.168.1.1:80
 #
-#
-#  Due to how the TVIP672 represents presets internally, you MUST define the presets in order...  i.e. 1,2,3,4...  not 1,10,3,4.
-#   (see much further down for why, if you care...)
-#
 
-package ZoneMinder::Control::TVIP862;
+package ZoneMinder::Control::Trendnet;
 
 use 5.006;
 use strict;
@@ -62,7 +57,7 @@ our @ISA = qw(ZoneMinder::Control);
 #  The username and password should be passed in the ControlDevice field but you
 #  can set them here if you want.
 #
-our $REALM = 'TV-IP862IC';
+our $REALM = '';
 our $PROTOCOL = 'http://';
 our $USERNAME = 'admin';
 our $PASSWORD = '';
@@ -431,7 +426,7 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for Trendnet TVIP672
+ZoneMinder::Control::Trendnet - Perl module for Trendnet cameras
 
 =head1 SYNOPSIS
 
@@ -440,21 +435,11 @@ ZoneMinder::Database - Perl extension for Trendnet TVIP672
 
 =head1 DESCRIPTION
 
-Stub documentation for Trendnet TVIP672, created by Vince. 
+Stub documentation for Trendnet PTZ Sctrol
 
 =head2 EXPORT
 
 None by default.
-
-
-
-=head1 SEE ALSO
-
-Read the comments at the beginning of this file to see the usage for zoneminder 1.25.0
-
-
-=head1 AUTHOR
-
 
 =head1 COPYRIGHT AND LICENSE
 

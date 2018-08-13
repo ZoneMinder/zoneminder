@@ -533,13 +533,15 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   }
   *syslogEnd = '\0';
   if ( level <= mDatabaseLevel ) {
-    char sql[ZM_SQL_MED_BUFSIZ];
-    char escapedString[(strlen(syslogStart)*2)+1];
 
-    if ( ! db_mutex.trylock() ) {
-      mysql_real_escape_string( &dbconn, escapedString, syslogStart, strlen(syslogStart) );
+    if ( !db_mutex.trylock() ) {
+      char sql[ZM_SQL_MED_BUFSIZ];
+      char escapedString[(strlen(syslogStart)*2)+1];
+      mysql_real_escape_string(&dbconn, escapedString, syslogStart, strlen(syslogStart));
 
-      snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
+      snprintf(sql, sizeof(sql),
+          "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+          timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
       if ( mysql_query(&dbconn, sql) ) {
         Level tempDatabaseLevel = mDatabaseLevel;
         databaseLevel(NOLOG);

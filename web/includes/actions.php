@@ -547,7 +547,7 @@ if ( canEdit( 'Monitors' ) ) {
         $maxSeq = dbFetchOne('SELECT MAX(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence');
         $changes[] = 'Sequence = '.($maxSeq+1);
 
-        if ( dbQuery( 'INSERT INTO Monitors SET '.implode( ', ', $changes ) ) ) {
+        if ( dbQuery/usr/share/zoneminder/www/lang/en_gb.php( 'INSERT INTO Monitors SET '.implode( ', ', $changes ) ) ) {
           $mid = dbInsertId();
           $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
           dbQuery( "insert into Zones set MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
@@ -861,6 +861,29 @@ if ( canEdit( 'System' ) ) {
           dbQuery( "update Config set Value = '0' where Name = 'ZM_DYN_SHOW_DONATE_REMINDER'" );
           break;
         }
+    } // end switch option
+  }
+  if ( $action == 'privacy' && isset($_REQUEST['option'] ) ) {
+    $option = $_REQUEST['option'];
+    switch( $option ) {
+      case 'decline' :
+        {
+          dbQuery( "update Config set Value = '0' where Name = 'ZM_SHOW_PRIVACY'" );
+          dbQuery( "update Config set Value = '0' where Name = 'ZM_TELEMETRY_DATA'" );
+          $view = 'console';
+          $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
+          break;
+        }
+      case 'accept' :
+        {
+          dbQuery( "update Config set Value = '0' where Name = 'ZM_SHOW_PRIVACY'" );
+          dbQuery( "update Config set Value = '1' where Name = 'ZM_TELEMETRY_DATA'" );
+          $view = 'console';
+          $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
+          break;
+        }
+      default: # Enable the privacy statement if we somehow submit something other than accept or decline
+          dbQuery( "update Config set Value = '1' where Name = 'ZM_SHOW_PRIVACY'" );
     } // end switch option
   }
   if ( $action == 'options' && isset($_REQUEST['tab']) ) {

@@ -184,16 +184,19 @@ sub zmDbGetMonitor {
 
   my $id = shift;
 
-  return( undef ) if ( !defined($id) );
+  if ( !defined($id) ) {
+    croak("Undefined id in zmDbgetMonitor");
+    return undef ;
+  }
 
-  my $sql = "select * from Monitors where Id = ?";
-  my $sth = $dbh->prepare_cached( $sql )
-    or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute( $id )
-    or croak( "Can't execute '$sql': ".$sth->errstr() );
+  my $sql = 'SELECT * FROM Monitors WHERE Id = ?';
+  my $sth = $dbh->prepare_cached($sql)
+    or croak("Can't prepare '$sql': ".$dbh->errstr());
+  my $res = $sth->execute($id)
+    or croak("Can't execute '$sql': ".$sth->errstr());
   my $monitor = $sth->fetchrow_hashref();
 
-  return( $monitor );
+  return $monitor;
 }
 
 sub zmDbGetMonitorAndControl {

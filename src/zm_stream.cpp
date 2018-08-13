@@ -212,11 +212,11 @@ Image *StreamBase::prepareImage( Image *image ) {
     Debug( 3, "Cropping to %d,%d -> %d,%d", last_crop.LoX(), last_crop.LoY(), last_crop.HiX(), last_crop.HiY() );
     if ( !image_copied ) {
       static Image copy_image;
-      copy_image.Assign( *image );
+      copy_image.Assign(*image);
       image = &copy_image;
       image_copied = true;
     }
-    image->Crop( last_crop );
+    image->Crop(last_crop);
   }
   last_scale = scale;
   last_zoom = zoom;

@@ -53,6 +53,8 @@ protected:
   int           contrast;
   bool          capture;
   bool          record_audio;
+  unsigned int bytes;
+
 
 public:
   Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_width, unsigned int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
@@ -74,6 +76,7 @@ public:
   unsigned int SubpixelOrder() const { return( subpixelorder ); }
   unsigned int Pixels() const { return( pixels ); }
   unsigned int ImageSize() const { return( imagesize ); }
+  unsigned int Bytes() const { return bytes; };
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return( -1 ); }
   virtual int Hue( int/*p_hue*/=-1 ) { return( -1 ); }
@@ -82,13 +85,17 @@ public:
 
   bool CanCapture() const { return( capture ); }
 
-  bool SupportsNativeVideo() const { return( (type == FFMPEG_SRC )||(type == REMOTE_SRC)); }
+  bool SupportsNativeVideo() const {
+    return (type == FFMPEG_SRC);
+    //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
+  }
 
   virtual int PrimeCapture() { return( 0 ); }
   virtual int PreCapture()=0;
   virtual int Capture( Image &image )=0;
   virtual int PostCapture()=0;
   virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) = 0;
+  virtual int Close()=0;
 };
 
 #endif // ZM_CAMERA_H

@@ -42,11 +42,10 @@
 #include <sys/filio.h> // define FIONREAD
 #endif
 
-int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )
-{
+int CommsBase::readV( int iovcnt, /* const void *, int, */ ... ) {
   va_list arg_ptr;
-  //struct iovec iov[iovcnt];
-  struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
+  struct iovec iov[iovcnt];
+  //struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
 
   va_start( arg_ptr, iovcnt );
   for ( int i = 0; i < iovcnt; i++ )
@@ -62,11 +61,10 @@ int CommsBase::readV( int iovcnt, /* const void *, int, */ ... )
   return( nBytes );
 }
 
-int CommsBase::writeV( int iovcnt, /* const void *, int, */ ... )
-{
+int CommsBase::writeV( int iovcnt, /* const void *, int, */ ... ) {
   va_list arg_ptr;
-  //struct iovec iov[iovcnt];
-  struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
+  struct iovec iov[iovcnt];
+  //struct iovec *iov = (struct iovec *)alloca( sizeof(struct iovec)*iovcnt );
 
   va_start( arg_ptr, iovcnt );
   for ( int i = 0; i < iovcnt; i++ )
@@ -576,13 +574,13 @@ bool InetSocket::connect( const char *host, const char *serv )
         ::close(mSd);
     }
 
+    freeaddrinfo(result);   /* No longer needed */
+
     if (rp == NULL) {               /* No address succeeded */
         Error( "connect(), Could not connect" );
         mAddressFamily = AF_UNSPEC;
         return( false );
     }
-
-    freeaddrinfo(result);   /* No longer needed */
 
     mState = CONNECTED;
 
@@ -761,10 +759,10 @@ void Select::clearTimeout()
 void Select::calcMaxFd()
 {
   mMaxFd = -1;
-  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter )
     if ( (*iter)->getMaxDesc() > mMaxFd )
       mMaxFd = (*iter)->getMaxDesc();
-  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter )
     if ( (*iter)->getMaxDesc() > mMaxFd )
       mMaxFd = (*iter)->getMaxDesc();
 }
@@ -839,12 +837,12 @@ int Select::wait()
 
   mReadable.clear();
   FD_ZERO(&rfds);
-  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+  for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter )
     FD_SET((*iter)->getReadDesc(),&rfds);
 
   mWriteable.clear();
   FD_ZERO(&wfds);
-  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+  for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter )
     FD_SET((*iter)->getWriteDesc(),&wfds);
 
   int nFound = select( mMaxFd+1, &rfds, &wfds, NULL, selectTimeout );
@@ -858,10 +856,10 @@ int Select::wait()
   }
   else
   {
-    for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); iter++ )
+    for ( CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter )
       if ( FD_ISSET((*iter)->getReadDesc(),&rfds) )
         mReadable.push_back( *iter );
-    for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); iter++ )
+    for ( CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter )
       if ( FD_ISSET((*iter)->getWriteDesc(),&rfds) )
         mWriteable.push_back( *iter );
   }

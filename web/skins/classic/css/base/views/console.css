@@ -1,0 +1,101 @@
+#systemTime {
+    float: left;
+}
+
+#title {
+    margin: 0 auto;
+    text-align: center;
+    width: 50%;
+}
+
+#systemStats {
+    float: right;
+}
+
+#systemStats .warning {
+    color: orange;
+}
+
+#systemStats .error {
+    color: red;
+}
+
+#systemStats .critical {
+    color: red;
+    text-decoration: blink;
+}
+
+#monitorSummary {
+    float: left;
+    text-align: left;
+    width: 20%;
+}
+
+#devices {
+    float: left;
+}
+
+#loginBandwidth {
+    margin: 0 auto;
+    text-align: center;
+    width: 40%;
+}
+
+#cycleMontage {
+    float: right;
+}
+
+#options {
+    float: right;
+    text-align: right;
+    width: 20%;
+}
+
+.consoleTable {
+    width: 100%;
+}
+
+.consoleTable tr.highlight {
+    background-color: #eeeeee;
+}
+
+.consoleTable thead th {
+    padding-bottom: 4px;
+    vertical-align: middle;
+}
+
+.consoleTable tfoot td {
+    padding-top: 4px;
+    vertical-align: middle;
+}
+
+.consoleTable th,td {
+    text-align: left;
+}
+
+.consoleTable .colMark {
+    width: 52px;
+    text-align: center;
+}
+
+.consoleTable .colEvents {
+    text-align: right;
+}
+
+.consoleTable .colZones {
+    text-align: right;
+}
+.consoleTable .colFunction {
+    width: 120px;
+    text-align: center;
+}
+
+.consoleTable .colLeftButtons {
+    text-align: left;
+}
+.FunctionFilter select {
+  min-width: 90px;
+}
+.StatusFilter select {
+  min-width: 130px;
+}

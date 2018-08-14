@@ -77,28 +77,51 @@ sub zmDbConnect {
   }
   my $options = shift;
 
-  if ( ( ! defined( $dbh ) ) or ! $dbh->ping() ) {
+  if ( ( !defined($dbh) ) or ! $dbh->ping() ) {
     my ( $host, $portOrSocket ) = ( $ZoneMinder::Config::Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
     my $socket;
 
     if ( defined($portOrSocket) ) {
       if ( $portOrSocket =~ /^\// ) {
-        $socket = ";mysql_socket=".$portOrSocket;
+        $socket = ';mysql_socket='.$portOrSocket;
       } else {
-        $socket = ";host=".$host.";port=".$portOrSocket;
+        $socket = ';host='.$host.';port='.$portOrSocket;
       }
     } else {
-      $socket = ";host=".$Config{ZM_DB_HOST}; 
+      $socket = ';host='.$Config{ZM_DB_HOST}; 
     }
-    $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-        .$socket . ($options?';'.join(';', map { $_.'='.$$options{$_} } keys %{$options} ) : '' )
+
+    my $sslOptions = '';
+    if ( $Config{ZM_DB_SSL_CA_CERT} ) {
+      $sslOptions = ';'.join(';',
+          'mysql_ssl=1',
+          'mysql_ssl_ca_file='.$Config{ZM_DB_SSL_CA_CERT},
+          'mysql_ssl_client_key='.$Config{ZM_DB_SSL_CLIENT_KEY},
+          'mysql_ssl_client_cert='.$Config{ZM_DB_SSL_CLIENT_CERT}
+          );
+    }
+
+    eval {
+    $dbh = DBI->connect( 'DBI:mysql:database='.$Config{ZM_DB_NAME}
+        .$socket . $sslOptions . ($options?';'.join(';', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
         , $Config{ZM_DB_USER}
         , $Config{ZM_DB_PASS}
         );
-    $dbh->trace( 0 );
-  }
-  return( $dbh );
-}
+    };
+    if ( !$dbh or $@ ) {
+      Error("Error reconnecting to db: errstr:$DBI::errstr error val:$@");
+    } else {
+      $dbh->{AutoCommit} = 1;
+      Fatal('Can\'t set AutoCommit on in database connection')
+        unless $dbh->{AutoCommit};
+      $dbh->{mysql_auto_reconnect} = 1;
+      Fatal('Can\'t set mysql_auto_reconnect on in database connection')
+        unless $dbh->{mysql_auto_reconnect};
+      $dbh->trace( 0 );
+    } # end if success connecting
+  } # end if ! connected
+  return $dbh;
+} # end sub zmDbConnect
 
 sub zmDbDisconnect {
   if ( defined( $dbh ) ) {
@@ -146,21 +169,34 @@ sub zmDbGetMonitors {
   return( \@monitors );
 }
 
+sub zmSQLExecute {
+  my $sql = shift;
+  
+  my $sth = $dbh->prepare_cached( $sql )
+    or croak( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( @_ )
+    or croak( "Can't execute '$sql': ".$sth->errstr() );
+  return 1;
+}
+
 sub zmDbGetMonitor {
   zmDbConnect();
 
   my $id = shift;
 
-  return( undef ) if ( !defined($id) );
+  if ( !defined($id) ) {
+    croak("Undefined id in zmDbgetMonitor");
+    return undef ;
+  }
 
-  my $sql = "select * from Monitors where Id = ?";
-  my $sth = $dbh->prepare_cached( $sql )
-    or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute( $id )
-    or croak( "Can't execute '$sql': ".$sth->errstr() );
+  my $sql = 'SELECT * FROM Monitors WHERE Id = ?';
+  my $sth = $dbh->prepare_cached($sql)
+    or croak("Can't prepare '$sql': ".$dbh->errstr());
+  my $res = $sth->execute($id)
+    or croak("Can't execute '$sql': ".$sth->errstr());
   my $monitor = $sth->fetchrow_hashref();
 
-  return( $monitor );
+  return $monitor;
 }
 
 sub zmDbGetMonitorAndControl {
@@ -184,6 +220,30 @@ sub zmDbGetMonitorAndControl {
   return( $monitor );
 }
 
+sub start_transaction {
+	#my ( $caller, undef, $line ) = caller;
+#$openprint::log->debug("Called start_transaction from $caller : $line");
+	my $d = shift;
+	$d = $dbh if ! $d;
+	my $ac = $d->{AutoCommit};
+	$d->{AutoCommit} = 0;
+	return $ac;
+} # end sub start_transaction
+
+sub end_transaction {
+	#my ( $caller, undef, $line ) = caller;
+#$openprint::log->debug("Called end_transaction from $caller : $line");
+	my ( $d, $ac ) = @_;
+if ( ! defined $ac ) {
+	Error("Undefined ac");
+}
+	$d = $dbh if ! $d;
+	if ( $ac ) {
+		#$log->debug("Committing");
+		$d->commit();
+	} # end if
+	$d->{AutoCommit} = $ac;
+} # end sub end_transaction
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!

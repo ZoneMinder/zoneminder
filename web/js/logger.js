@@ -50,7 +50,10 @@ function logReport( level, message, file, line )
 
     if ( !debugReq )
     {
-        debugParms = "view=request&request=log&task=create&browser[name]="+Browser.name+"&browser[version]="+Browser.version+"&browser[platform]="+Browser.Platform.name;
+      if ( Browser )
+        debugParms = "view=request&request=log&task=create&browser[name]="+Browser.name+"&browser[version]="+Browser.version+"&browser[platform]="+(Browser.Platform?Browser.Platform.name:'unknown');
+      else
+        debugParms = "view=request&request=log&task=create&browser[name]=unknown&browser[version]=unknown&browser[platform]=unknown";
         debugReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain' } );
     }
     var requestParms = debugParms;

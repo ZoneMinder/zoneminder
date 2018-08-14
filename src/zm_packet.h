@@ -24,15 +24,22 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+#ifdef __FreeBSD__
+#include <sys/time.h>
+#endif // __FreeBSD__
+#include "zm_image.h"
+
 class ZMPacket {
   public:
   
-    AVPacket packet;
+    AVPacket  packet;   // Input packet, undecoded
+    AVFrame   *frame;    // Input image, decoded
+    Image     *image;   // Our internal image oject representing this frame
     struct timeval timestamp;
   public:
     AVPacket *av_packet() { return &packet; }
     ZMPacket( AVPacket *packet, struct timeval *timestamp );
-    ZMPacket( AVPacket *packet );
+    explicit ZMPacket( AVPacket *packet );
     ~ZMPacket();
 };
 

@@ -1,7 +1,15 @@
 <?php
-require_once( 'database.php' );
+require_once('database.php');
 
 class Server {
+  private $defaults = array(
+    'Id'        =>  null,
+    'Name'      =>  '',
+    'Hostname'  =>  '',
+    'zmaudit'   =>  1,
+    'zmstats'   =>  1,
+    'zmtrigger' =>  0,
+  );
   public function __construct( $IdOrRow = NULL ) {
     $row = NULL;
     if ( $IdOrRow ) {
@@ -23,20 +31,45 @@ class Server {
       $this->{'Hostname'} = '';
     }
   }
-	public static function find_all() {
-		$servers = array();
-		$result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
-		$results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
-		foreach ( $results as $row => $server_obj ) {
-			$servers[] = $server_obj;
-		}
-		return $servers;
-	}
+  public static function find_all( $parameters = null, $options = null ) {
+    $filters = array();
+    $sql = 'SELECT * FROM Servers ';
+    $values = array();
+
+    if ( $parameters ) {
+      $fields = array();
+      $sql .= 'WHERE ';
+      foreach ( $parameters as $field => $value ) {
+        if ( $value == null ) {
+          $fields[] = $field.' IS NULL';
+        } else if ( is_array( $value ) ) {
+          $func = function(){return '?';};
+          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $values += $value;
+
+        } else {
+          $fields[] = $field.'=?';
+          $values[] = $value;
+        }
+      }
+      $sql .= implode(' AND ', $fields );
+    }
+    if ( $options and isset($options['order']) ) {
+    $sql .= ' ORDER BY ' . $options['order'];
+    }
+    $result = dbQuery($sql, $values);
+    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server');
+    foreach ( $results as $row => $obj ) {
+      $filters[] = $obj;
+    }
+    return $filters;
+  }
 
 	public function Url() {
 		if ( $this->Id() ) {
 			return ZM_BASE_PROTOCOL . '://'. $this->Hostname();
 		} else {
+			return ZM_BASE_PROTOCOL . '://'. $_SERVER['SERVER_NAME'];
 			return '';
 		}
 	}
@@ -46,13 +79,24 @@ class Server {
 		}
 		return $this->{'Name'};
 	}
-	public function __call( $fn, array $args= NULL){
-    if( array_key_exists( $fn, $this) ) {
+  public function __call($fn, array $args){
+    if ( count($args) ) {
+      $this->{$fn} = $args[0];
+    }
+    if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
-#array_unshift($args, $this);
-#call_user_func_array( $this->{$fn}, $args);
+    } else {
+      if ( array_key_exists( $fn, $this->defaults ) ) {
+        return $this->defaults{$fn};
+      } else {
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Warning( "Unknown function call Server->$fn from $file:$line" );
+      }
     }
   }
+
   public static function find( $parameters = array(), $limit = NULL ) {
     $sql = 'SELECT * FROM Servers';
     $values = array();

@@ -94,12 +94,6 @@ sub open
     $self->{state} = 'open';
 }
 
-sub close
-{
-    my $self = shift;
-    $self->{state} = 'closed';
-}
-
 sub printMsg
 {
     my $msg = shift;

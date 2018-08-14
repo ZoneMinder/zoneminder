@@ -1,10 +1,12 @@
 function updateLabel() {
-  var presetIndex = $('contentForm').preset.getValue();
+  var form = $('contentForm');
+  var preset_ddm = form.elements['preset'];
+
+  var presetIndex = preset_ddm[preset_ddm.selectedIndex].value;
   if ( labels[presetIndex] ) {
-    $('contentForm').newLabel.value = labels[presetIndex];
+    form.newLabel.value = labels[presetIndex];
   } else {
-    $('contentForm').newLabel.value = "";
+    form.newLabel.value = '';
   }
 }
-
-window.addEvent( 'domready', updateLabel );
+window.addEvent('domready', updateLabel);

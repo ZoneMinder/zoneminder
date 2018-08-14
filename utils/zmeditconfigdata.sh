@@ -82,7 +82,7 @@ fi
 # Don't stare too closely. You will burn your eyes out.
 sed -i '/.*'${variable}'.*/{
 	$!{ N
-	s/\(.*'${variable}'.*\n.*\)\"\(.*\)\"/\1\"'"${default}"'\"/
+	s/\(.*'${variable}'.*\n.*\)'\''\(.*\)'\''/\1'\'''"${default}"''\''/
 	t yes
 	P
 	D

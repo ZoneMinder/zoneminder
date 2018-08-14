@@ -57,7 +57,7 @@ void cURLCamera::Initialise() {
   databuffer.expand(CURL_BUFFER_INITIAL_SIZE);
 
   /* cURL initialization */
-  cRet = curl_global_init(CURL_GLOBAL_ALL);
+  CURLcode cRet = curl_global_init(CURL_GLOBAL_ALL);
   if(cRet != CURLE_OK) {
     Fatal("libcurl initialization failed: ", curl_easy_strerror(cRet));
   }
@@ -65,7 +65,7 @@ void cURLCamera::Initialise() {
   Debug(2,"libcurl version: %s",curl_version());
 
   /* Create the shared data mutex */
-  nRet = pthread_mutex_init(&shareddata_mutex, NULL);
+  int nRet = pthread_mutex_init(&shareddata_mutex, NULL);
   if(nRet != 0) {
     Fatal("Shared data mutex creation failed: %s",strerror(nRet));
   }
@@ -124,14 +124,15 @@ int cURLCamera::Capture( Image &image ) {
   unsigned int frame_content_length = 0;
   std::string frame_content_type;
   bool need_more_data = false;
+  int nRet;
 
   /* Grab the mutex to ensure exclusive access to the shared data */
   lock();
 
-  while (!frameComplete) {
+  while ( !frameComplete ) {
 
     /* If the work thread did a reset, reset our local variables */
-    if(bReset) {
+    if ( bReset ) {
       SubHeadersParsingComplete = false;
       frame_content_length = 0;
       frame_content_type.clear();
@@ -139,25 +140,25 @@ int cURLCamera::Capture( Image &image ) {
       bReset = false;
     }
 
-    if(mode == MODE_UNSET) {
+    if ( mode == MODE_UNSET ) {
       /* Don't have a mode yet. Sleep while waiting for data */
       nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
-      if(nRet != 0) {
+      if ( nRet != 0 ) {
         Error("Failed waiting for available data condition variable: %s",strerror(nRet));
         return -20;
       }
     }
 
-    if(mode == MODE_STREAM) {
+    if ( mode == MODE_STREAM ) {
 
       /* Subheader parsing */
-      while(!SubHeadersParsingComplete && !need_more_data) {
+      while( !SubHeadersParsingComplete && !need_more_data ) {
 
         size_t crlf_start, crlf_end, crlf_size;
         std::string subheader;
 
         /* Check if the buffer contains something */
-        if(databuffer.empty()) {
+        if ( databuffer.empty() ) {
           /* Empty buffer, wait for data */
           need_more_data = true;
           break;
@@ -165,14 +166,14 @@ int cURLCamera::Capture( Image &image ) {
      
         /* Find crlf start */
         crlf_start = memcspn(databuffer,"\r\n",databuffer.size());
-        if(crlf_start == databuffer.size()) {
+        if ( crlf_start == databuffer.size() ) {
           /* Not found, wait for more data */
           need_more_data = true;
           break;
         }
 
         /* See if we have enough data for determining crlf length */
-        if(databuffer.size() < crlf_start+5) {
+        if ( databuffer.size() < crlf_start+5 ) {
           /* Need more data */
           need_more_data = true;
           break;
@@ -183,13 +184,13 @@ int cURLCamera::Capture( Image &image ) {
         crlf_size = (crlf_start + crlf_end) - crlf_start;
 
         /* Is this the end of a previous stream? (This is just before the boundary) */
-        if(crlf_start == 0) {
+        if ( crlf_start == 0 ) {
           databuffer.consume(crlf_size);
           continue;        
         }
 
         /* Check for invalid CRLF size */
-        if(crlf_size > 4) {
+        if ( crlf_size > 4 ) {
           Error("Invalid CRLF length");
         }
 
@@ -209,7 +210,7 @@ int cURLCamera::Capture( Image &image ) {
 
         /* Find where the data in this header starts */
         size_t subheader_data_start = subheader.rfind(' ');
-        if(subheader_data_start == std::string::npos) {
+        if ( subheader_data_start == std::string::npos ) {
           subheader_data_start = subheader.find(':');
         }
 
@@ -236,10 +237,10 @@ int cURLCamera::Capture( Image &image ) {
         if(!SubHeadersParsingComplete) {
           /* We haven't parsed all headers yet */
           need_more_data = true;
-        } else if(frame_content_length <= 0) {
+        } else if ( ! frame_content_length ) {
           /* Invalid frame */
           Error("Invalid frame: invalid content length");
-        } else if(frame_content_type != "image/jpeg") {
+        } else if ( frame_content_type != "image/jpeg" ) {
           /* Unsupported frame type */
           Error("Unsupported frame: %s",frame_content_type.c_str());
         } else if(frame_content_length > databuffer.size()) {
@@ -318,9 +319,10 @@ size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *
   databuffer.append((const char*)buffer, size*nmemb);
 
   /* Signal data available */
-  nRet = pthread_cond_signal(&data_available_cond);
-  if(nRet != 0) {
+  int nRet = pthread_cond_signal(&data_available_cond);
+  if ( nRet != 0 ) {
     Error("Failed signaling data available condition variable: %s",strerror(nRet));
+    unlock();
     return -16;
   }
 
@@ -379,6 +381,7 @@ void* cURLCamera::thread_func() {
     Fatal("Failed getting easy handle from libcurl");
   }
 
+  CURLcode cRet;
   /* Set URL */
   cRet = curl_easy_setopt(c, CURLOPT_URL, mPath.c_str());
   if(cRet != CURLE_OK)
@@ -526,19 +529,19 @@ int cURLCamera::progress_callback(void *userdata, double dltotal, double dlnow, 
 
 /* These functions call the functions in the class for the correct object */
 size_t data_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata) {
-  return ((cURLCamera*)userdata)->data_callback(buffer,size,nmemb,userdata);
+  return reinterpret_cast<cURLCamera*>(userdata)->data_callback(buffer,size,nmemb,userdata);
 }
 
 size_t header_callback_dispatcher(void *buffer, size_t size, size_t nmemb, void *userdata) {
-  return ((cURLCamera*)userdata)->header_callback(buffer,size,nmemb,userdata);
+  return reinterpret_cast<cURLCamera*>(userdata)->header_callback(buffer,size,nmemb,userdata);
 }
 
 int progress_callback_dispatcher(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow) {
-  return ((cURLCamera*)userdata)->progress_callback(userdata,dltotal,dlnow,ultotal,ulnow);
+  return reinterpret_cast<cURLCamera*>(userdata)->progress_callback(userdata,dltotal,dlnow,ultotal,ulnow);
 }
 
 void* thread_func_dispatcher(void* object) {
-  return ((cURLCamera*)object)->thread_func();
+  return reinterpret_cast<cURLCamera*>(object)->thread_func();
 }
 
 #endif // HAVE_LIBCURL

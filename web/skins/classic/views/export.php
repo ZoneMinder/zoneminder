@@ -18,29 +18,24 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
-    return;
+if ( !canView('Events') ) {
+  $view = 'error';
+  return;
 }
 
-# Must re-start session because we close it now in index.php to improve concurrency
-session_start();
-
-if ( isset($_SESSION['export']) )
-{
-    if ( isset($_SESSION['export']['detail']) )
-        $_REQUEST['exportDetail'] = $_SESSION['export']['detail'];
-    if ( isset($_SESSION['export']['frames']) )
-        $_REQUEST['exportFrames'] = $_SESSION['export']['frames'];
-    if ( isset($_SESSION['export']['images']) )
-        $_REQUEST['exportImages'] = $_SESSION['export']['images'];
-    if ( isset($_SESSION['export']['video']) )
-        $_REQUEST['exportVideo'] = $_SESSION['export']['video'];
-    if ( isset($_SESSION['export']['misc']) )
-        $_REQUEST['exportMisc'] = $_SESSION['export']['misc'];
-    if ( isset($_SESSION['export']['format']) )
-        $_REQUEST['exportFormat'] = $_SESSION['export']['format'];
+if ( isset($_SESSION['export']) ) {
+  if ( isset($_SESSION['export']['detail']) )
+    $_REQUEST['exportDetail'] = $_SESSION['export']['detail'];
+  if ( isset($_SESSION['export']['frames']) )
+    $_REQUEST['exportFrames'] = $_SESSION['export']['frames'];
+  if ( isset($_SESSION['export']['images']) )
+    $_REQUEST['exportImages'] = $_SESSION['export']['images'];
+  if ( isset($_SESSION['export']['video']) )
+    $_REQUEST['exportVideo'] = $_SESSION['export']['video'];
+  if ( isset($_SESSION['export']['misc']) )
+    $_REQUEST['exportMisc'] = $_SESSION['export']['misc'];
+  if ( isset($_SESSION['export']['format']) )
+    $_REQUEST['exportFormat'] = $_SESSION['export']['format'];
 }
 
 $focusWindow = true;
@@ -58,16 +53,12 @@ xhtmlHeaders(__FILE__, translate('Export') );
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
 <?php
-if ( !empty($_REQUEST['eid']) )
-{
+if ( !empty($_REQUEST['eid']) ) {
 ?>
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
 <?php
-}
-elseif ( !empty($_REQUEST['eids']) )
-{
-    foreach ( $_REQUEST['eids'] as $eid )
-    {
+} elseif ( !empty($_REQUEST['eids']) ) {
+    foreach ( $_REQUEST['eids'] as $eid ) {
 ?>
         <input type="hidden" name="eids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
@@ -75,7 +66,7 @@ elseif ( !empty($_REQUEST['eids']) )
     unset( $eid );
 }
 ?>
-        <table id="contentTable" class="minor" cellspacing="0">
+        <table id="contentTable" class="minor">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('ExportDetails') ?></th>
@@ -106,24 +97,20 @@ elseif ( !empty($_REQUEST['eids']) )
             </tr>
           </tbody>
         </table>
-        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('Export') ?>" onclick="exportEvent( this.form );" disabled="disabled"/>
+        <button type="button" id="exportButton" name="exportButton" value="Export" onclick="exportEvent(this.form);" disabled="disabled"><?php echo translate('Export') ?></button>
       </form>
     </div>
 <?php
-    if ( isset($_REQUEST['generated']) )
-    {
+    if ( isset($_REQUEST['generated']) ) {
 ?>
       <h2 id="exportProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>"><span id="exportProgressText"><?php echo $_REQUEST['generated']?translate('ExportSucceeded'):translate('ExportFailed') ?></span><span id="exportProgressTicker"></span></h2>
 <?php
-    }
-    else
-    {
+    } else {
 ?>
       <h2 id="exportProgress" class="hidden warnText"><span id="exportProgressText"><?php echo translate('Exporting') ?></span><span id="exportProgressTicker"></span></h2>
 <?php
     }
-    if ( !empty($_REQUEST['generated']) )
-    {
+    if ( !empty($_REQUEST['generated']) ) {
 ?>
       <h3 id="downloadLink"><a href="<?php echo validHtmlStr($_REQUEST['exportFile']) ?>"><?php echo translate('Download') ?></a></h3>
 <?php

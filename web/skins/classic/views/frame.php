@@ -51,7 +51,7 @@ $lastFid = $maxFid;
 $alarmFrame = $Frame->Type()=='Alarm';
 
 if ( isset( $_REQUEST['scale'] ) ) {
-  $scale = validInt($_REQUEST['scale']);
+  $scale = $_REQUEST['scale'];
 } else if ( isset( $_COOKIE['zmWatchScale'.$Monitor->Id()] ) ) {
   $scale = $_COOKIE['zmWatchScale'.$Monitor->Id()];
 } else if ( isset( $_COOKIE['zmWatchScale'] ) ) {

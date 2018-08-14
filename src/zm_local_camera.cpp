@@ -32,8 +32,8 @@
 #include <stdlib.h>
 #include <limits.h>
 
-/* Workaround for GNU/kFreeBSD */
-#if defined(__FreeBSD_kernel__)
+/* Workaround for GNU/kFreeBSD and FreeBSD */
+#if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
 #ifndef ENODATA
 #define ENODATA ENOATTR
 #endif
@@ -357,15 +357,15 @@ LocalCamera::LocalCamera(
   }   
 
 #if ZM_HAS_V4L2
-  if( v4l_version == 2 && palette == 0 ) {
+  if ( v4l_version == 2 && palette == 0 ) {
     /* Use automatic format selection */
     Debug(2,"Using automatic format selection");
     palette = AutoSelectFormat(colours);
-    if(palette == 0) {
+    if ( palette == 0 ) {
       Error("Automatic format selection failed. Falling back to YUYV");
       palette = V4L2_PIX_FMT_YUYV;
     } else {
-      if(capture) {
+      if ( capture ) {
         Info("Selected capture palette: %s (0x%02hhx%02hhx%02hhx%02hhx)", palette_desc, (palette>>24)&0xff, (palette>>16)&0xff, (palette>>8)&0xff, (palette)&0xff);
       }
     }
@@ -400,32 +400,32 @@ LocalCamera::LocalCamera(
     /* Try to find a match for the selected palette and target colourspace */
 
     /* RGB32 palette and 32bit target colourspace */
-    if(palette == V4L2_PIX_FMT_RGB32 && colours == ZM_COLOUR_RGB32) {
+    if ( palette == V4L2_PIX_FMT_RGB32 && colours == ZM_COLOUR_RGB32 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_ARGB;
 
       /* BGR32 palette and 32bit target colourspace */
-    } else if(palette == V4L2_PIX_FMT_BGR32 && colours == ZM_COLOUR_RGB32) {
+    } else if ( palette == V4L2_PIX_FMT_BGR32 && colours == ZM_COLOUR_RGB32 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_BGRA;
 
       /* RGB24 palette and 24bit target colourspace */
-    } else if(palette == V4L2_PIX_FMT_RGB24 && colours == ZM_COLOUR_RGB24) {
+    } else if ( palette == V4L2_PIX_FMT_RGB24 && colours == ZM_COLOUR_RGB24 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_RGB;
 
       /* BGR24 palette and 24bit target colourspace */
-    } else if(palette == V4L2_PIX_FMT_BGR24 && colours == ZM_COLOUR_RGB24) {
+    } else if ( palette == V4L2_PIX_FMT_BGR24 && colours == ZM_COLOUR_RGB24 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_BGR;
 
       /* Grayscale palette and grayscale target colourspace */
-    } else if(palette == V4L2_PIX_FMT_GREY && colours == ZM_COLOUR_GRAY8) {
+    } else if ( palette == V4L2_PIX_FMT_GREY && colours == ZM_COLOUR_GRAY8 ) {
       conversion_type = 0;
       subpixelorder = ZM_SUBPIX_ORDER_NONE;
       /* Unable to find a solution for the selected palette and target colourspace. Conversion required. Notify the user of performance penalty */
     } else {
-      if( capture )
+      if ( capture )
 #if HAVE_LIBSWSCALE
         Info("No direct match for the selected palette (0x%02hhx%02hhx%02hhx%02hhx) and target colorspace (%02u). Format conversion is required, performance penalty expected",
             (capturePixFormat>>24)&0xff,((capturePixFormat>>16)&0xff),((capturePixFormat>>8)&0xff),((capturePixFormat)&0xff), colours);
@@ -436,26 +436,26 @@ LocalCamera::LocalCamera(
       /* Try using swscale for the conversion */
       conversion_type = 1; 
       Debug(2,"Using swscale for image conversion");
-      if(colours == ZM_COLOUR_RGB32) {
+      if ( colours == ZM_COLOUR_RGB32 ) {
         subpixelorder = ZM_SUBPIX_ORDER_RGBA;
         imagePixFormat = AV_PIX_FMT_RGBA;
-      } else if(colours == ZM_COLOUR_RGB24) {
+      } else if ( colours == ZM_COLOUR_RGB24 ) {
         subpixelorder = ZM_SUBPIX_ORDER_RGB;
         imagePixFormat = AV_PIX_FMT_RGB24;
-      } else if(colours == ZM_COLOUR_GRAY8) {
+      } else if ( colours == ZM_COLOUR_GRAY8 ) {
         subpixelorder = ZM_SUBPIX_ORDER_NONE;
         imagePixFormat = AV_PIX_FMT_GRAY8;
       } else {
         Panic("Unexpected colours: %u",colours);
       }
-      if( capture ) {
+      if ( capture ) {
 #if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
-        if(!sws_isSupportedInput(capturePixFormat)) {
+        if ( !sws_isSupportedInput(capturePixFormat) ) {
           Error("swscale does not support the used capture format: 0x%02hhx%02hhx%02hhx%02hhx",
               (capturePixFormat>>24)&0xff,((capturePixFormat>>16)&0xff),((capturePixFormat>>8)&0xff),((capturePixFormat)&0xff));
           conversion_type = 2; /* Try ZM format conversions */
         }
-        if(!sws_isSupportedOutput(imagePixFormat)) {
+        if ( !sws_isSupportedOutput(imagePixFormat) ) {
           Error("swscale does not support the target format: 0x%02hhx%02hhx%02hhx%02hhx",
               (imagePixFormat>>24)&0xff,((imagePixFormat>>16)&0xff),((imagePixFormat>>8)&0xff),((imagePixFormat)&0xff));
           conversion_type = 2; /* Try ZM format conversions */
@@ -661,23 +661,24 @@ LocalCamera::LocalCamera(
     if ( !imgConversionContext ) {
       Fatal( "Unable to initialise image scaling context" );
     }
-
+  } else {
+    tmpPicture = NULL;
+    imgConversionContext = NULL;
   }
 #endif
 }
 
-LocalCamera::~LocalCamera()
-{
+LocalCamera::~LocalCamera() {
   if ( device_prime && capture )
     Terminate();
 
 #if HAVE_LIBSWSCALE
   /* Clean up swscale stuff */
-  if(capture && conversion_type == 1) {
+  if ( capture && conversion_type == 1 ) {
     sws_freeContext(imgConversionContext);
     imgConversionContext = NULL;
 
-    av_frame_free( &tmpPicture );
+    av_frame_free(&tmpPicture);
   }
 #endif
 }
@@ -691,18 +692,18 @@ void LocalCamera::Initialise()
     av_log_set_level( AV_LOG_QUIET );
 #endif // HAVE_LIBSWSCALE
 
-  struct stat st; 
-
-  if ( stat( device.c_str(), &st ) < 0 )
-    Fatal( "Failed to stat video device %s: %s", device.c_str(), strerror(errno) );
-
-  if ( !S_ISCHR(st.st_mode) )
-    Fatal( "File %s is not device file: %s", device.c_str(), strerror(errno) );
 
   Debug( 3, "Opening video device %s", device.c_str() );
   //if ( (vid_fd = open( device.c_str(), O_RDWR|O_NONBLOCK, 0 )) < 0 )
   if ( (vid_fd = open( device.c_str(), O_RDWR, 0 )) < 0 )
     Fatal( "Failed to open video device %s: %s", device.c_str(), strerror(errno) );
+
+  struct stat st; 
+  if ( stat( device.c_str(), &st ) < 0 )
+    Fatal( "Failed to stat video device %s: %s", device.c_str(), strerror(errno) );
+
+  if ( !S_ISCHR(st.st_mode) )
+    Fatal( "File %s is not device file: %s", device.c_str(), strerror(errno) );
 
 #if ZM_HAS_V4L2
   Debug( 2, "V4L2 support enabled, using V4L%d api", v4l_version );
@@ -1110,62 +1111,55 @@ void LocalCamera::Initialise()
 #endif // ZM_HAS_V4L1
 }
 
-void LocalCamera::Terminate()
-{
+void LocalCamera::Terminate() {
 #if ZM_HAS_V4L2
-  if ( v4l_version == 2 )
-  {
-    Debug( 3, "Terminating video stream" );
+  if ( v4l_version == 2 ) {
+    Debug(3, "Terminating video stream");
     //enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     // enum v4l2_buf_type type = v4l2_data.fmt.type;
     enum v4l2_buf_type type = (v4l2_buf_type)v4l2_data.fmt.type;
-    if ( vidioctl( vid_fd, VIDIOC_STREAMOFF, &type ) < 0 )
-      Error( "Failed to stop capture stream: %s", strerror(errno) );
+    if ( vidioctl(vid_fd, VIDIOC_STREAMOFF, &type) < 0 )
+      Error("Failed to stop capture stream: %s", strerror(errno));
 
-    Debug( 3, "Unmapping video buffers" );
+    Debug(3, "Unmapping video buffers");
     for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
 #if HAVE_LIBSWSCALE
       /* Free capture pictures */
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-      av_frame_free( &capturePictures[i] );
+      av_frame_free(&capturePictures[i]);
 #else
-      av_freep( &capturePictures[i] );
+      av_freep(&capturePictures[i]);
 #endif
 #endif
-      if ( munmap( v4l2_data.buffers[i].start, v4l2_data.buffers[i].length ) < 0 )
-        Error( "Failed to munmap buffer %d: %s", i, strerror(errno) );
+      if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
+        Error("Failed to munmap buffer %d: %s", i, strerror(errno));
     }
-
-  }
-  else
+  } else
 #endif // ZM_HAS_V4L2
 
-
 #if ZM_HAS_V4L1
-    if ( v4l_version == 1 )
-    {
+    if ( v4l_version == 1 ) {
 #if HAVE_LIBSWSCALE
-      for(int i=0; i < v4l1_data.frames.frames; i++) {    
+      for( int i=0; i < v4l1_data.frames.frames; i++ ) {
         /* Free capture pictures */
 #if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-        av_frame_free( &capturePictures[i] );
+        av_frame_free(&capturePictures[i]);
 #else
-        av_freep( &capturePictures[i] );
+        av_freep(&capturePictures[i]);
 #endif
       }
 #endif
 
-      Debug( 3, "Unmapping video buffers" );
+      Debug(3, "Unmapping video buffers");
       if ( munmap((char*)v4l1_data.bufptr, v4l1_data.frames.size) < 0 )
-        Error( "Failed to munmap buffers: %s", strerror(errno) );
+        Error("Failed to munmap buffers: %s", strerror(errno));
 
       delete[] v4l1_data.buffers;
     }
 #endif // ZM_HAS_V4L1
 
-  close( vid_fd );
-
-}
+  close(vid_fd);
+} // end Terminate
 
 uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   /* Automatic format selection */
@@ -1179,7 +1173,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   int enum_fd;
 
   /* Open the device */
-  if ((enum_fd = open( device.c_str(), O_RDWR, 0 )) < 0) {
+  if ( (enum_fd = open( device.c_str(), O_RDWR, 0 )) < 0 ) {
     Error( "Automatic format selection failed to open video device %s: %s", device.c_str(), strerror(errno) );
     return selected_palette;
   }
@@ -1190,11 +1184,15 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   fmtinfo.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   // FIXME This will crash if there are more than 64 formats.
   while(vidioctl( enum_fd, VIDIOC_ENUM_FMT, &fmtinfo ) >= 0) {
+    if (nIndex >= 64 ) {
+      Error("More than 64 formats detected, can't handle that.");
+      break;
+    }
     /* Got a format. Copy it to the array */
     strcpy(fmt_desc[nIndex], (const char*)(fmtinfo.description));
     fmt_fcc[nIndex] = fmtinfo.pixelformat;
     
-    Debug(6, "Got format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %d",
+    Debug(3, "Got format: %s (0x%02hhx%02hhx%02hhx%02hhx) at index %d",
         fmt_desc[nIndex], (fmt_fcc[nIndex]>>24)&0xff, (fmt_fcc[nIndex]>>16)&0xff, (fmt_fcc[nIndex]>>8)&0xff, (fmt_fcc[nIndex])&0xff ,nIndex);
     
     /* Proceed to the next index */
@@ -1262,7 +1260,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
   do
   {
     if ( device )
-      strcpy( queryDevice, device );
+      strncpy( queryDevice, device, sizeof(queryDevice)-1 );
     else
       sprintf( queryDevice, "/dev/video%d", devIndex );
     if ( (vid_fd = open(queryDevice, O_RDWR)) <= 0 )
@@ -1530,34 +1528,28 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           return( false );
         }
 
-        if ( verbose )
-        {
+        if ( verbose ) {
           sprintf( output+strlen(output), "  Input %d\n", input.index );
           sprintf( output+strlen(output), "    Name: %s\n", input.name );
           sprintf( output+strlen(output), "    Type: %s\n", input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
           sprintf( output+strlen(output), "    Audioset: %08x\n", input.audioset );
           sprintf( output+strlen(output), "    Standards: 0x%llx\n", input.std );
-        }
-        else
-        {
+        } else {
           sprintf( output+strlen(output), "i%d:%s|", input.index, input.name );
           sprintf( output+strlen(output), "i%dT:%s|", input.index, input.type==V4L2_INPUT_TYPE_TUNER?"Tuner":(input.type==V4L2_INPUT_TYPE_CAMERA?"Camera":"Unknown") );
           sprintf( output+strlen(output), "i%dS:%llx|", input.index, input.std );
         }
 
-        if ( verbose )
-        {
+        if ( verbose ) {
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_POWER, "Power ", "off", "on", " (X)" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_SIGNAL, "Signal ", "not detected", "detected", " (X)" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_COLOR, "Colour Signal ", "not detected", "detected", "" ) );
           sprintf( output+strlen(output), "    %s", capString( input.status&V4L2_IN_ST_NO_H_LOCK, "Horizontal Lock ", "not detected", "detected", "" ) );
-        }
-        else
-        {
-          sprintf( output+strlen(output), "i%dSP:%d|", input.index, input.status&V4L2_IN_ST_NO_POWER?0:1 );
-          sprintf( output+strlen(output), "i%dSS:%d|", input.index, input.status&V4L2_IN_ST_NO_SIGNAL?0:1 );
-          sprintf( output+strlen(output), "i%dSC:%d|", input.index, input.status&V4L2_IN_ST_NO_COLOR?0:1 );
-          sprintf( output+strlen(output), "i%dHP:%d|", input.index, input.status&V4L2_IN_ST_NO_H_LOCK?0:1 );
+        } else {
+          sprintf( output+strlen(output), "i%dSP:%d|", input.index, (input.status&V4L2_IN_ST_NO_POWER)?0:1 );
+          sprintf( output+strlen(output), "i%dSS:%d|", input.index, (input.status&V4L2_IN_ST_NO_SIGNAL)?0:1 );
+          sprintf( output+strlen(output), "i%dSC:%d|", input.index, (input.status&V4L2_IN_ST_NO_COLOR)?0:1 );
+          sprintf( output+strlen(output), "i%dHP:%d|", input.index, (input.status&V4L2_IN_ST_NO_H_LOCK)?0:1 );
         }
       }
       while ( inputIndex++ >= 0 );
@@ -1566,12 +1558,10 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
     }
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
-    if ( version == 1 )
-    {
+    if ( version == 1 ) {
       struct video_capability vid_cap;
       memset( &vid_cap, 0, sizeof(video_capability) );
-      if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 )
-      {
+      if ( ioctl( vid_fd, VIDIOCGCAP, &vid_cap ) < 0 ) {
         Error( "Failed to get video capabilities: %s", strerror(errno) );
         if ( verbose )
           sprintf( output, "Error, failed to get video capabilities %s: %s\n", queryDevice, strerror(errno) );
@@ -1579,25 +1569,24 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           sprintf( output, "error%d\n", errno );
         return( false );
       }
-      if ( verbose )
-      {
+      if ( verbose ) {
         sprintf( output+strlen(output), "Video Capabilities\n" );
         sprintf( output+strlen(output), "  Name: %s\n", vid_cap.name );
         sprintf( output+strlen(output), "  Type: %d\n%s%s%s%s%s%s%s%s%s%s%s%s%s%s", vid_cap.type,
-            vid_cap.type&VID_TYPE_CAPTURE?"    Can capture\n":"",
-            vid_cap.type&VID_TYPE_TUNER?"    Can tune\n":"",
-            vid_cap.type&VID_TYPE_TELETEXT?"    Does teletext\n":"",
-            vid_cap.type&VID_TYPE_OVERLAY?"    Overlay onto frame buffer\n":"",
-            vid_cap.type&VID_TYPE_CHROMAKEY?"    Overlay by chromakey\n":"",
-            vid_cap.type&VID_TYPE_CLIPPING?"    Can clip\n":"",
-            vid_cap.type&VID_TYPE_FRAMERAM?"    Uses the frame buffer memory\n":"",
-            vid_cap.type&VID_TYPE_SCALES?"    Scalable\n":"",
-            vid_cap.type&VID_TYPE_MONOCHROME?"    Monochrome only\n":"",
-            vid_cap.type&VID_TYPE_SUBCAPTURE?"    Can capture subareas of the image\n":"",
-            vid_cap.type&VID_TYPE_MPEG_DECODER?"    Can decode MPEG streams\n":"",
-            vid_cap.type&VID_TYPE_MPEG_ENCODER?"    Can encode MPEG streams\n":"",
-            vid_cap.type&VID_TYPE_MJPEG_DECODER?"    Can decode MJPEG streams\n":"",
-            vid_cap.type&VID_TYPE_MJPEG_ENCODER?"    Can encode MJPEG streams\n":""
+            (vid_cap.type&VID_TYPE_CAPTURE)?"    Can capture\n":"",
+            (vid_cap.type&VID_TYPE_TUNER)?"    Can tune\n":"",
+            (vid_cap.type&VID_TYPE_TELETEXT)?"    Does teletext\n":"",
+            (vid_cap.type&VID_TYPE_OVERLAY)?"    Overlay onto frame buffer\n":"",
+            (vid_cap.type&VID_TYPE_CHROMAKEY)?"    Overlay by chromakey\n":"",
+            (vid_cap.type&VID_TYPE_CLIPPING)?"    Can clip\n":"",
+            (vid_cap.type&VID_TYPE_FRAMERAM)?"    Uses the frame buffer memory\n":"",
+            (vid_cap.type&VID_TYPE_SCALES)?"    Scalable\n":"",
+            (vid_cap.type&VID_TYPE_MONOCHROME)?"    Monochrome only\n":"",
+            (vid_cap.type&VID_TYPE_SUBCAPTURE)?"    Can capture subareas of the image\n":"",
+            (vid_cap.type&VID_TYPE_MPEG_DECODER)?"    Can decode MPEG streams\n":"",
+            (vid_cap.type&VID_TYPE_MPEG_ENCODER)?"    Can encode MPEG streams\n":"",
+            (vid_cap.type&VID_TYPE_MJPEG_DECODER)?"    Can decode MJPEG streams\n":"",
+            (vid_cap.type&VID_TYPE_MJPEG_ENCODER)?"    Can encode MJPEG streams\n":""
             );
         sprintf( output+strlen(output), "  Video Channels: %d\n", vid_cap.channels );
         sprintf( output+strlen(output), "  Audio Channels: %d\n", vid_cap.audios );
@@ -1646,7 +1635,7 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
       }
 
       struct video_picture vid_pic;
-      memset( &vid_cap, 0, sizeof(video_picture) );
+      memset( &vid_pic, 0, sizeof(video_picture) );
       if ( ioctl( vid_fd, VIDIOCGPICT, &vid_pic ) < 0 )
       {
         Error( "Failed to get picture attributes: %s", strerror(errno) );
@@ -1717,8 +1706,8 @@ bool LocalCamera::GetCurrentSettings( const char *device, char *output, int vers
           sprintf( output+strlen(output), "  Name: %s\n", vid_src.name );
           sprintf( output+strlen(output), "  Channel: %d\n", vid_src.channel );
           sprintf( output+strlen(output), "  Flags: %d\n%s%s", vid_src.flags,
-              vid_src.flags&VIDEO_VC_TUNER?"    Channel has a tuner\n":"",
-              vid_src.flags&VIDEO_VC_AUDIO?"    Channel has audio\n":""
+              (vid_src.flags&VIDEO_VC_TUNER)?"    Channel has a tuner\n":"",
+              (vid_src.flags&VIDEO_VC_AUDIO)?"    Channel has audio\n":""
               );
           sprintf( output+strlen(output), "  Type: %d - %s\n", vid_src.type,
               vid_src.type==VIDEO_TYPE_TV?"TV":(
@@ -1991,17 +1980,14 @@ int LocalCamera::Contrast( int p_contrast )
   return( -1 );
 }
 
-int LocalCamera::PrimeCapture()
-{
+int LocalCamera::PrimeCapture() {
   Initialise();
 
   Debug( 2, "Priming capture" );
 #if ZM_HAS_V4L2
-  if ( v4l_version == 2 )
-  {
+  if ( v4l_version == 2 ) {
     Debug( 3, "Queueing buffers" );
-    for ( unsigned int frame = 0; frame < v4l2_data.reqbufs.count; frame++ )
-    {
+    for ( unsigned int frame = 0; frame < v4l2_data.reqbufs.count; frame++ ) {
       struct v4l2_buffer vid_buf;
 
       memset( &vid_buf, 0, sizeof(vid_buf) );
@@ -2024,13 +2010,10 @@ int LocalCamera::PrimeCapture()
   }
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
-  if ( v4l_version == 1 )
-  {
-    for ( int frame = 0; frame < v4l1_data.frames.frames; frame++ )
-    {
+  if ( v4l_version == 1 ) {
+    for ( int frame = 0; frame < v4l1_data.frames.frames; frame++ ) {
       Debug( 3, "Queueing frame %d", frame );
-      if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[frame] ) < 0 )
-      {
+      if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[frame] ) < 0 ) {
         Error( "Capture failure for frame %d: %s", frame, strerror(errno) );
         return( -1 );
       }
@@ -2041,19 +2024,16 @@ int LocalCamera::PrimeCapture()
   return( 0 );
 }
 
-int LocalCamera::PreCapture()
-{
-  Debug( 2, "Pre-capturing" );
+int LocalCamera::PreCapture() {
+  Debug( 5, "Pre-capturing" );
   return( 0 );
 }
 
-int LocalCamera::Capture( Image &image )
-{
+int LocalCamera::Capture( Image &image ) {
   Debug( 3, "Capturing" );
   static uint8_t* buffer = NULL;
-  static uint8_t* directbuffer = NULL;
-  static int capture_frame = -1;
   int buffer_bytesused = 0;
+  int capture_frame = -1;
 
   int captures_per_frame = 1;
   if ( channel_count > 1 )
@@ -2063,13 +2043,10 @@ int LocalCamera::Capture( Image &image )
     Warning( "Invalid Captures Per Frame setting: %d", captures_per_frame );
   } 
 
-
   // Do the capture, unless we are the second or subsequent camera on a channel, in which case just reuse the buffer
-  if ( channel_prime )
-  {
+  if ( channel_prime ) {
 #if ZM_HAS_V4L2
-    if ( v4l_version == 2 )
-    {
+    if ( v4l_version == 2 ) {
       static struct v4l2_buffer vid_buf;
 
       memset( &vid_buf, 0, sizeof(vid_buf) );
@@ -2079,10 +2056,8 @@ int LocalCamera::Capture( Image &image )
       vid_buf.memory = v4l2_data.reqbufs.memory;
 
       Debug( 3, "Capturing %d frames", captures_per_frame );
-      while ( captures_per_frame )
-      {
-        if ( vidioctl( vid_fd, VIDIOC_DQBUF, &vid_buf ) < 0 )
-        {
+      while ( captures_per_frame ) {
+        if ( vidioctl( vid_fd, VIDIOC_DQBUF, &vid_buf ) < 0 ) {
           if ( errno == EIO )
             Warning( "Capture failure, possible signal loss?: %s", strerror(errno) )
           else
@@ -2092,15 +2067,13 @@ int LocalCamera::Capture( Image &image )
 
         v4l2_data.bufptr = &vid_buf;
         capture_frame = v4l2_data.bufptr->index;
-        if ( --captures_per_frame )
-        {
-          if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) < 0 )
-          {
+        if ( --captures_per_frame ) {
+          if ( vidioctl( vid_fd, VIDIOC_QBUF, &vid_buf ) < 0 ) {
             Error( "Unable to requeue buffer %d: %s", vid_buf.index, strerror(errno) );
             return( -1 );
           }
         }
-      }
+      } // while captures_per_frame
 
       Debug( 3, "Captured frame %d/%d from channel %d", capture_frame, v4l2_data.bufptr->sequence, channel );
 
@@ -2111,23 +2084,19 @@ int LocalCamera::Capture( Image &image )
         Fatal("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",v4l2_data.fmt.fmt.pix.width,v4l2_data.fmt.fmt.pix.height,width,height);
       }
 
-    }
+    } // end if v4l2
 #endif // ZM_HAS_V4L2
 #if ZM_HAS_V4L1
-    if ( v4l_version == 1 )
-    {
+    if ( v4l_version == 1 ) {
       Debug( 3, "Capturing %d frames", captures_per_frame );
-      while ( captures_per_frame )
-      {
+      while ( captures_per_frame ) {
         Debug( 3, "Syncing frame %d", v4l1_data.active_frame );
-        if ( ioctl( vid_fd, VIDIOCSYNC, &v4l1_data.active_frame ) < 0 )
-        {
+        if ( ioctl( vid_fd, VIDIOCSYNC, &v4l1_data.active_frame ) < 0 ) {
           Error( "Sync failure for frame %d buffer %d: %s", v4l1_data.active_frame, captures_per_frame, strerror(errno) );
           return( -1 );
         }
         captures_per_frame--;
-        if ( captures_per_frame )
-        {
+        if ( captures_per_frame ) {
           Debug( 3, "Capturing frame %d", v4l1_data.active_frame );
           if ( ioctl( vid_fd, VIDIOCMCAPTURE, &v4l1_data.buffers[v4l1_data.active_frame] ) < 0 )
           {
@@ -2144,18 +2113,18 @@ int LocalCamera::Capture( Image &image )
 #endif // ZM_HAS_V4L1
   } /* prime capture */    
 
-  if(conversion_type != 0) {
+  if ( conversion_type != 0 ) {
 
     Debug( 3, "Performing format conversion" );
 
     /* Request a writeable buffer of the target image */
-    directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
-    if(directbuffer == NULL) {
+    uint8_t* directbuffer = image.WriteBuffer(width, height, colours, subpixelorder);
+    if ( directbuffer == NULL ) {
       Error("Failed requesting writeable buffer for the captured image.");
-      return (-1);
+      return -1;
     }
 #if HAVE_LIBSWSCALE
-    if(conversion_type == 1) {
+    if ( conversion_type == 1 ) {
 
       Debug( 9, "Calling sws_scale to perform the conversion" );
       /* Use swscale to convert the image directly into the shared memory */
@@ -2167,17 +2136,20 @@ int LocalCamera::Capture( Image &image )
       avpicture_fill( (AVPicture *)tmpPicture, directbuffer,
           imagePixFormat, width, height );
 #endif
-      sws_scale( imgConversionContext, capturePictures[capture_frame]->data, capturePictures[capture_frame]->linesize, 0, height, tmpPicture->data, tmpPicture->linesize );
+      sws_scale( imgConversionContext,
+          capturePictures[capture_frame]->data,
+          capturePictures[capture_frame]->linesize,
+          0,
+          height,
+          tmpPicture->data,
+          tmpPicture->linesize );
     }
 #endif  
-    if(conversion_type == 2) {
-
+    if ( conversion_type == 2 ) {
       Debug( 9, "Calling the conversion function" );
       /* Call the image conversion function and convert directly into the shared memory */
       (*conversion_fptr)(buffer, directbuffer, pixels);
-    }
-    else if(conversion_type == 3) {
-
+    } else if ( conversion_type == 3 ) {
       Debug( 9, "Decoding the JPEG image" );
       /* JPEG decoding */
       image.DecodeJpeg(buffer, buffer_bytesused, colours, subpixelorder);
@@ -2188,15 +2160,14 @@ int LocalCamera::Capture( Image &image )
 
     /* No conversion was performed, the image is in the V4L buffers and needs to be copied into the shared memory */
     image.Assign( width, height, colours, subpixelorder, buffer, imagesize);
-
   }
 
-  return( 0 );
-}
+  return 1;
+} // end int LocalCamera::Capture()
 
 int LocalCamera::PostCapture()
 {
-  Debug( 2, "Post-capturing" );
+  Debug( 4, "Post-capturing" );
   // Requeue the buffer unless we need to switch or are a duplicate camera on a channel
   if ( channel_count > 1 || channel_prime )
   {

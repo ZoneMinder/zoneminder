@@ -556,8 +556,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   this->AddPrivacyBitmask(zones);
 
 // maybe unneeded
-  storage = new Storage(storage_id);
-  Debug(1, "Storage path: %s", storage->Path());
   // Should maybe store this for later use
   char monitor_dir[PATH_MAX] = "";
   snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
@@ -851,7 +849,7 @@ bool Monitor::connect() {
   }
 
   if ( purpose == CAPTURE ) {
-    memset( mem_ptr, 0, mem_size );
+    memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
     Debug( 1, "shared.size=%d", shared_data->size );
     shared_data->active = enabled;
@@ -2223,8 +2221,8 @@ int Monitor::Capture() {
     } else if ( captureResult > 0 ) {
 
       // Analysis thread will take care of consuming and emptying the packets.
-        Debug(2, "Have packet (%d) != videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
-            packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
+      Debug(2, "Have packet (%d) ?= videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
+          packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
 
       if ( packet->packet.stream_index != video_stream_id ) {
         Debug(2, "Have audio packet (%d) != videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
@@ -2263,22 +2261,17 @@ int Monitor::Capture() {
           packet->get_image();
         }
         // Have an av_packet, 
-        Debug(2,"Before mutex lock");
-        mutex.lock();
-        if ( packetqueue->video_packet_count || packet->keyframe || event ) {
-          Debug(2, "Have video packet for index (%d)", index );
-          packetqueue->queuePacket( packet );
-        } else {
-          Debug(2, "Not queiing video packet for index (%d)", index );
-        }
-        mutex.unlock();
-      } else {
-        mutex.lock();
-        // Non-avpackets are all keyframes.
-        Debug(2, "Queueing decoded video packet");
-        packetqueue->queuePacket(packet);
-        mutex.unlock();
       }
+
+      Debug(2,"Before mutex lock");
+      mutex.lock();
+      if ( packetqueue->video_packet_count || packet->keyframe || event ) {
+        Debug(2, "Have video packet for index (%d)", index);
+        packetqueue->queuePacket(packet);
+      } else {
+        Debug(2, "Not queuing video packet for index (%d)", index);
+      }
+      mutex.unlock();
 
       /* Deinterlacing */
       if ( deinterlacing_value ) {
@@ -2289,9 +2282,9 @@ int Monitor::Capture() {
         } else if ( deinterlacing_value == 3 ) {
           capture_image->Deinterlace_Blend();
         } else if ( deinterlacing_value == 4 ) {
-          capture_image->Deinterlace_4Field( next_buffer.image, (deinterlacing>>8)&0xff );
+          capture_image->Deinterlace_4Field(next_buffer.image, (deinterlacing>>8)&0xff);
         } else if ( deinterlacing_value == 5 ) {
-          capture_image->Deinterlace_Blend_CustomRatio( (deinterlacing>>8)&0xff );
+          capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
         }
       }
 
@@ -2303,20 +2296,20 @@ int Monitor::Capture() {
           case ROTATE_90 :
           case ROTATE_180 :
           case ROTATE_270 : 
-            capture_image->Rotate( (orientation-1)*90 );
+            capture_image->Rotate((orientation-1)*90);
             break;
           case FLIP_HORI :
           case FLIP_VERT :
-            capture_image->Flip( orientation==FLIP_HORI );
+            capture_image->Flip(orientation==FLIP_HORI);
             break;
         }
       } // end if have rotation
 
       if ( privacy_bitmask )
-        capture_image->MaskPrivacy( privacy_bitmask );
+        capture_image->MaskPrivacy(privacy_bitmask);
 
       if ( config.timestamp_on_capture ) {
-        TimestampImage( capture_image, packet->timestamp );
+        TimestampImage(capture_image, packet->timestamp);
       }
 
       shared_data->signal = signal_check_points ? CheckSignal(capture_image) : true;

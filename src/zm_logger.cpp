@@ -516,38 +516,39 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   }
   va_end(argPtr);
   char *syslogEnd = logPtr;
-  strncpy( logPtr, "]\n", sizeof(logString)-(logPtr-logString) );   
+  strncpy(logPtr, "]\n", sizeof(logString)-(logPtr-logString));   
 
   if ( level <= mTerminalLevel ) {
-    puts( logString );
-    fflush( stdout );
+    puts(logString);
+    fflush(stdout);
   }
   if ( level <= mFileLevel ) {
     if ( mLogFileFP ) {
-      fputs( logString, mLogFileFP );
+      fputs(logString, mLogFileFP);
       if ( mFlush )
-        fflush( mLogFileFP );
+        fflush(mLogFileFP);
     } else {
       puts("Logging to file, but file not open\n");
     }
   }
   *syslogEnd = '\0';
   if ( level <= mDatabaseLevel ) {
-    char sql[ZM_SQL_MED_BUFSIZ];
-    char escapedString[(strlen(syslogStart)*2)+1];
 
     //if ( ! db_mutex.trylock() ) {
     db_mutex.lock();
-      mysql_real_escape_string( &dbconn, escapedString, syslogStart, strlen(syslogStart) );
-
-      snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
-      if ( mysql_query(&dbconn, sql) ) {
-        Level tempDatabaseLevel = mDatabaseLevel;
-        databaseLevel(NOLOG);
-        Error("Can't insert log entry: sql(%s) error(%s)", sql, mysql_error(&dbconn));
-        databaseLevel(tempDatabaseLevel);
-      }
-      db_mutex.unlock();
+    char escapedString[(strlen(syslogStart)*2)+1];
+    mysql_real_escape_string(&dbconn, escapedString, syslogStart, strlen(syslogStart));
+    char sql[ZM_SQL_MED_BUFSIZ];
+    snprintf(sql, sizeof(sql),
+        "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+        timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
+    if ( mysql_query(&dbconn, sql) ) {
+      Level tempDatabaseLevel = mDatabaseLevel;
+      databaseLevel(NOLOG);
+      Error("Can't insert log entry: sql(%s) error(%s)", sql, mysql_error(&dbconn));
+      databaseLevel(tempDatabaseLevel);
+    }
+    db_mutex.unlock();
     ///} else {
       ///Level tempDatabaseLevel = mDatabaseLevel;
       ///databaseLevel(NOLOG);

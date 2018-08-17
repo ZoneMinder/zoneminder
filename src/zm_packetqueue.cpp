@@ -112,7 +112,7 @@ ZMPacket* zm_packetqueue::popPacket( ) {
 
 	ZMPacket *packet = pktQueue.front();
   if ( *analysis_it == packet )
-    analysis_it ++;
+    ++analysis_it;
 
 	pktQueue.pop_front();
   if ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) {

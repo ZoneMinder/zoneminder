@@ -48,14 +48,19 @@ VideoStore::VideoStore(
 
   monitor = p_monitor;
   video_in_stream = p_video_in_stream;
+  video_in_stream_index = -1;
   audio_in_stream = p_audio_in_stream;
+  audio_in_stream_index = -1;
   filename = filename_in;
   format = format_in;
 
   packets_written = 0;
   frame_count = 0;
   in_frame = NULL;
+  video_in_frame = NULL;
+  video_in_ctx = NULL;
 
+  video_out_ctx = NULL;
   video_out_codec = NULL;
   video_out_stream = NULL;
 
@@ -64,6 +69,8 @@ VideoStore::VideoStore(
   audio_in_codec = NULL;
   audio_in_ctx = NULL;
   audio_out_stream = NULL;
+  audio_out_ctx = NULL;
+
   out_frame = NULL;
 #ifdef HAVE_LIBAVRESAMPLE
   resample_ctx = NULL;
@@ -73,6 +80,9 @@ VideoStore::VideoStore(
   video_start_pts = 0;
   audio_next_pts = 0;
   audio_next_dts = 0;
+  out_format = NULL;
+  oc = NULL;
+  ret = 0;
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {

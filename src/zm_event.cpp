@@ -190,6 +190,7 @@ Event::Event(
     else
       Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
   } // deep storage or not
+
   Debug(2,"Created event %d at %s", id, path.c_str());
 
   last_db_frame = 0;
@@ -275,16 +276,20 @@ Event::~Event() {
 } // Event::~Event()
 
 void Event::createNotes(std::string &notes) {
-  notes.clear();
-  for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter ) {
-    notes += mapIter->first;
-    notes += ": ";
-    const StringSet &stringSet = mapIter->second;
-    for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); ++setIter ) {
-      if ( setIter != stringSet.begin() )
-        notes += ", ";
-      notes += *setIter;
+  if ( !notes.empty() ) {
+    notes.clear();
+    for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter ) {
+      notes += mapIter->first;
+      notes += ": ";
+      const StringSet &stringSet = mapIter->second;
+      for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); ++setIter ) {
+        if ( setIter != stringSet.begin() )
+          notes += ", ";
+        notes += *setIter;
+      }
     }
+  } else {
+    notes = "";
   }
 }
 
@@ -307,14 +312,14 @@ Debug(3, "Writing image to %s", event_file);
   return rc;
 } // end Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 
-bool Event::WritePacket( ZMPacket &packet ) {
+bool Event::WritePacket(ZMPacket &packet) {
   
-  if ( videoStore->writePacket( &packet ) < 0 )
+  if ( videoStore->writePacket(&packet) < 0 )
     return false;
   return true;
 }
 
-void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
+void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   bool update = false;
 
   //Info( "Checking notes, %d <> %d", noteSetMap.size(), newNoteSetMap.size() );
@@ -328,19 +333,19 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
         const StringSet &newNoteSet = newNoteSetMapIter->second;
         //Info( "Got %d new strings", newNoteSet.size() );
         if ( newNoteSet.size() > 0 ) {
-          StringSetMap::iterator noteSetMapIter = noteSetMap.find( newNoteGroup );
+          StringSetMap::iterator noteSetMapIter = noteSetMap.find(newNoteGroup);
           if ( noteSetMapIter == noteSetMap.end() ) {
             //Info( "Can't find note group %s, copying %d strings", newNoteGroup.c_str(), newNoteSet.size() );
-            noteSetMap.insert( StringSetMap::value_type( newNoteGroup, newNoteSet ) );
+            noteSetMap.insert(StringSetMap::value_type(newNoteGroup, newNoteSet));
             update = true;
           } else {
             StringSet &noteSet = noteSetMapIter->second;
             //Info( "Found note group %s, got %d strings", newNoteGroup.c_str(), newNoteSet.size() );
             for ( StringSet::const_iterator newNoteSetIter = newNoteSet.begin(); newNoteSetIter != newNoteSet.end(); ++newNoteSetIter ) {
               const std::string &newNote = *newNoteSetIter;
-              StringSet::iterator noteSetIter = noteSet.find( newNote );
+              StringSet::iterator noteSetIter = noteSet.find(newNote);
               if ( noteSetIter == noteSet.end() ) {
-                noteSet.insert( newNote );
+                noteSet.insert(newNote);
                 update = true;
               }
             } // end for
@@ -352,9 +357,9 @@ void Event::updateNotes( const StringSetMap &newNoteSetMap ) {
 
   if ( update ) {
     std::string notes;
-    createNotes( notes );
+    createNotes(notes);
 
-    Debug( 2, "Updating notes for event %d, '%s'", id, notes.c_str() );
+    Debug(2, "Updating notes for event %d, '%s'", id, notes.c_str());
     static char sql[ZM_SQL_MED_BUFSIZ];
 #if USE_PREPARED_SQL
     static MYSQL_STMT *stmt = 0;

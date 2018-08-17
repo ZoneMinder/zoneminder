@@ -318,13 +318,18 @@ int main(int argc, char *argv[]) {
 
         gettimeofday(&now, NULL);
         // capture_delay is the amount of time we should sleep to achieve the desired framerate.
-        if ( last_capture_times[i].tv_sec ) {
+        int delay = monitors[i]->GetState() == Monitor::ALARM ? alarm_capture_delays[i] : capture_delays[i];
+        if ( delay && last_capture_times[i].tv_sec ) {
           int sleep_time;
           DELTA_TIMEVAL(delta_time, now, last_capture_times[i], DT_PREC_3);
-          int delay = monitors[i]->GetState() == Monitor::ALARM ? alarm_capture_delays[i] : capture_delays[i];
 
           sleep_time = delay - delta_time.delta;
-          Debug(3, "Sleep time is %d from now:%d.%d last:%d.%d delay: %d", sleep_time, now.tv_sec, now.tv_usec, last_capture_times[i].tv_sec, last_capture_times[i].tv_usec, delay );
+          Debug(3, "Sleep time is %d from now:%d.%d last:%d.%d delay: %d",
+              sleep_time,
+              now.tv_sec, now.tv_usec,
+              last_capture_times[i].tv_sec, last_capture_times[i].tv_usec,
+              delay
+              );
           
           if ( sleep_time < 0 )
             sleep_time = 0;

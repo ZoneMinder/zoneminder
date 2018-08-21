@@ -581,7 +581,7 @@ DROP TABLE IF EXISTS `Stats`;
 CREATE TABLE `Stats` (
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `ZoneId` int(10) unsigned NOT NULL default '0',
-  `EventId` int(10) unsigned NOT NULL default '0',
+  `EventId` BIGINT UNSIGNED NOT NULL,
   `FrameId` int(10) unsigned NOT NULL default '0',
   `PixelDiff` tinyint(3) unsigned NOT NULL default '0',
   `AlarmPixels` int(10) unsigned NOT NULL default '0',

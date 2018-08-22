@@ -1,14 +1,14 @@
 %global zmuid_final apache
 %global zmgid_final apache
 
-# In some cases older distros do not have this macro defined
-%{!?make_build: %global make_build %{__make} %{?_smp_mflags} }
+# Crud is configured as a git submodule
+%global crud_version 3.1.0-zm
+
+# CakePHP-Enum-Behavior is configured as a git submodule
+%global ceb_version 1.0-zm
 
 %if "%{zmuid_final}" == "nginx"
-    %global with_nginx 1
-    %global wwwconfdir /etc/nginx/default.d
-%else
-    %global wwwconfdir /etc/httpd/conf.d
+%global with_nginx 1
 %endif
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
@@ -17,74 +17,107 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Include files for SysV init or systemd
-%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
-%global with_init_systemd 1
-%else
-%global with_init_sysv 1
-%endif
-
-# php-mysql deprecated in f25
+# Fedora >= 25 needs apcu backwards compatibility module
 %if 0%{?fedora} >= 25
-%global with_php_mysqlnd 1
-%else
-%global with_php_mysql 1
+%global with_apcu_bc 1
 %endif
 
 %global readme_suffix %{?rhel:Redhat%{?rhel}}%{!?rhel:Fedora}
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.30.1
-Release: 2%{?dist}
+Version: 1.31.45
+Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
-# jscalendar is LGPL (any version): http://www.dynarch.com/projects/calendar/
 # Mootools is inder the MIT license: http://mootools.net/
 # CakePHP is under the MIT license: https://github.com/cakephp/cakephp
+# Crud is under the MIT license: https://github.com/FriendsOfCake/crud
+# CakePHP-Enum-Behavior is under the MIT license: https://github.com/asper/CakePHP-Enum-Behavior
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
-Source: ZoneMinder-%{version}.tar.gz
+Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zoneminder-%{version}.tar.gz
+Source1: https://github.com/ZoneMinder/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
+Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
 
-%{?with_init_systemd:BuildRequires: systemd-devel mariadb-devel perl-podlators}
-%{?with_init_sysv:BuildRequires: mysql-devel}
+BuildRequires: systemd-devel
+BuildRequires: mariadb-devel
+BuildRequires: perl-podlators
+BuildRequires: polkit-devel
 BuildRequires: cmake >= 2.8.7
-BuildRequires: gnutls-devel bzip2-devel
-BuildRequires: pcre-devel libjpeg-turbo-devel
-BuildRequires: perl(Archive::Tar) perl(Archive::Zip)
-BuildRequires: perl(Date::Manip) perl(DBD::mysql)
-BuildRequires: perl(ExtUtils::MakeMaker) perl(LWP::UserAgent)
-BuildRequires: perl(MIME::Entity) perl(MIME::Lite)
-BuildRequires: perl(PHP::Serialization) perl(Sys::Mmap)
-BuildRequires: perl(Time::HiRes) perl(Net::SFTP::Foreign)
-BuildRequires: perl(Expect) perl(Sys::Syslog)
-BuildRequires: gcc gcc-c++ vlc-devel libcurl-devel libv4l-devel
-BuildRequires: ffmpeg-devel polkit-devel
+BuildRequires: gnutls-devel
+BuildRequires: bzip2-devel
+BuildRequires: pcre-devel 
+BuildRequires: libjpeg-turbo-devel
+BuildRequires: findutils
+BuildRequires: coreutils
+BuildRequires: net-tools
+BuildRequires: perl
+BuildRequires: perl-generators
+BuildRequires: perl(Archive::Tar)
+BuildRequires: perl(Archive::Zip)
+BuildRequires: perl(Date::Manip)
+BuildRequires: perl(DBD::mysql)
+BuildRequires: perl(ExtUtils::MakeMaker)
+BuildRequires: perl(LWP::UserAgent)
+BuildRequires: perl(MIME::Entity)
+BuildRequires: perl(MIME::Lite)
+BuildRequires: perl(PHP::Serialization)
+BuildRequires: perl(Sys::Mmap)
+BuildRequires: perl(Time::HiRes)
+BuildRequires: perl(Net::SFTP::Foreign)
+BuildRequires: perl(Expect)
+BuildRequires: perl(Sys::Syslog)
+BuildRequires: gcc 
+BuildRequires: gcc-c++
+BuildRequires: vlc-devel
+BuildRequires: libcurl-devel
+BuildRequires: libv4l-devel
+BuildRequires: desktop-file-utils
 
-%{?with_nginx:Requires: nginx fcgiwrap php-fpm}
+# ZoneMinder looks for and records the location of the ffmpeg binary during build
+BuildRequires: ffmpeg
+BuildRequires: ffmpeg-devel
+
+# Required for mp4 container support
+BuildRequires: libmp4v2-devel
+BuildRequires: x264-devel
+
+%{?with_nginx:Requires: nginx}
+%{?with_nginx:Requires: fcgiwrap}
+%{?with_nginx:Requires: php-fpm}
 %{!?with_nginx:Requires: httpd}
-%{?with_php_mysqlnd:Requires: php-mysqlnd}
-%{?with_php_mysql:Requires: php-mysql}
-Requires: php-common php-gd cambozola polkit net-tools psmisc
-Requires: libjpeg-turbo vlc-core libcurl ffmpeg
+%{!?with_nginx:Requires: php}
+Requires: php-mysqli
+Requires: php-common
+Requires: php-gd
+%{?fedora:Requires: php-json}
+Requires: php-pecl-apcu
+%{?with_apcu_bc:Requires: php-pecl-apcu-bc}
+Requires: cambozola
+Requires: net-tools
+Requires: psmisc
+Requires: polkit
+Requires: libjpeg-turbo
+Requires: vlc-core
+Requires: ffmpeg
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
-Requires: perl(DBD::mysql) perl(Archive::Tar) perl(Archive::Zip)
-Requires: perl(MIME::Entity) perl(MIME::Lite) perl(Net::SMTP) perl(Net::FTP)
-Requires: perl(LWP::Protocol::https) perl(X10::ActiveHome) perl(Astro::SunTime)
+Requires: perl(DBD::mysql)
+Requires: perl(Archive::Tar)
+Requires: perl(Archive::Zip)
+Requires: perl(MIME::Entity)
+Requires: perl(MIME::Lite)
+Requires: perl(Net::SMTP)
+Requires: perl(Net::FTP)
+Requires: perl(LWP::Protocol::https)
+Requires: ca-certificates
+Requires: zip
 
-%{?with_init_systemd:Requires(post): systemd systemd-sysv}
-%{?with_init_systemd:Requires(preun): systemd}
-%{?with_init_systemd:Requires(postun): systemd}
-
-%{?with_init_sysv:Requires(post): /sbin/chkconfig}
-%{?with_init_sysv:Requires(post): %{_bindir}/checkmodule}
-%{?with_init_sysv:Requires(post): %{_bindir}/semodule_package}
-%{?with_init_sysv:Requires(post): %{_sbindir}/semodule}
-%{?with_init_sysv:Requires(preun): /sbin/chkconfig}
-%{?with_init_sysv:Requires(preun): /sbin/service}
-%{?with_init_sysv:Requires(preun): %{_sbindir}/semodule}
-%{?with_init_sysv:Requires(postun): /sbin/service}
+Requires(post): systemd
+Requires(post): systemd-sysv
+Requires(preun): systemd
+Requires(postun): systemd
 
 Requires(post): %{_bindir}/gpasswd
 Requires(post): %{_bindir}/less
@@ -99,13 +132,18 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup -n ZoneMinder-%{version}
+%autosetup -p 1 -a 1 -n ZoneMinder-%{version}
+%{__rm} -rf ./web/api/app/Plugin/Crud
+%{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
+
+# The all powerful autosetup macro does not work after the second source tarball
+%{__gzip} -dc %{_sourcedir}/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
+%{__rm} -rf ./web/api/app/Plugin/CakePHP-Enum-Behavior
+%{__mv} -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Behavior
 
 # Change the following default values
-./utils/zmeditconfigdata.sh ZM_PATH_ZMS /cgi-bin-zm/nph-zms
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
-./utils/zmeditconfigdata.sh ZM_PATH_SWAP /dev/shm
-./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR /var/spool/zoneminder-upload
+./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR %{_localstatedir}/spool/zoneminder-upload
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
 ./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
@@ -123,28 +161,27 @@ too much degradation of performance.
 %install
 %make_install
 
+desktop-file-install					\
+	--dir %{buildroot}%{_datadir}/applications	\
+	--delete-original				\
+	--mode 644					\
+	%{buildroot}%{_datadir}/applications/zoneminder.desktop
+
 # Remove unwanted files and folders
-find %{buildroot} \( -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
+find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
+
+# Recursively change shebang in all relevant scripts and set execute permission
+find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!%{_buildshell}\' {} \; -exec %{__chmod} 755 {} \;
+
+# Use the system cacert file rather then the one bundled with CakePHP
+%{__rm} -f %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
+%{__ln_s} ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
 
 %post
-%if 0%{?with_init_sysv}
-/sbin/chkconfig --add zoneminder
-/sbin/chkconfig zoneminder on
-
-# Create and load zoneminder selinux policy module
-echo -e "\nCreating and installing a ZoneMinder SELinux policy module. Please wait.\n"
-%{_bindir}/checkmodule -M -m -o %{_docdir}/%{name}-%{version}/local_zoneminder.mod %{_docdir}/%{name}-%{version}/local_zoneminder.te > /dev/null 2>&1 || :
-%{_bindir}/semodule_package -o %{_docdir}/%{name}-%{version}/local_zoneminder.pp -m %{_docdir}/%{name}-%{version}/local_zoneminder.mod > /dev/null 2>&1 || :
-%{_sbindir}/semodule -i %{_docdir}/%{name}-%{version}/local_zoneminder.pp > /dev/null 2>&1 || :
-
-%endif
-
-%if 0%{?with_init_systemd}
 # Initial installation
 if [ $1 -eq 1 ] ; then
     %systemd_post %{name}.service
 fi
-%endif
 
 # Upgrade from a previous version of zoneminder 
 if [ $1 -eq 2 ] ; then
@@ -198,34 +235,11 @@ EOF
 %endif
 
 %preun
-%if 0%{?with_init_sysv}
-if [ $1 -eq 0 ]; then
-    /sbin/service zoneminder stop > /dev/null 2>&1 || :
-    /sbin/chkconfig --del zoneminder
-    echo -e "\nRemoving ZoneMinder SELinux policy module. Please wait.\n"
-    %{_sbindir}/semodule -r local_zoneminder.pp
-fi
-%endif
-
-%if 0%{?with_init_systemd}
 %systemd_preun %{name}.service
-%endif
 
 %postun
-%if 0%{?with_init_sysv}
-if [ $1 -ge 1 ]; then
-    /sbin/service zoneminder condrestart > /dev/null 2>&1 || :
-fi
-
-# Remove the doc folder. 
-rm -rf %{_docdir}/%{name}-%{version}
-%endif
-
-%if 0%{?with_init_systemd}
 %systemd_postun_with_restart %{name}.service
-%endif
 
-%if 0%{?with_init_systemd}
 %triggerun -- zoneminder < 1.25.0-4
 # Save the current service runlevel info
 # User must manually run systemd-sysv-convert --apply zoneminder
@@ -235,30 +249,54 @@ rm -rf %{_docdir}/%{name}-%{version}
 # Run these because the SysV package being removed won't do them
 /sbin/chkconfig --del zoneminder >/dev/null 2>&1 || :
 /bin/systemctl try-restart zoneminder.service >/dev/null 2>&1 || :
-%endif
 
 %files
 %license COPYING
-%doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https distros/redhat/jscalendar-doc
-%config(noreplace) %attr(640,root,%{zmgid_final}) /etc/zm/zm.conf
-%config(noreplace) %attr(644,root,root) %{wwwconfdir}/zoneminder.conf
-%config(noreplace) /etc/logrotate.d/zoneminder
+%doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https
+
+# We want these two folders to have "normal" read permission
+# compared to the folder contents
+%dir %{_sysconfdir}/zm
+%dir %{_sysconfdir}/zm/conf.d
+
+# Config folder contents contain sensitive info
+# and should not be readable by normal users
+%{_sysconfdir}/zm/conf.d/README
+%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
+%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/*.conf
+%ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
+
+%config(noreplace) %attr(644,root,root) /etc/zm/www/zoneminder.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %if 0%{?with_nginx}
 %config(noreplace) %{_sysconfdir}/php-fpm.d/zoneminder.conf
 %endif
 
-%if 0%{?with_init_systemd}
 %{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
-%endif
+%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+%{_bindir}/zmsystemctl.pl
 
-%if 0%{?with_init_sysv}
-%doc distros/redhat/misc/local_zoneminder.te
-%attr(755,root,root) %{_initrddir}/zoneminder
-%endif
-
-%{_bindir}/*
+%{_bindir}/zma
+%{_bindir}/zmaudit.pl
+%{_bindir}/zmc
+%{_bindir}/zmcontrol.pl
+%{_bindir}/zmdc.pl
+%{_bindir}/zmfilter.pl
+%{_bindir}/zmpkg.pl
+%{_bindir}/zmtrack.pl
+%{_bindir}/zmtrigger.pl
+%{_bindir}/zmu
+%{_bindir}/zmupdate.pl
+%{_bindir}/zmvideo.pl
+%{_bindir}/zmwatch.pl
+%{_bindir}/zmcamtool.pl
+%{_bindir}/zmtelemetry.pl
+%{_bindir}/zmx10.pl
+%{_bindir}/zmonvif-probe.pl
+%{_bindir}/zmstats.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
@@ -266,14 +304,10 @@ rm -rf %{_docdir}/%{name}-%{version}
 %{perl_vendorlib}/WSSecurity*
 %{perl_vendorlib}/WSNotification*
 %{_mandir}/man*/*
-%dir %{_libexecdir}/zoneminder
-%{_libexecdir}/zoneminder/cgi-bin
-%dir %{_datadir}/zoneminder
-%{_datadir}/zoneminder/db
-%{_datadir}/zoneminder/www
 
-%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
-%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+%{_libexecdir}/zoneminder/
+%{_datadir}/zoneminder/
+%{_datadir}/applications/*%{name}.desktop
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
@@ -281,11 +315,32 @@ rm -rf %{_docdir}/%{name}-%{version}
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/log/zoneminder
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) /var/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %ghost /run/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/cache/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
+%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Sun Apr 22 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.31.42-1
+- Remove support for sysvinit a.k.a. el6
+- use desktop-file-install for new zoneminder.desktop file
+- add new web cache folder
+- 1.31.42 development snapshot
+
+* Tue May 09 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.4-1
+- modify autosetup macro parameters
+- modify requirements for php-pecl-acpu-bc package
+- 1.30.4 release
+
+* Tue May 02 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.3-1
+- 1.30.3 release
+
+* Thu Mar 30 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-2
+- 1.30.2 release
+
+* Wed Feb 08 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.2-1
+- Bump version for 1.30.2 release candidate 1
+
 * Wed Dec 28 2016 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.1-2 
 - Changes from rpmfusion #4393
 

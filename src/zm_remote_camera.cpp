@@ -21,45 +21,63 @@
 
 #include "zm_utils.h"
 
-RemoteCamera::RemoteCamera( int p_id, const std::string &p_protocol, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture ) :
-  Camera( p_id, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture ),
-  protocol( p_protocol ),
-  host( p_host ),
-  port( p_port ),
-  path( p_path ),
-  hp( 0 )
+RemoteCamera::RemoteCamera(
+  unsigned int p_monitor_id,
+  const std::string &p_protocol,
+  const std::string &p_host,
+  const std::string &p_port,
+  const std::string &p_path,
+  int p_width,
+  int p_height,
+  int p_colours,
+  int p_brightness,
+  int p_contrast,
+  int p_hue,
+  int p_colour,
+  bool p_capture,
+  bool p_record_audio
+ ) :
+    Camera( p_monitor_id, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
+    protocol( p_protocol ),
+    host( p_host ),
+    port( p_port ),
+    path( p_path ),
+    hp( 0 ),
+    mNeedAuth(false),
+    mAuthenticator(NULL)
 {
-  if ( path[0] != '/' )
-    path = '/'+path;
+    if ( path[0] != '/' )
+        path = '/'+path;
 }
 
-RemoteCamera::~RemoteCamera()
-{
-  if(hp != NULL) {
+RemoteCamera::~RemoteCamera() {
+  if ( hp != NULL ) {
       freeaddrinfo(hp);
     hp = NULL;
   }
+	if ( mAuthenticator ) {
+		delete mAuthenticator;
+		mAuthenticator = NULL;
+	}
 }
 
-void RemoteCamera::Initialise()
-{
+void RemoteCamera::Initialise() {
   if( protocol.empty() )
     Fatal( "No protocol specified for remote camera" );
 
-  if( host.empty() )
-    Fatal( "No host specified for remote camera" );
+	if( host.empty() )
+		Fatal( "No host specified for remote camera" );
 
-  if( port.empty() )
-    Fatal( "No port specified for remote camera" );
+	if( port.empty() )
+		Fatal( "No port specified for remote camera" );
 
-  //if( path.empty() )
-    //Fatal( "No path specified for remote camera" );
+	//if( path.empty() )
+		//Fatal( "No path specified for remote camera" );
 
-  // Cache as much as we can to speed things up
+	// Cache as much as we can to speed things up
   std::string::size_type authIndex = host.rfind( '@' );
 
-  if ( authIndex != std::string::npos )
-  {
+  if ( authIndex != std::string::npos ) {
     auth = host.substr( 0, authIndex );
     host.erase( 0, authIndex+1 );
     auth64 = base64Encode( auth );
@@ -67,21 +85,36 @@ void RemoteCamera::Initialise()
     authIndex = auth.rfind( ':' );
     username = auth.substr(0,authIndex);
     password = auth.substr( authIndex+1, auth.length() );
-
   }
 
   mNeedAuth = false;
-  mAuthenticator = new zm::Authenticator(username,password);
+	mAuthenticator = new zm::Authenticator(username,password);
 
-  struct addrinfo hints;
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_socktype = SOCK_STREAM;
+	struct addrinfo hints;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
 
   int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &hp);
-  if ( ret != 0 )
-  {
+  if ( ret != 0 ) {
     Fatal( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
   }
 }
 
+int RemoteCamera::Read( int fd, char *buf, int size ) {
+  int ReceivedBytes = 0;
+  while ( ReceivedBytes < size ) {
+    // recv blocks until we get data, but it may be of ARBITRARY LENGTH and INCOMPLETE
+    int bytes_to_recv = size - ReceivedBytes;
+    if ( SOCKET_BUF_SIZE < bytes_to_recv ) 
+      bytes_to_recv = SOCKET_BUF_SIZE;
+//Debug(3, "Aiming to receive %d of %d bytes", bytes_to_recv, size );
+    int bytes = recv(fd, &buf[ReceivedBytes], bytes_to_recv, 0); //socket, buffer, len, flags
+    if ( bytes <= 0 ) {
+      Error("RemoteCamera::Read Recv error. Closing Socket\n");
+      return -1;
+    }
+    ReceivedBytes += bytes;
+  }
+  return ReceivedBytes;
+}

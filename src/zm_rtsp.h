@@ -31,8 +31,7 @@
 #include <set>
 #include <map>
 
-class RtspThread : public Thread
-{
+class RtspThread : public Thread {
 public:
   typedef enum { RTP_UNICAST, RTP_MULTICAST, RTP_RTSP, RTP_RTSP_HTTP } RtspMethod;
   typedef enum { UNDEFINED, UNICAST, MULTICAST } RtspDist;

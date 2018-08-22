@@ -18,26 +18,25 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
-    return;
+if ( !canView( 'Events' ) ) {
+  $view = 'error';
+  return;
 }
-$sql = 'SELECT E.*,M.Name AS MonitorName FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?';
-$event = dbFetchOne( $sql, NULL, array($_REQUEST['eid']) );
+require_once( 'includes/Frame.php' );
+$Event = new Event( $_REQUEST['eid'] );
 
 $sql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId';
 $frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid'] ) );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Frames')." - ".$event['Id'] );
+xhtmlHeaders(__FILE__, translate('Frames')." - ".$Event->Id() );
 ?>
 <body>
   <div id="page">
     <div id="header">
       <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
-      <h2><?php echo translate('Frames') ?> - <?php echo $event['Id'] ?></h2>
+      <h2><?php echo translate('Frames') ?> - <?php echo $Event->Id() ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -50,41 +49,52 @@ xhtmlHeaders(__FILE__, translate('Frames')." - ".$event['Id'] );
               <th class="colTimeStamp"><?php echo translate('TimeStamp') ?></th>
               <th class="colTimeDelta"><?php echo translate('TimeDelta') ?></th>
               <th class="colScore"><?php echo translate('Score') ?></th>
+<?php
+        if ( ZM_WEB_LIST_THUMBS ) {
+?>
+              <th class="colThumbnail"><?php echo translate('Thumbnail') ?></th>
+<?php
+        }
+?>
             </tr>
           </thead>
           <tbody>
 <?php
-if ( count($frames) )
-{
-    foreach ( $frames as $frame )
-    {
-        $class = strtolower($frame['Type']);
+if ( count($frames) ) {
+  foreach ( $frames as $frame ) {
+    $Frame = new Frame( $frame );
+
+    $class = strtolower($frame['Type']);
 ?>
             <tr class="<?php echo $class ?>">
-              <td class="colId"><?php echo makePopupLink( '?view=frame&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'frame', $event['Width'], $event['Height'] ), $frame['FrameId'] ) ?></td>
+              <td class="colId"><?php echo makePopupLink( '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'frame', $Event->Width(), $Event->Height() ), $frame['FrameId'] ) ?></td>
               <td class="colType"><?php echo $frame['Type'] ?></td>
               <td class="colTimeStamp"><?php echo strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
               <td class="colTimeDelta"><?php echo number_format( $frame['Delta'], 2 ) ?></td>
 <?php
-        if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') )
-        {
+    if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') ) {
 ?>
-              <td class="colScore"><?php echo makePopupLink( '?view=stats&amp;eid='.$event['Id'].'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></td>
+              <td class="colScore"><?php echo makePopupLink( '?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></td>
 <?php
-        }
-        else
-        {
+    } else {
 ?> 
               <td class="colScore"><?php echo $frame['Score'] ?></td>
 <?php
-        }
-?> 
-            </tr>
+    }
+    if ( ZM_WEB_LIST_THUMBS ) {
+?>
+              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'image', $Event->Width(), $Event->Height() ), '<img src="?view=image&amp;fid='.$Frame->Id().'&amp;'.
+(ZM_WEB_LIST_THUMB_WIDTH?'width='.ZM_WEB_LIST_THUMB_WIDTH.'&amp;':'').
+(ZM_WEB_LIST_THUMB_HEIGHT?'height='.ZM_WEB_LIST_THUMB_HEIGHT.'&amp;':'').'filename='.$Event->MonitorId().'_'.$frame['EventId'].'_'.$frame['FrameId'].'.jpg" '.
+(ZM_WEB_LIST_THUMB_WIDTH?'width="'.ZM_WEB_LIST_THUMB_WIDTH.'" ':'').
+(ZM_WEB_LIST_THUMB_HEIGHT?'height="'.ZM_WEB_LIST_THUMB_HEIGHT.'" ':'').' alt="'.$frame['FrameId'].'"/>' ) ?></td>
 <?php
     }
-}
-else
-{
+?>
+            </tr>
+<?php
+  } // end foreach frame
+} else {
 ?>
             <tr>
               <td colspan="5"><?php echo translate('NoFramesRecorded') ?></td>

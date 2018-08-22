@@ -15,9 +15,11 @@ achieve the same result by running:
 
 ::
 
-    tasksel install lamp-server
+    sudo tasksel install lamp-server
 
 During installation it will ask you to set up a master/root password for the MySQL.
+Installing LAMP is not ZoneMinder specific so you will find plenty of resources to 
+guide you with a quick search.
 
 **Step 1:** Either run commands in this install using sudo or use the below to become root
 ::
@@ -28,9 +30,14 @@ During installation it will ask you to set up a master/root password for the MyS
 
 .. topic :: Latest Release
 
-    ZoneMinder 1.29.0 is now part of the current standard Ubuntu repository. But
-    if you wish to install the later releases of ZoneMinder you will need
-    to add the iconnor/zoneminder PPA.
+    ZoneMinder is now part of the current standard Ubuntu repository, but
+    sometimes the official repository can lag behind. To find out check our
+    `releases page <https://github.com/ZoneMinder/zoneminder/releases>`_ for
+    the latest release.
+    
+    Alternatively, the ZoneMinder project team maintains a ppa, which is updated immediately
+    following a new release of ZoneMinder. To use this repository instead of the
+    official Ubuntu repository, enter the following from the command line:
 
     ::
 
@@ -287,19 +294,19 @@ To build the latest master snapshot:
 
 ::
 
-	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local master
+	./do_debian_package.sh --snapshot=NOW --branch=master --type=local
 
 
 To build the latest stable release:
 
 ::
 
-	./do_debian_package.sh `lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`  `date +%Y%m%d`01 local stable
+	./do_debian_package.sh --snapshot=stable --type=local
 
 
-Note that the ``lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'``
-part simply extracts your distribution name - like "vivid", "trusty" etc. You
-can always replace it by your distro name if you know it. As far as the script
+Note that the distribution will be guessed using ``lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'``
+which simply extracts your distribution name - like "vivid", "trusty" etc. You
+can always specify it using --distro=your distro name if you know it. As far as the script
 goes, it checks if your distro is "trusty" in which case it pulls in pre-systemd
 release configurations and if its not "trusty" it assumes its based on systemd
 and pulls in systemd related config files.
@@ -358,24 +365,6 @@ Changed Default DB User
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 If you have changed your DB login/password from zmuser/zmpass, you need to
-update these values in zm.conf and the API's database.php file.
+update these values in zm.conf.
 
 1. Edit zm.conf to change ZM_DB_USER and ZM_DB_PASS to the values you used.
-
-2. Edit databse.php which can be found in the web server folder zoneminder/www/api/app/Config
-
-There is a class there called DATABASE_CONFIG -
-change the $default array to reflect your new details. Example:
-
-::
-
-        public $default = array(
-                        'datasource' => 'Database/Mysql',
-                        'persistent' => false,
-                        'host' => 'localhost',
-                        'login' => 'mynewDBusername',
-                        'password' => 'mynewDBpassword'
-                        'database' => 'zm',
-                        'prefix' => '',
-                        //'encoding' => 'utf8',
-                );

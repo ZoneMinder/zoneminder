@@ -157,7 +157,9 @@ Upgrades
 
    sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
 
-5. Now start zoneminder:
+5. Now restart nginx and php-fpm then start and zoneminder:
 
+	sudo systemctl restart nginx
+	sudo systemctl restart php-fpm
 	sudo systemctl start zoneminder
 

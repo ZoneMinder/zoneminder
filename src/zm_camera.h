@@ -25,6 +25,10 @@
 
 #include "zm_image.h"
 
+class Camera;
+
+#include "zm_monitor.h"
+
 //
 // Abstract base class for cameras. This is intended just to express
 // common attributes
@@ -34,7 +38,8 @@ class Camera
 protected:
   typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC } SourceType;
 
-  int     id;
+  unsigned int  monitor_id;
+  Monitor *     monitor; // Null on instantiation, set as soon as possible.
   SourceType    type;
   unsigned int  width;
   unsigned int  height;
@@ -42,17 +47,22 @@ protected:
   unsigned int  subpixelorder;
   unsigned int  pixels;
   unsigned int  imagesize;
-  int        brightness;
-  int        hue;
-  int        colour;
-  int        contrast;
-  bool    capture;
+  int           brightness;
+  int           hue;
+  int           colour;
+  int           contrast;
+  bool          capture;
+  bool          record_audio;
+  unsigned int bytes;
+
 
 public:
-  Camera( int p_id, SourceType p_type, int p_width, int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
+  Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_width, unsigned int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
   virtual ~Camera();
 
-  int getId() const { return( id ); }
+  unsigned int getId() const { return( monitor_id ); }
+  Monitor *getMonitor();
+  void  setMonitor( Monitor *p_monitor );
   SourceType Type() const { return( type ); }
   bool IsLocal() const { return( type == LOCAL_SRC ); }
   bool IsRemote() const { return( type == REMOTE_SRC ); }
@@ -66,6 +76,7 @@ public:
   unsigned int SubpixelOrder() const { return( subpixelorder ); }
   unsigned int Pixels() const { return( pixels ); }
   unsigned int ImageSize() const { return( imagesize ); }
+  unsigned int Bytes() const { return bytes; };
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return( -1 ); }
   virtual int Hue( int/*p_hue*/=-1 ) { return( -1 ); }
@@ -73,11 +84,18 @@ public:
   virtual int Contrast( int/*p_contrast*/=-1 ) { return( -1 ); }
 
   bool CanCapture() const { return( capture ); }
-  
+
+  bool SupportsNativeVideo() const {
+    return (type == FFMPEG_SRC);
+    //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
+  }
+
   virtual int PrimeCapture() { return( 0 ); }
   virtual int PreCapture()=0;
   virtual int Capture( Image &image )=0;
   virtual int PostCapture()=0;
+  virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) = 0;
+  virtual int Close()=0;
 };
 
 #endif // ZM_CAMERA_H

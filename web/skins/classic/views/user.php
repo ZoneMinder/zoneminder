@@ -43,7 +43,7 @@ $monitorIds = array_flip(explode( ',', $newUser['MonitorIds'] ));
 $yesno = array( 0=>translate('No'), 1=>translate('Yes') );
 $nv = array( 'None'=>translate('None'), 'View'=>translate('View') );
 $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
-$bandwidths = array_merge( array( ""=>"" ), $bwArray );
+$bandwidths = array_merge( array( ""=>"" ), $bandwidth_options );
 $langs = array_merge( array( ""=>"" ), getLanguages() );
 
 $sql = "select Id,Name from Monitors order by Sequence asc";

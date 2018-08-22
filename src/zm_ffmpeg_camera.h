@@ -23,61 +23,88 @@
 #include "zm_camera.h"
 
 #include "zm_buffer.h"
-//#include "zm_utils.h"
 #include "zm_ffmpeg.h"
+#include "zm_videostore.h"
+#include "zm_packetqueue.h"
 
+#if HAVE_AVUTIL_HWCONTEXT_H
+typedef struct DecodeContext {
+      AVBufferRef *hw_device_ref;
+} DecodeContext;
+#endif
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
 // accessed using ffmpeg multimedia framework
 //
-class FfmpegCamera : public Camera
-{
-protected:
-  std::string     mPath;
-  std::string      mMethod;
-  std::string      mOptions;
+class FfmpegCamera : public Camera {
+  protected:
+    std::string         mPath;
+    std::string         mMethod;
+    std::string         mOptions;
 
-  int frameCount;  
+    int frameCount;    
 
 #if HAVE_LIBAVFORMAT
-  AVFormatContext   *mFormatContext;
-  int         mVideoStreamId;
-  AVCodecContext    *mCodecContext;
-  AVCodec       *mCodec;
-  AVFrame       *mRawFrame; 
-  AVFrame       *mFrame;
-  _AVPIXELFORMAT     imagePixFormat;
+    AVFormatContext     *mFormatContext;
+    int                 mVideoStreamId;
+    int                 mAudioStreamId;
+    AVCodecContext      *mVideoCodecContext;
+    AVCodecContext      *mAudioCodecContext;
+    AVCodec             *mVideoCodec;
+    AVCodec             *mAudioCodec;
+    AVFrame             *mRawFrame; 
+    AVFrame             *mFrame;
+    _AVPIXELFORMAT      imagePixFormat;
 
-  int OpenFfmpeg();
-  int ReopenFfmpeg();
-  int CloseFfmpeg();
-  static int FfmpegInterruptCallback(void *ctx);
-  static void* ReopenFfmpegThreadCallback(void *ctx);
-  bool mIsOpening;
-  bool mCanCapture;
-  int mOpenStart;
-  pthread_t mReopenThread;
-#endif // HAVE_LIBAVFORMAT
-
-#if HAVE_LIBSWSCALE
-  struct SwsContext   *mConvertContext;
+    bool hwaccel;
+#if HAVE_AVUTIL_HWCONTEXT_H
+    AVFrame             *hwFrame;
+    DecodeContext decode;
 #endif
 
-public:
-  FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture );
-  ~FfmpegCamera();
+    // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
+    int64_t audio_last_pts;
+    int64_t audio_last_dts;
+    int64_t video_last_pts;
+    int64_t video_last_dts;
 
-  const std::string &Path() const { return( mPath ); }
-  const std::string &Options() const { return( mOptions ); } 
-  const std::string &Method() const { return( mMethod ); }
+    // Used to store the incoming packet, it will get copied when queued. 
+    // We only ever need one at a time, so instead of constantly allocating
+    // and freeing this structure, we will just make it a member of the object.
+    AVPacket packet;       
 
-  void Initialise();
-  void Terminate();
+    int OpenFfmpeg();
+    int Close();
+    bool mCanCapture;
+#endif // HAVE_LIBAVFORMAT
 
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( Image &image );
-  int PostCapture();
+    VideoStore          *videoStore;
+    zm_packetqueue      packetqueue;
+    bool                have_video_keyframe;
+
+#if HAVE_LIBSWSCALE
+    struct SwsContext   *mConvertContext;
+#endif
+
+    int64_t             startTime;
+
+  public:
+    FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+    ~FfmpegCamera();
+
+    const std::string &Path() const { return( mPath ); }
+    const std::string &Options() const { return( mOptions ); } 
+    const std::string &Method() const { return( mMethod ); }
+
+    void Initialise();
+    void Terminate();
+
+    static int FfmpegInterruptCallback(void*ctx);
+
+    int PrimeCapture();
+    int PreCapture();
+    int Capture( Image &image );
+    int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
+    int PostCapture();
 };
-
 #endif // ZM_FFMPEG_CAMERA_H

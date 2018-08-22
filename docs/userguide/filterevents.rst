@@ -29,7 +29,7 @@ Here is what the filter window looks like
 	  events later and also make sure archived events don't get deleted, for example
 	* Email details of all matches: Sends an email to the configured address with details about the event. 
 	  The email can be customized as per TBD
-	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events
+	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguents to the command, the last argument will be the absolute path to the event, preceeded by replacement arguents. eg: /usr/bin/script.sh %MN% will excecute as /usr/bin/script.sh MonitorName /path/to/event.
 	* Delete all matches: Deletes all the matched events
 * *E*: Use 'Submit' to 'test' your matching conditions. This will just match and show you what filters match. Use 'Execute' to actually execute the action after matching your conditions. Use 'Save' to save the filter for future use and 'Reset' to clear your settings
 
@@ -101,7 +101,7 @@ How filters actually work
 --------------------------
 It is useful to know how filters actually work behind the scenes in ZoneMinder, in the event you find your filter not functioning as intended:
 
-* the primary filter processing process in ZoneMinder is a perl file called ``zmfilter.pl`` 
+* the primary filter processing process in ZoneMinder is a perl file called ``zmfilter.pl`` which retrieves filters from the Filters database table
 * zmfilter.pl runs every FILTER_EXECUTE_INTERVAL seconds (default is 20s, can be changed in Options->System)
 * in each run, it goes through all the filters which are marked as "Run in Background" and if the conditions match performs the specified action
 * zmfilter.pl also reloads all the filters every FILTER_RELOAD_DELAY seconds (default is 300s/5mins, can be changed in Options->System)

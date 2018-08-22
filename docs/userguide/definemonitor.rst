@@ -72,11 +72,12 @@ Source Tab
 FFmpeg
 ^^^^^^
     This is the recommended source type for most modern ip cameras.
+
 Source Path 
     Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
-    
+
         * Check the documentation that came with your camera
-        * Look for your camera in the hardware compatibilty list in the wiki http://wiki.zoneminder.com/Hardware_Compatibilty_List
+        * Look for your camera in the hardware compatibilty list in the wiki http://wiki.zoneminder.com/Hardware_Compatibility_List
         * Try ZoneMinder's new ONVIF probe feature
         * Download and install the ONVIF Device Manager onto a Windows machine https://sourceforge.net/projects/onvifdm/
         * Use Google to find third party sites, such as ispy, which document this information
@@ -145,6 +146,23 @@ Keep aspect ratio
     As per local devices. 
 Orientation 
     As per local devices. 
+
+WebSite
+^^^^^^^
+
+This Source Type allows one to configure an arbitrary website as a non-reocrdable, fully interactive, monitor in ZoneMinder. Note that sites with self-signed certificates will not display until the end user first manually navigates to the site and accpets the unsigned certificate. Also note that some sites will set an X-Frame option in the header, which discourages their site from being displayed within a frame. ZoneMinder will detect this condition and present a warning in the log. When this occurs, the end user can choose to install a browser plugin or extension to workaround this issue.
+
+Website URL 
+    Enter the full http or https url to the desired website.
+
+Width (pixels) 
+    Chose a desired width in pixels that gives an acceptable appearance. This may take some expirimentation.
+
+Height (pixels) 
+    Chose a desired height in pixels that gives an acceptable appearance. This may take some expirimentation.
+
+Web Site Refresh 
+    If the website in question has static content, optionally enter a time period in seconds for ZoneMinder to refresh the content.
 
 Timestamp Tab
 -------------

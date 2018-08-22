@@ -77,6 +77,7 @@ protected:
 
   // Outputs/Statistics
   bool      alarmed;
+  bool      was_alarmed;
   int        pixel_diff;
   unsigned int      alarm_pixels;
   int        alarm_filter_pixels;
@@ -93,6 +94,7 @@ protected:
 
   int       overload_count;
   int       extend_alarm_count;
+  char      diag_path[PATH_MAX];
 
 protected:
   void Setup( Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon, const Rgb p_alarm_rgb, CheckMethod p_check_method, int p_min_pixel_threshold, int p_max_pixel_threshold, int p_min_alarm_pixels, int p_max_alarm_pixels, const Coord &p_filter_box, int p_min_filter_pixels, int p_max_filter_pixels, int p_min_blob_pixels, int p_max_blob_pixels, int p_min_blobs, int p_max_blobs, int p_overload_frames, int p_extend_alarm_frames );
@@ -131,14 +133,16 @@ public:
   inline const Image *AlarmImage() const { return( image ); }
   inline const Polygon &GetPolygon() const { return( polygon ); }
   inline bool Alarmed() const { return( alarmed ); }
-  inline void SetAlarm() { alarmed = true; }
-  inline void ClearAlarm() { alarmed = false; }
+	inline bool WasAlarmed() const { return( was_alarmed ); }
+	inline void SetAlarm() { was_alarmed = alarmed; alarmed = true; }
+	inline void ClearAlarm() { was_alarmed = alarmed; alarmed = false; }
   inline Coord GetAlarmCentre() const { return( alarm_centre ); }
   inline unsigned int Score() const { return( score ); }
 
   inline void ResetStats()
   {
     alarmed = false;
+		was_alarmed = false;
     pixel_diff = 0;
     alarm_pixels = 0;
     alarm_filter_pixels = 0;
@@ -170,7 +174,6 @@ public:
 
   inline const Image *getPgImage() const { return( pg_image ); }
   inline const Range *getRanges() const { return( ranges ); }
-
 };
 
 #endif // ZM_ZONE_H

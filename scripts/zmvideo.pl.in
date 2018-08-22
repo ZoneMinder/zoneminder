@@ -27,12 +27,14 @@ zmvideo.pl - ZoneMinder Video Creation Script
 
 =head1 SYNOPSIS
 
- zmvideo.pl [ -e <event_id>,--event=<event_id> | --filter=<filter name> ] [--format <format>]
-                                             [--rate=<rate>]
-                                             [--scale=<scale>]
-                                             [--fps=<fps>]
-                                             [--size=<size>]
-                                             [--overwrite]
+ zmvideo.pl [ -e <event_id>,--event=<event_id> | --filter_name=<filter name> | --filter_id=<filter id> ] 
+            [--concat=filename]
+            [--format <format>]
+            [--rate=<rate>]
+            [--scale=<scale>]
+            [--fps=<fps>]
+            [--size=<size>]
+            [--overwrite]
 
 =head1 DESCRIPTION
 
@@ -94,20 +96,11 @@ my $size = '';
 my $overwrite = 0;
 my $version = 0;
 
-my @formats = split( /\s+/, $Config{ZM_FFMPEG_FORMATS} );
-for ( my $i = 0; $i < @formats; $i++ )
-{
-    if ( $i =~ /^(.+)\*$/ )
-    {
-        $format = $formats[$i] = $1;
-    }
-}
-
 GetOptions(
-	'concat|c:s'	=>\$concat_name,
+    'concat|c:s'	  =>\$concat_name,
     'event|e=i'     =>\$event_id,
     'filter_name=s'	=>\$filter_name,
-    'filter_id=i'	=>\$filter_id,
+    'filter_id=i' 	=>\$filter_id,
     'format|f=s'    =>\$format,
     'rate|r=f'      =>\$rate,
     'scale|s=f'     =>\$scale,
@@ -115,51 +108,51 @@ GetOptions(
     'size|S=s'      =>\$size,
     'overwrite'     =>\$overwrite,
     'version'       =>\$version
-) or pod2usage(-exitstatus => -1);
+    ) or pod2usage(-exitstatus => -1);
 
 if ( $version ) {
-    print ZoneMinder::Base::ZM_VERSION . "\n";
-    exit(0);
+  print ZoneMinder::Base::ZM_VERSION . "\n";
+  exit(0);
 }
 
-if ( !( $filter_id or $filter_name or $event_id ) || $event_id < 0 )
-{
-    print( STDERR "Please give a valid event id or filter name\n" );
-    pod2usage(-exitstatus => -1);
+if ( !( $filter_id or $filter_name or $event_id ) || ($event_id and ( $event_id < 0 ) ) ) {
+  print( STDERR "Please give a valid event id or filter name\n" );
+  pod2usage(-exitstatus => -1);
 }
 
-if ( ! $Config{ZM_OPT_FFMPEG} )
-{
-    print( STDERR "Mpeg encoding is not currently enabled\n" );
-    exit(-1);
+if ( ! $Config{ZM_OPT_FFMPEG} ) {
+  print( STDERR "Mpeg encoding is not currently enabled\n" );
+  exit(-1);
 }
 
-if ( !$rate && !$fps )
-{
-    $rate = 1;
+my @formats = split( /\s+/, $Config{ZM_FFMPEG_FORMATS} );
+for ( my $i = 0; $i < @formats; $i++ ) {
+  if ( $i =~ /^(.+)\*$/ ) {
+    $format = $formats[$i] = $1;
+  }
 }
 
-if ( !$scale && !$size )
-{
-    $scale = 1;
+if ( !$rate && !$fps ) {
+  $rate = 1;
 }
 
-if ( $rate && ($rate < 0.25 || $rate > 100) )
-{
-    print( STDERR "Rate is out of range, 0.25 >= rate <= 100\n" );
-    pod2usage(-exitstatus => -1);
+if ( !$scale && !$size ) {
+  $scale = 1;
 }
 
-if ( $scale && ($scale < 0.25 || $scale > 4) )
-{
-    print( STDERR "Scale is out of range, 0.25 >= scale <= 4\n" );
-    pod2usage(-exitstatus => -1);
+if ( $rate && ($rate < 0.25 || $rate > 100) ) {
+  print( STDERR "Rate is out of range, 0.25 >= rate <= 100\n" );
+  pod2usage(-exitstatus => -1);
 }
 
-if ( $fps && ($fps > 30) )
-{
-    print( STDERR "FPS is out of range, <= 30\n" );
-    pod2usage(-exitstatus => -1);
+if ( $scale && ($scale < 0.25 || $scale > 4) ) {
+  print( STDERR "Scale is out of range, 0.25 >= scale <= 4\n" );
+  pod2usage(-exitstatus => -1);
+}
+
+if ( $fps && ($fps > 30) ) {
+  print( STDERR "FPS is out of range, <= 30\n" );
+  pod2usage(-exitstatus => -1);
 }
 
 my ( $detaint_format ) = $format =~ /^(\w+)$/;
@@ -180,80 +173,90 @@ my $cwd = getcwd;
 
 my $video_name;
 my @event_ids;
-if ( $event_id ) {
-	@event_ids = ( $event_id );
-	
-} elsif ( $filter_name or $filter_id ) {
-	my $Filter = ZoneMinder::Filter->find_one( 
-		($filter_name ? ( Name => $filter_name ) : () ),
-		($filter_id ? ( Id => $filter_name ) : () ),
-		);
-	if ( ! $Filter ) {
-		Fatal("Filter $filter_name $filter_id not found.");	
-	}	
-	@event_ids = map { $_->{Id} }$Filter->Execute();	
-	Fatal( "No events found for $filter_name") if ! @event_ids;
-	$concat_name = $filter_name if $concat_name eq '';
+
+# Fail if the path to a valid ffmpeg binary is not set
+if ( ! -x $Config{ZM_PATH_FFMPEG} ) {
+    Fatal("Ffmpeg binary not found or not executable. Verify ZM_PATH_FFMPEG points to ffmpeg, avconv, or a compatible binary.");
 }
 
-my $sql = " SELECT max(F.Delta)-min(F.Delta) as FullLength,
-   E.*,
-   unix_timestamp(E.StartTime) as Time,
+if ( $event_id ) {
+  @event_ids = ( $event_id );
+
+} elsif ( $filter_name or $filter_id ) {
+  my $Filter = ZoneMinder::Filter->find_one( 
+      ($filter_name ? ( Name => $filter_name ) : () ),
+      ($filter_id ? ( Id => $filter_name ) : () ),
+      );
+  if ( ! $Filter ) {
+    Fatal("Filter $filter_name $filter_id not found.");	
+  }	
+  @event_ids = map { $_->{Id} } $Filter->Execute();	
+  if ( ! @event_ids ) {
+    Fatal( "No events found for $filter_name")
+  } else {
+    Debug(@event_ids . " events found for $filter_name");
+  }
+  $concat_name = $filter_name if $concat_name eq '';
+}
+
+my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELECT min(Delta) FROM Frames WHERE EventId=Events.Id) as FullLength,
+   Events.*,
+   unix_timestamp(Events.StartTime) as Time,
    M.Name as MonitorName,
-   M.Width as MonitorWidth,
-   M.Height as MonitorHeight,
    M.Palette
-   FROM Frames as F
-   INNER JOIN Events as E on F.EventId = E.Id
-   INNER JOIN Monitors as M on E.MonitorId = M.Id
-   WHERE EventId = ?
-   GROUP BY F.EventId"
-   ;
+   FROM Events
+   INNER JOIN Monitors as M on Events.MonitorId = M.Id
+   WHERE Events.Id = ?
+   ";
 my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+Debug($sql);
 
 my @video_files;
 foreach my $event_id ( @event_ids ) {
+  my $res = $sth->execute( $event_id )
+    or Fatal( "Can't execute: ".$sth->errstr() );
+  my $event = $sth->fetchrow_hashref();
 
-	my $res = $sth->execute( $event_id )
-		or Fatal( "Can't execute: ".$sth->errstr() );
-	my $event = $sth->fetchrow_hashref();
-
-	my $Event = new ZoneMinder::Event( $$event{Id}, $event );
-	my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format );
-	if ( $video_file ) {
-		push @video_files, $video_file;
-		print( STDOUT $video_file."\n" );
-	}
+  my $Event = new ZoneMinder::Event( $$event{Id}, $event );
+  my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format );
+  if ( $video_file ) {
+    push @video_files, $video_file;
+    print( STDOUT $video_file."\n" );
+  } else {
+    Warning("No video file generated for event $event_id");
+  }
 } # end foreach event_id
 
 if ( $concat_name ) {
-	($cwd) = $cwd =~ /(.*)/; # detaint
-	chdir( $cwd );
-	($concat_name ) = $concat_name =~ /([\-A-Za-z0-9_\.]*)/;
-	my $concat_list_file = "/tmp/$concat_name.concat.lst";
+  ($cwd) = $cwd =~ /(.*)/; # detaint
+  chdir( $cwd );
+  ($concat_name ) = $concat_name =~ /([\-A-Za-z0-9_\.]*)/;
+  my $concat_list_file = "/tmp/$concat_name.concat.lst";
 
-	my $video_file = $concat_name . '.'. $detaint_format;
+  my $video_file = $concat_name . '.'. $detaint_format;
 
-	open( my $fd, '>', $concat_list_file ) or die "Can't open $concat_list_file: $!";
-	foreach ( @video_files ) {
-		print $fd "file '$_'\n";
-	}
-	close $fd;
-	my $command = $Config{ZM_PATH_FFMPEG}
-	. " -f concat -i $concat_list_file -c copy "
-		." '$video_file' > ffmpeg.log 2>&1"
-		;
-	Debug( $command."\n" );
-	my $output = qx($command);
+  open( my $fd, '>', $concat_list_file ) or die "Can't open $concat_list_file: $!";
+  foreach ( @video_files ) {
+    print $fd "file '$_'\n";
+  }
+  close $fd;
+  my $command = $Config{ZM_PATH_FFMPEG}
+  . " -f concat -safe 0 -i $concat_list_file -c copy "
+    .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
+    ." '$video_file' > $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log 2>&1"
+    ;
+  Debug( $command."\n" );
+  my $output = qx($command);
 
-	my $status = $? >> 8;
+  my $status = $? >> 8;
 
-	unlink $concat_list_file;
-	if ( $status )
-	{
-		Error( "Unable to generate video, check /ffmpeg.log for details");
-		exit(-1);
-	}
+  unlink $concat_list_file;
+  if ( $status ) {
+    Error( "Unable to generate video, check $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log for details");
+    exit(-1);
+  }
 	print( STDOUT $video_file."\n" );
 }
 exit( 0 );
+
+__END__

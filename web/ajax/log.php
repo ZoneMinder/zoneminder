@@ -95,7 +95,7 @@ switch ( $_REQUEST['task'] ) {
     foreach ( dbFetchAll($sql, NULL, $values) as $log ) {
 
       $log['DateTime'] = strftime('%Y-%m-%d %H:%M:%S', intval($log['TimeKey']));
-      Warning("TimeKey: " . $log['TimeKey'] . 'Intval:'.intval($log['TimeKey']).' DateTime:'.$log['DateTime']);
+      #Warning("TimeKey: " . $log['TimeKey'] . 'Intval:'.intval($log['TimeKey']).' DateTime:'.$log['DateTime']);
       #$log['DateTime'] = preg_replace('/^\d+/', strftime('%Y-%m-%d %H:%M:%S', intval($log['TimeKey'])), $log['TimeKey']);
       $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
       $log['Message'] = preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $log['Message']);

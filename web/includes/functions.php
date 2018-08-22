@@ -432,20 +432,38 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
     }
   }
 
-  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions( $contents, $values ).'</select>';
+  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions($contents, $values).'</select>';
 }
 
-function htmlOptions( $contents, $values ) {
-  $html = '';
-  foreach ( $contents as $value=>$text ) {
-    if ( is_array( $text ) )
-      $text = $text['Name'];
-    else if ( is_object( $text ) )
-      $text = $text->Name();
-    $selected = is_array( $values ) ? in_array( $value, $values ) : !strcmp($value, $values);
-    $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
+function htmlOptions($contents, $values) {
+  $options_html = '';
+
+  foreach ( $contents as $value=>$option ) {
+    $disabled = 0;
+    $text = '';
+    if ( is_array($option) ) {
+
+      if ( isset($option['Name']) )
+        $text = $option['Name'];
+      else if ( isset($option['text']) )
+        $text = $option['text'];
+
+      if ( isset($option['disabled']) ) {
+        $disabled = $option['disabled'];
+        Error("Setting to disabled");
+      }
+    } else if ( is_object($option) ) {
+      $text = $option->Name();
+    } else {
+      $text = $option;
+    }
+    $selected = is_array($values) ? in_array($value, $values) : !strcmp($value, $values);
+    $options_html .= "<option value=\"$value\"".
+      ($selected?' selected="selected"':'').
+      ($disabled?' disabled="disabled"':'').
+      ">$text</option>";
   }
-  return $html;
+  return $options_html;
 }
 
 function truncText( $text, $length, $deslash=1 ) {       
@@ -2064,7 +2082,7 @@ function cache_bust( $file ) {
   $dirname = preg_replace( '/\//', '_', $parts['dirname'] );
   $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
   if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
-    return '/zm/cache/'.$cacheFile;
+    return 'cache/'.$cacheFile;
   } else {
     Warning("Failed linking $file to $cacheFile");
   }

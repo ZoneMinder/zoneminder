@@ -252,36 +252,37 @@ MAIN: while( $loop ) {
         foreach my $day_dir ( @day_dirs ) {
           Debug( "Checking day dir $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
-          if ( ! chdir( $day_dir ) ) {
-            Error( "Can't chdir to '$$Storage{Path}/$day_dir': $!" );
+          if ( !chdir($day_dir) ) {
+            Error("Can't chdir to '$$Storage{Path}/$day_dir': $!");
             next;
           }
-          if ( ! opendir( DIR, '.' ) ) {
-            Error( "Can't open directory '$$Storage{Path}/$day_dir': $!" );
+          if ( ! opendir(DIR, '.') ) {
+            Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
             next;
           }
           my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
-          closedir( DIR );
+          Debug("Have " . @event_links . ' event links');
+          closedir(DIR);
           my $count = 0;
           foreach my $event_link ( @event_links ) {
             if ( $event_link =~ /[^\d\.]/ ) {
               Warning("Non-event link found $event_link in $day_dir, skipping");
               next;
             }
-            Debug( "Checking link $event_link" );
+            Debug("Checking link $event_link");
             ( my $event = $event_link ) =~ s/^.*\.//;
             #Event path is hour/minute/sec
-            my $event_path = readlink( $event_link );
+            my $event_path = readlink($event_link);
 
             if ( !($event_path and -e $event_path) ) {
-              aud_print( "Event link $day_dir/$event_link does not point to valid target" );
+              aud_print("Event link $day_dir/$event_link does not point to valid target");
               if ( confirm() ) {
                 ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
-                unlink( $event_link );
+                unlink($event_link);
                 $cleaned = 1;
               }
             } else {
-              Debug( "Checking link $event_link points to $event_path " );
+              Debug("Checking link $event_link points to $event_path ");
               my $Event = $fs_events->{$event} = new ZoneMinder::Event();
               $$Event{Id} = $event;
               $$Event{Path} = join('/', $Storage->Path(), $day_dir,$event_path);
@@ -292,6 +293,42 @@ MAIN: while( $loop ) {
               $Event->DiskSpace( undef );
             } # event path exists
           } # end foreach event_link
+            
+          # Now check for events that have lost their link
+          
+          my @time_dirs = glob('[0-9][0-9]/[0-9][0-9]/[0-9][0-9]');
+          foreach my $event_dir ( @time_dirs ) {
+            Debug("Checking time dir $event_dir");
+            ( $event_dir ) = ( $event_dir =~ /^(.*)$/ ); # De-taint
+
+            my $event_id = undef;
+
+            my @mp4_files = glob("$event_dir/[0-9]+\-video.mp4");
+            foreach my $mp4_file ( @mp4_files ) {
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
+              if ( $id ) {
+                $event_id = $id;
+                last;
+              }
+            }
+            if ( $event_id ) {
+              my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
+              $$Event{Id} = $event_id;
+              $$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_dir);
+              $$Event{RelativePath} = join('/', $day_dir, $event_dir);
+              $$Event{Scheme} = 'Deep';
+              $Event->MonitorId( $monitor_dir );
+              $Event->StorageId( $Storage->Id() );
+              $Event->DiskSpace( undef );
+            } else {
+              aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
+              if ( confirm() ) {
+                my $command = "rm -rf $event_dir";
+                executeShellCommand( $command );
+                $cleaned = 1;
+              }
+            } # end if able to find id
+          } # end foreach event_dir without link
           chdir( $Storage->Path() );
         } # end foreach day dir
       }
@@ -701,17 +738,18 @@ FROM Frames WHERE EventId=?';
       if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^(.*)s$/ ) {
         $Config{ZM_LOG_DATABASE_LIMIT} = $1;
       }
-      my $deleteLogByTimeSql =
-      'DELETE low_priority FROM Logs
-      WHERE TimeKey < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.')';
-      my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
-        or Fatal( "Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr() );
-      $res = $deleteLogByTimeSth->execute()
-        or Fatal( "Can't execute: ".$deleteLogByTimeSth->errstr() );
-      if ( $deleteLogByTimeSth->rows() ){
-        aud_print( 'Deleted '.$deleteLogByTimeSth->rows()
-          ." log table entries by time\n" );
-      }
+      my $deleted_rows;
+      do {
+        my $deleteLogByTimeSql =
+        'DELETE FROM Logs
+        WHERE TimeKey < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 10';
+        my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
+          or Fatal( "Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr() );
+        $res = $deleteLogByTimeSth->execute()
+          or Fatal( "Can't execute: ".$deleteLogByTimeSth->errstr() );
+        $deleted_rows = $deleteLogByTimeSth->rows();
+        aud_print( "Deleted $deleted_rows log table entries by time\n" );
+      } while ( $deleted_rows );
     }
   } # end if ZM_LOG_DATABASE_LIMIT
   $loop = $continuous;

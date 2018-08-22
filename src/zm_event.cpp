@@ -289,7 +289,7 @@ bool Event::WriteFrameImage(Image *image, struct timeval timestamp, const char *
 
   int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
   bool rc;
-Debug(3, "Writing image to %s", event_file );
+Debug(3, "Writing image to %s", event_file);
 
   if ( !config.timestamp_on_capture ) {
     // stash the image we plan to use in another pointer regardless if timestamped.
@@ -594,11 +594,12 @@ Debug(3, "Writing video");
       max_score = score;
 
     if ( alarm_image ) {
-      snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames);
-
-      Debug(1, "Writing analysis frame %d", frames);
       if ( monitor->GetOptSaveJPEGs() & 2 ) {
-        WriteFrameImage(alarm_image, timestamp, event_file, true);
+        snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames);
+        Debug(1, "Writing analysis frame %d", frames);
+        if ( ! WriteFrameImage(alarm_image, timestamp, event_file, true) ) {
+          Error("Failed to write analysis frame image");
+        }
       }
     }
   }

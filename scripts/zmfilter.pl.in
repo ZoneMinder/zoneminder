@@ -70,16 +70,18 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
 
+my $daemon = 0;
 my $filter_name = '';
 my $filter_id;
 my $version = 0;
 my $zm_terminate = 0;
 
 GetOptions(
-    'filter=s'      =>\$filter_name,
-    'filter_id=s'   =>\$filter_id,
-    'version'       =>\$version
-    ) or pod2usage(-exitstatus => -1);
+  daemon        =>\$daemon,
+  'filter=s'    =>\$filter_name,
+  'filter_id=s' =>\$filter_id,
+  version       =>\$version
+) or pod2usage(-exitstatus => -1);
 
 if ( $version ) {
   print ZoneMinder::Base::ZM_VERSION . "\n";
@@ -96,15 +98,21 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
 
 logInit($filter_id?(id=>'zmfilter_'.$filter_id):());
 sub HupHandler {
-  Info("Received HUP, reloading");
+  # This idea at this time is to just exit, freeing up the memory. 
+  # zmfilter.pl will be respawned by zmdc.
+  TermHandler();
+  return;
+
+  Info('Received HUP, reloading');
+  ZoneMinder::Object::init_cache();
   &ZoneMinder::Logger::logHupHandler();
 }
 sub TermHandler {
-  Info("Received TERM, exiting");
+  Info('Received TERM, exiting');
   $zm_terminate = 1;
 }
 sub Term {
-  exit( 0 );
+  exit(0);
 }
 $SIG{HUP} = \&HupHandler;
 $SIG{TERM} = \&TermHandler;
@@ -173,7 +181,7 @@ if ( $filter_name ) {
 }
 
 if ( ! ( $filter_name or $filter_id ) ) {
-  Debug("Sleeping due to start delay: " . START_DELAY . ' seconds...');
+  Debug('Sleeping due to start delay: ' . START_DELAY . ' seconds...');
   sleep(START_DELAY);
 }
 
@@ -201,7 +209,7 @@ while( !$zm_terminate ) {
     }
   }
 
-  last if $filter_name or $filter_id or $zm_terminate;
+  last if (!$daemon and ($filter_name or $filter_id)) or $zm_terminate;
 
   Debug("Sleeping for $delay seconds\n");
   sleep($delay);
@@ -265,8 +273,7 @@ sub checkFilter {
   Info(
       join(' ',
         'Checking filter', $filter->{Name},
-        join( ', ', 
-
+        join(', ', 
           ($filter->{AutoDelete}?'delete':()),
           ($filter->{AutoArchive}?'archive':()),
           ($filter->{AutoVideo}?'video':()),
@@ -383,7 +390,7 @@ sub generateVideo {
     $format = $ffmpeg_formats[0];
   }
 
-  my $command = join( '',
+  my $command = join('',
       $Config{ZM_PATH_BIN},
       '/zmvideo.pl -e ',
       $event->{Id},
@@ -395,7 +402,7 @@ sub generateVideo {
       $format,
       );
   my $output = qx($command);
-  chomp( $output );
+  chomp($output);
   my $status = $? >> 8;
   if ( $status || logDebugging() ) {
     Debug("Output: $output\n");

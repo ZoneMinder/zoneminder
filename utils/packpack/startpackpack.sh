@@ -263,7 +263,7 @@ execpackpack () {
             packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
         else
             # Travis never ceases to amaze. For the case of arm emulation, Travis fails the build due to too little output over a 10 minute period. Facepalm.
-            packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+            packpack/packpack $parms | grep -Ev '^(-- Installing:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
         fi
     else
         packpack/packpack $parms

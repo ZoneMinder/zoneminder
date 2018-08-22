@@ -1,42 +1,3 @@
-#===========================================================================
-#
-# ZoneMinder Trendnet IP Control Protocol Module, $Date: $, $Revision: $
-# Copyright (C) 2018 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC8 ZoneMinder LLC
-#
-#
-# ==========================================================================
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-#
-# ==========================================================================
-#
-# This module contains the implementation of the Trendnet # IP camera control
-# protocol. Has been tested with TV-IP862IC
-#
-#  Under control capability:
-#
-#   *  Main:  Can wake, can sleep, can reset
-#   *  Move:  Can move, can move diagonally, can move mapped, can move relative
-#   *  Pan:  Can pan
-#   *  Tilt:  Can tilt
-#   *  Presets:  Has presets, num presets 20, has home preset  (don't set presets via camera's web server, only set via ZM.)
-#
-#  Under control tab in the monitor itself:
-#
-#    Controllable
-#    Control type is the name you gave it in control capability above
-#    Control address is the camera's ip address AND web port.  example:  192.168.1.1:80 
-#    You can also put the authentication information here and change the
-#    protocol to https using something like https://admin:password@192.168.1.1:80
-#
-
 package ZoneMinder::Control::Trendnet;
 
 use 5.006;
@@ -48,26 +9,18 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
-#
-#  ********  YOU MUST CHANGE THE FOLLOWING LINES TO MATCH YOUR CAMERA!  **********
-#
 #  You do not need to change the REALM, but you can get slightly faster response
 #  by setting so that the first auth request succeeds.
 #
-#  The username and password should be passed in the ControlDevice field but you
+#  The username and password should be passed in the ControlAddress field but you
 #  can set them here if you want.
 #
+
 our $REALM = '';
 our $PROTOCOL = 'http://';
 our $USERNAME = 'admin';
 our $PASSWORD = '';
 our $ADDRESS = '';
-
-# ==========================================================================
-#
-# Trendnet TV-IP672PI Control Protocol
-#
-# ==========================================================================
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
@@ -422,7 +375,6 @@ sub reset {
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
@@ -430,12 +382,29 @@ ZoneMinder::Control::Trendnet - Perl module for Trendnet cameras
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
-  place this in /usr/share/perl5/ZoneMinder/Control
+use ZoneMinder::Control::Trendnet;
+place this in /usr/share/perl5/ZoneMinder/Control
 
 =head1 DESCRIPTION
 
-Stub documentation for Trendnet PTZ Sctrol
+This module contains the implementation of the Trendnet # IP camera control
+protocol. Has been tested with TV-IP862IC
+
+Under control capability:
+
+*  Main:  Can wake, can sleep, can reset
+*  Move:  Can move, can move diagonally, can move mapped, can move relative
+*  Pan:  Can pan
+*  Tilt:  Can tilt
+*  Presets:  Has presets, num presets 20, has home preset  (don't set presets via camera's web server, only set via ZM.)
+
+Under control tab in the monitor itself:
+
+Controllable
+Control type is the name you gave it in control capability above
+Control address is the camera's ip address AND web port.  example:  192.168.1.1:80 
+You can also put the authentication information here and change the
+protocol to https using something like https://admin:password@192.168.1.1:80
 
 =head2 EXPORT
 
@@ -443,11 +412,20 @@ None by default.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2018 by ZoneMinder LLC
+Copyright (C) 2018 ZoneMinder LLC
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
 
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =cut

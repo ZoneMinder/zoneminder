@@ -23,7 +23,7 @@ switch ( $_REQUEST['task'] ) {
       if ( !isset($levels[$_POST['level']]) )
         Panic("Unexpected logger level '".$_POST['level']."'");
       $level = $levels[$_POST['level']];
-      Logger::fetch()->logPrint( $level, $string, $file, $line );
+      Logger::fetch()->logPrint($level, $string, $file, $line);
     }
     ajaxResponse();
     break;
@@ -45,22 +45,22 @@ switch ( $_REQUEST['task'] ) {
 
     $limit = 100;
     if ( isset($_REQUEST['limit']) ) {
-      if ( ( !is_integer( $_REQUEST['limit'] ) and !ctype_digit($_REQUEST['limit']) ) ) {
-        Error('Invalid value for limit ' . $_REQUEST['limit'] );
+      if ( ( !is_integer($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
+        Error('Invalid value for limit ' . $_REQUEST['limit']);
       } else {
         $limit = $_REQUEST['limit'];
       }
     }
     $sortField = 'TimeKey';
     if ( isset($_REQUEST['sortField']) ) {
-      if ( ! in_array( $_REQUEST['sortField'], $filterFields ) and ( $_REQUEST['sortField'] != 'TimeKey' ) ) {
-        Error("Invalid sort field " . $_REQUEST['sortField'] );
+      if ( !in_array($_REQUEST['sortField'], $filterFields) and ( $_REQUEST['sortField'] != 'TimeKey' ) ) {
+        Error("Invalid sort field " . $_REQUEST['sortField']);
       } else {
         $sortField = $_REQUEST['sortField'];
       }
     }
-    $sortOrder = (isset($_REQUEST['sortOrder']) and $_REQUEST['sortOrder']) == 'asc' ? 'asc':'desc';
-    $filter = isset($_REQUEST['filter'])?$_REQUEST['filter']:array();
+    $sortOrder = (isset($_REQUEST['sortOrder']) and ($_REQUEST['sortOrder'] == 'asc')) ? 'asc' : 'desc';
+    $filter = isset($_REQUEST['filter']) ? $_REQUEST['filter'] : array();
 
     $total = dbFetchOne('SELECT count(*) AS Total FROM Logs', 'Total');
     $sql = 'SELECT * FROM Logs';
@@ -89,15 +89,18 @@ switch ( $_REQUEST['task'] ) {
     }
     $options = array();
     if ( count($where) )
-      $sql.= ' WHERE '.join( ' AND ', $where );
+      $sql.= ' WHERE '.join(' AND ', $where);
     $sql .= ' ORDER BY '.$sortField.' '.$sortOrder.' LIMIT '.$limit;
     $logs = array();
     foreach ( dbFetchAll($sql, NULL, $values) as $log ) {
-      $log['DateTime'] = preg_replace('/^\d+/', strftime('%Y-%m-%d %H:%M:%S', intval($log['TimeKey'])), $log['TimeKey']);
+
+      $log['DateTime'] = strftime('%Y-%m-%d %H:%M:%S', intval($log['TimeKey']));
+      #Warning("TimeKey: " . $log['TimeKey'] . 'Intval:'.intval($log['TimeKey']).' DateTime:'.$log['DateTime']);
+      #$log['DateTime'] = preg_replace('/^\d+/', strftime('%Y-%m-%d %H:%M:%S', intval($log['TimeKey'])), $log['TimeKey']);
       $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
-      $log['Message'] = preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $log['Message'] );
+      $log['Message'] = preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $log['Message']);
       foreach( $filterFields as $field ) {
-        if ( ! isset( $options[$field] ) ) 
+        if ( !isset($options[$field]) ) 
           $options[$field] = array();
         $value = $log[$field];
 
@@ -119,7 +122,7 @@ switch ( $_REQUEST['task'] ) {
     ajaxResponse( array(
       'updated' => preg_match('/%/', DATE_FMT_CONSOLE_LONG)?strftime(DATE_FMT_CONSOLE_LONG):date(DATE_FMT_CONSOLE_LONG), 
       'total' => $total,
-      'available' => isset($available)?$available:$total,
+      'available' => isset($available) ? $available : $total,
       'logs' => $logs,
       'state' => logState(),
       'options' => $options
@@ -210,8 +213,8 @@ switch ( $_REQUEST['task'] ) {
     if ( !($exportFP = fopen( $exportPath, "w" )) )
       Fatal("Unable to open log export file $exportPath");
     $logs = array();
-    foreach ( dbFetchAll( $sql, NULL, $values ) as $log ) {
-      $log['DateTime'] = preg_replace( '/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey'] );
+    foreach ( dbFetchAll($sql, NULL, $values) as $log ) {
+      $log['DateTime'] = preg_replace('/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey']);
       $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
       $logs[] = $log;
     }
@@ -347,7 +350,7 @@ switch ( $_REQUEST['task'] ) {
         </logexport>' );
       break;
     }
-    $exportExt = "xml";
+    $exportExt = 'xml';
     break;
     }
     fclose( $exportFP );
@@ -363,10 +366,10 @@ switch ( $_REQUEST['task'] ) {
       ajaxError('Insufficient permissions to download logs');
 
     if ( empty($_REQUEST['key']) )
-      Fatal( "No log export key given" );
+      Fatal('No log export key given');
     $exportKey = $_REQUEST['key'];
     if ( empty($_REQUEST['format']) )
-      Fatal( "No log export format given" );
+      Fatal('No log export format given');
     $format = $_REQUEST['format'];
 
     switch( $format ) {
@@ -389,17 +392,17 @@ switch ( $_REQUEST['task'] ) {
     $exportFile = "zm-log.$exportExt";
     $exportPath = ZM_PATH_SWAP."/zm-log-$exportKey.$exportExt";
 
-    header( "Pragma: public" );
-    header( "Expires: 0" );
-    header( "Cache-Control: must-revalidate, post-check=0, pre-check=0" );
-    header( "Cache-Control: private", false ); // required by certain browsers
-    header( "Content-Description: File Transfer" );
-    header( 'Content-Disposition: attachment; filename="'.$exportFile.'"' );
-    header( "Content-Transfer-Encoding: binary" );
-    header( "Content-Type: application/force-download" );
-    header( "Content-Length: ".filesize($exportPath) );
-    readfile( $exportPath );
-    exit( 0 );
+    header('Pragma: public');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Cache-Control: private', false ); // required by certain browsers
+    header('Content-Description: File Transfer');
+    header('Content-Disposition: attachment; filename="'.$exportFile.'"' );
+    header('Content-Transfer-Encoding: binary');
+    header('Content-Type: application/force-download');
+    header('Content-Length: '.filesize($exportPath));
+    readfile($exportPath);
+    exit(0);
     break;
   }
 }

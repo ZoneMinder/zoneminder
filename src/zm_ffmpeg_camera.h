@@ -59,7 +59,7 @@ class FfmpegCamera : public Camera {
     bool hwaccel;
 #if HAVE_AVUTIL_HWCONTEXT_H
     AVFrame             *hwFrame;
-    DecodeContext decode;
+    DecodeContext       decode;
 #endif
 
     // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.

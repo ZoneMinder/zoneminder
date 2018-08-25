@@ -406,7 +406,7 @@ class Logger {
           $result = $stmt->execute( array( sprintf( '%d.%06d', $time['sec'], $time['usec'] ), $this->id, getmypid(), $level, $code, $string, $file, $line ) );
         } catch(PDOException $ex) {
           $this->databaseLevel = self::NOLOG;
-          Fatal( "Can't write log entry '$sql': ". $ex->getMessage() );
+          Error("Can't write log entry '$sql': ". $ex->getMessage());
         }
       }
       // This has to be last as trigger_error can be fatal

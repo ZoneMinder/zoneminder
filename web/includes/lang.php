@@ -49,8 +49,14 @@ function loadLanguage( $prefix="" )
         return( false );
 }
 
-if ( $langFile = loadLanguage() )
+if ( $langFile = loadLanguage() ) {
     require_once( $langFile );
+    require_once( 'lang/default.php' );
+    foreach ($DLANG as $key => $value) {
+        if ( ! array_key_exists( $key, $SLANG ) )
+            $SLANG[$key] = $DLANG[$key];
+    }
+}
 
 
 //

@@ -3883,6 +3883,15 @@ our @options = (
     category    => 'dynamic',
   },
   {
+    name        => 'ZM_SHOW_PRIVACY',
+    default     => 'yes',
+    description => 'Present the privacy statment',
+    help        => '',
+    type        => $types{boolean},
+    readonly    => 1,
+    category    => 'dynamic',
+  },
+  {
     name        => 'ZM_SSMTP_MAIL',
     default     => 'no',
     description =>  q`

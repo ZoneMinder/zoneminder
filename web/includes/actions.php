@@ -863,6 +863,29 @@ if ( canEdit( 'System' ) ) {
         }
     } // end switch option
   }
+  if ( $action == 'privacy' && isset($_REQUEST['option'] ) ) {
+    $option = $_REQUEST['option'];
+    switch( $option ) {
+      case 'decline' :
+        {
+          dbQuery( "update Config set Value = '0' where Name = 'ZM_SHOW_PRIVACY'" );
+          dbQuery( "update Config set Value = '0' where Name = 'ZM_TELEMETRY_DATA'" );
+          $view = 'console';
+          $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
+          break;
+        }
+      case 'accept' :
+        {
+          dbQuery( "update Config set Value = '0' where Name = 'ZM_SHOW_PRIVACY'" );
+          dbQuery( "update Config set Value = '1' where Name = 'ZM_TELEMETRY_DATA'" );
+          $view = 'console';
+          $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
+          break;
+        }
+      default: # Enable the privacy statement if we somehow submit something other than accept or decline
+          dbQuery( "update Config set Value = '1' where Name = 'ZM_SHOW_PRIVACY'" );
+    } // end switch option
+  }
   if ( $action == 'options' && isset($_REQUEST['tab']) ) {
     $configCat = $configCats[$_REQUEST['tab']];
     $changed = false;

@@ -221,6 +221,11 @@ if ( ZM_OPT_USE_AUTH and ! isset($user) ) {
   $request = null;
 }
 
+if ( ZM_SHOW_PRIVACY && canEdit('System') ) {
+  Logger::Debug("Redirecting to privacy" );
+  $view = 'privacy';
+  $request = null;
+}
 
 if ( $redirect ) {
   header('Location: '.$redirect);

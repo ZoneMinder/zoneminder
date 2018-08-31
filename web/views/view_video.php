@@ -25,7 +25,7 @@
 //      Does not support scaling at this time.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
@@ -37,12 +37,12 @@ $path = '';
 
 $Event = null;
 
-if ( ! empty($_REQUEST['eid'] ) ) {
-  $Event = new Event( $_REQUEST['eid'] );
+if ( ! empty($_REQUEST['eid']) ) {
+  $Event = new Event($_REQUEST['eid']);
   $path = $Event->Path().'/'.$Event->DefaultVideo();
 	Logger::Debug("Path: $path");
-} else if ( ! empty($_REQUEST['event_id'] ) ) {
-  $Event = new Event( $_REQUEST['event_id'] );
+} else if ( ! empty($_REQUEST['event_id']) ) {
+  $Event = new Event($_REQUEST['event_id']);
   $path = $Event->Path().'/'.$Event->DefaultVideo();
 	Logger::Debug("Path: $path");
 } else {
@@ -50,7 +50,7 @@ if ( ! empty($_REQUEST['eid'] ) ) {
 }
 
 if ( $errorText ) {
-  Error( $errorText );
+  Error($errorText);
   header('HTTP/1.0 404 Not Found');
   die();
 } 
@@ -67,12 +67,12 @@ $begin = 0;
 $end = $size-1;
 $length = $size;
 
-if ( isset( $_SERVER['HTTP_RANGE'] ) ) {
-  Logger::Debug("Using Range " . $_SERVER['HTTP_RANGE'] );
-  if ( preg_match( '/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches) ) {
-    $begin = intval( $matches[1] );
-    if ( ! empty( $matches[2]) ) {
-      $end = intval( $matches[2] );
+if ( isset($_SERVER['HTTP_RANGE']) ) {
+  Logger::Debug('Using Range ' . $_SERVER['HTTP_RANGE']);
+  if ( preg_match('/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches) ) {
+    $begin = intval($matches[1]);
+    if ( ! empty($matches[2]) ) {
+      $end = intval($matches[2]);
     }
     $length = $end - $begin + 1;
     Logger::Debug("Using Range $begin $end size: $size, length: $length");
@@ -102,10 +102,10 @@ ob_clean();
 flush();
 
 $cur = $begin;
-fseek( $fh, $begin, 0 );
+fseek($fh, $begin, 0);
 
-while( $length && ( ! feof( $fh ) ) && ( connection_status() == 0 ) ) {
-  $amount = min( 1024*16, $length );
+while( $length && ( !feof($fh) ) && ( connection_status() == 0 ) ) {
+  $amount = min(1024*16, $length);
 
   print fread( $fh, $amount );
   $length -= $amount;
@@ -114,5 +114,5 @@ while( $length && ( ! feof( $fh ) ) && ( connection_status() == 0 ) ) {
   flush();
 }
 
-fclose( $fh );
+fclose($fh);
 exit();

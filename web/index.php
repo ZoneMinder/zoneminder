@@ -210,6 +210,7 @@ if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
   ( $view != 'view_video' ) &&
+  ( $view != 'image' ) &&
   ( $request != 'control' ) && 
   ( $view != 'frames' ) && 
   ( $view != 'archive' )

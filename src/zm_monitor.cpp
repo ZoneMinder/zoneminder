@@ -559,6 +559,13 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // Should maybe store this for later use
   char monitor_dir[PATH_MAX] = "";
   snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
+  if ( purpose == CAPTURE ) {
+    if ( mkdir(monitor_dir, 0755) ) {
+      if ( errno != EEXIST ) {
+        Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
+      }
+    }
+  }
 
   //this0>delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
   //ref_image( width, height, p_camera->Colours(), p_camera->SubpixelOrder() ),

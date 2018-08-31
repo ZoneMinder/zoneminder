@@ -5,7 +5,7 @@
 -- Add Refresh column to Monitors table
 --
 
-ALTER TABLE `zm`.`Monitors` 
+ALTER TABLE `Monitors` 
 CHANGE COLUMN `Type` `Type` ENUM('Local', 'Remote', 'File', 'Ffmpeg', 'Libvlc', 'cURL', 'WebSite') NOT NULL DEFAULT 'Local' ;
 
 SET @s = (SELECT IF(

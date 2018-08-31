@@ -538,6 +538,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     db_mutex.lock();
     char escapedString[(strlen(syslogStart)*2)+1];
     mysql_real_escape_string(&dbconn, escapedString, syslogStart, strlen(syslogStart));
+    char sql[ZM_SQL_MED_BUFSIZ];
     snprintf(sql, sizeof(sql),
         "INSERT INTO Logs "
         "( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line )"

@@ -53,8 +53,7 @@ protected:
   int           contrast;
   bool          capture;
   bool          record_audio;
-  unsigned int bytes;
-
+  unsigned int  bytes;
 
     int                 mVideoStreamId;
     int                 mAudioStreamId;
@@ -79,47 +78,47 @@ public:
       );
   virtual ~Camera();
 
-  unsigned int getId() const { return( monitor_id ); }
+  unsigned int getId() const { return monitor_id; }
   Monitor *getMonitor();
   void  setMonitor( Monitor *p_monitor );
-  SourceType Type() const { return( type ); }
-  bool IsLocal() const { return( type == LOCAL_SRC ); }
-  bool IsRemote() const { return( type == REMOTE_SRC ); }
-  bool IsFile() const { return( type == FILE_SRC ); }
-  bool IsFfmpeg() const { return( type == FFMPEG_SRC ); }
-  bool IsLibvlc() const { return( type == LIBVLC_SRC ); }
-  bool IscURL() const { return( type == CURL_SRC ); }
-  unsigned int Width() const { return( width ); }
-  unsigned int Height() const { return( height ); }
+  SourceType Type() const { return type; }
+  bool IsLocal() const { return type == LOCAL_SRC; }
+  bool IsRemote() const { return type == REMOTE_SRC; }
+  bool IsFile() const { return type == FILE_SRC; }
+  bool IsFfmpeg() const { return type == FFMPEG_SRC; }
+  bool IsLibvlc() const { return type == LIBVLC_SRC; }
+  bool IscURL() const { return type == CURL_SRC; }
+  unsigned int Width() const { return width; }
+  unsigned int Height() const { return height; }
   unsigned int Colours() const { return colours; }
-  unsigned int SubpixelOrder() const { return( subpixelorder ); }
-  unsigned int Pixels() const { return( pixels ); }
-  unsigned int ImageSize() const { return( imagesize ); }
+  unsigned int SubpixelOrder() const { return subpixelorder; }
+  unsigned int Pixels() const { return pixels; }
+  unsigned int ImageSize() const { return imagesize; }
   unsigned int Bytes() const { return bytes; };
 
-  virtual int Brightness( int/*p_brightness*/=-1 ) { return( -1 ); }
-  virtual int Hue( int/*p_hue*/=-1 ) { return( -1 ); }
-  virtual int Colour( int/*p_colour*/=-1 ) { return( -1 ); }
-  virtual int Contrast( int/*p_contrast*/=-1 ) { return( -1 ); }
+  virtual int Brightness( int/*p_brightness*/=-1 ) { return -1; }
+  virtual int Hue( int/*p_hue*/=-1 ) { return -1; }
+  virtual int Colour( int/*p_colour*/=-1 ) { return -1; }
+  virtual int Contrast( int/*p_contrast*/=-1 ) { return -1; }
 
-  bool CanCapture() const { return( capture ); }
+  bool CanCapture() const { return capture; }
 
   bool SupportsNativeVideo() const {
     return (type == FFMPEG_SRC);
     //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
   }
 
-  virtual int PrimeCapture() { return( 0 ); }
-  virtual int PreCapture()=0;
-  virtual int Capture(ZMPacket &p)=0;
-  virtual int PostCapture()=0;
+  virtual int PrimeCapture() { return 0; }
+  virtual int PreCapture() = 0;
+  virtual int Capture(ZMPacket &p) = 0;
+  virtual int PostCapture() = 0;
   virtual AVStream      *get_VideoStream() { return NULL; };
   virtual AVStream      *get_AudioStream() { return NULL; };
   virtual AVCodecContext     *get_VideoCodecContext() { return NULL; };
   virtual AVCodecContext     *get_AudioCodecContext() { return NULL; };
   int            get_VideoStreamId() { return mVideoStreamId; };
   int            get_AudioStreamId() { return mAudioStreamId; };
-  virtual int Close()=0;
+  virtual int Close() = 0;
 };
 
 #endif // ZM_CAMERA_H

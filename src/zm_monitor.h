@@ -267,7 +267,7 @@ protected:
   std::string         encoder;
   std::string         output_container;
   std::vector<EncoderParameter_t> encoderparamsvec;
-    _AVPIXELFORMAT      imagePixFormat;
+  _AVPIXELFORMAT      imagePixFormat;
   unsigned int  subpixelorder;
   bool       record_audio;      // Whether to store the audio that we receive
 

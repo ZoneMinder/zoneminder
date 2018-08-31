@@ -502,17 +502,17 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
       );
   char *syslogStart = logPtr;
 
-  va_start( argPtr, fstring );
+  va_start(argPtr, fstring);
   if ( hex ) {
-    unsigned char *data = va_arg( argPtr, unsigned char * );
-    int len = va_arg( argPtr, int32_t );
+    unsigned char *data = va_arg(argPtr, unsigned char *);
+    int len = va_arg(argPtr, int);
     int i;
-    logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), "%d:", len );
+    logPtr += snprintf(logPtr, sizeof(logString)-(logPtr-logString), "%d:", len);
     for ( i = 0; i < len; i++ ) {
-      logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i] );
+      logPtr += snprintf(logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i]);
     }
   } else {
-    logPtr += vsnprintf( logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr );
+    logPtr += vsnprintf(logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr);
   }
   va_end(argPtr);
   char *syslogEnd = logPtr;
@@ -538,10 +538,13 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     db_mutex.lock();
     char escapedString[(strlen(syslogStart)*2)+1];
     mysql_real_escape_string(&dbconn, escapedString, syslogStart, strlen(syslogStart));
-    char sql[ZM_SQL_MED_BUFSIZ];
     snprintf(sql, sizeof(sql),
-        "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-        timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
+        "INSERT INTO Logs "
+        "( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line )"
+        " VALUES "
+        "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+        timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
+        );
     if ( mysql_query(&dbconn, sql) ) {
       Level tempDatabaseLevel = mDatabaseLevel;
       databaseLevel(NOLOG);

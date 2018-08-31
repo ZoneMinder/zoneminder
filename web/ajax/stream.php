@@ -3,11 +3,14 @@
 
 $start_time = time();
 
-define( 'MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT/2 );
-define( 'MSG_DATA_SIZE', 4+256 );
+define('MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT/2);
+define('MSG_DATA_SIZE', 4+256);
 
 if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
-  ajaxError( "Unexpected received message type '$type'" );
+  ajaxError("Unexpected received message type '$type'");
+}
+
+if (!mkdir(ZM_PATH_SOCKS) ) {
 }
 
 # The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock

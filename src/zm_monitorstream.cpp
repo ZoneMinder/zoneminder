@@ -484,7 +484,7 @@ void MonitorStream::runStream() {
       swap_path = staticConfig.PATH_SWAP;
 
       Debug( 3, "Checking swap path folder: %s", swap_path.c_str() );
-      if ( checkSwapPath(swap_path.c_str(), false) ) {
+      if ( checkSwapPath(swap_path.c_str(), true) ) {
         swap_path += stringtf("/zmswap-m%d", monitor->Id());
 
         Debug(4, "Checking swap path subfolder: %s", swap_path.c_str());

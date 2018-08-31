@@ -83,7 +83,7 @@ int main( int argc, char *argv[] ) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long (argc, argv, "m:h:v", long_options, &option_index);
+    int c = getopt_long(argc, argv, "m:h:v", long_options, &option_index);
     if ( c == -1 ) {
       break;
     }
@@ -144,7 +144,7 @@ int main( int argc, char *argv[] ) {
     unsigned int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
     time_t last_analysis_update_time, cur_time;
     monitor->UpdateAdaptiveSkip();
-    last_analysis_update_time = time( 0 );
+    last_analysis_update_time = time(0);
 
     while( (!zm_terminate) && monitor->ShmValid() ) {
       // Process the next image
@@ -181,5 +181,5 @@ int main( int argc, char *argv[] ) {
   Image::Deinitialise();
   logTerm();
   zmDbClose();
-  return( 0 );
+  return 0;
 }

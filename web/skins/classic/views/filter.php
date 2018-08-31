@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
@@ -28,7 +28,7 @@ parseSort();
 $filterNames = array( ''=>translate('ChooseFilter') );
 $filter = NULL;
 
-foreach ( dbFetchAll( 'SELECT * FROM Filters ORDER BY Name' ) as $row ) {
+foreach ( dbFetchAll('SELECT * FROM Filters ORDER BY Name') as $row ) {
   $filterNames[$row['Id']] = $row['Id'] . ' ' . $row['Name'];
   if ( $row['Background'] )
     $filterNames[$row['Id']] .= '*';
@@ -410,25 +410,23 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <button type="button" onclick="submitToEvents(this);"> <?php echo translate('ListMatches') ?></button>
-          <button type="button" onclick="submitToExport(this);"> <?php echo translate('ExportMatches') ?></button>
-          <button type="button" name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
+          <button type="submit" onclick="submitToEvents(this);"><?php echo translate('ListMatches') ?></button>
+          <button type="submit" onclick="submitToExport(this);"><?php echo translate('ExportMatches') ?></button>
+          <button type="submit" name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
 <?php 
-if ( canEdit( 'Events' ) ) {
+if ( canEdit('Events') ) {
 ?>
-          <button type="button" name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
-          <button type="button" name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
+          <button type="submit" name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
+          <button type="submit" name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>
-          <button type="button" value="Delete " onclick="deleteFilter( this, '<?php echo $filter->Name() ?>' );">
-          <?php echo translate('Delete') ?>
-          </button>
+          <button type="button" value="Delete" onclick="deleteFilter(this, '<?php echo $filter->Name() ?>');"><?php echo translate('Delete') ?></button>
 <?php 
   }
 }
 ?>
-          <button value="<?php echo translate('Reset') ?>" onclick="resetFilter( this );"><?php echo translate('Reset') ?></button>
+          <button type="button" value="Reset" onclick="resetFilter( this );"><?php echo translate('Reset') ?></button>
         </div>
       </form>
     </div><!--content-->

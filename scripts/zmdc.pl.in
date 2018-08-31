@@ -257,6 +257,8 @@ sub run {
   }
 
   my $fd = 0;
+
+  # THis also closes dbh and CLIENT and SERVER
   while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
     POSIX::close($fd++);
   }
@@ -272,6 +274,8 @@ sub run {
       ."\n"
       );
 
+  # We don't want to leave killall zombies, so ignore SIGCHLD
+  $SIG{CHLD} = 'IGNORE';
   # Tell any existing processes to die, wait 1 second between TERM and KILL
   killAll(1);
 
@@ -298,16 +302,17 @@ sub run {
     
     if ( $Config{ZM_SERVER_ID} ) {
       if ( ! ( $secs_count % 60 ) ) {
-        Debug("Connecting");
         while ( (!$zm_terminate) and !($dbh and $dbh->ping()) ) {
           Warning("Not connected to db ($dbh)".($dbh?' ping('.$dbh->ping().')':''). ($DBI::errstr?" errstr($DBI::errstr)":'').' Reconnecting');
           $dbh = zmDbConnect();
         }
+        last if $zm_terminate;
+
         my @cpuload = CpuLoad();
         Debug("Updating Server record @cpuload");
         if ( ! defined $dbh->do(q{UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?}, undef,
             'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
-          Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID}".$dbh->errstr());
+          Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
         }
       }
       $secs_count += 1;
@@ -373,7 +378,7 @@ sub run {
   } # end while
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '
-      .strftime( '%y/%m/%d %H:%M:%S', localtime() )
+      .strftime('%y/%m/%d %H:%M:%S', localtime())
       ."\n"
       );
   if ( $Config{ZM_SERVER_ID} ) {
@@ -707,7 +712,7 @@ sub reaper {
           $process->{delay} = $Config{ZM_MAX_RESTART_DELAY};
         }
       }
-      Debug("Delay for $$process{command} is now $$process{delay}");
+      #Debug("Delay for $$process{command} is now $$process{delay}");
     } else {
       delete $cmd_hash{$$process{command}};
     }

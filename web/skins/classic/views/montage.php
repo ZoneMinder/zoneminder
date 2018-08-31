@@ -202,7 +202,7 @@ foreach ( $monitors as $monitor ) {
               onclick="createPopup('?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
             <?php 
   $monitor_options = $options;
-  if ( $Positions ) {
+  if (0 and $Positions ) {
     $monitor_options['width'] = '100%';
     $monitor_options['height'] = '100%';
     if ( 0 ) {

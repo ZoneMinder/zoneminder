@@ -1,12 +1,12 @@
 --
--- This updates a 1.31.42 database to 1.31.43
+-- This updates a 1.31.44 database to 1.31.45
 --
 -- Add WebSite enum to Monitor.Type
 -- Add Refresh column to Monitors table
---
 
-ALTER TABLE `Monitors` 
-CHANGE COLUMN `Type` `Type` ENUM('Local', 'Remote', 'File', 'Ffmpeg', 'Libvlc', 'cURL', 'WebSite') NOT NULL DEFAULT 'Local' ;
+-- This is the same as the update to 1.31.43, but due to Refresh not being added to zm_create.sql.in we need to have it 
+-- again in order to fix people who did a fresh install from 1.31.43 or 1.31.44.  
+--
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*)
@@ -21,4 +21,3 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
-

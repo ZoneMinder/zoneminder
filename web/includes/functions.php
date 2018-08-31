@@ -227,7 +227,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'.$width.'px;' : '' ).($height ? ' height:'. $height.'px;' : '' ).'"/>';
   }
 }
 
@@ -432,20 +432,38 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
     }
   }
 
-  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions( $contents, $values ).'</select>';
+  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions($contents, $values).'</select>';
 }
 
-function htmlOptions( $contents, $values ) {
-  $html = '';
-  foreach ( $contents as $value=>$text ) {
-    if ( is_array( $text ) )
-      $text = $text['Name'];
-    else if ( is_object( $text ) )
-      $text = $text->Name();
-    $selected = is_array( $values ) ? in_array( $value, $values ) : !strcmp($value, $values);
-    $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
+function htmlOptions($contents, $values) {
+  $options_html = '';
+
+  foreach ( $contents as $value=>$option ) {
+    $disabled = 0;
+    $text = '';
+    if ( is_array($option) ) {
+
+      if ( isset($option['Name']) )
+        $text = $option['Name'];
+      else if ( isset($option['text']) )
+        $text = $option['text'];
+
+      if ( isset($option['disabled']) ) {
+        $disabled = $option['disabled'];
+        Error("Setting to disabled");
+      }
+    } else if ( is_object($option) ) {
+      $text = $option->Name();
+    } else {
+      $text = $option;
+    }
+    $selected = is_array($values) ? in_array($value, $values) : !strcmp($value, $values);
+    $options_html .= "<option value=\"$value\"".
+      ($selected?' selected="selected"':'').
+      ($disabled?' disabled="disabled"':'').
+      ">$text</option>";
   }
-  return $html;
+  return $options_html;
 }
 
 function truncText( $text, $length, $deslash=1 ) {       
@@ -2137,15 +2155,15 @@ function getStreamHTML( $monitor, $options = array() ) {
 
   if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
     //Warning("Scale to " . $options['scale'] );
-    $options['width'] = reScale( $monitor->Width(), $options['scale'] ) . 'px';
-    $options['height'] = reScale( $monitor->Height(), $options['scale'] ) . 'px';
+    $options['width'] = reScale( $monitor->Width(), $options['scale'] );
+    $options['height'] = reScale( $monitor->Height(), $options['scale'] );
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty
     if ( ! ( isset($options['width']) and $options['width'] ) ) {
-      $options['width'] = $monitor->Width() . 'px';
+      $options['width'] = $monitor->Width();
       if ( ! ( isset($options['height']) and $options['height'] ) ) {
-        $options['height'] = $monitor->Height() . 'px';
+        $options['height'] = $monitor->Height();
       }
     } else if ( ! isset($options['height']) ) {
       $options['height'] = '';

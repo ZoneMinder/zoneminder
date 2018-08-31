@@ -108,16 +108,17 @@ public:
     //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
   }
 
-  virtual int PrimeCapture() { return 0; }
-  virtual int PreCapture() = 0;
-  virtual int Capture(ZMPacket &p) = 0;
-  virtual int PostCapture() = 0;
   virtual AVStream      *get_VideoStream() { return NULL; };
   virtual AVStream      *get_AudioStream() { return NULL; };
   virtual AVCodecContext     *get_VideoCodecContext() { return NULL; };
   virtual AVCodecContext     *get_AudioCodecContext() { return NULL; };
   int            get_VideoStreamId() { return mVideoStreamId; };
   int            get_AudioStreamId() { return mAudioStreamId; };
+
+  virtual int PrimeCapture() { return 0; }
+  virtual int PreCapture() = 0;
+  virtual int Capture(ZMPacket &p) = 0;
+  virtual int PostCapture() = 0;
   virtual int Close() = 0;
 };
 

@@ -117,9 +117,8 @@ public:
 
   virtual int PrimeCapture() { return 0; }
   virtual int PreCapture() = 0;
-  virtual int Capture(Image &image) = 0;
+  virtual int Capture(ZMPacket &p)=0;
   virtual int PostCapture() = 0;
-  virtual int CaptureAndRecord(Image &image, timeval recording, char* event_directory) = 0;
   virtual int Close() = 0;
 };
 

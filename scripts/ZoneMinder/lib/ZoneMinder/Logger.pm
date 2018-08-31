@@ -663,11 +663,7 @@ sub Dump {
 
 sub debug {
   my $log = shift;
-<<<<<<< HEAD
-  $log->logPrint(DEBUG, @_);
-=======
   $log->logPrint(DEBUG, @_, caller);
->>>>>>> storageareas
 }
 
 sub Debug( @ ) {

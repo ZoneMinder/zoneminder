@@ -53,7 +53,9 @@ ZoneMinder releases are now being hosted at RPM Fusion. New users should navigat
 
 Note that RHEL/CentOS 7 users should use yum instead of dnf.
 
-Once ZoneMinder has been installed, it is critically important that you read the README file under /usr/share/doc/zoneminder. ZoneMinder will not run without completing the steps outlined in the README.
+Once ZoneMinder has been installed, it is critically important that you read the README.Redhat7 file under /usr/share/doc/zoneminder-[version #] folder. ZoneMinder will not run without completing the steps outlined in the README.Redhat7 file.
+
+if you wish to get rig of a warning from your browser regarding certificate, you can follow suggestions in README.https file.
 
 How to Install Nightly Development Builds
 -----------------------------------------

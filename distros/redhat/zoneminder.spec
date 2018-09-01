@@ -202,8 +202,8 @@ fi
 %{_bindir}/gpasswd -a %{zmuid_final} dialout >/dev/null 2>&1 || :
 
 # Warn the end user to read the README file
-echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README file\nto finish the installation or upgrade!\n"
-echo -e "\nThe README file is located here: %{_docdir}/README\n"
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README file\nto finish the installation or upgrade!"
+echo -e "\nThe README file is located here: %{_pkgdocdir}/README\n"
 
 %if 0%{?with_nginx}
 # Nginx does not create an SSL certificate like the apache package does so lets do that here

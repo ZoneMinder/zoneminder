@@ -33,6 +33,7 @@ our $REALM = '';
 our $USERNAME = '';
 our $PASSWORD = '';
 our $ADDRESS = '';
+our $PROTOCOL = 'http://';
 
 use Time::HiRes qw(usleep);
 
@@ -91,6 +92,9 @@ sub open
         Debug("You generally need to also specify the port.  I will append :80");
         $ADDRESS .= ':80';
     }
+    if ($protocol) {
+        $PROTOCOL = $protocol;
+    }
 
     use LWP::UserAgent;
     $self->{ua} = LWP::UserAgent->new;
@@ -106,7 +110,7 @@ sub open
     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
 
     # Detect REALM
-    my $get_config_url = "http://" . $ADDRESS . "/cgi-bin/configManager.cgi?action=getConfig&name=Ptz";
+    my $get_config_url = $PROTOCOL . $ADDRESS . "/cgi-bin/configManager.cgi?action=getConfig&name=Ptz";
     my $req = HTTP::Request->new(GET=>$get_config_url);
     my $res = $self->{ua}->request($req);
 
@@ -172,7 +176,7 @@ sub sendGetRequest {
 
     my $result = undef;
 
-    my $url = "http://". $ADDRESS . $url_path;
+    my $url = $PROTOCOL . $ADDRESS . $url_path;
     my $req = HTTP::Request->new(GET=>$url);
 
     my $res = $self->{ua}->request($req);

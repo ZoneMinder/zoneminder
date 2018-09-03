@@ -33,6 +33,7 @@ our $REALM = 'TV-IP450PI';
 our $USERNAME = 'admin';
 our $PASSWORD = '';
 our $ADDRESS = '';
+our $PROTOCOL = 'http://';
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
@@ -45,7 +46,7 @@ sub open
 
     my ( $protocol, $username, $password, $address )
        = $self->{Monitor}->{ControlAddress} =~ /^(https?:\/\/)?([^:]+):([^\/@]+)@(.*)$/;
-    if ( $username ) {
+    if ($username) {
         $USERNAME = $username;
         $PASSWORD = $password;
         $ADDRESS = $address;
@@ -56,6 +57,9 @@ sub open
     if (not $ADDRESS =~ /:/) {
         Error("You generally need to also specify the port.  I will append :80");
         $ADDRESS .= ':80';
+    }
+    if ($protocol) {
+        $PROTOCOL = $protocol;
     }
 
     use LWP::UserAgent;
@@ -71,7 +75,7 @@ sub open
     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
 
     # Detect REALM
-    my $req = HTTP::Request->new(GET=>"http://".$ADDRESS."/PSIA/PTZ/channels");
+    my $req = HTTP::Request->new(GET=>$PROTOCOL . $ADDRESS . "/PSIA/PTZ/channels");
     my $res = $self->{ua}->request($req);
 
     if ($res->is_success) {
@@ -119,7 +123,7 @@ sub sendGetRequest {
 
     my $result = undef;
 
-    my $url = "http://".$ADDRESS . $url_path;
+    my $url = $PROTOCOL . $ADDRESS . $url_path;
     my $req = HTTP::Request->new(GET=>$url);
 
     my $res = $self->{ua}->request($req);
@@ -150,7 +154,7 @@ sub sendPutRequest {
 
     my $result = undef;
 
-    my $url = "http://".$ADDRESS . $url_path;
+    my $url = $PROTOCOL . $ADDRESS . $url_path;
     my $req = HTTP::Request->new(PUT=>$url);
     if(defined($content)) {
         $req->content_type("application/x-www-form-urlencoded; charset=UTF-8");
@@ -184,7 +188,7 @@ sub sendDeleteRequest {
 
     my $result = undef;
 
-    my $url = "http://" . $ADDRESS . $url_path;
+    my $url = $PROTOCOL . $ADDRESS . $url_path;
     my $req = HTTP::Request->new(DELETE=>$url);
     my $res = $self->{ua}->request($req);
     if ($res->is_success) {

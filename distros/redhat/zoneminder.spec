@@ -22,11 +22,10 @@
 %global with_apcu_bc 1
 %endif
 
-%global readme_suffix %{?rhel:Redhat%{?rhel}}%{!?rhel:Fedora}
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.31.45
+Version: 1.31.47
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -203,8 +202,8 @@ fi
 %{_bindir}/gpasswd -a %{zmuid_final} dialout >/dev/null 2>&1 || :
 
 # Warn the end user to read the README file
-echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, read README.%{readme_suffix} to finish the\ninstallation or upgrade!\n"
-echo -e "\nThe README file is located here: %{_docdir}/%{name}\n"
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README file\nto finish the installation or upgrade!"
+echo -e "\nThe README file is located here: %{_pkgdocdir}/README\n"
 
 %if 0%{?with_nginx}
 # Nginx does not create an SSL certificate like the apache package does so lets do that here
@@ -252,7 +251,7 @@ EOF
 
 %files
 %license COPYING
-%doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https
+%doc AUTHORS README.md distros/redhat/readme/README distros/redhat/readme/README.https
 
 # We want these two folders to have "normal" read permission
 # compared to the folder contents

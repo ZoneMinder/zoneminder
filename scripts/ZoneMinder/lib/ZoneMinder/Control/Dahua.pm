@@ -347,44 +347,40 @@ sub presetGoto
 
 1;
 __END__
-# Below is stub documentation for your module. You'd better edit it!
 
 =head1 NAME
 
-ZoneMinder::Control::Dahua - Perl extension for Dahua camera control.
+ZoneMinder::Control::Dahua - Perl module for Dahua cameras
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
-  stuff this in /usr/share/perl5/ZoneMinder/Control , then eat a sandwich
+use ZoneMinder::Control::Dahua;
+place this in /usr/share/perl5/ZoneMinder/Control
 
 =head1 DESCRIPTION
 
-Stub documentation for Dahua control module.
+This module is an implementation of the Dahua IP camera HTTP control API.
 
 =head2 EXPORT
 
 None by default.
 
-
-
-=head1 SEE ALSO
-
-Read the comments at the beginning of this file to see the usage for zoneminder 1.25.0
-
-
-=head1 AUTHOR
-
-Jonathan Lassoff (jof@thejof.com)
-
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2018 by Jonathan Lassoff
+Copyright (C) 2018 ZoneMinder LLC
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
 
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =cut
-

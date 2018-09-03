@@ -2721,7 +2721,8 @@ our @options = (
       This is being done for the sole purpoase of creating a better
       product for our target audience. This script is intended to be
       completely transparent to the end user, and can be disabled from
-      the web console under Options.
+      the web console under Options. For more details on what information
+      we collect, please refer to our [privacy](?view=privacy) statement.
       `,
     type        => $types{boolean},
     category    => 'system',

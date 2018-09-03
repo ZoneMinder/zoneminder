@@ -21,7 +21,7 @@
 package ZoneMinder::Control::PSIA;
 
 use 5.006;
-#use strict;
+use strict;
 use warnings;
 
 require ZoneMinder::Base;
@@ -37,31 +37,6 @@ our $ADDRESS = '';
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Database qw(zmDbConnect);
-
-sub new
-{
-    my $class = shift;
-    my $id = shift;
-    my $self = ZoneMinder::Control->new( $id );
-    bless( $self, $class );
-    srand( time() );
-    return $self;
-}
-
-our $AUTOLOAD;
-
-sub AUTOLOAD
-{
-    my $self = shift;
-    my $class = ref($self) || croak( "$self not object" );
-    my $name = $AUTOLOAD;
-    $name =~ s/.*://;
-    if ( exists($self->{$name}) )
-    {
-        return( $self->{$name} );
-    }
-    Fatal( "Can't access $name member of object of class $class" );
-}
 
 sub open
 {
@@ -87,7 +62,6 @@ sub open
     $self->{ua} = LWP::UserAgent->new;
     $self->{ua}->agent( "ZoneMinder Control Agent/".$ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'closed';
-#   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
     Debug( "sendCmd credentials control address:'".$ADDRESS
             ."'  realm:'" . $REALM
             . "'  username:'" . $USERNAME

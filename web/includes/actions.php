@@ -236,7 +236,7 @@ if ( canView('Events') ) {
         }
       } elseif ( $action == 'delete' ) {
 				$dbConn->beginTransaction();
-        foreach( getAffectedIds('markEid') as $markEid ) {
+        foreach( getAffectedIds('eids') as $markEid ) {
           deleteEvent($markEid);
         }
 				$dbConn->commit();

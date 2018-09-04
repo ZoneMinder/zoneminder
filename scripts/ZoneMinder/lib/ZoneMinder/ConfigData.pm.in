@@ -409,8 +409,8 @@ our @options = (
       that is used to get notifications for alarms detected by ZoneMinder
       in real time. zmNinja requires this server for push notifications to
       mobile phones. This option only enables the server if its already installed.
-      Please visit https://github.com/pliablepixels/zmeventserver for installation
-      instructions.
+      Please visit the [zmeventserver project site](https://github.com/pliablepixels/zmeventserver)
+      for installation instructions.
       `,
     type        => $types{boolean},
     category    => 'system',
@@ -442,7 +442,7 @@ our @options = (
     description => 'Your recaptcha site-key',
     help        => q`You need to generate your keys from
       the Google reCaptcha website.
-      Please refer to https://www.google.com/recaptcha/
+      Please refer to the [recaptcha project site](https://www.google.com/recaptcha/)
       for more details.
       `,
     requires    => [
@@ -457,7 +457,7 @@ our @options = (
     description => 'Your recaptcha secret-key',
     help        => q`You need to generate your keys from
       the Google reCaptcha website.
-      Please refer to https://www.google.com/recaptcha/
+      Please refer to the [recaptcha project site](https://www.google.com/recaptcha/)
       for more details.
       `,
     requires    => [
@@ -674,9 +674,9 @@ our @options = (
       ZoneMinder uses to view image streams on browsers such as
       Internet Explorer that don't natively support this format. If
       you use this browser it is highly recommended to install this
-      from http://www.charliemouse.com/code/cambozola/  however if it
-      is not installed still images at a lower refresh rate can still
-      be viewed.
+      from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
+      However, if it is not installed still images at a lower refresh rate can 
+      still be viewed.
       `,
     type        => $types{boolean},
     category    => 'images',
@@ -690,9 +690,9 @@ our @options = (
       ZoneMinder uses to view image streams on browsers such as
       Internet Explorer that don't natively support this format. If
       you use this browser it is highly recommended to install this
-      from http://www.charliemouse.com/code/cambozola/  however if it
-      is not installed still images at a lower refresh rate can still
-      be viewed. Leave this as 'cambozola.jar' if cambozola is
+      from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
+      However if it is not installed still images at a lower refresh rate can
+      still be viewed. Leave this as 'cambozola.jar' if cambozola is
       installed in the same directory as the ZoneMinder web client
       files.
       `,
@@ -2721,7 +2721,8 @@ our @options = (
       This is being done for the sole purpoase of creating a better
       product for our target audience. This script is intended to be
       completely transparent to the end user, and can be disabled from
-      the web console under Options.
+      the web console under Options. For more details on what information
+      we collect, please refer to our [privacy](?view=privacy) statement.
       `,
     type        => $types{boolean},
     category    => 'system',
@@ -3907,7 +3908,7 @@ our @options = (
       SSMTP is a lightweight and efficient method to send email.
       The SSMTP application is not installed by default.
       NEW_MAIL_MODULES must also be enabled.
-      Please visit: http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder
+      Please visit the ZoneMinder [SSMTP Wiki page](http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder)
       for setup and configuration help.
       `,
     type        => $types{boolean},

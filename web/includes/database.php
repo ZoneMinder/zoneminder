@@ -139,9 +139,9 @@ function dbQuery( $sql, $params=NULL ) {
     }
     if ( defined('ZM_DB_DEBUG') ) {
       if ( $params )
-        Warning("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount() );
+        Logger::Debug("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount() );
       else
-        Warning("SQL: $sql: rows:" . $result->rowCount()  );
+        Logger::Debug("SQL: $sql: rows:" . $result->rowCount()  );
     }
   } catch(PDOException $e) {
     Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):'') );

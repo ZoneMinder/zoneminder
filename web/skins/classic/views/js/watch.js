@@ -114,6 +114,7 @@ if ( monitorType != 'WebSite' ) {
     method: 'get',
     timeout: AJAX_TIMEOUT,
     link: 'chain',
+    onError: getStreamCmdError,
     onSuccess: getStreamCmdResponse,
     onFailure: getStreamCmdFailure
   } );
@@ -122,22 +123,28 @@ if ( monitorType != 'WebSite' ) {
 
 var streamStatus;
 
-function getStreamCmdFailure(xhr) {
-console.log(xhr);
+function getStreamCmdError(text,error) {
+  console.log(error);
+  // Error are normally due to failed auth. reload the page.
+  window.location.reload();
 }
-function getStreamCmdResponse( respObj, respText ) {
+function getStreamCmdFailure(xhr) {
+  console.log(xhr);
+}
+function getStreamCmdResponse(respObj, respText) {
   watchdogOk("stream");
+  console.log('stream');
   if ( streamCmdTimer )
-    streamCmdTimer = clearTimeout( streamCmdTimer );
+    streamCmdTimer = clearTimeout(streamCmdTimer);
   if ( respObj.result == 'Ok' ) {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if ( respObj.status ) {
       streamStatus = respObj.status;
-      $('fpsValue').set( 'text', streamStatus.fps );
+      $('fpsValue').set('text', streamStatus.fps);
 
-      setAlarmState( streamStatus.state );
+      setAlarmState(streamStatus.state);
 
-      $('levelValue').set( 'text', streamStatus.level );
+      $('levelValue').set('text', streamStatus.level);
       if ( streamStatus.level > 95 )
         $('levelValue').className = "alarm";
       else if ( streamStatus.level > 80 )
@@ -145,34 +152,34 @@ function getStreamCmdResponse( respObj, respText ) {
       else
         $('levelValue').className = "ok";
 
-      var delayString = secsToTime( streamStatus.delay );
+      var delayString = secsToTime(streamStatus.delay);
 
       if ( streamStatus.paused == true ) {
-        $('modeValue').set( 'text', "Paused" );
-        $('rate').addClass( 'hidden' );
-        $('delayValue').set( 'text', delayString );
-        $('delay').removeClass( 'hidden' );
-        $('level').removeClass( 'hidden' );
-        streamCmdPause( false );
+        $('modeValue').set('text', 'Paused');
+        $('rate').addClass('hidden');
+        $('delayValue').set('text', delayString);
+        $('delay').removeClass('hidden');
+        $('level').removeClass('hidden');
+        streamCmdPause(false);
       } else if ( streamStatus.delayed == true ) {
-        $('modeValue').set( 'text', "Replay" );
-        $('rateValue').set( 'text', streamStatus.rate );
-        $('rate').removeClass( 'hidden' );
-        $('delayValue').set( 'text', delayString );
-        $('delay').removeClass( 'hidden' );
-        $('level').removeClass( 'hidden' );
+        $('modeValue').set('text', 'Replay');
+        $('rateValue').set('text', streamStatus.rate);
+        $('rate').removeClass('hidden');
+        $('delayValue').set('text', delayString);
+        $('delay').removeClass('hidden');
+        $('level').removeClass('hidden');
         if ( streamStatus.rate == 1 ) {
-          streamCmdPlay( false );
+          streamCmdPlay(false);
         } else if ( streamStatus.rate > 0 ) {
           if ( streamStatus.rate < 1 )
-            streamCmdSlowFwd( false );
+            streamCmdSlowFwd(false);
           else
-            streamCmdFastFwd( false );
+            streamCmdFastFwd(false);
         } else {
           if ( streamStatus.rate > -1 )
-            streamCmdSlowRev( false );
+            streamCmdSlowRev(false);
           else
-            streamCmdFastRev( false );
+            streamCmdFastRev(false);
         } // rate
       } else {
         $('modeValue').set( 'text', "Live" );
@@ -209,22 +216,26 @@ function getStreamCmdResponse( respObj, respText ) {
       } // end if canEditMonitors
 
       if ( streamStatus.auth ) {
-        console.log("Haev a new auth hash" + streamStatus.auth);
+        console.log("Have a new auth hash" + streamStatus.auth);
         // Try to reload the image stream.
         var streamImg = $('liveStream');
         if ( streamImg )
-          streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
-      } // end if haev a new auth hash
+          streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+      } // end if have a new auth hash
     } // end if respObj.status
   } else {
-    checkStreamForErrors("getStreamCmdResponse",respObj);//log them
+    checkStreamForErrors("getStreamCmdResponse", respObj);//log them
     // Try to reload the image stream.
+    // If it's an auth error, we should reload the whole page.
+    window.location.reload();
+    if ( 0 ) {
     var streamImg = $('liveStream'+monitorId);
     if ( streamImg ) {
       streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
       console.log("Changing livestream src to " + streamImg.src);
     } else {
       console.log("Unable to find streamImg liveStream");
+    }
     }
   }
 
@@ -360,14 +371,14 @@ if ( monitorType != 'WebSite' ) {
   var statusCmdTimer = null;
 }
 
-function getStatusCmdResponse( respObj, respText ) {
+function getStatusCmdResponse(respObj, respText) {
   watchdogOk("status");
   if ( statusCmdTimer )
-    statusCmdTimer = clearTimeout( statusCmdTimer );
+    statusCmdTimer = clearTimeout(statusCmdTimer);
 
   if ( respObj.result == 'Ok' ) {
-    $('fpsValue').set( 'text', respObj.monitor.FrameRate );
-    setAlarmState( respObj.monitor.Status );
+    $('fpsValue').set('text', respObj.monitor.FrameRate);
+    setAlarmState(respObj.monitor.Status);
   } else
     checkStreamForErrors("getStatusCmdResponse", respObj);
 
@@ -401,19 +412,19 @@ function getAlarmCmdResponse( respObj, respText ) {
 }
 
 function cmdDisableAlarms() {
-  alarmCmdReq.send( alarmCmdParms+"&command=disableAlarms" );
+  alarmCmdReq.send(alarmCmdParms+"&command=disableAlarms");
 }
 
 function cmdEnableAlarms() {
-  alarmCmdReq.send( alarmCmdParms+"&command=enableAlarms" );
+  alarmCmdReq.send(alarmCmdParms+"&command=enableAlarms");
 }
 
 function cmdForceAlarm() {
-  alarmCmdReq.send( alarmCmdParms+"&command=forceAlarm" );
+  alarmCmdReq.send(alarmCmdParms+"&command=forceAlarm");
 }
 
 function cmdCancelForcedAlarm() {
-  alarmCmdReq.send( alarmCmdParms+"&command=cancelForcedAlarm" );
+  alarmCmdReq.send(alarmCmdParms+"&command=cancelForcedAlarm");
   return false;
 }
 
@@ -429,7 +440,13 @@ function getActResponse( respObj, respText ) {
 
 function deleteEvent( event, eventId ) {
   var actParms = "view=request&request=event&action=delete&id="+eventId;
-  var actReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: 3000, data: actParms, onSuccess: getActResponse } );
+  var actReq = new Request.JSON( {
+    url: thisUrl,
+    method: 'post',
+    timeout: 3000,
+    data: actParms,
+    onSuccess: getActResponse
+  } );
   actReq.send();
   event.stop();
 }
@@ -444,7 +461,7 @@ if ( monitorType != 'WebSite' ) {
 }
 
 function highlightRow( row ) {
-  $(row).toggleClass( 'highlight' );
+  $(row).toggleClass('highlight');
 }
 
 function getEventCmdResponse( respObj, respText ) {
@@ -649,7 +666,7 @@ var watchdogFunctions = {
 //Make sure the various refreshes are still taking effect
 function watchdogCheck( type ) {
   if ( watchdogInactive[type] ) {
-    console.log( "Detected streamWatch of type: " + type + " stopped, restarting" );
+    console.log("Detected streamWatch of type: " + type + " stopped, restarting");
     watchdogFunctions[type]();
     watchdogInactive[type] = false;
   } else {
@@ -662,7 +679,7 @@ function watchdogOk( type ) {
 }
 
 function reloadWebSite() {
-    document.getElementById('imageFeed').innerHTML = document.getElementById('imageFeed').innerHTML;
+  document.getElementById('imageFeed').innerHTML = document.getElementById('imageFeed').innerHTML;
 }
 
 function initPage() {
@@ -683,16 +700,16 @@ function initPage() {
       if ( !streamImg )
         streamImg = $('imageFeed').getElement('object');
       if ( streamMode == "single" ) {
-        streamImg.addEvent( 'click', fetchImage.pass( streamImg ) );
-        fetchImage.pass( streamImg ).periodical( imageRefreshTimeout );
+        streamImg.addEvent('click', fetchImage.pass(streamImg));
+        fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
       } else
-        streamImg.addEvent( 'click', function( event ) { handleClick( event ); } );
+        streamImg.addEvent('click', function(event) { handleClick(event); });
     }
 
     if ( refreshApplet && appletRefreshTime )
-      appletRefresh.delay( appletRefreshTime*1000 );
-    if (scale == "auto") changeScale();
-    if (window.history.length == 1) {
+      appletRefresh.delay(appletRefreshTime*1000);
+    if ( scale == "auto" ) changeScale();
+    if ( window.history.length == 1 ) {
       $j('#closeControl').html('');
     }
   } else if ( monitorRefresh > 0 ) {
@@ -701,4 +718,4 @@ function initPage() {
 }
 
 // Kick everything off
-window.addEvent( 'domready', initPage );
+window.addEvent('domready', initPage);

@@ -40,7 +40,7 @@ require_once('includes/Event.php');
 require_once('includes/Frame.php');
 
 // Compatibility for PHP 5.4 
-if (!function_exists('imagescale')) {
+if ( !function_exists('imagescale') ) {
   function imagescale($image, $new_width, $new_height = -1, $mode = 0) {
     $mode; // Not supported
 
@@ -70,17 +70,18 @@ if ( empty($_REQUEST['path']) ) {
 
   if ( !empty($_REQUEST['eid']) ) {
     $Event = Event::find_one(array('Id'=>$_REQUEST['eid']));
-    if ( ! $Event ) {
+    if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
-      Fatal('Event ' . $_REQUEST['eid'].' Not found');
+      Fatal('Event '.$_REQUEST['eid'].' Not found');
       return;
     }
 
     if ( $_REQUEST['fid'] == 'snapshot' ) {
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Score'=>$Event->MaxScore()));
-      if ( ! $Frame )
+      if ( !$Frame )
         $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid']));
-      if ( ! $Frame ) {
+      if ( !$Frame ) {
+        Warning("No frame found for event " + $_REQUEST['eid']);
         $Frame = new Frame();
         $Frame->Delta(1);
         $Frame->FrameId('snapshot');
@@ -123,14 +124,14 @@ Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousB
   } else {
 # If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
     $Frame = Frame::find_one(array('Id'=>$_REQUEST['fid']));
-    if ( ! $Frame ) {
+    if ( !$Frame ) {
       header('HTTP/1.0 404 Not Found');
       Fatal('Frame ' . $_REQUEST['fid'] . ' Not Found');
       return;
     }
 
     $Event = Event::find_one(array('Id'=>$Frame->EventId()));
-    if ( ! $Event ) {
+    if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
       Fatal('Event ' . $Frame->EventId() . ' Not Found');
       return;
@@ -138,11 +139,11 @@ Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousB
     $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
   } # end if have eid
     
-  if ( ! file_exists($path) ) {
+  if ( !file_exists($path) ) {
     Logger::Debug("$path does not exist");
     # Generate the frame JPG
-    if ( $show == 'capture' and $Event->DefaultVideo() ) {
-      if ( ! file_exists($Event->Path().'/'.$Event->DefaultVideo()) ) {
+    if ( ($show == 'capture') and $Event->DefaultVideo() ) {
+      if ( !file_exists($Event->Path().'/'.$Event->DefaultVideo()) ) {
         header('HTTP/1.0 404 Not Found');
         Fatal("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
       }
@@ -190,52 +191,52 @@ Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousB
   } else {
     $errorText = 'Invalid image path';
   }
-  if ( ! file_exists($path) ) {
+  if ( !file_exists($path) ) {
     header('HTTP/1.0 404 Not Found');
     Fatal("Image not found at $path");
   }
 }
 
-$scale=0;
+$scale = 0;
 if ( !empty($_REQUEST['scale']) ) {
   if ( is_numeric($_REQUEST['scale']) ) {
     $x = $_REQUEST['scale'];
     if ( $x >= 1 and $x <= 400 )
-      $scale=$x;
+      $scale = $x;
   }
 }
 
-$width=0;
+$width = 0;
 if ( !empty($_REQUEST['width']) ) {
   if ( is_numeric($_REQUEST['width']) ) {
     $x = $_REQUEST['width'];
     if ( $x >= 10 and $x <= 8000 )
-      $width=$x;
+      $width = $x;
   }
 }
-$height=0;
+$height = 0;
 if ( !empty($_REQUEST['height']) ) {
   if ( is_numeric($_REQUEST['height']) ) {
     $x = $_REQUEST['height'];
     if ( $x >= 10 and $x <= 8000 )
-      $height=$x;
+      $height = $x;
   }
 }
-
-header('Content-type: image/jpeg');
-
-# This is so that Save Image As give a useful filename
-if ( $Event ) {
-  $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
-  header('Content-Disposition: inline; filename="' . $filename . '"');
-}
-ob_clean();
-flush();
 
 if ( $errorText ) {
   Error($errorText);
 } else {
+  # Clears the output buffer. Not sure what is there, but have had troubles.
+  ob_end_clean();
+  header('Content-type: image/jpeg');
   if ( ( $scale==0 || $scale==100 ) && $width==0 && $height==0 ) {
+    # This is so that Save Image As give a useful filename
+    if ( $Event ) {
+      $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
+      header('Content-Disposition: inline; filename="' . $filename . '"');
+    }
+    ob_clean();
+    flush();
     if ( !readfile($path) ) {
       Error('No bytes read from '. $path);
     }
@@ -254,17 +255,23 @@ if ( $errorText ) {
       } elseif ( $width != 0 && $height == 0 ) {
         $height = ($width * $oldHeight) / $oldWidth;
       }
-      if ( $width == $oldWidth && $height == $oldHeight) {
+      if ( $width == $oldWidth && $height == $oldHeight ) {
         Warning('No change to width despite scaling.');
       }
     }
   
     # Slight optimisation, thumbnails always specify width and height, so we can cache them.
-    $scaled_path = preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path );
-    if ( ! file_exists($scaled_path) or ! readfile($scaled_path) ) {
+    $scaled_path = preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path);
+    if ( $Event ) {
+      $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-${width}x${height}.jpg";
+      header('Content-Disposition: inline; filename="' . $filename . '"');
+    }
+    //ob_clean();
+    //flush();
+    if ( !( file_exists($scaled_path) and readfile($scaled_path) ) ) {
       Logger::Debug("Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
       ob_start();
-      if ( ! $i )
+      if ( !$i )
         $i = imagecreatefromjpeg($path);
       $iScale = imagescale($i, $width, $height);
       imagejpeg($iScale);
@@ -274,6 +281,15 @@ if ( $errorText ) {
       file_put_contents($scaled_path, $scaled_jpeg_data);
       ob_end_clean();
       echo $scaled_jpeg_data;
+    } else {
+      Logger::Debug("Sending $scaled_path");
+      $bytes = readfile($scaled_path);
+      if ( !$bytes ) {
+        Error('No bytes read from '. $scaled_path);
+      } else {
+        Logger::Debug("$bytes sent");
+      }
     }
   }
 }
+exit();

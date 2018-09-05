@@ -21,8 +21,10 @@ class MonitorsController extends AppController {
 
   public function beforeFilter() {
     parent::beforeFilter();
-    $canView = $this->Session->Read('monitorPermission');
-    if ($canView == 'None') {
+    global $user;
+    # We already tested for auth in appController, so we just need to test for specific permission
+    $canView = (!$user) || ($user['Monitors'] != 'None');
+    if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -44,8 +46,9 @@ class MonitorsController extends AppController {
       $conditions = array();
     }
 
-    $allowedMonitors=preg_split ('@,@', $this->Session->Read('allowedMonitors'),NULL, PREG_SPLIT_NO_EMPTY);
-    if (!empty($allowedMonitors)) {
+    global $user;
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    if ( $allowedMonitors ) {
       $conditions['Monitor.Id' ] = $allowedMonitors;
     }
     $find_array = array('conditions'=>$conditions,'contain'=>array('Group'));
@@ -88,8 +91,9 @@ class MonitorsController extends AppController {
     if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    $allowedMonitors=preg_split('@,@', $this->Session->Read('allowedMonitors'), NULL, PREG_SPLIT_NO_EMPTY);
-    if ( !empty($allowedMonitors) ) {
+    global $user;
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    if ( $allowedMonitors ) {
       $restricted = array('Monitor.' . $this->Monitor->primaryKey => $allowedMonitors);
     } else {
       $restricted = '';
@@ -115,7 +119,9 @@ class MonitorsController extends AppController {
   public function add() {
     if ( $this->request->is('post') ) {
 
-      if ( $this->Session->Read('systemPermission') != 'Edit' ) {
+      global $user;
+      $canAdd = (!$user) || ($user['System'] == 'Edit' );
+      if ( !$canAdd ) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
       }
@@ -148,7 +154,9 @@ class MonitorsController extends AppController {
     if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    if ( $this->Session->Read('monitorPermission') != 'Edit' ) {
+    global $user;
+    $canEdit = (!$user) || ($user['Monitors'] == 'Edit');
+    if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
@@ -215,7 +223,7 @@ class MonitorsController extends AppController {
   }
 
   public function sourceTypes() {
-    $sourceTypes = $this->Monitor->query("describe Monitors Type;");
+    $sourceTypes = $this->Monitor->query('describe Monitors Type;');
 
     preg_match('/^enum\((.*)\)$/', $sourceTypes[0]['COLUMNS']['Type'], $matches);
     foreach( explode(',', $matches[1]) as $value ) {
@@ -263,7 +271,6 @@ class MonitorsController extends AppController {
     $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH'));
     $config = $this->Config->find('first', $options);
     $zmOptAuth = $config['Config']['Value'];
-
 
     $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY'));
     $config = $this->Config->find('first', $options);
@@ -315,7 +322,7 @@ class MonitorsController extends AppController {
     $monitor = Set::extract('/Monitor/.', $monitor);
 
     // Pass -d for local, otherwise -m
-    if ($monitor[0]['Type'] == 'Local') {
+    if ( $monitor[0]['Type'] == 'Local' ) {
       $args = '-d '. $monitor[0]['Device'];  
     } else {
       $args = '-m '. $monitor[0]['Id'];
@@ -324,7 +331,7 @@ class MonitorsController extends AppController {
     // Build the command, and execute it
     $zm_path_bin = Configure::read('ZM_PATH_BIN');
     $command = escapeshellcmd("$zm_path_bin/zmdc.pl status $daemon $args");
-    $status = exec( $command );
+    $status = exec($command);
 
     // If 'not' is present, the daemon is not running, so return false
     // https://github.com/ZoneMinder/ZoneMinder/issues/799#issuecomment-108996075
@@ -360,9 +367,9 @@ class MonitorsController extends AppController {
     
     $zm_path_bin = Configure::read('ZM_PATH_BIN');
 
-    foreach ($daemons as $daemon) {
+    foreach ( $daemons as $daemon ) {
       $args = '';
-      if ( $daemon == 'zmc' and $monitor['Type'] == 'Local') {
+      if ( $daemon == 'zmc' and $monitor['Type'] == 'Local' ) {
         $args = '-d ' . $monitor['Device'];
       } else {
         $args = '-m ' . $id;
@@ -372,5 +379,4 @@ class MonitorsController extends AppController {
       $status = exec( $shellcmd );
     }
   }
-
 } // end class MonitorsController

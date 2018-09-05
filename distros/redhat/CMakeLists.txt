@@ -1,4 +1,4 @@
-# CMakeLists.txt for the Redhat/CentOS Target Distro.
+# CMakeLists.txt for the Redhat Target Distros.
 
 # Display a message to show the RHEL build options are being processed.
 if(ZM_TARGET_DISTRO MATCHES "^el")
@@ -20,11 +20,16 @@ if(ZM_WEB_USER STREQUAL "nginx")
     configure_file(nginx/zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
     configure_file(nginx/zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
     configure_file(nginx/zoneminder.php-fpm.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.php-fpm.conf @ONLY)
-    configure_file(nginx/README.Fedora ${CMAKE_CURRENT_SOURCE_DIR}/readme/README.Fedora COPYONLY)
+    configure_file(nginx/README.Fedora ${CMAKE_CURRENT_SOURCE_DIR}/readme/README COPYONLY)
 else(ZM_WEB_USER STREQUAL "nginx")
     configure_file(systemd/zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
     configure_file(apache/zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
     configure_file(systemd/zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
+    if( ZM_TARGET_DISTRO MATCHES "^fc")
+        configure_file(readme/README.Fedora ${CMAKE_CURRENT_SOURCE_DIR}/readme/README COPYONLY)
+    else( ZM_TARGET_DISTRO MATCHES "^fc")
+        configure_file(readme/README.Redhat7 ${CMAKE_CURRENT_SOURCE_DIR}/readme/README COPYONLY)
+    endif( ZM_TARGET_DISTRO MATCHES "^fc")
 endif(ZM_WEB_USER STREQUAL "nginx")
 
 # Create several empty folders

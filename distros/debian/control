@@ -42,6 +42,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
     , libsys-cpu-perl, libsys-meminfo-perl
     , libdata-uuid-perl
+    ,libnumber-bytes-human-perl
+    ,libfile-slurp-perl
     , libpcre3
     , ffmpeg | libav-tools, libavdevice53 | libavdevice55 | libavdevice57
     , rsyslog | system-log-daemon

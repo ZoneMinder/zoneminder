@@ -35,7 +35,6 @@ require Date::Manip;
 require File::Find;
 require File::Path;
 require File::Copy;
-require File::Slurp;
 require File::Basename;
 require Number::Bytes::Human;
 
@@ -564,6 +563,7 @@ sub MoveTo {
     my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
     eval {
       require Net::Amazon::S3;
+      require File::Slurp;
       my $s3 = Net::Amazon::S3->new( {
           aws_access_key_id     => $aws_id,
           aws_secret_access_key => $aws_secret,

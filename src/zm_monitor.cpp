@@ -2383,7 +2383,7 @@ int Monitor::Capture() {
   }
 
   if ( captureResult < 0 ) {
-    Warning("Return from Capture (%d), signal loss", captureResult);
+    Info("Return from Capture (%d), signal loss", captureResult);
     // Unable to capture image for temporary reason
     // Fake a signal loss image
     Rgb signalcolor;

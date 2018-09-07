@@ -440,7 +440,7 @@ sub databaseLevel {
   if ( defined($databaseLevel) ) {
     $databaseLevel = $this->limit($databaseLevel);
     if ( $this->{databaseLevel} != $databaseLevel ) {
-      if ( $databaseLevel > NOLOG and $this->{databaseLevel} <= NOLOG ) {
+      if ( ( $databaseLevel > NOLOG ) and ( $this->{databaseLevel} <= NOLOG ) ) {
         if ( !$this->{dbh} ) {
           $this->{dbh} = ZoneMinder::Database::zmDbConnect();
         }
@@ -560,11 +560,14 @@ sub logPrint {
     if ( $level <= $this->{databaseLevel} ) {
       if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
         $this->{sth} = undef;
+        # Turn this off because zDbConnect will do logging calls.
+        my $oldlevel = $this->{databaseLevel};
+        $this->{databaseLevel} = NOLOG;
         if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
           #print(STDERR "Can't log to database: ");
-          $this->{databaseLevel} = NOLOG;
           return;
         }
+        $this->{databaseLevel} = $oldlevel;
       }
 
       my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';

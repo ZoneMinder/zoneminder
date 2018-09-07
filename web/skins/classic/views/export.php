@@ -36,6 +36,8 @@ if ( isset($_SESSION['export']) ) {
     $_REQUEST['exportMisc'] = $_SESSION['export']['misc'];
   if ( isset($_SESSION['export']['format']) )
     $_REQUEST['exportFormat'] = $_SESSION['export']['format'];
+  if ( isset($_SESSION['export']['compress']) )
+    $_REQUEST['exportCompress'] = $_SESSION['export']['compress'];
 } else {
   $_REQUEST['exportDetail'] =
   $_REQUEST['exportFrames'] =

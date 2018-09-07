@@ -166,8 +166,7 @@ private $defaults = array(
       }
     }
   }
-  public static function find_all( $parameters = null, $options = null ) {
-    $filters = array();
+  public static function find( $parameters = null, $options = null ) {
     $sql = 'SELECT * FROM Controls ';
     $values = array();
 
@@ -189,15 +188,37 @@ private $defaults = array(
       }
       $sql .= implode(' AND ', $fields );
     }
-    if ( $options and isset($options['order']) ) {
-    $sql .= ' ORDER BY ' . $options['order'];
+    if ( $options ) {
+      if ( isset($options['order']) ) {
+        $sql .= ' ORDER BY ' . $options['order'];
+      }
+      if ( isset($options['limit']) ) {
+        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
+          $sql .= ' LIMIT ' . $limit;
+        } else {
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Error("Invalid value for limit($limit) passed to Control::find from $file:$line");
+          return;
+        }
+      }
     }
+    $controls = array();
     $result = dbQuery($sql, $values);
     $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Control');
     foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
+      $controls[] = $obj;
     }
-    return $filters;
+    return $controls;
+  }
+
+  public static function find_one( $parameters = array() ) {
+    $results = Control::find( $parameters, array('limit'=>1) );
+    if ( ! sizeof($results) ) {
+      return;
+    }
+    return $results[0];
   }
 
   public function save( $new_values = null ) {

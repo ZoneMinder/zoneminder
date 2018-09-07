@@ -33,7 +33,7 @@ switch ( $_REQUEST['task'] ) {
     if ( !canView('System') )
       ajaxError('Insufficient permissions to view log entries');
 
-    $servers = Server::find_all();
+    $servers = Server::find();
     $servers_by_Id = array();
     # There is probably a better way to do this.
     foreach ( $servers as $server ) {
@@ -153,7 +153,7 @@ switch ( $_REQUEST['task'] ) {
     }
     $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
 
-    $servers = Server::find_all();
+    $servers = Server::find();
     $servers_by_Id = array();
     # There is probably a better way to do this.
     foreach ( $servers as $server ) {

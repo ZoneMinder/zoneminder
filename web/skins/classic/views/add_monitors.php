@@ -44,11 +44,11 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
         </div>
         <div style="width:50%;position: absolute; top:0; left: 0;height: 100%;">
         <fieldset><legend>Enter by IP or URL</legend>
-<p>
-Simply enter the ip address or full url to the stream.
-It will be probed for available streams, or checked to see if it has already been entered.
-If streams are found, they will be listed in the results column. Click Add to add them.
-</p>
+          <p>
+          Simply enter the ip address or full url to the stream.
+          It will be probed for available streams, or checked to see if it has already been entered.
+          If streams are found, they will be listed in the results column. Click Add to add them.
+          </p>
           <!--<input type="text" name="newMonitor[Name]" />-->
           <input type="text" name="newMonitor[Url]" oninput="probe(this);"/>
         </fieldset>
@@ -80,7 +80,7 @@ If streams are found, they will be listed in the results column. Click Add to ad
 ?>
               </td></tr>
 <?php
-              $servers = Server::find_all();
+              $servers = Server::find();
               $ServersById = array();
               foreach ( $servers as $S ) {
                 $ServersById[$S->Id()] = $S;
@@ -92,7 +92,7 @@ If streams are found, they will be listed in the results column. Click Add to ad
               </td></tr>
 <?php
               }
-              $storage_areas = Storage::find_all();
+              $storage_areas = Storage::find();
               $StorageById = array();
               foreach ( $storage_areas as $S ) {
                 $StorageById[$S->Id()] = $S;

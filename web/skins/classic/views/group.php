@@ -18,18 +18,18 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Groups' ) ) {
+if ( !canEdit('Groups') ) {
   $view = 'error';
   return;
 }
 
 if ( !empty($_REQUEST['gid']) ) {
-  $newGroup = new Group( $_REQUEST['gid'] );
+  $newGroup = new Group($_REQUEST['gid']);
 } else {
   $newGroup = new Group();
 }
 
-xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup->Name() );
+xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
 ?>
 <body>
   <div id="page">
@@ -52,7 +52,7 @@ xhtmlHeaders( __FILE__, translate('Group').' - '.$newGroup->Name() );
               <td>
 <?php
 $Groups = array();
-foreach ( Group::find_all( ) as $Group ) {
+foreach ( Group::find() as $Group ) {
   $Groups[$Group->Id()] = $Group;
 }
 
@@ -76,7 +76,7 @@ function get_children($Group) {
 
   $kids = array();
   if ( isset( $children[$Group->Id()] ) ) {
-    $kids += array_map( 'get_Id', $children[$Group->Id()] );
+    $kids += array_map('get_Id', $children[$Group->Id()]);
     foreach ( $children[$Group->Id()] as $G ) {
       foreach ( get_children($G) as $id ) {
         $kids[] = $id;
@@ -89,13 +89,12 @@ function get_children($Group) {
 $kids = get_children($newGroup);
 if ( $newGroup->Id() )
   $kids[] = $newGroup->Id();
-$sql = 'SELECT Id,Name from Groups'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids )).')' : '').' ORDER BY Name';
+$sql = 'SELECT Id,Name from Groups'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids)).')' : '').' ORDER BY Name';
 $options = array(''=>'None');
-foreach ( dbFetchAll( $sql, null, $kids ) as $option ) {
-
-  $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth() ) . $option['Name'];
+foreach ( dbFetchAll($sql, null, $kids) as $option ) {
+  $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()) . $option['Name'];
 }
-echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('onchange'=>'configureButtons(this);' ));
+echo htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('onchange'=>'configureButtons(this);'));
 ?>
               </td>
             </tr>
@@ -104,10 +103,10 @@ echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('o
               <td>
                 <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" onchange="configureButtons(this);">
 <?php
-  $monitors = dbFetchAll( 'SELECT Id,Name FROM Monitors ORDER BY Sequence ASC' );
+  $monitors = dbFetchAll('SELECT Id,Name FROM Monitors ORDER BY Sequence ASC');
   $monitorIds = $newGroup->MonitorIds();
   foreach ( $monitors as $monitor ) {
-    if ( visibleMonitor( $monitor['Id'] ) ) {
+    if ( visibleMonitor($monitor['Id']) ) {
 ?>
                   <option value="<?php echo $monitor['Id'] ?>"<?php if ( in_array( $monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($monitor['Name']) ?></option>
 <?php
@@ -120,7 +119,9 @@ echo htmlSelect( 'newGroup[ParentId]', $options, $newGroup->ParentId(), array('o
           </tbody>
         </table>
         <div id="contentButtons">
-        <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>/>
+          <button type="submit" name="saveBtn" value="Save"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>>
+          <?php echo translate('Save') ?>
+          </button>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>

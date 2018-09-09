@@ -145,7 +145,7 @@ public $defaults = array(
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
           Error("Invalid value for limit($limit) passed to Filter::find from $file:$line");
-          return;
+          return array();
         }
       }
     }

@@ -117,7 +117,7 @@ class Storage {
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
           Error("Invalid value for limit($limit) passed to Control::find from $file:$line");
-          return;
+          return array();
         }
       } # end if limit
     } # end if options

@@ -532,7 +532,7 @@ class Event {
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
           Error("Invalid value for limit($limit) passed to Event::find from $file:$line");
-          return;
+          return array();
         }
       }
     }

@@ -353,6 +353,9 @@ VideoStore::~VideoStore() {
       // The codec queues data.  We need to send a flush command and out
       // whatever we get. Failures are not fatal.
       AVPacket pkt;
+      // Without these we seg fault I don't know why.
+      pkt.data = NULL;
+      pkt.size = 0;
       av_init_packet(&pkt);
 
       while (1) {

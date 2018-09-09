@@ -80,7 +80,16 @@ function logResponse( respObj ) {
               }
             }
         );
-        options = respObj.options;
+        if ( typeof(respObj.options) == 'object' ) {
+          $j.each( respObj.options,
+            function( field ) {
+              if ( options[field] )
+                options[field] = Object.assign(options[field], respObj.options[field]);
+              else
+                options[field] = respObj.options[field];
+            }
+          );
+        }
         updateFilterSelectors();
         $('lastUpdate').set('text', respObj.updated);
         $('logState').set('text', respObj.state);
@@ -217,38 +226,38 @@ function exportRequest() {
 
 function updateFilterSelectors() {
   Object.each(options,
-      function( values, key ) {
-        var selector = $('filter['+key+']');
-        if ( ! selector ) {
-            if ( window.console && window.console.log ) {
-              window.console.log("No selector found for " + key );
-            }
-            return;
+    function( values, key ) {
+      var selector = $('filter['+key+']');
+      if ( ! selector ) {
+        if ( window.console && window.console.log ) {
+          window.console.log("No selector found for " + key );
+        }
+        return;
+      }
+      selector.options.length = 1;
+      if ( key == 'Level' ) {
+        Object.each(values,
+          function( value, label ) {
+            selector.options[selector.options.length] = new Option(value, label);
           }
-          selector.options.length = 1;
-          if ( key == 'Level' ) {
-            Object.each(values,
-                function( value, label ) {
-                  selector.options[selector.options.length] = new Option(value, label);
-                }
-            );
-          } else if ( key == 'ServerId' ) {
-            Object.each(values,
-                function( value, label ) {
-                  selector.options[selector.options.length] = new Option(value, label);
-                }
-                );
-          } else {
-            Object.each(values,
-                function( value, label ) {
-                  selector.options[selector.options.length] = new Option(value, label);
-                }
-                );
+        );
+      } else if ( key == 'ServerId' ) {
+        Object.each(values,
+          function( value, label ) {
+            selector.options[selector.options.length] = new Option(value, label);
           }
-          if ( filter[key] )
-            selector.set('value', filter[key]);
+        );
+      } else {
+        Object.each(values,
+          function( value, label ) {
+            selector.options[selector.options.length] = new Option(value, label);
+          }
+        );
+      }
+      if ( filter[key] )
+        selector.set('value', filter[key]);
 
-          }
+    }
   );
 }
 

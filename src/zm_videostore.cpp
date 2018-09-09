@@ -336,14 +336,14 @@ bool VideoStore::open() {
   } else if (av_dict_count(opts) != 0) {
     Warning("some options not set\n");
   }
+  if (opts) av_dict_free(&opts);
   if (ret < 0) {
     Error("Error occurred when writing out file header to %s: %s\n",
           filename, av_make_error_string(ret).c_str());
     return false;
   }
-  if (opts) av_dict_free(&opts);
   return true;
-}
+} // end VideoStore::open()
 
 VideoStore::~VideoStore() {
 
@@ -398,12 +398,14 @@ VideoStore::~VideoStore() {
         pkt.stream_index = audio_out_stream->index;
         av_interleaved_write_frame(oc, &pkt);
         zm_av_packet_unref(&pkt);
-      }  // while have buffered frames
-    }    // end if audio_out_codec
+      } // while have buffered frames
+    } // end if audio_out_codec
 
     // Flush Queues
+    Debug(1,"Flushing interleaved queues");
     av_interleaved_write_frame(oc, NULL);
 
+    Debug(1,"Writing trailer");
     /* Write the trailer before close */
     if (int rc = av_write_trailer(oc)) {
       Error("Error writing trailer %s", av_err2str(rc));
@@ -411,7 +413,7 @@ VideoStore::~VideoStore() {
       Debug(3, "Sucess Writing trailer");
     }
 
-    // WHen will be not using a file ?
+    // When will we not be using a file ?
     if ( !(out_format->flags & AVFMT_NOFILE) ) {
       /* Close the out file. */
       Debug(2, "Closing");
@@ -507,6 +509,7 @@ bool VideoStore::setup_resampler() {
   }
   Debug(2, "Have audio out codec");
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // audio_out_ctx = audio_out_stream->codec;
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
 
@@ -517,6 +520,12 @@ bool VideoStore::setup_resampler() {
   }
 
   Debug(2, "Have audio_out_ctx");
+  // Now copy them to the out stream
+  audio_out_stream = avformat_new_stream(oc, NULL);
+#else 
+  audio_out_stream = avformat_new_stream(oc, NULL);
+  audio_out_ctx = audio_out_stream->codec;
+#endif
 
   /* put sample parameters */
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate;
@@ -559,8 +568,6 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->time_base =
       (AVRational){1, audio_out_ctx->sample_rate};
 
-  // Now copy them to the out stream
-  audio_out_stream = avformat_new_stream(oc, audio_out_codec);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   ret = avcodec_parameters_from_context(audio_out_stream->codecpar,

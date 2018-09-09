@@ -40,7 +40,6 @@ class Storage {
         $this->{'Path'} = ZM_DIR_EVENTS;
       }
       return $this->{'Path'};
-      
     }
     return $this->{'Name'};
   }
@@ -53,19 +52,19 @@ class Storage {
     return $this->{'Name'};
   }
 
-  public function __call( $fn, array $args= NULL){
-  if ( count( $args )  ) {
+  public function __call( $fn, array $args= NULL ) {
+    if ( count($args) ) {
       $this->{$fn} = $args[0];
     }
-    if ( array_key_exists( $fn, $this ) ) {
+    if ( array_key_exists($fn, $this) )
       return $this->{$fn};
         
-        $backTrace = debug_backtrace();
-        $file = $backTrace[1]['file'];
-        $line = $backTrace[1]['line'];
-        Warning( "Unknown function call Storage->$fn from $file:$line" );
-    }
+    $backTrace = debug_backtrace();
+    $file = $backTrace[1]['file'];
+    $line = $backTrace[1]['line'];
+    Warning("Unknown function call Storage->$fn from $file:$line");
   }
+
   public static function find_one( $parameters = null, $options = null ) {
     global $storage_cache;
     if ( 
@@ -74,7 +73,7 @@ class Storage {
         isset($storage_cache[$parameters['Id']]) ) {
       return $storage_cache[$parameters['Id']];
     }
-    $results = Storage::find_all( $parameters, $options );
+    $results = Storage::find($parameters, $options);
     if ( count($results) > 1 ) {
       Error("Storage Returned more than 1");
       return $results[0];
@@ -84,8 +83,7 @@ class Storage {
       return null;
     }
   }
-  public static function find_all( $parameters = null, $options = null ) {
-    $filters = array();
+  public static function find( $parameters = null, $options = null ) {
     $sql = 'SELECT * FROM Storage ';
     $values = array();
 
@@ -95,7 +93,7 @@ class Storage {
       foreach ( $parameters as $field => $value ) {
         if ( $value == null ) {
           $fields[] = $field.' IS NULL';
-        } else if ( is_array( $value ) ) {
+        } else if ( is_array($value) ) {
           $func = function(){return '?';};
           $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
           $values += $value;
@@ -106,32 +104,47 @@ class Storage {
         }
       }
       $sql .= implode(' AND ', $fields);
-    }
-    if ( $options and isset($options['order']) ) {
-      $sql .= ' ORDER BY ' . $options['order'];
-    }
+    } # end if parameters
+    if ( $options ) {
+      if ( isset($options['order']) ) {
+        $sql .= ' ORDER BY ' . $options['order'];
+      } # end if options
+      if ( isset($options['limit']) ) {
+        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
+          $sql .= ' LIMIT ' . $limit;
+        } else {
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Error("Invalid value for limit($limit) passed to Control::find from $file:$line");
+          return;
+        }
+      } # end if limit
+    } # end if options
+    $storage_areas = array();
     $result = dbQuery($sql, $values);
     if ( $result ) {
       $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage');
       foreach ( $results as $row => $obj ) {
-        $filters[] = $obj;
+        $storage_areas[] = $obj;
       }
     }
-    return $filters;
-  }
+    return $storage_areas;
+  } # end find()
+
   public function disk_usage_percent() {
     $path = $this->Path();
     if ( ! $path ) {
-      Warning("Storage::disk_usage_percent: path is empty");
+      Warning('Storage::disk_usage_percent: path is empty');
       return 0;
-    } else if ( ! file_exists( $path ) ) {
+    } else if ( ! file_exists($path) ) {
       Warning("Storage::disk_usage_percent: path $path does not exist");
       return 0;
     }
       
     $total = $this->disk_total_space();
     if ( ! $total ) {
-      Error("disk_total_space returned false for " . $path );
+      Error('disk_total_space returned false for ' . $path );
       return 0;
     }
     $used = $this->disk_used_space();
@@ -139,6 +152,7 @@ class Storage {
     //Logger::Debug("Used $usage = round( ( $used / $total ) * 100 )");
     return $usage;
   }
+
   public function disk_total_space() {
     if ( !array_key_exists('disk_total_space', $this) ) {
       $path = $this->Path();
@@ -175,8 +189,8 @@ class Storage {
     if ( (! array_key_exists('DiskSpace', $this)) or (!$this->{'DiskSpace'}) ) {
       $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
 
-      foreach ( Event::find_all( array('StorageId'=>$this->Id(), 'DiskSpace'=>null) ) as $Event ) {
-        $Event->Storage( $this ); // Prevent further db hit
+      foreach ( Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null)) as $Event ) {
+        $Event->Storage($this); // Prevent further db hit
         $used += $Event->DiskSpace();
       }
       $this->{'DiskSpace'} = $used;

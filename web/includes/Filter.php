@@ -26,12 +26,12 @@ public $defaults = array(
   public function __construct( $IdOrRow=NULL ) {
     $row = NULL;
     if ( $IdOrRow ) {
-      if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT * FROM Filters WHERE Id=?', NULL, array( $IdOrRow ) );
+      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
+        $row = dbFetchOne('SELECT * FROM Filters WHERE Id=?', NULL, array($IdOrRow));
         if ( ! $row ) {
-          Error('Unable to load Filter record for Id=' . $IdOrRow );
+          Error('Unable to load Filter record for Id=' . $IdOrRow);
         }
-      } elseif ( is_array( $IdOrRow ) ) {
+      } elseif ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
       } else {
         $backTrace = debug_backtrace();
@@ -47,8 +47,8 @@ public $defaults = array(
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
-      if ( array_key_exists( 'Query', $this ) and $this->{'Query'} ) {
-        $this->{'Query'} = jsonDecode( $this->{'Query'} );
+      if ( array_key_exists('Query', $this) and $this->{'Query'} ) {
+        $this->{'Query'} = jsonDecode($this->{'Query'});
       } else {
         $this->{'Query'} = array();
       }
@@ -111,18 +111,62 @@ public $defaults = array(
     return $this->defaults{'limit'};
   }
 
-  public static function find_all() {
+  public static function find( $parameters = null, $options = null ) {
     $filters = array();
-    $result = dbQuery( 'SELECT * FROM Filters ORDER BY Name');
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Filter' );
+    $sql = 'SELECT * FROM Filters ';
+    $values = array();
+
+    if ( $parameters ) {
+      $fields = array();
+      $sql .= 'WHERE ';
+      foreach ( $parameters as $field => $value ) {
+        if ( $value == null ) {
+          $fields[] = $field.' IS NULL';
+        } else if ( is_array( $value ) ) {
+          $func = function(){return '?';};
+          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
+          $values += $value;
+        } else {
+          $fields[] = $field.'=?';
+          $values[] = $value;
+        }
+      }
+      $sql .= implode(' AND ', $fields);
+    }
+    if ( $options ) {
+      if ( isset($options['order']) ) {
+        $sql .= ' ORDER BY ' . $options['order'];
+      }
+      if ( isset($options['limit']) ) {
+        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
+          $sql .= ' LIMIT ' . $limit;
+        } else {
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Error("Invalid value for limit($limit) passed to Filter::find from $file:$line");
+          return;
+        }
+      }
+    }
+    $result = dbQuery($sql, $values);
+    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Filter');
     foreach ( $results as $row => $obj ) {
       $filters[] = $obj;
     }
     return $filters;
-  }
+  } # end find()
+
+  public static function find_one( $parameters = array() ) {
+    $results = Filter::find($parameters, array('limit'=>1));
+    if ( ! sizeof($results) ) {
+      return;
+    }
+    return $results[0];
+  } # end find_one()
 
   public function delete() {
-    dbQuery( 'DELETE FROM Filters WHERE Id = ?', array($this->{'Id'}) );
+    dbQuery('DELETE FROM Filters WHERE Id = ?', array($this->{'Id'}));
   } # end function delete()
 
   public function set( $data ) {
@@ -141,8 +185,6 @@ public $defaults = array(
       }
     }
   }
-
-
 } # end class
 
 ?>

@@ -83,7 +83,7 @@ if ( $_POST ) {
   exit();
 }
 
-$storage_areas = Storage::find_all();
+$storage_areas = Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
@@ -94,7 +94,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
 ?>
 <body>
   <div id="page">
-  <?php echo getNavBarHTML() ?>
+    <?php echo getNavBarHTML() ?>
     <div id="header">
       <div id="info">
         <h2><?php echo sprintf($CLANG['EventCount'], $nEvents, zmVlang($VLANG['Event'], $nEvents)) ?></h2>
@@ -200,7 +200,10 @@ while ( $event_row = dbFetchNext($results) ) {
               <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->AlarmFrames() ) ?></td>
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
-              <td class="colMaxScore"><?php echo makePopupLink( '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array( 'image', reScale( $event->Width(), $scale ), reScale( $event->Height(), $scale ) ), $event->MaxScore() ) ?></td>
+              <td class="colMaxScore"><?php echo makePopupLink(
+                '?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage',
+                array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)), $event->MaxScore()
+              ); ?></td>
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>
@@ -218,7 +221,8 @@ while ( $event_row = dbFetchNext($results) ) {
 #Logger::Debug(print_r($thumbData,true));
       echo '<td class="colThumbnail">';
       $imgSrc = $event->getThumbnailSrc();
-      $streamSrc = $event->getStreamSrc(array('mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single'));
+      $streamSrc = $event->getStreamSrc(array(
+        'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single'));
 
       $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($event->ThumbnailWidth()) .'px;height:'. validInt($event->ThumbnailHeight()).'px;" onmouseover="this.src=\''.$streamSrc.'\';" onmouseout="this.src=\''.$imgSrc.'\';"/>';
       echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';
@@ -234,23 +238,25 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
 ?>
-           <tfoot>
-              <tr>
+          <tfoot>
+            <tr>
               <td colspan="11">Totals:</td>
 <?php
   if ( count($storage_areas)>1 ) {
 ?>
-<td class="colStorage"></td>
+              <td class="colStorage"></td>
 <?php
 }
 ?>
               <td class="colDiskSpace"><?php echo human_filesize($disk_space_total) ?></td>
 <?php
   if ( ZM_WEB_LIST_THUMBS ) {
-?><td></td>
+?>
+              <td></td>
 <?php
 }
-?><td></td>
+?>
+              <td></td>
             </tr>
           </tfoot>
 <?php
@@ -263,7 +269,6 @@ if ( $pagination ) {
         <h3 class="pagination"><?php echo $pagination ?></h3>
 <?php
 }
-if ( true || canEdit( 'Events' ) ) {
 ?>
         <div id="contentButtons">
           <button type="button" name="viewBtn" value="View" onclick="viewEvents(this, 'eids[]');" disabled="disabled">
@@ -288,9 +293,6 @@ if ( true || canEdit( 'Events' ) ) {
           <?php echo translate('Delete') ?>
           </button>
         </div>
-<?php
-}
-?>
       </form>
     </div>
   </div>

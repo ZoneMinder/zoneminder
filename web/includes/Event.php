@@ -486,7 +486,7 @@ class Event {
         isset($event_cache[$parameters['Id']]) ) {
       return $event_cache[$parameters['Id']];
     }
-    $results = Event::find_all( $parameters, $options );
+    $results = Event::find( $parameters, $options );
     if ( count($results) > 1 ) {
       Error("Event Returned more than 1");
       return $results[0];
@@ -497,7 +497,7 @@ class Event {
     }
   }
 
-  public static function find_all( $parameters = null, $options = null ) {
+  public static function find( $parameters = null, $options = null ) {
     $filters = array();
     $sql = 'SELECT * FROM Events ';
     $values = array();
@@ -520,8 +520,21 @@ class Event {
       }
       $sql .= implode(' AND ', $fields );
     }
-    if ( $options and isset($options['order']) ) {
-    $sql .= ' ORDER BY ' . $options['order'];
+    if ( $options ) {
+      if ( isset($options['order']) ) {
+        $sql .= ' ORDER BY ' . $options['order'];
+      }
+      if ( isset($options['limit']) ) {
+        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
+          $sql .= ' LIMIT ' . $limit;
+        } else {
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Error("Invalid value for limit($limit) passed to Event::find from $file:$line");
+          return;
+        }
+      }
     }
     $result = dbQuery($sql, $values);
     $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Event');

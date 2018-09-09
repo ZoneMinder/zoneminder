@@ -278,8 +278,7 @@ private $control_fields = array(
       } # end if method_exists
     } # end foreach $data as $k=>$v
   }
-  public static function find_all( $parameters = null, $options = null ) {
-    $filters = array();
+  public static function find( $parameters = null, $options = null ) {
     $sql = 'SELECT * FROM Monitors ';
     $values = array();
 
@@ -289,9 +288,9 @@ private $control_fields = array(
       foreach ( $parameters as $field => $value ) {
         if ( $value == null ) {
           $fields[] = $field.' IS NULL';
-        } else if ( is_array( $value ) ) {
+        } else if ( is_array($value) ) {
           $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
           $values += $value;
 
         } else {
@@ -299,18 +298,40 @@ private $control_fields = array(
           $values[] = $value;
         }
       }
-      $sql .= implode(' AND ', $fields );
+      $sql .= implode(' AND ', $fields);
     }
-    if ( $options and isset($options['order']) ) {
-    $sql .= ' ORDER BY ' . $options['order'];
+    if ( $options ) {
+      if ( isset($options['order']) ) {
+        $sql .= ' ORDER BY ' . $options['order'];
+      }
+      if ( isset($options['limit']) ) {
+        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
+          $sql .= ' LIMIT ' . $limit;
+        } else {
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Error("Invalid value for limit($limit) passed to Control::find from $file:$line");
+          return;
+        }
+      }
     }
+    $monitors = array();
     $result = dbQuery($sql, $values);
     $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Monitor');
     foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
+      $monitors[] = $obj;
     }
-    return $filters;
-  }
+    return $monitors;
+  } # end find
+
+  public static function find_one( $parameters = array() ) {
+    $results = Monitor::find( $parameters, array('limit'=>1) );
+    if ( ! sizeof($results) ) {
+      return;
+    }
+    return $results[0];
+  } # end find_one
 
   public function save($new_values = null) {
 
@@ -509,5 +530,7 @@ private $control_fields = array(
     }
     return $source;
   } // end function Source
+
+
 } // end class Monitor
 ?>

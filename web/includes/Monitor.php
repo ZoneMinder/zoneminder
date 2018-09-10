@@ -22,6 +22,7 @@ private $defaults = array(
   'MaxFPS' => null,
   'AlarmMaxFPS' => null,
   'Refresh' => null,
+  'DefaultCodec'  => 'auto',
 );
 private $status_fields = array(
   'AnalysisFPS' => null,

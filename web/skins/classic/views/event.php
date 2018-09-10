@@ -52,10 +52,27 @@ if (isset($_REQUEST['scale'])) {
   $scale = reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
 }
 
+$codec = 'auto';
+if (isset($_REQUEST['codec'])) {
+  $codec = $_REQUEST['codec'];
+} else if ( isset( $_COOKIE['zmEventCodec'.$Event->MonitorId()] ) ) {
+  $codec = $_COOKIE['zmEventCodec'.$Event->MonitorId()];
+} else if ( isset( $_SESSION['zmEventCodec'.$Event->MonitorId()] ) ) {
+  $codec = $_SESSION['zmEventCodec'.$Event->MonitorId()];
+} else {
+  $codec = $Monitor->DefaultCodec();
+}
+$codecs = array(
+  'auto'  => translate('Auto'),
+  'H264'  => translate('H264'),
+  'H265'  => translate('H265'),
+  'MJPEG' => translate('MJPEG'),
+);
+
 $replayModes = array(
-    'none'   => translate('None'),
-    'single' => translate('ReplaySingle'),
-    'all' => translate('ReplayAll'),
+    'none'    => translate('None'),
+    'single'  => translate('ReplaySingle'),
+    'all'     => translate('ReplayAll'),
     'gapless' => translate('ReplayGapless'),
 );
 
@@ -149,12 +166,13 @@ if ( canEdit('Events') ) {
         <div id="exportEvent"><button onclick="exportEvent();"><?php echo translate('Export') ?></button></div>
         <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
         <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
+        <div id="codecControl"><label for="codec"><?php echo translate('Codec') ?></label><?php echo htmlSelect('codec', $codecs, $codec, array('onchange'=>'changeCodec(this);') ); ?></div>
       </div>
      </div>
     <div id="content">
       <div id="eventVideo" class="">
 <?php
-if ( $Event->DefaultVideo() ) {
+if ( ($codec == 'H264' || $codec == 'H265' ) && $Event->DefaultVideo() ) {
 ?>
         <div id="videoFeed">
           <video id="videoobj" class="video-js vjs-default-skin" style="transform: matrix(1, 0, 0, 1, 0, 0)" width="<?php echo reScale( $Event->Width(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'>
@@ -164,9 +182,8 @@ if ( $Event->DefaultVideo() ) {
           </video>
         </div><!--videoFeed-->
 <?php
-}  // end if DefaultVideo
+} else {
 ?>
-<?php if (!$Event->DefaultVideo()) { ?>
       <div id="imageFeed">
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {

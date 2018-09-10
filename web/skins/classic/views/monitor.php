@@ -116,6 +116,7 @@ if ( ! $monitor ) {
           'DefaultView' => 'Events',
           'DefaultRate' => '100',
           'DefaultScale' => '100',
+          'DefaultCodec' => 'auto',
           'SignalCheckPoints' => '10',
           'SignalCheckColour' => '#0000c0',
           'WebColour' => 'red',
@@ -452,6 +453,12 @@ $savejpegopts = array(
     'Frames + Analysis images (if available)'             => 3,
     );
 
+$codecs = array(
+  'auto'  => translate('Auto'),
+  'H264'  => translate('H264'),
+  'H265'  => translate('H265'),
+  'MJPEG' => translate('MJPEG'),
+);
 
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
 ?>
@@ -660,6 +667,7 @@ if ( $tab != 'misc' ) {
       <input type="hidden" name="newMonitor[DefaultView]" value="<?php echo validHtmlStr($monitor->DefaultView()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultRate]" value="<?php echo validHtmlStr($monitor->DefaultRate()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultScale]" value="<?php echo validHtmlStr($monitor->DefaultScale()) ?>"/>
+      <input type="hidden" name="newMonitor[DefaultCodec]" value="<?php echo validHtmlStr($monitor->DefaultCodec()) ?>"/>
       <input type="hidden" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>"/>
       <input type="hidden" name="newMonitor[Exif]" value="<?php echo validHtmlStr($monitor->Exif()) ?>"/>
 <?php
@@ -1009,6 +1017,7 @@ if ( $monitor->Type() == 'Local' ) {
         </select></td></tr>
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
+        <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultCodec]", $codecs, $monitor->DefaultCodec() ); ?></td></tr>
         <tr>
           <td><?php echo translate('SignalCheckPoints') ?></td>
           <td>

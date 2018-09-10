@@ -134,6 +134,10 @@ function setButtonState( element, butClass ) {
   }
 }
 
+function changeCodec(element) {
+    location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+element.value);
+}
+
 function changeScale() {
   let scale = $j('#scale').val();
   let newWidth;

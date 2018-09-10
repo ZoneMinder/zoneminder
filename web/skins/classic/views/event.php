@@ -55,8 +55,9 @@ if (isset($_REQUEST['scale'])) {
 $codec = 'auto';
 if (isset($_REQUEST['codec'])) {
   $codec = $_REQUEST['codec'];
-} else if ( isset( $_COOKIE['zmEventCodec'.$Event->MonitorId()] ) ) {
-  $codec = $_COOKIE['zmEventCodec'.$Event->MonitorId()];
+  session_start();
+  $_SESSION['zmEventCodec'.$Event->MonitorId()] = $codec;
+  session_write_close();
 } else if ( isset( $_SESSION['zmEventCodec'.$Event->MonitorId()] ) ) {
   $codec = $_SESSION['zmEventCodec'.$Event->MonitorId()];
 } else {
@@ -109,7 +110,7 @@ $connkey = generateConnKey();
 
 $focusWindow = true;
 
-$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] = 1));
+$popup = (isset($_REQUEST['popup']) && ($_REQUEST['popup'] == 1));
 
 xhtmlHeaders(__FILE__, translate('Event') );
 ?>

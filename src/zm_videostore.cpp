@@ -178,7 +178,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   Monitor::Orientation orientation = monitor->getOrientation();
-  Debug(3, "Have orientation");
   if (orientation) {
     if (orientation == Monitor::ROTATE_0) {
     } else if (orientation == Monitor::ROTATE_90) {

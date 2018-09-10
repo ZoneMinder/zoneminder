@@ -1017,7 +1017,7 @@ if ( $monitor->Type() == 'Local' ) {
         </select></td></tr>
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
-        <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultCodec]", $codecs, $monitor->DefaultCodec() ); ?></td></tr>
+        <tr><td><?php echo translate('DefaultCodec') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultCodec]", $codecs, $monitor->DefaultCodec() ); ?></td></tr>
         <tr>
           <td><?php echo translate('SignalCheckPoints') ?></td>
           <td>

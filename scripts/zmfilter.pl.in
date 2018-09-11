@@ -713,13 +713,17 @@ sub substituteTags {
     }
   } # end if $first_alarm_frame
 
-  if ( $attachments_ref && $Config{ZM_OPT_FFMPEG} ) {
+  if ( $attachments_ref ) {
     if ( $text =~ s/%EV%//g ) {
-      my ( $format, $path ) = generateVideo($filter, $Event);
-      if ( !$format ) {
-        return undef;
+      if ( $$Event{DefaultVideo} ) {
+        push @$attachments_ref, { type=>'video/mp4', path=>join('/',$Event->Path(), $Event->DefaultVideo()) };
+      } elsif ( $Config{ZM_OPT_FFMPEG} ) {
+        my ( $format, $path ) = generateVideo($filter, $Event);
+        if ( !$format ) {
+          return undef;
+        }
+        push( @$attachments_ref, { type=>"video/$format", path=>$path } );
       }
-      push( @$attachments_ref, { type=>"video/$format", path=>$path } );
     }
     if ( $text =~ s/%EVM%//g ) {
       my ( $format, $path ) = generateVideo($filter, $Event, 1);

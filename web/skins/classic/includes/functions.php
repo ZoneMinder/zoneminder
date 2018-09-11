@@ -329,7 +329,7 @@ if ($reload == 'reload') ob_start();
 ?>
 	  <li><?php echo translate('Storage') ?>:
 <?php
-  $storage_areas = Storage::find_all();
+  $storage_areas = Storage::find();
   $storage_paths = null;
   foreach ( $storage_areas as $area ) {
     $storage_paths[$area->Path()] = $area;
@@ -350,7 +350,7 @@ if ($reload == 'reload') ob_start();
     return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) >= 4 ) 
-    $storage_areas = Storage::find_all( array('ServerId'=>null) );
+    $storage_areas = Storage::find( array('ServerId'=>null) );
   if ( count($storage_areas) < 4 )
     echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';

@@ -35,7 +35,6 @@ require Date::Manip;
 require File::Find;
 require File::Path;
 require File::Copy;
-require File::Slurp;
 require File::Basename;
 require Number::Bytes::Human;
 
@@ -423,7 +422,7 @@ sub delete_files {
     ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
 
     my $deleted = 0;
-    if ( $$Storage{Type} eq 's3fs' ) {
+    if ( $$Storage{Type} and ( $$Storage{Type} eq 's3fs' ) ) {
       my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
       eval {
         require Net::Amazon::S3;
@@ -444,7 +443,7 @@ sub delete_files {
         }
       };
       Error($@) if $@;
-    } 
+    }
     if ( ! $deleted ) {
       my $command = "/bin/rm -rf $storage_path/$event_path";
       ZoneMinder::General::executeShellCommand( $command );
@@ -467,7 +466,7 @@ sub Storage {
   }
   if ( ! $_[0]{Storage} ) {
     $_[0]{Storage} = new ZoneMinder::Storage($_[0]{StorageId});
-  } 
+  }
   return $_[0]{Storage};
 }
 
@@ -488,7 +487,7 @@ sub check_for_in_filesystem {
 
 sub age {
   if ( ! $_[0]{age} ) {
-    if ( -e $_[0]->Path() ) { 
+    if ( -e $_[0]->Path() ) {
       # $^T is the time the program began running. -M is program start time - file modification time in days
       $_[0]{age} = (time() - ($^T - ((-M $_[0]->Path() ) * 24*60*60)));
     } else {
@@ -564,6 +563,7 @@ sub MoveTo {
     my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
     eval {
       require Net::Amazon::S3;
+      require File::Slurp;
       my $s3 = Net::Amazon::S3->new( {
           aws_access_key_id     => $aws_id,
           aws_secret_access_key => $aws_secret,
@@ -656,7 +656,7 @@ Debug("Files to move @files");
   }
 
   # Succeeded in copying all files, so we may now update the Event.
-  $$self{StorageId} = $$NewStorage{Id};    
+  $$self{StorageId} = $$NewStorage{Id};
   $$self{Storage} = $NewStorage;
   $error .= $self->save();
   if ( $error ) {

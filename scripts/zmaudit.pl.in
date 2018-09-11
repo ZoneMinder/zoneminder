@@ -67,6 +67,7 @@ my $level = 1;
 my $monitor_id = 0;
 my $version;
 my $force = 0;
+my $server_id = undef;
 my $storage_id = undef;
 
 logInit();
@@ -78,6 +79,7 @@ GetOptions(
     level          =>\$level,
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
+    'server_id=i'  =>\$server_id,
     'storage_id=i' =>\$storage_id,
     version        =>\$version
     ) or pod2usage(-exitstatus => -1);
@@ -181,13 +183,15 @@ MAIN: while( $loop ) {
       Term();
     }
     Info("Auditing Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}");
-  } elsif ( $Config{ZM_SERVER_ID} ) {
-    @Storage_Areas = ZoneMinder::Storage->find( ServerId => $Config{ZM_SERVER_ID} );
+  } elsif ( $server_id ) {
+    @Storage_Areas = ZoneMinder::Storage->find( ServerId => $server_id );
     if ( ! @Storage_Areas ) {
-      Error("No Storage Area found with ServerId =" . $Config{ZM_SERVER_ID});
+      Error("No Storage Area found with ServerId =" . $server_id);
       Term();
     }
-    Info("Auditing All Storage Areas on Server " . $Storage_Areas[0]->Server()->Name());
+    foreach my $Storage ( @Storage_Areas ) {
+      Info('Auditing ' . $Storage->Name() . ' at ' . $Storage->Path() . ' on ' . $Storage->Server()->Name() );
+    }
   } else {
     @Storage_Areas = ZoneMinder::Storage->find();
     Info("Auditing All Storage Areas");
@@ -382,7 +386,7 @@ MAIN: while( $loop ) {
       } # if USE_DEEP_STORAGE
       Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir\n" );
 
-      #delete_empty_directories(  $monitor_dir );
+      delete_empty_directories($$Storage{Path}.'/'.$monitor_dir);
     } # end foreach monitor
 
     if ( $cleaned ) {
@@ -879,26 +883,30 @@ sub deleteSwapImage {
 
 sub delete_empty_directories {
   my $DIR;
-  Debug("delete_empty_directories $_[0]");
-  if ( ! opendir( $DIR, $_[0] ) ) {
-    Error( "delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
+  if ( !opendir($DIR, $_[0]) ) {
+    Error("delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
     return;
   }
-  my @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( $DIR );
+  my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
+  Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents < 2 ? join(',',@contents) : '' ));
   my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
+    Debug("Have " . @dirs . " dirs");
     foreach ( @dirs ) {
       delete_empty_directories( $_[0].'/'.$_ );
     }
 #Reload, since we may now be empty
     rewinddir $DIR;
-    @contents = map { $_ eq '.' or $_ eq '..' ? () : $_ } readdir( $DIR );
+    @contents = map { ($_ eq '.' or $_ eq '..') ? () : $_ } readdir( $DIR );
   }
+  closedir($DIR);
   if ( ! @contents ) {
     ( my $dir ) = ( $_[0] =~ /^(.*)$/ );
-    unlink $dir;
+    Debug("Unlinking $dir because it's empty");
+    if ( ! rmdir $dir ) {
+      Error("Unable to unlink $dir: $!");
+    }
   } 
-  closedir( $DIR );
 } # end sub delete_empty_directories
 
 1;

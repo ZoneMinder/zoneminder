@@ -132,10 +132,21 @@ foreach( $displayMonitors as &$row ) {
 xhtmlHeaders(__FILE__, translate('Montage'));
 ?>
 <body>
-  <div id="page">
-    <?php echo getNavBarHTML() ?>
+  <div id="page">   
+    <div class="navbar navbar-inverse navbar-static-top"> <!-- Begin Short Header -->
+      <div class="navbar-brand">
+        <a href="<?php echo ZM_HOME_URL?>" target="<?php echo ZM_WEB_TITLE ?>"><?php echo ZM_HOME_CONTENT ?></a>
+      </div>
+      <ul class="nav navbar-nav">
+        <li><a class="nav navbar-nav" href="?view=console"><?php echo translate('Console') ?></a></li>
+        <li><a href="?view=options"><?php echo translate('Options') ?></a></li>
+      </ul>
+      <button data-toggle="collapse" data-target="#collapseHeader" class="btn btn-default navbar-btn pull-right"><span class="glyphicon glyphicon-menu-hamburger"></span></button>
+    </div> <!-- End Short Header -->
+
     <div id="header">
-      <div id="headerButtons">
+      <div id="collapseHeader" class="collapse in">
+        <div id="headerButtons">
 <?php
 if ( $showControl ) {
 ?>
@@ -188,8 +199,9 @@ if ( $showZones ) {
         </form>
       </div>
     </div>
-    <div id="content">
-      <div id="monitors">
+  </div>
+  <div id="content">
+    <div id="monitors">
 <?php
 foreach ( $monitors as $monitor ) {
   $connkey = $monitor->connKey(); // Minor hack

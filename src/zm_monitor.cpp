@@ -1395,7 +1395,7 @@ bool Monitor::Analyse() {
         } else if ( signal && Active() && (function == MODECT || function == MOCORD) ) {
           Event::StringSet zoneSet;
           int motion_score = last_motion_score;
-          if ( !(image_count % (motion_frame_skip+1) ) ) {
+          if ( (!motion_frame_skip) || !(image_count % (motion_frame_skip+1) ) ) {
             // Get new score.
             motion_score = DetectMotion(*snap_image, zoneSet);
 
@@ -1718,7 +1718,7 @@ bool Monitor::Analyse() {
               //Warning("In state TAPE,
               //video_store_data->recording = event->StartTime();
             //}
-            if ( !(image_count%(frame_skip+1)) ) {
+            if ( (!frame_skip) || !(image_count%(frame_skip+1)) ) {
               if ( config.bulk_frame_interval > 1 ) {
                 event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
               } else {
@@ -1761,7 +1761,7 @@ bool Monitor::Analyse() {
 
   image_count++;
 
-  return( true );
+  return true;
 }
 
 void Monitor::Reload() {

@@ -173,7 +173,7 @@ if ( canEdit('Events') ) {
     <div id="content">
       <div id="eventVideo" class="">
 <?php
-if ( ($codec == 'H264' || $codec == 'H265' ) && $Event->DefaultVideo() ) {
+if ( ($codec == 'H264' || $codec == 'H265' || $codec == 'auto' ) && $Event->DefaultVideo() ) {
 ?>
         <div id="videoFeed">
           <video id="videoobj" class="video-js vjs-default-skin" style="transform: matrix(1, 0, 0, 1, 0, 0)" width="<?php echo reScale( $Event->Width(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $scale ) ?>" data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'>

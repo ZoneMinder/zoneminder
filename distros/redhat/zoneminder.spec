@@ -346,11 +346,6 @@ EOF
 
 * Thu Aug 31 2017 RPM Fusion Release Engineering <kwizart@rpmfusion.org> - 1.30.4-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
-* Sun Apr 22 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.31.42-1
-- Remove support for sysvinit a.k.a. el6
-- use desktop-file-install for new zoneminder.desktop file
-- add new web cache folder
-- 1.31.42 development snapshot
 
 * Tue May 09 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.4-1
 - modify autosetup macro parameters

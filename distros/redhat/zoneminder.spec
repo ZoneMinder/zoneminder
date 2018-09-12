@@ -25,7 +25,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.31.47
+Version: 1.32.0
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -320,6 +320,32 @@ EOF
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Wed Sep 12 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.0-1
+- 1.32.0 release
+- remove el6 (sys v init) support
+- Make README name consistent across all supported distros
+- remove jscalendar
+- add requires php-json, zip
+- support zm/conf.d folder
+- support zm cache (busting) folder
+
+* Sun Aug 19 2018 Leigh Scott <leigh123linux@googlemail.com> - 1.30.4-9
+- Rebuilt for Fedora 29 Mass Rebuild binutils issue
+
+* Fri Jul 27 2018 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.30.4-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
+
+* Thu Mar 08 2018 RPM Fusion Release Engineering <leigh123linux@googlemail.com> - 1.30.4-7
+- Rebuilt for new ffmpeg snapshot
+
+* Thu Mar 01 2018 RPM Fusion Release Engineering <leigh123linux@googlemail.com> - 1.30.4-6
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
+
+* Thu Jan 18 2018 Leigh Scott <leigh123linux@googlemail.com> - 1.30.4-5
+- Rebuilt for ffmpeg-3.5 git
+
+* Thu Aug 31 2017 RPM Fusion Release Engineering <kwizart@rpmfusion.org> - 1.30.4-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
 * Sun Apr 22 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.31.42-1
 - Remove support for sysvinit a.k.a. el6
 - use desktop-file-install for new zoneminder.desktop file

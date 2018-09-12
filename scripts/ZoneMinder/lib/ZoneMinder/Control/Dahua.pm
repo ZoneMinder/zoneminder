@@ -58,22 +58,18 @@ sub open
     # channel "0", here.
     $self->{dahua_channel_number} = "0";
 
-    my ($protocol, $username, $password, $address)
-       = $self->{Monitor}->{ControlAddress} =~ /^(https?:\/\/)?([^:]+):([^\/@]+)@(.*)$/;
-    if ($username) {
-        $USERNAME = $username;
-        $PASSWORD = $password;
-        $ADDRESS = $address;
+    if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/ ) ) {
+        $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
+        $USERNAME = $+{USERNAME} if $+{USERNAME};
+        $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
+        $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
     } else {
-        Error("Failed to parse auth from address");
+        Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
         $ADDRESS = $self->{Monitor}->{ControlAddress};
     }
-    if (not ($ADDRESS =~ /:/)) {
-        Debug("You generally need to also specify the port.  I will append :80");
+    if ( !($ADDRESS =~ /:/) ) {
+        Error('You generally need to also specify the port.  I will append :80');
         $ADDRESS .= ':80';
-    }
-    if ($protocol) {
-        $PROTOCOL = $protocol;
     }
 
     use LWP::UserAgent;

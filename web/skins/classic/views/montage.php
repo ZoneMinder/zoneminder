@@ -134,8 +134,10 @@ xhtmlHeaders(__FILE__, translate('Montage'));
 <body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
-    <div id="header">
-      <div id="headerButtons">
+    <div id="header">&nbsp&nbsp
+      <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
+      <div id="flipMontageHeader">
+        <div id="headerButtons">
 <?php
 if ( $showControl ) {
 ?>
@@ -188,8 +190,9 @@ if ( $showZones ) {
         </form>
       </div>
     </div>
-    <div id="content">
-      <div id="monitors">
+  </div>
+  <div id="content">
+    <div id="monitors">
 <?php
 foreach ( $monitors as $monitor ) {
   $connkey = $monitor->connKey(); // Minor hack

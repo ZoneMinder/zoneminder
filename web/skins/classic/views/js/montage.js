@@ -395,6 +395,14 @@ function reloadWebSite(ndx) {
 
 var monitors = new Array();
 function initPage() {
+
+  jQuery(document).ready(function(){
+    jQuery("#hdrbutton").click(function(){
+      jQuery("#flipMontageHeader").slideToggle("slow");
+      jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+    });
+  });
+
   for ( var i = 0; i < monitorData.length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );

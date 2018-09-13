@@ -119,11 +119,11 @@ echo " };\n";
 } // end if initialmodeislive
 
 echo "var Storage = [];\n";
-foreach ( Storage::find_all() as $Storage ) {
+foreach ( Storage::find() as $Storage ) {
 echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
 }
 echo "\nvar Servers = [];\n";
-foreach ( Server::find_all() as $Server ) {
+foreach ( Server::find() as $Server ) {
 echo 'Servers[' . $Server->Id() . '] = ' . json_encode($Server). ";\n";
 }
 echo '

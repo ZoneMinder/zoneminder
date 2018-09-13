@@ -119,6 +119,15 @@ echo output_link_if_exists( array(
   <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
+  <script> 
+  jQuery(document).ready(function(){
+    jQuery("#flip").click(function(){
+      jQuery("#panel").slideToggle("slow");
+      jQuery("#flip").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+    });
+  });
+  </script>
+
   <script>
   //<![CDATA[
   <!--
@@ -288,6 +297,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   }
 ?>
       <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
+      <li><a href="#"><span id="flip" class="glyphicon glyphicon-menu-up pull-right"></span></a></li>
 		</ul>
 <?php } // end if canView('Monitors') ?>
 
@@ -305,6 +315,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 </div>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
+    <div id="panel">
 <?php
 }//end reload null.  Runs on full page load
 
@@ -364,6 +375,7 @@ if ($reload == 'reload') ob_start();
 if ($reload == 'reload') return( ob_get_clean() );
 } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
+  </div>
 </div><!-- End .navbar .navbar-default -->
 <?php
   return( ob_get_clean() );

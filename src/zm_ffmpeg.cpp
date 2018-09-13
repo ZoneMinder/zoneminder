@@ -276,7 +276,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, "[0x%x]", st->id);
   if (lang)
     Debug(1, "(%s)", lang->value);
-  Debug(1, ", frames:%d, timebase: %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
+  Debug(1, ", frames:%d, timebase: %d/%d", st->nb_frames, st->time_base.num, st->time_base.den);
   avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, ": %s", buf);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -437,12 +437,17 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
 #endif
   return 1;
 } // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
-void dumpPacket(AVPacket *pkt, const char *text) {
+void dumpPacket(AVStream *stream, AVPacket *pkt, const char *text) {
   char b[10240];
 
+  double pts_time = (double)av_rescale_q(pkt->pts,
+      stream->time_base,
+      AV_TIME_BASE_Q
+      ) / AV_TIME_BASE;
+
   snprintf(b, sizeof(b),
-           " pts: %" PRId64 ", dts: %" PRId64
-           ", data: %p, size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
+           " pts: %" PRId64 "=%f, dts: %" PRId64
+           ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
            ", duration: %" 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
            PRId64
@@ -451,8 +456,8 @@ void dumpPacket(AVPacket *pkt, const char *text) {
 #endif
            "\n",
            pkt->pts, 
+           pts_time,
            pkt->dts,
-           pkt->data,
            pkt->size,
            pkt->stream_index,
            pkt->flags,

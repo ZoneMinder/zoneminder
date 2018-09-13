@@ -539,7 +539,7 @@ Debug(3, "Writing video");
   if ( score < 0 )
     score = 0;
 
-  bool db_frame = ( frame_type != BULK ) || ((frames%config.bulk_frame_interval)==0) || !frames;
+  bool db_frame = ( frame_type != BULK ) || (!frames) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
 
     Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, Event::frame_type_names[frame_type] );

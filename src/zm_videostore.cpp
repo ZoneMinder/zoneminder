@@ -178,7 +178,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   Monitor::Orientation orientation = monitor->getOrientation();
-  Debug(3, "Have orientation");
   if (orientation) {
     if (orientation == Monitor::ROTATE_0) {
     } else if (orientation == Monitor::ROTATE_90) {
@@ -295,14 +294,18 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }  // end if audio_in_stream
 
 
+  video_first_pts = 0;
+  video_first_dts = 0;
   video_last_pts = 0;
   video_last_dts = 0;
+
+  audio_first_pts = 0;
+  audio_first_dts = 0;
   audio_last_pts = 0;
   audio_last_dts = 0;
-  video_next_pts = 0;
-  video_next_dts = 0;
   audio_next_pts = 0;
   audio_next_dts = 0;
+
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {
@@ -386,18 +389,16 @@ VideoStore::~VideoStore() {
 #endif
         Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
             pkt.dts, pkt.duration);
-        pkt.pts = audio_next_pts;
-        pkt.dts = audio_next_dts;
 
+#if 0
         if ( pkt.duration > 0 )
           pkt.duration =
             av_rescale_q(pkt.duration, audio_out_ctx->time_base,
                 audio_out_stream->time_base);
-        audio_next_pts += pkt.duration;
-        audio_next_dts += pkt.duration;
 
         Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
             pkt.dts, pkt.duration);
+#endif
         pkt.stream_index = audio_out_stream->index;
         av_interleaved_write_frame(oc, &pkt);
         zm_av_packet_unref(&pkt);
@@ -720,96 +721,98 @@ bool VideoStore::setup_resampler() {
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   av_init_packet(&opkt);
 
-  opkt.pts = video_next_pts;
-  opkt.dts = video_next_dts;
-  opkt.duration = 0;
+  dumpPacket(video_in_stream, ipkt, "input packet");
 
   int64_t duration;
-  if ( !video_last_pts ) {
-    duration = 0;
-  } else {
-    duration =
-        av_rescale_q(ipkt->pts - video_last_pts, video_in_stream->time_base,
-                     video_out_stream->time_base);
-    Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(% " PRId64 ") = (%" PRId64 ")",
+  if ( ipkt->duration ) {
+    duration = av_rescale_q(
+        ipkt->duration,
+        video_in_stream->time_base,
+        video_out_stream->time_base);
+    Debug(1, "duration from ipkt: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
         ipkt->pts,
         video_last_pts,
-        duration);
-    if (duration <= 0) {
+        ipkt->duration,
+        duration,
+        video_in_stream->time_base.num,
+        video_in_stream->time_base.den,
+        video_out_stream->time_base.num,
+        video_out_stream->time_base.den
+        );
+  } else {
+    duration =
+      av_rescale_q(
+          ipkt->pts - video_last_pts,
+          video_in_stream->time_base,
+          video_out_stream->time_base);
+    Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
+        ipkt->pts,
+        video_last_pts,
+        ipkt->pts - video_last_pts,
+        duration
+        );
+    if ( duration <= 0 ) {
       duration = ipkt->duration ? ipkt->duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
     }
   }
+  opkt.duration = duration;
 
-  //#if ( 0 && video_last_pts && ( ipkt->duration == AV_NOPTS_VALUE || !
-  //ipkt->duration ) ) {
-  // Video packets don't really have a duration. Audio does.
-  // opkt.duration = av_rescale_q(duration, video_in_stream->time_base,
-  // video_out_stream->time_base);
-  // opkt.duration = 0;
-  //} else {
-  // duration = opkt.duration = av_rescale_q(ipkt->duration,
-  // video_in_stream->time_base, video_out_stream->time_base);
-  //}
-  video_last_pts = ipkt->pts;
-  video_last_dts = ipkt->dts;
-
-#if 0
   //Scale the PTS of the outgoing packet to be the correct time base
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
 
-    if ( ! video_last_pts ) {
+    if ( !video_first_pts ) {
       // This is the first packet.
       opkt.pts = 0;
-      Debug(2, "Starting video video_last_pts will become (%d)", ipkt->pts);
+      Debug(2, "Starting video first_pts will become %" PRId64, ipkt->pts);
+      video_first_pts = ipkt->pts;
     } else {
-      if ( ipkt->pts < video_last_pts ) {
-        Debug(1, "Resetting video_last_pts from (%d) to (%d)",  video_last_pts, ipkt->pts);
+      if ( ipkt->pts < video_first_pts ) {
+        Debug(1, "Resetting first_pts from %" PRId64 " to %" PRId64, video_last_pts, ipkt->pts);
+        video_first_pts -= video_last_pts; 
         // wrap around, need to figure out the distance FIXME having this wrong should cause a jump, but then play ok?
-        opkt.pts = video_next_pts + av_rescale_q( ipkt->pts, video_in_stream->time_base, video_out_stream->time_base);
-      } else {
-        opkt.pts = video_next_pts + av_rescale_q( ipkt->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
       }
+      opkt.pts = av_rescale_q(
+          ipkt->pts-video_first_pts,
+          video_in_stream->time_base,
+          video_out_stream->time_base
+          );
     }
-    Debug(3, "opkt.pts = %d from ipkt->pts(%d) - last_pts(%d)", opkt.pts, ipkt->pts, video_last_pts);
+    Debug(3, "opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")", opkt.pts, ipkt->pts, video_first_pts);
     video_last_pts = ipkt->pts;
   } else {
     Debug(3, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
   }
   // Just because the in stream wraps, doesn't mean the out needs to.  Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.  So need to handle in wrap, without causing out wrap.
-  if ( !video_last_dts ) {
-    // This is the first packet.
-    opkt.dts = 0;
-    Debug(1, "Starting video video_last_dts will become (%lu)", ipkt->dts);
-    video_last_dts = ipkt->dts;
-  } else {
-    // Scale the DTS of the outgoing packet to be the correct time base
-
-    if ( ipkt->dts == AV_NOPTS_VALUE ) {
-      // why are we using cur_dts instead of packet.dts? I think cur_dts is in AV_TIME_BASE_Q, but ipkt.dts is in video_in_stream->time_base
-      if ( video_in_stream->cur_dts < video_last_dts ) {
-        Debug(1, "Resetting video_last_dts from (%d) to (%d) p.dts was (%d)",  video_last_dts, video_in_stream->cur_dts, ipkt->dts);
-        opkt.dts = video_next_dts + av_rescale_q(video_in_stream->cur_dts, AV_TIME_BASE_Q, video_out_stream->time_base);
-      } else {
-        opkt.dts = video_next_dts + av_rescale_q(video_in_stream->cur_dts - video_last_dts, AV_TIME_BASE_Q, video_out_stream->time_base);
-      }
-      Debug(3, "opkt.dts = %d from video_in_stream->cur_dts(%d) - previus_dts(%d)", opkt.dts, video_in_stream->cur_dts, video_last_dts);
-      video_last_dts = video_in_stream->cur_dts;
+  if ( ipkt->dts != AV_NOPTS_VALUE ) {
+    if ( !video_first_dts ) {
+      // This is the first packet.
+      opkt.dts = 0;
+      Debug(1, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
+      video_first_dts = ipkt->dts;
     } else {
-      if ( ipkt->dts < video_last_dts ) {
-        Debug(1, "Resetting video_last_dts from (%d) to (%d)",  video_last_dts, ipkt->dts);
-        opkt.dts = video_next_dts + av_rescale_q( ipkt->dts,  video_in_stream->time_base, video_out_stream->time_base);
-      } else {
-        opkt.dts = video_next_dts + av_rescale_q( ipkt->dts - video_last_dts, video_in_stream->time_base, video_out_stream->time_base);
+      if ( ipkt->dts < video_first_dts ) {
+        Debug(1, "Resetting first_dts from (%" PRId64 ") to (%" PRId64")",
+            video_first_dts, ipkt->dts);
+        video_first_dts -= video_last_dts;
       }
-      Debug(3, "opkt.dts = %d from ipkt.dts(%d) - previus_dts(%d)", opkt.dts, ipkt->dts, video_last_dts);
+      opkt.dts = av_rescale_q(
+          ipkt->dts-video_first_dts,
+          video_in_stream->time_base,
+          video_out_stream->time_base
+          );
+      Debug(3, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_dts(%" PRId64 ")",
+          opkt.dts, ipkt->dts, video_first_dts);
       video_last_dts = ipkt->dts;
     }
+  } else {
+    Debug(3, "opkt.dts = undef");
+    opkt.dts = AV_NOPTS_VALUE;
   }
-#endif
+
   if (opkt.dts > opkt.pts) {
     Debug(1,
-          "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen "
+          "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 "). Decompression must happen "
           "before presentation.",
           opkt.dts, opkt.pts);
     opkt.dts = opkt.pts;
@@ -823,24 +826,21 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
 
   opkt.stream_index = video_out_stream->index;
 
-  AVPacket safepkt;
-  memcpy(&safepkt, &opkt, sizeof(AVPacket));
-
-  dumpPacket( &opkt, "writing video packet" );
+  dumpPacket(video_out_stream, &opkt, "writing video packet");
   if ((opkt.data == NULL) || (opkt.size < 1)) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
-    dumpPacket(ipkt);
-    dumpPacket(&opkt);
+    dumpPacket(video_in_stream, ipkt,"In Packet");
+    dumpPacket(video_out_stream, &opkt);
 
+#if 0
   } else if ((video_next_dts > 0) && (video_next_dts > opkt.dts)) {
     Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame",
             __FILE__, __LINE__, video_next_dts, opkt.dts);
     video_next_dts = opkt.dts;
     dumpPacket(&opkt);
+#endif
 
   } else {
-    video_next_dts = opkt.dts + duration;
-    video_next_pts = opkt.pts + duration;
     ret = av_interleaved_write_frame(oc, &opkt);
     if (ret < 0) {
       // There's nothing we can really do if the frame is rejected, just drop it
@@ -849,7 +849,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
           "%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d) "
           " ",
           __FILE__, __LINE__, av_make_error_string(ret).c_str(), ret);
-      dumpPacket(&safepkt);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       zm_dump_codecpar(video_in_stream->codecpar);
       zm_dump_codecpar(video_out_stream->codecpar);
@@ -904,7 +903,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
                                      &data_present, ipkt)) < 0) {
       Error("Could not decode frame (error '%s')\n",
             av_make_error_string(ret).c_str());
-      dumpPacket(ipkt);
+      dumpPacket(video_in_stream, ipkt);
       av_frame_free(&in_frame);
       return 0;
     }
@@ -1068,8 +1067,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   }
   // opkt.duration = av_rescale_q(ipkt->duration, audio_in_stream->time_base,
   // audio_out_stream->time_base);
-  Debug(2, "opkt.pts (%d), opkt.dts(%d) opkt.duration = (%d)", opkt.pts,
-        opkt.dts, opkt.duration);
+  dumpPacket( audio_out_stream, &opkt );
 
   // pkt.pos:  byte position in stream, -1 if unknown
   opkt.pos = -1;
@@ -1077,13 +1075,10 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   audio_next_dts = opkt.dts + opkt.duration;
   audio_next_pts = opkt.pts + opkt.duration;
 
-  AVPacket safepkt;
-  memcpy(&safepkt, &opkt, sizeof(AVPacket));
   ret = av_interleaved_write_frame(oc, &opkt);
   if (ret != 0) {
     Error("Error writing audio frame packet: %s\n",
           av_make_error_string(ret).c_str());
-    dumpPacket(&safepkt);
   } else {
     Debug(2, "Success writing audio frame");
   }

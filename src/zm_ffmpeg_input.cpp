@@ -119,8 +119,9 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
       Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
       return NULL;
     }
+    dumpPacket(input_format_context->streams[packet.stream_index], &packet, "Received packet");
 
-    if ( (stream_id < 0 ) || ( packet.stream_index == stream_id ) ) {
+    if ( (stream_id < 0) || (packet.stream_index == stream_id) ) {
       Debug(3,"Packet is for our stream (%d)", packet.stream_index );
 
       AVCodecContext *context = streams[packet.stream_index].context;
@@ -154,7 +155,7 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
       }
     } else {
 #endif
-      Debug(1,"Getting a frame?");
+      Debug(1,"Getting frame %d", streams[packet.stream_index].frame_count);
       ret = avcodec_receive_frame( context, frame );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -185,3 +186,20 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
   return frame;
 
 } //  end AVFrame *FFmpeg_Input::get_frame
+
+AVFrame *FFmpeg_Input::get_frame( int stream_id, double at ) {
+  Debug(1, "Getting frame from stream %d at %f", stream_id, at);
+
+  int64_t seek_target = (int64_t)at * AV_TIME_BASE;
+  Debug(1, "Getting frame from stream %d at %" PRId64, stream_id, seek_target);
+  seek_target = av_rescale_q(seek_target, AV_TIME_BASE_Q, input_format_context->streams[stream_id]->time_base);
+  Debug(1, "Getting frame from stream %d at %" PRId64, stream_id, seek_target);
+
+  int ret;
+  if ( ( ret = av_seek_frame(input_format_context, stream_id, seek_target, 0/*FORWARDS*/) < 0 ) ) {
+    Error("Unable to seek in stream");
+    return NULL;
+  }
+  return get_frame(stream_id);
+
+} // end AVFrame *FFmpeg_Input::get_frame( int stream_id, struct timeval at)

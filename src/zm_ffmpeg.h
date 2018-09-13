@@ -327,5 +327,5 @@ int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
 bool is_video_stream( AVStream * stream );
 bool is_audio_stream( AVStream * stream );
 int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet );
-void dumpPacket(AVPacket *,const char *text="DEBUG");
+void dumpPacket(AVStream *, AVPacket *,const char *text="");
 #endif // ZM_FFMPEG_H

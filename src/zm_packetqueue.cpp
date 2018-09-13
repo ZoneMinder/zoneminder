@@ -119,11 +119,14 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
 
 void zm_packetqueue::clearQueue() {
   ZMPacket *packet = NULL;
+  int delete_count = 0;
 	while(!pktQueue.empty()) {
     packet = pktQueue.front();
     pktQueue.pop_front();
     delete packet;
+    delete_count += 1;
 	}
+  Debug(3, "Deleted (%d) packets", delete_count );
 }
 
 unsigned int zm_packetqueue::size() {

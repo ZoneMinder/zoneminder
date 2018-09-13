@@ -1389,7 +1389,7 @@ bool Monitor::Analyse() {
 
         } else if ( signal && Active() && (function == MODECT || function == MOCORD) ) {
           Event::StringSet zoneSet;
-          if ( !(image_count % (motion_frame_skip+1) ) ) {
+          if ( (!motion_frame_skip) || !(image_count % (motion_frame_skip+1) ) ) {
             // Get new score.
             int new_motion_score = DetectMotion(*snap_image, zoneSet);
 
@@ -1714,7 +1714,7 @@ Error("Creating new event when one exists");
               //Warning("In state TAPE,
               //video_store_data->recording = event->StartTime();
             //}
-            if ( !(image_count%(frame_skip+1)) ) {
+            if ( (!frame_skip) || !(image_count%(frame_skip+1)) ) {
               if ( config.bulk_frame_interval > 1 ) {
                 event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
               } else {
@@ -1731,6 +1731,7 @@ Error("Creating new event when one exists");
       }
       shared_data->state = state = IDLE;
       last_section_mod = 0;
+      trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) ) {
@@ -1756,7 +1757,7 @@ Error("Creating new event when one exists");
 
   image_count++;
 
-  return( true );
+  return true;
 }
 
 void Monitor::Reload() {
@@ -2384,6 +2385,9 @@ int Monitor::Capture() {
 
   if ( captureResult < 0 ) {
     Info("Return from Capture (%d), signal loss", captureResult);
+    // Tell zma to end the event. zma will reset TRIGGER
+    trigger_data->trigger_state = TRIGGER_OFF;
+
     // Unable to capture image for temporary reason
     // Fake a signal loss image
     Rgb signalcolor;

@@ -259,14 +259,20 @@ sub createPath {
 }
 
 sub createLinkPath {
-  makePath($_[0]->LinkPath());
+  my $LinkPath = $_[0]->LinkPath();
+  my $EventPath = $_[0]->EventPath();
+  if ( $LinkPath ) {
+    if ( !symlink($EventPath, $LinkPath) ) {
+      Error("Failed symlinking $EventPath to $LinkPath");
+    }
+  }
 }
 
 sub idPath {
-  return sprintf('%s/.%d', $event->Path(), $event->{Id});
+  return sprintf('%s/.%d', $_[0]->Path(), $_[0]->{Id});
 }
 
-sub createIdPath {
+sub createIdFile {
   my $event = shift;
   my $idFile = $event->idPath();
   open( my $ID_FP, '>', $idFile )

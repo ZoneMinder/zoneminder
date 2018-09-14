@@ -254,6 +254,27 @@ sub LinkPath {
   return $$event{LinkPath};
 } # end sub LinkPath
 
+sub createPath {
+  makePath($_[0]->Path());
+}
+
+sub createLinkPath {
+  makePath($_[0]->LinkPath());
+}
+
+sub idPath {
+  return sprintf('%s/.%d', $event->Path(), $event->{Id});
+}
+
+sub createIdPath {
+  my $event = shift;
+  my $idFile = $event->idPath();
+  open( my $ID_FP, '>', $idFile )
+    or Error("Can't open $idFile: $!");
+  close($ID_FP);
+  setFileOwner($idFile); 
+}
+
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
 

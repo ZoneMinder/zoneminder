@@ -181,56 +181,13 @@ sub runCommand {
 }
 
 sub createEventPath {
-#
-# WARNING assumes running from events directory
-#
   my $event = shift;
-  my $Storage = new ZoneMinder::Storage( $$event{Id} );
-  my $eventPath = $Storage->Path() . '/'.$event->{MonitorId};
+  my $eventPath = $event->Path();
+  $event->createPath();
+  $event->createIdFile();
+  $event->createLinkPath();
 
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    my @startTime = localtime( $event->{StartTime} );
-
-    my @datetimeParts = ();
-    $datetimeParts[0] = sprintf( "%02d", $startTime[5]-100 );
-    $datetimeParts[1] = sprintf( "%02d", $startTime[4]+1 );
-    $datetimeParts[2] = sprintf( "%02d", $startTime[3] );
-    $datetimeParts[3] = sprintf( "%02d", $startTime[2] );
-    $datetimeParts[4] = sprintf( "%02d", $startTime[1] );
-    $datetimeParts[5] = sprintf( "%02d", $startTime[0] );
-
-    my $datePath = join('/',@datetimeParts[0..2]);
-    my $timePath = join('/',@datetimeParts[3..5]);
-
-    makePath( $datePath, $eventPath );
-    $eventPath .= '/'.$datePath;
-
-# Create event id symlink
-    my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-    symlink( $timePath, $idFile )
-      or Fatal( "Can't symlink $idFile -> $eventPath: $!" );
-
-    makePath( $timePath, $eventPath );
-    $eventPath .= '/'.$timePath;
-    setFileOwner( $idFile ); # Must come after directory has been created
-
-# Create empty id tag file
-      $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-    open( my $ID_FP, ">", $idFile )
-      or Fatal( "Can't open $idFile: $!" );
-    close( $ID_FP );
-    setFileOwner( $idFile );
-  } else {
-    makePath( $event->{Id}, $eventPath );
-    $eventPath .= '/'.$event->{Id};
-
-    my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-    open( my $ID_FP, ">", $idFile )
-      or Fatal( "Can't open $idFile: $!" );
-    close( $ID_FP );
-    setFileOwner( $idFile );
-  }
-  return( $eventPath );
+  return $eventPath;
 }
 
 use Data::Dumper;

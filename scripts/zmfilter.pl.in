@@ -475,7 +475,7 @@ sub uploadArchFile {
   }
 
   my $archFile = $event->{MonitorName}.'-'.$event->{Id};
-  my $archImagePath = $event->Path();
+  my $archImagePath = $event->Path()
     .'/'
     .(
         ( $Config{ZM_UPLOAD_ARCH_ANALYSE} )

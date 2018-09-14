@@ -29,13 +29,13 @@ This means if you plan to use cuRL to experiment with these APIs, you first need
 
 ::
 
-    curl -XPOST -d "user=XXXX&pass=YYYY" -c cookies.txt  http://yourzmip/zm/api/login.json
+    curl -XPOST -d "user=XXXX&pass=YYYY" -c cookies.txt  http://yourzmip/zm/api/host/login.json
 
 Staring ZM 1.32.0, you also have a `logout` API that basically clears your session. It looks like this:
 
 ::
 
-    curl -b cookies.txt  http://yourzmip/zm/api/logout.json
+    curl -b cookies.txt  http://yourzmip/zm/api/host/logout.json
 
 
 **Login process for older versions of ZoneMinder**

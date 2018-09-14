@@ -36,25 +36,26 @@ function noCacheHeaders() {
 }
 
 function CORSHeaders() {
-  if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+  if ( isset($_SERVER['HTTP_ORIGIN']) ) {
 
 # The following is left for future reference/use.
     $valid = false;
-    $servers = dbFetchAll( 'SELECT * FROM Servers' );
+    $servers = dbFetchAll('SELECT * FROM Servers');
     if ( sizeof($servers) <= 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       return;
     }
     foreach( $servers as $row ) {
-      $Server = new Server( $row );
-      if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
+      $Server = new Server($row);
+      if ( preg_match('/^'.preg_quote($Server->Url(),'/').'/', $_SERVER['HTTP_ORIGIN']) ) {
         $valid = true;
-        header('Access-Control-Allow-Origin: ' . $Server->Url() );
+        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
+        break;
       }
     }
-    if ( ! $valid ) {
-      Warning( $_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.' );
+    if ( !$valid ) {
+      Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
     }
   }
 }

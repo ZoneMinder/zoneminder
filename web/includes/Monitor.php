@@ -510,8 +510,12 @@ private $control_fields = array(
       $source = preg_replace( '/^.*\//', '', $this->{'Path'} );
     } elseif ( $this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite' ) {
       $url_parts = parse_url( $this->{'Path'} );
-      if ( ZM_WEB_FILTER_SOURCE == "Hostname" ) { # Filter out everything but the hostname
-        $source = $url_parts['host'];
+      if ( ZM_WEB_FILTER_SOURCE == 'Hostname' ) { # Filter out everything but the hostname
+        if ( isset($url_parts['host']) ) {
+          $source = $url_parts['host'];
+        } else {
+          $source = $this->{'Path'};
+        }
       } elseif ( ZM_WEB_FILTER_SOURCE == "NoCredentials" ) { # Filter out sensitive and common items
         unset($url_parts['user']);
         unset($url_parts['pass']);
@@ -531,6 +535,9 @@ private $control_fields = array(
     return $source;
   } // end function Source
 
+  public function Url() {
+    return $this->Server()->Url() .':'. ( ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : $_SERVER['SERVER_PORT'] );
+  }
 
 } // end class Monitor
 ?>

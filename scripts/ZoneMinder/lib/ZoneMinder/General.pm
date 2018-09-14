@@ -49,7 +49,6 @@ our %EXPORT_TAGS = (
       setFileOwner
       createEventPath
       createEvent
-      deleteEventFiles
       makePath
       jsonEncode
       jsonDecode
@@ -422,53 +421,6 @@ sub updateEvent {
     or Fatal( "Can't prepare sql '$sql': ".$dbh->errstr() );
   my $res = $sth->execute( @values )
     or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
-}
-
-sub deleteEventFiles {
-#
-# WARNING assumes running from events directory
-#
-  my $event_id = shift;
-  my $monitor_id = shift;
-  $monitor_id = '*' if ( !defined($monitor_id) );
-
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    my $link_path = $monitor_id."/*/*/*/.".$event_id;
-#Debug( "LP1:$link_path" );
-    my @links = glob($link_path);
-#Debug( "L:".$links[0].": $!" );
-    if ( @links ) {
-      ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
-#Debug( "LP2:$link_path" );
-
-        ( my $day_path = $link_path ) =~ s/\.\d+//;
-#Debug( "DP:$day_path" );
-      my $event_path = $day_path.readlink( $link_path );
-      ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-#Debug( "EP:$event_path" );
-        my $command = "/bin/rm -rf ".$event_path;
-#Debug( "C:$command" );
-      executeShellCommand( $command );
-
-      unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
-      my @path_parts = split( /\//, $event_path );
-      for ( my $i = int(@path_parts)-2; $i >= 1; $i-- ) {
-        my $delete_path = join( '/', @path_parts[0..$i] );
-#Debug( "DP$i:$delete_path" );
-        my @has_files = glob( $delete_path."/*" );
-#Debug( "HF1:".$has_files[0] ) if ( @has_files );
-        last if ( @has_files );
-        @has_files = glob( $delete_path."/.[0-9]*" );
-#Debug( "HF2:".$has_files[0] ) if ( @has_files );
-        last if ( @has_files );
-        my $command = "/bin/rm -rf ".$delete_path;
-        executeShellCommand( $command );
-      }
-    }
-  } else {
-    my $command = "/bin/rm -rf $monitor_id/$event_id";
-    executeShellCommand( $command );
-  }
 }
 
 sub makePath {

@@ -911,7 +911,7 @@ function reScale( $dimension, $dummy ) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
     $scale = func_get_arg( $i );
-    if ( !empty($scale) && $scale != SCALE_BASE )
+    if ( !empty($scale) && ($scale != 'auto') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return( $new_dimension );

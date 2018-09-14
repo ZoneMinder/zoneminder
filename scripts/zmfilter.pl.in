@@ -475,7 +475,7 @@ sub uploadArchFile {
   }
 
   my $archFile = $event->{MonitorName}.'-'.$event->{Id};
-  my $archImagePath = getEventPath($event)
+  my $archImagePath = $event->Path();
     .'/'
     .(
         ( $Config{ZM_UPLOAD_ARCH_ANALYSE} )
@@ -951,7 +951,7 @@ sub executeCommand {
   my $filter = shift;
   my $event = shift;
 
-  my $event_path = getEventPath($event);
+  my $event_path = $event->Path();
 
   my $command = $filter->{AutoExecuteCmd};
   $command .= " $event_path";

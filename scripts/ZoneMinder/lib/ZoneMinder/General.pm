@@ -47,7 +47,6 @@ our %EXPORT_TAGS = (
       getCmdFormat
       runCommand
       setFileOwner
-      getEventPath
       createEventPath
       createEvent
       deleteEventFiles
@@ -179,19 +178,6 @@ sub runCommand {
     }
   }
   return( $output );
-}
-
-sub getEventPath {
-  my $event = shift;
-
-  my $Storage = new ZoneMinder::Storage( $$event{StorageId} );
-  my $event_path = join( '/', 
-      $Storage->Path(),
-      $event->{MonitorId},
-      ( $Config{ZM_USE_DEEP_STORAGE} ? strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) ) : $event->{Id} ),
-      );
-
-  return( $event_path );
 }
 
 sub createEventPath {

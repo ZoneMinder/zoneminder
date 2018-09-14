@@ -51,10 +51,11 @@ function CORSHeaders() {
         $valid = true;
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
+        break;
       }
     }
-    if ( ! $valid ) {
-      Warning( $_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.' );
+    if ( !$valid ) {
+      Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
     }
   }
 }

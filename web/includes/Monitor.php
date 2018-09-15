@@ -2,6 +2,8 @@
 require_once('database.php');
 require_once('Server.php');
 
+$monitor_cache = array();
+
 class Monitor {
 
 private $defaults = array(
@@ -165,6 +167,8 @@ private $control_fields = array(
             }
           }
         }
+        global $monitor_cache;
+        $monitor_cache[$row['Id']] = $row;
 
       } else {
         Error('No row for Monitor ' . $IdOrRow);
@@ -306,26 +310,33 @@ private $control_fields = array(
       }
       if ( isset($options['limit']) ) {
         if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $limit;
+          $sql .= ' LIMIT ' . $options['limit'];
         } else {
           $backTrace = debug_backtrace();
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
-          Error("Invalid value for limit($limit) passed to Control::find from $file:$line");
+          Error("Invalid value for limit(".$options['limit'].") passed to Control::find from $file:$line");
           return array();
         }
       }
     }
     $monitors = array();
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Monitor');
-    foreach ( $results as $row => $obj ) {
-      $monitors[] = $obj;
+    $results = $result->fetchALL();
+    foreach ( $results as $row ) {
+      $monitors[] = new Monitor($row);
     }
     return $monitors;
   } # end find
 
   public static function find_one( $parameters = array() ) {
+    global $monitor_cache;
+    if ( 
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($monitor_cache[$parameters['Id']]) ) {
+      return $monitor_cache[$parameters['Id']];
+    }
     $results = Monitor::find( $parameters, array('limit'=>1) );
     if ( ! sizeof($results) ) {
       return;

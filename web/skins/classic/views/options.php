@@ -166,12 +166,15 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
       $userMonitors = array();
       if ( !empty($row['MonitorIds']) ) {
         foreach ( explode(',', $row['MonitorIds']) as $monitorId ) {
+          // A deleted monitor will cause an error since we don't update 
+          // the user monitors list on monitor delete
+          if ( ! isset($monitors[$monitorId]) ) continue;
           $userMonitors[] = $monitors[$monitorId]['Name'];
         }
       }
 ?>
             <tr>
-              <td class="colUsername"><?php echo makePopupLink( '?view=user&amp;uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit ) ?></td>
+              <td class="colUsername"><?php echo makePopupLink('?view=user&amp;uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit) ?></td>
               <td class="colLanguage"><?php echo $row['Language']?validHtmlStr($row['Language']):'default' ?></td>
               <td class="colEnabled"><?php echo $row['Enabled']?translate('Yes'):translate('No') ?></td>
               <td class="colStream"><?php echo validHtmlStr($row['Stream']) ?></td>

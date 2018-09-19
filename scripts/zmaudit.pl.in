@@ -363,7 +363,7 @@ MAIN: while( $loop ) {
       }
 
       if ( ! $$Storage{Scheme} ) {
-        Debug("Storage Scheme not set on $$Storage{Name}");
+        Error("Storage Scheme not set on $$Storage{Name}");
         if ( ! chdir( $monitor_dir ) ) {
           Error( "Can't chdir directory '$$Storage{Path}/$monitor_dir': $!" );
           next;
@@ -477,6 +477,10 @@ MAIN: while( $loop ) {
             next;
           }
           Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
+          if ( $Event->Archived() ) {
+            Warning("Event $$Event{Id} is Archived. Taking no further action on it.");
+            next;
+          }
           if ( ! $Event->StartTime() ) {
             Info("Event $$Event{Id} has no start time.  deleting it.");
             if ( confirm() ) {

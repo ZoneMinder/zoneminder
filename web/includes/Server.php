@@ -1,6 +1,8 @@
 <?php
 require_once('database.php');
 
+$server_cache = array();
+
 class Server {
   private $defaults = array(
     'Id'        =>  null,
@@ -10,7 +12,10 @@ class Server {
     'zmstats'   =>  1,
     'zmtrigger' =>  0,
   );
+
+
   public function __construct( $IdOrRow = NULL ) {
+  global $server_cache;
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer($IdOrRow) or ctype_digit($IdOrRow) ) {
@@ -26,6 +31,7 @@ class Server {
       foreach ($row as $k => $v) {
         $this->{$k} = $v;
       }
+      $server_cache[$row['Id']] = $this;
     } else {
       $this->{'Name'} = '';
       $this->{'Hostname'} = '';
@@ -92,12 +98,12 @@ class Server {
       }
       if ( isset($options['limit']) ) {
         if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $limit;
+          $sql .= ' LIMIT ' . $options['limit'];
         } else {
           $backTrace = debug_backtrace();
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
-          Error("Invalid value for limit($limit) passed to Server::find from $file:$line");
+          Error("Invalid value for limit(".$options['limit'].") passed to Server::find from $file:$line");
           return array();
         }
       }
@@ -110,6 +116,13 @@ class Server {
   }
 
   public static function find_one( $parameters = array() ) {
+    global $server_cache;
+    if ( 
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($server_cache[$parameters['Id']]) ) {
+      return $server_cache[$parameters['Id']];
+    }
     $results = Server::find( $parameters, array('limit'=>1) );
     if ( ! sizeof($results) ) {
       return;

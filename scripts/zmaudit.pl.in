@@ -386,7 +386,7 @@ MAIN: while( $loop ) {
       } # if USE_DEEP_STORAGE
       Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir\n" );
 
-      delete_empty_directories($$Storage{Path}.'/'.$monitor_dir);
+      delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
     } # end foreach monitor
 
     if ( $cleaned ) {
@@ -883,6 +883,24 @@ sub deleteSwapImage {
     Debug( "Deleting $file" );
     unlink( $file );
   }
+}
+
+# Deletes empty sub directories of the given path.
+# Does not delete the path if empty. Is not meant to be recursive.
+sub delete_empty_subdirs {
+  my $DIR;
+  if ( !opendir($DIR, $_[0]) ) {
+    Error("delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
+    return;
+  }
+  my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
+  Debug("delete_empty_subdirectories $_[0] has " . @contents .' entries:' . ( @contents < 2 ? join(',',@contents) : '' ));
+  my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
+  Debug("Have " . @dirs . " dirs");
+  foreach ( @dirs ) {
+    delete_empty_directories( $_[0].'/'.$_ );
+  }
+  closedir($DIR);
 }
 
 sub delete_empty_directories {

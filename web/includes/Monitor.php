@@ -168,7 +168,7 @@ private $control_fields = array(
           }
         }
         global $monitor_cache;
-        $monitor_cache[$row['Id']] = $row;
+        $monitor_cache[$row['Id']] = $this;
 
       } else {
         Error('No row for Monitor ' . $IdOrRow);

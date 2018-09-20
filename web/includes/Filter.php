@@ -140,12 +140,12 @@ public $defaults = array(
       }
       if ( isset($options['limit']) ) {
         if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $limit;
+          $sql .= ' LIMIT ' . $options['limit'];
         } else {
           $backTrace = debug_backtrace();
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
-          Error("Invalid value for limit($limit) passed to Filter::find from $file:$line");
+          Error("Invalid value for limit(".$options['limit'].") passed to Filter::find from $file:$line");
           return array();
         }
       }
@@ -185,7 +185,7 @@ public $defaults = array(
         $this->{$k} = $v;
       }
     }
-  }
-} # end class
+  } # end function set
+} # end class Filter
 
 ?>

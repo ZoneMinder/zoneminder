@@ -85,7 +85,9 @@ class Event {
 
   public function Monitor() {
     if ( isset($this->{'MonitorId'}) ) {
-      return Monitor::find_one(array('Id'=>$this->{'MonitorId'}));
+      $Monitor = Monitor::find_one(array('Id'=>$this->{'MonitorId'}));
+      if ( $Monitor )
+        return $Monitor;
     }
     return new Monitor();
   }

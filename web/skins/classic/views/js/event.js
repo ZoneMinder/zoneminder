@@ -239,7 +239,7 @@ function getCmdResponse( respObj, respText ) {
 
   if ( streamStatus.auth ) {
     // Try to reload the image stream.
-    var streamImg = document.getElementById('evtStream');
+    var streamImg = $j('#evtStream');
     if ( streamImg )
       streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
   } // end if haev a new auth hash
@@ -992,10 +992,15 @@ function initPage() {
     progressBarNav ();
     streamCmdTimer = streamQuery.delay( 250 );
     if ( canStreamNative ) {
-      var streamImg = $('imageFeed').getElement('img');
-      if ( !streamImg )
-        streamImg = $('imageFeed').getElement('object');
-      $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
+      var imageFeed = $('imageFeed');
+      if ( !imageFeed ) {
+        console.log('No element with id tag imageFeed found.');
+      } else {
+        var streamImg = imageFeed.getElement('img');
+        if ( !streamImg )
+          streamImg = imageFeed.getElement('object');
+        $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
+      }
     }
   }
   nearEventsQuery(eventData.Id);

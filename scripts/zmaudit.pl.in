@@ -264,17 +264,20 @@ MAIN: while( $loop ) {
             Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
             next;
           }
+          my %event_ids_by_path;
+
           my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
           Debug("Have " . @event_links . ' event links');
           closedir(DIR);
           my $count = 0;
           foreach my $event_link ( @event_links ) {
-            if ( $event_link =~ /[^\d\.]/ ) {
+            # Event links start with a period and consist of the digits of the event id. Anything else is not an event link
+            my ($event_id) = $event_link =~ /^(\.\d)$/;
+            if ( !$event_id ) {
               Warning("Non-event link found $event_link in $day_dir, skipping");
               next;
             }
             Debug("Checking link $event_link");
-            ( my $event = $event_link ) =~ s/^.*\.//;
             #Event path is hour/minute/sec
             my $event_path = readlink($event_link);
 
@@ -286,11 +289,13 @@ MAIN: while( $loop ) {
                 $cleaned = 1;
               }
             } else {
+              $event_ids_by_path{$event_path} = $event_id;
+
               Debug("Checking link $event_link points to $event_path ");
-              my $Event = $fs_events->{$event} = new ZoneMinder::Event();
-              $$Event{Id} = $event;
-              $$Event{Path} = join('/', $Storage->Path(), $day_dir,$event_path);
-              $$Event{RelativePath} = join('/', $day_dir,$event_path);
+              my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
+              $$Event{Id} = $event_id;
+              $$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_path);
+              $$Event{RelativePath} = join('/', $day_dir, $event_path);
               $$Event{Scheme} = 'Deep';
               $Event->MonitorId( $monitor_dir );
               $Event->StorageId( $Storage->Id() );
@@ -307,14 +312,33 @@ MAIN: while( $loop ) {
 
             my $event_id = undef;
 
-            my @mp4_files = glob("$event_dir/[0-9]+\-video.mp4");
+            if ( ! opendir(DIR, $event_dir) ) {
+              Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
+              next;
+            }
+            my @contents = readdir( DIR );
+            Debug("Have " . @contents . " files in $day_dir/$event_dir");
+            closedir(DIR);
+
+            my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
               my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
               if ( $id ) {
                 $event_id = $id;
+                Debug("Got event id from mp4 file $mp4_file => $event_id");
                 last;
               }
             }
+            
+            if ( ! $event_id ) {
+              # Look for .id file
+              my @hidden_files = grep( /^\.\d+$/, @contents);
+              Debug("Have " . @hidden_files . ' hidden files');
+              if ( @hidden_files ) {
+                ( $event_id ) = $hidden_files[0] =~ /^.(\d+)$/;
+              }
+            }
+
             if ( $event_id ) {
               my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
               $$Event{Id} = $event_id;
@@ -324,12 +348,17 @@ MAIN: while( $loop ) {
               $Event->MonitorId( $monitor_dir );
               $Event->StorageId( $Storage->Id() );
               $Event->DiskSpace( undef );
+              if ( ! $event_ids_by_path{$event_dir} ) {
+                Warning("No event link found at ".$Event->LinkPath() ." for " . $Event->to_string());
+              }
             } else {
-              aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
-              if ( confirm() ) {
-                my $command = "rm -rf $event_dir";
-                executeShellCommand( $command );
-                $cleaned = 1;
+              if ( ! $event_ids_by_path{$event_dir} ) {
+                aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
+                if ( confirm() ) {
+                  my $command = "rm -rf $event_dir";
+                  executeShellCommand( $command );
+                  $cleaned = 1;
+                }
               }
             } # end if able to find id
           } # end foreach event_dir without link
@@ -910,7 +939,7 @@ sub delete_empty_directories {
     return;
   }
   my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
-  Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents < 2 ? join(',',@contents) : '' ));
+  Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents <= 2 ? join(',',@contents) : '' ));
   my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
     Debug("Have " . @dirs . " dirs");

@@ -363,7 +363,7 @@ MAIN: while( $loop ) {
       }
 
       if ( ! $$Storage{Scheme} ) {
-        Debug("Storage Scheme not set on $$Storage{Name}");
+        Error("Storage Scheme not set on $$Storage{Name}");
         if ( ! chdir( $monitor_dir ) ) {
           Error( "Can't chdir directory '$$Storage{Path}/$monitor_dir': $!" );
           next;
@@ -386,7 +386,7 @@ MAIN: while( $loop ) {
       } # if USE_DEEP_STORAGE
       Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir\n" );
 
-      delete_empty_directories($$Storage{Path}.'/'.$monitor_dir);
+      delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
     } # end foreach monitor
 
     if ( $cleaned ) {
@@ -477,6 +477,10 @@ MAIN: while( $loop ) {
             next;
           }
           Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
+          if ( $Event->Archived() ) {
+            Warning("Event $$Event{Id} is Archived. Taking no further action on it.");
+            next;
+          }
           if ( ! $Event->StartTime() ) {
             Info("Event $$Event{Id} has no start time.  deleting it.");
             if ( confirm() ) {
@@ -879,6 +883,24 @@ sub deleteSwapImage {
     Debug( "Deleting $file" );
     unlink( $file );
   }
+}
+
+# Deletes empty sub directories of the given path.
+# Does not delete the path if empty. Is not meant to be recursive.
+sub delete_empty_subdirs {
+  my $DIR;
+  if ( !opendir($DIR, $_[0]) ) {
+    Error("delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
+    return;
+  }
+  my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
+  Debug("delete_empty_subdirectories $_[0] has " . @contents .' entries:' . ( @contents < 2 ? join(',',@contents) : '' ));
+  my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
+  Debug("Have " . @dirs . " dirs");
+  foreach ( @dirs ) {
+    delete_empty_directories( $_[0].'/'.$_ );
+  }
+  closedir($DIR);
 }
 
 sub delete_empty_directories {

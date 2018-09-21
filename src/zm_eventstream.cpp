@@ -755,6 +755,12 @@ void EventStream::runStream() {
     // commands may set send_frame to true
     while(checkCommandQueue());
 
+    // Update modified time of the socket .lock file so that we can tell which ones are stale.
+    if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
+      touch(sock_path_lock);
+      last_comm_update = now;
+    }
+
     if ( step != 0 )
       curr_frame_id += step;
 

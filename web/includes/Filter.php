@@ -11,6 +11,7 @@ public $defaults = array(
     'AutoDelete'      =>  0,
     'AutoArchive'     =>  0,
     'AutoVideo'       =>  0,
+    'AutoUpload'      =>  0,
     'AutoMessage'     =>  0,
     'AutoMove'        =>  0,
     'AutoMoveTo'      =>  0,

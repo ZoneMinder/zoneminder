@@ -238,7 +238,7 @@ sub LinkPath {
             '.'.$$event{Id}
             );
       } elsif ( $$event{Path} ) {
-        if ( ( $$event{Path} =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
+        if ( ( $event->RelativePath() =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
           $$event{LinkPath} = $1.'/.'.$$event{Id};
         } else {
           Error("Unable to get LinkPath from Path for $$event{Id} $$event{Path}");
@@ -443,7 +443,7 @@ sub delete_files {
     return;
   }
   my $event_path = $event->RelativePath();
-  Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path.");
+  Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path, scheme is $$event{Scheme}.");
   if ( $event_path ) {
     ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
     ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
@@ -479,7 +479,7 @@ sub delete_files {
 
   if ( $event->Scheme() eq 'Deep' ) {
     my $link_path = $event->LinkPath();
-    Debug("Deleting files for Event $$event{Id} from $storage_path/$link_path.");
+    Debug("Deleting link for Event $$event{Id} from $storage_path/$link_path.");
     if ( $link_path ) {
       ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
         unlink($storage_path.'/'.$link_path) or Error( "Unable to unlink '$storage_path/$link_path': $!" );

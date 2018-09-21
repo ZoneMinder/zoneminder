@@ -269,10 +269,11 @@ MAIN: while( $loop ) {
           my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
           Debug("Have " . @event_links . ' event links');
           closedir(DIR);
+
           my $count = 0;
           foreach my $event_link ( @event_links ) {
             # Event links start with a period and consist of the digits of the event id. Anything else is not an event link
-            my ($event_id) = $event_link =~ /^(\.\d)$/;
+            my ($event_id) = $event_link =~ /^\.(\d+)$/;
             if ( !$event_id ) {
               Warning("Non-event link found $event_link in $day_dir, skipping");
               next;
@@ -282,7 +283,7 @@ MAIN: while( $loop ) {
             my $event_path = readlink($event_link);
 
             if ( !($event_path and -e $event_path) ) {
-              aud_print("Event link $day_dir/$event_link does not point to valid target");
+              aud_print("Event link $day_dir/$event_link does not point to valid target at $event_path");
               if ( confirm() ) {
                 ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
                 unlink($event_link);
@@ -339,7 +340,7 @@ MAIN: while( $loop ) {
               }
             }
 
-            if ( $event_id ) {
+            if ( $event_id and ! $fs_events->{$event_id} ) {
               my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
               $$Event{Id} = $event_id;
               $$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_dir);
@@ -352,13 +353,27 @@ MAIN: while( $loop ) {
                 Warning("No event link found at ".$Event->LinkPath() ." for " . $Event->to_string());
               }
             } else {
-              if ( ! $event_ids_by_path{$event_dir} ) {
-                aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
-                if ( confirm() ) {
-                  my $command = "rm -rf $event_dir";
-                  executeShellCommand( $command );
-                  $cleaned = 1;
-                }
+              if ( $event_ids_by_path{$event_dir} ) {
+                Debug("Have an event link, leaving dir alone.");
+                next;
+              }
+              my ( undef, $year, $month, $day ) = split('/', $day_dir);
+              $year += 2000;
+              my ( $hour, $minute, $second ) = split('/', $event_dir);
+              my $StartTime =sprintf('%.4d-%.2d-%.2d %.2d:%.2d:%.2d', $year, $month, $day, $hour, $minute, $second);
+              my $Event = ZoneMinder::Event->find_one(
+                MonitorId=>$monitor_dir,
+                StartTime=>$StartTime,
+              );
+              if ( $Event ) {
+                Debug("Found event matching starttime on monitor $monitor_dir at $StartTime: " . $Event->to_string());
+                next;
+              }
+              aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
+              if ( confirm() ) {
+                my $command = "rm -rf $event_dir";
+                executeShellCommand( $command );
+                $cleaned = 1;
               }
             } # end if able to find id
           } # end foreach event_dir without link

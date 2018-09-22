@@ -18,12 +18,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'System' ) ) {
+if ( !canView('System') ) {
   $view = 'error';
   return;
 }
 
-$canEdit = canEdit( 'System' );
+$canEdit = canEdit('System');
 
 $tabs = array();
 $tabs['skins'] = translate('Display');
@@ -50,10 +50,10 @@ else
 
 $focusWindow = true;
 
-xhtmlHeaders( __FILE__, translate('Options') );
+xhtmlHeaders(__FILE__, translate('Options'));
 
 # Have to do this stuff up here before including header.php because fof the cookie setting
-$skin_options = array_map( 'basename', glob('skins/*',GLOB_ONLYDIR) );
+$skin_options = array_map('basename', glob('skins/*',GLOB_ONLYDIR));
 if ( $tab == 'skins' ) {
   $current_skin = $_COOKIE['zmSkin'];
   $reload = false;
@@ -75,7 +75,7 @@ if ( $tab == 'skins' ) {
 
 ?>
 <body>
-<?php echo getNavBarHTML(); ?>
+  <?php echo getNavBarHTML(); ?>
   <div class="container-fluid">
     <div class="row">
       <div class="col-sm-2 sidebar">
@@ -90,7 +90,7 @@ foreach ( $tabs as $name=>$value ) {
         </ul>
       </div>
       <div class="col-sm-10 col-sm-offset-2">
-	<br/>
+        <br/>
         <div id="options">
 <?php 
 if ( $tab == 'skins' ) {
@@ -103,7 +103,7 @@ if ( $tab == 'skins' ) {
               <div class="col-sm-6">
                 <select name="skin-choice" class="form-control chosen">
 <?php
-foreach($skin_options as $dir) {
+foreach ( $skin_options as $dir ) {
   echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
 ?>
@@ -116,7 +116,7 @@ foreach($skin_options as $dir) {
               <div class="col-sm-6">
                 <select name="css-choice" class="form-control chosen">
 <?php
-foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR) ) as $dir) {
+foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR)) as $dir ) {
   echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
 ?>
@@ -136,7 +136,7 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
-        <table id="contentTable" class="table table-striped" cellspacing="0">
+        <table id="contentTable" class="table table-striped">
           <thead class="thead-highlight">
             <tr>
               <th class="colUsername"><?php echo translate('Username') ?></th>
@@ -155,23 +155,26 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           </thead>
           <tbody>
 <?php
-    $sql = 'select * from Monitors order by Sequence asc';
+    $sql = 'SELECT * FROM Monitors ORDER BY Sequence ASC';
     $monitors = array();
-    foreach( dbFetchAll( $sql ) as $monitor ) {
+    foreach( dbFetchAll($sql) as $monitor ) {
       $monitors[$monitor['Id']] = $monitor;
     }
 
-    $sql = 'select * from Users';
-    foreach( dbFetchAll( $sql ) as $row ) {
+    $sql = 'SELECT * FROM Users ORDER BY Username';
+    foreach( dbFetchAll($sql) as $row ) {
       $userMonitors = array();
       if ( !empty($row['MonitorIds']) ) {
-        foreach ( explode( ',', $row['MonitorIds'] ) as $monitorId ) {
+        foreach ( explode(',', $row['MonitorIds']) as $monitorId ) {
+          // A deleted monitor will cause an error since we don't update 
+          // the user monitors list on monitor delete
+          if ( ! isset($monitors[$monitorId]) ) continue;
           $userMonitors[] = $monitors[$monitorId]['Name'];
         }
       }
 ?>
             <tr>
-              <td class="colUsername"><?php echo makePopupLink( '?view=user&amp;uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit ) ?></td>
+              <td class="colUsername"><?php echo makePopupLink('?view=user&amp;uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit) ?></td>
               <td class="colLanguage"><?php echo $row['Language']?validHtmlStr($row['Language']):'default' ?></td>
               <td class="colEnabled"><?php echo $row['Enabled']?translate('Yes'):translate('No') ?></td>
               <td class="colStream"><?php echo validHtmlStr($row['Stream']) ?></td>
@@ -256,12 +259,12 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="object" value="storage"/>
-        <table id="contentTable" class="table table-striped" cellspacing="0">
+        <table id="contentTable" class="table table-striped">
           <thead class="thead-highlight">
             <tr>
               <th class="colId"><?php echo translate('Id') ?></th>
-              <th class="colName"><?php echo translate('name') ?></th>
-              <th class="colPath"><?php echo translate('path') ?></th>
+              <th class="colName"><?php echo translate('Name') ?></th>
+              <th class="colPath"><?php echo translate('Path') ?></th>
               <th class="colType"><?php echo translate('Type') ?></th>
               <th class="colScheme"><?php echo translate('StorageScheme') ?></th>
               <th class="colServer"><?php echo translate('Server') ?></th>
@@ -270,15 +273,15 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
             </tr>
           </thead>
           <tbody>
-<?php foreach( Storage::find_all( null, array('order'=>'lower(Name)') ) as $Storage ) { ?>
+<?php foreach( Storage::find( null, array('order'=>'lower(Name)') ) as $Storage ) { ?>
             <tr>
               <td class="colId"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Id()), $canEdit ) ?></td>
-              <td class="colName"><?php echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
-              <td class="colPath"><?php echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Path()), $canEdit ) ?></td>
-              <td class="colType"><?php echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Type()), $canEdit ) ?></td>
-              <td class="colScheme"><?php echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Scheme()), $canEdit ) ?></td>
+              <td class="colName"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
+              <td class="colPath"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Path()), $canEdit ) ?></td>
+              <td class="colType"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Type()), $canEdit ) ?></td>
+              <td class="colScheme"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Scheme()), $canEdit ) ?></td>
               <td class="colServer"><?php
-              echo makePopupLink( '?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
+              echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
               <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?></td>
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" onclick="configureDeleteButton(this);"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
@@ -400,6 +403,4 @@ foreach( array_map( 'basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 	</div>
 </div> <!-- end row -->
     </div>
-  <?php include("skins/$skin/views/state.php") ?>
-</body>
-</html>
+<?php xhtmlFooter() ?>

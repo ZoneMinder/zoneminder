@@ -18,26 +18,26 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$servers = Server::find_all(null, array('order'=>'lower(Name)'));
+$servers = Server::find(null, array('order'=>'lower(Name)'));
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
 session_start();
 foreach ( array('Group','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
-  if ( isset( $_REQUEST[$var] ) ) {
+  if ( isset($_REQUEST[$var]) ) {
     if ( $_REQUEST[$var] != '' ) {
       $_SESSION[$var] = $_REQUEST[$var];
     } else {
-      unset( $_SESSION[$var] );
+      unset($_SESSION[$var]);
     }
-  } else if ( isset( $_REQUEST['filtering'] ) ) {
-    unset( $_SESSION[$var] );
+  } else if ( isset($_REQUEST['filtering']) ) {
+    unset($_SESSION[$var]);
   }
 }
 session_write_close();
 
-$storage_areas = Storage::find_all();
+$storage_areas = Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
@@ -50,7 +50,7 @@ $html =
 ';
 
 $GroupsById = array();
-foreach ( Group::find_all() as $G ) {
+foreach ( Group::find() as $G ) {
   $GroupsById[$G->Id()] = $G;
 }
 
@@ -78,17 +78,17 @@ if ( $groupSql )
 foreach ( array('ServerId','StorageId','Status','Function') as $filter ) {
   if ( isset($_SESSION[$filter]) ) {
     if ( is_array($_SESSION[$filter]) ) {
-      $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter] ) ). ')';
-      $values = array_merge( $values, $_SESSION[$filter] );
+      $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter])). ')';
+      $values = array_merge($values, $_SESSION[$filter]);
     } else {
       $conditions[] = $filter . '=?';
       $values[] = $_SESSION[$filter];
     }
   }
 } # end foreach filter
-if ( ! empty( $user['MonitorIds'] ) ) {
-  $ids = explode(',', $user['MonitorIds'] );
-  $conditions[] = 'M.Id IN ('.implode(',',array_map( function(){return '?';}, $ids) ).')';
+if ( ! empty($user['MonitorIds']) ) {
+  $ids = explode(',', $user['MonitorIds']);
+  $conditions[] = 'M.Id IN ('.implode(',',array_map(function(){return '?';}, $ids)).')';
   $values += $ids;
 }
 
@@ -115,7 +115,7 @@ $html .= '</span>';
 
 if ( count($ServersById) > 1 ) {
   $html .= '<span class="ServerFilter"><label>'. translate('Server').':</label>';
-  $html .= htmlSelect( 'ServerId[]', $ServersById,
+  $html .= htmlSelect('ServerId[]', $ServersById,
     (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
     array(
       'onchange'=>'this.form.submit();',
@@ -129,7 +129,7 @@ if ( count($ServersById) > 1 ) {
 
 if ( count($StorageById) > 1 ) {
   $html .= '<span class="StorageFilter"><label>'.translate('Storage').':</label>';
-  $html .= htmlSelect( 'StorageId[]',$StorageById,
+  $html .= htmlSelect('StorageId[]', $StorageById,
     (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
     array(
       'onchange'=>'this.form.submit();',

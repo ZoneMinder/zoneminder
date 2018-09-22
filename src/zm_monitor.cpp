@@ -1735,6 +1735,7 @@ bool Monitor::Analyse() {
       }
       shared_data->state = state = IDLE;
       last_section_mod = 0;
+      trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) ) {
@@ -2388,6 +2389,9 @@ int Monitor::Capture() {
 
   if ( captureResult < 0 ) {
     Warning("Return from Capture (%d), signal loss", captureResult);
+    // Tell zma to end the event. zma will reset TRIGGER
+    trigger_data->trigger_state = TRIGGER_OFF;
+
     // Unable to capture image for temporary reason
     // Fake a signal loss image
     Rgb signalcolor;

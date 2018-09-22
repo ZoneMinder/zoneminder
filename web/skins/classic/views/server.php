@@ -18,13 +18,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) ) {
+if ( !canEdit('System') ) {
   $view = 'error';
   return;
 }
 
 if ( $_REQUEST['id'] ) {
-	if ( !($newServer = dbFetchOne( 'SELECT * FROM Servers WHERE Id = ?', NULL, ARRAY($_REQUEST['id'])) ) ) {
+	if ( !($newServer = dbFetchOne('SELECT * FROM Servers WHERE Id = ?', NULL, ARRAY($_REQUEST['id'])) ) ) {
 		$view = 'error';
 		return;
 	}
@@ -39,7 +39,7 @@ if ( $_REQUEST['id'] ) {
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name'] );
+xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name']);
 ?>
 <body>
   <div id="page">
@@ -47,7 +47,7 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name'] );
       <h2><?php echo translate('Server').' - '.$newServer['Name'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this, <?php echo empty($newServer['Name'])?'true':'false' ?> )">
+      <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm(this, <?php echo empty($newServer['Name'])?'true':'false' ?>)">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="object" value="server"/>
         <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>

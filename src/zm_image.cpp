@@ -649,11 +649,9 @@ void Image::Assign( const Image &image ) {
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
 
-Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits )
-{
-  if ( colours != ZM_COLOUR_GRAY8 )
-  {
-    Panic( "Attempt to highlight image edges when colours = %d", colours );
+Image *Image::HighlightEdges( Rgb colour, unsigned int p_colours, unsigned int p_subpixelorder, const Box *limits ) {
+  if ( colours != ZM_COLOUR_GRAY8 ) {
+    Panic("Attempt to highlight image edges when colours = %d", colours);
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */

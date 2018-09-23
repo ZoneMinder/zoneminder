@@ -288,7 +288,7 @@ function probeNetwork() {
       if ( isset($macBases[$macRoot]) ) {
         $macBase = $macBases[$macRoot];
         $camera = call_user_func($macBase['probeFunc'], $ip);
-        $sourceDesc = htmlspecialchars(serialize($camera['monitor']));
+        $sourceDesc = base64_encode(serialize($camera['monitor']));
         $sourceString = $camera['model'].' @ '.$host;
         if ( isset($monitors[$ip]) ) {
           $monitor = $monitors[$ip];

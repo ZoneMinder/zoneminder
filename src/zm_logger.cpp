@@ -59,8 +59,6 @@ void Logger::usrHandler( int sig ) {
   Logger *logger = fetch();
   if ( sig == SIGUSR1 ) {
     logger->level(logger->level()+1);
-    // If we are altering log levels we are probably watching the logs and want flushing
-    mFlush = true;
   } else if ( sig == SIGUSR2 )
     logger->level(logger->level()-1);
   Info("Logger - Level changed to %d", logger->level());
@@ -337,6 +335,10 @@ Logger::Level Logger::level(Logger::Level level) {
       mEffectiveLevel = mSyslogLevel;
     if ( mEffectiveLevel > mLevel)
       mEffectiveLevel = mLevel;
+
+    // DEBUG levels should flush
+    if ( mLevel > INFO )
+      mFlush = true;
   }
   return mLevel;
 }

@@ -36,18 +36,21 @@ if ( isset($_SESSION['export']) ) {
     $_REQUEST['exportMisc'] = $_SESSION['export']['misc'];
   if ( isset($_SESSION['export']['format']) )
     $_REQUEST['exportFormat'] = $_SESSION['export']['format'];
+  if ( isset($_SESSION['export']['compress']) )
+    $_REQUEST['exportCompress'] = $_SESSION['export']['compress'];
 } else {
   $_REQUEST['exportDetail'] =
   $_REQUEST['exportFrames'] =
   $_REQUEST['exportImages'] =
   $_REQUEST['exportVideo'] =
   $_REQUEST['exportMisc'] = 1;
+  $_REQUEST['exportCompress'] = 0;
 }
 
 $focusWindow = true;
 $connkey = isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : generateConnKey();
 
-xhtmlHeaders(__FILE__, translate('Export') );
+xhtmlHeaders(__FILE__, translate('Export'));
 ?>
 <body>
   <div id="page">
@@ -74,11 +77,11 @@ if ( $user['MonitorIds'] ) {
 }
 
 if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
-  Logger::Debug("Loading events by single eid");
+  Logger::Debug('Loading events by single eid');
   $eventsSql .= ' AND E.Id=?';
   $eventsValues[] = $_REQUEST['eid'];
 } elseif ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
-  Logger::Debug("Loading events by eids");
+  Logger::Debug('Loading events by eids');
   $eventsSql .= ' AND E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
   $eventsValues += $_REQUEST['eids'];
 } else if ( isset($_REQUEST['filter']) ) {
@@ -100,17 +103,17 @@ $disk_space_total = 0;
         <table id="contentTable" class="major">
           <thead>
             <tr>
-              <th class="colId"><a href="<?php echo sortHeader('Id') ?>"><?php echo translate('Id') ?><?php echo sortTag( 'Id' ) ?></a></th>
-              <th class="colName"><a href="<?php echo sortHeader('Name') ?>"><?php echo translate('Name') ?><?php echo sortTag( 'Name' ) ?></a></th>
-              <th class="colMonitor"><a href="<?php echo sortHeader('MonitorName') ?>"><?php echo translate('Monitor') ?><?php echo sortTag( 'MonitorName' ) ?></a></th>
-              <th class="colCause"><a href="<?php echo sortHeader('Cause') ?>"><?php echo translate('Cause') ?><?php echo sortTag( 'Cause' ) ?></a></th>
-              <th class="colTime"><a href="<?php echo sortHeader('StartTime') ?>"><?php echo translate('Time') ?><?php echo sortTag( 'StartTime' ) ?></a></th>
-              <th class="colDuration"><a href="<?php echo sortHeader('Length') ?>"><?php echo translate('Duration') ?><?php echo sortTag( 'Length' ) ?></a></th>
-              <th class="colFrames"><a href="<?php echo sortHeader('Frames') ?>"><?php echo translate('Frames') ?><?php echo sortTag( 'Frames' ) ?></a></th>
-              <th class="colAlarmFrames"><a href="<?php echo sortHeader('AlarmFrames') ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag( 'AlarmFrames' ) ?></a></th>
-              <th class="colTotScore"><a href="<?php echo sortHeader('TotScore') ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag( 'TotScore' ) ?></a></th>
-              <th class="colAvgScore"><a href="<?php echo sortHeader('AvgScore') ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag( 'AvgScore' ) ?></a></th>
-              <th class="colMaxScore"><a href="<?php echo sortHeader('MaxScore') ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag( 'MaxScore' ) ?></a></th>
+              <th class="colId"><a href="<?php echo sortHeader('Id') ?>"><?php echo translate('Id') ?><?php echo sortTag('Id') ?></a></th>
+              <th class="colName"><a href="<?php echo sortHeader('Name') ?>"><?php echo translate('Name') ?><?php echo sortTag('Name') ?></a></th>
+              <th class="colMonitor"><a href="<?php echo sortHeader('MonitorName') ?>"><?php echo translate('Monitor') ?><?php echo sortTag('MonitorName') ?></a></th>
+              <th class="colCause"><a href="<?php echo sortHeader('Cause') ?>"><?php echo translate('Cause') ?><?php echo sortTag('Cause') ?></a></th>
+              <th class="colTime"><a href="<?php echo sortHeader('StartTime') ?>"><?php echo translate('Time') ?><?php echo sortTag('StartTime') ?></a></th>
+              <th class="colDuration"><a href="<?php echo sortHeader('Length') ?>"><?php echo translate('Duration') ?><?php echo sortTag('Length') ?></a></th>
+              <th class="colFrames"><a href="<?php echo sortHeader('Frames') ?>"><?php echo translate('Frames') ?><?php echo sortTag('Frames') ?></a></th>
+              <th class="colAlarmFrames"><a href="<?php echo sortHeader('AlarmFrames') ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag('AlarmFrames') ?></a></th>
+              <th class="colTotScore"><a href="<?php echo sortHeader('TotScore') ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag('TotScore') ?></a></th>
+              <th class="colAvgScore"><a href="<?php echo sortHeader('AvgScore') ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag('AvgScore') ?></a></th>
+              <th class="colMaxScore"><a href="<?php echo sortHeader('MaxScore') ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag('MaxScore') ?></a></th>
 <?php
     if ( ZM_WEB_EVENT_DISK_SPACE ) {
 ?>
@@ -183,6 +186,15 @@ while ( $event_row = dbFetchNext($results) ) {
               <td>
                 <input type="radio" id="exportFormatTar" name="exportFormat" value="tar"<?php if ( isset($_REQUEST['exportFormat']) && $_REQUEST['exportFormat'] == "tar" ) { ?> checked="checked"<?php } ?> onclick="configureExportButton( this )"/><label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>
                 <input type="radio" id="exportFormatZip" name="exportFormat" value="zip"<?php if ( isset($_REQUEST['exportFormat']) && $_REQUEST['exportFormat'] == "zip" ) { ?> checked="checked"<?php } ?> onclick="configureExportButton( this )"/><label for="exportFormatZip"><?php echo translate('ExportFormatZip') ?></label>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('ExportCompress') ?></th>
+              <td>
+                <input type="radio" id="exportCompress1" name="exportCompress" value="1"<?php echo ( isset($_REQUEST['exportCompress']) && $_REQUEST['exportCompress'] ) ? ' checked="checked"' : '' ?> onclick="configureExportButton(this)"/>
+                <label for="exportCompress1"><?php echo translate('Yes') ?></label>
+                <input type="radio" id="exportCompress0" name="exportCompress" value="0"<?php echo ( isset($_REQUEST['exportCompress']) && $_REQUEST['exportCompress'] ) ? '' : ' checked="checked"' ?> onclick="configureExportButton(this)"/>
+                <label for="exportCompress0"><?php echo translate('No') ?></label>
               </td>
             </tr>
           </tbody>

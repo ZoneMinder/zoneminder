@@ -826,6 +826,7 @@ function exportEvents(
   $exportVideo,
   $exportMisc,
   $exportFormat,
+  $exportCompressed,
   $exportStructure = false
 ) {
 
@@ -912,28 +913,30 @@ function exportEvents(
   chdir(ZM_DIR_EXPORTS);
   $archive = '';
   if ( $exportFormat == 'tar' ) {
-    $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.tar.gz';
-    @unlink($archive);
-    $command = 'nice -10 tar --create --gzip --dereference --file='.escapeshellarg($archive).' zmExport_'.$connkey.'/';
-    #$command = 'nice -10 tar --create --gzip --file='.escapeshellarg($archive).' --files-from='.escapeshellarg($listFile);
+    $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.tar';
+    $command = 'tar --create --dereference';
+    if ( $exportCompressed ) {
+      $archive .= '.gz';
+      $command .= ' --gzip';
+      $exportFormat .= '.gz';
+    }
     if ( $exportStructure == 'flat' ) {
       //strip file paths if we 
       $command .= " --xform='s#^.+/##x'";
     }
+    $command .= ' --file='.escapeshellarg($archive);
   } elseif ( $exportFormat == 'zip' ) {
     $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.zip';
-    @unlink($archive);
-    if ( $exportStructure == 'flat' ) {
-      $command = 'nice -10 zip -j '.escapeshellarg($archive).' zmExport_'.$connkey.'/';
-      #$command = 'cat '.escapeshellarg($listFile).' | nice -10 zip -q -j '.escapeshellarg($archive).' -@';
-    } else {
-      $command = 'nice -10 zip -r '.escapeshellarg($archive).' zmExport_' . $connkey.'/';
-      #$command = 'cat '.escapeshellarg($listFile).' | nice -10 zip -q '.escapeshellarg($archive).' -@';
-    }
+    $command = 'zip ';
+    $command = ($exportStructure == 'flat' ? ' -j ' : ' -r ' ).escapeshellarg($archive);
+    $command .= $exportCompressed ? ' -9' : ' -0';
   } else {
     Error("No exportFormat specified.");
     return false;
   } // if $exportFormat
+
+  @unlink($archive);
+  $command .= ' zmExport_' . $connkey.'/';
   Logger::Debug("Command is $command");
   exec($command, $output, $status);
   if ( $status ) {

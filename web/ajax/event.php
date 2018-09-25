@@ -39,7 +39,8 @@ if ( canView('Events') ) {
       {
         require_once(ZM_SKIN_PATH.'/includes/export_functions.php');
 
-# We use session vars in here, so we need to restart the session because we stopped it in index.php to improve concurrency.
+        # We use session vars in here, so we need to restart the session
+        # because we stopped it in index.php to improve concurrency.
         session_start();
 
         if ( !empty($_REQUEST['exportDetail']) )
@@ -72,6 +73,11 @@ if ( canView('Events') ) {
         else
           $exportFormat = '';
 
+        if ( !empty($_REQUEST['exportCompress']) )
+          $exportCompress = $_SESSION['export']['compress'] = $_REQUEST['exportCompress'];
+        else
+          $exportCompress = false;
+
         session_write_close();
 
         $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
@@ -83,7 +89,8 @@ if ( canView('Events') ) {
           $exportImages,
           $exportVideo,
           $exportMisc,
-          $exportFormat
+          $exportFormat,
+          $exportCompress
         ) )
           ajaxResponse(array('exportFile'=>$exportFile));
         else
@@ -100,7 +107,8 @@ if ( canView('Events') ) {
         if ( $exportFile = exportEvents(
           $exportIds,
           (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
-          false,false, false, $exportVideo, false, $exportFormat, $exportStructure ) )
+          false,false, false,
+          $exportVideo, false, $exportFormat, $exportStructure ) )
           ajaxResponse(array('exportFile'=>$exportFile));
         else
           ajaxError('Export Failed');

@@ -412,7 +412,7 @@ if ( ZM_OPT_MESSAGE ) {
         <div id="contentButtons">
           <button type="submit" onclick="submitToEvents(this);"><?php echo translate('ListMatches') ?></button>
           <button type="button" onclick="submitToExport(this);"><?php echo translate('ExportMatches') ?></button>
-          <button type="submit" name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
+          <button type="submit" name="executeButton" id="executeButton" onclick="executeFilter(this);"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit('Events') ) {
 ?>
@@ -421,9 +421,7 @@ if ( canEdit('Events') ) {
 <?php 
   if ( $filter->Id() ) {
  ?>
-          <button type="button" value="Delete" onclick="deleteFilter(this, '<?php echo $filter->Name() ?>');">
-          <?php echo translate('Delete') ?>
-          </button>
+          <button type="button" value="Delete" onclick="deleteFilter(this, '<?php echo $filter->Name() ?>');"><?php echo translate('Delete') ?></button>
 <?php 
   }
 }

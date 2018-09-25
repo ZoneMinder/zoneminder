@@ -947,7 +947,7 @@ function exportEvents(
   } elseif ( $exportFormat == 'zip' ) {
     $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.zip';
     $command = 'zip ';
-    $command = ($exportStructure == 'flat' ? ' -j ' : ' -r ' ).escapeshellarg($archive);
+    $command .= ($exportStructure == 'flat' ? ' -j ' : ' -r ' ).escapeshellarg($archive);
     $command .= $exportCompressed ? ' -9' : ' -0';
   } else {
     Error("No exportFormat specified.");

@@ -125,14 +125,15 @@ $disk_space_total = 0;
       </thead>
       <tbody>
 <?php
+$event_count = 0;
 while ( $event_row = dbFetchNext($results) ) {
   $event = new Event($event_row);
   $scale = max( reScale( SCALE_BASE, $event->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
   echo '<input type="hidden" name="eids[]" value="'.validInt($event->Id())."\"/>\n";
 ?>
           <tr<?php echo $event->Archived() ? ' class="archived"' : '' ?>>
-              <td class="colId"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1"> '.$event->Id().($event->Archived()?'*':'') ?></a></td>
-              <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1"> '.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
+              <td class="colId"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo $event->Id().($event->Archived()?'*':'') ?></a></td>
+              <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
               <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->Monitorid(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
               <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?></td>
               <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) .
@@ -149,6 +150,7 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
     $disk_space_total += $event->DiskSpace();
+		$event_count += 1;
 ?>
               <td class="colDiskSpace"><?php echo human_filesize($event->DiskSpace()) ?></td>
 <?php
@@ -157,6 +159,10 @@ while ( $event_row = dbFetchNext($results) ) {
 } # end foreach event
 ?>
         </tbody>
+				<tfoot>
+					<td colspan="11"><?php echo $event_count ?> events</td>
+					<td class="colDiskSpace"><?php echo human_filesize($disk_space_total);?></td>
+				</tfoot>
       </table>
 
         <table id="contentTable" class="minor">

@@ -440,7 +440,7 @@ sub databaseLevel {
   if ( defined($databaseLevel) ) {
     $databaseLevel = $this->limit($databaseLevel);
     if ( $this->{databaseLevel} != $databaseLevel ) {
-      if ( $databaseLevel > NOLOG and $this->{databaseLevel} <= NOLOG ) {
+      if ( ( $databaseLevel > NOLOG ) and ( $this->{databaseLevel} <= NOLOG ) ) {
         if ( !$this->{dbh} ) {
           $this->{dbh} = ZoneMinder::Database::zmDbConnect();
         }
@@ -527,6 +527,7 @@ sub logPrint {
   my $this = shift;
   my $level = shift;
   my $string = shift;
+  my ($caller, undef, $line) = @_ ? @_ : caller;
 
   if ( $level <= $this->{effectiveLevel} ) {
     $string =~ s/[\r\n]+$//g;
@@ -537,12 +538,14 @@ sub logPrint {
     my ($seconds, $microseconds) = gettimeofday();
     if ( $level <= $this->{fileLevel} or $level <= $this->{termLevel} ) {
       my $message = sprintf(
-          '%s.%06d %s[%d].%s [%s]'
+          '%s.%06d %s[%d].%s [%s:%d] [%s]'
           , strftime('%x %H:%M:%S', localtime($seconds))
           , $microseconds
           , $this->{id}
           , $$
           , $codes{$level}
+          , $caller
+          , $line
           , $string
           );
       if ( $this->{trace} ) {
@@ -557,11 +560,14 @@ sub logPrint {
     if ( $level <= $this->{databaseLevel} ) {
       if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
         $this->{sth} = undef;
+        # Turn this off because zDbConnect will do logging calls.
+        my $oldlevel = $this->{databaseLevel};
+        $this->{databaseLevel} = NOLOG;
         if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
           #print(STDERR "Can't log to database: ");
-          $this->{databaseLevel} = NOLOG;
           return;
         }
+        $this->{databaseLevel} = $oldlevel;
       }
 
       my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
@@ -660,39 +666,39 @@ sub Dump {
 
 sub debug {
   my $log = shift;
-  $log->logPrint(DEBUG, @_);
- }
+  $log->logPrint(DEBUG, @_, caller);
+}
 
 sub Debug( @ ) {
-  fetch()->logPrint(DEBUG, @_);
+  fetch()->logPrint(DEBUG, @_, caller);
 }
 
 sub Info( @ ) {
-  fetch()->logPrint(INFO, @_);
+  fetch()->logPrint(INFO, @_, caller);
 }
 sub info {
   my $log = shift;
-  $log->logPrint(INFO, @_);
+  $log->logPrint(INFO, @_, caller);
 }
 
 sub Warning( @ ) {
-  fetch()->logPrint(WARNING, @_);
+  fetch()->logPrint(WARNING, @_, caller);
 }
 sub warn {
   my $log = shift;
-  $log->logPrint(WARNING, @_);
+  $log->logPrint(WARNING, @_, caller);
 }
 
 sub Error( @ ) {
-  fetch()->logPrint(ERROR, @_);
+  fetch()->logPrint(ERROR, @_, caller);
 }
 sub error {
   my $log = shift;
-  $log->logPrint(ERROR, @_);
+  $log->logPrint(ERROR, @_, caller);
 }
 
 sub Fatal( @ ) {
-  fetch()->logPrint(FATAL, @_);
+  fetch()->logPrint(FATAL, @_, caller);
   if ( $SIG{TERM} and ( $SIG{TERM} ne 'DEFAULT' ) ) {
     $SIG{TERM}();
   }
@@ -700,7 +706,7 @@ sub Fatal( @ ) {
 }
 
 sub Panic( @ ) {
-  fetch()->logPrint(PANIC, @_);
+  fetch()->logPrint(PANIC, @_, caller);
   confess($_[0]);
 }
 

@@ -119,6 +119,15 @@ echo output_link_if_exists( array(
   <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
+  <script> 
+  jQuery(document).ready(function(){
+    jQuery("#flip").click(function(){
+      jQuery("#panel").slideToggle("slow");
+      jQuery("#flip").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+    });
+  });
+  </script>
+
   <script>
   //<![CDATA[
   <!--
@@ -181,6 +190,12 @@ echo output_link_if_exists( array(
 <?php } ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="js/logger.js"></script>
+<?php 
+  if ($basename == 'watch') {
+  // This is used in the log popup for the export function. Not sure if it's used anywhere else
+?>
+<script type="text/javascript" src="js/overlay.js"></script>
+<?php } ?>
 <?php
   if ( $viewJsFile ) {
 ?>
@@ -288,6 +303,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   }
 ?>
       <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
+      <li><a href="#"><span id="flip" class="glyphicon glyphicon-menu-up pull-right"></span></a></li>
 		</ul>
 <?php } // end if canView('Monitors') ?>
 
@@ -305,6 +321,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 </div>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
+    <div id="panel">
 <?php
 }//end reload null.  Runs on full page load
 
@@ -329,7 +346,7 @@ if ($reload == 'reload') ob_start();
 ?>
 	  <li><?php echo translate('Storage') ?>:
 <?php
-  $storage_areas = Storage::find_all();
+  $storage_areas = Storage::find();
   $storage_paths = null;
   foreach ( $storage_areas as $area ) {
     $storage_paths[$area->Path()] = $area;
@@ -350,7 +367,7 @@ if ($reload == 'reload') ob_start();
     return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) >= 4 ) 
-    $storage_areas = Storage::find_all( array('ServerId'=>null) );
+    $storage_areas = Storage::find( array('ServerId'=>null) );
   if ( count($storage_areas) < 4 )
     echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
@@ -364,6 +381,7 @@ if ($reload == 'reload') ob_start();
 if ($reload == 'reload') return( ob_get_clean() );
 } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
+  </div>
 </div><!-- End .navbar .navbar-default -->
 <?php
   return( ob_get_clean() );

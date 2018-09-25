@@ -45,7 +45,7 @@ Package: libzoneminder-perl
 Section: perl
 Architecture: all
 Depends: ${misc:Depends}, ${perl:Depends}, libdbi-perl,
- libdevice-serialport-perl, libimage-info-perl, libjson-any-perl,
+ libdevice-serialport-perl, libimage-info-perl, libjson-any-perl, libjson-maybexs-perl,
  libsys-mmap-perl, liburi-encode-perl, libwww-perl
 Description: Perl libraries for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.

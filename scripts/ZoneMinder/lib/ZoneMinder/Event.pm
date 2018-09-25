@@ -35,7 +35,6 @@ require Date::Manip;
 require File::Find;
 require File::Path;
 require File::Copy;
-require File::Slurp;
 require File::Basename;
 require Number::Bytes::Human;
 
@@ -239,7 +238,7 @@ sub LinkPath {
             '.'.$$event{Id}
             );
       } elsif ( $$event{Path} ) {
-        if ( ( $$event{Path} =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
+        if ( ( $event->RelativePath() =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
           $$event{LinkPath} = $1.'/.'.$$event{Id};
         } else {
           Error("Unable to get LinkPath from Path for $$event{Id} $$event{Path}");
@@ -254,6 +253,33 @@ sub LinkPath {
 
   return $$event{LinkPath};
 } # end sub LinkPath
+
+sub createPath {
+  makePath($_[0]->Path());
+}
+
+sub createLinkPath {
+  my $LinkPath = $_[0]->LinkPath();
+  my $EventPath = $_[0]->EventPath();
+  if ( $LinkPath ) {
+    if ( !symlink($EventPath, $LinkPath) ) {
+      Error("Failed symlinking $EventPath to $LinkPath");
+    }
+  }
+}
+
+sub idPath {
+  return sprintf('%s/.%d', $_[0]->Path(), $_[0]->{Id});
+}
+
+sub createIdFile {
+  my $event = shift;
+  my $idFile = $event->idPath();
+  open( my $ID_FP, '>', $idFile )
+    or Error("Can't open $idFile: $!");
+  close($ID_FP);
+  setFileOwner($idFile); 
+}
 
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
@@ -417,13 +443,13 @@ sub delete_files {
     return;
   }
   my $event_path = $event->RelativePath();
-  Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path.");
+  Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path, scheme is $$event{Scheme}.");
   if ( $event_path ) {
     ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
     ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
 
     my $deleted = 0;
-    if ( $$Storage{Type} eq 's3fs' ) {
+    if ( $$Storage{Type} and ( $$Storage{Type} eq 's3fs' ) ) {
       my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
       eval {
         require Net::Amazon::S3;
@@ -444,7 +470,7 @@ sub delete_files {
         }
       };
       Error($@) if $@;
-    } 
+    }
     if ( ! $deleted ) {
       my $command = "/bin/rm -rf $storage_path/$event_path";
       ZoneMinder::General::executeShellCommand( $command );
@@ -453,7 +479,7 @@ sub delete_files {
 
   if ( $event->Scheme() eq 'Deep' ) {
     my $link_path = $event->LinkPath();
-    Debug("Deleting files for Event $$event{Id} from $storage_path/$link_path.");
+    Debug("Deleting link for Event $$event{Id} from $storage_path/$link_path.");
     if ( $link_path ) {
       ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
         unlink($storage_path.'/'.$link_path) or Error( "Unable to unlink '$storage_path/$link_path': $!" );
@@ -467,7 +493,7 @@ sub Storage {
   }
   if ( ! $_[0]{Storage} ) {
     $_[0]{Storage} = new ZoneMinder::Storage($_[0]{StorageId});
-  } 
+  }
   return $_[0]{Storage};
 }
 
@@ -488,7 +514,7 @@ sub check_for_in_filesystem {
 
 sub age {
   if ( ! $_[0]{age} ) {
-    if ( -e $_[0]->Path() ) { 
+    if ( -e $_[0]->Path() ) {
       # $^T is the time the program began running. -M is program start time - file modification time in days
       $_[0]{age} = (time() - ($^T - ((-M $_[0]->Path() ) * 24*60*60)));
     } else {
@@ -564,6 +590,7 @@ sub MoveTo {
     my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
     eval {
       require Net::Amazon::S3;
+      require File::Slurp;
       my $s3 = Net::Amazon::S3->new( {
           aws_access_key_id     => $aws_id,
           aws_secret_access_key => $aws_secret,
@@ -656,7 +683,7 @@ Debug("Files to move @files");
   }
 
   # Succeeded in copying all files, so we may now update the Event.
-  $$self{StorageId} = $$NewStorage{Id};    
+  $$self{StorageId} = $$NewStorage{Id};
   $$self{Storage} = $NewStorage;
   $error .= $self->save();
   if ( $error ) {

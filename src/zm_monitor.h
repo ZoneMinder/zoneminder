@@ -254,39 +254,41 @@ protected:
   VideoWriter videowriter;
   std::string encoderparams;
   std::vector<EncoderParameter_t> encoderparamsvec;
-  bool      record_audio;      // Whether to store the audio that we receive
+  bool          record_audio;      // Whether to store the audio that we receive
 
-  int        brightness;        // The statically saved brightness of the camera
-  int        contrast;        // The statically saved contrast of the camera
-  int        hue;          // The statically saved hue of the camera
-  int        colour;          // The statically saved colour of the camera
-  char      event_prefix[64];    // The prefix applied to event names as they are created
-  char      label_format[64];    // The format of the timestamp on the images
-  Coord      label_coord;      // The coordinates of the timestamp on the images
-  int        label_size;         // Size of the timestamp on the images
-  int        image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
-  int        pre_event_buffer_count;   // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
+  int           brightness;        // The statically saved brightness of the camera
+  int           contrast;        // The statically saved contrast of the camera
+  int           hue;          // The statically saved hue of the camera
+  int           colour;          // The statically saved colour of the camera
+  char          event_prefix[64];    // The prefix applied to event names as they are created
+  char          label_format[64];    // The format of the timestamp on the images
+  Coord         label_coord;      // The coordinates of the timestamp on the images
+  int           label_size;         // Size of the timestamp on the images
+  int           image_buffer_count;   // Size of circular image buffer, at least twice the size of the pre_event_count
+  int           pre_event_buffer_count;   // Size of dedicated circular pre event buffer used when analysis is not performed at capturing framerate,
   // value is pre_event_count + alarm_frame_count - 1
-  int        warmup_count;      // How many images to process before looking for events
-  int        pre_event_count;    // How many images to hold and prepend to an alarm event
-  int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
-  int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
-  int        section_length;      // How long events should last in continuous modes
-  bool      adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
-  int        frame_skip;        // How many frames to skip in continuous modes
-  int        motion_frame_skip;      // How many frames to skip in motion detection
-  double      analysis_fps;  // Target framerate for video analysis
+  int           warmup_count;      // How many images to process before looking for events
+  int           pre_event_count;    // How many images to hold and prepend to an alarm event
+  int           post_event_count;    // How many unalarmed images must occur before the alarm state is reset
+  int           stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
+  int           section_length;      // How long events should last in continuous modes
+  bool          adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
+  int           frame_skip;        // How many frames to skip in continuous modes
+  int           motion_frame_skip;      // How many frames to skip in motion detection
+  double        analysis_fps;  // Target framerate for video analysis
   unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
-  int        capture_delay;      // How long we wait between capture frames
-  int        alarm_capture_delay;  // How long we wait between capture frames when in alarm state
-  int        alarm_frame_count;    // How many alarm frames are required before an event is triggered
-  int        fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
-  int        ref_blend_perc;      // Percentage of new image going into reference image.
-  int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
-  bool      track_motion;      // Whether this monitor tries to track detected motion 
-  int         signal_check_points;  // Number of points in the image to check for signal
-  Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
-  bool              embed_exif; // Whether to embed Exif data into each image frame or not
+  int           capture_delay;      // How long we wait between capture frames
+  int           alarm_capture_delay;  // How long we wait between capture frames when in alarm state
+  int           alarm_frame_count;    // How many alarm frames are required before an event is triggered
+  int           fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
+  int           ref_blend_perc;      // Percentage of new image going into reference image.
+  int           alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
+  bool          track_motion;      // Whether this monitor tries to track detected motion 
+  int           signal_check_points;  // Number of points in the image to check for signal
+  Rgb           signal_check_colour;  // The colour that the camera will emit when no video signal detected
+  bool          embed_exif; // Whether to embed Exif data into each image frame or not
+
+  bool last_signal;
 
   bool last_signal;
 

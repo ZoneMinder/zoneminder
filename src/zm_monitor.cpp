@@ -423,15 +423,9 @@ Monitor::Monitor(
   snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
 
   if ( purpose == CAPTURE ) {
-    struct stat statbuf;
-
-    if ( stat(monitor_dir, &statbuf) ) {
-      if ( errno == ENOENT || errno == ENOTDIR ) {
-        if ( mkdir(monitor_dir, 0755) ) {
-          Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
-        }
-      } else {
-        Warning("Error stat'ing %s, may be fatal. error is %s", monitor_dir, strerror(errno));
+    if ( mkdir(monitor_dir, 0755) ) {
+      if ( errno != EEXIST ) {
+        Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
       }
     }
 
@@ -609,17 +603,19 @@ bool Monitor::connect() {
     next_buffer.image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
     next_buffer.timestamp = new struct timeval;
   }
-  if ( ( purpose == ANALYSIS ) && analysis_fps ) {
-    // Size of pre event buffer must be greater than pre_event_count
-    // if alarm_frame_count > 1, because in this case the buffer contains
-    // alarmed images that must be discarded when event is created
-    pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
-    pre_event_buffer = new Snapshot[pre_event_buffer_count];
-    for ( int i = 0; i < pre_event_buffer_count; i++ ) {
-      pre_event_buffer[i].timestamp = new struct timeval;
-      *pre_event_buffer[i].timestamp = {0,0};
-      pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
-    }
+  if ( purpose == ANALYSIS ) {
+		if ( analysis_fps ) {
+			// Size of pre event buffer must be greater than pre_event_count
+			// if alarm_frame_count > 1, because in this case the buffer contains
+			// alarmed images that must be discarded when event is created
+			pre_event_buffer_count = pre_event_count + alarm_frame_count - 1;
+			pre_event_buffer = new Snapshot[pre_event_buffer_count];
+			for ( int i = 0; i < pre_event_buffer_count; i++ ) {
+				pre_event_buffer[i].timestamp = new struct timeval;
+				*pre_event_buffer[i].timestamp = {0,0};
+				pre_event_buffer[i].image = new Image( width, height, camera->Colours(), camera->SubpixelOrder());
+			}
+		}
 
     timestamps = new struct timeval *[pre_event_count];
     images = new Image *[pre_event_count];
@@ -1577,8 +1573,8 @@ Error("Creating new event when one exists");
                   else
                     pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
 
-                  Debug(4,"Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d) % %d",
-                      pre_index, index, image_buffer_count, pre_event_count, image_buffer_count);
+                  Debug(4,"Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d)",
+                      pre_index, index, image_buffer_count, pre_event_count);
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position
@@ -1623,7 +1619,6 @@ Error("Creating new event when one exists");
                       pre_index = (pre_index + 1)%image_buffer_count;
                     }
                   }
-
                   event->AddFrames( pre_event_images, images, timestamps );
                 }
                 if ( alarm_frame_count ) {
@@ -1736,6 +1731,7 @@ Error("Creating new event when one exists");
       }
       shared_data->state = state = IDLE;
       last_section_mod = 0;
+      trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) ) {
@@ -2388,7 +2384,9 @@ int Monitor::Capture() {
   }
 
   if ( captureResult < 0 ) {
-    Warning("Return from Capture (%d), signal loss", captureResult);
+    Info("Return from Capture (%d), signal loss", captureResult);
+    // Tell zma to end the event. zma will reset TRIGGER
+    trigger_data->trigger_state = TRIGGER_OFF;
     // Unable to capture image for temporary reason
     // Fake a signal loss image
     Rgb signalcolor;
@@ -2474,19 +2472,17 @@ int Monitor::Capture() {
         //Info( "%d -> %d -> %lf -> %lf", now-last_fps_time, fps_report_interval/(now-last_fps_time), double(fps_report_interval)/(now-last_fps_time), fps );
         Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec", name, image_count, new_fps, new_capture_bandwidth);
         last_fps_time = now;
-        if ( new_fps != fps ) {
-          fps = new_fps;
-
-          db_mutex.lock();
-          static char sql[ZM_SQL_SML_BUFSIZ];
-          snprintf(sql, sizeof(sql),
-              "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth) VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf, CaptureBandwidth=%u",
-              id, fps, new_capture_bandwidth, fps, new_capture_bandwidth);
-          if ( mysql_query(&dbconn, sql) ) {
-            Error("Can't run query: %s", mysql_error(&dbconn));
-          }
-          db_mutex.unlock();
-        } // end if new_fps != fps
+        fps = new_fps;
+        db_mutex.lock();
+        static char sql[ZM_SQL_SML_BUFSIZ];
+        snprintf(sql, sizeof(sql),
+            "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth) VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf, CaptureBandwidth=%u",
+            id, fps, new_capture_bandwidth, fps, new_capture_bandwidth);
+        if ( mysql_query(&dbconn, sql) ) {
+          Error("Can't run query: %s", mysql_error(&dbconn));
+        }
+        db_mutex.unlock();
+        Debug(4,sql);
       } // end if time has changed since last update
     } // end if it might be time to report the fps
   } // end if captureResult

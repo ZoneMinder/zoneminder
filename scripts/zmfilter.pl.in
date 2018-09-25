@@ -98,6 +98,11 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
 
 logInit($filter_id?(id=>'zmfilter_'.$filter_id):());
 sub HupHandler {
+  # This idea at this time is to just exit, freeing up the memory. 
+  # zmfilter.pl will be respawned by zmdc.
+  TermHandler();
+  return;
+
   Info('Received HUP, reloading');
   ZoneMinder::Object::init_cache();
   &ZoneMinder::Logger::logHupHandler();
@@ -470,7 +475,7 @@ sub uploadArchFile {
   }
 
   my $archFile = $event->{MonitorName}.'-'.$event->{Id};
-  my $archImagePath = getEventPath($event)
+  my $archImagePath = $event->Path()
     .'/'
     .(
         ( $Config{ZM_UPLOAD_ARCH_ANALYSE} )
@@ -708,13 +713,17 @@ sub substituteTags {
     }
   } # end if $first_alarm_frame
 
-  if ( $attachments_ref && $Config{ZM_OPT_FFMPEG} ) {
+  if ( $attachments_ref ) {
     if ( $text =~ s/%EV%//g ) {
-      my ( $format, $path ) = generateVideo($filter, $Event);
-      if ( !$format ) {
-        return undef;
+      if ( $$Event{DefaultVideo} ) {
+        push @$attachments_ref, { type=>'video/mp4', path=>join('/',$Event->Path(), $Event->DefaultVideo()) };
+      } elsif ( $Config{ZM_OPT_FFMPEG} ) {
+        my ( $format, $path ) = generateVideo($filter, $Event);
+        if ( !$format ) {
+          return undef;
+        }
+        push( @$attachments_ref, { type=>"video/$format", path=>$path } );
       }
-      push( @$attachments_ref, { type=>"video/$format", path=>$path } );
     }
     if ( $text =~ s/%EVM%//g ) {
       my ( $format, $path ) = generateVideo($filter, $Event, 1);
@@ -942,7 +951,7 @@ sub executeCommand {
   my $filter = shift;
   my $event = shift;
 
-  my $event_path = getEventPath($event);
+  my $event_path = $event->Path();
 
   my $command = $filter->{AutoExecuteCmd};
   $command .= " $event_path";

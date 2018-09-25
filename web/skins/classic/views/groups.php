@@ -28,7 +28,7 @@ $group_id = 0;
 $max_depth = 0;
 
 $Groups = array();
-foreach ( Group::find_all( ) as $Group ) {
+foreach ( Group::find( ) as $Group ) {
   $Groups[$Group->Id()] = $Group;
 }
 
@@ -41,7 +41,7 @@ foreach ( $Groups as $id=>$Group ) {
   if ( $max_depth < $Group->depth() )
     $max_depth = $Group->depth();
 }
-xhtmlHeaders(__FILE__, translate('Groups') );
+xhtmlHeaders(__FILE__, translate('Groups'));
 ?>
 <body>
   <div id="page">
@@ -64,33 +64,37 @@ function group_line( $Group ) {
   global $children;
   global $max_depth;
   $html = '<tr>';
-  $html .= str_repeat( '<td class="colName">&nbsp;</td>', $Group->depth() );
+  $html .= str_repeat('<td class="colName">&nbsp;</td>', $Group->depth());
   $html .= '<td class="colName" colspan="'.($max_depth-($Group->depth()-1)).'">';
   if ( canEdit('Groups') ) {
     $html .= '<a href="#" onclick="editGroup('.$Group->Id().');">'. validHtmlStr($Group->Id() . ' ' . $Group->Name()).'</a>';
   } else {
     $html .= validHtmlStr($Group->Name());
   }
-  $html .= '</td><td class="colIds">'. monitorIdsToNames( $Group->MonitorIds(), 30 ).'</td>
+  $html .= '</td><td class="colIds">'. monitorIdsToNames($Group->MonitorIds(), 30).'</td>
                 <td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" onclick="configureButtons(this);"/></td>
               </tr>
   ';
   if ( isset( $children[$Group->Id()] ) ) {
     foreach ( $children[$Group->Id()] as $G ) {
-      $html .= group_line( $G );
+      $html .= group_line($G);
     }
   }
   return $html;
 }
 if ( isset( $children[null] ) )
   foreach ( $children[null] as $Group )
-    echo group_line( $Group );
+    echo group_line($Group);
 ?>
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('New') ?>" onclick="newGroup();"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteGroup(this);" disabled="disabled"/>
+          <button type="button" value="New" onclick="newGroup();"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>>
+          <?php echo translate('New') ?>
+          </button>
+          <button type="button" name="deleteBtn" value="Delete" onclick="deleteGroup(this);" disabled="disabled">
+          <?php echo translate('Delete') ?>
+          </button>
         </div>
       </form>
     </div>

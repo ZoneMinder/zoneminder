@@ -93,7 +93,8 @@ if [ "$RELEASE" != "" ]; then
   else
     GITHUB_FORK="ZoneMinder";
   fi
-  BRANCH="release-$RELEASE"
+  # We use a tag instead of a branch atm.
+  BRANCH=$RELEASE
 else
   if [ "$GITHUB_FORK" == "" ]; then
     echo "Defaulting to ZoneMinder upstream git"
@@ -188,6 +189,12 @@ if [ "$URGENCY" = "" ]; then
   URGENCY="medium"
 fi;
 
+rm -rf .git
+rm .gitignore
+cd ../
+tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+cd $DIRECTORY.orig
+
 if [ "$SNAPSHOT" == "stable" ]; then
 cat <<EOF > debian/changelog
 zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
@@ -220,12 +227,6 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
  -- $AUTHOR  $DATE
 EOF
 fi;
-
-rm -rf .git
-rm .gitignore
-cd ../
-tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
-cd $DIRECTORY.orig
 
 if [ $TYPE == "binary" ]; then
   # Auto-install all ZoneMinder's depedencies using the Debian control file
@@ -287,7 +288,8 @@ else
   SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
   PPA="";
   if [ "$RELEASE" != "" ]; then
-      PPA="ppa:iconnor/zoneminder";
+    IFS='.' read -r -a VERSION <<< "$RELEASE"
+    PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
   else
     if [ "$BRANCH" == "" ]; then
       PPA="ppa:iconnor/zoneminder-master";

@@ -22,11 +22,10 @@
 %global with_apcu_bc 1
 %endif
 
-%global readme_suffix %{?rhel:Redhat%{?rhel}}%{!?rhel:Fedora}
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.31.44
+Version: 1.32.0
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -203,8 +202,8 @@ fi
 %{_bindir}/gpasswd -a %{zmuid_final} dialout >/dev/null 2>&1 || :
 
 # Warn the end user to read the README file
-echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, read README.%{readme_suffix} to finish the\ninstallation or upgrade!\n"
-echo -e "\nThe README file is located here: %{_docdir}/%{name}\n"
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README file\nto finish the installation or upgrade!"
+echo -e "\nThe README file is located here: %{_pkgdocdir}/README\n"
 
 %if 0%{?with_nginx}
 # Nginx does not create an SSL certificate like the apache package does so lets do that here
@@ -252,7 +251,7 @@ EOF
 
 %files
 %license COPYING
-%doc AUTHORS README.md distros/redhat/readme/README.%{readme_suffix} distros/redhat/readme/README.https
+%doc AUTHORS README.md distros/redhat/readme/README distros/redhat/readme/README.https
 
 # We want these two folders to have "normal" read permission
 # compared to the folder contents
@@ -321,11 +320,32 @@ EOF
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
-* Sun Apr 22 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.31.42-1
-- Remove support for sysvinit a.k.a. el6
-- use desktop-file-install for new zoneminder.desktop file
-- add new web cache folder
-- 1.31.42 development snapshot
+* Wed Sep 12 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.0-1
+- 1.32.0 release
+- remove el6 (sys v init) support
+- Make README name consistent across all supported distros
+- remove jscalendar
+- add requires php-json, zip
+- support zm/conf.d folder
+- support zm cache (busting) folder
+
+* Sun Aug 19 2018 Leigh Scott <leigh123linux@googlemail.com> - 1.30.4-9
+- Rebuilt for Fedora 29 Mass Rebuild binutils issue
+
+* Fri Jul 27 2018 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.30.4-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
+
+* Thu Mar 08 2018 RPM Fusion Release Engineering <leigh123linux@googlemail.com> - 1.30.4-7
+- Rebuilt for new ffmpeg snapshot
+
+* Thu Mar 01 2018 RPM Fusion Release Engineering <leigh123linux@googlemail.com> - 1.30.4-6
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
+
+* Thu Jan 18 2018 Leigh Scott <leigh123linux@googlemail.com> - 1.30.4-5
+- Rebuilt for ffmpeg-3.5 git
+
+* Thu Aug 31 2017 RPM Fusion Release Engineering <kwizart@rpmfusion.org> - 1.30.4-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
 
 * Tue May 09 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.4-1
 - modify autosetup macro parameters

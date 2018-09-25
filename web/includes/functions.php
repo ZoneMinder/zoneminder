@@ -36,25 +36,26 @@ function noCacheHeaders() {
 }
 
 function CORSHeaders() {
-  if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+  if ( isset($_SERVER['HTTP_ORIGIN']) ) {
 
 # The following is left for future reference/use.
     $valid = false;
-    $servers = dbFetchAll( 'SELECT * FROM Servers' );
+    $servers = dbFetchAll('SELECT * FROM Servers');
     if ( sizeof($servers) <= 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       return;
     }
     foreach( $servers as $row ) {
-      $Server = new Server( $row );
-      if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
+      $Server = new Server($row);
+      if ( preg_match('/^'.preg_quote($Server->Url(),'/').'/', $_SERVER['HTTP_ORIGIN']) ) {
         $valid = true;
-        header('Access-Control-Allow-Origin: ' . $Server->Url() );
+        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
+        break;
       }
     }
-    if ( ! $valid ) {
-      Warning( $_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.' );
+    if ( !$valid ) {
+      Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
     }
   }
 }
@@ -432,20 +433,38 @@ function htmlSelect( $name, $contents, $values, $behaviours=false ) {
     }
   }
 
-  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions( $contents, $values ).'</select>';
+  return "<select name=\"$name\" id=\"$name\"$behaviourText>".htmlOptions($contents, $values).'</select>';
 }
 
-function htmlOptions( $contents, $values ) {
-  $html = '';
-  foreach ( $contents as $value=>$text ) {
-    if ( is_array( $text ) )
-      $text = $text['Name'];
-    else if ( is_object( $text ) )
-      $text = $text->Name();
-    $selected = is_array( $values ) ? in_array( $value, $values ) : !strcmp($value, $values);
-    $html .= "<option value=\"$value\"".($selected?" selected=\"selected\"":'').">$text</option>";
+function htmlOptions($contents, $values) {
+  $options_html = '';
+
+  foreach ( $contents as $value=>$option ) {
+    $disabled = 0;
+    $text = '';
+    if ( is_array($option) ) {
+
+      if ( isset($option['Name']) )
+        $text = $option['Name'];
+      else if ( isset($option['text']) )
+        $text = $option['text'];
+
+      if ( isset($option['disabled']) ) {
+        $disabled = $option['disabled'];
+        Error("Setting to disabled");
+      }
+    } else if ( is_object($option) ) {
+      $text = $option->Name();
+    } else {
+      $text = $option;
+    }
+    $selected = is_array($values) ? in_array($value, $values) : !strcmp($value, $values);
+    $options_html .= "<option value=\"$value\"".
+      ($selected?' selected="selected"':'').
+      ($disabled?' disabled="disabled"':'').
+      ">$text</option>";
   }
-  return $html;
+  return $options_html;
 }
 
 function truncText( $text, $length, $deslash=1 ) {       
@@ -892,7 +911,7 @@ function reScale( $dimension, $dummy ) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
     $scale = func_get_arg( $i );
-    if ( !empty($scale) && $scale != SCALE_BASE )
+    if ( !empty($scale) && ($scale != 'auto') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return( $new_dimension );

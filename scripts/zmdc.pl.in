@@ -272,6 +272,8 @@ sub run {
       ."\n"
       );
 
+  # We don't want to leave killall zombies, so ignore SIGCHLD
+  $SIG{CHLD} = 'IGNORE';
   # Tell any existing processes to die, wait 1 second between TERM and KILL
   killAll(1);
 

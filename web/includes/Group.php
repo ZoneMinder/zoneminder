@@ -58,27 +58,7 @@ class Group {
     }
   }
 
-  public static function find_one($parameters = null, $options = null) {
-    global $group_cache;
-    if (
-        ( count($parameters) == 1 ) and
-        isset($parameters['Id']) and
-        isset($group_cache[$parameters['Id']]) ) {
-      return $group_cache[$parameters['Id']];
-    }
-    $results = Group::find_all($parameters, $options);
-    if ( count($results) > 1 ) {
-      Error("Group::find_one Returned more than 1");
-      return $results[0];
-    } else if ( count($results) ) {
-      return $results[0];
-    } else {
-      return null;
-    }
-  }
-
-  public static function find_all( $parameters = null ) {
-    $filters = array();
+  public static function find( $parameters = null, $options = null ) {
     $sql = 'SELECT * FROM Groups ';
     $values = array();
 
@@ -90,22 +70,57 @@ class Group {
           $fields[] = $field.' IS NULL';
         } else if ( is_array( $value ) ) {
           $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
           $values += $value;
         } else {
           $fields[] = $field.'=?';
           $values[] = $value;
         }
       }
-      $sql .= implode(' AND ', $fields );
-    }
-    $sql .= ' ORDER BY Name';
+      $sql .= implode(' AND ', $fields);
+    } # end if parameters
+    if ( $options ) {
+      if ( isset($options['order']) ) {
+        $sql .= ' ORDER BY ' . $options['order'];
+      }
+      if ( isset($options['limit']) ) {
+        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
+          $sql .= ' LIMIT ' . $options['limit'];
+        } else {
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Error("Invalid value for limit(".$options['limit'].") passed to Group::find from $file:$line");
+          return array();
+        }
+      }
+    } # end if options
+    $groups = array();
     $result = dbQuery($sql, $values);
     $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Group');
     foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
+      $groups[] = $obj;
     }
-    return $filters;
+    return $groups;
+  } # end find()
+
+  public static function find_one($parameters = null, $options = null) {
+    global $group_cache;
+    if (
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($group_cache[$parameters['Id']]) ) {
+      return $group_cache[$parameters['Id']];
+    }
+    $results = Group::find($parameters, $options);
+    if ( count($results) > 1 ) {
+      Error("Group::find_one Returned more than 1");
+      return $results[0];
+    } else if ( count($results) ) {
+      return $results[0];
+    } else {
+      return null;
+    }
   }
 
   public function delete() {
@@ -182,7 +197,7 @@ class Group {
 
   public static function get_dropdown_options() {
     $Groups = array();
-    foreach ( Group::find_all( ) as $Group ) {
+    foreach ( Group::find( ) as $Group ) {
       $Groups[$Group->Id()] = $Group;
     }
 

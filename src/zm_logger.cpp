@@ -38,7 +38,7 @@
 #endif
 
 bool Logger::smInitialised = false;
-Logger *Logger::smInstance = 0;
+Logger *Logger::smInstance = NULL;
 
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
@@ -57,10 +57,10 @@ static void subtractTime( struct timeval * const tp1, struct timeval * const tp2
 
 void Logger::usrHandler( int sig ) {
   Logger *logger = fetch();
-  if ( sig == SIGUSR1 )
-    logger->level( logger->level()+1 );
-  else if ( sig == SIGUSR2 )
-    logger->level( logger->level()-1 );
+  if ( sig == SIGUSR1 ) {
+    logger->level(logger->level()+1);
+  } else if ( sig == SIGUSR2 )
+    logger->level(logger->level()-1);
   Info("Logger - Level changed to %d", logger->level());
 }
 
@@ -79,7 +79,7 @@ Logger::Logger() :
   mFlush(false) {
 
   if ( smInstance ) {
-    Panic( "Attempt to create second instance of Logger class" );
+    Panic("Attempt to create second instance of Logger class");
   }
 
   if ( !smInitialised ) {
@@ -133,11 +133,11 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   std::string tempLogFile;
 
-  if ( (envPtr = getTargettedEnv("LOG_FILE")) )
+  if ( (envPtr = getTargettedEnv("LOG_FILE")) ) {
     tempLogFile = envPtr;
-  else if ( options.mLogFile.size() )
+  } else if ( options.mLogFile.size() ) {
     tempLogFile = options.mLogFile;
-  else {
+  } else {
     if ( options.mLogPath.size() ) {
       mLogPath = options.mLogPath;
     }
@@ -169,7 +169,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
     tempSyslogLevel = config.log_level_syslog >= DEBUG1 ? DEBUG9 : config.log_level_syslog;
 
   // Legacy
-  if ( (envPtr = getenv( "LOG_PRINT" )) )
+  if ( (envPtr = getenv("LOG_PRINT")) )
     tempTerminalLevel = atoi(envPtr) ? DEBUG9 : NOLOG;
 
   if ( (envPtr = getTargettedEnv("LOG_LEVEL")) )
@@ -218,7 +218,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   mFlush = false;
   if ( (envPtr = getenv("LOG_FLUSH")) ) {
-    mFlush = atoi( envPtr );
+    mFlush = atoi(envPtr);
   } else if ( config.log_debug ) {
     mFlush = true;
   }
@@ -335,6 +335,10 @@ Logger::Level Logger::level(Logger::Level level) {
       mEffectiveLevel = mSyslogLevel;
     if ( mEffectiveLevel > mLevel)
       mEffectiveLevel = mLevel;
+
+    // DEBUG levels should flush
+    if ( mLevel > INFO )
+      mFlush = true;
   }
   return mLevel;
 }
@@ -503,17 +507,17 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
       );
   char *syslogStart = logPtr;
 
-  va_start( argPtr, fstring );
+  va_start(argPtr, fstring);
   if ( hex ) {
-    unsigned char *data = va_arg( argPtr, unsigned char * );
-    int len = va_arg( argPtr, int );
+    unsigned char *data = va_arg(argPtr, unsigned char *);
+    int len = va_arg(argPtr, int);
     int i;
-    logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), "%d:", len );
+    logPtr += snprintf(logPtr, sizeof(logString)-(logPtr-logString), "%d:", len);
     for ( i = 0; i < len; i++ ) {
-      logPtr += snprintf( logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i] );
+      logPtr += snprintf(logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i]);
     }
   } else {
-    logPtr += vsnprintf( logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr );
+    logPtr += vsnprintf(logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr);
   }
   va_end(argPtr);
   char *syslogEnd = logPtr;
@@ -540,7 +544,13 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     if ( ! db_mutex.trylock() ) {
       mysql_real_escape_string( &dbconn, escapedString, syslogStart, strlen(syslogStart) );
 
-      snprintf( sql, sizeof(sql), "insert into Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) values ( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )", timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line );
+      snprintf(sql, sizeof(sql),
+          "INSERT INTO Logs "
+          "( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line )"
+         " VALUES "
+         "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+         timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
+         );
       if ( mysql_query(&dbconn, sql) ) {
         Level tempDatabaseLevel = mDatabaseLevel;
         databaseLevel(NOLOG);
@@ -571,12 +581,12 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   }
 }
 
-void logInit( const char *name, const Logger::Options &options ) {
+void logInit(const char *name, const Logger::Options &options) {
   if ( !Logger::smInstance )
     Logger::smInstance = new Logger();
   Logger::Options tempOptions = options;
   tempOptions.mLogPath = staticConfig.PATH_LOGS;
-  Logger::smInstance->initialise( name, tempOptions );
+  Logger::smInstance->initialise(name, tempOptions);
 }
 
 void logTerm() {

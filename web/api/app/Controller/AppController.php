@@ -60,30 +60,47 @@ class AppController extends Controller {
   // for role and deny API access in future 
   // Also checking to do this only if ZM_OPT_USE_AUTH is on
   public function beforeFilter() {
-    $this->loadModel('Config');
-    
-    $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_API'));
-    $config = $this->Config->find('first', $options);
-    $zmOptApi = $config['Config']['Value'];
-
-    if ( $zmOptApi != '1' ) {
+    if ( ! ZM_OPT_USE_API ) {
       throw new UnauthorizedException(__('API Disabled'));
       return; 
-    }
-  // We need to reject methods that are not authenticated
-  // besides login and logout
-    if (
-      strcasecmp($this->params->action, 'login')
-      &&
-      strcasecmp($this->params->action,"logout")
-    ) {
-      if ( !$this->Session->read('user.Username') ) {
-        throw new UnauthorizedException(__('Not Authenticated'));
-        return;
-      } else if ( !$this->Session->read('user.Enabled') ) {
-        throw new UnauthorizedException(__('User is not enabled'));
-        return;
-      } 
-    }
+    } 
+
+    # For use throughout the app. If not logged in, this will be null.
+    global $user;
+    $user = $this->Session->read('user');
+    
+    if ( ZM_OPT_USE_AUTH ) {
+      require_once '../../../includes/auth.php';
+
+      $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+      $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+      $mAuth = $this->request->query('auth') ? $this->request->query('auth') : $this->request->data('auth');
+
+      if ( $mUser and $mPassword ) {
+        $user = userLogin($mUser, $mPassword);
+        if ( !$user ) {
+          throw new UnauthorizedException(__('User not found or incorrect password'));
+          return;
+        }
+      } else if ( $mAuth ) {
+        $user = getAuthUser($mAuth);
+        if ( !$user ) {
+          throw new UnauthorizedException(__('Invalid Auth Key'));
+          return;
+        }
+      }
+      // We need to reject methods that are not authenticated
+      // besides login and logout
+      if ( strcasecmp($this->params->action, 'logout') ) {
+        if ( !( $user and $user['Username'] ) ) {
+          throw new UnauthorizedException(__('Not Authenticated'));
+          return;
+        } else if ( !( $user and $user['Enabled'] ) ) {
+          throw new UnauthorizedException(__('User is not enabled'));
+          return;
+        }
+      } # end if ! login or logout
+    } # end if ZM_OPT_AUTH
+   
   } # end function beforeFilter()
 }

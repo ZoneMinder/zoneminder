@@ -2,6 +2,8 @@
 require_once('database.php');
 require_once('Server.php');
 
+$monitor_cache = array();
+
 class Monitor {
 
 private $defaults = array(
@@ -9,17 +11,19 @@ private $defaults = array(
   'Name' => '',
   'StorageId' => 0,
   'ServerId' => 0,
+  'Type'      =>  'Ffmpeg',
   'Function' => 'None',
   'Enabled' => 1,
+  'LinkedMonitors' => null,
   'Width' => null,
   'Height' => null,
   'Orientation' => null,
   'AnalysisFPSLimit'  =>  null,
   'ZoneCount' =>  0,
   'Triggers'  =>  null,
-  'Type'      =>  'Ffmpeg',
   'MaxFPS' => null,
   'AlarmMaxFPS' => null,
+  'Refresh' => null,
 );
 private $status_fields = array(
   'AnalysisFPS' => null,
@@ -163,6 +167,8 @@ private $control_fields = array(
             }
           }
         }
+        global $monitor_cache;
+        $monitor_cache[$row['Id']] = $this;
 
       } else {
         Error('No row for Monitor ' . $IdOrRow);
@@ -276,8 +282,7 @@ private $control_fields = array(
       } # end if method_exists
     } # end foreach $data as $k=>$v
   }
-  public static function find_all( $parameters = null, $options = null ) {
-    $filters = array();
+  public static function find( $parameters = null, $options = null ) {
     $sql = 'SELECT * FROM Monitors ';
     $values = array();
 
@@ -287,9 +292,9 @@ private $control_fields = array(
       foreach ( $parameters as $field => $value ) {
         if ( $value == null ) {
           $fields[] = $field.' IS NULL';
-        } else if ( is_array( $value ) ) {
+        } else if ( is_array($value) ) {
           $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
           $values += $value;
 
         } else {
@@ -297,18 +302,47 @@ private $control_fields = array(
           $values[] = $value;
         }
       }
-      $sql .= implode(' AND ', $fields );
+      $sql .= implode(' AND ', $fields);
     }
-    if ( $options and isset($options['order']) ) {
-    $sql .= ' ORDER BY ' . $options['order'];
+    if ( $options ) {
+      if ( isset($options['order']) ) {
+        $sql .= ' ORDER BY ' . $options['order'];
+      }
+      if ( isset($options['limit']) ) {
+        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
+          $sql .= ' LIMIT ' . $options['limit'];
+        } else {
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Error("Invalid value for limit(".$options['limit'].") passed to Control::find from $file:$line");
+          return array();
+        }
+      }
     }
+    $monitors = array();
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Monitor');
-    foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
+    $results = $result->fetchALL();
+    foreach ( $results as $row ) {
+      $monitors[] = new Monitor($row);
     }
-    return $filters;
-  }
+    return $monitors;
+  } # end find
+
+  public static function find_one( $parameters = array() ) {
+    global $monitor_cache;
+    if ( 
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($monitor_cache[$parameters['Id']]) ) {
+      return $monitor_cache[$parameters['Id']];
+    }
+    $results = Monitor::find( $parameters, array('limit'=>1) );
+    if ( ! sizeof($results) ) {
+      return;
+    }
+    return $results[0];
+  } # end find_one
 
   public function save($new_values = null) {
 
@@ -487,8 +521,12 @@ private $control_fields = array(
       $source = preg_replace( '/^.*\//', '', $this->{'Path'} );
     } elseif ( $this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite' ) {
       $url_parts = parse_url( $this->{'Path'} );
-      if ( ZM_WEB_FILTER_SOURCE == "Hostname" ) { # Filter out everything but the hostname
-        $source = $url_parts['host'];
+      if ( ZM_WEB_FILTER_SOURCE == 'Hostname' ) { # Filter out everything but the hostname
+        if ( isset($url_parts['host']) ) {
+          $source = $url_parts['host'];
+        } else {
+          $source = $this->{'Path'};
+        }
       } elseif ( ZM_WEB_FILTER_SOURCE == "NoCredentials" ) { # Filter out sensitive and common items
         unset($url_parts['user']);
         unset($url_parts['pass']);
@@ -507,5 +545,10 @@ private $control_fields = array(
     }
     return $source;
   } // end function Source
+
+  public function Url() {
+    return $this->Server()->Url() .':'. ( ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : $_SERVER['SERVER_PORT'] );
+  }
+
 } // end class Monitor
 ?>

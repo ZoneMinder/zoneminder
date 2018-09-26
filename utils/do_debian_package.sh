@@ -163,8 +163,19 @@ if [ $? -ne 0 ]; then
 fi;
 cd "$DIRECTORY.orig";
 
+# Init submodules
 git submodule init
 git submodule update --init --recursive
+
+# Cleanup
+rm -rf .git
+rm .gitignore
+cd ../
+
+tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+cd $DIRECTORY.orig
+
+# Generate Changlog
 if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
   mv distros/ubuntu1204 debian
 else 
@@ -188,12 +199,6 @@ fi
 if [ "$URGENCY" = "" ]; then
   URGENCY="medium"
 fi;
-
-rm -rf .git
-rm .gitignore
-cd ../
-tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
-cd $DIRECTORY.orig
 
 if [ "$SNAPSHOT" == "stable" ]; then
 cat <<EOF > debian/changelog

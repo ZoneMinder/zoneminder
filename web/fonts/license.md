@@ -4,11 +4,13 @@ ZoneMinder uses certain 3rd party media assets/libraries for UI display purposes
 ### Material Design icons 
 
 Origin: https://github.com/google/material-design-icons
+
 License: Apache 2.0 (https://github.com/google/material-design-icons/blob/master/LICENSE)
 
 ### Glyphicon halflings font
 
 Origin: http://www.glyphicons.com/
+
 License: MIT, As clarified below (http://www.glyphicons.com/license/)
 
 ```

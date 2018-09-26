@@ -301,7 +301,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
     int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
     int tbn = st->time_base.den && st->time_base.num;
-    int tbc = codec->time_base.den && codec->time_base.num;
+    int tbc = st->codec->time_base.den && st->codec->time_base.num;
 
     if (fps || tbn || tbc)
       Debug(3, "\n" );
@@ -311,7 +311,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     if (tbn)
       zm_log_fps(1 / av_q2d(st->time_base), tbc ? "stream tb numerator , " : "stream tb numerator");
     if (tbc)
-      zm_log_fps(1 / av_q2d(codec->time_base), "codec time base:");
+      zm_log_fps(1 / av_q2d(st->codec->time_base), "codec time base:");
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)

@@ -41,7 +41,7 @@ guide you with a quick search.
 
     ::
 
-        add-apt-repository ppa:iconnor/zoneminder
+        add-apt-repository ppa:iconnor/zoneminder-master
 
 Update repo and upgrade.
 

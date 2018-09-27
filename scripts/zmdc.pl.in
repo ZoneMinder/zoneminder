@@ -485,7 +485,7 @@ sub start {
     logTerm();
     zmDbDisconnect();
 
-    my $fd = 0;
+    my $fd = 3; # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
     while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
       POSIX::close($fd++);
     }

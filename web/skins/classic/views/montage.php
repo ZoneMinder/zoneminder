@@ -70,8 +70,8 @@ session_start();
 $layout_id = '';
 if ( isset($_COOKIE['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
-} elseif ( isset($_SESSION['zmMontageLayout']) ) {
-  $layout_id = $_SESSION['zmMontageLayout'];
+#} elseif ( isset($_SESSION['zmMontageLayout']) ) {
+  #$layout_id = $_SESSION['zmMontageLayout'];
 }
 
 $options = array();
@@ -87,15 +87,15 @@ if ( $Layout and ( $Layout->Name() != 'Freeform' ) ) {
 
 if ( isset($_COOKIE['zmMontageWidth']) and $_COOKIE['zmMontageWidth'] ) {
   $_SESSION['zmMontageWidth'] = $options['width'] = $_COOKIE['zmMontageWidth'];
-} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
-  $options['width'] = $_SESSION['zmMontageWidth'];
+#} elseif ( isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth'] ) {
+  #$options['width'] = $_SESSION['zmMontageWidth'];
 } else
   $options['width'] = '';
 
 if ( isset($_COOKIE['zmMontageHeight']) and $_COOKIE['zmMontageHeight'] )
   $_SESSION['zmMontageHeight'] = $options['height'] = $_COOKIE['zmMontageHeight'];
-else if ( isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight'] )
-  $options['height'] = $_SESSION['zmMontageHeight'];
+#else if ( isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight'] )
+  #$options['height'] = $_SESSION['zmMontageHeight'];
 else
   $options['height'] = '';
 
@@ -134,7 +134,7 @@ xhtmlHeaders(__FILE__, translate('Montage'));
 <body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
-    <div id="header">&nbsp&nbsp
+    <div id="header">&nbsp;&nbsp;
       <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
       <div id="flipMontageHeader">
         <div id="headerButtons">

@@ -828,7 +828,7 @@ void EventStream::runStream() {
     curr_stream_time = frame_data->timestamp;
 
     if ( !paused ) {
-      curr_frame_id += replay_rate>0?1:-1;
+      curr_frame_id += (replay_rate>0) ? 1 : -1;
       if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
         curr_frame_id = 1;
       if ( send_frame && type != STREAM_MPEG ) {

@@ -279,8 +279,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
         }
 
         // If we are in single event mode and at the last frame, replay the current event
-        if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
-          Debug(1, "Was in single_mode, and last frame, so jumping to 1st frame");
+        if ( (mode == MODE_SINGLE || mode == MODE_NONE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
+          Debug(1, "Was in single or no replay mode, and at last frame, so jumping to 1st frame");
           curr_frame_id = 1;
         } else {
           Debug(1, "mode is %s, current frame is %d, frame count is %d", (mode == MODE_SINGLE ? "single" : "not single" ), curr_frame_id, event_data->frame_count );
@@ -501,7 +501,7 @@ void EventStream::checkEventLoaded() {
   }
 
   if ( reload_event ) {
-    if ( forceEventChange || mode != MODE_SINGLE ) {
+    if ( forceEventChange || ( mode != MODE_SINGLE && mode != MODE_NONE ) ) {
       //Info( "SQL:%s", sql );
       if ( mysql_query( &dbconn, sql ) ) {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -812,7 +812,7 @@ void EventStream::runStream() {
       step = 0;
       send_frame = true;
     } else if ( !send_frame ) {
-      // We are paused, and doing nothing
+      // We are paused, not stepping and doing nothing
       double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
       if ( actual_delta_time > MAX_STREAM_DELAY ) {
         // Send keepalive
@@ -829,8 +829,10 @@ void EventStream::runStream() {
 
     if ( !paused ) {
       curr_frame_id += (replay_rate>0) ? 1 : -1;
-      if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
+      if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
+        Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
         curr_frame_id = 1;
+      }
       if ( send_frame && type != STREAM_MPEG ) {
         Debug( 3, "dUs: %d", delta_us );
         if ( delta_us )

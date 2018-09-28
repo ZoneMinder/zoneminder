@@ -710,9 +710,15 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       return -1;
     }
 
+    if ( packet.pts < -100000 ) {
+      // Ignore packets that have crazy negative pts.  They aren't supposed to happen.
+      Warning("Ignore packet because pts is massively negative");
+      dumpPacket(&packet,"Ignored packet");
+      continue;
+    }
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
     bytes += packet.size;
-    dumpPacket(&packet);
+    dumpPacket(&packet,"Captured Packet");
 
     //Video recording
     if ( recording.tv_sec ) {

@@ -570,7 +570,7 @@ sub logPrint {
         $this->{databaseLevel} = $oldlevel;
       }
 
-      my $sql = 'INSERT INTO Logs ( TimeKey, Component, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, NULL )';
+      my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, NULL )';
       $this->{sth} = $this->{dbh}->prepare_cached($sql) if ! $this->{sth};
       if ( !$this->{sth} ) {
         $this->{databaseLevel} = NOLOG;
@@ -578,13 +578,15 @@ sub logPrint {
         return;
       } 
 
-      my $res = $this->{sth}->execute($seconds+($microseconds/1000000.0)
-          , $this->{id}
-          , $$
-          , $level
-          , $codes{$level}
-          , $string
-          , $this->{fileName}
+      my $res = $this->{sth}->execute(
+        $seconds+($microseconds/1000000.0),
+           $this->{id},
+           ($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : undef),
+           $$,
+           $level,
+           $codes{$level},
+           $string,
+           $this->{fileName},
           );
       if ( !$res ) {
         $this->{databaseLevel} = NOLOG;

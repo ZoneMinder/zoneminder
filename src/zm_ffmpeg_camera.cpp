@@ -134,10 +134,6 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
 
 FfmpegCamera::~FfmpegCamera() {
 
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
-  }
   Close();
 
   if ( capture ) {

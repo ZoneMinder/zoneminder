@@ -323,14 +323,10 @@ sub loadMonitors {
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
     or Fatal( "Can't execute: ".$sth->errstr() );
   while( my $monitor = $sth->fetchrow_hashref() ) {
-# Check shared memory ok
-    if ( !zmMemVerify( $monitor ) ) {
-      zmMemInvalidate( $monitor );
-      next;
+    if ( zmMemVerify( $monitor ) ) {
+        $monitor->{LastState} = zmGetMonitorState( $monitor );
+        $monitor->{LastEvent} = zmGetLastEvent( $monitor );
     }
-
-    $monitor->{LastState} = zmGetMonitorState( $monitor );
-    $monitor->{LastEvent} = zmGetLastEvent( $monitor );
     $new_monitors{$monitor->{Id}} = $monitor;
   } # end while fetchrow
   %monitors = %new_monitors;

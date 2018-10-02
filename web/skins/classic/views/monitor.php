@@ -921,13 +921,19 @@ if ( $monitor->Type() == 'Local' ) {
 <?php 
 	$videowriteropts = array(
 			0 => 'Disabled',
-			1 => 'X264 Encode',
 			);
-	if ($monitor->Type() == 'Ffmpeg' )
-		$videowriteropts[2] = 'H264 Camera Passthrough';
+
+  if (stripos(php_uname('m'), 'arm') === false )
+    $videowriteropts[1] = 'X264 Encode';
+  else
+    $videowriteropts[1] = array('text'=>'X264 Encode - Not compatible on Arm','disabled'=>1);
+
+  if ($monitor->Type() == 'Ffmpeg' )
+    $videowriteropts[2] = 'H264 Camera Passthrough';
   else
     $videowriteropts[2] = array('text'=>'H264 Camera Passthrough - only for FFMPEG','disabled'=>1);
-	echo htmlselect( 'newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter() );
+
+  echo htmlselect( 'newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter() );
 ?>
             </td></tr>
             <tr><td><?php echo translate('OptionalEncoderParam') ?></td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea></td></tr>

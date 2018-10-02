@@ -25,7 +25,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.32.0
+Version: 1.32.1
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -320,6 +320,10 @@ EOF
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Tue Oct 2 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.1-1
+- 1.32.1 release
+- Bug fix release
+
 * Wed Sep 12 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.0-1
 - 1.32.0 release
 - remove el6 (sys v init) support

@@ -189,6 +189,8 @@ if ( ZM_OPT_USE_AUTH ) {
         userLogin($authUser['Username'], $authUser['Password'], true);
       }
     } 
+  } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
+    userLogin($_REQUEST['username'], $_REQUEST['password'], false);
   }
   if ( !empty($user) ) {
     // generate it once here, while session is open.  Value will be cached in session and return when called later on

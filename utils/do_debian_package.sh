@@ -293,6 +293,13 @@ else
   SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
   PPA="";
   if [ "$RELEASE" != "" ]; then
+    # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
+    if [ ! -e "$RELEASE.tar.gz" ]; then
+      echo "Grabbing official source tarball from github."
+      wget "https://github.com/ZoneMinder/zoneminder/archive/$RELEASE.tar.gz"
+    fi;
+    echo "Overwriting generated zoneminder_${VERSION}.orig.tar.gz with source tarball from github";
+    cp "$RELEASE.tar.gz" "zoneminder_${VERSION}.orig.tar.gz"
     IFS='.' read -r -a VERSION <<< "$RELEASE"
     PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
   else

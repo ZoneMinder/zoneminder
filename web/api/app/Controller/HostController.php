@@ -101,8 +101,8 @@ class HostController extends AppController {
     $this->loadModel('Monitor');
 
     // If $mid is passed, see if it is valid
-    if ($mid) {
-      if (!$this->Monitor->exists($mid)) {
+    if ( $mid ) {
+      if ( !$this->Monitor->exists($mid) ) {
         throw new NotFoundException(__('Invalid monitor'));
       }
     }
@@ -110,14 +110,16 @@ class HostController extends AppController {
     $zm_dir_events = ZM_DIR_EVENTS;
 
     // Test to see if $zm_dir_events is relative or absolute
-    if ('/' === "" || strrpos($zm_dir_events, '/', -strlen($zm_dir_events)) !== TRUE) {
+    #if ('/' === "" || strrpos($zm_dir_events, '/', -strlen($zm_dir_events)) !== TRUE) {
+    if ( substr($zm_dir_events, 0, 1) != '/' ) {
       // relative - so add the full path
       $zm_dir_events = ZM_PATH_WEB . '/' . $zm_dir_events;
     }
 
     if ( $mid ) {
       // Get disk usage for $mid
-      $usage = shell_exec("du -sh0 $zm_dir_events/$mid | awk '{print $1}'");
+      Logger::Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
+      $usage = shell_exec("du -s0 $zm_dir_events/$mid | awk '{print $1}'");
     } else {
       $monitors = $this->Monitor->find('all', array(
         'fields' => array('Id', 'Name', 'WebColour')

@@ -107,21 +107,17 @@ class HostController extends AppController {
       }
     }
 
-    $zm_dir_events = $this->Config->find('list', array(
-      'conditions' => array('Name' => 'ZM_DIR_EVENTS'),
-      'fields' => array('Name', 'Value')
-    ));
-    $zm_dir_events = $zm_dir_events['ZM_DIR_EVENTS' ];
+    $zm_dir_events = ZM_DIR_EVENTS;
 
     // Test to see if $zm_dir_events is relative or absolute
     if ('/' === "" || strrpos($zm_dir_events, '/', -strlen($zm_dir_events)) !== TRUE) {
       // relative - so add the full path
-      $zm_dir_events = Configure::read('ZM_PATH_WEB') . '/' . $zm_dir_events;
+      $zm_dir_events = ZM_PATH_WEB . '/' . $zm_dir_events;
     }
 
-    if ($mid) {
+    if ( $mid ) {
       // Get disk usage for $mid
-      $usage = shell_exec ("du -sh0 $zm_dir_events/$mid | awk '{print $1}'");
+      $usage = shell_exec("du -sh0 $zm_dir_events/$mid | awk '{print $1}'");
     } else {
       $monitors = $this->Monitor->find('all', array(
         'fields' => array('Id', 'Name', 'WebColour')

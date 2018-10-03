@@ -41,7 +41,7 @@ guide you with a quick search.
 
     ::
 
-        add-apt-repository ppa:iconnor/zoneminder
+        add-apt-repository ppa:iconnor/zoneminder-master
 
     Please note that as of 1.32.0 We are creating a new PPA for each major version, as a means to prevent automatic upgrades from one major version to another.  So instead of the above ppa line use the following:
 

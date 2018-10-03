@@ -42,7 +42,7 @@ This is the recommended method to install ZoneMinder onto your system. ZoneMinde
 
 If a repository that hosts ZoneMinder packages is not available for your distro, then you are encouraged to build your own package, rather than build from source.  While each distro is different in ways that set it apart from all the others, they are often similar enough to allow you to adapt another distro's package building instructions to your own.
 
-### Building a ZoneMinder Package
+### Building a ZoneMinder Package ###
 
 Building ZoneMinder into a package is not any harder than building from source.  As a matter of fact, if you have successfully built ZoneMinder from source in the past, then you may find these steps to be easier. 
 

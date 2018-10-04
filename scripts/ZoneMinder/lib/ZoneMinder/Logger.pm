@@ -704,6 +704,8 @@ sub Fatal( @ ) {
   if ( $SIG{TERM} and ( $SIG{TERM} ne 'DEFAULT' ) ) {
     $SIG{TERM}();
   }
+  # I think if we don't disconnect we will leave sockets around in TIME_WAIT
+  zmDbDisconnect();
   exit(-1);
 }
 

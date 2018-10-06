@@ -16,9 +16,9 @@ functions for Monitors, Events, Frames, Zones and Config.
 Enabling API
 ^^^^^^^^^^^^
 A default ZoneMinder installs with APIs enabled. You can explictly enable/disable the APIs
-via the Options->System menu by enabling/disabling `OPT_USE_API`. Note that if you intend
+via the Options->System menu by enabling/disabling ``OPT_USE_API``. Note that if you intend
 to use APIs with 3rd party apps, such as zmNinja or others that use APIs, you should also
-enable `AUTH_HASH_LOGINS`.
+enable ``AUTH_HASH_LOGINS``.
 
 Login, Logout & API Security
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

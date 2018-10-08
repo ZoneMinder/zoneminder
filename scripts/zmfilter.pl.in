@@ -292,40 +292,40 @@ sub checkFilter {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    Debug("Checking event $event->{Id}");
+    Debug("Checking event $Event->{Id}");
     my $delete_ok = !undef;
     $dbh->ping();
     if ( $filter->{AutoArchive} ) {
-      Info("Archiving event $event->{Id}");
+      Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
       my $sql = 'UPDATE Events SET Archived = 1 WHERE Id = ?';
       my $sth = $dbh->prepare_cached( $sql )
         or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute( $event->{Id} )
+      my $res = $sth->execute( $Event->{Id} )
         or Error("Unable to execute '$sql': ".$dbh->errstr());
     }
     if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
-      if ( !$event->{Videoed} ) {
-        $delete_ok = undef if !generateVideo($filter, $event);
+      if ( !$Event->{Videoed} ) {
+        $delete_ok = undef if !generateVideo($filter, $Event);
       }
     }
     if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} ) {
-      if ( !$event->{Emailed} ) {
+      if ( !$Event->{Emailed} ) {
         $delete_ok = undef if !sendEmail($filter, $Event);
       }
     }
     if ( $Config{ZM_OPT_MESSAGE} && $filter->{AutoMessage} ) {
-      if ( !$event->{Messaged} ) {
+      if ( !$Event->{Messaged} ) {
         $delete_ok = undef if !sendMessage($filter, $Event);
       }
     }
     if ( $Config{ZM_OPT_UPLOAD} && $filter->{AutoUpload} ) {
-      if ( !$event->{Uploaded} ) {
+      if ( !$Event->{Uploaded} ) {
         $delete_ok = undef if !uploadArchFile($filter, $Event);
       }
     }
     if ( $filter->{AutoExecute} ) {
-      if ( !$event->{Executed} ) {
+      if ( !$Event->{Executed} ) {
         $delete_ok = undef if !executeCommand($filter, $Event);
       }
     }
@@ -333,7 +333,7 @@ sub checkFilter {
       if ( $delete_ok ) {
         $Event->delete();
       } else {
-        Error("Unable to delete event $event->{Id} as previous operations failed");
+        Error("Unable to delete event $Event->{Id} as previous operations failed");
       }
     } # end if AutoDelete
 
@@ -364,11 +364,11 @@ sub checkFilter {
 
 sub generateVideo {
   my $filter = shift;
-  my $event = shift;
+  my $Event = shift;
   my $phone = shift;
 
-  my $rate = $event->{DefaultRate}/100;
-  my $scale = $event->{DefaultScale}/100;
+  my $rate = $Event->{DefaultRate}/100;
+  my $scale = $Event->{DefaultScale}/100;
   my $format;
 
   my @ffmpeg_formats = split(/\s+/, $Config{ZM_FFMPEG_FORMATS});
@@ -393,7 +393,7 @@ sub generateVideo {
   my $command = join('',
       $Config{ZM_PATH_BIN},
       '/zmvideo.pl -e ',
-      $event->{Id},
+      $Event->{Id},
       ' -r ',
       $rate,
       ' -s ',
@@ -417,7 +417,7 @@ sub generateVideo {
     my $sql = 'UPDATE Events SET Videoed = 1 WHERE Id = ?';
     my $sth = $dbh->prepare_cached($sql)
       or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($event->{Id})
+    my $res = $sth->execute($Event->{Id})
       or Fatal("Unable to execute '$sql': ".$dbh->errstr());
     if ( wantarray() ) {
       return( $format, $output );
@@ -467,15 +467,15 @@ sub generateImage {
 
 sub uploadArchFile {
   my $filter = shift;
-  my $event = shift;
+  my $Event = shift;
 
   if ( ! $Config{ZM_UPLOAD_HOST} ) {
     Error('Cannot upload archive as no upload host defined');
     return( 0 );
   }
 
-  my $archFile = $event->{MonitorName}.'-'.$event->{Id};
-  my $archImagePath = $event->Path()
+  my $archFile = $Event->{MonitorName}.'-'.$Event->{Id};
+  my $archImagePath = $Event->Path()
     .'/'
     .(
         ( $Config{ZM_UPLOAD_ARCH_ANALYSE} )
@@ -593,7 +593,7 @@ sub uploadArchFile {
     my $sql = 'UPDATE Events SET Uploaded = 1 WHERE Id = ?';
     my $sth = $dbh->prepare_cached($sql)
       or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($event->{Id})
+    my $res = $sth->execute($Event->{Id})
       or Fatal("Unable to execute '$sql': ".$dbh->errstr());
   }
   return 1;
@@ -949,13 +949,13 @@ sub sendMessage {
 
 sub executeCommand {
   my $filter = shift;
-  my $event = shift;
+  my $Event = shift;
 
-  my $event_path = $event->Path();
+  my $event_path = $Event->Path();
 
   my $command = $filter->{AutoExecuteCmd};
   $command .= " $event_path";
-  $command = substituteTags($command, $filter, $event);
+  $command = substituteTags($command, $filter, $Event);
 
   Info("Executing '$command'");
   my $output = qx($command);
@@ -971,7 +971,7 @@ sub executeCommand {
     my $sql = 'UPDATE Events SET Executed = 1 WHERE Id = ?';
     my $sth = $dbh->prepare_cached($sql)
       or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute( $event->{Id} )
+    my $res = $sth->execute( $Event->{Id} )
       or Fatal("Unable to execute '$sql': ".$dbh->errstr());
   }
   return( 1 );

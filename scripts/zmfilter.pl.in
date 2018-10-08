@@ -326,7 +326,7 @@ sub checkFilter {
     }
     if ( $filter->{AutoExecute} ) {
       if ( !$event->{Executed} ) {
-        $delete_ok = undef if !executeCommand($filter, $event);
+        $delete_ok = undef if !executeCommand($filter, $Event);
       }
     }
     if ( $filter->{AutoDelete} ) {

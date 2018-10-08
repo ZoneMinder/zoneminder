@@ -40,9 +40,9 @@ class Server {
 
 	public function Url() {
 		if ( $this->Id() ) {
-			return ZM_BASE_PROTOCOL . '://'. $this->Hostname();
+			return ZM_BASE_PROTOCOL . '://'. $this->Hostname().$_SERVER['PHP_SELF'];
 		} else {
-			return ZM_BASE_PROTOCOL . '://'. $_SERVER['SERVER_NAME'];
+			return ZM_BASE_PROTOCOL . '://'. $_SERVER['SERVER_NAME'].$_SERVER['PHP_SELF'];
 			return '';
 		}
 	}

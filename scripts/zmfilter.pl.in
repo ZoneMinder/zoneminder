@@ -292,48 +292,48 @@ sub checkFilter {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    Debug("Checking event $event->{Id}");
+    Debug("Checking event $Event->{Id}");
     my $delete_ok = !undef;
     $dbh->ping();
     if ( $filter->{AutoArchive} ) {
-      Info("Archiving event $event->{Id}");
+      Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
       my $sql = 'UPDATE Events SET Archived = 1 WHERE Id = ?';
       my $sth = $dbh->prepare_cached( $sql )
         or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute( $event->{Id} )
+      my $res = $sth->execute( $Event->{Id} )
         or Error("Unable to execute '$sql': ".$dbh->errstr());
     }
     if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
-      if ( !$event->{Videoed} ) {
-        $delete_ok = undef if !generateVideo($filter, $event);
+      if ( !$Event->{Videoed} ) {
+        $delete_ok = undef if !generateVideo($filter, $Event);
       }
     }
     if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} ) {
-      if ( !$event->{Emailed} ) {
+      if ( !$Event->{Emailed} ) {
         $delete_ok = undef if !sendEmail($filter, $Event);
       }
     }
     if ( $Config{ZM_OPT_MESSAGE} && $filter->{AutoMessage} ) {
-      if ( !$event->{Messaged} ) {
+      if ( !$Event->{Messaged} ) {
         $delete_ok = undef if !sendMessage($filter, $Event);
       }
     }
     if ( $Config{ZM_OPT_UPLOAD} && $filter->{AutoUpload} ) {
-      if ( !$event->{Uploaded} ) {
+      if ( !$Event->{Uploaded} ) {
         $delete_ok = undef if !uploadArchFile($filter, $Event);
       }
     }
     if ( $filter->{AutoExecute} ) {
-      if ( !$event->{Executed} ) {
-        $delete_ok = undef if !executeCommand($filter, $event);
+      if ( !$Event->{Executed} ) {
+        $delete_ok = undef if !executeCommand($filter, $Event);
       }
     }
     if ( $filter->{AutoDelete} ) {
       if ( $delete_ok ) {
         $Event->delete();
       } else {
-        Error("Unable toto delete event $event->{Id} as previous operations failed");
+        Error("Unable to delete event $Event->{Id} as previous operations failed");
       }
     } # end if AutoDelete
 
@@ -364,11 +364,11 @@ sub checkFilter {
 
 sub generateVideo {
   my $filter = shift;
-  my $event = shift;
+  my $Event = shift;
   my $phone = shift;
 
-  my $rate = $event->{DefaultRate}/100;
-  my $scale = $event->{DefaultScale}/100;
+  my $rate = $Event->{DefaultRate}/100;
+  my $scale = $Event->{DefaultScale}/100;
   my $format;
 
   my @ffmpeg_formats = split(/\s+/, $Config{ZM_FFMPEG_FORMATS});
@@ -393,7 +393,7 @@ sub generateVideo {
   my $command = join('',
       $Config{ZM_PATH_BIN},
       '/zmvideo.pl -e ',
-      $event->{Id},
+      $Event->{Id},
       ' -r ',
       $rate,
       ' -s ',
@@ -417,8 +417,8 @@ sub generateVideo {
     my $sql = 'UPDATE Events SET Videoed = 1 WHERE Id = ?';
     my $sth = $dbh->prepare_cached($sql)
       or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($event->{Id})
-      or Fatal("Unable toexecute '$sql': ".$dbh->errstr());
+    my $res = $sth->execute($Event->{Id})
+      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
     if ( wantarray() ) {
       return( $format, $output );
     }
@@ -467,15 +467,15 @@ sub generateImage {
 
 sub uploadArchFile {
   my $filter = shift;
-  my $event = shift;
+  my $Event = shift;
 
   if ( ! $Config{ZM_UPLOAD_HOST} ) {
     Error('Cannot upload archive as no upload host defined');
     return( 0 );
   }
 
-  my $archFile = $event->{MonitorName}.'-'.$event->{Id};
-  my $archImagePath = $event->Path()
+  my $archFile = $Event->{MonitorName}.'-'.$Event->{Id};
+  my $archImagePath = $Event->Path()
     .'/'
     .(
         ( $Config{ZM_UPLOAD_ARCH_ANALYSE} )
@@ -540,7 +540,7 @@ sub uploadArchFile {
     return( 0 );
   } else {
     if ( $Config{ZM_UPLOAD_PROTOCOL} eq 'ftp' ) {
-      Info('Uploading to '.$Config{ZM_UPLOAD_HOST}." using FTP");
+      Info('Uploading to '.$Config{ZM_UPLOAD_HOST}.' using FTP');
       my $ftp = Net::FTP->new(
           $Config{ZM_UPLOAD_HOST},
           Timeout=>$Config{ZM_UPLOAD_TIMEOUT},
@@ -548,24 +548,24 @@ sub uploadArchFile {
           Debug=>$Config{ZM_UPLOAD_DEBUG}
           );
       if ( !$ftp ) {
-        Error("Unable tocreate FTP connection: $@");
+        Error("Unable to create FTP connection: $@");
         return 0;
       }
       $ftp->login($Config{ZM_UPLOAD_USER}, $Config{ZM_UPLOAD_PASS})
-        or Error("FTP - Unable tologin");
+        or Error("FTP - Unable to login");
       $ftp->binary()
-        or Error("FTP - Unable togo binary");
+        or Error("FTP - Unable to go binary");
       $ftp->cwd($Config{ZM_UPLOAD_REM_DIR})
-        or Error("FTP - Unable tocwd")
+        or Error("FTP - Unable to cwd")
         if ( $Config{ZM_UPLOAD_REM_DIR} );
       $ftp->put( $archLocPath )
-        or Error("FTP - Unable toupload '$archLocPath'");
+        or Error("FTP - Unable to upload '$archLocPath'");
       $ftp->quit()
-        or Error("FTP - Unable toquit");
+        or Error("FTP - Unable to quit");
     } else {
       my $host = $Config{ZM_UPLOAD_HOST};
       $host .= ':'.$Config{ZM_UPLOAD_PORT} if $Config{ZM_UPLOAD_PORT};
-      Info('Uploading to '.$host." using SFTP\n");
+      Info('Uploading to '.$host.' using SFTP');
       my %sftpOptions = (
           host=>$Config{ZM_UPLOAD_HOST}, user=>$Config{ZM_UPLOAD_USER} 
           ($Config{ZM_UPLOAD_PASS} ? (password=>$Config{ZM_UPLOAD_PASS}) : ()),
@@ -580,7 +580,7 @@ sub uploadArchFile {
       $sftpOptions{more} = [@more_ssh_args];
       my $sftp = Net::SFTP::Foreign->new($Config{ZM_UPLOAD_HOST}, %sftpOptions);
       if ( $sftp->error ) {
-        Error("Unable tocreate SFTP connection: ".$sftp->error);
+        Error("Unable to create SFTP connection: ".$sftp->error);
         return 0;
       }
       $sftp->setcwd($Config{ZM_UPLOAD_REM_DIR})
@@ -592,9 +592,9 @@ sub uploadArchFile {
     unlink($archLocPath);
     my $sql = 'UPDATE Events SET Uploaded = 1 WHERE Id = ?';
     my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable toprepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($event->{Id})
-      or Fatal("Unable toexecute '$sql': ".$dbh->errstr());
+      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
+    my $res = $sth->execute($Event->{Id})
+      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
   }
   return 1;
 } # end sub uploadArchFile
@@ -622,9 +622,9 @@ sub substituteTags {
       WHERE EventId = ? AND Type = 'Alarm'
       ORDER BY FrameId`;
     my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable toprepare '$sql': ".$dbh->errstr());
+      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute($Event->{Id})
-      or Fatal( "Unable toexecute '$sql': ".$dbh->errstr());
+      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
     my $rows = 0;
     while( my $frame = $sth->fetchrow_hashref() ) {
       if ( !$first_alarm_frame ) {
@@ -796,7 +796,7 @@ sub sendEmail {
           $ssmtp_location = qx('which ssmtp');
         }
         if ( !$ssmtp_location ) {
-          Debug('Unable tofind ssmtp, trying MIME::Lite->send');
+          Debug('Unable to find ssmtp, trying MIME::Lite->send');
           MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
           $mail->send();
         } else {
@@ -828,16 +828,16 @@ sub sendEmail {
     }
   };
   if ( $@ ) {
-    Error("Unable tosend email: $@");
+    Error("Unable to send email: $@");
     return 0;
   } else {
     Info('Notification email sent');
   }
   my $sql = 'UPDATE Events SET Emailed = 1 WHERE Id = ?';
   my $sth = $dbh->prepare_cached($sql)
-    or Fatal("Unable toprepare '$sql': ".$dbh->errstr());
+    or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($Event->{Id})
-    or Fatal("Unable toexecute '$sql': ".$dbh->errstr());
+    or Fatal("Unable to execute '$sql': ".$dbh->errstr());
 
   return 1;
 }
@@ -898,7 +898,7 @@ sub sendMessage {
           $ssmtp_location = qx('which ssmtp');
         }
         if ( !$ssmtp_location ) {
-          Debug('Unable tofind ssmtp, trying MIME::Lite->send');
+          Debug('Unable to find ssmtp, trying MIME::Lite->send');
           MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
           $mail->send();
         } else {
@@ -933,29 +933,29 @@ sub sendMessage {
     }
   };
   if ( $@ ) {
-    Error("Unable tosend email: $@");
+    Error("Unable to send email: $@");
     return 0;
   } else {
     Info('Notification message sent');
   }
   my $sql = 'UPDATE Events SET Messaged = 1 WHERE Id = ?';
   my $sth = $dbh->prepare_cached($sql)
-    or Fatal("Unable toprepare '$sql': ".$dbh->errstr());
+    or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($Event->{Id})
-    or Fatal("Unable toexecute '$sql': ".$dbh->errstr());
+    or Fatal("Unable to execute '$sql': ".$dbh->errstr());
 
   return 1;
 } # end sub sendMessage
 
 sub executeCommand {
   my $filter = shift;
-  my $event = shift;
+  my $Event = shift;
 
-  my $event_path = $event->Path();
+  my $event_path = $Event->Path();
 
   my $command = $filter->{AutoExecuteCmd};
   $command .= " $event_path";
-  $command = substituteTags($command, $filter, $event);
+  $command = substituteTags($command, $filter, $Event);
 
   Info("Executing '$command'");
   my $output = qx($command);
@@ -971,7 +971,7 @@ sub executeCommand {
     my $sql = 'UPDATE Events SET Executed = 1 WHERE Id = ?';
     my $sth = $dbh->prepare_cached($sql)
       or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute( $event->{Id} )
+    my $res = $sth->execute( $Event->{Id} )
       or Fatal("Unable to execute '$sql': ".$dbh->errstr());
   }
   return( 1 );

@@ -1,3 +1,4 @@
+
 /*
  * ZoneMinder Base Stylesheet, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
@@ -23,10 +24,9 @@
 
 body {
     font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 10px;
+    font-size: 18px;
     color: #333333;
     font-weight: normal;
-    text-align: center;
 }
 
 h1 {
@@ -64,16 +64,8 @@ p {
     font-weight: normal;
 }
 
-th {
-    font-weight: bold;
-    color: #016A9d;
-}
 
-a:link {
-    color: #7f7fb2;
-    text-decoration: none;
-}
-
+a:link,
 a:visited {
     color: #7f7fb2;
     text-decoration: none;
@@ -84,8 +76,9 @@ a:hover {
     text-decoration: underline;
 }
 
-label {
-    margin-right: 4px;
+th, th a {
+    font-weight: bold;
+    color: #016A9d;
 }
 
 input,textarea,select,button {
@@ -103,10 +96,10 @@ input.noborder {
     border: 0;
 }
 
-input[disabled] {
-    color: #888888;
-}
 
+img {
+  display: inline-block;
+}
 img.normal {
     border: white solid 1px;
 }
@@ -188,12 +181,6 @@ ul.tabList li.active a {
     padding-top: 6px;
     padding-bottom: 6px;
     vertical-align: middle;
-}
-
-#content table.major th, #content table.major td {
-    border: 1px solid #7f7fb2;
-    padding: 3px;
-    text-align: left;
 }
 
 #content table.major th {
@@ -359,10 +346,12 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #header {
-    width: 96%;
-    line-height: 24px;
-    margin: 8px auto;
+    width: 100%;
+    margin: 0 auto 4px auto;
+    line-height: 1;
     text-align: left;
+    padding: 3px 0;
+    border-bottom: 1px solid #555555;
 }
 
 #header h2 {
@@ -374,7 +363,6 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #headerControl {
-    width: 50%;
     text-align: center;
     margin: 0 auto;
 }
@@ -383,17 +371,13 @@ th.table-th-sort-rev span.table-th-sort-span {
     float: right;
 }
 
-#headerButtons a {
-    margin-left: 8px;
-}
-
 #headerButtons input {
     margin-left: 4px;
 }
 
 #content {
     width: 96%;
-    margin: 8px auto;
+    margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
 }
@@ -419,11 +403,17 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 */
 
-#content > input[type=submit], #content > input[type=button], #content > button {
+#content > input[type=submit],
+#content > input[type=button],
+#content > button,
+#content > .btn-primary {
     margin-top: 8px;
 }
 
-#content table input[type=submit], #content table input[type=button], #content table button {
+#content table input[type=submit],
+#content table input[type=button],
+#content table button,
+#content table .btn-primary {
     margin-top: 0;
 }
 
@@ -432,13 +422,108 @@ th.table-th-sort-rev span.table-th-sort-span {
     float: right;
 }
 
+#contentButtons button,
 #contentButtons input {
     margin-left: 8px;
     margin-bottom: 4px;
 }
 
 #footer {
-    width: 96%;
-    margin: 8px auto;
+    border-top: 1px solid #e7e7e7;
+    margin: 32px 0;
+    padding: 8px;
 }
 
+.nav.nav-pills.nav-stacked.col-md-2 {
+}
+
+.nav.nav-pills.nav-stacked.col-md-2 > li > a {
+}
+
+#options {
+	font-size:90%;
+}
+
+#options .help-block {
+	margin-top: 0;
+}
+
+#options .form-group {
+	margin-bottom: 20px;
+	border-bottom: 1px solid #e7e7e7;
+}
+
+.navbar{
+	margin-bottom: 0 !important;
+	border-radius: 0;
+	color: #03A9F4 !important;
+}
+
+.navbar-brand {
+	font-weight: bold;
+	font-size: 20px;
+}
+
+.container-fluid {
+  position: relative;
+}
+
+.sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    display: block;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: #f5f5f5;
+    border-right: 1px solid #eeeeee;
+}
+
+.sidebar ul {
+margin-right: 0px;
+margin-bottom: 20px;
+margin-left: 0px;
+}
+
+.nav-pills > li > a {
+	border-radius: 0;
+}
+
+button,
+input[type=button],
+input[type=submit],
+.btn-primary,
+.btn-primary:link {
+  padding: 1px 6px;
+  background-color: #eeeeee;
+  color: #333333;
+  border: 1px solid #7f7fb2;
+  font-weight: 200;
+  cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
+  font-family: inherit;
+  font-size: 100%;
+}
+
+button:hover,
+input[type=button]:hover,
+input[type=submit]:hover,
+.btn-primary:hover {
+  background-color: #e1e1e1;
+  color: #000000;
+}
+
+button:disabled,
+input[disabled],
+input[type=button]:disabled,
+input[type=submit]:disabled,
+.btn-primary:disabled {
+    color: #888888;
+  /*
+  background-color: #aaaaaa;
+  */
+  border-color: #bbbbbb;
+}

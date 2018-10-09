@@ -3,7 +3,7 @@ require_once( 'database.php' );
 require_once( 'Event.php' );
 
 class Frame {
-  public function __construct( $IdOrRow ) {
+  public function __construct( $IdOrRow=null ) {
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer( $IdOrRow ) or ctype_digit($IdOrRow) ) {
@@ -17,15 +17,15 @@ class Frame {
         Error("Unknown argument passed to Frame Constructor ($IdOrRow)");
         return;
       }
-    } # end if isset($IdOrRow)
 
-    if ( $row ) {
-      foreach ($row as $k => $v) {
-        $this->{$k} = $v;
+      if ( $row ) {
+        foreach ($row as $k => $v) {
+          $this->{$k} = $v;
+        }
+      } else {
+        Error("No row for Frame " . $IdOrRow );
       }
-    } else {
-      Error("No row for Frame " . $IdOrRow );
-    }
+    } # end if isset($IdOrRow)
   } // end function __construct
 
   public function Storage() {
@@ -36,39 +36,17 @@ class Frame {
     return new Event( $this->{'EventId'} );
   }
   public function __call( $fn, array $args){
-    if( array_key_exists( $fn, $this ) ) {
+    if ( count( $args )  ) {
+      $this->{$fn} = $args[0];
+    }
+    if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
-#array_unshift($args, $this);
-#call_user_func_array( $this->{$fn}, $args);
+
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        Warning( "Unknown function call Frame->$fn from $file:$line" );
     }
-  }
-
-  public function Path() {
-    $Storage = $this->Storage();
-    return $Storage->Path().'/'.$this->Relative_Path();
-  }
-  public function Relative_Path() {
-    $event_path = "";
-
-    if ( ZM_USE_DEEP_STORAGE )
-    {
-      $event_path = 
-        $this->{'MonitorId'}
-      .'/'.strftime( "%y/%m/%d/%H/%M/%S",
-          $this->Time()
-          )
-        ;
-    }
-    else
-    {
-      $event_path = 
-        $this->{'MonitorId'}
-      .'/'.$this->{'Id'}
-      ;
-    }
-
-    return( $event_path );
-
   }
 
   public function getImageSrc( $show='capture' ) {
@@ -95,18 +73,19 @@ class Frame {
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
 				Error("Invalid value for limit($limit) passed to Frame::find from $file:$line");
-				return;
+				return array();
 			}
 		}
-		$results = dbFetchAll( $sql, NULL, $values );
+		$results = dbFetchAll($sql, NULL, $values);
 		if ( $results ) {
 		  return array_map( function($id){ return new Frame($id); }, $results );
 		}
+    return array();
 	}
 
 	public static function find_one( $parameters = array() ) {
 	  $results = Frame::find( $parameters, 1 );
-	  if ( ! sizeof( $results ) ) {
+	  if ( ! sizeof($results) ) {
 		  return;
 	  }
 	  return $results[0];

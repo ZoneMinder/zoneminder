@@ -4,18 +4,18 @@
  *
  * Provides Error Capturing for Framework errors.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Error
  * @since         CakePHP(tm) v 0.10.5.1732
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Debugger', 'Utility');
@@ -207,7 +207,6 @@ class ErrorHandler {
 		if (error_reporting() === 0) {
 			return false;
 		}
-		$errorConfig = Configure::read('Error');
 		list($error, $log) = static::mapErrorCode($code);
 		if ($log === LOG_ERR) {
 			return static::handleFatalError($code, $description, $file, $line);
@@ -228,21 +227,7 @@ class ErrorHandler {
 			);
 			return Debugger::getInstance()->outputError($data);
 		}
-		$message = $error . ' (' . $code . '): ' . $description . ' in [' . $file . ', line ' . $line . ']';
-		if (!empty($errorConfig['trace'])) {
-			// https://bugs.php.net/bug.php?id=65322
-			if (version_compare(PHP_VERSION, '5.4.21', '<')) {
-				if (!class_exists('Debugger')) {
-					App::load('Debugger');
-				}
-				if (!class_exists('CakeText')) {
-					App::uses('CakeText', 'Utility');
-					App::load('CakeText');
-				}
-			}
-			$trace = Debugger::trace(array('start' => 1, 'format' => 'log'));
-			$message .= "\nTrace:\n" . $trace . "\n";
-		}
+		$message = static::_getErrorMessage($error, $code, $description, $file, $line);
 		return CakeLog::write($log, $message);
 	}
 
@@ -328,4 +313,33 @@ class ErrorHandler {
 		return array($error, $log);
 	}
 
+/**
+ * Generate the string to use to describe the error.
+ *
+ * @param string $error The error type (e.g. "Warning")
+ * @param int $code Code of error
+ * @param string $description Error description
+ * @param string $file File on which error occurred
+ * @param int $line Line that triggered the error
+ * @return string
+ */
+	protected static function _getErrorMessage($error, $code, $description, $file, $line) {
+		$errorConfig = Configure::read('Error');
+		$message = $error . ' (' . $code . '): ' . $description . ' in [' . $file . ', line ' . $line . ']';
+		if (!empty($errorConfig['trace'])) {
+			// https://bugs.php.net/bug.php?id=65322
+			if (version_compare(PHP_VERSION, '5.4.21', '<')) {
+				if (!class_exists('Debugger')) {
+					App::load('Debugger');
+				}
+				if (!class_exists('CakeText')) {
+					App::uses('CakeText', 'Utility');
+					App::load('CakeText');
+				}
+			}
+			$trace = Debugger::trace(array('start' => 1, 'format' => 'log'));
+			$message .= "\nTrace:\n" . $trace . "\n";
+		}
+		return $message;
+	}
 }

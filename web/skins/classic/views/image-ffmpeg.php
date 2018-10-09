@@ -54,7 +54,7 @@ else
     $scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 
 $Transpose = '';
-if ( $event['VideoWriter'] == "2" ) {
+if ( $event['VideoWriter'] == "2" ) { // PASSTHROUGH
 	$Rotation = $event['Orientation'];
 // rotate right
 	if ( in_array($event['Orientation'],array("90")))

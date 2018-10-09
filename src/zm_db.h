@@ -21,22 +21,32 @@
 #define ZM_DB_H
 
 #include <mysql/mysql.h>
+#include "zm_thread.h"
 
-#ifdef __cplusplus 
-extern "C" {
-#endif 
+class zmDbRow {
+  private:
+    MYSQL_RES *result_set;
+    MYSQL_ROW row;
+  public:
+    zmDbRow() { result_set = NULL; row = NULL; };
+    MYSQL_RES *fetch( const char *query );
+    zmDbRow( MYSQL_RES *, MYSQL_ROW *row );
+    ~zmDbRow();
+
+    MYSQL_ROW mysql_row() const { return row; };
+
+    char *operator[](unsigned int index) const {
+      return row[index];
+    }
+};
+
 extern MYSQL dbconn;
+extern RecursiveMutex db_mutex;
 
-extern int zmDbConnected;
-
-void zmDbConnect();
+bool zmDbConnect();
 void zmDbClose();
 
 MYSQL_RES * zmDbFetch( const char *query );
-MYSQL_ROW zmDbFetchOne( const char *query );
-
-#ifdef __cplusplus 
-} /* extern "C" */
-#endif 
+zmDbRow *zmDbFetchOne( const char *query );
 
 #endif // ZM_DB_H

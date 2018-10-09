@@ -21,15 +21,18 @@ class ConfigsController extends AppController {
  *
  * @return void
  */      
-     public function index() {
-                $this->Config->recursive = 0;
-                $configs = $this->Config->find('all');
-                $this->set(array(
-                    'configs' => $configs,
-                    '_serialize' => array('configs')
-                ));
-        }
-
+  public function index() {
+    global $configvals;
+    $this->Config->recursive = 0;
+    $configs = $this->Config->find('all');
+    foreach ( $configvals as $k=>$v ) {
+      $configs[] = array( 'Config'=>array('Name'=>$k, 'Value'=>$v ) );
+    }
+    $this->set(array(
+      'configs' => $configs,
+      '_serialize' => array('configs')
+    ));
+  }
 
 /**
  * view method
@@ -53,8 +56,14 @@ class ConfigsController extends AppController {
 	public function viewByName($name = null) {
 		$config = $this->Config->findByName($name, array('fields' => 'Value'));
 
-		if (!$config) {
-			throw new NotFoundException(__('Invalid config'));
+		if ( !$config ) {
+      global $configvals;
+      if ( $configvals[$name] ) {
+        $config = array( 'Config'=>array('Value'=>$configvals[$name]) );
+      } else {
+        throw new NotFoundException(__('Invalid config'));
+      }
+    } else {
 		}
 
 		$this->set(array(

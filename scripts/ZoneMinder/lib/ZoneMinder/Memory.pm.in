@@ -67,6 +67,7 @@ our %EXPORT_TAGS = (
       zmIsAlarmed
       zmInAlarm
       zmHasAlarmed
+      zmGetStartupTime
       zmGetLastEvent
       zmGetLastWriteTime
       zmGetLastReadTime
@@ -146,7 +147,7 @@ our $mem_data = {
     last_write_index => { type=>'uint32', seq=>$mem_seq++ },
     last_read_index  => { type=>'uint32', seq=>$mem_seq++ },
     state            => { type=>'uint32', seq=>$mem_seq++ },
-    last_event       => { type=>'uint32', seq=>$mem_seq++ },
+    last_event       => { type=>'uint64', seq=>$mem_seq++ },
     action           => { type=>'uint32', seq=>$mem_seq++ },
     brightness       => { type=>'int32', seq=>$mem_seq++ },
     hue              => { type=>'int32', seq=>$mem_seq++ },
@@ -161,9 +162,11 @@ our $mem_data = {
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
     epadding1        => { type=>'uint32', seq=>$mem_seq++ },
     epadding2        => { type=>'uint32', seq=>$mem_seq++ },
+    startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
+    alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {
@@ -300,11 +303,6 @@ sub zmMemVerify {
 sub zmMemRead {
   my $monitor = shift;
   my $fields = shift;
-  my $nocheck = shift;
-
-  if ( !($nocheck || zmMemVerify( $monitor )) ) {
-    return( undef );
-  }
 
   if ( !ref($fields) ) {
     $fields = [ $fields ];
@@ -317,6 +315,12 @@ sub zmMemRead {
     my $offset = $mem_data->{$section}->{contents}->{$element}->{offset};
     my $type = $mem_data->{$section}->{contents}->{$element}->{type};
     my $size = $mem_data->{$section}->{contents}->{$element}->{size};
+
+    if (!defined $offset || !defined $type || !defined $size) {
+        Error ("Invalid field:".$field." setting to undef and exiting zmMemRead");
+        zmMemInvalidate( $monitor );
+        return( undef );
+    }   
 
     my $data = zmMemGet( $monitor, $offset, $size );
     if ( !defined($data) ) {
@@ -352,14 +356,15 @@ sub zmMemRead {
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
       ( $value ) = unpack( 'C'.$size, $data );
     } else {
-      Fatal( "Unexpected type '".$type."' found for '".$field."'" );
+      Error( "Unexpected type '".$type."' found for '".$field."'" );
+      next;
     }
-    push( @values, $value );
+    push @values, $value;
   }
   if ( wantarray() ) {
-    return( @values )
+    return @values;
   }
-  return( $values[0] );
+  return $values[0];
 }
 
 sub zmMemInvalidate {
@@ -367,6 +372,8 @@ sub zmMemInvalidate {
   my $mem_key = zmMemKey($monitor);
   if ( $mem_key ) {
     zmMemDetach( $monitor );
+  } else {
+    print "no memkey in zmMemInvalidate\n";
   }
 }
 
@@ -504,6 +511,10 @@ sub zmHasAlarmed {
     return( $last_event );
   }
   return( undef );
+}
+
+sub zmGetStartupTime {
+  return zmMemRead( $_[0], 'shared_data:startup_time' );
 }
 
 sub zmGetLastEvent {
@@ -644,8 +655,8 @@ if ( zmMemVerify( $monitor ) ) {
   }
 }
 
-( $lri, $lwi ) = zmMemRead( $monitor, [ "shared_data:last_read_index",
-    "shared_data:last_write_index"
+( $lri, $lwi ) = zmMemRead( $monitor, [ 'shared_data:last_read_index',
+    'shared_data:last_write_index'
 ]
 );
 zmMemWrite( $monitor, { 'trigger_data:trigger_showtext' => "Some Text" } );
@@ -816,6 +827,7 @@ colour            Read/write location for the current monitor colour
 contrast          Read/write location for the current monitor contrast
 alarm_x           Image x co-ordinate (from left) of the centre of the last motion event, -1 if none
 alarm_y           Image y co-ordinate (from top) of the centre of the last motion event, -1 if none
+alarm_cause       The current alarm event cause string along with zone names(s) alarmed       
 
 trigger_data      The triggered event mapped memory section
 size              The size, in bytes of this section

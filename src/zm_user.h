@@ -36,12 +36,13 @@
 #include <openssl/md5.h>
 #endif // HAVE_L || HAVE_LIBCRYPTO
 
-class User
-{
+#include <vector>
+class User {
 public:
   typedef enum { PERM_NONE=1, PERM_VIEW, PERM_EDIT } Permission;
 
 protected:
+  int id;
   char username[32+1];
   char password[64+1];
   bool enabled;
@@ -50,13 +51,19 @@ protected:
   Permission control;
   Permission monitors;
   Permission system;
-  int *monitor_ids;
+  std::vector<int> monitor_ids;
 
 public:
   User();
-  User( MYSQL_ROW &dbrow );
+  explicit User( MYSQL_ROW &dbrow );
   ~User();
+  User( User &u ) { Copy(u); }
+  void Copy( const User &u );
+  User& operator=(const User &u) {
+    Copy(u); return *this;
+  }
 
+  const int  Id() const { return id; }
   const char *getUsername() const { return( username ); }
   const char *getPassword() const { return( password ); }
   bool isEnabled() const { return( enabled ); }

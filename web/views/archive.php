@@ -18,44 +18,49 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) )
-{
-    $view = "error";
-    return;
+if ( !canView('Events') ) {
+  $view = 'error';
+  return;
 }
 
 $archivetype = $_REQUEST['type'];
 
 if ( $archivetype ) {
-    switch ($archivetype) {
-        case "tar":
-            $mimetype = "gzip";
-            $file_ext = "tar.gz";
-            break;
-        case "zip":
-            $mimetype = "zip";
-            $file_ext = "zip";
-            break;
-        default:
-            $mimetype = NULL;
-            $file_ext = NULL;
-    }
+  switch ($archivetype) {
+  case 'tar':
+    $mimetype = 'gzip';
+    $file_ext = 'tar.gz';
+    break;
+  case 'zip':
+    $mimetype = 'zip';
+    $file_ext = 'zip';
+    break;
+  default:
+    $mimetype = NULL;
+    $file_ext = NULL;
+  }
 
-    if ( $mimetype ) {
-        $filename = "zmExport.$file_ext";
-        $filename_path = ZM_DIR_TEMP."/".$filename;
-        if ( is_readable($filename_path) ) {
-            header( "Content-type: application/$mimetype" );
-            header( "Content-Disposition: attachment; filename=$filename");
-            readfile( $filename_path );
-        } else {
-            Error("$filename_path does not exist or is not readable.");
-        }
+  if ( $mimetype ) {
+    $filename = "zmExport.$file_ext";
+    $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
+    Logger::Debug("downloading archive from $filename_path");
+    if ( is_readable($filename_path) ) {
+      ob_clean();
+      header("Content-type: application/$mimetype" );
+      header("Content-Disposition: inline; filename=$filename");
+      header('Content-Length: ' . filesize($filename_path) );
+      set_time_limit(0);
+      if ( ! @readfile( $filename_path ) ) {
+        Error("Error sending $filename_path");
+      }
     } else {
-        Error("Unsupported archive type specified. Supported archives are tar and zip");
+      Error("$filename_path does not exist or is not readable.");
     }
+  } else {
+    Error("Unsupported archive type specified. Supported archives are tar and zip");
+  }
 } else {
-    Error("No archive type given to archive.php. Please specify a tar or zip archive.");
+  Error("No archive type given to archive.php. Please specify a tar or zip archive.");
 }
 
 ?>

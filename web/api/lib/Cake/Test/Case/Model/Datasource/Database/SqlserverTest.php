@@ -2,18 +2,18 @@
 /**
  * SqlserverTest file
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Test.Case.Model.Datasource.Database
  * @since         CakePHP(tm) v 1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Model', 'Model');
@@ -97,7 +97,7 @@ class SqlserverTestDb extends Sqlserver {
 /**
  * describe method
  *
- * @param object $model
+ * @param Model $model
  * @return void
  */
 	public function describe($model) {
@@ -383,6 +383,10 @@ class SqlserverTest extends CakeTestCase {
 		$result = $this->db->fields($this->model, null, 'DISTINCT Car.country_code');
 		$expected = array('DISTINCT [Car].[country_code] AS [Car__country_code]');
 		$this->assertEquals($expected, $result);
+
+		$result = $this->db->fields($this->model, null, 'COUNT(DISTINCT Car.country_code)');
+		$expected = array('COUNT(DISTINCT [Car].[country_code]) AS [Car__country_code]');
+		$this->assertEquals($expected, $result);
 	}
 
 /**
@@ -394,6 +398,13 @@ class SqlserverTest extends CakeTestCase {
 		$this->db->read($this->model, array(
 			'fields' => array('DISTINCT SqlserverTestModel.city', 'SqlserverTestModel.country'),
 			'limit' => 5
+		));
+		$result = $this->db->getLastQuery();
+		$this->assertRegExp('/^SELECT DISTINCT TOP 5/', $result);
+
+		$this->db->read($this->model, array(
+			'fields' => array('DISTINCT SqlserverTestModel.city', 'SqlserverTestModel.country'),
+			'limit' => '5'
 		));
 		$result = $this->db->getLastQuery();
 		$this->assertRegExp('/^SELECT DISTINCT TOP 5/', $result);
@@ -530,6 +541,16 @@ class SqlserverTest extends CakeTestCase {
 		$column = array('type' => 'integer', 'name' => 'client_id');
 		$result = $this->db->buildColumn($column);
 		$expected = '[client_id] int NULL';
+		$this->assertEquals($expected, $result);
+
+		$column = array('type' => 'smallinteger', 'name' => 'client_id');
+		$result = $this->db->buildColumn($column);
+		$expected = '[client_id] smallint NULL';
+		$this->assertEquals($expected, $result);
+
+		$column = array('type' => 'tinyinteger', 'name' => 'client_id');
+		$result = $this->db->buildColumn($column);
+		$expected = '[client_id] tinyint NULL';
 		$this->assertEquals($expected, $result);
 
 		$column = array('type' => 'string', 'name' => 'name');
@@ -707,4 +728,139 @@ SQL;
 		$this->assertEquals(2, $result['value']);
 	}
 
+/**
+ * Test build statement with having option
+ *
+ * @return void
+ */
+	public function testBuildStatementWithHaving() {
+		$db = $this->getMock('SqlserverTestDb', array('getVersion'), array($this->Dbo->config));
+
+		$db->expects($this->any())
+			->method('getVersion')
+			->will($this->returnValue('11.00.0000'));
+
+		$query = array(
+			'fields' => array('user_id', 'COUNT(*) AS count'),
+			'table' => 'articles',
+			'alias' => 'Article',
+			'group' => 'user_id',
+			'order' => array('COUNT(*)' => 'DESC'),
+			'limit' => 5,
+			'having' => array('COUNT(*) >' => 10),
+		);
+
+		$sql = $db->buildStatement($query, $this->model);
+		$expected = 'SELECT  TOP 5 user_id, COUNT(*) AS count FROM articles AS [Article]   WHERE 1 = 1  GROUP BY user_id  HAVING COUNT(*) > 10  ORDER BY COUNT(*) DESC';
+		$this->assertEquals($expected, $sql);
+
+		$sql = $db->buildStatement(array('offset' => 15) + $query, $this->model);
+		$expected = 'SELECT user_id, COUNT(*) AS count FROM articles AS [Article]   WHERE 1 = 1  GROUP BY user_id  HAVING COUNT(*) > 10  ORDER BY COUNT(*) DESC  OFFSET 15 ROWS FETCH FIRST 5 ROWS ONLY';
+		$this->assertEquals($expected, $sql);
+	}
+
+/**
+ * Test build statement with lock option
+ *
+ * @return void
+ */
+	public function testBuildStatementWithLockingHint() {
+		$db = $this->getMock('SqlserverTestDb', array('getVersion'), array($this->Dbo->config));
+
+		$db->expects($this->any())
+			->method('getVersion')
+			->will($this->returnValue('11.00.0000'));
+
+		$query = array(
+			'fields' => array('id'),
+			'table' => 'users',
+			'alias' => 'User',
+			'order' => array('id'),
+			'limit' => 1,
+			'lock' => true,
+		);
+
+		$sql = $db->buildStatement($query, $this->model);
+		$expected = 'SELECT  TOP 1 id FROM users AS [User]  WITH (UPDLOCK)   WHERE 1 = 1   ORDER BY [id] ASC';
+		$this->assertEquals($expected, $sql);
+
+		$sql = $db->buildStatement(array('offset' => 15) + $query, $this->model);
+		$expected = 'SELECT id FROM users AS [User]  WITH (UPDLOCK)   WHERE 1 = 1   ORDER BY [id] ASC  OFFSET 15 ROWS FETCH FIRST 1 ROWS ONLY';
+		$this->assertEquals($expected, $sql);
+	}
+
+/**
+ * Test build statement with having option for legacy version
+ *
+ * @return void
+ */
+	public function testBuildStatementWithHavingForLegacyVersion() {
+		$db = $this->getMock('SqlserverTestDb', array('getVersion'), array($this->Dbo->config));
+
+		$db->expects($this->any())
+			->method('getVersion')
+			->will($this->returnValue('10.00.0000'));
+
+		$query = array(
+			'fields' => array('user_id', 'COUNT(*) AS count'),
+			'table' => 'articles',
+			'alias' => 'Article',
+			'group' => 'user_id',
+			'order' => array('COUNT(*)' => 'DESC'),
+			'limit' => 5,
+			'having' => array('COUNT(*) >' => 10),
+		);
+
+		$sql = $db->buildStatement($query, $this->model);
+		$expected = 'SELECT  TOP 5 user_id, COUNT(*) AS count FROM articles AS [Article]   WHERE 1 = 1  GROUP BY user_id  HAVING COUNT(*) > 10  ORDER BY COUNT(*) DESC';
+		$this->assertEquals($expected, $sql);
+
+		$sql = $db->buildStatement(array('offset' => 15) + $query, $this->model);
+		$expected = <<<SQL
+SELECT TOP 5 * FROM (
+SELECT user_id, COUNT(*) AS count, ROW_NUMBER() OVER ( ORDER BY COUNT(*) DESC) AS _cake_page_rownum_
+FROM articles AS [Article]   WHERE 1 = 1  GROUP BY user_id  HAVING COUNT(*) > 10
+) AS _cake_paging_
+WHERE _cake_paging_._cake_page_rownum_ > 15
+ORDER BY _cake_paging_._cake_page_rownum_
+SQL;
+		$this->assertEquals($expected, preg_replace('/^\s+|\s+$/m', '', $sql));
+	}
+
+/**
+ * Test build statement with lock option for legacy version
+ *
+ * @return void
+ */
+	public function testBuildStatementWithLockingHintForLegacyVersion() {
+		$db = $this->getMock('SqlserverTestDb', array('getVersion'), array($this->Dbo->config));
+
+		$db->expects($this->any())
+			->method('getVersion')
+			->will($this->returnValue('10.00.0000'));
+
+		$query = array(
+			'fields' => array('id'),
+			'table' => 'users',
+			'alias' => 'User',
+			'order' => array('id'),
+			'limit' => 1,
+			'lock' => true,
+		);
+
+		$sql = $db->buildStatement($query, $this->model);
+		$expected = 'SELECT  TOP 1 id FROM users AS [User]  WITH (UPDLOCK)   WHERE 1 = 1   ORDER BY [id] ASC';
+		$this->assertEquals($expected, $sql);
+
+		$sql = $db->buildStatement(array('offset' => 15) + $query, $this->model);
+		$expected = <<<SQL
+SELECT TOP 1 * FROM (
+SELECT id, ROW_NUMBER() OVER ( ORDER BY [id] ASC) AS _cake_page_rownum_
+FROM users AS [User]  WITH (UPDLOCK)   WHERE 1 = 1
+) AS _cake_paging_
+WHERE _cake_paging_._cake_page_rownum_ > 15
+ORDER BY _cake_paging_._cake_page_rownum_
+SQL;
+		$this->assertEquals($expected, preg_replace('/^\s+|\s+$/m', '', $sql));
+	}
 }

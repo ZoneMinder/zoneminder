@@ -1,37 +1,15 @@
-@import url(../control.css);
-
-#menuBar {
-    margin: 6px auto 4px;
-    text-align: center;
+#header {
+    display: flex;
+    justify-content: space-between;
 }
 
-#menuBar #monitorName {
-    float: left;
+#menuControls {
+    display: flex;
+    align-items: center;
 }
 
-#menuBar #closeControl {
-    float: right;
-}
-
-#menuBar #menuControls {
-    margin: 0 auto;
-    width: 60%;
-}
-
-#menuBar #menuControls #controlControl {
-    float: left;
-}
-
-#menuBar #menuControls #eventsControl {
-    float: left;
-}
-
-#menuBar #menuControls #settingsControl {
-    float: right;
-}
-
-#menuBar #menuControls #scaleControl {
-    margin: 0 auto;
+#menuControls div {
+    margin: 0 0 0 1em;
 }
 
 #imageFeed{
@@ -58,13 +36,6 @@
     margin-top: 3px;
     margin-bottom: 2px;
     text-align: center;
-}
-
-#dvrControls input {
-    height: 20px;
-    width: 28px;
-    padding-bottom: 3px;
-    margin: 0 3px;
 }
 
 #dvrControls input[disabled] {

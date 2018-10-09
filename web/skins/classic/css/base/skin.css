@@ -1,0 +1,657 @@
+/*
+ * ZoneMinder Base Stylesheet, $Date$, $Revision$
+ * Copyright (C) 2001-2008 Philip Coombes
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */ 
+
+/*
+ * Primary look and feel styles
+ */
+
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(../fonts/MaterialIcons-Regular.eot); /* For IE6-8 */
+  src: local('Material Icons'),
+    local('MaterialIcons-Regular'),
+    url(../fonts/MaterialIcons-Regular.woff2) format('woff2'),
+    url(../fonts/MaterialIcons-Regular.woff) format('woff'),
+    url(../fonts/MaterialIcons-Regular.ttf) format('truetype');
+}
+
+.material-icons {
+  vertical-align:middle;
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Support for IE. */
+  font-feature-settings: 'liga';
+}
+
+.material-icons.md-18 { font-size: 18px; }
+.material-icons.md-36 { font-size: 36px; }
+
+body {
+    font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    text-align: center;
+}
+
+h1 {
+    font-family: inherit;
+    font-size: 120%;
+    font-weight: bold;
+    text-align: center;
+}
+
+h2 {
+    font-family: inherit;
+    font-size: 110%;
+    font-weight: bold;
+}
+
+h3 {
+    font-family: inherit;
+    font-size: 100%;
+    font-weight: bold;
+}
+
+h4 {
+    font-family: inherit;
+    font-size: 100%;
+}
+
+p {
+    font-family: inherit;
+    font-size: 100%;
+    font-weight: normal;
+}
+
+th {
+/*
+    padding: 3px;
+    text-transform: uppercase;
+    font-size: 0.8em;
+    font-weight: 600;
+*/
+}
+
+
+.thead-highlight {
+  background-color:#dfe4ea;
+}
+
+/* rounded table head top corners */
+table th:first-child{
+  border-radius:5px 0 0 0 ;
+}
+table th:last-child{
+  border-radius:0 5px 0 0 ;
+}
+
+
+a:link {
+    color: #3498db;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #44b8eb;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: none; 
+    background-color:rgba(72, 84, 96,0.2);
+    border-radius:4px;
+}
+
+label {
+    margin: 0 4px;
+}
+
+input,textarea,select,button,.btn-primary {
+    border: 1px #ccc solid;
+    padding: 5px;
+    border-radius: 1px;
+    font-family: inherit;
+    font-weight: 400;
+    font-size: 100%;
+    color: #333333;
+    text-align: left;
+    border-radius:4px;
+}
+/*
+input[type=text], input[type=password], input[type="url"], textarea, select {
+    padding: 1px;
+}
+*/
+
+input.noborder {
+    border: 0;
+}
+
+input[disabled] {
+    color: #888888;
+}
+
+img {
+  display: inline-block;
+}
+img.normal {
+    border: white solid 1px;
+}
+
+img.alarm {
+    border: red solid 1px;
+}
+
+hr {
+    height: 1px;
+    width: 100%;
+    border: 0;
+    color: #7f7fb2;
+    background-color: #7f7fb2;
+}
+
+/*
+ * Tabbed headings
+ */
+ul.tabList {
+    float: left;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 -4px 0;
+    white-space: nowrap;
+    text-align: left;
+}
+
+ul.tabList li {
+    float: left;
+    border: 1px solid;
+    color: #333333;
+    border: #ccc solid 1px;
+    border-bottom-width: 0;
+    margin: 0 2px 0 0;
+    background: #eee;
+    text-align: center;
+    padding: 5px 10px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+}
+
+ul.tabList li a {
+    text-decoration: none;
+}
+
+ul.tabList li:hover {
+    background-color: #eeeeee;
+}
+
+ul.tabList li.active {
+    background-color: #ffffff;
+    border-bottom: #7f7fb2 dotted 1px;
+}
+
+ul.tabList li.active a {
+    font-weight: bold;
+}
+
+/*
+ * Major league table for multiple inputs or presentation
+ */
+
+#content table.major {
+    margin: 4px auto;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#content table.major tr.highlight {
+    background-color: #eeeeee;
+}
+
+#content table.major thead tr th {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    vertical-align: middle;
+}
+
+#content table.major tfoot td {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    vertical-align: middle;
+}
+
+#content table.major th, #content table.major td {
+    border-bottom: 2px solid #f2f2f2;
+    padding: 5px 10px;
+    text-align: left;
+}
+
+#content table.major th {
+    vertical-align: bottom;
+}
+
+#content table.major td {
+    vertical-align: middle;
+}
+
+#content table.major th[scope=row] {
+    padding: 4px 3px 3px;
+    vertical-align: top;
+}
+
+#content table.major .colMark, #content table.major .colSelect {
+    text-align: center;
+}
+/*
+ * Lesser table for very simple forms
+ */
+
+#content table.minor {
+    width: 280px;
+    margin: 0 auto;
+}
+
+#content table.minor td {
+    padding: 4px;
+}
+
+#content table.minor .colLeft {
+    width: 50%;
+    text-align: right;
+}
+
+#content table.minor .colRight {
+    width: 50%;
+    text-align: left;
+}
+
+#content table.minor input[type=submit]
+{
+    margin-top: 8px;
+    padding: 0 2px;
+    font-size: 120%;
+}
+
+#content table > tbody > tr:hover
+{
+    background-color: #EEE;
+}
+
+.overlay {
+    font-size: 11px;
+}
+
+.overlay fieldset {
+    background-color: #f8f8f8;
+}
+
+.validation-advice {
+    padding: 4px;
+    color: #dc143c;
+}
+
+fieldset {
+    border: 1px solid black;
+    padding: 4px;
+    margin-bottom: 8px;
+    border-radius: 2px;
+    -moz-border-radius: 2px;
+    -webkit-border-radius: 2px;
+}
+
+fieldset > legend {
+    padding: 0 2px;
+}
+
+/*
+ * Behavior classes
+ */
+.alarm, .errorText, .error {
+    color: #ff3f34;
+}
+
+.alert, .warnText, .warning {
+    color: #ffa801;
+}
+
+.ok, .infoText {
+    color: #0fb9b1;
+}
+
+.fakelink {
+    color: #7f7fb2;
+    cursor: pointer;
+}
+
+.fakelink:hover {
+    color: #336699;
+    text-decoration: none;
+}
+
+/*
+ * Generic useful classes, especially with mootools
+ */
+
+.hidden {
+    display: none;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+div.clear {
+    clear: both;
+}
+
+/*
+.table-th-sort {
+    font-style:italic;
+}
+
+td.table-td-sort {
+    font-style:italic;
+}
+*/
+
+th.table-th-sort {
+    margin-right: 12px;
+}
+
+th.table-th-sort span.table-th-sort-span {
+    float: right;
+    width: 12px;
+    height: 12px;
+    background: url("/skins/classic/graphics/arrow-s-u.png") no-repeat 0 0;
+}
+
+th.table-th-sort-rev span.table-th-sort-span {
+    float: right;
+    width: 12px;
+    height: 12px;
+    background: url("/skins/classic/graphics/arrow-s-d.png") no-repeat 0 0;
+}
+
+.table-tr-odd {
+    background-color: #f8f8f8;
+}
+
+/*
+ * Primary layout styles
+ */
+
+#page {
+    width: 100%;
+}
+
+#header {
+    width: 100%;
+    text-align: left;
+    background-color: #34495e;
+    padding: 5px 20px;
+    margin: 0 auto 4px auto;
+    color: white;
+    font-weight: 300;
+}
+
+#header h2 {
+    left: 0;
+    font-weight: 300;
+}
+
+#header h2.floating {
+    float: left;
+    font-weight: 300;
+}
+
+#header h3 {
+    font-weight: 300;
+    font-size:0.8em;
+}
+#headerControl {
+    text-align: center;
+    margin: 0 auto;
+}
+
+#headerButtons {
+    float: right;
+}
+
+#headerButtons a {
+    margin-left: 8px;
+}
+
+#headerButtons input {
+    margin-left: 4px;
+}
+
+#content {
+    width: 96%;
+    margin: 0 auto 8px auto;
+    line-height: 130%;
+    text-align: center;
+}
+
+#content p {
+    margin-top: 4px;
+}
+
+#content p.textblock {
+    text-align: justify;
+    padding: 4px;
+}
+
+#content p.textblock br {
+    margin-bottom: 8px;
+}
+
+/*
+#contentDiv {
+    margin: 0 auto 8px;
+    line-height: 140%;
+    text-align: center;
+}
+*/
+
+#content > input[type=submit], #content > input[type=button], #content > button, #content > .btn-primary {
+    margin-top: 8px;
+}
+
+#content table input[type=submit], #content table input[type=button], #content table button, #content table .btn-primary {
+    margin-top: 1px;
+}
+
+#contentButtons {
+    margin-top: 8px;
+    float: right;
+}
+
+#contentButtons input {
+    margin-left: 8px;
+    margin-bottom: 4px;
+}
+
+#footer {
+    width: 96%;
+    margin: 8px auto;
+}
+
+button,
+input[type=button],
+input[type=submit],
+.btn-primary,
+.btn-primary:link {
+    background-color: #3498db;
+    color: #fff;
+    border-color: #3498db;
+    text-transform: uppercase;
+    font-weight: 200;
+    padding: 5px 10px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+button:hover,
+input[type=button]:hover,
+input[type=submit]:hover,
+.btn-primary:hover {
+    background-color: #34a2ee;    
+}
+
+
+/* PP - make it easy to identify disabled buttons */
+
+button:disabled,
+input[type=button]:disabled,
+input[type=submit]:disabled,
+.btn-primary:disabled {
+    background-color: #aaaaaa;    
+    border-color: #bbbbbb;
+
+}
+
+#options {
+  font-size:90%;
+}
+
+#options .help-block {
+  margin-top: 0;
+}
+
+#options .form-group {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.navbar{
+	margin-bottom: 0 !important;
+	border-radius: 0;
+	background-color:#485460 !important;
+	color: #0fbcf9 !important;
+	border:none;
+}
+
+.navbar-brand {
+	font-weight: normal;
+	font-size: 20px;
+}
+.navbar-brand a {
+color:#ffa801;
+}
+
+.navbar-btn {
+  background-color:#95afc0;
+  color:white;
+  padding:4px;
+  margin-right:8px;
+  border:none;
+}
+
+
+
+.container-fluid {
+  position: relative;
+}
+
+.sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    display: block;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: #f5f5f5;
+    border-right: 1px solid #eeeeee;
+}
+
+.sidebar ul {
+margin-right: 0;
+margin-bottom: 20px;
+margin-left: 0;
+}
+
+.nav-pills > li > a {
+  border-radius: 0;
+}
+.chosen-container {
+text-align: left;
+}
+
+.chosen-single,
+.chosen-container,
+.chosen-container-multi,
+.chosen-results,
+.chosen-search,
+.chosen-drop,
+.chosen-choices,
+li.search-choice {
+    font-size: inherit !important;
+    border-radius:4px;
+    border-color:rgb(200,200,200) !important ;
+	
+}
+
+.reduced-text { 
+   font-size:0.9em;
+}
+
+.glyphicon.glyphicon-dot:before {
+    content: "\25cf";
+    font-size: 1.5em;
+    padding-right:5px;
+}
+
+.gi-1p5x{font-size: 1.5em;}
+.gi-2x{font-size: 2em;}
+.gi-3x{font-size: 3em;}
+.gi-4x{font-size: 4em;}
+.gi-5x{font-size: 5em;}
+
+.filterBar {
+  margin-top:5px;
+  margin-bottom:5px;
+}
+   

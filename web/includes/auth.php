@@ -18,8 +18,49 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-function userLogin($username, $password='', $passwordHashed=false) {
+function userLogin($username='', $password='', $passwordHashed=false) {
   global $user;
+
+  if ( !$username and isset($_REQUEST['username']) )
+    $username = $_REQUEST['username'];
+  if ( !$password and isset($_REQUEST['password']) )
+    $password = $_REQUEST['password'];
+
+  // if true, a popup will display after login
+  // PP - lets validate reCaptcha if it exists
+  if ( defined('ZM_OPT_USE_GOOG_RECAPTCHA') 
+      && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') 
+      && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
+      && ZM_OPT_USE_GOOG_RECAPTCHA
+      && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY 
+      && ZM_OPT_GOOG_RECAPTCHA_SITEKEY )
+  {
+    $url = 'https://www.google.com/recaptcha/api/siteverify';
+    $fields = array (
+        'secret'    => ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,
+        'response'  => $_REQUEST['g-recaptcha-response'],
+        'remoteip'  => $_SERVER['REMOTE_ADDR']
+        );
+    $res = do_post_request($url, http_build_query($fields));
+    $responseData = json_decode($res,true);
+    // PP - credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
+    // if recaptcha resulted in error, we might have to deny login
+    if ( isset($responseData['success']) && $responseData['success'] == false ) {
+      // PP - before we deny auth, let's make sure the error was not 'invalid secret'
+      // because that means the user did not configure the secret key correctly
+      // in this case, we prefer to let him login in and display a message to correct
+      // the key. Unfortunately, there is no way to check for invalid site key in code
+      // as it produces the same error as when you don't answer a recaptcha
+      if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
+        if ( !in_array('invalid-input-secret',$responseData['error-codes']) ) {
+          Error('reCaptcha authentication failed');
+          return null;
+        } else {
+          Error('Invalid recaptcha secret detected');
+        }
+      }
+    } // end if success==false
+  } // end if using reCaptcha
 
   $sql = 'SELECT * FROM Users WHERE Enabled=1';
   $sql_values = NULL;
@@ -36,7 +77,6 @@ function userLogin($username, $password='', $passwordHashed=false) {
   }
   $close_session = 0;
   if ( !is_session_started() ) {
-    Logger::Debug("Starting session in userLogin");
     session_start();
     $close_session = 1;
   }
@@ -70,7 +110,6 @@ function userLogout() {
   session_start();
   unset($_SESSION['user']);
   unset($user);
-
   session_destroy();
 }
 
@@ -179,4 +218,18 @@ function is_session_started() {
   return FALSE;
 }
 
+if ( ZM_OPT_USE_AUTH ) {
+  if ( ZM_AUTH_HASH_LOGINS && empty($user) && ! empty($_REQUEST['auth']) ) {
+    if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
+      userLogin($authUser['Username'], $authUser['Password'], true);
+    }
+  } 
+  else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
+    userLogin($_REQUEST['username'], $_REQUEST['password'], false);
+  }
+  if ( !empty($user) ) {
+    // generate it once here, while session is open.  Value will be cached in session and return when called later on
+    generateAuthHash(ZM_AUTH_HASH_IPS);
+  }
+}
 ?>

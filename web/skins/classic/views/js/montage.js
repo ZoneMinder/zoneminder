@@ -402,8 +402,14 @@ function initPage() {
     jQuery("#hdrbutton").click(function(){
       jQuery("#flipMontageHeader").slideToggle("slow");
       jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+      Cookie.write( 'zmMontageHeaderFlip', jQuery('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
     });
   });
+  if ( Cookie.read('zmMontageHeaderFlip') == 'down' ) {
+    // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
+    jQuery("#flipMontageHeader").slideToggle("fast");
+    jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+  }
 
   for ( var i = 0; i < monitorData.length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);

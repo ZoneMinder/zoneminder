@@ -124,6 +124,7 @@ echo output_link_if_exists( array(
     jQuery("#flip").click(function(){
       jQuery("#panel").slideToggle("slow");
       jQuery("#flip").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+      Cookie.write( 'zmHeaderFlip', jQuery('#flip').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
     });
   });
   </script>
@@ -306,7 +307,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   }
 ?>
       <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
-      <li><a href="#"><span id="flip" class="glyphicon glyphicon-menu-up pull-right"></span></a></li>
+      <li><a href="#"><span id="flip" class="glyphicon glyphicon-menu-<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?> pull-right"></span></a></li>
 		</ul>
 <?php } // end if canView('Monitors') ?>
 
@@ -324,7 +325,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 </div>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
-    <div id="panel">
+  <div id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
 }//end reload null.  Runs on full page load
 

@@ -209,6 +209,9 @@ echo output_link_if_exists( array(
 } // end function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML($reload = null) {
+  # Provide a facility to turn off the headers if you put headers=0 into the url
+  if ( isset($_REQUEST['navbar']) and $_REQUEST['navbar']=='0' )
+    return '';
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
   global $running;
@@ -379,13 +382,13 @@ if ($reload == 'reload') ob_start();
     <?php } ?>	
 <!-- End .footer/reload --></div>
 <?php
-if ($reload == 'reload') return( ob_get_clean() );
+if ($reload == 'reload') return ob_get_clean();
 } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
   </div>
 </div><!-- End .navbar .navbar-default -->
 <?php
-  return( ob_get_clean() );
+  return ob_get_clean();
 } // end function getNavBarHTML()
 
 function xhtmlFooter() {

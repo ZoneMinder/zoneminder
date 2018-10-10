@@ -3,11 +3,11 @@ var requestQueue = new Request.Queue( { concurrent: monitorData.length, stopOnFa
 function Monitor( monitorData ) {
   this.id = monitorData.id;
   this.connKey = monitorData.connKey;
-  this.server_url = monitorData.server_url;
+  this.url = monitorData.url;
   this.status = null;
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
-  this.streamCmdParms = this.server_url+'?view=request&request=stream&connkey='+this.connKey;
+  this.streamCmdParms = '?view=request&request=stream&connkey='+this.connKey;
   this.onclick = monitorData.onclick;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
@@ -153,7 +153,7 @@ function Monitor( monitorData ) {
 
   if ( this.type != 'WebSite' ) {
     this.streamCmdReq = new Request.JSON( {
-      url: this.server_url,
+      url: this.url,
       method: 'get',
       timeout: 1000+AJAX_TIMEOUT,
       onSuccess: this.getStreamCmdResponse.bind( this ),

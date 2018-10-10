@@ -217,7 +217,7 @@ ob_start();
         echo '<th class="colEvents">'. $j .'</th>';
       }
 ?>
-            <th class="colZones"><a href="<?php echo $_SERVER['PHP_SELF'] ?>?view=zones_overview"><?php echo translate('Zones') ?></a></th>
+            <th class="colZones"><?php echo translate('Zones') ?></th>
 <?php if ( canEdit('Monitors') ) { ?>
             <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markMids[]');setButtonStates(this);"/> <?php echo translate('All') ?></th>
 <?php } ?>

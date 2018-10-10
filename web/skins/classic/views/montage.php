@@ -135,7 +135,7 @@ xhtmlHeaders(__FILE__, translate('Montage'));
   <div id="page">
     <?php echo getNavBarHTML() ?>
     <div id="header">&nbsp;&nbsp;
-      <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
+      <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right" title="Toggle Filters"></span></a>
       <div id="flipMontageHeader">
         <div id="headerButtons">
 <?php

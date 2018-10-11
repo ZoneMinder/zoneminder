@@ -69,6 +69,7 @@ use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
+use File::Path qw(make_path);
 
 my $daemon = 0;
 my $filter_name = '';
@@ -472,6 +473,15 @@ sub uploadArchFile {
   if ( ! $Config{ZM_UPLOAD_HOST} ) {
     Error('Cannot upload archive as no upload host defined');
     return( 0 );
+  }
+
+  # Try to make the path to the upload folder if it doesn't already exist
+  make_path( $Config{ZM_UPLOAD_LOC_DIR} );
+
+  # Complain if the upload folder is still not writable
+  if ( ! -w $Config{ZM_UPLOAD_LOC_DIR} ) {
+    Error("Upload folder either does not exist or is not writable: $Config{ZM_UPLOAD_LOC_DIR}");
+    return(0);
   }
 
   my $archFile = $Event->{MonitorName}.'-'.$Event->{Id};

@@ -225,7 +225,9 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
   <?php echo getNavBarHTML() ?>
   <form id="montagereview_form" action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
     <input type="hidden" name="view" value="montagereview"/>
-    <div id="header">
+    <div id="header">&nbsp;&nbsp;
+    <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
+    <div id="flipMontageHeader">
 <?php echo $filter_bar ?>
       <div id="DateTimeDiv">
         <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime ) ?>"/> to 
@@ -269,6 +271,7 @@ if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
   </div>
   <input type="hidden" name="fit" value="<?php echo $fitMode ?>"/>
   <input type="hidden" name="live" value="<?php echo $liveMode ?>"/>
+  </div>
 </form>
   <div id="monitors">
 <?php

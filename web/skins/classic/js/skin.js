@@ -199,7 +199,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         console.log( "Request Failed: " + err );
         // The idea is that this should only fail due to auth, so reload the page
         // which should go to login if it can't stay logged in.
-        window.location.href = thisUrl+'?view='+currentView;
+        window.location.reload( true );
       });
   }
 

@@ -120,9 +120,15 @@ Event::Event(
 
   char id_file[PATH_MAX];
 
+  char *path_ptr = path;
+  path_ptr += snprintf(path_ptr, sizeof(path), "%s/%d", storage->Path(), monitor->Id());
+  // Try to make the Monitor Dir.  Normally this would exist, but in odd cases might not.
+  if ( mkdir(path, 0755) ) {
+    if ( errno != EEXIST )
+      Error("Can't mkdir %s: %s", path, strerror(errno));
+  }
+
   if ( storage->Scheme() == Storage::DEEP ) {
-    char *path_ptr = path;
-    path_ptr += snprintf(path_ptr, sizeof(path), "%s/%d", storage->Path(), monitor->Id());
 
     int dt_parts[6];
     dt_parts[0] = stime->tm_year-100;
@@ -141,9 +147,8 @@ Event::Event(
       errno = 0;
       if ( mkdir(path, 0755) ) {
         // FIXME This should not be fatal.  Should probably move to a different storage area.
-        if ( errno != EEXIST ) {
+        if ( errno != EEXIST )
           Error("Can't mkdir %s: %s", path, strerror(errno));
-        }
       }
       if ( i == 2 )
         strncpy(date_path, path, sizeof(date_path));
@@ -155,28 +160,24 @@ Event::Event(
     if ( symlink(time_path, id_file) < 0 )
       Error("Can't symlink %s -> %s: %s", id_file, path, strerror(errno));
   } else if ( storage->Scheme() == Storage::MEDIUM ) {
-    char *path_ptr = path;
     path_ptr += snprintf(
-        path_ptr, sizeof(path), "%s/%d/%04d-%02d-%02d",
-        storage->Path(), monitor->Id(), stime->tm_year+1900, stime->tm_mon+1, stime->tm_mday
+        path_ptr, sizeof(path), "/%04d-%02d-%02d",
+        stime->tm_year+1900, stime->tm_mon+1, stime->tm_mday
         );
     if ( mkdir(path, 0755) ) {
-      // FIXME This should not be fatal.  Should probably move to a different storage area.
       if ( errno != EEXIST )
         Error("Can't mkdir %s: %s", path, strerror(errno));
     }
     path_ptr += snprintf(path_ptr, sizeof(path), "/%" PRIu64, id);
     if ( mkdir(path, 0755) ) {
-      // FIXME This should not be fatal.  Should probably move to a different storage area.
       if ( errno != EEXIST )
         Error("Can't mkdir %s: %s", path, strerror(errno));
     }
   } else {
-    snprintf(path, sizeof(path), "%s/%d/%" PRIu64, storage->Path(), monitor->Id(), id);
+    path_ptr += snprintf(path, sizeof(path), "/%" PRIu64, id);
     if ( mkdir(path, 0755) ) {
-      if ( errno != EEXIST ) {
+      if ( errno != EEXIST )
         Error("Can't mkdir %s: %s", path, strerror(errno));
-      }
     }
 
     // Create empty id tag file
@@ -540,7 +541,7 @@ Debug(3, "Writing video");
   if ( score < 0 )
     score = 0;
 
-  bool db_frame = ( frame_type != BULK ) || ((frames%config.bulk_frame_interval)==0) || !frames;
+  bool db_frame = ( frame_type != BULK ) || (!frames) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
 
     Debug( 1, "Adding frame %d of type \"%s\" to DB", frames, Event::frame_type_names[frame_type] );

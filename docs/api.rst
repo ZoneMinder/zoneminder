@@ -13,6 +13,13 @@ The API is built in CakePHP and lives under the ``/api`` directory.  It
 provides a RESTful service and supports CRUD (create, retrieve, update, delete)
 functions for Monitors, Events, Frames, Zones and Config.
 
+Enabling API
+^^^^^^^^^^^^
+A default ZoneMinder installs with APIs enabled. You can explictly enable/disable the APIs
+via the Options->System menu by enabling/disabling ``OPT_USE_API``. Note that if you intend
+to use APIs with 3rd party apps, such as zmNinja or others that use APIs, you should also
+enable ``AUTH_HASH_LOGINS``.
+
 Login, Logout & API Security
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The APIs tie into ZoneMinder's existing security model. This means if you have
@@ -29,13 +36,13 @@ This means if you plan to use cuRL to experiment with these APIs, you first need
 
 ::
 
-    curl -XPOST -d "user=XXXX&pass=YYYY" -c cookies.txt  http://yourzmip/zm/api/login.json
+    curl -XPOST -d "user=XXXX&pass=YYYY" -c cookies.txt  http://yourzmip/zm/api/host/login.json
 
 Staring ZM 1.32.0, you also have a `logout` API that basically clears your session. It looks like this:
 
 ::
 
-    curl -b cookies.txt  http://yourzmip/zm/api/logout.json
+    curl -b cookies.txt  http://yourzmip/zm/api/host/logout.json
 
 
 **Login process for older versions of ZoneMinder**

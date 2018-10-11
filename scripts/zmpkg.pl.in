@@ -44,7 +44,6 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $store_state=''; # PP - will remember state name passed
 
 logInit();
-Info("Aftere LogInit");
 
 my $command = $ARGV[0]||'';
 if ( $command eq 'version' ) {

@@ -33,7 +33,7 @@ switch ( $_REQUEST['task'] ) {
     if ( !canView('System') )
       ajaxError('Insufficient permissions to view log entries');
 
-    $servers = Server::find_all();
+    $servers = Server::find();
     $servers_by_Id = array();
     # There is probably a better way to do this.
     foreach ( $servers as $server ) {
@@ -112,7 +112,7 @@ switch ( $_REQUEST['task'] ) {
         } else if ( $field == 'ServerId' ) {
             $options['ServerId'][$value] = ( $value and isset($servers_by_Id[$value]) ) ? $servers_by_Id[$value]->Name() : '';
         } else if ( isset($log[$field]) ) {
-          $options[$field][$log[$field]] = $log[$field];
+          $options[$field][$log[$field]] = $value;
         }
       }
       $logs[] = $log;
@@ -125,7 +125,7 @@ switch ( $_REQUEST['task'] ) {
       'available' => isset($available) ? $available : $total,
       'logs' => $logs,
       'state' => logState(),
-      'options' => $options
+      'options' => $options,
     ) );
     break;
   }
@@ -153,7 +153,7 @@ switch ( $_REQUEST['task'] ) {
     }
     $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
 
-    $servers = Server::find_all();
+    $servers = Server::find();
     $servers_by_Id = array();
     # There is probably a better way to do this.
     foreach ( $servers as $server ) {

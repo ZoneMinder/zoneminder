@@ -482,7 +482,7 @@ void MonitorStream::runStream() {
       swap_path = staticConfig.PATH_SWAP;
 
       Debug( 3, "Checking swap path folder: %s", swap_path.c_str() );
-      if ( checkSwapPath(swap_path.c_str(), false) ) {
+      if ( checkSwapPath(swap_path.c_str(), true) ) {
         swap_path += stringtf("/zmswap-m%d", monitor->Id());
 
         Debug(4, "Checking swap path subfolder: %s", swap_path.c_str());
@@ -531,6 +531,12 @@ void MonitorStream::runStream() {
 Debug(2, "Have checking command Queue for connkey: %d", connkey );
         got_command = true;
       }
+      // Update modified time of the socket .lock file so that we can tell which ones are stale.
+      if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
+        touch(sock_path_lock);
+        last_comm_update = now;
+      }
+
     }
 
     if ( paused ) {
@@ -633,7 +639,7 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
           // Send the next frame
           Monitor::Snapshot *snap = &monitor->image_buffer[index];
 
-            //Debug(2, "sending Frame.");
+          Debug(2, "sending Frame.");
           if ( !sendFrame(snap->image, snap->timestamp) ) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
@@ -687,7 +693,7 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
       } // end if buffered playback
       frame_count++;
     } else {
-      Debug(5,"Waiting for capture");
+      Debug(4,"Waiting for capture last_write_index=%u", monitor->shared_data->last_write_index);
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index ) 
 
     unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));

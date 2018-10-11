@@ -480,7 +480,7 @@ sub uploadArchFile {
     .(
         ( $Config{ZM_UPLOAD_ARCH_ANALYSE} )
         ? '{*analyse.jpg,*capture.jpg,snapshot.jpg,*.mp4}'
-        : '*capture.jpg,snapshot.jpg,*.mp4'
+        : '{*capture.jpg,snapshot.jpg,*.mp4}'
      )
     ;
   my @archImageFiles = glob($archImagePath);

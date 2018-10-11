@@ -77,9 +77,10 @@ if ( empty($_REQUEST['path']) ) {
     }
 
     # if alarm, get the fid of the first alarmed frame if available and let the
-    # fid= code continue processing it
+    # fid= code continue processing it. Sort it to get the first alarmed frame
     if ( $_REQUEST['fid'] == 'alarm' ) {
-      $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'));
+      $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
+                               array('order'=>'FrameId ASC'));
       if ( !$Frame ) # no alarms
         $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'])); # first frame
       if ( !$Frame ) {

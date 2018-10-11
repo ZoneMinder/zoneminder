@@ -76,6 +76,23 @@ if ( empty($_REQUEST['path']) ) {
       return;
     }
 
+    # if alarm, get the fid of the first alarmed frame if available and let the
+    # fid= code continue processing it. Sort it to get the first alarmed frame
+    if ( $_REQUEST['fid'] == 'alarm' ) {
+      $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
+                               array('order'=>'FrameId ASC'));
+      if ( !$Frame ) # no alarms
+        $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'])); # first frame
+      if ( !$Frame ) {
+        Warning("No frame found for event " + $_REQUEST['eid']);
+        $Frame = new Frame();
+        $Frame->Delta(1);
+        $Frame->FrameId('snapshot');
+      }
+     $_REQUEST['fid']=$Frame->FrameId();
+    }
+
+
     if ( $_REQUEST['fid'] == 'snapshot' ) {
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Score'=>$Event->MaxScore()));
       if ( !$Frame )

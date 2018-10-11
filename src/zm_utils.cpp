@@ -24,6 +24,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <fcntl.h> /* Definition of AT_* constants */
+#include <sys/stat.h>
 #if defined(__arm__)
 #include <sys/auxv.h>
 #endif
@@ -412,5 +414,24 @@ std::string UriDecode( const std::string &encoded ) {
 Warning("ZM Compiled without LIBCURL.  UriDecoding not implemented.");
   return encoded;
 #endif
+}
+
+void touch(const char *pathname) {
+  int fd = open(pathname,
+      O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK,
+      0666);
+  if ( fd < 0 ) {
+    // Couldn't open that path.
+    Error("Couldn't open() path \"%s in touch", pathname);
+    return;
+  }
+  int rc = utimensat(AT_FDCWD,
+      pathname,
+      nullptr,
+      0);
+  if ( rc ) {
+    Error("Couldn't utimensat() path %s in touch", pathname);
+    return;
+  }
 }
 

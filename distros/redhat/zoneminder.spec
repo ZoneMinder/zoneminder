@@ -25,7 +25,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.32.1
+Version: 1.32.2
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -320,6 +320,13 @@ EOF
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Sat Oct 13 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.2-1
+- 1.32.2 release
+- Bug fix release
+
+* Thu Oct 04 2018 Sérgio Basto <sergio@serjux.com> - 1.32.1-2
+- Mass rebuild for x264 and/or x265
+
 * Tue Oct 2 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.1-1
 - 1.32.1 release
 - Bug fix release

@@ -25,7 +25,7 @@ zm_packetqueue::zm_packetqueue( int p_max_stream_id ) {
   max_stream_id = p_max_stream_id;
   packet_counts = new int[max_stream_id+1];
   for ( int i=0; i <= max_stream_id; ++i )
-    packet_counts = 0;
+    packet_counts[i] = 0;
 }
 
 zm_packetqueue::~zm_packetqueue() {

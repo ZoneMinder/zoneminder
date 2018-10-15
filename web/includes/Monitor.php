@@ -152,19 +152,23 @@ private $control_fields = array(
         }
         if ( $this->{'Controllable'} ) {
           $s = dbFetchOne('SELECT * FROM Controls WHERE Id=?', NULL, array($this->{'ControlId'}) );
-          foreach ($s as $k => $v) {
-            if ( $k == 'Id' ) {
-              continue;
-# The reason for these is that the name overlaps Monitor fields.
-            } else if ( $k == 'Protocol' ) {
-              $this->{'ControlProtocol'} = $v;
-            } else if ( $k == 'Name' ) {
-              $this->{'ControlName'} = $v;
-            } else if ( $k == 'Type' ) {
-              $this->{'ControlType'} = $v;
-            } else {
-              $this->{$k} = $v;
+          if ( $s ) {
+            foreach ($s as $k => $v) {
+              if ( $k == 'Id' ) {
+                continue;
+  # The reason for these is that the name overlaps Monitor fields.
+              } else if ( $k == 'Protocol' ) {
+                $this->{'ControlProtocol'} = $v;
+              } else if ( $k == 'Name' ) {
+                $this->{'ControlName'} = $v;
+              } else if ( $k == 'Type' ) {
+                $this->{'ControlType'} = $v;
+              } else {
+                $this->{$k} = $v;
+              }
             }
+          } else {
+            Warning('No Controls found for monitor '.$this->{'Id'} . ' ' . $this->{'Name'}.' althrough it is marked as controllable');
           }
         }
         global $monitor_cache;

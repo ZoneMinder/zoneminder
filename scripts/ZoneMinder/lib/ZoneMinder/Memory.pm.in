@@ -207,7 +207,8 @@ sub zmMemInit {
           || $member_data->{type} eq 'uint64'
           || $member_data->{type} eq 'time_t64'
           ) {
-        $member_data->{size} = $member_data->{align} = 8;
+        $member_data->{size} = 8;
+        $member_data->{align} = $native;
       } elsif ( $member_data->{type} eq 'int32'
           || $member_data->{type} eq 'uint32'
           || $member_data->{type} eq 'bool4'

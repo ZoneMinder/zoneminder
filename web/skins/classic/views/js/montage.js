@@ -7,7 +7,7 @@ function Monitor( monitorData ) {
   this.status = null;
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
-  this.streamCmdParms = '?view=request&request=stream&connkey='+this.connKey;
+  this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
   this.onclick = monitorData.onclick;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
@@ -38,14 +38,14 @@ function Monitor( monitorData ) {
     console.log('onerror: ' + text + ' error:'+error);
     // Requeue, but want to wait a while.
     var streamCmdTimeout = 1000*statusRefreshTimeout;
-    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
+    this.streamCmdTimer = this.streamCmdQuery.delay(streamCmdTimeout, this);
   };
   this.onFailure = function( xhr ) {
     console.log('onFailure: ' + this.connKey);
-    console.log(xhr );
+    console.log(xhr);
     if ( ! requestQueue.hasNext("cmdReq"+this.id) ) { 
       console.log("Not requeuing because there is one already");
-      requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
+      requestQueue.addRequest("cmdReq"+this.id, this.streamCmdReq);
     }
     if ( 0 ) {
     // Requeue, but want to wait a while.

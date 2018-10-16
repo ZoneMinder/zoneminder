@@ -69,6 +69,7 @@ use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
+use File::Path qw(make_path);
 
 my $daemon = 0;
 my $filter_name = '';
@@ -474,13 +475,22 @@ sub uploadArchFile {
     return( 0 );
   }
 
+  # Try to make the path to the upload folder if it doesn't already exist
+  make_path( $Config{ZM_UPLOAD_LOC_DIR} );
+
+  # Complain if the upload folder is still not writable
+  if ( ! -w $Config{ZM_UPLOAD_LOC_DIR} ) {
+    Error("Upload folder either does not exist or is not writable: $Config{ZM_UPLOAD_LOC_DIR}");
+    return(0);
+  }
+
   my $archFile = $Event->{MonitorName}.'-'.$Event->{Id};
   my $archImagePath = $Event->Path()
     .'/'
     .(
         ( $Config{ZM_UPLOAD_ARCH_ANALYSE} )
         ? '{*analyse.jpg,*capture.jpg,snapshot.jpg,*.mp4}'
-        : '*capture.jpg,snapshot.jpg,*.mp4'
+        : '{*capture.jpg,snapshot.jpg,*.mp4}'
      )
     ;
   my @archImageFiles = glob($archImagePath);

@@ -422,6 +422,9 @@ function initPage() {
   }
   selectLayout('#zmMontageLayout');
 
+  if ( 0 ) {
+    // What is the purpose of this code?  I think it just starts up a second ajax thread,
+      //increasing the load on the server.
   for ( var i = 0; i < monitorData.length; i++ ) {
     if ( monitors[i].type == 'WebSite' )
       continue;
@@ -429,6 +432,7 @@ function initPage() {
     console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
     monitors[i].streamCmdQuery.delay( delay, monitors[i] );
     //monitors[i].zm_startup(delay);
+  }
   }
 }
 // Kick everything off

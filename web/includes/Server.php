@@ -47,6 +47,8 @@ class Server {
 		}
     if ( $port ) {
       $url .= ':'.$port;
+    } else {
+      $url .= ':'.$_SERVER['SERVER_PORT'];
     }
     $url .= $_SERVER['PHP_SELF'];
     return $url;

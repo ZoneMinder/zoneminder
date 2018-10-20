@@ -69,7 +69,7 @@ class HostController extends AppController {
       $this->Session->read('user'); # this is needed for command line/curl to recognize a session
       $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
       if ( $zmAuthRelay == 'hashed' ) {
-        $zmAuthHashIps= $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
+        $zmAuthHashIps = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
         $credentials = 'auth='.generateAuthHash($zmAuthHashIps);
       } else if ( $zmAuthRelay == 'plain' ) {
         // user will need to append the store password here

@@ -21,16 +21,23 @@
 #include "zm_ffmpeg.h"
 #include <sys/time.h>
 
-zm_packetqueue::zm_packetqueue( int video_image_count, int p_video_stream_id ) {
+zm_packetqueue::zm_packetqueue( int video_image_count, int p_video_stream_id, int p_audio_stream_id ) {
   video_stream_id = p_video_stream_id;
   max_video_packet_count = video_image_count-1;
   video_packet_count = 0;
   analysis_it = pktQueue.begin();
   first_video_packet_index = -1;
+
+  max_stream_id = p_video_stream_id > p_audio_stream_id ? p_video_stream_id : p_audio_stream_id;
+  packet_counts = new int[max_stream_id+1];
+  for ( int i=0; i <= max_stream_id; ++i )
+    packet_counts[i] = 0;
 }
 
 zm_packetqueue::~zm_packetqueue() {
   clearQueue();
+  delete[] packet_counts;
+  packet_counts = NULL;
 }
 
 /* Enqueues the given packet.  Will maintain the analysis_it pointer and image packet counts.
@@ -91,6 +98,7 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
   } // end if queuing a video packet
 
 	pktQueue.push_back(zm_packet);
+  packet_counts[zm_packet->packet.stream_index] += 1;
 
 #if 0
   // This code should not be neccessary. Taken care of by the above code that ensure that no packet appears twice
@@ -126,11 +134,12 @@ ZMPacket* zm_packetqueue::popPacket( ) {
       first_video_packet_index = -1;
     }
   }
+  packet_counts[packet->packet.stream_index] -= 1;
 
 	return packet;
 }
 
-unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream_id ) {
+unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_id) {
   
   Debug(3, "Clearing all but %d frames, queue has %d", frames_to_keep, pktQueue.size());
 
@@ -212,6 +221,8 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
       delete_count += 1;
     } // while our iterator is not the first packet
   } // end if have packet_delete_count 
+  packet = NULL; // tidy up for valgrind
+  Debug(3, "Deleted %d packets, %d remaining", delete_count, pktQueue.size());
 
 #if 0
   if ( pktQueue.size() ) {
@@ -231,6 +242,7 @@ void zm_packetqueue::clearQueue() {
   ZMPacket *packet = NULL;
 	while ( !pktQueue.empty() ) {
     packet = pktQueue.front();
+    packet_counts[packet->packet.stream_index] -= 1;
     pktQueue.pop_front();
     if ( packet->image_index == -1 )
       delete packet;
@@ -248,6 +260,10 @@ unsigned int zm_packetqueue::size() {
 unsigned int zm_packetqueue::get_video_packet_count() {
   return video_packet_count;
 }
+
+int zm_packetqueue::packet_count( int stream_id ) {
+  return packet_counts[stream_id];
+} // end int zm_packetqueue::packet_count( int stream_id )
 
 // Returns a packet to analyse or NULL
 ZMPacket *zm_packetqueue::get_analysis_packet() {

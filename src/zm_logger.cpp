@@ -334,6 +334,10 @@ Logger::Level Logger::level(Logger::Level level) {
       mEffectiveLevel = mSyslogLevel;
     if ( mEffectiveLevel > mLevel)
       mEffectiveLevel = mLevel;
+
+    // DEBUG levels should flush
+    if ( mLevel > INFO )
+      mFlush = true;
   }
   return mLevel;
 }

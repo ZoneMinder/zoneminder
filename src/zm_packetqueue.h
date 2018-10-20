@@ -30,7 +30,6 @@
 extern "C" {
 #include <libavformat/avformat.h>
 }
-
 class zm_packetqueue {
   public: // For now just to ease development
     std::list<ZMPacket *>    pktQueue;
@@ -40,20 +39,23 @@ class zm_packetqueue {
     int video_packet_count; // keep track of how many video packets we have, because we shouldn't have more than image_buffer_count
     int first_video_packet_index;
     int max_video_packet_count; // allow a negative value to someday mean unlimited
+    int max_stream_id;
+    int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
 
     Mutex mutex;
 
-public:
-    zm_packetqueue( int p_max_video_packet_count, int p_video_stream_id );
+  public:
+    zm_packetqueue(int p_max_video_packet_count, int p_video_stream_id, int p_audio_stream_id);
     virtual ~zm_packetqueue();
 
-    bool queuePacket( ZMPacket* packet );
-    ZMPacket * popPacket( );
+    bool queuePacket(ZMPacket* packet);
+    ZMPacket * popPacket();
     unsigned int clearQueue( unsigned int video_frames_to_keep, int stream_id );
     void clearQueue( );
     unsigned int size();
     unsigned int get_video_packet_count();
     void clear_unwanted_packets( timeval *recording, int mVideoStreamId );
+    int packet_count(int stream_id);
 
     // Functions to manage the analysis frame logic
     bool increment_analysis_it();

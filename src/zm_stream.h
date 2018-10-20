@@ -85,6 +85,7 @@ protected:
   int step;
 
   struct timeval now;
+  struct timeval last_comm_update;
 
   double base_fps;
   double effective_fps;

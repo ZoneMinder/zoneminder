@@ -82,8 +82,35 @@ static AVPixelFormat get_format(AVCodecContext *avctx, const enum AVPixelFormat 
 }
 #endif
 
-FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
-  Camera( p_id, FFMPEG_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
+FfmpegCamera::FfmpegCamera(
+    int p_id,
+    const std::string &p_path,
+    const std::string &p_method,
+    const std::string &p_options,
+    int p_width,
+    int p_height,
+    int p_colours,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio
+    ) :
+  Camera(
+      p_id,
+      FFMPEG_SRC,
+      p_width,
+      p_height,
+      p_colours,
+      ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours),
+      p_brightness,
+      p_contrast,
+      p_hue,
+      p_colour,
+      p_capture,
+      p_record_audio
+      ),
   mPath( p_path ),
   mMethod( p_method ),
   mOptions( p_options )
@@ -204,6 +231,8 @@ int FfmpegCamera::OpenFfmpeg() {
     ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
   } else if ( method == "rtpRtspHttp" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
+  } else if ( method == "rtpUni" ) {
+    ret = av_dict_set(&opts, "rtsp_transport", "udp", 0);
   } else {
     Warning("Unknown method (%s)", method.c_str());
   }
@@ -428,7 +457,6 @@ int FfmpegCamera::OpenFfmpeg() {
     }
     Debug(1, "Opened audio codec");
   } // end if have audio stream
-
 
   if ( (unsigned int)mVideoCodecContext->width != width || (unsigned int)mVideoCodecContext->height != height ) {
     Warning("Monitor dimensions are %dx%d but camera is sending %dx%d", width, height, mVideoCodecContext->width, mVideoCodecContext->height);

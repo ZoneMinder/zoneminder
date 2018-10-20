@@ -298,19 +298,22 @@ int main(int argc, char *argv[]) {
         monitors[i]->CheckAction();
 
         if ( monitors[i]->PreCapture() < 0 ) {
-          Error("Failed to pre-capture monitor %d %d (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          Error("Failed to pre-capture monitor %d %d (%d/%d)",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
           monitors[i]->Close();
           result = -1;
           break;
         }
         if ( monitors[i]->Capture() < 0 ) {
-          Error("Failed to capture image from monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          Error("Failed to capture image from monitor %d %s (%d/%d)",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
           monitors[i]->Close();
           result = -1;
           break;
         }
         if ( monitors[i]->PostCapture() < 0 ) {
-          Error("Failed to post-capture monitor %d %s (%d/%d)", monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
+          Error("Failed to post-capture monitor %d %s (%d/%d)",
+              monitors[i]->Id(), monitors[i]->Name(), i+1, n_monitors);
           monitors[i]->Close();
           result = -1;
           break;

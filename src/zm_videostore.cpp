@@ -168,6 +168,11 @@ bool VideoStore::open() {
     video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 #endif
   }
+  if ( !video_out_ctx->codec_tag ) {
+    video_out_ctx->codec_tag =
+        av_codec_get_tag(oc->oformat->codec_tag, video_in_ctx->codec_id);
+    Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
+  }
   int wanted_codec = monitor->OutputCodec();
   if ( ! wanted_codec ) {
     // default to h264
@@ -179,7 +184,7 @@ bool VideoStore::open() {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
 #else
-    ret = avcodec_copy_context( video_out_ctx, video_in_ctx );
+    ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
 #endif
     // Copy params from instream to ctx
     if ( ret < 0 ) {
@@ -249,10 +254,12 @@ bool VideoStore::open() {
       video_out_ctx->height = monitor->Height();
       video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 
-      /* video time_base can be set to whatever is handy and supported by encoder */
-      //video_out_ctx->time_base = (AVRational){1, 1000000}; // microseconds as base frame rate
-      video_out_ctx->time_base = (AVRational){1, 30}; // microseconds as base frame rate
-      video_out_ctx->framerate = (AVRational){30,1};
+      // Just copy them from the in, no reason to choose different
+      video_out_ctx->time_base = video_in_ctx->time_base;
+      if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+        video_out_ctx->time_base = AV_TIME_BASE_Q;
+      }	
+      video_out_stream->time_base = video_in_stream->time_base;
       //video_out_ctx->gop_size = 12;
       //video_out_ctx->qmin = 10;
       //video_out_ctx->qmax = 51;
@@ -324,7 +331,7 @@ bool VideoStore::open() {
 
   if ( !video_out_ctx->codec_tag ) {
     video_out_ctx->codec_tag =
-      av_codec_get_tag(oc->oformat->codec_tag, video_out_ctx->codec_id );
+      av_codec_get_tag(oc->oformat->codec_tag, video_out_ctx->codec_id);
     Debug(2, "No codec_tag, setting to h264 ? ");
   }
 
@@ -448,12 +455,13 @@ bool VideoStore::open() {
   } else if ( av_dict_count(opts) != 0 ) {
     Warning("some options not set\n");
   }
+  if ( opts ) av_dict_free(&opts);
   if ( ret < 0 ) {
-    Error("Error occurred when writing out file header to %s: %s\n",
+    Error("Error occurred when writing out file header to %s: %s",
         filename, av_make_error_string(ret).c_str());
+    avio_closep(&oc->pb);
     return false;
   }
-  if ( opts ) av_dict_free(&opts);
 
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
@@ -563,16 +571,18 @@ VideoStore::~VideoStore() {
     } // end if buffers
 
     // Flush Queues
+    Debug(1,"Flushing interleaved queues");
     av_interleaved_write_frame(oc, NULL);
 
+    Debug(1,"Writing trailer");
     /* Write the trailer before close */
     if ( int rc = av_write_trailer(oc) ) {
       Error("Error writing trailer %s", av_err2str(rc));
     } else {
-      Debug(3, "Sucess Writing trailer");
+      Debug(3, "Success Writing trailer");
     }
 
-    // WHen will be not using a file ?
+    // When will we not be using a file ?
     if ( !(out_format->flags & AVFMT_NOFILE) ) {
       /* Close the out file. */
       Debug(2, "Closing");

@@ -47,10 +47,8 @@ our %EXPORT_TAGS = (
       getCmdFormat
       runCommand
       setFileOwner
-      getEventPath
       createEventPath
       createEvent
-      deleteEventFiles
       makePath
       jsonEncode
       jsonDecode
@@ -181,70 +179,14 @@ sub runCommand {
   return( $output );
 }
 
-sub getEventPath {
-  my $event = shift;
-
-  my $Storage = new ZoneMinder::Storage( $$event{StorageId} );
-  my $event_path = join( '/', 
-      $Storage->Path(),
-      $event->{MonitorId},
-      ( $Config{ZM_USE_DEEP_STORAGE} ? strftime( "%y/%m/%d/%H/%M/%S", localtime($event->{Time}) ) : $event->{Id} ),
-      );
-
-  return( $event_path );
-}
-
 sub createEventPath {
-#
-# WARNING assumes running from events directory
-#
   my $event = shift;
-  my $Storage = new ZoneMinder::Storage( $$event{Id} );
-  my $eventPath = $Storage->Path() . '/'.$event->{MonitorId};
+  my $eventPath = $event->Path();
+  $event->createPath();
+  $event->createIdFile();
+  $event->createLinkPath();
 
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    my @startTime = localtime( $event->{StartTime} );
-
-    my @datetimeParts = ();
-    $datetimeParts[0] = sprintf( "%02d", $startTime[5]-100 );
-    $datetimeParts[1] = sprintf( "%02d", $startTime[4]+1 );
-    $datetimeParts[2] = sprintf( "%02d", $startTime[3] );
-    $datetimeParts[3] = sprintf( "%02d", $startTime[2] );
-    $datetimeParts[4] = sprintf( "%02d", $startTime[1] );
-    $datetimeParts[5] = sprintf( "%02d", $startTime[0] );
-
-    my $datePath = join('/',@datetimeParts[0..2]);
-    my $timePath = join('/',@datetimeParts[3..5]);
-
-    makePath( $datePath, $eventPath );
-    $eventPath .= '/'.$datePath;
-
-# Create event id symlink
-    my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-    symlink( $timePath, $idFile )
-      or Fatal( "Can't symlink $idFile -> $eventPath: $!" );
-
-    makePath( $timePath, $eventPath );
-    $eventPath .= '/'.$timePath;
-    setFileOwner( $idFile ); # Must come after directory has been created
-
-# Create empty id tag file
-      $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-    open( my $ID_FP, ">", $idFile )
-      or Fatal( "Can't open $idFile: $!" );
-    close( $ID_FP );
-    setFileOwner( $idFile );
-  } else {
-    makePath( $event->{Id}, $eventPath );
-    $eventPath .= '/'.$event->{Id};
-
-    my $idFile = sprintf( "%s/.%d", $eventPath, $event->{Id} );
-    open( my $ID_FP, ">", $idFile )
-      or Fatal( "Can't open $idFile: $!" );
-    close( $ID_FP );
-    setFileOwner( $idFile );
-  }
-  return( $eventPath );
+  return $eventPath;
 }
 
 use Data::Dumper;
@@ -481,53 +423,6 @@ sub updateEvent {
     or Fatal( "Can't execute sql '$sql': ".$sth->errstr() );
 }
 
-sub deleteEventFiles {
-#
-# WARNING assumes running from events directory
-#
-  my $event_id = shift;
-  my $monitor_id = shift;
-  $monitor_id = '*' if ( !defined($monitor_id) );
-
-  if ( $Config{ZM_USE_DEEP_STORAGE} ) {
-    my $link_path = $monitor_id."/*/*/*/.".$event_id;
-#Debug( "LP1:$link_path" );
-    my @links = glob($link_path);
-#Debug( "L:".$links[0].": $!" );
-    if ( @links ) {
-      ( $link_path ) = ( $links[0] =~ /^(.*)$/ ); # De-taint
-#Debug( "LP2:$link_path" );
-
-        ( my $day_path = $link_path ) =~ s/\.\d+//;
-#Debug( "DP:$day_path" );
-      my $event_path = $day_path.readlink( $link_path );
-      ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-#Debug( "EP:$event_path" );
-        my $command = "/bin/rm -rf ".$event_path;
-#Debug( "C:$command" );
-      executeShellCommand( $command );
-
-      unlink( $link_path ) or Error( "Unable to unlink '$link_path': $!" );
-      my @path_parts = split( /\//, $event_path );
-      for ( my $i = int(@path_parts)-2; $i >= 1; $i-- ) {
-        my $delete_path = join( '/', @path_parts[0..$i] );
-#Debug( "DP$i:$delete_path" );
-        my @has_files = glob( $delete_path."/*" );
-#Debug( "HF1:".$has_files[0] ) if ( @has_files );
-        last if ( @has_files );
-        @has_files = glob( $delete_path."/.[0-9]*" );
-#Debug( "HF2:".$has_files[0] ) if ( @has_files );
-        last if ( @has_files );
-        my $command = "/bin/rm -rf ".$delete_path;
-        executeShellCommand( $command );
-      }
-    }
-  } else {
-    my $command = "/bin/rm -rf $monitor_id/$event_id";
-    executeShellCommand( $command );
-  }
-}
-
 sub makePath {
   my $path = shift;
   my $root = shift;
@@ -654,7 +549,7 @@ sub jsonDecode {
   $out =~ s/=>null/=>undef/g;
   $out =~ s/`/'/g;
   $out =~ s/qx/qq/g;
-  ( $out ) = $out =~ m/^({.+})$/; # Detaint and check it's a valid object syntax
+  ( $out ) = $out =~ m/^(\{.+\})$/; # Detaint and check it's a valid object syntax
     my $result = eval $out;
   Fatal( $@ ) if ( $@ );
   return( $result );

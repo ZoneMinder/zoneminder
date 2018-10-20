@@ -18,51 +18,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-// PP - POST request handler for PHP which does not need extensions
-// credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
-
-
-function do_request($method, $url, $data=array(), $optional_headers = null) {
-  global $php_errormsg;
-
-  $params = array('http' => array(
-        'method' => $method,
-        'content' => $data
-        ));
-  if ( $optional_headers !== null ) {
-    $params['http']['header'] = $optional_headers;
-  }
-  $ctx = stream_context_create($params);
-  $fp = @fopen($url, 'rb', false, $ctx);
-  if ( !$fp ) {
-    throw new Exception("Problem with $url, $php_errormsg");
-  }
-  $response = @stream_get_contents($fp);
-  if ( $response === false ) {
-    throw new Exception("Problem reading data from $url, $php_errormsg");
-  }
-  return $response;
-}
-
-function do_post_request($url, $data, $optional_headers = null) {
-  $params = array('http' => array(
-        'method' => 'POST',
-        'content' => $data
-        ));
-  if ( $optional_headers !== null ) {
-    $params['http']['header'] = $optional_headers;
-  }
-  $ctx = stream_context_create($params);
-  $fp = @fopen($url, 'rb', false, $ctx);
-  if ( !$fp ) {
-    throw new Exception("Problem with $url, $php_errormsg");
-  }
-  $response = @stream_get_contents($fp);
-  if ( $response === false ) {
-    throw new Exception("Problem reading data from $url, $php_errormsg");
-  }
-  return $response;
-}
 
 function getAffectedIds( $name ) {
   $names = $name.'s';
@@ -88,52 +43,17 @@ if ( empty($action) ) {
   return;
 }
 if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 'remote' || isset($_REQUEST['password']) ) ) {
-  // if true, a popup will display after login
-  // PP - lets validate reCaptcha if it exists
-  if ( defined('ZM_OPT_USE_GOOG_RECAPTCHA') 
-      && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') 
-      && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
-      && ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY 
-      && ZM_OPT_GOOG_RECAPTCHA_SITEKEY )
-  {
-    $url = 'https://www.google.com/recaptcha/api/siteverify';
-    $fields = array (
-        'secret'    => ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,
-        'response'  => $_REQUEST['g-recaptcha-response'],
-        'remoteip'  => $_SERVER['REMOTE_ADDR']
-        );
-    $res = do_post_request($url, http_build_query($fields));
-    $responseData = json_decode($res,true);
-    // PP - credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
-    // if recaptcha resulted in error, we might have to deny login
-    if ( isset($responseData['success']) && $responseData['success'] == false ) {
-      // PP - before we deny auth, let's make sure the error was not 'invalid secret'
-      // because that means the user did not configure the secret key correctly
-      // in this case, we prefer to let him login in and display a message to correct
-      // the key. Unfortunately, there is no way to check for invalid site key in code
-      // as it produces the same error as when you don't answer a recaptcha
-      if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
-        if ( !in_array('invalid-input-secret',$responseData['error-codes']) ) {
-          Error('reCaptcha authentication failed');
-          userLogout();
-          $view = 'login';
-          $refreshParent = true;
-          return;
-        } else {
-          //Let them login but show an error
-          echo '<script type="text/javascript">alert("'.translate('RecaptchaWarning').'"); </script>';
-          Error('Invalid recaptcha secret detected');
-        }
-      }
-    } // end if success==false
-  } // end if using reCaptcha
 
-  $username = validStr($_REQUEST['username']);
-  $password = isset($_REQUEST['password'])?validStr($_REQUEST['password']):'';
-  userLogin($username, $password);
   $refreshParent = true;
-  $view = 'console';
-  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
+  // User login is automatically performed in includes/auth.php So we don't need to perform a login here,
+  // just handle redirects.  This is the action that comes from the login view, so the logical thing to
+  // do on successful auth is redirect to console, otherwise loop back to login.
+  if ( !$user ) {
+    $view = 'login';
+  } else {
+    $view = 'console';
+    $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
+  }
 } else if ( $action == 'logout' ) {
   userLogout();
   $refreshParent = true;
@@ -236,7 +156,7 @@ if ( canView('Events') ) {
         }
       } elseif ( $action == 'delete' ) {
 				$dbConn->beginTransaction();
-        foreach( getAffectedIds('markEid') as $markEid ) {
+        foreach( getAffectedIds('eids') as $markEid ) {
           deleteEvent($markEid);
         }
 				$dbConn->commit();

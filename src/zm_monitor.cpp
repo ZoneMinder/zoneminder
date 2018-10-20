@@ -1916,6 +1916,7 @@ bool Monitor::Analyse() {
       }
       shared_data->state = state = IDLE;
       last_section_mod = 0;
+      trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if ( event ) {
@@ -2672,9 +2673,11 @@ int Monitor::PrimeCapture() {
     if ( packetqueue ) 
       delete packetqueue;
     video_stream_id = camera->get_VideoStreamId();
-    packetqueue = new zm_packetqueue(image_buffer_count, video_stream_id);
+    audio_stream_id = camera->get_AudioStreamId();
+    packetqueue = new zm_packetqueue(image_buffer_count, video_stream_id, audio_stream_id);
   }
-  Debug(2, "Video stream id is (%d), minimum_packets to keep in buffer(%d)", video_stream_id, pre_event_buffer_count);
+  Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
+      video_stream_id, audio_stream_id, pre_event_buffer_count);
   return ret;
 }
 

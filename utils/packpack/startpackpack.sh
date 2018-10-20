@@ -154,7 +154,7 @@ movecrud () {
         echo "Unpacking CakePHP-Enum-Behavior plugin..."
         tar -xzf build/cakephp-enum-behavior-${CEBVER}.tar.gz
         rmdir web/api/app/Plugin/CakePHP-Enum-Behavior
-        mv -f crud-${CEBVER} web/api/app/Plugin/CakePHP-Enum-Behavior
+        mv -f CakePHP-Enum-Behavior-${CEBVER} web/api/app/Plugin/CakePHP-Enum-Behavior
     fi
 }
 

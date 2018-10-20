@@ -353,6 +353,7 @@ protected:
   ZMPacket    next_buffer; /* Used by four field deinterlacing */
 
   int video_stream_id; // will be filled in PrimeCapture
+  int audio_stream_id; // will be filled in PrimeCapture
 
   Camera      *camera;
   Event       *event;
@@ -455,6 +456,7 @@ public:
   void SetVideoWriterEventId( uint64_t p_event_id ) { video_store_data->current_event = p_event_id; }
 
   unsigned int GetPreEventCount() const { return pre_event_count; };
+    int GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
   ZMPacket *getSnapshot( int index=-1 ) const;

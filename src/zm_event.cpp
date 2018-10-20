@@ -126,9 +126,14 @@ Event::Event(
 
   struct tm *stime = localtime(&start_time.tv_sec);
 
-  if ( storage->Scheme() == Storage::DEEP ) {
-    path = stringtf("%s/%d", storage->Path(), monitor->Id());
+  path = stringtf("%s/%d", storage->Path(), monitor->Id());
+  // Try to make the Monitor Dir.  Normally this would exist, but in odd cases might not.
+  if ( mkdir(path.c_str(), 0755) ) {
+    if ( errno != EEXIST )
+      Error("Can't mkdir %s: %s", path, strerror(errno));
+  }
 
+  if ( storage->Scheme() == Storage::DEEP ) {
     int dt_parts[6];
     dt_parts[0] = stime->tm_year-100;
     dt_parts[1] = stime->tm_mon+1;
@@ -159,27 +164,24 @@ Event::Event(
     if ( symlink(time_path, id_file.c_str()) < 0 )
       Error("Can't symlink %s -> %s: %s", id_file.c_str(), path.c_str(), strerror(errno));
   } else if ( storage->Scheme() == Storage::MEDIUM ) {
-    path = stringtf("%s/%d/%04d-%02d-%02d",
-        storage->Path(), monitor->Id(), stime->tm_year+1900, stime->tm_mon+1, stime->tm_mday
+    path += stringtf("/%04d-%02d-%02d",
+         stime->tm_year+1900, stime->tm_mon+1, stime->tm_mday
         );
     if ( mkdir(path.c_str(), 0755) ) {
-      // FIXME This should not be fatal.  Should probably move to a different storage area.
       if ( errno != EEXIST )
         Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
     }
     path += stringtf("/%" PRIu64, id);
     if ( mkdir(path.c_str(), 0755) ) {
-      // FIXME This should not be fatal.  Should probably move to a different storage area.
       if ( errno != EEXIST )
         Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
     }
   } else {
     // Shallow Storage
-    path = stringtf("%s/%d/%" PRIu64, storage->Path(), monitor->Id(), id);
+    path = stringtf("/%" PRIu64, id);
     if ( mkdir(path.c_str(), 0755) ) {
-      if ( errno != EEXIST ) {
+      if ( errno != EEXIST )
         Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
-      }
     }
 
     // Create empty id tag file
@@ -540,7 +542,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   if ( score < 0 )
     score = 0;
 
-  bool db_frame = ( frame_type != BULK ) || ((frames%config.bulk_frame_interval)==0) || !frames;
+  bool db_frame = ( frame_type != BULK ) || (!frames) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
 
     Debug(1, "Adding frame %d of type \"%s\" to DB", frames, Event::frame_type_names[frame_type]);

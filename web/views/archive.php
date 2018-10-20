@@ -28,9 +28,13 @@ $connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
 
 if ( $archivetype ) {
   switch ($archivetype) {
-  case 'tar':
+  case 'tar.gz':
     $mimetype = 'gzip';
     $file_ext = 'tar.gz';
+    break;
+  case 'tar':
+    $mimetype = 'tar';
+    $file_ext = 'tar';
     break;
   case 'zip':
     $mimetype = 'zip';
@@ -46,6 +50,7 @@ if ( $archivetype ) {
     $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
     Logger::Debug("downloading archive from $filename_path");
     if ( is_readable($filename_path) ) {
+      ob_clean();
       header("Content-type: application/$mimetype" );
       header("Content-Disposition: inline; filename=$filename");
       header('Content-Length: ' . filesize($filename_path) );

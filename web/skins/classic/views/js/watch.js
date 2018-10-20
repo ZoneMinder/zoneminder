@@ -110,7 +110,7 @@ if ( monitorType != 'WebSite' ) {
   if ( auth_hash )
     streamCmdParms += '&auth='+auth_hash;
   var streamCmdReq = new Request.JSON( {
-    url: monitorUrl+thisUrl,
+    url: monitorUrl,
     method: 'get',
     timeout: AJAX_TIMEOUT,
     link: 'chain',
@@ -133,7 +133,6 @@ function getStreamCmdFailure(xhr) {
 }
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk("stream");
-  console.log('stream');
   if ( streamCmdTimer )
     streamCmdTimer = clearTimeout(streamCmdTimer);
   if ( respObj.result == 'Ok' ) {
@@ -367,7 +366,7 @@ if ( monitorType != 'WebSite' ) {
   var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
   if ( auth_hash )
     statusCmdParms += '&auth='+auth_hash;
-  var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'get', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
+  var statusCmdReq = new Request.JSON( { url: monitorUrl, method: 'get', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
   var statusCmdTimer = null;
 }
 
@@ -397,8 +396,8 @@ if ( monitorType != 'WebSite' ) {
   if ( auth_hash )
     alarmCmdParms += '&auth='+auth_hash;
   var alarmCmdReq = new Request.JSON( {
-    url: monitorUrl+thisUrl,
-    method: 'post',
+    url: monitorUrl,
+    method: 'get',
     timeout: AJAX_TIMEOUT,
     link: 'cancel',
     onSuccess: getAlarmCmdResponse,
@@ -455,7 +454,15 @@ if ( monitorType != 'WebSite' ) {
   var eventCmdParms = "view=request&request=status&entity=events&id="+monitorId+"&count="+maxDisplayEvents+"&sort=Id%20desc";
   if ( auth_hash )
     eventCmdParms += '&auth='+auth_hash;
-  var eventCmdReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, data: eventCmdParms, link: 'cancel', onSuccess: getEventCmdResponse, onTimeout: eventCmdQuery } );
+  var eventCmdReq = new Request.JSON( {
+    url: monitorUrl,
+    method: 'get',
+    timeout: AJAX_TIMEOUT,
+    data: eventCmdParms,
+    link: 'cancel',
+    onSuccess: getEventCmdResponse,
+    onTimeout: eventCmdQuery
+  } );
   var eventCmdTimer = null;
   var eventCmdFirst = true;
 }
@@ -493,11 +500,11 @@ function getEventCmdResponse( respObj, respText ) {
 
         var cells = row.getElements( 'td' );
 
-        var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1&popup=1', event.Width, event.Height ] ) } });
+        var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&terms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1&popup=1', event.Width, event.Height ] ) } });
         link.set( 'text', event.Id );
         link.inject( row.getElement( 'td.colId' ) );
 
-        link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&trms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1&popup=1', event.Width, event.Height ] ) } });
+        link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&terms=1&attr1=MonitorId&op1=%3d&val1='+monitorId+'&page=1&popup=1', event.Width, event.Height ] ) } });
         link.set( 'text', event.Name );
         link.inject( row.getElement( 'td.colName' ) );
 
@@ -565,7 +572,7 @@ if ( monitorType != 'WebSite' ) {
   var controlParms = "view=request&request=control&id="+monitorId;
   if ( auth_hash )
     controlParms += '&auth='+auth_hash;
-  var controlReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse } );
+  var controlReq = new Request.JSON( { url: monitorUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse } );
 }
 
 function getControlResponse( respObj, respText ) {
@@ -617,7 +624,7 @@ function controlCmdImage( x, y ) {
   controlReq.send( imageControlParms+"&x="+x+"&y="+y );
   if ( streamMode == "single" )
     fetchImage.pass( $('imageFeed').getElement('img') ).delay( 1000 );
-}       
+}
 
 function fetchImage( streamImage ) {
   streamImage.src = streamImage.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));

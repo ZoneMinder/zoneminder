@@ -253,7 +253,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: falsepi}); </script>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: false}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {
@@ -411,8 +411,8 @@ if ( ZM_OPT_MESSAGE ) {
         <hr/>
         <div id="contentButtons">
           <button type="submit" onclick="submitToEvents(this);"><?php echo translate('ListMatches') ?></button>
-          <button type="submit" onclick="submitToExport(this);"><?php echo translate('ExportMatches') ?></button>
-          <button type="submit" name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
+          <button type="button" onclick="submitToExport(this);"><?php echo translate('ExportMatches') ?></button>
+          <button type="submit" name="executeButton" id="executeButton" onclick="executeFilter(this);"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit('Events') ) {
 ?>
@@ -426,7 +426,7 @@ if ( canEdit('Events') ) {
   }
 }
 ?>
-          <button type="button" value="Reset" onclick="resetFilter( this );"><?php echo translate('Reset') ?></button>
+          <button type="button" value="Reset" onclick="resetFilter(this);"><?php echo translate('Reset') ?></button>
         </div>
       </form>
     </div><!--content-->

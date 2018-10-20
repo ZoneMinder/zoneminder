@@ -72,7 +72,7 @@ New installs
 6. Configure the web server
 
    This package uses the HTTPS protocol by default to access the web portal,
-   using rhe default self signed certificate on your system. Requests using
+   using the default self signed certificate on your system. Requests using
    HTTP will auto-redirect to HTTPS. 
 
    Inspect the web server configuration file and verify it meets your needs:
@@ -129,7 +129,7 @@ New installs
 Upgrades
 ========
 
-1. Conf.d folder support has been added to ZoneMinder 1.31.0. Any custom
+1. Conf.d folder support has been added to ZoneMinder. Any custom
    changes previously made to zm.conf must now be made in one or more custom
    config files, created under the conf.d folder. Do this now. See 
    /etc/zm/conf.d/README for details. Once you recreate any custom config changes
@@ -147,9 +147,13 @@ Upgrades
 
 3. Verify the ZoneMinder Apache configuration file in the folder 
    /etc/zm/www. You will have a file called "zoneminder.conf" and there
-   may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
+   may also be a file called "zoneminder.conf.rpmnew". If an rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
    Verify the SSL REquirements meet your needs. Read README.https if necessary.
+
+   The contents of this file must be merged into your Apache configuration.
+   See step 6 of the installation section if you have not already done this
+   during a previous upgrade.
 
 4. Upgrade the database before starting ZoneMinder.
 

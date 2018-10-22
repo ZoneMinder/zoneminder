@@ -127,6 +127,25 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
     AllocImgBuffer(size);
   }
   text[0] = '\0';
+  if ( pixels % 16 || pixels % 12 ) {
+    // have to use non-loop unrolled functions
+    delta8_rgb = &std_delta8_rgb;
+    delta8_bgr = &std_delta8_bgr;
+    delta8_rgba = &std_delta8_rgba;
+    delta8_bgra = &std_delta8_bgra;
+    delta8_argb = &std_delta8_argb;
+    delta8_abgr = &std_delta8_abgr;
+    delta8_gray8 = &std_delta8_gray8;
+  } else {
+    // Use either sse or neon, or loop unrolled version
+    delta8_rgb = fptr_delta8_rgb;
+    delta8_bgr = fptr_delta8_bgr;
+    delta8_rgba = fptr_delta8_rgba;
+    delta8_bgra = fptr_delta8_bgra;
+    delta8_argb = fptr_delta8_argb;
+    delta8_abgr = fptr_delta8_abgr;
+    delta8_gray8 = fptr_delta8_gray8;
+  }
 }
 
 Image::Image( const AVFrame *frame ) {
@@ -319,20 +338,20 @@ void Image::Initialise() {
 #endif
     } else {
       /* No suitable SSE version available */
-      fptr_delta8_rgba = &std_delta8_rgba;
-      fptr_delta8_bgra = &std_delta8_bgra;
-      fptr_delta8_argb = &std_delta8_argb;
-      fptr_delta8_abgr = &std_delta8_abgr;
-      fptr_delta8_gray8 = &std_delta8_gray8;
+      fptr_delta8_rgba = &fast_delta8_rgba;
+      fptr_delta8_bgra = &fast_delta8_bgra;
+      fptr_delta8_argb = &fast_delta8_argb;
+      fptr_delta8_abgr = &fast_delta8_abgr;
+      fptr_delta8_gray8 = &fast_delta8_gray8;
       Debug(4,"Delta: Using standard delta functions");
     }
   } else {
     /* CPU extensions disabled */
-    fptr_delta8_rgba = &std_delta8_rgba;
-    fptr_delta8_bgra = &std_delta8_bgra;
-    fptr_delta8_argb = &std_delta8_argb;
-    fptr_delta8_abgr = &std_delta8_abgr;
-    fptr_delta8_gray8 = &std_delta8_gray8;
+    fptr_delta8_rgba = &fast_delta8_rgba;
+    fptr_delta8_bgra = &fast_delta8_bgra;
+    fptr_delta8_argb = &fast_delta8_argb;
+    fptr_delta8_abgr = &fast_delta8_abgr;
+    fptr_delta8_gray8 = &fast_delta8_gray8;
     Debug(4,"Delta: CPU extensions disabled, using standard delta functions");
   }
 
@@ -3271,7 +3290,7 @@ __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col
 /************************************************* DELTA FUNCTIONS *************************************************/
 
 /* Grayscale */
-__attribute__((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (16 grayscale pixels) at a time */  
   const uint8_t* const max_ptr = result + count;
 
@@ -3299,8 +3318,20 @@ __attribute__((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8
   }  
 }
 
+__attribute__((noinline)) void std_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    result[0] = abs(col1[0] - col2[0]);
+
+    col1 += 1;
+    col2 += 1;
+    result += 1;
+  }  
+}
+
 /* RGB24: RGB */
-__attribute__((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
@@ -3329,8 +3360,25 @@ __attribute__((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t
   }
 }
 
+__attribute__((noinline)) void std_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
+  int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while (result < max_ptr) {
+    r = abs(col1[0] - col2[0]);
+    g = abs(col1[1] - col2[1]);
+    b = abs(col1[2] - col2[2]);
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 3;
+    col2 += 3;
+    result += 1;
+  }
+}
+
 /* RGB24: BGR */
-__attribute__((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
@@ -3359,8 +3407,25 @@ __attribute__((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t
   }
 }
 
+__attribute__((noinline)) void std_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  /* Loop unrolling is used to work on 12 bytes (4 rgb24 pixels) at a time */
+  int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    b = abs(col1[0] - col2[0]);
+    g = abs(col1[1] - col2[1]);
+    r = abs(col1[2] - col2[2]);
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 3;
+    col2 += 3;
+    result += 1;
+  }
+}
+
 /* RGB32: RGBA */
-__attribute__((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
@@ -3389,8 +3454,25 @@ __attribute__((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_
   }
 }
 
+__attribute__((noinline)) void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
+  int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    r = abs(col1[0] - col2[0]);
+    g = abs(col1[1] - col2[1]);
+    b = abs(col1[2] - col2[2]);
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 4;
+    col2 += 4;
+    result += 1;
+  }
+}
+
 /* RGB32: BGRA */
-__attribute__((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
@@ -3418,9 +3500,25 @@ __attribute__((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_
     result += 4;
   }
 }
+__attribute__((noinline)) void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
+  int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    b = abs(col1[0] - col2[0]);
+    g = abs(col1[1] - col2[1]);
+    r = abs(col1[2] - col2[2]);
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 4;
+    col2 += 4;
+    result += 1;
+  }
+}
 
 /* RGB32: ARGB */
-__attribute__((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
@@ -3448,9 +3546,25 @@ __attribute__((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_
     result += 4;
   }
 }
+__attribute__((noinline)) void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
+  int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    r = abs(col1[1] - col2[1]);
+    g = abs(col1[2] - col2[2]);
+    b = abs(col1[3] - col2[3]);
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 4;
+    col2 += 4;
+    result += 1;
+  }
+}
 
 /* RGB32: ABGR */
-__attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
   /* Loop unrolling is used to work on 16 bytes (4 rgb32 pixels) at a time */
   int r,g,b;  
   const uint8_t* const max_ptr = result + count;
@@ -3476,6 +3590,21 @@ __attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_
     col1 += 16;
     col2 += 16;
     result += 4;
+  }
+}
+__attribute__((noinline)) void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    b = abs(col1[1] - col2[1]);
+    g = abs(col1[2] - col2[2]);
+    r = abs(col1[3] - col2[3]);
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 4;
+    col2 += 4;
+    result += 1;
   }
 }
 
@@ -4046,7 +4175,7 @@ void ssse3_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result
 /************************************************* CONVERT FUNCTIONS *************************************************/
 
 /* RGB24 to grayscale */
-__attribute__((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
 
@@ -4072,9 +4201,23 @@ __attribute__((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_
     result += 4;
   }
 }
+__attribute__((noinline)) void std_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+  unsigned int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    r = col1[0];
+    g = col1[1];
+    b = col1[2];
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 3;
+    result += 1;
+  }
+}
 
 /* BGR24 to grayscale */
-__attribute__((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
 
@@ -4100,9 +4243,23 @@ __attribute__((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_
     result += 4;
   }
 }
+__attribute__((noinline)) void std_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+  unsigned int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    b = col1[0];
+    g = col1[1];
+    r = col1[2];
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 3;
+    result += 1;
+  }
+}
 
 /* RGBA to grayscale */
-__attribute__((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
 
@@ -4128,9 +4285,23 @@ __attribute__((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8
     result += 4;
   }
 }
+__attribute__((noinline)) void std_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+  unsigned int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    r = col1[0];
+    g = col1[1];
+    b = col1[2];
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 4;
+    result += 1;
+  }
+}
 
 /* BGRA to grayscale */
-__attribute__((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
 
@@ -4157,8 +4328,22 @@ __attribute__((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8
   }
 }
 
+__attribute__((noinline)) void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+  unsigned int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    b = col1[0];
+    g = col1[1];
+    r = col1[2];
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 4;
+    result += 1;
+  }
+}
 /* ARGB to grayscale */
-__attribute__((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
 
@@ -4184,9 +4369,23 @@ __attribute__((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8
     result += 4;
   }
 }
+__attribute__((noinline)) void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+  unsigned int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    r = col1[1];
+    g = col1[2];
+    b = col1[3];
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 4;
+    result += 1;
+  }
+}
 
 /* ABGR to grayscale */
-__attribute__((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   unsigned int r,g,b;  
   const uint8_t* const max_ptr = result + count;
 
@@ -4212,9 +4411,23 @@ __attribute__((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8
     result += 4;
   }
 }
+__attribute__((noinline)) void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+  unsigned int r,g,b;  
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    b = col1[1];
+    g = col1[2];
+    r = col1[3];
+    result[0] = (r + r + b + g + g + g + g + g)>>3;
+
+    col1 += 4;
+    result += 1;
+  }
+}
 
 /* Converts a YUYV image into grayscale by extracting the Y channel */
-__attribute__((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+__attribute__((noinline)) void fast_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
   const uint16_t* yuvbuf = (const uint16_t*)col1;
   const uint8_t* const max_ptr = result + count;
 
@@ -4238,6 +4451,17 @@ __attribute__((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8
 
     yuvbuf += 16;
     result += 16;
+  }
+}
+__attribute__((noinline)) void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count) {
+  const uint16_t* yuvbuf = (const uint16_t*)col1;
+  const uint8_t* const max_ptr = result + count;
+
+  while(result < max_ptr) {
+    result[0] = (uint8_t)yuvbuf[0];
+
+    yuvbuf += 1;
+    result += 1;
   }
 }
 

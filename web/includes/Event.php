@@ -84,7 +84,12 @@ class Event {
   }
 
   public function Monitor() {
-    return new Monitor( isset($this->{'MonitorId'}) ? $this->{'MonitorId'} : NULL );
+    if ( isset($this->{'MonitorId'}) ) {
+      $Monitor = Monitor::find_one(array('Id'=>$this->{'MonitorId'}));
+      if ( $Monitor )
+        return $Monitor;
+    }
+    return new Monitor();
   }
 
   public function __call( $fn, array $args){
@@ -94,10 +99,14 @@ class Event {
     if ( array_key_exists( $fn, $this ) ) {
       return $this->{$fn};
         
-        $backTrace = debug_backtrace();
-        $file = $backTrace[1]['file'];
-        $line = $backTrace[1]['line'];
-        Warning("Unknown function call Event->$fn from $file:$line");
+      $backTrace = debug_backtrace();
+      $file = $backTrace[0]['file'];
+      $line = $backTrace[0]['line'];
+      Warning("Unknown function call Event->$fn from $file:$line");
+      $file = $backTrace[1]['file'];
+      $line = $backTrace[1]['line'];
+      Warning("Unknown function call Event->$fn from $file:$line");
+      Warning(print_r( $this, true ));
     }
   }
 
@@ -498,7 +507,6 @@ class Event {
   }
 
   public static function find( $parameters = null, $options = null ) {
-    $filters = array();
     $sql = 'SELECT * FROM Events ';
     $values = array();
 
@@ -526,20 +534,21 @@ class Event {
       }
       if ( isset($options['limit']) ) {
         if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $limit;
+          $sql .= ' LIMIT ' . $options['limit'];
         } else {
           $backTrace = debug_backtrace();
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
-          Error("Invalid value for limit($limit) passed to Event::find from $file:$line");
+          Error("Invalid value for limit(".$options['limit'].") passed to Event::find from $file:$line");
           return array();
         }
       }
     }
+    $filters = array();
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Event');
-    foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
+    $results = $result->fetchALL();
+    foreach ( $results as $row ) {
+      $filters[] = new Event($row);
     }
     return $filters;
   }

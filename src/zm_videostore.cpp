@@ -64,7 +64,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   // Couldn't deduce format from filename, trying from format name
-  if (!oc) {
+  if ( !oc ) {
     avformat_alloc_output_context2(&oc, NULL, format, filename);
     if (!oc) {
       Error(
@@ -108,7 +108,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     Debug(2, "Success creating video out stream");
   }
 
-  if (!video_out_ctx->codec_tag) {
+  if ( !video_out_ctx->codec_tag ) {
     video_out_ctx->codec_tag =
         av_codec_get_tag(oc->oformat->codec_tag, video_in_ctx->codec_id);
     Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
@@ -127,9 +127,10 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #else
   video_out_stream =
-      avformat_new_stream(oc,(AVCodec *)(video_in_ctx->codec));
+      avformat_new_stream(oc, NULL);
+//(AVCodec *)(video_in_ctx->codec));
       //avformat_new_stream(oc,(const AVCodec *)(video_in_ctx->codec));
-  if (!video_out_stream) {
+  if ( !video_out_stream ) {
     Fatal("Unable to create video out stream\n");
   } else {
     Debug(2, "Success creating video out stream");
@@ -158,6 +159,9 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   // Just copy them from the in, no reason to choose different
   video_out_ctx->time_base = video_in_ctx->time_base;
+  if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+	  video_out_ctx->time_base = AV_TIME_BASE_Q;
+  }	
   video_out_stream->time_base = video_in_stream->time_base;
 
   Debug(3,
@@ -343,6 +347,9 @@ bool VideoStore::open() {
   if (ret < 0) {
     Error("Error occurred when writing out file header to %s: %s\n",
           filename, av_make_error_string(ret).c_str());
+    /* free the stream */
+    avio_closep(&oc->pb);
+    //avformat_free_context(oc);
     return false;
   }
   return true;
@@ -414,7 +421,7 @@ VideoStore::~VideoStore() {
     if (int rc = av_write_trailer(oc)) {
       Error("Error writing trailer %s", av_err2str(rc));
     } else {
-      Debug(3, "Sucess Writing trailer");
+      Debug(3, "Success Writing trailer");
     }
 
     // When will we not be using a file ?
@@ -428,7 +435,7 @@ VideoStore::~VideoStore() {
     } else {
       Debug(3, "Not closing avio because we are not writing to a file.");
     }
-  }
+  } // end if ( oc->pb )
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the ctx
   // allocation/de-allocation constantly, or whether we can just re-use it.

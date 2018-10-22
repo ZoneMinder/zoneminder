@@ -412,7 +412,7 @@ Monitor::Monitor(
        + (image_buffer_count*camera->ImageSize())
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
-  Debug(1, "mem.size SharedData=%d TriggerData=%d VideoStoreData=%d total=%d",
+  Debug(1, "mem.size SharedData=%d TriggerData=%d VideoStoreData=%d total=%" PRId64,
      sizeof(SharedData), sizeof(TriggerData), sizeof(VideoStoreData), mem_size);
   mem_ptr = NULL;
 
@@ -2387,7 +2387,6 @@ int Monitor::Capture() {
     Info("Return from Capture (%d), signal loss", captureResult);
     // Tell zma to end the event. zma will reset TRIGGER
     trigger_data->trigger_state = TRIGGER_OFF;
-
     // Unable to capture image for temporary reason
     // Fake a signal loss image
     Rgb signalcolor;

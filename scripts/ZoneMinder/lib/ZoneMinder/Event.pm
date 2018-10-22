@@ -238,7 +238,7 @@ sub LinkPath {
             '.'.$$event{Id}
             );
       } elsif ( $$event{Path} ) {
-        if ( ( $$event{Path} =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
+        if ( ( $event->RelativePath() =~ /^(\d+\/\d{4}\/\d{2}\/\d{2})/ ) ) {
           $$event{LinkPath} = $1.'/.'.$$event{Id};
         } else {
           Error("Unable to get LinkPath from Path for $$event{Id} $$event{Path}");
@@ -253,6 +253,33 @@ sub LinkPath {
 
   return $$event{LinkPath};
 } # end sub LinkPath
+
+sub createPath {
+  makePath($_[0]->Path());
+}
+
+sub createLinkPath {
+  my $LinkPath = $_[0]->LinkPath();
+  my $EventPath = $_[0]->EventPath();
+  if ( $LinkPath ) {
+    if ( !symlink($EventPath, $LinkPath) ) {
+      Error("Failed symlinking $EventPath to $LinkPath");
+    }
+  }
+}
+
+sub idPath {
+  return sprintf('%s/.%d', $_[0]->Path(), $_[0]->{Id});
+}
+
+sub createIdFile {
+  my $event = shift;
+  my $idFile = $event->idPath();
+  open( my $ID_FP, '>', $idFile )
+    or Error("Can't open $idFile: $!");
+  close($ID_FP);
+  setFileOwner($idFile); 
+}
 
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
@@ -416,7 +443,7 @@ sub delete_files {
     return;
   }
   my $event_path = $event->RelativePath();
-  Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path.");
+  Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path, scheme is $$event{Scheme}.");
   if ( $event_path ) {
     ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
     ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
@@ -452,7 +479,7 @@ sub delete_files {
 
   if ( $event->Scheme() eq 'Deep' ) {
     my $link_path = $event->LinkPath();
-    Debug("Deleting files for Event $$event{Id} from $storage_path/$link_path.");
+    Debug("Deleting link for Event $$event{Id} from $storage_path/$link_path.");
     if ( $link_path ) {
       ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
         unlink($storage_path.'/'.$link_path) or Error( "Unable to unlink '$storage_path/$link_path': $!" );

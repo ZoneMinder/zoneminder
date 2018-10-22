@@ -42,7 +42,7 @@ function vjsReplay() {
 
 $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
 
-var cueFrames = null; //make cueFrames availaible even if we don't send another ajax query
+var cueFrames = null; //make cueFrames available even if we don't send another ajax query
 
 function initialAlarmCues (eventId) {
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues); //get frames data for alarmCues and inserts into html
@@ -55,70 +55,78 @@ function setAlarmCues (data) {
 }
 
 function renderAlarmCues (containerEl) {
-  if (cueFrames) {
-    var cueRatio = containerEl.width() / (cueFrames[cueFrames.length - 1].Delta * 100);
-    var minAlarm = Math.ceil(1/cueRatio);
-    var spanTimeStart = 0;
-    var spanTimeEnd = 0;
-    var alarmed = 0;
-    var alarmHtml = "";
-    var pixSkew = 0;
-    var skip = 0;
-    for (let i = 0; i < cueFrames.length; i++) {
-      skip = 0;
-      frame = cueFrames[i];
-      if (frame.Type == "Alarm" && alarmed == 0) { //From nothing to alarm.  End nothing and start alarm.
-        alarmed = 1;
-        if (frame.Delta == 0) continue;  //If event starts with an alarm or too few for a nonespan
-        spanTimeEnd = frame.Delta * 100;
-        spanTime = spanTimeEnd - spanTimeStart;
-        let pix = cueRatio * spanTime;
-        pixSkew += pix - Math.round(pix);//average out the rounding errors.
-        pix = Math.round(pix);
-        if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span. 
-          pix += Math.round(pixSkew);
-          pixSkew = pixSkew - Math.round(pixSkew);
-        }
-        alarmHtml += '<span class="alarmCue noneCue" style="width: ' + pix + 'px;"></span>';
-        spanTimeStart = spanTimeEnd;
-      } else if (frame.Type !== "Alarm" && alarmed == 1) { //from alarm to nothing.  End alarm and start nothing.
-        futNone = 0;
-        indexPlus = i+1;
-        if (((frame.Delta * 100) - spanTimeStart) < minAlarm && indexPlus < cueFrames.length) continue; //alarm is too short and there is more event
-        while (futNone < minAlarm) { //check ahead to see if there's enough for a nonespan
-          if (indexPlus >= cueFrames.length) break; //check if end of event.
-          futNone = (cueFrames[indexPlus].Delta *100) - (frame.Delta *100);
-          if (cueFrames[indexPlus].Type == "Alarm") {
-            i = --indexPlus;
-            skip = 1;
-            break;
-          }
-          indexPlus++;
-        }
-        if (skip == 1) continue;  //javascript doesn't support continue 2;
-        spanTimeEnd = frame.Delta *100;
-        spanTime = spanTimeEnd - spanTimeStart;
-        alarmed = 0;
-        pix = cueRatio * spanTime;
-        pixSkew += pix - Math.round(pix);
-        pix = Math.round(pix);
-        if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) {
-          pix += Math.round(pixSkew);
-          pixSkew = pixSkew - Math.round(pixSkew);
-        }
-        alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
-        spanTimeStart = spanTimeEnd;
-      } else if (frame.Type == "Alarm" && alarmed == 1 && i + 1 >= cueFrames.length) { //event ends on an alarm
-        spanTimeEnd = frame.Delta * 100;
-        spanTime = spanTimeEnd - spanTimeStart;
-        alarmed = 0;
-        pix = Math.round(cueRatio * spanTime);
-        if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
-        alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
-      }
-    }
-    return alarmHtml;
+  if ( !( cueFrames && cueFrames.length ) ) {
+    console.log("No cue frames for event");
+    return;
   }
+  // This uses the Delta of the last frame to get the length of the event.  I can't help but wonder though
+  // if we shouldn't just use the event length endtime-starttime
+  var cueRatio = containerEl.width() / (cueFrames[cueFrames.length - 1].Delta * 100);
+  var minAlarm = Math.ceil(1/cueRatio);
+  var spanTimeStart = 0;
+  var spanTimeEnd = 0;
+  var alarmed = 0;
+  var alarmHtml = "";
+  var pixSkew = 0;
+  var skip = 0;
+var num_cueFrames = cueFrames.length;
+  for ( let i = 0; i < num_cueFrames; i++ ) {
+    skip = 0;
+    frame = cueFrames[i];
+    if (frame.Type == "Alarm" && alarmed == 0) { //From nothing to alarm.  End nothing and start alarm.
+      alarmed = 1;
+      if (frame.Delta == 0) continue;  //If event starts with an alarm or too few for a nonespan
+      spanTimeEnd = frame.Delta * 100;
+      spanTime = spanTimeEnd - spanTimeStart;
+      let pix = cueRatio * spanTime;
+      pixSkew += pix - Math.round(pix);//average out the rounding errors.
+      pix = Math.round(pix);
+      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span. 
+        pix += Math.round(pixSkew);
+        pixSkew = pixSkew - Math.round(pixSkew);
+      }
+      alarmHtml += '<span class="alarmCue noneCue" style="width: ' + pix + 'px;"></span>';
+      spanTimeStart = spanTimeEnd;
+    } else if (frame.Type !== "Alarm" && alarmed == 1) { //from alarm to nothing.  End alarm and start nothing.
+      futNone = 0;
+      indexPlus = i+1;
+      if (((frame.Delta * 100) - spanTimeStart) < minAlarm && indexPlus < num_cueFrames) {
+        //alarm is too short and there is more event
+        continue;
+      }
+      while (futNone < minAlarm) { //check ahead to see if there's enough for a nonespan
+        if (indexPlus >= cueFrames.length) break; //check if end of event.
+        futNone = (cueFrames[indexPlus].Delta *100) - (frame.Delta *100);
+        if (cueFrames[indexPlus].Type == "Alarm") {
+          i = --indexPlus;
+          skip = 1;
+          break;
+        }
+        indexPlus++;
+      }
+      if (skip == 1) continue;  //javascript doesn't support continue 2;
+      spanTimeEnd = frame.Delta *100;
+      spanTime = spanTimeEnd - spanTimeStart;
+      alarmed = 0;
+      pix = cueRatio * spanTime;
+      pixSkew += pix - Math.round(pix);
+      pix = Math.round(pix);
+      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) {
+        pix += Math.round(pixSkew);
+        pixSkew = pixSkew - Math.round(pixSkew);
+      }
+      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+      spanTimeStart = spanTimeEnd;
+    } else if (frame.Type == "Alarm" && alarmed == 1 && i + 1 >= cueFrames.length) { //event ends on an alarm
+      spanTimeEnd = frame.Delta * 100;
+      spanTime = spanTimeEnd - spanTimeStart;
+      alarmed = 0;
+      pix = Math.round(cueRatio * spanTime);
+      if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
+      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+    }
+  }
+  return alarmHtml;
 }
 
 function setButtonState( element, butClass ) {
@@ -151,7 +159,7 @@ function changeScale() {
   } else {
     eventViewer = $j(vid ? '#videoobj' : '#evtStream');
   }
-  if (scale == "auto") {
+  if ( scale == "auto" ) {
     let newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
@@ -161,21 +169,22 @@ function changeScale() {
     newWidth = eventData.Width * scale / SCALE_BASE;
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
-  if (!(streamMode == 'stills')) eventViewer.width(newWidth);  //stills handles its own width
+  if ( !(streamMode == 'stills') )
+    eventViewer.width(newWidth);  //stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
     streamScale(scale == "auto" ? autoScale : scale);
     drawProgressBar();
   }
-  if (streamMode == 'stills') {
+  if ( streamMode == 'stills' ) {
     slider.autosize();
     alarmCue.html(renderAlarmCues($j('#thumbsSliderPanel')));
   } else {
     alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
   }
-  if (scale == "auto") {
+  if ( scale == "auto" ) {
     Cookie.write('zmEventScaleAuto', 'auto', {duration: 10*365});
-  }else{
+  } else {
     Cookie.write('zmEventScale'+eventData.MonitorId, scale, {duration: 10*365});
     Cookie.dispose('zmEventScaleAuto');
   }
@@ -197,7 +206,7 @@ var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 
 function getCmdResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getCmdResponse", respObj ) ) {
+  if ( checkStreamForErrors("getCmdResponse", respObj) ) {
     console.log('Got an error from getCmdResponse');
     console.log(respObj);
     console.log(respText);
@@ -243,7 +252,7 @@ function getCmdResponse( respObj, respText ) {
 
   if ( streamStatus.auth ) {
     // Try to reload the image stream.
-    var streamImg = document.getElementById('evtStream');
+    var streamImg = $j('#evtStream');
     if ( streamImg )
       streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
   } // end if haev a new auth hash
@@ -996,10 +1005,15 @@ function initPage() {
     progressBarNav ();
     streamCmdTimer = streamQuery.delay( 250 );
     if ( canStreamNative ) {
-      var streamImg = $('imageFeed').getElement('img');
-      if ( !streamImg )
-        streamImg = $('imageFeed').getElement('object');
-      $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
+      var imageFeed = $('imageFeed');
+      if ( !imageFeed ) {
+        console.log('No element with id tag imageFeed found.');
+      } else {
+        var streamImg = imageFeed.getElement('img');
+        if ( !streamImg )
+          streamImg = imageFeed.getElement('object');
+        $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
+      }
     }
   }
   nearEventsQuery(eventData.Id);

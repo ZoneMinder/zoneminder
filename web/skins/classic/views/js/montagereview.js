@@ -869,6 +869,14 @@ function changeDateTime(e) {
 // >>>>>>>>> Initialization that runs on window load by being at the bottom 
 
 function initPage() {
+
+  jQuery(document).ready(function(){
+    jQuery("#hdrbutton").click(function(){
+      jQuery("#flipMontageHeader").slideToggle("slow");
+      jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+    });
+  });
+
   for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
     if ( ! monId ) continue;

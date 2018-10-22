@@ -44,7 +44,7 @@ if ( $_REQUEST['filter']['sql'] ) {
   $countSql .= $_REQUEST['filter']['sql'];
   $eventsSql .= $_REQUEST['filter']['sql'];
 }
-$eventsSql .= " ORDER BY $sortColumn $sortOrder";
+$eventsSql .= " ORDER BY $sortColumn $sortOrder,Id $sortOrder";
 
 $page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
 $limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;

@@ -321,7 +321,7 @@ sub checkFilter {
     }
     if ( $Config{ZM_OPT_UPLOAD} && $filter->{AutoUpload} ) {
       if ( !$event->{Uploaded} ) {
-        $delete_ok = undef if !uploadArchFile($filter, $event);
+        $delete_ok = undef if !uploadArchFile($filter, $Event);
       }
     }
     if ( $filter->{AutoExecute} ) {

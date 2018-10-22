@@ -163,8 +163,19 @@ if [ $? -ne 0 ]; then
 fi;
 cd "$DIRECTORY.orig";
 
+# Init submodules
 git submodule init
 git submodule update --init --recursive
+
+# Cleanup
+rm -rf .git
+rm .gitignore
+cd ../
+
+tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+cd $DIRECTORY.orig
+
+# Generate Changlog
 if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
   mv distros/ubuntu1204 debian
 else 
@@ -188,12 +199,6 @@ fi
 if [ "$URGENCY" = "" ]; then
   URGENCY="medium"
 fi;
-
-rm -rf .git
-rm .gitignore
-cd ../
-tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
-cd $DIRECTORY.orig
 
 if [ "$SNAPSHOT" == "stable" ]; then
 cat <<EOF > debian/changelog
@@ -288,6 +293,13 @@ else
   SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
   PPA="";
   if [ "$RELEASE" != "" ]; then
+    # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
+    if [ ! -e "$RELEASE.tar.gz" ]; then
+      echo "Grabbing official source tarball from github."
+      wget "https://github.com/ZoneMinder/zoneminder/archive/$RELEASE.tar.gz"
+    fi;
+    echo "Overwriting generated zoneminder_${VERSION}.orig.tar.gz with source tarball from github";
+    cp "$RELEASE.tar.gz" "zoneminder_${VERSION}.orig.tar.gz"
     IFS='.' read -r -a VERSION <<< "$RELEASE"
     PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
   else

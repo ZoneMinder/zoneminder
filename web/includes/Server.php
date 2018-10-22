@@ -38,13 +38,20 @@ class Server {
     }
   }
 
-	public function Url() {
+	public function Url( $port = null ) {
+    $url = ZM_BASE_PROTOCOL . '://';
 		if ( $this->Id() ) {
-			return ZM_BASE_PROTOCOL . '://'. $this->Hostname();
+			$url .= $this->Hostname();
 		} else {
-			return ZM_BASE_PROTOCOL . '://'. $_SERVER['SERVER_NAME'];
-			return '';
+			$url .= $_SERVER['SERVER_NAME'];
 		}
+    if ( $port ) {
+      $url .= ':'.$port;
+    } else {
+      $url .= ':'.$_SERVER['SERVER_PORT'];
+    }
+    $url .= $_SERVER['PHP_SELF'];
+    return $url;
 	}
 	public function Hostname() {
 		if ( isset( $this->{'Hostname'} ) and ( $this->{'Hostname'} != '' ) ) {

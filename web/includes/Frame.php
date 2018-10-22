@@ -55,7 +55,7 @@ class Frame {
     #return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'Id'}.'&show='.$show.'&filename='.$this->Event()->MonitorId().'_'.$this->{'EventId'}.'_'.$this->{'FrameId'}.'.jpg';
   } // end function getImageSrc
 
-	public static function find( $parameters = array(), $limit = NULL ) {
+	public static function find( $parameters = array(), $options = NULL ) {
 		$sql = 'SELECT * FROM Frames';
 		$values = array();
 		if ( sizeof($parameters) ) {
@@ -65,17 +65,23 @@ class Frame {
 				) );
 			$values = array_values( $parameters );
 		}
-		if ( $limit ) {
-			if ( is_integer( $limit ) or ctype_digit( $limit ) ) {
-				$sql .= ' LIMIT ' . $limit;
-			} else {
-        $backTrace = debug_backtrace();
-        $file = $backTrace[1]['file'];
-        $line = $backTrace[1]['line'];
-				Error("Invalid value for limit($limit) passed to Frame::find from $file:$line");
-				return array();
-			}
-		}
+    if ( $options ) {
+      if ( isset($options['order']) ) {
+        $sql .= ' ORDER BY ' . $options['order'];
+      }
+      if ( isset($options['limit']) ) {
+        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
+          $sql .= ' LIMIT ' . $options['limit'];
+        } else {
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Error("Invalid value for limit(".$options['limit'].") passed to Frame::find from $file:$line");
+          return array();
+        }
+      }
+    }
+
 		$results = dbFetchAll($sql, NULL, $values);
 		if ( $results ) {
 		  return array_map( function($id){ return new Frame($id); }, $results );
@@ -83,8 +89,9 @@ class Frame {
     return array();
 	}
 
-	public static function find_one( $parameters = array() ) {
-	  $results = Frame::find( $parameters, 1 );
+	public static function find_one( $parameters = array(), $options = null ) {
+    $options['limit'] = 1;
+	  $results = Frame::find($parameters, $options);
 	  if ( ! sizeof($results) ) {
 		  return;
 	  }

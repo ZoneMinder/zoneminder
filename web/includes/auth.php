@@ -116,7 +116,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
     $time = time();
     $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
 
-    if ( $force or ( !isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
+    if ( $force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
       $local_time = localtime();
       $authKey = '';
@@ -133,7 +133,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
           session_start();
           $close_session = 1;
         }
-        $_SESSION['AuthHash'] = $auth;
+        $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
         $_SESSION['AuthHashGeneratedAt'] = $time;
         session_write_close();
       } else {
@@ -143,7 +143,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       #} else {
       #Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
     } # end if AuthHash is not cached
-    return $_SESSION['AuthHash'];
+    return $_SESSION['AuthHash'.$_SESSION['remoteAddr']];
   } # end if using AUTH and AUTH_RELAY
   return '';
 }

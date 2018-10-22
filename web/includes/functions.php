@@ -40,15 +40,16 @@ function CORSHeaders() {
 
 # The following is left for future reference/use.
     $valid = false;
-    $servers = dbFetchAll('SELECT * FROM Servers');
-    if ( sizeof($servers) <= 1 ) {
+    $Servers = Server::find();
+    if ( sizeof($Servers) <= 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
+      # ICON: Might not be true. multi-port?
       return;
     }
-    foreach( $servers as $row ) {
-      $Server = new Server($row);
-      if ( preg_match('/^'.preg_quote($Server->Url(),'/').'/', $_SERVER['HTTP_ORIGIN']) ) {
+    foreach( $Servers as $Server ) {
+      if ( preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/', $_SERVER['HTTP_ORIGIN']) ) {
         $valid = true;
+        Logger::Debug("Setting Access-Controll-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
         break;

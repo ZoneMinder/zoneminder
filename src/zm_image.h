@@ -319,6 +319,15 @@ void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long 
 void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+
+void fast_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+
 void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);

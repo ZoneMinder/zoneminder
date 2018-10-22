@@ -127,6 +127,8 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
     AllocImgBuffer(size);
   }
   text[0] = '\0';
+
+  /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
   if ( pixels % 16 || pixels % 12 ) {
     // have to use non-loop unrolled functions
     delta8_rgb = &std_delta8_rgb;
@@ -2080,9 +2082,9 @@ void Image::DeColourise() {
   subpixelorder = ZM_SUBPIX_ORDER_NONE;
   size = width * height;
 
-  if(colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sseversion >= 35) {
+  if ( colours == ZM_COLOUR_RGB32 && config.cpu_extensions && sseversion >= 35 ) {
     /* Use SSSE3 functions */  
-    switch(subpixelorder) {
+    switch (subpixelorder) {
       case ZM_SUBPIX_ORDER_BGRA:
         ssse3_convert_bgra_gray8(buffer,buffer,pixels);
         break;
@@ -2100,40 +2102,70 @@ void Image::DeColourise() {
   } else {
     /* Use standard functions */
     if ( colours == ZM_COLOUR_RGB32 ) {
-      switch(subpixelorder) {
-        case ZM_SUBPIX_ORDER_BGRA:
-          std_convert_bgra_gray8(buffer,buffer,pixels);
-          break;
-        case ZM_SUBPIX_ORDER_ARGB:
-          std_convert_argb_gray8(buffer,buffer,pixels);
-          break;
-        case ZM_SUBPIX_ORDER_ABGR:
-          std_convert_abgr_gray8(buffer,buffer,pixels);
-          break;
-        case ZM_SUBPIX_ORDER_RGBA:
-        default:
-          std_convert_rgba_gray8(buffer,buffer,pixels);
-          break;
-      }
+      if ( pixels % 16 ) {
+        switch (subpixelorder) {
+          case ZM_SUBPIX_ORDER_BGRA:
+            std_convert_bgra_gray8(buffer,buffer,pixels);
+            break;
+          case ZM_SUBPIX_ORDER_ARGB:
+            std_convert_argb_gray8(buffer,buffer,pixels);
+            break;
+          case ZM_SUBPIX_ORDER_ABGR:
+            std_convert_abgr_gray8(buffer,buffer,pixels);
+            break;
+          case ZM_SUBPIX_ORDER_RGBA:
+          default:
+            std_convert_rgba_gray8(buffer,buffer,pixels);
+            break;
+        }
+      } else {
+        switch (subpixelorder) {
+          case ZM_SUBPIX_ORDER_BGRA:
+            fast_convert_bgra_gray8(buffer,buffer,pixels);
+            break;
+          case ZM_SUBPIX_ORDER_ARGB:
+            fast_convert_argb_gray8(buffer,buffer,pixels);
+            break;
+          case ZM_SUBPIX_ORDER_ABGR:
+            fast_convert_abgr_gray8(buffer,buffer,pixels);
+            break;
+          case ZM_SUBPIX_ORDER_RGBA:
+          default:
+            fast_convert_rgba_gray8(buffer,buffer,pixels);
+            break;
+        }
+      } // end if pixels % 16 to use loop unrolled functions
     } else {
       /* Assume RGB24 */
-      switch(subpixelorder) {
-        case ZM_SUBPIX_ORDER_BGR:
-          std_convert_bgr_gray8(buffer,buffer,pixels);
-          break;
-        case ZM_SUBPIX_ORDER_RGB:
-        default:
-          std_convert_rgb_gray8(buffer,buffer,pixels);
-          break;
-      }
-    }  
+      if ( pixels % 12 ) {
+        switch (subpixelorder) {
+          case ZM_SUBPIX_ORDER_BGR:
+            std_convert_bgr_gray8(buffer,buffer,pixels);
+            break;
+          case ZM_SUBPIX_ORDER_RGB:
+          default:
+            std_convert_rgb_gray8(buffer,buffer,pixels);
+            break;
+        }
+      } else {
+        switch (subpixelorder) {
+          case ZM_SUBPIX_ORDER_BGR:
+            fast_convert_bgr_gray8(buffer,buffer,pixels);
+            break;
+          case ZM_SUBPIX_ORDER_RGB:
+          default:
+            fast_convert_rgb_gray8(buffer,buffer,pixels);
+            break;
+        }
+      } // end if pixels % 12 to use loop unrolled functions
+    }
   }
 }
 
 /* RGB32 compatible: complete */
 void Image::Fill( Rgb colour, const Box *limits ) {
   if ( !(colours == ZM_COLOUR_GRAY8 || colours == ZM_COLOUR_RGB24 || colours == ZM_COLOUR_RGB32 ) ) {
-    Panic( "Attempt to fill image with unexpected colours %d", colours );
+    Panic("Attempt to fill image with unexpected colours %d", colours);
   }
 
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */

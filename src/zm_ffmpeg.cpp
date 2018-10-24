@@ -32,7 +32,10 @@ void FFMPEGInit() {
       av_log_set_level( AV_LOG_DEBUG ); 
     else
       av_log_set_level( AV_LOG_QUIET ); 
+#if LIBAVCODEC_VERSION_CHECK(58, 18, 0, 64, 0)
+#else
     av_register_all();
+#endif
     avformat_network_init();
     bInit = true;
   }

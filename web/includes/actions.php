@@ -831,6 +831,22 @@ if ( canEdit('System') ) {
     return;
   }
   if ( $action == 'options' && isset($_REQUEST['tab']) ) {
+    $config = array();
+    $configCat = array();
+    $configCats = array();
+
+    $result = $dbConn->query('SELECT * FROM Config ORDER BY Id ASC');
+    if ( !$result )
+      echo mysql_error();
+    while( $row = dbFetchNext($result) ) {
+      $config[$row['Name']] = $row;
+      if ( !($configCat = &$configCats[$row['Category']]) ) {
+        $configCats[$row['Category']] = array();
+        $configCat = &$configCats[$row['Category']];
+      }
+      $configCat[$row['Name']] = $row;
+    }
+
     $configCat = $configCats[$_REQUEST['tab']];
     $changed = false;
     foreach ( $configCat as $name=>$value ) {

@@ -36,25 +36,27 @@ function noCacheHeaders() {
 }
 
 function CORSHeaders() {
-  if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+  if ( isset($_SERVER['HTTP_ORIGIN']) ) {
 
 # The following is left for future reference/use.
     $valid = false;
-    $servers = dbFetchAll( 'SELECT * FROM Servers' );
-    if ( sizeof($servers) <= 1 ) {
+    $Servers = Server::find();
+    if ( sizeof($Servers) <= 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
+      # ICON: Might not be true. multi-port?
       return;
     }
-    foreach( $servers as $row ) {
-      $Server = new Server( $row );
-      if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
+    foreach( $Servers as $Server ) {
+      if ( preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/', $_SERVER['HTTP_ORIGIN']) ) {
         $valid = true;
-        header('Access-Control-Allow-Origin: ' . $Server->Url() );
+        Logger::Debug("Setting Access-Controll-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
+        break;
       }
     }
-    if ( ! $valid ) {
-      Warning( $_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.' );
+    if ( !$valid ) {
+      Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
     }
   }
 }
@@ -910,7 +912,7 @@ function reScale( $dimension, $dummy ) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
     $scale = func_get_arg( $i );
-    if ( !empty($scale) && $scale != SCALE_BASE )
+    if ( !empty($scale) && ($scale != 'auto') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return( $new_dimension );
@@ -1113,7 +1115,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             if ( ! $StorageArea ) {
               for ( $j = 0; $j < count($terms); $j++ ) {
                 if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
-                  $StorageArea = new Storage($terms[$j]['val']);
+                  $StorageArea = Storage::find_one(array('Id'=>$terms[$j]['val']));
                   break;
                 }
               } // end foreach remaining term
@@ -1127,7 +1129,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             if ( ! $StorageArea ) {
               for ( $j = $i; $j < count($terms); $j++ ) {
                 if ( isset($terms[$i]['attr']) and $terms[$i]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
-                  $StorageArea = new Storage($terms[$i]['val']);
+                  $StorageArea = Storage::find_one(array('Id'=>$terms[$j]['val']));
                 }
               } // end foreach remaining term
             } // end no StorageArea found yet
@@ -1159,7 +1161,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
               }
               break;
             case 'StorageId':
-              $StorageArea = new Storage( $value );
+              $StorageArea = Storage::find_one(array('Id'=>$value));
               if ( $value != 'NULL' )
                 $value = dbEscape($value);
               break;
@@ -2270,5 +2272,51 @@ function unparse_url($parsed_url, $substitutions = array() ) {
   $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : ''; 
   $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : ''; 
   return "$scheme$user$pass$host$port$path$query$fragment"; 
+}
+
+// PP - POST request handler for PHP which does not need extensions
+// credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
+
+
+function do_request($method, $url, $data=array(), $optional_headers = null) {
+  global $php_errormsg;
+
+  $params = array('http' => array(
+        'method' => $method,
+        'content' => $data
+        ));
+  if ( $optional_headers !== null ) {
+    $params['http']['header'] = $optional_headers;
+  }
+  $ctx = stream_context_create($params);
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if ( !$fp ) {
+    throw new Exception("Problem with $url, $php_errormsg");
+  }
+  $response = @stream_get_contents($fp);
+  if ( $response === false ) {
+    throw new Exception("Problem reading data from $url, $php_errormsg");
+  }
+  return $response;
+}
+
+function do_post_request($url, $data, $optional_headers = null) {
+  $params = array('http' => array(
+        'method' => 'POST',
+        'content' => $data
+        ));
+  if ( $optional_headers !== null ) {
+    $params['http']['header'] = $optional_headers;
+  }
+  $ctx = stream_context_create($params);
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if ( !$fp ) {
+    throw new Exception("Problem with $url, $php_errormsg");
+  }
+  $response = @stream_get_contents($fp);
+  if ( $response === false ) {
+    throw new Exception("Problem reading data from $url, $php_errormsg");
+  }
+  return $response;
 }
 ?>

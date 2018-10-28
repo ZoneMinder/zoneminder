@@ -18,26 +18,26 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$servers = Server::find_all(null, array('order'=>'lower(Name)'));
+$servers = Server::find(null, array('order'=>'lower(Name)'));
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
 session_start();
 foreach ( array('Group','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
-  if ( isset( $_REQUEST[$var] ) ) {
+  if ( isset($_REQUEST[$var]) ) {
     if ( $_REQUEST[$var] != '' ) {
       $_SESSION[$var] = $_REQUEST[$var];
     } else {
-      unset( $_SESSION[$var] );
+      unset($_SESSION[$var]);
     }
-  } else if ( isset( $_REQUEST['filtering'] ) ) {
-    unset( $_SESSION[$var] );
+  } else if ( isset($_REQUEST['filtering']) ) {
+    unset($_SESSION[$var]);
   }
 }
 session_write_close();
 
-$storage_areas = Storage::find_all();
+$storage_areas = Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
@@ -50,13 +50,13 @@ $html =
 ';
 
 $GroupsById = array();
-foreach ( Group::find_all() as $G ) {
+foreach ( Group::find() as $G ) {
   $GroupsById[$G->Id()] = $G;
 }
 
 $groupSql = '';
 if ( count($GroupsById) ) {
-  $html .= '<span id="groupControl"><label>'. translate('Group') .':</label>';
+  $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
   # This will end up with the group_id of the deepest selection
   $group_id = isset($_SESSION['Group']) ? $_SESSION['Group'] : null;
   $html .= Group::get_group_dropdown();
@@ -78,17 +78,17 @@ if ( $groupSql )
 foreach ( array('ServerId','StorageId','Status','Function') as $filter ) {
   if ( isset($_SESSION[$filter]) ) {
     if ( is_array($_SESSION[$filter]) ) {
-      $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter] ) ). ')';
-      $values = array_merge( $values, $_SESSION[$filter] );
+      $conditions[] = $filter . ' IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter])). ')';
+      $values = array_merge($values, $_SESSION[$filter]);
     } else {
       $conditions[] = $filter . '=?';
       $values[] = $_SESSION[$filter];
     }
   }
 } # end foreach filter
-if ( ! empty( $user['MonitorIds'] ) ) {
-  $ids = explode(',', $user['MonitorIds'] );
-  $conditions[] = 'M.Id IN ('.implode(',',array_map( function(){return '?';}, $ids) ).')';
+if ( ! empty($user['MonitorIds']) ) {
+  $ids = explode(',', $user['MonitorIds']);
+  $conditions[] = 'M.Id IN ('.implode(',',array_map(function(){return '?';}, $ids)).')';
   $values += $ids;
 }
 
@@ -114,8 +114,8 @@ $html .= htmlSelect('Function[]', $Functions,
 $html .= '</span>';
 
 if ( count($ServersById) > 1 ) {
-  $html .= '<span class="ServerFilter"><label>'. translate('Server').':</label>';
-  $html .= htmlSelect( 'ServerId[]', $ServersById,
+  $html .= '<span class="ServerFilter"><label>'. translate('Server').'</label>';
+  $html .= htmlSelect('ServerId[]', $ServersById,
     (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
     array(
       'onchange'=>'this.form.submit();',
@@ -128,8 +128,8 @@ if ( count($ServersById) > 1 ) {
 } # end if have Servers
 
 if ( count($StorageById) > 1 ) {
-  $html .= '<span class="StorageFilter"><label>'.translate('Storage').':</label>';
-  $html .= htmlSelect( 'StorageId[]',$StorageById,
+  $html .= '<span class="StorageFilter"><label>'.translate('Storage').'</label>';
+  $html .= htmlSelect('StorageId[]', $StorageById,
     (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
     array(
       'onchange'=>'this.form.submit();',
@@ -140,7 +140,7 @@ if ( count($StorageById) > 1 ) {
   $html .= '</span>';
 } # end if have Storage Areas
 
-$html .= '<span class="StatusFilter"><label>'. translate('Status') . ':</label>';
+$html .= '<span class="StatusFilter"><label>'. translate('Status') . '</label>';
 $status_options = array(
     'Unknown' => translate('StatusUnknown'),
     'NotRunning' => translate('StatusNotRunning'),
@@ -157,7 +157,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
   ) );
   $html .= '</span>';
 
-  $html .= '<span class="SourceFilter"><label>'.translate('Source').':</label>';
+  $html .= '<span class="SourceFilter"><label>'.translate('Source').'</label>';
   $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?$_SESSION['Source']:'').'" onkeydown="if(event&&event.keyCode==13){this.form.submit();}" placeholder="text or regular expression"/>';
   $html .= '</span>';
 
@@ -232,7 +232,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
     $displayMonitors[] = $monitors[$i];
   } # end foreach monitor
 
-  $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').':</label>';
+  $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').'</label>';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
       'onchange'=>'this.form.submit();',

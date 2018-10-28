@@ -423,15 +423,9 @@ Monitor::Monitor(
   snprintf(monitor_dir, sizeof(monitor_dir), "%s/%d", storage->Path(), id);
 
   if ( purpose == CAPTURE ) {
-    struct stat statbuf;
-
-    if ( stat(monitor_dir, &statbuf) ) {
-      if ( errno == ENOENT || errno == ENOTDIR ) {
-        if ( mkdir(monitor_dir, 0755) ) {
-          Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
-        }
-      } else {
-        Warning("Error stat'ing %s, may be fatal. error is %s", monitor_dir, strerror(errno));
+    if ( mkdir(monitor_dir, 0755) ) {
+      if ( errno != EEXIST ) {
+        Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
       }
     }
 
@@ -1737,6 +1731,7 @@ Error("Creating new event when one exists");
       }
       shared_data->state = state = IDLE;
       last_section_mod = 0;
+      trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
     if ( (!signal_change && signal) && (function == MODECT || function == MOCORD) ) {
@@ -2389,7 +2384,9 @@ int Monitor::Capture() {
   }
 
   if ( captureResult < 0 ) {
-    Warning("Return from Capture (%d), signal loss", captureResult);
+    Info("Return from Capture (%d), signal loss", captureResult);
+    // Tell zma to end the event. zma will reset TRIGGER
+    trigger_data->trigger_state = TRIGGER_OFF;
     // Unable to capture image for temporary reason
     // Fake a signal loss image
     Rgb signalcolor;

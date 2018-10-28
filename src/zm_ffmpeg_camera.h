@@ -59,7 +59,7 @@ class FfmpegCamera : public Camera {
     bool hwaccel;
 #if HAVE_AVUTIL_HWCONTEXT_H
     AVFrame             *hwFrame;
-    DecodeContext decode;
+    DecodeContext       decode;
 #endif
 
     // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
@@ -79,7 +79,7 @@ class FfmpegCamera : public Camera {
 #endif // HAVE_LIBAVFORMAT
 
     VideoStore          *videoStore;
-    zm_packetqueue      packetqueue;
+    zm_packetqueue      *packetqueue;
     bool                have_video_keyframe;
 
 #if HAVE_LIBSWSCALE

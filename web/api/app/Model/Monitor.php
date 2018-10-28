@@ -110,7 +110,7 @@ class Monitor extends AppModel {
   );
   public $actsAs = array(
     'CakePHP-Enum-Behavior.Enum' => array(
-      'Type'            => array('Local','Remote','File','Ffmpeg','Libvlc','cURL'),
+      'Type'            => array('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite'),
       'Function'        => array('None','Monitor','Modect','Record','Mocord','Nodect'),
       'Orientation'     => array('0','90','180','270','hori','vert'),
       'OutputCodec'     => array('h264','mjpeg','mpeg1','mpeg2'),

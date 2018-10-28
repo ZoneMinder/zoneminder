@@ -12,12 +12,15 @@ public $defaults = array(
     'AutoArchive'     =>  0,
     'AutoVideo'       =>  0,
     'AutoMessage'     =>  0,
+    'AutoMove'        =>  0,
+    'AutoMoveTo'      =>  0,
+    'UpdateDiskSpace' =>  0,
     'Background'      =>  0,
     'Concurrent'      =>  0,
     'limit'           =>  100,
     'Query'           =>  array(),
     'sort_field'      =>  ZM_WEB_EVENT_SORT_FIELD,
-    'sort_asc'        =>  (ZM_WEB_EVENT_SORT_ORDER == 'asc'),
+    'sort_asc'        =>  ZM_WEB_EVENT_SORT_ORDER,
 );
 
   public function __construct( $IdOrRow=NULL ) {

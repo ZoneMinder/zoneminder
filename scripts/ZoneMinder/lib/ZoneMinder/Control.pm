@@ -47,9 +47,9 @@ sub new {
   my $class = shift;
   my $id = shift;
   my $self = {};
-  $self->{name} = "PelcoD";
+  $self->{name} = $class;
   if ( !defined($id) ) {
-    Fatal( "No monitor defined when invoking protocol ".$self->{name} );
+    Fatal('No monitor defined when invoking protocol '.$self->{name});
   }
   $self->{id} = $id;
   bless( $self, $class );
@@ -61,14 +61,13 @@ sub DESTROY {
 
 sub AUTOLOAD {
   my $self = shift;
-  my $class = ref($self) || croak( "$self not object" );
+  my $class = ref($self) || Fatal("$self not object");
   my $name = $AUTOLOAD;
   $name =~ s/.*://;
-  if ( exists($self->{$name}) )
-  {
-    return( $self->{$name} );
+  if ( exists($self->{$name}) ) {
+    return $self->{$name};
   }
-  croak( "Can't access $name member of object of class $class" );
+  Error("Can't access $name member of object of class $class");
 }
 
 sub getKey {
@@ -83,7 +82,8 @@ sub open {
 
 sub close {
   my $self = shift;
-  Fatal( "No close method defined for protocol ".$self->{name} );
+  $self->{state} = 'closed';
+  Debug('No close method defined for protocol '.$self->{name});
 }
 
 sub loadMonitor {

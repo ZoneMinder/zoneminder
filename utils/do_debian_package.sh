@@ -8,6 +8,13 @@ exit;
 
 fi
 
+DEBUILD=`which debuild`;
+
+if [ "$DEBUILD" == "" ]; then
+  echo "You must install the devscripts package.  Try sudo apt-get install devscripts";
+  exit;
+fi
+
 for i in "$@"
 do
 case $i in
@@ -259,23 +266,19 @@ fi
 
 if [ $TYPE == "binary" ]; then
   if [ "$INTERACTIVE" != "no" ]; then
-    read -p "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
+    read -p "Not doing dput since it's a binary release. Do you want to install it? (y/N)"
     if [[ $REPLY == [yY] ]]; then
         sudo dpkg -i $DIRECTORY*.deb
-    else 
-	echo $REPLY;
     fi;
-    if [ "$DISTRO" == "jessie" ]; then
-      read -p "Do you want to upload this binary to zmrepo? (y/N)"
-      if [[ $REPLY == [yY] ]]; then
-        if [ "$RELEASE" != "" ]; then
-          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+    read -p "Do you want to upload this binary to zmrepo? (y/N)"
+    if [[ $REPLY == [yY] ]]; then
+      if [ "$RELEASE" != "" ]; then
+        scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+      else
+        if [ "$BRANCH" == "" ]; then
+          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
         else
-          if [ "$BRANCH" == "" ]; then
-            scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
-          else
-            scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
-          fi;
+          scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
         fi;
       fi;
     fi;

@@ -28,7 +28,7 @@ if ( $debug ) {
 }
 
 // Use new style autoglobals where possible
-if ( version_compare( phpversion(), "4.1.0", "<") ) {
+if ( version_compare( phpversion(), '4.1.0', '<') ) {
   $_SESSION = &$HTTP_SESSION_VARS;
   $_SERVER = &$HTTP_SERVER_VARS;
 }
@@ -37,7 +37,7 @@ if ( version_compare( phpversion(), "4.1.0", "<") ) {
 if ( false ) {
   ob_start();
   phpinfo( INFO_VARIABLES );
-  $fp = fopen( "/tmp/env.html", "w" );
+  $fp = fopen( '/tmp/env.html', 'w' );
   fwrite( $fp, ob_get_contents() );
   fclose( $fp );
   ob_end_clean();
@@ -48,9 +48,15 @@ require_once( 'includes/logger.php' );
 require_once( 'includes/Server.php' );
 require_once( 'includes/Storage.php' );
 require_once( 'includes/Event.php' );
+require_once( 'includes/Group.php' );
 require_once( 'includes/Monitor.php' );
 
-if ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ) {
+
+if (
+  (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
+  or
+  (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ($_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'))
+) {
   $protocol = 'https';
 } else {
   $protocol = 'http';
@@ -112,12 +118,12 @@ if ( !file_exists( ZM_SKIN_PATH ) )
 $skinBase[] = $skin;
 
 $currentCookieParams = session_get_cookie_params(); 
-Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+//Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
 session_set_cookie_params( 
-    $currentCookieParams["lifetime"], 
-    $currentCookieParams["path"], 
-    $currentCookieParams["domain"],
-    $currentCookieParams["secure"], 
+    $currentCookieParams['lifetime'], 
+    $currentCookieParams['path'], 
+    $currentCookieParams['domain'],
+    $currentCookieParams['secure'], 
     true
 ); 
 
@@ -144,9 +150,13 @@ if ( ZM_OPT_USE_AUTH ) {
 } else {
   $user = $defaultUser;
 }
+# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
+# Any file/page that sets session variables must re-open it.
+session_write_close();
 
 require_once( 'includes/lang.php' );
 require_once( 'includes/functions.php' );
+require_once( 'includes/auth.php' );
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -156,7 +166,7 @@ CORSHeaders();
 
 // Check for valid content dirs
 if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
-  Error( "Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+  Warning("Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
 }
 
 # Globals
@@ -172,14 +182,15 @@ if ( isset($_REQUEST['request']) )
 foreach ( getSkinIncludes( 'skin.php' ) as $includeFile )
   require_once $includeFile;
 
-if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) {
-  if ( empty($user) && ! empty($_REQUEST['auth']) ) {
-Logger::Debug("Getting user from auth hash");
-    if ( $authUser = getAuthUser( $_REQUEST['auth'] ) ) {
-Logger::Debug("Success Getting user from auth hash");
-      userLogin( $authUser['Username'], $authUser['Password'], true );
-    }
-  } else if ( ! empty($user) ) {
+if ( ZM_OPT_USE_AUTH ) {
+  if ( ZM_AUTH_HASH_LOGINS ) {
+    if ( empty($user) && ! empty($_REQUEST['auth']) ) {
+      if ( $authUser = getAuthUser( $_REQUEST['auth'] ) ) {
+        userLogin( $authUser['Username'], $authUser['Password'], true );
+      }
+    } 
+  }
+  if ( ! empty($user) ) {
     // generate it once here, while session is open.  Value will be cached in session and return when called later on
     generateAuthHash( ZM_AUTH_HASH_IPS );
   }
@@ -194,9 +205,9 @@ isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' ) {
+if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' && $request != 'control' && $view != 'frames' && $view != 'archive' ) {
   require_once( 'includes/csrf/csrf-magic.php' );
-  Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+  #Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();
 }
 
@@ -204,22 +215,19 @@ if ( ZM_ENABLE_CSRF_MAGIC && $action != 'login' && $view != 'view_video' ) {
 require_once( 'includes/actions.php' );
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH && ! isset($user) ) {
-	Logger::Debug("Redirecting to login" );
+if ( ZM_OPT_USE_AUTH and ! isset($user) ) {
+  Logger::Debug("Redirecting to login" );
   $view = 'login';
   $request = null;
 }
 
-# Only one request can open the session file at a time, so let's close the session here to improve concurrency.
-# Any file/page that sets session variables must re-open it.
-session_write_close();
 
 if ( $redirect ) {
-  header('Location: '.ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view='.$view);
+  header('Location: '.$redirect);
   return;
 }
 
-if ( isset( $_REQUEST['request'] ) ) {
+if ( $request ) {
   foreach ( getSkinIncludes( 'ajax/'.$request.'.php', true, true ) as $includeFile ) {
     if ( !file_exists( $includeFile ) )
       Fatal( "Request '$request' does not exist" );

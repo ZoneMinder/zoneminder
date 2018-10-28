@@ -1,0 +1,265 @@
+#content .vjsMessage {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    z-index: 10;
+    margin: 0;
+    font-size: 200%;
+    color: white;
+    background-color: black;
+    display: inline-block;
+}
+
+.alarmCue {
+    background-color: #222222;
+    height: 1.25em;
+    text-align: left;
+    margin: 0 auto 0 auto;
+    border-radius: 0 0 .3em .3em;
+}
+
+.alarmCue span {
+    background-color:red;
+    height: 100%;
+    display: inline-block;
+    border-radius: 0;
+}
+
+span.noneCue {
+    background: none;
+}
+
+#header {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+    margin: 0 0 4px 0;
+}
+
+#header h2 {
+    line-height: 1.1;
+    margin:5px 0 0 0;
+}
+
+#dataBar {
+    display: flex;
+    flex-wrap:wrap;
+    justify-content: space-between;
+}
+
+#menuBar1 {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: 100%;
+    text-align: center;
+    margin: 4px 0 0 0;
+}
+
+#menuBar1 input, #menuBar1 select {
+    padding: 2px 5px;
+}
+
+#menuBar1 #replayControl {
+    margin: 0 4px 0 auto;
+}
+
+#menuBar1 div {
+margin: auto 5px;
+}
+
+#nameControl input[type="button"]{
+height: 100%;
+}
+
+#eventVideo {
+    display: inline-block;
+    position: relative;
+}
+
+#imageFeed {
+    display: inline-block;
+    position: relative;
+    text-align: center;
+}
+
+#monitorStatus {
+    width: 100%;
+    margin-top: 3px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+#monitorStatus #enableAlarms {
+    position: absolute;
+    left: 4px;
+}
+
+#monitorStatus #forceAlarm {
+    position: absolute;
+    right: 4px;
+}
+
+#monitorStatus #monitorState {
+}
+
+#dvrControls {
+    margin-top: 3px;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+#dvrControls input {
+    padding: 10px 10px;
+    width: 50px;
+    margin: 0 3px;
+    font-weight: 900;
+}
+
+#dvrControls input[disabled=disabled] {
+    color: #aaaaaa;
+}
+
+#dvrControls input.active {
+    border: 0;
+    background-color: #2ecc71;
+    color: #fff;
+}
+
+#dvrControls input.inactive {
+    border: 0;
+    background-color: #e67e22;
+    color: #fff;
+}
+
+#dvrControls input.unavail {
+    background-color: #ccc;
+    border: 0;
+    cursor: default;
+}
+
+#replayStatus {
+    margin: 3px 0 2px;
+    text-align: center;
+    clear: both;
+}
+
+#replayStatus > span {
+    padding: 0 4px;
+}
+
+#progressBar {
+    position: relative;
+    top: -1.25em;
+    height: 1.25em;
+    margin: 0 auto -1.25em auto;
+}
+
+#progressBar .progressBox {
+    transition: width .1s;
+    height: 100%;
+    background: rgba(170, 170, 170, .7);
+    border-radius: 0 0 .3em .3em;
+}
+
+#eventStills {
+    position: relative;
+}
+
+#eventThumbsPanel {
+    position: relative;
+    margin: 0;
+    z-index: 1;
+}
+
+#eventThumbs {
+    margin: 0 auto;
+    overflow: hidden;
+    height: 300px;
+}
+
+#eventThumbs img {
+    height: 25px; /* HACK - Although this is pixels it will be interpreted as a scale %ge, so 25px = 25% scaling for thumbnails */
+    margin: 2px;
+    background-color: #dddddd;
+}
+
+#eventThumbs img.placeholder {
+    /* width: 100px; */
+}
+
+#eventThumbs img.selected {
+}
+
+#eventImagePanel {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    width: 100%;
+}
+
+#eventImageFrame {
+    border: 2px solid gray;
+    background-color: white;
+    padding: 4px;
+    display: inline-block;
+}
+
+#eventImage {
+}
+
+#eventImageBar {
+    margin-top: 2px;
+}
+
+#eventImageStats {
+    float: left;
+}
+
+#eventImageData {
+    margin: 0 auto;
+    padding-top: 2px;
+}
+
+#eventImageClose {
+    float: right;
+}
+
+#eventImageBar::after {
+  visibility: hidden;
+  display: block;
+  content: "";
+  clear: both;
+  height: 0;
+}
+
+#eventImageNav {
+    position: relative;
+    margin: 0 0 4px 0;
+}
+
+#eventImageNav input {
+    width: 32px;
+    font-size: 16px;
+}
+
+#thumbsSliderPanel {
+    width: 80%;
+    margin: 0px auto 4px auto;
+}
+
+#thumbsSlider {
+    width: 100%;
+    height: 1.25em;
+    position: relative;
+    top: -1.25em;
+    margin: 0 0 -1.25em 0;
+}
+
+#thumbsKnob {
+    width: 1em;
+    height: 100%;
+    background-color: #999999;
+}

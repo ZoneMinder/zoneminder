@@ -61,7 +61,7 @@ In *general* a good estimate of memory required would be:
 
 ::
 
-	Min Memory = 1.2 * ((image-width*image-height*image buffer size*target color space*number of cameras/8/1024/1024 ) 
+	Min Bits of Memory = 20% overhead * (image-width*image-height*image buffer size*target color space*number of cameras) 
 
 Where:
 * image-width and image-height are the width and height of images that your camera is configured for (in my case, 1280x960). This value is in the Source tab for each monitor
@@ -69,17 +69,25 @@ Where:
 * target color space is the color depth - 8bit, 24bit or 32bit. It's again in the source tab of each monitor
 The 1.2 at the start is basically adding 20% on top of the calculation to account for image/stream overheads (this is an estimate)
 
-So let's do the math. If we have 4 cameras running at 1280x960 with 32bit color space and one camera running at 640x480 with 8bit greyscale color space, the system would require:
+The math breakdown for 4 cameras running at 1280x960 capture, 50 frame buffer, 24 bit color space:
+::
 
-``1.2 * ((1280*960*50*32*4/8/1024/1024 )  + (640 *480  *50*8/8 /1024/1024))``
+	1280*960 = 1,228,800 (bytes)
+	1,228,800 * (3 bytes for 24 bit) = 3,686,400 (bytes) 
+	3,686,400 * 50 = 184,320,000 (bytes)
+	184,320,000 * 4 = 737,280,000 (bytes)
+	737,280,000 / 1024 = 720,000 (Kilobytes)
+	720,000 / 1024 = 703.125 (Megabytes)
+	703.125 / 1024 = 0.686 (Gigabytes)
 
-Or, around 900MB of memory.
+Around 700MB of memory.
 
 So if you have 2GB of memory, you should be all set. Right? **Not, really**:
 
 	* This is just the base memory required to capture the streams. Remember ZM is always capturing streams irrespective of whether you are actually recording or not - to make sure its image ring buffer is there with pre images when an alarm kicks in.
 	* You also need to account for other processes not related to ZM running in your box
 	* You also need to account for other ZM processes - for example, I noticed the audit daemon takes up a good amount of memory when it runs, DB updates also take up memory
+	* If you are using H264 encoding, that buffers a lot of frames in memory as well.
 
 So a good rule of thumb is to make sure you have twice the memory as the calculation above (and if you are using the ZM server for other purposes, please factor in those memory requirements as well)
 
@@ -121,15 +129,14 @@ So, for example:
 ::
 
 	384x288 capture resolution, that makes: 110 592 pixels
-	in 24 bit color that's x24 = 2 654 208 bits per frame 
-	by 80 frames ring buffer x80 = 212 336 640 bits per camera 
-	by 4 cameras x4 = 849 346 560 bits. 
-	Plus 10% overhead = 934 281 216 bits 
-	That's 116 785 152 bytes, and 
-	= 114 048 kB, respectively 111.38 MB. 
-	If my shared memory is set to 134 217 728, which is exactly 128MB, 
+	in 24 bit color that's x 3 = 331,776 bytes per frame 
+	by 80 frames ring buffer x80 = 26,542,080 bytes per camera 
+	by 4 cameras x4 = 106,168,320 bytes. 
+	Plus 10% overhead = 116,785,152 bytes 
+	Thats 114,048 kB, respectively 111.38 MB. 
+	If my shared memory is set to 134,217,728, which is exactly 128MB, 
 	that means I shouldn't have any problem.
-	(Note that 1 byte = 8 bits and 1kbyte = 1024bytes, 1MB = 1024 kB)
+	(Note that 1kbyte = 1024bytes, 1MB = 1024 kB)
 
 If for instance you were using 24bit 640x480 then this would come to about 92Mb if you are using the default buffer size of 100. If this is too large then you can either reduce the image or buffer sizes or increase the maximum amount of shared memory available. If you are using RedHat then you can get details on how to change these settings `here <http://www.redhat.com/docs/manuals/database/RHDB-2.1-Manual/admin_user/kernel-resources.html>`__
 

@@ -1,26 +1,13 @@
 What's New
 ==========
 
-1. ZoneMinder now uses a conf.d subfolder to process custom changes to
-   variables found in zm.conf. Changes to zm.conf will be overwritten
-   during an upgrade. Instead, create a file with a ".conf" extension under
-   the conf.d folder and make your changes there.
-   
-2. ZoneMinder now supports recording directly to video container! This feature
-   is new and should be treated as experimental. Refer to the documentation
-   regarding how to use this feature.
+1. See the ZoneMinder release notes for a list of new features:
+     https://github.com/ZoneMinder/zoneminder/releases
 
-3. The Apache ScriptAlias has been changed from "/cgi-bin/zm/zms" to 
-   "/cgi-bin-zm/zms". This has been to done to avoid this bug:
-   https://bugzilla.redhat.com/show_bug.cgi?id=973067
-
-   IMPORTANT: You must manually inspect the value for PATH_ZMS under Options
-   and verify it is set to "/cgi-bin-zm/nph-zms". Failure to do so will result
-   in a broken system. You have been warned.
-
-4. This package uses the HTTPS protocol by default to access the web portal.
-   Requests using HTTP will auto-redirect to HTTPS. See README.https for
-   more information.
+2. The contents of the ZoneMinder Apache config file have changed. In
+   addition, this ZoneMinder package now requires you to manually symlink the
+   ZoneMinder Apache config file. See new install step 6 and upgrade step 3
+   below for details.
 
 New installs
 ============
@@ -28,10 +15,10 @@ New installs
 1. Unless you are already using MariaDB server, you need to ensure that the
    server is configured to start during boot and properly secured by running:
 
-	sudo dnf install mariadb-server
-	sudo systemctl enable mariadb
-	sudo systemctl start  mariadb.service
-	mysql_secure_installation
+     sudo yum install mariadb-server
+     sudo systemctl enable mariadb
+     sudo systemctl start  mariadb.service
+     mysql_secure_installation
 
 2. Using the password for the root account set during the previous step, you
    will need to create the ZoneMinder database and configure a database
@@ -50,13 +37,13 @@ New installs
    /etc/zm/conf.d and set your credentials there. For example, create the file
    /etc/zm/conf.d/zm-db-user.conf and add the following content to it:
       
-      ZM_DB_USER = {username of the sql account you want to use}
-      ZM_DB_PASS = {password of the sql account you want to use}
+     ZM_DB_USER = {username of the sql account you want to use}
+     ZM_DB_PASS = {password of the sql account you want to use}
 
    Once the file has been saved, set proper file & ownership permissions on it:
   
-      sudo chown root:apache *.conf
-      sudo chmod 640 *.conf 
+     sudo chown root:apache *.conf
+     sudo chmod 640 *.conf 
 
 4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
    timezone.  PHP will complain loudly if this is not set, or if it is set
@@ -82,25 +69,62 @@ New installs
    SELINUX line from "enforcing" to "disabled". This change will take
    effect after a reboot.
 
-6. Install mod_ssl or configure /etc/httpd/conf.d/zoneminder.conf to meet your
-   needs. This package comes preconfigured for HTTPS using the default self
-   signed certificate on your system. The recommended way to complete this step
-   is to simply install mod_ssl:
+6. Configure the web server
 
-	sudo yum install mod_ssl
+   This package uses the HTTPS protocol by default to access the web portal,
+   using rhe default self signed certificate on your system. Requests using
+   HTTP will auto-redirect to HTTPS. 
 
-   If this does not meet your needs, then read README.https to
-   learn about alternatives. When in doubt, install mod_ssl.
+   Inspect the web server configuration file and verify it meets your needs:
+
+     /etc/zm/www/zoneminder.conf
+
+   If you are running other web enabled services then you may need to edit
+   this file to suite. See README.https to learn about other alternatives. 
+
+   When in doubt, proceed with the default:
+
+     sudo ln -s /etc/zm/www/zoneminder.conf /etc/httpd/conf.d/
+     sudo yum install mod_ssl
 
 7. Now start the web server:
 
-	sudo systemctl enable httpd
-	sudo systemctl start httpd
+     sudo systemctl enable httpd
+     sudo systemctl start httpd
 
 8. Now start zoneminder:
 
-	sudo systemctl enable zoneminder
-	sudo systemctl start zoneminder
+     sudo systemctl enable zoneminder
+     sudo systemctl start zoneminder
+
+9. Optionally configure the firewall
+
+   All Redhat distros ship with the firewall enabled. That means you will not
+   be able to access the ZoneMinder web console from a remote machine until
+   changes are made to the firewall.
+
+   What follows are a set of minimal commands to allow remote access to the
+   ZoneMinder web console and also allow ZoneMinder's ONVIF discovery to
+   work. The following commands do not put any restrictions on which remote
+   machine(s) have access to the listed ports or services.
+
+     sudo firewall-cmd --permanent --zone=public --add-service=http
+     sudo firewall-cmd --permanent --zone=public --add-service=https
+     sudo firewall-cmd --permanent --zone=public --add-port=3702/udp
+     sudo firewall-cmd --reload
+
+   Additional changes to the firewall may be required, depending on your
+   security requirements and how you use the system. It is up to you to verify
+   these commands are sufficient.
+
+10. Access the ZoneMinder web console
+
+   You may now access the ZoneMinder web console from your web browser using
+   an appropriate url. Here are some examples:
+
+     http://localhost/zm (works from the local machine only)
+     http://{machine name}/zm (works only if dns is configured for your network)
+     http://{ip address}/zm
 
 Upgrades
 ========
@@ -122,7 +146,7 @@ Upgrades
    See step 2 of the Installation section to add missing permissions.
 
 3. Verify the ZoneMinder Apache configuration file in the folder 
-   /etc/httpd/conf.d. You will have a file called "zoneminder.conf" and there
+   /etc/zm/www. You will have a file called "zoneminder.conf" and there
    may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
    Verify the SSL REquirements meet your needs. Read README.https if necessary.

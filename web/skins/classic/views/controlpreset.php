@@ -18,29 +18,25 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Monitors' ) )
-{
-    $view = "error";
-    return;
+if ( !canEdit('Monitors') ) {
+  $view = 'error';
+  return;
 }
 
-$monitor = dbFetchOne( 'SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array( $_REQUEST['mid']) );
+$monitor = dbFetchOne('SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array( $_REQUEST['mid']) );
 
 $labels = array();
 foreach( dbFetchAll( 'SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array( $monitor['Id'] ) ) as $row ) {
-    $labels[$row['Preset']] = $row['Label'];
+  $labels[$row['Preset']] = $row['Label'];
 }
 
 $presets = array();
-for ( $i = 1; $i <= $monitor['NumPresets']; $i++ )
-{
-    $presets[$i] = translate('Preset')." ".$i;
-    if ( !empty($labels[$i]) )
-    {
-        $presets[$i] .= " (".validHtmlStr($labels[$i]).")";
-    }
+for ( $i = 1; $i <= $monitor['NumPresets']; $i++ ) {
+  $presets[$i] = translate('Preset').' '.$i;
+  if ( !empty($labels[$i]) ) {
+    $presets[$i] .= ' ('.validHtmlStr($labels[$i]).')';
+  }
 }
-
 
 $focusWindow = true;
 
@@ -58,10 +54,14 @@ xhtmlHeaders(__FILE__, translate('SetPreset') );
         <input type="hidden" name="action" value="control"/>
         <input type="hidden" name="control" value="presetSet"/>
         <input type="hidden" name="showControls" value="1"/>
-        <p><?php echo buildSelect( "preset", $presets, "updateLabel()" ) ?></p>
-        <p><label for="newLabel"><?php echo translate('NewLabel') ?></label><input type="text" name="newLabel" id="newLabel" value="" size="16"/></p>
+        <p><?php echo buildSelect('preset', $presets, 'updateLabel()' ) ?></p>
+        <p>
+          <label for="newLabel"><?php echo translate('NewLabel') ?></label>
+          <input type="text" name="newLabel" id="newLabel" value="" size="16"/>
+        </p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

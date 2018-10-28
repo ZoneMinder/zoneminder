@@ -19,18 +19,17 @@
 
 #include "zm_packetqueue.h"
 #include "zm_ffmpeg.h"
+#include <sys/time.h>
 
 #define VIDEO_QUEUESIZE 200
 #define AUDIO_QUEUESIZE 50
-
-using namespace std;
 
 zm_packetqueue::zm_packetqueue(){
 
 }
 
 zm_packetqueue::~zm_packetqueue() {
-
+  clearQueue();
 }
 
 bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
@@ -68,7 +67,7 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     return 0;
   }
 
-  list<ZMPacket *>::reverse_iterator it;
+  std::list<ZMPacket *>::reverse_iterator it;
   ZMPacket *packet = NULL;
 
   for ( it = pktQueue.rbegin(); it != pktQueue.rend() && frames_to_keep; ++it ) {
@@ -78,12 +77,31 @@ unsigned int zm_packetqueue::clearQueue( unsigned int frames_to_keep, int stream
     Debug(4, "Looking at packet with stream index (%d) with keyframe (%d), frames_to_keep is (%d)", av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
     
     // Want frames_to_keep video keyframes.  Otherwise, we may not have enough
-    if ( ( av_packet->stream_index == stream_id) && ( av_packet->flags & AV_PKT_FLAG_KEY ) ) {
+    if ( ( av_packet->stream_index == stream_id) ) {
+      //&& ( av_packet->flags & AV_PKT_FLAG_KEY ) ) {
       frames_to_keep --;
     }
   }
+
+    // Make sure we start on a keyframe
+  for ( ; it != pktQueue.rend(); ++it ) {
+    ZMPacket *zm_packet = *it;
+    AVPacket *av_packet = &(zm_packet->packet);
+       
+    Debug(5, "Looking for keyframe at packet with stream index (%d) with keyframe (%d), frames_to_keep is (%d)", av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
+    
+    // Want frames_to_keep video keyframes.  Otherwise, we may not have enough
+    if ( ( av_packet->stream_index == stream_id) && ( av_packet->flags & AV_PKT_FLAG_KEY ) ) {
+    Debug(4, "Found keyframe at packet with stream index (%d) with keyframe (%d), frames_to_keep is (%d)", av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
+      break;
+    }
+  }
   if ( frames_to_keep ) {
-    Debug(3, "Hit end of queue, still need (%d) video keyframes", frames_to_keep );
+    Debug(3, "Hit end of queue, still need (%d) video frames", frames_to_keep );
+  }
+  if ( it != pktQueue.rend() ) {
+    // We want to keep this packet, so advance to the next
+    ++it;
   }
   unsigned int delete_count = 0;
   while ( it != pktQueue.rend() ) {
@@ -121,7 +139,7 @@ void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVi
 
   // Step 1 - find keyframe < recording_started.
   // Step 2 - pop packets until we get to the packet in step 2
-  list<ZMPacket *>::reverse_iterator it;
+  std::list<ZMPacket *>::reverse_iterator it;
 
   Debug(3, "Looking for keyframe after start recording stream id (%d)", mVideoStreamId );
   for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
@@ -139,7 +157,7 @@ void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVi
     }
   }
   if ( it == pktQueue.rend() ) {
-    Debug(1, "Didn't find a keyframe packet keeping all" );
+    Debug(1, "Didn't find a keyframe before event starttime. keeping all" );
     return;
   }
 

@@ -19,13 +19,15 @@
 // 
 
 
-// Don't load in additional JS to these views
-$bad_views = array('monitor', 'log');
-
 function xhtmlHeaders( $file, $title ) {
   global $css;
   global $skin;
-  $skinCssFile = getSkinFile( 'css/'.$css.'/skin.css' );
+  global $view;
+
+  # This idea is that we always include the classic css files, 
+  # and then any different skin only needs to contain things that are different.
+  $baseCssPhpFile = getSkinFile( 'css/base/skin.css.php' );
+
   $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
 
   $skinJsFile = getSkinFile( 'js/skin.js' );
@@ -33,12 +35,22 @@ function xhtmlHeaders( $file, $title ) {
   $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
 
   $basename = basename( $file, '.php' );
-  $viewCssFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css' );
+
   $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
   $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
   $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
 
   extract( $GLOBALS, EXTR_OVERWRITE );
+  function output_link_if_exists( $files ) {
+    global $skin;
+    $html = array();
+    foreach ( $files as $file ) {
+      if ( getSkinFile( $file ) ) {
+        $html[] = '<link rel="stylesheet" href="'.cache_bust( 'skins/'.$skin.'/'.$file ).'" type="text/css"/>';
+      }
+    }
+    return implode("\n", $html);
+  }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -46,17 +58,44 @@ function xhtmlHeaders( $file, $title ) {
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
+<?php
+if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
+  echo "
+  <link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
+  <link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
+";
+} else {
+  echo '
   <link rel="icon" type="image/ico" href="graphics/favicon.ico"/>
   <link rel="shortcut icon" href="graphics/favicon.ico"/>
+';
+}
+?>
   <link rel="stylesheet" href="css/reset.css" type="text/css"/>
   <link rel="stylesheet" href="css/overlay.css" type="text/css"/>
   <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css"/>
-  <link rel="stylesheet" href="<?php echo $skinCssFile ?>" type="text/css" media="screen"/>
-<?php
-  if ( $viewCssFile ) {
+  
+<?php 
+echo output_link_if_exists( array(
+  'css/base/skin.css',
+  'css/'.$css.'/skin.css',
+  'css/base/views/'.$basename.'.css',
+  'css/'.$css.'/views/'.$basename.'.css',
+  '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
+  '/js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
+  '/css/jquery-ui-1.12.1/jquery-ui.theme.min.css',
+  '/css/'.$css.'/jquery-ui-theme.css',
+)
+);
 ?>
-  <link rel="stylesheet" href="<?php echo $viewCssFile ?>" type="text/css" media="screen"/>
+  <!--Chosen can't be cache-busted because it loads sprites by relative path-->
+<link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
+  if ($basename == 'watch') {
+    echo output_link_if_exists( array(
+      '/css/base/views/control.css',
+      '/css/'.$css.'/views/control.css'
+    ) );
   }
   if ( $viewCssPhpFile ) {
 ?>
@@ -70,13 +109,17 @@ function xhtmlHeaders( $file, $title ) {
 <?php
   }
 ?>
-  <script type="text/javascript" src="tools/mootools/mootools-core.js"></script>
-  <script type="text/javascript" src="tools/mootools/mootools-more.js"></script>
-  <script type="text/javascript" src="js/mootools.ext.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/jquery-ui.js"></script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
-  <script type="text/javascript">
+
+  <script src="tools/mootools/mootools-core.js"></script>
+  <script src="tools/mootools/mootools-more.js"></script>
+  <script src="js/mootools.ext.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
+
+  <script>
   //<![CDATA[
   <!--
   var $j = jQuery.noConflict();
@@ -85,23 +128,26 @@ function xhtmlHeaders( $file, $title ) {
   //-->
   //]]>
   </script>
-  <script type="text/javascript" src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
+  <script src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
 <?php
   if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) {
 ?>
   <script src='https://www.google.com/recaptcha/api.js'></script>
 <?php
-  } else if ( $title == 'Event' ) {
+  } else if ( $view == 'event' ) {
 ?>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
   <script src="skins/<?php echo $skin ?>/js/video.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
-  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
   }
+?>
+  <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
+<?php
   if ( $skinJsPhpFile ) {
 ?>
-  <script type="text/javascript">
+  <script>
   //<![CDATA[
   <!--
 <?php
@@ -114,7 +160,7 @@ function xhtmlHeaders( $file, $title ) {
   }
   if ( $viewJsPhpFile ) {
 ?>
-  <script type="text/javascript">
+  <script>
   //<![CDATA[
   <!--
 <?php
@@ -127,14 +173,18 @@ function xhtmlHeaders( $file, $title ) {
   }
 	if ( $cssJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo $cssJsFile ?>"></script>
+  <script src="<?php echo cache_bust($cssJsFile) ?>"></script>
+<?php
+} else {
+?>
+  <script src="skins/classic/js/base.js"></script>
 <?php } ?>
-  <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
-  <script type="text/javascript" src="js/logger.js"></script>
+  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
+  <script src="js/logger.js"></script>
 <?php
   if ( $viewJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo $viewJsFile ?>"></script>
+  <script type="text/javascript" src="<?php echo cache_bust($viewJsFile) ?>"></script>
 <?php
   }
 ?>
@@ -142,55 +192,35 @@ function xhtmlHeaders( $file, $title ) {
 <?php
 } // end function xhtmlHeaders( $file, $title )
 
-function getNavBarHTML() {
-
-  $group = NULL;
-  if ( ! empty($_COOKIE['zmGroup']) ) {
-	  if ( $group = dbFetchOne( 'select * from Groups where Id = ?', NULL, array($_COOKIE['zmGroup'])) )
-		  $groupIds = array_flip(explode( ',', $group['MonitorIds'] ));
-  }
-
-  $maxWidth = 0;
-  $maxHeight = 0;
-  # Used to determine if the Cycle button should be made available
-  $cycleCount = 0;
-  $monitors = dbFetchAll( "select * from Monitors order by Sequence asc" );
-  global $displayMonitors;
-  $displayMonitors = array();
-  for ( $i = 0; $i < count($monitors); $i++ ) {
-    if ( !visibleMonitor( $monitors[$i]['Id'] ) ) {
-      continue;
-    }
-    if ( $group && !empty($groupIds) && !array_key_exists( $monitors[$i]['Id'], $groupIds ) ) {
-      continue;
-    }
-    if ( $monitors[$i]['Function'] != 'None' ) {
-      $cycleCount++;
-      $scaleWidth = reScale( $monitors[$i]['Width'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-      $scaleHeight = reScale( $monitors[$i]['Height'], $monitors[$i]['DefaultScale'], ZM_WEB_DEFAULT_SCALE );
-      if ( $maxWidth < $scaleWidth ) $maxWidth = $scaleWidth;
-      if ( $maxHeight < $scaleHeight ) $maxHeight = $scaleHeight;
-    }
-    $displayMonitors[] = $monitors[$i];
-  }
-
-  $cycleWidth = $maxWidth;
-  $cycleHeight = $maxHeight;
+function getNavBarHTML($reload = null) {
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
-
-  ob_start();
-  global $CLANG;
-  global $VLANG;
-  global $CLANG;
-  global $VLANG;
   global $running;
-  if ( $running == null )
-    $running = daemonCheck();
-  $status = $running?translate('Running'):translate('Stopped');
   global $user;
-  global $bwArray;
+  global $bandwidth_options;
+  global $view;
+  global $filterQuery;
+  global $sortQuery;
+  global $limitQuery;
+
+  if (!$sortQuery) {
+    parseSort();
+  }
+  if (!$filterQuery) {
+    parseFilter( $_REQUEST['filter'] );
+    $filterQuery = $_REQUEST['filter']['query'];
+  }
+  if ($reload === null) {
+    ob_start();
+    if ( $running == null )
+      $running = daemonCheck();
+    $status = $running?translate('Running'):translate('Stopped');
 ?>
+<noscript>
+<div style="background-color:red;color:white;font-size:x-large;">
+<?php echo ZM_WEB_TITLE ?> requires Javascript. Please enable Javascript in your browser for this site.
+</div>
+</noscript>
 <div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">
 		<div class="navbar-header">
@@ -200,41 +230,70 @@ function getNavBarHTML() {
 				<span class="icon-bar"></span>
 				<span class="icon-bar"></span>
 			</button>
-			<a class="navbar-brand" href="http://www.zoneminder.com" target="ZoneMinder">ZoneMinder</a>
+      <div class="navbar-brand"><a href="<?php echo ZM_HOME_URL?>" target="<?php echo ZM_WEB_TITLE ?>"><?php echo ZM_HOME_CONTENT ?></a></div>
 		</div>
 
 		<div class="collapse navbar-collapse" id="main-header-nav">
+<?php if ( canView('Monitors') ) { ?>
 		<ul class="nav navbar-nav">
 			<li><a href="?view=console"><?php echo translate('Console') ?></a></li>
 <?php if ( canView( 'System' ) ) { ?>
 			<li><a href="?view=options"><?php echo translate('Options') ?></a></li>
-			<li><?php if ( logToDatabase() > Logger::NOLOG ) { ?> <?php echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' ) ?><?php } ?></li>
+			<li>
+<?php
+  if ( logToDatabase() > Logger::NOLOG ) { 
+    if ( ! ZM_RUN_AUDIT ) {
+    # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
+     dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+    }
+    echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
+  }
+} // end if canview(System)
+?></li>
+<?php
+if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
+			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
-<?php if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
-			<li><a href="/?view=devices">Devices</a></li>
-<?php } ?>
-			<li><?php echo makePopupLink( '?view=groups', 'zmGroups', 'groups', sprintf( $CLANG['MonitorCount'], count($displayMonitors), zmVlang( $VLANG['Monitor'], count($displayMonitors) ) ).($group?' ('.$group['Name'].')':''), canView( 'Groups' ) ); ?></li>
-			<li><a href="/?view=filter">Filters</a></li>
+<li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
+      <li><a href="?view=filter<?php echo $filterQuery.$sortQuery.$limitQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
-  $cycleGroup = isset($_COOKIE['zmGroup'])?$_COOKIE['zmGroup']:0;
-  if ( canView( 'Stream' ) && $cycleCount > 1 ) {
+  if ( canView( 'Stream' ) ) {
 ?>
-					<li><?php echo makePopupLink( '?view=cycle&amp;group='.$cycleGroup, 'zmCycle'.$cycleGroup, array( 'cycle', $cycleWidth, $cycleHeight ), translate('Cycle'), $running ) ?></li>
-					<li><?php echo makePopupLink( '?view=montage&amp;group='.$cycleGroup, 'zmMontage'.$cycleGroup, 'montage', translate('Montage'), $running ) ?></li>
+      <li><a href="?view=cycle"<?php echo $view=='cycle'?' class="selected"':''?>><?php echo translate('Cycle') ?></a></li>
+      <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
 <?php
    }
+   // if canview_reports
+?>
+<?php
+if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
+  $terms = $_REQUEST['filter']['Query']['terms'];
+  $count = 0;
+  foreach ($terms as $term) {
+    if ($term['attr'] == "StartDateTime") {
+      $count += 1;
+      if ($term['op'] == '>=') $minTime = $term['val'];
+      if ($term['op'] == '<=') $maxTime = $term['val'];
+    }
+  }
+  if ($count == 2) {
+    $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
+  }
+}
   if ( canView('Events') ) {
  ?>
-					<li><?php echo makePopupLink( '?view=montagereview&amp;group='.$cycleGroup, 'zmMontageReview'.$cycleGroup, 'montagereview', translate('MontageReview') ) ?></li>
+   <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
 <?php
   }
 ?>
+      <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
 		</ul>
+<?php } // end if canView('Monitors') ?>
 
 <div class="navbar-right">
-<?php if ( ZM_OPT_USE_AUTH ) { ?>
-	<p class="navbar-text"><?php echo translate('LoggedInAs') ?> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
+<?php if ( ZM_OPT_USE_AUTH and $user ) { ?>
+	<p class="navbar-text"><i class="material-icons">account_circle</i> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
 <?php } ?>
 
 <?php if ( canEdit( 'System' ) ) { ?>
@@ -246,18 +305,22 @@ function getNavBarHTML() {
 </div>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
-	<div class="container-fluid">
-  <div class="pull-left">
-    <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', $bwArray[$_COOKIE['zmBandwidth']], ($user && $user['MaxBandwidth'] != 'low' ) ) ?> <?php echo translate('BandwidthHead') ?>
-  </div>
-  <div class="pull-right">
-	  <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="'.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
-  <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>
-      <h3 id="development"><?php echo ZM_WEB_CONSOLE_BANNER ?></h3>
-  <?php } ?>
-  </div>
-  <ul class="list-inline">
-	  <li><?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+<?php
+}//end reload null.  Runs on full page load
+
+if ( (!ZM_OPT_USE_AUTH) or $user ) {
+if ($reload == 'reload') ob_start();
+?>
+	<div id="reload" class="container-fluid reduced-text">
+    <div id="Bandwidth" class="pull-left">
+      <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
+    </div>
+    <div id="Version" class="pull-right">
+      <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
+    </div>
+    <ul class="list-inline">
+      <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
+<i class="material-icons md-18">storage</i>
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
@@ -274,15 +337,49 @@ function getNavBarHTML() {
   if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
     array_push( $storage_areas, new Storage() );
   }
-  $func =  function($S){ return $S->Name() . ': ' . $S->disk_usage_percent().'%'; };
-  echo implode( ', ', array_map ( $func, $storage_areas ) );
+  $func = function($S){
+    $class = '';
+    if ( $S->disk_usage_percent() > 98 ) {
+      $class = "error";
+    } else if ( $S->disk_usage_percent() > 90 ) {
+      $class = "warning";
+    }
+    $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
+      ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
+
+    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
+  #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
+  if ( count($storage_areas) >= 4 ) 
+    $storage_areas = Storage::find_all( array('ServerId'=>null) );
+  if ( count($storage_areas) < 4 )
+    echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
   </ul>
-</div> <!-- End .footer -->
-
-</div> <!-- End .navbar .navbar-default -->
+    <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>
+        <h3 id="development"><?php echo ZM_WEB_CONSOLE_BANNER ?></h3>
+    <?php } ?>	
+<!-- End .footer/reload --></div>
+<?php
+if ($reload == 'reload') return( ob_get_clean() );
+} // end if (!ZM_OPT_USE_AUTH) or $user )
+?>
+</div><!-- End .navbar .navbar-default -->
 <?php
   return( ob_get_clean() );
 } // end function getNavBarHTML()
+
+function xhtmlFooter() {
+  global $view;
+  global $skin;
+  global $running;
+  if ( canEdit('System') ) {
+    include("skins/$skin/views/state.php");
+  }
+?>
+  </body>
+  <script type="text/javascript">$j('.chosen').chosen();</script>
+</html>
+<?php
+} // end xhtmlFooter
 ?>

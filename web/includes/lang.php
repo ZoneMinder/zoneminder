@@ -37,7 +37,7 @@ function loadLanguage( $prefix="" )
     $fallbackLangFile = $prefix.'lang/en_gb.php';
     $systemLangFile = $prefix.'lang/'.ZM_LANG_DEFAULT.'.php';
     if ( isset($user['Language']) )
-        $userLangFile = $prefix.$user['Language'].'.php';
+        $userLangFile = $prefix.'lang/'.$user['Language'].'.php';
 
     if ( isset($userLangFile) && file_exists( $userLangFile ) )
         return( $userLangFile );

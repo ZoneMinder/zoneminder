@@ -12,8 +12,8 @@ function configureExportButton( element ) {
   form.elements['exportButton'].disabled = (checkCount == 0 || radioCount == 0);
 }
 
-function startDownload( exportFile ) {
-  window.location.replace( exportFile );
+function startDownload(exportFile) {
+  window.location.replace(exportFile);
 }
 
 var exportTimer = null;
@@ -27,7 +27,17 @@ function exportProgress() {
 }
 
 function exportResponse( respObj, respText ) {
-  window.location.replace( thisUrl+'?view='+currentView+'&'+eidParm+'&exportFile='+respObj.exportFile+'&generated='+((respObj.result=='Ok')?1:0) );
+  console.log(respObj);
+  console.log(respText);
+
+  var form = $j('#contentForm')[0];
+  var eids = new Array();
+  for (var i = 0, len=form.elements.length; i < len; i++) {
+    if ( form.elements[i].name == 'eids[]' ) {
+      eids[eids.length] = 'eids[]='+form.elements[i].value;
+    }
+  }
+  window.location.replace( thisUrl+'?view='+currentView+'&'+eids.join('&')+'&exportFile='+respObj.exportFile+'&generated='+((respObj.result=='Ok')?1:0) );
 }
 
 function exportEvent( form ) {

@@ -19,8 +19,8 @@
 //
 
 if ( !canEdit( 'Monitors' ) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 
 $monitor = dbFetchMonitor( $_REQUEST['mid'] );

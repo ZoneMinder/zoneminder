@@ -19,8 +19,8 @@
 //
 
 if ( !canView( 'Events' ) ) {
-    $view = 'error';
-    return;
+  $view = 'error';
+  return;
 }
 require_once( 'includes/Frame.php' );
 $Event = new Event( $_REQUEST['eid'] );
@@ -61,10 +61,10 @@ xhtmlHeaders(__FILE__, translate('Frames')." - ".$Event->Id() );
           <tbody>
 <?php
 if ( count($frames) ) {
-    foreach ( $frames as $frame ) {
-        $Frame = new Frame( $frame );
+  foreach ( $frames as $frame ) {
+    $Frame = new Frame( $frame );
 
-        $class = strtolower($frame['Type']);
+    $class = strtolower($frame['Type']);
 ?>
             <tr class="<?php echo $class ?>">
               <td class="colId"><?php echo makePopupLink( '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'frame', $Event->Width(), $Event->Height() ), $frame['FrameId'] ) ?></td>
@@ -72,16 +72,16 @@ if ( count($frames) ) {
               <td class="colTimeStamp"><?php echo strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
               <td class="colTimeDelta"><?php echo number_format( $frame['Delta'], 2 ) ?></td>
 <?php
-        if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') ) {
+    if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') ) {
 ?>
               <td class="colScore"><?php echo makePopupLink( '?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></td>
 <?php
-        } else {
+    } else {
 ?> 
               <td class="colScore"><?php echo $frame['Score'] ?></td>
 <?php
-        }
-        if ( ZM_WEB_LIST_THUMBS ) {
+    }
+    if ( ZM_WEB_LIST_THUMBS ) {
 ?>
               <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'image', $Event->Width(), $Event->Height() ), '<img src="?view=image&amp;fid='.$Frame->Id().'&amp;'.
 (ZM_WEB_LIST_THUMB_WIDTH?'width='.ZM_WEB_LIST_THUMB_WIDTH.'&amp;':'').
@@ -89,11 +89,11 @@ if ( count($frames) ) {
 (ZM_WEB_LIST_THUMB_WIDTH?'width="'.ZM_WEB_LIST_THUMB_WIDTH.'" ':'').
 (ZM_WEB_LIST_THUMB_HEIGHT?'height="'.ZM_WEB_LIST_THUMB_HEIGHT.'" ':'').' alt="'.$frame['FrameId'].'"/>' ) ?></td>
 <?php
-        }
+    }
 ?>
             </tr>
 <?php
-    } // end foreach frame
+  } // end foreach frame
 } else {
 ?>
             <tr>

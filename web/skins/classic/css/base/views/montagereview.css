@@ -1,0 +1,58 @@
+#ScaleDiv,
+#SpeedDiv{
+  vertical-align: top;
+  display: inline-flex;
+  width: 25%;
+  padding: 4px;
+}
+#ScaleDiv label,
+#SpeedDiv label {
+  margin: 0;
+}
+#ButtonsDiv {
+  display: inline-flex;
+  flex-flow: row-wrap;
+}
+#ButtonsDiv button {
+display: inline-flex;
+min-width: 0;
+}
+#DateTimeDiv {
+  display: inline-flex;
+}
+
+#scaleslideroutput,
+#speedslideroutput {
+  min-width: 75px;
+  display: block;
+}
+
+#timelinediv {
+  margin: 2px auto;
+  position:relative; 
+  width:100%;
+}
+
+#timeline {
+  border:1px solid;
+}
+
+#monitors {
+  position:relative;
+  width:100%;
+  height:100%;
+}
+input[type=range]::-ms-tooltip {
+    display: none;
+}
+#timeline {
+    color: white;
+  font-size: 40px;
+}
+
+#downloadVideo {
+  margin-left: 5px;
+}
+#minTime, #maxTime {
+margin: 0 4px;
+}

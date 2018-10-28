@@ -1,0 +1,88 @@
+#
+# ZoneMinder Apache configuration file
+# With SSLRequire and HTTPS auto redirect
+# Modify this configuration to suit your requirements
+#
+
+# Auto Redirect HTTP requests to HTTPS
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^/?(zm)(.*) https://%{SERVER_NAME}/$1$2 [R,L]
+
+# Order matters. This alias must come first.
+Alias /zm/cache "@ZM_CACHEDIR@"
+<Directory "@ZM_CACHEDIR@">
+    SSLRequireSSL
+    Options -Indexes +MultiViews +FollowSymLinks
+    AllowOverride None
+    <IfModule mod_authz_core.c>
+       # Apache 2.4
+       Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        # Apache 2.2
+        Order deny,allow
+        Allow from all
+    </IfModule>
+</Directory>
+
+Alias /zm "@ZM_WEBDIR@"
+<Directory "@ZM_WEBDIR@">
+    # explicitly set index.php as the only directoryindex
+    DirectoryIndex disabled
+    DirectoryIndex index.php
+    SSLRequireSSL
+    Options -Indexes +MultiViews +FollowSymLinks
+    AllowOverride None
+    <IfModule mod_authz_core.c>
+       # Apache 2.4
+       Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        # Apache 2.2
+        Order deny,allow
+        Allow from all
+    </IfModule>
+</Directory>
+
+ScriptAlias /cgi-bin-zm "@ZM_CGIDIR@"
+<Directory "@ZM_CGIDIR@">
+    SSLRequireSSL
+    AllowOverride None
+    Options +ExecCGI +FollowSymLinks
+    <IfModule mod_authz_core.c>
+       # Apache 2.4
+       Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        # Apache 2.2
+        Order deny,allow
+        Allow from all
+    </IfModule>
+</Directory>
+
+# For better visibility, the following directives have been migrated from the
+# default .htaccess files included with the CakePHP project.
+# Parameters not set here are inherited from the parent directive above.
+<Directory "@ZM_WEBDIR@/api">
+   RewriteEngine on
+   RewriteRule ^$ app/webroot/ [L]
+   RewriteRule (.*) app/webroot/$1 [L]
+   RewriteBase /zm/api
+</Directory>
+
+<Directory "@ZM_WEBDIR@/api/app">
+   RewriteEngine on
+   RewriteRule ^$ webroot/ [L]
+   RewriteRule (.*) webroot/$1 [L]
+   RewriteBase /zm/api
+</Directory>
+
+<Directory "@ZM_WEBDIR@/api/app/webroot">
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+    RewriteBase /zm/api
+</Directory>
+

@@ -24,12 +24,12 @@ if ( $user && !empty($user['MaxBandwidth']) )
 {
     if ( $user['MaxBandwidth'] == "low" )
     {
-        unset( $bwArray['high'] );
-        unset( $bwArray['medium'] );
+        unset( $bandwidth_options['high'] );
+        unset( $bandwidth_options['medium'] );
     }
     elseif ( $user['MaxBandwidth'] == "medium" )
     {
-        unset( $bwArray['high'] );
+        unset( $bandwidth_options['high'] );
     }
 }
 
@@ -47,7 +47,7 @@ xhtmlHeaders(__FILE__, translate('Bandwidth') );
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="bandwidth"/>
         <p><?php echo translate('SetNewBandwidth') ?></p>
-        <p><?php echo buildSelect( "newBandwidth", $bwArray ) ?></p>
+        <p><?php echo buildSelect( "newBandwidth", $bandwidth_options ) ?></p>
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>

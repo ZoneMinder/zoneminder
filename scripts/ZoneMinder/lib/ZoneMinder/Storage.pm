@@ -30,6 +30,7 @@ use warnings;
 
 require ZoneMinder::Base;
 require ZoneMinder::Object;
+require ZoneMinder::Server;
 
 use parent qw(Exporter ZoneMinder::Object);
 
@@ -59,6 +60,10 @@ sub find {
     my @sql_filters;
     my @sql_values;
 
+    if ( exists $sql_filters{Id} ) {
+        push @sql_filters , ' Id=? ';
+        push @sql_values, $sql_filters{Id};
+    }
     if ( exists $sql_filters{Name} ) {
         push @sql_filters , ' Name = ? ';
         push @sql_values, $sql_filters{Name};
@@ -107,6 +112,23 @@ sub Name {
 	}
 	return $_[0]{Name};
 } # end sub Path
+
+sub DoDelete {
+  my $self = shift;
+  $$self{DoDelete} = shift if @_;
+  if ( ! defined $$self{DoDelete} ) {
+    $$self{DoDelete} = 1;
+  }
+  return $$self{DoDelete};
+}
+
+sub Server {
+  my $self = shift;
+  if ( ! $$self{Server} ) {
+    $$self{Server} = new ZoneMinder::Server( $$self{ServerId} );
+  }
+  return $$self{Server};
+}
 
 1;
 __END__

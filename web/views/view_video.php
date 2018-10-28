@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 // Calling sequence:   ... /zm/index.php?view=video&event_id=123
@@ -39,6 +39,10 @@ $Event = null;
 
 if ( ! empty($_REQUEST['eid'] ) ) {
   $Event = new Event( $_REQUEST['eid'] );
+  $path = $Event->Path().'/'.$Event->DefaultVideo();
+	Logger::Debug("Path: $path");
+} else if ( ! empty($_REQUEST['event_id'] ) ) {
+  $Event = new Event( $_REQUEST['event_id'] );
   $path = $Event->Path().'/'.$Event->DefaultVideo();
 	Logger::Debug("Path: $path");
 } else {

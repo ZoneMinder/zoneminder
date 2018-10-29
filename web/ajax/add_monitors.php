@@ -93,7 +93,7 @@ Info("Testing connection to " . $url_bits['host'].':'.$port);
   foreach ( $available_streams as &$stream ) {
     # check for existence in db.
     $stream['url'] = unparse_url( $stream, array('path'=>'/','query'=>'action=stream') );
-    $monitors = Monitor::find_all( array('Path'=>$stream['url']) );
+    $monitors = Monitor::find( array('Path'=>$stream['url']) );
     if ( count($monitors) ) {
       Info("Found monitors matching " . $stream['url'] );
       $stream['Monitor'] = $monitors[0];
@@ -135,7 +135,7 @@ if ( canEdit( 'Monitors' ) ) {
 
 if ( 0 ) {
         // Shortcut test
-        $monitors = Monitor::find_all( array( 'Path'=>$_REQUEST['url'] ) );
+        $monitors = Monitor::find( array('Path'=>$_REQUEST['url']) );
         if ( count( $monitors ) ) {
           Info("Monitor found for " . $_REQUEST['url']);
           $url_bits['url'] = $_REQUEST['url'];

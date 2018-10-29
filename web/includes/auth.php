@@ -19,7 +19,7 @@
 // 
 
 function userLogin($username, $password='', $passwordHashed=false) {
-  global $user, $cookies;
+  global $user;
 
   $sql = 'SELECT * FROM Users WHERE Enabled=1';
   $sql_values = NULL;
@@ -34,7 +34,12 @@ function userLogin($username, $password='', $passwordHashed=false) {
     $sql .= ' AND Username=?';
     $sql_values = array($username);
   }
-  session_start();
+  $close_session = 0;
+  if ( !is_session_started() ) {
+    Logger::Debug("Starting session in userLogin");
+    session_start();
+    $close_session = 1;
+  }
   $_SESSION['username'] = $username;
   if ( ZM_AUTH_RELAY == 'plain' ) {
     // Need to save this in session
@@ -54,7 +59,9 @@ function userLogin($username, $password='', $passwordHashed=false) {
     $_SESSION['loginFailed'] = true;
     unset($user);
   }
-  session_write_close();
+  if ( $close_session )
+    session_write_close();
+  return isset($user) ? $user: null;
 } # end function userLogin
 
 function userLogout() {
@@ -109,7 +116,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
     $time = time();
     $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
 
-    if ( $force or ( !isset($_SESSION['AuthHash']) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
+    if ( $force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
       $local_time = localtime();
       $authKey = '';
@@ -121,8 +128,12 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       #Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5($authKey);
       if ( !$force ) {
-        session_start();
-        $_SESSION['AuthHash'] = $auth;
+        $close_session = 0;
+        if ( !is_session_started() ) {
+          session_start();
+          $close_session = 1;
+        }
+        $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
         $_SESSION['AuthHashGeneratedAt'] = $time;
         session_write_close();
       } else {
@@ -132,7 +143,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       #} else {
       #Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
     } # end if AuthHash is not cached
-    return $_SESSION['AuthHash'];
+    return $_SESSION['AuthHash'.$_SESSION['remoteAddr']];
   } # end if using AUTH and AUTH_RELAY
   return '';
 }
@@ -153,6 +164,19 @@ function canEdit($area, $mid=false) {
   global $user;
 
   return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
+}
+
+function is_session_started() {
+  if ( php_sapi_name() !== 'cli' ) {
+    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
+      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
+    } else {
+      return session_id() === '' ? FALSE : TRUE;
+    }
+  } else {
+    Warning("php_sapi_name === 'cli'");
+  }
+  return FALSE;
 }
 
 ?>

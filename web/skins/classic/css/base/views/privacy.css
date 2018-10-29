@@ -1,0 +1,14 @@
+h6 {
+    text-align: left;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+p {
+    text-align: left;
+}
+
+ul {
+    text-align: left;
+    list-style-type: disc;
+}

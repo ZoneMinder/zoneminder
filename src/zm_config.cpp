@@ -123,9 +123,9 @@ void process_configfile( char* configFile) {
     if ( *line_ptr == '\0' || *line_ptr == '#' )
       continue;
 
-    // Remove trailing white space
+    // Remove trailing white space and trailing quotes
     char *temp_ptr = line_ptr+strlen(line_ptr)-1;
-    while ( *temp_ptr == ' ' || *temp_ptr == '\t' ) {
+    while ( *temp_ptr == ' ' || *temp_ptr == '\t' || *temp_ptr == '\'' || *temp_ptr == '\"') {
       *temp_ptr-- = '\0';
       temp_ptr--;
     }
@@ -147,8 +147,9 @@ void process_configfile( char* configFile) {
       temp_ptr--;
     } while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
 
-    // Remove leading white space from the value part
+    // Remove leading white space and leading quotes from the value part
     white_len = strspn( val_ptr, " \t" );
+    white_len += strspn( val_ptr, "\'\"" );
     val_ptr += white_len;
 
     if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 )

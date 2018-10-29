@@ -1,6 +1,6 @@
 You should only file an issue if you found a bug.  Feature and enhancement requests, general discussions and support questions should occur in one of the following areas:
 
-- The ZoneMinder IRC channel - irc.freenode.net #zoneminder
+- The [ZoneMinder-Chat Slack channel](https://zoneminder-chat.herokuapp.com/)
 - The [ZoneMinder Forum](https://forums.zoneminder.com/)
 
 **Do not post feature or enhancement requests, general discussions or support questions here.**

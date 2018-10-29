@@ -13,8 +13,15 @@ The API is built in CakePHP and lives under the ``/api`` directory.  It
 provides a RESTful service and supports CRUD (create, retrieve, update, delete)
 functions for Monitors, Events, Frames, Zones and Config.
 
-Security
-^^^^^^^^^
+Enabling API
+^^^^^^^^^^^^
+A default ZoneMinder installs with APIs enabled. You can explictly enable/disable the APIs
+via the Options->System menu by enabling/disabling ``OPT_USE_API``. Note that if you intend
+to use APIs with 3rd party apps, such as zmNinja or others that use APIs, you should also
+enable ``AUTH_HASH_LOGINS``.
+
+Login, Logout & API Security
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The APIs tie into ZoneMinder's existing security model. This means if you have
 OPT_AUTH enabled, you need to log into ZoneMinder using the same browser you plan to 
 use the APIs from. If you are developing an app that relies on the API, you need 
@@ -23,11 +30,32 @@ to do a POST login from the app into ZoneMinder before you can access the API.
 Then, you need to re-use the authentication information of the login (returned as cookie states)
 with subsequent APIs for the authentication information to flow through to the APIs.
 
-This means if you plan to use cuRL to experiment with these APIs, you first need to do
+This means if you plan to use cuRL to experiment with these APIs, you first need to login:
+
+**Login process for ZoneMinder v1.32.0 and above**
 
 ::
 
-	curl -d "username=XXXX&password=YYYY&action=login&view=console" -c cookies.txt  http://yourzmip/zm/index.php
+    curl -XPOST -d "user=XXXX&pass=YYYY" -c cookies.txt  http://yourzmip/zm/api/host/login.json
+
+Staring ZM 1.32.0, you also have a `logout` API that basically clears your session. It looks like this:
+
+::
+
+    curl -b cookies.txt  http://yourzmip/zm/api/host/logout.json
+
+
+**Login process for older versions of ZoneMinder**
+
+::
+
+    curl -d "username=XXXX&password=YYYY&action=login&view=console" -c cookies.txt  http://yourzmip/zm/index.php
+
+The equivalent logout process for older versions of ZoneMinder is:
+
+::
+
+    curl -XPOST -d "username=XXXX&password=YYYY&action=logout&view=console" -b cookies.txt  http://yourzmip/zm/index.php
 
 replacing *XXXX* and *YYYY* with your username and password, respectively.
 
@@ -36,25 +64,55 @@ and the command will silently  fail.
 
 
 What the "-c cookies.txt" does is store a cookie state reflecting that you have logged into ZM. You now need
-to apply that cookie state to all subsequent APIs. You do that by using a '-b cookies.txt' to subsequent APIs if you are 
+to apply that cookie state to all subsequent APIs. You do that by using a '-b cookies.txt' to subsequent APIs if you are
 using CuRL like so:
 
 ::
 
-	curl -b cookies.txt http://yourzmip/zm/api/monitors.json
+    curl -b cookies.txt http://yourzmip/zm/api/monitors.json
 
-This would return a list of monitors and pass on the authentication information to the ZM API layer. 
+This would return a list of monitors and pass on the authentication information to the ZM API layer.
 
-So remember, if you are using authentication, please add a ``-b cookies.txt``  to each of the commands below if you are using
-CuRL. If you are not using CuRL and writing your own app, you need to make sure you pass on cookies to subsequent requests
-in your app.
+A deeper dive into the login process
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As you might have seen above, there are two ways to login, one that uses the `login.json` API and the other that logs in using the ZM portal. If you are running ZoneMinder 1.32.0 and above, it is *strongly* recommended you use the `login.json` approach. The "old" approach will still work but is not as powerful as the API based login. Here are the reasons why:
+
+ * The "old" approach basically uses the same login webpage (`index.php`) that a user would log into when viewing the ZM console. This is not really using an API and more importantly, if you have additional components like reCAPTCHA enabled, this will not work. Using the API approach is much cleaner and will work irrespective of reCAPTCHA
+
+ * The new login API returns important information that you can use to stream videos as well, right after login. Consider for example, a typical response to the login API (`/login.json`):
+
+::
+
+    {
+        "credentials": "auth=f5b9cf48693fe8552503c8ABCD5",
+        "append_password": 0,
+        "version": "1.31.44",
+        "apiversion": "1.0"
+    } 
+
+In this example I have `OPT_AUTH` enabled in ZoneMinder and it returns my credential key. You can then use this key to stream images like so:
+
+::
+
+    <img src="https://server/zm/cgi-bin/nph-zms?monitor=1&auth=<authval>" />
+
+Where `authval` is the credentials returned to start streaming videos.
+
+The `append_password` field will contain 1 when it is necessary for you to append your ZM password. This is the case when you set `AUTH_RELAY` in ZM options to "plain", for example. In that case, the `credentials` field may contain something like `&user=admin&pass=` and you have to add your password to that string.
+
+
+.. NOTE:: It is recommended you invoke the `login` API once every 60 minutes to make sure the session stays alive. The same is true if you use the old login method too.
+
+
 
 Examples (please read security notice above)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You will see each URL ending in either ``.xml`` or ``.json``.  This is the
-format of the request, and it determines the format that any data returned to
-you will be in.  I like json, however you can use xml if you'd like.
+Please remember, if you are using authentication, please add a ``-b cookies.txt``  to each of the commands below if you are using
+CuRL. If you are not using CuRL and writing your own app, you need to make sure you pass on cookies to subsequent requests
+in your app.
+
 
 (In all examples, replace 'server' with IP or hostname & port where ZoneMinder is running)
 
@@ -90,6 +148,13 @@ This API changes monitor 1 to Modect and Enabled
 ::
 
   curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]=1"
+  
+Get Daemon Status of Monitor 1
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+  	curl http://server/zm/api/monitors/daemonStatus/id:1/daemon:zmc.json
 
 Add a monitor
 ^^^^^^^^^^^^^^

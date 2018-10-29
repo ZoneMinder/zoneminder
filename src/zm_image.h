@@ -160,16 +160,16 @@ public:
 	static void Initialise();
 	static void Deinitialise();
 
-	inline unsigned int Width() const { return( width ); }
-	inline unsigned int Height() const { return( height ); }
-	inline unsigned int Pixels() const { return( pixels ); }
-	inline unsigned int Colours() const { return( colours ); }
-	inline unsigned int SubpixelOrder() const { return( subpixelorder ); }
-	inline unsigned int Size() const { return( size ); }
+	inline unsigned int Width() const { return width; }
+	inline unsigned int Height() const { return height; }
+	inline unsigned int Pixels() const { return pixels; }
+	inline unsigned int Colours() const { return colours; }
+	inline unsigned int SubpixelOrder() const { return subpixelorder; }
+	inline unsigned int Size() const { return size; }
 	
 	/* Internal buffer should not be modified from functions outside of this class */
-	inline const uint8_t* Buffer() const { return( buffer ); }
-	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return( &buffer[colours*((y*width)+x)] ); }
+	inline const uint8_t* Buffer() const { return buffer; }
+	inline const uint8_t* Buffer( unsigned int x, unsigned int y= 0 ) const { return &buffer[colours*((y*width)+x)]; }
 	/* Request writeable buffer */
 	uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
 	
@@ -196,7 +196,7 @@ public:
 	}
 	inline Image &operator=( const unsigned char *new_buffer ) {
 		(*fptr_imgbufcpy)(buffer, new_buffer, size);
-		return( *this );
+		return *this;
 	}
 
 	bool ReadRaw( const char *filename );
@@ -274,6 +274,7 @@ void std_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, 
 void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+
 void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void neon32_armv7_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void neon32_armv7_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);

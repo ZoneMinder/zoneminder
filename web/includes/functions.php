@@ -41,7 +41,7 @@ function CORSHeaders() {
 # The following is left for future reference/use.
     $valid = false;
     $Servers = Server::find();
-    if ( sizeof($Servers) <= 1 ) {
+    if ( sizeof($Servers) < 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
       return;

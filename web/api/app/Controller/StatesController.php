@@ -59,8 +59,9 @@ public function add() {
 
   if ($this->request->is('post')) {
 
-    if ($this->Session->Read('systemPermission') != 'Edit')
-    {
+    global $user;
+    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }

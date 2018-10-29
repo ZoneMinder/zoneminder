@@ -546,9 +546,11 @@ class Event {
     }
     $filters = array();
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL();
-    foreach ( $results as $row ) {
-      $filters[] = new Event($row);
+    if ( $result ) {
+      $results = $result->fetchALL();
+      foreach ( $results as $row ) {
+        $filters[] = new Event($row);
+      }
     }
     return $filters;
   }

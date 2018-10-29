@@ -1909,23 +1909,24 @@ function logState() {
 
   # This is an expensive request, as it has to hit every row of the Logs Table
   $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
-  $counts = dbFetchAll( $sql );
-
-  foreach ( $counts as $count ) {
-    if ( $count['Level'] <= Logger::PANIC )
-      $count['Level'] = Logger::FATAL;
-    if ( !($levelCount = $levelCounts[$count['Level']]) ) {
-      Error( "Unexpected Log level ".$count['Level'] );
-      next;
-    }
-    if ( $levelCount[1] && $count['LevelCount'] >= $levelCount[1] ) {
-      $state = 'alarm';
-      break;
-    } elseif ( $levelCount[0] && $count['LevelCount'] >= $levelCount[0] ) {
-      $state = 'alert';
+  $counts = dbFetchAll($sql);
+  if ( $counts ) {
+    foreach ( $counts as $count ) {
+      if ( $count['Level'] <= Logger::PANIC )
+        $count['Level'] = Logger::FATAL;
+      if ( !($levelCount = $levelCounts[$count['Level']]) ) {
+        Error('Unexpected Log level '.$count['Level']);
+        next;
+      }
+      if ( $levelCount[1] && $count['LevelCount'] >= $levelCount[1] ) {
+        $state = 'alarm';
+        break;
+      } elseif ( $levelCount[0] && $count['LevelCount'] >= $levelCount[0] ) {
+        $state = 'alert';
+      }
     }
   }
-  return( $state );
+  return $state;
 }
 
 function isVector ( &$array ) {

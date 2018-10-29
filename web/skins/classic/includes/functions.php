@@ -345,7 +345,7 @@ if ($reload == 'reload') ob_start();
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
-  $percent_used = 100 * $connections / $max_connections;
+  $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
   echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
 ?>
 	  <li><?php echo translate('Storage') ?>:

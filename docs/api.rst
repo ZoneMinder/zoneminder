@@ -148,6 +148,13 @@ This API changes monitor 1 to Modect and Enabled
 ::
 
   curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]=1"
+  
+Get Daemon Status of Monitor 1
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+  	curl http://server/zm/api/monitors/daemonStatus/id:1/daemon:zmc.json
 
 Add a monitor
 ^^^^^^^^^^^^^^

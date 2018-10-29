@@ -576,7 +576,8 @@ sub uploadArchFile {
       $host .= ':'.$Config{ZM_UPLOAD_PORT} if $Config{ZM_UPLOAD_PORT};
       Info('Uploading to '.$host.' using SFTP');
       my %sftpOptions = (
-          host=>$Config{ZM_UPLOAD_HOST}, user=>$Config{ZM_UPLOAD_USER} 
+          host=>$Config{ZM_UPLOAD_HOST},
+          user=>$Config{ZM_UPLOAD_USER},
           ($Config{ZM_UPLOAD_PASS} ? (password=>$Config{ZM_UPLOAD_PASS}) : ()),
           ($Config{ZM_UPLOAD_PORT} ? (port=>$Config{ZM_UPLOAD_PORT}) : ()),
           ($Config{ZM_UPLOAD_TIMEOUT} ? (timeout=>$Config{ZM_UPLOAD_TIMEOUT}) : ()),

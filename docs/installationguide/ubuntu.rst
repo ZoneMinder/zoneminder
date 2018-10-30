@@ -138,9 +138,9 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
 ::
 
-        a2enconf zoneminder
         a2enmod cgi
         a2enmod rewrite
+        a2enconf zoneminder
 
 You may also want to enable to following modules to improve caching performance
 

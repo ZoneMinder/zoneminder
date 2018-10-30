@@ -49,7 +49,7 @@ guide you with a quick search.
 
         add-apt-repository ppa:iconnor/zoneminder-1.32
 
-    If you are on trusty, you may want to add both, as there are some packages for dependencies included in the old ppa.
+    If you are on Trusty or Xenial, you may want to add both, as there are some packages for dependencies included in the old ppa.
   
 
 Update repo and upgrade.

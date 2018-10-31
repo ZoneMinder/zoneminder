@@ -941,7 +941,7 @@ if ( $monitor->Type() == 'Local' ) {
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
               <input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/>
 <?php } else { ?>
-              Audio recording only available with FFMPEG
+              Audio recording only available with FFMPEG using H264 Passthrough
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
             </td></tr>

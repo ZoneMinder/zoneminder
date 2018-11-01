@@ -142,21 +142,7 @@ using CuRL like so:
 
     curl -b cookies.txt http://yourzmip/zm/api/monitors.json
 
-This would return a list of monitors and pass on the authentication information to the ZM API layer. It is worthwhile noting, that starting ZM 1.32.3 and beyond, this API also returns a ``Monitor_Status`` object per monitor. It looks like this:
-
-::
-
-        "Monitor_Status": {
-                "MonitorId": "2",
-                "Status": "Connected",
-                "CaptureFPS": "1.67",
-                "AnalysisFPS": "1.67",
-                "CaptureBandwidth": "52095"
-            }
-
-
-If you don't see this in your API, you are running an older version of ZM. This gives you a very convenient way to check monitor status without calling the ``daemonCheck`` API described later.
-
+This would return a list of monitors and pass on the authentication information to the ZM API layer.
 
 A deeper dive into the login process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -216,6 +202,22 @@ Return a list of all monitors
 ::
   
 	curl http://server/zm/api/monitors.json
+
+It is worthwhile to note that starting ZM 1.32.3 and beyond, this API also returns a ``Monitor_Status`` object per monitor. It looks like this:
+
+::
+
+        "Monitor_Status": {
+                "MonitorId": "2",
+                "Status": "Connected",
+                "CaptureFPS": "1.67",
+                "AnalysisFPS": "1.67",
+                "CaptureBandwidth": "52095"
+            }
+
+
+If you don't see this in your API, you are running an older version of ZM. This gives you a very convenient way to check monitor status without calling the ``daemonCheck`` API described later.
+
 
 Retrieve monitor 1
 ^^^^^^^^^^^^^^^^^^^
@@ -551,6 +553,7 @@ Returns:
 Similarly, 
 
 ::
+
         curl http://server/zm/api/server.json 
 
 Returns:

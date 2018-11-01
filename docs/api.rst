@@ -142,7 +142,21 @@ using CuRL like so:
 
     curl -b cookies.txt http://yourzmip/zm/api/monitors.json
 
-This would return a list of monitors and pass on the authentication information to the ZM API layer.
+This would return a list of monitors and pass on the authentication information to the ZM API layer. It is worthwhile noting, that starting ZM 1.32.3 and beyond, this API also returns a ``Monitor_Status`` object per monitor. It looks like this:
+
+::
+
+        "Monitor_Status": {
+                "MonitorId": "2",
+                "Status": "Connected",
+                "CaptureFPS": "1.67",
+                "AnalysisFPS": "1.67",
+                "CaptureBandwidth": "52095"
+            }
+
+
+If you don't see this in your API, you are running an older version of ZM. This gives you a very convenient way to check monitor status without calling the ``daemonCheck`` API described later.
+
 
 A deeper dive into the login process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -486,8 +500,89 @@ ZM APIs have various APIs that help you in determining host (aka ZM) daemon stat
 
 ::
 
-  curl -XGET  http://server/zm/api/host/daemonCheck.json # 1 = ZM running 0=not running
   curl -XGET  http://server/zm/api/host/getLoad.json # returns current load of ZM
-  curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is,   space taken to store various event related information,images etc. per monitor)
+
+  # Note that ZM 1.32.3 onwards has the same information in Monitors.json which is more reliable and works for multi-server too.
+  curl -XGET  http://server/zm/api/host/daemonCheck.json # 1 = ZM running 0=not running
+
+  # The API below uses "du" to calculate disk space. We no longer recommend you use it if you have many events. Use the Storage APIs instead, described later
+  curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is,space taken to store various event related information,images etc. per monitor)
+
+
+Storage and Server APIs
+^^^^^^^^^^^^^^^^^^^^^^^
+
+ZoneMinder introduced many new options that allowed you to configure multiserver/multistorage configurations. While a part of this was available in previous versions, a lot of rework was done as part of ZM 1.31 and 1.32. As part of that work, a lot of new and useful APIs were added. Some of these are part of ZM 1.32 and others will be part of ZM 1.32.3 (of course, if you build from master, you can access them right away, or wait till a stable release is out.
+
+
+
+This returns storage data for my single server install. If you are using multi-storage, you'll see many such "Storage" entries, one for each storage defined:
+
+::
+
+        curl http://server/zm/api/storage.json
+
+Returns:
+
+::
+
+        {
+            "storage": [
+                {
+                    "Storage": {
+                        "Id": "0",
+                        "Path": "\/var\/cache\/zoneminder\/events",
+                        "Name": "Default",
+                        "Type": "local",
+                        "Url": null,
+                        "DiskSpace": "364705447651",
+                        "Scheme": "Medium",
+                        "ServerId": null,
+                        "DoDelete": true
+                    }
+                 }
+               ]
+        }
+
+
+
+"DiskSpace" is the disk used in bytes. While this doesn't return disk space data as rich as  ``/host/getDiskPercent``, it is much more efficient.
+
+Similarly, 
+
+::
+        curl http://server/zm/api/server.json 
+
+Returns:
+
+::
+
+      {
+            "servers": [
+                {
+                    "Server": {
+                        "Id": "1",
+                        "Name": "server1",
+                        "Hostname": "sserver1.mydomain.com",
+                        "State_Id": null,
+                        "Status": "Running",
+                        "CpuLoad": "0.9",
+                        "TotalMem": "6186237952",
+                        "FreeMem": "156102656",
+                        "TotalSwap": "536866816",
+                        "FreeSwap": "525697024",
+                        "zmstats": false,
+                        "zmaudit": false,
+                        "zmtrigger": false
+                    }
+                }
+            ]
+        }
+
+This only works if you have a multiserver setup in place. If you don't it will return an empty array.
+
+
+
+
 
 

@@ -478,12 +478,12 @@ Create a Zone
   &Zone[MaxBlobs]=\
   &Zone[OverloadFrames]=0"
 
-PTZ Control APIs
-^^^^^^^^^^^^^^^^
+PTZ Control Meta-Data APIs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 PTZ controls associated with a monitor are stored in the Controls table and not the Monitors table inside ZM. What that means is when you get the details of a Monitor, you will only know if it is controllable (isControllable:true) and the control ID.
 To be able to retrieve PTZ information related to that Control ID, you need to use the controls API
 
-Note that these APIs only retrieve control data related to PTZ. They don't actually move the camera. 
+Note that these APIs only retrieve control data related to PTZ. They don't actually move the camera. See the "PTZ on live streams" section to move the camera.
 
 This returns all the control definitions:
 ::

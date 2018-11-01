@@ -585,7 +585,14 @@ Returns:
 This only works if you have a multiserver setup in place. If you don't it will return an empty array.
 
 
+Further Reading
+^^^^^^^^^^^^^^^^
+As described earlier, treat this document as an "introduction" to the important parts of the API and streaming interfaces.
+There are several details that haven't yet been documented. Till they are, here are some resources:
 
+* zmNinja, the open source mobile app for ZoneMinder is 100% based on ZM APIs. Explore its `source code <https://github.com/pliablepixels/zmNinja>`__ to see how things work.
+* Launch up ZM console in a browser, and do an "Inspect source". See how images are being rendered. Go to the networks tab of the inspect source console and look at network requests that are made when you pause/play/forward streams.
+* If you still can't find an answer, post your question in the `forums <https://forums.zoneminder.com/index.php>`__ (not the github repo).
 
 
 

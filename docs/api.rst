@@ -554,7 +554,7 @@ Similarly,
 
 ::
 
-        curl http://server/zm/api/server.json 
+        curl http://server/zm/api/servers.json 
 
 Returns:
 

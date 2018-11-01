@@ -566,7 +566,7 @@ Returns:
                     "Server": {
                         "Id": "1",
                         "Name": "server1",
-                        "Hostname": "sserver1.mydomain.com",
+                        "Hostname": "server1.mydomain.com",
                         "State_Id": null,
                         "Status": "Running",
                         "CpuLoad": "0.9",

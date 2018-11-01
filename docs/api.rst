@@ -19,7 +19,7 @@ It is possible to stream both live and recorded streams. This isn't strictly an 
 into the Cake PHP based API layer discussed here) and also why we've used the term "Interface" instead of an "API".
 
 Live Streams
-=============
+~~~~~~~~~~~~~~
 What you need to know is that if you want to display "live streams", ZoneMinder sends you streaming JPEG images (MJPEG)
 which can easily be rendered in a browser using an ``img src`` tag.
 
@@ -56,7 +56,7 @@ Like I said, at this stage, this is only meant to get you started. Explore the Z
 
 
 Pre-recorded (past event) streams
-=================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similar to live playback, if you have chosen to store events in JPEG mode, you can play it back using:
 
@@ -79,7 +79,7 @@ If instead, you have chosen to use the MP4 (Video) storage mode for events, you 
 * This will play back the video recording for event 294690
 
 What other parameters are supported?
-=====================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The best way to answer this question is to play with ZoneMinder console. Open a browser, play back live or recorded feed, and do an "Inspect Source" to see what parameters 
 are generated. Change and observe.
 
@@ -489,4 +489,5 @@ ZM APIs have various APIs that help you in determining host (aka ZM) daemon stat
   curl -XGET  http://server/zm/api/host/daemonCheck.json # 1 = ZM running 0=not running
   curl -XGET  http://server/zm/api/host/getLoad.json # returns current load of ZM
   curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is,   space taken to store various event related information,images etc. per monitor)
+
 

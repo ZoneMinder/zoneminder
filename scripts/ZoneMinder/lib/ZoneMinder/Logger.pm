@@ -705,7 +705,7 @@ sub Fatal( @ ) {
     $SIG{TERM}();
   }
   # I think if we don't disconnect we will leave sockets around in TIME_WAIT
-  zmDbDisconnect();
+  ZoneMinder::Database::zmDbDisconnect();
   exit(-1);
 }
 

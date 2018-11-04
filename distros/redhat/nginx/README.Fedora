@@ -15,7 +15,7 @@ What's New
 4. If you have installed ZoneMinder from the FedBerry repositories, this build
    of ZoneMinder has support for Raspberry Pi hardware acceleration when using
    ffmpeg. Unforunately, there is a problem with the same hardware acceleration
-   when using libvlc. Consequently, libvlc support in thie build of ZoneMinder
+   when using libvlc. Consequently, libvlc support in this build of ZoneMinder
    has been disabled until the problem is resolved. See the following bug
    report for details: https://trac.videolan.org/vlc/ticket/18594
   

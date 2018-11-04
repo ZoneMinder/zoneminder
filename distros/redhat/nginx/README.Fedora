@@ -1,39 +1,34 @@
 What's New
 ==========
 
-1. This is an *experimental* build of zoneminder which uses the 
-   nginx web server.
+1. See the ZoneMinder release notes for a list of new features:
+   https://github.com/ZoneMinder/zoneminder/releases
 
-2. The Apache ScriptAlias has been changed from "/cgi-bin/zm/zms" to 
-   "/cgi-bin-zm/zms". This has been to done to avoid this bug:
-   https://bugzilla.redhat.com/show_bug.cgi?id=973067
+2. The contents of the ZoneMinder Apache config file have changed. In
+   addition, this ZoneMinder package now requires you to manually symlink the
+   ZoneMinder Apache config file. See new install step 6 and upgrade step 3
+   below for details.
 
-   IMPORTANT: You must manually inspect the value for PATH_ZMS under Options
-   and verify it is set to "/cgi-bin-zm/nph-zms". Failure to do so will result
-   in a broken system. You have been warned.
+3. This is an experimental build of ZoneMinder supporting nginx, rather than
+   apache web server.
 
-3. Due to the active state of the ZoneMinder project, we now recommend granting
-   ALL permission to the ZoneMinder mysql account. This change must be done
-   manually before ZoneMinder will run. See the installation steps below.
-
-4. This package uses the HTTPS protocol by default to access the web portal.
-   Requests using HTTP will auto-redirect to HTTPS. See README.https for
-   more information.
-   
-5. This package ships with the new ZoneMinder API enabled.
-
+4. If you have installed ZoneMinder from the FedBerry repositories, this build
+   of ZoneMinder has support for Raspberry Pi hardware acceleration when using
+   ffmpeg. Unforunately, there is a problem with the same hardware acceleration
+   when using libvlc. Consequently, libvlc support in thie build of ZoneMinder
+   has been disabled until the problem is resolved. See the following bug
+   report for details: https://trac.videolan.org/vlc/ticket/18594
+  
 New installs
 ============
 
-1. This package supports either community-mysql-server or mariadb-server with
-   mariadb being the preferred choice. Unless you are already using MariaDB or
-   Mysql server, you need to ensure that the server is configured to start
-   during boot and properly secured by running:
+1. Unless you are already using MariaDB server, you need to ensure that the
+   server is configured to start during boot and properly secured by running:
 
-	sudo dnf install mariadb-server
-	sudo systemctl enable mariadb
-	sudo systemctl start  mariadb.service
-	mysql_secure_installation
+     sudo dnf install mariadb-server
+     sudo systemctl enable mariadb
+     sudo systemctl start  mariadb.service
+     mysql_secure_installation
 
 2. Assuming the database is local and using the password for the root account
    set during the previous step, you will need to create the ZoneMinder
@@ -48,13 +43,17 @@ New installs
    anything that suits your environment.
 
 3. If you have chosen to change the zoneminder database account credentials to
-   something other than zmuser/zmpass, you must now edit /etc/zm/zm.conf.
-   Change ZM_DB_USER and ZM_DB_PASS to the values you created in the previous
-   step.
+   something other than zmuser/zmpass, you must now create a config file under
+   /etc/zm/conf.d and set your credentials there. For example, create the file
+   /etc/zm/conf.d/zm-db-user.conf and add the following content to it:
+      
+     ZM_DB_USER = {username of the sql account you want to use}
+     ZM_DB_PASS = {password of the sql account you want to use}
 
-   This version of zoneminder no longer requires you to make a similar change 
-   to the credentials in /usr/share/zoneminder/www/api/app/Config/database.php 
-   This now happens dynamically. Do *not* make any changes to this file.
+   Once the file has been saved, set proper file & ownership permissions on it:
+  
+     sudo chown root:apache *.conf
+     sudo chmod 640 *.conf     
 
 4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
    timezone.  PHP will complain loudly if this is not set, or if it is set
@@ -80,54 +79,87 @@ New installs
    SELINUX line from "enforcing" to "disabled". This change will take
    effect after a reboot.
 
-6. This package comes preconfigured for HTTPS using the default self signed
-   certificate on your system. We recommend you keep this configuration.
+6. Configure the web server
 
-   If this does not meet your needs, then read README.https to
-   learn about alternatives. 
+   This package uses the HTTPS protocol by default to access the web portal,
+   using the default self signed certificate on your system. Requests using
+   HTTP will auto-redirect to HTTPS. 
 
-7. Edit /etc/sysconfig/fcgiwrap and set DAEMON_PROCS to the maximum number of
+   Inspect the web server configuration file and verify it meets your needs:
+
+     /etc/zm/www/zoneminder.conf
+
+   If you are running other web enabled services then you may need to edit
+   this file to suite. See README.https to learn about other alternatives. 
+
+   When in doubt, proceed with the default:
+
+     sudo ln -s /etc/zm/www/zoneminder.conf /etc/nginx/default.d/
+
+7. Fcgiwrap is required when using ZoneMinder with Nginx. At the time of this
+   writing, fcgiwrap is not yet available in the Fedora repos. Until it
+   becomes available, you may install it from my Copr repository:
+
+      https://copr.fedorainfracloud.org/coprs/kni/fcgiwrap/
+
+   Follow the intructions on that site to enable the repo. Once enabled, 
+   install fcgiwrap:
+
+      sudo dnf install fcgiwrap
+
+   After fcgiwrap is installed, it must be configured. Edit 
+   /etc/sysconfig/fcgiwrap and set DAEMON_PROCS to the maximum number of
    simulatneous streams the server should support. Generally, a good minimum 
    value for this equals the total number of cameras you expect to view at the
    same time.
 
 8. Now start the web server:
 
-	sudo systemctl enable nginx
-	sudo systemctl start nginx
+     sudo systemctl enable nginx
+     sudo systemctl start nginx
 
 9. Now start zoneminder:
 
-	sudo systemctl enable zoneminder
-	sudo systemctl start zoneminder
+     sudo systemctl enable zoneminder
+     sudo systemctl start zoneminder
 
-10.The Fedora repos have a ZoneMinder package available, but it does not
-   support ffmpeg or libvlc, which many modern IP cameras require. Most users
-   will want to prevent the ZoneMinder package in the Fedora repos from
-   overwriting the ZoneMinder package in zmrepo, during a future dnf update. To
-   prevent that from happening you must edit /etc/yum.repos.d/fedora.repo
-   and /etc/yum.repos.d/fedora-updates.repo. Add the line "exclude=zoneminder*"
-   without the quotes under the [fedora] and [fedora-updates] blocks,
-   respectively.
+10. Optionally configure the firewall
+
+   All Redhat distros ship with the firewall enabled. That means you will not
+   be able to access the ZoneMinder web console from a remote machine until
+   changes are made to the firewall.
+
+   What follows are a set of minimal commands to allow remote access to the
+   ZoneMinder web console and also allow ZoneMinder's ONVIF discovery to
+   work. The following commands do not put any restrictions on which remote
+   machine(s) have access to the listed ports or services.
+
+     sudo firewall-cmd --permanent --zone=public --add-service=http
+     sudo firewall-cmd --permanent --zone=public --add-service=https
+     sudo firewall-cmd --permanent --zone=public --add-port=3702/udp
+     sudo firewall-cmd --reload
+
+   Additional changes to the firewall may be required, depending on your
+   security requirements and how you use the system. It is up to you to verify
+   these commands are sufficient.
+
+11. Access the ZoneMinder web console
+
+   You may now access the ZoneMinder web console from your web browser using
+   an appropriate url. Here are some examples:
+
+     http://localhost/zm (works from the local machine only)
+     http://{machine name}/zm (works only if dns is configured for your network)
+     http://{ip address}/zm
 
 Upgrades
 ========
 
-1. Verify /etc/zm/zm.conf.
-
-   If zm.conf was manually edited before running the upgrade, the installation
-   may not overwrite it. In this case, it will create the file
-   /etc/zm/zm.conf.rpmnew.
-
-   For example, this will happen if you are using database account credentials
-   other than zmuser/zmpass.
-
-   Compare /etc/zm/zm.conf to /etc/zm/zm.conf.rpmnew. Verify that zm.conf
-   contains any new config settings that may be in zm.conf.rpmnew.
-
-   This version of zoneminder no longer requires you to make a similar change 
-   to the credentials in /usr/share/zoneminder/www/api/app/Config/database.php 
-   This now happens dynamically. Do *not* make any changes to this file.
+1. Conf.d folder support has been added to ZoneMinder. Any custom
+   changes previously made to zm.conf must now be made in one or more custom
+   config files, created under the conf.d folder. Do this now. See 
+   /etc/zm/conf.d/README for details. Once you recreate any custom config changes
+   under the conf.d folder, they will remain in place indefinitely.
 
 2. Verify permissions of the zmuser account.
 
@@ -139,11 +171,15 @@ Upgrades
 
    See step 2 of the Installation section to add missing permissions.
    
-3. Verify the ZoneMinder Apache configuration file in the folder 
-   /etc/httpd/conf.d. You will have a file called "zoneminder.conf" and there
+3. Verify the ZoneMinder Nginx configuration file in the folder 
+   /etc/zm/www. You will have a file called "zoneminder.conf" and there
    may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
    Verify the SSL REquirements meet your needs. Read README.https if necessary.
+
+   The contents of this file must be merged into your Nginx configuration.
+   See step 6 of the installation section if you have not already done this
+   during a previous upgrade.
 
 4. Upgrade the database before starting ZoneMinder.
 

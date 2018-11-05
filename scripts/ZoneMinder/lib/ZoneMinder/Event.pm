@@ -52,7 +52,7 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 require Date::Parse;
 
-use vars qw/ $table $primary_key %fields $serial @identified_by/;
+use vars qw/ $table $primary_key %fields $serial @identified_by %defaults/;
 $table = 'Events';
 @identified_by = ('Id');
 $serial = $primary_key = 'Id';
@@ -84,6 +84,16 @@ $serial = $primary_key = 'Id';
   Orientation
   DiskSpace
 );
+%defaults = (
+  Cause =>  q`'Unknown'`,
+  TotScore => '0',
+  Archived  =>  '0',
+  Videoed  =>  '0',
+  Uploaded  =>  '0',
+  Emailed   =>  '0',
+  Messaged  =>  '0',
+  Executed  =>  '0',
+);
 
 use POSIX;
 
@@ -99,56 +109,10 @@ sub Time {
   return $_[0]{Time};
 }
 
-sub Name {
-  if ( @_ > 1 ) {
-    $_[0]{Name} = $_[1];
-  }
-  return $_[0]{Name};
-} # end sub Name
-
-sub find {
-  shift if $_[0] eq 'ZoneMinder::Event';
-  my %sql_filters = @_;
-
-  my $sql = 'SELECT * FROM Events';
-  my @sql_filters;
-  my @sql_values;
-
-  if ( exists $sql_filters{Name} ) {
-    push @sql_filters , ' Name = ? ';
-    push @sql_values, $sql_filters{Name};
-  }
-  if ( exists $sql_filters{Id} ) {
-    push @sql_filters , ' Id = ? ';
-    push @sql_values, $sql_filters{Id};
-  }
-
-  $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
-  $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
-
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-  my $res = $sth->execute( @sql_values )
-    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-  my @results;
-
-  while( my $db_filter = $sth->fetchrow_hashref() ) {
-    my $filter = new ZoneMinder::Event( $$db_filter{Id}, $db_filter );
-    push @results, $filter;
-  } # end while
-  $sth->finish();
-  return @results;
-}
-
-sub find_one {
-  my @results = find(@_);
-  return $results[0] if @results;
-}
-
 sub getPath {
   return Path( @_ );
 }
+
 sub Path {
   my $event = shift;
 
@@ -168,6 +132,9 @@ sub Path {
 
 sub Scheme {
   my $self = shift;
+
+  $$self{Scheme} = shift if @_;
+
   if ( ! $$self{Scheme} ) {
     if ( $$self{RelativePath} ) {
       if ( $$self{RelativePath} =~ /^\d+\/\d{4}\-\d{2}\-\d{2}\/\d+$/ ) {
@@ -182,9 +149,8 @@ sub Scheme {
 
 sub RelativePath {
   my $event = shift;
-  if ( @_ ) {
-    $$event{RelativePath} = $_[0];
-  }
+
+  $$event{RelativePath} = shift if @_;
 
   if ( ! $$event{RelativePath} ) {
     if ( $$event{Scheme} eq 'Deep' ) {
@@ -203,7 +169,7 @@ sub RelativePath {
       if ( $event->Time() ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
-            strftime( '%Y-%m-%d', localtime($event->Time())),
+            strftime('%Y-%m-%d', localtime($event->Time())),
             $event->{Id},
             );
       } else {
@@ -223,9 +189,8 @@ sub RelativePath {
 
 sub LinkPath {
   my $event = shift;
-  if ( @_ ) {
-    $$event{LinkPath} = $_[0];
-  }
+
+  $$event{LinkPath} = shift if @_;
 
   if ( ! $$event{LinkPath} ) {
     if ( $$event{Scheme} eq 'Deep' ) {
@@ -351,19 +316,19 @@ sub GenerateVideo {
       .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
     ." '$video_file' > ffmpeg.log 2>&1"
       ;
-    Debug( $command."\n" );
+    Debug($command);
     my $output = qx($command);
 
     my $status = $? >> 8;
     if ( $status ) {
-      Error( "Unable to generate video, check $event_path/ffmpeg.log for details");
+      Error("Unable to generate video, check $event_path/ffmpeg.log for details");
       return;
     }
 
-    Info( "Finished $video_file\n" );
+    Info("Finished $video_file");
     return $event_path.'/'.$video_file;
   } else {
-    Info( "Video file $video_file already exists for event $self->{Id}\n" );
+    Info("Video file $video_file already exists for event $self->{Id}");
     return $event_path.'/'.$video_file;
   }
   return;
@@ -373,14 +338,14 @@ sub delete {
   my $event = $_[0];
   if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartTime} ) ) {
     my ( $caller, undef, $line ) = caller;
-    Warning("Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from $caller:$line\n");
+    Warning("Can't delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from $caller:$line");
     return;
   }
   if ( ! -e $event->Storage()->Path() ) {
     Warning("Not deleting event because storage path doesn't exist");
     return;
   }
-  Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}\n");
+  Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}");
   $ZoneMinder::Database::dbh->ping();
 
   $ZoneMinder::Database::dbh->begin_work();
@@ -696,6 +661,63 @@ Debug("Committing");
 Debug("Done deleting files, returning");
   return $error;
 } # end sub MoveTo
+
+# Assumes $path is absolute
+#
+sub recover_timestamps {
+  my ( $Event, $path ) = @_;
+  $path = $Event->Path() if ! $path;
+
+  if ( ! opendir(DIR, $path) ) {
+    Error("Can't open directory '$path': $!");
+    next;
+  }
+  my @contents = readdir(DIR);
+  Debug('Have ' . @contents . " files in $path");
+  closedir(DIR);
+
+  my @mp4_files = grep( /^\d+\-video\.mp4$/, @contents);
+  my @capture_jpgs = grep( /^\d+\-capture\.jpg$/, @contents);
+
+  if ( @capture_jpgs ) {
+    # can get start and end times from stat'ing first and last jpg
+    @capture_jpgs = sort { $a cmp $b } @capture_jpgs;
+    my $first_file = "$path/$capture_jpgs[0]";
+    ( $first_file ) = $first_file =~ /^(.*)$/;
+    my $first_timestamp = (stat($first_file))[9];
+
+    my $last_file = "$path/$capture_jpgs[@capture_jpgs-1]";
+    ( $last_file ) = $last_file =~ /^(.*)$/;
+    my $last_timestamp = (stat($last_file))[9];
+
+    my $duration = $last_timestamp - $first_timestamp;
+    $Event->Length($duration);
+    $Event->StartTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
+    $Event->EndTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $last_timestamp) );
+    Debug("From capture Jpegs have duration $duration = $last_timestamp - $first_timestamp : $$Event{StartTime} to $$Event{EndTime}");
+  } elsif ( @mp4_files ) {
+    my $file = "$path/$mp4_files[0]";
+    ( $file ) = $file =~ /^(.*)$/;
+
+    my $first_timestamp = (stat($file))[9];
+    my $output = `ffprobe $file 2>&1`;
+    my ($duration) = $output =~ /Duration: [:\.0-9]+/gm;
+    Debug("From mp4 have duration $duration, start: $first_timestamp");
+
+    my ( $h, $m, $s, $u );
+      if ( $duration =~ m/(\d+):(\d+):(\d+)\.(\d+)/ ) {
+        ( $h, $m, $s, $u ) = ($1, $2, $3, $4 );
+        Debug("( $h, $m, $s, $u ) from /^(\\d{2}):(\\d{2}):(\\d{2})\.(\\d+)/");
+      }
+    my $seconds = ($h*60*60)+($m*60)+$s;
+    $Event->Length($seconds.'.'.$u);
+    $Event->StartTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
+    $Event->EndTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp+$seconds) );
+  }
+  if ( @mp4_files ) {
+    $Event->DefaultVideo($mp4_files[0]);
+  }
+}
 
 1;
 __END__

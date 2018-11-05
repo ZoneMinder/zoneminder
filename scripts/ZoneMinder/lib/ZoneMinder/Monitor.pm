@@ -36,17 +36,6 @@ require ZoneMinder::Server;
 #our @ISA = qw(Exporter ZoneMinder::Base);
 use parent qw(ZoneMinder::Object);
 
-# ==========================================================================
-#
-# General Utility Functions
-#
-# ==========================================================================
-
-use ZoneMinder::Config qw(:all);
-use ZoneMinder::Logger qw(:all);
-use ZoneMinder::Database qw(:all);
-
-use POSIX;
 use vars qw/ $table $primary_key /;
 $table = 'Monitors';
 $primary_key = 'Id';

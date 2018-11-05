@@ -307,7 +307,7 @@ EOF
 
 %{_libexecdir}/zoneminder/
 %{_datadir}/zoneminder/
-%{_datadir}/applications/*%{name}.desktop
+%{_datadir}/applications/*zoneminder.desktop
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events

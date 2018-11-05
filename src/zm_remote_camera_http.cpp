@@ -76,26 +76,21 @@ RemoteCameraHttp::RemoteCameraHttp(
     method = REGEXP;
   else
     Fatal( "Unrecognised method '%s' when creating HTTP camera %d", p_method.c_str(), monitor_id );
-  if ( capture )
-  {
+  if ( capture ) {
     Initialise();
   }
 }
 
-RemoteCameraHttp::~RemoteCameraHttp()
-{
-  if ( capture )
-  {
+RemoteCameraHttp::~RemoteCameraHttp() {
+  if ( capture ) {
     Terminate();
   }
 }
 
-void RemoteCameraHttp::Initialise()
-{
+void RemoteCameraHttp::Initialise() {
   RemoteCamera::Initialise();
 
-  if ( request.empty() )
-  {
+  if ( request.empty() ) {
     request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
     request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
     request += stringtf( "Host: %s\r\n", host.c_str());
@@ -107,8 +102,7 @@ void RemoteCameraHttp::Initialise()
     Debug( 2, "Request: %s", request.c_str() );
   }
 
-  if ( !timeout.tv_sec )
-  {
+  if ( !timeout.tv_sec ) {
     timeout.tv_sec = config.http_timeout/1000; 
     timeout.tv_usec = (config.http_timeout%1000)*1000;
   }
@@ -123,7 +117,7 @@ void RemoteCameraHttp::Initialise()
 }
 
 int RemoteCameraHttp::Connect() {
-  struct addrinfo *p;
+  struct addrinfo *p = NULL;
 
   for ( p = hp; p != NULL; p = p->ai_next ) {
     sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
@@ -157,27 +151,24 @@ int RemoteCameraHttp::Connect() {
   return sd;
 } // end int RemoteCameraHttp::Connect()
 
-int RemoteCameraHttp::Disconnect()
-{
-  close( sd );
+int RemoteCameraHttp::Disconnect() {
+  close(sd);
   sd = -1;
-  Debug( 3, "Disconnected from host" );
-  return( 0 );
+  Debug(3, "Disconnected from host");
+  return 0;
 }
 
-int RemoteCameraHttp::SendRequest()
-{
-  Debug( 2, "Sending request: %s", request.c_str() );
-  if ( write( sd, request.data(), request.length() ) < 0 )
-  {
-    Error( "Can't write: %s", strerror(errno) );
+int RemoteCameraHttp::SendRequest() {
+  Debug(2, "Sending request: %s", request.c_str());
+  if ( write(sd, request.data(), request.length()) < 0 ) {
+    Error("Can't write: %s", strerror(errno));
     Disconnect();
-    return( -1 );
+    return -1;
   }
   format = UNDEF;
   state = HEADER;
-  Debug( 3, "Request sent" );
-  return( 0 );
+  Debug(3, "Request sent");
+  return 0;
 }
 
 /* Return codes are as follows:
@@ -278,12 +269,10 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected ) {
   return( total_bytes_read );
 }
 
-int RemoteCameraHttp::GetResponse()
-{
+int RemoteCameraHttp::GetResponse() {
   int buffer_len;
 #if HAVE_LIBPCRE
-  if ( method == REGEXP )
-  {
+  if ( method == REGEXP ) {
     const char *header = 0;
     int header_len = 0;
     const char *http_version = 0;

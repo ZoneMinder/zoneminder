@@ -291,11 +291,11 @@ void StreamBase::openComms() {
       if ( errno != EEXIST ) {
         Error("Can't mkdir %s: %s", staticConfig.PATH_SOCKS.c_str(), strerror(errno));
         return;
-    } else {
-Error("EEXISTsuccess making dir %s", staticConfig.PATH_SOCKS.c_str() );
+      } else {
+        Debug(3, "SOCKS dir %s already exists", staticConfig.PATH_SOCKS.c_str() );
       }
     } else {
-Error("success making dir %s", staticConfig.PATH_SOCKS.c_str() );
+      Debug(3, "Success making SOCKS dir %s", staticConfig.PATH_SOCKS.c_str() );
     }
 
     lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);

@@ -84,8 +84,6 @@ BuildRequires: libmp4v2-devel
 BuildRequires: x264-devel
 
 %{?with_nginx:Requires: nginx}
-# Enable only after fcgiwrap is in Fedora repos
-#%{?with_nginx:Requires: fcgiwrap}
 %{?with_nginx:Requires: php-fpm}
 %{!?with_nginx:Requires: httpd}
 %{!?with_nginx:Requires: php}
@@ -132,7 +130,7 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup -p 1 -a 1 -n ZoneMinder-%{version}
+%autosetup -p 1 -a 1
 %{__rm} -rf ./web/api/app/Plugin/Crud
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 

@@ -375,7 +375,7 @@ Debug("@Monitors");
           Debug("Found an event in db for $event");
           next;
         }
-        $Event = new openprint::Event();
+        $Event = new ZoneMinder::Event();
         $$Event{Id} = $event;
         $$Event{Path} = join('/', $Storage->Path(), $event );
         Info("Have event $$Event{Id} at $$Event{Path}");

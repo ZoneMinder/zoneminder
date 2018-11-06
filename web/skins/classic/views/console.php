@@ -217,7 +217,7 @@ ob_start();
         echo '<th class="colEvents">'. $j .'</th>';
       }
 ?>
-            <th class="colZones"><a href="<?php echo $_SERVER['PHP_SELF'] ?>?view=zones_overview"><?php echo translate('Zones') ?></a></th>
+            <th class="colZones"><?php echo translate('Zones') ?></th>
 <?php if ( canEdit('Monitors') ) { ?>
             <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markMids[]');setButtonStates(this);"/> <?php echo translate('All') ?></th>
 <?php } ?>
@@ -251,15 +251,19 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     }
   }
   if ( $monitor['Function'] == 'None' )
-    $fclass = 'errorText';
+    $function_class = 'errorText';
   else
-    $fclass = 'infoText';
-  if ( !$monitor['Enabled'] )
-    $fclass .= ' disabledText';
+    $function_class = 'infoText';
+
+
   $scale = max(reScale(SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
   $stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Function'] != 'None');
-  $dot_class=$source_class;
-  if ( $fclass != 'infoText' ) $dot_class=$fclass;
+  $dot_class = $source_class;
+  if ( $function_class != 'infoText' ) {
+    $dot_class = $function_class;
+  } else if ( !$monitor['Enabled'] ) {
+    $dot_class .= ' warnText';
+  }
 
   if ( ZM_WEB_ID_ON_CONSOLE ) {
 ?>
@@ -268,7 +272,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   }
 ?>
             <td class="colName">
-              <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>"  aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
+              <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>" aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
               <?php echo implode('<br/>',
                   array_map(function($group_id){
                     $Group = Group::find_one(array('Id'=>$group_id));
@@ -281,7 +285,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
             </div></td>
             <td class="colFunction">
-              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
+              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$function_class.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', <span class="disabledText">disabled</span>' : '' ) .'</span>', canEdit('Monitors') ) ?><br/>
               <?php echo translate('Status'.$monitor['Status']) ?><br/>
               <div class="small text-nowrap text-muted">
 <?php 

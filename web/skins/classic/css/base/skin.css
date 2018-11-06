@@ -341,16 +341,16 @@ fieldset > legend {
 /*
  * Behavior classes
  */
-.alarm, .errorText, .error {
-    color: #ff3f34;
-}
 
-.alert, .warnText, .warning {
-    color: #ffa801;
-}
 
 .ok, .infoText {
     color: #0fb9b1;
+}
+.alert, .warnText, .warning, .disabledText {
+    color: #ffa801;
+}
+.alarm, .errorText, .error {
+    color: #ff3f34;
 }
 
 .fakelink {

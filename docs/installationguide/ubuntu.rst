@@ -35,13 +35,22 @@ guide you with a quick search.
     `releases page <https://github.com/ZoneMinder/zoneminder/releases>`_ for
     the latest release.
     
-    Alternatively, the ZoneMinder project team maintains a ppa, which is updated immediately
+    Alternatively, the ZoneMinder project team maintains a `PPA <https://askubuntu.com/questions/4983/what-are-ppas-and-how-do-i-use-them>`_, which is updated immediately
     following a new release of ZoneMinder. To use this repository instead of the
     official Ubuntu repository, enter the following from the command line:
 
     ::
 
         add-apt-repository ppa:iconnor/zoneminder
+
+    Please note that as of 1.32.0 We are creating a new PPA for each major version, as a means to prevent automatic upgrades from one major version to another.  So instead of the above ppa line use the following:
+
+    ::
+
+        add-apt-repository ppa:iconnor/zoneminder-1.32
+
+    If you are on Trusty or Xenial, you may want to add both, as there are some packages for dependencies included in the old ppa.
+  
 
 Update repo and upgrade.
 
@@ -50,6 +59,7 @@ Update repo and upgrade.
 	apt-get update
         apt-get upgrade
         apt-get dist-upgrade
+
 
 **Step 3:** Configure MySQL
 
@@ -62,8 +72,10 @@ Update repo and upgrade.
     | /etc/alternatives/my.cnf -> /etc/mysql/mysql.cnf
     | /etc/mysql/mysql.cnf is a basic file
 
-Certain new defaults in MySQL 5.7 are currently causing some issues with ZoneMinder,
-the workaround is to modify the sql_mode setting of MySQL.
+Certain new defaults in MySQL 5.7 cause some issues with ZoneMinder < 1.32.0,
+the workaround is to modify the sql_mode setting of MySQL. Please note that these 
+changes are NOT required for ZoneMinder 1.32.0 and some people have reported them 
+causing problems in 1.32.0.
 
 To better manage the MySQL server it is recommended to copy the sample config file and
 replace the default my.cnf symbolic link.
@@ -104,10 +116,12 @@ Restart MySQL
 
 **Step 5:** Configure the ZoneMinder Database
 
+This step should not be required on ZoneMinder 1.32.0.
+
 ::
 
 	mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
-	mysql -uroot -p -e "grant select,insert,update,delete,create,alter,index,lock tables on zm.* to 'zmuser'@localhost identified by 'zmpass';"
+	mysql -uroot -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute on zm.* to 'zmuser'@localhost identified by 'zmpass';"
 
 
 **Step 6:** Set permissions
@@ -124,9 +138,16 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
 ::
 
-	a2enconf zoneminder
-	a2enmod cgi
+        a2enmod cgi
         a2enmod rewrite
+        a2enconf zoneminder
+
+You may also want to enable to following modules to improve caching performance
+
+::
+
+         a2enmod expires
+         a2enmod headers
 
 **Step 8:** Enable and start Zoneminder
 

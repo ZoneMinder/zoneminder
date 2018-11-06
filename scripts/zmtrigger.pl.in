@@ -88,13 +88,13 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 logInit();
 logSetSignal();
 
-Info( "Trigger daemon starting\n" );
+Info( "Trigger daemon starting" );
 
 my $dbh = zmDbConnect();
 
 my $base_rin = '';
 foreach my $connection ( @connections ) {
-  Info( "Opening connection '$connection->{name}'\n" );
+  Info( "Opening connection '$connection->{name}'" );
   $connection->open();
 }
 
@@ -109,7 +109,7 @@ foreach my $connection ( @in_select_connections ) {
 my %spawned_connections;
 my %monitors;
 my $monitor_reload_time = 0;
-my $needsReload = 0;
+my @needsReload;
 loadMonitors();
 
 $! = undef;
@@ -127,14 +127,14 @@ while( 1 ) {
 
   my $nfound = select( my $rout = $rin, undef, my $eout = $ein, $timeout );
   if ( $nfound > 0 ) {
-    Debug( "Got input from $nfound connections\n" );
+    Debug( "Got input from $nfound connections" );
     foreach my $connection ( @in_select_connections ) {
       if ( vec( $rout, $connection->fileno(), 1 ) ) {
         Debug( 'Got input from connection '
             .$connection->name()
             .' ('
             .$connection->fileno()
-            .")\n"
+            .")"
             );
         if ( $connection->spawns() ) {
           my $new_connection = $connection->accept();
@@ -143,7 +143,7 @@ while( 1 ) {
               .$new_connection->fileno()
               .'), '
               .int(keys(%spawned_connections))
-              ." spawned connections\n"
+              ." spawned connections"
               );
         } else {
           my $messages = $connection->getMessages();
@@ -162,7 +162,7 @@ while( 1 ) {
             .$connection->name()
             .' ('
             .$connection->fileno()
-            .")\n"
+            .")"
             );
         my $messages = $connection->getMessages();
         if ( defined($messages) ) {
@@ -175,7 +175,7 @@ while( 1 ) {
               .$connection->fileno()
               .'), '
               .int(keys(%spawned_connections))
-              ." spawned connections\n"
+              ." spawned connections"
               );
           $connection->close();
         }
@@ -206,7 +206,7 @@ while( 1 ) {
     if ( ! zmMemVerify($monitor) ) {
       # Our attempt to verify the memory handle failed. We should reload the monitors.
       # Don't need to zmMemInvalidate because the monitor reload will do it.
-      $needsReload = 1;
+      push @needsReload, $monitor;
       next;
     }
 
@@ -217,8 +217,8 @@ while( 1 ) {
         ]
         );
 
-#print( "$monitor->{Id}: S:$state, LE:$last_event\n" );
-#print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}\n" );
+#print( "$monitor->{Id}: S:$state, LE:$last_event" );
+#print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}" );
     if ( $state == STATE_ALARM || $state == STATE_ALERT ) {
 # In alarm state
       if ( !defined($monitor->{LastEvent})
@@ -261,14 +261,14 @@ while( 1 ) {
   }
 
   if ( my @action_times = keys(%actions) ) {
-    Debug( "Checking for timed actions\n" );
+    Debug( "Checking for timed actions" );
     my $now = time();
     foreach my $action_time ( sort( grep { $_ < $now } @action_times ) ) {
-      Info( "Found actions expiring at $action_time\n" );
+      Info( "Found actions expiring at $action_time" );
       foreach my $action ( @{$actions{$action_time}} ) {
         my $connection = $action->{connection};
         my $message = $action->{message};
-        Info( "Found action '$message'\n" );
+        Info( "Found action '$message'" );
         handleMessage( $connection, $message );
       }
       delete( $actions{$action_time} );
@@ -293,23 +293,41 @@ while( 1 ) {
     }
   }
 
-# If necessary reload monitors
-  if ( $needsReload || ((time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL )) {
+  # Reload all monitors from the dB every MONITOR_RELOAD_INTERVAL
+  if ( (time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL ) {
     foreach my $monitor ( values(%monitors) ) {
-# Free up any used memory handle
-      zmMemInvalidate( $monitor );
+      zmMemInvalidate( $monitor ); # Free up any used memory handle
     }
     loadMonitors();
-    $needsReload = 0;
+    @needsReload = (); # We just reloaded all monitors so no need reload a specific monitor
+  # If we have NOT just reloaded all monitors, reload a specific monitor if its shared mem changed
+  } elsif ( @needsReload ) { 
+    foreach my $monitor ( @needsReload ) {
+      loadMonitor($monitor);
+    }
+    @needsReload = ();
   }
+
   # zmDbConnect will ping and reconnect if neccessary
   $dbh = zmDbConnect();
 } # end while ( 1 )
-Info( "Trigger daemon exiting\n" );
+Info('Trigger daemon exiting');
 exit;
 
+sub loadMonitor {
+  my $monitor = shift;
+
+  Debug( "Loading monitor $monitor" );
+  zmMemInvalidate( $monitor );
+
+  if ( zmMemVerify( $monitor ) ) { # This will re-init shared memory
+    $monitor->{LastState} = zmGetMonitorState( $monitor );
+    $monitor->{LastEvent} = zmGetLastEvent( $monitor );
+  }
+}
+
 sub loadMonitors {
-  Debug( "Loading monitors\n" );
+  Debug('Loading monitors');
   $monitor_reload_time = time();
 
   my %new_monitors = ();
@@ -323,14 +341,10 @@ sub loadMonitors {
   my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
     or Fatal( "Can't execute: ".$sth->errstr() );
   while( my $monitor = $sth->fetchrow_hashref() ) {
-# Check shared memory ok
-    if ( !zmMemVerify( $monitor ) ) {
-      zmMemInvalidate( $monitor );
-      next;
+    if ( zmMemVerify( $monitor ) ) { # This will re-init shared memory
+        $monitor->{LastState} = zmGetMonitorState( $monitor );
+        $monitor->{LastEvent} = zmGetLastEvent( $monitor );
     }
-
-    $monitor->{LastState} = zmGetMonitorState( $monitor );
-    $monitor->{LastEvent} = zmGetLastEvent( $monitor );
     $new_monitors{$monitor->{Id}} = $monitor;
   } # end while fetchrow
   %monitors = %new_monitors;
@@ -348,25 +362,25 @@ sub handleMessage {
 
   my $monitor = $monitors{$id};
   if ( !$monitor ) {
-    Warning( "Can't find monitor '$id' for message '$message'\n" );
+    Warning("Can't find monitor '$id' for message '$message'");
     return;
   }
-  Debug( "Found monitor for id '$id'\n" );
+  Debug("Found monitor for id '$id'");
 
-  next if ( !zmMemVerify( $monitor ) );
+  next if ( !zmMemVerify($monitor) );
 
-  Debug( "Handling action '$action'\n" );
+  Debug("Handling action '$action'");
   if ( $action =~ /^(enable|disable)(?:\+(\d+))?$/ ) {
     my $state = $1;
     my $delay = $2;
     if ( $state eq 'enable' ) {
-      zmMonitorEnable( $monitor );
+      zmMonitorEnable($monitor);
     } else {
-      zmMonitorDisable( $monitor );
+      zmMonitorDisable($monitor);
     }
 # Force a reload
     $monitor_reload_time = 0;
-    Info( "Set monitor to $state\n" );
+    Info("Set monitor to $state");
     if ( $delay ) {
       my $action_text = $id.'|'.( ($state eq 'enable')
           ? 'disable'
@@ -381,9 +395,9 @@ sub handleMessage {
     my $delay = $2;
     my $trigger_data;
     if ( $trigger eq 'on' ) {
-      zmTriggerEventOn( $monitor, $score, $cause, $text );
-      zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
-      Info( "Trigger '$trigger' '$cause'\n" );
+      zmTriggerEventOn($monitor, $score, $cause, $text);
+      zmTriggerShowtext($monitor, $showtext) if defined($showtext);
+      Info("Trigger '$trigger' '$cause'");
       if ( $delay ) {
         my $action_text = $id.'|cancel';
         handleDelay($delay, $connection, $action_text);
@@ -393,29 +407,29 @@ sub handleMessage {
         my $action_text = $id.'|off|0|'.$cause.'|'.$text;
         handleDelay($delay, $connection, $action_text);
       } else {
-        my $last_event = zmGetLastEvent( $monitor );
-        zmTriggerEventOff( $monitor );
-        zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
-        Info( "Trigger '$trigger'\n" );
+        my $last_event = zmGetLastEvent($monitor);
+        zmTriggerEventOff($monitor);
+        zmTriggerShowtext($monitor, $showtext) if defined($showtext);
+        Info("Trigger '$trigger'");
 # Wait til it's finished
-        while( zmInAlarm( $monitor )
-            && ($last_event == zmGetLastEvent( $monitor ))
+        while( zmInAlarm($monitor)
+            && ($last_event == zmGetLastEvent($monitor))
             ) {
 # Tenth of a second
-          usleep( 100000 );
+          usleep(100000);
         }
-        zmTriggerEventCancel( $monitor );
+        zmTriggerEventCancel($monitor);
       }
     } # end if trigger is on or off
   } elsif( $action eq 'cancel' ) {
-    zmTriggerEventCancel( $monitor );
-    zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
-    Info( "Cancelled event\n" );
+    zmTriggerEventCancel($monitor);
+    zmTriggerShowtext($monitor, $showtext) if defined($showtext);
+    Info('Cancelled event');
   } elsif( $action eq 'show' ) {
     zmTriggerShowtext( $monitor, $showtext );
-    Info( "Updated show text to '$showtext'\n" );
+    Info("Updated show text to '$showtext'");
   } else {
-    Error( "Unrecognised action '$action' in message '$message'\n" );
+    Error("Unrecognised action '$action' in message '$message'");
   }
 } # end sub handleMessage
 
@@ -430,8 +444,9 @@ sub handleDelay {
     $action_array = $actions{$action_time} = [];
   }
   push( @$action_array, { connection=>$connection, message=>$action_text } );
-  Debug( "Added timed event '$action_text', expires at $action_time (+$delay secs)\n" );
+  Debug("Added timed event '$action_text', expires at $action_time (+$delay secs)");
 }
+
 1;
 __END__
 
@@ -506,13 +521,13 @@ B<id>|B<action>|B<score>|B<cause>|B<text>|B<showtext>
 
 =back
 
-Note that multiple messages can be sent at once and should be LF or CRLF
-delimited. This script is not necessarily intended to be a solution in
-itself, but is intended to be used as 'glue' to help ZoneMinder interface
-with other systems. It will almost certainly require some customisation
-before you can make any use of it. If all you want to do is generate alarms
-from external sources then using the ZoneMinder::SharedMem perl module is
-likely to be easier.
+  Note that multiple messages can be sent at once and should be LF or CRLF
+  delimited. This script is not necessarily intended to be a solution in
+  itself, but is intended to be used as 'glue' to help ZoneMinder interface
+  with other systems. It will almost certainly require some customisation
+  before you can make any use of it. If all you want to do is generate alarms
+  from external sources then using the ZoneMinder::SharedMem perl module is
+  likely to be easier.
 
 =head1 EXAMPLES
 

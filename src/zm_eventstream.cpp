@@ -109,7 +109,10 @@ bool EventStream::loadInitialEventData( uint64_t init_event_id, unsigned int ini
 bool EventStream::loadEventData(uint64_t event_id) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
-  snprintf(sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo, Scheme FROM Events WHERE Id = %" PRIu64, event_id);
+  snprintf(sql, sizeof(sql),
+      "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, "
+      "(SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, "
+      "DefaultVideo, Scheme, SaveJPEGs FROM Events WHERE Id = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -151,6 +154,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   } else {
     event_data->scheme = Storage::SHALLOW;
   }
+  event_data->SaveJPEGs = dbrow[7] == NULL ? 0 : atoi(dbrow[7]);
   mysql_free_result( result );
 
   Storage * storage = new Storage(event_data->storage_id);
@@ -241,6 +245,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   if ( event_data->video_file[0] ) {
     char filepath[PATH_MAX];
     snprintf(filepath, sizeof(filepath), "%s/%s", event_data->path, event_data->video_file);
+    Debug(1, "Loading video file from %s", filepath);
     ffmpeg_input = new FFmpeg_Input();
     if ( 0 > ffmpeg_input->Open( filepath ) ) {
       Warning("Unable to open ffmpeg_input %s/%s", event_data->path, event_data->video_file);
@@ -279,8 +284,8 @@ void EventStream::processCommand(const CmdMsg *msg) {
         }
 
         // If we are in single event mode and at the last frame, replay the current event
-        if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
-          Debug(1, "Was in single_mode, and last frame, so jumping to 1st frame");
+        if ( (mode == MODE_SINGLE || mode == MODE_NONE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
+          Debug(1, "Was in single or no replay mode, and at last frame, so jumping to 1st frame");
           curr_frame_id = 1;
         } else {
           Debug(1, "mode is %s, current frame is %d, frame count is %d", (mode == MODE_SINGLE ? "single" : "not single" ), curr_frame_id, event_data->frame_count );
@@ -501,7 +506,7 @@ void EventStream::checkEventLoaded() {
   }
 
   if ( reload_event ) {
-    if ( forceEventChange || mode != MODE_SINGLE ) {
+    if ( forceEventChange || ( mode != MODE_SINGLE && mode != MODE_NONE ) ) {
       //Info( "SQL:%s", sql );
       if ( mysql_query( &dbconn, sql ) ) {
         Error( "Can't run query: %s", mysql_error( &dbconn ) );
@@ -570,14 +575,17 @@ bool EventStream::sendFrame( int delta_us ) {
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.  If we are only saving analysis frames, then send that.
   // // This is also wrong, need to have this info stored in the event! FIXME
-  if ( monitor->GetOptSaveJPEGs() & 1 ) {
+  if ( event_data->SaveJPEGs & 1 ) {
     snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
-  } else if ( monitor->GetOptSaveJPEGs() & 2 ) {
+  } else if ( event_data->SaveJPEGs & 2 ) {
     snprintf( filepath, sizeof(filepath), staticConfig.analyse_file_format, event_data->path, curr_frame_id );
     if ( stat( filepath, &filestat ) < 0 ) {
       Debug(1, "analyze file %s not found will try to stream from other", filepath);
       snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
-      filepath[0] = 0;
+      if ( stat( filepath, &filestat ) < 0 ) {
+        Debug(1, "capture file %s not found either", filepath);
+        filepath[0] = 0;
+      }
     }
 
   } else if ( ! ffmpeg_input ) {
@@ -755,6 +763,12 @@ void EventStream::runStream() {
     // commands may set send_frame to true
     while(checkCommandQueue());
 
+    // Update modified time of the socket .lock file so that we can tell which ones are stale.
+    if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
+      touch(sock_path_lock);
+      last_comm_update = now;
+    }
+
     if ( step != 0 )
       curr_frame_id += step;
 
@@ -812,7 +826,7 @@ void EventStream::runStream() {
       step = 0;
       send_frame = true;
     } else if ( !send_frame ) {
-      // We are paused, and doing nothing
+      // We are paused, not stepping and doing nothing
       double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
       if ( actual_delta_time > MAX_STREAM_DELAY ) {
         // Send keepalive
@@ -828,9 +842,11 @@ void EventStream::runStream() {
     curr_stream_time = frame_data->timestamp;
 
     if ( !paused ) {
-      curr_frame_id += replay_rate>0?1:-1;
-      if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) )
+      curr_frame_id += (replay_rate>0) ? 1 : -1;
+      if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
+        Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
         curr_frame_id = 1;
+      }
       if ( send_frame && type != STREAM_MPEG ) {
         Debug( 3, "dUs: %d", delta_us );
         if ( delta_us )

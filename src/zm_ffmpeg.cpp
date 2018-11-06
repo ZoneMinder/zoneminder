@@ -28,11 +28,14 @@ void FFMPEGInit() {
   static bool bInit = false;
 
   if ( !bInit ) {
-    //if ( logDebugging() )
-      //av_log_set_level( AV_LOG_DEBUG ); 
-    //else
+    if ( logDebugging() )
+      av_log_set_level( AV_LOG_DEBUG ); 
+    else
       av_log_set_level( AV_LOG_QUIET ); 
+#if LIBAVCODEC_VERSION_CHECK(58, 18, 0, 64, 0)
+#else
     av_register_all();
+#endif
     avformat_network_init();
     bInit = true;
   }
@@ -225,8 +228,9 @@ static void zm_log_fps(double d, const char *postfix) {
     Debug(1, "%3.2f %s", d, postfix);
   } else if (v % (100 * 1000)) {
     Debug(1, "%1.0f %s", d, postfix);
-  } else
+  } else {
     Debug(1, "%1.0fk %s", d / 1000, postfix);
+  }
 }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -355,9 +359,8 @@ int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt) {
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
 #else
 unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {
-  dst->size = (src->size + FF_INPUT_BUFFER_PADDING_SIZE)/sizeof(uint64_t) + 1;
-  dst->data = reinterpret_cast<uint8_t*>(new uint64_t[dst->size]);
-  memcpy(dst->data, src->data, src->size );
+  av_new_packet(dst,src->size);
+  memcpy(dst->data, src->data, src->size);
   dst->flags = src->flags;
   return 0;
 }

@@ -42,7 +42,7 @@ extern "C" {
 
 class EventStream : public StreamBase {
   public:
-    typedef enum { MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
+    typedef enum { MODE_NONE, MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
 
   protected:
     struct FrameData {
@@ -65,6 +65,7 @@ class EventStream : public StreamBase {
       FrameData       *frames;
       char            video_file[PATH_MAX];
       Storage::Schemes  scheme;
+      int             SaveJPEGs;
     };
 
   protected:

@@ -1168,6 +1168,9 @@ class CakeResponse {
 		if ($modifiedSince) {
 			$timeMatches = strtotime($this->modified()) === strtotime($modifiedSince);
 		}
+		if (!isset($etagMatches, $timeMatches)) {
+		return false;
+		}
 		$checks = compact('etagMatches', 'timeMatches');
 		if (empty($checks)) {
 			return false;

@@ -64,7 +64,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   // Couldn't deduce format from filename, trying from format name
-  if (!oc) {
+  if ( !oc ) {
     avformat_alloc_output_context2(&oc, NULL, format, filename);
     if (!oc) {
       Error(
@@ -108,7 +108,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     Debug(2, "Success creating video out stream");
   }
 
-  if (!video_out_ctx->codec_tag) {
+  if ( !video_out_ctx->codec_tag ) {
     video_out_ctx->codec_tag =
         av_codec_get_tag(oc->oformat->codec_tag, video_in_ctx->codec_id);
     Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
@@ -127,9 +127,10 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #else
   video_out_stream =
-      avformat_new_stream(oc,(AVCodec *)(video_in_ctx->codec));
+      avformat_new_stream(oc, NULL);
+//(AVCodec *)(video_in_ctx->codec));
       //avformat_new_stream(oc,(const AVCodec *)(video_in_ctx->codec));
-  if (!video_out_stream) {
+  if ( !video_out_stream ) {
     Fatal("Unable to create video out stream\n");
   } else {
     Debug(2, "Success creating video out stream");
@@ -158,6 +159,9 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   // Just copy them from the in, no reason to choose different
   video_out_ctx->time_base = video_in_ctx->time_base;
+  if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+	  video_out_ctx->time_base = AV_TIME_BASE_Q;
+  }	
   video_out_stream->time_base = video_in_stream->time_base;
 
   Debug(3,
@@ -244,18 +248,18 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         // Copy params from instream to ctx
         ret = avcodec_parameters_to_context(audio_out_ctx,
                                             audio_in_stream->codecpar);
-        if (ret < 0) {
-          Error("Unable to copy audio params to ctx %s\n",
+        if ( ret < 0 ) {
+          Error("Unable to copy audio params to ctx %s",
                 av_make_error_string(ret).c_str());
         }
         ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
                                               audio_out_ctx);
-        if (ret < 0) {
-          Error("Unable to copy audio params to stream %s\n",
+        if ( ret < 0 ) {
+          Error("Unable to copy audio params to stream %s",
                 av_make_error_string(ret).c_str());
         }
 
-        if (!audio_out_ctx->codec_tag) {
+        if ( !audio_out_ctx->codec_tag ) {
           audio_out_ctx->codec_tag = av_codec_get_tag(
               oc->oformat->codec_tag, audio_in_ctx->codec_id);
           Debug(2, "Setting audio codec tag to %d",
@@ -267,12 +271,12 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         ret = avcodec_copy_context(audio_out_ctx, audio_in_ctx);
         audio_out_ctx->codec_tag = 0;
 #endif
-        if (ret < 0) {
-          Error("Unable to copy audio ctx %s\n",
+        if ( ret < 0 ) {
+          Error("Unable to copy audio ctx %s",
                 av_make_error_string(ret).c_str());
           audio_out_stream = NULL;
         } else {
-          if (audio_out_ctx->channels > 1) {
+          if ( audio_out_ctx->channels > 1 ) {
             Warning("Audio isn't mono, changing it.");
             audio_out_ctx->channels = 1;
           } else {
@@ -282,7 +286,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       }  // end if audio_out_stream
     }    // end if is AAC
 
-    if (audio_out_stream) {
+    if ( audio_out_stream ) {
       if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
     audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -339,6 +343,9 @@ bool VideoStore::open() {
   if (ret < 0) {
     Error("Error occurred when writing out file header to %s: %s\n",
           filename, av_make_error_string(ret).c_str());
+    /* free the stream */
+    avio_closep(&oc->pb);
+    //avformat_free_context(oc);
     return false;
   }
   return true;
@@ -412,7 +419,7 @@ VideoStore::~VideoStore() {
     if (int rc = av_write_trailer(oc)) {
       Error("Error writing trailer %s", av_err2str(rc));
     } else {
-      Debug(3, "Sucess Writing trailer");
+      Debug(3, "Success Writing trailer");
     }
 
     // When will we not be using a file ?
@@ -426,7 +433,7 @@ VideoStore::~VideoStore() {
     } else {
       Debug(3, "Not closing avio because we are not writing to a file.");
     }
-  }
+  } // end if ( oc->pb )
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the ctx
   // allocation/de-allocation constantly, or whether we can just re-use it.
@@ -515,8 +522,8 @@ bool VideoStore::setup_resampler() {
   // audio_out_ctx = audio_out_stream->codec;
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
 
-  if (!audio_out_ctx) {
-    Error("could not allocate codec ctx for AAC\n");
+  if ( !audio_out_ctx ) {
+    Error("could not allocate codec ctx for AAC");
     audio_out_stream = NULL;
     return false;
   }
@@ -539,6 +546,13 @@ bool VideoStore::setup_resampler() {
 #else
   audio_out_ctx->refcounted_frames = 1;
 #endif
+  if ( ! audio_out_ctx->channel_layout ) {
+    Debug(3, "Correcting channel layout from (%d) to (%d)",
+        audio_out_ctx->channel_layout,
+        av_get_default_channel_layout(audio_out_ctx->channels)
+        );
+      audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
+  }
 
   if (audio_out_codec->supported_samplerates) {
     int found = 0;

@@ -28,9 +28,13 @@ $connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
 
 if ( $archivetype ) {
   switch ($archivetype) {
-  case 'tar':
+  case 'tar.gz':
     $mimetype = 'gzip';
     $file_ext = 'tar.gz';
+    break;
+  case 'tar':
+    $mimetype = 'tar';
+    $file_ext = 'tar';
     break;
   case 'zip':
     $mimetype = 'zip';

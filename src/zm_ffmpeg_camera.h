@@ -79,7 +79,7 @@ class FfmpegCamera : public Camera {
 #endif // HAVE_LIBAVFORMAT
 
     VideoStore          *videoStore;
-    zm_packetqueue      packetqueue;
+    zm_packetqueue      *packetqueue;
     bool                have_video_keyframe;
 
 #if HAVE_LIBSWSCALE

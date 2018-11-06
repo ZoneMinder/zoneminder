@@ -195,11 +195,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
     $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar')
       .done(setNavBar)
       .fail(function( jqxhr, textStatus, error ) {
-        var err = textStatus + ", " + error;
-        console.log( "Request Failed: " + err );
-        // The idea is that this should only fail due to auth, so reload the page
-        // which should go to login if it can't stay logged in.
-        window.location.href = thisUrl+'?view='+currentView;
+        console.log( "Request Failed: " + textStatus + ", " + error);
+        if ( textStatus != "timeout" ) {
+          // The idea is that this should only fail due to auth, so reload the page
+          // which should go to login if it can't stay logged in.
+          window.location.reload( true );
+        }
       });
   }
 

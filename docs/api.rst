@@ -13,6 +13,13 @@ The API is built in CakePHP and lives under the ``/api`` directory.  It
 provides a RESTful service and supports CRUD (create, retrieve, update, delete)
 functions for Monitors, Events, Frames, Zones and Config.
 
+Enabling API
+^^^^^^^^^^^^
+A default ZoneMinder installs with APIs enabled. You can explictly enable/disable the APIs
+via the Options->System menu by enabling/disabling ``OPT_USE_API``. Note that if you intend
+to use APIs with 3rd party apps, such as zmNinja or others that use APIs, you should also
+enable ``AUTH_HASH_LOGINS``.
+
 Login, Logout & API Security
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The APIs tie into ZoneMinder's existing security model. This means if you have
@@ -141,6 +148,13 @@ This API changes monitor 1 to Modect and Enabled
 ::
 
   curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]=1"
+  
+Get Daemon Status of Monitor 1
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+  	curl http://server/zm/api/monitors/daemonStatus/id:1/daemon:zmc.json
 
 Add a monitor
 ^^^^^^^^^^^^^^

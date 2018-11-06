@@ -124,6 +124,7 @@ echo output_link_if_exists( array(
     jQuery("#flip").click(function(){
       jQuery("#panel").slideToggle("slow");
       jQuery("#flip").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+      Cookie.write( 'zmHeaderFlip', jQuery('#flip').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
     });
   });
   </script>
@@ -208,6 +209,9 @@ echo output_link_if_exists( array(
 } // end function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML($reload = null) {
+  # Provide a facility to turn off the headers if you put headers=0 into the url
+  if ( isset($_REQUEST['navbar']) and $_REQUEST['navbar']=='0' )
+    return '';
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
   global $running;
@@ -303,7 +307,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   }
 ?>
       <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
-      <li><a href="#"><span id="flip" class="glyphicon glyphicon-menu-up pull-right"></span></a></li>
+      <li><a href="#"><span id="flip" class="glyphicon glyphicon-menu-<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?> pull-right"></span></a></li>
 		</ul>
 <?php } // end if canView('Monitors') ?>
 
@@ -321,7 +325,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 </div>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
-    <div id="panel">
+  <div id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
 }//end reload null.  Runs on full page load
 
@@ -341,7 +345,7 @@ if ($reload == 'reload') ob_start();
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
-  $percent_used = 100 * $connections / $max_connections;
+  $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
   echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
 ?>
 	  <li><?php echo translate('Storage') ?>:
@@ -378,13 +382,13 @@ if ($reload == 'reload') ob_start();
     <?php } ?>	
 <!-- End .footer/reload --></div>
 <?php
-if ($reload == 'reload') return( ob_get_clean() );
+if ($reload == 'reload') return ob_get_clean();
 } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
   </div>
 </div><!-- End .navbar .navbar-default -->
 <?php
-  return( ob_get_clean() );
+  return ob_get_clean();
 } // end function getNavBarHTML()
 
 function xhtmlFooter() {

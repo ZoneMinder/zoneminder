@@ -111,7 +111,7 @@ $eventsSql = 'SELECT
 //    where not isnull(E.Frames) and not isnull(StartTime) ";
 
 // Note that the delta value seems more accurate than the time stamp for some reason.
-$frameSql = '
+$framesSql = '
     SELECT Id, FrameId, EventId, TimeStamp, UNIX_TIMESTAMP(TimeStamp) AS TimeStampSecs, Score, Delta
     FROM Frames 
     WHERE EventId IN (SELECT E.Id FROM Events AS E WHERE 1>0
@@ -119,15 +119,27 @@ $frameSql = '
 
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
- $monitor_ids_sql = '';
+$monitor_ids_sql = '';
 if ( ! empty($user['MonitorIds']) ) {
   $eventsSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
-  $frameSql  .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
+  $framesSql  .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 if ( count($selected_monitor_ids) ) {
   $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
-  $frameSql  .= ' AND E.MonitorId '.$monitor_ids_sql;
+  $framesSql .= ' AND E.MonitorId '.$monitor_ids_sql;
+}
+if ( isset($_REQUEST['archive_status']) ) {
+  $_SESSION['archive_status'] = $_REQUEST['archive_status'];
+}
+if ( isset($_SESSION['archive_status']) ) {
+  if ( $_SESSION['archive_status'] == 'Archived' ) {
+    $eventsSql .= ' AND E.Archived=1';
+    $framesSql .= ' AND E.Archived=1';
+  } else if ( $_SESSION['archive_status'] == 'Unarchived' ) {
+    $eventsSql .= ' AND E.Archived=0';
+    $framesSql .= ' AND E.Archived=0';
+  }
 }
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
@@ -195,24 +207,23 @@ $minTimeSecs = $maxTimeSecs = 0;
 if ( isset($minTime) && isset($maxTime) ) {
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
-  Logger::Debug("Min/max time secs: $minTimeSecs $maxTimeSecs");
   $eventsSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
-  $frameSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
-  $frameSql .= ") AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
+  $framesSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
+  $framesSql .= ") AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
 } else {
-  $frameSql .= ')';
+  $framesSql .= ')';
 }
-#$frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
-#$frameSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
+#$framesSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
+#$framesSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
 $eventsSql .= ' ORDER BY E.Id ASC';
 // DESC is intentional. We process them in reverse order so that we can point each frame to the next one in time.
-$frameSql .= ' ORDER BY Id DESC';
+$framesSql .= ' ORDER BY Id DESC';
 
 $monitors = array();
 foreach( $displayMonitors as $row ) {
   if ( $row['Function'] == 'None' || $row['Type'] == 'WebSite' )
     continue;
-  $Monitor = new Monitor( $row );
+  $Monitor = new Monitor($row);
   $monitors[] = $Monitor;
 }
 
@@ -225,7 +236,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
   <?php echo getNavBarHTML() ?>
   <form id="montagereview_form" action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
     <input type="hidden" name="view" value="montagereview"/>
-    <div id="header">&nbsp&nbsp
+    <div id="header">&nbsp;&nbsp;
     <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
     <div id="flipMontageHeader">
 <?php echo $filter_bar ?>
@@ -261,6 +272,23 @@ if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
 }
 ?>
       </div>
+<?php if ( !$liveMode ) { ?>
+      <div id="eventfilterdiv" class="input-group">
+      <label>Archive Status 
+<?php echo htmlSelect(
+  'archive_status',
+  array(
+    '' => translate('All'),
+    'Archived' => translate('Archived'),
+    'Unarchived' => translate('UnArchived'),
+  ),
+  ( isset($_SESSION['archive_status']) ? $_SESSION['archive_status'] : ''),
+  array('onchange'=>'this.form.submit();')
+);
+?>
+        </label>
+      </div>
+<?php } // end if !live ?>
       <div id="timelinediv">
         <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
         <span id="scrubleft"></span>

@@ -140,7 +140,7 @@ void RemoteCameraHttp::Initialise() {
 } // end void RemoteCameraHttp::Initialise()
 
 int RemoteCameraHttp::Connect() {
-  struct addrinfo *p;
+  struct addrinfo *p = NULL;
 
   for ( p = hp; p != NULL; p = p->ai_next ) {
     sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );

@@ -109,7 +109,10 @@ bool EventStream::loadInitialEventData( uint64_t init_event_id, unsigned int ini
 bool EventStream::loadEventData(uint64_t event_id) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
-  snprintf(sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo, Scheme FROM Events WHERE Id = %" PRIu64, event_id);
+  snprintf(sql, sizeof(sql),
+      "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, "
+      "(SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, "
+      "DefaultVideo, Scheme, SaveJPEGs FROM Events WHERE Id = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -151,6 +154,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   } else {
     event_data->scheme = Storage::SHALLOW;
   }
+  event_data->SaveJPEGs = dbrow[7] == NULL ? 0 : atoi(dbrow[7]);
   mysql_free_result( result );
 
   Storage * storage = new Storage(event_data->storage_id);
@@ -241,6 +245,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   if ( event_data->video_file[0] ) {
     char filepath[PATH_MAX];
     snprintf(filepath, sizeof(filepath), "%s/%s", event_data->path, event_data->video_file);
+    Debug(1, "Loading video file from %s", filepath);
     ffmpeg_input = new FFmpeg_Input();
     if ( 0 > ffmpeg_input->Open( filepath ) ) {
       Warning("Unable to open ffmpeg_input %s/%s", event_data->path, event_data->video_file);
@@ -570,14 +575,17 @@ bool EventStream::sendFrame( int delta_us ) {
 
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.  If we are only saving analysis frames, then send that.
   // // This is also wrong, need to have this info stored in the event! FIXME
-  if ( monitor->GetOptSaveJPEGs() & 1 ) {
+  if ( event_data->SaveJPEGs & 1 ) {
     snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
-  } else if ( monitor->GetOptSaveJPEGs() & 2 ) {
+  } else if ( event_data->SaveJPEGs & 2 ) {
     snprintf( filepath, sizeof(filepath), staticConfig.analyse_file_format, event_data->path, curr_frame_id );
     if ( stat( filepath, &filestat ) < 0 ) {
       Debug(1, "analyze file %s not found will try to stream from other", filepath);
       snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
-      filepath[0] = 0;
+      if ( stat( filepath, &filestat ) < 0 ) {
+        Debug(1, "capture file %s not found either", filepath);
+        filepath[0] = 0;
+      }
     }
 
   } else if ( ! ffmpeg_input ) {

@@ -25,7 +25,6 @@ use POSIX;
 use File::Find;
 use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
-use Date::Format;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 use constant ZM_RECOVER_PID => '@ZM_RUNDIR@/zmrecover.pid';
@@ -231,7 +230,6 @@ Debug("@Monitors");
                 $Event->Width( $Monitor->Width() );
                 $Event->Height( $Monitor->Height() );
                 $Event->Orientation( $Monitor->Orientation() );
-
                 $Event->recover_timestamps();
 
                 $Event->save({}, 1);
@@ -343,18 +341,18 @@ Debug("@Monitors");
           $$Event{Id} = $event_id;
           $$Event{Path} = join('/', $Storage->Path(), $event_dir );
           Debug("Have event $$Event{Id} at $$Event{Path}");
-          $$Event{Scheme} = 'Medium';
-          $$Event{RelativePath} = $event_dir;
-          $$Event{Name} = "Event $event_id recovered";
-          $Event->MonitorId( $monitor_dir );
-          $Event->Width( $Monitor->Width() );
-          $Event->Height( $Monitor->Height() );
-          $Event->Orientation( $Monitor->Orientation() );
-          $Event->StorageId( $Storage->Id() );
-          $Event->recover_timestamps();
           if ( confirm() ) {
+            $$Event{Scheme} = 'Medium';
+            $$Event{RelativePath} = $event_dir;
+            $$Event{Name} = "Event $event_id recovered";
+            $Event->MonitorId( $monitor_dir );
+            $Event->Width( $Monitor->Width() );
+            $Event->Height( $Monitor->Height() );
+            $Event->Orientation( $Monitor->Orientation() );
+            $Event->StorageId( $Storage->Id() );
+            $Event->recover_timestamps();
             $Event->save({}, 1);
-                Debug("Event resurrected as " . $Event->to_string() );
+            Debug("Event resurrected as " . $Event->to_string() );
           }
         } # end foreach event
       } # end search for Medium
@@ -380,17 +378,19 @@ Debug("@Monitors");
         $$Event{Id} = $event;
         $$Event{Path} = join('/', $Storage->Path(), $event );
         Debug("Have event $$Event{Id} at $$Event{Path}");
-        $$Event{Scheme} = 'Shallow';
-        $$Event{Name} = "Event $event recovered";
-        #$$Event{Path} = $event_path;
-        $Event->MonitorId( $monitor_dir );
-        $Event->Width( $Monitor->Width() );
-        $Event->Height( $Monitor->Height() );
-        $Event->Orientation( $Monitor->Orientation() );
-        $Event->StorageId( $Storage->Id() );
-        $Event->recover_timestamps();
-        $Event->save({}, 1);
-                Debug("Event resurrected as " . $Event->to_string() );
+        if ( confirm() ) {
+          $$Event{Scheme} = 'Shallow';
+          $$Event{Name} = "Event $event recovered";
+          #$$Event{Path} = $event_path;
+          $Event->MonitorId( $monitor_dir );
+          $Event->Width( $Monitor->Width() );
+          $Event->Height( $Monitor->Height() );
+          $Event->Orientation( $Monitor->Orientation() );
+          $Event->StorageId( $Storage->Id() );
+          $Event->recover_timestamps();
+          $Event->save({}, 1);
+          Debug("Event resurrected as " . $Event->to_string() );
+        }
       } # end foreach event
       chdir( $Storage->Path() );
     } # end foreach monitor

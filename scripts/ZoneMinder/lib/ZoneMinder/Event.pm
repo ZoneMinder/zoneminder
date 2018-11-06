@@ -31,12 +31,16 @@ use warnings;
 require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Storage;
+require ZoneMinder::Frame;
 require Date::Manip;
 require File::Find;
 require File::Path;
 require File::Copy;
 require File::Basename;
 require Number::Bytes::Human;
+require Date::Parse;
+require POSIX;
+use Date::Format qw(time2str);
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -50,7 +54,6 @@ use parent qw(ZoneMinder::Object);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
-require Date::Parse;
 
 use vars qw/ $table $primary_key %fields $serial @identified_by %defaults/;
 $table = 'Events';
@@ -96,7 +99,6 @@ $serial = $primary_key = 'Id';
   Executed  =>  '0',
 );
 
-use POSIX;
 
 sub Time {
   if ( @_ > 1 ) {
@@ -158,7 +160,7 @@ sub RelativePath {
       if ( $event->Time() ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
-            strftime( '%y/%m/%d/%H/%M/%S',
+            POSIX::strftime( '%y/%m/%d/%H/%M/%S',
               localtime($event->Time())
               ),
             );
@@ -170,7 +172,7 @@ sub RelativePath {
       if ( $event->Time() ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
-            strftime('%Y-%m-%d', localtime($event->Time())),
+            POSIX::strftime('%Y-%m-%d', localtime($event->Time())),
             $event->{Id},
             );
       } else {
@@ -198,7 +200,7 @@ sub LinkPath {
       if ( $event->Time() ) {
         $$event{LinkPath} = join('/',
             $event->{MonitorId},
-            strftime( '%y/%m/%d',
+            POSIX::strftime( '%y/%m/%d',
               localtime($event->Time())
               ),
             '.'.$$event{Id}
@@ -678,9 +680,19 @@ sub recover_timestamps {
   closedir(DIR);
 
   my @mp4_files = grep( /^\d+\-video\.mp4$/, @contents);
-  my @capture_jpgs = grep( /^\d+\-capture\.jpg$/, @contents);
+  if ( @mp4_files ) {
+    $$Event{DefaultVideo} = $mp4_files[0];
+  }
 
+  my @analyse_jpgs = grep( /^\d+\-analyse\.jpg$/, @contents);
+  if ( @analyse_jpgs ) {
+    $$Event{Save_JPEGs} |= 2;
+  }
+
+  my @capture_jpgs = grep( /^\d+\-capture\.jpg$/, @contents);
   if ( @capture_jpgs ) {
+    $$Event{Frames} = scalar @capture_jpgs;
+    $$Event{Save_JPEGs} |= 1;
     # can get start and end times from stat'ing first and last jpg
     @capture_jpgs = sort { $a cmp $b } @capture_jpgs;
     my $first_file = "$path/$capture_jpgs[0]";
@@ -696,6 +708,25 @@ sub recover_timestamps {
     $Event->StartTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
     $Event->EndTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $last_timestamp) );
     Debug("From capture Jpegs have duration $duration = $last_timestamp - $first_timestamp : $$Event{StartTime} to $$Event{EndTime}");
+    $ZoneMinder::Database::dbh->begin_work();
+    foreach my $jpg ( @capture_jpgs ) {
+      my ( $id ) = $jpg =~ /^(\d+)\-capture\.jpg$/;
+
+      if ( ! ZoneMinder::Frame->find_one( EventId=>$$Event{Id}, FrameId=>$id ) ) {
+        my $file = "$path/$jpg";
+        ( $file ) = $file =~ /^(.*)$/;
+        my $timestamp = (stat($file))[9];
+        my $Frame = new ZoneMinder::Frame();
+        $Frame->save({
+            EventId=>$$Event{Id}, FrameId=>$id,
+            TimeStamp=>Date::Format::time2str('%Y-%m-%d %H:%M:%S',$timestamp),
+            Delta => $timestamp - $first_timestamp,
+            Type=>'Normal',
+            Score=>0,
+          });
+      }
+    }
+    $ZoneMinder::Database::dbh->commit();
   } elsif ( @mp4_files ) {
     my $file = "$path/$mp4_files[0]";
     ( $file ) = $file =~ /^(.*)$/;

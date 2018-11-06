@@ -46,7 +46,7 @@ logInit();
 
 GetOptions(
     force          =>\$force,
-    interactive    =>\$interactive,
+    'interactive=i' =>\$interactive,
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
     'server_id=i'  =>\$server_id,
@@ -233,7 +233,7 @@ Debug("@Monitors");
                 $Event->recover_timestamps();
 
                 $Event->save({}, 1);
-                Debug("Event resurrected as " . $Event->to_string() );
+                Info("Event resurrected as " . $Event->to_string() );
                 next;
               } # end if resurrection
             } # event path exists
@@ -340,7 +340,7 @@ Debug("@Monitors");
           $Event = new ZoneMinder::Event();
           $$Event{Id} = $event_id;
           $$Event{Path} = join('/', $Storage->Path(), $event_dir );
-          Debug("Have event $$Event{Id} at $$Event{Path}");
+          Info("Have event $$Event{Id} at $$Event{Path}");
           if ( confirm() ) {
             $$Event{Scheme} = 'Medium';
             $$Event{RelativePath} = $event_dir;
@@ -352,7 +352,7 @@ Debug("@Monitors");
             $Event->StorageId( $Storage->Id() );
             $Event->recover_timestamps();
             $Event->save({}, 1);
-            Debug("Event resurrected as " . $Event->to_string() );
+            Info("Event resurrected as " . $Event->to_string() );
           }
         } # end foreach event
       } # end search for Medium
@@ -377,7 +377,7 @@ Debug("@Monitors");
         }
         $$Event{Id} = $event;
         $$Event{Path} = join('/', $Storage->Path(), $event );
-        Debug("Have event $$Event{Id} at $$Event{Path}");
+        Info("Have event $$Event{Id} at $$Event{Path}");
         if ( confirm() ) {
           $$Event{Scheme} = 'Shallow';
           $$Event{Name} = "Event $event recovered";

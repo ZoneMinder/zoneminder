@@ -86,6 +86,7 @@ $serial = $primary_key = 'Id';
   StateId
   Orientation
   DiskSpace
+  SaveJPEGs
 );
 %defaults = (
   Cause =>  q`'Unknown'`,

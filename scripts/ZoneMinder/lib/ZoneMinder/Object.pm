@@ -51,7 +51,7 @@ use vars qw/ $AUTOLOAD $log $dbh %cache $no_cache/;
 
 my $debug = 0;
 $no_cache = 0;
-use constant DEBUG_ALL=>1;
+use constant DEBUG_ALL=>0;
 
 sub init_cache {
     $no_cache = 0;

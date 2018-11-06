@@ -86,6 +86,7 @@ $serial = $primary_key = 'Id';
 );
 %defaults = (
   Cause =>  q`'Unknown'`,
+  DefaultVideo  => q`''`,
   TotScore => '0',
   Archived  =>  '0',
   Videoed  =>  '0',

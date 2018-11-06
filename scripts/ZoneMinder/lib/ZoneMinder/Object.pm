@@ -341,7 +341,7 @@ $log->debug("No serial") if $debug;
 		} # end if
 	} # end if
   ZoneMinder::Database::end_transaction( $local_dbh, $ac );
-	$self->load();
+  #$self->load();
 	#if ( $$fields{id} ) {
 		#if ( ! $ZoneMinder::Object::cache{$type}{$$self{id}} ) {
 			#$ZoneMinder::Object::cache{$type}{$$self{id}} = $self;

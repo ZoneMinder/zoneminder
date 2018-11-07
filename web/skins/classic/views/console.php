@@ -158,8 +158,8 @@ if ( $show_storage_areas ) $left_columns += 1;
 
 
 xhtmlHeaders( __FILE__, translate('Console') );
+getBodyTopHTML();
 ?>
-<body>
   <form name="monitorForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>

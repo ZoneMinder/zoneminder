@@ -454,8 +454,8 @@ $savejpegopts = array(
 
 
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
 <?php

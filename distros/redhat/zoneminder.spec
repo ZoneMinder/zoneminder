@@ -84,7 +84,6 @@ BuildRequires: libmp4v2-devel
 BuildRequires: x264-devel
 
 %{?with_nginx:Requires: nginx}
-%{?with_nginx:Requires: fcgiwrap}
 %{?with_nginx:Requires: php-fpm}
 %{!?with_nginx:Requires: httpd}
 %{!?with_nginx:Requires: php}
@@ -131,7 +130,7 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup -p 1 -a 1 -n ZoneMinder-%{version}
+%autosetup -p 1 -a 1
 %{__rm} -rf ./web/api/app/Plugin/Crud
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
@@ -306,7 +305,7 @@ EOF
 
 %{_libexecdir}/zoneminder/
 %{_datadir}/zoneminder/
-%{_datadir}/applications/*%{name}.desktop
+%{_datadir}/applications/*zoneminder.desktop
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
@@ -320,6 +319,13 @@ EOF
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
 
 %changelog
+* Sat Oct 13 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.2-1
+- 1.32.2 release
+- Bug fix release
+
+* Thu Oct 04 2018 Sérgio Basto <sergio@serjux.com> - 1.32.1-2
+- Mass rebuild for x264 and/or x265
+
 * Tue Oct 2 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.1-1
 - 1.32.1 release
 - Bug fix release

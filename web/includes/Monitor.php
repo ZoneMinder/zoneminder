@@ -152,19 +152,23 @@ private $control_fields = array(
         }
         if ( $this->{'Controllable'} ) {
           $s = dbFetchOne('SELECT * FROM Controls WHERE Id=?', NULL, array($this->{'ControlId'}) );
-          foreach ($s as $k => $v) {
-            if ( $k == 'Id' ) {
-              continue;
-# The reason for these is that the name overlaps Monitor fields.
-            } else if ( $k == 'Protocol' ) {
-              $this->{'ControlProtocol'} = $v;
-            } else if ( $k == 'Name' ) {
-              $this->{'ControlName'} = $v;
-            } else if ( $k == 'Type' ) {
-              $this->{'ControlType'} = $v;
-            } else {
-              $this->{$k} = $v;
+          if ( $s ) {
+            foreach ($s as $k => $v) {
+              if ( $k == 'Id' ) {
+                continue;
+  # The reason for these is that the name overlaps Monitor fields.
+              } else if ( $k == 'Protocol' ) {
+                $this->{'ControlProtocol'} = $v;
+              } else if ( $k == 'Name' ) {
+                $this->{'ControlName'} = $v;
+              } else if ( $k == 'Type' ) {
+                $this->{'ControlType'} = $v;
+              } else {
+                $this->{$k} = $v;
+              }
             }
+          } else {
+            Warning('No Controls found for monitor '.$this->{'Id'} . ' ' . $this->{'Name'}.' althrough it is marked as controllable');
           }
         }
         global $monitor_cache;
@@ -381,7 +385,7 @@ private $control_fields = array(
     } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
-      $url = $Server->Url() . '/zm/api/monitors/'.$this->{'Id'}.'.json';
+      $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
@@ -547,7 +551,7 @@ private $control_fields = array(
   } // end function Source
 
   public function Url() {
-    return $this->Server()->Url() .':'. ( ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : $_SERVER['SERVER_PORT'] );
+    return $this->Server()->Url( ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null );
   }
 
 } // end class Monitor

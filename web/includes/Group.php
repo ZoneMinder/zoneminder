@@ -95,13 +95,12 @@ class Group {
         }
       }
     } # end if options
-    $groups = array();
-    $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Group');
-    foreach ( $results as $row => $obj ) {
-      $groups[] = $obj;
+
+    $results = dbFetchAll($sql, NULL, $values);
+    if ( $results ) {
+      return array_map( function($row){ return new Group($row); }, $results );
     }
-    return $groups;
+    return array();
   } # end find()
 
   public static function find_one($parameters = null, $options = null) {

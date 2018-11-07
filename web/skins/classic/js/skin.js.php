@@ -55,7 +55,7 @@ if ( ! empty($refreshParent) ) {
 ?>;
 var closePopup = <?php
 if ( ( ! empty($closePopup) ) and ( $closePopup == true ) ) {
-    echo 'true';
+  echo 'true';
 } else {
   echo 'false';
 }
@@ -67,5 +67,5 @@ var imagePrefix = "<?php echo "?view=image&eid=" ?>";
 
 var auth_hash;
 <?php if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) { ?>
-auth_hash = '<?php echo isset($_SESSION['AuthHash']) ? $_SESSION['AuthHash'] : ''; ?>';
+auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 <?php } ?>

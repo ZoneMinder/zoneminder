@@ -183,14 +183,13 @@ foreach ( getSkinIncludes('skin.php') as $includeFile )
   require_once $includeFile;
 
 if ( ZM_OPT_USE_AUTH ) {
-  if ( ZM_AUTH_HASH_LOGINS ) {
-    if ( empty($user) && ! empty($_REQUEST['auth']) ) {
+    if ( ZM_AUTH_HASH_LOGINS && empty($user) && ! empty($_REQUEST['auth']) ) {
       if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
         userLogin($authUser['Username'], $authUser['Password'], true);
       }
     } 
-  } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
-    userLogin($_REQUEST['username'], $_REQUEST['password'], false);
+   else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
+	userLogin($_REQUEST['username'], $_REQUEST['password'], false);
   }
   if ( !empty($user) ) {
     // generate it once here, while session is open.  Value will be cached in session and return when called later on

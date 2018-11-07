@@ -309,6 +309,8 @@ saving configuration is a convenient way to ensure that the configuration
 held in the database corresponds with the most recent definitions and that
 all components are using the same set of configuration.
 
+=back
+
 =head2 EXPORT
 
 None by default.

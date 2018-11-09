@@ -70,6 +70,7 @@ $serial = $primary_key = 'Id';
   Frames
   AlarmFrames
   DefaultVideo
+  SaveJPEGs
   TotScore
   AvgScore
   MaxScore
@@ -83,6 +84,7 @@ $serial = $primary_key = 'Id';
   StateId
   Orientation
   DiskSpace
+  Scheme
 );
 
 use POSIX;
@@ -168,6 +170,8 @@ sub Path {
 
 sub Scheme {
   my $self = shift;
+  $$self{Scheme} = shift if @_;
+
   if ( ! $$self{Scheme} ) {
     if ( $$self{RelativePath} ) {
       if ( $$self{RelativePath} =~ /^\d+\/\d{4}\-\d{2}\-\d{2}\/\d+$/ ) {

@@ -3,7 +3,7 @@ Introduction
 
 Welcome to ZoneMinder, the all-in-one security camera solution for Linux with GPL License.
 
-Commercial "security systems" are usually designed as a monitoring system with unusable recording quality. In such a system, locating and exporting relevant video can be challenging and often requires human intervention.  ZoneMinder provides the best possible record quality and allows easy searches, filtering and exporting of security footage. 
+Commercial "security systems" are often designed as a monitoring system with little attention to recording quality. In such a system, locating and exporting relevant video can be challenging and often requires human intervention.  ZoneMinder provides the best possible record quality and allows easy searches, filtering and exporting of security footage. 
 
 ZoneMinder is designed around a series of independent components that only function when necessary, limiting any wasted resource and maximising the efficiency of your machine. An outdated Pentium II PC should be able to track one camera per device at up to 25 frames per second with this dropping by half approximately for each additional camera on the same device. Additional cameras on other devices that do not interact with each other can maintain this frame rate. Monitoring several cameras will not overload the CPU as frame processing is designed to synchronise with capture.
 

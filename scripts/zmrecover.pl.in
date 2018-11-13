@@ -231,9 +231,12 @@ Debug("@Monitors");
                 $Event->Height( $Monitor->Height() );
                 $Event->Orientation( $Monitor->Orientation() );
                 $Event->recover_timestamps();
-
-                $Event->save({}, 1);
-                Info("Event resurrected as " . $Event->to_string() );
+                if ( $$Event{StartTime} ) {
+                  $Event->save({}, 1);
+                  Info("Event resurrected as " . $Event->to_string() );
+                } else {
+                  Warning("Unable to determine starttime. Not resurrecting this event.");
+                }
                 next;
               } # end if resurrection
             } # event path exists
@@ -291,8 +294,12 @@ Debug("@Monitors");
                 $Event->StorageId( $Storage->Id() );
                 $Event->DiskSpace( undef );
                 $Event->recover_timestamps();
-                $Event->save({}, 1);
-                Debug("Event resurrected as " . $Event->to_string() );
+                if ( $$Event{StartTime} ) {
+                  $Event->save({}, 1);
+                  Info("Event resurrected as " . $Event->to_string() );
+                } else {
+                  Warning("Unable to determine starttime. Not resurrecting this event.");
+                }
                 next;
               }
             } # end if event found
@@ -351,8 +358,12 @@ Debug("@Monitors");
             $Event->Orientation( $Monitor->Orientation() );
             $Event->StorageId( $Storage->Id() );
             $Event->recover_timestamps();
-            $Event->save({}, 1);
-            Info("Event resurrected as " . $Event->to_string() );
+            if ( $$Event{StartTime} ) {
+              $Event->save({}, 1);
+              Info("Event resurrected as " . $Event->to_string() );
+            } else {
+              Warning("Unable to determine starttime. Not resurrecting this event.");
+            }
           }
         } # end foreach event
       } # end search for Medium
@@ -389,8 +400,12 @@ Debug("@Monitors");
           $Event->Orientation( $Monitor->Orientation() );
           $Event->StorageId( $Storage->Id() );
           $Event->recover_timestamps();
-          $Event->save({}, 1);
-          Debug("Event resurrected as " . $Event->to_string() );
+          if ( $$Event{StartTime} ) {
+            $Event->save({}, 1);
+            Info("Event resurrected as " . $Event->to_string() );
+          } else {
+            Warning("Unable to determine starttime. Not resurrecting this event.");
+          }
         }
       } # end foreach event
       chdir( $Storage->Path() );

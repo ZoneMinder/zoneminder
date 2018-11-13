@@ -384,7 +384,7 @@ MAIN: while( $loop ) {
       Debug("Checking for Medium Scheme Events under $$Storage{Path}/$monitor_dir");
       {
         my @event_dirs = glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*");
-        Debug(qq`glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned ` . scalar @event_dirs . " entries." );
+        Debug(qq`glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned ` . scalar @event_dirs . ' entries.' );
         foreach my $event_dir ( @event_dirs ) {
           if ( ! -d $event_dir ) {
             Debug( "$event_dir is not a dir. Skipping" );
@@ -403,6 +403,7 @@ MAIN: while( $loop ) {
           $$Event{RelativePath} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
+          $Event->StartTime( POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($$Event{Path})) ) );
         } # end foreach event
       }
 
@@ -428,7 +429,7 @@ MAIN: while( $loop ) {
         } # end foreach event
         chdir( $Storage->Path() );
       } # if USE_DEEP_STORAGE
-      Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir\n" );
+      Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir" );
 
       delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
     } # end foreach monitor
@@ -446,7 +447,7 @@ MAIN: while( $loop ) {
           next;
         }
         my @event_ids = keys %$fs_events;
-        Debug("Have " .scalar @event_ids . " events for monitor $monitor_id");
+        Debug('Have ' .scalar @event_ids . " events for monitor $monitor_id");
 
         foreach my $fs_event_id ( sort { $a <=> $b } keys %$fs_events ) {
 
@@ -490,7 +491,11 @@ MAIN: while( $loop ) {
       }
     }
   } # end foreach Storage Area
-  redo MAIN if ( $cleaned );
+
+  if ( $cleaned ) {
+    Debug("Events were deleted, starting again.");
+    redo MAIN;
+  }
 
   $cleaned = 0;
   my $deleteMonitorSql = 'DELETE LOW_PRIORITY FROM Monitors WHERE Id = ?';
@@ -531,7 +536,7 @@ MAIN: while( $loop ) {
           next;
         }
         if ( ! $Event->StartTime() ) {
-          Info("Event $$Event{Id} has no start time.  deleting it.");
+          Info("Event $$Event{Id} has no start time.");
           if ( confirm() ) {
             $Event->delete();
             $cleaned = 1;
@@ -577,10 +582,11 @@ MAIN: while( $loop ) {
             $Event->StorageId($$fs_events{$db_event}->StorageId());
           }
           if ( $$fs_events{$db_event}->StartTime() ne $Event->StartTime() ) {
+            Info("Updating StartTime on event $$Event{Id} from $$Event{StartTime} to $$fs_events{$db_event}{StartTime}");
             if ( $$Event{Scheme} eq 'Deep' ) {
-              Info("Updating StartTime on event $$Event{Id} from $$Event{StartTime} to $$fs_events{$db_event}{StartTime}");
               $Event->StartTime($$fs_events{$db_event}->StartTime());
             } else {
+              $Event->StartTime($$fs_events{$db_event}->StartTime());
             }
             $Event->save();
           }
@@ -993,6 +999,25 @@ sub delete_empty_directories {
     }
   } 
 } # end sub delete_empty_directories
+
+sub time_of_youngest_file {
+  my $dir = shift;
+
+  if ( ! opendir(DIR, $dir) ) {
+    Error("Can't open directory '$dir': $!");
+    return;
+  }
+  my $youngest = (stat($dir))[9];
+  Debug("stat of $dir is $youngest");
+  foreach my $file ( readdir( DIR ) ) {
+    next if $file =~ /^\./;
+    $_ = (stat($dir))[9];
+    $youngest = $_ if $_ and ( $_ < $youngest );
+    #Debug("stat of $dir is $_ < $youngest");
+  }
+  Debug("stat of $dir is $youngest");
+  return $youngest;
+} # end sub time_of_youngest_file
 
 1;
 __END__

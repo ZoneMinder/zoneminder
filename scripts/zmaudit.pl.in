@@ -384,7 +384,7 @@ MAIN: while( $loop ) {
       Debug("Checking for Medium Scheme Events under $$Storage{Path}/$monitor_dir");
       {
         my @event_dirs = glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*");
-        Debug(qq`glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned ` . scalar @event_dirs . " entries." );
+        Debug(qq`glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned ` . scalar @event_dirs . ' entries.' );
         foreach my $event_dir ( @event_dirs ) {
           if ( ! -d $event_dir ) {
             Debug( "$event_dir is not a dir. Skipping" );
@@ -403,6 +403,7 @@ MAIN: while( $loop ) {
           $$Event{RelativePath} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
+          $Event->StartTime( POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($$Event{Path})) ) );
         } # end foreach event
       }
 
@@ -428,7 +429,7 @@ MAIN: while( $loop ) {
         } # end foreach event
         chdir( $Storage->Path() );
       } # if USE_DEEP_STORAGE
-      Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir\n" );
+      Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir" );
 
       delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
     } # end foreach monitor
@@ -446,7 +447,7 @@ MAIN: while( $loop ) {
           next;
         }
         my @event_ids = keys %$fs_events;
-        Debug("Have " .scalar @event_ids . " events for monitor $monitor_id");
+        Debug('Have ' .scalar @event_ids . " events for monitor $monitor_id");
 
         foreach my $fs_event_id ( sort { $a <=> $b } keys %$fs_events ) {
 
@@ -490,7 +491,11 @@ MAIN: while( $loop ) {
       }
     }
   } # end foreach Storage Area
-  redo MAIN if ( $cleaned );
+
+  if ( $cleaned ) {
+    Debug("Events were deleted, starting again.");
+    redo MAIN;
+  }
 
   $cleaned = 0;
   my $deleteMonitorSql = 'DELETE LOW_PRIORITY FROM Monitors WHERE Id = ?';
@@ -508,68 +513,88 @@ MAIN: while( $loop ) {
 
   # Foreach database monitor and it's list of events.
   while ( my ( $db_monitor, $db_events ) = each(%$db_monitors) ) {
+    Debug("Checking db events for monitor $db_monitor");
+    if ( ! $db_events ) {
+      Debug("Skipping db events for $db_monitor because there are none");
+      next;
+    }
 
     # If we found the monitor in the file system
-    if ( my $fs_events = $fs_monitors->{$db_monitor} ) {
-      next if ! $db_events;
+    my $fs_events = $fs_monitors->{$db_monitor};
 
-      while ( my ( $db_event, $age ) = each( %$db_events ) ) {
-        if ( ! defined( $fs_events->{$db_event} ) ) {
-          my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
-          if ( ! $Event ) {
-            Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
-            next;
+    while ( my ( $db_event, $age ) = each( %$db_events ) ) {
+      if ( ! ($fs_events and defined( $fs_events->{$db_event} ) ) ) {
+        Debug("Don't have an fs event for $db_event");
+        my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+        if ( ! $Event ) {
+          Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
+          next;
+        }
+        Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
+        if ( $Event->Archived() ) {
+          Warning("Event $$Event{Id} is Archived. Taking no further action on it.");
+          next;
+        }
+        if ( ! $Event->StartTime() ) {
+          Info("Event $$Event{Id} has no start time.");
+          if ( confirm() ) {
+            $Event->delete();
+            $cleaned = 1;
           }
-          Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
-          if ( $Event->Archived() ) {
-            Warning("Event $$Event{Id} is Archived. Taking no further action on it.");
-            next;
-          }
-          if ( ! $Event->StartTime() ) {
-            Info("Event $$Event{Id} has no start time.  deleting it.");
+          next;
+        } 
+        if ( ! $Event->EndTime() ) {
+          if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
+            Info("Event $$Event{Id} has no end time and is $age seconds old.  deleting it.");
             if ( confirm() ) {
               $Event->delete();
               $cleaned = 1;
             }
             next;
-          } 
-          if ( ! $Event->EndTime() ) {
-            if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-              Info("Event $$Event{Id} has no end time and is $age seconds old.  deleting it.");
-              if ( confirm() ) {
-                $Event->delete();
-                $cleaned = 1;
-              }
-              next;
-            }
           }
-          if ( $Event->check_for_in_filesystem() ) {
-            Debug("Database event $$Event{Id} apparently exists at " . $Event->Path() );
-          } else {
-            if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-              aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem, deleting' );
-              if ( confirm() ) {
-                $Event->delete();
-                $cleaned = 1;
-              }
-            } else {
-              aud_print( "Database event '".$Event->Path()." monitor:$db_monitor event:$db_event' does not exist in filesystem but too young to delete age: $age > MIN $Config{ZM_AUDIT_MIN_AGE}.\n" );
+        }
+        if ( $Event->check_for_in_filesystem() ) {
+          Debug("Database event $$Event{Id} apparently exists at " . $Event->Path() );
+        } else {
+          if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
+            aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem, deleting' );
+            if ( confirm() ) {
+              $Event->delete();
+              $cleaned = 1;
             }
-          } # end if exists in filesystem
-        } # end if ! in fs_events
-      } # foreach db_event
-      #} else {
-      #my $Monitor = new ZoneMinder::Monitor( $db_monitor );
-      #my $Storage = $Monitor->Storage();
-      #aud_print( "Database monitor '$db_monitor' does not exist in filesystem, should have been at ".$Storage->Path().'/'.$Monitor->Id()."\n" );
-#if ( confirm() )
-#{
-# We don't actually do this in case it's new
-#my $res = $deleteMonitorSth->execute( $db_monitor )
-#   or Fatal( "Can't execute: ".$deleteMonitorSth->errstr() );
-#$cleaned = 1;
-#}
-    }
+          } else {
+            aud_print( "Database event '".$Event->Path()." monitor:$db_monitor event:$db_event' does not exist in filesystem but too young to delete age: $age > MIN $Config{ZM_AUDIT_MIN_AGE}.\n" );
+          }
+        } # end if exists in filesystem
+      } else {
+        Debug("Found fs event for $db_event, $age at " . $$fs_events{$db_event}->Path());
+        my $Event = new ZoneMinder::Event( $db_event );
+        if ( ! $Event->check_for_in_filesystem() ) {
+          Warning("Not found at " . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path() );
+          Warning($Event->to_string());
+          Warning($$fs_events{$db_event}->to_string());
+          if ( $$fs_events{$db_event}->Scheme() ne $Event->Scheme() ) {
+            Info("Updating scheme on event $$Event{Id} from $$Event{Scheme} to $$fs_events{$db_event}{Scheme}");
+            $Event->Scheme($$fs_events{$db_event}->Scheme());
+          } 
+          if ( $$fs_events{$db_event}->StorageId() != $Event->StorageId() ) {
+            Info("Updating storage area on event $$Event{Id} from $$Event{StorageId} to $$fs_events{$db_event}{StorageId}");
+            $Event->StorageId($$fs_events{$db_event}->StorageId());
+          }
+          if ( $$fs_events{$db_event}->StartTime() ne $Event->StartTime() ) {
+            Info("Updating StartTime on event $$Event{Id} from $$Event{StartTime} to $$fs_events{$db_event}{StartTime}");
+            if ( $$Event{Scheme} eq 'Deep' ) {
+              $Event->StartTime($$fs_events{$db_event}->StartTime());
+            } else {
+              $Event->StartTime($$fs_events{$db_event}->StartTime());
+            }
+            $Event->save();
+          }
+
+          $Event->save();
+        }
+      } # end if ! in fs_events
+    } # foreach db_event
   } # end foreach db_monitor
   if ( $cleaned ) {
     Debug("Have done some cleaning, restarting.");
@@ -954,7 +979,7 @@ sub delete_empty_directories {
     return;
   }
   my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
-  Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents <= 2 ? join(',',@contents) : '' ));
+  #Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents <= 2 ? join(',',@contents) : '' ));
   my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
     Debug("Have " . @dirs . " dirs");
@@ -974,6 +999,25 @@ sub delete_empty_directories {
     }
   } 
 } # end sub delete_empty_directories
+
+sub time_of_youngest_file {
+  my $dir = shift;
+
+  if ( ! opendir(DIR, $dir) ) {
+    Error("Can't open directory '$dir': $!");
+    return;
+  }
+  my $youngest = (stat($dir))[9];
+  Debug("stat of $dir is $youngest");
+  foreach my $file ( readdir( DIR ) ) {
+    next if $file =~ /^\./;
+    $_ = (stat($dir))[9];
+    $youngest = $_ if $_ and ( $_ < $youngest );
+    #Debug("stat of $dir is $_ < $youngest");
+  }
+  Debug("stat of $dir is $youngest");
+  return $youngest;
+} # end sub time_of_youngest_file
 
 1;
 __END__

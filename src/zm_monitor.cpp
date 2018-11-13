@@ -2110,6 +2110,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   Camera *camera = 0;
   if ( type == "Local" ) {
 
+#if ZM_HAS_V4L
     int extras = (deinterlacing>>24)&0xff;
 
     camera = new LocalCamera(
@@ -2132,6 +2133,9 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
         record_audio,
         extras
         );
+#else
+    Fatal("ZoneMinder not built with Local Camera support");
+#endif
   } else if ( type == "Remote" ) {
     if ( protocol == "http" ) {
       camera = new RemoteCameraHttp(

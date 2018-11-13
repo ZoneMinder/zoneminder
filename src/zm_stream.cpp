@@ -274,7 +274,7 @@ void StreamBase::openComms() {
       }
     }
 
-		unsigned int length = snprintf(
+    unsigned int length = snprintf(
         sock_path_lock,
         sizeof(sock_path_lock),
         "%s/zms-%06d.lock",
@@ -302,7 +302,7 @@ void StreamBase::openComms() {
     if ( lock_fd <= 0 ) {
       Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno));
       lock_fd = 0;
-		} else if ( flock(lock_fd, LOCK_EX) != 0 ) {
+    } else if ( flock(lock_fd, LOCK_EX) != 0 ) {
       Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno));
       close(lock_fd);
       lock_fd = 0;
@@ -337,7 +337,7 @@ void StreamBase::openComms() {
     strncpy(loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path));
     loc_addr.sun_family = AF_UNIX;
     Debug(3, "Binding to %s", loc_sock_path);
-    if ( bind(sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1) < 0 ) {
+    if ( ::bind(sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1) < 0 ) {
       Fatal("Can't bind: %s", strerror(errno));
     }
 

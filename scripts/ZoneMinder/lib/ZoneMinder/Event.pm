@@ -73,6 +73,7 @@ $serial = $primary_key = 'Id';
   Frames
   AlarmFrames
   DefaultVideo
+  SaveJPEGs
   TotScore
   AvgScore
   MaxScore
@@ -87,6 +88,7 @@ $serial = $primary_key = 'Id';
   Orientation
   DiskSpace
   SaveJPEGs
+  Scheme
 );
 %defaults = (
   Cause =>  q`'Unknown'`,
@@ -285,11 +287,11 @@ sub GenerateVideo {
     my $file_size = 'S'.$size;
     push( @file_parts, $file_size );
   }
-  my $video_file = "$video_name-".$file_parts[0]."-".$file_parts[1].".$format";
+  my $video_file = join('-', $video_name, $file_parts[0], $file_parts[1] ).'.'.$format;
   if ( $overwrite || !-s $video_file ) {
-    Info( "Creating video file $video_file for event $self->{Id}\n" );
+    Info("Creating video file $video_file for event $self->{Id}");
 
-    my $frame_rate = sprintf( "%.2f", $self->{Frames}/$self->{FullLength} );
+    my $frame_rate = sprintf('%.2f', $self->{Frames}/$self->{FullLength});
     if ( $rate ) {
       if ( $rate != 1.0 ) {
         $frame_rate *= $rate;
@@ -340,6 +342,7 @@ sub GenerateVideo {
 
 sub delete {
   my $event = $_[0];
+<<<<<<< HEAD
   if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartTime} ) ) {
     my ( $caller, undef, $line ) = caller;
     Warning("Can't delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from $caller:$line");
@@ -351,46 +354,51 @@ sub delete {
   }
   Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}");
   $ZoneMinder::Database::dbh->ping();
+=======
 
-  $ZoneMinder::Database::dbh->begin_work();
-  #$event->lock_and_load();
+  my $in_zmaudit = ( $0 =~ 'zmaudit.pl$');
 
-  {
-    my $sql = 'DELETE FROM Frames WHERE EventId=?';
-    my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
-      or Error( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-    my $res = $sth->execute($event->{Id})
-      or Error( "Can't execute '$sql': ".$sth->errstr() );
-    $sth->finish();
+  if ( ! $in_zmaudit ) {
+    if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartTime} ) ) {
+      # zmfilter shouldn't delete anything in an odd situation. zmaudit will though.
+      my ( $caller, undef, $line ) = caller;
+      Warning("$0 Can't Delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:".
+        (defined($event->{StartTime})?$event->{StartTime}:'undef')." from $caller:$line");
+      return;
+    }
+    if ( !($event->Storage()->Path() and -e $event->Storage()->Path()) ) {
+      Warning('Not deleting event because storage path doesn\'t exist');
+      return;
+    }
+  }
+>>>>>>> master
+
+  if ( $$event{Id} ) {
+    # Need to have an event Id if we are to delete from the db.  
+    Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}");
+    $ZoneMinder::Database::dbh->ping();
+
+    $ZoneMinder::Database::dbh->begin_work();
+    #$event->lock_and_load();
+
+    ZoneMinder::Database::zmDbDo('DELETE FROM Frames WHERE EventId=?', $$event{Id});
+    if ( $ZoneMinder::Database::dbh->errstr() ) {
+      $ZoneMinder::Database::dbh->commit();
+      return;
+    }
+    ZoneMinder::Database::zmDbDo('DELETE FROM Stats WHERE EventId=?', $$event{Id});
     if ( $ZoneMinder::Database::dbh->errstr() ) {
       $ZoneMinder::Database::dbh->commit();
       return;
     }
 
-    $sql = 'DELETE FROM Stats WHERE EventId=?';
-    $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
-      or Error("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
-    $res = $sth->execute($event->{Id})
-      or Error("Can't execute '$sql': ".$sth->errstr());
-    $sth->finish();
-    if ( $ZoneMinder::Database::dbh->errstr() ) {
-      $ZoneMinder::Database::dbh->commit();
-      return;
-    }
+    # Do it individually to avoid locking up the table for new events
+    ZoneMinder::Database::zmDbDo('DELETE FROM Events WHERE Id=?', $$event{Id});
+    $ZoneMinder::Database::dbh->commit();
   }
 
-# Do it individually to avoid locking up the table for new events
-  {
-    my $sql = 'DELETE FROM Events WHERE Id=?';
-    my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
-      or Error("Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr());
-    my $res = $sth->execute($event->{Id})
-      or Error("Can't execute '$sql': ".$sth->errstr());
-    $sth->finish();
-  }
-  $ZoneMinder::Database::dbh->commit();
-  if ( (! $Config{ZM_OPT_FAST_DELETE}) and $event->Storage()->DoDelete() ) {
-    $event->delete_files( );
+  if ( ( $in_zmaudit or (!$Config{ZM_OPT_FAST_DELETE})) and $event->Storage()->DoDelete() ) {
+    $event->delete_files();
   } else {
     Debug('Not deleting event files from '.$event->Path().' for speed.');
   }
@@ -399,11 +407,11 @@ sub delete {
 sub delete_files {
   my $event = shift;
 
-  my $Storage = @_ ? $_[0] : new ZoneMinder::Storage( $$event{StorageId} );
+  my $Storage = @_ ? $_[0] : new ZoneMinder::Storage($$event{StorageId});
   my $storage_path = $Storage->Path();
 
   if ( ! $storage_path ) {
-    Error("Empty storage path when deleting files for event $$event{Id} with storage id $$event{StorageId} ");
+    Error("Empty storage path when deleting files for event $$event{Id} with storage id $$event{StorageId}");
     return;
   }
 
@@ -435,14 +443,14 @@ sub delete_files {
         if ( $bucket->delete_key($event_path) ) {
           $deleted = 1;
         } else {
-          Error("Failed to delete from S3:".$s3->err . ": " . $s3->errstr);
+          Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
         }
       };
       Error($@) if $@;
     }
-    if ( ! $deleted ) {
+    if ( !$deleted ) {
       my $command = "/bin/rm -rf $storage_path/$event_path";
-      ZoneMinder::General::executeShellCommand( $command );
+      ZoneMinder::General::executeShellCommand($command);
     }
   }
 
@@ -451,7 +459,7 @@ sub delete_files {
     Debug("Deleting link for Event $$event{Id} from $storage_path/$link_path.");
     if ( $link_path ) {
       ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
-        unlink($storage_path.'/'.$link_path) or Error( "Unable to unlink '$storage_path/$link_path': $!" );
+        unlink($storage_path.'/'.$link_path) or Error("Unable to unlink '$storage_path/$link_path': $!");
     }
   }
 } # end sub delete_files
@@ -471,7 +479,7 @@ sub check_for_in_filesystem {
   if ( $path ) {
     if ( -e $path ) {
       my @files = glob "$path/*";
-      Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . " files");
+      Debug("Checking for files for event $_[0]{Id} at $path using glob $path/* found " . scalar @files . ' files');
       return 1 if @files;
     } else {
       Warning("Path not found for Event $_[0]{Id} at $path");
@@ -542,7 +550,7 @@ sub MoveTo {
 
   if ( $$OldStorage{Id} != $$self{StorageId} ) {
     $ZoneMinder::Database::dbh->commit();
-    return "Old Storage path changed, Event has moved somewhere else.";
+    return 'Old Storage path changed, Event has moved somewhere else.';
   }
 
   $$self{Storage} = $NewStorage;
@@ -586,11 +594,11 @@ Debug("Files to move @files");
         Debug("Moving file $file to $NewPath");
         my $size = -s $file;
         if ( ! $size ) {
-          Info("Not moving file with 0 size");
+          Info('Not moving file with 0 size');
         }
         my $file_contents = File::Slurp::read_file($file);
         if ( ! $file_contents ) {
-          die "Loaded empty file, but it had a size. Giving up";
+          die 'Loaded empty file, but it had a size. Giving up';
         }
 
         my $filename = $event_path.'/'.File::Basename::basename($file);
@@ -598,7 +606,7 @@ Debug("Files to move @files");
           die "Unable to add key for $filename";
         }
         my $duration = time - $starttime;
-        Debug("PUT to S3 " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
+        Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
       } # end foreach file.
 
       $moved = 1;

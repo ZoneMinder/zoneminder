@@ -237,6 +237,7 @@ $SLANG = array(
     'Cause'                 => 'Cause',
     'CheckMethod'           => 'Alarm Check Method',
     'ChooseDetectedCamera'  => 'Choose Detected Camera',
+    'ChooseDetectedProfile' => 'Choose Detected Profile',
     'ChooseFilter'          => 'Choose Filter',
     'ChooseLogFormat'       => 'Choose a log format',
     'ChooseLogSelection'    => 'Choose a log selection',

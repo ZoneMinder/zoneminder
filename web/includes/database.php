@@ -98,7 +98,14 @@ function dbLog( $sql, $update=false ) {
 }
 
 function dbError( $sql ) {
-  Error( "SQL-ERR '".$dbConn->errorInfo()."', statement was '".$sql."'" );
+  global $dbConn;
+  $error = $dbConn->errorInfo();
+  if ( ! $error[0] )
+    return '';
+
+  $message = "SQL-ERR '".implode("\n",$dbConn->errorInfo())."', statement was '".$sql."'";
+  Error($message);
+  return $message;
 }
 
 function dbEscape( $string ) {
@@ -136,6 +143,10 @@ function dbQuery( $sql, $params=NULL ) {
 				Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):'') );
       }
       $result = $dbConn->query($sql);
+      if ( ! $result ) {
+        Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        return NULL;
+      }
     }
     if ( defined('ZM_DB_DEBUG') ) {
       if ( $params )

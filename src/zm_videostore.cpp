@@ -248,18 +248,18 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         // Copy params from instream to ctx
         ret = avcodec_parameters_to_context(audio_out_ctx,
                                             audio_in_stream->codecpar);
-        if (ret < 0) {
-          Error("Unable to copy audio params to ctx %s\n",
+        if ( ret < 0 ) {
+          Error("Unable to copy audio params to ctx %s",
                 av_make_error_string(ret).c_str());
         }
         ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
                                               audio_out_ctx);
-        if (ret < 0) {
-          Error("Unable to copy audio params to stream %s\n",
+        if ( ret < 0 ) {
+          Error("Unable to copy audio params to stream %s",
                 av_make_error_string(ret).c_str());
         }
 
-        if (!audio_out_ctx->codec_tag) {
+        if ( !audio_out_ctx->codec_tag ) {
           audio_out_ctx->codec_tag = av_codec_get_tag(
               oc->oformat->codec_tag, audio_in_ctx->codec_id);
           Debug(2, "Setting audio codec tag to %d",
@@ -271,12 +271,12 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         ret = avcodec_copy_context(audio_out_ctx, audio_in_ctx);
         audio_out_ctx->codec_tag = 0;
 #endif
-        if (ret < 0) {
-          Error("Unable to copy audio ctx %s\n",
+        if ( ret < 0 ) {
+          Error("Unable to copy audio ctx %s",
                 av_make_error_string(ret).c_str());
           audio_out_stream = NULL;
         } else {
-          if (audio_out_ctx->channels > 1) {
+          if ( audio_out_ctx->channels > 1 ) {
             Warning("Audio isn't mono, changing it.");
             audio_out_ctx->channels = 1;
           } else {
@@ -286,7 +286,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       }  // end if audio_out_stream
     }    // end if is AAC
 
-    if (audio_out_stream) {
+    if ( audio_out_stream ) {
       if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
     audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -524,8 +524,8 @@ bool VideoStore::setup_resampler() {
   // audio_out_ctx = audio_out_stream->codec;
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
 
-  if (!audio_out_ctx) {
-    Error("could not allocate codec ctx for AAC\n");
+  if ( !audio_out_ctx ) {
+    Error("could not allocate codec ctx for AAC");
     audio_out_stream = NULL;
     return false;
   }
@@ -548,6 +548,13 @@ bool VideoStore::setup_resampler() {
 #else
   audio_out_ctx->refcounted_frames = 1;
 #endif
+  if ( ! audio_out_ctx->channel_layout ) {
+    Debug(3, "Correcting channel layout from (%d) to (%d)",
+        audio_out_ctx->channel_layout,
+        av_get_default_channel_layout(audio_out_ctx->channels)
+        );
+      audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
+  }
 
   if (audio_out_codec->supported_samplerates) {
     int found = 0;

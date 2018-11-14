@@ -45,17 +45,16 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
         <tr class="row">
 	        <td class="col text-center">
             <div class="btn-group">
-              <button type="button" class="btn btn-sm" onclick="expandLog()"> <?php echo translate('More') ?></button>
-              <button type="button" class="btn btn-sm" onclick="clearLog()"> <?php echo translate('Clear') ?></button>
-              <button type="button" class="btn btn-sm" onclick="refreshLog()"> <?php echo translate('Refresh') ?></button>
-              <button type="button" class="btn btn-sm" onclick="exportLog()"> <?php echo translate('Export') ?></button>
-              <button type="button" class="btn btn-sm" onclick="closeWindow()"> <?php echo translate('Close') ?></button>
+              <button type="button" onclick="expandLog()"><?php echo translate('More') ?></button>
+              <button type="button" onclick="clearLog()"><?php echo translate('Clear') ?></button>
+              <button type="button" onclick="refreshLog()"><?php echo translate('Refresh') ?></button>
+              <button type="button" onclick="exportLog()"><?php echo translate('Export') ?></button>
+              <button type="button" onclick="closeWindow()"><?php echo translate('Close') ?></button>
             </div> <!--btn-->
           </td>
-      </tr>
-	  </table>
-
-  </div> <!--header-->
+        </tr>
+      </table>
+    </div> <!--header-->
   <div id="content">
     <div id="filters">
 
@@ -89,7 +88,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
           </td>
         </tr>
       </table>
-      <input type="reset" value="<?php echo translate('Reset') ?>" onclick="resetLog()"/>
+      <button type="reset" onclick="resetLog()"><?php echo translate('Reset') ?></button>
     </div>
     <form name="logForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
@@ -137,8 +136,8 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
           <div id="exportError">
             <?php echo translate('ExportFailed') ?>: <span id="exportErrorText"></span>
           </div>
-          <input type="button" id="exportButton" value="<?php echo translate('Export') ?>" onclick="exportRequest()"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" class="overlayCloser"/>
+          <button type="button" id="exportButton" value="Export" onclick="exportRequest()"><?php echo translate('Export') ?></button>
+          <button type="button" value="Cancel" class="overlayCloser"><?php echo translate('Cancel') ?></button>
         </form>
       </div>
     </div>

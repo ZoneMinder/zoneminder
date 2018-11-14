@@ -137,22 +137,22 @@ if ( ! $Event->Id() ) {
       <div id="menuBar1">
         <div id="nameControl">
           <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
-          <button value="Rename" onclick="renameEvent()"<?php if ( !canEdit( 'Events' ) ) { ?> disabled="disabled"<?php } ?>>
+          <button value="Rename" type="button" onclick="renameEvent()"<?php if ( !canEdit('Events') ) { ?> disabled="disabled"<?php } ?>>
 <?php echo translate('Rename') ?></button>
         </div>
 <?php
 if ( canEdit('Events') ) {
 ?>
-        <div id="deleteEvent"><button onclick="deleteEvent()"><?php echo translate('Delete') ?></button></div>
-        <div id="editEvent"><button onclick="editEvent()"><?php echo translate('Edit') ?></button></div>
-        <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><button onclick="archiveEvent()"><?php echo translate('Archive') ?></button></div>
-        <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><button onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></button></div>
+        <div id="deleteEvent"><button type="button" onclick="deleteEvent()"><?php echo translate('Delete') ?></button></div>
+        <div id="editEvent"><button type="button" onclick="editEvent()"><?php echo translate('Edit') ?></button></div>
+        <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><button type="button" onclick="archiveEvent()"><?php echo translate('Archive') ?></button></div>
+        <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><button type="button" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></button></div>
 <?php
 } // end if can edit Events
 ?>
-        <div id="framesEvent"><button onclick="showEventFrames()"><?php echo translate('Frames') ?></button></div>
+        <div id="framesEvent"><button type="button" onclick="showEventFrames()"><?php echo translate('Frames') ?></button></div>
         <div id="streamEvent" class="hidden"><button onclick="showStream()"><?php echo translate('Stream') ?></button></div>
-        <div id="stillsEvent"><button onclick="showStills()"><?php echo translate('Stills') ?></button></div>
+        <div id="stillsEvent"><button type="button" onclick="showStills()"><?php echo translate('Stills') ?></button></div>
 <?php
   if ( $Event->DefaultVideo() ) { 
 ?>
@@ -160,11 +160,11 @@ if ( canEdit('Events') ) {
 <?php
   } else {
 ?>
-        <div id="videoEvent"><button onclick="videoEvent();"><?php echo translate('Video') ?></button></div>
+        <div id="videoEvent"><button type="button" onclick="videoEvent();"><?php echo translate('Video') ?></button></div>
 <?php
   } // end if Event->DefaultVideo
 ?>
-        <div id="exportEvent"><button onclick="exportEvent();"><?php echo translate('Export') ?></button></div>
+        <div id="exportEvent"><button type="button" onclick="exportEvent();"><?php echo translate('Export') ?></button></div>
         <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
         <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
         <div id="codecControl"><label for="codec"><?php echo translate('Codec') ?></label><?php echo htmlSelect('codec', $codecs, $codec, array('onchange'=>'changeCodec(this);') ); ?></div>
@@ -232,8 +232,8 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           <div id="eventImageFrame">
             <img id="eventImage" src="graphics/transparent.png" alt=""/>
             <div id="eventImageBar">
-              <div id="eventImageClose"><input type="button" value="<?php echo translate('Close') ?>" onclick="hideEventImage()"/></div>
-              <div id="eventImageStats" class="hidden"><input type="button" value="<?php echo translate('Stats') ?>" onclick="showFrameStats()"/></div>
+              <div id="eventImageClose"><button type="button" onclick="hideEventImage()"><?php echo translate('Close') ?></button></div>
+              <div id="eventImageStats" class="hidden"><button type="button" onclick="showFrameStats()"><?php echo translate('Stats') ?></button></div>
               <div id="eventImageData"><?php echo translate('Frame') ?> <span id="eventImageNo"></span></div>
             </div>
           </div>

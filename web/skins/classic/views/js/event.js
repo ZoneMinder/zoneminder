@@ -891,7 +891,7 @@ function unarchiveEvent() {
 }
 
 function showEventFrames() {
-  createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames' );
+  createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames', WEB_LIST_THUMB_WIDTH, WEB_LIST_THUMB_HEIGHT );
 }
 
 function showStream() {

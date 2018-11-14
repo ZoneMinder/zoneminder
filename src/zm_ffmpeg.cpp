@@ -24,14 +24,47 @@
 
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
+void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) {
+  Logger *log = Logger::fetch();
+  int log_level = 0;
+  if ( level == AV_LOG_QUIET ) { // -8
+    log_level = Logger::NOLOG;
+  } else if ( level == AV_LOG_PANIC ) { //0
+    log_level = Logger::PANIC;
+  } else if ( level == AV_LOG_FATAL ) { // 8
+    log_level = Logger::FATAL;
+  } else if ( level == AV_LOG_ERROR ) { // 16
+    log_level = Logger::ERROR;
+  } else if ( level == AV_LOG_WARNING ) { //24
+    log_level = Logger::WARNING;
+  } else if ( level == AV_LOG_INFO ) { //32
+    log_level = Logger::INFO;
+  } else if ( level == AV_LOG_VERBOSE ) { //40
+    log_level = Logger::DEBUG1;
+  } else if ( level == AV_LOG_DEBUG ) { //48
+    log_level = Logger::DEBUG2;
+  } else if ( level == AV_LOG_TRACE ) {
+    log_level = Logger::DEBUG8;
+  } else if ( level == AV_LOG_MAX_OFFSET ) {
+    log_level = Logger::DEBUG9;
+  } else {
+    Error("Unknown log level %d", level);
+  }
+
+  if ( log ) {
+    log->logPrint(false, __FILE__, __LINE__, log_level, fmt, vargs);
+  }
+}
+
 void FFMPEGInit() {
   static bool bInit = false;
 
   if ( !bInit ) {
-    //if ( logDebugging() )
-      //av_log_set_level( AV_LOG_DEBUG ); 
-    //else
+    if ( logDebugging() )
+      av_log_set_level( AV_LOG_DEBUG ); 
+    else
       av_log_set_level( AV_LOG_QUIET ); 
+    av_log_set_callback(log_libav_callback); 
     av_register_all();
     avformat_network_init();
     bInit = true;

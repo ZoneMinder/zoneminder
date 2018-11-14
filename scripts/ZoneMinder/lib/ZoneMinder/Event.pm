@@ -342,19 +342,6 @@ sub GenerateVideo {
 
 sub delete {
   my $event = $_[0];
-<<<<<<< HEAD
-  if ( ! ( $event->{Id} and $event->{MonitorId} and $event->{StartTime} ) ) {
-    my ( $caller, undef, $line ) = caller;
-    Warning("Can't delete event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from $caller:$line");
-    return;
-  }
-  if ( ! -e $event->Storage()->Path() ) {
-    Warning("Not deleting event because storage path doesn't exist");
-    return;
-  }
-  Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}");
-  $ZoneMinder::Database::dbh->ping();
-=======
 
   my $in_zmaudit = ( $0 =~ 'zmaudit.pl$');
 
@@ -371,7 +358,6 @@ sub delete {
       return;
     }
   }
->>>>>>> master
 
   if ( $$event{Id} ) {
     # Need to have an event Id if we are to delete from the db.  
@@ -680,9 +666,9 @@ sub recover_timestamps {
   my ( $Event, $path ) = @_;
   $path = $Event->Path() if ! $path;
 
-  if ( ! opendir(DIR, $path) ) {
+  if ( !opendir(DIR, $path) ) {
     Error("Can't open directory '$path': $!");
-    next;
+    return;
   }
   my @contents = readdir(DIR);
   Debug('Have ' . @contents . " files in $path");

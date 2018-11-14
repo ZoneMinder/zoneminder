@@ -182,6 +182,9 @@ class MonitorsController extends AppController {
           ($Monitor['ServerId']==ZM_SERVER_ID)
         )
       ) {
+        if ( !defined('ZM_SERVER_ID')) {
+          Logger::Debug("Not defined ZM_SERVER_ID");
+        }
         $this->daemonControl($this->Monitor->id, 'start');
       }
     } else {
@@ -349,26 +352,28 @@ class MonitorsController extends AppController {
     ));
   }
 
-  public function daemonControl($id, $command, $monitor=null, $daemon=null) {
-    $daemons = array();
+  public function daemonControl($id, $command, $daemon=null) {
 
-    if ( !$monitor ) {
-      // Need to see if it is local or remote
-      $monitor = $this->Monitor->find('first', array(
-        'fields' => array('Type', 'Function', 'Device'),
-        'conditions' => array('Id' => $id)
-      ));
-      $monitor = $monitor['Monitor'];
-    }
+    // Need to see if it is local or remote
+    $monitor = $this->Monitor->find('first', array(
+      'fields' => array('Type', 'Function', 'Device'),
+      'conditions' => array('Id' => $id)
+    ));
+    $monitor = $monitor['Monitor'];
 
-    if ( $monitor['Function'] == 'Monitor' ) {
-      array_push($daemons, 'zmc');
+    if ( ! $daemon ) {
+      if ( $monitor['Function'] == 'Monitor' ) {
+        array_push($daemons, 'zmc');
+      } else {
+        array_push($daemons, 'zmc', 'zma');
+      }
     } else {
-      array_push($daemons, 'zmc', 'zma');
+      array_push($daemons, $daemon);
     }
     
     $zm_path_bin = Configure::read('ZM_PATH_BIN');
 
+    $status_text = '';
     foreach ( $daemons as $daemon ) {
       $args = '';
       if ( $daemon == 'zmc' and $monitor['Type'] == 'Local' ) {
@@ -378,7 +383,14 @@ class MonitorsController extends AppController {
       }
 
       $shellcmd = escapeshellcmd("$zm_path_bin/zmdc.pl $command $daemon $args");
-      $status = exec( $shellcmd );
+      Logger::Debug("Command $shellcmd");
+      $status = exec($shellcmd);
+      $status_text .= $status."\n";
     }
-  }
+    $this->set(array(
+      'status' => 'ok',
+      'statustext' => $status_text,
+      '_serialize' => array('status','statustext'),
+    ));
+  } // end function daemonControl
 } // end class MonitorsController

@@ -496,7 +496,6 @@ CREATE TABLE `Monitors` (
   `TrackDelay` smallint(5) unsigned,
   `ReturnLocation` tinyint(3) NOT NULL default '-1',
   `ReturnDelay` smallint(5) unsigned,
-  `DefaultView` enum('Events','Control') NOT NULL default 'Events',
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
   `SignalCheckPoints` INT UNSIGNED NOT NULL default '0',

@@ -264,12 +264,9 @@ EOF
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/*.conf
 %ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 
-%config(noreplace) %attr(644,root,root) /etc/zm/www/zoneminder.conf
+%config(noreplace) %attr(644,root,root) %{_sysconfdir}/zm/www/zoneminder.conf
+%config(noreplace) %{_sysconfdir}/www/zoneminder.php-fpm.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
-
-%if 0%{?with_nginx}
-%config(noreplace) %{_sysconfdir}/php-fpm.d/zoneminder.conf
-%endif
 
 %{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service

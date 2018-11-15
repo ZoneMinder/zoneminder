@@ -15,11 +15,11 @@ endif((NOT ZM_TARGET_DISTRO MATCHES "^fc") AND (ZM_WEB_USER STREQUAL "nginx"))
 
 # Configure the zoneminder service files
 configure_file(systemd/zoneminder.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.logrotate @ONLY)
+configure_file(nginx/zoneminder.php-fpm.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.php-fpm.conf @ONLY)
 if(ZM_WEB_USER STREQUAL "nginx")
     configure_file(nginx/zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
     configure_file(nginx/zoneminder.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.conf @ONLY)
     configure_file(nginx/zoneminder.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.tmpfiles @ONLY)
-    configure_file(nginx/zoneminder.php-fpm.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.php-fpm.conf @ONLY)
     configure_file(nginx/README.Fedora ${CMAKE_CURRENT_SOURCE_DIR}/readme/README COPYONLY)
 else(ZM_WEB_USER STREQUAL "nginx")
     configure_file(systemd/zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
@@ -55,10 +55,8 @@ install(FILES misc/redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INST
 # Install zoneminder service files
 install(FILES zoneminder.logrotate DESTINATION /etc/logrotate.d RENAME zoneminder PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 install(FILES zoneminder.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.php-fpm.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 
-if(ZM_WEB_USER STREQUAL "nginx")
-    install(FILES zoneminder.php-fpm.conf DESTINATION /etc/php-fpm.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ RENAME zoneminder.conf)
-endif(ZM_WEB_USER STREQUAL "nginx")
 
 install(FILES zoneminder.service DESTINATION /usr/lib/systemd/system PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 install(FILES zoneminder.tmpfiles DESTINATION /usr/lib/tmpfiles.d RENAME zoneminder.conf PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)

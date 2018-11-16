@@ -16,6 +16,7 @@ function toggleCheckbox( element, name ) {
   form.archiveBtn.disabled = unarchivedEvents?!checked:true;
   form.unarchiveBtn.disabled = !(canEditEvents && archivedEvents && checked);
   form.downloadBtn.disabled = !(canViewEvents && checked);
+  form.generateBtn.disabled = !(canViewEvents && checked);
   form.exportBtn.disabled = !(canViewEvents && checked);
   form.deleteBtn.disabled = !(canEditEvents && checked);
 }
@@ -40,6 +41,7 @@ function configureButton( element, name ) {
   form.archiveBtn.disabled = (!checked)||(!unarchivedEvents);
   form.unarchiveBtn.disabled = !(canEditEvents && checked && archivedEvents);
   form.downloadBtn.disabled = !(canViewEvents && checked);
+  form.generateBtn.disabled = !(canViewEvents && checked);
   form.exportBtn.disabled = !(canViewEvents && checked);
   form.deleteBtn.disabled = !(canEditEvents && checked);
 }
@@ -97,6 +99,18 @@ function downloadVideo( element, name ) {
   createPopup( '?view=download&'+eids.join( '&' ), 'zmDownload', 'download' );
 }
 
+function generateVideo( element, name ) {
+  var form = element.form;
+  var eids = new Array();
+  for (var i = 0; i < form.elements.length; i++) {
+    if (form.elements[i].name.indexOf(name) == 0) {
+      if ( form.elements[i].checked ) {
+        eids[eids.length] = 'eids[]='+form.elements[i].value;
+      }
+    }
+  }
+  createPopup( '?view=generate&'+eids.join( '&' ), 'zmGenerate', 'generate' );
+}
 function exportEvents( element, name ) {
   var form = element.form;
   var eids = new Array();

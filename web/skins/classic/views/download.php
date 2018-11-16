@@ -23,6 +23,8 @@ if ( !canView('Events') ) {
   return;
 }
 
+set_time_limit(0);
+
 $total_size = 0;
 if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
   $eventsSql = 'SELECT E.Id,E.DiskSpace FROM Events as E WHERE 1';

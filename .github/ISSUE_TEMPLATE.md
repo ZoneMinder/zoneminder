@@ -2,14 +2,14 @@
 
 Do not post feature or enhancement requests, general discussions or support questions here.
 
-Feature and enhancement requests, general discussions and support questions should occur in one of the following areas:
+Feature and enhancement requests, general discussions, and support questions should occur in one of the following areas:
 
 - The [ZoneMinder-Chat Slack channel](https://zoneminder-chat.herokuapp.com/)
 - The [ZoneMinder Forum](https://forums.zoneminder.com/)
 
 Docker related issues should be posted here: https://github.com/ZoneMinder/zmdockerfiles
 
-In order to submit a bug report, please populate the field below. This is required.
+In order to submit a bug report, please populate the fields below. This is required.
 
 **Describe Your Environment**
 - Version of ZoneMinder [release version, development version, or commit]

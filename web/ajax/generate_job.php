@@ -22,23 +22,20 @@ set_time_limit(0);
   
 # Validate encoder
 if (!in_array($params['generateEncoder'], array('none', 'x264', 'mpeg2'))) {
-  echo "Invalid encoder, skipping";
-  continue;
+  die("Invalid encoder");
 }
   
 # Validate framerate
 if (!in_array($params['generateFramerate'], array('4', '8', '16', '32'))) {
-  echo "Invalid framerate, skipping";
-  continue;
+  die("Invalid framerate");
 }
   
 # Validate size
 if (!in_array($params['generateSize'], array('1', '0.75', '0.5', '0.25', '0.125'))) {
-  echo "Invalid size, skipping";
-  continue;
+  die("Invalid size");
 }
 
-# Store parameters
+# Store parameters ? not nessesery
 $encoder = $params['generateEncoder'];
 $framerate = $params['generateFramerate'];
 $size = $params['generateSize'];
@@ -51,8 +48,8 @@ foreach ($params['eids'] as $eid) {
   echo "Processing event " . $eid . PHP_EOL;
 
   # Validate eid
-  if (!is_numeric($eid)) {
-    echo "Invalid eventid, skipping";
+  if (!filter_var($eid, FILTER_VALIDATE_INT)) {
+    echo "Invalid eventid, skipping" . PHP_EOL;
     continue;
   }
 
@@ -89,13 +86,9 @@ foreach ($params['eids'] as $eid) {
   // echo $commandline1 . PHP_EOL;
   // echo $commandline2 . PHP_EOL;
   // echo $commandline1 . " && " . $commandline2 . ' > ffmpeg.log' . PHP_EOL;
-  // $output = exec( 'echo HELLO ' . $eid );
-  // echo $output . PHP_EOL;
-  // echo "Done." . PHP_EOL . PHP_EOL;
-  // continue;
   
   $output = exec( $commandline1 . " && " . $commandline2 . ' > ffmpeg.log' );
-  echo $output . PHP_EOL . "Done." . PHP_EOL . PHP_EOL;
+  echo $output . PHP_EOL . "Event " . $eid . " done." . PHP_EOL . PHP_EOL;
 }
 
 

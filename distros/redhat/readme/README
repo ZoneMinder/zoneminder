@@ -1,0 +1,29 @@
+What's New
+==========
+
+1. See the ZoneMinder release notes for a list of new features:
+     https://github.com/ZoneMinder/zoneminder/releases
+
+2. The contents of the ZoneMinder Apache config file have changed. In
+   addition, this ZoneMinder package now requires you to manually symlink the
+   ZoneMinder Apache config file. See new install step 6 and upgrade step 3
+   below for details.
+
+3. This package has been split into sub-packages to allow compatibility with
+   other web servers. Here is a breakdown of the available packages:
+
+     zoneminder - Meta-package installs zoneminder-common and zoneminder-httpd
+                  This exists soley for backwards compaitilibty.
+     zoneminder-common - Common files that do not differ based on the web server
+     zoneminder-httpd - Files needed for compatibility with the Apache web server
+     zoneminder-nginx - Files needed for compatibility with the Nginx web server
+
+   You can switch between different subpackages with dnf/yum. Be advised that,
+   if you modified any of the default config files supplied by the package,
+   rpm may not update the config file to the proper version. This is by design.
+   Use drop-in files instead, to avoid this issue.
+
+4. Continue on to the next README that corresponds to the chosen webserver:
+
+     README.httpd - Follow these steps when using Apache
+     README.nginx - Follow these steps when using Nginx

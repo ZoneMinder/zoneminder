@@ -1,4 +1,4 @@
-# Additional config directions for ZoneMinder with Apache web server
+# Additional config directives for ZoneMinder with Apache web server
 
 [Unit]
 After=httpd.service

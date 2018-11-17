@@ -246,12 +246,12 @@ fi
 
 # Warn the end user to read the README file
 echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README file\nto finish the installation or upgrade!"
-echo -e "\nThe README file is located here: %{_pkgdocdir}/README\n"
+echo -e "\nThe README file is located here: %{_pkgdocdir}-common/README\n"
 
 %post httpd
-ln -s %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.apache %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.apache %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 # backwards compatibility
-ln -s %{_sysconfdir}/zm/www/zoneminder.apache.conf %{_sysconfdir}/zm/www/zoneminder.conf
+ln -sf %{_sysconfdir}/zm/www/zoneminder.apache.conf %{_sysconfdir}/zm/www/zoneminder.conf
 
 # Allow zoneminder access to local video sources, serial ports, and x10
 %{_bindir}/gpasswd -a %{zmuid_final} video >/dev/null 2>&1 || :
@@ -259,7 +259,9 @@ ln -s %{_sysconfdir}/zm/www/zoneminder.apache.conf %{_sysconfdir}/zm/www/zonemin
 
 %post nginx
 
-ln -s %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+# backwards compatibility
+ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zoneminder.conf
 
 #
 # TO-DO: configure the README's
@@ -358,6 +360,7 @@ EOF
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/0*.conf
 %ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 %config(noreplace) %{_sysconfdir}/zm/www/zoneminder.apache.conf
+%ghost %{_sysconfdir}/zm/www/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.apache
 %ghost %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
@@ -378,6 +381,7 @@ EOF
 %config(noreplace) %attr(640,root,nginx) %{_sysconfdir}/zm/conf.d/*.conf
 %ghost %attr(640,root,nginx) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 %config(noreplace) %{_sysconfdir}/zm/www/zoneminder.nginx.conf
+%ghost %{_sysconfdir}/zm/www/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx
 %ghost %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 

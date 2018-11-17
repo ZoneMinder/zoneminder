@@ -7,8 +7,6 @@ After=network.target mariadb.service
 Requires=mariadb.service
 
 [Service]
-User=@WEB_USER@
-Group=@WEB_GROUP@
 Type=forking
 ExecStart=@BINDIR@/zmpkg.pl start
 ExecReload=@BINDIR@/zmpkg.pl restart

@@ -35,7 +35,7 @@ configure_file(nginx/zoneminder.nginx.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zonemi
 configure_file(nginx/zoneminder.nginx.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.nginx.tmpfiles.conf @ONLY)
 configure_file(nginx/zm-web-user.conf ${CMAKE_CURRENT_SOURCE_DIR}/zm-web-user.conf COPYONLY)
 configure_file(nginx/zoneminder.php-fpm.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.php-fpm.conf @ONLY)
-configure_file(nginx/com.zoneminder.systemctl.rules.nginx.in ${CMAKE_CURRENT_SOURCE_DIR}/com.zoneminder.systemctl.rules.nginx COPYONLY)
+configure_file(nginx/com.zoneminder.systemctl.rules.nginx ${CMAKE_CURRENT_SOURCE_DIR}/com.zoneminder.systemctl.rules.nginx COPYONLY)
 
 #
 # INSTALLATION STAGE

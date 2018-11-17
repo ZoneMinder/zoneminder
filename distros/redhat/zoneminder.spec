@@ -319,7 +319,6 @@ EOF
 
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
-%{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
 %{_bindir}/zmsystemctl.pl
@@ -363,6 +362,7 @@ EOF
 %ghost %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
 %{_unitdir}/zoneminder.service.d/zm-apache.conf
+%{_tmpfilesdir}/zoneminder.apache.tmpfiles.conf
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/images
@@ -385,6 +385,7 @@ EOF
 
 
 %{_unitdir}/zoneminder.service.d/zm-nginx.conf
+%{_tmpfilesdir}/zoneminder.nginx.tmpfiles.conf
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/events
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/images

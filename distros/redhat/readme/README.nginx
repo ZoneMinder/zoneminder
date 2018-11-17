@@ -1,24 +1,3 @@
-What's New
-==========
-
-1. See the ZoneMinder release notes for a list of new features:
-   https://github.com/ZoneMinder/zoneminder/releases
-
-2. The contents of the ZoneMinder Apache config file have changed. In
-   addition, this ZoneMinder package now requires you to manually symlink the
-   ZoneMinder Apache config file. See new install step 6 and upgrade step 3
-   below for details.
-
-3. This is an experimental build of ZoneMinder supporting nginx, rather than
-   apache web server.
-
-4. If you have installed ZoneMinder from the FedBerry repositories, this build
-   of ZoneMinder has support for Raspberry Pi hardware acceleration when using
-   ffmpeg. Unforunately, there is a problem with the same hardware acceleration
-   when using libvlc. Consequently, libvlc support in this build of ZoneMinder
-   has been disabled until the problem is resolved. See the following bug
-   report for details: https://trac.videolan.org/vlc/ticket/18594
-  
 New installs
 ============
 
@@ -52,7 +31,7 @@ New installs
 
    Once the file has been saved, set proper file & ownership permissions on it:
   
-     sudo chown root:apache *.conf
+     sudo chown root:nginx *.conf
      sudo chmod 640 *.conf     
 
 4. Edit /etc/php.ini, uncomment the date.timezone line, and add your local
@@ -96,19 +75,7 @@ New installs
 
      sudo ln -s /etc/zm/www/zoneminder.conf /etc/nginx/default.d/
 
-7. Fcgiwrap is required when using ZoneMinder with Nginx. At the time of this
-   writing, fcgiwrap is not yet available in the Fedora repos. Until it
-   becomes available, you may install it from my Copr repository:
-
-      https://copr.fedorainfracloud.org/coprs/kni/fcgiwrap/
-
-   Follow the intructions on that site to enable the repo. Once enabled, 
-   install fcgiwrap:
-
-      sudo dnf install fcgiwrap
-
-   After fcgiwrap is installed, it must be configured. Edit 
-   /etc/sysconfig/fcgiwrap and set DAEMON_PROCS to the maximum number of
+7. Edit /etc/sysconfig/fcgiwrap and set DAEMON_PROCS to the maximum number of
    simulatneous streams the server should support. Generally, a good minimum 
    value for this equals the total number of cameras you expect to view at the
    same time.
@@ -193,7 +160,7 @@ Upgrades
 
    sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
 
-5. Now restart nginx and php-fpm then start and zoneminder:
+5. Now restart nginx and php-fpm then start zoneminder:
 
 	sudo systemctl restart nginx
 	sudo systemctl restart php-fpm

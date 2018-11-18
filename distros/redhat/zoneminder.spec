@@ -250,8 +250,9 @@ echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README 
 echo -e "\nThe README file is located here: %{_pkgdocdir}-common/README\n"
 
 %post httpd
-# For the case of changing from nginx <-> httpd, existing php session files must change ownership
+# For the case of changing from nginx <-> httpd, these files must change ownership if they exist
 %{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_sharedstatedir}/php/session/ >/dev/null 2>&1 || :
+%{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_localstatedir}/log/zoneminder/ >/dev/null 2>&1 || :
 
 ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.httpd %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 # backwards compatibility
@@ -267,8 +268,9 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.httpd.conf %{_sysconfdir}/zm/www/zonemin
 # We could override the folder permission, but adding nginx to the apache group works better
 %{_bindir}/gpasswd -a nginx apache >/dev/null 2>&1 || :
 
-# For the case of changing from httpd <-> nginx, existing php session files must change ownership
+# For the case of changing from nginx <-> httpd, these files must change ownership if they exist
 %{_bindir}/chown -R nginx:nginx %{_sharedstatedir}/php/session/ >/dev/null 2>&1 || :
+%{_bindir}/chown -R nginx:nginx %{_localstatedir}/log/zoneminder/ >/dev/null 2>&1 || :
 
 ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 # backwards compatibility

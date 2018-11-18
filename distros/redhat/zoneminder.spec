@@ -250,9 +250,9 @@ echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README 
 echo -e "\nThe README file is located here: %{_pkgdocdir}-common/README\n"
 
 %post httpd
-ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.apache %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.httpd %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 # backwards compatibility
-ln -sf %{_sysconfdir}/zm/www/zoneminder.apache.conf %{_sysconfdir}/zm/www/zoneminder.conf
+ln -sf %{_sysconfdir}/zm/www/zoneminder.httpd.conf %{_sysconfdir}/zm/www/zoneminder.conf
 
 # Allow zoneminder access to local video sources, serial ports, and x10
 %{_bindir}/gpasswd -a %{zmuid_final} video >/dev/null 2>&1 || :
@@ -360,13 +360,13 @@ EOF
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/0*.conf
 %ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
-%config(noreplace) %{_sysconfdir}/zm/www/zoneminder.apache.conf
+%config(noreplace) %{_sysconfdir}/zm/www/zoneminder.httpd.conf
 %ghost %{_sysconfdir}/zm/www/zoneminder.conf
-%config(noreplace) %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.apache
+%config(noreplace) %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.httpd
 %ghost %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 
-%{_unitdir}/zoneminder.service.d/zm-apache.conf
-%{_tmpfilesdir}/zoneminder.apache.tmpfiles.conf
+%{_unitdir}/zoneminder.service.d/zm-httpd.conf
+%{_tmpfilesdir}/zoneminder.httpd.tmpfiles.conf
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/images

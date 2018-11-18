@@ -24,10 +24,10 @@ configure_file(common/zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zonemind
 file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events images temp)
 
 # Configure the Apache zoneminder files
-configure_file(apache/zm-apache.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zm-apache.conf @ONLY)
-configure_file(apache/zoneminder.apache.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.apache.conf @ONLY)
-configure_file(apache/zoneminder.apache.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.apache.tmpfiles.conf @ONLY)
-configure_file(apache/com.zoneminder.systemctl.rules.apache.in ${CMAKE_CURRENT_SOURCE_DIR}/com.zoneminder.systemctl.rules.apache @ONLY)
+configure_file(httpd/zm-httpd.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zm-httpd.conf @ONLY)
+configure_file(httpd/zoneminder.httpd.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.httpd.conf @ONLY)
+configure_file(httpd/zoneminder.httpd.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.httpd.tmpfiles.conf @ONLY)
+configure_file(httpd/com.zoneminder.systemctl.rules.httpd.in ${CMAKE_CURRENT_SOURCE_DIR}/com.zoneminder.systemctl.rules.httpd @ONLY)
 
 # Configure the Nginx zoneminder files
 configure_file(nginx/zm-nginx.conf ${CMAKE_CURRENT_SOURCE_DIR}/zm-nginx.conf COPYONLY)
@@ -54,10 +54,10 @@ install(DIRECTORY zoneminder-upload DESTINATION /var/spool DIRECTORY_PERMISSIONS
 install(DIRECTORY events images temp DESTINATION /var/lib/zoneminder DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 # Install the Apache zoneminder files
-install(FILES zm-apache.conf DESTINATION /usr/lib/systemd/system/zoneminder.service.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-install(FILES zoneminder.apache.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-install(FILES zoneminder.apache.tmpfiles.conf DESTINATION /usr/lib/tmpfiles.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
-install(FILES com.zoneminder.systemctl.rules.apache DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zm-httpd.conf DESTINATION /usr/lib/systemd/system/zoneminder.service.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.httpd.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES zoneminder.httpd.tmpfiles.conf DESTINATION /usr/lib/tmpfiles.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES com.zoneminder.systemctl.rules.httpd DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 
 # Install the Nginx zoneminder files
 install(FILES zm-nginx.conf DESTINATION /usr/lib/systemd/system/zoneminder.service.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)

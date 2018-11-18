@@ -253,6 +253,7 @@ echo -e "\nThe README file is located here: %{_pkgdocdir}-common/README\n"
 # For the case of changing from nginx <-> httpd, files in these folders must change ownership if they exist
 %{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_sharedstatedir}/php/session/* >/dev/null 2>&1 || :
 %{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_localstatedir}/log/zoneminder/* >/dev/null 2>&1 || :
+%{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_sharedstatedir}/zoneminder/events/* >/dev/null 2>&1 || :
 
 ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.httpd %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 # backwards compatibility
@@ -271,6 +272,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.httpd.conf %{_sysconfdir}/zm/www/zonemin
 # For the case of changing from httpd <-> nginx, files in these folders must change ownership if they exist
 %{_bindir}/chown -R nginx:nginx %{_sharedstatedir}/php/session/* >/dev/null 2>&1 || :
 %{_bindir}/chown -R nginx:nginx %{_localstatedir}/log/zoneminder/* >/dev/null 2>&1 || :
+%{_bindir}/chown -R nginx:nginx %{_sharedstatedir}/zoneminder/events/* >/dev/null 2>&1 || :
 
 ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 # backwards compatibility

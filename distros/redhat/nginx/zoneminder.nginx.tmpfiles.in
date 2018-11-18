@@ -3,6 +3,4 @@ D @ZM_SOCKDIR@ 0755 nginx nginx
 D @ZM_CACHEDIR@ 0755 nginx nginx
 d @ZM_DIR_EVENTS@ 0755 nginx nginx
 D @ZM_DIR_IMAGES@ 0755 nginx nginx
-D /var/lib/php/session 770 root nginx
-D /var/lib/php/wsdlcache 770 root nginx
 

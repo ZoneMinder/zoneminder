@@ -260,13 +260,13 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.apache.conf %{_sysconfdir}/zm/www/zonemi
 
 %post nginx
 
+# Php package owns the session folder and sets group ownership to apache account
+# We could override the folder permission, but adding nginx to the apache group works better
+%{_bindir}/gpasswd -a nginx apache >/dev/null 2>&1 || :
+
 ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 # backwards compatibility
 ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zoneminder.conf
-
-#
-# TO-DO: configure the README's
-#
 
 # Allow zoneminder access to local video sources, serial ports, and x10
 %{_bindir}/gpasswd -a nginx video >/dev/null 2>&1 || :

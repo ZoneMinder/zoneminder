@@ -47,7 +47,7 @@ location /zm {
 
     location /zm/api/ {
         alias                   "@ZM_WEBDIR@";
-        rewrite ^/zm/api(.+)$ /zm/api/index.php?p=$1 last;
+        rewrite ^/zm/api(.+)$ /zm/api/app/webroot/index.php?p=$1 last;
     }
 }
 

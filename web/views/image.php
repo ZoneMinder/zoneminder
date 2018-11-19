@@ -112,14 +112,15 @@ Logger::Debug("Loading by eid");
         $path = $Event->Path().'/snapshot.jpg';
       }
     } else {
+
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));
       if ( ! $Frame ) {
         $previousBulkFrame = dbFetchOne(
-          'SELECT * FROM Frames WHERE EventId=? AND FrameId*100 < ? ORDER BY FrameID DESC LIMIT 1',
+          'SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1',
           NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
         );
         $nextBulkFrame = dbFetchOne(
-          'SELECT * FROM Frames WHERE EventId=? AND FrameId*100 > ? ORDER BY FrameID ASC LIMIT 1',
+          'SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1',
           NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
         );
         if ( $previousBulkFrame and $nextBulkFrame ) {
@@ -134,17 +135,8 @@ Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousB
           Fatal('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
         }
       }
-
-      # MYFIX1
-      $bulkFrame = (float)$Frame->FrameId() / 100;
-      $parts = explode('.', (string)$bulkFrame);
-      $frameIndex = $parts[1];
-      $bulkFrame = floor($bulkFrame);
-      $converted_frameId = $bulkFrame + $frameIndex;
-      #Warning($converted_frameId);
-
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
-      $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$converted_frameId).'-'.$show.'.jpg';
+      $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
 Logger::Debug("Path: $path");
     }
 

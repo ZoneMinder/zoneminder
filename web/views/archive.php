@@ -45,10 +45,16 @@ if ( $archivetype ) {
     $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
     Logger::Debug("downloading archive from $filename_path");
     if ( is_readable($filename_path) ) {
-      ob_clean();
+      if (ob_get_level()) ob_end_clean();
+      
+      header('Content-Description: File Transfer');
       header("Content-type: application/$mimetype" );
-      header("Content-Disposition: inline; filename=$filename");
+      header("Content-Disposition: attachment; filename=$filename");
       header('Content-Length: ' . filesize($filename_path) );
+      header('Expires: 0');
+      header('Cache-Control: must-revalidate');
+      header('Pragma: public');
+      
       set_time_limit(0);
       if ( ! @readfile( $filename_path ) ) {
         Error("Error sending $filename_path");

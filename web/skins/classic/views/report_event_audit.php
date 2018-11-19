@@ -102,12 +102,12 @@ while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
     if ( $gap > $EventsByMonitor[$event['MonitorId']]['MaxGap'] )
       $EventsByMonitor[$event['MonitorId']]['MaxGap'] = $gap;
 
-  } # end if has previous events # DISABLED takes very long time on busy disk sotarage when saving images
-  // if ( ! $Event->file_exists() ) {
-    // $EventsByMonitor[$event['MonitorId']]['FileMissing'][] = $Event;
-  // } else if ( ! $Event->file_size() ) {
-    // $EventsByMonitor[$event['MonitorId']]['ZeroSize'][] = $Event;
-  // }
+  } # end if has previous events
+  if ( ! $Event->file_exists() ) {
+    $EventsByMonitor[$event['MonitorId']]['FileMissing'][] = $Event;
+  } else if ( ! $Event->file_size() ) {
+    $EventsByMonitor[$event['MonitorId']]['ZeroSize'][] = $Event;
+  }
   $EventsByMonitor[$event['MonitorId']]['Events'][] = $Event;
 } # end foreach event
 

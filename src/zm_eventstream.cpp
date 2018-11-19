@@ -71,8 +71,9 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
 
   if ( event_time ) {
     curr_stream_time = event_time;
-    curr_frame_id = 1;
+    curr_frame_id = 1; // curr_frame_id is 1-based
     if ( event_time >= event_data->start_time ) {
+      Debug(2, "event time is after event start");
       for (unsigned int i = 0; i < event_data->frame_count; i++ ) {
         //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
         if ( event_data->frames[i].timestamp >= event_time ) {
@@ -231,7 +232,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
         event_data->frames[i-1].timestamp = last_timestamp + ((i-last_id)*frame_delta);
         event_data->frames[i-1].offset = event_data->frames[i-1].timestamp - event_data->start_time;
         event_data->frames[i-1].in_db = false;
-    Debug(4,"Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
+    Debug(3,"Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
         i,
         event_data->frames[i-1].timestamp,
         event_data->frames[i-1].offset,
@@ -664,11 +665,16 @@ Debug(1, "Loading image");
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
+        AVFrame *frame;
+        if ( curr_frame_id == 1 ) {
+          // Special case, first frame, we want to send the initial keyframe.
+          frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), 0 );
+        }
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
-        AVFrame *frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), frame_data->offset );
+        frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), frame_data->offset );
         if ( frame ) {
           image = new Image(frame);
-          av_frame_free(&frame);
+          //av_frame_free(&frame);
         } else {
           Error("Failed getting a frame.");
           return false;

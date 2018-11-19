@@ -1442,7 +1442,7 @@ bool Monitor::Analyse() {
         //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
         if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
           if ( event ) {
-            Debug(3, "Detected new event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
+            Debug(3, "Have signal and recording with open event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
 
             if ( section_length && ( timestamp->tv_sec >= section_length ) ) {
               // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?

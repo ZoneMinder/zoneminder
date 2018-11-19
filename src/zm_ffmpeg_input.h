@@ -41,6 +41,7 @@ class FFmpeg_Input {
     int video_stream_id;
     int audio_stream_id;
     AVFormatContext *input_format_context;
+    AVFrame *frame;
 };
 
 #endif

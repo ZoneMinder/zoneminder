@@ -87,25 +87,25 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 
+  video_out_stream = avformat_new_stream(oc, NULL);
+  if ( !video_out_stream ) {
+    Error("Unable to create video out stream");
+    return;
+  } else {
+    Debug(2, "Success creating video out stream");
+  }
   // Since we are not re-encoding, all we have to do is copy the parameters
-  video_out_ctx = avcodec_alloc_context3(NULL);
+  video_out_ctx = video_out_stream->codec;
+  //video_out_ctx = avcodec_alloc_context3(NULL);
 
   // Copy params from instream to ctx
   ret = avcodec_parameters_to_context(video_out_ctx,
                                       video_in_stream->codecpar);
-  if (ret < 0) {
+  if ( ret < 0 ) {
     Error("Could not initialize ctx parameteres");
     return;
   } else {
     zm_dump_codec(video_out_ctx);
-  }
-
-  video_out_stream = avformat_new_stream(oc, NULL);
-  if (!video_out_stream) {
-    Error("Unable to create video out stream\n");
-    return;
-  } else {
-    Debug(2, "Success creating video out stream");
   }
 
   if ( !video_out_ctx->codec_tag ) {
@@ -117,13 +117,38 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   // Now copy them to the out stream
   ret = avcodec_parameters_from_context(video_out_stream->codecpar,
                                         video_out_ctx);
-  if (ret < 0) {
-    Error("Could not initialize stream parameteres");
+  if ( ret < 0 ) {
+    Error("Could not initialize stream parameters");
     return;
   } else {
     Debug(2, "Success setting parameters");
   }
+  zm_dump_codecpar(video_in_stream->codecpar);
   zm_dump_codecpar(video_out_stream->codecpar);
+
+  AVCodec *video_out_codec = avcodec_find_encoder( video_out_ctx->codec_id );
+    if ( !video_out_codec ) {
+#if (LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
+      Fatal( "Could not find encoder for '%s'", avcodec_get_name( video_out_ctx->codec_id ) );
+#else
+      Fatal( "Could not find encoder for '%d'", video_out_ctx->codec_id );
+#endif
+    }
+
+    AVDictionary *opts = 0;
+    if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
+      Warning("Can't open video codec (%s) %s",
+          video_out_codec->name,
+          av_make_error_string(ret).c_str()
+          );
+      video_out_codec = NULL;
+    }
+
+    AVDictionaryEntry *e = NULL;
+    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+      Warning( "Encoder Option %s not recognized by ffmpeg codec", e->key);
+    }
+
 
 #else
   video_out_stream =
@@ -131,7 +156,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 //(AVCodec *)(video_in_ctx->codec));
       //avformat_new_stream(oc,(const AVCodec *)(video_in_ctx->codec));
   if ( !video_out_stream ) {
-    Fatal("Unable to create video out stream\n");
+    Fatal("Unable to create video out stream");
   } else {
     Debug(2, "Success creating video out stream");
   }
@@ -160,6 +185,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   // Just copy them from the in, no reason to choose different
   video_out_ctx->time_base = video_in_ctx->time_base;
   if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+    Debug(2,"No timebase found in video in context, defaulting to Q");
 	  video_out_ctx->time_base = AV_TIME_BASE_Q;
   }	
   video_out_stream->time_base = video_in_stream->time_base;
@@ -182,17 +208,17 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   Monitor::Orientation orientation = monitor->getOrientation();
-  if (orientation) {
-    if (orientation == Monitor::ROTATE_0) {
-    } else if (orientation == Monitor::ROTATE_90) {
+  if ( orientation ) {
+    if ( orientation == Monitor::ROTATE_0 ) {
+    } else if ( orientation == Monitor::ROTATE_90 ) {
       dsr = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
     } else if (orientation == Monitor::ROTATE_180) {
       dsr = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
     } else if (orientation == Monitor::ROTATE_270) {
       dsr = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
     } else {
       Warning("Unsupported Orientation(%d)", orientation);
     }
@@ -209,7 +235,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   resample_ctx = NULL;
 #endif
 
-  if (audio_in_stream) {
+  if ( audio_in_stream ) {
     Debug(3, "Have audio stream");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 
@@ -352,6 +378,14 @@ bool VideoStore::open() {
     //avformat_free_context(oc);
     return false;
   }
+  Debug(3,
+        "Time bases: VIDEO in stream (%d/%d) in codec: (%d/%d) out "
+        "stream: (%d/%d) out codec (%d/%d)",
+        video_in_stream->time_base.num, video_in_stream->time_base.den,
+        video_in_ctx->time_base.num, video_in_ctx->time_base.den,
+        video_out_stream->time_base.num, video_out_stream->time_base.den,
+        video_out_ctx->time_base.num,
+        video_out_ctx->time_base.den);
   return true;
 } // end VideoStore::open()
 
@@ -359,7 +393,7 @@ VideoStore::~VideoStore() {
 
   if ( oc->pb ) {
 
-    if (audio_out_codec) {
+    if ( audio_out_codec ) {
       // The codec queues data.  We need to send a flush command and out
       // whatever we get. Failures are not fatal.
       AVPacket pkt;
@@ -394,8 +428,8 @@ VideoStore::~VideoStore() {
           break;
         }
 #endif
-        Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
-            pkt.dts, pkt.duration);
+        Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)",
+            pkt.pts, pkt.dts, pkt.duration);
 
 #if 0
         if ( pkt.duration > 0 )
@@ -450,7 +484,7 @@ VideoStore::~VideoStore() {
 
     avcodec_close(video_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    avcodec_free_context(&video_out_ctx);
+    //avcodec_free_context(&video_out_ctx);
 #endif
     video_out_ctx = NULL;
     Debug(4, "Success freeing video_out_ctx");
@@ -780,7 +814,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
       Debug(2, "Starting video first_pts will become %" PRId64, ipkt->pts);
       video_first_pts = ipkt->pts;
     } else {
-      if ( ipkt->pts < video_first_pts ) {
+      if ( 0 && ipkt->pts < video_first_pts ) {
         Debug(1, "Resetting first_pts from %" PRId64 " to %" PRId64, video_last_pts, ipkt->pts);
         video_first_pts -= video_last_pts; 
         // wrap around, need to figure out the distance FIXME having this wrong should cause a jump, but then play ok?
@@ -805,7 +839,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
       Debug(1, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
       video_first_dts = ipkt->dts;
     } else {
-      if ( ipkt->dts < video_first_dts ) {
+      if ( 0 && ipkt->dts < video_first_dts ) {
         Debug(1, "Resetting first_dts from (%" PRId64 ") to (%" PRId64")",
             video_first_dts, ipkt->dts);
         video_first_dts -= video_last_dts;

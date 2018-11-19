@@ -80,7 +80,7 @@ foreach ($params['eids'] as $eid) {
   # Calc framerate
   $framerateStr = $framerate / RATE_BASE;
   # How to get actual framerate?
-  $hardCodedFramerate = framerateStr * 5;
+  $hardCodedFramerate = $framerateStr * 5;
 
   # Command lines
   $commandline1 = 'cd ' . ZM_DIR_EVENTS . '/' . $event['MonitorId'] . '/' . $date  .  '/' . $eid;

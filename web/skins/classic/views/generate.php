@@ -69,13 +69,21 @@ if ( !empty($_REQUEST['eids']) ) {
             <tr>
               <th scope="row">Framerate</th>
               <td>
+
                  <select name="generateFramerate">
-                   <option value="1">1/4x</option>
-                   <option value="2">1/2x</option>
-                   <option value="4" selected>Real</option>
-                   <option value="8">2x</option>
-                   <option value="16">4x</option>
-                   <option value="32">8x</option>
+
+
+                  <option value="10000">100x</option>
+                  <option value="5000">50x</option>
+                  <option value="2500">25x</option>
+                  <option value="1000">10x</option>
+                  <option value="400">4x</option>
+                  <option value="200">2x</option>
+                  <option value="100" selected="selected">Real</option>
+                  <option value="50">1/2x</option>
+                  <option value="25">1/4x</option>
+    
+
                  </select>
               </td>
             </tr>

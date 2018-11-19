@@ -291,7 +291,7 @@ if ( $pagination ) {
           <?php echo translate('DownloadVideo') ?>
           </button>
           <button type="button" name="generateBtn" value="GenerateVideo" onclick="generateVideo(this, 'markEids')" disabled="disabled">
-          <?php echo 'generate video' ?>
+          <?php echo translate('GenerateVideo') ?>
           </button>
           <button type="button" name="deleteBtn" value="Delete" onclick="deleteEvents(this, 'markEids');" disabled="disabled">
           <?php echo translate('Delete') ?>

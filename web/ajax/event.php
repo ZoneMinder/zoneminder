@@ -15,14 +15,34 @@ if ( canView( 'Events' ) ) {
         } elseif ( empty($_REQUEST['scale']) ) {
           ajaxError( 'Video Generation Failure, no scale given' );
         } else {
-          $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.monitorLimitSql();
-          if ( !($event = dbFetchOne( $sql, NULL, array( $_REQUEST['id'] ) )) )
-            ajaxError( 'Video Generation Failure, Unable to load event' );
-          else {
-            if ( $videoFile = createVideo( $event, $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], !empty($_REQUEST['overwrite']) ) )
-              ajaxResponse( array( 'response'=>$videoFile ) );
-            else
-              ajaxError( 'Video Generation Failed' );
+          set_time_limit(0);
+          if ( empty($_REQUEST['id']) ) {
+            $ajaxResponse = array();
+            foreach ($_REQUEST['eids'] as $eid) {
+              $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.monitorLimitSql();
+              if ( !($event = dbFetchOne( $sql, NULL, array( $eid ) )) ) {
+                array_push( $ajaxResponse, 'Video Generation Failure, Unable to load event' );
+                continue;
+              } else {
+                if ( $videoFile = createVideo( $event, $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], !empty($_REQUEST['overwrite']) ) )
+                  array_push( $ajaxResponse, $videoFile );
+                else {
+                  array_push( $ajaxResponse, 'Video Generation Failed' );
+                  continue;
+                }
+              }
+            }
+            ajaxResponse( array( 'response'=>$ajaxResponse ) );
+          } else {
+            $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.monitorLimitSql();
+            if ( !($event = dbFetchOne( $sql, NULL, array( $_REQUEST['id'] ) )) )
+              ajaxError( 'Video Generation Failure, Unable to load event' );
+            else {
+              if ( $videoFile = createVideo( $event, $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], !empty($_REQUEST['overwrite']) ) )
+                ajaxResponse( array( 'response'=>$videoFile ) );
+              else
+                ajaxError( 'Video Generation Failed' );
+            }
           }
         }
         $ok = true;

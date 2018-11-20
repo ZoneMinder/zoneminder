@@ -1,13 +1,12 @@
 
-$j( window ).load(function() {
-
-  $j( "#generateButton" ).click(function(e) {
-    e.preventDefault(); 
-    var form = $j("#contentForm").serializeArray();
-    $j( "#result" ).val( "Loading..." );
-    $j.post("ajax/generate.php", form, function( data ) {
-      $j( "#result" ).val( data );
-    });
-  });
-
-});
+function generateVideo( form ) {
+  var parms = 'view=request&request=event&action=video';
+  parms += '&'+$(form).toQueryString();
+  var query = new Request.JSON( { url: thisUrl, method: 'post', data: parms } );
+  query.send();
+  // $('videoProgress').removeClass( 'hidden' );
+  // $('videoProgress').setProperty( 'class', 'warnText' );
+  // $('videoProgressText').set( 'text', videoGenProgressString );
+  // generateVideoProgress();
+  // generateVideoTimer = generateVideoProgress.periodical( 500 );
+}

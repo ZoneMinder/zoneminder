@@ -23,9 +23,23 @@ if ( !canView('Events') ) {
   return;
 }
 
+$videoFormats = array();
+$ffmpegFormats = preg_split('/\s+/', ZM_FFMPEG_FORMATS);
+foreach ( $ffmpegFormats as $ffmpegFormat ) {
+  if ( preg_match('/^([^*]+)(\*\*?)$/', $ffmpegFormat, $matches) ) {
+    $videoFormats[$matches[1]] = $matches[1];
+    if ( !isset($videoFormat) && $matches[2] == '*' ) {
+      $videoFormat = $matches[1];
+    }
+  } else {
+    $videoFormats[$ffmpegFormat] = $ffmpegFormat;
+  }
+}
+
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Generate') );
+
 ?>
 <body>
   <div id="page">
@@ -49,63 +63,30 @@ if ( !empty($_REQUEST['eids']) ) {
     echo '<div class="warning">There are no events found.</div>';
 }
 ?>
-        <table id="contentTable" class="minor" cellspacing="0">
+        
+        <table id="contentTable" class="minor">
           <tbody>
             <tr>
-              <th scope="row">Encoder </th>
-              <td>
-                <input type="radio" id="generateEncoderNone" name="generateEncoder" value="none"/>
-                <label for="generateEncoderNone">Uncompressed</label>
-              </td>
-              <td>
-                <input type="radio" id="generateEncoderx264" name="generateEncoder" value="x264" checked="checked"/>
-                <label for="generateEncoderx264">x264</label>
-              </td>
-              <td>
-                <input type="radio" id="generateEncodermpeg2" name="generateEncoder" value="mpeg2"/>
-                <label for="generateEncodermpeg2">MPEG-2</label>
-              </td>
+              <th scope="row"><?php echo translate('VideoFormat') ?></th>
+              <td><?php echo buildSelect('videoFormat', $videoFormats) ?></td>
             </tr>
             <tr>
-              <th scope="row">Framerate</th>
-              <td>
-
-                 <select name="generateFramerate">
-
-
-                  <option value="10000">100x</option>
-                  <option value="5000">50x</option>
-                  <option value="2500">25x</option>
-                  <option value="1000">10x</option>
-                  <option value="400">4x</option>
-                  <option value="200">2x</option>
-                  <option value="100" selected="selected">Real</option>
-                  <option value="50">1/2x</option>
-                  <option value="25">1/4x</option>
-    
-
-                 </select>
-              </td>
+              <th scope="row"><?php echo translate('FrameRate') ?></th>
+              <td><?php echo buildSelect('rate', $rates) ?></td>
             </tr>
             <tr>
-              <th scope="row">Size</th>
-              <td>
-                 <select name="generateSize">
-                   <option value="1" selected>Actual</option>
-                   <option value="0.75">3/4</option>
-                   <option value="0.5">1/2</option>
-                   <option value="0.25">1/4</option>
-                   <option value="0.125">1/8</option>
-                 </select>
-              </td>
+              <th scope="row"><?php echo translate('VideoSize') ?></th>
+              <td><?php echo buildSelect('scale', $scales) ?></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('OverwriteExisting') ?></th>
+              <td><input type="checkbox" name="overwrite" value="1"<?php if ( !empty($_REQUEST['overwrite']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
           </tbody>
         </table>
-        <input type="button" id="generateButton" name="generateButton" value="<?php echo translate('GenerateVideo') ?>" />
+        <input type="button" value="<?php echo translate('GenerateVideo') ?>" onclick="generateVideo(this.form);"<?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>/>
       </form>
-      <br>
-      <label for="result">Output</label><br>
-      <textarea rows="8" cols="100" id="result"></textarea>
+
     </div>
   </div>
 </body>

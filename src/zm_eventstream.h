@@ -47,8 +47,8 @@ class EventStream : public StreamBase {
   protected:
     struct FrameData {
       //unsigned long   id;
-      time_t          timestamp;
-      time_t          offset;
+      double          timestamp;
+      double          offset;
       double          delta;
       bool            in_db;
     };

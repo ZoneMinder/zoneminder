@@ -188,7 +188,7 @@ int FfmpegCamera::Capture(ZMPacket &zm_packet) {
       }
       return -1;
   }
-  dumpPacket(&packet, "ffmpeg_camera in");
+  dumpPacket(mFormatContext->streams[packet.stream_index], &packet, "ffmpeg_camera in");
   if ( 0 && ( packet.dts < 0 ) ) {
     zm_av_packet_unref(&packet);
     return 0;

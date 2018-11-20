@@ -74,6 +74,11 @@ int audio_in_stream_index;
   int64_t audio_last_pts;
   int64_t audio_last_dts;
 
+  int64_t video_first_pts;
+  int64_t video_first_dts;
+  int64_t audio_first_pts;
+  int64_t audio_first_dts;
+
   // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
 ;
   int64_t audio_next_pts;

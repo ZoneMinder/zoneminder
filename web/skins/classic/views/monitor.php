@@ -116,6 +116,7 @@ if ( ! $monitor ) {
           'DefaultView' => 'Events',
           'DefaultRate' => '100',
           'DefaultScale' => '100',
+          'DefaultCodec' => 'auto',
           'SignalCheckPoints' => '10',
           'SignalCheckColour' => '#0000c0',
           'WebColour' => 'red',
@@ -173,7 +174,7 @@ if ( !empty($_REQUEST['preset']) ) {
   }
 }
 if ( !empty($_REQUEST['probe']) ) {
-  $probe = unserialize(base64_decode($_REQUEST['probe']));
+  $probe = json_decode(base64_decode($_REQUEST['probe']));
   foreach ( $probe as $name=>$value ) {
     if ( isset($value) ) {
       # Does isset handle NULL's?  I don't think this code is correct. 
@@ -452,6 +453,12 @@ $savejpegopts = array(
     'Frames + Analysis images (if available)'             => 3,
     );
 
+$codecs = array(
+  'auto'  => translate('Auto'),
+  'H264'  => translate('H264'),
+  'H265'  => translate('H265'),
+  'MJPEG' => translate('MJPEG'),
+);
 
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
 ?>
@@ -663,6 +670,7 @@ if ( $tab != 'misc' ) {
       <input type="hidden" name="newMonitor[DefaultView]" value="<?php echo validHtmlStr($monitor->DefaultView()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultRate]" value="<?php echo validHtmlStr($monitor->DefaultRate()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultScale]" value="<?php echo validHtmlStr($monitor->DefaultScale()) ?>"/>
+      <input type="hidden" name="newMonitor[DefaultCodec]" value="<?php echo validHtmlStr($monitor->DefaultCodec()) ?>"/>
       <input type="hidden" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>"/>
       <input type="hidden" name="newMonitor[Exif]" value="<?php echo validHtmlStr($monitor->Exif()) ?>"/>
 <?php
@@ -981,7 +989,15 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               </td>
             </tr>
             <tr><td><?php echo translate('OptionalEncoderParam') ?></td><td><textarea name="newMonitor[EncoderParameters]" rows="4" cols="36"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea></td></tr>
-            <tr><td><?php echo translate('RecordAudio') ?></td><td><input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr><td><?php echo translate('RecordAudio') ?></td><td>
+<?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
+              <input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/>
+<?php } else { ?>
+              Audio recording only available with FFMPEG using H264 Passthrough
+              <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
+<?php } ?>
+            </td></tr>
+
 <?php
       break;
   case 'timestamp' :
@@ -1059,6 +1075,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
         </select></td></tr>
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
+        <tr><td><?php echo translate('DefaultCodec') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultCodec]", $codecs, $monitor->DefaultCodec() ); ?></td></tr>
         <tr>
           <td><?php echo translate('SignalCheckPoints') ?></td>
           <td>

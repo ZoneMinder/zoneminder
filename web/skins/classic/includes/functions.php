@@ -192,7 +192,7 @@ echo output_link_if_exists( array(
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="js/logger.js"></script>
 <?php 
-  if ($basename == 'watch') {
+  if ($basename == 'watch' or $basename == 'log' ) {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
 <script type="text/javascript" src="js/overlay.js"></script>
@@ -345,7 +345,7 @@ if ($reload == 'reload') ob_start();
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
-  $percent_used = 100 * $connections / $max_connections;
+  $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
   echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
 ?>
 	  <li><?php echo translate('Storage') ?>:

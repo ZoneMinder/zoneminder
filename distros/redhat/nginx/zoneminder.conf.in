@@ -22,6 +22,10 @@ location /cgi-bin-zm {
     fastcgi_pass  unix:/run/fcgiwrap.sock;
 }
 
+location /zm/cache {
+    alias "@ZM_CACHEDIR@";
+}
+
 location /zm {
     gzip off;
     alias                   "@ZM_WEBDIR@";

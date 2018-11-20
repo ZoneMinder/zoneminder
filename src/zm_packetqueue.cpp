@@ -240,13 +240,16 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
 void zm_packetqueue::clearQueue() {
   mutex.lock();
   ZMPacket *packet = NULL;
-	while ( !pktQueue.empty() ) {
+  int delete_count = 0;
+	while(!pktQueue.empty()) {
     packet = pktQueue.front();
     packet_counts[packet->packet.stream_index] -= 1;
     pktQueue.pop_front();
     if ( packet->image_index == -1 )
       delete packet;
+    delete_count += 1;
 	}
+  Debug(3, "Deleted (%d) packets", delete_count );
   video_packet_count = 0;
   first_video_packet_index = -1;
   analysis_it = pktQueue.begin();

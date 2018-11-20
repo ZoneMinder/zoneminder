@@ -441,7 +441,7 @@ sub start {
 
     $dbh = zmDbConnect(1);
     # This logReinit is required.  Not sure why.
-    #logReinit();
+    logReinit();
 
     $process->{pid} = $cpid;
     $process->{started} = time();

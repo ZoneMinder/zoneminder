@@ -189,7 +189,7 @@ class Storage {
     # This isn't a function like this in php, so we have to add up the space used in each event.
     if ( ( !array_key_exists('disk_used_space', $this)) or !$this->{'disk_used_space'} ) {
       if ( $this->{'Type'} == 's3fs' ) {
-        $this->{'disk_used_space'} = $this->disk_event_space();
+        $this->{'disk_used_space'} = $this->event_disk_space();
       } else { 
         $path = $this->Path();
         if ( file_exists($path) ) {

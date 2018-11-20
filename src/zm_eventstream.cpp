@@ -71,8 +71,9 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
 
   if ( event_time ) {
     curr_stream_time = event_time;
-    curr_frame_id = 1;
+    curr_frame_id = 1; // curr_frame_id is 1-based
     if ( event_time >= event_data->start_time ) {
+      Debug(2, "event time is after event start");
       for (unsigned int i = 0; i < event_data->frame_count; i++ ) {
         //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
         if ( event_data->frames[i].timestamp >= event_time ) {
@@ -109,7 +110,10 @@ bool EventStream::loadInitialEventData( uint64_t init_event_id, unsigned int ini
 bool EventStream::loadEventData(uint64_t event_id) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
-  snprintf(sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo, Scheme FROM Events WHERE Id = %" PRIu64, event_id);
+  snprintf(sql, sizeof(sql), "SELECT MonitorId, StorageId, Frames,"
+     " unix_timestamp( StartTime ) AS StartTimestamp,"
+     " (SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, DefaultVideo, Scheme"
+     " FROM Events WHERE Id = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -161,18 +165,25 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
     if ( storage_path[0] == '/' )
       snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
-          storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+          storage_path, event_data->monitor_id,
+          event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
+          event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
     else
       snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
-          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday, event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
+          event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
+          event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
   } else if ( event_data->scheme == Storage::MEDIUM ) {
     struct tm *event_time = localtime( &event_data->start_time );
     if ( storage_path[0] == '/' )
       snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%04d-%02d-%02d/%" PRIu64,
-          storage_path, event_data->monitor_id, event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, event_data->event_id );
+          storage_path, event_data->monitor_id,
+          event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday,
+          event_data->event_id );
     else
       snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%04d-%02d-%02d/%" PRIu64,
-          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, 
+          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
+          event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, 
           event_data->event_id );
 
   } else {
@@ -186,8 +197,9 @@ bool EventStream::loadEventData(uint64_t event_id) {
   delete storage; storage = NULL;
 
   updateFrameRate( (double)event_data->frame_count/event_data->duration );
+  Debug(3,"fps set by frame_count(%d)/duration(%f)", event_data->frame_count, event_data->duration);
 
-  snprintf(sql, sizeof(sql), "SELECT FrameId, unix_timestamp( `TimeStamp` ), Delta FROM Frames where EventId = %" PRIu64 " ORDER BY FrameId ASC", event_id);
+  snprintf(sql, sizeof(sql), "SELECT FrameId, unix_timestamp(`TimeStamp`), Delta FROM Frames WHERE EventId = %" PRIu64 " ORDER BY FrameId ASC", event_id);
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     exit(mysql_errno(&dbconn));
@@ -203,29 +215,46 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   event_data->frames = new FrameData[event_data->frame_count];
   int last_id = 0;
-  time_t timestamp, last_timestamp = event_data->start_time;
+  double last_timestamp = event_data->start_time;
   double last_delta = 0.0;
+
   while ( ( dbrow = mysql_fetch_row( result ) ) ) {
     int id = atoi(dbrow[0]);
-    timestamp = atoi(dbrow[1]);
+    //timestamp = atof(dbrow[1]);
     double delta = atof(dbrow[2]);
     int id_diff = id - last_id;
-    double frame_delta = id_diff ? (delta-last_delta)/id_diff : 0;
+    double frame_delta = id_diff ? (delta-last_delta)/id_diff : (delta - last_delta);
+    // Fill in data between bulk frames
     if ( id_diff > 1 ) {
       for ( int i = last_id+1; i < id; i++ ) {
-        event_data->frames[i-1].timestamp = (time_t)(last_timestamp + ((i-last_id)*frame_delta));
-        event_data->frames[i-1].offset = (time_t)(event_data->frames[i-1].timestamp-event_data->start_time);
+        // Delta is the time since last frame, no since beginning of Event
         event_data->frames[i-1].delta = frame_delta;
+        event_data->frames[i-1].timestamp = last_timestamp + ((i-last_id)*frame_delta);
+        event_data->frames[i-1].offset = event_data->frames[i-1].timestamp - event_data->start_time;
         event_data->frames[i-1].in_db = false;
+    Debug(3,"Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
+        i,
+        event_data->frames[i-1].timestamp,
+        event_data->frames[i-1].offset,
+        event_data->frames[i-1].delta,
+        event_data->frames[i-1].in_db
+        );
       }
     }
-    event_data->frames[id-1].timestamp = timestamp;
-    event_data->frames[id-1].offset = (time_t)(event_data->frames[id-1].timestamp-event_data->start_time);
-    event_data->frames[id-1].delta = id>1?frame_delta:0.0;
+    event_data->frames[id-1].timestamp = event_data->start_time + delta;
+    event_data->frames[id-1].offset = delta;
+    event_data->frames[id-1].delta = frame_delta;
     event_data->frames[id-1].in_db = true;
     last_id = id;
     last_delta = delta;
-    last_timestamp = timestamp;
+    last_timestamp = event_data->frames[id-1].timestamp;
+    Debug(4,"Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
+        id,
+        event_data->frames[id-1].timestamp,
+        event_data->frames[id-1].offset,
+        event_data->frames[id-1].delta,
+        event_data->frames[id-1].in_db
+        );
   }
   if ( mysql_errno( &dbconn ) ) {
     Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
@@ -636,10 +665,16 @@ Debug(1, "Loading image");
       } else if ( ffmpeg_input ) {
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
-        AVFrame *frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), curr_frame_id );
+        AVFrame *frame;
+        if ( curr_frame_id == 1 ) {
+          // Special case, first frame, we want to send the initial keyframe.
+          frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), 0 );
+        }
+        FrameData *frame_data = &event_data->frames[curr_frame_id-1];
+        frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), frame_data->offset );
         if ( frame ) {
           image = new Image(frame);
-          av_frame_free(&frame);
+          //av_frame_free(&frame);
         } else {
           Error("Failed getting a frame.");
           return false;
@@ -803,12 +838,16 @@ void EventStream::runStream() {
       }
 
       // Figure out if we should send this frame
-
+Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
       // If we are streaming and this frame is due to be sent
-      if ( ((curr_frame_id-1)%frame_mod) == 0 ) {
+      // frame mod defaults to 1 and if we are going faster than max_fps will get multiplied by 2
+      // so if it is 2, then we send every other frame, if is it 4 then every fourth frame, etc.
+      if ( (frame_mod == 1) || (((curr_frame_id-1)%frame_mod) == 0) ) {
         delta_us = (unsigned int)(frame_data->delta * 1000000);
+        Debug(3,"frame delta %u ", delta_us);
         // if effective > base we should speed up frame delivery
         delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
+        Debug(3,"delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
         // but must not exceed maxfps
         delta_us = max(delta_us, 1000000 / maxfps);
         send_frame = true;

@@ -120,7 +120,6 @@ bool VideoStore::open() {
   oc->metadata = pmetadata;
   out_format = oc->oformat;
 
-
   if ( video_in_stream ) {
     video_in_stream_index = video_in_stream->index;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -408,7 +407,7 @@ bool VideoStore::open() {
         audio_out_ctx->codec_tag = 0;
 #endif
         if ( ret < 0 ) {
-          Error("Unable to copy audio ctx %s\n",
+          Error("Unable to copy audio ctx %s",
               av_make_error_string(ret).c_str());
           audio_out_stream = NULL;
         } else {
@@ -610,7 +609,7 @@ VideoStore::~VideoStore() {
 
     avcodec_close(video_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    avcodec_free_context(&video_out_ctx);
+    //avcodec_free_context(&video_out_ctx);
 #endif
     video_out_ctx = NULL;
     Debug(4, "Success freeing video_out_ctx");
@@ -695,7 +694,7 @@ bool VideoStore::setup_resampler() {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
   if ( !audio_out_ctx ) {
-    Error("could not allocate codec ctx for AAC\n");
+    Error("could not allocate codec ctx for AAC");
     audio_out_stream = NULL;
     return false;
   }
@@ -713,6 +712,13 @@ bool VideoStore::setup_resampler() {
 #else
   audio_out_ctx->refcounted_frames = 1;
 #endif
+  if ( ! audio_out_ctx->channel_layout ) {
+    Debug(3, "Correcting channel layout from (%d) to (%d)",
+        audio_out_ctx->channel_layout,
+        av_get_default_channel_layout(audio_out_ctx->channels)
+        );
+      audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
+  }
 
   if ( audio_out_codec->supported_samplerates ) {
     int found = 0;
@@ -904,7 +910,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     if ( ! zm_packet->out_frame ) {
       //Debug(3, "Have no out frame");
       AVFrame *out_frame = zm_packet->out_frame = zm_av_frame_alloc();
-      if ( ! out_frame ) {
+      if ( !out_frame ) {
         Error("Unable to allocate a frame");
         return 0;
       }
@@ -942,16 +948,16 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       out_frame->format = video_out_ctx->pix_fmt;
       //out_frame->pkt_duration = 0;
 
-      if ( ! zm_packet->in_frame ) {
+      if ( !zm_packet->in_frame ) {
         //Debug(2,"Have no in_frame");
         if ( zm_packet->packet.size ) {
           //Debug(2,"Decoding");
-          if ( ! zm_packet->decode( video_in_ctx ) ) {
+          if ( !zm_packet->decode(video_in_ctx) ) {
             Debug(2, "unable to decode yet.");
             return 0;
           }
           //Go straight to out frame
-          swscale.Convert( zm_packet->in_frame, out_frame );
+          swscale.Convert(zm_packet->in_frame, out_frame);
         } else if ( zm_packet->image ) {
           //Debug(2,"Have an image, convert it");
           //Go straight to out frame
@@ -986,18 +992,18 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       uint64_t temp = zm_packet->timestamp->tv_sec*(uint64_t)1000000;
       video_start_pts = temp + zm_packet->timestamp->tv_usec;
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d=>%" PRId64 ") usecs(%d)",
-          video_start_pts, zm_packet->timestamp->tv_sec, temp, zm_packet->timestamp->tv_usec );
+          video_start_pts, zm_packet->timestamp->tv_sec, temp, zm_packet->timestamp->tv_usec);
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ") secs(%d) usecs(%d)",
-          video_start_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
+          video_start_pts, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
       zm_packet->out_frame->pts = 0;
       zm_packet->out_frame->coded_picture_number = 0;
     } else {
       uint64_t seconds = ( zm_packet->timestamp->tv_sec*(uint64_t)1000000 + zm_packet->timestamp->tv_usec ) - video_start_pts;
-      zm_packet->out_frame->pts = av_rescale_q( seconds, video_in_stream->time_base, video_out_ctx->time_base);
+      zm_packet->out_frame->pts = av_rescale_q(seconds, video_in_stream->time_base, video_out_ctx->time_base);
 
       //zm_packet->out_frame->pkt_duration = zm_packet->out_frame->pts - video_start_pts;
       Debug(2, " Setting pts for frame(%d), set to (%" PRId64 ") from (start %" PRIu64 " - %" PRIu64 " - secs(%d) usecs(%d)",
-          frame_count, zm_packet->out_frame->pts, video_start_pts, seconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec );
+          frame_count, zm_packet->out_frame->pts, video_start_pts, seconds, zm_packet->timestamp->tv_sec, zm_packet->timestamp->tv_usec);
     }
     if ( zm_packet->keyframe ) {
       //Debug(2, "Setting keyframe was (%d)", zm_packet->out_frame->key_frame );
@@ -1022,7 +1028,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     if ( (ret = avcodec_receive_packet(video_out_ctx, &opkt)) < 0 ) {
       zm_av_packet_unref(&opkt);
       if ( AVERROR(EAGAIN) == ret ) {
-        // THe codec may need more samples than it has, perfectly valid
+        // The codec may need more samples than it has, perfectly valid
         Debug(3, "Could not recieve packet (error '%s')",
             av_make_error_string(ret).c_str());
         return 0;
@@ -1057,7 +1063,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
     if ( opkt.dts != AV_NOPTS_VALUE)
       opkt.dts = av_rescale_q(opkt.dts, video_out_ctx->time_base, video_out_stream->time_base);
 
-  } else {
+  } else { // codec matches, we are doing passthrough
     AVPacket *ipkt = &zm_packet->packet;
     Debug(3, "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
@@ -1071,7 +1077,7 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       Debug(2, "No video_lsat_pts, set to (%" PRId64 ")", video_start_pts );
       opkt.dts = opkt.pts = 0;
     } else {
-      dumpPacket(ipkt);
+      dumpPacket(video_in_stream, ipkt);
       if ( ipkt->pts != AV_NOPTS_VALUE ) 
         opkt.pts = av_rescale_q( ipkt->pts - video_start_pts, video_in_stream->time_base, video_out_stream->time_base );
       else
@@ -1081,21 +1087,20 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
         opkt.dts = av_rescale_q( ipkt->dts - video_start_pts, video_in_stream->time_base, video_out_stream->time_base );
       else
         opkt.dts = 0;
+
       Debug(2, "out_stream_time_base(%d/%d) in_stream_time_base(%d/%d) video_start_pts(%" PRId64 ")",
           video_out_stream->time_base.num, video_out_stream->time_base.den,
           video_in_stream->time_base.num, video_in_stream->time_base.den,
           video_start_pts
           );
 
-      dumpPacket(&opkt);
+      dumpPacket(video_out_stream, &opkt);
 
       opkt.duration = av_rescale_q( opkt.duration, video_in_stream->time_base, video_out_stream->time_base);
     }
-  }
+  } // end if codec matches
 
-  //opkt.duration = 0;
-
-  write_video_packet( opkt );
+  write_video_packet(opkt);
   zm_av_packet_unref(&opkt);
 
   return 1;
@@ -1114,7 +1119,7 @@ void VideoStore::write_video_packet( AVPacket &opkt ) {
   opkt.stream_index = video_out_stream->index;
   //av_packet_rescale_ts( &opkt, video_out_ctx->time_base, video_out_stream->time_base );
 
-  dumpPacket(&opkt, "writing video packet");
+  dumpPacket(video_out_stream, &opkt, "writing video packet");
 
   if ( (opkt.data == NULL) || (opkt.size < 1) ) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
@@ -1187,9 +1192,9 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
     int data_present;
     if ( (ret = avcodec_decode_audio4(audio_in_ctx, in_frame,
             &data_present, ipkt)) < 0 ) {
-      Error("Could not decode frame (error '%s')\n",
+      Error("Could not decode frame (error '%s')",
           av_make_error_string(ret).c_str());
-      dumpPacket(ipkt);
+      dumpPacket(autdio_in_stream, ipkt);
       av_frame_free(&in_frame);
       return 0;
     }
@@ -1346,7 +1351,7 @@ if ( opkt.dts > opkt.pts ) {
 //opkt.duration = out_frame ? out_frame->nb_samples : ipkt->duration;
 // opkt.duration = av_rescale_q(ipkt->duration, audio_in_stream->time_base,
 // audio_out_stream->time_base);
-dumpPacket(&opkt);
+dumpPacket(audio_out_stream, &opkt);
 
 // pkt.pos:  byte position in stream, -1 if unknown
 opkt.pos = -1;
@@ -1360,7 +1365,7 @@ ret = av_interleaved_write_frame(oc, &opkt);
 if ( ret != 0 ) {
   Error("Error writing audio frame packet: %s\n",
       av_make_error_string(ret).c_str());
-  dumpPacket(&safepkt);
+  dumpPacket(audio_out_stream, &safepkt);
 } else {
   Debug(2, "Success writing audio frame");
 }

@@ -75,7 +75,7 @@ NOTE: EL7 users should replace "dnf" with "yum" in the instructions below.
 
    When in doubt, proceed with the default:
 
-     sudo ln -s /etc/zm/www/zoneminder.httpd.conf /etc/httpd/conf.d/
+     sudo ln -sf /etc/zm/www/zoneminder.httpd.conf /etc/httpd/conf.d/
      sudo dnf install mod_ssl
 
 7. Now start the web server:
@@ -145,6 +145,9 @@ Upgrades
    The contents of this file must be merged into your Apache configuration.
    See step 6 of the installation section if you have not already done this
    during a previous upgrade.
+
+   If this step is not performed correctly, the web console will appear
+   mostly empty and/or significantly corrupted post-upgrade. 
 
 4. Upgrade the database before starting ZoneMinder.
 

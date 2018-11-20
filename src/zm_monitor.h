@@ -132,24 +132,25 @@ protected:
     uint8_t format;             /* +55   */
     uint32_t imagesize;         /* +56   */
     uint32_t epadding1;         /* +60   */
-    uint32_t epadding2;         /* +64   */
-    /*
+    /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
-     */
-    union {                     /* +68   */
+     ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple 
+     ** of 8. Add or delete epadding's to achieve this.
+     */  
+    union {                     /* +64   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +76   */
+    union {                     /* +72  */
       time_t last_write_time;
       uint64_t extrapad2;
     };
-    union {            /* +84   */
+    union {            /* +80   */
       time_t last_read_time;
       uint64_t extrapad3;
     };
-    uint8_t control_state[256];  /* +92   */
+    uint8_t control_state[256];  /* +88   */
 
     char alarm_cause[256];
 

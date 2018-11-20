@@ -408,8 +408,8 @@ bool VideoStore::open() {
         audio_out_ctx->codec_tag = 0;
 #endif
         if ( ret < 0 ) {
-          Error("Unable to copy audio ctx %s\n",
-              av_make_error_string(ret).c_str());
+          Error("Unable to copy audio ctx %s",
+                av_make_error_string(ret).c_str());
           audio_out_stream = NULL;
         } else {
           if ( audio_out_ctx->channels > 1 ) {
@@ -694,8 +694,9 @@ bool VideoStore::setup_resampler() {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
+
   if ( !audio_out_ctx ) {
-    Error("could not allocate codec ctx for AAC\n");
+    Error("could not allocate codec ctx for AAC");
     audio_out_stream = NULL;
     return false;
   }
@@ -713,6 +714,13 @@ bool VideoStore::setup_resampler() {
 #else
   audio_out_ctx->refcounted_frames = 1;
 #endif
+  if ( ! audio_out_ctx->channel_layout ) {
+    Debug(3, "Correcting channel layout from (%d) to (%d)",
+        audio_out_ctx->channel_layout,
+        av_get_default_channel_layout(audio_out_ctx->channels)
+        );
+      audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
+  }
 
   if ( audio_out_codec->supported_samplerates ) {
     int found = 0;

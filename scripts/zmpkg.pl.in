@@ -310,17 +310,19 @@ sub isActiveSanityCheck {
   if ( $sth->rows != 1 ) {
 # PP - no row, or too many rows. Either case is an error
     Info( 'Fixing States table - either no default state or duplicate default states' );
-    $sql = "DELETE FROM States WHERE Name='default'";
-    $sth = $dbh->prepare_cached( $sql )
-      or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    $res = $sth->execute()
-      or Fatal( "Can't execute: ".$sth->errstr() );
-    $sql = q`"INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');`;
+    if ( $sth->rows ) {
+      $sql = q`DELETE FROM States WHERE Name='default'`;
+      $sth = $dbh->prepare_cached( $sql )
+        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+      $res = $sth->execute()
+        or Fatal( "Can't execute: ".$sth->errstr() );
+    }
+    $sql = q`INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');`;
     $sth = $dbh->prepare_cached($sql)
       or Fatal("Can't prepare '$sql': ".$dbh->errstr());
     $res = $sth->execute()
       or Fatal("Can't execute: ".$sth->errstr());
-  }	
+  }
 
 # PP - Now make sure no two states have IsActive=1
   $sql = 'SELECT Name FROM States WHERE IsActive = 1';

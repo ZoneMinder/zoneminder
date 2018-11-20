@@ -84,7 +84,6 @@ BuildRequires: libmp4v2-devel
 BuildRequires: x264-devel
 
 %{?with_nginx:Requires: nginx}
-%{?with_nginx:Requires: fcgiwrap}
 %{?with_nginx:Requires: php-fpm}
 %{!?with_nginx:Requires: httpd}
 %{!?with_nginx:Requires: php}
@@ -131,7 +130,7 @@ designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
 %prep
-%autosetup -p 1 -a 1 -n ZoneMinder-%{version}
+%autosetup -p 1 -a 1
 %{__rm} -rf ./web/api/app/Plugin/Crud
 %{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
@@ -265,12 +264,9 @@ EOF
 %config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/*.conf
 %ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 
-%config(noreplace) %attr(644,root,root) /etc/zm/www/zoneminder.conf
+%config(noreplace) %attr(644,root,root) %{_sysconfdir}/zm/www/zoneminder.conf
+%config(noreplace) %{_sysconfdir}/zm/www/zoneminder.php-fpm.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
-
-%if 0%{?with_nginx}
-%config(noreplace) %{_sysconfdir}/php-fpm.d/zoneminder.conf
-%endif
 
 %{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
@@ -306,7 +302,7 @@ EOF
 
 %{_libexecdir}/zoneminder/
 %{_datadir}/zoneminder/
-%{_datadir}/applications/*%{name}.desktop
+%{_datadir}/applications/*zoneminder.desktop
 
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events

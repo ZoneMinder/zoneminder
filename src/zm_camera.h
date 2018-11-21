@@ -53,13 +53,12 @@ protected:
   int           contrast;
   bool          capture;
   bool          record_audio;
+  int                 mVideoStreamId;
+  int                 mAudioStreamId;
+  AVCodecContext      *mVideoCodecContext;
+  AVCodecContext      *mAudioCodecContext;
+  AVStream *video_stream;
   unsigned int  bytes;
-
-    int                 mVideoStreamId;
-    int                 mAudioStreamId;
-    AVCodecContext      *mVideoCodecContext;
-    AVCodecContext      *mAudioCodecContext;
-    AVStream *video_stream;
 
 public:
   Camera(

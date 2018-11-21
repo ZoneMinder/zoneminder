@@ -3,8 +3,13 @@
 
 #include "zm_ffmpeg.h"
 extern "C"  {
+#ifdef HAVE_LIBSWRESAMPLE
+#include "libswresample/swresample.h"
+#endif
+#else
 #ifdef HAVE_LIBAVRESAMPLE
 #include "libavresample/avresample.h"
+#endif
 #endif
 }
 
@@ -60,8 +65,12 @@ int audio_in_stream_index;
   // The following are used when encoding the audio stream to AAC
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
+#ifdef HAVE_LIBSWRESAMPLE
+  SwrContext* resample_ctx;
+#else
 #ifdef HAVE_LIBAVRESAMPLE
   AVAudioResampleContext* resample_ctx;
+#endif
 #endif
   uint8_t *converted_in_samples;
     
@@ -71,6 +80,8 @@ int audio_in_stream_index;
   // These are for in
   uint64_t video_start_pts;
 
+  int64_t video_last_pts;
+  int64_t video_last_dts;
   int64_t audio_last_pts;
   int64_t audio_last_dts;
 
@@ -80,7 +91,8 @@ int audio_in_stream_index;
   int64_t audio_first_dts;
 
   // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
-;
+  int64_t video_next_pts;
+  int64_t video_next_dts;
   int64_t audio_next_pts;
   int64_t audio_next_dts;
 

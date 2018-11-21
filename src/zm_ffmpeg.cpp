@@ -474,3 +474,4 @@ void zm_free_codec( AVCodecContext **ctx ) {
     *ctx = NULL;
   } // end if 
 }
+

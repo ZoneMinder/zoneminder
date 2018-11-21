@@ -63,6 +63,7 @@ class ZMPacket {
     ~ZMPacket();
     void lock() { mutex.lock(); };
     void unlock() { mutex.unlock(); };
+    AVFrame *get_out_frame( const AVCodecContext *ctx );
 };
 
 #endif /* ZM_PACKET_H */

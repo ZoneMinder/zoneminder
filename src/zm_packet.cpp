@@ -196,7 +196,49 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
     Error("error refing packet");
   }
   //dumpPacket(&packet, "zmpacket:");
-  gettimeofday( timestamp, NULL );
+  gettimeofday(timestamp, NULL);
   keyframe = p->flags & AV_PKT_FLAG_KEY;
   return &packet;
 }
+
+AVFrame *ZMPacket::get_out_frame( const AVCodecContext *ctx ) {
+  if ( !out_frame ) {
+    out_frame = zm_av_frame_alloc();
+    if ( !out_frame ) {
+      Error("Unable to allocate a frame");
+      return NULL;
+    }
+#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
+    int codec_imgsize = av_image_get_buffer_size(
+        ctx->pix_fmt,
+        ctx->width,
+        ctx->height, 1);
+    buffer = (uint8_t *)av_malloc(codec_imgsize);
+    av_image_fill_arrays(
+        out_frame->data,
+        out_frame->linesize,
+        buffer,
+        ctx->pix_fmt,
+        ctx->width,
+        ctx->height,
+        1);
+#else
+    int codec_imgsize = avpicture_get_size(
+        ctx->pix_fmt,
+        ctx->width,
+        ctx->height);
+    buffer = (uint8_t *)av_malloc(codec_imgsize);
+    avpicture_fill(
+        (AVPicture *)out_frame,
+        buffer,
+        ctx->pix_fmt,
+        ctx->width,
+        ctx->height
+        );
+#endif
+    out_frame->width = ctx->width;
+    out_frame->height = ctx->height;
+    out_frame->format = ctx->pix_fmt;
+  }
+  return out_frame;
+} // end AVFrame *ZMPacket::get_out_frame( AVCodecContext *ctx );

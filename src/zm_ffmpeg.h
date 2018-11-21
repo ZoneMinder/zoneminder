@@ -334,4 +334,11 @@ bool is_video_stream( AVStream * stream );
 bool is_audio_stream( AVStream * stream );
 int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet );
 void dumpPacket(AVStream *, AVPacket *,const char *text="");
+#ifndef HAVE_LIBSWRESAMPLE
+#ifdef HAVE_LIBAVRESAMPLE
+#define av_opt_set_channel_layout(ctx, setting, value, 0) av_opt_set_int(ctx, setting, value, 0);
+#define av_opt_set_sample_fmt(ctx, setting, value, 0) av_opt_set_int(ctx, setting, value, 0);
+#else
+#endif
+#endif
 #endif // ZM_FFMPEG_H

@@ -819,7 +819,13 @@ bool VideoStore::setup_resampler() {
   out_frame->sample_rate = audio_out_ctx->sample_rate;
 
   // Setup the audio resampler
+#ifdef HAVE_LIBSWRESAMPLE
+  resample_ctx = swr_alloc();
+#else
+#ifdef HAVE_LIBAVRESAMPLE
   resample_ctx = avresample_alloc_context();
+#endif
+#endif
   if ( !resample_ctx ) {
     Error("Could not allocate resample ctx\n");
     return false;
@@ -828,16 +834,15 @@ bool VideoStore::setup_resampler() {
   uint64_t mono_layout = av_get_channel_layout("mono");
   // Some formats (i.e. WAV) do not produce the proper channel layout
   if ( audio_in_ctx->channel_layout == 0 ) {
-    av_opt_set_int(resample_ctx, "in_channel_layout", mono_layout, 0);
-    Debug(1, "Bad channel layout. Need to set it to mono (%d).", mono_layout);
+    av_opt_set_channel_layout(resample_ctx, "in_channel_layout", mono_layout, 0);
+    Debug(1, "Bad channel layout. Had to set it to mono (%d).", mono_layout);
   } else {
-    Debug(1, "channel layout. set it to mono (%d).", audio_in_ctx->channel_layout);
-    av_opt_set_int(resample_ctx, "in_channel_layout",
+    Debug(1, "channel layout. set it to (%d).", audio_in_ctx->channel_layout);
+    av_opt_set_channel_layout(resample_ctx, "in_channel_layout",
         audio_in_ctx->channel_layout, 0);
   }
 
-  av_opt_set_int(resample_ctx, "in_sample_fmt", audio_in_ctx->sample_fmt, 0);
-  av_opt_set_int(resample_ctx, "in_sample_rate", audio_in_ctx->sample_rate, 0);
+  av_opt_set_sample_fmt(resample_ctx, "in_sample_fmt", audio_in_ctx->sample_fmt, 0);
   av_opt_set_int(resample_ctx, "in_channels", audio_in_ctx->channels, 0);
   // av_opt_set_int( resample_ctx, "out_channel_layout",
   // audio_out_ctx->channel_layout, 0);
@@ -849,10 +854,12 @@ bool VideoStore::setup_resampler() {
   av_opt_set_int(resample_ctx, "out_channels",
       audio_out_ctx->channels, 0);
 
+#ifdef HAVE_LIBAVRESAMPLE
   if ( (ret = avresample_open(resample_ctx)) < 0 ) {
     Error("Could not open resample ctx\n");
     return false;
   }
+#endif
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
@@ -907,46 +914,13 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
   if ( video_out_ctx->codec_id != video_in_ctx->codec_id ) {
     //Debug(3, "Have encoding video frame count (%d)", frame_count);
 
-    if ( ! zm_packet->out_frame ) {
+    if ( !zm_packet->out_frame ) {
       //Debug(3, "Have no out frame");
-      AVFrame *out_frame = zm_packet->out_frame = zm_av_frame_alloc();
+      AVFrame *out_frame = zm_packet->get_out_frame(video_out_ctx);
       if ( !out_frame ) {
         Error("Unable to allocate a frame");
         return 0;
       }
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-      int codec_imgsize = av_image_get_buffer_size(
-          video_out_ctx->pix_fmt,
-          video_out_ctx->width,
-          video_out_ctx->height, 1);
-      zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
-      av_image_fill_arrays(
-          out_frame->data,
-          out_frame->linesize,
-          zm_packet->buffer,
-          video_out_ctx->pix_fmt,
-          video_out_ctx->width,
-          video_out_ctx->height,
-          1);
-#else
-      int codec_imgsize = avpicture_get_size(
-          video_out_ctx->pix_fmt,
-          video_out_ctx->width,
-          video_out_ctx->height);
-      zm_packet->buffer = (uint8_t *)av_malloc(codec_imgsize);
-      avpicture_fill(
-          (AVPicture *)out_frame,
-          zm_packet->buffer,
-          video_out_ctx->pix_fmt,
-          video_out_ctx->width,
-          video_out_ctx->height
-          );
-#endif
-
-      out_frame->width = video_out_ctx->width;
-      out_frame->height = video_out_ctx->height;
-      out_frame->format = video_out_ctx->pix_fmt;
-      //out_frame->pkt_duration = 0;
 
       if ( !zm_packet->in_frame ) {
         //Debug(2,"Have no in_frame");
@@ -1062,6 +1036,40 @@ int VideoStore::writeVideoFramePacket( ZMPacket * zm_packet ) {
       opkt.pts = av_rescale_q(opkt.pts, video_out_ctx->time_base, video_out_stream->time_base);
     if ( opkt.dts != AV_NOPTS_VALUE)
       opkt.dts = av_rescale_q(opkt.dts, video_out_ctx->time_base, video_out_stream->time_base);
+
+    int64_t duration;
+    if ( ipkt->duration ) {
+      duration = av_rescale_q(
+          ipkt->duration,
+          video_in_stream->time_base,
+          video_out_stream->time_base);
+      Debug(1, "duration from ipkt: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
+          ipkt->pts,
+          video_last_pts,
+          ipkt->duration,
+          duration,
+          video_in_stream->time_base.num,
+          video_in_stream->time_base.den,
+          video_out_stream->time_base.num,
+          video_out_stream->time_base.den
+          );
+    } else {
+      duration =
+        av_rescale_q(
+            ipkt->pts - video_last_pts,
+            video_in_stream->time_base,
+            video_out_stream->time_base);
+      Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
+          ipkt->pts,
+          video_last_pts,
+          ipkt->pts - video_last_pts,
+          duration
+          );
+      if ( duration <= 0 ) {
+        duration = ipkt->duration ? ipkt->duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
+      }
+    }
+    opkt.duration = duration;
 
   } else { // codec matches, we are doing passthrough
     AVPacket *ipkt = &zm_packet->packet;

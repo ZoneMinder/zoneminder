@@ -21,14 +21,12 @@ if ( canView( 'Events' ) ) {
             foreach ($_REQUEST['eids'] as $eid) {
               $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultRate,M.DefaultScale FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id = ?'.monitorLimitSql();
               if ( !($event = dbFetchOne( $sql, NULL, array( $eid ) )) ) {
-                array_push( $ajaxResponse, 'Video Generation Failure, Unable to load event' );
-                continue;
+                array_push( $ajaxResponse, 'Event ' . $eid . ': Video Generation Failure, Unable to load event' );
               } else {
                 if ( $videoFile = createVideo( $event, $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], !empty($_REQUEST['overwrite']) ) )
-                  array_push( $ajaxResponse, $videoFile );
+                  array_push( $ajaxResponse, 'Event ' . $eid . ': ' . $videoFile );
                 else {
-                  array_push( $ajaxResponse, 'Video Generation Failed' );
-                  continue;
+                  array_push( $ajaxResponse, 'Event ' . $eid . ': Video Generation Failed' );
                 }
               }
             }

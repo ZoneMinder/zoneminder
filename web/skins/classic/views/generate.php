@@ -22,6 +22,10 @@ if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
+require_once('includes/Event.php');
+// BUT WHY?
+$rate = 100;
+$scale = 100;
 
 $videoFormats = array();
 $ffmpegFormats = preg_split('/\s+/', ZM_FFMPEG_FORMATS);
@@ -86,7 +90,25 @@ if ( !empty($_REQUEST['eids']) ) {
         </table>
         <input type="button" value="<?php echo translate('GenerateVideo') ?>" onclick="generateVideo(this.form);"<?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>/>
       </form>
-
+<?php
+  if ( isset($_REQUEST['generated']) ) {
+?>
+      <h2 id="videoProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>">
+        <span id="videoProgressText"><?php echo $_REQUEST['generated']?translate('VideoGenSucceeded'):translate('VideoGenFailed') ?></span>
+        <span id="videoProgressTicker"></span>
+      </h2>
+<?php
+  } else {
+?>
+      <h2 id="videoProgress" class="hidden warnText">
+        <span id="videoProgressText"><?php echo translate('GeneratingVideo') ?></span>
+        <span id="videoProgressTicker"></span>
+      </h2>
+<?php
+  }
+?>
+      <br>
+      <textarea id="result" rows="4" cols="80"></textarea>
     </div>
   </div>
 </body>

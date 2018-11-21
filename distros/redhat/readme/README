@@ -13,7 +13,7 @@ What's New
    other web servers. Here is a breakdown of the available packages:
 
      zoneminder - Meta-package installs zoneminder-common and zoneminder-httpd
-                  This exists soley for backwards compaitilibty.
+                  This exists soley for backwards compatibility.
      zoneminder-common - Common files that do not differ based on the web server
      zoneminder-httpd - Files needed for compatibility with the Apache web server
      zoneminder-nginx - Files needed for compatibility with the Nginx web server

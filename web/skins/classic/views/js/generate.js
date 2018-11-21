@@ -31,4 +31,5 @@ function generateVideo( form ) {
   // $('videoProgressText').set( 'text', videoGenProgressString );
   generateVideoProgress();
   generateVideoTimer = generateVideoProgress.periodical( 500 );
+  $('result').set( 'text', 'Loading... Don\'t close browser while video generation script is running.' );
 }

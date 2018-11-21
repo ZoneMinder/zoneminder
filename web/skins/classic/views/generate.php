@@ -22,7 +22,7 @@ if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
-require_once('includes/Event.php');
+
 // BUT WHY?
 $rate = 100;
 $scale = 100;

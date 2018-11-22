@@ -120,15 +120,16 @@ echo output_link_if_exists( array(
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
   <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
-
-  <script>
-  //<![CDATA[
-  <!--
+  <script> 
+  jQuery(document).ready(function(){
+    jQuery("#flip").click(function(){
+      jQuery("#panel").slideToggle("slow");
+      jQuery("#flip").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+      Cookie.write( 'zmHeaderFlip', jQuery('#flip').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
+    });
+  });
   var $j = jQuery.noConflict();
   // $j is now an alias to the jQuery function; creating the new alias is optional.
-
-  //-->
-  //]]>
   </script>
   <script src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
 <?php
@@ -183,6 +184,12 @@ echo output_link_if_exists( array(
 <?php } ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="js/logger.js"></script>
+<?php 
+  if ($basename == 'watch' or $basename == 'log' ) {
+  // This is used in the log popup for the export function. Not sure if it's used anywhere else
+?>
+<script type="text/javascript" src="js/overlay.js"></script>
+<?php } ?>
 <?php
   if ( $viewJsFile ) {
 ?>
@@ -195,6 +202,9 @@ echo output_link_if_exists( array(
 } // end function xhtmlHeaders( $file, $title )
 
 function getNavBarHTML($reload = null) {
+  # Provide a facility to turn off the headers if you put headers=0 into the url
+  if ( isset($_REQUEST['navbar']) and $_REQUEST['navbar']=='0' )
+    return '';
 
   $versionClass = (ZM_DYN_DB_VERSION&&(ZM_DYN_DB_VERSION!=ZM_VERSION))?'errorText':'';
   global $running;
@@ -290,6 +300,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   }
 ?>
       <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
+      <li><a href="#"><span id="flip" class="glyphicon glyphicon-menu-<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?> pull-right"></span></a></li>
 		</ul>
 <?php } // end if canView('Monitors') ?>
 
@@ -307,6 +318,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 </div>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
+  <div id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
 }//end reload null.  Runs on full page load
 
@@ -326,12 +338,12 @@ if ($reload == 'reload') ob_start();
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
-  $percent_used = 100 * $connections / $max_connections;
+  $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
   echo '<li'. ( $percent_used > 90 ? ' class="warning"' : '' ).'>'.translate('DB').':'.$connections.'/'.$max_connections.'</li>';
 ?>
 	  <li><?php echo translate('Storage') ?>:
 <?php
-  $storage_areas = Storage::find_all();
+  $storage_areas = Storage::find();
   $storage_paths = null;
   foreach ( $storage_areas as $area ) {
     $storage_paths[$area->Path()] = $area;
@@ -352,7 +364,7 @@ if ($reload == 'reload') ob_start();
     return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) >= 4 ) 
-    $storage_areas = Storage::find_all( array('ServerId'=>null) );
+    $storage_areas = Storage::find( array('ServerId'=>null) );
   if ( count($storage_areas) < 4 )
     echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
@@ -363,12 +375,13 @@ if ($reload == 'reload') ob_start();
     <?php } ?>	
 <!-- End .footer/reload --></div>
 <?php
-if ($reload == 'reload') return( ob_get_clean() );
+if ($reload == 'reload') return ob_get_clean();
 } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
+  </div>
 </div><!-- End .navbar .navbar-default -->
 <?php
-  return( ob_get_clean() );
+  return ob_get_clean();
 } // end function getNavBarHTML()
 
 function xhtmlFooter() {

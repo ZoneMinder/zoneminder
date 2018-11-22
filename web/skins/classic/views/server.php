@@ -18,19 +18,20 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) ) {
+if ( !canEdit('System') ) {
   $view = 'error';
   return;
 }
 
 if ( $_REQUEST['id'] ) {
-	if ( !($newServer = dbFetchOne('SELECT * FROM Servers WHERE Id = ?', NULL, ARRAY($_REQUEST['id']))) ) {
+	if ( !($newServer = dbFetchOne('SELECT * FROM Servers WHERE Id = ?', NULL, ARRAY($_REQUEST['id'])) ) ) {
 		$view = 'error';
 		return;
 	}
 } else {
 	$newServer = array();
 	$newServer['Name'] = translate('NewServer');
+	$newServer['Protocol'] = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https' : 'http';
 	$newServer['Hostname'] = '';
   $newServer['PathPrefix'] = '/zm';
 	$newServer['zmstats'] = '';
@@ -59,8 +60,16 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name']);
               <td><input type="text" name="newServer[Name]" value="<?php echo $newServer['Name'] ?>"/></td>
             </tr>
             <tr>
+              <th scope="row"><?php echo translate('Protocol') ?></th>
+              <td><input type="text" name="newServer[Protocol]" value="<?php echo $newServer['Protocol'] ?>"/></td>
+            </tr>
+            <tr>
               <th scope="row"><?php echo translate('Hostname') ?></th>
               <td><input type="text" name="newServer[Hostname]" value="<?php echo $newServer['Hostname'] ?>"/></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('Port') ?></th>
+              <td><input type="number" name="newServer[Port]" value="<?php echo $newServer['Port'] ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('PathPrefix') ?></th>

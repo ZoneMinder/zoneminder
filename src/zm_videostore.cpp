@@ -64,7 +64,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   // Couldn't deduce format from filename, trying from format name
-  if (!oc) {
+  if ( !oc ) {
     avformat_alloc_output_context2(&oc, NULL, format, filename);
     if (!oc) {
       Error(
@@ -108,7 +108,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
     Debug(2, "Success creating video out stream");
   }
 
-  if (!video_out_ctx->codec_tag) {
+  if ( !video_out_ctx->codec_tag ) {
     video_out_ctx->codec_tag =
         av_codec_get_tag(oc->oformat->codec_tag, video_in_ctx->codec_id);
     Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
@@ -127,9 +127,10 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
 #else
   video_out_stream =
-      avformat_new_stream(oc,(AVCodec *)(video_in_ctx->codec));
+      avformat_new_stream(oc, NULL);
+//(AVCodec *)(video_in_ctx->codec));
       //avformat_new_stream(oc,(const AVCodec *)(video_in_ctx->codec));
-  if (!video_out_stream) {
+  if ( !video_out_stream ) {
     Fatal("Unable to create video out stream\n");
   } else {
     Debug(2, "Success creating video out stream");
@@ -158,6 +159,9 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
 
   // Just copy them from the in, no reason to choose different
   video_out_ctx->time_base = video_in_ctx->time_base;
+  if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+	  video_out_ctx->time_base = AV_TIME_BASE_Q;
+  }	
   video_out_stream->time_base = video_in_stream->time_base;
 
   Debug(3,
@@ -178,7 +182,6 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   Monitor::Orientation orientation = monitor->getOrientation();
-  Debug(3, "Have orientation");
   if (orientation) {
     if (orientation == Monitor::ROTATE_0) {
     } else if (orientation == Monitor::ROTATE_90) {
@@ -245,18 +248,18 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         // Copy params from instream to ctx
         ret = avcodec_parameters_to_context(audio_out_ctx,
                                             audio_in_stream->codecpar);
-        if (ret < 0) {
-          Error("Unable to copy audio params to ctx %s\n",
+        if ( ret < 0 ) {
+          Error("Unable to copy audio params to ctx %s",
                 av_make_error_string(ret).c_str());
         }
         ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
                                               audio_out_ctx);
-        if (ret < 0) {
-          Error("Unable to copy audio params to stream %s\n",
+        if ( ret < 0 ) {
+          Error("Unable to copy audio params to stream %s",
                 av_make_error_string(ret).c_str());
         }
 
-        if (!audio_out_ctx->codec_tag) {
+        if ( !audio_out_ctx->codec_tag ) {
           audio_out_ctx->codec_tag = av_codec_get_tag(
               oc->oformat->codec_tag, audio_in_ctx->codec_id);
           Debug(2, "Setting audio codec tag to %d",
@@ -268,12 +271,12 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
         ret = avcodec_copy_context(audio_out_ctx, audio_in_ctx);
         audio_out_ctx->codec_tag = 0;
 #endif
-        if (ret < 0) {
-          Error("Unable to copy audio ctx %s\n",
+        if ( ret < 0 ) {
+          Error("Unable to copy audio ctx %s",
                 av_make_error_string(ret).c_str());
           audio_out_stream = NULL;
         } else {
-          if (audio_out_ctx->channels > 1) {
+          if ( audio_out_ctx->channels > 1 ) {
             Warning("Audio isn't mono, changing it.");
             audio_out_ctx->channels = 1;
           } else {
@@ -283,7 +286,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       }  // end if audio_out_stream
     }    // end if is AAC
 
-    if (audio_out_stream) {
+    if ( audio_out_stream ) {
       if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
     audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -336,14 +339,17 @@ bool VideoStore::open() {
   } else if (av_dict_count(opts) != 0) {
     Warning("some options not set\n");
   }
+  if (opts) av_dict_free(&opts);
   if (ret < 0) {
     Error("Error occurred when writing out file header to %s: %s\n",
           filename, av_make_error_string(ret).c_str());
+    /* free the stream */
+    avio_closep(&oc->pb);
+    //avformat_free_context(oc);
     return false;
   }
-  if (opts) av_dict_free(&opts);
   return true;
-}
+} // end VideoStore::open()
 
 VideoStore::~VideoStore() {
 
@@ -353,6 +359,9 @@ VideoStore::~VideoStore() {
       // The codec queues data.  We need to send a flush command and out
       // whatever we get. Failures are not fatal.
       AVPacket pkt;
+      // Without these we seg fault I don't know why.
+      pkt.data = NULL;
+      pkt.size = 0;
       av_init_packet(&pkt);
 
       while (1) {
@@ -398,20 +407,22 @@ VideoStore::~VideoStore() {
         pkt.stream_index = audio_out_stream->index;
         av_interleaved_write_frame(oc, &pkt);
         zm_av_packet_unref(&pkt);
-      }  // while have buffered frames
-    }    // end if audio_out_codec
+      } // while have buffered frames
+    } // end if audio_out_codec
 
     // Flush Queues
+    Debug(1,"Flushing interleaved queues");
     av_interleaved_write_frame(oc, NULL);
 
+    Debug(1,"Writing trailer");
     /* Write the trailer before close */
     if (int rc = av_write_trailer(oc)) {
       Error("Error writing trailer %s", av_err2str(rc));
     } else {
-      Debug(3, "Sucess Writing trailer");
+      Debug(3, "Success Writing trailer");
     }
 
-    // WHen will be not using a file ?
+    // When will we not be using a file ?
     if ( !(out_format->flags & AVFMT_NOFILE) ) {
       /* Close the out file. */
       Debug(2, "Closing");
@@ -422,7 +433,7 @@ VideoStore::~VideoStore() {
     } else {
       Debug(3, "Not closing avio because we are not writing to a file.");
     }
-  }
+  } // end if ( oc->pb )
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the ctx
   // allocation/de-allocation constantly, or whether we can just re-use it.
@@ -507,16 +518,23 @@ bool VideoStore::setup_resampler() {
   }
   Debug(2, "Have audio out codec");
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // audio_out_ctx = audio_out_stream->codec;
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
 
-  if (!audio_out_ctx) {
-    Error("could not allocate codec ctx for AAC\n");
+  if ( !audio_out_ctx ) {
+    Error("could not allocate codec ctx for AAC");
     audio_out_stream = NULL;
     return false;
   }
 
   Debug(2, "Have audio_out_ctx");
+  // Now copy them to the out stream
+  audio_out_stream = avformat_new_stream(oc, NULL);
+#else 
+  audio_out_stream = avformat_new_stream(oc, NULL);
+  audio_out_ctx = audio_out_stream->codec;
+#endif
 
   /* put sample parameters */
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate;
@@ -524,7 +542,17 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+#else
   audio_out_ctx->refcounted_frames = 1;
+#endif
+  if ( ! audio_out_ctx->channel_layout ) {
+    Debug(3, "Correcting channel layout from (%d) to (%d)",
+        audio_out_ctx->channel_layout,
+        av_get_default_channel_layout(audio_out_ctx->channels)
+        );
+      audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
+  }
 
   if (audio_out_codec->supported_samplerates) {
     int found = 0;
@@ -556,8 +584,6 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->time_base =
       (AVRational){1, audio_out_ctx->sample_rate};
 
-  // Now copy them to the out stream
-  audio_out_stream = avformat_new_stream(oc, audio_out_codec);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   ret = avcodec_parameters_from_context(audio_out_stream->codecpar,

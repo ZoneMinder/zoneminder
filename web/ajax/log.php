@@ -33,7 +33,7 @@ switch ( $_REQUEST['task'] ) {
     if ( !canView('System') )
       ajaxError('Insufficient permissions to view log entries');
 
-    $servers = Server::find_all();
+    $servers = Server::find();
     $servers_by_Id = array();
     # There is probably a better way to do this.
     foreach ( $servers as $server ) {
@@ -112,7 +112,7 @@ switch ( $_REQUEST['task'] ) {
         } else if ( $field == 'ServerId' ) {
             $options['ServerId'][$value] = ( $value and isset($servers_by_Id[$value]) ) ? $servers_by_Id[$value]->Name() : '';
         } else if ( isset($log[$field]) ) {
-          $options[$field][$log[$field]] = $log[$field];
+          $options[$field][$log[$field]] = $value;
         }
       }
       $logs[] = $log;
@@ -125,7 +125,7 @@ switch ( $_REQUEST['task'] ) {
       'available' => isset($available) ? $available : $total,
       'logs' => $logs,
       'state' => logState(),
-      'options' => $options
+      'options' => $options,
     ) );
     break;
   }
@@ -153,7 +153,7 @@ switch ( $_REQUEST['task'] ) {
     }
     $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
 
-    $servers = Server::find_all();
+    $servers = Server::find();
     $servers_by_Id = array();
     # There is probably a better way to do this.
     foreach ( $servers as $server ) {
@@ -164,14 +164,23 @@ switch ( $_REQUEST['task'] ) {
     $where = array();
     $values = array();
     if ( $minTime ) {
-      preg_match('/(.+)(\.\d+)/', $minTime, $matches);
-      $minTime = strtotime($matches[1]).$matches[2];
+      Logger::Debug("MinTime: $minTime");
+      if ( preg_match('/(.+)(\.\d+)/', $minTime, $matches) ) {
+        # This handles sub second precision
+        $minTime = strtotime($matches[1]).$matches[2];
+        Logger::Debug("MinTime: $minTime");
+      } else {
+        $minTime = strtotime($minTime);
+      }
       $where[] = 'TimeKey >= ?';
       $values[] = $minTime;
     }
     if ( $maxTime ) {
-      preg_match('/(.+)(\.\d+)/', $maxTime, $matches);
-      $maxTime = strtotime($matches[1]).$matches[2];
+      if ( preg_match('/(.+)(\.\d+)/', $maxTime, $matches) ) {
+        $maxTime = strtotime($matches[1]).$matches[2];
+      } else {
+        $maxTime = strtotime($maxTime);
+      }
       $where[] = 'TimeKey <= ?';
       $values[] = $maxTime;
     }
@@ -209,8 +218,15 @@ switch ( $_REQUEST['task'] ) {
     }
     $exportKey = substr(md5(rand()),0,8);
     $exportFile = "zm-log.$exportExt";
-    $exportPath = ZM_PATH_SWAP."/zm-log-$exportKey.$exportExt";
-    if ( !($exportFP = fopen( $exportPath, "w" )) )
+    if ( ! file_exists(ZM_DIR_EXPORTS) ) {
+      Logger::Debug('Creating ' . ZM_DIR_EXPORTS);
+      if ( ! mkdir(ZM_DIR_EXPORTS) ) {
+        Fatal("Can't create exports dir at '".ZM_DIR_EXPORTS."'");
+      }
+    }
+    $exportPath = ZM_DIR_EXPORTS."/zm-log-$exportKey.$exportExt";
+    Logger::Debug("Exporting to $exportPath");
+    if ( !($exportFP = fopen($exportPath, 'w')) )
       Fatal("Unable to open log export file $exportPath");
     $logs = array();
     foreach ( dbFetchAll($sql, NULL, $values) as $log ) {
@@ -218,6 +234,8 @@ switch ( $_REQUEST['task'] ) {
       $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
       $logs[] = $log;
     }
+    Logger::Debug(count($logs)." lines being exported by $sql " . implode(',',$values));
+
   switch( $format ) {
     case 'text' :
     {
@@ -390,7 +408,7 @@ switch ( $_REQUEST['task'] ) {
     }
 
     $exportFile = "zm-log.$exportExt";
-    $exportPath = ZM_PATH_SWAP."/zm-log-$exportKey.$exportExt";
+    $exportPath = ZM_DIR_EXPORTS."/zm-log-$exportKey.$exportExt";
 
     header('Pragma: public');
     header('Expires: 0');

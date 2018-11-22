@@ -119,12 +119,12 @@ echo " };\n";
 } // end if initialmodeislive
 
 echo "\nvar Storage = [];\n";
-foreach ( Storage::find_all() as $Storage ) {
-echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
+foreach ( Storage::find() as $Storage ) {
+  echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
 }
 echo "\nvar Servers = [];\n";
-foreach ( Server::find_all() as $Server ) {
-echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
+foreach ( Server::find() as $Server ) {
+  echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
 }
 echo '
 var monitorName = [];

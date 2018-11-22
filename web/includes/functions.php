@@ -36,25 +36,31 @@ function noCacheHeaders() {
 }
 
 function CORSHeaders() {
-  if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+  if ( isset($_SERVER['HTTP_ORIGIN']) ) {
 
 # The following is left for future reference/use.
     $valid = false;
-    $servers = dbFetchAll( 'SELECT * FROM Servers' );
-    if ( sizeof($servers) <= 1 ) {
+    $Servers = Server::find();
+    if ( sizeof($Servers) < 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
+      # ICON: Might not be true. multi-port?
       return;
     }
-    foreach( $servers as $row ) {
-      $Server = new Server( $row );
-      if ( $_SERVER['HTTP_ORIGIN'] == $Server->Url() ) {
+    foreach( $Servers as $Server ) {
+      if (
+        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
+        or
+        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
+      ) {
         $valid = true;
-        header('Access-Control-Allow-Origin: ' . $Server->Url() );
+        Logger::Debug("Setting Access-Controll-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
+        break;
       }
     }
-    if ( ! $valid ) {
-      Warning( $_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.' );
+    if ( !$valid ) {
+      Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
     }
   }
 }
@@ -910,7 +916,7 @@ function reScale( $dimension, $dummy ) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
     $scale = func_get_arg( $i );
-    if ( !empty($scale) && $scale != SCALE_BASE )
+    if ( !empty($scale) && ($scale != 'auto') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return( $new_dimension );
@@ -1907,23 +1913,24 @@ function logState() {
 
   # This is an expensive request, as it has to hit every row of the Logs Table
   $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
-  $counts = dbFetchAll( $sql );
-
-  foreach ( $counts as $count ) {
-    if ( $count['Level'] <= Logger::PANIC )
-      $count['Level'] = Logger::FATAL;
-    if ( !($levelCount = $levelCounts[$count['Level']]) ) {
-      Error( "Unexpected Log level ".$count['Level'] );
-      next;
-    }
-    if ( $levelCount[1] && $count['LevelCount'] >= $levelCount[1] ) {
-      $state = 'alarm';
-      break;
-    } elseif ( $levelCount[0] && $count['LevelCount'] >= $levelCount[0] ) {
-      $state = 'alert';
+  $counts = dbFetchAll($sql);
+  if ( $counts ) {
+    foreach ( $counts as $count ) {
+      if ( $count['Level'] <= Logger::PANIC )
+        $count['Level'] = Logger::FATAL;
+      if ( !($levelCount = $levelCounts[$count['Level']]) ) {
+        Error('Unexpected Log level '.$count['Level']);
+        next;
+      }
+      if ( $levelCount[1] && $count['LevelCount'] >= $levelCount[1] ) {
+        $state = 'alarm';
+        break;
+      } elseif ( $levelCount[0] && $count['LevelCount'] >= $levelCount[0] ) {
+        $state = 'alert';
+      }
     }
   }
-  return( $state );
+  return $state;
 }
 
 function isVector ( &$array ) {
@@ -2271,4 +2278,30 @@ function unparse_url($parsed_url, $substitutions = array() ) {
   $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : ''; 
   return "$scheme$user$pass$host$port$path$query$fragment"; 
 }
+
+// The following works around php not being built with semaphore functions.
+if (!function_exists('sem_get')) {
+  function sem_get($key) {
+    return fopen(__FILE__ . '.sem.' . $key, 'w+');
+  }
+  function sem_acquire($sem_id) {
+    return flock($sem_id, LOCK_EX);
+  }
+  function sem_release($sem_id) {
+    return flock($sem_id, LOCK_UN);
+  }
+}
+
+if( !function_exists('ftok') ) {
+  function ftok($filename = "", $proj = "") {
+    if ( empty($filename) || !file_exists($filename) ) {
+      return -1;
+    } else {
+      $filename = $filename . (string) $proj;
+      for($key = array(); sizeof($key) < strlen($filename); $key[] = ord(substr($filename, sizeof($key), 1)));
+      return dechex(array_sum($key));
+    }
+  }
+}
+
 ?>

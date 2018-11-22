@@ -5,13 +5,91 @@ This document will provide an overview of ZoneMinder's API. This is work in prog
 
 Overview
 ^^^^^^^^
-
 In an effort to further 'open up' ZoneMinder, an API was needed.  This will
 allow quick integration with and development of ZoneMinder.
 
 The API is built in CakePHP and lives under the ``/api`` directory.  It
 provides a RESTful service and supports CRUD (create, retrieve, update, delete)
 functions for Monitors, Events, Frames, Zones and Config.
+
+Streaming Interface
+^^^^^^^^^^^^^^^^^^^
+Developers working on their application often ask if there is an "API" to receive live streams, or recorded event streams.
+It is possible to stream both live and recorded streams. This isn't strictly an "API" per-se (that is, it is not integrated
+into the Cake PHP based API layer discussed here) and also why we've used the term "Interface" instead of an "API".
+
+Live Streams
+~~~~~~~~~~~~~~
+What you need to know is that if you want to display "live streams", ZoneMinder sends you streaming JPEG images (MJPEG)
+which can easily be rendered in a browser using an ``img src`` tag.
+
+For example:
+
+::
+
+    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&width=640p&height=480px&mode=jpeg&maxfps=5&buffer=1000&&monitor=1&auth=b54a589e09f330498f4ae2203&connkey=36139" />
+
+will display a live feed from monitor id 1, scaled down by 50% in quality and resized to 640x480px. 
+
+* This assumes ``/zm/cgi-bin`` is your CGI_BIN path. Change it to what is correct in your system
+* The "auth" token you see above is required if you use ZoneMinder authentication. To understand how to get the auth token, please read the "Login, Logout & API security" section below.
+* The "connkey" parameter is essentially a random number which uniquely identifies a stream. If you don't specify a connkey, ZM will generate its own. It is recommended to generate a connkey because you can then use it to "control" the stream (pause/resume etc.)
+* Instead of dealing with the "auth" token, you can also use ``&user=username&pass=password`` where "username" and "password" are your ZoneMinder username and password respectively. Note that this is not recommended because you are transmitting them in a URL and even if you use HTTPS, they may show up in web server logs.
+
+
+PTZ on live streams
+-------------------
+PTZ commands are pretty cryptic in ZoneMinder. This is not meant to be an exhaustive guide, but just something to whet your appetite:
+
+
+Lets assume you have a monitor, with ID=6. Let's further assume you want to pan it left.
+
+You'd need to send a:
+``POST`` command to ``https://yourserver/zm/index.php`` with the following data payload in the command (NOT in the URL)
+
+``view=request&request=control&id=6&control=moveConLeft&xge=30&yge=30``
+
+Obviously, if you are using authentication, you need to be logged in for this to work.
+
+Like I said, at this stage, this is only meant to get you started. Explore the ZoneMinder code and use "Inspect source" as you use PTZ commands in the ZoneMinder source code.
+`control_functions.php <https://github.com/ZoneMinder/zoneminder/blob/10531df54312f52f0f32adec3d4720c063897b62/web/skins/classic/includes/control_functions.php>`__ is a great place to start.
+
+
+Pre-recorded (past event) streams
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similar to live playback, if you have chosen to store events in JPEG mode, you can play it back using:
+
+::
+
+    <img src="https://yourserver/zm/cgi-bin/nph-zms?mode=jpeg&frame=1&replay=none&source=event&event=293820&connkey=77493&auth=b54a58f5f4ae2203" />
+
+
+* This assumes ``/zm/cgi-bin`` is your CGI_BIN path. Change it to what is correct in your system
+* This will playback event 293820, starting from frame 1 as an MJPEG stream
+* Like before, you can add more parameters like ``scale`` etc. 
+* auth and connkey have the same meaning as before, and yes, you can replace auth by ``&user=usename&pass=password`` as before and the same security concerns cited above apply.
+
+If instead, you have chosen to use the MP4 (Video) storage mode for events, you can directly play back the saved video file:
+
+::
+   
+    <video src="https://yourserver/zm/index.php?view=view_video&eid=294690&auth=33f3d558af84cf08" type="video/mp4"></video>
+
+* This will play back the video recording for event 294690
+
+What other parameters are supported?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The best way to answer this question is to play with ZoneMinder console. Open a browser, play back live or recorded feed, and do an "Inspect Source" to see what parameters 
+are generated. Change and observe.
+
+
+Enabling API
+^^^^^^^^^^^^
+A default ZoneMinder installs with APIs enabled. You can explictly enable/disable the APIs
+via the Options->System menu by enabling/disabling ``OPT_USE_API``. Note that if you intend
+to use APIs with 3rd party apps, such as zmNinja or others that use APIs, you should also
+enable ``AUTH_HASH_LOGINS``.
 
 Login, Logout & API Security
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -29,13 +107,13 @@ This means if you plan to use cuRL to experiment with these APIs, you first need
 
 ::
 
-    curl -XPOST -d "user=XXXX&pass=YYYY" -c cookies.txt  http://yourzmip/zm/api/login.json
+    curl -XPOST -d "user=XXXX&pass=YYYY" -c cookies.txt  http://yourzmip/zm/api/host/login.json
 
 Staring ZM 1.32.0, you also have a `logout` API that basically clears your session. It looks like this:
 
 ::
 
-    curl -b cookies.txt  http://yourzmip/zm/api/logout.json
+    curl -b cookies.txt  http://yourzmip/zm/api/host/logout.json
 
 
 **Login process for older versions of ZoneMinder**
@@ -125,6 +203,22 @@ Return a list of all monitors
   
 	curl http://server/zm/api/monitors.json
 
+It is worthwhile to note that starting ZM 1.32.3 and beyond, this API also returns a ``Monitor_Status`` object per monitor. It looks like this:
+
+::
+
+        "Monitor_Status": {
+                "MonitorId": "2",
+                "Status": "Connected",
+                "CaptureFPS": "1.67",
+                "AnalysisFPS": "1.67",
+                "CaptureBandwidth": "52095"
+            }
+
+
+If you don't see this in your API, you are running an older version of ZM. This gives you a very convenient way to check monitor status without calling the ``daemonCheck`` API described later.
+
+
 Retrieve monitor 1
 ^^^^^^^^^^^^^^^^^^^
 
@@ -141,6 +235,13 @@ This API changes monitor 1 to Modect and Enabled
 ::
 
   curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]=1"
+  
+Get Daemon Status of Monitor 1
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+  	curl http://server/zm/api/monitors/daemonStatus/id:1/daemon:zmc.json
 
 Add a monitor
 ^^^^^^^^^^^^^^
@@ -377,10 +478,12 @@ Create a Zone
   &Zone[MaxBlobs]=\
   &Zone[OverloadFrames]=0"
 
-PTZ Control APIs
-^^^^^^^^^^^^^^^^
+PTZ Control Meta-Data APIs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 PTZ controls associated with a monitor are stored in the Controls table and not the Monitors table inside ZM. What that means is when you get the details of a Monitor, you will only know if it is controllable (isControllable:true) and the control ID.
 To be able to retrieve PTZ information related to that Control ID, you need to use the controls API
+
+Note that these APIs only retrieve control data related to PTZ. They don't actually move the camera. See the "PTZ on live streams" section to move the camera.
 
 This returns all the control definitions:
 ::
@@ -399,7 +502,97 @@ ZM APIs have various APIs that help you in determining host (aka ZM) daemon stat
 
 ::
 
-  curl -XGET  http://server/zm/api/host/daemonCheck.json # 1 = ZM running 0=not running
   curl -XGET  http://server/zm/api/host/getLoad.json # returns current load of ZM
-  curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is,   space taken to store various event related information,images etc. per monitor)
+
+  # Note that ZM 1.32.3 onwards has the same information in Monitors.json which is more reliable and works for multi-server too.
+  curl -XGET  http://server/zm/api/host/daemonCheck.json # 1 = ZM running 0=not running
+
+  # The API below uses "du" to calculate disk space. We no longer recommend you use it if you have many events. Use the Storage APIs instead, described later
+  curl -XGET  http://server/zm/api/host/getDiskPercent.json # returns in GB (not percentage), disk usage per monitor (that is,space taken to store various event related information,images etc. per monitor)
+
+
+Storage and Server APIs
+^^^^^^^^^^^^^^^^^^^^^^^
+
+ZoneMinder introduced many new options that allowed you to configure multiserver/multistorage configurations. While a part of this was available in previous versions, a lot of rework was done as part of ZM 1.31 and 1.32. As part of that work, a lot of new and useful APIs were added. Some of these are part of ZM 1.32 and others will be part of ZM 1.32.3 (of course, if you build from master, you can access them right away, or wait till a stable release is out.
+
+
+
+This returns storage data for my single server install. If you are using multi-storage, you'll see many such "Storage" entries, one for each storage defined:
+
+::
+
+        curl http://server/zm/api/storage.json
+
+Returns:
+
+::
+
+        {
+            "storage": [
+                {
+                    "Storage": {
+                        "Id": "0",
+                        "Path": "\/var\/cache\/zoneminder\/events",
+                        "Name": "Default",
+                        "Type": "local",
+                        "Url": null,
+                        "DiskSpace": "364705447651",
+                        "Scheme": "Medium",
+                        "ServerId": null,
+                        "DoDelete": true
+                    }
+                 }
+               ]
+        }
+
+
+
+"DiskSpace" is the disk used in bytes. While this doesn't return disk space data as rich as  ``/host/getDiskPercent``, it is much more efficient.
+
+Similarly, 
+
+::
+
+        curl http://server/zm/api/servers.json 
+
+Returns:
+
+::
+
+      {
+            "servers": [
+                {
+                    "Server": {
+                        "Id": "1",
+                        "Name": "server1",
+                        "Hostname": "server1.mydomain.com",
+                        "State_Id": null,
+                        "Status": "Running",
+                        "CpuLoad": "0.9",
+                        "TotalMem": "6186237952",
+                        "FreeMem": "156102656",
+                        "TotalSwap": "536866816",
+                        "FreeSwap": "525697024",
+                        "zmstats": false,
+                        "zmaudit": false,
+                        "zmtrigger": false
+                    }
+                }
+            ]
+        }
+
+This only works if you have a multiserver setup in place. If you don't it will return an empty array.
+
+
+Further Reading
+^^^^^^^^^^^^^^^^
+As described earlier, treat this document as an "introduction" to the important parts of the API and streaming interfaces.
+There are several details that haven't yet been documented. Till they are, here are some resources:
+
+* zmNinja, the open source mobile app for ZoneMinder is 100% based on ZM APIs. Explore its `source code <https://github.com/pliablepixels/zmNinja>`__ to see how things work.
+* Launch up ZM console in a browser, and do an "Inspect source". See how images are being rendered. Go to the networks tab of the inspect source console and look at network requests that are made when you pause/play/forward streams.
+* If you still can't find an answer, post your question in the `forums <https://forums.zoneminder.com/index.php>`__ (not the github repo).
+
+
 

@@ -30,10 +30,10 @@ sub open {
   $self->loadMonitor();
 
   if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/ ) ) {
-    $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};    
-    $USERNAME = $+{USERNAME} if $+{USERNAME};    
-    $PASSWORD = $+{PASSWORD} if $+{PASSWORD};    
-    $ADDRESS = $+{ADDRESS} if $+{ADDRESS};    
+    $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
+    $USERNAME = $+{USERNAME} if $+{USERNAME};
+    $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
+    $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
   } else {
     Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
     $ADDRESS = $self->{Monitor}->{ControlAddress};

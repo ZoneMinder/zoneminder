@@ -586,6 +586,7 @@ $SLANG = array(
     'Parameter'             => 'Parameter',
     'Password'              => 'Password',
     'PasswordsDifferent'    => 'The new and confirm passwords are different',
+    'PathPrefix'            => 'Path Prefix',
     'Paths'                 => 'Paths',
     'Pause'                 => 'Pause',
     'PhoneBW'               => 'Phone&nbsp;B/W',

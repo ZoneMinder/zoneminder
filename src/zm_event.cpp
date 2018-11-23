@@ -174,7 +174,7 @@ Event::Event(
         Error("Can't mkdir %s: %s", path, strerror(errno));
     }
   } else {
-    path_ptr += snprintf(path, sizeof(path), "/%" PRIu64, id);
+    snprintf(path, sizeof(path), "/%" PRIu64, id);
     if ( mkdir(path, 0755) ) {
       if ( errno != EEXIST )
         Error("Can't mkdir %s: %s", path, strerror(errno));

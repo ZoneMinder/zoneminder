@@ -581,6 +581,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   }
 }
 
+
 void logInit(const char *name, const Logger::Options &options) {
   if ( !Logger::smInstance )
     Logger::smInstance = new Logger();

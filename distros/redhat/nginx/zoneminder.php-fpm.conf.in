@@ -1,3 +1,5 @@
+; This config file is needed when using ZoneMinder with web servers other
+; than Apache. You can ignore this file if you are using Apache web server.
 ; Change the user and group of the default pool to the web server account
 [www]
 

@@ -537,7 +537,7 @@ MAIN: while( $loop ) {
           my $path = $Storage->Path().'/'.$Event->RelativePath();
           if ( -e $path ) {
             Info("Event $$Event{Id} found at $path instead of $$Event{Path}");
-            if ( confirm() ) {
+            if ( confirm('update', 'updating') ) {
               $Event->save({StorageId=>$$Storage{Id}});
               last;
             }

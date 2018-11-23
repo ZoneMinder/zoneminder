@@ -481,6 +481,8 @@ function setAlarmState( currentAlarmState ) {
 }
 
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
+if ( auth_hash )
+    streamCmdParms += '&auth='+auth_hash;
 var streamCmdReq = new Request.JSON( {
   url: monitorUrl,
   method: 'get',
@@ -562,6 +564,8 @@ function streamCmdQuery() {
 }
 
 var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
+if ( auth_hash )
+    statusCmdParms += '&auth='+auth_hash;
 var statusCmdReq = new Request.JSON( {
   url: monitorUrl,
   method: 'get',

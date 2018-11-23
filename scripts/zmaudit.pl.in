@@ -531,6 +531,19 @@ MAIN: while( $loop ) {
           next;
         }
         Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
+        # Check for existence in other Storage Areas
+        foreach my $Storage ( ZoneMinder::Storage->find( ( $$Event{StorageId} ? ( 'Id !='=>$$Event{StorageId}  ) : () ) ) ) {
+          my $path = $Storage->Path().'/'.$Event->RelativePath();
+          if ( -e $path ) {
+            Info("Event $$Event{Id} found at $path instead of $$Event{Path}");
+            if ( confirm() ) {
+              $Event->save({StorageId=>$$Storage{Id}});
+              last;
+            }
+          } else {
+            Debug("$$Event{Id} Not found at $path");
+          }
+        }
         if ( $Event->Archived() ) {
           Warning("Event $$Event{Id} is Archived. Taking no further action on it.");
           next;

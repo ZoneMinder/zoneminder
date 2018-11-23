@@ -95,7 +95,8 @@ class Server {
     if ( isset($this->{'PathPrefix'}) and $this->{'PathPrefix'} ) {
       return $this->{'PathPrefix'};
     }
-    return $_SERVER['PHP_SELF'];
+    return '';
+    //return $_SERVER['PHP_SELF'];
   }
 
   public function __call($fn, array $args){

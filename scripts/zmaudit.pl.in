@@ -409,21 +409,22 @@ MAIN: while( $loop ) {
 
       if ( ! $$Storage{Scheme} ) {
         Error("Storage Scheme not set on $$Storage{Name}");
-        if ( ! chdir( $monitor_dir ) ) {
-          Error( "Can't chdir directory '$$Storage{Path}/$monitor_dir': $!" );
+        if ( ! chdir($monitor_dir) ) {
+          Error("Can't chdir directory '$$Storage{Path}/$monitor_dir': $!");
           next;
         }
-        if ( ! opendir( DIR, "." ) ) {
-          Error( "Can't open directory '$$Storage{Path}/$monitor_dir': $!" );
+        if ( ! opendir(DIR, '.') ) {
+          Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
           next;
         }
-        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
-        closedir( DIR );
+        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir(DIR);
+        closedir(DIR);
         my $count = 0;
         foreach my $event ( @temp_events ) {
           my $Event = $fs_events->{$event} = new ZoneMinder::Event();
           $$Event{Id} = $event;
           #$$Event{Path} = $event_path;
+          $$Event{Scheme} = 'Shallow';
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
         } # end foreach event
@@ -570,7 +571,7 @@ MAIN: while( $loop ) {
           Debug("Database event $$Event{Id} apparently exists at " . $Event->Path() );
         } else {
           if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-            aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem, deleting' );
+            aud_print("Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem, deleting');
             if ( confirm() ) {
               $Event->delete();
               $cleaned = 1;
@@ -580,7 +581,7 @@ MAIN: while( $loop ) {
           }
         } # end if exists in filesystem
       } else {
-        Debug("Found fs event for $db_event, $age at " . $$fs_events{$db_event}->Path());
+        Debug("Found fs event for id $db_event, $age seconds old at " . $$fs_events{$db_event}->Path());
         my $Event = new ZoneMinder::Event( $db_event );
         if ( ! $Event->check_for_in_filesystem() ) {
           Warning("Not found at " . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path() );

@@ -56,7 +56,9 @@ void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) 
   }
 
   if ( log ) {
-    log->logPrint(false, __FILE__, __LINE__, log_level, fmt, vargs);
+    char            logString[8192];
+    vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
+    log->logPrint(false, __FILE__, __LINE__, log_level, logString);
   }
 }
 

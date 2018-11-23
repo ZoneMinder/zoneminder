@@ -43,16 +43,23 @@ void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) 
     log_level = Logger::DEBUG1;
   } else if ( level == AV_LOG_DEBUG ) { //48
     log_level = Logger::DEBUG2;
+#ifdef AV_LOG_TRACE
   } else if ( level == AV_LOG_TRACE ) {
     log_level = Logger::DEBUG8;
+#endif
+#ifdef AV_LOG_MAX_OFFSET
   } else if ( level == AV_LOG_MAX_OFFSET ) {
     log_level = Logger::DEBUG9;
+#endif
   } else {
     Error("Unknown log level %d", level);
   }
 
   if ( log ) {
-    log->logPrint(false, __FILE__, __LINE__, log_level, fmt, vargs);
+    char            logString[8192];
+    vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
+
+    log->logPrint(false, __FILE__, __LINE__, log_level, logString);
   }
 }
 

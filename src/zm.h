@@ -17,9 +17,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-#if !defined(PATH_MAX)
-#define PATH_MAX 1024
-#endif
 
 #ifndef ZM_H
 #define ZM_H

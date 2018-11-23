@@ -31,7 +31,9 @@ if ( $_REQUEST['id'] ) {
 } else {
 	$newServer = array();
 	$newServer['Name'] = translate('NewServer');
+	$newServer['Protocol'] = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https' : 'http';
 	$newServer['Hostname'] = '';
+  $newServer['PathPrefix'] = '/zm';
 	$newServer['zmstats'] = '';
 	$newServer['zmaudit'] = '';
 	$newServer['zmtrigger'] = '';
@@ -58,8 +60,20 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$newServer['Name']);
               <td><input type="text" name="newServer[Name]" value="<?php echo $newServer['Name'] ?>"/></td>
             </tr>
             <tr>
+              <th scope="row"><?php echo translate('Protocol') ?></th>
+              <td><input type="text" name="newServer[Protocol]" value="<?php echo $newServer['Protocol'] ?>"/></td>
+            </tr>
+            <tr>
               <th scope="row"><?php echo translate('Hostname') ?></th>
               <td><input type="text" name="newServer[Hostname]" value="<?php echo $newServer['Hostname'] ?>"/></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('Port') ?></th>
+              <td><input type="number" name="newServer[Port]" value="<?php echo $newServer['Port'] ?>"/></td>
+            </tr>
+            <tr>
+              <th scope="row"><?php echo translate('PathPrefix') ?></th>
+              <td><input type="text" name="newServer[PathPrefix]" value="<?php echo $newServer['PathPrefix'] ?>"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('RunStats') ?></th>

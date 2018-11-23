@@ -556,7 +556,10 @@ INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');
 DROP TABLE IF EXISTS `Servers`;
 CREATE TABLE `Servers` (
   `Id` int(10) unsigned NOT NULL auto_increment,
+  `Protocol`  TEXT,
   `Hostname` TEXT,
+  `Port`      INTEGER UNSIGNED,
+  `PathPrefix`  TEXT,
   `Name` varchar(64) NOT NULL default '',
   `State_Id`	int(10) unsigned,
   `Status` enum('Unknown','NotRunning','Running') NOT NULL default 'Unknown',

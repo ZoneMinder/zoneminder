@@ -444,6 +444,7 @@ void Logger::closeSyslog() {
 void Logger::logPrint( bool hex, const char * const filepath, const int line, const int level, const char *fstring, ... ) {
   if ( level > mEffectiveLevel ) 
     return;
+  log_mutex.lock();
   char            timeString[64];
   char            logString[8192];
   va_list         argPtr;
@@ -579,6 +580,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
       abort();
     exit(-1);
   }
+  log_mutex.unlock();
 }
 
 

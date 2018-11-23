@@ -140,14 +140,19 @@ Upgrades
    /etc/zm/www. You will have a file called "zoneminder.httpd.conf" and there
    may also be one or more files with "rpmnew" extenstion. If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
-   Verify the SSL REquirements meet your needs. Read README.https if necessary.
+   Verify the SSL Requirements meet your needs. Read README.https if necessary.
 
    The contents of this file must be merged into your Apache configuration.
    See step 6 of the installation section if you have not already done this
    during a previous upgrade.
 
+<<<<<<< HEAD
    If this step is not performed correctly, the web console will appear
    mostly empty and/or significantly corrupted post-upgrade. 
+=======
+   IMPORTANT: Failure to complete this step properly will result in a mostly
+   empty or significantly corrupted web console post-upgrade.
+>>>>>>> 5b211d250910918782d20bf32b0e33a38a0df4dd
 
 4. Upgrade the database before starting ZoneMinder.
 

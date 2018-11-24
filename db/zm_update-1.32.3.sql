@@ -247,7 +247,7 @@ DELIMITER ;
 REPLACE INTO Events_Day SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 day);
 REPLACE INTO Events_Week SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 week);
 REPLACE INTO Events_Month SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 month);
-REPLACE INTO Events_Archived SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE Archived=1);
+REPLACE INTO Events_Archived SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE Archived=1;
 
 UPDATE Monitors INNER JOIN (
   SELECT  MonitorId,

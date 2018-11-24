@@ -244,19 +244,9 @@ FOR EACH ROW
 
 DELIMITER ;
 
-UPDATE Monitors SET
-TotalEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id),
-TotalEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND DiskSpace IS NOT NULL),
-HourEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 hour) ),
-HourEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 hour) AND DiskSpace IS NOT NULL),
-DayEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day)),
-DayEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 day) AND DiskSpace IS NOT NULL),
-WeekEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week)),
-WeekEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 week) AND DiskSpace IS NOT NULL),
-MonthEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB( NOW(), INTERVAL 1 month)),
-MonthEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND StartTime > DATE_SUB(NOW(), INTERVAL 1 month) AND DiskSpace IS NOT NULL),
-ArchivedEvents=(SELECT COUNT(Id) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1),
-ArchivedEventDiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE MonitorId=Monitors.Id AND Archived=1 AND DiskSpace IS NOT NULL);
+REPLACE INTO Events_Day SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 day);
+REPLACE INTO Events_Week SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 week);
+REPLACE INTO Events_Month SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 month);
 
 UPDATE Monitors INNER JOIN (
   SELECT  MonitorId,

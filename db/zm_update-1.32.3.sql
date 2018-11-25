@@ -1,3 +1,6 @@
+--
+-- This updates a 1.32.2 database to 1.32.3
+--
 
 delimiter //
 DROP TRIGGER IF EXISTS Events_Hour_delete_trigger//

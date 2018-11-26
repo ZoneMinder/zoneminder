@@ -1000,7 +1000,7 @@ sub delete_empty_directories {
   #Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents <= 2 ? join(',',@contents) : '' ));
   my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
-    Debug("Have " . @dirs . " dirs");
+    Debug("Have " . @dirs . " dirs in $_[0]");
     foreach ( @dirs ) {
       delete_empty_directories( $_[0].'/'.$_ );
     }

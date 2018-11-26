@@ -176,8 +176,10 @@ MAIN: while( $loop ) {
   } # end while can't connect to the db
 
   my @Storage_Areas;
+  my @all_Storage_Areas = ZoneMinder::Storage->find();
+
   if ( defined $storage_id ) {
-    @Storage_Areas = ZoneMinder::Storage->find( Id=>$storage_id );
+    @Storage_Areas = map { $$_{Id} == $storage_id ? $_ : () } @all_Storage_Areas;
     if ( !@Storage_Areas ) {
       Error("No Storage Area found with Id $storage_id");
       Term();
@@ -403,7 +405,7 @@ MAIN: while( $loop ) {
           $$Event{RelativePath} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
-          $Event->StartTime( POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($$Event{Path})) ) );
+          $Event->StartTime( POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path())) ) );
         } # end foreach event
       }
 
@@ -523,7 +525,7 @@ MAIN: while( $loop ) {
     # If we found the monitor in the file system
     my $fs_events = $fs_monitors->{$db_monitor};
 
-    while ( my ( $db_event, $age ) = each( %$db_events ) ) {
+EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
       if ( ! ($fs_events and defined( $fs_events->{$db_event} ) ) ) {
         Debug("Don't have an fs event for $db_event");
         my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
@@ -533,14 +535,15 @@ MAIN: while( $loop ) {
         }
         Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
         # Check for existence in other Storage Areas
-        foreach my $Storage ( ZoneMinder::Storage->find( ( $$Event{StorageId} ? ( 'Id !='=>$$Event{StorageId}  ) : () ) ) ) {
+        foreach my $Storage ( @all_Storage_Areas ) {
+          next if $$Storage{Id} == $$Event{StorageId};
+
           my $path = $Storage->Path().'/'.$Event->RelativePath();
           if ( -e $path ) {
             Info("Event $$Event{Id} found at $path instead of $$Event{Path}");
             if ( confirm('update', 'updating') ) {
               $Event->save({StorageId=>$$Storage{Id}});
-              $Event->Path(undef);# Refresh Path
-              last;
+              next EVENT;
             }
           } else {
             Debug("$$Event{Id} Not found at $path");

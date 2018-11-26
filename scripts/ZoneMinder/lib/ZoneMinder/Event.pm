@@ -450,9 +450,23 @@ sub delete_files {
   }
 } # end sub delete_files
 
+sub StorageId {
+  my $event = shift;
+  if ( @_ ) {
+    $$event{StorageId} = shift;
+    delete $$event{Storage};
+    delete $$event{Path};
+  }
+  return $$event{StorageId};
+}
+
 sub Storage {
   if ( @_ > 1 ) {
     $_[0]{Storage} = $_[1];
+    if ( $_[0]{Storage} ) {
+      $_[0]{StorageId} = $_[0]{Storage}->Id();
+      delete $_[0]{Path};
+    }
   }
   if ( ! $_[0]{Storage} ) {
     $_[0]{Storage} = new ZoneMinder::Storage($_[0]{StorageId});

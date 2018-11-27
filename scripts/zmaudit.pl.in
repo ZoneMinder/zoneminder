@@ -591,6 +591,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
           Warning("Not found at " . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path() );
           Warning($Event->to_string());
           Warning($$fs_events{$db_event}->to_string());
+          $$Event{Scheme} = '' if ! defined $$Event{Scheme};
           if ( $$fs_events{$db_event}->Scheme() ne $Event->Scheme() ) {
             Info("Updating scheme on event $$Event{Id} from $$Event{Scheme} to $$fs_events{$db_event}{Scheme}");
             $Event->Scheme($$fs_events{$db_event}->Scheme());

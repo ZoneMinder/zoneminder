@@ -361,6 +361,7 @@ class MonitorsController extends AppController {
     ));
     $monitor = $monitor['Monitor'];
 
+    $daemons = array();
     if ( ! $daemon ) {
       if ( $monitor['Function'] == 'Monitor' ) {
         array_push($daemons, 'zmc');

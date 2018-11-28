@@ -3,12 +3,6 @@
 --
 
 --
--- Add some additional monitor preset values
---
-
-INSERT INTO MonitorPresets VALUES (NULL,'D-link DCS-930L, 640x480, mjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/mjpeg.cgi',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
-
---
 -- Add Protocol column to Storage
 --
 
@@ -25,16 +19,32 @@ PREPARE stmt FROM @s;
 EXECUTE stmt;
 
 --
--- Add Prefix column to Storage
+-- Add PathToIndex column to Storage
 --
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
      AND table_name = 'Servers'
-     AND column_name = 'PathPrefix'
+     AND column_name = 'PathToIndex'
     ) > 0,
-"SELECT 'Column PathPrefix already exists in Servers'",
-"ALTER TABLE Servers ADD `PathPrefix` TEXT AFTER `Hostname`"
+"SELECT 'Column PathToIndex already exists in Servers'",
+"ALTER TABLE Servers ADD `PathToIndex` TEXT AFTER `Hostname`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+--
+-- Add PathToZMS column to Storage
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Servers'
+     AND column_name = 'PathToZMS'
+    ) > 0,
+"SELECT 'Column PathToZMS already exists in Servers'",
+"ALTER TABLE Servers ADD `PathToZMS` TEXT AFTER `PathToIndex`"
 ));
 
 PREPARE stmt FROM @s;

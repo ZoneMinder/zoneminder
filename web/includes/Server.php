@@ -72,6 +72,19 @@ class Server {
     return $_SERVER['SERVER_PORT'];
   }
 
+  public function PathToZMS( $new = null ) {
+    if ( $new != null )
+      $this{'PathToZMS'} = $new;
+    if ( $this->Id() and $this->{'PathToZMS'} ) {
+      return $this->{'PathToZMS'};
+    } else {
+      return ZM_PATH_ZMS;
+    }
+  }
+  public function UrlToZMS( ) {
+    return $this->Url().$this->PathToZMS();
+  }
+
 	public function Url( $port = null ) {
     $url = $this->Protocol().'://';
 		if ( $this->Id() ) {
@@ -84,19 +97,22 @@ class Server {
     } else {
       $url .= ':'.$this->Port();
     }
-    $url .= $this->PathPrefix();
     return $url;
 	}
 
-  public function PathPrefix( $new = null ) {
+  public function PathToIndex( $new = null ) {
     if ( $new != null )
-      $this->{'PathPrefix'} = $new;
+      $this->{'PathToIndex'} = $new;
 
-    if ( isset($this->{'PathPrefix'}) and $this->{'PathPrefix'} ) {
-      return $this->{'PathPrefix'};
+    if ( isset($this->{'PathToIndex'}) and $this->{'PathToIndex'} ) {
+      return $this->{'PathToIndex'};
     }
     return '';
     //return $_SERVER['PHP_SELF'];
+  }
+
+  public function UrlToIndex( ) {
+    return $this->Url().$this->PathToIndex();
   }
 
   public function __call($fn, array $args){

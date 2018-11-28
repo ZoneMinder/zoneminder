@@ -125,7 +125,7 @@ Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: ca-certificates
 Requires: zip
-%{systemd_requires}
+%{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd
 Requires(post): %{_bindir}/chown

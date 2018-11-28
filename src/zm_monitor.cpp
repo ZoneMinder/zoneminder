@@ -749,7 +749,7 @@ void Monitor::AddPrivacyBitmask( Zone *p_zones[] ) {
 }
 
 Monitor::State Monitor::GetState() const {
-  return( (State)shared_data->state );
+  return (State)shared_data->state;
 }
 
 int Monitor::GetImage( int index, int scale ) {

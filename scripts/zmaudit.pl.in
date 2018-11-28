@@ -457,6 +457,12 @@ MAIN: while( $loop ) {
           my $Event = $fs_events->{$fs_event_id};
 
           if ( ! defined( $db_events->{$fs_event_id} ) ) {
+            # Long running zmaudits can find events that were created after we loaded all db events.
+            # So do a secondary lookup
+            if ( ZoneMinder::Event->find_one(Id=>$fs_event_id) ) {
+              Debug("$$Event{Id} found in secondary lookup.");
+              next;
+            }
             my $age = $Event->age();
 
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {

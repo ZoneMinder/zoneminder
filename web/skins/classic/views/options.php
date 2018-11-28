@@ -232,7 +232,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colUrl"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->Url()), $canEdit) ?></td>
               <td class="colPathToIndex"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->PathToIndex()), $canEdit) ?></td>
               <td class="colPathToZMS"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->PathToZMS()), $canEdit) ?></td>
-              <td class="colStatus <?php if ( $row['Status'] == 'NotRunning' ) { echo 'danger'; } ?>">
+              <td class="colStatus <?php if ( $Server->Status() == 'NotRunning' ) { echo 'danger'; } ?>">
                   <?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->Status()), $canEdit) ?></td>
               <td class="colMonitorCount">
                   <?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($monitor_counts[$Server->Id()]), $canEdit) ?>

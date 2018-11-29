@@ -554,28 +554,28 @@ bool VideoStore::setup_resampler() {
       audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
   }
 
-  if (audio_out_codec->supported_samplerates) {
+  if ( audio_out_codec->supported_samplerates ) {
     int found = 0;
-    for (unsigned int i = 0; audio_out_codec->supported_samplerates[i];
+    for ( unsigned int i = 0; audio_out_codec->supported_samplerates[i];
          i++) {
-      if (audio_out_ctx->sample_rate ==
-          audio_out_codec->supported_samplerates[i]) {
+      if ( audio_out_ctx->sample_rate ==
+          audio_out_codec->supported_samplerates[i] ) {
         found = 1;
         break;
       }
     }
-    if (found) {
+    if ( found ) {
       Debug(3, "Sample rate is good");
     } else {
       audio_out_ctx->sample_rate =
           audio_out_codec->supported_samplerates[0];
-      Debug(1, "Sampel rate is no good, setting to (%d)",
+      Debug(1, "Sample rate is no good, setting to (%d)",
             audio_out_codec->supported_samplerates[0]);
     }
   }
 
   /* check that the encoder supports s16 pcm in */
-  if (!check_sample_fmt(audio_out_codec, audio_out_ctx->sample_fmt)) {
+  if ( !check_sample_fmt(audio_out_codec, audio_out_ctx->sample_fmt) ) {
     Debug(3, "Encoder does not support sample format %s, setting to FLTP",
           av_get_sample_fmt_name(audio_out_ctx->sample_fmt));
     audio_out_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
@@ -584,11 +584,10 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->time_base =
       (AVRational){1, audio_out_ctx->sample_rate};
 
-
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
                                         audio_out_ctx);
-  if (ret < 0) {
+  if ( ret < 0 ) {
     Error("Could not initialize stream parameteres");
     return false;
   }
@@ -616,13 +615,13 @@ bool VideoStore::setup_resampler() {
         audio_out_ctx->channel_layout, audio_out_ctx->frame_size);
 
   /** Create a new frame to store the audio samples. */
-  if (!(in_frame = zm_av_frame_alloc())) {
+  if ( !(in_frame = zm_av_frame_alloc()) ) {
     Error("Could not allocate in frame");
     return false;
   }
 
   /** Create a new frame to store the audio samples. */
-  if (!(out_frame = zm_av_frame_alloc())) {
+  if ( !(out_frame = zm_av_frame_alloc()) ) {
     Error("Could not allocate out frame");
     av_frame_free(&in_frame);
     return false;
@@ -630,13 +629,13 @@ bool VideoStore::setup_resampler() {
 
   // Setup the audio resampler
   resample_ctx = avresample_alloc_context();
-  if (!resample_ctx) {
-    Error("Could not allocate resample ctx\n");
+  if ( !resample_ctx ) {
+    Error("Could not allocate resample ctx");
     return false;
   }
 
   // Some formats (i.e. WAV) do not produce the proper channel layout
-  if (audio_in_ctx->channel_layout == 0) {
+  if ( audio_in_ctx->channel_layout == 0 ) {
     uint64_t layout = av_get_channel_layout("mono");
     av_opt_set_int(resample_ctx, "in_channel_layout",
                    av_get_channel_layout("mono"), 0);
@@ -664,37 +663,10 @@ bool VideoStore::setup_resampler() {
                  audio_out_ctx->channels, 0);
 
   ret = avresample_open(resample_ctx);
-  if (ret < 0) {
-    Error("Could not open resample ctx\n");
+  if ( ret < 0 ) {
+    Error("Could not open resample ctx");
     return false;
   }
-
-#if 0
-    /**
-     * Allocate as many pointers as there are audio channels.
-     * Each pointer will later point to the audio samples of the corresponding
-     * channels (although it may be NULL for interleaved formats).
-     */
-    if (!( converted_in_samples = reinterpret_cast<uint8_t *>calloc( audio_out_ctx->channels, sizeof(*converted_in_samples))) ) {
-      Error("Could not allocate converted in sample pointers\n");
-      return;
-    }
-    /**
-     * Allocate memory for the samples of all channels in one consecutive
-     * block for convenience.
-     */
-    if ( (ret = av_samples_alloc( &converted_in_samples, NULL,
-            audio_out_ctx->channels,
-            audio_out_ctx->frame_size,
-            audio_out_ctx->sample_fmt, 0)) < 0 ) {
-      Error("Could not allocate converted in samples (error '%s')\n",
-          av_make_error_string(ret).c_str());
-
-      av_freep(converted_in_samples);
-      free(converted_in_samples);
-      return;
-    }
-#endif
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
@@ -707,17 +679,17 @@ bool VideoStore::setup_resampler() {
       audio_out_ctx->sample_fmt, 0);
   converted_in_samples = (uint8_t *)av_malloc(audioSampleBuffer_size);
 
-  if (!converted_in_samples) {
-    Error("Could not allocate converted in sample pointers\n");
+  if ( !converted_in_samples ) {
+    Error("Could not allocate converted in sample pointers");
     return false;
   }
 
   // Setup the data pointers in the AVFrame
-  if (avcodec_fill_audio_frame(out_frame, audio_out_ctx->channels,
+  if ( avcodec_fill_audio_frame(out_frame, audio_out_ctx->channels,
                                audio_out_ctx->sample_fmt,
                                (const uint8_t *)converted_in_samples,
                                audioSampleBuffer_size, 0) < 0) {
-    Error("Could not allocate converted in sample pointers\n");
+    Error("Could not allocate converted in sample pointers");
     return false;
   }
 

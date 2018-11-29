@@ -221,11 +221,11 @@ class Event {
       null);
 
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
-      $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
+      $streamSrc .= $Server->PathToIndex();
       $args['eid'] = $this->{'Id'};
       $args['view'] = 'view_video';
     } else {
-      $streamSrc .= ZM_PATH_ZMS;
+      $streamSrc .= $Server->PathToZMS();
 
       $args['source'] = 'event';
       $args['event'] = $this->{'Id'};
@@ -340,12 +340,11 @@ class Event {
     } else {
       $Server = new Server();
     }
-    $streamSrc .= $Server->Url(
+    $streamSrc .= $Server->UrlToIndex(
       ZM_MIN_STREAMING_PORT ?
       ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
       null);
 
-    $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
     $args['eid'] = $this->{'Id'};
     $args['fid'] = 'snapshot';
     $args['view'] = 'image';
@@ -573,7 +572,7 @@ class Event {
       $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
-      $url = $Server->Url() . '/zm/api/events/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
@@ -617,7 +616,7 @@ class Event {
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
-      $url = $Server->Url() . '/zm/api/events/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );

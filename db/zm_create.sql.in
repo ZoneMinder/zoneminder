@@ -561,6 +561,7 @@ CREATE TABLE `Servers` (
   `Port`      INTEGER UNSIGNED,
   `PathToIndex`  TEXT,
   `PathToZMS`  TEXT,
+  `PathToApi`  TEXT,
   `Name` varchar(64) NOT NULL default '',
   `State_Id`	int(10) unsigned,
   `Status` enum('Unknown','NotRunning','Running') NOT NULL default 'Unknown',

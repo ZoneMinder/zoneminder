@@ -10,7 +10,7 @@ class Server {
     'Protocol'    => '',
     'Hostname'    => '',
     'Port'        =>  null,
-    'PathToIndex' => '/zm',
+    'PathToIndex' => '/zm/index.php',
     'PathToZMS'   => ZM_PATH_ZMS,
     'PathToApi'   => '/zm/api',
     'zmaudit'     => 1,
@@ -110,8 +110,7 @@ class Server {
     if ( isset($this->{'PathToIndex'}) and $this->{'PathToIndex'} ) {
       return $this->{'PathToIndex'};
     }
-    return '';
-    //return $_SERVER['PHP_SELF'];
+    return $_SERVER['PHP_SELF'];
   }
 
   public function UrlToIndex( ) {

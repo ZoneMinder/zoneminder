@@ -10,7 +10,7 @@ class Server {
     'Protocol'    => '',
     'Hostname'    => '',
     'Port'        =>  null,
-    'PathToIndex' => '/zm',
+    'PathToIndex' => '/zm/index.php',
     'PathToZMS'   => ZM_PATH_ZMS,
     'PathToApi'   => '/zm/api',
     'zmaudit'     => 1,

@@ -10,7 +10,9 @@ class Server {
     'Protocol'    => '',
     'Hostname'    => '',
     'Port'        =>  null,
-    'PathPrefix'  => '/zm',
+    'PathToIndex' => '/zm',
+    'PathToZMS'   => ZM_PATH_ZMS,
+    'PathToApi'   => '/zm/api',
     'zmaudit'     => 1,
     'zmstats'     => 1,
     'zmtrigger'   => 0,
@@ -81,6 +83,7 @@ class Server {
       return ZM_PATH_ZMS;
     }
   }
+
   public function UrlToZMS( ) {
     return $this->Url().$this->PathToZMS();
   }
@@ -113,6 +116,18 @@ class Server {
 
   public function UrlToIndex( ) {
     return $this->Url().$this->PathToIndex();
+  }
+  public function UrlToApi( ) {
+    return $this->Url().$this->PathToApi();
+  }
+  public function PathToApi( $new = null ) {
+    if ( $new != null )
+      $this->{'PathToApi'} = $new;
+
+    if ( isset($this->{'PathToApi'}) and $this->{'PathToApi'} ) {
+      return $this->{'PathToApi'};
+    }
+    return '/zm/api';
   }
 
   public function __call($fn, array $args){

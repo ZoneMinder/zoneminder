@@ -70,6 +70,10 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$Server->Name());
               <td><input type="text" name="newServer[PathToZMS]" value="<?php echo $Server->PathToZMS() ?>"/></td>
             </tr>
             <tr>
+              <th scope="row"><?php echo translate('PathToApi') ?></th>
+              <td><input type="text" name="newServer[PathToApi]" value="<?php echo $Server->PathToApi() ?>"/></td>
+            </tr>
+            <tr>
               <th scope="row"><?php echo translate('RunStats') ?></th>
               <td>
                 <input type="radio" name="newServer[zmstats]" value="1"<?php echo $Server->zmstats() ? ' checked="checked"' : '' ?>/> Yes

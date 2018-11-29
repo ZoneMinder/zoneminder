@@ -110,8 +110,7 @@ class Server {
     if ( isset($this->{'PathToIndex'}) and $this->{'PathToIndex'} ) {
       return $this->{'PathToIndex'};
     }
-    return '';
-    //return $_SERVER['PHP_SELF'];
+    return $_SERVER['PHP_SELF'];
   }
 
   public function UrlToIndex( ) {

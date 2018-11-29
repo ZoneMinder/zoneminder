@@ -816,7 +816,7 @@ shared_data       The general mapped memory section
 size              The size, in bytes, of this section
 valid             Flag indicating whether this section has been initialised
 active            Flag indicating whether this monitor is active (enabled/disabled)
-signal            Flag indicating whether this monitor is reciving a valid signal
+signal            Flag indicating whether this monitor is receiving a valid signal
 state             The current monitor state, see the STATE constants below
 last_write_index  The last index, in the image buffer, that an image has been saved to
 last_read_index   The last index, in the image buffer, that an image has been analysed from

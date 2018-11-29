@@ -205,7 +205,6 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function setNavBar(data) {
-    console.log(data);
     if ( data.auth ) {
       if ( data.auth != auth_hash ) {
         // Update authentication token.

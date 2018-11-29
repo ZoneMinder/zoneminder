@@ -25,15 +25,13 @@ sub GetServices {
         soap_action => 'http://www.onvif.org/ver10/device/wsdl/GetServices',
         style => 'document',
         body => {
-            
-
-           'use'            => 'literal',
+            use             => 'literal',
             namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
             encodingStyle   => '',
             parts           =>  [qw( ONVIF::Device::Elements::GetServices )],
         },
         header => {
-            
+ 
         },
         headerfault => {
             
@@ -50,9 +48,7 @@ sub GetServiceCapabilities {
         soap_action => 'http://www.onvif.org/ver10/device/wsdl/GetServiceCapabilities',
         style => 'document',
         body => {
-            
-
-           'use'            => 'literal',
+            use             => 'literal',
             namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
             encodingStyle   => '',
             parts           =>  [qw( ONVIF::Device::Elements::GetServiceCapabilities )],
@@ -3059,7 +3055,7 @@ Returns a L<ONVIF::Device::Elements::SetClientCertificateModeResponse|ONVIF::Dev
 
 =head3 GetRelayOutputs
 
- This method has been depricated with version 2.0. Refer to the DeviceIO service.
+ This method has been deprecated with version 2.0. Refer to the DeviceIO service.
 
 Returns a L<ONVIF::Device::Elements::GetRelayOutputsResponse|ONVIF::Device::Elements::GetRelayOutputsResponse> object.
 
@@ -3069,7 +3065,7 @@ Returns a L<ONVIF::Device::Elements::GetRelayOutputsResponse|ONVIF::Device::Elem
 
 =head3 SetRelayOutputSettings
 
-This method has been depricated with version 2.0. Refer to the DeviceIO service.
+This method has been deprecated with version 2.0. Refer to the DeviceIO service.
 
 Returns a L<ONVIF::Device::Elements::SetRelayOutputSettingsResponse|ONVIF::Device::Elements::SetRelayOutputSettingsResponse> object.
 
@@ -3085,7 +3081,7 @@ Returns a L<ONVIF::Device::Elements::SetRelayOutputSettingsResponse|ONVIF::Devic
 
 =head3 SetRelayOutputState
 
-This method has been depricated with version 2.0. Refer to the DeviceIO service.
+This method has been deprecated with version 2.0. Refer to the DeviceIO service.
 
 Returns a L<ONVIF::Device::Elements::SetRelayOutputStateResponse|ONVIF::Device::Elements::SetRelayOutputStateResponse> object.
 

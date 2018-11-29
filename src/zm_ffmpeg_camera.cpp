@@ -141,6 +141,7 @@ FfmpegCamera::FfmpegCamera(
   video_last_pts = 0;
   have_video_keyframe = false;
   packetqueue = NULL;
+  error_count = 0;
 
 #if HAVE_LIBSWSCALE  
   mConvertContext = NULL;
@@ -334,6 +335,7 @@ int FfmpegCamera::OpenFfmpeg() {
   int ret;
 
   have_video_keyframe = false;
+  error_count = 0;
 
   // Open the input, not necessarily a file
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
@@ -745,10 +747,18 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
     if ( packet.pts < -100000 ) {
       // Ignore packets that have crazy negative pts.  They aren't supposed to happen.
-      Warning("Ignore packet because pts is massively negative");
+      Warning("Ignore packet because pts %" PRId64 " is massively negative", packet.pts);
       dumpPacket(&packet,"Ignored packet");
+      if ( error_count > 100 ) {
+        Error("Bad packet count over 100, going to close and re-open stream");
+        return -1;
+      }
+      error_count += 1;
       continue;
     }
+    // If we get a goot frame, decrease the error count.. We could zero it...
+    if ( error_count ) error_count -= 1;
+
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
     bytes += packet.size;
     dumpPacket(&packet,"Captured Packet");

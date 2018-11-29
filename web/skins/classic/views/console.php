@@ -328,7 +328,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
             <td class="colMark">
               <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
-              <span class="glyphicon glyphicon-sort"></span>
+              <span class="glyphicon glyphicon-sort" title="Click and drag to change order"></span>
             </td>
 <?php
   }

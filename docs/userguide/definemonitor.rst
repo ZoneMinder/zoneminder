@@ -164,6 +164,29 @@ Height (pixels)
 Web Site Refresh 
     If the website in question has static content, optionally enter a time period in seconds for ZoneMinder to refresh the content.
 
+Storage Tab
+-----------
+
+The storage section allows for each monitor to configure if and how video and audio are recorded.
+
+Save JPEGs
+    Records video in individual JPEG frames. Storing JPEG frames requires more storage space than h264 but it allows to view an event anytime while it is being recorded.
+
+    * Disabled – video is not recorded as JPEG frames. If this setting is selected, then "Video Writer" should be enabled otherwise there is no video recording at all.
+    * Frames only – video is recorded in individual JPEG frames.
+    * Analysis images only (if available) – video is recorded in invidual JPEG frames with an overlay of the motion detection analysis information. Note that this overlay remains permanently visible in the frames.
+    * Frames + Analysis images (if available) – video is recorded twice, once as normal individual JPEG frames and once in invidual JPEG frames with analysis information overlaid.
+
+Video Writer
+    Records video in real video format. It provides much better compression results than saving JPEGs, thus longer video history can be stored.
+	
+    * Disabled – video is not recorded in video format. If this setting is selected, then "Save JPEGs" should be enabled otherwise there is no video recording at all.
+    * X264 Encode – the video or picture frames received from the camera are transcoded into h264 and stored as a video. This option is useful if the camera cannot natively stream h264.
+    * H264 Camera Passthrough – this option assumes that the camera is already sending an h264 stream. Video will be recorded as is, without any post-processing in zoneminder. Video characteristics such as bitrate, encoding mode, etc. should be set directly in the camera.
+
+Recording Audio
+    Check the box labeled "Whether to store the audio stream when saving an event." in order to save audio (if available) when events are recorded.
+
 Timestamp Tab
 -------------
 

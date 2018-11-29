@@ -119,6 +119,7 @@ echo output_link_if_exists( array(
   <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
+  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
   <script> 
   jQuery(document).ready(function(){
     jQuery("#flip").click(function(){
@@ -127,16 +128,8 @@ echo output_link_if_exists( array(
       Cookie.write( 'zmHeaderFlip', jQuery('#flip').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
     });
   });
-  </script>
-
-  <script>
-  //<![CDATA[
-  <!--
   var $j = jQuery.noConflict();
   // $j is now an alias to the jQuery function; creating the new alias is optional.
-
-  //-->
-  //]]>
   </script>
   <script src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
 <?php
@@ -192,7 +185,7 @@ echo output_link_if_exists( array(
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="js/logger.js"></script>
 <?php 
-  if ($basename == 'watch') {
+  if ($basename == 'watch' or $basename == 'log' ) {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
 <script type="text/javascript" src="js/overlay.js"></script>

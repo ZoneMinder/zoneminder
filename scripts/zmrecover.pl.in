@@ -120,7 +120,7 @@ if ( defined $storage_id ) {
     Error("No Storage Area found with Id $storage_id");
     Term();
   }
-  Info("Auditing Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}");
+  Info("Recovering from Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}");
 } elsif ( $server_id ) {
   @Storage_Areas = ZoneMinder::Storage->find( ServerId => $server_id );
   if ( ! @Storage_Areas ) {
@@ -128,11 +128,11 @@ if ( defined $storage_id ) {
     Term();
   }
   foreach my $Storage ( @Storage_Areas ) {
-    Info('Auditing ' . $Storage->Name() . ' at ' . $Storage->Path() . ' on ' . $Storage->Server()->Name() );
+    Info('Recovering from ' . $Storage->Name() . ' at ' . $Storage->Path() . ' on ' . $Storage->Server()->Name() );
   }
 } else {
   @Storage_Areas = ZoneMinder::Storage->find();
-  Info("Auditing All Storage Areas");
+  Info("Recovering from All Storage Areas");
 }
 
 my @Monitors = ZoneMinder::Monitor->find();
@@ -231,9 +231,12 @@ Debug("@Monitors");
                 $Event->Height( $Monitor->Height() );
                 $Event->Orientation( $Monitor->Orientation() );
                 $Event->recover_timestamps();
-
-                $Event->save({}, 1);
-                Info("Event resurrected as " . $Event->to_string() );
+                if ( $$Event{StartTime} ) {
+                  $Event->save({}, 1);
+                  Info("Event resurrected as " . $Event->to_string() );
+                } else {
+                  Warning("Unable to determine starttime. Not resurrecting this event.");
+                }
                 next;
               } # end if resurrection
             } # event path exists
@@ -291,8 +294,12 @@ Debug("@Monitors");
                 $Event->StorageId( $Storage->Id() );
                 $Event->DiskSpace( undef );
                 $Event->recover_timestamps();
-                $Event->save({}, 1);
-                Debug("Event resurrected as " . $Event->to_string() );
+                if ( $$Event{StartTime} ) {
+                  $Event->save({}, 1);
+                  Info("Event resurrected as " . $Event->to_string() );
+                } else {
+                  Warning("Unable to determine starttime. Not resurrecting this event.");
+                }
                 next;
               }
             } # end if event found
@@ -351,8 +358,12 @@ Debug("@Monitors");
             $Event->Orientation( $Monitor->Orientation() );
             $Event->StorageId( $Storage->Id() );
             $Event->recover_timestamps();
-            $Event->save({}, 1);
-            Info("Event resurrected as " . $Event->to_string() );
+            if ( $$Event{StartTime} ) {
+              $Event->save({}, 1);
+              Info("Event resurrected as " . $Event->to_string() );
+            } else {
+              Warning("Unable to determine starttime. Not resurrecting this event.");
+            }
           }
         } # end foreach event
       } # end search for Medium
@@ -389,8 +400,12 @@ Debug("@Monitors");
           $Event->Orientation( $Monitor->Orientation() );
           $Event->StorageId( $Storage->Id() );
           $Event->recover_timestamps();
-          $Event->save({}, 1);
-          Debug("Event resurrected as " . $Event->to_string() );
+          if ( $$Event{StartTime} ) {
+            $Event->save({}, 1);
+            Info("Event resurrected as " . $Event->to_string() );
+          } else {
+            Warning("Unable to determine starttime. Not resurrecting this event.");
+          }
         }
       } # end foreach event
       chdir( $Storage->Path() );

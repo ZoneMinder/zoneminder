@@ -40,7 +40,7 @@ var popupSizes = {
     'export':       { 'width': 400, 'height': 340 },
     'filter':       { 'width': 900, 'height': 700 },
     'frame':        { 'addWidth': 32, 'minWidth': 384, 'addHeight': 200 },
-    'frames':       { 'width': 600, 'height': 600 },
+    'frames':       { 'addWidth': 600, 'addHeight': 600 },
     'function':     { 'width': 350, 'height': 260 },
     'group':        { 'width': 760, 'height': 600 },
     'groups':       { 'width': 540, 'height': 420 },

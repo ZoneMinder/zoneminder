@@ -71,7 +71,7 @@ if ( !isset($newZone) ) {
       'Type'  =>  'Active',
       'MonitorId' => $monitor->Id(),
       'NumCoords' => 4,
-      'Coords' => sprintf("%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY),
+      'Coords' => sprintf('%d,%d %d,%d, %d,%d %d,%d', $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY),
       'Area' => $monitor->Width() * $monitor->Height(),
       'AlarmRGB' => 0xff0000,
       'CheckMethod' => 'Blobs',

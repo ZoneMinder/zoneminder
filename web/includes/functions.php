@@ -47,9 +47,13 @@ function CORSHeaders() {
       return;
     }
     foreach( $Servers as $Server ) {
-      if ( preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/', $_SERVER['HTTP_ORIGIN']) ) {
+      if (
+        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
+        or
+        preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
+      ) {
         $valid = true;
-        Logger::Debug("Setting Access-Controll-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
+        Logger::Debug("Setting Access-Control-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
         break;

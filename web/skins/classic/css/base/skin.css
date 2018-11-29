@@ -150,6 +150,7 @@ input,textarea,select,button,.btn-primary {
     font-weight: 400;
     font-size: 100%;
     color: #333333;
+    background-color: #f8f8f8;
     text-align: left;
     border-radius:4px;
 }

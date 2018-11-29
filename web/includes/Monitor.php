@@ -280,20 +280,13 @@ private $control_fields = array(
     }
   }
 
-  public function getStreamSrc( $args, $querySep='&amp;' ) {
+  public function getStreamSrc($args, $querySep='&amp;') {
 
-    $streamSrc = ZM_BASE_PROTOCOL.'://';
-    if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
-      $Server = new Server( $this->{'ServerId'} );
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
-      }
-    } else if ( ZM_MIN_STREAMING_PORT ) {
-      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
-    } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'];
-    }
+    $streamSrc = $this->Server()->Url(
+      ZM_MIN_STREAMING_PORT ?
+      ZM_MIN_STREAMING_PORT+$this->{'Id'} :
+      null);
+
     $streamSrc .= ZM_PATH_ZMS;
 
     $args['monitor'] = $this->{'Id'};
@@ -315,9 +308,9 @@ private $control_fields = array(
       $args['rand'] = time();
     }
 
-    $streamSrc .= '?'.http_build_query( $args,'', $querySep );
+    $streamSrc .= '?'.http_build_query($args,'', $querySep);
 
-    return( $streamSrc );
+    return $streamSrc;
   } // end function getStreamSrc
 
   public function Width($new = null) {
@@ -600,13 +593,15 @@ private $control_fields = array(
       $source = preg_replace( '/^.*\//', '', $this->{'Path'} );
     } elseif ( $this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite' ) {
       $url_parts = parse_url( $this->{'Path'} );
-      if ( ZM_WEB_FILTER_SOURCE == 'Hostname' ) { # Filter out everything but the hostname
+      if ( ZM_WEB_FILTER_SOURCE == 'Hostname' ) {
+        # Filter out everything but the hostname
         if ( isset($url_parts['host']) ) {
           $source = $url_parts['host'];
         } else {
           $source = $this->{'Path'};
         }
-      } elseif ( ZM_WEB_FILTER_SOURCE == "NoCredentials" ) { # Filter out sensitive and common items
+      } elseif ( ZM_WEB_FILTER_SOURCE == "NoCredentials" ) {
+        # Filter out sensitive and common items
         unset($url_parts['user']);
         unset($url_parts['pass']);
         #unset($url_parts['scheme']);

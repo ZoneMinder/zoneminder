@@ -5,23 +5,25 @@ $server_cache = array();
 
 class Server {
   private $defaults = array(
-    'Id'        =>  null,
-    'Name'      =>  '',
-    'Hostname'  =>  '',
-    'zmaudit'   =>  1,
-    'zmstats'   =>  1,
-    'zmtrigger' =>  0,
+    'Id'          => null,
+    'Name'        => '',
+    'Protocol'    => '',
+    'Hostname'    => '',
+    'Port'        =>  null,
+    'PathPrefix'  => '/zm',
+    'zmaudit'     => 1,
+    'zmstats'     => 1,
+    'zmtrigger'   => 0,
   );
 
-
-  public function __construct( $IdOrRow = NULL ) {
-  global $server_cache;
+  public function __construct($IdOrRow = NULL) {
+    global $server_cache;
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer($IdOrRow) or ctype_digit($IdOrRow) ) {
         $row = dbFetchOne('SELECT * FROM Servers WHERE Id=?', NULL, array($IdOrRow));
         if ( !$row ) {
-          Error("Unable to load Server record for Id=" . $IdOrRow);
+          Error('Unable to load Server record for Id='.$IdOrRow);
         }
       } elseif ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
@@ -33,13 +35,58 @@ class Server {
       }
       $server_cache[$row['Id']] = $this;
     } else {
-      $this->{'Name'} = '';
-      $this->{'Hostname'} = '';
+      # Set defaults
+      foreach ( $this->defaults as $k => $v ) $this->{$k} = $v;
     }
   }
 
+  public function Hostname( $new = null ) {
+    if ( $new != null )
+      $this->{'Hostname'} = $new;
+
+    if ( isset( $this->{'Hostname'}) and ( $this->{'Hostname'} != '' ) ) {
+      return $this->{'Hostname'};
+    } else if ( $this->Id() ) {
+      return $this->{'Name'};
+    }
+    return $_SERVER['SERVER_NAME'];
+  }
+
+  public function Protocol( $new = null ) {
+    if ( $new != null )
+      $this->{'Protocol'} = $new;
+
+    if ( isset($this->{'Protocol'}) and ( $this->{'Protocol'} != '' ) ) {
+      return $this->{'Protocol'};
+    }
+    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https' : 'http';
+  }
+
+  public function Port( $new = '' ) {
+    if ( $new != '' )
+      $this->{'Port'} = $new;
+
+    if ( isset($this->{'Port'}) and $this->{'Port'} ) {
+      return $this->{'Port'};
+    }
+    return $_SERVER['SERVER_PORT'];
+  }
+
+  public function PathToZMS( $new = null ) {
+    if ( $new != null )
+      $this{'PathToZMS'} = $new;
+    if ( $this->Id() and $this->{'PathToZMS'} ) {
+      return $this->{'PathToZMS'};
+    } else {
+      return ZM_PATH_ZMS;
+    }
+  }
+  public function UrlToZMS( ) {
+    return $this->Url().$this->PathToZMS();
+  }
+
 	public function Url( $port = null ) {
-    $url = ZM_BASE_PROTOCOL . '://';
+    $url = $this->Protocol().'://';
 		if ( $this->Id() ) {
 			$url .= $this->Hostname();
 		} else {
@@ -48,17 +95,25 @@ class Server {
     if ( $port ) {
       $url .= ':'.$port;
     } else {
-      $url .= ':'.$_SERVER['SERVER_PORT'];
+      $url .= ':'.$this->Port();
     }
-    $url .= $_SERVER['PHP_SELF'];
     return $url;
 	}
-	public function Hostname() {
-		if ( isset( $this->{'Hostname'} ) and ( $this->{'Hostname'} != '' ) ) {
-			return $this->{'Hostname'};
-		}
-		return $this->{'Name'};
-	}
+
+  public function PathToIndex( $new = null ) {
+    if ( $new != null )
+      $this->{'PathToIndex'} = $new;
+
+    if ( isset($this->{'PathToIndex'}) and $this->{'PathToIndex'} ) {
+      return $this->{'PathToIndex'};
+    }
+    return $_SERVER['PHP_SELF'];
+  }
+
+  public function UrlToIndex( ) {
+    return $this->Url().$this->PathToIndex();
+  }
+
   public function __call($fn, array $args){
     if ( count($args) ) {
       $this->{$fn} = $args[0];
@@ -66,13 +121,13 @@ class Server {
     if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
     } else {
-      if ( array_key_exists( $fn, $this->defaults ) ) {
+      if ( array_key_exists($fn, $this->defaults) ) {
         return $this->defaults{$fn};
       } else {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
-        Warning( "Unknown function call Server->$fn from $file:$line" );
+        Warning("Unknown function call Server->$fn from $file:$line");
       }
     }
   }
@@ -117,7 +172,7 @@ class Server {
     }
     $results = dbFetchAll( $sql, NULL, $values );
     if ( $results ) {
-      return array_map( function($id){ return new Server($id); }, $results );
+      return array_map(function($id){ return new Server($id); }, $results);
     }
     return array();
   }
@@ -137,5 +192,5 @@ class Server {
     return $results[0];
   }
 
-}
+} # end class Server
 ?>

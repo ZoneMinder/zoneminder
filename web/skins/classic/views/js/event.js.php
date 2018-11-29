@@ -41,6 +41,7 @@ var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_de
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
 
 var rates = <?php echo json_encode(array_keys($rates)) ?>;
+var rate = '<?php echo $rate ?>'; // really only used when setting up initial playback rate.
 var scale = "<?php echo $scale ?>";
 var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
 

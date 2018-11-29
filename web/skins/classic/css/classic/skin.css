@@ -85,7 +85,8 @@ input,textarea,select,button {
     border: 1px #7f7fb2 solid;
     font-family: inherit;
     font-size: 100%;
-    color: #333333;
+    color: #333333;  
+    background-color: #eeeeee;
 }
 
 input[type=text], input[type=password], textarea {

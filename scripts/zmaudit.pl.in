@@ -592,8 +592,8 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         } # end if exists in filesystem
       } else {
         Debug("Found fs event for id $db_event, $age seconds old at " . $$fs_events{$db_event}->Path());
-        my $Event = new ZoneMinder::Event( $db_event );
-        if ( ! $Event->check_for_in_filesystem() ) {
+        my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+        if ( $Event and ! $Event->check_for_in_filesystem() ) {
           Warning("Not found at " . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path() );
           Warning($Event->to_string());
           Warning($$fs_events{$db_event}->to_string());

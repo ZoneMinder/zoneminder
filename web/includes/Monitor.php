@@ -282,12 +282,10 @@ private $control_fields = array(
 
   public function getStreamSrc($args, $querySep='&amp;') {
 
-    $streamSrc = $this->Server()->Url(
+    $streamSrc = $this->Server()->UrlToZMS(
       ZM_MIN_STREAMING_PORT ?
       ZM_MIN_STREAMING_PORT+$this->{'Id'} :
       null);
-
-    $streamSrc .= ZM_PATH_ZMS;
 
     $args['monitor'] = $this->{'Id'};
 
@@ -620,8 +618,8 @@ private $control_fields = array(
     return $source;
   } // end function Source
 
-  public function Url() {
-    return $this->Server()->Url( ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null );
+  public function UrlToIndex() {
+    return $this->Server()->UrlToIndex(ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
   }
 
 } // end class Monitor

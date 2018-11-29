@@ -211,6 +211,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <th class="colUrl"><?php echo translate('Url') ?></th>
               <th class="colPathToIndex"><?php echo translate('PathToIndex') ?></th>
               <th class="colPathToZMS"><?php echo translate('PathToZMS') ?></th>
+              <th class="colPathToApi"><?php echo translate('PathToApi') ?></th>
               <th class="colStatus"><?php echo translate('Status') ?></th>
               <th class="colMonitorCount"><?php echo translate('Monitors') ?></th>
               <th class="colCpuLoad"><?php echo translate('CpuLoad') ?></th>
@@ -232,6 +233,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colUrl"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->Url()), $canEdit) ?></td>
               <td class="colPathToIndex"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->PathToIndex()), $canEdit) ?></td>
               <td class="colPathToZMS"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->PathToZMS()), $canEdit) ?></td>
+              <td class="colPathToApi"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->PathToApi()), $canEdit) ?></td>
               <td class="colStatus <?php if ( $Server->Status() == 'NotRunning' ) { echo 'danger'; } ?>">
                   <?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->Status()), $canEdit) ?></td>
               <td class="colMonitorCount">

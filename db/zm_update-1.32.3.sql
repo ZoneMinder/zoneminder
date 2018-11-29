@@ -330,6 +330,22 @@ PREPARE stmt FROM @s;
 EXECUTE stmt;
 
 --
+-- Add PathToApi column to Storage
+--
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Servers'
+     AND column_name = 'PathToApi'
+    ) > 0,
+"SELECT 'Column PathToApi already exists in Servers'",
+"ALTER TABLE Servers ADD `PathToApi` TEXT AFTER `PathToZMS`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+--
 -- Add Port column to Storage
 --
 

@@ -65,18 +65,17 @@ class HostController extends AppController {
     $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
 
     if ( $isZmAuth ) {
+    // In future, we may want to completely move to AUTH_HASH_LOGINS and return &auth= for all cases
       require_once "../../../includes/auth.php"; # in the event we directly call getCredentials.json
       $this->Session->read('user'); # this is needed for command line/curl to recognize a session
       $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
       if ( $zmAuthRelay == 'hashed' ) {
         $zmAuthHashIps = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
         $credentials = 'auth='.generateAuthHash($zmAuthHashIps);
-      } else if ( $zmAuthRelay == 'plain' ) {
+      } else {
         // user will need to append the store password here
         $credentials = 'user='.$this->Session->read('user.Username').'&pass=';
         $appendPassword = 1;
-      } else if ( $zmAuthRelay == 'none' ) {
-        $credentials = 'user='.$this->Session->read('user.Username');
       }
     }
     return array($credentials, $appendPassword);

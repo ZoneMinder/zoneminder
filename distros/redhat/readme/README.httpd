@@ -1,16 +1,7 @@
-What's New
-==========
-
-1. See the ZoneMinder release notes for a list of new features:
-     https://github.com/ZoneMinder/zoneminder/releases
-
-2. The contents of the ZoneMinder Apache config file have changed. In
-   addition, this ZoneMinder package now requires you to manually symlink the
-   ZoneMinder Apache config file. See new install step 6 and upgrade step 3
-   below for details.
-  
 New installs
 ============
+
+NOTE: EL7 users should replace "dnf" with "yum" in the instructions below.
 
 1. Unless you are already using MariaDB server, you need to ensure that the
    server is configured to start during boot and properly secured by running:
@@ -77,14 +68,14 @@ New installs
 
    Inspect the web server configuration file and verify it meets your needs:
 
-     /etc/zm/www/zoneminder.conf
+     /etc/zm/www/zoneminder.httpd.conf
 
    If you are running other web enabled services then you may need to edit
    this file to suite. See README.https to learn about other alternatives. 
 
    When in doubt, proceed with the default:
 
-     sudo ln -s /etc/zm/www/zoneminder.conf /etc/httpd/conf.d/
+     sudo ln -sf /etc/zm/www/zoneminder.httpd.conf /etc/httpd/conf.d/
      sudo dnf install mod_ssl
 
 7. Now start the web server:
@@ -146,14 +137,22 @@ Upgrades
    See step 2 of the Installation section to add missing permissions.
    
 3. Verify the ZoneMinder Apache configuration file in the folder 
-   /etc/zm/www. You will have a file called "zoneminder.conf" and there
-   may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
+   /etc/zm/www. You will have a file called "zoneminder.httpd.conf" and there
+   may also be one or more files with "rpmnew" extenstion. If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
-   Verify the SSL REquirements meet your needs. Read README.https if necessary.
+   Verify the SSL Requirements meet your needs. Read README.https if necessary.
 
    The contents of this file must be merged into your Apache configuration.
    See step 6 of the installation section if you have not already done this
    during a previous upgrade.
+
+<<<<<<< HEAD
+   If this step is not performed correctly, the web console will appear
+   mostly empty and/or significantly corrupted post-upgrade. 
+=======
+   IMPORTANT: Failure to complete this step properly will result in a mostly
+   empty or significantly corrupted web console post-upgrade.
+>>>>>>> 5b211d250910918782d20bf32b0e33a38a0df4dd
 
 4. Upgrade the database before starting ZoneMinder.
 

@@ -38,6 +38,8 @@ $Monitor = $Event->Monitor();
 
 if (isset($_REQUEST['rate'])) {
   $rate = validInt($_REQUEST['rate']);
+} else if ( isset($_COOKIE['zmEventRate']) ) {
+  $rate = $_COOKIE['zmEventRate'];
 } else {
   $rate = reScale(RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
 }

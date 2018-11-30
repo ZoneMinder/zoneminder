@@ -84,8 +84,8 @@ class Server {
     }
   }
 
-  public function UrlToZMS( ) {
-    return $this->Url().$this->PathToZMS();
+  public function UrlToZMS( $port = null ) {
+    return $this->Url($port).$this->PathToZMS();
   }
 
 	public function Url( $port = null ) {
@@ -113,11 +113,11 @@ class Server {
     return $_SERVER['PHP_SELF'];
   }
 
-  public function UrlToIndex( ) {
-    return $this->Url().$this->PathToIndex();
+  public function UrlToIndex( $port=null ) {
+    return $this->Url($port).$this->PathToIndex();
   }
-  public function UrlToApi( ) {
-    return $this->Url().$this->PathToApi();
+  public function UrlToApi( $port=null ) {
+    return $this->Url($port).$this->PathToApi();
   }
   public function PathToApi( $new = null ) {
     if ( $new != null )

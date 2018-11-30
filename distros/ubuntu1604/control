@@ -41,7 +41,7 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libmp4v2-2, libx264-142|libx264-148|libx264-152, libswscale-ffmpeg3|libswscale4|libswscale3
+        ,libmp4v2-2, libx264-142|libx264-148|libx264-152, libswscale-ffmpeg3|libswscale4|libswscale3|libswscale5
         ,ffmpeg | libav-tools
         ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl

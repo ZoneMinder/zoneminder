@@ -19,9 +19,8 @@ What's New
      zoneminder-nginx - Files needed for compatibility with the Nginx web server
 
    You can switch between different subpackages with dnf/yum. Be advised that,
-   switching between httpd <-> nginx may not be perfect. Several files and
-   folders need to change ownership. The package attempts to do this, but
-   manual intervention will still likely be needed.
+   switching between httpd <-> nginx requires manaully changing ownership of
+   all event folders and the php session folder after the change.
 
 4. If you have installed ZoneMinder from the FedBerry repositories, this build
    of ZoneMinder has support for Raspberry Pi hardware acceleration when using

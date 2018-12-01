@@ -32,6 +32,7 @@ configure_file(httpd/com.zoneminder.systemctl.rules.httpd.in ${CMAKE_CURRENT_SOU
 # Configure the Nginx zoneminder files
 configure_file(nginx/zm-nginx.conf ${CMAKE_CURRENT_SOURCE_DIR}/zm-nginx.conf COPYONLY)
 configure_file(nginx/zoneminder.nginx.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.nginx.conf @ONLY)
+configure_file(nginx/redirect.nginx.conf ${CMAKE_CURRENT_SOURCE_DIR}/redirect.nginx.conf COPYONLY)
 configure_file(nginx/zoneminder.nginx.tmpfiles.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.nginx.tmpfiles.conf @ONLY)
 configure_file(nginx/zm-web-user.conf ${CMAKE_CURRENT_SOURCE_DIR}/zm-web-user.conf COPYONLY)
 configure_file(nginx/zoneminder.php-fpm.conf ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.php-fpm.conf COPYONLY)
@@ -62,6 +63,7 @@ install(FILES com.zoneminder.systemctl.rules.httpd DESTINATION /etc/zm/www PERMI
 # Install the Nginx zoneminder files
 install(FILES zm-nginx.conf DESTINATION /usr/lib/systemd/system/zoneminder.service.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 install(FILES zoneminder.nginx.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+install(FILES redirect.nginx.conf DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 install(FILES zoneminder.nginx.tmpfiles.conf DESTINATION /usr/lib/tmpfiles.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 install(FILES com.zoneminder.systemctl.rules.nginx DESTINATION /etc/zm/www PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 install(FILES zm-web-user.conf DESTINATION /etc/zm/conf.d PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)

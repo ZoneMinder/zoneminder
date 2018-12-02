@@ -1,3 +1,7 @@
+#
+# PLEASE NOTE THAT THIS FILE IS INTENDED FOR GUIDANCE ONLY AND MAY NOT BE APPROPRIATE FOR YOUR DISTRIBUTION
+#
+
 server {
     listen       443 ssl default_server;
     listen       [::]:443 ssl default_server;

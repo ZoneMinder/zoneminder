@@ -311,6 +311,11 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  AVCodecParameters *codec = st->codecpar;
+#else
+  AVCodecContext *codec = st->codec;
+#endif
 
   Debug(1, "    Stream #%d:%d", index, i);
 
@@ -320,19 +325,20 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, "[0x%x]", st->id);
   if (lang)
     Debug(1, "(%s)", lang->value);
-  Debug(1, ", frames:%d, timebase: %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
+  Debug(1, ", frames:%d, frame_size:%d timebase: %d/%d",
+      st->codec_info_nb_frames,
+      codec->frame_size,
+      st->time_base.num,
+      st->time_base.den);
   avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, ": %s", buf);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  AVCodecParameters *codec = st->codecpar;
-#else
-  AVCodecContext *codec = st->codec;
-#endif
 
-  if (st->sample_aspect_ratio.num && // default
-      av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)) {
+  if ( st->sample_aspect_ratio.num && // default
+      av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)
+      ) {
     AVRational display_aspect_ratio;
-    av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
+    av_reduce(&display_aspect_ratio.num,
+        &display_aspect_ratio.den,
         codec->width  * (int64_t)st->sample_aspect_ratio.num,
         codec->height * (int64_t)st->sample_aspect_ratio.den,
         1024 * 1024);
@@ -341,7 +347,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
         display_aspect_ratio.num, display_aspect_ratio.den);
   }
 
-  if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+  if ( st->codec->codec_type == AVMEDIA_TYPE_VIDEO ) {
     int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
     int tbn = st->time_base.den && st->time_base.num;
     int tbc = st->codec->time_base.den && st->codec->time_base.num;
@@ -377,7 +383,6 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, " (visual impaired)");
   if (st->disposition & AV_DISPOSITION_CLEAN_EFFECTS)
     Debug(1, " (clean effects)");
-  Debug(1, "\n");
 
   //dump_metadata(NULL, st->metadata, "    ");
 

@@ -390,6 +390,7 @@ EOF
 %config(noreplace) %attr(640,root,nginx) %{_sysconfdir}/zm/conf.d/*.conf
 %ghost %attr(640,root,nginx) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 %config(noreplace) %{_sysconfdir}/zm/www/zoneminder.nginx.conf
+%config(noreplace) %{_sysconfdir}/zm/www/redirect.nginx.conf
 %ghost %{_sysconfdir}/zm/www/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx
 %ghost %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules

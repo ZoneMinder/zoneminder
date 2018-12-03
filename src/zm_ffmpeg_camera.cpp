@@ -880,7 +880,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
         if ( keyframe ) {
           Debug(3, "Clearing queue");
           if ( packetqueue->packet_count(mVideoStreamId) >= monitor->GetImageBufferCount() ) {
-            Warning("ImageBufferCount is too small.  Needs to be at least %d. Either increase it or decrease time between keyframes", packetqueue->packet_count(mVideoStreamId) );
+            Warning("ImageBufferCount %d is too small.  Needs to be at least %d. Either increase it or decrease time between keyframes", 
+                monitor->GetImageBufferCount(),
+                packetqueue->packet_count(mVideoStreamId)+1 );
           }
 
           packetqueue->clearQueue(monitor->GetPreEventCount(), mVideoStreamId);

@@ -981,10 +981,11 @@ sub deleteSwapImage {
 
 # Deletes empty sub directories of the given path.
 # Does not delete the path if empty. Is not meant to be recursive.
+# Assumes absolute path
 sub delete_empty_subdirs {
   my $DIR;
   if ( !opendir($DIR, $_[0]) ) {
-    Error("delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
+    Error("delete_empty_subdirs: Can't open directory '/$_[0]': $!" );
     return;
   }
   my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
@@ -997,10 +998,11 @@ sub delete_empty_subdirs {
   closedir($DIR);
 }
 
+# Assumes absolute path
 sub delete_empty_directories {
   my $DIR;
   if ( !opendir($DIR, $_[0]) ) {
-    Error("delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
+    Error("delete_empty_directories: Can't open directory '/$_[0]': $!" );
     return;
   }
   my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );

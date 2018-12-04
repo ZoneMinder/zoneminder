@@ -507,7 +507,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     //if ( errno != EAGAIN )
     {
       Error("Can't sendto on sd %d: %s", sd, strerror(errno));
-      exit(-1);
+      //exit(-1);
     }
   }
   // quit after sending a status, if this was a quit request
@@ -844,7 +844,7 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
       // so if it is 2, then we send every other frame, if is it 4 then every fourth frame, etc.
       if ( (frame_mod == 1) || (((curr_frame_id-1)%frame_mod) == 0) ) {
         delta_us = (unsigned int)(frame_data->delta * 1000000);
-        Debug(3,"frame delta %u ", delta_us);
+        Debug(3,"frame delta %uus ", delta_us);
         // if effective > base we should speed up frame delivery
         delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
         Debug(3,"delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);

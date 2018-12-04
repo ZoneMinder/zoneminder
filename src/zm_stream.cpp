@@ -64,7 +64,8 @@ void StreamBase::updateFrameRate(double fps) {
   base_fps = fps;
   effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
   frame_mod = 1;
-  Debug(3, "FPS:%.2f, MaxFPS:%.2f, BaseFPS:%.2f, EffectiveFPS:%.2f, FrameMod:%d", fps, maxfps, base_fps, effective_fps, frame_mod);
+  Debug(3, "FPS:%.2f, MaxFPS:%.2f, BaseFPS:%.2f, EffectiveFPS:%.2f, FrameMod:%d, replay_rate(%d)",
+      fps, maxfps, base_fps, effective_fps, frame_mod, replay_rate);
   // Min frame repeat?
   while( effective_fps > maxfps ) {
     effective_fps /= 2.0;

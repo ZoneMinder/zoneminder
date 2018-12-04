@@ -815,6 +815,7 @@ unsigned int Monitor::GetLastWriteIndex() const {
 }
 
 uint64_t Monitor::GetLastEventId() const {
+#if 0
   Debug(2, "mem_ptr(%x), State(%d) last_read_index(%d) last_read_time(%d) last_event(%" PRIu64 ")",
       mem_ptr,
       shared_data->state,
@@ -822,6 +823,7 @@ uint64_t Monitor::GetLastEventId() const {
       shared_data->last_read_time,
       shared_data->last_event
       );
+#endif
   return shared_data->last_event;
 }
 

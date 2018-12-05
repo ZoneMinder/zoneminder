@@ -81,10 +81,10 @@ echo output_link_if_exists( array(
   'css/'.$css.'/skin.css',
   'css/base/views/'.$basename.'.css',
   'css/'.$css.'/views/'.$basename.'.css',
-  '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  '/js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-  '/css/jquery-ui-1.12.1/jquery-ui.theme.min.css',
-  '/css/'.$css.'/jquery-ui-theme.css',
+  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
+  'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
+  'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
+  'css/'.$css.'/jquery-ui-theme.css',
 )
 );
 ?>

@@ -52,7 +52,12 @@ class Server {
       return $this->{'Name'};
     }
     # Use HTTP_HOST instead of SERVER_NAME here for nginx compatiblity
-    return $_SERVER['HTTP_HOST'];
+    # ICON: Hi, I just met you, and this is crazy, but I need to strip port.
+    $host_with_port_maybe = $_SERVER['HTTP_HOST'];
+    $heres_my_host = preg_replace('/([^:]+)(:\d+)?/','${1}', $host_with_port_maybe);
+    #Just use it baby
+    
+    return $heres_my_host;
   }
 
   public function Protocol( $new = null ) {

@@ -275,7 +275,8 @@ function pauseClicked() {
 }
 
 function vjsPause() {
-  stopFastRev();
+  if ( intervalRewind )
+    stopFastRev();
   streamPause();
 }
 
@@ -307,7 +308,7 @@ function vjsPlay() { //catches if we change mode programatically
   if ( intervalRewind )
     stopFastRev();
   $j('#rateValue').html(vid.playbackRate());
-  Cookie.write('zmEventRate', vid.playbackRate(), {duration: 10*365});
+  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
   streamPlay();
 }
 
@@ -575,7 +576,7 @@ function getEventResponse( respObj, respText ) {
     drawProgressBar();
   }
   nearEventsQuery( eventData.Id );
-}
+} // end function getEventResponse
 
 var eventReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
 

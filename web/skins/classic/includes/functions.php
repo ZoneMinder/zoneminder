@@ -81,10 +81,10 @@ echo output_link_if_exists( array(
   'css/'.$css.'/skin.css',
   'css/base/views/'.$basename.'.css',
   'css/'.$css.'/views/'.$basename.'.css',
-  '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  '/js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-  '/css/jquery-ui-1.12.1/jquery-ui.theme.min.css',
-  '/css/'.$css.'/jquery-ui-theme.css',
+  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
+  'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
+  'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
+  'css/'.$css.'/jquery-ui-theme.css',
 )
 );
 ?>
@@ -119,6 +119,7 @@ echo output_link_if_exists( array(
   <script src="skins/<?php echo $skin; ?>/js/chosen/chosen.jquery.min.js"></script>
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
+  <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
   <script> 
   jQuery(document).ready(function(){
     jQuery("#flip").click(function(){
@@ -127,16 +128,8 @@ echo output_link_if_exists( array(
       Cookie.write( 'zmHeaderFlip', jQuery('#flip').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
     });
   });
-  </script>
-
-  <script>
-  //<![CDATA[
-  <!--
   var $j = jQuery.noConflict();
   // $j is now an alias to the jQuery function; creating the new alias is optional.
-
-  //-->
-  //]]>
   </script>
   <script src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
 <?php

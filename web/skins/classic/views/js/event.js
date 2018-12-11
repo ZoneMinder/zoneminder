@@ -235,6 +235,7 @@ function getCmdResponse( respObj, respText ) {
     streamPause( );
   } else {
     $j('#rateValue').html(streamStatus.rate);
+    Cookie.write('zmEventRate', streamStatus.rate*100, {duration: 10*365});
     streamPlay( );
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
@@ -274,7 +275,8 @@ function pauseClicked() {
 }
 
 function vjsPause() {
-  stopFastRev();
+  if ( intervalRewind )
+    stopFastRev();
   streamPause();
 }
 
@@ -303,8 +305,10 @@ function playClicked( ) {
 }
 
 function vjsPlay() { //catches if we change mode programatically
-  stopFastRev();
+  if ( intervalRewind )
+    stopFastRev();
   $j('#rateValue').html(vid.playbackRate());
+  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
   streamPlay();
 }
 
@@ -331,6 +335,7 @@ function streamFastFwd( action ) {
     if ( rates.indexOf(vid.playbackRate()*100)-1 == -1 )
       setButtonState($('fastFwdBtn'), 'unavail');
     $j('#rateValue').html(vid.playbackRate());
+    Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
   } else {
     streamReq.send(streamParms+"&command="+CMD_FASTFWD);
   }
@@ -359,6 +364,7 @@ function streamSlowRev( action ) {
 function stopFastRev() {
   clearInterval(intervalRewind);
   vid.playbackRate(1);
+  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
   revSpeed = .5;
 }
 
@@ -369,13 +375,14 @@ function streamFastRev( action ) {
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
   setButtonState( $('fastRevBtn'), 'active' );
-  if ( vid ) { //There is no reverse play with mp4.  Set the speed to 0 and manualy set the time back.
+  if ( vid ) { //There is no reverse play with mp4.  Set the speed to 0 and manually set the time back.
     revSpeed = rates[rates.indexOf(revSpeed*100)-1]/100;
     if ( rates.indexOf(revSpeed*100) == 0 ) {
       setButtonState( $('fastRevBtn'), 'unavail' );
     }
     clearInterval(intervalRewind);
     $j('#rateValue').html(-revSpeed);
+    Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
         clearInterval(intervalRewind);
@@ -569,7 +576,7 @@ function getEventResponse( respObj, respText ) {
     drawProgressBar();
   }
   nearEventsQuery( eventData.Id );
-}
+} // end function getEventResponse
 
 var eventReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
 
@@ -887,7 +894,7 @@ function unarchiveEvent() {
 }
 
 function showEventFrames() {
-  createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames' );
+  createPopup( '?view=frames&eid='+eventData.Id, 'zmFrames', 'frames', WEB_LIST_THUMB_WIDTH, WEB_LIST_THUMB_HEIGHT );
 }
 
 function showStream() {
@@ -997,8 +1004,13 @@ function initPage() {
     vid.on('pause', vjsPause);
     vid.on('click', function(event){handleClick(event);});
     vid.on('timeupdate', function (){$j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())))});
+
+    if ( rate > 1 ) {
+      // rate should be 100 = 1x, etc.
+      vid.playbackRate(rate/100);
+    }
   } else {
-    progressBarNav ();
+    progressBarNav();
     streamCmdTimer = streamQuery.delay( 250 );
     if ( canStreamNative ) {
       var imageFeed = $('imageFeed');

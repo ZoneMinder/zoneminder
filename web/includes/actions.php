@@ -537,7 +537,7 @@ if ( canEdit('Monitors') ) {
       $new_monitor = new Monitor($mid);
       //fixDevices();
 
-      if ( $monitor['Type'] != 'WebSite' ) {
+      if ( $new_monitor->Type() != 'WebSite' ) {
         $new_monitor->zmcControl('start');
         $new_monitor->zmaControl('start');
       }

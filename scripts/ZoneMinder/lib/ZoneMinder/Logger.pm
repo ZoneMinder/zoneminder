@@ -441,11 +441,11 @@ sub databaseLevel {
     $databaseLevel = $this->limit($databaseLevel);
     if ( $this->{databaseLevel} != $databaseLevel ) {
       if ( ( $databaseLevel > NOLOG ) and ( $this->{databaseLevel} <= NOLOG ) ) {
-        if ( !$this->{dbh} ) {
-          $this->{dbh} = ZoneMinder::Database::zmDbConnect();
+        if ( ! ( $ZoneMinder::Database::dbh or ZoneMinder::Database::zmDbConnect() ) ) {
+          Warning("Failed connecting to db.  Not using database logging.");
+          $this->{databaseLevel} = NOLOG;
+          return NOLOG;
         }
-      } elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG ) {
-        undef($this->{dbh});
       }
       $this->{databaseLevel} = $databaseLevel;
     }
@@ -558,12 +558,12 @@ sub logPrint {
     }
 
     if ( $level <= $this->{databaseLevel} ) {
-      if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
+      if ( ! ( $ZoneMinder::Database::dbh and $ZoneMinder::Database::dbh->ping() ) ) {
         $this->{sth} = undef;
         # Turn this off because zDbConnect will do logging calls.
         my $oldlevel = $this->{databaseLevel};
         $this->{databaseLevel} = NOLOG;
-        if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
+        if ( ! ZoneMinder::Database::zmDbConnect() ) {
           #print(STDERR "Can't log to database: ");
           return;
         }
@@ -571,10 +571,10 @@ sub logPrint {
       }
 
       my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, NULL )';
-      $this->{sth} = $this->{dbh}->prepare_cached($sql) if ! $this->{sth};
+      $this->{sth} = $ZoneMinder::Database::dbh->prepare_cached($sql) if ! $this->{sth};
       if ( !$this->{sth} ) {
         $this->{databaseLevel} = NOLOG;
-        Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
+        Error("Can't prepare log entry '$sql': ".$ZoneMinder::Database::dbh->errstr());
         return;
       } 
 
@@ -590,7 +590,7 @@ sub logPrint {
           );
       if ( !$res ) {
         $this->{databaseLevel} = NOLOG;
-        Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
+        Error("Can't execute log entry '$sql': ".$ZoneMinder::Database::dbh->errstr());
       }
     } # end if doing db logging
   } # end if level < effectivelevel
@@ -705,7 +705,7 @@ sub Fatal( @ ) {
     $SIG{TERM}();
   }
   # I think if we don't disconnect we will leave sockets around in TIME_WAIT
-  zmDbDisconnect();
+  ZoneMinder::Database::zmDbDisconnect();
   exit(-1);
 }
 

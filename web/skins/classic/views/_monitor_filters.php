@@ -56,7 +56,7 @@ foreach ( Group::find() as $G ) {
 
 $groupSql = '';
 if ( count($GroupsById) ) {
-  $html .= '<span id="groupControl"><label>'. translate('Group') .':</label>';
+  $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
   # This will end up with the group_id of the deepest selection
   $group_id = isset($_SESSION['Group']) ? $_SESSION['Group'] : null;
   $html .= Group::get_group_dropdown();
@@ -114,7 +114,7 @@ $html .= htmlSelect('Function[]', $Functions,
 $html .= '</span>';
 
 if ( count($ServersById) > 1 ) {
-  $html .= '<span class="ServerFilter"><label>'. translate('Server').':</label>';
+  $html .= '<span class="ServerFilter"><label>'. translate('Server').'</label>';
   $html .= htmlSelect('ServerId[]', $ServersById,
     (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
     array(
@@ -128,7 +128,7 @@ if ( count($ServersById) > 1 ) {
 } # end if have Servers
 
 if ( count($StorageById) > 1 ) {
-  $html .= '<span class="StorageFilter"><label>'.translate('Storage').':</label>';
+  $html .= '<span class="StorageFilter"><label>'.translate('Storage').'</label>';
   $html .= htmlSelect('StorageId[]', $StorageById,
     (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
     array(
@@ -140,7 +140,7 @@ if ( count($StorageById) > 1 ) {
   $html .= '</span>';
 } # end if have Storage Areas
 
-$html .= '<span class="StatusFilter"><label>'. translate('Status') . ':</label>';
+$html .= '<span class="StatusFilter"><label>'. translate('Status') . '</label>';
 $status_options = array(
     'Unknown' => translate('StatusUnknown'),
     'NotRunning' => translate('StatusNotRunning'),
@@ -157,7 +157,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
   ) );
   $html .= '</span>';
 
-  $html .= '<span class="SourceFilter"><label>'.translate('Source').':</label>';
+  $html .= '<span class="SourceFilter"><label>'.translate('Source').'</label>';
   $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?$_SESSION['Source']:'').'" onkeydown="if(event&&event.keyCode==13){this.form.submit();}" placeholder="text or regular expression"/>';
   $html .= '</span>';
 
@@ -232,7 +232,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
     $displayMonitors[] = $monitors[$i];
   } # end foreach monitor
 
-  $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').':</label>';
+  $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').'</label>';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
       'onchange'=>'this.form.submit();',

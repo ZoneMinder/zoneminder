@@ -53,7 +53,7 @@ if ( !$liveMode ) {
 
   $next_frames = array();
 
-  if ( $result = dbQuery($frameSql) ) {
+  if ( $result = dbQuery($framesSql) ) {
     $next_frame = null;
     while( $frame = $result->fetch(PDO::FETCH_ASSOC) ) {
       $event_id = $frame['EventId'];

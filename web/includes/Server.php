@@ -51,8 +51,8 @@ class Server {
     } else if ( $this->Id() ) {
       return $this->{'Name'};
     }
-    # Use HTTP_HOST instead of SERVER_NAME here for nginx compatiblity
-    return $_SERVER['HTTP_HOST'];
+    $result = explode(':',$_SERVER['HTTP_HOST']);
+    return $result[0];
   }
 
   public function Protocol( $new = null ) {
@@ -91,12 +91,7 @@ class Server {
 
 	public function Url( $port = null ) {
     $url = $this->Protocol().'://';
-		if ( $this->Id() ) {
-			$url .= $this->Hostname();
-		} else {
-                        # Use HTTP_HOST instead of SERVER_NAME here for nginx compatiblity
-			$url .= $_SERVER['HTTP_HOST'];
-		}
+		$url .= $this->Hostname();
     if ( $port ) {
       $url .= ':'.$port;
     } else {

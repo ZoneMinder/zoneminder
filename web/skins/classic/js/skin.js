@@ -319,11 +319,11 @@ function convertLabelFormat(LabelFormat, monitorName){
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime){
 //This is a hacky way to handle changing the texttrack. If we ever upgrade vjs in a revamp replace this.  Old method preserved because it's the right way.
-  let cues = vid.textTracks()[0].cues();
-  let labelFormat = convertLabelFormat(LabelFormat, monitorName);
+  var cues = vid.textTracks()[0].cues();
+  var labelFormat = convertLabelFormat(LabelFormat, monitorName);
   startTime = moment(startTime);
 
-  for (let i = 0; i <= duration; i++) {
+  for (var i = 0; i <= duration; i++) {
     cues[i] = {id: i, index: i, startTime: i, Ca: i+1, text: startTime.format(labelFormat)};
     startTime.add(1, 's');
   }
@@ -361,21 +361,21 @@ function endOfResize(e) {
 
 function scaleToFit (baseWidth, baseHeight, scaleEl, bottomEl) {
   $j(window).on('resize', endOfResize)  //set delayed scaling when Scale to Fit is selected
-  let ratio = baseWidth / baseHeight;
-  let container = $j('#content');
-  let viewPort = $j(window);
+  var ratio = baseWidth / baseHeight;
+  var container = $j('#content');
+  var viewPort = $j(window);
 // jquery does not provide a bottom offet, and offset dows not include margins.  outerHeight true minus false gives total vertical margins.
-  let bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
-  let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true))
-  let newWidth = ratio * newHeight;
+  var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+  var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true))
+  var newWidth = ratio * newHeight;
   if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth();
     newHeight = newWidth / ratio;
   }
-  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
-  let scales = $j('#scale option').map(function() {return parseInt($j(this).val());}).get();
+  var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
+  var scales = $j('#scale option').map(function() {return parseInt($j(this).val());}).get();
   scales.shift();
-  let closest;
+  var closest;
   $j(scales).each(function () { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();

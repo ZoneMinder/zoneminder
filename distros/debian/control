@@ -13,6 +13,7 @@ Build-Depends: debhelper (>= 9), cmake
     , libv4l-dev (>= 0.8.3)
     , libbz2-dev
     , ffmpeg | libav-tools
+    , net-tools
     , libnetpbm10-dev
     , libvlccore-dev, libvlc-dev
     , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
@@ -36,11 +37,13 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libphp-serialization-perl
     , libdate-manip-perl, libmime-lite-perl, libmime-tools-perl, libdbd-mysql-perl
     , libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl
-    , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl
+    , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl, libjson-maybexs-perl
     , libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl
     , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
     , libsys-cpu-perl, libsys-meminfo-perl
     , libdata-uuid-perl
+    ,libnumber-bytes-human-perl
+    ,libfile-slurp-perl
     , libpcre3
     , ffmpeg | libav-tools, libavdevice53 | libavdevice55 | libavdevice57
     , rsyslog | system-log-daemon

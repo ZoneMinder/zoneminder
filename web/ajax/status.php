@@ -383,7 +383,7 @@ function getNearEvents() {
   parseSort();
 
   if ( $user['MonitorIds'] )
-    $midSql = ' and MonitorId in ('.join( ',', preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).')';
+    $midSql = ' AND MonitorId IN ('.join( ',', preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).')';
   else
     $midSql = '';
 
@@ -392,32 +392,40 @@ function getNearEvents() {
     $sortOrder = 'asc';
   }
 
-  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." ORDER BY $sortColumn ".($sortOrder=='asc'?'desc':'asc') . ' LIMIT 2';
-  $result = dbQuery( $sql );
-  while ( $id = dbFetchNext( $result, 'Id' ) ) {
-    if ( $id == $eventId ) {
-      $prevEvent = dbFetchNext( $result );
-      break;
-    }
+  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql.' AND E.Id<'.$event['Id'] . " ORDER BY $sortColumn ".($sortOrder=='asc'?'desc':'asc');
+  if ( $sortColumn != 'E.Id' ) {
+    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    $sql .= ', E.Id DESC';
   }
+  $sql .= ' LIMIT 1';
+  $result = dbQuery( $sql );
+  $prevEvent = dbFetchNext( $result );
 
-  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." ORDER BY $sortColumn $sortOrder LIMIT 2";
-  $result = dbQuery( $sql );
-  while ( $id = dbFetchNext( $result, 'Id' ) ) {
-    if ( $id == $eventId ) {
-      $nextEvent = dbFetchNext( $result );
-      break;
-    }
+  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql.' AND E.Id>'.$event['Id'] . " ORDER BY $sortColumn $sortOrder";
+  if ( $sortColumn != 'E.Id' ) {
+    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    $sql .= ', E.Id ASC';
   }
+  $sql .= ' LIMIT 1';
+  $result = dbQuery( $sql );
+  $nextEvent = dbFetchNext( $result );
 
   $result = array( 'EventId'=>$eventId );
-  $result['PrevEventId'] = empty($prevEvent)?0:$prevEvent['Id'];
-  $result['NextEventId'] = empty($nextEvent)?0:$nextEvent['Id'];
-  $result['PrevEventStartTime'] = empty($prevEvent)?0:$prevEvent['StartTime'];
-  $result['NextEventStartTime'] = empty($nextEvent)?0:$nextEvent['StartTime'];
-  $result['PrevEventDefVideoPath'] = empty($prevEvent)?0:(getEventDefaultVideoPath($prevEvent['Id']));
-  $result['NextEventDefVideoPath'] = empty($nextEvent)?0:(getEventDefaultVideoPath($nextEvent['Id']));
-  return( $result );
+  if ( $prevEvent ) {
+    $result['PrevEventId'] = $prevEvent['Id'];
+    $result['PrevEventStartTime'] = $prevEvent['StartTime'];
+    $result['PrevEventDefVideoPath'] = getEventDefaultVideoPath($prevEvent['Id']);
+  } else {
+    $result['PrevEventId'] = $result['PrevEventStartTime'] = $result['PrevEventDefVideoPath'] = 0;
+  }
+  if ( $nextEvent ) {
+    $result['NextEventId'] = $nextEvent['Id'];
+    $result['NextEventStartTime'] = $nextEvent['StartTime'];
+    $result['NextEventDefVideoPath'] = getEventDefaultVideoPath($nextEvent['Id']);
+  } else {
+    $result['NextEventId'] = $result['NextEventStartTime'] = $result['NextEventDefVideoPath'] = 0;
+  }
+  return $result;
 }
 
 ?>

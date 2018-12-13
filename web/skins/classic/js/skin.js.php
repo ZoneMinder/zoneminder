@@ -31,9 +31,12 @@ var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 var currentView = '<?php echo $view ?>';
 var thisUrl = "<?php echo ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
 var skinPath = "<?php echo ZM_SKIN_PATH ?>";
+var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 
 var canEditSystem = <?php echo canEdit('System' )?'true':'false' ?>;
 var canViewSystem = <?php echo canView('System' )?'true':'false' ?>;
+var canEditEvents = <?php echo canEdit('Events' )?'true':'false' ?>;
+var canViewEvents = <?php echo canView('Events' )?'true':'false' ?>;
 
 var canEditGroups = <?php echo canEdit('Groups' )?'true':'false' ?>;
 
@@ -53,7 +56,7 @@ if ( ! empty($refreshParent) ) {
 ?>;
 var closePopup = <?php
 if ( ( ! empty($closePopup) ) and ( $closePopup == true ) ) {
-    echo 'true';
+  echo 'true';
 } else {
   echo 'false';
 }
@@ -65,5 +68,5 @@ var imagePrefix = "<?php echo "?view=image&eid=" ?>";
 
 var auth_hash;
 <?php if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) { ?>
-auth_hash = '<?php echo isset($_SESSION['AuthHash']) ? $_SESSION['AuthHash'] : ''; ?>';
+auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 <?php } ?>

@@ -3,11 +3,11 @@ var requestQueue = new Request.Queue( { concurrent: monitorData.length, stopOnFa
 function Monitor( monitorData ) {
   this.id = monitorData.id;
   this.connKey = monitorData.connKey;
-  this.server_url = monitorData.server_url;
+  this.url = monitorData.url;
   this.status = null;
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
-  this.streamCmdParms = this.server_url+'?view=request&request=stream&connkey='+this.connKey;
+  this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
   this.onclick = monitorData.onclick;
   if ( auth_hash )
     this.streamCmdParms += '&auth='+auth_hash;
@@ -38,14 +38,14 @@ function Monitor( monitorData ) {
     console.log('onerror: ' + text + ' error:'+error);
     // Requeue, but want to wait a while.
     var streamCmdTimeout = 1000*statusRefreshTimeout;
-    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
+    this.streamCmdTimer = this.streamCmdQuery.delay(streamCmdTimeout, this);
   };
   this.onFailure = function( xhr ) {
     console.log('onFailure: ' + this.connKey);
-    console.log(xhr );
+    console.log(xhr);
     if ( ! requestQueue.hasNext("cmdReq"+this.id) ) { 
       console.log("Not requeuing because there is one already");
-      requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
+      requestQueue.addRequest("cmdReq"+this.id, this.streamCmdReq);
     }
     if ( 0 ) {
     // Requeue, but want to wait a while.
@@ -153,7 +153,7 @@ function Monitor( monitorData ) {
 
   if ( this.type != 'WebSite' ) {
     this.streamCmdReq = new Request.JSON( {
-      url: this.server_url,
+      url: this.url,
       method: 'get',
       timeout: 1000+AJAX_TIMEOUT,
       onSuccess: this.getStreamCmdResponse.bind( this ),
@@ -397,6 +397,20 @@ function reloadWebSite(ndx) {
 
 var monitors = new Array();
 function initPage() {
+
+  jQuery(document).ready(function(){
+    jQuery("#hdrbutton").click(function(){
+      jQuery("#flipMontageHeader").slideToggle("slow");
+      jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+      Cookie.write( 'zmMontageHeaderFlip', jQuery('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
+    });
+  });
+  if ( Cookie.read('zmMontageHeaderFlip') == 'down' ) {
+    // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
+    jQuery("#flipMontageHeader").slideToggle("fast");
+    jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+  }
+
   for ( var i = 0; i < monitorData.length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
@@ -408,6 +422,9 @@ function initPage() {
   }
   selectLayout('#zmMontageLayout');
 
+  if ( 0 ) {
+    // What is the purpose of this code?  I think it just starts up a second ajax thread,
+      //increasing the load on the server.
   for ( var i = 0; i < monitorData.length; i++ ) {
     if ( monitors[i].type == 'WebSite' )
       continue;
@@ -415,6 +432,7 @@ function initPage() {
     console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
     monitors[i].streamCmdQuery.delay( delay, monitors[i] );
     //monitors[i].zm_startup(delay);
+  }
   }
 }
 // Kick everything off

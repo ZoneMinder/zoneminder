@@ -20,7 +20,8 @@ experience.
    to do this: https://wiki.centos.org/HowTos/Https . Additionally, Googling 
    "centos certificate" reveals many articles on the subject.
 
-3. You can turn off HTTPS entirely by simply commenting out the SSLRequireSSL
-   directives found in /etc/httpd/conf.d/zoneminder.conf. You should also
-   comment out the HTTP -> HTTPS Rewrite rule.
+3. When using Apache, you can turn off HTTPS entirely by simply commenting
+   out the SSLRequireSSL directives found in
+   /etc/zm/www/zoneminder.apache.conf. You should also comment out the
+   HTTP -> HTTPS Rewrite rule.
 

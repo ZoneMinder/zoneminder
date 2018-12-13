@@ -173,6 +173,12 @@ my $cwd = getcwd;
 
 my $video_name;
 my @event_ids;
+
+# Fail if the path to a valid ffmpeg binary is not set
+if ( ! -x $Config{ZM_PATH_FFMPEG} ) {
+    Fatal("Ffmpeg binary not found or not executable. Verify ZM_PATH_FFMPEG points to ffmpeg, avconv, or a compatible binary.");
+}
+
 if ( $event_id ) {
   @event_ids = ( $event_id );
 

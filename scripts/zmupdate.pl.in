@@ -353,8 +353,8 @@ if ( $version ) {
   $version = $detaint_version;
 
   if ( ZM_VERSION eq $version ) {
-    print( "\nDatabase already at version $version, update aborted.\n\n" );
-    exit( 0 );
+    print("\nDatabase already at version $version, update skipped.\n\n");
+    exit(0);
   }
 
   print( "\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n" );
@@ -922,6 +922,11 @@ if ( $version ) {
     zmDbDisconnect();
     die( "Can't find upgrade from version '$version'" );
   }
+  # Re-enable the privacy popup after each upgrade
+  my $sql = "update Config set Value = 1 where Name = 'ZM_SHOW_PRIVACY'";
+  my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( ) or die( "Can't execute: ".$sth->errstr() );
+  $sth->finish();
   print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n" );
 }
 zmDbDisconnect();

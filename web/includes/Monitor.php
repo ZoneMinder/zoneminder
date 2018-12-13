@@ -2,24 +2,103 @@
 require_once('database.php');
 require_once('Server.php');
 
+$monitor_cache = array();
+
 class Monitor {
 
 private $defaults = array(
   'Id' => null,
   'Name' => '',
-  'StorageId' => 0,
   'ServerId' => 0,
+  'StorageId' => 0,
+  'Type'      =>  'Ffmpeg',
   'Function' => 'None',
   'Enabled' => 1,
+  'LinkedMonitors' => null,
+  'Triggers'  =>  null,
+  'Device'  =>  '',
+  'Channel' =>  0,
+  'Format'  =>  '0',
+  'V4LMultiBuffer'  =>  null,
+  'V4LCapturesPerFrame' =>  null,
+  'Protocol'  =>  null,
+  'Method'  =>  '',
+  'Host'  =>  null,
+  'Port'  =>  '',
+  'SubPath' =>  '',
+  'Path'  =>  null,
+  'Options' =>  null,
+  'User'  =>  null,
+  'Pass'  =>  null,
+  // These are NOT NULL default 0 in the db, but 0 is not a valid value. FIXME
   'Width' => null,
   'Height' => null,
+  'Colours' => 1,
+  'Palette' =>  '0',
   'Orientation' => null,
+  'Deinterlacing' =>  0,
+  'SaveJPEGs' =>  3,
+  'VideoWriter' =>  '0',
+  'OutputCodec' =>  null,
+  'OutputContainer' => null,
+  'EncoderParameters' => null,
+  'RecordAudio' =>  0,
+  'RTSPDescribe'  =>  null,
+  'Brightness'  =>  -1,
+  'Contrast'    =>  -1,
+  'Hue'         =>  -1,
+  'Colour'      =>  -1,
+  'EventPrefix' =>  'Event-',
+  'LabelFormat' =>  null,
+  'LabelX'      =>  0,
+  'LabelY'      =>  0,
+  'LabelSize'   =>  1,
+  'ImageBufferCount'  =>  100,
+  'WarmupCount' =>  0,
+  'PreEventCount' =>  0,
+  'PostEventCount'  =>  0,
+  'StreamReplayBuffer'  => 0,
+  'AlarmFrameCount'     =>  1,
+  'SectionLength'       =>  600,
+  'FrameSkip'           =>  0,
   'AnalysisFPSLimit'  =>  null,
-  'ZoneCount' =>  0,
-  'Triggers'  =>  null,
-  'Type'      =>  'Ffmpeg',
+  'AnalysisUpdateDelete'  =>  0,
   'MaxFPS' => null,
   'AlarmMaxFPS' => null,
+  'FPSReportIneterval'  =>  100,
+  'RefBlencPerc'        =>  6,
+  'AlarmRefBlendPerc'   =>  6,
+  'Controllable'        =>  0,
+  'ControlId' =>  null,
+  'ControlDevice' =>  null,
+  'ControlAddress'  =>  null,
+  'AutoStopTimeout' => null,
+  'TrackMotion'     =>  0,
+  'TrackDelay'      =>  null,
+  'ReturnLocation'  =>  -1,
+  'ReturnDelay'     =>  null,
+  'DefaultView' =>  'Events',
+  'DefaultRate' =>  100,
+  'DefaultScale'  =>  100,
+  'SignalCheckPoints' =>  0,
+  'SignalCheckColour' =>  '#0000BE',
+  'WebColour'   =>  'red',
+  'Exif'    =>  0,
+  'Sequence'  =>  null,
+  'TotalEvents' =>  null,
+  'TotalEventDiskSpace' =>  null,
+  'HourEvents' =>  null,
+  'HourEventDiskSpace' =>  null,
+  'DayEvents' =>  null,
+  'DayEventDiskSpace' =>  null,
+  'WeekEvents' =>  null,
+  'WeekEventDiskSpace' =>  null,
+  'MonthEvents' =>  null,
+  'MonthEventDiskSpace' =>  null,
+  'ArchivedEvents' =>  null,
+  'ArchivedEventDiskSpace' =>  null,
+  'ZoneCount' =>  0,
+  'Refresh' => null,
 );
 private $status_fields = array(
   'AnalysisFPS' => null,
@@ -148,21 +227,27 @@ private $control_fields = array(
         }
         if ( $this->{'Controllable'} ) {
           $s = dbFetchOne('SELECT * FROM Controls WHERE Id=?', NULL, array($this->{'ControlId'}) );
-          foreach ($s as $k => $v) {
-            if ( $k == 'Id' ) {
-              continue;
-# The reason for these is that the name overlaps Monitor fields.
-            } else if ( $k == 'Protocol' ) {
-              $this->{'ControlProtocol'} = $v;
-            } else if ( $k == 'Name' ) {
-              $this->{'ControlName'} = $v;
-            } else if ( $k == 'Type' ) {
-              $this->{'ControlType'} = $v;
-            } else {
-              $this->{$k} = $v;
+          if ( $s ) {
+            foreach ($s as $k => $v) {
+              if ( $k == 'Id' ) {
+                continue;
+  # The reason for these is that the name overlaps Monitor fields.
+              } else if ( $k == 'Protocol' ) {
+                $this->{'ControlProtocol'} = $v;
+              } else if ( $k == 'Name' ) {
+                $this->{'ControlName'} = $v;
+              } else if ( $k == 'Type' ) {
+                $this->{'ControlType'} = $v;
+              } else {
+                $this->{$k} = $v;
+              }
             }
+          } else {
+            Warning('No Controls found for monitor '.$this->{'Id'} . ' ' . $this->{'Name'}.' althrough it is marked as controllable');
           }
         }
+        global $monitor_cache;
+        $monitor_cache[$row['Id']] = $this;
 
       } else {
         Error('No row for Monitor ' . $IdOrRow);
@@ -195,27 +280,18 @@ private $control_fields = array(
     }
   }
 
-  public function getStreamSrc( $args, $querySep='&amp;' ) {
+  public function getStreamSrc($args, $querySep='&amp;') {
 
-    $streamSrc = ZM_BASE_PROTOCOL.'://';
-    if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
-      $Server = new Server( $this->{'ServerId'} );
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
-      }
-    } else if ( ZM_MIN_STREAMING_PORT ) {
-      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
-    } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'];
-    }
-    $streamSrc .= ZM_PATH_ZMS;
+    $streamSrc = $this->Server()->UrlToZMS(
+      ZM_MIN_STREAMING_PORT ?
+      ZM_MIN_STREAMING_PORT+$this->{'Id'} :
+      null);
 
     $args['monitor'] = $this->{'Id'};
 
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
-        $args['auth'] = generateAuthHash( ZM_AUTH_HASH_IPS );
+        $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
@@ -230,9 +306,9 @@ private $control_fields = array(
       $args['rand'] = time();
     }
 
-    $streamSrc .= '?'.http_build_query( $args,'', $querySep );
+    $streamSrc .= '?'.http_build_query($args,'', $querySep);
 
-    return( $streamSrc );
+    return $streamSrc;
   } // end function getStreamSrc
 
   public function Width($new = null) {
@@ -276,8 +352,7 @@ private $control_fields = array(
       } # end if method_exists
     } # end foreach $data as $k=>$v
   }
-  public static function find_all( $parameters = null, $options = null ) {
-    $filters = array();
+  public static function find( $parameters = null, $options = null ) {
     $sql = 'SELECT * FROM Monitors ';
     $values = array();
 
@@ -287,9 +362,9 @@ private $control_fields = array(
       foreach ( $parameters as $field => $value ) {
         if ( $value == null ) {
           $fields[] = $field.' IS NULL';
-        } else if ( is_array( $value ) ) {
+        } else if ( is_array($value) ) {
           $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map( $func, $value ) ). ')';
+          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
           $values += $value;
 
         } else {
@@ -297,18 +372,47 @@ private $control_fields = array(
           $values[] = $value;
         }
       }
-      $sql .= implode(' AND ', $fields );
+      $sql .= implode(' AND ', $fields);
     }
-    if ( $options and isset($options['order']) ) {
-    $sql .= ' ORDER BY ' . $options['order'];
+    if ( $options ) {
+      if ( isset($options['order']) ) {
+        $sql .= ' ORDER BY ' . $options['order'];
+      }
+      if ( isset($options['limit']) ) {
+        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
+          $sql .= ' LIMIT ' . $options['limit'];
+        } else {
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Error("Invalid value for limit(".$options['limit'].") passed to Control::find from $file:$line");
+          return array();
+        }
+      }
     }
+    $monitors = array();
     $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Monitor');
-    foreach ( $results as $row => $obj ) {
-      $filters[] = $obj;
+    $results = $result->fetchALL();
+    foreach ( $results as $row ) {
+      $monitors[] = new Monitor($row);
     }
-    return $filters;
-  }
+    return $monitors;
+  } # end find
+
+  public static function find_one( $parameters = array() ) {
+    global $monitor_cache;
+    if ( 
+        ( count($parameters) == 1 ) and
+        isset($parameters['Id']) and
+        isset($monitor_cache[$parameters['Id']]) ) {
+      return $monitor_cache[$parameters['Id']];
+    }
+    $results = Monitor::find( $parameters, array('limit'=>1) );
+    if ( ! sizeof($results) ) {
+      return;
+    }
+    return $results[0];
+  } # end find_one
 
   public function save($new_values = null) {
 
@@ -335,19 +439,19 @@ private $control_fields = array(
       }
 
       if ( $mode == 'stop' ) {
-        daemonControl( 'stop', 'zmc', $zmcArgs );
+        daemonControl('stop', 'zmc', $zmcArgs);
       } else {
         if ( $mode == 'restart' ) {
-          daemonControl( 'stop', 'zmc', $zmcArgs );
+          daemonControl('stop', 'zmc', $zmcArgs);
         }
         if ( $this->{'Function'} != 'None' ) {
-          daemonControl( 'start', 'zmc', $zmcArgs );
+          daemonControl('start', 'zmc', $zmcArgs);
         }
       }
     } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
-      $url = $Server->Url() . '/zm/api/monitors/'.$this->{'Id'}.'.json';
+      $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
@@ -378,6 +482,8 @@ private $control_fields = array(
       } catch ( Exception $e ) {
         Error("Except $e thrown trying to restart zmc");
       }
+    } else {
+      Error("Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.");
     }
   } // end function zmcControl
 
@@ -385,9 +491,9 @@ private $control_fields = array(
     if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
         if ( ZM_OPT_CONTROL ) {
-          daemonControl( 'stop', 'zmtrack.pl', '-m '.$this->{'Id'} );
+          daemonControl('stop', 'zmtrack.pl', '-m '.$this->{'Id'});
         }
-        daemonControl( 'stop', 'zma', '-m '.$this->{'Id'} );
+        daemonControl('stop', 'zma', '-m '.$this->{'Id'});
       } else {
         if ( $mode == 'restart' ) {
           if ( ZM_OPT_CONTROL ) {
@@ -404,7 +510,8 @@ private $control_fields = array(
         }
       }
     } // end if we are on the recording server
-  }
+  } // end public function zmaControl
+
   public function GroupIds( $new='') {
     if ( $new != '' ) {
       if(!is_array($new)) {
@@ -484,19 +591,36 @@ private $control_fields = array(
       $source = preg_replace( '/^.*\//', '', $this->{'Path'} );
     } elseif ( $this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite' ) {
       $url_parts = parse_url( $this->{'Path'} );
-      unset($url_parts['user']);
-      unset($url_parts['pass']);
-      #unset($url_parts['scheme']);
-      unset($url_parts['query']);
-      #unset($url_parts['path']);
-      if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
-        unset($url_parts['port']);
-      $source = unparse_url($url_parts);
+      if ( ZM_WEB_FILTER_SOURCE == 'Hostname' ) {
+        # Filter out everything but the hostname
+        if ( isset($url_parts['host']) ) {
+          $source = $url_parts['host'];
+        } else {
+          $source = $this->{'Path'};
+        }
+      } elseif ( ZM_WEB_FILTER_SOURCE == "NoCredentials" ) {
+        # Filter out sensitive and common items
+        unset($url_parts['user']);
+        unset($url_parts['pass']);
+        #unset($url_parts['scheme']);
+        unset($url_parts['query']);
+        #unset($url_parts['path']);
+        if ( isset($url_parts['port']) and ( $url_parts['port'] == '80' or $url_parts['port'] == '554' ) )
+          unset($url_parts['port']);
+        $source = unparse_url($url_parts);
+      } else { # Don't filter anything 
+        $source = $this->{'Path'};
+      }
     }
     if ( $source == '' ) {
       $source = 'Monitor ' . $this->{'Id'};
     }
     return $source;
   } // end function Source
+
+  public function UrlToIndex() {
+    return $this->Server()->UrlToIndex(ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
+  }
+
 } // end class Monitor
 ?>

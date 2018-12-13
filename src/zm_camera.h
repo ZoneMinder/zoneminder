@@ -33,8 +33,7 @@ class Camera;
 // Abstract base class for cameras. This is intended just to express
 // common attributes
 //
-class Camera
-{
+class Camera {
 protected:
   typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC } SourceType;
 
@@ -53,46 +52,48 @@ protected:
   int           contrast;
   bool          capture;
   bool          record_audio;
-  unsigned int bytes;
-
+  unsigned int  bytes;
 
 public:
   Camera( unsigned int p_monitor_id, SourceType p_type, unsigned int p_width, unsigned int p_height, int p_colours, int p_subpixelorder, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
   virtual ~Camera();
 
-  unsigned int getId() const { return( monitor_id ); }
+  unsigned int getId() const { return monitor_id; }
   Monitor *getMonitor();
   void  setMonitor( Monitor *p_monitor );
-  SourceType Type() const { return( type ); }
-  bool IsLocal() const { return( type == LOCAL_SRC ); }
-  bool IsRemote() const { return( type == REMOTE_SRC ); }
-  bool IsFile() const { return( type == FILE_SRC ); }
-  bool IsFfmpeg() const { return( type == FFMPEG_SRC ); }
-  bool IsLibvlc() const { return( type == LIBVLC_SRC ); }
-  bool IscURL() const { return( type == CURL_SRC ); }
-  unsigned int Width() const { return( width ); }
-  unsigned int Height() const { return( height ); }
-  unsigned int Colours() const { return( colours ); }
-  unsigned int SubpixelOrder() const { return( subpixelorder ); }
-  unsigned int Pixels() const { return( pixels ); }
-  unsigned int ImageSize() const { return( imagesize ); }
+  SourceType Type() const { return type; }
+  bool IsLocal() const { return type == LOCAL_SRC; }
+  bool IsRemote() const { return type == REMOTE_SRC; }
+  bool IsFile() const { return type == FILE_SRC; }
+  bool IsFfmpeg() const { return type == FFMPEG_SRC; }
+  bool IsLibvlc() const { return type == LIBVLC_SRC; }
+  bool IscURL() const { return type == CURL_SRC; }
+  unsigned int Width() const { return width; }
+  unsigned int Height() const { return height; }
+  unsigned int Colours() const { return colours; }
+  unsigned int SubpixelOrder() const { return subpixelorder; }
+  unsigned int Pixels() const { return pixels; }
+  unsigned int ImageSize() const { return imagesize; }
   unsigned int Bytes() const { return bytes; };
 
-  virtual int Brightness( int/*p_brightness*/=-1 ) { return( -1 ); }
-  virtual int Hue( int/*p_hue*/=-1 ) { return( -1 ); }
-  virtual int Colour( int/*p_colour*/=-1 ) { return( -1 ); }
-  virtual int Contrast( int/*p_contrast*/=-1 ) { return( -1 ); }
+  virtual int Brightness( int/*p_brightness*/=-1 ) { return -1; }
+  virtual int Hue( int/*p_hue*/=-1 ) { return -1; }
+  virtual int Colour( int/*p_colour*/=-1 ) { return -1; }
+  virtual int Contrast( int/*p_contrast*/=-1 ) { return -1; }
 
-  bool CanCapture() const { return( capture ); }
+  bool CanCapture() const { return capture; }
 
-  bool SupportsNativeVideo() const { return( (type == FFMPEG_SRC )||(type == REMOTE_SRC)); }
+  bool SupportsNativeVideo() const {
+    return (type == FFMPEG_SRC);
+    //return (type == FFMPEG_SRC )||(type == REMOTE_SRC);
+  }
 
-  virtual int PrimeCapture() { return( 0 ); }
-  virtual int PreCapture()=0;
-  virtual int Capture( Image &image )=0;
-  virtual int PostCapture()=0;
-  virtual int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) = 0;
-  virtual int Close()=0;
+  virtual int PrimeCapture() { return 0; }
+  virtual int PreCapture() = 0;
+  virtual int Capture(Image &image) = 0;
+  virtual int PostCapture() = 0;
+  virtual int CaptureAndRecord(Image &image, timeval recording, char* event_directory) = 0;
+  virtual int Close() = 0;
 };
 
 #endif // ZM_CAMERA_H

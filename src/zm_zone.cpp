@@ -17,11 +17,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+#define __STDC_FORMAT_MACROS 1
+#include <cinttypes>
 #include "zm.h"
 #include "zm_db.h"
 #include "zm_zone.h"
 #include "zm_image.h"
 #include "zm_monitor.h"
+
 
 void Zone::Setup( 
   Monitor *p_monitor,
@@ -233,7 +236,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
   if ( pixel_diff_count && alarm_pixels )
     pixel_diff = pixel_diff_count/alarm_pixels;
-  Debug(5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d", alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff);
+
+  Debug(5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d",
+      alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff);
 
   if ( alarm_pixels ) {
     if ( min_alarm_pixels && (alarm_pixels < (unsigned int)min_alarm_pixels) ) {
@@ -249,7 +254,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  score = (100*alarm_pixels)/polygon.Area();
+  if (max_alarm_pixels != 0) 
+    score = (100*alarm_pixels)/max_alarm_pixels;
+  else
+    score = (100*alarm_pixels)/polygon.Area();
+  
   if ( score < 1 )
     score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
   Debug(5, "Current score is %d", score);
@@ -309,7 +318,8 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     if ( config.record_diag_images )
       diff_image->WriteJpeg(diag_path);
 
-    Debug(5, "Got %d filtered pixels, need %d -> %d", alarm_filter_pixels, min_filter_pixels, max_filter_pixels);
+    Debug(5, "Got %d filtered pixels, need %d -> %d",
+        alarm_filter_pixels, min_filter_pixels, max_filter_pixels);
 
     if ( alarm_filter_pixels ) {
       if ( min_filter_pixels && (alarm_filter_pixels < min_filter_pixels) ) {
@@ -325,7 +335,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       return false;
     }
 
-    score = (100*alarm_filter_pixels)/(polygon.Area());
+    if (max_filter_pixels != 0)
+       score = (100*alarm_filter_pixels)/max_filter_pixels;
+     else
+       score = (100*alarm_filter_pixels)/polygon.Area();
+
     if ( score < 1 )
       score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
     Debug(5, "Current score is %d", score);
@@ -435,7 +449,8 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
                   alarm_blobs--;
 
-                  Debug(6, "Merging blob %d with %d at %d,%d, %d current blobs", bss->tag, bsm->tag, x, y, alarm_blobs);
+                  Debug(6, "Merging blob %d with %d at %d,%d, %d current blobs",
+                      bss->tag, bsm->tag, x, y, alarm_blobs);
 
                   // Clear out the old blob
                   bss->tag = 0;
@@ -473,7 +488,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   BlobStats *bs = &blob_stats[i];
                   // See if we can recycle one first, only if it's at least two rows up
                   if ( bs->count && bs->hi_y < (int)(y-1) ) {
-                    if ( (min_blob_pixels && bs->count < min_blob_pixels) || (max_blob_pixels && bs->count > max_blob_pixels) ) {
+                    if (
+                        (min_blob_pixels && bs->count < min_blob_pixels)
+                        ||
+                        (max_blob_pixels && bs->count > max_blob_pixels)
+                       ) {
                       if ( config.create_analysis_images || config.record_diag_images ) {
                         for ( int sy = bs->lo_y; sy <= bs->hi_y; sy++ ) {
                           spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
@@ -586,8 +605,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         /* No blobs */
         return false;
       }
-
-      score = (100*alarm_blob_pixels)/(polygon.Area());
+      
+      if (max_blob_pixels != 0)
+        score = (100*alarm_blob_pixels)/(max_blob_pixels);
+      else 
+        score = (100*alarm_blob_pixels)/polygon.Area();
+      
       if ( score < 1 )
         score = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
       Debug(5, "Current score is %d", score);

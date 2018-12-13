@@ -212,7 +212,7 @@ function process_configfile($configFile) {
         continue;
       elseif ( preg_match( '/^\s*#/', $str ))
         continue;
-      elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*(.*?)\s*$/', $str, $matches ))
+      elseif ( preg_match( '/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $str, $matches ))
         $configvals[$matches[1]] = $matches[2];
     }
     fclose( $cfg );

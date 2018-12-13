@@ -38,6 +38,7 @@ env:
   - OS=el DIST=7
   - OS=fedora DIST=27 DOCKER_REPO=knnniggett/packpack
   - OS=fedora DIST=28 DOCKER_REPO=knnniggett/packpack
+  - OS=fedora DIST=29 DOCKER_REPO=knnniggett/packpack
   - OS=ubuntu DIST=trusty
   - OS=ubuntu DIST=xenial
   - OS=ubuntu DIST=trusty ARCH=i386

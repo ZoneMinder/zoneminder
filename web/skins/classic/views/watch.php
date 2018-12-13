@@ -20,7 +20,7 @@
 
 require_once('includes/Monitor.php');
 
-if ( !canView( 'Stream' ) ) {
+if ( !canView('Stream') ) {
   $view = 'error';
   return;
 }
@@ -31,24 +31,23 @@ if ( ! isset($_REQUEST['mid']) ) {
 }
 
 // This is for input sanitation
-$mid = intval( $_REQUEST['mid'] ); 
-if ( ! visibleMonitor( $mid ) ) {
+$mid = intval($_REQUEST['mid']); 
+if ( ! visibleMonitor($mid) ) {
   $view = 'error';
   return;
 }
 
-
-$monitor = new Monitor( $mid );
+$monitor = new Monitor($mid);
 
 #Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
 
-if ( isset( $_REQUEST['scale'] ) ) {
+if ( isset($_REQUEST['scale']) ) {
   $scale = validInt($_REQUEST['scale']);
-} else if ( isset( $_COOKIE['zmWatchScale'.$mid] ) ) {
+} else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScale'.$mid];
 } else {
-  $scale = reScale( SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
+  $scale = reScale(SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE);
 }
 
 $connkey = generateConnKey();
@@ -59,7 +58,7 @@ noCacheHeaders();
 
 $popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] == 1));
 
-xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
+xhtmlHeaders( __FILE__, $monitor->Name().' - '.translate('Feed') );
 ?>
 <body>
   <div id="page">
@@ -68,7 +67,7 @@ xhtmlHeaders( __FILE__, $monitor->Name()." - ".translate('Feed') );
         <div id="monitorName"><?php echo $monitor->Name() ?></div>
         <div id="menuControls">
 <?php
-if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
+if ( canView('Control') && $monitor->Type() == 'Local' ) {
 ?>
           <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
 <?php
@@ -76,17 +75,22 @@ if ( canView( 'Control' ) && $monitor->Type() == 'Local' ) {
 ?>
           <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
         </div>
-        <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back()' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+        <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'history.go(-1);return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
     <div id="content">
       <div id="imageFeed"><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
-<?php if ( canEdit( 'Monitors' ) ) { ?>
-        <div id="enableDisableAlarms"><a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms(); return( false );" class="hidden"><?php echo translate('EnableAlarms') ?></a><a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms(); return( false );" class="hidden"><?php echo translate('DisableAlarms') ?></a></div>
+<?php if ( canEdit('Monitors') ) { ?>
+        <div id="enableDisableAlarms">
+          <a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms();return false;" class="hidden">
+          <?php echo translate('EnableAlarms') ?></a>
+          <a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms();return false;" class="hidden">
+          <?php echo translate('DisableAlarms') ?></a>
+        </div>
 <?php
 }
-if ( canEdit( 'Monitors' ) ) {
+if ( canEdit('Monitors') ) {
 ?>
         <div id="forceCancelAlarm">
             <a id="forceAlarmLink" href="#" onclick="cmdForceAlarm();"><?php echo translate('ForceAlarm') ?></a>

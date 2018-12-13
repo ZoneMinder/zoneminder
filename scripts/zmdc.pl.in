@@ -272,6 +272,8 @@ sub run {
       ."\n"
       );
 
+  # We don't want to leave killall zombies, so ignore SIGCHLD
+  $SIG{CHLD} = 'IGNORE';
   # Tell any existing processes to die, wait 1 second between TERM and KILL
   killAll(1);
 
@@ -370,7 +372,6 @@ sub run {
     restartPending();
     check_for_processes_to_kill() if %terminating_processes;
     reaper() if %pids_to_reap;
-
   } # end while
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '
@@ -431,7 +432,11 @@ sub start {
   my $sigset = POSIX::SigSet->new;
   my $blockset = POSIX::SigSet->new(SIGCHLD);
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
+  # Apparently the child closing the db connection can affect the parent.
+  zmDbDisconnect();
   if ( my $cpid = fork() ) {
+
+    $dbh = zmDbConnect(1);
     # This logReinit is required.  Not sure why.
     logReinit();
 
@@ -477,7 +482,7 @@ sub start {
     logTerm();
     zmDbDisconnect();
 
-    my $fd = 0;
+    my $fd = 3; # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
     while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
       POSIX::close($fd++);
     }
@@ -510,7 +515,7 @@ sub send_stop {
         .strftime('%y/%m/%d %H:%M:%S', localtime())
         ."\n"
         );
-  sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
+    sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
     return();
   }
 
@@ -643,7 +648,6 @@ sub chld_sig_handler {
 sub reaper {
   foreach my $cpid ( keys %pids_to_reap ) {
     my $process = $pid_hash{$cpid};
-Debug("Reaping pricess $cpid");
     delete $pid_hash{$cpid};
     my $reap_info = $pids_to_reap{$cpid};
     my ( $status, $stopped ) = @$reap_info{'status','stopped'};
@@ -709,7 +713,6 @@ Debug("Reaping pricess $cpid");
     } else {
       delete $cmd_hash{$$process{command}};
     }
-Debug("Reaping pricess $cpid");
   } # end foreach pid_to_reap
 } # end sub reaper
 

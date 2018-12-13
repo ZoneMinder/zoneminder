@@ -30,10 +30,6 @@ var timeLabelsFractOfRow = 0.9;
 
 // Because we might not have time as the criteria, figure out the min/max time when we run the query
 
-if ( ! $maxTimeSecs )
-  $maxTimeSecs = time();
-if ( ! $minTimeSecs )
-  $minTimeSecs = strtotime('2010-01-01 01:01:01');
 
 // This builds the list of events that are eligible from this range
 
@@ -41,16 +37,16 @@ $index = 0;
 $anyAlarms = false;
 $maxScore=0;
 
-if ( ! $liveMode ) {
-  $result = dbQuery( $eventsSql );
-  if ( ! $result ) {
+if ( !$liveMode ) {
+  $result = dbQuery($eventsSql);
+  if ( !$result ) {
     Fatal('SQL-ERR');
     return;
   }
 
   $EventsById = array();
 
-  while( $event = $result->fetch( PDO::FETCH_ASSOC ) ) {
+  while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
     $event_id = $event['Id'];
     $EventsById[$event_id] = $event;
   }
@@ -82,8 +78,9 @@ if ( ! $liveMode ) {
     $StartTimeSecs = $event['StartTimeSecs'];
     $EndTimeSecs = $event['EndTimeSecs'];
 
-    if ( $minTimeSecs > $StartTimeSecs ) $minTimeSecs = $StartTimeSecs;
-    if ( $maxTimeSecs < $EndTimeSecs ) $maxTimeSecs = $EndTimeSecs;
+    # It isn't neccessary to do this for each event. We should be able to just look at the first and last
+    if ( !$minTimeSecs or $minTimeSecs > $StartTimeSecs ) $minTimeSecs = $StartTimeSecs;
+    if ( !$maxTimeSecs or $maxTimeSecs < $EndTimeSecs ) $maxTimeSecs = $EndTimeSecs;
 
     $event_json = json_encode($event, JSON_PRETTY_PRINT);
     echo " $event_id : $event_json,\n";
@@ -121,32 +118,32 @@ echo " };\n";
   echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
 } // end if initialmodeislive
 
-echo "var Storage = []\n";
-foreach ( Storage::find_all() as $Storage ) {
-echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
+echo "\nvar Storage = [];\n";
+foreach ( Storage::find() as $Storage ) {
+  echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
 }
-echo "var Servers = []\n";
-foreach ( Server::find_all() as $Server ) {
-echo 'Servers[' . $Server->Id() . '] = ' . json_encode($Server). ";\n";
+echo "\nvar Servers = [];\n";
+foreach ( Server::find() as $Server ) {
+  echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
 }
-echo "
-var monitorName = [];\n";
-echo "var monitorLoading = [];\n";
-echo "var monitorImageObject = [];\n";
-echo "var monitorImageURL = [];\n";
-echo "var monitorLoadingStageURL = [];\n";
-echo "var monitorLoadStartTimems = [];\n";
-echo "var monitorLoadEndTimems = [];\n";
-echo "var monitorColour = [];\n";
-echo "var monitorWidth = [];\n";
-echo "var monitorHeight = [];\n";
-echo "var monitorIndex = [];\n";
-echo "var monitorNormalizeScale = [];\n";
-echo "var monitorZoomScale = [];\n";
-echo "var monitorCanvasObj = [];\n"; // stash location of these here so we don't have to search
-echo "var monitorCanvasCtx = [];\n";
-echo "var monitorPtr = []; // monitorName[monitorPtr[0]] is first monitor\n";
-
+echo '
+var monitorName = [];
+var monitorLoading = [];
+var monitorImageObject = [];
+var monitorImageURL = [];
+var monitorLoadingStageURL = [];
+var monitorLoadStartTimems = [];
+var monitorLoadEndTimems = [];
+var monitorColour = [];
+var monitorWidth = [];
+var monitorHeight = [];
+var monitorIndex = [];
+var monitorNormalizeScale = [];
+var monitorZoomScale = [];
+var monitorCanvasObj = [];
+var monitorCanvasCtx = [];
+var monitorPtr = []; // monitorName[monitorPtr[0]] is first monitor
+';
 
 $numMonitors=0;  // this array is indexed by the monitor ID for faster access later, so it may be sparse
 $avgArea=floatval(0);  // Calculations the normalizing scale
@@ -160,27 +157,29 @@ if ( $numMonitors > 0 ) $avgArea = $avgArea / $numMonitors;
 
 $numMonitors = 0;
 foreach ( $monitors as $m ) {
-    echo "  monitorLoading["         . $m->Id() . "]=false;\n";
-    echo "  monitorImageURL["        . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
-    echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
-    echo "  monitorColour["          . $m->Id() . "]=\"" . $m->WebColour() . "\";\n";
-    echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";
-    echo "  monitorHeight["          . $m->Id() . "]=" . $m->Height() . ";\n";
-    echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
-    echo "  monitorName["            . $m->Id() . "]=\"" . $m->Name() . "\";\n";
-    echo "  monitorLoadStartTimems[" . $m->Id() . "]=0;\n";
-    echo "  monitorLoadEndTimems["   . $m->Id() . "]=0;\n";
-    echo "  monitorNormalizeScale["  . $m->Id() . "]=" . sqrt($avgArea / ($m->Width() * $m->Height() )) . ";\n";
-    $zoomScale=1.0;
-    if(isset($_REQUEST[ 'z' . $m->Id() ]) )
-        $zoomScale = floatval( validHtmlStr($_REQUEST[ 'z' . $m->Id() ]) );
-    echo "  monitorZoomScale["       . $m->Id() . "]=" . $zoomScale . ";\n";
-    echo "  monitorPtr["         . $numMonitors . "]=" . $m->Id() . ";\n";
-    $numMonitors += 1;
+  echo "  monitorLoading["         . $m->Id() . "]=false;\n";
+  echo "  monitorImageURL["        . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
+  echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
+  echo "  monitorColour["          . $m->Id() . "]=\"" . $m->WebColour() . "\";\n";
+  echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";
+  echo "  monitorHeight["          . $m->Id() . "]=" . $m->Height() . ";\n";
+  echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
+  echo "  monitorName["            . $m->Id() . "]=\"" . $m->Name() . "\";\n";
+  echo "  monitorLoadStartTimems[" . $m->Id() . "]=0;\n";
+  echo "  monitorLoadEndTimems["   . $m->Id() . "]=0;\n";
+  echo "  monitorNormalizeScale["  . $m->Id() . "]=" . sqrt($avgArea / ($m->Width() * $m->Height() )) . ";\n";
+  $zoomScale=1.0;
+  if(isset($_REQUEST[ 'z' . $m->Id() ]) )
+      $zoomScale = floatval( validHtmlStr($_REQUEST[ 'z' . $m->Id() ]) );
+  echo "  monitorZoomScale["       . $m->Id() . "]=" . $zoomScale . ";\n";
+  echo "  monitorPtr["         . $numMonitors . "]=" . $m->Id() . ";\n";
+  $numMonitors += 1;
 }
-echo "var numMonitors = $numMonitors;\n";
-echo "var minTimeSecs=parseInt("     . $minTimeSecs . ");\n";
-echo "var maxTimeSecs=parseInt("     . $maxTimeSecs . ");\n";
+echo "
+var numMonitors = $numMonitors;
+var minTimeSecs=parseInt($minTimeSecs);
+var maxTimeSecs=parseInt($maxTimeSecs);
+";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";
 if(isset($defaultCurrentTime))
   echo "var currentTimeSecs=parseInt(" . strtotime($defaultCurrentTime) . ");\n";
@@ -200,4 +199,3 @@ var canvas;   // global canvas definition so we don't have to keep looking it up
 var ctx;
 var underSlider;    // use this to hold what is hidden by the slider
 var underSliderX;   // Where the above was taken from (left side, Y is zero)
-

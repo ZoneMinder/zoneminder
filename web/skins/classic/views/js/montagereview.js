@@ -117,24 +117,21 @@ function getImageSource( monId, time ) {
     Event = events[Frame.EventId];
 
     var storage = Storage[Event.StorageId];
-    if ( storage.ServerId ) {
-      var server = Servers[storage.ServerId];
-      if ( server ) {
-        //console.log( server.Hostname + " for event " + eId[i] );
-        return location.protocol + '//' + server.Hostname + 
-          //'/cgi-bin/zms?mode=jpeg&replay=single&event=' + event_id +
-          //'&frame='+Frame.FrameId +
-'/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
-          "&width=" + monitorCanvasObj[monId].width + 
-          "&height=" + monitorCanvasObj[monId].height;
-      } else {
-        console.log("No server found for " + storage.ServerId );
-      }
+    var server = storage.ServerId ? Servers[storage.ServerId] : Servers[serverId];
+    if ( server ) {
+      return server.url() +
+      //location.protocol + '//' + server.Hostname + 
+        //'/cgi-bin/zms?mode=jpeg&replay=single&event=' + event_id +
+        //'&frame='+Frame.FrameId +
+        '/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
+        "&width=" + monitorCanvasObj[monId].width + 
+        "&height=" + monitorCanvasObj[monId].height;
     }
+    console.log("No server found for " + ( storage.ServerId ? storage.ServerId : serverId ));
     //console.log("No storage found for " + eStorageId[i] );
-    return '/index.php?view=image&eid=' + Frame.EventId + '&fid='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    return '/zm/index.php?view=image&eid=' + Frame.EventId + '&fid='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
     //return "/cgi-bin/zms?mode=single&replay=single&event=" + Frame.EventId + '&time='+time+ "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
-    return "/cgi-bin/zms?mode=jpeg&replay=single&event=" + Frame.EventId + '&frame='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    //return "/cgi-bin/zms?mode=jpeg&replay=single&event=" + Frame.EventId + '&frame='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame
   return '';
   //return "no data";
@@ -168,7 +165,7 @@ function imagedone( obj, monId, success ) {
     }
   } else {
     if ( monitorLoadingStageURL[monId] == "" ) {
-      console.log("Not showing image for " + monId );
+      //console.log("Not showing image for " + monId );
       // This means that there wasn't a loading image placeholder.
       // So we weren't actually loading an image... which seems weird.
       return;
@@ -240,13 +237,13 @@ function timerFire() {
 
   if ( liveMode ) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if (currentTimeSecs + playSecsperInterval >= maxTimeSecs) {
+  } else if ( currentTimeSecs + playSecsperInterval >= maxTimeSecs ) {
     // beyond the end just stop
 console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else {
-console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval );
+//console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval );
     outputUpdate(playSecsperInterval + currentTimeSecs);
   }
   return;
@@ -368,7 +365,7 @@ function drawGraph() {
     underSlider=undefined;
     return;
   }
-  var rowHeight=parseInt(cHeight / (numMonitors + 1) );  // Leave room for a scale of some sort
+  var rowHeight = parseInt(cHeight / (numMonitors + 1) );  // Leave room for a scale of some sort
 
   // first fill in the bars for the events (not alarms)
 
@@ -472,7 +469,9 @@ function redrawScreen() {
 function outputUpdate(time) {
   drawSliderOnGraph(time);
   for ( var i=0; i < numMonitors; i++ ) {
-    loadImage2Monitor(monitorPtr[i],getImageSource(monitorPtr[i],time));
+    var src = getImageSource(monitorPtr[i],time);
+    //console.log("New image src: " + src);
+    loadImage2Monitor(monitorPtr[i],src);
   }
   currentTimeSecs = time;
 }
@@ -867,6 +866,14 @@ function changeDateTime(e) {
 // >>>>>>>>> Initialization that runs on window load by being at the bottom 
 
 function initPage() {
+
+  jQuery(document).ready(function(){
+    jQuery("#hdrbutton").click(function(){
+      jQuery("#flipMontageHeader").slideToggle("slow");
+      jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
+    });
+  });
+
   for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
     if ( ! monId ) continue;

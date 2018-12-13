@@ -253,7 +253,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: falsepi}); </script>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: false}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {
@@ -410,22 +410,22 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <button onclick="submitToEvents(this);"> <?php echo translate('ListMatches') ?></button>
-          <button name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
+          <button type="submit" onclick="submitToEvents(this);"><?php echo translate('ListMatches') ?></button>
+          <button type="submit" name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit( 'Events' ) ) {
 ?>
-          <button name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
-          <button name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
+          <button type="submit" name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
+          <button type="submit" name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>
-          <input type="button" value="<?php echo translate('Delete') ?>" onclick="deleteFilter( this, '<?php echo $filter->Name() ?>' );"/>
+   <button type="button" value="Delete" onclick="deleteFilter(this, '<?php echo $filter->Name() ?>');"><?php echo translate('Delete') ?></button>
 <?php 
   }
 }
 ?>
-          <button value="<?php echo translate('Reset') ?>" onclick="resetFilter( this );"><?php echo translate('Reset') ?></button>
+          <button type="button" value="Reset" onclick="resetFilter( this );"><?php echo translate('Reset') ?></button>
         </div>
       </form>
     </div><!--content-->

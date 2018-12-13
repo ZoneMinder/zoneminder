@@ -331,6 +331,8 @@ int FfmpegCamera::OpenFfmpeg() {
     ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
   } else if ( method == "rtpRtspHttp" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
+  } else if ( method == "rtpUni" ) {
+    ret = av_dict_set(&opts, "rtsp_transport", "udp", 0);
   } else {
     Warning("Unknown method (%s)", method.c_str() );
   }
@@ -606,7 +608,8 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-  mConvertContext = sws_getContext(mVideoCodecContext->width,
+  mConvertContext = sws_getContext(
+      mVideoCodecContext->width,
       mVideoCodecContext->height,
       mVideoCodecContext->pix_fmt,
       width, height,
@@ -685,14 +688,14 @@ int FfmpegCamera::Close() {
 
 //Function to handle capture and store
 int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event_file ) {
-  if ( ! mCanCapture ) {
+  if ( !mCanCapture ) {
     return -1;
   }
   int ret;
   static char errbuf[AV_ERROR_MAX_STRING_SIZE];
   
   int frameComplete = false;
-  while ( ! frameComplete ) {
+  while ( !frameComplete ) {
     av_init_packet(&packet);
 
     ret = av_read_frame(mFormatContext, &packet);
@@ -722,7 +725,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
 
       if ( last_event_id != video_writer_event_id ) {
-        Debug(2, "Have change of event.  last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
+        Debug(2, "Have change of event.  last_event(%d), our current (%d)",
+			last_event_id, video_writer_event_id);
 
         if ( videoStore ) {
           Info("Re-starting video storage module");
@@ -731,7 +735,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           // Also don't know how much it matters for audio.
           if ( packet.stream_index == mVideoStreamId ) {
             //Write the packet to our video store
-            int ret = videoStore->writeVideoFramePacket( &packet );
+            int ret = videoStore->writeVideoFramePacket(&packet);
             if ( ret < 0 ) { //Less than zero and we skipped a frame
               Warning("Error writing last packet to videostore.");
             }
@@ -874,18 +878,18 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       }
 #if HAVE_AVUTIL_HWCONTEXT_H
         if ( hwaccel ) {
-          ret = avcodec_receive_frame( mVideoCodecContext, hwFrame );
+          ret = avcodec_receive_frame(mVideoCodecContext, hwFrame);
           if ( ret < 0 ) {
-            av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-            Error( "Unable to send packet at frame %d: %s, continuing", frameCount, errbuf );
-            zm_av_packet_unref( &packet );
+            av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            Error("Unable to send packet at frame %d: %s, continuing", frameCount, errbuf);
+            zm_av_packet_unref(&packet);
             continue;
           }
           ret = av_hwframe_transfer_data(mRawFrame, hwFrame, 0);
           if (ret < 0) {
-            av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-            Error( "Unable to transfer frame at frame %d: %s, continuing", frameCount, errbuf );
-            zm_av_packet_unref( &packet );
+            av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+            Error("Unable to transfer frame at frame %d: %s, continuing", frameCount, errbuf);
+            zm_av_packet_unref(&packet);
             continue;
           }
         } else {

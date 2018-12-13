@@ -1,23 +1,43 @@
-You should only file an issue if you found a bug.  Feature and enhancement requests, general discussions and support questions should occur in one of the following areas:
+**THIS FORUM IS FOR BUG REPORTS ONLY**
 
-- The ZoneMinder IRC channel - irc.freenode.net #zoneminder
+Do not post feature or enhancement requests, general discussions or support questions here.
+
+Feature and enhancement requests, general discussions, and support questions should occur in one of the following areas:
+
+- The [ZoneMinder-Chat Slack channel](https://zoneminder-chat.herokuapp.com/)
 - The [ZoneMinder Forum](https://forums.zoneminder.com/)
-
-**Do not post feature or enhancement requests, general discussions or support questions here.**
 
 Docker related issues should be posted here: https://github.com/ZoneMinder/zmdockerfiles
 
-Make sure you are running the latest version of ZoneMinder before reporting an issue.
+In order to submit a bug report, please populate the fields below. This is required.
 
-**ZoneMinder Version (`zmaudit.pl -v`):**
+**Describe Your Environment**
+- Version of ZoneMinder [release version, development version, or commit]
+- How you installed ZoneMinder [e.g. PPA, RPMFusion, from-source, etc]
+- Full name and version of OS
 
-**Are you using a development snapshot / git checkout?  If so, what is the latest commit? (`git rev-parse HEAD`):**
+**If the issue concerns a camera**
+- Make and Model
+- frame rate
+- resolution
+- ZoneMinder Source Type:
 
-**Linux Distribution and Version (`cat /etc/os-release` or `cat /etc/redhat-release`):**
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-**If the issue concerns a camera, provide the make, model, frame rate, resolution and ZoneMinder Source Type:**
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
-**Relevant log lines:**
+**Expected behavior**
+A clear and concise description of what you expected to happen.
+
+**Debug Logs**
 ```
-log lines here
+
+<insert debug logs here, please make sure they are within the ``` quotes so they are formatted properly>
+
 ```

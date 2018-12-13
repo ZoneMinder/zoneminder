@@ -149,7 +149,7 @@ BEGIN {
       foreach my $str ( <$CONFIG> ) {
         next if ( $str =~ /^\s*$/ );
         next if ( $str =~ /^\s*#/ );
-        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*(.*?)\s*$/;
+        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
         if ( ! $name ) {
           print( STDERR "Warning, bad line in $config_file: $str\n" );
           next;
@@ -308,6 +308,8 @@ Saves configuration held in memory to the database. The act of loading and
 saving configuration is a convenient way to ensure that the configuration
 held in the database corresponds with the most recent definitions and that
 all components are using the same set of configuration.
+
+=back
 
 =head2 EXPORT
 

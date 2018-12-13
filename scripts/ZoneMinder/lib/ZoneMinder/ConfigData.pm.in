@@ -409,8 +409,8 @@ our @options = (
       that is used to get notifications for alarms detected by ZoneMinder
       in real time. zmNinja requires this server for push notifications to
       mobile phones. This option only enables the server if its already installed.
-      Please visit https://github.com/pliablepixels/zmeventserver for installation
-      instructions.
+      Please visit the [zmeventserver project site](https://github.com/pliablepixels/zmeventserver)
+      for installation instructions.
       `,
     type        => $types{boolean},
     category    => 'system',
@@ -442,7 +442,7 @@ our @options = (
     description => 'Your recaptcha site-key',
     help        => q`You need to generate your keys from
       the Google reCaptcha website.
-      Please refer to https://www.google.com/recaptcha/
+      Please refer to the [recaptcha project site](https://www.google.com/recaptcha/)
       for more details.
       `,
     requires    => [
@@ -457,7 +457,7 @@ our @options = (
     description => 'Your recaptcha secret-key',
     help        => q`You need to generate your keys from
       the Google reCaptcha website.
-      Please refer to https://www.google.com/recaptcha/
+      Please refer to the [recaptcha project site](https://www.google.com/recaptcha/)
       for more details.
       `,
     requires    => [
@@ -674,9 +674,9 @@ our @options = (
       ZoneMinder uses to view image streams on browsers such as
       Internet Explorer that don't natively support this format. If
       you use this browser it is highly recommended to install this
-      from http://www.charliemouse.com/code/cambozola/  however if it
-      is not installed still images at a lower refresh rate can still
-      be viewed.
+      from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
+      However, if it is not installed still images at a lower refresh rate can 
+      still be viewed.
       `,
     type        => $types{boolean},
     category    => 'images',
@@ -690,9 +690,9 @@ our @options = (
       ZoneMinder uses to view image streams on browsers such as
       Internet Explorer that don't natively support this format. If
       you use this browser it is highly recommended to install this
-      from http://www.charliemouse.com/code/cambozola/  however if it
-      is not installed still images at a lower refresh rate can still
-      be viewed. Leave this as 'cambozola.jar' if cambozola is
+      from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
+      However if it is not installed still images at a lower refresh rate can
+      still be viewed. Leave this as 'cambozola.jar' if cambozola is
       installed in the same directory as the ZoneMinder web client
       files.
       `,
@@ -2711,7 +2711,7 @@ our @options = (
   },
   {
     name        => 'ZM_TELEMETRY_DATA',
-    default     => 'yes',
+    default     => 'no',
     description => 'Send usage information to ZoneMinder',
     help        => q`
       Enable collection of usage information of the local system and send
@@ -2721,7 +2721,8 @@ our @options = (
       This is being done for the sole purpoase of creating a better
       product for our target audience. This script is intended to be
       completely transparent to the end user, and can be disabled from
-      the web console under Options.
+      the web console under Options. For more details on what information
+      we collect, please refer to our [privacy](?view=privacy) statement.
       `,
     type        => $types{boolean},
     category    => 'system',
@@ -2954,13 +2955,44 @@ our @options = (
       When creating a Web Site monitor, if the target web site has
       X-Frame-Options set to sameorigin in the header, the site will
       not display in ZoneMinder. This is a design feature in most modern
-      browsers. When this condiction has occured, ZoneMinder will write a
+      browsers. When this condition occurs, ZoneMinder will write a
       warning to the log file. To get around this, one can install a browser
       plugin or extension to ignore X-Frame headers, and then the page will
       display properly. Once the plugin or extenstion has ben installed,
       the end user may choose to turn this warning off.
       `,
     type        => $types{boolean},
+    category    => 'web',
+  },
+  {
+    name        => 'ZM_WEB_FILTER_SOURCE',
+    default     => 'Hostname',
+    description => 'How to filter information in the source column.',
+    help        => q`
+      This option only affects monitors with a source type of Ffmpeg,
+      Libvlc, or WebSite. This setting controls what information is
+      displayed in the Source column on the console. Selecting 'None'
+      will not filter anything. The entire source string will be
+      displayed, which may contain sensitive information. Selecting
+      'NoCredentials' will strip out usernames and passwords from the
+      string. If there are any port numbers in the string and they are
+      common (80, 554, etc) then those will be removed as well.
+      Selecting 'Hostname' will filter out all information except for
+      the hostname or ip address. When in doubt, stay with the default
+      'Hostname'. This feature uses the php function 'url_parts' to
+      identify the various pieces of the url. If the url in question
+      is unusual or not standard in some way, then filtering may not
+      produce the desired results.
+      `,
+    type        => {
+      db_type     =>'string',
+      hint        =>'None|Hostname|NoCredentials',
+      pattern     =>qr|^([NH])|i,
+      format      =>q( ($1 =~ /^Non/)
+          ? 'None'
+          : ($1 =~ /^H/ ? 'Hostname' : 'NoCredentials' )
+          )
+    },
     category    => 'web',
   },
   {
@@ -3852,6 +3884,15 @@ our @options = (
     category    => 'dynamic',
   },
   {
+    name        => 'ZM_SHOW_PRIVACY',
+    default     => 'yes',
+    description => 'Present the privacy statment',
+    help        => '',
+    type        => $types{boolean},
+    readonly    => 1,
+    category    => 'dynamic',
+  },
+  {
     name        => 'ZM_SSMTP_MAIL',
     default     => 'no',
     description =>  q`
@@ -3867,7 +3908,7 @@ our @options = (
       SSMTP is a lightweight and efficient method to send email.
       The SSMTP application is not installed by default.
       NEW_MAIL_MODULES must also be enabled.
-      Please visit: http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder
+      Please visit the ZoneMinder [SSMTP Wiki page](http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder)
       for setup and configuration help.
       `,
     type        => $types{boolean},

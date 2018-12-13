@@ -3,6 +3,8 @@ ZoneMinder
 
 [![Build Status](https://travis-ci.org/ZoneMinder/zoneminder.png)](https://travis-ci.org/ZoneMinder/zoneminder) [![Bountysource](https://api.bountysource.com/badge/team?team_id=204&style=bounties_received)](https://www.bountysource.com/teams/zoneminder/issues?utm_source=ZoneMinder&utm_medium=shield&utm_campaign=bounties_received)
 
+[![Join Slack](https://github.com/ozonesecurity/ozonebase/blob/master/img/slacksm.png?raw=true)](https://zoneminder-chat.herokuapp.com)
+
 All documentation for ZoneMinder is now online at https://zoneminder.readthedocs.org
 
 ## Overview
@@ -40,7 +42,7 @@ This is the recommended method to install ZoneMinder onto your system. ZoneMinde
 
 If a repository that hosts ZoneMinder packages is not available for your distro, then you are encouraged to build your own package, rather than build from source.  While each distro is different in ways that set it apart from all the others, they are often similar enough to allow you to adapt another distro's package building instructions to your own.
 
-### Building a ZoneMinder Package
+### Building a ZoneMinder Package ###
 
 Building ZoneMinder into a package is not any harder than building from source.  As a matter of fact, if you have successfully built ZoneMinder from source in the past, then you may find these steps to be easier. 
 
@@ -51,9 +53,9 @@ Lastly, if you desire to build a development snapshot from the master branch, it
 Please visit our [ReadtheDocs site](https://zoneminder.readthedocs.org/en/stable/installationguide/index.html) for distro specific instructions.
 
 ### Package Maintainers
-Many of the ZoneMinder configration variable default values are not configurable at build time through autotools or cmake.  A new tool called *zmeditconfigdata.sh* has been added to allow package maintainers to manipulate any variable stored in ConfigData.pm without patching the source. 
+Many of the ZoneMinder configuration variable default values are not configurable at build time through autotools or cmake.  A new tool called *zmeditconfigdata.sh* has been added to allow package maintainers to manipulate any variable stored in ConfigData.pm without patching the source. 
 
-For example, let's say I have created a new ZoneMinder package that contains the cambolzola javascript file.  However, by default cambozola support is turned off.  To fix that, add this to the pacakging script:
+For example, let's say I have created a new ZoneMinder package that contains the cambozola javascript file.  However, by default cambozola support is turned off.  To fix that, add this to the packaging script:
 ```bash
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ```

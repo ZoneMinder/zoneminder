@@ -154,7 +154,7 @@ movecrud () {
         echo "Unpacking CakePHP-Enum-Behavior plugin..."
         tar -xzf build/cakephp-enum-behavior-${CEBVER}.tar.gz
         rmdir web/api/app/Plugin/CakePHP-Enum-Behavior
-        mv -f crud-${CEBVER} web/api/app/Plugin/CakePHP-Enum-Behavior
+        mv -f CakePHP-Enum-Behavior-${CEBVER} web/api/app/Plugin/CakePHP-Enum-Behavior
     fi
 }
 
@@ -257,11 +257,14 @@ execpackpack () {
     fi
 
     if [ "${TRAVIS}" == "true"  ]; then
-        utils/packpack/heartbeat.sh &
-        mypid=$!
-        packpack/packpack $parms > buildlog.txt 2>&1
-        kill $mypid
-        tail -n 3000 buildlog.txt | grep -v ONVIF
+        # Travis will fail the build if the output gets too long
+        # To mitigate that, use grep to filter out some of the noise
+        if [ "${ARCH}" != "armhf" ]; then
+            packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+        else
+            # Travis never ceases to amaze. For the case of arm emulation, Travis fails the build due to too little output over a 10 minute period. Facepalm.
+            packpack/packpack $parms | grep -Ev '^(-- Installing:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+        fi
     else
         packpack/packpack $parms
     fi

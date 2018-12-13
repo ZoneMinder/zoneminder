@@ -12,8 +12,8 @@ SET @s = (SELECT IF(
     AND table_schema = DATABASE()
     AND column_name = 'DefaultView'
     ) > 0,
-"ALTER TABLE Monitors DROP COLUMN DefaultView"
-"SELECT 'Column DefaultView no longer exists in Monitors'",
+"ALTER TABLE Monitors DROP COLUMN DefaultView",
+"SELECT 'Column DefaultView no longer exists in Monitors'"
 ));
 
 PREPARE stmt FROM @s;

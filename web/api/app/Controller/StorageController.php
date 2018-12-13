@@ -31,7 +31,7 @@ class StorageController extends AppController {
  * @return void
  */
   public function index() {
-    $this->Storage->recursive = 0;
+    $this->Storage->recursive = -1;
     
     $options = '';
     $storage_areas = $this->Storage->find('all',$options);

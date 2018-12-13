@@ -117,6 +117,7 @@ Event::Event(
   alarm_frames = 0;
   tot_score = 0;
   max_score = 0;
+  alarm_frame_written = false;
 
   char id_file[PATH_MAX];
 
@@ -174,7 +175,7 @@ Event::Event(
         Error("Can't mkdir %s: %s", path, strerror(errno));
     }
   } else {
-    path_ptr += snprintf(path, sizeof(path), "/%" PRIu64, id);
+    snprintf(path, sizeof(path), "/%" PRIu64, id);
     if ( mkdir(path, 0755) ) {
       if ( errno != EEXIST )
         Error("Can't mkdir %s: %s", path, strerror(errno));
@@ -526,6 +527,13 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       char snapshot_file[PATH_MAX];
       snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
       WriteFrameImage(image, timestamp, snapshot_file);
+    }
+    // The first frame with a score will be the frame that alarmed the event
+    if (!alarm_frame_written && score > 0) {
+      alarm_frame_written = true;
+      char alarm_file[PATH_MAX];
+      snprintf(alarm_file, sizeof(alarm_file), "%s/alarm.jpg", path);
+      WriteFrameImage(image, timestamp, alarm_file);
     }
   }
   if ( videowriter != NULL ) {

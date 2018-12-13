@@ -69,6 +69,7 @@ use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
+use File::Path qw(make_path);
 
 my $daemon = 0;
 my $filter_name = '';
@@ -162,7 +163,7 @@ my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
 
 if ( ! EVENT_PATH ) {
-  Error("No event path defined. Config was $Config{ZM_DIR_EVENTS}\n");
+  Error("No event path defined. Config was $Config{ZM_DIR_EVENTS}");
   die;
 }
 
@@ -173,11 +174,11 @@ chdir( EVENT_PATH );
 my $dbh = zmDbConnect();
 
 if ( $filter_name ) {
-  Info("Scanning for events using filter '$filter_name'\n");
+  Info("Scanning for events using filter '$filter_name'");
 } elsif ( $filter_id ) {
-  Info("Scanning for events using filter id '$filter_id'\n");
+  Info("Scanning for events using filter id '$filter_id'");
 } else {
-  Info("Scanning for events using all filters\n");
+  Info("Scanning for events using all filters");
 }
 
 if ( ! ( $filter_name or $filter_id ) ) {
@@ -191,7 +192,7 @@ my $last_action = 0;
 while( !$zm_terminate ) {
   my $now = time;
   if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
-    Debug("Reloading filters\n");
+    Debug("Reloading filters");
     $last_action = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
@@ -211,7 +212,7 @@ while( !$zm_terminate ) {
 
   last if (!$daemon and ($filter_name or $filter_id)) or $zm_terminate;
 
-  Debug("Sleeping for $delay seconds\n");
+  Debug("Sleeping for $delay seconds");
   sleep($delay);
 }
 
@@ -405,10 +406,10 @@ sub generateVideo {
   chomp($output);
   my $status = $? >> 8;
   if ( $status || logDebugging() ) {
-    Debug("Output: $output\n");
+    Debug("Output: $output");
   }
   if ( $status ) {
-    Error("Video generation '$command' failed with status: $status\n");
+    Error("Video generation '$command' failed with status: $status");
     if ( wantarray() ) {
       return( undef, undef );
     }
@@ -453,7 +454,7 @@ sub generateImage {
     chomp( $output );
     my $status = $? >> 8;
     if ( $status || logDebugging() ) {
-      Debug("Output: $output\n");
+      Debug("Output: $output");
     }
     if ( $status ) {
       Error("Failed $command status $status");
@@ -474,15 +475,23 @@ sub uploadArchFile {
     return( 0 );
   }
 
+  # Try to make the path to the upload folder if it doesn't already exist
+  make_path( $Config{ZM_UPLOAD_LOC_DIR} );
+
+  # Complain if the upload folder is still not writable
+  if ( ! -w $Config{ZM_UPLOAD_LOC_DIR} ) {
+    Error("Upload folder either does not exist or is not writable: $Config{ZM_UPLOAD_LOC_DIR}");
+    return(0);
+  }
+
   my $archFile = $Event->{MonitorName}.'-'.$Event->{Id};
   my $archImagePath = $Event->Path()
     .'/'
     .(
         ( $Config{ZM_UPLOAD_ARCH_ANALYSE} )
-        ? '{*analyse,*capture}'
-        : '*capture'
+        ? '{*analyse.jpg,*capture.jpg,snapshot.jpg,*.mp4}'
+        : '{*capture.jpg,snapshot.jpg,*.mp4}'
      )
-    .'.jpg'
     ;
   my @archImageFiles = glob($archImagePath);
   my $archLocPath;
@@ -492,11 +501,11 @@ sub uploadArchFile {
     $archFile .= '.zip';
     $archLocPath = $Config{ZM_UPLOAD_LOC_DIR}.'/'.$archFile;
     my $zip = Archive::Zip->new();
-    Info("Creating upload file '$archLocPath', ".int(@archImageFiles)." files\n");
+    Info("Creating upload file '$archLocPath', ".int(@archImageFiles).' files');
 
     my $status = &AZ_OK;
     foreach my $imageFile ( @archImageFiles ) {
-      Debug("Adding $imageFile\n");
+      Debug("Adding $imageFile");
       my $member = $zip->addFile($imageFile);
       if ( !$member ) {
         Error("Unable toto add image file $imageFile to zip archive $archLocPath");
@@ -524,7 +533,7 @@ sub uploadArchFile {
       $archFile .= '.tar';
     }
     $archLocPath = $Config{ZM_UPLOAD_LOC_DIR}.'/'.$archFile;
-    Info("Creating upload file '$archLocPath', ".int(@archImageFiles)." files\n");
+    Info("Creating upload file '$archLocPath', ".int(@archImageFiles).' files');
 
     if ( $archError = !Archive::Tar->create_archive(
           $archLocPath,
@@ -567,7 +576,8 @@ sub uploadArchFile {
       $host .= ':'.$Config{ZM_UPLOAD_PORT} if $Config{ZM_UPLOAD_PORT};
       Info('Uploading to '.$host.' using SFTP');
       my %sftpOptions = (
-          host=>$Config{ZM_UPLOAD_HOST}, user=>$Config{ZM_UPLOAD_USER} 
+          host=>$Config{ZM_UPLOAD_HOST},
+          user=>$Config{ZM_UPLOAD_USER},
           ($Config{ZM_UPLOAD_PASS} ? (password=>$Config{ZM_UPLOAD_PASS}) : ()),
           ($Config{ZM_UPLOAD_PORT} ? (port=>$Config{ZM_UPLOAD_PORT}) : ()),
           ($Config{ZM_UPLOAD_TIMEOUT} ? (timeout=>$Config{ZM_UPLOAD_TIMEOUT}) : ()),

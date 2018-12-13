@@ -63,5 +63,5 @@ extern unsigned int neonversion;
 
 char *timeval_to_string( struct timeval tv );
 std::string UriDecode( const std::string &encoded );
-
+void touch( const char *pathname );
 #endif // ZM_UTILS_H

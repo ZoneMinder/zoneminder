@@ -100,7 +100,7 @@ class Event extends AppModel {
     ),
   );
 
- public function Relative_Path($event) {
+  public function Relative_Path($event) {
     $event_path = '';
 
     if ( $event['Scheme'] == 'Deep' ) {

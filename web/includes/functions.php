@@ -2279,6 +2279,52 @@ function unparse_url($parsed_url, $substitutions = array() ) {
   return "$scheme$user$pass$host$port$path$query$fragment"; 
 }
 
+// PP - POST request handler for PHP which does not need extensions
+// credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
+
+
+function do_request($method, $url, $data=array(), $optional_headers = null) {
+  global $php_errormsg;
+
+  $params = array('http' => array(
+        'method' => $method,
+        'content' => $data
+        ));
+  if ( $optional_headers !== null ) {
+    $params['http']['header'] = $optional_headers;
+  }
+  $ctx = stream_context_create($params);
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if ( !$fp ) {
+    throw new Exception("Problem with $url, $php_errormsg");
+  }
+  $response = @stream_get_contents($fp);
+  if ( $response === false ) {
+    throw new Exception("Problem reading data from $url, $php_errormsg");
+  }
+  return $response;
+}
+
+function do_post_request($url, $data, $optional_headers = null) {
+  $params = array('http' => array(
+        'method' => 'POST',
+        'content' => $data
+        ));
+  if ( $optional_headers !== null ) {
+    $params['http']['header'] = $optional_headers;
+  }
+  $ctx = stream_context_create($params);
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if ( !$fp ) {
+    throw new Exception("Problem with $url, $php_errormsg");
+  }
+  $response = @stream_get_contents($fp);
+  if ( $response === false ) {
+    throw new Exception("Problem reading data from $url, $php_errormsg");
+  }
+  return $response;
+}
+
 // The following works around php not being built with semaphore functions.
 if (!function_exists('sem_get')) {
   function sem_get($key) {

@@ -40,11 +40,12 @@ void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) 
     log_level = Logger::INFO;
     //log_level = Logger::WARNING;
   } else if ( level == AV_LOG_INFO ) { //32
-    log_level = Logger::INFO;
-  } else if ( level == AV_LOG_VERBOSE ) { //40
     log_level = Logger::DEBUG1;
-  } else if ( level == AV_LOG_DEBUG ) { //48
+    //log_level = Logger::INFO;
+  } else if ( level == AV_LOG_VERBOSE ) { //40
     log_level = Logger::DEBUG2;
+  } else if ( level == AV_LOG_DEBUG ) { //48
+    log_level = Logger::DEBUG3;
 #ifdef AV_LOG_TRACE
   } else if ( level == AV_LOG_TRACE ) {
     log_level = Logger::DEBUG8;

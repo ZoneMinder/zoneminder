@@ -34,9 +34,11 @@ void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) 
   } else if ( level == AV_LOG_FATAL ) { // 8
     log_level = Logger::FATAL;
   } else if ( level == AV_LOG_ERROR ) { // 16
-    log_level = Logger::ERROR;
+    log_level = Logger::WARNING; // ffmpeg outputs a lot of errors that don't really affect anything.
+    //log_level = Logger::ERROR;
   } else if ( level == AV_LOG_WARNING ) { //24
-    log_level = Logger::WARNING;
+    log_level = Logger::INFO;
+    //log_level = Logger::WARNING;
   } else if ( level == AV_LOG_INFO ) { //32
     log_level = Logger::INFO;
   } else if ( level == AV_LOG_VERBOSE ) { //40

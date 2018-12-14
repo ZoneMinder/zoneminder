@@ -474,7 +474,8 @@ if ( canEdit('Monitors') ) {
         $maxSeq = dbFetchOne('SELECT MAX(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence');
         $changes[] = 'Sequence = '.($maxSeq+1);
 
-        if ( dbQuery('INSERT INTO Monitors SET '.implode(', ', $changes)) ) {
+        $sql = 'INSERT INTO Monitors SET '.implode(', ', $changes);
+        if ( dbQuery($sql) ) {
           $mid = dbInsertId();
           $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
           dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
@@ -486,6 +487,7 @@ if ( canEdit('Monitors') ) {
   
         } else {
           Error('Error saving new Monitor.');
+          $error_message = dbError($sql);
           return;
         }
       } else {

@@ -169,6 +169,7 @@ if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
 }
 
 # Globals
+$error_message = null;
 $redirect = null;
 $view = null;
 if ( isset($_REQUEST['view']) )

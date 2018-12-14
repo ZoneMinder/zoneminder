@@ -62,7 +62,12 @@ class Server {
     if ( isset($this->{'Protocol'}) and ( $this->{'Protocol'} != '' ) ) {
       return $this->{'Protocol'};
     }
-    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https' : 'http';
+
+    return  ( 
+              ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
+              or
+              ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
+            ) ? 'https' : 'http';
   }
 
   public function Port( $new = '' ) {
@@ -72,6 +77,11 @@ class Server {
     if ( isset($this->{'Port'}) and $this->{'Port'} ) {
       return $this->{'Port'};
     }
+
+    if ( isset($_SERVER['HTTP_X_FORWARDED_PORT']) ) {
+      return $_SERVER['HTTP_X_FORWARDED_PORT'];
+    }
+
     return $_SERVER['SERVER_PORT'];
   }
 

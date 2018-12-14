@@ -73,7 +73,10 @@ void FFMPEGInit() {
       av_log_set_level( AV_LOG_DEBUG ); 
     else
       av_log_set_level( AV_LOG_QUIET ); 
-    av_log_set_callback(log_libav_callback); 
+    if ( config.log_ffmpeg ) 
+        av_log_set_callback(log_libav_callback); 
+    else
+        Log("Not enabling ffmpeg logs, as LOG_FFMPEG is disabled in options");
     av_register_all();
     avformat_network_init();
     bInit = true;

@@ -255,11 +255,12 @@ Event::~Event() {
         id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
     db_mutex.lock();
     if ( mysql_query(&dbconn, sql) ) {
+      db_mutex.unlock();
       Error("Can't insert frame: %s", mysql_error(&dbconn));
     } else {
+      db_mutex.unlock();
       Debug(1,"Success writing last frame");
     }
-    db_mutex.unlock();
   }
 
   snprintf(sql, sizeof(sql), 
@@ -271,8 +272,8 @@ Event::~Event() {
       video_name, id );
   db_mutex.lock();
   while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
-    Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
     db_mutex.unlock();
+    Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
     sleep(1);
     db_mutex.lock();
   }

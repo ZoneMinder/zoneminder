@@ -21,7 +21,7 @@ server {
 
         include /etc/nginx/fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $request_filename;
-        fastcgi_pass  unix:/run/fcgiwrap.sock;
+        fastcgi_pass  unix:/run/fcgiwrap/fcgiwrap-nginx.sock;
     }
 
     location /zm/cache {

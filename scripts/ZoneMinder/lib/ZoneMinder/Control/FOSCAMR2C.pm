@@ -64,7 +64,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
  
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
-use DBI; 
+use ZoneMinder::Database qw(zmDbConnect);
+
 use Time::HiRes qw( usleep );
  
 sub new
@@ -277,7 +278,7 @@ sub presetSet
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-	my $dbh = DBI->connect("DBI:mysql:database=zm;host=localhost", "zmuser", "zmpass", {'RaiseError' => 1});
+	my $dbh = zmDbConnect(1);
 	my $sth = $dbh->prepare("SELECT `Label` FROM `ControlPresets` WHERE `Preset` = $preset");
     $sth->execute();
     my $ref = ($sth->fetchrow_hashref());
@@ -296,7 +297,7 @@ sub presetGoto
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-	my $dbh = DBI->connect("DBI:mysql:database=zm;host=localhost", "zmuser", "zmpass", {'RaiseError' => 1});
+	my $dbh = zmDbConnect(1);
 	my $sth = $dbh->prepare("SELECT `Label` FROM `ControlPresets` WHERE `Preset` = $preset");
     $sth->execute();
     my $ref = ($sth->fetchrow_hashref());

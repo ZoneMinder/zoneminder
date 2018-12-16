@@ -582,7 +582,8 @@ Debug(3, "Writing video");
     static char sql[ZM_SQL_MED_BUFSIZ];
 
     frame_data.push( new Frame(id, frames, frame_type, timestamp, delta_time, score ) );
-    if ( frame_data.size() > 10 ) {
+    // The idea is to write out 1/sec
+    if ( frame_data.size() > (int)monitor->get_fps() ) {
       WriteDbFrames();
       Debug(1, "Adding 10 frames to DB");
       last_db_frame = frames;

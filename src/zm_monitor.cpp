@@ -1689,18 +1689,19 @@ Error("Creating new event when one exists");
                   event->AddFrame( snap_image, *timestamp, score );
               }
             } else {
-              for( int i = 0; i < n_zones; i++ ) {
-                if ( zones[i]->Alarmed() ) {
-                  if ( config.record_event_stats && state == ALARM ) {
-                    zones[i]->RecordStats( event );
+              if ( state == ALARM ) {
+                if ( config.record_event_stats ) {
+                  for( int i = 0; i < n_zones; i++ ) {
+                    if ( zones[i]->Alarmed() ) {
+                      zones[i]->RecordStats( event );
+                    }
                   }
                 }
-              }
-              if ( state == PREALARM )
-                Event::AddPreAlarmFrame( snap_image, *timestamp, score );
-              else
                 event->AddFrame( snap_image, *timestamp, score );
-            }
+              } else { // ( state == PREALARM )
+                Event::AddPreAlarmFrame( snap_image, *timestamp, score );
+              }
+            } // end if analysis_images
             if ( event && noteSetMap.size() > 0 )
               event->updateNotes( noteSetMap );
           } else if ( state == ALERT ) {

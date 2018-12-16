@@ -127,7 +127,8 @@ mark_as_advanced(
     ZM_PATH_ARP 
     ZM_CONFIG_DIR
     ZM_CONFIG_SUBDIR
-    ZM_SYSTEMD)
+    ZM_SYSTEMD
+    ZM_MANPAGE_DEST_PREFIX)
 
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH 
     "Location of transient process files, default: /var/run/zm")
@@ -210,6 +211,10 @@ set(ZM_TARGET_DISTRO "" CACHE STRING
     "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc27, fc26, el7, OS13, FreeBSD")
 set(ZM_SYSTEMD "OFF" CACHE BOOL 
     "Set to ON to force building ZM with systemd support. default: OFF")
+set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH 
+	"Relative path used to install ZoneMinder's Man pages into a
+         non-standard folder. Most Linux users will not need to change this.
+         BSD users may need to set this.")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))

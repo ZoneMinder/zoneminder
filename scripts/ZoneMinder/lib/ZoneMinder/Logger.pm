@@ -310,7 +310,7 @@ sub reinitialise {
 
 # Bit of a nasty hack to reopen connections to log files and the DB
   my $syslogLevel = $this->syslogLevel();
-  $this->syslogLevel( NOLOG );
+  $this->syslogLevel(NOLOG);
   $this->syslogLevel($syslogLevel) if $syslogLevel > NOLOG;
 
   my $logfileLevel = $this->fileLevel();
@@ -321,11 +321,10 @@ sub reinitialise {
   $this->databaseLevel(NOLOG);
   $this->databaseLevel($databaseLevel) if $databaseLevel > NOLOG;
 
-  my $screenLevel = $this->termLevel();
+  $this->{hasTerm} = -t STDERR;
+  my $termLevel = $this->termLevel();
   $this->termLevel(NOLOG);
-  $this->termLevel($screenLevel) if $screenLevel > NOLOG;
-
-  $this->{sth} = undef;
+  $this->termLevel($termLevel) if $termLevel > NOLOG;
 }
 
 # Prevents undefined logging levels
@@ -439,16 +438,13 @@ sub databaseLevel {
   my $databaseLevel = shift;
   if ( defined($databaseLevel) ) {
     $databaseLevel = $this->limit($databaseLevel);
-    if ( $this->{databaseLevel} != $databaseLevel ) {
-      if ( ( $databaseLevel > NOLOG ) and ( $this->{databaseLevel} <= NOLOG ) ) {
-        if ( !$this->{dbh} ) {
-          $this->{dbh} = ZoneMinder::Database::zmDbConnect();
-        }
-      } elsif ( $databaseLevel <= NOLOG && $this->{databaseLevel} > NOLOG ) {
-        undef($this->{dbh});
-      }
-      $this->{databaseLevel} = $databaseLevel;
+    if ( $databaseLevel > NOLOG ) {
+      $this->{dbh} = ZoneMinder::Database::zmDbConnect();
+    } else {
+      undef($this->{dbh});
     }
+    $this->{sth} = undef;
+    $this->{databaseLevel} = $databaseLevel;
   }
   return $this->{databaseLevel};
 }
@@ -558,12 +554,12 @@ sub logPrint {
     }
 
     if ( $level <= $this->{databaseLevel} ) {
-      if ( ! ( $this->{dbh} and $this->{dbh}->ping() ) ) {
+      if ( ! ( $ZoneMinder::Database::dbh and $ZoneMinder::Database::dbh->ping() ) ) {
         $this->{sth} = undef;
         # Turn this off because zDbConnect will do logging calls.
         my $oldlevel = $this->{databaseLevel};
         $this->{databaseLevel} = NOLOG;
-        if ( ! ( $this->{dbh} = ZoneMinder::Database::zmDbConnect() ) ) {
+        if ( ! ZoneMinder::Database::zmDbConnect() ) {
           #print(STDERR "Can't log to database: ");
           return;
         }
@@ -571,10 +567,10 @@ sub logPrint {
       }
 
       my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, NULL )';
-      $this->{sth} = $this->{dbh}->prepare_cached($sql) if ! $this->{sth};
+      $this->{sth} = $ZoneMinder::Database::dbh->prepare_cached($sql) if ! $this->{sth};
       if ( !$this->{sth} ) {
         $this->{databaseLevel} = NOLOG;
-        Error("Can't prepare log entry '$sql': ".$this->{dbh}->errstr());
+        Error("Can't prepare log entry '$sql': ".$ZoneMinder::Database::dbh->errstr());
         return;
       } 
 
@@ -590,7 +586,7 @@ sub logPrint {
           );
       if ( !$res ) {
         $this->{databaseLevel} = NOLOG;
-        Error("Can't execute log entry '$sql': ".$this->{dbh}->errstr());
+        Error("Can't execute log entry '$sql': ".$ZoneMinder::Database::dbh->errstr());
       }
     } # end if doing db logging
   } # end if level < effectivelevel

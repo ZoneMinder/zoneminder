@@ -258,7 +258,7 @@ sub run {
 
   my $fd = 0;
 
-  # THis also closes dbh and CLIENT and SERVER
+  # This also closes dbh and CLIENT and SERVER
   while( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
     POSIX::close($fd++);
   }

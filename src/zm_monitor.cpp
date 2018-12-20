@@ -626,6 +626,13 @@ Debug(3, "Success connecting");
 }
 
 Monitor::~Monitor() {
+  if ( n_linked_monitors ) {
+    for( int i = 0; i < n_linked_monitors; i++ ) {
+      delete linked_monitors[i];
+    }
+    delete[] linked_monitors;
+    linked_monitors = 0;
+  }
   if ( timestamps ) {
     delete[] timestamps;
     timestamps = 0;
@@ -1906,15 +1913,15 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
         static char sql[ZM_SQL_SML_BUFSIZ];
         snprintf(sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
         if ( mysql_query(&dbconn, sql) ) {
-          Error("Can't run query: %s", mysql_error(&dbconn));
 					db_mutex.unlock();
+          Error("Can't run query: %s", mysql_error(&dbconn));
           continue;
         }
 
         MYSQL_RES *result = mysql_store_result(&dbconn);
         if ( !result ) {
-          Error("Can't use query result: %s", mysql_error(&dbconn));
 					db_mutex.unlock();
+          Error("Can't use query result: %s", mysql_error(&dbconn));
           continue;
         }
         db_mutex.unlock();

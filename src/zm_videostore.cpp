@@ -533,7 +533,7 @@ bool VideoStore::setup_resampler() {
 #endif
 
   /* put sample parameters */
-  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate;
+  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 96000 ? audio_in_ctx->bit_rate : 96000;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;

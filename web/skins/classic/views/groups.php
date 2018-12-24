@@ -28,7 +28,7 @@ $group_id = 0;
 $max_depth = 0;
 
 $Groups = array();
-foreach ( Group::find( ) as $Group ) {
+foreach ( Group::find() as $Group ) {
   $Groups[$Group->Id()] = $Group;
 }
 
@@ -53,7 +53,7 @@ xhtmlHeaders(__FILE__, translate('Groups'));
         <table id="contentTable" class="major">
           <thead class="thead-highlight">
             <tr>
-              <th class="colName" colspan="<?php echo $max_depth ?>"><?php echo translate('Name') ?></th>
+              <th class="colName" colspan="<?php echo $max_depth+1 ?>"><?php echo translate('Name') ?></th>
               <th class="colIds"><?php echo translate('Monitors') ?></th>
               <th class="colSelect"><?php echo translate('Mark') ?></th>
             </tr>

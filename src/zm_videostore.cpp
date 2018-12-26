@@ -908,15 +908,15 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
      * to flush it.
      */
     int data_present;
-    if ((ret = avcodec_decode_audio4(audio_in_ctx, in_frame,
-                                     &data_present, ipkt)) < 0) {
-      Error("Could not decode frame (error '%s')\n",
+    if ( (ret = avcodec_decode_audio4(
+            audio_in_ctx, in_frame, &data_present, ipkt)) < 0 ) {
+      Error("Could not decode frame (error '%s')",
             av_make_error_string(ret).c_str());
       dumpPacket(ipkt);
       av_frame_free(&in_frame);
       return 0;
     }
-    if (!data_present) {
+    if ( !data_present ) {
       Debug(2, "Not ready to transcode a frame yet.");
       return 0;
     }
@@ -925,44 +925,40 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 
     // Resample the in into the audioSampleBuffer until we proceed the whole
     // decoded data
-  #if defined(HAVE_LIBSWRESAMPLE)
     Debug(2, "Converting  %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
-    if ((ret = swr_convert(resample_ctx,
+    if (
+  #if defined(HAVE_LIBSWRESAMPLE)
+        (ret = swr_convert(resample_ctx,
             out_frame->data, frame_size,
             (const uint8_t**)in_frame->data,
-            in_frame->nb_samples)) < 0) {
-      Error("Could not resample frame (error '%s')\n",
-            av_make_error_string(ret).c_str());
-      av_frame_unref(in_frame);
-      return 0;
-    }
+            in_frame->nb_samples))
   #else
     #if defined(HAVE_LIBAVRESAMPLE)
-    if ((ret =
-             avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
-                                0, in_frame->nb_samples)) < 0) {
-      Error("Could not resample frame (error '%s')\n",
+    (ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
+                                0, in_frame->nb_samples))
+  #endif
+  #endif
+      < 0) {
+      Error("Could not resample frame (error '%s')",
             av_make_error_string(ret).c_str());
       av_frame_unref(in_frame);
       return 0;
     }
-  #endif
-  #endif
     av_frame_unref(in_frame);
 
   #if defined(HAVE_LIBAVRESAMPLE)
     int samples_available = avresample_available(resample_ctx);
 
-    if (samples_available < frame_size) {
+    if ( samples_available < frame_size ) {
       Debug(1, "Not enough samples yet (%d)", samples_available);
       return 0;
     }
 
     Debug(3, "Output_frame samples (%d)", out_frame->nb_samples);
     // Read a frame audio data from the resample fifo
-    if (avresample_read(resample_ctx, out_frame->data, frame_size) !=
+    if ( avresample_read(resample_ctx, out_frame->data, frame_size) !=
         frame_size) {
-      Warning("Error reading resampled audio: ");
+      Warning("Error reading resampled audio:");
       return 0;
     }
   #endif

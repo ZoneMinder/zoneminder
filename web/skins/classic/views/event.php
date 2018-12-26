@@ -95,7 +95,7 @@ $connkey = generateConnKey();
 
 $focusWindow = true;
 
-$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] = 1));
+$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] == 1));
 
 xhtmlHeaders(__FILE__, translate('Event') );
 ?>

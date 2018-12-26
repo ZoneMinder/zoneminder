@@ -136,6 +136,7 @@ FfmpegCamera::FfmpegCamera(
   mFrame = NULL;
   frameCount = 0;
   mCanCapture = false;
+  error_count = 0;
 
 } // end FFmpegCamera::FFmpegCamera
 
@@ -208,6 +209,8 @@ int FfmpegCamera::PostCapture() {
 int FfmpegCamera::OpenFfmpeg() {
 
   int ret;
+
+  error_count = 0;
 
   // Open the input, not necessarily a file
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)

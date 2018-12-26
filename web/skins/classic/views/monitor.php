@@ -113,7 +113,6 @@ if ( ! $monitor ) {
           'FPSReportInterval' => 100,
           'RefBlendPerc' => 6,
           'AlarmRefBlendPerc' => 6,
-          'DefaultView' => 'Events',
           'DefaultRate' => '100',
           'DefaultScale' => '100',
           'DefaultCodec' => 'auto',
@@ -461,8 +460,8 @@ $codecs = array(
 );
 
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
 <?php
@@ -667,7 +666,6 @@ if ( $tab != 'misc' ) {
       <input type="hidden" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($monitor->MotionFrameSkip()) ?>"/>
       <input type="hidden" name="newMonitor[AnalysisUpdateDelay]" value="<?php echo validHtmlStr($monitor->AnalysisUpdateDelay()) ?>"/>
       <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>"/>
-      <input type="hidden" name="newMonitor[DefaultView]" value="<?php echo validHtmlStr($monitor->DefaultView()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultRate]" value="<?php echo validHtmlStr($monitor->DefaultRate()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultScale]" value="<?php echo validHtmlStr($monitor->DefaultScale()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultCodec]" value="<?php echo validHtmlStr($monitor->DefaultCodec()) ?>"/>
@@ -1062,17 +1060,6 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
         <tr><td><?php echo translate('MotionFrameSkip') ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($monitor->MotionFrameSkip()) ?>" size="6"/></td></tr>
         <tr><td><?php echo translate('AnalysisUpdateDelay') ?></td><td><input type="text" name="newMonitor[AnalysisUpdateDelay]" value="<?php echo validHtmlStr($monitor->AnalysisUpdateDelay()) ?>" size="6"/></td></tr>
         <tr><td><?php echo translate('FPSReportInterval') ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>" size="6"/></td></tr>
-        <tr><td><?php echo translate('DefaultView') ?></td><td><select name="newMonitor[DefaultView]">
-<?php
-      foreach ( getEnumValues( 'Monitors', 'DefaultView' ) as $opt_view ) {
-        if ( $opt_view == 'Control' && ( !ZM_OPT_CONTROL || !$monitor->Controllable()) )
-          continue;
-?>
-          <option value="<?php echo $opt_view ?>"<?php if ( $opt_view == $monitor->DefaultView()) { ?> selected="selected"<?php } ?>><?php echo $opt_view ?></option>
-<?php
-      }
-?>
-        </select></td></tr>
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultCodec') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultCodec]", $codecs, $monitor->DefaultCodec() ); ?></td></tr>

@@ -4,12 +4,11 @@
 #include "zm_ffmpeg.h"
 extern "C"  {
 #ifdef HAVE_LIBSWRESAMPLE
-#include "libswresample/swresample.h"
-#endif
+  #include "libswresample/swresample.h"
 #else
-#ifdef HAVE_LIBAVRESAMPLE
-#include "libavresample/avresample.h"
-#endif
+  #ifdef HAVE_LIBAVRESAMPLE
+    #include "libavresample/avresample.h"
+  #endif
 #endif
 }
 
@@ -66,7 +65,7 @@ int audio_in_stream_index;
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
 #ifdef HAVE_LIBSWRESAMPLE
-  SwrContext* resample_ctx;
+  SwrContext *resample_ctx;
 #else
 #ifdef HAVE_LIBAVRESAMPLE
   AVAudioResampleContext* resample_ctx;

@@ -53,7 +53,7 @@ function CORSHeaders() {
         preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
       ) {
         $valid = true;
-        Logger::Debug("Setting Access-Controll-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
+        Logger::Debug("Setting Access-Control-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
         break;
@@ -2282,7 +2282,6 @@ function unparse_url($parsed_url, $substitutions = array() ) {
 // PP - POST request handler for PHP which does not need extensions
 // credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
 
-
 function do_request($method, $url, $data=array(), $optional_headers = null) {
   global $php_errormsg;
 
@@ -2326,7 +2325,7 @@ function do_post_request($url, $data, $optional_headers = null) {
 }
 
 // The following works around php not being built with semaphore functions.
-if (!function_exists('sem_get')) {
+if ( !function_exists('sem_get') ) {
   function sem_get($key) {
     return fopen(__FILE__ . '.sem.' . $key, 'w+');
   }
@@ -2338,7 +2337,7 @@ if (!function_exists('sem_get')) {
   }
 }
 
-if( !function_exists('ftok') ) {
+if ( !function_exists('ftok') ) {
   function ftok($filename = "", $proj = "") {
     if ( empty($filename) || !file_exists($filename) ) {
       return -1;

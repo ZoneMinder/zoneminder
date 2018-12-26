@@ -474,7 +474,8 @@ if ( canEdit('Monitors') ) {
         $maxSeq = dbFetchOne('SELECT MAX(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence');
         $changes[] = 'Sequence = '.($maxSeq+1);
 
-        if ( dbQuery('INSERT INTO Monitors SET '.implode(', ', $changes)) ) {
+        $sql = 'INSERT INTO Monitors SET '.implode(', ', $changes);
+        if ( dbQuery($sql) ) {
           $mid = dbInsertId();
           $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
           dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
@@ -486,6 +487,7 @@ if ( canEdit('Monitors') ) {
   
         } else {
           Error('Error saving new Monitor.');
+          $error_message = dbError($sql);
           return;
         }
       } else {
@@ -537,7 +539,7 @@ if ( canEdit('Monitors') ) {
       $new_monitor = new Monitor($mid);
       //fixDevices();
 
-      if ( $monitor['Type'] != 'WebSite' ) {
+      if ( $new_monitor->Type() != 'WebSite' ) {
         $new_monitor->zmcControl('start');
         $new_monitor->zmaControl('start');
       }
@@ -640,16 +642,11 @@ if ( canEdit('Groups') ) {
     $refreshParent = true;
   } else if ( $action == 'delete' ) {
     if ( !empty($_REQUEST['gid']) ) {
-      if ( is_array($_REQUEST['gid']) ) {
-        foreach ( $_REQUEST['gid'] as $gid ) {
-          $Group = new Group($gid);
-          $Group->delete();
-        }
-      } else {
-        $Group = new Group($_REQUEST['gid'] );
+      foreach ( Group::find(array('Id'=>$_REQUEST['gid'])) as $Group ) {
         $Group->delete();
       }
     }
+    $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=groups';
     $refreshParent = true;
   } # end if action
 } // end if can edit groups
@@ -831,6 +828,22 @@ if ( canEdit('System') ) {
     return;
   }
   if ( $action == 'options' && isset($_REQUEST['tab']) ) {
+    $config = array();
+    $configCat = array();
+    $configCats = array();
+
+    $result = $dbConn->query('SELECT * FROM Config ORDER BY Id ASC');
+    if ( !$result )
+      echo mysql_error();
+    while( $row = dbFetchNext($result) ) {
+      $config[$row['Name']] = $row;
+      if ( !($configCat = &$configCats[$row['Category']]) ) {
+        $configCats[$row['Category']] = array();
+        $configCat = &$configCats[$row['Category']];
+      }
+      $configCat[$row['Name']] = $row;
+    }
+
     $configCat = $configCats[$_REQUEST['tab']];
     $changed = false;
     foreach ( $configCat as $name=>$value ) {

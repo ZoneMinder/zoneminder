@@ -24,15 +24,63 @@
 
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
+void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) {
+  Logger *log = Logger::fetch();
+  int log_level = 0;
+  if ( level == AV_LOG_QUIET ) { // -8
+    log_level = Logger::NOLOG;
+  } else if ( level == AV_LOG_PANIC ) { //0
+    log_level = Logger::PANIC;
+  } else if ( level == AV_LOG_FATAL ) { // 8
+    log_level = Logger::FATAL;
+  } else if ( level == AV_LOG_ERROR ) { // 16
+    log_level = Logger::WARNING; // ffmpeg outputs a lot of errors that don't really affect anything.
+    //log_level = Logger::ERROR;
+  } else if ( level == AV_LOG_WARNING ) { //24
+    log_level = Logger::INFO;
+    //log_level = Logger::WARNING;
+  } else if ( level == AV_LOG_INFO ) { //32
+    log_level = Logger::DEBUG1;
+    //log_level = Logger::INFO;
+  } else if ( level == AV_LOG_VERBOSE ) { //40
+    log_level = Logger::DEBUG2;
+  } else if ( level == AV_LOG_DEBUG ) { //48
+    log_level = Logger::DEBUG3;
+#ifdef AV_LOG_TRACE
+  } else if ( level == AV_LOG_TRACE ) {
+    log_level = Logger::DEBUG8;
+#endif
+#ifdef AV_LOG_MAX_OFFSET
+  } else if ( level == AV_LOG_MAX_OFFSET ) {
+    log_level = Logger::DEBUG9;
+#endif
+  } else {
+    Error("Unknown log level %d", level);
+  }
+
+  if ( log ) {
+    char            logString[8192];
+    vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
+    log->logPrint(false, __FILE__, __LINE__, log_level, logString);
+  }
+}
+
 void FFMPEGInit() {
   static bool bInit = false;
 
   if ( !bInit ) {
-    //if ( logDebugging() )
-      //av_log_set_level( AV_LOG_DEBUG ); 
-    //else
+    if ( logDebugging() )
+      av_log_set_level( AV_LOG_DEBUG ); 
+    else
       av_log_set_level( AV_LOG_QUIET ); 
+    if ( config.log_ffmpeg ) 
+        av_log_set_callback(log_libav_callback); 
+    else
+        Info("Not enabling ffmpeg logs, as LOG_FFMPEG is disabled in options");
+#if LIBAVCODEC_VERSION_CHECK(58, 18, 0, 64, 0)
+#else
     av_register_all();
+#endif
     avformat_network_init();
     bInit = true;
   }
@@ -268,6 +316,11 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  AVCodecParameters *codec = st->codecpar;
+#else
+  AVCodecContext *codec = st->codec;
+#endif
 
   Debug(1, "    Stream #%d:%d", index, i);
 
@@ -277,19 +330,20 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, "[0x%x]", st->id);
   if (lang)
     Debug(1, "language (%s)", lang->value);
-  Debug(1, "frames:%d, timebase: %d/%d", st->nb_frames, st->time_base.num, st->time_base.den);
+  Debug(1, ", frames:%d, frame_size:%d timebase: %d/%d",
+      st->codec_info_nb_frames,
+      codec->frame_size,
+      st->time_base.num,
+      st->time_base.den);
   avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, ": %s", buf);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  AVCodecParameters *codec = st->codecpar;
-#else
-  AVCodecContext *codec = st->codec;
-#endif
 
-  if (st->sample_aspect_ratio.num && // default
-      av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)) {
+  if ( st->sample_aspect_ratio.num && // default
+      av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)
+      ) {
     AVRational display_aspect_ratio;
-    av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
+    av_reduce(&display_aspect_ratio.num,
+        &display_aspect_ratio.den,
         codec->width  * (int64_t)st->sample_aspect_ratio.num,
         codec->height * (int64_t)st->sample_aspect_ratio.den,
         1024 * 1024);
@@ -298,7 +352,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
         display_aspect_ratio.num, display_aspect_ratio.den);
   }
 
-  if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+  if ( st->codec->codec_type == AVMEDIA_TYPE_VIDEO ) {
     int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
     int tbn = st->time_base.den && st->time_base.num;
     int tbc = st->codec->time_base.den && st->codec->time_base.num;
@@ -331,7 +385,6 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, " (visual impaired)");
   if (st->disposition & AV_DISPOSITION_CLEAN_EFFECTS)
     Debug(1, " (clean effects)");
-  Debug(1, "\n");
 
   //dump_metadata(NULL, st->metadata, "    ");
 

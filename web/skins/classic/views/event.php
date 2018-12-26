@@ -38,18 +38,21 @@ $Monitor = $Event->Monitor();
 
 if (isset($_REQUEST['rate'])) {
   $rate = validInt($_REQUEST['rate']);
+} else if ( isset($_COOKIE['zmEventRate']) ) {
+  $rate = $_COOKIE['zmEventRate'];
 } else {
   $rate = reScale(RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
 }
 
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
-} else if ( isset( $_COOKIE['zmEventScaleAuto'] ) ) { //If we're using scale to fit use it on all monitors
+} else if ( isset( $_COOKIE['zmEventScaleAuto'] ) ) {
+  // If we're using scale to fit use it on all monitors
   $scale = 'auto';
 } else if ( isset( $_COOKIE['zmEventScale'.$Event->MonitorId()] ) ) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
-  $scale = reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
+  $scale = reScale(SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE);
 }
 
 $codec = 'auto';

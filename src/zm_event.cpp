@@ -123,6 +123,7 @@ Event::Event(
   tot_score = 0;
   max_score = 0;
   have_video_keyframe = false;
+  alarm_frame_written = false;
 
   struct tm *stime = localtime(&start_time.tv_sec);
 
@@ -177,8 +178,7 @@ Event::Event(
         Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
     }
   } else {
-    // Shallow Storage
-    path = stringtf("/%" PRIu64, id);
+    path += stringtf("/%" PRIu64, id);
     if ( mkdir(path.c_str(), 0755) ) {
       if ( errno != EEXIST )
         Error("Can't mkdir %s: %s", path.c_str(), strerror(errno));
@@ -242,6 +242,9 @@ Event::~Event() {
     videoStore = NULL;
   }
 
+  if ( frame_data.size() )
+    WriteDbFrames();
+
   // Should not be static because we are multi-threaded
   char sql[ZM_SQL_MED_BUFSIZ];
   struct DeltaTimeval delta_time;
@@ -255,20 +258,25 @@ Event::~Event() {
         id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
     db_mutex.lock();
     if ( mysql_query(&dbconn, sql) ) {
+      db_mutex.unlock();
       Error("Can't insert frame: %s", mysql_error(&dbconn));
     } else {
+      db_mutex.unlock();
       Debug(1,"Success writing last frame");
     }
-    db_mutex.unlock();
   }
 
   snprintf(sql, sizeof(sql), 
       "UPDATE Events SET Name='%s %" PRIu64 "', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' WHERE Id = %" PRIu64,
-      monitor->EventPrefix(), id, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, frames, alarm_frames, tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score, video_name, id );
+      monitor->EventPrefix(), id, end_time.tv_sec,
+      delta_time.positive?"":"-", delta_time.sec, delta_time.fsec,
+      frames, alarm_frames,
+      tot_score, (int)(alarm_frames?(tot_score/alarm_frames):0), max_score,
+      video_name, id );
   db_mutex.lock();
   while ( mysql_query(&dbconn, sql) && !zm_terminate ) {
-    Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
     db_mutex.unlock();
+    Error("Can't update event: %s reason: %s", sql, mysql_error(&dbconn));
     sleep(1);
     db_mutex.lock();
   }
@@ -361,7 +369,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     createNotes(notes);
 
     Debug(2, "Updating notes for event %d, '%s'", id, notes.c_str());
-    static char sql[ZM_SQL_MED_BUFSIZ];
+    static char sql[ZM_SQL_LGE_BUFSIZ];
 #if USE_PREPARED_SQL
     static MYSQL_STMT *stmt = 0;
 
@@ -508,6 +516,35 @@ void Event::AddPacket(ZMPacket *packet, int score, Image *alarm_image) {
   return;
 }
 
+void Event::WriteDbFrames() {
+  static char sql[ZM_SQL_LGE_BUFSIZ];
+  char * sql_ptr = (char *)&sql;
+  sql_ptr += snprintf(sql, sizeof(sql),
+      "INSERT INTO Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score ) VALUES "
+      );
+  while ( frame_data.size() ) {
+    Frame *frame = frame_data.front();
+    frame_data.pop();
+    sql_ptr += snprintf(sql_ptr, sizeof(sql)-(sql_ptr-(char *)&sql), "( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d ), ",
+        id, frame->frame_id, frame_type_names[frame->type],
+        frame->timestamp.tv_sec,
+        frame->delta.positive?"":"-",
+        frame->delta.sec,
+        frame->delta.fsec,
+        frame->score);
+    delete frame;
+  }
+  *(sql_ptr-2) = '\0';
+  db_mutex.lock();
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't insert frames: %s", mysql_error(&dbconn));
+    Error("SQL was %s", sql);
+    db_mutex.unlock();
+    return;
+  }
+  db_mutex.unlock();
+}
+
 void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {
   if ( !timestamp.tv_sec ) {
     Debug(1, "Not adding new frame, zero timestamp");
@@ -532,6 +569,13 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       std::string snapshot_file = path + "/snapshot.jpg";
       WriteFrameImage(image, timestamp, snapshot_file.c_str());
     }
+    // The first frame with a score will be the frame that alarmed the event
+    if (!alarm_frame_written && score > 0) {
+      alarm_frame_written = true;
+      char alarm_file[PATH_MAX];
+      snprintf(alarm_file, sizeof(alarm_file), "%s/alarm.jpg", path.c_str());
+      WriteFrameImage(image, timestamp, alarm_file);
+    }
   }
 
   struct DeltaTimeval delta_time;
@@ -545,21 +589,14 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   bool db_frame = ( frame_type != BULK ) || (!frames) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
 
-    Debug(1, "Adding frame %d of type \"%s\" to DB", frames, Event::frame_type_names[frame_type]);
     static char sql[ZM_SQL_MED_BUFSIZ];
-    snprintf(sql, sizeof(sql),
-        "INSERT INTO Frames ( EventId, FrameId, Type, TimeStamp, Delta, Score )"
-        " VALUES ( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %s%ld.%02ld, %d )",
-        id, frames, frame_type_names[frame_type], timestamp.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec, score);
-    db_mutex.lock();
-    if ( mysql_query(&dbconn, sql) ) {
-      Error("Can't insert frame: %s", mysql_error(&dbconn));
-      Error("SQL was %s", sql);
-      db_mutex.unlock();
-      return;
+
+    frame_data.push( new Frame(id, frames, frame_type, timestamp, delta_time, score ) );
+    if ( frame_data.size() > 10 ) {
+      WriteDbFrames();
+      Debug(1, "Adding 10 frames to DB");
+      last_db_frame = frames;
     }
-    db_mutex.unlock();
-    last_db_frame = frames;
 
     // We are writing a Bulk frame
     if ( frame_type == BULK ) {
@@ -582,7 +619,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
         db_mutex.lock();
       }
       db_mutex.unlock();
-    }
+    } // end if frame_type == BULK
   } // end if db_frame
 
   end_time = timestamp;

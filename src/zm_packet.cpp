@@ -37,6 +37,7 @@ ZMPacket::ZMPacket( ) {
   analysis_image = NULL;
   image_index = -1;
   score = -1;
+  codec_imgsize = 0;
 }
 
 ZMPacket::ZMPacket( ZMPacket &p ) {
@@ -209,7 +210,7 @@ AVFrame *ZMPacket::get_out_frame( const AVCodecContext *ctx ) {
       return NULL;
     }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-    int codec_imgsize = av_image_get_buffer_size(
+    codec_imgsize = av_image_get_buffer_size(
         ctx->pix_fmt,
         ctx->width,
         ctx->height, 1);
@@ -223,7 +224,7 @@ AVFrame *ZMPacket::get_out_frame( const AVCodecContext *ctx ) {
         ctx->height,
         1);
 #else
-    int codec_imgsize = avpicture_get_size(
+    codec_imgsize = avpicture_get_size(
         ctx->pix_fmt,
         ctx->width,
         ctx->height);

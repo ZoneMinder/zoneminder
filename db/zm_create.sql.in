@@ -497,7 +497,6 @@ CREATE TABLE `Monitors` (
   `TrackDelay` smallint(5) unsigned,
   `ReturnLocation` tinyint(3) NOT NULL default '-1',
   `ReturnDelay` smallint(5) unsigned,
-  `DefaultView` enum('Events','Control') NOT NULL default 'Events',
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
   `DefaultCodec` enum('auto','H264','H265','MJPEG') NOT NULL default 'auto',
@@ -558,7 +557,12 @@ INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');
 DROP TABLE IF EXISTS `Servers`;
 CREATE TABLE `Servers` (
   `Id` int(10) unsigned NOT NULL auto_increment,
+  `Protocol`  TEXT,
   `Hostname` TEXT,
+  `Port`      INTEGER UNSIGNED,
+  `PathToIndex`  TEXT,
+  `PathToZMS`  TEXT,
+  `PathToApi`  TEXT,
   `Name` varchar(64) NOT NULL default '',
   `State_Id`	int(10) unsigned,
   `Status` enum('Unknown','NotRunning','Running') NOT NULL default 'Unknown',

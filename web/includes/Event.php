@@ -198,32 +198,34 @@ class Event {
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {
 
-    $streamSrc = ZM_BASE_PROTOCOL.'://';
+    $streamSrc = '';
+    $Server = null;
     if ( $this->Storage()->ServerId() ) {
+      # The Event may have been moved to Storage on another server,
+      # So prefer viewing the Event from the Server that is actually
+      # storing the video
       $Server = $this->Storage()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
     } else if ( $this->Monitor()->ServerId() ) {
       # Assume that the server that recorded it has it
       $Server = $this->Monitor()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
-    } else if ( ZM_MIN_STREAMING_PORT ) {
-      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
     } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'];
+      # A default Server will result in the use of ZM_DIR_EVENTS
+      $Server = new Server();
     }
 
+    # If we are in a multi-port setup, then use the multiport, else by
+    # passing null Server->Url will use the Port set in the Server setting
+    $streamSrc .= $Server->Url(
+      ZM_MIN_STREAMING_PORT ?
+      ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
+      null);
+
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
-      $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
+      $streamSrc .= $Server->PathToIndex();
       $args['eid'] = $this->{'Id'};
       $args['view'] = 'view_video';
     } else {
-      $streamSrc .= ZM_PATH_ZMS;
+      $streamSrc .= $Server->PathToZMS();
 
       $args['source'] = 'event';
       $args['event'] = $this->{'Id'};
@@ -238,10 +240,10 @@ class Event {
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
-      } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+      } else if ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
-      } elseif ( ZM_AUTH_RELAY == 'none' ) {
+      } else if ( ZM_AUTH_RELAY == 'none' ) {
         $args['user'] = $_SESSION['username'];
       }
     }
@@ -328,27 +330,21 @@ class Event {
     # The thumbnail is theoretically the image with the most motion.
 # We always store at least 1 image when capturing
 
-    $streamSrc = ZM_BASE_PROTOCOL.'://';
+    $streamSrc = '';
+    $Server = null;
     if ( $this->Storage()->ServerId() ) {
       $Server = $this->Storage()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
     } else if ( $this->Monitor()->ServerId() ) {
+      # Assume that the server that recorded it has it
       $Server = $this->Monitor()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
-
-    } else if ( ZM_MIN_STREAMING_PORT ) {
-      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
     } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'];
-    } 
+      $Server = new Server();
+    }
+    $streamSrc .= $Server->UrlToIndex(
+      ZM_MIN_STREAMING_PORT ?
+      ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
+      null);
 
-    $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
     $args['eid'] = $this->{'Id'};
     $args['fid'] = 'snapshot';
     $args['view'] = 'image';
@@ -358,10 +354,10 @@ class Event {
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
-      } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+      } else if ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
-      } elseif ( ZM_AUTH_RELAY == 'none' ) {
+      } else if ( ZM_AUTH_RELAY == 'none' ) {
         $args['user'] = $_SESSION['username'];
       }
     }
@@ -576,7 +572,7 @@ class Event {
       $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
-      $url = $Server->Url() . '/zm/api/events/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
@@ -620,7 +616,7 @@ class Event {
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
-      $url = $Server->Url() . '/zm/api/events/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );

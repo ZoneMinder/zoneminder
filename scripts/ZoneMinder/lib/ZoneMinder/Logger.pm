@@ -91,7 +91,7 @@ use ZoneMinder::Config qw(:all);
 
 use DBI;
 use Carp;
-use POSIX;
+require POSIX;
 use IO::Handle;
 use Data::Dumper;
 use Time::HiRes qw/gettimeofday/;
@@ -310,7 +310,7 @@ sub reinitialise {
 
 # Bit of a nasty hack to reopen connections to log files and the DB
   my $syslogLevel = $this->syslogLevel();
-  $this->syslogLevel( NOLOG );
+  $this->syslogLevel(NOLOG);
   $this->syslogLevel($syslogLevel) if $syslogLevel > NOLOG;
 
   my $logfileLevel = $this->fileLevel();
@@ -321,11 +321,10 @@ sub reinitialise {
   $this->databaseLevel(NOLOG);
   $this->databaseLevel($databaseLevel) if $databaseLevel > NOLOG;
 
-  my $screenLevel = $this->termLevel();
+  $this->{hasTerm} = -t STDERR;
+  my $termLevel = $this->termLevel();
   $this->termLevel(NOLOG);
-  $this->termLevel($screenLevel) if $screenLevel > NOLOG;
-
-  $this->{sth} = undef;
+  $this->termLevel($termLevel) if $termLevel > NOLOG;
 }
 
 # Prevents undefined logging levels
@@ -439,16 +438,13 @@ sub databaseLevel {
   my $databaseLevel = shift;
   if ( defined($databaseLevel) ) {
     $databaseLevel = $this->limit($databaseLevel);
-    if ( $this->{databaseLevel} != $databaseLevel ) {
-      if ( ( $databaseLevel > NOLOG ) and ( $this->{databaseLevel} <= NOLOG ) ) {
-        if ( ! ( $ZoneMinder::Database::dbh or ZoneMinder::Database::zmDbConnect() ) ) {
-          Warning("Failed connecting to db.  Not using database logging.");
-          $this->{databaseLevel} = NOLOG;
-          return NOLOG;
-        }
-      }
-      $this->{databaseLevel} = $databaseLevel;
+    if ( $databaseLevel > NOLOG ) {
+      $this->{dbh} = ZoneMinder::Database::zmDbConnect();
+    } else {
+      undef($this->{dbh});
     }
+    $this->{sth} = undef;
+    $this->{databaseLevel} = $databaseLevel;
   }
   return $this->{databaseLevel};
 }
@@ -539,7 +535,7 @@ sub logPrint {
     if ( $level <= $this->{fileLevel} or $level <= $this->{termLevel} ) {
       my $message = sprintf(
           '%s.%06d %s[%d].%s [%s:%d] [%s]'
-          , strftime('%x %H:%M:%S', localtime($seconds))
+          , POSIX::strftime('%x %H:%M:%S', localtime($seconds))
           , $microseconds
           , $this->{id}
           , $$

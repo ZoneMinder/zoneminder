@@ -913,7 +913,6 @@ bool Monitor::connect() {
 } // Monitor::connect
 
 Monitor::~Monitor() {
-
   if ( mem_ptr ) {
     if ( event ) {
       Info( "%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name, image_count, event->Id() );
@@ -986,6 +985,14 @@ Monitor::~Monitor() {
   if ( videoStore ) {
     delete videoStore;
     videoStore = NULL;
+  }
+
+  if ( n_linked_monitors ) {
+    for( int i = 0; i < n_linked_monitors; i++ ) {
+      delete linked_monitors[i];
+    }
+    delete[] linked_monitors;
+    linked_monitors = 0;
   }
 
   if ( timestamps ) {
@@ -2064,8 +2071,8 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
         db_mutex.lock();
         snprintf(sql, sizeof(sql), "SELECT Id, Name FROM Monitors WHERE Id = %d AND Function != 'None' AND Function != 'Monitor' AND Enabled = 1", link_ids[i] );
         if ( mysql_query(&dbconn, sql) ) {
+					db_mutex.unlock();
           Error("Can't run query: %s", mysql_error(&dbconn));
-          db_mutex.unlock();
           continue;
         }
 

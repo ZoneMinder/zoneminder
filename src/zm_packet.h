@@ -46,6 +46,7 @@ class ZMPacket {
     struct timeval *timestamp;
     AVMediaType codec_type;
     int image_index;
+    int codec_imgsize;
 
   public:
     AVPacket *av_packet() { return &packet; }
@@ -64,6 +65,7 @@ class ZMPacket {
     void lock() { mutex.lock(); };
     void unlock() { mutex.unlock(); };
     AVFrame *get_out_frame( const AVCodecContext *ctx );
+    int get_codec_imgsize() { return codec_imgsize; };
 };
 
 #endif /* ZM_PACKET_H */

@@ -1,26 +1,7 @@
-What's New
-==========
-
-1. See the ZoneMinder release notes for a list of new features:
-   https://github.com/ZoneMinder/zoneminder/releases
-
-2. The contents of the ZoneMinder Apache config file have changed. In
-   addition, this ZoneMinder package now requires you to manually symlink the
-   ZoneMinder Apache config file. See new install step 6 and upgrade step 3
-   below for details.
-
-3. This is an experimental build of ZoneMinder supporting nginx, rather than
-   apache web server.
-
-4. If you have installed ZoneMinder from the FedBerry repositories, this build
-   of ZoneMinder has support for Raspberry Pi hardware acceleration when using
-   ffmpeg. Unforunately, there is a problem with the same hardware acceleration
-   when using libvlc. Consequently, libvlc support in this build of ZoneMinder
-   has been disabled until the problem is resolved. See the following bug
-   report for details: https://trac.videolan.org/vlc/ticket/18594
-  
 New installs
 ============
+
+NOTE: EL7 users should replace "dnf" with "yum" in the instructions below.
 
 1. Unless you are already using MariaDB server, you need to ensure that the
    server is configured to start during boot and properly secured by running:
@@ -87,43 +68,27 @@ New installs
 
    Inspect the web server configuration file and verify it meets your needs:
 
-     /etc/zm/www/zoneminder.conf
+     /etc/zm/www/zoneminder.httpd.conf
 
    If you are running other web enabled services then you may need to edit
    this file to suite. See README.https to learn about other alternatives. 
 
    When in doubt, proceed with the default:
 
-     sudo ln -s /etc/zm/www/zoneminder.conf /etc/nginx/default.d/
+     sudo ln -sf /etc/zm/www/zoneminder.httpd.conf /etc/httpd/conf.d/
+     sudo dnf install mod_ssl
 
-7. Fcgiwrap is required when using ZoneMinder with Nginx. At the time of this
-   writing, fcgiwrap is not yet available in the Fedora repos. Until it
-   becomes available, you may install it from my Copr repository:
+7. Now start the web server:
 
-      https://copr.fedorainfracloud.org/coprs/kni/fcgiwrap/
+     sudo systemctl enable httpd
+     sudo systemctl start httpd
 
-   Follow the intructions on that site to enable the repo. Once enabled, 
-   install fcgiwrap:
-
-      sudo dnf install fcgiwrap
-
-   After fcgiwrap is installed, it must be configured. Edit 
-   /etc/sysconfig/fcgiwrap and set DAEMON_PROCS to the maximum number of
-   simulatneous streams the server should support. Generally, a good minimum 
-   value for this equals the total number of cameras you expect to view at the
-   same time.
-
-8. Now start the web server:
-
-     sudo systemctl enable nginx
-     sudo systemctl start nginx
-
-9. Now start zoneminder:
+8. Now start zoneminder:
 
      sudo systemctl enable zoneminder
      sudo systemctl start zoneminder
 
-10. Optionally configure the firewall
+9. Optionally configure the firewall
 
    All Redhat distros ship with the firewall enabled. That means you will not
    be able to access the ZoneMinder web console from a remote machine until
@@ -143,7 +108,7 @@ New installs
    security requirements and how you use the system. It is up to you to verify
    these commands are sufficient.
 
-11. Access the ZoneMinder web console
+10. Access the ZoneMinder web console
 
    You may now access the ZoneMinder web console from your web browser using
    an appropriate url. Here are some examples:
@@ -171,15 +136,18 @@ Upgrades
 
    See step 2 of the Installation section to add missing permissions.
    
-3. Verify the ZoneMinder Nginx configuration file in the folder 
-   /etc/zm/www. You will have a file called "zoneminder.conf" and there
-   may also be a file called "zoneminder.conf.rpmnew". If the rpmnew file
+3. Verify the ZoneMinder Apache configuration file in the folder 
+   /etc/zm/www. You will have a file called "zoneminder.httpd.conf" and there
+   may also be one or more files with "rpmnew" extenstion. If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
-   Verify the SSL REquirements meet your needs. Read README.https if necessary.
+   Verify the SSL Requirements meet your needs. Read README.https if necessary.
 
-   The contents of this file must be merged into your Nginx configuration.
+   The contents of this file must be merged into your Apache configuration.
    See step 6 of the installation section if you have not already done this
    during a previous upgrade.
+
+   IMPORTANT: Failure to complete this step properly will result in a mostly
+   empty or significantly corrupted web console post-upgrade.
 
 4. Upgrade the database before starting ZoneMinder.
 
@@ -193,9 +161,8 @@ Upgrades
 
    sudo zmupdate.pl --user=root --pass=<mysql_root_pwd> --version=<from version>
 
-5. Now restart nginx and php-fpm then start and zoneminder:
+5. Now restart the web server then start zoneminder:
 
-	sudo systemctl restart nginx
-	sudo systemctl restart php-fpm
+        sudo systemctl restart httpd
 	sudo systemctl start zoneminder
 

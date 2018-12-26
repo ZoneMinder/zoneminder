@@ -73,6 +73,8 @@ class FfmpegCamera : public Camera {
     bool mCanCapture;
 #endif // HAVE_LIBAVFORMAT
 
+    int                 error_count;
+
   public:
     FfmpegCamera(
         int p_id,

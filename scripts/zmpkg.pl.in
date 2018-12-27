@@ -391,7 +391,7 @@ zmpkg.pl - ZoneMinder Package Control Script
 
 =head1 SYNOPSIS
 
-zmpkg.pl {start|stop|restart|status|logrot|'state'|version}
+zmpkg.pl {start|stop|restart|status|logrot|state|version}
 
 =head1 DESCRIPTION
 

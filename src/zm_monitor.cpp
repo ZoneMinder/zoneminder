@@ -540,9 +540,13 @@ bool Monitor::connect() {
       }
     } else if ( map_stat.st_size == 0 ) {
       Error("Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size);
+      close(map_fd);
+      map_fd = -1;
       return false;
     } else {
       Error("Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size);
+      close(map_fd);
+      map_fd = -1;
       return false;
     }
   }

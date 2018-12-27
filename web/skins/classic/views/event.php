@@ -46,18 +46,19 @@ if (isset($_REQUEST['rate'])) {
 
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
-} else if ( isset( $_COOKIE['zmEventScaleAuto'] ) ) { //If we're using scale to fit use it on all monitors
+} else if ( isset( $_COOKIE['zmEventScaleAuto'] ) ) {
+  // If we're using scale to fit use it on all monitors
   $scale = 'auto';
 } else if ( isset( $_COOKIE['zmEventScale'.$Event->MonitorId()] ) ) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
-  $scale = reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE );
+  $scale = reScale(SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE);
 }
 
 $replayModes = array(
-    'none'   => translate('None'),
-    'single' => translate('ReplaySingle'),
-    'all' => translate('ReplayAll'),
+    'none'    => translate('None'),
+    'single'  => translate('ReplaySingle'),
+    'all'     => translate('ReplayAll'),
     'gapless' => translate('ReplayGapless'),
 );
 
@@ -94,7 +95,7 @@ $connkey = generateConnKey();
 
 $focusWindow = true;
 
-$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] = 1));
+$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] == 1));
 
 xhtmlHeaders(__FILE__, translate('Event') );
 ?>

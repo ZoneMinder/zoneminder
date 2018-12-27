@@ -642,16 +642,11 @@ if ( canEdit('Groups') ) {
     $refreshParent = true;
   } else if ( $action == 'delete' ) {
     if ( !empty($_REQUEST['gid']) ) {
-      if ( is_array($_REQUEST['gid']) ) {
-        foreach ( $_REQUEST['gid'] as $gid ) {
-          $Group = new Group($gid);
-          $Group->delete();
-        }
-      } else {
-        $Group = new Group($_REQUEST['gid'] );
+      foreach ( Group::find(array('Id'=>$_REQUEST['gid'])) as $Group ) {
         $Group->delete();
       }
     }
+    $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=groups';
     $refreshParent = true;
   } # end if action
 } // end if can edit groups

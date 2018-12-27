@@ -2488,8 +2488,13 @@ int Monitor::Capture() {
         fps = new_fps;
         db_mutex.lock();
         static char sql[ZM_SQL_SML_BUFSIZ];
+        // The reason we update the Status as well is because if mysql restarts, the Monitor_Status table is lost,
+        // and nothing else will update the status until zmc restarts. Since we are successfully capturing we can
+        // assume that we are connected
         snprintf(sql, sizeof(sql),
-            "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth) VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf, CaptureBandwidth=%u",
+            "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth,Status) "
+           "VALUES (%d, %.2lf, %u, 'Connected') ON DUPLICATE KEY UPDATE "
+           "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
             id, fps, new_capture_bandwidth, fps, new_capture_bandwidth);
         if ( mysql_query(&dbconn, sql) ) {
           Error("Can't run query: %s", mysql_error(&dbconn));

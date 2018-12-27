@@ -747,7 +747,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
     if ( packet.pts < -100000 ) {
       // Ignore packets that have crazy negative pts.  They aren't supposed to happen.
-      Warning("Ignore packet because pts %" PRId64 " is massively negative", packet.pts);
+      Warning("Ignore packet because pts %" PRId64 " is massively negative. Error count is %d", packet.pts, error_count);
       dumpPacket(&packet,"Ignored packet");
       if ( error_count > 100 ) {
         Error("Bad packet count over 100, going to close and re-open stream");
@@ -756,8 +756,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       error_count += 1;
       continue;
     }
-    // If we get a goot frame, decrease the error count.. We could zero it...
-    if ( error_count ) error_count -= 1;
+    // If we get a good frame, decrease the error count.. We could zero it...
+    if ( error_count > 0 ) error_count -= 1;
 
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
     bytes += packet.size;

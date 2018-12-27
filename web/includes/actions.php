@@ -642,16 +642,11 @@ if ( canEdit('Groups') ) {
     $refreshParent = true;
   } else if ( $action == 'delete' ) {
     if ( !empty($_REQUEST['gid']) ) {
-      if ( is_array($_REQUEST['gid']) ) {
-        foreach ( $_REQUEST['gid'] as $gid ) {
-          $Group = new Group($gid);
-          $Group->delete();
-        }
-      } else {
-        $Group = new Group($_REQUEST['gid'] );
+      foreach ( Group::find(array('Id'=>$_REQUEST['gid'])) as $Group ) {
         $Group->delete();
       }
     }
+    $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=groups';
     $refreshParent = true;
   } # end if action
 } // end if can edit groups
@@ -675,7 +670,7 @@ if ( canEdit('System') ) {
         $_SESSION['zmMontageLayout'] = $Layout->Id();
         setcookie('zmMontageLayout', $Layout->Id(), 1);
         session_write_close();
-        $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview';
+        $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montage';
       } // end if save
 
     } else if ( $_REQUEST['object'] == 'server' ) {

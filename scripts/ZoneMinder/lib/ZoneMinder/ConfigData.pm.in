@@ -659,7 +659,7 @@ our @options = (
     description => 'Add a random string to prevent caching of streams',
     help        => q`
       Some browsers can cache the streams used by ZoneMinder. In
-      order to prevent his a harmless random string can be appended
+      order to prevent this a harmless random string can be appended
       to the url to make each invocation of the stream appear unique.
       `,
     type        => $types{boolean},

@@ -30,6 +30,8 @@
 #endif // HAVE_SYS_SYSCALL_H
 #include <mysql/mysql.h>
 
+#include "zm_thread.h"
+
 class Logger {
 public:
   enum { 
@@ -81,6 +83,8 @@ public:
 private:
   static bool smInitialised;
   static Logger *smInstance;
+
+  RecursiveMutex log_mutex;
 
   static StringMap smCodes;
   static IntMap smSyslogPriorities;

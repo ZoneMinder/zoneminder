@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
@@ -29,7 +29,7 @@ $eid = validInt($_REQUEST['eid']);
 if ( !empty($_REQUEST['fid']) )
   $fid = validInt($_REQUEST['fid']);
 
-$Event = new Event( $eid );
+$Event = new Event($eid);
 $Monitor = $Event->Monitor();
 
 if ( !empty($fid) ) {
@@ -39,7 +39,7 @@ if ( !empty($fid) ) {
 } else {
   $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array( $eid, $Event->MaxScore() ) );
 }
-$Frame = new Frame( $frame );
+$Frame = new Frame($frame);
 
 $maxFid = $Event->Frames();
 
@@ -91,10 +91,10 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id()." - ".$Frame->Frame
         <?php if ( canEdit( 'Events' ) ) { ?><a href="?view=none&amp;action=delete&amp;markEid=<?php echo $Event->Id() ?>"><?php echo translate('Delete') ?></a><?php } ?>
         <a href="#" onclick="closeWindow(); return( false );"><?php echo translate('Close') ?></a>
       </div>
-      <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
-      <h2><?php echo translate('Frame') ?> <?php echo $Event->Id()."-".$Frame->FrameId()." (".$Frame->Score().")" ?></h2>
-       <input type="hidden" name="base_width" id="base_width" value="<?php echo $Event->Width(); ?>"/>
-       <input type="hidden" name="base_height" id="base_height" value="<?php echo $Event->Height(); ?>"/>
+      <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect('scale', $scales, 'changeScale();'); ?></div>
+      <h2><?php echo translate('Frame') ?> <?php echo $Event->Id().'-'.$Frame->FrameId().' ('.$Frame->Score().')' ?></h2>
+      <input type="hidden" name="base_width" id="base_width" value="<?php echo $Event->Width(); ?>"/>
+      <input type="hidden" name="base_height" id="base_height" value="<?php echo $Event->Height(); ?>"/>
     </form>
     </div>
     <div id="content">
@@ -109,11 +109,13 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id()." - ".$Frame->Frame
       </p>
       <p id="controls">
 <?php if ( $Frame->FrameId() > 1 ) { ?>
-        <a id="firstLink" href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $firstFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('First') ?></a>
-        <a id="prevLink" href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $prevFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('Prev') ?></a>
-<?php } if ( $Frame->FrameId() < $maxFid ) { ?>
-        <a id="nextLink" href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $nextFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('Next') ?></a>
-        <a id="lastLink" href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $lastFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('Last') ?></a>
+        <button type="button" id="firstLink" onclick="window.location='?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $firstFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>';"><?php echo translate('First') ?></button>
+        <button type="button" id="prevLink" onclick="window.location='?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $prevFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>';"><?php echo translate('Prev') ?></button>
+<?php
+      }
+      if ( $Frame->FrameId() < $maxFid ) { ?>
+        <button type="button" id="nextLink" onclick="window.location='?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $nextFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>';"><?php echo translate('Next') ?></button>
+        <button type="button" id="lastLink" onclick="window.location='?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $lastFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>';"><?php echo translate('Last') ?></button>
 <?php } ?>
       </p>
 <?php if (file_exists ($dImagePath)) { ?>

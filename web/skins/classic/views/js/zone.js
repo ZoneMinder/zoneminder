@@ -347,6 +347,7 @@ function updateX( index ) {
   zone['Points'][index].x = x;
   var Point = $('zonePoly').points.getItem(index);
   Point.x = x;
+  updateArea();
 }
 
 function updateY( index ) {
@@ -359,6 +360,7 @@ function updateY( index ) {
   zone['Points'][index].y = y;
   var Point = $('zonePoly').points.getItem(index);
   Point.y = y;
+  updateArea();
 }
 
 function saveChanges( element ) {
@@ -471,7 +473,15 @@ function setAlarmState( currentAlarmState ) {
 }
 
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
-var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
+if ( auth_hash )
+    streamCmdParms += '&auth='+auth_hash;
+var streamCmdReq = new Request.JSON( {
+  url: monitorUrl,
+  method: 'get',
+  timeout: AJAX_TIMEOUT,
+  link: 'cancel',
+  onSuccess: getStreamCmdResponse
+} );
 var streamCmdTimer = null;
 
 var streamStatus;
@@ -546,7 +556,16 @@ function streamCmdQuery() {
 }
 
 var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
+if ( auth_hash )
+    statusCmdParms += '&auth='+auth_hash;
+var statusCmdReq = new Request.JSON( {
+  url: monitorUrl,
+  method: 'get',
+  data: statusCmdParms,
+  timeout: AJAX_TIMEOUT,
+  link: 'cancel',
+  onSuccess: getStatusCmdResponse
+} );
 var statusCmdTimer = null;
 
 function getStatusCmdResponse( respObj, respText ) {
@@ -652,11 +671,13 @@ function initPage() {
   // Imported from watch.js and modified for new zone edit view
   //
 
+  var delay = (Math.random()+0.1)*statusRefreshTimeout;
+  //console.log("Delay for status updates is: " + delay );
   if ( streamMode == "single" ) {
-    statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+    statusCmdTimer = statusCmdQuery.delay( delay );
     watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
   } else {
-    streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+    streamCmdTimer = streamCmdQuery.delay( delay );
     watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
   }
 

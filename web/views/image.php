@@ -69,6 +69,7 @@ if ( empty($_REQUEST['path']) ) {
   }
 
   if ( !empty($_REQUEST['eid']) ) {
+    Logger::Debug("Loading by eid");
     $Event = Event::find_one(array('Id'=>$_REQUEST['eid']));
     if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
@@ -76,7 +77,28 @@ if ( empty($_REQUEST['path']) ) {
       return;
     }
 
-    if ( $_REQUEST['fid'] == 'snapshot' ) {
+    if ( $_REQUEST['fid'] == 'alarm' ) {
+      # look for first alarmed frame
+      $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
+                               array('order'=>'FrameId ASC'));
+      if ( !$Frame ) { # no alarms, get first one I find
+        $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid']));
+        if ( !$Frame ) { 
+          Warning("No frame found for event " + $_REQUEST['eid']);
+          $Frame = new Frame();
+          $Frame->Delta(1);
+          $Frame->FrameId(1);
+        }
+      }
+      $Monitor = $Event->Monitor();
+      if ( $Monitor->SaveJPEGs() & 1 ) {
+        # If we store Frames as jpgs, then we don't store an alarmed snapshot
+        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
+      } else {
+        $path = $Event->Path().'/alarm.jpg';
+      }
+    }
+    else if ( $_REQUEST['fid'] == 'snapshot' ) {
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Score'=>$Event->MaxScore()));
       if ( !$Frame )
         $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid']));
@@ -112,13 +134,14 @@ if ( empty($_REQUEST['path']) ) {
           $percentage = ($Frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
 
           $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
-Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
+          Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
         } else {
           Fatal('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
         }
       }
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
+      Logger::Debug("Path: $path");
     }
 
   } else {
@@ -208,12 +231,14 @@ if ( !empty($_REQUEST['scale']) ) {
 
 $width = 0;
 if ( !empty($_REQUEST['width']) ) {
+Logger::Debug("Setting width: " . $_REQUEST['width']);
   if ( is_numeric($_REQUEST['width']) ) {
     $x = $_REQUEST['width'];
     if ( $x >= 10 and $x <= 8000 )
       $width = $x;
   }
 }
+
 $height = 0;
 if ( !empty($_REQUEST['height']) ) {
   if ( is_numeric($_REQUEST['height']) ) {
@@ -229,14 +254,12 @@ if ( $errorText ) {
   # Clears the output buffer. Not sure what is there, but have had troubles.
   ob_end_clean();
   header('Content-type: image/jpeg');
-  if ( ( $scale==0 || $scale==100 ) && $width==0 && $height==0 ) {
+  if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
     if ( $Event ) {
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
-    ob_clean();
-    flush();
     if ( !readfile($path) ) {
       Error('No bytes read from '. $path);
     }
@@ -254,6 +277,7 @@ if ( $errorText ) {
         $width = ($height * $oldWidth) / $oldHeight;
       } elseif ( $width != 0 && $height == 0 ) {
         $height = ($width * $oldHeight) / $oldWidth;
+Logger::Debug("Figuring out height using width: $height = ($width * $oldHeight) / $oldWidth");
       }
       if ( $width == $oldWidth && $height == $oldHeight ) {
         Warning('No change to width despite scaling.');
@@ -266,8 +290,6 @@ if ( $errorText ) {
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-${width}x${height}.jpg";
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
-    //ob_clean();
-    //flush();
     if ( !( file_exists($scaled_path) and readfile($scaled_path) ) ) {
       Logger::Debug("Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
       ob_start();

@@ -104,6 +104,9 @@ Overload Frame Ignore Count
   * Number of Blobs > Max Blobs
   The idea is that after a change like a light going on that is considered too big to count as an alarm, it could take a couple of frames for things to settle down again.
 
+Extend Alarm Frame Count
+  This field applies to Preclusive Zones only. Placing a value in this field holds the Preclusive zone active for the specified number of frames after the initial triggering event. This is useful in cases where a sudden change in light level triggers the Preclusive zone, but the zone needs to be held active for a few frames as the camera itself adjusts to that change in light level.
+  
 Other information
 -----------------
 Refer to `this <http://www.zoneminder.com/wiki/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ user contributed Zone guide for additional information will illustrations if you are new to zones and need more help.

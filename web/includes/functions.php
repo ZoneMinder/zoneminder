@@ -845,13 +845,7 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
 }
 
 function viewImagePath( $path, $querySep='&amp;' ) {
-  if ( strncmp( $path, ZM_DIR_IMAGES, strlen(ZM_DIR_IMAGES) ) == 0 ) {
-    // Thumbnails
-    return( $path );
-  } elseif ( strpos( ZM_DIR_EVENTS, '/' ) === 0 ) {
-    return( '?view=image'.$querySep.'path='.$path );
-  }
-  return( ZM_DIR_EVENTS.'/'.$path );
+  return( '?view=image'.$querySep.'path='.$path );
 }
 
 function createListThumbnail( $event, $overwrite=false ) {

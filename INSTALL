@@ -62,7 +62,6 @@ Advanced:
 	ZM_EXTRA_LIBS		A list of optional libraries, separated by semicolons, e.g. ssl;theora
 	ZM_MYSQL_ENGINE		MySQL engine to use with database, default: InnoDB
 	ZM_NO_MMAP		Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF
-	ZM_NO_FFMPEG		Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF
 	ZM_NO_X10		Set to ON to build ZoneMinder without X10 support. default: OFF
 	ZM_PERL_MM_PARMS	By default, ZoneMinder's Perl modules are installed into the Vendor folders, as defined by your installation of Perl. You can change that here. Consult Perl's MakeMaker documentation for a definition of acceptable parameters. If you set this to something that causes the modules to be installed outside Perl's normal serach path, then you will also need to set ZM_PERL_SEARCH_PATH accordingly. default: "INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1"
 	ZM_PERL_SEARCH_PATH	Use to add a folder to your Perl's search path. This will need to be set in cases where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are installed outside Perl's default search path. default: ""

@@ -347,6 +347,7 @@ function updateX( index ) {
   zone['Points'][index].x = x;
   var Point = $('zonePoly').points.getItem(index);
   Point.x = x;
+  updateArea();
 }
 
 function updateY( index ) {
@@ -359,6 +360,7 @@ function updateY( index ) {
   zone['Points'][index].y = y;
   var Point = $('zonePoly').points.getItem(index);
   Point.y = y;
+  updateArea();
 }
 
 function saveChanges( element ) {

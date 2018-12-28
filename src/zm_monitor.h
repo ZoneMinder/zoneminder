@@ -291,8 +291,6 @@ protected:
 
   bool last_signal;
 
-  bool last_signal;
-
   double      fps;
   unsigned int  last_camera_bytes;
   

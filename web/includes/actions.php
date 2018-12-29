@@ -288,7 +288,13 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
     }
 
     unset( $_REQUEST['newZone']['Points'] );
-    $types = array();
+
+    # convert these fields to integer e.g. NULL -> 0
+    $types = array(
+        'OverloadFrames' => 'integer',
+        'ExtendAlarmFrames' => 'integer',
+        );
+
     $changes = getFormChanges($zone, $_REQUEST['newZone'], $types);
 
     if ( count($changes) ) {

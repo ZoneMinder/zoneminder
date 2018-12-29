@@ -137,33 +137,4 @@ class ZonesController extends AppController {
       return $this->flash(__('The zone could not be deleted. Please, try again.'), array('action' => 'index'));
     }
   }
-
-  public function createZoneImage($id = null) {
-    $this->loadModel('Monitor');
-    $this->Monitor->id = $id;
-    if ( !$this->Monitor->exists() ) {
-      throw new NotFoundException(__('Invalid zone'));
-    }
-
-    $this->loadModel('Config');
-    $zm_dir_images = $this->Config->find('list', array(
-      'conditions' => array('Name' => 'ZM_DIR_IMAGES'),
-      'fields' => array('Name', 'Value')
-    ));
-
-    $zm_dir_images = $zm_dir_images['ZM_DIR_IMAGES'];
-    $zm_path_web = Configure::read('ZM_PATH_WEB');
-    $zm_path_bin = Configure::read('ZM_PATH_BIN');
-    $images_path = "$zm_path_web/$zm_dir_images";
-
-    chdir($images_path);
-
-    $command = escapeshellcmd("$zm_path_bin/zmu -z -m $id");
-    system($command, $status);
-
-    $this->set(array(
-      'status' => $status,
-      '_serialize' => array('status')
-    ));
-  }
 } // end class

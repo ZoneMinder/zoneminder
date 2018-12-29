@@ -318,7 +318,6 @@ class EventsController extends AppController {
           'ZM_WEB_LIST_THUMB_WIDTH',
           'ZM_WEB_LIST_THUMB_HEIGHT',
           'ZM_EVENT_IMAGE_DIGITS',
-          'ZM_DIR_IMAGES',
           $thumbs,
           'ZM_DIR_EVENTS'
         )

@@ -7,12 +7,10 @@ class ImageComponent extends Component {
 		
 		$captImage = sprintf( "%0".$config['ZM_EVENT_IMAGE_DIGITS']."d-capture.jpg", $frame['Frame']['FrameId'] );
 		$captPath = $eventPath.'/'.$captImage;
-		$thumbCaptPath = $config['ZM_DIR_IMAGES'].'/'.$event['Event']['Id'].'-'.$captImage;
 
 		$analImage = sprintf( "%0".$config['ZM_EVENT_IMAGE_DIGITS']."d-analyse.jpg", $frame['Frame']['FrameId'] );
 		$analPath = $eventPath.'/'.$analImage;
 		$analFile =  $config['ZM_DIR_EVENTS']."/".$analPath;
-		$thumbAnalPath = $config['ZM_DIR_IMAGES'].'/'.$event['Event']['Id'].'-'.$analImage;
 
 		$alarmFrame = $frame['Frame']['Type']=='Alarm';
 		
@@ -31,8 +29,8 @@ class ImageComponent extends Component {
 			    $fraction = sprintf( "%.3f", $scale/100 );
 			$scale = (int)round( $scale );
 			
-			$thumbCaptPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumbCaptPath );
-			$thumbAnalPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $thumbAnalPath );
+			$thumbCaptPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $captPath );
+			$thumbAnalPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $analPath );
 			
 			if ( $isAnalImage )
 			{

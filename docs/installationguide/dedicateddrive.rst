@@ -31,7 +31,6 @@ Add the following content to the file and save your changes:
 ::
 
     ZM_DIR_EVENTS=/full/path/to/the/events/folder
-    ZM_DIR_IMAGES=/full/path/to/the/images/folder
 
 **Step 5:** Start ZoneMinder and inspect the ZoneMinder log files for errors.
 ::

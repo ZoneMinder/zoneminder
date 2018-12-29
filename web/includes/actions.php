@@ -670,7 +670,7 @@ if ( canEdit('System') ) {
         $_SESSION['zmMontageLayout'] = $Layout->Id();
         setcookie('zmMontageLayout', $Layout->Id(), 1);
         session_write_close();
-        $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview';
+        $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montage';
       } // end if save
 
     } else if ( $_REQUEST['object'] == 'server' ) {

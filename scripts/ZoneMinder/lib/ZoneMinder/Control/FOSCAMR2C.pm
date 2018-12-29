@@ -64,8 +64,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
  
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
-use ZoneMinder::Database qw(zmDbConnect);
-
+use DBI;
+#use XML::LibXML; 
 use Time::HiRes qw( usleep );
  
 sub new
@@ -268,7 +268,7 @@ sub presetHome
 {
 	my $self = shift;
 	Debug( "Home Preset" );
-	my $cmd = "decoder_control.cgi?command=25";
+	my $cmd = "CGIProxy.fcgi?cmd=ptzReset";
 	$self->sendCmd( $cmd );
 }
  
@@ -278,16 +278,30 @@ sub presetSet
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-	my $dbh = zmDbConnect(1);
+    my $cmd1 = "CGIProxy.fcgi?cmd=getPTZPresetPointList";
+	my $dbh = DBI->connect("DBI:mysql:database=zm;host=localhost", "zmuser", "zmpass", {'RaiseError' => 1});
 	my $sth = $dbh->prepare("SELECT `Label` FROM `ControlPresets` WHERE `Preset` = $preset");
     $sth->execute();
     my $ref = ($sth->fetchrow_hashref());
     my $label = $ref->{'Label'};
-    $sth->finish();
-    Debug( "Set Preset $preset with cmd $label" );
-    my $cmd = "CGIProxy.fcgi?cmd=ptzAddPresetPoint&name=$label";
+    $sth = $dbh->prepare("SELECT `Label2` FROM `ControlPresetNames` WHERE `Preset` = $preset");
+    $sth->execute();
+    $ref = ($sth->fetchrow_hashref());
+    my $label2 = $ref->{'Label2'};
+    Debug( "Delete Preset $preset with name $label2 from camera" );
+    my $cmd = "CGIProxy.fcgi?cmd=ptzDeletePresetPoint&name=$label2";
     $self->sendCmd( $cmd );
-   
+    Debug( "Set Preset $preset with cmd $label in camera" );
+    $cmd = "CGIProxy.fcgi?cmd=ptzAddPresetPoint&name=$label";
+    $self->sendCmd( $cmd );
+    Debug( "Delete row Preset $preset with Label2 $label2 from db" );
+    $sth = $dbh->prepare("DELETE FROM `ControlPresetNames` WHERE `Preset` = $preset");
+    $sth->execute();
+    Debug( "Insert Preset $preset with cmd $label in db" );
+    $sth = $dbh->prepare("INSERT INTO `ControlPresetNames`(`MoniterId`, `Preset`, `Label2`) VALUES ('$self->{Monitor}','$preset','$label')");
+    $sth->execute();
+    $sth->finish();
+
 
 }
  
@@ -297,7 +311,7 @@ sub presetGoto
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-	my $dbh = zmDbConnect(1);
+	my $dbh = DBI->connect("DBI:mysql:database=zm;host=localhost", "zmuser", "zmpass", {'RaiseError' => 1});
 	my $sth = $dbh->prepare("SELECT `Label` FROM `ControlPresets` WHERE `Preset` = $preset");
     $sth->execute();
     my $ref = ($sth->fetchrow_hashref());

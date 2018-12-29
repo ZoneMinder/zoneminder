@@ -608,6 +608,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
         }
         break;
+      case 'integer' :
+        if ( (!isset($values[$key])) or $values[$key] != $value ) {
+          $changes[$key] = $key . ' = '.intval($value);
+        }
+        break;
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {

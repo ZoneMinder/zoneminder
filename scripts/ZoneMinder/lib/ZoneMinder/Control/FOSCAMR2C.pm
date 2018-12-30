@@ -278,7 +278,6 @@ sub presetSet
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-    my $cmd1 = "CGIProxy.fcgi?cmd=getPTZPresetPointList";
 	my $dbh = DBI->connect("DBI:mysql:database=zm;host=localhost", "zmuser", "zmpass", {'RaiseError' => 1});
 	my $sth = $dbh->prepare("SELECT `Label` FROM `ControlPresets` WHERE `Preset` = $preset");
     $sth->execute();

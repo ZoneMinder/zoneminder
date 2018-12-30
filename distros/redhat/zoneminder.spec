@@ -377,7 +377,6 @@ EOF
 %{_tmpfilesdir}/zoneminder.httpd.tmpfiles.conf
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/images
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
@@ -402,7 +401,6 @@ EOF
 %{_tmpfilesdir}/zoneminder.nginx.tmpfiles.conf
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/events
-%dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/images
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/temp

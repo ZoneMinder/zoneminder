@@ -162,9 +162,6 @@ set(ZM_WEB_GROUP "" CACHE STRING
     Leave empty to be the same as the web user")
 set(ZM_DIR_EVENTS "${ZM_CONTENTDIR}/events" CACHE PATH 
     "Location where events are recorded to, default: ZM_CONTENTDIR/events")
-set(ZM_DIR_IMAGES "${ZM_CONTENTDIR}/images" CACHE PATH
-    "Location where images, not directly associated with events,
-     are recorded to, default: ZM_CONTENTDIR/images")
 set(ZM_DIR_SOUNDS "sounds" CACHE PATH
     "Location to look for optional sound files, default: sounds")
 set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
@@ -225,7 +222,6 @@ if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
 	set(ZM_WEBDIR "/usr/share/zoneminder/www")
 	set(ZM_CGIDIR "/usr/libexec/zoneminder/cgi-bin")
 	set(ZM_DIR_EVENTS "/var/lib/zoneminder/events")
-	set(ZM_DIR_IMAGES "/var/lib/zoneminder/images")
 	set(ZM_PATH_ZMS "/cgi-bin-zm/nph-zms")
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_RUNDIR "/var/run/zoneminder")

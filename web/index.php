@@ -164,8 +164,8 @@ $running = null;
 CORSHeaders();
 
 // Check for valid content dirs
-if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
-  Warning("Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+if ( !is_writable(ZM_DIR_EVENTS) ) {
+  Warning("Cannot write to event folder ".ZM_DIR_EVENTS.". Check that it exists and is owned by the web account user.");
 }
 
 # Globals

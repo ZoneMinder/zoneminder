@@ -283,6 +283,8 @@ sub presetSet
     $sth->execute();
     my $ref = ($sth->fetchrow_hashref());
     my $label = $ref->{'Label'};
+    $sth = $dbh->prepare("CREATE TABLE IF NOT EXISTS `ControlPresetNames` (`Preset` int(10) unsigned NOT NULL,`Label2` varchar(64) NOT NULL, UNIQUE KEY (`Label2`))");
+    $sth->execute(); 
     $sth = $dbh->prepare("SELECT `Label2` FROM `ControlPresetNames` WHERE `Preset` = $preset");
     $sth->execute();
     $ref = ($sth->fetchrow_hashref());
@@ -297,7 +299,7 @@ sub presetSet
     $sth = $dbh->prepare("DELETE FROM `ControlPresetNames` WHERE `Preset` = $preset");
     $sth->execute();
     Debug( "Insert Preset $preset with cmd $label in db" );
-    $sth = $dbh->prepare("INSERT INTO `ControlPresetNames`(`MoniterId`, `Preset`, `Label2`) VALUES ('$self->{Monitor}','$preset','$label')");
+    $sth = $dbh->prepare("INSERT INTO `ControlPresetNames`(`Preset`, `Label2`) VALUES ('$preset','$label')");
     $sth->execute();
     $sth->finish();
 

@@ -158,6 +158,21 @@ You may also want to enable to following modules to improve caching performance
 
 **Step 9:** Edit Timezone in PHP
 
+To find the config file that PHP will be using, you can run this
+
+::
+
+        php --ini | grep 'Configuration File'
+
+That will give you some output similar to this
+
+::
+
+        Configuration File (php.ini) Path: /etc/php/7.0/apache2
+        Loaded Configuration File:         /etc/php/7.0/apache2/php.ini
+
+You can then edit the config file it gives you with nano
+
 ::
 
         nano /etc/php/7.0/apache2/php.ini
@@ -245,6 +260,21 @@ Easy Way: Ubuntu 14.x
 
 
 **Step 6:** Edit Timezone in PHP
+
+To find the config file that PHP will be using, you can run this
+
+::
+
+        php --ini | grep 'Configuration File'
+
+That will give you some output similar to this
+
+::
+
+        Configuration File (php.ini) Path: /etc/php5/apache2
+        Loaded Configuration File:         /etc/php5/apache2/php.ini
+
+You can then edit the config file it gives you with nano
 
 ::
 

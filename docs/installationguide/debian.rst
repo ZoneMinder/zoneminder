@@ -142,6 +142,16 @@ CTRL+o then [Enter] to save
 
 CTRL+x to exit
 
+You can verify that it worked by going into the PHP interactive shell (with ``php -a``) and entering the following
+
+::
+
+    php > $date = new DateTime();
+    php > $timeZone = $date->getTimezone();
+    php > echo $timeZone->getName();
+
+If it worked, you should see it return the desired timezone.
+
 **Step 12:** Start ZoneMinder
 
 Reload Apache to enable your changes and then start ZoneMinder.

@@ -64,9 +64,8 @@ our $VERSION = $ZoneMinder::Base::VERSION;
  
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
-use DBI;
-#use XML::LibXML; 
-use Time::HiRes qw( usleep );
+use ZoneMinder::Database qw(zmDbConnect); 
+
  
 sub new
 {
@@ -278,14 +277,14 @@ sub presetSet
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-	my $dbh = DBI->connect("DBI:mysql:database=zm;host=localhost", "zmuser", "zmpass", {'RaiseError' => 1});
+    my $dbh = zmDbConnect(1);
 	my $sth = $dbh->prepare("SELECT `Label` FROM `ControlPresets` WHERE `Preset` = $preset");
     $sth->execute();
     my $ref = ($sth->fetchrow_hashref());
     my $label = $ref->{'Label'};
     $sth = $dbh->prepare("CREATE TABLE IF NOT EXISTS `ControlPresetNames` (`Preset` int(10) unsigned NOT NULL,`Label2` varchar(64) NOT NULL, UNIQUE KEY (`Label2`))");
-    $sth->execute(); 
-    $sth = $dbh->prepare("SELECT `Label2` FROM `ControlPresetNames` WHERE `Preset` = $preset");
+    $sth->execute();    
+    $sth = $dbh->prepare("SELECT `Label2` FROM `ControlPresetNames` WHERE `Preset` = $preset");  
     $sth->execute();
     $ref = ($sth->fetchrow_hashref());
     my $label2 = $ref->{'Label2'};
@@ -312,7 +311,7 @@ sub presetGoto
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-	my $dbh = DBI->connect("DBI:mysql:database=zm;host=localhost", "zmuser", "zmpass", {'RaiseError' => 1});
+	my $dbh = zmDbConnect(1);
 	my $sth = $dbh->prepare("SELECT `Label` FROM `ControlPresets` WHERE `Preset` = $preset");
     $sth->execute();
     my $ref = ($sth->fetchrow_hashref());

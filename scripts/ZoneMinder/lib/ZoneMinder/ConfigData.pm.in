@@ -659,7 +659,7 @@ our @options = (
     description => 'Add a random string to prevent caching of streams',
     help        => q`
       Some browsers can cache the streams used by ZoneMinder. In
-      order to prevent his a harmless random string can be appended
+      order to prevent this a harmless random string can be appended
       to the url to make each invocation of the stream appear unique.
       `,
     type        => $types{boolean},
@@ -1202,6 +1202,20 @@ our @options = (
     category    => 'logging',
   },
   {
+    name        => 'ZM_LOG_FFMPEG',
+    default     => 'yes',
+    description => 'Log FFMPEG messages',
+    help        => q`
+       When enabled (default is on), this option will log FFMPEG messages.
+       FFMPEG messages can be useful when debugging streaming issues. However,
+       depending on your distro and FFMPEG version, this may also result in 
+       more logs than you'd typically like to see. If all your streams are working
+       well, you may choose to turn this off.
+      `,
+    type        => $types{boolean},
+    category    => 'logging',
+  },
+{
     name        => 'ZM_LOG_DEBUG',
     default     => 'no',
     description => 'Switch debugging on',

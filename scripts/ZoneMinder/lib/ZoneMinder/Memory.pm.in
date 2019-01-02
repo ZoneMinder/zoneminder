@@ -161,7 +161,6 @@ our $mem_data = {
     format           => { type=>'uint8', seq=>$mem_seq++ },
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
     epadding1        => { type=>'uint32', seq=>$mem_seq++ },
-    epadding2        => { type=>'uint32', seq=>$mem_seq++ },
     startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
@@ -247,11 +246,12 @@ sub zmMemInit {
 
 sub zmMemVerify {
   my $monitor = shift;
-  if ( !zmMemAttach( $monitor, $mem_size ) ) {
-    return( undef );
+
+  if ( !zmMemAttach($monitor, $mem_size) ) {
+    return undef;
   }
 
-  my $sd_size = zmMemRead( $monitor, 'shared_data:size', 1 );
+  my $sd_size = zmMemRead($monitor, 'shared_data:size', 1);
   if ( $sd_size != $mem_data->{shared_data}->{size} ) {
     if ( $sd_size ) {
       Error( "Shared data size conflict in shared_data for monitor "
@@ -269,9 +269,9 @@ sub zmMemVerify {
           .", got ".$sd_size
           );
     }
-    return( undef );
+    return undef;
   }
-  my $td_size = zmMemRead( $monitor, 'trigger_data:size', 1 );
+  my $td_size = zmMemRead($monitor, 'trigger_data:size', 1);
   if ( $td_size != $mem_data->{trigger_data}->{size} ) {
     if ( $td_size ) {
       Error( "Shared data size conflict in trigger_data for monitor "
@@ -290,14 +290,17 @@ sub zmMemVerify {
           .$td_size
           );
     }
-    return( undef );
+    return undef;
   }
-  if ( !zmMemRead($monitor, 'shared_data:valid',1) ) {
-    Error( "Shared data not valid for monitor $$monitor{Id}" );
-    return( undef );
+  my $valid = zmMemRead($monitor, 'shared_data:valid',1);
+  if ( !$valid ) {
+    Error("Shared data not valid for monitor $$monitor{Id}");
+    return undef;
+  } else {
+    Debug("Shared data appears vaild for monitor $$monitor{Id}: $valid");
   }
 
-  return( !undef );
+  return !undef;
 }
 
 sub zmMemRead {
@@ -813,7 +816,7 @@ shared_data       The general mapped memory section
 size              The size, in bytes, of this section
 valid             Flag indicating whether this section has been initialised
 active            Flag indicating whether this monitor is active (enabled/disabled)
-signal            Flag indicating whether this monitor is reciving a valid signal
+signal            Flag indicating whether this monitor is receiving a valid signal
 state             The current monitor state, see the STATE constants below
 last_write_index  The last index, in the image buffer, that an image has been saved to
 last_read_index   The last index, in the image buffer, that an image has been analysed from

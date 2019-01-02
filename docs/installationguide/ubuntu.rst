@@ -49,7 +49,7 @@ guide you with a quick search.
 
         add-apt-repository ppa:iconnor/zoneminder-1.32
 
-    If you are on trusty, you may want to add both, as there are some packages for dependencies included in the old ppa.
+    If you are on Trusty or Xenial, you may want to add both, as there are some packages for dependencies included in the old ppa.
   
 
 Update repo and upgrade.
@@ -138,9 +138,9 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
 ::
 
-        a2enconf zoneminder
         a2enmod cgi
         a2enmod rewrite
+        a2enconf zoneminder
 
 You may also want to enable to following modules to improve caching performance
 

@@ -1,0 +1,7 @@
+polkit.addRule(function(action, subject) {
+    if (action.id == "com.zoneminder.policykit.pkexec.run-zmsystemctl" &&
+        subject.user != "nginx") {
+        return polkit.Result.NO;
+    }
+
+});

@@ -62,39 +62,39 @@ $minY = 0;
 $maxY = $monitor->Height()-1;
 
 if ( !isset($newZone) ) {
-    if ( $zid > 0 ) {
-        $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
-    } else {
-        $zone = array(
-            'Id' => 0,
-            'Name' => translate('New'),
-            'Type'  =>  'Active',
-            'MonitorId' => $monitor->Id(),
-            'NumCoords' => 4,
-            'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
-            'Area' => $monitor->Width() * $monitor->Height(),
-            'AlarmRGB' => 0xff0000,
-            'CheckMethod' => 'Blobs',
-            'MinPixelThreshold' => '',
-            'MaxPixelThreshold' => '',
-            'MinAlarmPixels' => '',
-            'MaxAlarmPixels' => '',
-            'FilterX' => '',
-            'FilterY' => '',
-            'MinFilterPixels' => '',
-            'MaxFilterPixels' => '',
-            'MinBlobPixels' => '',
-            'MaxBlobPixels' => '',
-            'MinBlobs' => '',
-            'MaxBlobs' => '',
-            'OverloadFrames' => '',
-            'ExtendAlarmFrames' => '',
-        );
-    }
-    $zone['Points'] = coordsToPoints( $zone['Coords'] );
-    $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
+  if ( $zid > 0 ) {
+    $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
+  } else {
+    $zone = array(
+      'Id' => 0,
+      'Name' => translate('New'),
+      'Type'  =>  'Active',
+      'MonitorId' => $monitor->Id(),
+      'NumCoords' => 4,
+      'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
+      'Area' => $monitor->Width() * $monitor->Height(),
+      'AlarmRGB' => 0xff0000,
+      'CheckMethod' => 'Blobs',
+      'MinPixelThreshold' => '',
+      'MaxPixelThreshold' => '',
+      'MinAlarmPixels' => '',
+      'MaxAlarmPixels' => '',
+      'FilterX' => '',
+      'FilterY' => '',
+      'MinFilterPixels' => '',
+      'MaxFilterPixels' => '',
+      'MinBlobPixels' => '',
+      'MaxBlobPixels' => '',
+      'MinBlobs' => '',
+      'MaxBlobs' => '',
+      'OverloadFrames' => '',
+      'ExtendAlarmFrames' => '',
+    );
+  }
+  $zone['Points'] = coordsToPoints( $zone['Coords'] );
+  $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
 
-    $newZone = $zone;
+  $newZone = $zone;
 } # end if new Zone
 
 # Ensure Zone fits within the limits of the Monitor

@@ -156,7 +156,6 @@ session_write_close();
 
 require_once('includes/lang.php');
 require_once('includes/functions.php');
-require_once('includes/auth.php');
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -165,11 +164,12 @@ $running = null;
 CORSHeaders();
 
 // Check for valid content dirs
-if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
-  Warning("Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+if ( !is_writable(ZM_DIR_EVENTS) ) {
+  Warning("Cannot write to event folder ".ZM_DIR_EVENTS.". Check that it exists and is owned by the web account user.");
 }
 
 # Globals
+$error_message = null;
 $redirect = null;
 $view = null;
 if ( isset($_REQUEST['view']) )
@@ -182,20 +182,8 @@ if ( isset($_REQUEST['request']) )
 foreach ( getSkinIncludes('skin.php') as $includeFile )
   require_once $includeFile;
 
-if ( ZM_OPT_USE_AUTH ) {
-    if ( ZM_AUTH_HASH_LOGINS && empty($user) && ! empty($_REQUEST['auth']) ) {
-      if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
-        userLogin($authUser['Username'], $authUser['Password'], true);
-      }
-    } 
-   else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
-	userLogin($_REQUEST['username'], $_REQUEST['password'], false);
-  }
-  if ( !empty($user) ) {
-    // generate it once here, while session is open.  Value will be cached in session and return when called later on
-    generateAuthHash(ZM_AUTH_HASH_IPS);
-  }
-}
+# User Login will be performed in auth.php
+require_once('includes/auth.php');
 
 if ( isset($_REQUEST['action']) ) {
   $action = detaintPath($_REQUEST['action']);
@@ -229,7 +217,7 @@ if ( ZM_OPT_USE_AUTH and !isset($user) ) {
   Logger::Debug('Redirecting to login');
   $view = 'login';
   $request = null;
-} else if ( ZM_SHOW_PRIVACY && ($action != 'privacy') && ($view !='options') && (!$request) && canEdit('System') ) {
+} else if ( ZM_SHOW_PRIVACY && ($action != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   Logger::Debug('Redirecting to privacy');
   $view = 'privacy';
   $request = null;

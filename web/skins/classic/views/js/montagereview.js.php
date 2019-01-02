@@ -123,17 +123,18 @@ foreach ( Storage::find() as $Storage ) {
   echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
 }
 echo "\nvar Servers = [];\n";
+// Fall back to get Server paths, etc when no using multi-server mode
+$Server = new Server();
+echo 'Servers[0] = new Server(' . json_encode($Server). ");\n";
 foreach ( Server::find() as $Server ) {
   echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
 }
 
-// Fall back to get Server paths, etc when no using multi-server mode
-$Server = new Server();
-echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
 
 echo '
 var monitorName = [];
 var monitorLoading = [];
+var monitorServerId = [];
 var monitorImageObject = [];
 var monitorImageURL = [];
 var monitorLoadingStageURL = [];
@@ -169,6 +170,7 @@ foreach ( $monitors as $m ) {
   echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";
   echo "  monitorHeight["          . $m->Id() . "]=" . $m->Height() . ";\n";
   echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
+  echo "  monitorServerId["        . $m->Id() . "]='" .($m->ServerId() ?  $m->ServerId() : '0'). "';\n";
   echo "  monitorName["            . $m->Id() . "]=\"" . $m->Name() . "\";\n";
   echo "  monitorLoadStartTimems[" . $m->Id() . "]=0;\n";
   echo "  monitorLoadEndTimems["   . $m->Id() . "]=0;\n";

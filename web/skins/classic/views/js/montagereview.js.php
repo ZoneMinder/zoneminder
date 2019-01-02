@@ -18,7 +18,7 @@ var speedIndex=<?php echo $speedIndex?>;
 // for history, and fps for live, and dynamically determined (in ms)
 
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
-var playSecsperInterval=1;         // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
+var playSecsperInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
@@ -35,7 +35,7 @@ var timeLabelsFractOfRow = 0.9;
 
 $index = 0;
 $anyAlarms = false;
-$maxScore=0;
+$maxScore = 0;
 
 if ( !$liveMode ) {
   $result = dbQuery($eventsSql);
@@ -126,6 +126,11 @@ echo "\nvar Servers = [];\n";
 foreach ( Server::find() as $Server ) {
   echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
 }
+
+// Fall back to get Server paths, etc when no using multi-server mode
+$Server = new Server();
+echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
+
 echo '
 var monitorName = [];
 var monitorLoading = [];

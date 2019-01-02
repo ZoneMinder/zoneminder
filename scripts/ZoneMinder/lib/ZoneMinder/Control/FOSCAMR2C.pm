@@ -1,10 +1,10 @@
-# Modified on Jun 19 2016 by PP
-# Changes made
-# 	- modified command to work properly and pick up credentials from Control Device
-#	- the old script did not stop moving- added autostop 
-#	  (note that mjpeg cameras have onestep but that is too granular)
-#	-  You need to set "user=xxx&pwd=yyy" in the ControlDevice field (NOT usr like in Foscam HD)
-
+# Modified Jan 2019 for use with Foscam R2C IP Camera by Erik Schoepplenberg
+# The presets work with names so adds table to ZM db to track preset names and deletes and adds presets
+# in the camera and modifies the ZM db entries.The camera has 16 presets with 1-4
+# occupied with TopMost, Bottomost, LeftMost, RightMost so configure for 12.
+# the camera stores presets in available spot until full. the script first deletes 
+# a preset then sets one using the now avialable spot.
+#
 # ==========================================================================
 #
 # ZoneMinder Foscam FI8918W IP Control Protocol Module, $Date: 2009-11-25 09:20:00 +0000 (Wed, 04 Nov 2009) $, $Revision: 0001 $
@@ -16,7 +16,7 @@
 #      use Control Device field to pass username and password
 # Modified May 2014 by Arun Horne (http://arunhorne.co.uk) to:
 #      use HTTP basic auth as required by firmware 11.37.x.x upward
-# Modified for use with Foscam R2C IP Camera by Erik Schoepplenberg
+# Modified Jan 2019 for use with Foscam R2C IP Camera by Erik Schoepplenberg
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -65,7 +65,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Database qw(zmDbConnect); 
-
+use Time::HiRes qw( usleep );
  
 sub new
 {
@@ -130,7 +130,7 @@ sub sendCmd
  
 	# PP Old cameras also support onstep=1 but it is too granular. Instead using moveCon and stop after interval
 	# PP - cleaned up URL to take it properly from Control device
-	# Control device needs to be of format user=xxx&pwd=yyy
+	# Control device needs to be of format usr=xxx&pwd=yyy
 	my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd"."&".$self->{Monitor}->{ControlDevice});
 	print ("Sending $req\n");
 	my $res = $self->{ua}->request($req);
@@ -353,12 +353,8 @@ Control script for Foscam R2C cameras.
 
 =head1 DESCRIPTION
 
-You need to set "user=xxx&pwd=yyy" in the ControlDevice field
+You need to set "usr=xxx&pwd=yyy" in the ControlDevice field
 of the control tab for that monitor.
-Auto TimeOut should be 1. Don't set it to less - processes
-start crashing :)
-NOTE: unlike HD foscam cameras, this one uses "user" not "usr"
-in the control device
 
 =head2 EXPORT
 

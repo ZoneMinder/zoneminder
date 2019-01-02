@@ -21,20 +21,6 @@
 #
 # ==========================================================================
 
-=head1 NAME
-
-zmpkg.pl - ZoneMinder Package Control Script
-
-=head1 SYNOPSIS
-
- zmpkg.pl {start|stop|restart|status|logrot|'state'|version}
-
-=head1 DESCRIPTION
-
-This script is used to start and stop the ZoneMinder package primarily to
-allow command line control for automatic restart on reboot (see zm script)
-
-=cut
 use strict;
 use bytes;
 
@@ -55,379 +41,361 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
-my $store_state=""; # PP - will remember state name passed
+my $store_state=''; # PP - will remember state name passed
 
 logInit();
 
 my $command = $ARGV[0]||'';
 if ( $command eq 'version' ) {
-    print ZoneMinder::Base::ZM_VERSION . "\n";
-    exit(0);
+  print ZoneMinder::Base::ZM_VERSION . "\n";
+  exit(0);
 }
 
 my $state;
 
-my $dbh;
+my $dbh = zmDbConnect();
+Debug("Command: $command");
+if ( $command and ( $command !~ /^(?:start|stop|restart|status|logrot|version)$/ ) ) {
+  # Check to see if it's a valid run state
+  my $sql = 'SELECT * FROM States WHERE Name=?';
+  my $sth = $dbh->prepare_cached($sql)
+    or Fatal("Can't prepare '$sql': ".$dbh->errstr());
+  my $res = $sth->execute($command)
+    or Fatal("Can't execute: ".$sth->errstr());
+  if ( $state = $sth->fetchrow_hashref() ) {
+    #$state->{Name} = $command;
+    $state->{Definitions} = [];
+    foreach( split(',', $state->{Definition}) ) {
+      my ( $id, $function, $enabled ) = split(':', $_);
+      push( @{$state->{Definitions}},
+        { Id=>$id, Function=>$function, Enabled=>$enabled }
+      );
+    }
+    $store_state = $command; # PP - Remember the name that was passed to search in DB
+    $command = 'state';
+  } else {
+    $command = undef;
+  }
+  $sth->finish();
+} # end if not one of the usual commands
 
-if ( !$command || $command !~ /^(?:start|stop|restart|status|logrot|version)$/ )
-{
-    if ( $command )
-    {
-        $dbh = zmDbConnect();
-        # Check to see if it's a valid run state
-        my $sql = 'select * from States where Name = ?';
-        my $sth = $dbh->prepare_cached( $sql )
-            or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute( $command )
-            or Fatal( "Can't execute: ".$sth->errstr() );
-        if ( $state = $sth->fetchrow_hashref() )
-        {
-            $state->{Name} = $command;
-            $state->{Definitions} = [];
-            foreach( split( /,/, $state->{Definition} ) )
-            {
-                my ( $id, $function, $enabled ) = split( /:/, $_ );
-                push( @{$state->{Definitions}},
-                      { Id=>$id, Function=>$function, Enabled=>$enabled }
-                );
-            }
- 	    $store_state=$command; # PP - Remember the name that was passed to search in DB
-            $command = 'state';
-        }
-        else
-        {
-            $command = undef;
-        }
-    }
-    if ( !$command )
-    {
-        pod2usage(-exitstatus => -1);
-    }
+if ( !$command ) {
+  pod2usage(-exitstatus => -1);
 }
-$dbh = zmDbConnect() if ! $dbh;
+
 # PP - Sane state check
+Debug("StartisActiveSSantiyCheck");
 isActiveSanityCheck();
+Debug("Done isActiveSSantiyCheck");
 
 # Move to the right place
-chdir( $Config{ZM_PATH_WEB} )
-    or Fatal( "Can't chdir to '".$Config{ZM_PATH_WEB}."': $!" );
+chdir($Config{ZM_PATH_WEB})
+  or Fatal("Can't chdir to '$Config{ZM_PATH_WEB}': $!");
 
-my $dbg_id = "";
+my $dbg_id = '';
 
-Info( "Command: $command\n" );
+Info("Command: $command");
 
 my $retval = 0;
 
-if ( $command eq "state" )
-{
-    Info( "Updating DB: $state->{Name}\n" );
-    my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=? ORDER BY Id ASC' : 'SELECT * FROM Monitors ORDER BY Id ASC';
-    my $sth = $dbh->prepare_cached( $sql )
-        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID}: () )
-        or Fatal( "Can't execute: ".$sth->errstr() );
-    while( my $monitor = $sth->fetchrow_hashref() )
-    {
-        foreach my $definition ( @{$state->{Definitions}} )
-        {
-            if ( $monitor->{Id} =~ /^$definition->{Id}$/ )
-            {
-                $monitor->{NewFunction} = $definition->{Function};
-                $monitor->{NewEnabled} = $definition->{Enabled};
-            }
-        }
-        #next if ( !$monitor->{NewFunction} );
-        $monitor->{NewFunction} = 'None'
-            if ( !$monitor->{NewFunction} );
-        $monitor->{NewEnabled} = 0
-            if ( !$monitor->{NewEnabled} );
-        if ( $monitor->{Function} ne $monitor->{NewFunction}
-             || $monitor->{Enabled} ne $monitor->{NewEnabled}
-        )
-        {
-            my $sql = "update Monitors set Function = ?, Enabled = ? where Id = ?";
-            my $sth = $dbh->prepare_cached( $sql )
-                or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-            my $res = $sth->execute( $monitor->{NewFunction}, $monitor->{NewEnabled}, $monitor->{Id} )
-                or Fatal( "Can't execute: ".$sth->errstr() );
-        }
+if ( $command eq 'state' ) {
+  Info("Updating DB: $state->{Name}");
+  my $sql = 'SELECT * FROM Monitors' . ($Config{ZM_SERVER_ID} ? ' WHERE ServerId=?' : '' ) .' ORDER BY Id ASC';
+  my $sth = $dbh->prepare_cached($sql)
+    or Fatal("Can't prepare '$sql': ".$dbh->errstr());
+  my $res = $sth->execute($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID}: ())
+    or Fatal("Can't execute: ".$sth->errstr());
+  while( my $monitor = $sth->fetchrow_hashref() ) {
+    foreach my $definition ( @{$state->{Definitions}} ) {
+      if ( $monitor->{Id} =~ /^$definition->{Id}$/ ) {
+        $monitor->{NewFunction} = $definition->{Function};
+        $monitor->{NewEnabled} = $definition->{Enabled};
+      }
     }
-    $sth->finish();
-      
-    # PP - Now mark a specific state as active
-    resetStates();
-    Info ("Marking $store_state as Enabled");
-    $sql = "update States set IsActive = '1' where Name = ?";
-    $sth = $dbh->prepare_cached( $sql )
-         or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-    $res = $sth->execute( $store_state )
-         or Fatal( "Can't execute: ".$sth->errstr() );
+    #next if ( !$monitor->{NewFunction} );
+    $monitor->{NewFunction} = 'None'
+    if ( !$monitor->{NewFunction} );
+    $monitor->{NewEnabled} = 0
+    if ( !$monitor->{NewEnabled} );
+    if ( $monitor->{Function} ne $monitor->{NewFunction}
+      || $monitor->{Enabled} ne $monitor->{NewEnabled}
+    ) {
+      my $sql = 'UPDATE Monitors SET Function=?, Enabled=? WHERE Id=?';
+      my $sth = $dbh->prepare_cached($sql)
+        or Fatal("Can't prepare '$sql': ".$dbh->errstr());
+      my $res = $sth->execute($monitor->{NewFunction}, $monitor->{NewEnabled}, $monitor->{Id})
+        or Fatal("Can't execute: ".$sth->errstr());
+    } # end if change of function or enablement
+  } # end foreach monitor
+  $sth->finish();
 
-    # PP - zero out other states isActive
-    $command = "restart";
-}
+  # PP - Now mark a specific state as active
+  resetStates();
+  Info("Marking $store_state as Enabled");
+  $sql = 'UPDATE States SET IsActive = 1 WHERE Name = ?';
+  $sth = $dbh->prepare_cached($sql)
+    or Fatal("Can't prepare '$sql': ".$dbh->errstr());
+  $res = $sth->execute($store_state)
+    or Fatal("Can't execute: ".$sth->errstr());
+
+  # PP - zero out other states isActive
+  $command = 'restart';
+} # end if command = state
 
 # Check if we are running systemd and if we have been called by the system
-if ( $command =~ /^(start|stop|restart)$/ )
-{
-    # We have to detaint to keep perl from complaining
-    $command = $1;
+if ( $command =~ /^(start|stop|restart)$/ ) {
+# We have to detaint to keep perl from complaining
+  $command = $1;
 
-
-    if ( systemdRunning() && !calledBysystem() ) {
-        qx(@BINDIR@/zmsystemctl.pl $command);
-        $command = "";
-    }
+  if ( systemdRunning() && !calledBysystem() ) {
+    qx(@BINDIR@/zmsystemctl.pl $command);
+    $command = '';
+  }
 }
 
-if ( $command =~ /^(?:stop|restart)$/ )
-{
-    my $status = runCommand( "zmdc.pl check" );
+if ( $command =~ /^(?:stop|restart)$/ ) {
+  my $status = runCommand('zmdc.pl check');
+  Debug("zmdc.pl check = $status");
 
-    if ( $status eq "running" )
+  if ( $status eq 'running' ) {
+    runCommand('zmdc.pl shutdown');
+    zmMemTidy();
+  } else {
+    $retval = 1;
+  }
+}
+
+if ( $command =~ /^(?:start|restart)$/ ) {
+  my $status = runCommand('zmdc.pl check');
+  Debug("zmdc.pl check = $status");
+
+  if ( $status eq 'stopped' ) {
+    if ( $Config{ZM_DYN_DB_VERSION}
+        and ( $Config{ZM_DYN_DB_VERSION} ne ZM_VERSION )
+       ) {
+      Fatal('Version mismatch, system is version '.ZM_VERSION
+          .', database is '.$Config{ZM_DYN_DB_VERSION}
+          .', please run zmupdate.pl to update.'
+          );
+      exit(-1);
+    }
+
+# Recreate the temporary directory if it's been wiped
+    verifyFolder('@ZM_TMPDIR@');
+
+# Recreate the run directory if it's been wiped
+    verifyFolder('@ZM_RUNDIR@');
+
+# Recreate the sock directory if it's been wiped
+    verifyFolder('@ZM_SOCKDIR@');
+
+    zmMemTidy();
+    runCommand('zmdc.pl startup');
+
+    my $Server = undef;
+    my $sql;
+    my @values;
+    if ( $Config{ZM_SERVER_ID} ) {
+      require ZoneMinder::Server;
+      Info("Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}");
+      $Server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
+      $sql = 'SELECT * FROM Monitors WHERE ServerId=?';
+      @values = ( $Config{ZM_SERVER_ID} );
+    } else {
+      Info('Single server configuration detected. Starting up services.');
+      $sql = 'SELECT * FROM Monitors';
+    }
+
     {
-        runCommand( "zmdc.pl shutdown" );
-        zmMemTidy();
+      my $sth = $dbh->prepare_cached($sql)
+        or Fatal("Can't prepare '$sql': ".$dbh->errstr());
+      my $res = $sth->execute(@values)
+        or Fatal("Can't execute: ".$sth->errstr());
+      while( my $monitor = $sth->fetchrow_hashref() ) {
+        if ( $monitor->{Function} ne 'None' && $monitor->{Type} ne 'WebSite' ) {
+          if ( $monitor->{Type} eq 'Local' ) {
+            runCommand("zmdc.pl start zmc -d $monitor->{Device}");
+          } else {
+            runCommand("zmdc.pl start zmc -m $monitor->{Id}");
+          }
+          if ( $monitor->{Function} ne 'Monitor' ) {
+            runCommand("zmdc.pl start zma -m $monitor->{Id}");
+          }
+          if ( $Config{ZM_OPT_CONTROL} ) {
+            if ( $monitor->{Controllable} && $monitor->{TrackMotion} ) {
+              if ( $monitor->{Function} eq 'Modect' || $monitor->{Function} eq 'Mocord' ) {
+                runCommand( "zmdc.pl start zmtrack.pl -m $monitor->{Id}" );
+              } else {
+                Warning(' Monitor is set to track motion, but does not have motion detection enabled.');
+              } # end if Has motion enabled
+            } # end if track motion
+          } # end if ZM_OPT_CONTROL
+        } # end if function is not none or Website
+      } # end foreach monitor
+      $sth->finish();
     }
-    else
+
     {
-        $retval = 1;
+      my $sql = 'SELECT Id FROM Filters WHERE Background=1';
+      my $sth = $dbh->prepare_cached($sql)
+        or Fatal("Can't prepare '$sql': ".$dbh->errstr());
+      my $res = $sth->execute()
+        or Fatal("Can't execute: ".$sth->errstr());
+      if ( $sth->rows ) {
+        while( my $filter = $sth->fetchrow_hashref() ) {
+  # This is now started unconditionally
+          runCommand("zmdc.pl start zmfilter.pl --filter_id=$$filter{Id} --daemon");
+        }
+      } else {
+        runCommand('zmdc.pl start zmfilter.pl');
+      }
+      $sth->finish();
     }
-}
 
-#runCommand( "zmupdate.pl -f" );
-
-if ( $command =~ /^(?:start|restart)$/ )
-{
-    my $status = runCommand( "zmdc.pl check" );
-
-    if ( $status eq "stopped" )
-    {
-        if ( $Config{ZM_DYN_DB_VERSION}
-             and ( $Config{ZM_DYN_DB_VERSION} ne ZM_VERSION )
-        )
-        {
-            Fatal( "Version mismatch, system is version ".ZM_VERSION
-                   .", database is ".$Config{ZM_DYN_DB_VERSION}
-                   .", please run zmupdate.pl to update."
-            );
-            exit( -1 );
-        }
-
-        # Recreate the temporary directory if it's been wiped
-        verifyFolder("@ZM_TMPDIR@");
-
-        # Recreate the run directory if it's been wiped
-        verifyFolder("@ZM_RUNDIR@");
-
-        # Recreate the sock directory if it's been wiped
-        verifyFolder("@ZM_SOCKDIR@");
-
-        zmMemTidy();
-        runCommand( "zmdc.pl startup" );
-
-        if ( $Config{ZM_SERVER_ID} ) {
-            Info( "Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}\n");
-        } else {
-            Info( "Single server configuration detected. Starting up services." );
-        }
-
-        my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
-        my $sth = $dbh->prepare_cached( $sql )
-            or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
-            or Fatal( "Can't execute: ".$sth->errstr() );
-        while( my $monitor = $sth->fetchrow_hashref() )
-        {
-            if ( $monitor->{Function} ne 'None' )
-            {
-                if ( $monitor->{Type} eq 'Local' )
-                {
-                    runCommand( "zmdc.pl start zmc -d $monitor->{Device}" );
-                }
-                else
-                {
-                    runCommand( "zmdc.pl start zmc -m $monitor->{Id}" );
-                }
-                if ( $monitor->{Function} ne 'Monitor' )
-                {
-                    runCommand( "zmdc.pl start zma -m $monitor->{Id}" );
-                }
-                if ( $Config{ZM_OPT_CONTROL} )
-                {
-                    if ( $monitor->{Function} eq 'Modect' || $monitor->{Function} eq 'Mocord' )
-                    {
-                        if ( $monitor->{Controllable} && $monitor->{TrackMotion} )
-                        {
-                            runCommand( "zmdc.pl start zmtrack.pl -m $monitor->{Id}" );
-                        }
-                    }
-                }
-            }
-        }
-        $sth->finish();
-
-        # This is now started unconditionally
-        runCommand( "zmdc.pl start zmfilter.pl" );
-        if ( $Config{ZM_RUN_AUDIT} )
-        {
-            runCommand( "zmdc.pl start zmaudit.pl -c" );
-        }
-        if ( $Config{ZM_OPT_TRIGGERS} )
-        {
-            runCommand( "zmdc.pl start zmtrigger.pl" );
-        }
-        if ( $Config{ZM_OPT_X10} )
-        {
-            runCommand( "zmdc.pl start zmx10.pl -c start" );
-        }
-        runCommand( "zmdc.pl start zmwatch.pl" );
-        if ( $Config{ZM_CHECK_FOR_UPDATES} )
-        {
-            runCommand( "zmdc.pl start zmupdate.pl -c" );
-        }
-        if ( $Config{ZM_TELEMETRY_DATA} )
-        {
-            runCommand( "zmdc.pl start zmtelemetry.pl" );
-        }
+    if ( $Config{ZM_RUN_AUDIT} ) {
+      if ( $Server and exists $$Server{'zmaudit'} and ! $$Server{'zmaudit'} ) {
+        Debug("Not running zmaudit.pl because it is turned off for this server.");
+      } else {
+        runCommand('zmdc.pl start zmaudit.pl -c');
+      }
     }
-    else
-    {
-        $retval = 1;
+    if ( $Config{ZM_OPT_TRIGGERS} ) {
+      if ( $Server and exists $$Server{'zmtrigger'} and ! $$Server{'zmtrigger'} ) {
+        Debug("Not running zmtrigger.pl because it is turned off for this server.");
+      } else {
+        runCommand('zmdc.pl start zmtrigger.pl');
+      }
     }
+    if ( $Config{ZM_OPT_X10} ) {
+      runCommand('zmdc.pl start zmx10.pl -c start');
+    }
+    runCommand('zmdc.pl start zmwatch.pl');
+    if ( $Config{ZM_CHECK_FOR_UPDATES} ) {
+      runCommand('zmdc.pl start zmupdate.pl -c');
+    }
+    if ( $Config{ZM_TELEMETRY_DATA} ) {
+      runCommand('zmdc.pl start zmtelemetry.pl');
+    }
+    if ($Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
+        runCommand('zmdc.pl start zmeventnotification.pl');
+    }
+    if ( $Server and exists $$Server{'zmstats'} and ! $$Server{'zmstats'} ) {
+      Debug("Not running zmstats.pl because it is turned off for this server.");
+    } else {
+      runCommand('zmdc.pl start zmstats.pl');
+    }
+  } else {
+    $retval = 1;
+  }
+} # end if command is start or restart
+
+if ( $command eq 'status' ) {
+  my $status = runCommand('zmdc.pl check');
+
+  print(STDOUT $status."\n");
+} elsif ( $command eq 'logrot' ) {
+  runCommand('zmdc.pl logrot');
 }
 
-if ( $command eq "status" )
-{
-    my $status = runCommand( "zmdc.pl check" );
-
-    print( STDOUT $status."\n" );
-}
-
-if ( $command eq "logrot" )
-{
-    runCommand( "zmdc.pl logrot" );
-}
-
-exit( $retval );
+exit($retval);
 
 # PP - Make sure isActive is on and only one
-sub isActiveSanityCheck
-{
+sub isActiveSanityCheck {
 
-	Info ("Sanity checking States table...");
-	$dbh = zmDbConnect() if ! $dbh;
-	
-	# PP - First, make sure default exists and there is only one
-	my $sql = "select Name from States where Name = 'default'";
-        my $sth = $dbh->prepare_cached( $sql )
-                or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute()
-                or Fatal( "Can't execute: ".$sth->errstr() );
+  Info('Sanity checking States table...');
+  $dbh = zmDbConnect() if ! $dbh;
 
-	if ($sth->rows != 1) # PP - no row, or too many rows. Either case is an error
-	{
-		Info( "Fixing States table - either no default state or duplicate default states" );
-		$sql = "delete from States where Name = 'default'";
-       		$sth = $dbh->prepare_cached( $sql )
-             		or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                $res = $sth->execute()
-               		or Fatal( "Can't execute: ".$sth->errstr() );
-		$sql = "insert into States (Name,Definition,IsActive) VALUES ('default','','1');";
-       		$sth = $dbh->prepare_cached( $sql )
-               		or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                $res = $sth->execute()
-                	or Fatal( "Can't execute: ".$sth->errstr() );
-	}	
+# PP - First, make sure default exists and there is only one
+  my $sql = q`SELECT Name FROM States WHERE Name='default'`;
+  my $sth = $dbh->prepare_cached($sql)
+    or Fatal("Can't prepare '$sql': ".$dbh->errstr());
+  my $res = $sth->execute()
+    or Fatal("Can't execute: ".$sth->errstr());
 
+  if ( $sth->rows != 1 ) {
+# PP - no row, or too many rows. Either case is an error
+    Info('Fixing States table - either no default state or duplicate default states');
+    if ( $sth->rows ) {
+      $dbh->do(q`DELETE FROM States WHERE Name='default'`) or Fatal("Can't execute: ".$dbh->errstr());
+    }
+    $dbh->do(q`INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');`) 
+      or Fatal("Can't execute: ".$dbh->errstr());
+  }
+  $sth->finish();
 
-	# PP - Now make sure no two states have IsActive=1
-        $sql = "select Name from States where IsActive = '1'";
-        $sth = $dbh->prepare_cached( $sql )
-                or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-        $res = $sth->execute()
-                or Fatal( "Can't execute: ".$sth->errstr() );
+# PP - Now make sure no two states have IsActive=1
+  $sql = 'SELECT Name FROM States WHERE IsActive = 1';
+  $sth = $dbh->prepare_cached($sql)
+    or Fatal("Can't prepare '$sql': ".$dbh->errstr());
+  $res = $sth->execute()
+    or Fatal("Can't execute: ".$sth->errstr());
 
-        if ( $sth->rows != 1 )
-	{
-		Info( "Fixing States table so only one run state is active" );
-		resetStates();
-		$sql = "update States set IsActive='1' WHERE Name='default'";
-        	$sth = $dbh->prepare_cached( $sql )
-        	        or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-                $res = $sth->execute()
-               		or Fatal( "Can't execute: ".$sth->errstr() );
-
-
-	}
-}
-
+  if ( $sth->rows != 1 ) {
+    Info('Fixing States table so only one run state is active');
+    resetStates();
+    $dbh->do(q`UPDATE States SET IsActive=1 WHERE Name='default'`)
+      or Fatal("Can't execute: ".$dbh->errstr());
+  }
+  $sth->finish();
+} # end sub isActiveSanityCheck
 
 # PP - zeroes out isActive for all states
-sub resetStates
-{
-        $dbh = zmDbConnect() if ! $dbh;
-        my $sql = "update States set IsActive = '0'";
-        my $sth = $dbh->prepare_cached( $sql )
-                or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-        my $res = $sth->execute()
-                or Fatal( "Can't execute: ".$sth->errstr() );
-
+sub resetStates {
+  $dbh = zmDbConnect() if ! $dbh;
+  $dbh->do('UPDATE States SET IsActive=0')
+    or Fatal("Can't execute: ".$dbh->errstr());
 }
 
-sub systemdRunning
-{
-    my $result = 0;
-
-    my $output = qx(ps -o comm="" -p 1);
-    chomp( $output );
-
-    if ($output =~ /systemd/) {
-        $result = 1;
-    }
-
-    return $result;
+sub systemdRunning {
+  my $output = qx(ps -o comm="" -p 1);
+  return scalar ( $output =~ /systemd/ );
 }
 
-sub calledBysystem
-{
-    my $result = 0;
-    my $ppid = getppid();
+sub calledBysystem {
+  my $ppid = getppid();
 
-    my $output = qx(ps -o comm="" -p $ppid);
-    chomp( $output );
+  my $output = qx(ps -o comm="" -p $ppid);
+  #chomp( $output );
 
-    if ($output =~ /^(?:systemd|init)$/) {
-        $result = 1;
-    }
-
-    return $result;
+  return ($output =~ /^(?:systemd|init)$/);
 }
 
-sub verifyFolder
-{
-    my $folder = shift;
+sub verifyFolder {
+  my $folder = shift;
 
-        # Recreate the temporary directory if it's been wiped
-        if ( !-e $folder )
-        {
-            Debug( "Recreating directory '$folder'" );
-            mkdir( "$folder", 0774 )
-                or Fatal( "Can't create missing temporary directory '$folder': $!" );
-            my ( $runName ) = getpwuid( $> );
-            if ( $runName ne $Config{ZM_WEB_USER} )
-            {
-                # Not running as web user, so should be root in which case
-                # chown the directory
-                my ( $webName, $webPass, $webUid, $webGid ) = getpwnam( $Config{ZM_WEB_USER} )
-                    or Fatal( "Can't get user details for web user '"
-                              .$Config{ZM_WEB_USER}."': $!"
-                       );
-                chown( $webUid, $webGid, "$folder" )
-                    or Fatal( "Can't change ownership of directory '$folder' to '"
-                              .$Config{ZM_WEB_USER}.":".$Config{ZM_WEB_GROUP}."': $!"
-                       );
-            }
-        }
-}
+  # Recreate the temporary directory if it's been wiped
+  if ( !-e $folder ) {
+    Debug("Recreating directory '$folder'");
+    mkdir($folder, 0774)
+      or Fatal( "Can't create missing temporary directory '$folder': $!" );
+    my ( $runName ) = getpwuid($>);
+    if ( $runName ne $Config{ZM_WEB_USER} ) {
+      # Not running as web user, so should be root in which case
+      # chown the directory
+      my ( $webName, $webPass, $webUid, $webGid ) = getpwnam($Config{ZM_WEB_USER})
+        or Fatal("Can't get details for web user '$Config{ZM_WEB_USER}': $!");
+      chown($webUid, $webGid, $folder)
+        or Fatal("Can't change ownership of '$folder' to '"
+            .$Config{ZM_WEB_USER}.':'.$Config{ZM_WEB_GROUP}."': $!"
+            );
+    } # end if runName ne ZM_WEB_USER
+  } # end if folder doesn't exist
+} # end sub verifyFolder
+
+1;
 __END__
+
+=head1 NAME
+
+zmpkg.pl - ZoneMinder Package Control Script
+
+=head1 SYNOPSIS
+
+zmpkg.pl {start|stop|restart|status|logrot|state|version}
+
+=head1 DESCRIPTION
+
+  This script is used to start and stop the ZoneMinder package primarily to
+allow command line control for automatic restart on reboot (see zm script)
+
+=cut

@@ -1,3 +1,7 @@
+#options {
+  padding-top: 10px;
+
+}
 input.small {
     width: 6em;
 }
@@ -21,4 +25,3 @@ input.large {
 #contentTable.userTable .colMonitor, #contentTable.userTable .colUsername {
     text-align: left;
 }
-

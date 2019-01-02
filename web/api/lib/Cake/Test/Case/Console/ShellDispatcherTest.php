@@ -2,18 +2,18 @@
 /**
  * ShellDispatcherTest file
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.Console
  * @since         CakePHP(tm) v 1.2.0.5432
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ShellDispatcher', 'Console');
@@ -137,9 +137,8 @@ class ShellDispatcherTest extends CakeTestCase {
  *
  * @return void
  */
-	public function testParseParams() {
+	public function testParseParamsAppWorkingAbsolute() {
 		$Dispatcher = new TestShellDispatcher();
-
 		$params = array(
 			'/cake/1.2.x.x/cake/console/cake.php',
 			'bake',
@@ -156,7 +155,15 @@ class ShellDispatcherTest extends CakeTestCase {
 		);
 		$Dispatcher->parseParams($params);
 		$this->assertEquals($expected, $Dispatcher->params);
+	}
 
+/**
+ * testParseParams method
+ *
+ * @return void
+ */
+	public function testParseParamsNone() {
+		$Dispatcher = new TestShellDispatcher();
 		$params = array('cake.php');
 		$expected = array(
 			'app' => 'app',
@@ -167,7 +174,15 @@ class ShellDispatcherTest extends CakeTestCase {
 		$Dispatcher->params = $Dispatcher->args = array();
 		$Dispatcher->parseParams($params);
 		$this->assertEquals($expected, $Dispatcher->params);
+	}
 
+/**
+ * testParseParams method
+ *
+ * @return void
+ */
+	public function testParseParamsApp() {
+		$Dispatcher = new TestShellDispatcher();
 		$params = array(
 			'cake.php',
 			'-app',
@@ -182,7 +197,15 @@ class ShellDispatcherTest extends CakeTestCase {
 		$Dispatcher->params = $Dispatcher->args = array();
 		$Dispatcher->parseParams($params);
 		$this->assertEquals($expected, $Dispatcher->params);
+	}
 
+/**
+ * testParseParams method
+ *
+ * @return void
+ */
+	public function testParseParamsAppWorkingRelative() {
+		$Dispatcher = new TestShellDispatcher();
 		$params = array(
 			'./cake.php',
 			'bake',
@@ -191,17 +214,24 @@ class ShellDispatcherTest extends CakeTestCase {
 			'-working',
 			'/cake/1.2.x.x/cake/console'
 		);
-
 		$expected = array(
 			'app' => 'new',
 			'webroot' => 'webroot',
 			'working' => str_replace('\\', DS, dirname(CAKE_CORE_INCLUDE_PATH) . DS . 'new'),
 			'root' => str_replace('\\', DS, dirname(CAKE_CORE_INCLUDE_PATH))
 		);
-
 		$Dispatcher->params = $Dispatcher->args = array();
 		$Dispatcher->parseParams($params);
 		$this->assertEquals($expected, $Dispatcher->params);
+	}
+
+/**
+ * testParseParams method
+ *
+ * @return void
+ */
+	public function testParseParams() {
+		$Dispatcher = new TestShellDispatcher();
 
 		$params = array(
 			'./console/cake.php',
@@ -487,9 +517,9 @@ class ShellDispatcherTest extends CakeTestCase {
  */
 	public function testDispatchNotAShellWithMain() {
 		$Dispatcher = new TestShellDispatcher();
-		$methods = get_class_methods('Object');
+		$methods = get_class_methods('CakeObject');
 		array_push($methods, 'main', 'initdb', 'initialize', 'loadTasks', 'startup', '_secret');
-		$Shell = $this->getMock('Object', $methods);
+		$Shell = $this->getMock('CakeObject', $methods);
 
 		$Shell->expects($this->never())->method('initialize');
 		$Shell->expects($this->once())->method('startup');
@@ -501,7 +531,7 @@ class ShellDispatcherTest extends CakeTestCase {
 		$this->assertTrue($result);
 		$this->assertEquals(array(), $Dispatcher->args);
 
-		$Shell = $this->getMock('Object', $methods);
+		$Shell = $this->getMock('CakeObject', $methods);
 		$Shell->expects($this->once())->method('initdb')->will($this->returnValue(true));
 		$Shell->expects($this->once())->method('startup');
 		$Dispatcher->TestShell = $Shell;
@@ -518,9 +548,9 @@ class ShellDispatcherTest extends CakeTestCase {
  */
 	public function testDispatchNotAShellWithoutMain() {
 		$Dispatcher = new TestShellDispatcher();
-		$methods = get_class_methods('Object');
+		$methods = get_class_methods('CakeObject');
 		array_push($methods, 'main', 'initdb', 'initialize', 'loadTasks', 'startup', '_secret');
-		$Shell = $this->getMock('Object', $methods);
+		$Shell = $this->getMock('CakeObject', $methods);
 
 		$Shell->expects($this->never())->method('initialize');
 		$Shell->expects($this->once())->method('startup');
@@ -532,7 +562,7 @@ class ShellDispatcherTest extends CakeTestCase {
 		$this->assertTrue($result);
 		$this->assertEquals(array(), $Dispatcher->args);
 
-		$Shell = $this->getMock('Object', $methods);
+		$Shell = $this->getMock('CakeObject', $methods);
 		$Shell->expects($this->once())->method('initdb')->will($this->returnValue(true));
 		$Shell->expects($this->once())->method('startup');
 		$Dispatcher->TestShell = $Shell;

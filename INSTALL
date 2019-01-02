@@ -45,13 +45,22 @@ Possible configuration options:
 	ZM_DB_NAME		Name of ZoneMinder database, default: zm
 	ZM_DB_USER		Name of ZoneMinder database user, default: zmuser
 	ZM_DB_PASS		Password of ZoneMinder database user, default: zmpass
+	ZM_DB_SSL_CA_CERT	Path to SSL CA certificate, default: empty; SSL not enabled
+	ZM_DB_SSL_CLIENT_KEY	Path to SSL client key, default: empty; SSL not enabled
+	ZM_DB_SSL_CLIENT_CERT	Path to SSL client certificate, default: empty; SSL not enabled
 	ZM_WEB_USER		The user apache or the local web server runs on. Leave empty for automatic detection. If that fails, you can use this variable to force
 	ZM_WEB_GROUP		The group apache or the local web server runs on, Leave empty to be the same as the web user
+        ZM_DIR_EVENTS           Location where events are recorded to, default: ZM_CONTENTDIR/events
+        ZM_DIR_SOUNDS           Location to look for optional sound files, default: sounds
+        ZM_PATH_ZMS             Web url to zms streaming server, default: /cgi-bin/nph-zms
 Advanced:
+        ZM_PATH_MAP             Location to save mapped memory files, default: /dev/shm
+        ZM_PATH_ARP             Full path to compatible arp binary. Leave empty for automatic detection.
+        ZM_CONFIG_DIR           Location of the main ZoneMinder config file, zm.conf. default: /etc/zm
+        ZM_CONFIG_SUBDIR        Location of custom config files. default: ZM_CONFIG_DIR/conf.d
 	ZM_EXTRA_LIBS		A list of optional libraries, separated by semicolons, e.g. ssl;theora
 	ZM_MYSQL_ENGINE		MySQL engine to use with database, default: InnoDB
 	ZM_NO_MMAP		Set to ON to not use mmap shared memory. Shouldn't be enabled unless you experience problems with the shared memory. default: OFF
-	ZM_NO_FFMPEG		Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF
 	ZM_NO_X10		Set to ON to build ZoneMinder without X10 support. default: OFF
 	ZM_PERL_MM_PARMS	By default, ZoneMinder's Perl modules are installed into the Vendor folders, as defined by your installation of Perl. You can change that here. Consult Perl's MakeMaker documentation for a definition of acceptable parameters. If you set this to something that causes the modules to be installed outside Perl's normal serach path, then you will also need to set ZM_PERL_SEARCH_PATH accordingly. default: "INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1"
 	ZM_PERL_SEARCH_PATH	Use to add a folder to your Perl's search path. This will need to be set in cases where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are installed outside Perl's default search path. default: ""
@@ -119,8 +128,8 @@ cmake -C zm_conf.cmake [extra options] .
 
 2) Run "make" to compile ZoneMinder
 3) Run "make install" (as root, or use sudo) to install ZoneMinder to your system.
-4) Depending on your configuration: If the DIR_EVENTS and DIR_IMAGES options are set to default (pointing to web directory/events and web directory/images), You will need to update the symlinks in the web directory to the correct folders. e.g. web directory/events should point to the real events directory, and likewise for the images directory.
-You can use the zmlinkcontent.sh script for this. For example, if /var/lib/zoneminder is the folder that contains the "images" and "events" directories, you can use:
+4) Depending on your configuration: If DIR_EVENTS is set to default, You will need to update the symlinks in the web directory to the correct folders. e.g. web directory/events should point to the real events directory.
+You can use the zmlinkcontent.sh script for this. For example, if /var/lib/zoneminder is the folder that contains the "events" directory, you can use:
 ./zmlinkcontent.sh /var/lib/zoneminder
 By default, the content directory for new installations is /var/lib/zoneminder. This can be overridden in cmake with the ZM_CONTENTDIR option. e.g. cmake -DZM_CONTENTDIR="/some/big/storage/zm" .
 

@@ -209,7 +209,8 @@ function applyZoneUnits() {
 }
 
 function limitRange( field, minValue, maxValue ) {
-  field.value = constrainValue( parseInt(field.value), parseInt(minValue), parseInt(maxValue) );
+  if ( field.value != '' )
+    field.value = constrainValue( parseInt(field.value), parseInt(minValue), parseInt(maxValue) );
 }
 
 function limitFilter( field ) {
@@ -346,6 +347,7 @@ function updateX( index ) {
   zone['Points'][index].x = x;
   var Point = $('zonePoly').points.getItem(index);
   Point.x = x;
+  updateArea();
 }
 
 function updateY( index ) {
@@ -358,6 +360,7 @@ function updateY( index ) {
   zone['Points'][index].y = y;
   var Point = $('zonePoly').points.getItem(index);
   Point.y = y;
+  updateArea();
 }
 
 function saveChanges( element ) {
@@ -379,7 +382,12 @@ function drawZonePoints() {
     div.addEvent( 'mouseover', highlightOn.pass( i ) );
     div.addEvent( 'mouseout', highlightOff.pass( i ) );
     div.inject( $('imageFrame') );
-    div.makeDraggable( { 'container': $('imageFrame'), 'onStart': setActivePoint.pass( i ), 'onComplete': fixActivePoint.pass( i ), 'onDrag': updateActivePoint.pass( i ) } );
+    div.makeDraggable( { 
+        'container': $('imageFrame'),
+        'onStart': setActivePoint.pass( i ), 
+        'onComplete': fixActivePoint.pass( i ),
+        'onDrag': updateActivePoint.pass( i )
+        } );
   }
 
   var tables = $('zonePoints').getElements( 'table' );
@@ -443,8 +451,7 @@ function setAlarmState( currentAlarmState ) {
   var newAlarm = ( isAlarmed && !wasAlarmed );
   var oldAlarm = ( !isAlarmed && wasAlarmed );
 
-  if ( newAlarm )
-  {
+  if ( newAlarm ) {
     if ( SOUND_ON_ALARM ) {
       // Enable the alarm sound
       if ( !canPlayPauseAudio )
@@ -466,7 +473,15 @@ function setAlarmState( currentAlarmState ) {
 }
 
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
-var streamCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStreamCmdResponse } );
+if ( auth_hash )
+    streamCmdParms += '&auth='+auth_hash;
+var streamCmdReq = new Request.JSON( {
+  url: monitorUrl,
+  method: 'get',
+  timeout: AJAX_TIMEOUT,
+  link: 'cancel',
+  onSuccess: getStreamCmdResponse
+} );
 var streamCmdTimer = null;
 
 var streamStatus;
@@ -491,16 +506,20 @@ function getStreamCmdResponse( respObj, respText ) {
     }
   } else {
     checkStreamForErrors("getStreamCmdResponse", respObj);//log them
-    // Try to reload the image stream.
-    var streamImg = document.getElementById('liveStream');
-    if ( streamImg )
-      streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    if ( ! streamPause ) {
+      // Try to reload the image stream.
+      var streamImg = $('liveStream'+monitorId);
+      if ( streamImg )
+        streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+    }
   }
 
-  var streamCmdTimeout = statusRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
-    streamCmdTimeout = streamCmdTimeout/5;
-  streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
+  if ( ! streamPause ) {
+    var streamCmdTimeout = statusRefreshTimeout;
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+      streamCmdTimeout = streamCmdTimeout/5;
+    streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
+  }
 }
 
 var streamPause = false;
@@ -537,7 +556,16 @@ function streamCmdQuery() {
 }
 
 var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-var statusCmdReq = new Request.JSON( { url: monitorUrl+thisUrl, method: 'post', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
+if ( auth_hash )
+    statusCmdParms += '&auth='+auth_hash;
+var statusCmdReq = new Request.JSON( {
+  url: monitorUrl,
+  method: 'get',
+  data: statusCmdParms,
+  timeout: AJAX_TIMEOUT,
+  link: 'cancel',
+  onSuccess: getStatusCmdResponse
+} );
 var statusCmdTimer = null;
 
 function getStatusCmdResponse( respObj, respText ) {
@@ -551,24 +579,20 @@ function getStatusCmdResponse( respObj, respText ) {
   } else
     checkStreamForErrors("getStatusCmdResponse", respObj);
 
-  var statusCmdTimeout = statusRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
-    statusCmdTimeout = statusCmdTimeout/5;
-  statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
+  if ( ! streamPause ) {
+    var statusCmdTimeout = statusRefreshTimeout;
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+      statusCmdTimeout = statusCmdTimeout/5;
+    statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
+  }
 }
 
 function statusCmdQuery() {
   statusCmdReq.send();
 }
 
-var tempImage = null;
-
 function fetchImage( streamImage ) {
-  var now = new Date();
-  if ( !tempImage )
-    tempImage = new Element( 'img' );
-  tempImage.setProperty( 'src', streamSrc+'&'+now.getTime() );
-  $(streamImage).setProperty( 'src', tempImage.getProperty( 'src' ) );
+  streamImage.src = streamImage.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
 }
 
 function appletRefresh() {
@@ -647,11 +671,13 @@ function initPage() {
   // Imported from watch.js and modified for new zone edit view
   //
 
+  var delay = (Math.random()+0.1)*statusRefreshTimeout;
+  //console.log("Delay for status updates is: " + delay );
   if ( streamMode == "single" ) {
-    statusCmdTimer = statusCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+    statusCmdTimer = statusCmdQuery.delay( delay );
     watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
   } else {
-    streamCmdTimer = streamCmdQuery.delay( (Math.random()+0.1)*statusRefreshTimeout );
+    streamCmdTimer = streamCmdQuery.delay( delay );
     watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
   }
 

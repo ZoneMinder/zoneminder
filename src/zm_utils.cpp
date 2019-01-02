@@ -24,6 +24,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <fcntl.h> /* Definition of AT_* constants */
+#include <sys/stat.h>
 #if defined(__arm__)
 #include <sys/auxv.h>
 #endif
@@ -49,8 +51,7 @@ std::string trimSet(std::string str, std::string trimset) {
     return str.substr( startpos, endpos-startpos+1 );
 }
 
-std::string trimSpaces(std::string str)
-{
+std::string trimSpaces(const std::string &str) {
   return trimSet(str, " \t");
 }
 
@@ -80,7 +81,7 @@ const std::string stringtf( const char *format, ... )
   return( tempString );
 }
 
-const std::string stringtf( const std::string &format, ... )
+const std::string stringtf( const std::string format, ... )
 {
   va_list ap;
   char tempBuffer[8192];
@@ -95,26 +96,22 @@ const std::string stringtf( const std::string &format, ... )
   return( tempString );
 }
 
-bool startsWith( const std::string &haystack, const std::string &needle )
-{
-  return( haystack.substr( 0, needle.length() ) == needle );
+bool startsWith(const std::string &haystack, const std::string &needle) {
+  return( haystack.substr(0, needle.length()) == needle );
 }
 
-StringVector split( const std::string &string, const std::string chars, int limit )
-{
+StringVector split(const std::string &string, const std::string &chars, int limit) {
   StringVector stringVector;
   std::string tempString = string;
   std::string::size_type startIndex = 0;
   std::string::size_type endIndex = 0;
 
   //Info( "Looking for '%s' in '%s', limit %d", chars.c_str(), string.c_str(), limit );
-  do
-  {
+  do {
     // Find delimiters
     endIndex = string.find_first_of( chars, startIndex );
     //Info( "Got endIndex at %d", endIndex );
-    if ( endIndex > 0 )
-    {
+    if ( endIndex > 0 ) {
       //Info( "Adding '%s'", string.substr( startIndex, endIndex-startIndex ).c_str() );
       stringVector.push_back( string.substr( startIndex, endIndex-startIndex ) );
     }
@@ -122,8 +119,7 @@ StringVector split( const std::string &string, const std::string chars, int limi
       break;
     // Find non-delimiters
     startIndex = tempString.find_first_not_of( chars, endIndex );
-    if ( limit && (stringVector.size() == (unsigned int)(limit-1)) )
-    {
+    if ( limit && (stringVector.size() == (unsigned int)(limit-1)) ) {
       stringVector.push_back( string.substr( startIndex ) );
       break;
     }
@@ -131,22 +127,21 @@ StringVector split( const std::string &string, const std::string chars, int limi
   } while ( startIndex != std::string::npos );
   //Info( "Finished with %d strings", stringVector.size() );
 
-  return( stringVector );
+  return stringVector;
 }
 
-const std::string join(const StringVector v, const char * delim ) {
+const std::string join(const StringVector &v, const char * delim=",") {
   std::stringstream ss;
 
-  for(size_t i = 0; i < v.size(); ++i) {
-    if(i != 0)
-      ss << ",";
+  for (size_t i = 0; i < v.size(); ++i) {
+    if ( i != 0 )
+      ss << delim;
     ss << v[i];
   }
   return ss.str();
 }
 
-const std::string base64Encode( const std::string &inString )
-{
+const std::string base64Encode(const std::string &inString) {
   static char base64_table[64] = { '\0' };
 
   if ( !base64_table[0] )
@@ -209,10 +204,9 @@ int split(const char* string, const char delim, std::vector<std::string>& items)
     return -2;
 
   std::string str(string);
-  size_t pos;
   
   while(true) {
-    pos = str.find(delim);
+    size_t pos = str.find(delim);
     items.push_back(str.substr(0, pos));
     str.erase(0, pos+1);
 
@@ -420,5 +414,24 @@ std::string UriDecode( const std::string &encoded ) {
 Warning("ZM Compiled without LIBCURL.  UriDecoding not implemented.");
   return encoded;
 #endif
+}
+
+void touch(const char *pathname) {
+  int fd = open(pathname,
+      O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK,
+      0666);
+  if ( fd < 0 ) {
+    // Couldn't open that path.
+    Error("Couldn't open() path \"%s in touch", pathname);
+    return;
+  }
+  int rc = utimensat(AT_FDCWD,
+      pathname,
+      nullptr,
+      0);
+  if ( rc ) {
+    Error("Couldn't utimensat() path %s in touch", pathname);
+    return;
+  }
 }
 

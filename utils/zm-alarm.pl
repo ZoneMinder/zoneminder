@@ -14,9 +14,17 @@ $| = 1;
 
 my @monitors;
 my $dbh = zmDbConnect();
-my $sql = "SELECT * FROM Monitors";
-my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
+
+my $sql = "SELECT * FROM Monitors
+  WHERE find_in_set( Function, 'Modect,Mocord,Nodect' )".
+  ( $Config{ZM_SERVER_ID} ? 'AND ServerId=?' : '' )
+  ;
+
+my $sth = $dbh->prepare_cached( $sql )
+  or die( "Can't prepare '$sql': ".$dbh->errstr() );
+
+my $res = $sth->execute()
+  or die( "Can't execute '$sql': ".$sth->errstr() );
 
 while ( my $monitor = $sth->fetchrow_hashref() ) {
     push( @monitors, $monitor );
@@ -24,6 +32,12 @@ while ( my $monitor = $sth->fetchrow_hashref() ) {
 
 while (1) {
         foreach my $monitor (@monitors) {
+               # Check shared memory ok
+               if ( !zmMemVerify( $monitor ) ) {
+                 zmMemInvalidate( $monitor );
+                 next;
+                }
+
                 my $monitorState = zmGetMonitorState($monitor);
                 printState($monitor->{Id}, $monitor->{Name}, $monitorState);
         }

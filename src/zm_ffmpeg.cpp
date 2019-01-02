@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */ 
+#include <cinttypes>
 
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
@@ -23,12 +24,61 @@
 
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
+void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) {
+  Logger *log = Logger::fetch();
+  int log_level = 0;
+  if ( level == AV_LOG_QUIET ) { // -8
+    log_level = Logger::NOLOG;
+  } else if ( level == AV_LOG_PANIC ) { //0
+    log_level = Logger::PANIC;
+  } else if ( level == AV_LOG_FATAL ) { // 8
+    log_level = Logger::FATAL;
+  } else if ( level == AV_LOG_ERROR ) { // 16
+    log_level = Logger::WARNING; // ffmpeg outputs a lot of errors that don't really affect anything.
+    //log_level = Logger::ERROR;
+  } else if ( level == AV_LOG_WARNING ) { //24
+    log_level = Logger::INFO;
+    //log_level = Logger::WARNING;
+  } else if ( level == AV_LOG_INFO ) { //32
+    log_level = Logger::DEBUG1;
+    //log_level = Logger::INFO;
+  } else if ( level == AV_LOG_VERBOSE ) { //40
+    log_level = Logger::DEBUG2;
+  } else if ( level == AV_LOG_DEBUG ) { //48
+    log_level = Logger::DEBUG3;
+#ifdef AV_LOG_TRACE
+  } else if ( level == AV_LOG_TRACE ) {
+    log_level = Logger::DEBUG8;
+#endif
+#ifdef AV_LOG_MAX_OFFSET
+  } else if ( level == AV_LOG_MAX_OFFSET ) {
+    log_level = Logger::DEBUG9;
+#endif
+  } else {
+    Error("Unknown log level %d", level);
+  }
+
+  if ( log ) {
+    char            logString[8192];
+    vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
+    log->logPrint(false, __FILE__, __LINE__, log_level, logString);
+  }
+}
+
 void FFMPEGInit() {
   static bool bInit = false;
 
-  if(!bInit) {
+  if ( !bInit ) {
+    if ( logDebugging() )
+      av_log_set_level( AV_LOG_DEBUG ); 
+    else
+      av_log_set_level( AV_LOG_QUIET ); 
+    if ( config.log_ffmpeg ) 
+        av_log_set_callback(log_libav_callback); 
+    else
+        Info("Not enabling ffmpeg logs, as LOG_FFMPEG is disabled in options");
     av_register_all();
-    av_log_set_level(AV_LOG_DEBUG);
+    avformat_network_init();
     bInit = true;
   }
 }
@@ -106,208 +156,32 @@ static int parse_key_value_pair(AVDictionary **pm, const char **buf,
     return ret;
 }
 int av_dict_parse_string(AVDictionary **pm, const char *str,
-                            const char *key_val_sep, const char *pairs_sep,
-                            int flags)
-   {
-       int ret;
-   
-       if (!str)
-          return 0;
-   
-       /* ignore STRDUP flags */
-       flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
-   
-       while (*str) {
-           if ((ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
-              return ret;
-   
-           if (*str)
-               str++;
-       }
-   
-       return 0;
+    const char *key_val_sep, const char *pairs_sep,
+    int flags) {
+  if (!str)
+    return 0;
+
+  /* ignore STRDUP flags */
+  flags &= ~(AV_DICT_DONT_STRDUP_KEY | AV_DICT_DONT_STRDUP_VAL);
+
+  while (*str) {
+    int ret;
+    if ( (ret = parse_key_value_pair(pm, &str, key_val_sep, pairs_sep, flags)) < 0)
+      return ret;
+
+    if (*str)
+      str++;
   }
+
+  return 0;
+}
 #endif
 #endif // HAVE_LIBAVUTIL
-
-#if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
-SWScale::SWScale() : gotdefaults(false), swscale_ctx(NULL), input_avframe(NULL), output_avframe(NULL) {
-  Debug(4,"SWScale object created");
-
-  /* Allocate AVFrame for the input */
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-  input_avframe = av_frame_alloc();
-#else
-  input_avframe = avcodec_alloc_frame();
-#endif
-  if(input_avframe == NULL) {
-    Fatal("Failed allocating AVFrame for the input");
-  }
-
-  /* Allocate AVFrame for the output */
-#if LIBAVCODEC_VERSION_CHECK(55, 28, 1, 45, 101)
-  output_avframe = av_frame_alloc();
-#else
-  output_avframe = avcodec_alloc_frame();
-#endif
-  if(output_avframe == NULL) {
-    Fatal("Failed allocating AVFrame for the output");
-  }
-}
-
-SWScale::~SWScale() {
-
-  /* Free up everything */
-  av_frame_free( &input_avframe );
-  //input_avframe = NULL;
-
-  av_frame_free( &output_avframe );
-  //output_avframe = NULL;
-
-  if(swscale_ctx) {
-    sws_freeContext(swscale_ctx);
-    swscale_ctx = NULL;
-  }
-
-  Debug(4,"SWScale object destroyed");
-}
-
-int SWScale::SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
-
-  /* Assign the defaults */
-  default_input_pf = in_pf;
-  default_output_pf = out_pf;
-  default_width = width;
-  default_height = height;
-
-  gotdefaults = true;
-
-  return 0;
-}
-
-int SWScale::Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
-  /* Parameter checking */
-  if(in_buffer == NULL || out_buffer == NULL) {
-    Error("NULL Input or output buffer");
-    return -1;
-  }
-  //  if(in_pf == 0 || out_pf == 0) {
-  //    Error("Invalid input or output pixel formats");
-  //    return -2;
-  //  }
-  if (!width || !height) {
-    Error("Invalid width or height");
-    return -3;
-  }
-
-#if LIBSWSCALE_VERSION_CHECK(0, 8, 0, 8, 0)
-  /* Warn if the input or output pixelformat is not supported */
-  if(!sws_isSupportedInput(in_pf)) {
-    Warning("swscale does not support the input format: %c%c%c%c",(in_pf)&0xff,((in_pf)&0xff),((in_pf>>16)&0xff),((in_pf>>24)&0xff));
-  }
-  if(!sws_isSupportedOutput(out_pf)) {
-    Warning("swscale does not support the output format: %c%c%c%c",(out_pf)&0xff,((out_pf>>8)&0xff),((out_pf>>16)&0xff),((out_pf>>24)&0xff));
-  }
-#endif
-
-  /* Check the buffer sizes */
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  size_t insize = av_image_get_buffer_size(in_pf, width, height,1);
-#else
-  size_t insize = avpicture_get_size(in_pf, width, height);
-#endif
-  if(insize != in_buffer_size) {
-    Error("The input buffer size does not match the expected size for the input format. Required: %d Available: %d", insize, in_buffer_size);
-    return -4;
-  }
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  size_t outsize = av_image_get_buffer_size(out_pf, width, height,1);
-#else
-  size_t outsize = avpicture_get_size(out_pf, width, height);
-#endif
-
-  if(outsize < out_buffer_size) {
-    Error("The output buffer is undersized for the output format. Required: %d Available: %d", outsize, out_buffer_size);
-    return -5;
-  }
-
-  /* Get the context */
-  swscale_ctx = sws_getCachedContext( swscale_ctx, width, height, in_pf, width, height, out_pf, SWS_FAST_BILINEAR, NULL, NULL, NULL );
-  if(swscale_ctx == NULL) {
-    Error("Failed getting swscale context");
-    return -6;
-  }
-
-  /* Fill in the buffers */
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  if (av_image_fill_arrays(input_avframe->data, input_avframe->linesize,
-                           (uint8_t*) in_buffer, in_pf, width, height, 1) <= 0) {
-#else
-  if (avpicture_fill((AVPicture*) input_avframe, (uint8_t*) in_buffer,
-                     in_pf, width, height) <= 0) {
-#endif
-    Error("Failed filling input frame with input buffer");
-    return -7;
-  }
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  if (av_image_fill_arrays(output_avframe->data, output_avframe->linesize,
-                           out_buffer, out_pf, width, height, 1) <= 0) {
-#else
-  if (avpicture_fill((AVPicture*) output_avframe, out_buffer, out_pf, width,
-                     height) <= 0) {
-#endif
-    Error("Failed filling output frame with output buffer");
-    return -8;
-  }
-
-  /* Do the conversion */
-  if(!sws_scale(swscale_ctx, input_avframe->data, input_avframe->linesize, 0, height, output_avframe->data, output_avframe->linesize ) ) {
-    Error("swscale conversion failed");
-    return -10;
-  }
-
-  return 0;
-}
-
-int SWScale::Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height) {
-  if(img->Width() != width) {
-    Error("Source image width differs. Source: %d Output: %d",img->Width(), width);
-    return -12;
-  }
-
-  if(img->Height() != height) {
-    Error("Source image height differs. Source: %d Output: %d",img->Height(), height);
-    return -13;
-  }
-
-  return Convert(img->Buffer(),img->Size(),out_buffer,out_buffer_size,in_pf,out_pf,width,height);
-}
-
-int SWScale::ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size) {
-
-  if(!gotdefaults) {
-    Error("Defaults are not set");
-    return -24;
-  }
-
-  return Convert(img,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
-}
-
-int SWScale::ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size) {
-
-  if(!gotdefaults) {
-    Error("Defaults are not set");
-    return -24;
-  }
-
-  return Convert(in_buffer,in_buffer_size,out_buffer,out_buffer_size,default_input_pf,default_output_pf,default_width,default_height);
-}
-#endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
-
 
 #endif // HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
 #if HAVE_LIBAVUTIL
+#if LIBAVUTIL_VERSION_CHECK(56, 0, 0, 17, 100)
 int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb){
   int64_t a, b, this_thing;
 
@@ -330,6 +204,7 @@ simple_round:
 
   return av_rescale_q(this_thing, fs_tb, out_tb);
 }
+#endif
 #endif
 
 int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat *oformat, const char *format, const char *filename) {
@@ -359,46 +234,32 @@ int hacked_up_context2_for_older_ffmpeg(AVFormatContext **avctx, AVOutputFormat 
     }
   }
 
-  if (!oformat) {
-    if (format) {
-      oformat = av_guess_format(format, NULL, NULL);
-      if (!oformat) {
-        av_log(s, AV_LOG_ERROR, "Requested output format '%s' is not a suitable output format\n", format);
-        ret = AVERROR(EINVAL);
-      }
-    } else {
-      oformat = av_guess_format(NULL, filename, NULL);
-      if (!oformat) {
-        ret = AVERROR(EINVAL);
-        av_log(s, AV_LOG_ERROR, "Unable to find a suitable output format for '%s'\n", filename);
-      }
-    }
-  }
-
   if (ret) {
     avformat_free_context(s);
     return ret;
-  } else {
-    s->oformat = oformat;
-    if (s->oformat->priv_data_size > 0) {
-      s->priv_data = av_mallocz(s->oformat->priv_data_size);
-      if (s->priv_data) {
-        if (s->oformat->priv_class) {
-          *(const AVClass**)s->priv_data= s->oformat->priv_class;
-          av_opt_set_defaults(s->priv_data);
-        }
-      } else {
-        av_log(s, AV_LOG_ERROR, "Out of memory\n");
-        ret = AVERROR(ENOMEM);
-        return ret;
-      }
-      s->priv_data = NULL;
-    }
-
-    if (filename) strncpy(s->filename, filename, sizeof(s->filename));
-    *avctx = s;
-    return 0;
   }
+
+  s->oformat = oformat;
+#if 0
+  if (s->oformat->priv_data_size > 0) {
+      if (s->oformat->priv_class) {
+        // This looks wrong, we just allocated priv_data and now we are losing the pointer to it.FIXME
+        *(const AVClass**)s->priv_data = s->oformat->priv_class;
+        av_opt_set_defaults(s->priv_data);
+      } else {
+    s->priv_data = av_mallocz(s->oformat->priv_data_size);
+    if ( ! s->priv_data) {
+      av_log(s, AV_LOG_ERROR, "Out of memory\n");
+      ret = AVERROR(ENOMEM);
+      return ret;
+    }
+    s->priv_data = NULL;
+  }
+#endif
+
+  if (filename) strncpy(s->filename, filename, sizeof(s->filename)-1);
+  *avctx = s;
+  return 0;
 }
 
 static void zm_log_fps(double d, const char *postfix) {
@@ -409,8 +270,40 @@ static void zm_log_fps(double d, const char *postfix) {
     Debug(1, "%3.2f %s", d, postfix);
   } else if (v % (100 * 1000)) {
     Debug(1, "%1.0f %s", d, postfix);
-  } else
+  } else {
     Debug(1, "%1.0fk %s", d / 1000, postfix);
+  }
+}
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+void zm_dump_codecpar ( const AVCodecParameters *par ) {
+  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d) bit_rate(%d) format(%d = %s)", 
+    par->codec_type,
+    par->codec_id,
+    par->codec_tag,
+    par->width,
+    par->height,
+    par->bit_rate,
+    par->format,
+    ((AVPixelFormat)par->format == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format))
+); 
+}
+#endif
+
+void zm_dump_codec(const AVCodecContext *codec) {
+  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d) format(%s)",
+    codec->codec_type,
+    codec->codec_id,
+    codec->width,
+    codec->height,
+    codec->time_base.num,
+    codec->time_base.den,
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt))
+#else
+    "unsupported on avconv"
+#endif
+); 
 }
 
 /* "user interface" functions */
@@ -421,7 +314,6 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   AVStream *st = ic->streams[i];
   AVDictionaryEntry *lang = av_dict_get(st->metadata, "language", NULL, 0);
 
-  avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, "    Stream #%d:%d", index, i);
 
   /* the pid is an important information, so we display it */
@@ -430,15 +322,21 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, "[0x%x]", st->id);
   if (lang)
     Debug(1, "(%s)", lang->value);
-  Debug(1, ", %d, %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
+  Debug(1, ", frames:%d, timebase: %d/%d", st->codec_info_nb_frames, st->time_base.num, st->time_base.den);
+  avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, ": %s", buf);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  AVCodecParameters *codec = st->codecpar;
+#else
+  AVCodecContext *codec = st->codec;
+#endif
 
   if (st->sample_aspect_ratio.num && // default
-      av_cmp_q(st->sample_aspect_ratio, st->codec->sample_aspect_ratio)) {
+      av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)) {
     AVRational display_aspect_ratio;
     av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
-        st->codec->width  * (int64_t)st->sample_aspect_ratio.num,
-        st->codec->height * (int64_t)st->sample_aspect_ratio.den,
+        codec->width  * (int64_t)st->sample_aspect_ratio.num,
+        codec->height * (int64_t)st->sample_aspect_ratio.den,
         1024 * 1024);
     Debug(1, ", SAR %d:%d DAR %d:%d",
         st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
@@ -503,9 +401,108 @@ int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt) {
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
 #else
 unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {
-  dst->data = reinterpret_cast<uint8_t*>(new uint64_t[(src->size + FF_INPUT_BUFFER_PADDING_SIZE)/sizeof(uint64_t) + 1]);
-  memcpy(dst->data, src->data, src->size );
+  av_new_packet(dst,src->size);
+  memcpy(dst->data, src->data, src->size);
+  dst->flags = src->flags;
   return 0;
 }
 #endif
 
+bool is_video_stream( AVStream * stream ) {
+  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      if ( stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ) {
+  #else
+  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+      if ( stream->codec->codec_type == AVMEDIA_TYPE_VIDEO ) {
+  #else
+      if ( stream->codec->codec_type == CODEC_TYPE_VIDEO ) {
+  #endif
+  #endif
+    return true;
+  }
+  return false;
+}
+
+
+bool is_audio_stream( AVStream * stream ) {
+  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      if ( stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO ) {
+  #else
+  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+      if ( stream->codec->codec_type == AVMEDIA_TYPE_AUDIO ) {
+  #else
+      if ( stream->codec->codec_type == CODEC_TYPE_AUDIO ) {
+  #endif
+  #endif
+    return true;
+  }
+  return false;
+}
+
+int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet ) {
+  int ret;
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  if ( (ret = avcodec_send_packet(context, &packet)) < 0  ) {
+    Error( "Unable to send packet %s, continuing",
+       av_make_error_string(ret).c_str() );
+    return 0;
+  }
+
+#if HAVE_AVUTIL_HWCONTEXT_H
+  if ( hwaccel ) {
+    if ( (ret = avcodec_receive_frame(context, hwFrame)) < 0 ) {
+      Error( "Unable to receive frame %d: %s, continuing", streams[packet.stream_index].frame_count,
+         av_make_error_string(ret).c_str() );
+      return 0;
+    }
+    if ( (ret = av_hwframe_transfer_data(frame, hwFrame, 0)) < 0 ) {
+      Error( "Unable to transfer frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count,
+          av_make_error_string(ret).c_str() );
+      return 0;
+    }
+  } else {
+#endif
+    if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
+      Error( "Unable to send packet %s, continuing", av_make_error_string(ret).c_str() );
+      return 0;
+    }
+#if HAVE_AVUTIL_HWCONTEXT_H
+  }
+#endif
+
+# else
+  int frameComplete = 0;
+  while ( !frameComplete ) {
+    if ( (ret = zm_avcodec_decode_video( context, frame, &frameComplete, &packet )) < 0 ) {
+      Error( "Unable to decode frame at frame: %s, continuing",
+          av_make_error_string(ret).c_str() );
+      return 0;
+    }
+  }
+#endif
+  return 1;
+} // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
+void dumpPacket(AVPacket *pkt, const char *text) {
+  char b[10240];
+
+  snprintf(b, sizeof(b),
+           " pts: %" PRId64 ", dts: %" PRId64
+           ", data: %p, size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64
+           ", duration: %" 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+           PRId64
+#else
+           "d"
+#endif
+           "\n",
+           pkt->pts, 
+           pkt->dts,
+           pkt->data,
+           pkt->size,
+           pkt->stream_index,
+           pkt->flags,
+           pkt->flags & AV_PKT_FLAG_KEY,
+           pkt->pos,
+           pkt->duration);
+  Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
+}

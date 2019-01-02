@@ -1,57 +1,89 @@
-var jsTranslatedAddText;
-var jsTranslatedCloneText;
 
 function setButtonStates( element ) {
   var form = element.form;
   var checked = 0;
-  for ( var i = 0; i < form.elements.length; i++ ) {
-    if ( form.elements[i].type == "checkbox" ) {
+  for ( var i=0; i < form.elements.length; i++ ) {
+    if (
+      form.elements[i].type=="checkbox"
+      &&
+      form.elements[i].name=="markMids[]"
+    ) {
+      var tr = $j(form.elements[i]).closest("tr");
       if ( form.elements[i].checked ) {
-        if ( checked++ > 1 )
-          break;
+        checked ++;
+        tr.addClass("danger");
+      } else {
+        tr.removeClass("danger");
       }
     }
   }
-  $(element).getParent( 'tr' ).toggleClass( 'highlight' );
-  form.editBtn.disabled = (checked!=1);
-  form.addBtn.value = (checked==1) ? jsTranslatedCloneText:jsTranslatedAddText;
-
-  form.deleteBtn.disabled = (checked==0);
+  if ( checked ) {
+    form.editBtn.disabled = false;
+    form.deleteBtn.disabled = false;
+    form.selectBtn.disabled = false;
+    if ( checked == 1 ) {
+      $j(form.cloneBtn).css('display','inline');
+    } else {
+      form.cloneBtn.hide();
+    }
+  } else {
+    form.cloneBtn.hide();
+    form.editBtn.disabled = true;
+    form.deleteBtn.disabled = true;
+    form.selectBtn.disabled = true;
+  }
 }
 
-function addMonitor( element) {
+function addMonitor(element) {
+  createPopup( '?view=monitor', 'zmMonitor0', 'monitor' );
+}
+
+function cloneMonitor(element) {
+
   var form = element.form;
   var dupParam;
   var monitorId=-1;
-  if (form.addBtn.value == jsTranslatedCloneText) {
-    // get the value of the first checkbox
-    for ( var i = 0; i < form.elements.length; i++ ) {
-      if ( form.elements[i].type == "checkbox" ) {
-        if ( form.elements[i].checked ) {
-          monitorId = form.elements[i].value;
-          break;
-        }
-      }
+  // get the value of the first checkbox
+  for ( var i = 0; i < form.elements.length; i++ ) {
+    if (
+      form.elements[i].type == "checkbox"
+      &&
+      form.elements[i].name == "markMids[]"
+      &&
+      form.elements[i].checked
+    ) {
+      monitorId = form.elements[i].value;
+      break;
     }
+  } // end foreach element
+  if ( monitorId != -1 ) {
+    createPopup( '?view=monitor&dupId='+monitorId, 'zmMonitor0', 'monitor' );
   }
-  dupParam = (monitorId == -1 ) ? '': '&dupId='+monitorId;
-  createPopup( '?view=monitor'+dupParam, 'zmMonitor0', 'monitor' );
 }
 
 function editMonitor( element ) {
   var form = element.form;
+  var monitorIds = Array();
+
   for ( var i = 0; i < form.elements.length; i++ ) {
-    if ( form.elements[i].type == "checkbox" ) {
-      if ( form.elements[i].checked ) {
-        var monitorId = form.elements[i].value;
-        createPopup( '?view=monitor&mid='+monitorId, 'zmMonitor'+monitorId, 'monitor' );
-        form.elements[i].checked = false;
-        setButtonStates( form.elements[i] );
-        //$(form.elements[i]).getParent( 'tr' ).removeClass( 'highlight' );
-        break;
-      }
+    if ( 
+      form.elements[i].type == "checkbox"
+      &&
+      form.elements[i].name == "markMids[]"
+      &&
+      form.elements[i].checked
+    ) {
+      monitorIds.push( form.elements[i].value );
+      //form.elements[i].checked = false;
+      //setButtonStates( form.elements[i] );
+      //$(form.elements[i]).getParent( 'tr' ).removeClass( 'highlight' );
+      //break;
     }
-  }
+  } // end foreach checkboxes
+  if ( monitorIds.length == 1 )
+        createPopup( '?view=monitor&mid='+monitorIds[0], 'zmMonitor'+monitorIds[0], 'monitor' );
+  else if ( monitorIds.length > 1 ) 
+        createPopup( '?view=monitors&'+(monitorIds.map(function(mid){return 'mids[]='+mid;}).join('&')), 'zmMonitors', 'monitors' );
 }
 
 function deleteMonitor( element ) {
@@ -62,18 +94,53 @@ function deleteMonitor( element ) {
   }
 }
 
+function selectMonitor(element) {
+  var form = element.form;
+  var url = thisUrl+'?view=console';
+  for ( var i = 0; i < form.elements.length; i++ ) {
+    if (
+        form.elements[i].type == "checkbox"
+        &&
+        form.elements[i].name == "markMids[]"
+        &&
+        form.elements[i].checked
+       ) {
+      url += '&MonitorId='+form.elements[i].value;
+    }
+  }
+  window.location.replace(url);
+}
+
 function reloadWindow() {
   window.location.replace( thisUrl );
 }
 
 function initPage() {
-  jsTranslatedAddText = translatedAddText;
-  jsTranslatedCloneText = translatedCloneText;
   reloadWindow.periodical( consoleRefreshTimeout );
   if ( showVersionPopup )
     createPopup( '?view=version', 'zmVersion', 'version' );
   if ( showDonatePopup )
     createPopup( '?view=donate', 'zmDonate', 'donate' );
+
+  // Makes table sortable
+  $j( function() {
+    $j( "#consoleTableBody" ).sortable({
+        handle: ".glyphicon-sort",
+        update: applySort,
+        axis:'Y' } );
+    $j( "#consoleTableBody" ).disableSelection();
+  } );
 }
+
+function applySort(event, ui) {
+  var monitor_ids = $j(this).sortable('toArray');
+  var ajax = new Request.JSON( {
+      url: 'index.php?request=console',
+      data: { monitor_ids: monitor_ids, action: 'sort' },
+      method: 'post',
+      timeout: AJAX_TIMEOUT
+      } );
+  ajax.send();
+} // end function applySort(event,ui)
 
 window.addEvent( 'domready', initPage );

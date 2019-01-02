@@ -9,7 +9,12 @@ if ( refreshParent ) {
 function configureButtons( element ) {
   if ( canEditGroups ) {
     var form = element.form;
-    form.saveBtn.disabled = (element.value == 0);
+    var disabled = false;
+
+    if ( form.elements['newGroup[Name]'].value == '' ) {
+      disabled = true;
+    } 
+    form.saveBtn.disabled = disabled;
   }
 }
 

@@ -36,8 +36,7 @@ int RtspThread::smMinDataPort = 0;
 int RtspThread::smMaxDataPort = 0;
 RtspThread::PortSet  RtspThread::smAssignedPorts;
 
-bool RtspThread::sendCommand( std::string message )
-{
+bool RtspThread::sendCommand( std::string message ) {
   if ( mNeedAuth ) {
     StringVector parts = split( message, " " );
     if (parts.size() > 1)
@@ -46,20 +45,15 @@ bool RtspThread::sendCommand( std::string message )
   message += stringtf( "User-Agent: ZoneMinder/%s\r\n", ZM_VERSION );
   message += stringtf( "CSeq: %d\r\n\r\n", ++mSeq );
   Debug( 2, "Sending RTSP message: %s", message.c_str() );
-  if ( mMethod == RTP_RTSP_HTTP )
-  {
+  if ( mMethod == RTP_RTSP_HTTP ) {
     message = base64Encode( message );
     Debug( 2, "Sending encoded RTSP message: %s", message.c_str() );
-    if ( mRtspSocket2.send( message.c_str(), message.size() ) != (int)message.length() )
-    {
+    if ( mRtspSocket2.send( message.c_str(), message.size() ) != (int)message.length() ) {
       Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
       return( false );
     }
-  }
-  else
-  {
-    if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() )
-    {
+  } else {
+    if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() ) {
       Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
       return( false );
     }
@@ -67,77 +61,60 @@ bool RtspThread::sendCommand( std::string message )
   return( true );
 }
 
-bool RtspThread::recvResponse( std::string &response )
-{
+bool RtspThread::recvResponse( std::string &response ) {
   if ( mRtspSocket.recv( response ) < 0 )
     Error( "Recv failed; %s", strerror(errno) );
   Debug( 2, "Received RTSP response: %s (%zd bytes)", response.c_str(), response.size() );
   float respVer = 0;
   respCode = -1;
   char respText[ZM_NETWORK_BUFSIZ];
-  if ( sscanf( response.c_str(), "RTSP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 )
-  {
-    if ( isalnum(response[0]) )
-    {
+  if ( sscanf( response.c_str(), "RTSP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 ) {
+    if ( isalnum(response[0]) ) {
       Error( "Response parse failure in '%s'", response.c_str() );
-    }
-    else
-    {
+    } else {
       Error( "Response parse failure, %zd bytes follow", response.size() );
       if ( response.size() )
         Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
     }
     return( false );
   }
-  if ( respCode == 401)
-  {
+  if ( respCode == 401) {
     Debug( 2, "Got 401 access denied response code, check WWW-Authenticate header and retry");
     mAuthenticator->checkAuthResponse(response);
     mNeedAuth = true;
     return( false );
-  } 
-  else if ( respCode != 200 )
-  {
+  } else if ( respCode != 200 ) {
     Error( "Unexpected response code %d, text is '%s'", respCode, respText );
     return( false );
   }
   return( true );
 }
 
-int RtspThread::requestPorts()
-{
-  if ( !smMinDataPort )
-  {
+int RtspThread::requestPorts() {
+  if ( !smMinDataPort ) {
     char sql[ZM_SQL_SML_BUFSIZ];
     strncpy( sql, "select Id from Monitors where Function != 'None' and Type = 'Remote' and Protocol = 'rtsp' and Method = 'rtpUni' order by Id asc", sizeof(sql) );
-    if ( mysql_query( &dbconn, sql ) )
-    {
+    if ( mysql_query( &dbconn, sql ) ) {
       Error( "Can't run query: %s", mysql_error( &dbconn ) );
       exit( mysql_errno( &dbconn ) );
     }
 
     MYSQL_RES *result = mysql_store_result( &dbconn );
-    if ( !result )
-    {
+    if ( !result ) {
       Error( "Can't use query result: %s", mysql_error( &dbconn ) );
       exit( mysql_errno( &dbconn ) );
     }
     int nMonitors = mysql_num_rows( result );
     int position = 0;
-    if ( nMonitors )
-    {
-      for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ )
-      {
+    if ( nMonitors ) {
+      for( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row( result ); i++ ) {
         int id = atoi(dbrow[0]);
-        if ( mId == id )
-        {
+        if ( mId == id ) {
           position = i;
           break;
         }
       }
-    }
-    else
-    {
+    } else {
       // Minor hack for testing when not strictly enabled
       nMonitors = 1;
       position = 0;
@@ -148,11 +125,9 @@ int RtspThread::requestPorts()
     smMaxDataPort = smMinDataPort + portRange - 1;
     Debug( 2, "Assigned RTP port range is %d-%d", smMinDataPort, smMaxDataPort );
   }
-  for ( int i = smMinDataPort; i <= smMaxDataPort; i++ )
-  {
+  for ( int i = smMinDataPort; i <= smMaxDataPort; i++ ) {
     PortSet::const_iterator iter = smAssignedPorts.find( i );
-    if ( iter == smAssignedPorts.end() )
-    {
+    if ( iter == smAssignedPorts.end() ) {
       smAssignedPorts.insert( i );
       return( i );
     }
@@ -161,8 +136,7 @@ int RtspThread::requestPorts()
   return( -1 );
 }
 
-void RtspThread::releasePorts( int port )
-{
+void RtspThread::releasePorts( int port ) {
   if ( port > 0 )
     smAssignedPorts.erase( port );
 }
@@ -185,8 +159,7 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
   mStop( false )
 {
   mUrl = mProtocol+"://"+mHost+":"+mPort;
-  if ( !mPath.empty() )
-  {
+  if ( !mPath.empty() ) {
     if ( mPath[0] == '/' )
       mUrl += mPath;
     else
@@ -208,10 +181,8 @@ RtspThread::RtspThread( int id, RtspMethod method, const std::string &protocol, 
     mAuthenticator = new zm::Authenticator(parts[0], "");
 }
 
-RtspThread::~RtspThread()
-{
-  if ( mFormatContext )
-  {
+RtspThread::~RtspThread() {
+  if ( mFormatContext ) {
 #if LIBAVFORMAT_VERSION_CHECK(52, 96, 0, 96, 0)
     avformat_free_context( mFormatContext );
 #else
@@ -219,16 +190,14 @@ RtspThread::~RtspThread()
 #endif
     mFormatContext = NULL;
   }
-  if ( mSessDesc )
-  {
+  if ( mSessDesc ) {
     delete mSessDesc;
     mSessDesc = NULL;
   }
   delete mAuthenticator;
 }
 
-int RtspThread::run()
-{
+int RtspThread::run() {
   std::string message;
   std::string response;
 
@@ -246,8 +215,7 @@ int RtspThread::run()
 
   
   bool authTried = false; 
-  if ( mMethod == RTP_RTSP_HTTP )
-  {
+  if ( mMethod == RTP_RTSP_HTTP ) {
     if ( !mRtspSocket2.connect( mHost.c_str(), mPort.c_str() ) )
       Fatal( "Unable to connect auxiliary RTSP/HTTP socket" );
     //Select select( 0.25 );
@@ -271,13 +239,11 @@ int RtspThread::run()
       message += "Accept: application/x-rtsp-tunnelled\r\n";
       message += "\r\n";
       Debug( 2, "Sending HTTP message: %s", message.c_str() );
-      if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() )
-      {
+      if ( mRtspSocket.send( message.c_str(), message.size() ) != (int)message.length() ) {
         Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
         return( -1 );
       }
-      if ( mRtspSocket.recv( response ) < 0 )
-      {
+      if ( mRtspSocket.recv( response ) < 0 ) {
         Error( "Recv failed; %s", strerror(errno) );
         return( -1 );
       }
@@ -285,14 +251,10 @@ int RtspThread::run()
       Debug( 2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size() );
       float respVer = 0;
       respCode = -1;
-      if ( sscanf( response.c_str(), "HTTP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 )
-      {
-        if ( isalnum(response[0]) )
-        {
+      if ( sscanf( response.c_str(), "HTTP/%f %3d %[^\r\n]\r\n", &respVer, &respCode, respText ) != 3 ) {
+        if ( isalnum(response[0]) ) {
           Error( "Response parse failure in '%s'", response.c_str() );
-        }
-        else
-        {
+        } else {
           Error( "Response parse failure, %zd bytes follow", response.size() );
           if ( response.size() )
             Hexdump( Logger::ERROR, response.data(), min(response.size(),16) );
@@ -313,8 +275,7 @@ int RtspThread::run()
       
     } while (respCode == 401 && !authTried);  
     
-    if ( respCode != 200 )
-    {
+    if ( respCode != 200 ) {
       Error( "Unexpected response code %d, text is '%s'", respCode, respText );
       return( -1 );
     }
@@ -327,8 +288,7 @@ int RtspThread::run()
     message += "Content-Type: application/x-rtsp-tunnelled\r\n";
     message += "\r\n";
     Debug( 2, "Sending HTTP message: %s", message.c_str() );
-    if ( mRtspSocket2.send( message.c_str(), message.size() ) != (int)message.length() )
-    {
+    if ( mRtspSocket2.send( message.c_str(), message.size() ) != (int)message.length() ) {
       Error( "Unable to send message '%s': %s", message.c_str(), strerror(errno) );
       return( -1 );
     }
@@ -383,17 +343,14 @@ int RtspThread::run()
   if( sdpStart == std::string::npos )
     return( -1 );
 
-  if ( mRtspDescribe )
-  {
+  if ( mRtspDescribe ) {
     std::string DescHeader = response.substr( 0,sdpStart );
     Debug( 1, "Processing DESCRIBE response header '%s'", DescHeader.c_str() );
 
     lines = split( DescHeader, "\r\n" );
-    for ( size_t i = 0; i < lines.size(); i++ )
-      {
+    for ( size_t i = 0; i < lines.size(); i++ ) {
         // If the device sends us a url value for Content-Base in the response header, we should use that instead
-        if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) )
-          {
+        if ( ( lines[i].size() > 13 ) && ( lines[i].substr( 0, 13 ) == "Content-Base:" ) ) {
             mUrl = trimSpaces( lines[i].substr( 13 ) );
             Info("Received new Content-Base in DESCRIBE response header. Updated device Url to: '%s'", mUrl.c_str() );
             break;
@@ -406,13 +363,10 @@ int RtspThread::run()
   std::string sdp = response.substr( sdpStart );
   Debug( 1, "Processing SDP '%s'", sdp.c_str() );
 
-  try
-  {
+  try {
     mSessDesc = new SessionDescriptor( mUrl, sdp );
     mFormatContext = mSessDesc->generateFormatContext();
-  }
-  catch( const Exception &e )
-  {
+  } catch( const Exception &e ) {
     Error( e.getMessage().c_str() );
     return( -1 );
   }
@@ -434,12 +388,10 @@ int RtspThread::run()
   std::string trackUrl = mUrl;
   std::string controlUrl;
   
-  _AVCODECID codecId;
+  _AVCODECID codecId = AV_CODEC_ID_NONE;
   
-  if ( mFormatContext->nb_streams >= 1 )
-  {
-    for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ )
-    {
+  if ( mFormatContext->nb_streams >= 1 ) {
+    for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
       SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream( i );
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
       if ( mFormatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO )
@@ -449,12 +401,9 @@ int RtspThread::run()
       {
         // Check if control Url is absolute or relative
         controlUrl = mediaDesc->getControlUrl();
-        if (std::equal(trackUrl.begin(), trackUrl.end(), controlUrl.begin()))
-        {
+        if (std::equal(trackUrl.begin(), trackUrl.end(), controlUrl.begin())) {
           trackUrl = controlUrl;
-        }
-        else
-        {
+        } else {
           if ( *trackUrl.rbegin() != '/') {
             trackUrl += "/" + controlUrl;
           } else {
@@ -470,8 +419,7 @@ int RtspThread::run()
     }
   }
 
-  switch( mMethod )
-  {
+  switch( mMethod ) {
     case RTP_UNICAST :
     {
       localPorts[0] = requestPorts();
@@ -508,10 +456,8 @@ int RtspThread::run()
   int timeout = 0;
   char transport[256] = "";
 
-  for ( size_t i = 0; i < lines.size(); i++ )
-  {
-    if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) )
-    {
+  for ( size_t i = 0; i < lines.size(); i++ ) {
+    if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) ) {
       StringVector sessionLine = split( lines[i].substr(9), ";" );
       session = trimSpaces( sessionLine[0] );
       if ( sessionLine.size() == 2 )
@@ -536,41 +482,31 @@ int RtspThread::run()
   std::string distribution = "";
   unsigned long ssrc = 0;
   StringVector parts = split( transport, ";" );
-  for ( size_t i = 0; i < parts.size(); i++ )
-  {
+  for ( size_t i = 0; i < parts.size(); i++ ) {
     if ( parts[i] == "unicast" || parts[i] == "multicast" )
       distribution = parts[i];
-    else if ( startsWith( parts[i], "server_port=" ) )
-    {
+    else if ( startsWith( parts[i], "server_port=" ) ) {
       method = "RTP/UNICAST";
       StringVector subparts = split( parts[i], "=" );
       StringVector ports = split( subparts[1], "-" );
       remotePorts[0] = strtol( ports[0].c_str(), NULL, 10 );
       remotePorts[1] = strtol( ports[1].c_str(), NULL, 10 );
-    }
-    else if ( startsWith( parts[i], "interleaved=" ) )
-    {
+    } else if ( startsWith( parts[i], "interleaved=" ) ) {
       method = "RTP/RTSP";
       StringVector subparts = split( parts[i], "=" );
       StringVector channels = split( subparts[1], "-" );
       remoteChannels[0] = strtol( channels[0].c_str(), NULL, 10 );
       remoteChannels[1] = strtol( channels[1].c_str(), NULL, 10 );
-    }
-    else if ( startsWith( parts[i], "port=" ) )
-    {
+    } else if ( startsWith( parts[i], "port=" ) ) {
       method = "RTP/MULTICAST";
       StringVector subparts = split( parts[i], "=" );
       StringVector ports = split( subparts[1], "-" );
       localPorts[0] = strtol( ports[0].c_str(), NULL, 10 );
       localPorts[1] = strtol( ports[1].c_str(), NULL, 10 );
-    }
-    else if ( startsWith( parts[i], "destination=" ) )
-    {
+    } else if ( startsWith( parts[i], "destination=" ) ) {
       StringVector subparts = split( parts[i], "=" );
       localHost = subparts[1];
-    }
-    else if ( startsWith( parts[i], "ssrc=" ) )
-    {
+    } else if ( startsWith( parts[i], "ssrc=" ) ) {
       StringVector subparts = split( parts[i], "=" );
       ssrc = strtoll( subparts[1].c_str(), NULL, 16 );
     }
@@ -592,13 +528,11 @@ int RtspThread::run()
 
   lines = split( response, "\r\n" );
   std::string rtpInfo;
-  for ( size_t i = 0; i < lines.size(); i++ )
-  {
+  for ( size_t i = 0; i < lines.size(); i++ ) {
     if ( ( lines[i].size() > 9 ) && ( lines[i].substr( 0, 9 ) == "RTP-Info:" ) )
       rtpInfo = trimSpaces( lines[i].substr( 9 ) );
   // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
-    if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) && ( timeout == 0 ) )
-    {
+    if ( ( lines[i].size() > 8 ) && ( lines[i].substr( 0, 8 ) == "Session:" ) && ( timeout == 0 ) ) {
       StringVector sessionLine = split( lines[i].substr(9), ";" );
       if ( sessionLine.size() == 2 )
         sscanf( trimSpaces( sessionLine[1] ).c_str(), "timeout=%d", &timeout );
@@ -610,31 +544,22 @@ int RtspThread::run()
   int seq = 0;
   unsigned long rtpTime = 0;
   StringVector streams;
-  if ( rtpInfo.empty() )
-  {
+  if ( rtpInfo.empty() ) {
     Debug( 1, "RTP Info Empty. Starting values for Sequence and Rtptime shall be zero.");
-  }
-  else
-  {
+  } else {
     Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
     // More than one stream can be included in the RTP Info
     streams = split( rtpInfo.c_str(), "," );
-    for ( size_t i = 0; i < streams.size(); i++ )
-    {
+    for ( size_t i = 0; i < streams.size(); i++ ) {
       // We want the stream that matches the trackUrl we are using
-      if ( streams[i].find(controlUrl.c_str()) != std::string::npos )
-      {
+      if ( streams[i].find(controlUrl.c_str()) != std::string::npos ) {
         // Parse the sequence and rtptime values
         parts = split( streams[i].c_str(), ";" );
-        for ( size_t j = 0; j < parts.size(); j++ )
-        {
-          if ( startsWith( parts[j], "seq=" ) )
-          {
+        for ( size_t j = 0; j < parts.size(); j++ ) {
+          if ( startsWith( parts[j], "seq=" ) ) {
             StringVector subparts = split( parts[j], "=" );
             seq = strtol( subparts[1].c_str(), NULL, 10 );
-          }
-          else if ( startsWith( parts[j], "rtptime=" ) )
-          {
+          } else if ( startsWith( parts[j], "rtptime=" ) ) {
             StringVector subparts = split( parts[j], "=" );
             rtpTime = strtol( subparts[1].c_str(), NULL, 10 );
           }
@@ -651,8 +576,7 @@ int RtspThread::run()
   time_t now;
   message = "GET_PARAMETER "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
 
-  switch( mMethod )
-  {
+  switch( mMethod ) {
     case RTP_UNICAST :
     {
       RtpSource *source = new RtpSource( mId, "", localPorts[0], mHost, remotePorts[0], ssrc, seq, rtpClock, rtpTime, codecId );
@@ -663,13 +587,11 @@ int RtspThread::run()
       rtpDataThread.start();
       rtpCtrlThread.start();
 
-      while( !mStop )
-      {
+      while( !mStop ) {
         now = time(NULL);
         // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
 Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepalive, timeout, now, lastKeepalive, (now-lastKeepalive) );
-        if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) )
-        {
+        if ( sendKeepalive && (timeout > 0) && ((now-lastKeepalive) > (timeout-5)) ) {
           if ( !sendCommand( message ) )
             return( -1 );
           lastKeepalive = now;
@@ -721,11 +643,9 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
       Buffer buffer( ZM_NETWORK_BUFSIZ );
       std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
       std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
-      while ( !mStop && select.wait() >= 0 )
-      {
+      while ( !mStop && select.wait() >= 0 ) {
         Select::CommsList readable = select.getReadable();
-        if ( readable.size() == 0 )
-        {
+        if ( readable.size() == 0 ) {
           Error( "RTSP timed out" );
           break;
         }
@@ -735,23 +655,19 @@ Debug(5, "sendkeepalive %d, timeout %d, now: %d last: %d since: %d", sendKeepali
         buffer.append( tempBuffer, nBytes );
         Debug( 4, "Read %zd bytes on sd %d, %d total", nBytes, mRtspSocket.getReadDesc(), buffer.size() );
 
-        while( buffer.size() > 0 )
-        {
-          if ( buffer[0] == '$' )
-          {
+        while( buffer.size() > 0 ) {
+          if ( buffer[0] == '$' ) {
             if ( buffer.size() < 4 )
               break;
             unsigned char channel = buffer[1];
             unsigned short len = ntohs( *((unsigned short *)(buffer+2)) );
 
             Debug( 4, "Got %d bytes left, expecting %d byte packet on channel %d", buffer.size(), len, channel );
-            if ( (unsigned short)buffer.size() < (len+4) )
-            {
+            if ( (unsigned short)buffer.size() < (len+4) ) {
               Debug( 4, "Missing %d bytes, rereading", (len+4)-buffer.size() );
               break;
             }
-            if ( channel == remoteChannels[0] )
-            {
+            if ( channel == remoteChannels[0] ) {
               Debug( 4, "Got %d bytes on data channel %d, packet length is %d", buffer.size(), channel, len );
               Hexdump( 4, (char *)buffer, 16 );
               rtpDataThread.recvPacket( buffer+4, len );

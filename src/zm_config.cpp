@@ -39,24 +39,24 @@ void zmLoadConfig() {
   // update the Config hash with those values
   DIR* configSubFolder = opendir(ZM_CONFIG_SUBDIR);
   if ( configSubFolder ) { // subfolder exists and is readable
-      char glob_pattern[PATH_MAX] = "";
-      snprintf( glob_pattern, sizeof(glob_pattern), "%s/*.conf", ZM_CONFIG_SUBDIR );
+    char glob_pattern[PATH_MAX] = "";
+    snprintf( glob_pattern, sizeof(glob_pattern), "%s/*.conf", ZM_CONFIG_SUBDIR );
 
-      glob_t pglob;
-      int glob_status = glob( glob_pattern, 0, 0, &pglob );
-      if ( glob_status != 0 ) {
-          if ( glob_status < 0 ) {
-              Error( "Can't glob '%s': %s", glob_pattern, strerror(errno) );
-          } else {
-              Debug( 1, "Can't glob '%s': %d", glob_pattern, glob_status );
-          }
+    glob_t pglob;
+    int glob_status = glob( glob_pattern, 0, 0, &pglob );
+    if ( glob_status != 0 ) {
+      if ( glob_status < 0 ) {
+        Error( "Can't glob '%s': %s", glob_pattern, strerror(errno) );
       } else {
-          for ( unsigned int i = 0; i < pglob.gl_pathc; i++ ) {
-              process_configfile(pglob.gl_pathv[i]);
-          }
-          closedir(configSubFolder);
+        Debug( 1, "Can't glob '%s': %d", glob_pattern, glob_status );
       }
-      globfree( &pglob );
+    } else {
+      for ( unsigned int i = 0; i < pglob.gl_pathc; i++ ) {
+        process_configfile(pglob.gl_pathv[i]);
+      }
+    }
+    globfree( &pglob );
+    closedir(configSubFolder);
   }
 
   zmDbConnect();
@@ -69,7 +69,8 @@ void zmLoadConfig() {
 
       Debug( 1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str() );
       std::string sql = stringtf("SELECT Id FROM Servers WHERE Name='%s'", staticConfig.SERVER_NAME.c_str() );
-      if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
+      zmDbRow dbrow;
+      if ( dbrow.fetch( sql.c_str() ) ) {
         staticConfig.SERVER_ID = atoi(dbrow[0]);
       } else {
         Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str() );
@@ -80,17 +81,24 @@ void zmLoadConfig() {
     Debug( 1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID );
     std::string sql = stringtf("SELECT Name FROM Servers WHERE Id='%d'", staticConfig.SERVER_ID );
     
-    if ( MYSQL_ROW dbrow = zmDbFetchOne( sql.c_str() ) ) {
+    zmDbRow dbrow;
+    if ( dbrow.fetch( sql.c_str() ) ) {
       staticConfig.SERVER_NAME = std::string(dbrow[0]);
     } else {
       Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID );
     }
+
     if ( staticConfig.SERVER_ID ) {
         Debug( 3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID );
     } else {
         Debug( 3, "Single server configuration assumed because no Server ID or Name was specified." );
     }
   }
+
+  snprintf( staticConfig.capture_file_format, sizeof(staticConfig.capture_file_format), "%%s/%%0%dd-capture.jpg", config.event_image_digits );
+  snprintf( staticConfig.analyse_file_format, sizeof(staticConfig.analyse_file_format), "%%s/%%0%dd-analyse.jpg", config.event_image_digits );
+  snprintf( staticConfig.general_file_format, sizeof(staticConfig.general_file_format), "%%s/%%0%dd-%%s", config.event_image_digits );
+  snprintf( staticConfig.video_file_format, sizeof(staticConfig.video_file_format), "%%s/%%s");
 }
 
 void process_configfile( char* configFile) {
@@ -98,6 +106,7 @@ void process_configfile( char* configFile) {
   char line[512];
   if ( (cfg = fopen( configFile, "r")) == NULL ) {
     Fatal( "Can't open %s: %s", configFile, strerror(errno) );
+    return;
   }
   while ( fgets( line, sizeof(line), cfg ) != NULL ) {
     char *line_ptr = line;
@@ -114,9 +123,9 @@ void process_configfile( char* configFile) {
     if ( *line_ptr == '\0' || *line_ptr == '#' )
       continue;
 
-    // Remove trailing white space
+    // Remove trailing white space and trailing quotes
     char *temp_ptr = line_ptr+strlen(line_ptr)-1;
-    while ( *temp_ptr == ' ' || *temp_ptr == '\t' ) {
+    while ( *temp_ptr == ' ' || *temp_ptr == '\t' || *temp_ptr == '\'' || *temp_ptr == '\"') {
       *temp_ptr-- = '\0';
       temp_ptr--;
     }
@@ -138,8 +147,9 @@ void process_configfile( char* configFile) {
       temp_ptr--;
     } while ( *temp_ptr == ' ' || *temp_ptr == '\t' );
 
-    // Remove leading white space from the value part
+    // Remove leading white space and leading quotes from the value part
     white_len = strspn( val_ptr, " \t" );
+    white_len += strspn( val_ptr, "\'\"" );
     val_ptr += white_len;
 
     if ( strcasecmp( name_ptr, "ZM_DB_HOST" ) == 0 )
@@ -150,6 +160,12 @@ void process_configfile( char* configFile) {
       staticConfig.DB_USER = std::string(val_ptr);
     else if ( strcasecmp( name_ptr, "ZM_DB_PASS" ) == 0 )
       staticConfig.DB_PASS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DB_SSL_CA_CERT" ) == 0 )
+      staticConfig.DB_SSL_CA_CERT = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DB_SSL_CLIENT_KEY" ) == 0 )
+      staticConfig.DB_SSL_CLIENT_KEY = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DB_SSL_CLIENT_CERT" ) == 0 )
+      staticConfig.DB_SSL_CLIENT_CERT = std::string(val_ptr);
     else if ( strcasecmp( name_ptr, "ZM_PATH_WEB" ) == 0 )
       staticConfig.PATH_WEB = std::string(val_ptr);
     else if ( strcasecmp( name_ptr, "ZM_SERVER_HOST" ) == 0 )
@@ -158,6 +174,24 @@ void process_configfile( char* configFile) {
       staticConfig.SERVER_NAME = std::string(val_ptr);
     else if ( strcasecmp( name_ptr, "ZM_SERVER_ID" ) == 0 )
       staticConfig.SERVER_ID = atoi(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DIR_EVENTS" ) == 0 )
+      staticConfig.DIR_EVENTS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DIR_SOUNDS" ) == 0 )
+      staticConfig.DIR_SOUNDS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_DIR_EXPORTS" ) == 0 )
+      staticConfig.DIR_EXPORTS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_ZMS" ) == 0 )
+      staticConfig.PATH_ZMS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_MAP" ) == 0 )
+      staticConfig.PATH_MAP = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_SOCKS" ) == 0 )
+      staticConfig.PATH_SOCKS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_LOGS" ) == 0 )
+      staticConfig.PATH_LOGS = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_SWAP" ) == 0 )
+      staticConfig.PATH_SWAP = std::string(val_ptr);
+    else if ( strcasecmp( name_ptr, "ZM_PATH_ARP" ) == 0 )
+      staticConfig.PATH_ARP = std::string(val_ptr);
     else {
       // We ignore this now as there may be more parameters than the
       // c/c++ binaries are bothered about
@@ -179,6 +213,34 @@ ConfigItem::ConfigItem( const char *p_name, const char *p_value, const char *con
 
   //Info( "Created new config item %s = %s (%s)\n", name, value, type );
 
+  cfg_type = CFG_UNKNOWN;
+  accessed = false;
+}
+
+ConfigItem::ConfigItem( const ConfigItem &item ) {
+  name = new char[strlen(item.name)+1];
+  strcpy( name, item.name );
+  value = new char[strlen(item.value)+1];
+  strcpy( value, item.value );
+  type = new char[strlen(item.type)+1];
+  strcpy( type, item.type );
+
+  //Info( "Created new config item %s = %s (%s)\n", name, value, type );
+
+  accessed = false;
+}
+void ConfigItem::Copy( const ConfigItem &item ) {
+  if (name) delete name;
+  name = new char[strlen(item.name)+1];
+  strcpy( name, item.name );
+  if (value) delete value;
+  value = new char[strlen(item.value)+1];
+  strcpy( value, item.value );
+  if (type) delete type;
+  type = new char[strlen(item.type)+1];
+  strcpy( type, item.type );
+
+  //Info( "Created new config item %s = %s (%s)\n", name, value, type );
   accessed = false;
 }
 
@@ -265,8 +327,10 @@ Config::~Config() {
   if ( items ) {
     for ( int i = 0; i < n_items; i++ ) {
       delete items[i];
+      items[i] = NULL;
     }
     delete[] items;
+    items = NULL;
   }
 }
 

@@ -71,7 +71,9 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 }
   -->
   </style>
-   <script type="text/javascript" src="<?php echo ZM_SKIN_PATH; ?>/js/jquery.js"></script>
+  <script type="text/javascript">
+<?php include(ZM_SKIN_PATH.'/js/jquery.js') ?>
+</script>
   <script type="text/javascript" language="javascript" charset="utf-8">
 
   /*==========[tab code]==========*/
@@ -104,7 +106,7 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 function exportEventDetail( $event, $exportFrames, $exportImages )
 {
     ob_start();
-    exportHeader( translate('Event')." ".$event['Id'] );
+    exportHeader( translate('Event')." ".$event->Id() );
 	
 	$otherlinks = '';
 	if( $exportFrames ) $otherlinks .= '<a href="zmEventFrames.html">'.translate('Frames').'</a>,';
@@ -116,21 +118,21 @@ function exportEventDetail( $event, $exportFrames, $exportImages )
 <body>
   <div id="page">
     <div id="content">
-		<h2><?php echo translate('Event') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+		<h2><?php echo translate('Event') ?>: <?php echo validHtmlStr($event->Name()) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
       <table id="eventDetail">
-        <tr><th scope="row"><?php echo translate('Id') ?></th><td><?php echo $event['Id'] ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Name') ?></th><td><?php echo validHtmlStr($event['Name']) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event['MonitorName']) ?> (<?php echo $event['MonitorId'] ?>)</td></tr>
-        <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event['Cause']) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event['Notes']) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event['StartTime']) ) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event['Length'] ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event['Frames'] ?></td></tr>
-        <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event['AlarmFrames'] ?></td></tr>
-        <tr><th scope="row"><?php echo translate('AttrTotalScore') ?></th><td><?php echo $event['TotScore'] ?></td></tr>
-        <tr><th scope="row"><?php echo translate('AttrAvgScore') ?></th><td><?php echo $event['AvgScore'] ?></td></tr>
-        <tr><th scope="row"><?php echo translate('AttrMaxScore') ?></th><td><?php echo $event['MaxScore'] ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Archived') ?></th><td><?php echo $event['Archived']?translate('Yes'):translate('No') ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Id') ?></th><td><?php echo $event->Id() ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Name') ?></th><td><?php echo validHtmlStr($event->Name()) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event->MonitorName()) ?> (<?php echo $event->MonitorId() ?>)</td></tr>
+        <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event->Cause()) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event->Notes()) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime( STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime()) ) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event->Length() ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event->Frames() ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event->AlarmFrames() ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrTotalScore') ?></th><td><?php echo $event->TotScore() ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrAvgScore') ?></th><td><?php echo $event->AvgScore() ?></td></tr>
+        <tr><th scope="row"><?php echo translate('AttrMaxScore') ?></th><td><?php echo $event->MaxScore() ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Archived') ?></th><td><?php echo $event->Archived()?translate('Yes'):translate('No') ?></td></tr>
       </table>
     </div>
   </div>
@@ -143,10 +145,10 @@ function exportEventDetail( $event, $exportFrames, $exportImages )
 function exportEventFrames( $event, $exportDetail, $exportImages )
 {
     $sql = "SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId";
-    $frames = dbFetchAll( $sql, NULL, array( $event['Id'] ) );
+    $frames = dbFetchAll( $sql, NULL, array( $event->Id() ) );
 
     ob_start();
-    exportHeader( translate('Frames')." ".$event['Id'] );
+    exportHeader( translate('Frames')." ".$event->Id() );
 	
 	$otherlinks = '';
 	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
@@ -157,7 +159,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 <body>
   <div id="page">
     <div id="content">
-		<h2><?php echo translate('Frames') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+		<h2><?php echo translate('Frames') ?>: <?php echo validHtmlStr($event->Name()) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
       <table id="eventFrames">
         <tr>
           <th><?php echo translate('FrameId') ?></th>
@@ -177,7 +179,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 <?php
     if ( count($frames) )
     {
-        $eventPath = ZM_DIR_EVENTS.'/'.mygetEventPath( $event );
+        $eventPath = $event->Path();
         foreach ( $frames as $frame )
         {
             $imageFile = sprintf( "%0".ZM_EVENT_IMAGE_DIGITS."d-capture.jpg", $frame['FrameId'] );
@@ -229,7 +231,7 @@ function exportEventFrames( $event, $exportDetail, $exportImages )
 function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 {
     ob_start();
-    exportHeader( translate('Images')." ".$event['Id'] );
+    exportHeader( translate('Images')." ".$event->Id() );
 	
 	$otherlinks = '';
 	if( $exportDetail ) $otherlinks .= '<a href="zmEventDetail.html">'.translate('Event').'</a>,';
@@ -243,9 +245,9 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 ?>
 <body>
 <style>
-*.horizontal_track {background-color: #bbb;width: <?php echo$event['Width']?>px;line-height: 0px;font-size: 0px;text-align: left;padding: 4px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
+*.horizontal_track {background-color: #bbb;width: <?php echo$event->Width()?>px;line-height: 0px;font-size: 0px;text-align: left;padding: 4px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
 *.horizontal_slider {background-color: #666;width: 16px;height: 8px;position: relative;z-index: 2;line-height: 0;margin: 0;border: 2px solid;border-color: #999 #333 #333 #999;}
-*.horizontal_slit {background-color: #333;width: <?php echo($event['Width']-10)?>px;height: 2px;margin: 4px 4px 2px 4px;line-height: 0;position: absolute;z-index: 1;border: 1px solid;border-color: #999 #ddd #ddd #999;}
+*.horizontal_slit {background-color: #333;width: <?php echo($event->Width()-10)?>px;height: 2px;margin: 4px 4px 2px 4px;line-height: 0;position: absolute;z-index: 1;border: 1px solid;border-color: #999 #ddd #ddd #999;}
 *.vertical_track {background-color: #bbb;padding: 3px 5px 15px 5px;border: 1px solid;border-color: #ddd #999 #999 #ddd;}
 *.vertical_slider {background-color: #666;width: 18px;height: 8px;font: 0px;text-align: left;line-height: 0px;position: relative;z-index: 1;border: 2px solid;border-color: #999 #333 #333 #999;}
 *.vertical_slit {background-color: #000;width: 2px;height: 100px;position: absolute;margin: 4px 10px 4px 10px;padding: 4px 0 1px 0;line-height: 0;font-size: 0;border: 1px solid;border-color: #666 #ccc #ccc #666;}
@@ -253,7 +255,7 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 .value_display {background-color: #bbb;color: #333;width: 30px;margin: 0 2px;text-align: right;font-size: 8pt;font-face: verdana, arial, helvetica, sans-serif;font-weight: bold;line-height: 12px;border: 0;cursor: default;}
 </style>
 
-<h2><?php echo translate('Images') ?>: <?php echo validHtmlStr($event['Name']) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
+<h2><?php echo translate('Images') ?>: <?php echo validHtmlStr($event->Name()) ?><?php if(!empty($otherlinks)) { ?> (<?php echo$otherlinks?>) <?php } ?></h2>
 
 <ilayer id="slidensmain" width=&{slidewidth}; height=&{slideheight}; bgColor=&{slidebgcolor}; visibility=hide>
 <layer id="slidenssub" width=&{slidewidth}; left=auto top=auto></layer>
@@ -271,7 +273,7 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 <div align="center"><div class="horizontal_track" >
 	<div class="horizontal_slit" >&nbsp;</div>
     <div class="horizontal_slider" id="imageslider_id" style="left: 0px;"
-        onmousedown="slide(event,'horizontal', <?php echo($event['Width']-20)?>, 1, <?php echo$listcount?>, <?php echo$listcount?>,0, 'imageslider_display_id');" >&nbsp;</div>
+        onmousedown="slide(event,'horizontal', <?php echo($event->Width()-20)?>, 1, <?php echo$listcount?>, <?php echo$listcount?>,0, 'imageslider_display_id');" >&nbsp;</div>
 </div></div>
 <div align="center"><div class="display_holder" ><input id="imageslider_display_id" class="value_display" type="text" value="0" onfocus="blur(this);" /></div></div>
 
@@ -284,8 +286,8 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 * Visit http://www.dynamicdrive.com/ for full source code
 ***********************************************/
 
-var eventWidth = <?php echo$event['Width']?>;
-var eventHeight = <?php echo$event['Height']?>;
+var eventWidth = <?php echo$event->Width()?>;
+var eventHeight = <?php echo$event->Height()?>;
 var variableslide=[<?php echo$slides?>];
 
 //configure the below 3 variables to set the dimension/background color of the slideshow
@@ -579,27 +581,19 @@ else if (document.layers) window.onload=start_slider;
     return( ob_get_clean() );
 }
 
-
-
-	
-
-function exportEventImagesMaster( $eids )
-{
-    ob_start();
-    exportHeader( translate('Images').' Master' );
+function exportEventImagesMaster( $eids ) {
+  ob_start();
+  exportHeader( translate('Images').' Master' );
 ?>
 <body>
 <h2><?php echo translate('Images') ?> Master</h2>
 <?php
+  // TODO: SHould use find to make this 1 db query
 	foreach ($eids as $eid) {
 		//get monitor id and event id
-		$sql = 'SELECT E.MonitorId, E.StartTime, E.Id
-			FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)
-			WHERE E.Id = ?
-		';
-		$event = dbFetchOne( $sql, NULL, array( $eid ) );
-		$eventMonitorId[$eid] = $event['MonitorId'];
-		$eventPath[$eid] = mygetEventPath( $event );
+		$event = new Event( $eid );
+		$eventMonitorId[$eid] = $event->MonitorId();
+		$eventPath[$eid] = $event->Relative_Path();
 	}
 	
 	$monitors = array_values(array_flip(array_flip($eventMonitorId))); //unique monitors and reindex the array
@@ -614,32 +608,27 @@ function exportEventImagesMaster( $eids )
 	//trigger_error(print_r($monitorNames,1));
 
 ?>
-<div id= 'tabs'>
-	<ul class= 'tabs'>
-		<li class = 'active' ><a href='#all' > All </a></li>
+<div id="tabs">
+	<ul class="tabs">
+		<li class="active"><a href="#all"> All </a></li>
 		<?php
-		
 		foreach ($monitors as $monitor) {
 			# code...
-			echo "<li><a href='#tab$monitor'>" . $monitorNames[$monitor] . "</a></li>";
+			echo "<li><a href='#tab$monitor'>" . $monitorNames[$monitor] . '</a></li>';
 		}
 		?>
-		
 	</ul>
-	
 </div>
 <table width="100%" height="100%" ><tr>
 <td valign="top" bgcolor="#dddddd" style="padding:10px;">
 	<div class='tab_content' id='all'>
 	<h2> All </h2>
 	<?php
-	if (!is_array($eids))
-	{
+	if (!is_array($eids)) {
 		echo "<div><a href=\"javascript:switchevent('$eids/zm/EventImages.html');\"> $eids </div>";
 	}
 	?>
-	<?php foreach($eids as $eid) 
-	{
+	<?php foreach($eids as $eid) {
 	?>
 		<div><a href="javascript:switchevent('<?php echo   $eventPath[$eid]; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
 		<?php
@@ -647,15 +636,11 @@ function exportEventImagesMaster( $eids )
 	?>
 	</div>
 	<?php
-	
-		foreach ($monitors as $monitor)
-		{
+		foreach ($monitors as $monitor) {
 			echo "<div class='tab_content' id='tab$monitor'>";
 			echo "<h2>Monitor: " . $monitorNames[$monitor] . " </h2>";
-			foreach ($eids as $eid)
-			{
-				if ($eventMonitorId[$eid] == $monitor)
-				{
+			foreach ($eids as $eid) {
+				if ($eventMonitorId[$eid] == $monitor) {
 				?>	
 				<div><a href="javascript:switchevent('<?php echo   $eventPath[$eid]; ?>/zmEventImages.html');"><?php echo$eid?></a></div>
 				<?php
@@ -663,7 +648,6 @@ function exportEventImagesMaster( $eids )
 			}
 			echo'</div>';
 		}
-	
 	?>
 
 </td><td>
@@ -748,212 +732,173 @@ function loadintoIframe(iframeid, url){
     return( ob_get_clean() );
 }
 
+function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc ) {
 
+  if ( (!canView('Events')) or ! $eid ) {
+    return;
+  }
 
-
-
-
-function exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc )
-{
-
-    if ( canView( 'Events' ) && $eid )
-    {
-        $sql = 'SELECT E.Id,E.MonitorId,M.Name AS MonitorName,M.Width,M.Height,E.Name,E.Cause,E.Notes,E.StartTime,E.Length,E.Frames,E.AlarmFrames,E.TotScore,E.AvgScore,E.MaxScore,E.Archived FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE E.Id = ?';
-        $event = dbFetchOne( $sql, NULL, array( $eid ) );
-		$eventPath =  ZM_DIR_EVENTS.'/'.mygetEventPath( $event );
-        $files = array();
-        if ( $dir = opendir( $eventPath ) )
-        {
-            while ( ($file = readdir( $dir )) !== false )
-            {
-                if ( is_file( $eventPath."/".$file ) )
-                {
-                    $files[$file] = $file;
-                }
-            }
-            closedir( $dir );
-        }
-
-        $exportFileList = array();
-
-        if ( $exportDetail )
-        {
-            $file = "zmEventDetail.html";
-            if ( !($fp = fopen( $eventPath."/".$file, "w" )) )
-            {
-                Fatal( "Can't open event detail export file '$file'" );
-            }
-            fwrite( $fp, exportEventDetail( $event, $exportFrames, $exportImages ) );
-            fclose( $fp );
-            $exportFileList[$file] = $eventPath."/".$file;
-        }
-        if ( $exportFrames )
-        {
-            $file = "zmEventFrames.html";
-            if ( !($fp = fopen( $eventPath."/".$file, "w" )) )
-            {
-                Fatal( "Can't open event frames export file '$file'" );
-            }
-            fwrite( $fp, exportEventFrames( $event, $exportDetail, $exportImages ) );
-            fclose( $fp );
-            $exportFileList[$file] = $eventPath."/".$file;
-        }
-        if ( $exportImages )
-        {
-            $filesLeft = array();
-			$myfilelist = array();
-            foreach ( $files as $file )
-            {
-                if ( preg_match( "/-(?:capture|analyse).jpg$/", $file ) )
-                {
-                    $exportFileList[$file] = $eventPath."/".$file;
-                    $myfilelist[$file] = $eventPath."/".$file;
-                }
-                else
-                {
-                    $filesLeft[$file] = $file;
-                }
-            }
-            $files = $filesLeft;
-            
-
-		
-			// create an image slider
-			if(!empty($myfilelist)) {
-				$file = "zmEventImages.html";
-				if ( !($fp = fopen( $eventPath."/".$file, "w" )) ) Fatal( "Can't open event images export file '$file'" );
-				fwrite( $fp, exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist ) );
-				fclose( $fp );
-				$exportFileList[$file] = $eventPath."/".$file;
-			}
-			
-
-        }
-        if ( $exportVideo )
-        {
-            $filesLeft = array();
-            foreach ( $files as $file )
-            {
-                if ( preg_match( "/\.(?:mpg|mpeg|avi|asf|3gp)$/", $file ) )
-                {
-                    $exportFileList[$file] = $eventPath."/".$file;
-                }
-                else
-                {
-                    $filesLeft[$file] = $file;
-                }
-            }
-            $files = $filesLeft;
-        }
-        if ( $exportMisc )
-        {
-            foreach ( $files as $file )
-            {
-                $exportFileList[$file] = $eventPath."/".$file;
-            }
-            $files = array();
-        }
+  $event = new Event($eid);
+  $eventPath =  $event->Path();
+  $files = array();
+  if ( $dir = opendir($eventPath) ) {
+    while ( ($file = readdir($dir)) !== false ) {
+      if ( is_file($eventPath.'/'.$file) ) {
+        $files[$file] = $file;
+      }
     }
-    return( array_values( $exportFileList ) );
+    closedir($dir);
+  }
+
+  $exportFileList = array();
+
+  if ( $exportDetail ) {
+    $file = 'zmEventDetail.html';
+    if ( !($fp = fopen( $eventPath.'/'.$file, 'w' )) ) {
+      Fatal( "Can't open event detail export file '$file'" );
+    }
+    fwrite( $fp, exportEventDetail( $event, $exportFrames, $exportImages ) );
+    fclose( $fp );
+    $exportFileList[$file] = $eventPath."/".$file;
+  }
+  if ( $exportFrames ) {
+    $file = 'zmEventFrames.html';
+    if ( !($fp = fopen( $eventPath.'/'.$file, 'w' )) ) {
+      Fatal( "Can't open event frames export file '$file'" );
+    }
+    fwrite( $fp, exportEventFrames( $event, $exportDetail, $exportImages ) );
+    fclose( $fp );
+    $exportFileList[$file] = $eventPath."/".$file;
+  }
+  if ( $exportImages ) {
+    $filesLeft = array();
+    $myfilelist = array();
+    foreach ( $files as $file ) {
+      if ( preg_match( '/-(?:capture|analyse).jpg$/', $file ) ) {
+        $exportFileList[$file] = $eventPath."/".$file;
+        $myfilelist[$file] = $eventPath."/".$file;
+      } else {
+        $filesLeft[$file] = $file;
+      }
+    }
+    $files = $filesLeft;
+
+    // create an image slider
+    if ( !empty($myfilelist) ) {
+      $file = 'zmEventImages.html';
+      if ( !($fp = fopen($eventPath.'/'.$file, 'w')) ) Fatal( "Can't open event images export file '$file'" );
+      fwrite( $fp, exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist ) );
+      fclose( $fp );
+      $exportFileList[$file] = $eventPath."/".$file;
+    }
+  } # end if exportImages
+
+  if ( $exportVideo ) {
+    $filesLeft = array();
+    foreach ( $files as $file ) {
+      if ( preg_match( '/\.(?:mpg|mpeg|mov|swf|mp4|mkv|avi|asf|3gp)$/', $file ) ) {
+        $exportFileList[$file] = $eventPath.'/'.$file;
+      } else {
+        $filesLeft[$file] = $file;
+      }
+    }
+    $files = $filesLeft;
+  } # end if exportVideo
+
+  if ( $exportMisc ) {
+    foreach ( $files as $file ) {
+      $exportFileList[$file] = $eventPath.'/'.$file;
+    }
+    $files = array();
+  }
+  return array_values($exportFileList);
 }
 
-function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat )
-{     
-    
-    
-    if ( canView( 'Events' ) && !empty($eids) )
-    {
-        $export_root = "zmExport";
-        $export_listFile = "zmFileList.txt";
-        $exportFileList = array();
-		$html_eventMaster = '';
-        
+function exportEvents( $eids, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat, $exportStructure = false ) {     
 
-        if ( is_array( $eids ) )
-        {
-            foreach ( $eids as $eid )
-            {
-                $exportFileList = array_merge( $exportFileList, exportFileList( $eid , $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc ) );
-            }
+  if ( (!canView('Events')) || empty($eids) ) {
+    return false;
+  }
+  $export_root = 'zmExport';
+  $export_listFile = 'zmFileList.txt';
+  $exportFileList = array();
+  $html_eventMaster = '';
 
-        }
-        else
-        {
-            $eid = $eids;
-            $exportFileList = exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc );
-        }
-        
-        // create an master image slider
-		if($exportImages) 
-		{
-			if ( !is_array($eids) )
-			{
-				$eids = array($eids);
-			}
-			$monitorPath = ZM_DIR_EVENTS."/";
-			$html_eventMaster = 'zmEventImagesMaster_'.date('Ymd_His'). '.html';
-			if ( !($fp = fopen( $monitorPath."/".$html_eventMaster, "w" )) ) Fatal( "Can't open event images export file '$html_eventMaster'" );
-			fwrite( $fp, exportEventImagesMaster( $eids ) );
-			fclose( $fp );
-			$exportFileList[] = $monitorPath."/".$html_eventMaster;
-		}
-
-        $listFile = ZM_DIR_EXPORTS."/".$export_listFile;
-        if ( !($fp = fopen( $listFile, "w" )) )
-        {
-            Fatal( "Can't open event export list file '$listFile'" );
-        }
-        foreach ( $exportFileList as $exportFile )
-        {
-            fwrite( $fp, "$exportFile\n" );
-        }
-        fclose( $fp );
-        $archive = "";
-        if ( $exportFormat == "tar" )
-        {
-            $archive = ZM_DIR_EXPORTS."/".$export_root.".tar.gz";
-            @unlink( $archive );
-            $command = "tar --create --gzip --file=$archive --files-from=$listFile";
-            exec( escapeshellcmd( $command ), $output, $status );
-            if ( $status )
-            {
-                Error( "Command '$command' returned with status $status" );
-                if ( $output[0] )
-                    Error( "First line of output is '".$output[0]."'" );
-                return( false );
-            }
-        }
-        elseif ( $exportFormat == "zip" )
-        {
-            $archive = ZM_DIR_EXPORTS."/".$export_root.".zip";
-            @unlink( $archive );
-            $command = "cat ".escapeshellarg($listFile)." | zip -q ".escapeshellarg($archive)." -@";
-//cat zmFileList.txt | zip -q zm_export.zip -@
-//-bash: zip: command not found
-
-            exec( $command, $output, $status );
-            if ( $status )
-            {
-                Error( "Command '$command' returned with status $status" );
-                if ( $output[0] )
-                    Error( "First line of output is '".$output[0]."'" );
-                return( false );
-            }
-        }
-		
-		//clean up temporary files
-		if(!empty($html_eventMaster)) {
-			unlink($monitorPath.'/'.$html_eventMaster);
-		}
-
+  if ( is_array($eids) ) {
+    foreach ( $eids as $eid ) {
+      $exportFileList = array_merge( $exportFileList, exportFileList( $eid , $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc ) );
     }
-    return( '?view=archive%26type='.$exportFormat );
-}
-function mygetEventPath( $event )
-{
-    if ( ZM_USE_DEEP_STORAGE )
-        $eventPath = $event['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['StartTime']) );
-    else
-        $eventPath = $event['MonitorId'].'/'.$event['Id'];
-    return( $eventPath );
+  } else {
+    $eid = $eids;
+    $exportFileList = exportFileList( $eid, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc );
+  }
+      
+  // create an master image slider
+  if ( $exportImages ) {
+    if ( !is_array($eids) ) {
+      $eids = array($eids);
+    }
+    $monitorPath = ZM_DIR_EVENTS.'/';
+    $html_eventMaster = 'zmEventImagesMaster_'.date('Ymd_His'). '.html';
+    if ( !($fp = fopen( $monitorPath.'/'.$html_eventMaster, 'w' )) ) Fatal( "Can't open event images export file '$html_eventMaster'" );
+    fwrite($fp, exportEventImagesMaster($eids));
+    fclose($fp);
+    $exportFileList[] = $monitorPath.'/'.$html_eventMaster;
+  }
+
+  if ( ! file_exists(ZM_DIR_EXPORTS) ) {
+    if ( ! mkdir(ZM_DIR_EXPORTS) ) {
+      Fatal("Can't create exports dir at '".ZM_DIR_EXPORTS."'");
+    }
+  }
+  $listFile = ZM_DIR_EXPORTS.'/'.$export_listFile;
+  if ( !($fp = fopen($listFile, 'w')) ) {
+    Fatal( "Can't open event export list file '$listFile'" );
+  }
+  foreach ( $exportFileList as $exportFile ) {
+    fwrite( $fp, "$exportFile\n" );
+  }
+  fclose( $fp );
+  $archive = '';
+  if ( $exportFormat == 'tar' ) {
+    $archive = ZM_DIR_EXPORTS.'/'.$export_root.'.tar.gz';
+    @unlink( $archive );
+    if ( $exportStructure == 'flat' ) {  //strip file paths if we choose
+      $command = "nice -10 tar --create --gzip --file=".escapeshellarg($archive)." --files-from=".escapeshellarg($listFile)." --xform='s#^.+/##x'";
+    } else {
+      $command = "nice -10 tar --create --gzip --file=".escapeshellarg($archive)." --files-from=".escapeshellarg($listFile);
+    }
+    exec( $command, $output, $status );
+    if ( $status ) {
+      Error( "Command '$command' returned with status $status" );
+      if ( $output[0] )
+        Error( "First line of output is '".$output[0]."'" );
+      return( false );
+    }
+  } elseif ( $exportFormat == 'zip' ) {
+    $archive = ZM_DIR_EXPORTS.'/'.$export_root.'.zip';
+    @unlink( $archive );
+    if ($exportStructure == 'flat') {
+      $command = "cat ".escapeshellarg($listFile)." | nice -10 zip -q -j ".escapeshellarg($archive)." -@";
+    } else {
+      $command = "cat ".escapeshellarg($listFile)." | nice -10 zip -q ".escapeshellarg($archive)." -@";
+    }
+    //cat zmFileList.txt | zip -q zm_export.zip -@
+    //-bash: zip: command not found
+
+    exec( $command, $output, $status );
+    if ( $status ) {
+      Error("Command '$command' returned with status $status");
+      if ( $output[0] )
+        Error("First line of output is '".$output[0]."'");
+      return false;
+    }
+  }
+
+  //clean up temporary files
+  if ( !empty($html_eventMaster) ) {
+    unlink($monitorPath.'/'.$html_eventMaster);
+  }
+
+  return '?view=archive%26type='.$exportFormat;
 }

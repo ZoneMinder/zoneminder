@@ -28,7 +28,7 @@
 
 typedef std::vector<std::string> StringVector;
 
-std::string trimSpaces(std::string str);
+std::string trimSpaces(const std::string &str);
 std::string trimSet(std::string str, std::string trimset);
 std::string replaceAll(std::string str, std::string from, std::string to);
 
@@ -36,8 +36,8 @@ const std::string stringtf( const char *format, ... );
 const std::string stringtf( const std::string &format, ... );
 
 bool startsWith( const std::string &haystack, const std::string &needle );
-StringVector split( const std::string &string, const std::string chars, int limit=0 );
-const std::string join( const StringVector, const char * );
+StringVector split( const std::string &string, const std::string &chars, int limit=0 );
+const std::string join( const StringVector &, const char * );
 
 const std::string base64Encode( const std::string &inString );
 
@@ -63,5 +63,5 @@ extern unsigned int neonversion;
 
 char *timeval_to_string( struct timeval tv );
 std::string UriDecode( const std::string &encoded );
-
+void touch( const char *pathname );
 #endif // ZM_UTILS_H

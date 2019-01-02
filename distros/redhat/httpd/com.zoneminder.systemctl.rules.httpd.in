@@ -1,0 +1,7 @@
+polkit.addRule(function(action, subject) {
+    if (action.id == "com.zoneminder.policykit.pkexec.run-zmsystemctl" &&
+        subject.user != "@WEB_USER@") {
+        return polkit.Result.NO;
+    }
+
+});

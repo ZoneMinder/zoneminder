@@ -5,8 +5,8 @@ Maintainer: Dmitry Smirnov <onlyjob@debian.org>
 Uploaders: Vagrant Cascadian <vagrant@debian.org>
 Build-Depends: debhelper (>= 9), python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
+              ,libx264-dev, libmp4v2-dev
               ,libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev, libavdevice-dev
-              ,libboost1.55-dev
               ,libbz2-dev
               ,libgcrypt-dev
               ,libcurl4-gnutls-dev
@@ -35,6 +35,7 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
+        ,libmp4v2-2, libx264-142
         ,libav-tools|ffmpeg
         ,libdate-manip-perl
         ,libdbd-mysql-perl
@@ -49,10 +50,13 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdevice-serialport-perl
         ,libimage-info-perl
         ,libjson-any-perl
+        ,libjson-maybexs-perl
         ,libsys-mmap-perl [!hurd-any]
         ,liburi-encode-perl
         ,libwww-perl
         ,libdata-uuid-perl 
+        ,libnumber-bytes-human-perl
+        ,libfile-slurp-perl
         ,mysql-client | virtual-mysql-client
         ,perl-modules
         ,php5-mysql, php5-gd, php5-apcu, php-apc

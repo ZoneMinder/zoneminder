@@ -21,11 +21,8 @@
 #define ZM_FFMPEG_H
 #include <stdint.h>
 #include "zm.h"
-#include "zm_image.h"
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 // AVUTIL
 #if HAVE_LIBAVUTIL_AVUTIL_H
@@ -207,31 +204,6 @@ void FFMPEGInit();
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
 #endif // HAVE_LIBAVUTIL
 
-
-/* SWScale wrapper class to make our life easier and reduce code reuse */
-#if HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
-class SWScale {
-public:
-	SWScale();
-	~SWScale();
-	int SetDefaults(enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
-	int ConvertDefaults(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size);
-	int ConvertDefaults(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size);
-	int Convert(const Image* img, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
-	int Convert(const uint8_t* in_buffer, const size_t in_buffer_size, uint8_t* out_buffer, const size_t out_buffer_size, enum _AVPIXELFORMAT in_pf, enum _AVPIXELFORMAT out_pf, unsigned int width, unsigned int height);
-
-protected:
-	bool gotdefaults;
-	struct SwsContext* swscale_ctx;
-	AVFrame* input_avframe;
-	AVFrame* output_avframe;
-	enum _AVPIXELFORMAT default_input_pf;
-	enum _AVPIXELFORMAT default_output_pf;
-	unsigned int default_width;
-	unsigned int default_height;
-};
-#endif // HAVE_LIBSWSCALE && HAVE_LIBAVUTIL
-
 #if !LIBAVCODEC_VERSION_CHECK(54, 25, 0, 51, 100)
 #define AV_CODEC_ID_NONE CODEC_ID_NONE
 #define AV_CODEC_ID_PCM_MULAW CODEC_ID_PCM_MULAW
@@ -265,9 +237,8 @@ protected:
  */
 #ifdef  __cplusplus
 
-    inline static const std::string av_make_error_string(int errnum)
-    {
-        char errbuf[AV_ERROR_MAX_STRING_SIZE];
+    inline static const std::string av_make_error_string(int errnum) {
+        static char errbuf[AV_ERROR_MAX_STRING_SIZE];
 #if LIBAVUTIL_VERSION_CHECK(50, 13, 0, 13, 0)
         av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
 #else
@@ -323,12 +294,17 @@ static av_always_inline av_const int64_t av_clip64_c(int64_t a, int64_t amin, in
 #endif
 
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output);
+void zm_dump_codec ( const AVCodecContext *codec );
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+void zm_dump_codecpar ( const AVCodecParameters *par );
+#endif
+
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
     #define zm_av_packet_unref( packet ) av_packet_unref( packet )
     #define zm_av_packet_ref( dst, src ) av_packet_ref( dst, src )
 #else
+    unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src );
     #define zm_av_packet_unref( packet ) av_free_packet( packet )
-unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src );
 #endif
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       #define zm_avcodec_decode_video( context, rawFrame, frameComplete, packet ) avcodec_decode_video2( context, rawFrame, frameComplete, packet )
@@ -348,4 +324,8 @@ unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src );
 
 int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
 
+bool is_video_stream( AVStream * stream );
+bool is_audio_stream( AVStream * stream );
+int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet );
+void dumpPacket(AVPacket *,const char *text="DEBUG");
 #endif // ZM_FFMPEG_H

@@ -3,10 +3,12 @@
 
 #include "zm_ffmpeg.h"
 extern "C"  {
-#include "libavutil/audio_fifo.h"
-
-#ifdef HAVE_LIBAVRESAMPLE
-#include "libavresample/avresample.h"
+#ifdef HAVE_LIBSWRESAMPLE
+  #include "libswresample/swresample.h"
+#else
+  #ifdef HAVE_LIBAVRESAMPLE
+    #include "libavresample/avresample.h"
+  #endif
 #endif
 }
 
@@ -16,67 +18,69 @@ extern "C"  {
 
 class VideoStore {
 private:
-  unsigned int packets_written;
 
-	AVOutputFormat *output_format;
+	AVOutputFormat *out_format;
 	AVFormatContext *oc;
-	AVStream *video_output_stream;
-	AVStream *audio_output_stream;
-  AVCodecContext *video_output_context;
+	AVStream *video_out_stream;
+	AVStream *audio_out_stream;
+  AVCodecContext *video_out_ctx;
 
-	AVStream *video_input_stream;
-	AVStream *audio_input_stream;
+	AVStream *video_in_stream;
+	AVStream *audio_in_stream;
 
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
   AVPacket opkt;
   // we are transcoding
-  AVFrame *input_frame;
-  AVFrame *output_frame;
+  AVFrame *in_frame;
+  AVFrame *out_frame;
 
-  AVCodecContext *video_input_context;
-  AVCodecContext *audio_input_context;
+  AVCodecContext *video_in_ctx;
+  AVCodec *audio_in_codec;
+  AVCodecContext *audio_in_ctx;
   int ret;
 
   // The following are used when encoding the audio stream to AAC
-  AVCodec *audio_output_codec;
-  AVCodecContext *audio_output_context;
-  int data_present;
-  AVAudioFifo *fifo;
-  int output_frame_size;
+  AVCodec *audio_out_codec;
+  AVCodecContext *audio_out_ctx;
+#ifdef HAVE_LIBSWRESAMPLE
+  SwrContext *resample_ctx;
+#else
 #ifdef HAVE_LIBAVRESAMPLE
-AVAudioResampleContext* resample_context;
+  AVAudioResampleContext* resample_ctx;
 #endif
-  uint8_t *converted_input_samples;
+#endif
+  uint8_t *converted_in_samples;
     
 	const char *filename;
 	const char *format;
     
-  bool keyframeMessage;
-  int keyframeSkipNumber;
-    
-  // These are for input
+  // These are for in
   int64_t video_last_pts;
   int64_t video_last_dts;
   int64_t audio_last_pts;
   int64_t audio_last_dts;
 
-  // These are for output, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
-  int64_t video_previous_pts;
-  int64_t video_previous_dts;
-  int64_t audio_previous_pts;
-  int64_t audio_previous_dts;
-
-  int64_t filter_in_rescale_delta_last;
+  // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
+  int64_t video_next_pts;
+  int64_t video_next_dts;
+  int64_t audio_next_pts;
+  int64_t audio_next_dts;
 
   bool setup_resampler();
 
 public:
-	VideoStore(const char *filename_in, const char *format_in, AVStream *video_input_stream, AVStream *audio_input_stream, int64_t nStartTime, Monitor * p_monitor );
+	VideoStore(
+      const char *filename_in,
+      const char *format_in,
+      AVStream *video_in_stream,
+      AVStream *audio_in_stream,
+      int64_t nStartTime,
+      Monitor * p_monitor);
+  bool  open();
 	~VideoStore();
 
   int writeVideoFramePacket( AVPacket *pkt );
   int writeAudioFramePacket( AVPacket *pkt );
-	void dumpPacket( AVPacket *pkt );
 };
 
 #endif //havelibav

@@ -11,7 +11,7 @@ var logCodes = new Object({
     '-4': 'PNC',
 });
 
-var minSampleTime = 1000;
+var minSampleTime = 2000;
 var maxSampleTime = 16000;
 var minLogTime = 0;
 var maxLogTime = 0;
@@ -34,7 +34,7 @@ function buildFetchParms( parms ) {
         fetchParms += '&filter['+key+']='+value;
       }
       );
-  return( fetchParms );
+  return fetchParms;
 }
 
 function fetchNextLogs() {
@@ -56,11 +56,12 @@ function logResponse( respObj ) {
       try {
         respObj.logs.each(
             function( log ) {
-              if ( !maxLogTime || log.TimeKey > maxLogTime )
+              if ( ( !maxLogTime ) || ( log.TimeKey > maxLogTime ) )
                 maxLogTime = log.TimeKey;
-              if ( !minLogTime || log.TimeKey < minLogTime )
+              if ( ( !minLogTime ) || ( log.TimeKey < minLogTime ) )
                 minLogTime = log.TimeKey;
               var row = logTable.push( [{ content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
+              
               delete log.Message;
               row.tr.store( 'log', log );
               if ( log.Level <= -3 )
@@ -75,11 +76,20 @@ function logResponse( respObj ) {
                 var color = document.defaultView.getComputedStyle(row.tr, null).getPropertyValue('color');
                 var colorParts = color.match(/^rgb.*\((\d+),\s*(\d+),\s*(\d+)/);
                 rowOrigColor = '#' + parseInt(colorParts[1]).toString(16) + parseInt(colorParts[2]).toString(16) + parseInt(colorParts[3]).toString(16);
-                new Fx.Tween( row.tr, { duration: 10000, transition: Fx.Transitions.Sine } ).start( 'color', '#6495ED', rowOrigColor );
+                //new Fx.Tween( row.tr, { duration: 10000, transition: Fx.Transitions.Sine } ).start( 'color', '#6495ED', rowOrigColor );
               }
             }
         );
-        options = respObj.options;
+        if ( typeof(respObj.options) == 'object' ) {
+          $j.each( respObj.options,
+            function( field ) {
+              if ( options[field] )
+                options[field] = Object.assign(options[field], respObj.options[field]);
+              else
+                options[field] = respObj.options[field];
+            }
+          );
+        }
         updateFilterSelectors();
         $('lastUpdate').set('text', respObj.updated);
         $('logState').set('text', respObj.state);
@@ -106,8 +116,8 @@ function logResponse( respObj ) {
       logTimeout *= 2;
       if ( logTimeout > maxSampleTime )
         logTimeout = maxSampleTime;
-    }
-  }
+    } // end logs.length > 0
+  } // end if result == Ok
   logTimer = fetchNextLogs.delay( logTimeout );
 }
 
@@ -216,37 +226,38 @@ function exportRequest() {
 
 function updateFilterSelectors() {
   Object.each(options,
-      function( values, key ) {
-        var selector = $('filter['+key+']');
-        if ( ! selector ) {
-            if ( window.console && window.console.log ) {
-              window.console.log("No selector found for " + key );
-            }
-            return;
+    function( values, key ) {
+      var selector = $('filter['+key+']');
+      if ( ! selector ) {
+        if ( window.console && window.console.log ) {
+          window.console.log("No selector found for " + key );
+        }
+        return;
+      }
+      selector.options.length = 1;
+      if ( key == 'Level' ) {
+        Object.each(values,
+          function( value, label ) {
+            selector.options[selector.options.length] = new Option(value, label);
           }
-          selector.options.length = 1;
-          if ( key == 'Level' ) {
-            Object.each(values,
-                function( value, label ) {
-                selector.options[selector.options.length] = new Option( value, label );
-                }
-            );
-          } else if ( key == 'ServerId' ) {
-            Object.each(values,
-                function( value, label ) {
-                  selector.options[selector.options.length] = new Option( value, label );
-                }
-                );
-          } else {
-            values.each(
-                function( value ) {
-                  selector.options[selector.options.length] = new Option( value );
-                }
-                );
+        );
+      } else if ( key == 'ServerId' ) {
+        Object.each(values,
+          function( value, label ) {
+            selector.options[selector.options.length] = new Option(value, label);
           }
-          if ( filter[key] )
-            selector.set('value', filter[key]);
+        );
+      } else {
+        Object.each(values,
+          function( value, label ) {
+            selector.options[selector.options.length] = new Option(value, label);
           }
+        );
+      }
+      if ( filter[key] )
+        selector.set('value', filter[key]);
+
+    }
   );
 }
 
@@ -256,11 +267,11 @@ function initPage() {
     logCodes[''+i] = 'DB'+i;
   logTable = new HtmlTable( $('logTable'),
       {
-zebra: true,
-sortable: true,
-sortReverse: true
-}
-);
+        zebra: true,
+        sortable: true,
+        sortReverse: true
+      }
+      );
   logTable.addEvent( 'sort', function( tbody, index ) {
       var header = tbody.getParent( 'table' ).getElement( 'thead' );
       var columns = header.getElement( 'tr' ).getElements( 'th' );
@@ -286,7 +297,7 @@ sortReverse: true
     warningPrefix: "",
     errorPrefix: ""
   });
-  new Asset.css( "/css/spinner.css" );
+  new Asset.css( "css/spinner.css" );
   fetchNextLogs();
 }
 

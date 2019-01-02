@@ -23,16 +23,28 @@ addons:
     - curl
     - sshfs
     - sed
+    - binfmt-support
+    - qemu
+    - qemu-user-static
+    - dnsutils
+    - traceroute
+install:
+  - update-binfmts --enable qemu-arm
+
 env:
+  global:
+  - SMPFLAGS=-j4
   matrix:
-  - OS=el DIST=6
   - OS=el DIST=7
-  - OS=fedora DIST=24
-  - OS=fedora DIST=25
+  - OS=fedora DIST=27 DOCKER_REPO=knnniggett/packpack
+  - OS=fedora DIST=28 DOCKER_REPO=knnniggett/packpack
+  - OS=fedora DIST=29 DOCKER_REPO=knnniggett/packpack
   - OS=ubuntu DIST=trusty
   - OS=ubuntu DIST=xenial
   - OS=ubuntu DIST=trusty ARCH=i386
   - OS=ubuntu DIST=xenial ARCH=i386
+  - OS=raspbian DIST=stretch ARCH=armhf DOCKER_REPO=knnniggett/packpack
+
 compiler:
 - gcc
 services:

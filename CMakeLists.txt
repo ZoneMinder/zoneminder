@@ -58,6 +58,8 @@ if(NOT HOST_OS)
             "ZoneMinder was unable to deterimine the host OS. Please report this. Value of CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 endif(NOT HOST_OS)
 
+set (CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 # Default CLFAGS and CXXFLAGS:
 set(CMAKE_C_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-Wall -D__STDC_CONSTANT_MACROS -O2")
@@ -69,20 +71,38 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # GCC below 6.0 doesn't support __target__("fpu=neon") attribute, required for compiling ARM Neon code, otherwise compilation fails.
 # Must use -mfpu=neon compiler flag instead, but only do that for processors that support neon, otherwise strip the neon code alltogether,
 # because passing -fmpu=neon is unsafe to processors that don't support neon
-IF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
-	IF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-		EXEC_PROGRAM(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
-		IF(neonresult EQUAL 0)
-			set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
-			set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
-			set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
-			set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
-		ELSE(neonresult EQUAL 0)
-			add_definitions(-DZM_STRIP_NEON=1)
-			message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
-		ENDIF(neonresult EQUAL 0)
-	ENDIF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
-ENDIF(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+
+# Arm neon support only tested on Linux. If your arm hardware is running a non-Linux distro and is using gcc then contact us.
+IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ZM_SYSTEM_PROC)
+    IF((ZM_SYSTEM_PROC STREQUAL "") OR (ZM_SYSTEM_PROC STREQUAL "unknown"))
+        execute_process(COMMAND uname -m OUTPUT_VARIABLE ZM_SYSTEM_PROC ERROR_VARIABLE ZM_SYSTEM_PROC_ERR)
+
+        # maybe make the following error checks fatal
+        IF(ZM_SYSTEM_PROC_ERR)
+            message(WARNING "\nAn error occurred while attempting to determine the system processor:\n${ZM_SYSTEM_PROC_ERR}")
+        ENDIF(ZM_SYSTEM_PROC_ERR)
+        IF(NOT ZM_SYSTEM_PROC)
+           message(WARNING "\nUnable to determine the system processor. This may cause a build failure.\n")
+        ENDIF(ZM_SYSTEM_PROC)
+
+    ENDIF((ZM_SYSTEM_PROC STREQUAL "") OR (ZM_SYSTEM_PROC STREQUAL "unknown"))
+
+    IF(ZM_SYSTEM_PROC MATCHES "^arm")
+	    IF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+                EXEC_PROGRAM(grep ARGS " neon " "/proc/cpuinfo" OUTPUT_VARIABLE neonoutput RETURN_VALUE neonresult)
+		    IF(neonresult EQUAL 0)
+                        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mfpu=neon")
+                        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mfpu=neon")
+                        set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mfpu=neon")
+                        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -mfpu=neon")
+		    ELSE(neonresult EQUAL 0)
+                        add_definitions(-DZM_STRIP_NEON=1)
+                        message(STATUS "ARM Neon is not available on this processor. Neon functions will be absent")
+                    ENDIF(neonresult EQUAL 0)
+            ENDIF(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+    ENDIF(ZM_SYSTEM_PROC MATCHES "^arm")
+ENDIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 # Modules that we need:
 include (GNUInstallDirs)
@@ -103,9 +123,12 @@ mark_as_advanced(
     ZM_PERL_MM_PARMS 
     ZM_PERL_SEARCH_PATH 
     ZM_TARGET_DISTRO 
+    ZM_PATH_MAP
+    ZM_PATH_ARP 
     ZM_CONFIG_DIR
     ZM_CONFIG_SUBDIR
-    ZM_SYSTEMD)
+    ZM_SYSTEMD
+    ZM_MANPAGE_DEST_PREFIX)
 
 set(ZM_RUNDIR "/var/run/zm" CACHE PATH 
     "Location of transient process files, default: /var/run/zm")
@@ -119,6 +142,8 @@ set(ZM_WEBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/zoneminder/www" 
     "Location of the web files, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/www")
 set(ZM_CGIDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin" CACHE PATH 
     "Location of the cgi-bin files, default: <prefix>/${CMAKE_INSTALL_LIBEXECDIR}/zoneminder/cgi-bin")
+set(ZM_CACHEDIR "/var/cache/zoneminder" CACHE PATH 
+    "Location of the web server cache busting files, default: /var/cache/zoneminder")
 set(ZM_CONTENTDIR "/var/lib/zoneminder" CACHE PATH 
     "Location of dynamic content (events and images), default: /var/lib/zoneminder")
 set(ZM_DB_HOST "localhost" CACHE STRING 
@@ -135,7 +160,18 @@ set(ZM_WEB_USER "" CACHE STRING
 set(ZM_WEB_GROUP "" CACHE STRING 
     "The group apache or the local web server runs on, 
     Leave empty to be the same as the web user")
+set(ZM_DIR_EVENTS "${ZM_CONTENTDIR}/events" CACHE PATH 
+    "Location where events are recorded to, default: ZM_CONTENTDIR/events")
+set(ZM_DIR_SOUNDS "sounds" CACHE PATH
+    "Location to look for optional sound files, default: sounds")
+set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
+    "Web url to zms streaming server, default: /cgi-bin/nph-zms")
+
 # Advanced
+set(ZM_PATH_MAP "/dev/shm" CACHE PATH
+    "Location to save mapped memory files, default: /dev/shm")
+set(ZM_PATH_ARP "" CACHE PATH
+    "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH 
     "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH 
@@ -147,8 +183,6 @@ set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING
 set(ZM_NO_MMAP "OFF" CACHE BOOL 
     "Set to ON to not use mmap shared memory. Shouldn't be enabled unless you 
     experience problems with the shared memory. default: OFF")
-set(ZM_NO_FFMPEG "OFF" CACHE BOOL 
-    "Set to ON to skip ffmpeg checks and force building ZM without ffmpeg. default: OFF")
 set(ZM_NO_LIBVLC "OFF" CACHE BOOL 
 "Set to ON to skip libvlc checks and force building ZM without libvlc. default: OFF")
 set(ZM_NO_CURL "OFF" CACHE BOOL 
@@ -169,9 +203,13 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING 
-    "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc24, fc25, el6, el7, OS13, FreeBSD")
+    "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc27, fc26, el7, OS13, FreeBSD")
 set(ZM_SYSTEMD "OFF" CACHE BOOL 
     "Set to ON to force building ZM with systemd support. default: OFF")
+set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH 
+	"Relative path used to install ZoneMinder's Man pages into a
+         non-standard folder. Most Linux users will not need to change this.
+         BSD users may need to set this.")
 
 # Reassign some variables if a target distro has been specified
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
@@ -183,6 +221,8 @@ if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
         set(ZM_CONFIG_SUBDIR "/etc/zm/conf.d")
 	set(ZM_WEBDIR "/usr/share/zoneminder/www")
 	set(ZM_CGIDIR "/usr/libexec/zoneminder/cgi-bin")
+	set(ZM_DIR_EVENTS "/var/lib/zoneminder/events")
+	set(ZM_PATH_ZMS "/cgi-bin-zm/nph-zms")
 elseif(ZM_TARGET_DISTRO STREQUAL "OS13")
 	set(ZM_RUNDIR "/var/run/zoneminder")
 	set(ZM_TMPDIR "/var/run/zoneminder")
@@ -445,24 +485,24 @@ if(MP4V2_LIBRARIES)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4v2/mp4v2.h" HAVE_MP4V2_MP4V2_H)
 
         # mp4v2.h
 	find_path(MP4V2_INCLUDE_DIR mp4v2.h)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4v2.h" HAVE_MP4V2_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4v2.h" HAVE_MP4V2_H)
 
 	# mp4.h
 	find_path(MP4V2_INCLUDE_DIR mp4.h)
 	if(MP4V2_INCLUDE_DIR)
 		include_directories("${MP4V2_INCLUDE_DIR}")
 		set(CMAKE_REQUIRED_INCLUDES "${MP4V2_INCLUDE_DIR}")
+		check_include_file("mp4.h" HAVE_MP4_H)
 	endif(MP4V2_INCLUDE_DIR)
-	check_include_file("mp4.h" HAVE_MP4_H)
 
 	mark_as_advanced(FORCE MP4V2_LIBRARIES MP4V2_INCLUDE_DIR)
 	set(optlibsfound "${optlibsfound} mp4v2")
@@ -472,122 +512,137 @@ endif(MP4V2_LIBRARIES)
 
 set(PATH_FFMPEG "")
 set(OPT_FFMPEG "no")
-# Do not check for ffmpeg if ZM_NO_FFMPEG is on
-if(NOT ZM_NO_FFMPEG)
-	# avformat (using find_library and find_path)
-	find_library(AVFORMAT_LIBRARIES avformat)
-	if(AVFORMAT_LIBRARIES)
-		set(HAVE_LIBAVFORMAT 1)
-		list(APPEND ZM_BIN_LIBS "${AVFORMAT_LIBRARIES}")
-		find_path(AVFORMAT_INCLUDE_DIR "libavformat/avformat.h" /usr/include/ffmpeg)
-		if(AVFORMAT_INCLUDE_DIR)
-			include_directories("${AVFORMAT_INCLUDE_DIR}")
-			set(CMAKE_REQUIRED_INCLUDES "${AVFORMAT_INCLUDE_DIR}")
-		endif(AVFORMAT_INCLUDE_DIR)
-		mark_as_advanced(FORCE AVFORMAT_LIBRARIES AVFORMAT_INCLUDE_DIR)
-		check_include_file("libavformat/avformat.h" HAVE_LIBAVFORMAT_AVFORMAT_H)
-		set(optlibsfound "${optlibsfound} AVFormat")
-	else(AVFORMAT_LIBRARIES)
-		set(optlibsnotfound "${optlibsnotfound} AVFormat")
-	endif(AVFORMAT_LIBRARIES)
+# avformat (using find_library and find_path)
+find_library(AVFORMAT_LIBRARIES avformat)
+if(AVFORMAT_LIBRARIES)
+	set(HAVE_LIBAVFORMAT 1)
+	list(APPEND ZM_BIN_LIBS "${AVFORMAT_LIBRARIES}")
+	find_path(AVFORMAT_INCLUDE_DIR "libavformat/avformat.h" /usr/include/ffmpeg)
+	if(AVFORMAT_INCLUDE_DIR)
+		include_directories("${AVFORMAT_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${AVFORMAT_INCLUDE_DIR}")
+	endif(AVFORMAT_INCLUDE_DIR)
+	mark_as_advanced(FORCE AVFORMAT_LIBRARIES AVFORMAT_INCLUDE_DIR)
+	check_include_file("libavformat/avformat.h" HAVE_LIBAVFORMAT_AVFORMAT_H)
+	set(optlibsfound "${optlibsfound} AVFormat")
+else(AVFORMAT_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} AVFormat")
+endif(AVFORMAT_LIBRARIES)
 
-	# avcodec (using find_library and find_path)
-	find_library(AVCODEC_LIBRARIES avcodec)
-	if(AVCODEC_LIBRARIES)
-		set(HAVE_LIBAVCODEC 1)
-		list(APPEND ZM_BIN_LIBS "${AVCODEC_LIBRARIES}")
-		find_path(AVCODEC_INCLUDE_DIR "libavcodec/avcodec.h" /usr/include/ffmpeg)
-		if(AVCODEC_INCLUDE_DIR)
-			include_directories("${AVCODEC_INCLUDE_DIR}")
-			set(CMAKE_REQUIRED_INCLUDES "${AVCODEC_INCLUDE_DIR}")
-		endif(AVCODEC_INCLUDE_DIR)
-		mark_as_advanced(FORCE AVCODEC_LIBRARIES AVCODEC_INCLUDE_DIR)
-		check_include_file("libavcodec/avcodec.h" HAVE_LIBAVCODEC_AVCODEC_H)
-		set(optlibsfound "${optlibsfound} AVCodec")
-	else(AVCODEC_LIBRARIES)
-		set(optlibsnotfound "${optlibsnotfound} AVCodec")
-	endif(AVCODEC_LIBRARIES)
+# avcodec (using find_library and find_path)
+find_library(AVCODEC_LIBRARIES avcodec)
+if(AVCODEC_LIBRARIES)
+	set(HAVE_LIBAVCODEC 1)
+	list(APPEND ZM_BIN_LIBS "${AVCODEC_LIBRARIES}")
+	find_path(AVCODEC_INCLUDE_DIR "libavcodec/avcodec.h" /usr/include/ffmpeg)
+	if(AVCODEC_INCLUDE_DIR)
+		include_directories("${AVCODEC_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${AVCODEC_INCLUDE_DIR}")
+	endif(AVCODEC_INCLUDE_DIR)
+	mark_as_advanced(FORCE AVCODEC_LIBRARIES AVCODEC_INCLUDE_DIR)
+	check_include_file("libavcodec/avcodec.h" HAVE_LIBAVCODEC_AVCODEC_H)
+	set(optlibsfound "${optlibsfound} AVCodec")
+else(AVCODEC_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} AVCodec")
+endif(AVCODEC_LIBRARIES)
 
-	# avdevice (using find_library and find_path)
-	find_library(AVDEVICE_LIBRARIES avdevice)
-	if(AVDEVICE_LIBRARIES)
-		set(HAVE_LIBAVDEVICE 1)
-		list(APPEND ZM_BIN_LIBS "${AVDEVICE_LIBRARIES}")
-		find_path(AVDEVICE_INCLUDE_DIR "libavdevice/avdevice.h" /usr/include/ffmpeg)
-		if(AVDEVICE_INCLUDE_DIR)
-			include_directories("${AVDEVICE_INCLUDE_DIR}")
-			set(CMAKE_REQUIRED_INCLUDES "${AVDEVICE_INCLUDE_DIR}")
-		endif(AVDEVICE_INCLUDE_DIR)
-		mark_as_advanced(FORCE AVDEVICE_LIBRARIES AVDEVICE_INCLUDE_DIR)
-		check_include_file("libavdevice/avdevice.h" HAVE_LIBAVDEVICE_AVDEVICE_H)
-		set(optlibsfound "${optlibsfound} AVDevice")
-	else(AVDEVICE_LIBRARIES)
-		set(optlibsnotfound "${optlibsnotfound} AVDevice")
-	endif(AVDEVICE_LIBRARIES)
+# avdevice (using find_library and find_path)
+find_library(AVDEVICE_LIBRARIES avdevice)
+if(AVDEVICE_LIBRARIES)
+	set(HAVE_LIBAVDEVICE 1)
+	list(APPEND ZM_BIN_LIBS "${AVDEVICE_LIBRARIES}")
+	find_path(AVDEVICE_INCLUDE_DIR "libavdevice/avdevice.h" /usr/include/ffmpeg)
+	if(AVDEVICE_INCLUDE_DIR)
+		include_directories("${AVDEVICE_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${AVDEVICE_INCLUDE_DIR}")
+	endif(AVDEVICE_INCLUDE_DIR)
+	mark_as_advanced(FORCE AVDEVICE_LIBRARIES AVDEVICE_INCLUDE_DIR)
+	check_include_file("libavdevice/avdevice.h" HAVE_LIBAVDEVICE_AVDEVICE_H)
+	set(optlibsfound "${optlibsfound} AVDevice")
+else(AVDEVICE_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} AVDevice")
+endif(AVDEVICE_LIBRARIES)
 
-	# avutil (using find_library and find_path)
-	find_library(AVUTIL_LIBRARIES avutil)
-	if(AVUTIL_LIBRARIES)
-		set(HAVE_LIBAVUTIL 1)
-		list(APPEND ZM_BIN_LIBS "${AVUTIL_LIBRARIES}")
-		find_path(AVUTIL_INCLUDE_DIR "libavutil/avutil.h" /usr/include/ffmpeg)
-		if(AVUTIL_INCLUDE_DIR)
-			include_directories("${AVUTIL_INCLUDE_DIR}")
-			set(CMAKE_REQUIRED_INCLUDES "${AVUTIL_INCLUDE_DIR}")
-		endif(AVUTIL_INCLUDE_DIR)
-		mark_as_advanced(FORCE AVUTIL_LIBRARIES AVUTIL_INCLUDE_DIR)
-		check_include_file("libavutil/avutil.h" HAVE_LIBAVUTIL_AVUTIL_H)
-		check_include_file("libavutil/mathematics.h" HAVE_LIBAVUTIL_MATHEMATICS_H)
-		set(optlibsfound "${optlibsfound} AVUtil")
-	else(AVUTIL_LIBRARIES)
-		set(optlibsnotfound "${optlibsnotfound} AVUtil")
-	endif(AVUTIL_LIBRARIES)
+# avutil (using find_library and find_path)
+find_library(AVUTIL_LIBRARIES avutil)
+if(AVUTIL_LIBRARIES)
+	set(HAVE_LIBAVUTIL 1)
+	list(APPEND ZM_BIN_LIBS "${AVUTIL_LIBRARIES}")
+	find_path(AVUTIL_INCLUDE_DIR "libavutil/avutil.h" /usr/include/ffmpeg)
+	if(AVUTIL_INCLUDE_DIR)
+		include_directories("${AVUTIL_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${AVUTIL_INCLUDE_DIR}")
+	endif(AVUTIL_INCLUDE_DIR)
+	mark_as_advanced(FORCE AVUTIL_LIBRARIES AVUTIL_INCLUDE_DIR)
+	check_include_file("libavutil/avutil.h" HAVE_LIBAVUTIL_AVUTIL_H)
+	check_include_file("libavutil/mathematics.h" HAVE_LIBAVUTIL_MATHEMATICS_H)
+	check_include_file("libavutil/hwcontext.h" HAVE_LIBAVUTIL_HWCONTEXT_H)
+	set(optlibsfound "${optlibsfound} AVUtil")
+else(AVUTIL_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} AVUtil")
+endif(AVUTIL_LIBRARIES)
 
-	# swscale (using find_library and find_path)
-	find_library(SWSCALE_LIBRARIES swscale)
-	if(SWSCALE_LIBRARIES)
-		set(HAVE_LIBSWSCALE 1)
-		list(APPEND ZM_BIN_LIBS "${SWSCALE_LIBRARIES}")
-		find_path(SWSCALE_INCLUDE_DIR "libswscale/swscale.h" /usr/include/ffmpeg)
-		if(SWSCALE_INCLUDE_DIR)
-			include_directories("${SWSCALE_INCLUDE_DIR}")
-			set(CMAKE_REQUIRED_INCLUDES "${SWSCALE_INCLUDE_DIR}")
-		endif(SWSCALE_INCLUDE_DIR)
-		mark_as_advanced(FORCE SWSCALE_LIBRARIES SWSCALE_INCLUDE_DIR)
-		check_include_file("libswscale/swscale.h" HAVE_LIBSWSCALE_SWSCALE_H)
-		set(optlibsfound "${optlibsfound} SWScale")
-	else(SWSCALE_LIBRARIES)
-		set(optlibsnotfound "${optlibsnotfound} SWScale")
-	endif(SWSCALE_LIBRARIES)
+# swscale (using find_library and find_path)
+find_library(SWSCALE_LIBRARIES swscale)
+if(SWSCALE_LIBRARIES)
+	set(HAVE_LIBSWSCALE 1)
+	list(APPEND ZM_BIN_LIBS "${SWSCALE_LIBRARIES}")
+	find_path(SWSCALE_INCLUDE_DIR "libswscale/swscale.h" /usr/include/ffmpeg)
+	if(SWSCALE_INCLUDE_DIR)
+		include_directories("${SWSCALE_INCLUDE_DIR}")
+		set(CMAKE_REQUIRED_INCLUDES "${SWSCALE_INCLUDE_DIR}")
+	endif(SWSCALE_INCLUDE_DIR)
+	mark_as_advanced(FORCE SWSCALE_LIBRARIES SWSCALE_INCLUDE_DIR)
+	check_include_file("libswscale/swscale.h" HAVE_LIBSWSCALE_SWSCALE_H)
+	set(optlibsfound "${optlibsfound} SWScale")
+else(SWSCALE_LIBRARIES)
+	set(optlibsnotfound "${optlibsnotfound} SWScale")
+endif(SWSCALE_LIBRARIES)
 
-	# rescale (using find_library and find_path)
-	find_library(AVRESAMPLE_LIBRARIES avresample)
-	if(AVRESAMPLE_LIBRARIES)
-		set(HAVE_LIBAVRESAMPLE 1)
-		list(APPEND ZM_BIN_LIBS "${AVRESAMPLE_LIBRARIES}")
-		find_path(AVRESAMPLE_INCLUDE_DIR "libavresample/avresample.h" /usr/include/ffmpeg)
-		if(AVRESAMPLE_INCLUDE_DIR)
-			include_directories("${AVRESAMPLE_INCLUDE_DIR}")
-			set(CMAKE_REQUIRED_INCLUDES "${AVRESAMPLE_INCLUDE_DIR}")
-		endif(AVRESAMPLE_INCLUDE_DIR)
-		mark_as_advanced(FORCE AVRESAMPLE_LIBRARIES AVRESAMPLE_INCLUDE_DIR)
-		check_include_file("libavresample/avresample.h" HAVE_LIBAVRESAMPLE_AVRESAMPLE_H)
-		set(optlibsfound "${optlibsfound} AVResample")
-	else(AVRESAMPLE_LIBRARIES)
-		set(optlibsnotfound "${optlibsnotfound} AVResample")
-	endif(AVRESAMPLE_LIBRARIES)
+# SWresample (using find_library and find_path)
+find_library(SWRESAMPLE_LIBRARIES swresample)
+if(SWRESAMPLE_LIBRARIES)
+  set(HAVE_LIBSWRESAMPLE 1)
+  list(APPEND ZM_BIN_LIBS "${SWRESAMPLE_LIBRARIES}")
+  find_path(SWRESAMPLE_INCLUDE_DIR "libswresample/swresample.h" /usr/include/ffmpeg)
+  if(SWRESAMPLE_INCLUDE_DIR)
+    include_directories("${SWRESAMPLE_INCLUDE_DIR}")
+    set(CMAKE_REQUIRED_INCLUDES "${SWRESAMPLE_INCLUDE_DIR}")
+  endif(SWRESAMPLE_INCLUDE_DIR)
+  mark_as_advanced(FORCE SWRESAMPLE_LIBRARIES SWRESAMPLE_INCLUDE_DIR)
+  check_include_file("libswresample/swresample.h" HAVE_LIBSWRESAMPLE_SWRESAMPLE_H)
+  set(optlibsfound "${optlibsfound} SWResample")
+else(SWRESAMPLE_LIBRARIES)
+  set(optlibsnotfound "${optlibsnotfound} SWResample")
 
-	# Find the path to the ffmpeg executable
-	find_program(FFMPEG_EXECUTABLE 
-		NAMES ffmpeg avconv
-		PATH_SUFFIXES ffmpeg)
-	if(FFMPEG_EXECUTABLE)
-		set(PATH_FFMPEG "${FFMPEG_EXECUTABLE}")
-		set(OPT_FFMPEG "yes")
-		mark_as_advanced(FFMPEG_EXECUTABLE)
-	endif(FFMPEG_EXECUTABLE)
+  # AVresample (using find_library and find_path)
+  find_library(AVRESAMPLE_LIBRARIES avresample)
+  if(AVRESAMPLE_LIBRARIES)
+    set(HAVE_LIBAVRESAMPLE 1)
+    list(APPEND ZM_BIN_LIBS "${AVRESAMPLE_LIBRARIES}")
+    find_path(AVRESAMPLE_INCLUDE_DIR "libavresample/avresample.h" /usr/include/ffmpeg)
+    if(AVRESAMPLE_INCLUDE_DIR)
+      include_directories("${AVRESAMPLE_INCLUDE_DIR}")
+      set(CMAKE_REQUIRED_INCLUDES "${AVRESAMPLE_INCLUDE_DIR}")
+    endif(AVRESAMPLE_INCLUDE_DIR)
+    mark_as_advanced(FORCE AVRESAMPLE_LIBRARIES AVRESAMPLE_INCLUDE_DIR)
+    check_include_file("libavresample/avresample.h" HAVE_LIBAVRESAMPLE_AVRESAMPLE_H)
+    set(optlibsfound "${optlibsfound} AVResample")
+  else(AVRESAMPLE_LIBRARIES)
+    set(optlibsnotfound "${optlibsnotfound} AVResample")
+  endif(AVRESAMPLE_LIBRARIES)
 
-endif(NOT ZM_NO_FFMPEG)
+endif(SWRESAMPLE_LIBRARIES)
+
+# Find the path to the ffmpeg executable
+find_program(FFMPEG_EXECUTABLE 
+	NAMES ffmpeg avconv
+	PATH_SUFFIXES ffmpeg)
+if(FFMPEG_EXECUTABLE)
+	set(PATH_FFMPEG "${FFMPEG_EXECUTABLE}")
+	set(OPT_FFMPEG "yes")
+	mark_as_advanced(FFMPEG_EXECUTABLE)
+endif(FFMPEG_EXECUTABLE)
 
 # Do not check for libvlc if ZM_NO_LIBVLC is on
 if(NOT ZM_NO_LIBVLC)
@@ -609,13 +664,13 @@ if(NOT ZM_NO_LIBVLC)
 	endif(LIBVLC_LIBRARIES)
 endif(NOT ZM_NO_LIBVLC)
 
-find_package(Boost 1.36.0)
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
-  set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
-  list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
-endif()
-
+#find_package(Boost 1.36.0)
+#if(Boost_FOUND)
+  #include_directories(${Boost_INCLUDE_DIRS})
+  ##set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIRS}")
+  #list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
+#endif()
+#
 # *** END OF LIBRARY CHECKS ***
 
 # Check for gnutls or crypto
@@ -760,6 +815,24 @@ if(WITH_SYSTEMD)
     endif(NOT POLKIT_FOUND)
 endif(WITH_SYSTEMD)
 
+# Find the path to an arp compatible executable
+if(ZM_PATH_ARP STREQUAL "")
+    find_program(ARP_EXECUTABLE arp)
+    if(ARP_EXECUTABLE)
+        set(ZM_PATH_ARP "${ARP_EXECUTABLE}")
+        mark_as_advanced(ARP_EXECUTABLE)
+    else(ARP_EXECUTABLE)
+        find_program(ARP_EXECUTABLE ip)
+            if(ARP_EXECUTABLE)
+                set(ZM_PATH_ARP "${ARP_EXECUTABLE} neigh")
+                mark_as_advanced(ARP_EXECUTABLE)
+            endif(ARP_EXECUTABLE)
+    endif(ARP_EXECUTABLE)
+    if(ARP_EXECUTABLE-NOTFOUND)
+        message(WARNING "Unable to find a compatible arp binary. Monitor probe will not function." )
+    endif(ARP_EXECUTABLE-NOTFOUND)
+endif(ZM_PATH_ARP STREQUAL "")
+
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "${ZM_CONFIG_DIR}/zm.conf")
@@ -782,11 +855,12 @@ endif(ZM_PERL_SEARCH_PATH)
 
 # If this is an out-of-source build, copy the files we need to the binary directory
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
-	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf.d" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/conf.d")
+	file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf.d" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}" PATTERN "*.in" EXCLUDE)
 endif(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR))
 
 # Generate files from the .in files
 configure_file(zm.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" @ONLY)
+configure_file(conf.d/01-system-paths.conf.in "${CMAKE_CURRENT_BINARY_DIR}/conf.d/01-system-paths.conf" @ONLY)
 configure_file(zoneminder-config.cmake "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
 configure_file(zmconfgen.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmconfgen.pl" @ONLY)
 configure_file(zmlinkcontent.sh.in "${CMAKE_CURRENT_BINARY_DIR}/zmlinkcontent.sh" @ONLY)
@@ -829,9 +903,9 @@ else(zmconfgen_result EQUAL 0)
             "ZoneMinder configuration generator failed. Exit code: ${zmconfgen_result}")
 endif(zmconfgen_result EQUAL 0)
 
-# Install zm.conf and conf.d subfolder
+# Install zm.conf
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zm.conf" DESTINATION "${ZM_CONFIG_DIR}")
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "${ZM_CONFIG_SUBDIR}")
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/conf.d/" DESTINATION "${ZM_CONFIG_SUBDIR}" PATTERN "*.in" EXCLUDE)
 
 # Uninstall target
 configure_file(
@@ -848,3 +922,4 @@ if(CCACHE_FOUND)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
+install(DIRECTORY icons DESTINATION "${CMAKE_INSTALL_DATADIR}/zoneminder/")

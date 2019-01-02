@@ -45,6 +45,7 @@ $primary_key = 'Id';
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
+require ZoneMinder::Storage;
 require ZoneMinder::Server;
 
 use POSIX;
@@ -95,10 +96,10 @@ sub find_one {
 
 sub Execute {
   my $self = $_[0];
-  my $sql = $self->Sql();
+  my $sql = $self->Sql(undef);
 
   if ( $self->{HasDiskPercent} ) {
-    my $disk_percent = getDiskPercent();
+		my $disk_percent = getDiskPercent( $$self{Storage} ? $$self{Storage}->Path() : () );
     $sql =~ s/zmDiskPercent/$disk_percent/g;
   }
   if ( $self->{HasDiskBlocks} ) {
@@ -124,105 +125,149 @@ sub Execute {
     push @results, $event;
   }
   $sth->finish();
-  Debug("Loaded " . @results . " events for filter $_[0]{Name} using query ($sql)");
+  Debug('Loaded ' . @results . " events for filter $_[0]{Name} using query ($sql)");
   return @results;
 }
 
 sub Sql {
-  my $self = $_[0];
+  my $self = shift;
+  $$self{Sql} = shift if @_;
   if ( ! $$self{Sql} ) {
-    my $filter_expr = ZoneMinder::General::jsonDecode( $self->{Query} );
-    my $sql = "SELECT E.*,
+    my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query});
+    my $sql = 'SELECT E.*,
        unix_timestamp(E.StartTime) as Time,
        M.Name as MonitorName,
        M.DefaultRate,
        M.DefaultScale
          FROM Events as E
          INNER JOIN Monitors as M on M.Id = E.MonitorId
-         ";
+         LEFT JOIN Storage as S on S.Id = E.StorageId
+         ';
     $self->{Sql} = '';
 
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
 
         if ( exists($term->{cnj}) ) {
-          $self->{Sql} .= " ".$term->{cnj}." ";
+          $self->{Sql} .= ' '.$term->{cnj}.' ';
         }
         if ( exists($term->{obr}) ) {
-          $self->{Sql} .= " ".str_repeat( "(", $term->{obr} )." ";
+          $self->{Sql} .= ' '.str_repeat( '(', $term->{obr} ).' ';
         }
         my $value = $term->{val};
         my @value_list;
         if ( $term->{attr} ) {
           if ( $term->{attr} =~ /^Monitor/ ) {
             my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
-            $self->{Sql} .= "M.".$temp_attr_name;
-          } elsif ( $term->{attr} =~ /^Server/ ) {
-            $self->{Sql} .= "M.".$term->{attr};
+            $self->{Sql} .= 'M.'.$temp_attr_name;
+          } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
+            $self->{Sql} .= 'M.ServerId';
+          } elsif ( $term->{attr} eq 'StorageServerId' ) {
+            $self->{Sql} .= 'S.ServerId';
+          } elsif ( $term->{attr} eq 'FilterServerId' ) {
+            $self->{Sql} .= $Config{ZM_SERVER_ID};
+# StartTime options
           } elsif ( $term->{attr} eq 'DateTime' ) {
-            $self->{Sql} .= "E.StartTime";
+            $self->{Sql} .= 'E.StartTime';
+          } elsif ( $term->{attr} eq 'StartDateTime' ) {
+            $self->{Sql} .= 'E.StartTime';
           } elsif ( $term->{attr} eq 'Date' ) {
-            $self->{Sql} .= "to_days( E.StartTime )";
-          } elsif ( $term->{attr} eq 'Time' ) {
-            $self->{Sql} .= "extract( hour_second from E.StartTime )";
+            $self->{Sql} .= 'to_days( E.StartTime )';
+          } elsif ( $term->{attr} eq 'StartDate' ) {
+            $self->{Sql} .= 'to_days( E.StartTime )';
+          } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' ) {
+            $self->{Sql} .= 'extract( hour_second from E.StartTime )';
           } elsif ( $term->{attr} eq 'Weekday' ) {
-            $self->{Sql} .= "weekday( E.StartTime )";
+            $self->{Sql} .= 'weekday( E.StartTime )';
+
+# EndTIme options
+          } elsif ( $term->{attr} eq 'EndDateTime' ) {
+            $self->{Sql} .= 'E.EndTime';
+          } elsif ( $term->{attr} eq 'EndDate' ) {
+            $self->{Sql} .= 'to_days( E.EndTime )';
+          } elsif ( $term->{attr} eq 'EndTime' ) {
+            $self->{Sql} .= 'extract( hour_second from E.EndTime )';
+          } elsif ( $term->{attr} eq 'EndWeekday' ) {
+            $self->{Sql} .= "weekday( E.EndTime )";
+
+# 
+          } elsif ( $term->{attr} eq 'DiskSpace' ) {
+            $self->{Sql} .= 'E.DiskSpace';
+            $self->{HasDiskPercent} = !undef;
           } elsif ( $term->{attr} eq 'DiskPercent' ) {
-            $self->{Sql} .= "zmDiskPercent";
+            $self->{Sql} .= 'zmDiskPercent';
             $self->{HasDiskPercent} = !undef;
           } elsif ( $term->{attr} eq 'DiskBlocks' ) {
-            $self->{Sql} .= "zmDiskBlocks";
+            $self->{Sql} .= 'zmDiskBlocks';
             $self->{HasDiskBlocks} = !undef;
           } elsif ( $term->{attr} eq 'SystemLoad' ) {
-            $self->{Sql} .= "zmSystemLoad";
+            $self->{Sql} .= 'zmSystemLoad';
             $self->{HasSystemLoad} = !undef;
           } else {
-            $self->{Sql} .= "E.".$term->{attr};
+            $self->{Sql} .= 'E.'.$term->{attr};
           }
 
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
           foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
-            if ( $term->{attr} =~ /^Monitor/ ) {
+            if ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} eq 'ServerId' ) {
+            } elsif ( $term->{attr} =~ /ServerId/) {
+              Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
-                $value = "'$Config{ZM_SERVER_ID}'";
+                $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what
-                $$self{Server} = new ZoneMinder::Server( $Config{ZM_SERVER_ID} );
+                $$self{Server} = new ZoneMinder::Server( $ZoneMinder::Config::Config{ZM_SERVER_ID} );
+              } elsif ( $temp_value eq 'NULL' ) {
+                $value = $temp_value;
               } else {
                 $value = "'$temp_value'";
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server( $temp_value );
               }
+						} elsif ( $term->{attr} eq 'StorageId' ) {
+							$value = "'$temp_value'";
+							$$self{Storage} = new ZoneMinder::Storage( $temp_value );
             } elsif ( $term->{attr} eq 'Name'
                 || $term->{attr} eq 'Cause'
                 || $term->{attr} eq 'Notes'
                 ) {
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} eq 'DateTime' ) {
-              $value = DateTimeToSQL( $temp_value );
-              if ( !$value ) {
-                Error( "Error parsing date/time '$temp_value', "
-                    ."skipping filter '$self->{Name}'\n" );
-                return;
+            } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
+              if ( $temp_value eq 'NULL' ) {
+                $value = $temp_value;
+              } else {
+                $value = DateTimeToSQL( $temp_value );
+                if ( !$value ) {
+                  Error( "Error parsing date/time '$temp_value', "
+                      ."skipping filter '$self->{Name}'\n" );
+                  return;
+                }
+                $value = "'$value'";
               }
-              $value = "'$value'";
-            } elsif ( $term->{attr} eq 'Date' ) {
-              $value = DateTimeToSQL( $temp_value );
-              if ( !$value ) {
-                Error( "Error parsing date/time '$temp_value', "
-                    ."skipping filter '$self->{Name}'\n" );
-                return;
+            } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
+              if ( $temp_value eq 'NULL' ) {
+                $value = $temp_value;
+              } else {
+                $value = DateTimeToSQL( $temp_value );
+                if ( !$value ) {
+                  Error( "Error parsing date/time '$temp_value', "
+                      ."skipping filter '$self->{Name}'\n" );
+                  return;
+                }
+                $value = "to_days( '$value' )";
               }
-              $value = "to_days( '$value' )";
-            } elsif ( $term->{attr} eq 'Time' ) {
-              $value = DateTimeToSQL( $temp_value );
-              if ( !$value ) {
-                Error( "Error parsing date/time '$temp_value', "
-                    ."skipping filter '$self->{Name}'\n" );
-                return;
+            } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
+              if ( $temp_value eq 'NULL' ) {
+                $value = $temp_value;
+              } else {
+                $value = DateTimeToSQL( $temp_value );
+                if ( !$value ) {
+                  Error( "Error parsing date/time '$temp_value', "
+                      ."skipping filter '$self->{Name}'\n" );
+                  return;
+                }
+                $value = "extract( hour_second from '$value' )";
               }
-              $value = "extract( hour_second from '$value' )";
             } else {
               $value = $temp_value;
             }
@@ -234,16 +279,26 @@ sub Sql {
             $self->{Sql} .= " regexp $value";
           } elsif ( $term->{op} eq '!~' ) {
             $self->{Sql} .= " not regexp $value";
+          } elsif ( $term->{op} eq 'IS' ) {
+            if ( $value eq 'Odd' ) {
+              $self->{Sql} .= ' % 2 = 1';
+            } elsif ( $value eq 'Even' ) {
+              $self->{Sql} .= ' % 2 = 0';
+            } else {
+              $self->{Sql} .= " IS $value";
+            }
+          } elsif ( $term->{op} eq 'IS NOT' ) {
+            $self->{Sql} .= " IS NOT $value";
           } elsif ( $term->{op} eq '=[]' ) {
             $self->{Sql} .= " in (".join( ",", @value_list ).")";
           } elsif ( $term->{op} eq '!~' ) {
             $self->{Sql} .= " not in (".join( ",", @value_list ).")";
           } else {
-            $self->{Sql} .= " ".$term->{op}." $value";
+            $self->{Sql} .= ' '.$term->{op}." $value";
           }
         } # end if has an operator
         if ( exists($term->{cbr}) ) {
-          $self->{Sql} .= " ".str_repeat( ")", $term->{cbr} )." ";
+          $self->{Sql} .= ' '.str_repeat( ")", $term->{cbr} )." ";
         }
       } # end foreach term
     } # end if terms
@@ -252,15 +307,15 @@ sub Sql {
       if ( $self->{AutoMessage} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
-        $sql .= " and ( ".$self->{Sql}." )";
+        $sql .= ' WHERE ( '.$self->{Sql}.' )';
       } else {
 # Only include closed events (events with valid EndTime)
-        $sql .= " where not isnull(E.EndTime) and ( ".$self->{Sql}." )";
+        $sql .= ' WHERE (E.EndTime IS NOT NULL) AND ( '.$self->{Sql}.' )';
       }
     }
     my @auto_terms;
     if ( $self->{AutoArchive} ) {
-      push @auto_terms, "E.Archived = 0";
+      push @auto_terms, 'E.Archived = 0';
     }
     # Don't do this, it prevents re-generation and concatenation.
     # If the file already exists, then the video won't be re-recreated
@@ -280,7 +335,7 @@ sub Sql {
       push @auto_terms, "E.Executed = 0";
     }
     if ( @auto_terms ) {
-      $sql .= " and ( ".join( " or ", @auto_terms )." )";
+      $sql .= " and ( ".join( ' or ', @auto_terms )." )";
     }
     if ( !$filter_expr->{sort_field} ) {
       $filter_expr->{sort_field} = 'StartTime';
@@ -288,30 +343,34 @@ sub Sql {
     }
     my $sort_column = '';
     if ( $filter_expr->{sort_field} eq 'Id' ) {
-      $sort_column = "E.Id";
+      $sort_column = 'E.Id';
     } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
-      $sort_column = "M.Name";
+      $sort_column = 'M.Name';
     } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
-      $sort_column = "E.Name";
+      $sort_column = 'E.Name';
     } elsif ( $filter_expr->{sort_field} eq 'StartTime' ) {
-      $sort_column = "E.StartTime";
+      $sort_column = 'E.StartTime';
+    } elsif ( $filter_expr->{sort_field} eq 'EndTime' ) {
+      $sort_column = 'E.EndTime';
     } elsif ( $filter_expr->{sort_field} eq 'Secs' ) {
-      $sort_column = "E.Length";
+      $sort_column = 'E.Length';
     } elsif ( $filter_expr->{sort_field} eq 'Frames' ) {
-      $sort_column = "E.Frames";
+      $sort_column = 'E.Frames';
     } elsif ( $filter_expr->{sort_field} eq 'AlarmFrames' ) {
-      $sort_column = "E.AlarmFrames";
+      $sort_column = 'E.AlarmFrames';
     } elsif ( $filter_expr->{sort_field} eq 'TotScore' ) {
-      $sort_column = "E.TotScore";
+      $sort_column = 'E.TotScore';
     } elsif ( $filter_expr->{sort_field} eq 'AvgScore' ) {
-      $sort_column = "E.AvgScore";
+      $sort_column = 'E.AvgScore';
     } elsif ( $filter_expr->{sort_field} eq 'MaxScore' ) {
-      $sort_column = "E.MaxScore";
+      $sort_column = 'E.MaxScore';
+    } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
+      $sort_column = 'E.DiskSpace';
     } else {
-      $sort_column = "E.StartTime";
+      $sort_column = 'E.StartTime';
     }
-    my $sort_order = $filter_expr->{sort_asc}?"asc":"desc";
-    $sql .= " order by ".$sort_column." ".$sort_order;
+    my $sort_order = $filter_expr->{sort_asc}?'asc':'desc';
+    $sql .= ' order by '.$sort_column." ".$sort_order;
     if ( $filter_expr->{limit} ) {
       $sql .= " limit 0,".$filter_expr->{limit};
     }
@@ -321,7 +380,7 @@ sub Sql {
 } # end sub Sql
 
 sub getDiskPercent {
-  my $command = "df " . ($_[0] ? $_[0] : '.');
+  my $command = 'df ' . ($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)%/ms ) {
@@ -331,7 +390,7 @@ sub getDiskPercent {
 }
 
 sub getDiskBlocks {
-  my $command = "df .";
+  my $command = 'df .';
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {
@@ -341,7 +400,7 @@ sub getDiskBlocks {
 }
 
 sub getLoad {
-  my $command = "uptime .";
+  my $command = 'uptime .';
   my $uptime = qx( $command );
   my $load = -1;
   if ( $uptime =~ /load average:\s+([\d.]+)/ms ) {

@@ -9,7 +9,7 @@
 # General sanity checks
 checksanity () {
     # Check to see if this script has access to all the commands it needs
-    for CMD in set echo curl repoquery git ln mkdir rmdir cat patch; do
+    for CMD in set echo curl git ln mkdir rmdir cat patch; do
       type $CMD 2>&1 > /dev/null
 
       if [ $? -ne 0 ]; then
@@ -19,7 +19,7 @@ checksanity () {
         exit 1
       fi
     done
-
+   
     # Verify OS & DIST environment variables have been set before calling this script
     if [ -z "${OS}" ] || [ -z "${DIST}" ]; then
         echo "ERROR: both OS and DIST environment variables must be set"
@@ -89,28 +89,56 @@ commonprep () {
         git clone https://github.com/packpack/packpack.git packpack
     fi
 
+    # Rpm builds are broken in latest packpack master. Temporarily roll back.
+    #git -C packpack checkout 7cf23ee
+
     # Patch packpack
     patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch
     if [ $? -eq 0 ]; then
         patch -p1 < utils/packpack/packpack-rpm.patch
     fi
 
-    # The rpm specfile requires we download the tarball and manually move it into place
+    # Skip deb lintian checks to speed up the build
+    patch --dry-run --silent -f -p1 < utils/packpack/nolintian.patch
+    if [ $? -eq 0 ]; then
+        patch -p1 < utils/packpack/nolintian.patch
+    fi
+
+    # fix 32bit rpm builds
+    # FIXME: breaks arm rpm builds
+    #patch --dry-run --silent -f -p1 < utils/packpack/setarch.patch
+    #if [ $? -eq 0 ]; then
+    #    patch -p1 < utils/packpack/setarch.patch
+    #fi
+
+    # The rpm specfile requires we download each submodule as a tarball then manually move it into place
     # Might as well do this for Debian as well, rather than git submodule init
-    CRUDVER="3.0.10"
+    CRUDVER="3.1.0-zm"
     if [ -e "build/crud-${CRUDVER}.tar.gz" ]; then
         echo "Found existing Crud ${CRUDVER} tarball..."
     else
         echo "Retrieving Crud ${CRUDVER} submodule..."
-        curl -L https://github.com/FriendsOfCake/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
+        curl -L https://github.com/ZoneMinder/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
         if [ $? -ne 0 ]; then
             echo "ERROR: Crud tarball retreival failed..."
             exit 1
         fi
     fi
+
+    CEBVER="1.0-zm"
+    if [ -e "build/cakephp-enum-behavior-${CEBVER}.tar.gz" ]; then
+        echo "Found existing CakePHP-Enum-Behavior ${CEBVER} tarball..."
+    else
+        echo "Retrieving CakePHP-Enum-Behavior ${CEBVER} submodule..."
+        curl -L https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/${CEBVER}.tar.gz > build/cakephp-enum-behavior-${CEBVER}.tar.gz
+        if [ $? -ne 0 ]; then
+            echo "ERROR: CakePHP-Enum-Behavior tarball retreival failed..."
+            exit 1
+        fi
+    fi
 }
 
-# Uncompress the Crud tarball and move it into place
+# Uncompress the submodule tarballs and move them into place
 movecrud () {
     if [ -e "web/api/app/Plugin/Crud/LICENSE.txt" ]; then
         echo "Crud plugin already installed..."
@@ -119,6 +147,14 @@ movecrud () {
         tar -xzf build/crud-${CRUDVER}.tar.gz
         rmdir web/api/app/Plugin/Crud
         mv -f crud-${CRUDVER} web/api/app/Plugin/Crud
+    fi
+    if [ -e "web/api/app/Plugin/CakePHP-Enum-Behavior/readme.md" ]; then
+        echo "CakePHP-Enum-Behavior plugin already installed..."
+    else     
+        echo "Unpacking CakePHP-Enum-Behavior plugin..."
+        tar -xzf build/cakephp-enum-behavior-${CEBVER}.tar.gz
+        rmdir web/api/app/Plugin/CakePHP-Enum-Behavior
+        mv -f CakePHP-Enum-Behavior-${CEBVER} web/api/app/Plugin/CakePHP-Enum-Behavior
     fi
 }
 
@@ -140,7 +176,7 @@ installtrusty () {
     pkgname="build/zoneminder_${VERSION}-${RELEASE}_amd64.deb"
 
     if [ -e $pkgname ]; then
-        sudo gdebi --non-interactive $pkgname
+        sudo gdebi --quiet --non-interactive $pkgname
         mysql -uzmuser -pzmpass zm < db/test.monitor.sql
         sudo /usr/bin/zmpkg.pl start
         sudo /usr/bin/zmfilter.pl -f purgewhenfull
@@ -211,10 +247,66 @@ zoneminder ($VERSION-${DIST}-1) unstable; urgency=low
 EOF
 }
 
+# start packpack, filter the output if we are running in travis
+execpackpack () {
+
+    if [ "${OS}" == "el" ] || [ "${OS}" == "fedora" ]; then
+        parms="-f utils/packpack/redhat_package.mk redhat_package"
+    else
+        parms=""
+    fi
+
+    if [ "${TRAVIS}" == "true"  ]; then
+        # Travis will fail the build if the output gets too long
+        # To mitigate that, use grep to filter out some of the noise
+        if [ "${ARCH}" != "armhf" ]; then
+            packpack/packpack $parms | grep -Ev '^(-- Installing:|-- Up-to-date:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+        else
+            # Travis never ceases to amaze. For the case of arm emulation, Travis fails the build due to too little output over a 10 minute period. Facepalm.
+            packpack/packpack $parms | grep -Ev '^(-- Installing:|Skip blib|Manifying|Installing /build|cp lib|writing output...|copying images...|reading sources...|[Working])'
+        fi
+    else
+        packpack/packpack $parms
+    fi
+}
+
+# Check for connectivity with the deploy target host
+checkdeploytarget () {
+    echo
+    echo "Checking Internet connectivity with the deploy host ${DEPLOYTARGET}"
+    echo
+
+    ping -c 1 ${DEPLOYTARGET}
+
+    if [  $? -ne 0 ]; then
+        echo
+        echo "*** WARNING: THERE WAS A PROBLEM CONNECTING TO THE DEPLOY HOST ***"
+        echo
+        echo "Printing additional diagnostic information..."
+
+        echo
+        echo "*** NSLOOKUP ***"
+        echo
+        nslookup ${DEPLOYTARGET}
+
+        echo
+        echo "*** TRACEROUTE ***"
+        echo
+        traceroute -w 2 -m 15 ${DEPLOYTARGET}
+    fi
+}
+
 ################
 # MAIN PROGRAM #
 ################
 
+# Set the hostname we will deploy packages to
+DEPLOYTARGET="zmrepo.zoneminder.com"
+
+# If we are running inside Travis then verify we can connect to the target host machine
+if [ "${TRAVIS}" == "true" ]; then
+    checkdeploytarget
+fi
 checksanity
 
 # We don't want to build packages for all supported distros after every commit
@@ -235,30 +327,26 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         rm -rf web/api/app/Plugin/Crud
         mkdir web/api/app/Plugin/Crud
 
-        if [ "${OS}" == "el" ]; then
-            zmrepodistro=${OS}
-        else
-            zmrepodistro="f"
-        fi
+        reporpm="rpmfusion-free-release"
+        dlurl="https://download1.rpmfusion.org/free/${OS}/${reporpm}-${DIST}.noarch.rpm"
 
-        # Let repoquery determine the full url and filename of the zmrepo rpm we are interested in
-        result=`repoquery --repofrompath=zmpackpack,https://zmrepo.zoneminder.com/${zmrepodistro}/"${DIST}"/x86_64/ --repoid=zmpackpack --qf="%{location}" zmrepo 2> /dev/null`
-
-        if [ -n "$result" ] && [ $? -eq 0  ]; then
-            echo "Retrieving ZMREPO rpm..."
-            curl $result > build/zmrepo.noarch.rpm
+        # Give our downloaded repo rpm a common name so redhat_package.mk can find it
+        if [ -n "$dlurl" ] && [ $? -eq 0  ]; then
+            echo "Retrieving ${reporpm} repo rpm..."
+            curl $dlurl > build/external-repo.noarch.rpm
         else
-            echo "ERROR: Failed to retrieve zmrepo rpm..."
+            echo "ERROR: Failed to retrieve ${reporpm} repo rpm..."
+            echo "Download url was: $dlurl"
             exit 1
         fi
 
         setrpmchangelog
 
         echo "Starting packpack..."
-        packpack/packpack -f utils/packpack/redhat_package.mk redhat_package
+        execpackpack
 
     # Steps common to Debian based distros
-    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
+    elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbian" ]; then
         echo "Begin ${OS} ${DIST} build..."
 
         setdebpkgname
@@ -275,8 +363,8 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         setdebchangelog
         
         echo "Starting packpack..."
-        packpack/packpack
-
+        execpackpack
+        
         if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
             installtrusty
         fi
@@ -295,7 +383,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
     setdebchangelog
     
     echo "Starting packpack..."
-    packpack/packpack
+    execpackpack
 
     # If we are running inside Travis then attempt to install the deb we just built
     if [ "${TRAVIS}" == "true" ]; then

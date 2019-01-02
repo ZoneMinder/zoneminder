@@ -25,7 +25,9 @@ override_dh_auto_configure:
             -DZM_SOCKDIR="/var/run/zm"                 \
             -DZM_TMPDIR="/tmp/zm"                      \
             -DZM_CGIDIR="/usr/lib/zoneminder/cgi-bin"  \
-            -DZM_CONTENTDIR="/var/cache/zoneminder"
+            -DZM_CACHEDIR="/var/cache/zoneminder/cache"  \
+            -DZM_DIR_EVENTS="/var/cache/zoneminder/events"    \
+            -DZM_PATH_ZMS="/zm/cgi-bin/nph-zms"
 
 override_dh_clean:
 	dh_clean $(MANPAGES1)
@@ -63,9 +65,6 @@ override_dh_fixperms:
 	# As requested by the Debian Webapps Policy Manual §3.2.1
 	chown root:www-data $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
 	chmod 640 $(CURDIR)/debian/zoneminder/etc/zm/zm.conf
-
-override_dh_installinit:
-	dh_installinit --no-start
 
 override_dh_systemd_start:
 	dh_systemd_start --no-start

@@ -116,7 +116,7 @@ GetOptions(
     'dir:s'          =>\$updateDir
     ) or pod2usage(-exitstatus => -1);
 
-my $dbh = zmDbConnect();
+my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
 $Config{ZM_DB_USER} = $dbUser;
 $Config{ZM_DB_PASS} = $dbPass;
 
@@ -159,7 +159,7 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} ) {
       my $ua = LWP::UserAgent->new;
       $ua->agent( "ZoneMinder Update Agent/".ZM_VERSION );
       if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
-        $ua->proxy( "http", $Config{ZM_UPDATE_CHECK_PROXY} );
+        $ua->proxy( 'http', $Config{ZM_UPDATE_CHECK_PROXY} );
       }
       my $req = HTTP::Request->new( GET=>'https://update.zoneminder.com/version.txt' );
       my $res = $ua->request($req);
@@ -224,7 +224,7 @@ if ( $zoneFix ) {
   }
   $sth->finish();
 
-  $sql = "update Zones set MinAlarmPixels = ?, MaxAlarmPixels = ?, MinFilterPixels = ?, MaxFilterPixels = ?, MinBlobPixels = ?, MaxBlobPixels = ? where Id = ?";
+  $sql = 'update Zones set MinAlarmPixels = ?, MaxAlarmPixels = ?, MinFilterPixels = ?, MaxFilterPixels = ?, MinBlobPixels = ?, MaxBlobPixels = ? where Id = ?';
   $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   foreach my $zone ( @zones ) {
     my $zone_width = (($zone->{HiX}*$zone->{MonitorWidth})-($zone->{LoX}*$zone->{MonitorWidth}))/100;
@@ -311,6 +311,7 @@ if ( $migrateEvents ) {
 }
 if ( $freshen ) {
   print( "\nFreshening configuration in database\n" );
+  migratePaths();
   ZoneMinder::Config::loadConfigFromDB();
   ZoneMinder::Config::saveConfigToDB();
 }
@@ -352,8 +353,8 @@ if ( $version ) {
   $version = $detaint_version;
 
   if ( ZM_VERSION eq $version ) {
-    print( "\nDatabase already at version $version, update aborted.\n\n" );
-    exit( 0 );
+    print("\nDatabase already at version $version, update skipped.\n\n");
+    exit(0);
   }
 
   print( "\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n" );
@@ -377,7 +378,7 @@ if ( $version ) {
 
     if ( $response =~ /^[yY]$/ ) {
       my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-      my $command = "mysqldump";
+      my $command = 'mysqldump';
       if ( defined($portOrSocket) ) {
         if ( $portOrSocket =~ /^\// ) {
           $command .= " -S".$portOrSocket;
@@ -410,54 +411,11 @@ if ( $version ) {
       die( "Unexpected response '$response'" );
     }
   }
-  sub patchDB {
-    my $dbh = shift;
-    my $version = shift;
-
-    my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-    my $command = "mysql";
-    if ( defined($portOrSocket) ) {
-      if ( $portOrSocket =~ /^\// ) {
-        $command .= " -S".$portOrSocket;
-      } else {
-        $command .= " -h".$host." -P".$portOrSocket;
-      }
-    } else {
-      $command .= " -h".$host; 
-    }
-    if ( $dbUser ) {
-      $command .= " -u".$dbUser;
-      $command .= ' -p"'.$dbPass.'"' if $dbPass;
-    }
-    $command .= " ".$Config{ZM_DB_NAME}." < ";
-    if ( $updateDir ) {
-      $command .= $updateDir;
-    } else {
-      $command .= $Config{ZM_PATH_DATA}."/db";
-    }
-    $command .= "/zm_update-".$version.".sql";
-
-    print( "Executing '$command'\n" ) if ( logDebugging() );
-    my $output = qx($command);
-    my $status = $? >> 8;
-    if ( $status || logDebugging() ) {
-      chomp( $output );
-      print( "Output: $output\n" );
-    }
-    if ( $status ) {
-      die( "Command '$command' exited with status: $status\n" );
-    } else {
-      print( "\nDatabase successfully upgraded to version $version.\n" );
-      my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
-      my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-      my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
-    }
-  }
-
 
   print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
 # Update config first of all
+  migratePaths();
   ZoneMinder::Config::loadConfigFromDB();
   ZoneMinder::Config::saveConfigToDB();
 
@@ -545,7 +503,7 @@ if ( $version ) {
       my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
       my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
       while( my $monitor = $sth->fetchrow_hashref() ) {
-        my $sql = "update Events set Width = ?, Height = ? where MonitorId = ?";
+        my $sql = 'update Events set Width = ?, Height = ? where MonitorId = ?';
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( $monitor->{Width}, $monitor->{Height}, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
       }
@@ -560,7 +518,7 @@ if ( $version ) {
       my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
       my $sequence = 1;
       while( my $monitor = $sth->fetchrow_hashref() ) {
-        my $sql = "update Monitors set Sequence = ? where Id = ?";
+        my $sql = 'update Monitors set Sequence = ? where Id = ?';
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( $sequence++, $monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
       }
@@ -578,7 +536,7 @@ if ( $version ) {
         push( @filters, $filter );
       }
       $sth->finish();
-      $sql = "update Filters set Query = ? where Name = ?";
+      $sql = 'update Filters set Query = ? where Name = ?';
       $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
       foreach my $filter ( @filters ) {
         if ( $filter->{Query} =~ /op\d=&/ ) {
@@ -611,7 +569,7 @@ if ( $version ) {
       no strict 'refs';
       foreach my $zone ( @zones ) {
 # Create the coordinate strings
-        if ( $zone->{Units} eq "Pixels" ) {
+        if ( $zone->{Units} eq 'Pixels' ) {
           my $sql = "update Zones set NumCoords = 4, Coords = concat( LoX,',',LoY,' ',HiX,',',LoY,' ',HiX,',',HiY,' ',LoX,',',HiY ), Area = round( ((HiX-LoX)+1)*((HiY-LoY)+1) ) where Id = ?"; 
           my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
           my $res = $sth->execute( $zone->{Id} ) or die( "Can't execute: ".$sth->errstr() );
@@ -646,7 +604,7 @@ if ( $version ) {
         foreach my $defn ( split( /,/, $state->{Definition} ) ) {
           push( @new_defns, $defn.":1" );
         }
-        my $sql = "update States set Definition = ? where Name = ?";
+        my $sql = 'update States set Definition = ? where Name = ?';
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( join( ',', @new_defns ), $state->{Name} ) or die( "Can't execute: ".$sth->errstr() );
       }
@@ -726,7 +684,7 @@ if ( $version ) {
           $db_monitor->{LabelFormat} =~ s/\%\%s/%N/;
           $db_monitor->{LabelFormat} =~ s/\%\%s/%Q/;
 
-          my $sql = "update Monitors set LabelFormat = ? where Id = ?";
+          my $sql = 'update Monitors set LabelFormat = ? where Id = ?';
           my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
           my $res = $sth->execute( $db_monitor->{LabelFormat}, $db_monitor->{Id} ) or die( "Can't execute: ".$sth->errstr() );
         }
@@ -785,7 +743,7 @@ if ( $version ) {
           $i++;
         }
         $newQuery .= '}';
-        foreach my $field ( "sort_field", "sort_asc", "limit" ) {
+        foreach my $field ( 'sort_field', 'sort_asc', 'limit' ) {
           if ( defined($filter->{$field}) ) {
             $newQuery .= 's:'.length($field).':"'.$field.'";';
             $newQuery .= 's:'.length($filter->{$field}).':"'.$filter->{$field}.'";';
@@ -793,7 +751,7 @@ if ( $version ) {
         }
         $newQuery .= '}';
 
-        my $sql = "update Filters set Query = ? where Name = ?";
+        my $sql = 'update Filters set Query = ? where Name = ?';
         my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
         my $res = $sth->execute( $newQuery, $dbFilter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
       }
@@ -871,7 +829,7 @@ if ( $version ) {
           my $phpQuery = $dbFilter->{Query};
           my $query = PHP::Serialization::unserialize( $phpQuery );
           my $jsonQuery = jsonEncode( $query );
-          my $sql = "update Filters set Query = ? where Name = ?";
+          my $sql = 'update Filters set Query = ? where Name = ?';
           my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
           my $res = $sth->execute( $jsonQuery, $dbFilter->{Name} ) or die( "Can't execute: ".$sth->errstr() );
         };
@@ -893,7 +851,7 @@ if ( $version ) {
 # Copy the FTP specific values to the new general config
     my $fetchSql = "select * from Config where Name like 'ZM_UPLOAD_FTP_%'";
     my $fetchSth = $dbh->prepare_cached( $fetchSql ) or die( "Can't prepare '$fetchSql': ".$dbh->errstr() );
-    my $updateSql = "update Config set Value = ? where Name = ?";
+    my $updateSql = 'update Config set Value = ? where Name = ?';
     my $updateSth = $dbh->prepare_cached( $updateSql ) or die( "Can't prepare '$updateSql': ".$dbh->errstr() );
     my $fetchRes = $fetchSth->execute() or die( "Can't execute: ".$fetchSth->errstr() );
     while( my $config = $fetchSth->fetchrow_hashref() ) {
@@ -923,7 +881,7 @@ if ( $version ) {
   if ( $version ge '1.26.0' ) {
 
     my @files;
-    $updateDir = $Config{ZM_PATH_DATA}."/db" if ! $updateDir;
+    $updateDir = $Config{ZM_PATH_DATA}.'/db' if ! $updateDir;
     opendir( my $dh, $updateDir ) || die "Can't open updateDir $!";
 #@files = sort grep { (!/^\./) && /^zm_update\-[\d\.]+\.sql$/ && -f "$updateDir/$_" } readdir($dh);
 #PP - use perl version sort
@@ -937,35 +895,166 @@ if ( $version ) {
       die "Should have found upgrade scripts at $updateDir\n";
     } # end if
 
-    $dbh->{'AutoCommit'} = 0;
     foreach my $patch ( @files ) {
       my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
 #PP make sure we use version compare 
       if ( version->parse('v' . $v) > version->parse('v' . $version) ) {
         print( "Upgrading DB to $v from $version\n" );
         patchDB( $dbh, $v );
-        if ( $dbh->errstr() ) {
-          $dbh->rollback();
-          die "Error: " . $dbh->errstr(). ".  Rolled back.\n";		
-        } # end if error
-      } # end if
+  my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
+  my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
+  $sth->finish();
+        #patchDB_using_do( $dbh, $version, $updateDir.'/'.$patch );
+      } # end if newer version
     } # end foreach patchfile
-    $dbh->{'AutoCommit'} = 1;
     $cascade = !undef;
   } # end if
 
   if ( $cascade ) {
     my $installed_version = ZM_VERSION;
-    my $sql = "update Config set Value = ? where Name = ?";
+    my $sql = 'update Config set Value = ? where Name = ?';
     my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-    my $res = $sth->execute( "$installed_version", "ZM_DYN_DB_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
-    $res = $sth->execute( "$installed_version", "ZM_DYN_CURR_VERSION" ) or die( "Can't execute: ".$sth->errstr() );
+    my $res = $sth->execute( "$installed_version", 'ZM_DYN_DB_VERSION' ) or die( "Can't execute: ".$sth->errstr() );
+    $res = $sth->execute( "$installed_version", 'ZM_DYN_CURR_VERSION' ) or die( "Can't execute: ".$sth->errstr() );
     $sth->finish();
   } else {
     zmDbDisconnect();
     die( "Can't find upgrade from version '$version'" );
   }
+  # Re-enable the privacy popup after each upgrade
+  my $sql = "update Config set Value = 1 where Name = 'ZM_SHOW_PRIVACY'";
+  my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+  my $res = $sth->execute( ) or die( "Can't execute: ".$sth->errstr() );
+  $sth->finish();
   print( "\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n" );
 }
 zmDbDisconnect();
 exit( 0 );
+
+sub patchDB_using_do {
+  my ( $dbh, $version, $file ) = @_;
+
+  open( my $fh, '<', $file ) or die "Unable to open $file $!";
+  $/ = undef;
+  my $sql = <$fh>;
+  close $fh;
+  if ( $sql ) {
+    $dbh->{'AutoCommit'} = 0;
+    $dbh->do($sql);
+    if ( $dbh->errstr() ) {
+      $dbh->rollback();
+      die "Error: " . $dbh->errstr(). ".  Rolled back.\n";		
+    } # end if error
+
+    my $sql = "update Config set Value = ? where Name = 'ZM_DYN_DB_VERSION'";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute( $version ) or die( "Can't execute: ".$sth->errstr() );
+    $sth->finish();
+
+    $dbh->{'AutoCommit'} = 1;
+  } else {
+    Warning("Empty db update file at $file");
+  }
+}
+sub patchDB {
+  my $dbh = shift;
+  my $version = shift;
+
+
+  my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
+  my $command = 'mysql';
+  if ( defined($portOrSocket) ) {
+    if ( $portOrSocket =~ /^\// ) {
+      $command .= ' -S'.$portOrSocket;
+    } else {
+      $command .= ' -h'.$host.' -P'.$portOrSocket;
+    }
+  } else {
+    $command .= ' -h'.$host;
+  }
+  if ( $dbUser ) {
+    $command .= ' -u'.$dbUser;
+    $command .= ' -p"'.$dbPass.'"' if $dbPass;
+  }
+  $command .= ' '.$Config{ZM_DB_NAME}.' < ';
+  if ( $updateDir ) {
+    $command .= $updateDir;
+  } else {
+    $command .= $Config{ZM_PATH_DATA}.'/db';
+  }
+  $command .= '/zm_update-'.$version.'.sql';
+
+  print( "Executing '$command'\n" ) if ( logDebugging() );
+  my $output = qx($command);
+  my $status = $? >> 8;
+  if ( $status || logDebugging() ) {
+    chomp( $output );
+    print( "Output: $output\n" );
+  }
+  if ( $status ) {
+    die( "Command '$command' exited with status: $status\n" );
+  }
+  print( "\nDatabase successfully upgraded to version $version.\n" );
+
+}
+
+sub migratePaths {
+
+  my $customConfigFile = '@ZM_CONFIG_SUBDIR@/zmcustom.conf';
+
+  if ( (! -e $customConfigFile ) && ( ZM_VERSION ge '1.31.0' ) && ($Config{ZM_DYN_DB_VERSION} lt '1.31.1') ) {
+
+    my %customConfig; 
+
+# Check the traditional default values for the variables previsouly found under Options -> Paths
+    if ( $Config{ZM_DIR_EVENTS} ne 'events' ) {
+      $customConfig{ZM_DIR_EVENTS} = $Config{ZM_DIR_EVENTS};
+    }
+    if ( $Config{ZM_DIR_IMAGES} ne 'images' ) {
+      $customConfig{ZM_DIR_IMAGES} = $Config{ZM_DIR_IMAGES};
+    }
+    if ( $Config{ZM_DIR_SOUNDS} ne 'sounds' ) {
+      $customConfig{ZM_DIR_SOUNDS} = $Config{ZM_DIR_SOUNDS};
+    }
+    if ( $Config{ZM_PATH_ZMS} ne '@ZM_PATH_ZMS@' ) {
+      $customConfig{ZM_PATH_ZMS} = $Config{ZM_PATH_ZMS};
+    }
+    if ( $Config{ZM_PATH_MAP} ne '/dev/shm' ) {
+      $customConfig{ZM_PATH_MAP} = $Config{ZM_PATH_MAP};
+    }
+    if ( $Config{ZM_PATH_SOCKS} ne '@ZM_SOCKDIR@' ) {
+      $customConfig{ZM_PATH_SOCKS} = $Config{ZM_PATH_SOCKS};
+    }
+    if ( $Config{ZM_PATH_LOGS} ne '@ZM_LOGDIR@' ) {
+      $customConfig{ZM_PATH_LOGS} = $Config{ZM_PATH_LOGS};
+    }
+    if ( $Config{ZM_PATH_SWAP} ne '@ZM_TMPDIR@' ) {
+      $customConfig{ZM_PATH_SWAP} = $Config{ZM_PATH_SWAP};
+    }
+    if ( $Config{ZM_PATH_ARP} ne '' ) {
+      $customConfig{ZM_PATH_ARP} = $Config{ZM_PATH_ARP};
+    }
+
+# If any variables differ from their expected default value, 
+# save them to a config file before they get purged from the database
+    if ( %customConfig ) {
+      print("\nMigrating custom config values from Options -> Paths\nto $customConfigFile.\n");
+      print("\nPlease verify these values before starting ZoneMinder.\n\n");
+      open(my $fh, '>', $customConfigFile) or die "Could open $customConfigFile for writing: $!.";
+      print $fh "# These values were autogenerated by zmupdate.pl\n";
+      print $fh "# You may edit these values. ZoneMinder will not overwrite them.\n";
+      print $fh "#\n\n";
+      while (my ($key, $value) = each %customConfig) {
+        print $fh "$key=$value\n";
+      }
+      close $fh;
+      my $gid = getgrnam('@ZM_WEB_GROUP@');
+      chown -1, $gid, $customConfigFile;
+      chmod 0640, $customConfigFile;
+    }
+  }
+}
+
+1;
+__END__

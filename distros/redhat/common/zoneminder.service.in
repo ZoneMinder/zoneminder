@@ -1,0 +1,21 @@
+# ZoneMinder systemd unit file for RedHat distros and clones
+# See drop-in folder for additional config directives
+
+[Unit]
+Description=ZoneMinder CCTV recording and security system
+After=network.target mariadb.service
+Requires=mariadb.service
+
+[Service]
+Type=forking
+ExecStart=@BINDIR@/zmpkg.pl start
+ExecReload=@BINDIR@/zmpkg.pl restart
+ExecStop=@BINDIR@/zmpkg.pl stop
+PIDFile=@ZM_RUNDIR@/zm.pid
+Environment=TZ=/etc/localtime
+RuntimeDirectory=zoneminder
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+

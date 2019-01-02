@@ -30,8 +30,7 @@ class Monitor;
 
 #define TV_2_FLOAT( tv ) ( double((tv).tv_sec) + (double((tv).tv_usec) / 1000000.0) )
 
-class StreamBase
-{
+class StreamBase {
 public:
   typedef enum { STREAM_JPEG, STREAM_RAW, STREAM_ZIP, STREAM_SINGLE, STREAM_MPEG } StreamType;
 
@@ -86,6 +85,7 @@ protected:
   int step;
 
   struct timeval now;
+  struct timeval last_comm_update;
 
   double base_fps;
   double effective_fps;
@@ -110,8 +110,7 @@ protected:
   virtual void processCommand( const CmdMsg *msg )=0;
 
 public:
-  StreamBase()
-  {
+  StreamBase() {
     monitor = 0;
 
     type = DEFAULT_TYPE;
@@ -134,6 +133,7 @@ public:
     memset( &loc_addr, 0, sizeof(loc_addr) );
     memset( &rem_sock_path, 0, sizeof(rem_sock_path) );
     memset( &rem_addr, 0, sizeof(rem_addr) );
+    memset( &sock_path_lock, 0, sizeof(sock_path_lock) );
 
     base_fps = 0.0;
     effective_fps = 0.0;
@@ -142,35 +142,33 @@ public:
 #if HAVE_LIBAVCODEC   
     vid_stream = 0;
 #endif // HAVE_LIBAVCODEC   
+    last_frame_sent = 0.0;
+    last_frame_timestamp = (struct timeval){0};
+    msg = { 0, { 0 } };
   }
   virtual ~StreamBase();
 
-  void setStreamType( StreamType p_type )
-  {
+  void setStreamType( StreamType p_type ) {
     type = p_type;
   }
-  void setStreamFormat( const char *p_format )
-  {
+  void setStreamFormat( const char *p_format ) {
     format = p_format;
   }
-  void setStreamScale( int p_scale )
-  {
+  void setStreamScale( int p_scale ) {
     scale = p_scale;
+    if ( ! scale )
+      scale = DEFAULT_SCALE;
   }
-  void setStreamReplayRate( int p_rate )
-  {
+  void setStreamReplayRate( int p_rate ) {
     replay_rate = p_rate;
   }
-  void setStreamMaxFPS( double p_maxfps )
-  {
+  void setStreamMaxFPS( double p_maxfps ) {
     maxfps = p_maxfps;
   }
-  void setStreamBitrate( int p_bitrate )
-  {
+  void setStreamBitrate( int p_bitrate ) {
     bitrate = p_bitrate;
   }
-  void setStreamQueue( int p_connkey )
-  {
+  void setStreamQueue( int p_connkey ) {
     connkey = p_connkey;
   }
   virtual void openComms();

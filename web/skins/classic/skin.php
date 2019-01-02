@@ -19,7 +19,9 @@
 // 
 
 if ( empty($_COOKIE['zmBandwidth']) )
-    $_COOKIE['zmBandwidth'] = "low";
+  $_COOKIE['zmBandwidth'] = ZM_BANDWIDTH_DEFAULT;
+if ( empty($_COOKIE['zmBandwidth']) )
+  $_COOKIE['zmBandwidth'] = 'low';
 
 //ini_set( "magic_quotes_gpc", "Off" );
 
@@ -28,39 +30,33 @@ if ( empty($_COOKIE['zmBandwidth']) )
     //require_once( $skinLangFile );
 
 foreach ( getSkinIncludes( 'includes/config.php' ) as $includeFile )
-    require_once $includeFile;
+  require_once $includeFile;
 
 foreach ( getSkinIncludes( 'includes/functions.php' ) as $includeFile )
-    require_once $includeFile;
+  require_once $includeFile;
 
 if ( empty($view) )
-    $view = isset($user)?'console':'login';
+  $view = isset($user)?'console':'login';
 
-if ( !isset($user) && ZM_OPT_USE_AUTH && ZM_AUTH_TYPE == "remote" && !empty( $_SERVER['REMOTE_USER']) )
-{
-     $view = "postlogin";
-     $action = "login";
-     $_REQUEST['username'] = $_SERVER['REMOTE_USER'];
+if ( !isset($user) && ZM_OPT_USE_AUTH && ZM_AUTH_TYPE == 'remote' && !empty( $_SERVER['REMOTE_USER']) ) {
+  $view = 'postlogin';
+  $action = 'login';
+  $_REQUEST['username'] = $_SERVER['REMOTE_USER'];
 }
 
-if ( isset($user) )
-{
-    // Bandwidth Limiter
-    if ( !empty($user['MaxBandwidth']) )
-    {
-        if ( $user['MaxBandwidth'] == "low" )
-        {
-            $_COOKIE['zmBandwidth'] = "low";
-        }
-        elseif ( $user['MaxBandwidth'] == "medium" && $_COOKIE['zmBandwidth'] == "high" )
-        {
-            $_COOKIE['zmBandwidth'] = "medium";
-        }
+if ( isset($user) ) {
+  // Bandwidth Limiter
+  if ( !empty($user['MaxBandwidth']) ) {
+    if ( $user['MaxBandwidth'] == 'low' ) {
+      $_COOKIE['zmBandwidth'] = 'low';
+    } elseif ( $user['MaxBandwidth'] == 'medium' && $_COOKIE['zmBandwidth'] == 'high' ) {
+      $_COOKIE['zmBandwidth'] = 'medium';
     }
+  }
 }
 
 // If there are additional actions
 foreach ( getSkinIncludes( 'includes/actions.php' ) as $includeFile )
-    require_once $includeFile; 
+  require_once $includeFile; 
 
 ?>

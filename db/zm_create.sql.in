@@ -63,7 +63,7 @@ DROP TABLE IF EXISTS `Controls`;
 CREATE TABLE `Controls` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','Ffmpeg','Libvlc','cURL') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','Ffmpeg','Libvlc','cURL','WebSite') NOT NULL default 'Local',
   `Protocol` varchar(64) default NULL,
   `CanWake` tinyint(3) unsigned NOT NULL default '0',
   `CanSleep` tinyint(3) unsigned NOT NULL default '0',
@@ -182,8 +182,9 @@ CREATE TABLE `Devices` (
 
 DROP TABLE IF EXISTS `Events`;
 CREATE TABLE `Events` (
-  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Id` bigint unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
+  `StorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
   `Cause` varchar(32) NOT NULL default '',
   `StartTime` datetime default NULL,
@@ -193,7 +194,8 @@ CREATE TABLE `Events` (
   `Length` decimal(10,2) NOT NULL default '0.00',
   `Frames` int(10) unsigned default NULL,
   `AlarmFrames` int(10) unsigned default NULL,
-  `DefaultVideo` VARCHAR( 64 ) NOT NULL,
+  `DefaultVideo` VARCHAR( 64 ) DEFAULT '' NOT NULL,
+  `SaveJPEGs` TINYINT,
   `TotScore` int(10) unsigned NOT NULL default '0',
   `AvgScore` smallint(5) unsigned default '0',
   `MaxScore` smallint(5) unsigned default '0',
@@ -204,11 +206,70 @@ CREATE TABLE `Events` (
   `Messaged` tinyint(3) unsigned NOT NULL default '0',
   `Executed` tinyint(3) unsigned NOT NULL default '0',
   `Notes` text,
-  PRIMARY KEY (`Id`,`MonitorId`),
-  KEY `MonitorId` (`MonitorId`),
-  KEY `StartTime` (`StartTime`),
-  KEY `Frames` (`Frames`),
-  KEY `Archived` (`Archived`)
+  `StateId` int(10) unsigned NOT NULL,
+  `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
+  `DiskSpace`   bigint unsigned default NULL,
+  `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
+  `Locked`    BOOLEAN NOT NULL DEFAULT False,
+  PRIMARY KEY (`Id`),
+  KEY `Events_MonitorId_idx` (`MonitorId`),
+  KEY `Events_StorageId_idx` (`StorageId`),
+  KEY `Events_StartTime_idx` (`StartTime`),
+  KEY `Events_EndTime_DiskSpace` (`EndTime`,`DiskSpace`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Events_Hour`;
+CREATE TABLE `Events_Hour` (
+  `EventId` BIGINT unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Hour_MonitorId_idx` (`MonitorId`),
+  KEY `Events_Hour_StartTime_idx` (`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Events_Day`;
+CREATE TABLE `Events_Day` (
+  `EventId` BIGINT unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Day_MonitorId_idx` (`MonitorId`),
+  KEY `Events_Day_StartTime_idx` (`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Events_Week`;
+CREATE TABLE `Events_Week` (
+  `EventId` BIGINT unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Week_MonitorId_idx` (`MonitorId`),
+  KEY `Events_Week_StartTime_idx` (`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+DROP TABLE IF EXISTS `Events_Month`;
+CREATE TABLE `Events_Month` (
+  `EventId` BIGINT unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `StartTime` datetime default NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Month_MonitorId_idx` (`MonitorId`),
+  KEY `Events_Month_StartTime_idx` (`StartTime`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+
+DROP TABLE IF EXISTS `Events_Archived`;
+CREATE TABLE `Events_Archived` (
+  `EventId` BIGINT unsigned NOT NULL,
+  `MonitorId` int(10) unsigned NOT NULL,
+  `DiskSpace`   bigint unsigned default NULL,
+  PRIMARY KEY (`EventId`),
+  KEY `Events_Archived_MonitorId_idx` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
@@ -217,6 +278,7 @@ CREATE TABLE `Events` (
 
 DROP TABLE IF EXISTS `Filters`;
 CREATE TABLE `Filters` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
   `Query` text NOT NULL,
   `AutoArchive` tinyint(3) unsigned NOT NULL default '0',
@@ -227,8 +289,13 @@ CREATE TABLE `Filters` (
   `AutoExecute` tinyint(3) unsigned NOT NULL default '0',
   `AutoExecuteCmd` tinytext,
   `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
+  `AutoMove` tinyint(3) unsigned NOT NULL default '0',
+  `AutoMoveTo`	smallint(5) unsigned NOT NULL default 0,
+  `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
-  PRIMARY KEY (`Name`)
+  `Concurrent` tinyint(1) unsigned NOT NULL default '0',
+  PRIMARY KEY (`Id`),
+  KEY `Name` (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
@@ -237,8 +304,8 @@ CREATE TABLE `Filters` (
 
 DROP TABLE IF EXISTS `Frames`;
 CREATE TABLE `Frames` (
-  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `EventId` int(10) unsigned NOT NULL default '0',
+  `Id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `EventId` BIGINT UNSIGNED NOT NULL default '0',
   `FrameId` int(10) unsigned NOT NULL default '0',
   `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
@@ -258,9 +325,24 @@ DROP TABLE IF EXISTS `Groups`;
 CREATE TABLE `Groups` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `MonitorIds` tinytext NOT NULL,
+  `ParentId` int(10) unsigned,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+
+--
+-- Table structure for table `Groups_Monitors`
+--
+
+DROP TABLE IF EXISTS `Groups_Monitors`;
+CREATE TABLE `Groups_Monitors` (
+    `Id` INT(10) unsigned NOT NULL auto_increment,
+    `GroupId` int(10) unsigned NOT NULL,
+    `MonitorId` int(10) unsigned NOT NULL,
+    PRIMARY KEY (`Id`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+CREATE INDEX `Groups_Monitors_GroupId_idx` ON `Groups_Monitors` (`GroupId`);
+CREATE INDEX `Groups_Monitors_MonitorId_idx` ON `Groups_Monitors` (`MonitorId`);
 
 --
 -- Table structure for table `Logs`
@@ -280,6 +362,33 @@ CREATE TABLE `Logs` (
   KEY `TimeKey` (`TimeKey`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
+CREATE INDEX `Logs_Level_idx` ON `Logs` (`Level`);
+--
+-- Table structure for table `Manufacturers`
+--
+
+DROP TABLE IF EXISTS `Manufacturers`;
+CREATE TABLE `Manufacturers` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`  varchar(64) NOT NULL,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY (`Name`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+--
+-- Table structure for table `Models`
+--
+
+DROP TABLE IF EXISTS `Models`;
+CREATE TABLE `Models` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`  varchar(64) NOT NULL,
+  `ManufacturerId` int(10),
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY (`ManufacturerId`,`Name`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 --
 -- Table structure for table `MonitorPresets`
 --
@@ -288,9 +397,9 @@ DROP TABLE IF EXISTS `MonitorPresets`;
 CREATE TABLE `MonitorPresets` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL') NOT NULL default 'Local',
+  `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL','NVSocket') NOT NULL default 'Local',
   `Device` tinytext,
-  `Channel` tinytext,
+  `Channel` tinyint(3) unsigned default NULL,
   `Format` int(10) unsigned default NULL,
   `Protocol` varchar(16) default NULL,
   `Method` varchar(16) default NULL,
@@ -320,6 +429,7 @@ CREATE TABLE `Monitors` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
   `ServerId` int(10) unsigned,
+  `StorageId`	smallint(5) unsigned default 0,
   `Type` enum('Local','Remote','File','Ffmpeg','Libvlc','cURL') NOT NULL default 'Local',
   `Function` enum('None','Monitor','Modect','Record','Mocord','Nodect') NOT NULL default 'Monitor',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
@@ -330,13 +440,13 @@ CREATE TABLE `Monitors` (
   `Format` int(10) unsigned NOT NULL default '0',
   `V4LMultiBuffer`	tinyint(1) unsigned,
   `V4LCapturesPerFrame`	tinyint(3) unsigned,
-  `Protocol` varchar(16) NOT NULL default '',
-  `Method` varchar(16) NOT NULL default '',
+  `Protocol` varchar(16),
+  `Method` varchar(16) default '',
   `Host` varchar(64),
   `Port` varchar(8) NOT NULL default '',
   `SubPath` varchar(64) NOT NULL default '',
   `Path` varchar(255),
-  `Options` varchar(255) not null default '',
+  `Options` varchar(255),
   `User` varchar(64),
   `Pass` varchar(64),
   `Width` smallint(5) unsigned NOT NULL default '0',
@@ -347,6 +457,8 @@ CREATE TABLE `Monitors` (
   `Deinterlacing` int(10) unsigned NOT NULL default '0',
   `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' ,
   `VideoWriter` TINYINT NOT NULL DEFAULT '0',
+  `OutputCodec`     enum('h264','mjpeg','mpeg1','mpeg2'),
+  `OutputContainer` enum('auto','mp4','mkv'),
   `EncoderParameters` TEXT,
   `RecordAudio` TINYINT NOT NULL DEFAULT '0',
   `RTSPDescribe` tinyint(1) unsigned,
@@ -355,7 +467,7 @@ CREATE TABLE `Monitors` (
   `Hue` mediumint(7) NOT NULL default '-1',
   `Colour` mediumint(7) NOT NULL default '-1',
   `EventPrefix` varchar(32) NOT NULL default 'Event-',
-  `LabelFormat` varchar(64),
+  `LabelFormat` varchar(64) default '%N - %y/%m/%d %H:%M:%S',
   `LabelX` smallint(5) unsigned NOT NULL default '0',
   `LabelY` smallint(5) unsigned NOT NULL default '0',
   `LabelSize` smallint(5) unsigned NOT NULL DEFAULT '1',
@@ -368,7 +480,7 @@ CREATE TABLE `Monitors` (
   `SectionLength` int(10) unsigned NOT NULL default '600',
   `FrameSkip` smallint(5) unsigned NOT NULL default '0',
   `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',
-  `AnalysisFPS` decimal(5,2) default NULL,
+  `AnalysisFPSLimit` decimal(5,2) default NULL,
   `AnalysisUpdateDelay` smallint(5) unsigned NOT NULL default '0',
   `MaxFPS` decimal(5,2) default NULL,
   `AlarmMaxFPS` decimal(5,2) default NULL,
@@ -384,16 +496,41 @@ CREATE TABLE `Monitors` (
   `TrackDelay` smallint(5) unsigned,
   `ReturnLocation` tinyint(3) NOT NULL default '-1',
   `ReturnDelay` smallint(5) unsigned,
-  `DefaultView` enum('Events','Control') NOT NULL default 'Events',
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
+  `SignalCheckPoints` INT UNSIGNED NOT NULL default '0',
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
   `Exif` tinyint(1) unsigned NOT NULL default '0',
   `Sequence` smallint(5) unsigned default NULL,
+  `TotalEvents` int(10) default NULL,
+  `TotalEventDiskSpace` bigint default NULL,
+  `HourEvents` int(10) default NULL,
+  `HourEventDiskSpace` bigint default NULL,
+  `DayEvents` int(10) default NULL,
+  `DayEventDiskSpace` bigint default NULL,
+  `WeekEvents` int(10) default NULL,
+  `WeekEventDiskSpace` bigint default NULL,
+  `MonthEvents` int(10) default NULL,
+  `MonthEventDiskSpace` bigint default NULL,
+  `ArchivedEvents` int(10) default NULL,
+  `ArchivedEventDiskSpace` bigint default NULL,
+  `ZoneCount` TINYINT NOT NULL DEFAULT 0,
+  `Refresh` int(10) unsigned default NULL,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`);
+
+DROP TABLE IF EXISTS `Monitor_Status`;
+CREATE TABLE `Monitor_Status` (
+  `MonitorId` int(10) unsigned NOT NULL,
+  `Status`  enum('Unknown','NotRunning','Running','Connected','Signal') NOT NULL default 'Unknown',
+  `CaptureFPS`  DECIMAL(10,2) NOT NULL default 0,
+  `AnalysisFPS`  DECIMAL(5,2) NOT NULL default 0,
+  `CaptureBandwidth`  INT NOT NULL default 0,
+  PRIMARY KEY (`MonitorId`)
+) ENGINE=MEMORY;
 --
 -- Table structure for table `States`
 -- PP - Added IsActive to track custom run states
@@ -418,11 +555,28 @@ INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');
 DROP TABLE IF EXISTS `Servers`;
 CREATE TABLE `Servers` (
   `Id` int(10) unsigned NOT NULL auto_increment,
+  `Protocol`  TEXT,
   `Hostname` TEXT,
+  `Port`      INTEGER UNSIGNED,
+  `PathToIndex`  TEXT,
+  `PathToZMS`  TEXT,
+  `PathToApi`  TEXT,
   `Name` varchar(64) NOT NULL default '',
   `State_Id`	int(10) unsigned,
+  `Status` enum('Unknown','NotRunning','Running') NOT NULL default 'Unknown',
+  `CpuLoad` DECIMAL(5,1) default NULL,
+  `TotalMem` bigint unsigned default null,
+  `FreeMem` bigint unsigned default null,
+  `TotalSwap` bigint  unsigned default null,
+  `FreeSwap` bigint unsigned default null, 
+  `zmstats`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmaudit`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmtrigger`  BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
+
+CREATE INDEX `Servers_Name_idx` ON `Servers` (`Name`);
+
 --
 -- Table structure for table `Stats`
 --
@@ -431,7 +585,7 @@ DROP TABLE IF EXISTS `Stats`;
 CREATE TABLE `Stats` (
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `ZoneId` int(10) unsigned NOT NULL default '0',
-  `EventId` int(10) unsigned NOT NULL default '0',
+  `EventId` BIGINT UNSIGNED NOT NULL,
   `FrameId` int(10) unsigned NOT NULL default '0',
   `PixelDiff` tinyint(3) unsigned NOT NULL default '0',
   `AlarmPixels` int(10) unsigned NOT NULL default '0',
@@ -549,6 +703,25 @@ CREATE TABLE `Zones` (
   KEY `MonitorId` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+DROP TABLE IF EXISTS `Storage`;
+CREATE TABLE `Storage` (
+	`Id`	smallint(5) unsigned NOT NULL auto_increment,
+	`Path`	varchar(64)	NOT NULL default '',
+	`Name`	varchar(64) NOT NULL default '',
+	`Type`	enum('local','s3fs') NOT NULL default 'local',
+  `Url` varchar(255) default NULL,
+  `DiskSpace`   bigint default NULL,
+  `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
+  `ServerId` int(10) unsigned,
+  `DoDelete`  BOOLEAN NOT NULL DEFAULT true,
+	PRIMARY KEY (`Id`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+--
+-- Create a default storage location
+--
+insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, NULL, 'Medium', 0, true );
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
@@ -569,7 +742,9 @@ insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edi
 --
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full
 --
-insert into Filters values ('PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',0,0,0,0,0,0,'',1,1);
+
+insert into Filters values (NULL,'PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',0/*AutoArchive*/,0/*AutoVideo*/,0/*AutoUpload*/,0/*AutoEmail*/,0/*AutoMessage*/,0/*AutoExecute*/,'',1/*AutoDelete*/,0/*AutoMove*/,0/*MoveTo*/,0/*UpdateDiskSpace*/,1/*Background*/,0/*Concurrent*/);
+insert into Filters values (NULL,'Update DiskSpace','{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',0,0,0,0,0,0,'',0,0,0,1,1,0);
 
 --
 -- Add in some sample control protocol definitions
@@ -596,76 +771,89 @@ INSERT INTO `Controls` VALUES (NULL,'Foscam 9831W','Ffmpeg','FI9831W',0,0,1,0,0,
 INSERT INTO `Controls` VALUES (NULL,'Foscam FI8918W','Ffmpeg','FI8918W',0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,8,0,1,1,1,0,0,0,1,1,0,360,0,360,1,0,4,0,0,1,0,90,0,90,1,0,4,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'SunEyes SP-P1802SWPTZ','Libvlc','SPP1802SWPTZ',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,8,0,1,1,0,0,0,0,1,1,0,0,0,0,1,0,64,0,0,1,0,0,0,0,1,0,64,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Wanscam HW0025','Libvlc','WanscamHW0025', 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 16, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 350, 0, 0, 1, 0, 10, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 0, 0, 0, 0);
-INSERT INTO `Controls` VALUES (NULL,'IPCC 7210W','Libvlc','IPCC7210W', 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 16, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0, 350, 0, 0, 1, 0, 10, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 0, 0, 0, 0);
+INSERT INTO `Controls` VALUES (NULL,'IPCC 7210W','Remote','IPCC7210W', 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 16, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 INSERT INTO `Controls` VALUES (NULL,'Vivotek ePTZ','Remote','Vivotek_ePTZ',0,0,1,1,0,0,0,1,0,0,0,0,1,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0,1,0,5,0,0,1,0,0,0,0,1,0,5,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Netcat ONVIF','Ffmpeg','Netcat',0,0,1,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,100,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,100,5,5,0,0,0,1,255,1,1,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Keekoon','Remote','Keekoon', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 6, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 INSERT INTO `Controls` VALUES (NULL,'HikVision','Local','',0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20,1,1,1,1,0,0,0,1,1,0,0,0,0,1,1,100,0,0,1,0,0,0,0,1,1,100,1,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Maginon Supra IPC','cURL','MaginonIPC',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,4,0,1,1,1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Floureon 1080P','Ffmpeg','Floureon',0,0,0,1,0,0,0,1,1,18,1,1,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20,0,1,1,1,0,0,0,1,1,0,0,0,0,1,1,8,0,0,1,0,0,0,0,1,1,8,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Reolink RLC-423','Ffmpeg','Reolink',0,0,1,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,64,1,1,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Reolink RLC-411','Ffmpeg','Reolink',0,0,1,1,0,0,0,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Reolink RLC-420','Ffmpeg','Reolink',0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'D-LINK DCS-3415','Remote','DCS3415',0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'IOS Camera','Ffmpeg','IPCAMIOS',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Dericam P2','Ffmpeg','DericamP2',0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,10,0,1,1,1,0,0,0,1,1,0,0,0,0,1,1,45,0,0,1,0,0,0,0,1,1,45,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Trendnet','Remote','Trendnet',1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'PSIA','Remote','PSIA',0,0,0,1,0,0,1,0,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20,0,1,1,1,0,0,1,0,1,0,0,0,0,1,-100,100,0,0,1,0,0,0,0,1,-100,100,0,0,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Dahua','Remote','Dahua',0,0,0,1,0,0,1,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20,0,1,1,1,0,0,1,0,1,0,0,0,0,1,1,8,0,0,1,0,0,0,0,1,1,8,0,0,0,0);
 
 --
 -- Add some monitor preset values
 --
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&req_fps=5',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, jpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, mpjpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480&req_fps=5',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=640x480',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, jpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=640x480',NULL,640,480,3,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg, B&W','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&color=0',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, mpjpeg, B&W','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480&color=0',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 320x240, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240',NULL,320,240,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 320x240, mpjpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&req_fps=5',NULL,320,240,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 320x240, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 320x240, jpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,5.0,1,4,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 640x480, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480',NULL,640,480,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 640x480, mpjpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480&req_fps=5',NULL,640,480,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 640x480, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=640x480',NULL,640,480,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 640x480, jpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=640x480',NULL,640,480,3,5.0,1,4,NULL,'<ip-address>:<port>',100,100);
-INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, unicast','Remote','rtsp','rtpUni',NULL,NULL,NULL,'<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, multicast','Remote','rtsp','rtpMulti',NULL,NULL,NULL,'<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, RTP/RTSP','Remote','rtsp','rtpRtsp',NULL,NULL,NULL,'<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&req_fps=5',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, mpjpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480&req_fps=5',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=640x480',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=640x480',NULL,640,480,3,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 320x240, mpjpeg, B&W','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&color=0',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP, 640x480, mpjpeg, B&W','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480&color=0',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 320x240, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240',NULL,320,240,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 320x240, mpjpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=320x240&req_fps=5',NULL,320,240,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 320x240, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 320x240, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=320x240',NULL,320,240,3,5.0,1,4,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 640x480, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480',NULL,640,480,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 640x480, mpjpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/mjpg/video.cgi?resolution=640x480&req_fps=5',NULL,640,480,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 640x480, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=640x480',NULL,640,480,3,NULL,1,4,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Axis IP PTZ, 640x480, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/axis-cgi/jpg/image.cgi?resolution=640x480',NULL,640,480,3,5.0,1,4,NULL,'<ip-address>:<port>',100,100);
+INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, unicast','Remote','rtsp',0,255,'rtsp','rtpUni','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, multicast','Remote','rtsp',0,255,'rtsp','rtpMulti','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, RTP/RTSP','Remote','rtsp',0,255,'rtsp','rtpRtsp','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT into MonitorPresets VALUES (NULL,'Axis IP, mpeg4, RTP/RTSP/HTTP','Remote',NULL,NULL,NULL,'rtsp','rtpRtspHttp','<ip-address>',554,'/mpeg4/media.amp','/trackID=',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 320x240, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/nphMotionJpeg?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 320x240, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 320x240, jpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 640x480, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/nphMotionJpeg?Resolution=640x480&Quality=Standard',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 640x480, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/SnapshotJPEG?Resolution=640x480&Quality=Standard',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 640x480, jpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/SnapshotJPEG?Resolution=640x480&Quality=Standard',NULL,640,480,3,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 320x240, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/nphMotionJpeg?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,1,5,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 320x240, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,1,5,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 320x240, jpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,5.0,1,5,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 640x480, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/nphMotionJpeg?Resolution=640x480&Quality=Standard',NULL,640,480,3,NULL,1,5,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 640x480, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/SnapshotJPEG?Resolution=640x480&Quality=Standard',NULL,640,480,3,NULL,1,5,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 640x480, jpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/SnapshotJPEG?Resolution=640x480&Quality=Standard',NULL,640,480,3,5.0,1,5,NULL,'<ip-address>:<port>',100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Gadspot IP, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Gadspot IP, jpeg, max 5 FPS','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,NULL,3,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Gadspot IP, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/GetData.cgi',NULL,NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Gadspot IP, mpjpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,NULL,3,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'VEO Observer, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Blue Net Video Server, jpeg','Remote','http','simple',NULL,NULL,NULL,'<ip-address>',80,'/cgi-bin/image.cgi?control=0&id=admin&passwd=admin',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'D-link DCS-930L, 640x480, mjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/mjpeg.cgi',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 320x240, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/nphMotionJpeg?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 320x240, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 320x240, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 640x480, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/nphMotionJpeg?Resolution=640x480&Quality=Standard',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 640x480, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=640x480&Quality=Standard',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP, 640x480, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=640x480&Quality=Standard',NULL,640,480,3,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 320x240, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/nphMotionJpeg?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,1,5,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 320x240, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,NULL,1,5,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 320x240, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=320x240&Quality=Standard',NULL,320,240,3,5.0,1,5,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 640x480, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/nphMotionJpeg?Resolution=640x480&Quality=Standard',NULL,640,480,3,NULL,1,5,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 640x480, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=640x480&Quality=Standard',NULL,640,480,3,NULL,1,5,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Panasonic IP PTZ, 640x480, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/SnapshotJPEG?Resolution=640x480&Quality=Standard',NULL,640,480,3,5.0,1,5,NULL,'<ip-address>:<port>',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Gadspot IP, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Gadspot IP, jpeg, max 5 FPS','Remote','http',0,0,'http','simple','<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,NULL,3,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Gadspot IP, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/GetData.cgi',NULL,NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Gadspot IP, mpjpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,NULL,3,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'IP Webcam by Pavel Khlebovich 1920x1080','Remote','/dev/video<?>','0',255,'http','simple','<ip-address>','8080','/video','',1920,1080,0,NULL,0,'0','','',100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'VEO Observer, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Blue Net Video Server, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/cgi-bin/image.cgi?control=0&id=admin&passwd=admin',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT into MonitorPresets VALUES (NULL,'ACTi IP, mpeg4, unicast','Remote',NULL,NULL,NULL,'rtsp','rtpUni','<ip-address>',7070,'','/track',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Axis FFMPEG H.264','Ffmpeg',NULL,NULL,NULL,NULL,NULL,'rtsp://<host/address>/axis-media/media.amp?videocodec=h264',NULL,NULL,NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Vivotek FFMPEG','Ffmpeg',NULL,NULL,NULL,NULL,NULL,'rtsp://<host/address>:554/live.sdp',NULL,NULL,NULL,352,240,NULL,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Axis FFMPEG','Ffmpeg',NULL,NULL,NULL,NULL,NULL,'rtsp://<host/address>/axis-media/media.amp',NULL,NULL,NULL,640,480,NULL,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'ACTi TCM FFMPEG','Ffmpeg',NULL,NULL,NULL,NULL,NULL,'rtsp://admin:123456@<host/address>:7070',NULL,NULL,NULL,320,240,NULL,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), PAL, 320x240','Local','/dev/video<?>','<?>',255,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), PAL, 320x240, max 5 FPS','Local','/dev/video<?>','<?>',255,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), PAL, 640x480','Local','/dev/video<?>','<?>',255,NULL,'v4l2',NULL,NULL,NULL,NULL,640,480,1345466932,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), PAL, 640x480, max 5 FPS','Local','/dev/video<?>','<?>',255,NULL,'v4l2',NULL,NULL,NULL,NULL,640,480,1345466932,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), NTSC, 320x240','Local','/dev/video<?>','<?>',45056,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), NTSC, 320x240, max 5 FPS','Local','/dev/video<?>','<?>',45056,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), NTSC, 640x480','Local','/dev/video<?>','<?>',45056,NULL,'v4l2',NULL,NULL,NULL,NULL,640,480,1345466932,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), NTSC, 640x480, max 5 FPS','Local','/dev/video<?>','<?>',45056,NULL,'v4l2',NULL,NULL,NULL,NULL,640,480,1345466932,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), PAL, 320x240','Local','/dev/video<?>','<?>',0,NULL,'v4l1',NULL,NULL,NULL,NULL,320,240,13,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), PAL, 320x240, max 5 FPS','Local','/dev/video<?>','<?>',0,NULL,'v4l1',NULL,NULL,NULL,NULL,320,240,13,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), PAL, 640x480','Local','/dev/video<?>','<?>',0,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), PAL, 640x480, max 5 FPS','Local','/dev/video<?>','<?>',0,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), NTSC, 320x240','Local','/dev/video<?>','<?>',1,NULL,'v4l1',NULL,NULL,NULL,NULL,320,240,13,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), NTSC, 320x240, max 5 FPS','Local','/dev/video<?>','<?>',1,NULL,'v4l1',NULL,NULL,NULL,NULL,320,240,13,5.0,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), NTSC, 640x480','Local','/dev/video<?>','<?>',1,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), NTSC, 640x480, max 5 FPS','Local','/dev/video<?>','<?>',1,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), PAL, 320x240','Local','/dev/video<?>',0,255,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), PAL, 320x240, max 5 FPS','Local','/dev/video<?>',0,255,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), PAL, 640x480','Local','/dev/video<?>',0,255,NULL,'v4l2',NULL,NULL,NULL,NULL,640,480,1345466932,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), PAL, 640x480, max 5 FPS','Local','/dev/video<?>',0,255,NULL,'v4l2',NULL,NULL,NULL,NULL,640,480,1345466932,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), NTSC, 320x240','Local','/dev/video<?>',0,45056,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), NTSC, 320x240, max 5 FPS','Local','/dev/video<?>',0,45056,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), NTSC, 640x480','Local','/dev/video<?>',0,45056,NULL,'v4l2',NULL,NULL,NULL,NULL,640,480,1345466932,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L2), NTSC, 640x480, max 5 FPS','Local','/dev/video<?>',0,45056,NULL,'v4l2',NULL,NULL,NULL,NULL,640,480,1345466932,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), PAL, 320x240','Local','/dev/video<?>',0,0,NULL,'v4l1',NULL,NULL,NULL,NULL,320,240,13,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), PAL, 320x240, max 5 FPS','Local','/dev/video<?>',0,0,NULL,'v4l1',NULL,NULL,NULL,NULL,320,240,13,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), PAL, 640x480','Local','/dev/video<?>',0,0,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), PAL, 640x480, max 5 FPS','Local','/dev/video<?>',0,0,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), NTSC, 320x240','Local','/dev/video<?>',0,1,NULL,'v4l1',NULL,NULL,NULL,NULL,320,240,13,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), NTSC, 320x240, max 5 FPS','Local','/dev/video<?>',0,1,NULL,'v4l1',NULL,NULL,NULL,NULL,320,240,13,5.0,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), NTSC, 640x480','Local','/dev/video<?>',0,1,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'BTTV Video (V4L1), NTSC, 640x480, max 5 FPS','Local','/dev/video<?>',0,1,NULL,'v4l1',NULL,NULL,NULL,NULL,640,480,13,5.0,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Remote ZoneMinder','Remote',NULL,NULL,NULL,'http','simple','<ip-address>',80,'/cgi-bin/nph-zms?mode=jpeg&monitor=<monitor-id>&scale=100&maxfps=5&buffer=0',NULL,NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Foscam FI8620 FFMPEG H.264','Ffmpeg',NULL,NULL,NULL,NULL,'','','','rtsp://<username>:<pwd>@<ip-address>:554/11',NULL,704,576,0,NULL,1,'10','<admin_pwd>','<ip-address>',100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Foscam FI8608W FFMPEG H.264','Ffmpeg',NULL,NULL,NULL,NULL,'','','','rtsp://<username>:<pwd>@<ip-address>:554/11',NULL,640,480,0,NULL,1,'11','<admin_pwd>','<ip-address>',100,100);
@@ -673,8 +861,8 @@ INSERT INTO MonitorPresets VALUES (NULL,'Foscam FI9821W FFMPEG H.264','Ffmpeg',N
 INSERT INTO MonitorPresets VALUES (NULL,'Loftek Sentinel PTZ, 640x480, mjpeg','Remote','http',0,0,NULL,NULL,'<ip-address>','80','/videostream.cgi?user=<username>&pwd=<password>&resolution=32&rate=11',NULL,640,480,4,NULL,1,'13','','<username>:<pwd>@<ip-address>',100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'Airlink 777W PTZ, 640x480, mjpeg','Remote','http',0,0,NULL,NULL,'<username>:<password>@<ip-address>','80','/cgi/mjpg/mjpg.cgi',NULL,640,480,4,NULL,1,'7','','<username>:<pwd>@<ip-address>',100,100);
 INSERT INTO MonitorPresets VALUES (NULL,'SunEyes SP-P1802SWPTZ','Libvlc','/dev/video<?>','0',255,'','rtpMulti','','80','rtsp://<ip-address>:554/11','',1920,1080,0,0.00,1,'16','-speed=64','<ip-address>:<port>',100,33);
-INSERT INTO MonitorPresets VALUES (NULL,'Qihan IP, 1280x720, RTP/RTSP','Ffmpeg','rtsp','rtpRtsp',255,'rtsp','rtpRtsp',NULL,554,'rtsp://<ip-address>/tcp_live/ch0_0',NULL,1280,720,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,'Qihan IP, 1920x1080, RTP/RTSP','Ffmpeg','rtsp','rtpRtsp',255,'rtsp','rtpRtsp',NULL,554,'rtsp://<ip-address>/tcp_live/ch0_0',NULL,1920,1080,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Qihan IP, 1280x720, RTP/RTSP','Ffmpeg','rtsp',0,255,'rtsp','rtpRtsp',NULL,554,'rtsp://<ip-address>/tcp_live/ch0_0',NULL,1280,720,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,'Qihan IP, 1920x1080, RTP/RTSP','Ffmpeg','rtsp',0,255,'rtsp','rtpRtsp',NULL,554,'rtsp://<ip-address>/tcp_live/ch0_0',NULL,1920,1080,3,NULL,0,NULL,NULL,NULL,100,100);
 
 --
 -- Add some zone preset values
@@ -687,6 +875,36 @@ INSERT INTO ZonePresets VALUES (5,'Best, low sensitivity','Active','Percent','Bl
 INSERT INTO ZonePresets VALUES (6,'Best, medium sensitivity','Active','Percent','Blobs',40,NULL,16,NULL,5,5,12,NULL,10,NULL,1,NULL,0,0);
 INSERT INTO ZonePresets VALUES (7,'Best, high sensitivity','Active','Percent','Blobs',20,NULL,8,NULL,3,3,6,NULL,5,NULL,1,NULL,0,0);
 
+DROP TABLE IF EXISTS Maps;
+
+CREATE TABLE Maps (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`      VARCHAR(64) NOT NULL,
+  `Filename`  VARCHAR(64) NOT NULL default '',
+  `NumCoords` tinyint(3) unsigned NOT NULL default '0',
+  `Coords` tinytext NOT NULL,
+  `ParentId`   int(1) unsigned,
+  PRIMARY KEY (`Id`)
+);
+
+DROP TABLE IF EXISTS MontageLayouts;
+
+CREATE TABLE MontageLayouts (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name`    TEXT  NOT NULL,
+  `Positions` LONGTEXT,
+  /*`Positions` JSON,*/
+  PRIMARY KEY (`Id`)
+);
+
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('Freeform', '{ "default":{"float":"left","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('2 Wide', '{ "default":{"float":"left", "width":"49%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('3 Wide', '{ "default":{"float":"left", "width":"33%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('4 Wide', '{ "default":{"float":"left", "width":"24.5%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('5 Wide', '{ "default":{"float":"left", "width":"19%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+
+-- We generally don't alter triggers, we drop and re-create them, so let's keep them in a separate file that we can just source in update scripts.
+source @PKGDATADIR@/db/triggers.sql
 --
 -- Apply the initial configuration
 --

@@ -1,21 +1,21 @@
 //
 // ZoneMinder Analysis Daemon, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 /*
 
@@ -57,21 +57,19 @@ behind.
 #include "zm_signal.h"
 #include "zm_monitor.h"
 
-void Usage()
-{
-  fprintf( stderr, "zma -m <monitor_id>\n" );
-  fprintf( stderr, "Options:\n" );
-  fprintf( stderr, "  -m, --monitor <monitor_id>   : Specify which monitor to use\n" );
-  fprintf( stderr, "  -h, --help           : This screen\n" );
-  fprintf( stderr, "  -v, --version        : Report the installed version of ZoneMinder\n" );    
-  exit( 0 );
+void Usage() {
+  fprintf(stderr, "zma -m <monitor_id>\n");
+  fprintf(stderr, "Options:\n");
+  fprintf(stderr, "  -m, --monitor <monitor_id>   : Specify which monitor to use\n");
+  fprintf(stderr, "  -h, --help           : This screen\n");
+  fprintf(stderr, "  -v, --version        : Report the installed version of ZoneMinder\n");
+  exit(0);
 }
 
-int main( int argc, char *argv[] )
-{
+int main( int argc, char *argv[] ) {
   self = argv[0];
 
-  srand( getpid() * time( 0 ) );
+  srand(getpid() * time(0));
 
   int id = -1;
 
@@ -82,18 +80,15 @@ int main( int argc, char *argv[] )
     {0, 0, 0, 0}
   };
 
-  while (1)
-  {
+  while (1) {
     int option_index = 0;
 
-    int c = getopt_long (argc, argv, "m:h:v", long_options, &option_index);
-    if (c == -1)
-    {
+    int c = getopt_long(argc, argv, "m:h:v", long_options, &option_index);
+    if ( c == -1 ) {
       break;
     }
 
-    switch (c)
-    {
+    switch (c) {
       case 'm':
         id = atoi(optarg);
         break;
@@ -110,91 +105,81 @@ int main( int argc, char *argv[] )
     }
   }
 
-  if (optind < argc)
-  {
-    fprintf( stderr, "Extraneous options, " );
+  if (optind < argc) {
+    fprintf(stderr, "Extraneous options, ");
     while (optind < argc)
-      printf ("%s ", argv[optind++]);
-    printf ("\n");
+      printf("%s ", argv[optind++]);
+    printf("\n");
     Usage();
   }
 
-  if ( id < 0 )
-  {
-    fprintf( stderr, "Bogus monitor %d\n", id );
+  if ( id < 0 ) {
+    fprintf(stderr, "Bogus monitor %d\n", id);
     Usage();
-    exit( 0 );
+    exit(0);
   }
 
   char log_id_string[16];
-  snprintf( log_id_string, sizeof(log_id_string), "zma_m%d", id );
+  snprintf(log_id_string, sizeof(log_id_string), "zma_m%d", id);
 
   zmLoadConfig();
 
-  logInit( log_id_string );
-  
+  logInit(log_id_string);
+
   hwcaps_detect();
 
-  Monitor *monitor = Monitor::Load( id, true, Monitor::ANALYSIS );
+  Monitor *monitor = Monitor::Load(id, true, Monitor::ANALYSIS);
 
-  if ( monitor )
-  {
-    Info( "In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled() );
+  if ( monitor ) {
+    Info("In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled());
 
     zmSetDefaultHupHandler();
     zmSetDefaultTermHandler();
     zmSetDefaultDieHandler();
 
     sigset_t block_set;
-    sigemptyset( &block_set );
+    sigemptyset(&block_set);
 
     useconds_t analysis_rate = monitor->GetAnalysisRate();
     unsigned int analysis_update_delay = monitor->GetAnalysisUpdateDelay();
     time_t last_analysis_update_time, cur_time;
     monitor->UpdateAdaptiveSkip();
-    last_analysis_update_time = time( 0 );
+    last_analysis_update_time = time(0);
 
-    while( !zm_terminate )
-    {
+    while( (!zm_terminate) && monitor->ShmValid() ) {
       // Process the next image
-      sigprocmask( SIG_BLOCK, &block_set, 0 );
+      sigprocmask(SIG_BLOCK, &block_set, 0);
 
       // Some periodic updates are required for variable capturing framerate
-      if ( analysis_update_delay )
-      {
-        cur_time = time( 0 );
-        if ( (unsigned int)( cur_time - last_analysis_update_time ) > analysis_update_delay )
-        {
+      if ( analysis_update_delay ) {
+        cur_time = time(0);
+        if ( (unsigned int)( cur_time - last_analysis_update_time ) > analysis_update_delay ) {
           analysis_rate = monitor->GetAnalysisRate();
           monitor->UpdateAdaptiveSkip();
           last_analysis_update_time = cur_time;
         }
       }
 
-      if ( !monitor->Analyse() )
-      {
-        usleep( monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE );
-      }
-      else if ( analysis_rate )
-      {
-        usleep( analysis_rate );
+      if ( !monitor->Analyse() ) {
+        usleep(monitor->Active()?ZM_SAMPLE_RATE:ZM_SUSPENDED_RATE);
+      } else if ( analysis_rate ) {
+        usleep(analysis_rate);
       }
 
-      if ( zm_reload )
-      {
+      if ( zm_reload ) {
         monitor->Reload();
+        logTerm();
+        logInit(log_id_string);
         zm_reload = false;
       }
-      sigprocmask( SIG_UNBLOCK, &block_set, 0 );
-    }
+      sigprocmask(SIG_UNBLOCK, &block_set, 0);
+    } // end while ! zm_terminate
     delete monitor;
-  }
-  else
-  {
-    fprintf( stderr, "Can't find monitor with id of %d\n", id );
+  } else {
+    fprintf(stderr, "Can't find monitor with id of %d\n", id);
   }
   Image::Deinitialise();
   logTerm();
   zmDbClose();
-  return( 0 );
+  return 0;
 }

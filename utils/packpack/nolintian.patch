@@ -1,0 +1,22 @@
+From 634281a4204467b9a3c8a1a5febcc8dd9828e0f6 Mon Sep 17 00:00:00 2001
+From: Andy Bauer <knnniggett@hotmail.com>
+Date: Thu, 22 Feb 2018 08:53:50 -0600
+Subject: [PATCH] don't run lintian checks to speed up build
+
+---
+ pack/deb.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pack/deb.mk b/pack/deb.mk
+index de4a0b7..bddf9df 100644
+--- a/packpack/pack/deb.mk
++++ b/packpack/pack/deb.mk
+@@ -130,7 +130,7 @@ $(BUILDDIR)/$(DPKG_CHANGES): $(BUILDDIR)/$(PRODUCT)-$(VERSION)/debian \
+ 	@echo "Building Debian packages"
+ 	@echo "-------------------------------------------------------------------"
+ 	cd $(BUILDDIR)/$(PRODUCT)-$(VERSION) && \
+-		debuild --preserve-envvar CCACHE_DIR --prepend-path=/usr/lib/ccache \
++		debuild --no-lintian --preserve-envvar CCACHE_DIR --prepend-path=/usr/lib/ccache \
+ 		-Z$(TARBALL_COMPRESSOR) -uc -us $(SMPFLAGS)
+ 	rm -rf $(BUILDDIR)/$(PRODUCT)-$(VERSION)/
+ 	@echo "------------------------------------------------------------------"

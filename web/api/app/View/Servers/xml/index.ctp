@@ -1,2 +1,2 @@
-$xml = Xml::fromArray(array('response' => $monitors));
+$xml = Xml::fromArray(array('response' => $servers));
 echo $xml->asXML();

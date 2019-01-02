@@ -55,6 +55,7 @@ use constant START_DELAY => 30; # To give everything else time to start
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
+use ZoneMinder::Storage;
 use POSIX;
 use DBI;
 use autouse 'Data::Dumper'=>qw(Dumper);
@@ -68,120 +69,132 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 logInit();
 logSetSignal();
 
-Info( "Watchdog starting\n" );
-Info( "Watchdog pausing for ".START_DELAY." seconds\n" );
-sleep( START_DELAY );
+Info('Watchdog starting, pausing for '.START_DELAY.' seconds');
+sleep(START_DELAY);
 
 my $dbh = zmDbConnect();
-
 my $sql = $Config{ZM_SERVER_ID} ? 'SELECT * FROM Monitors WHERE ServerId=?' : 'SELECT * FROM Monitors';
-my $sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
+my $sth = $dbh->prepare_cached($sql)
+    or Fatal("Can't prepare '$sql': ".$dbh->errstr());
 
-while( 1 )
-{
-    my $now = time();
-    my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
-        or Fatal( "Can't execute: ".$sth->errstr() );
-    while( my $monitor = $sth->fetchrow_hashref() )
-    {
-        next if $monitor->{Function} eq 'None';
-        my $restart = 0;
-        if ( zmMemVerify( $monitor ) ) {
-            # Check we have got an image recently
-            my $image_time = zmGetLastWriteTime( $monitor );
-            if ( !defined($image_time) ) {
-				 # Can't read from shared data
-				Debug( "LastWriteTime is not defined." );
-        zmMemInvalidate( $monitor );
-				next;
-			}
-            if ( !$image_time ) {
-				# We can't get the last capture time so can't be sure it's died.
-				Debug( "LastWriteTime is = $image_time." );
-        zmMemInvalidate( $monitor );
-				next;
-			}
+while( 1 ) {
+  while ( ! ( $dbh and $dbh->ping() ) ) {
+    if ( ! ( $dbh = zmDbConnect() ) ) {
+      sleep($Config{ZM_WATCH_CHECK_INTERVAL});
+    }
+  }
 
-            my $max_image_delay = ( $monitor->{MaxFPS}
-                                    &&($monitor->{MaxFPS}>0)
-                                    &&($monitor->{MaxFPS}<1)
-                                  ) ? (3/$monitor->{MaxFPS})
-                                    : $Config{ZM_WATCH_MAX_DELAY}
-            ;
-            my $image_delay = $now-$image_time;
-            Debug( "Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay\n" );
-            if ( $image_delay > $max_image_delay )
-            {
-                Info( "Restarting capture daemon for "
-                      .$monitor->{Name}.", time since last capture $image_delay seconds ($now-$image_time)\n"
-                );
-                $restart = 1;
-            }
+  my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
+    or Fatal('Can\'t execute: '.$sth->errstr());
+  while( my $monitor = $sth->fetchrow_hashref() ) {
+    next if $monitor->{Function} eq 'None';
+    next if $monitor->{Type} eq 'WebSite';
+    my $now = time(); 
+    my $restart = 0;
+    if ( zmMemVerify($monitor) ) {
+# Check we have got an image recently
+      my $capture_time = zmGetLastWriteTime($monitor);
+      if ( !defined($capture_time) ) {
+# Can't read from shared data
+        Debug('LastWriteTime is not defined.');
+        zmMemInvalidate($monitor);
+        next;
+      }
+      Debug("Monitor $$monitor{Id} LastWriteTime is $capture_time.");
+      if ( !$capture_time ) {
+        my $startup_time = zmGetStartupTime($monitor);
+        if ( ( $now - $startup_time ) > $Config{ZM_WATCH_MAX_DELAY} ) {
+          Info(
+            "Restarting capture daemon for $$monitor{Name}, no image since startup. ".
+            "Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}"
+          );
+          $restart = 1;
+        } else {
+          # We can't get the last capture time so can't be sure it's died, it might just be starting up.
+          zmMemInvalidate($monitor);
+          next;
         }
-        else
-        {
-            Info( "Restarting capture daemon for ".$monitor->{Name}.", shared data not valid\n" );
-            $restart = 1;
+      }
+      if ( ! $restart ) {
+        my $max_image_delay = (
+          $monitor->{MaxFPS}
+          &&($monitor->{MaxFPS}>0)
+          &&($monitor->{MaxFPS}<1)
+        ) ? (3/$monitor->{MaxFPS})
+        : $Config{ZM_WATCH_MAX_DELAY}
+        ;
+        my $image_delay = $now-$capture_time;
+        Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
+        if ( $image_delay > $max_image_delay ) {
+          Info("Restarting capture daemon for "
+              .$monitor->{Name}.", time since last capture $image_delay seconds ($now-$capture_time)"
+              );
+          $restart = 1;
         }
+      } # end if ! restart 
+    } else {
+      Info("Restarting capture daemon for $monitor->{Name}, shared data not valid");
+      $restart = 1;
+    }
 
-        if ( $restart )
-        {
-            my $command;
-            if ( $monitor->{Type} eq 'Local' )
-            {
-                $command = "zmdc.pl restart zmc -d $monitor->{Device}";
-            }
-            else
-            {
-                $command = "zmdc.pl restart zmc -m $monitor->{Id}";
-            }
-            runCommand( $command );
+    if ( $restart ) {
+      # Because zma depends on zmc, and zma can hold the shm in place, preventing zmc from using the space in /dev/shm,
+      # we need to stop zma before restarting zmc.
+      runCommand("zmdc.pl stop zma -m $$monitor{Id}") if $monitor->{Function} ne 'Monitor';
+      my $command;
+      if ( $monitor->{Type} eq 'Local' ) {
+        $command = "zmdc.pl restart zmc -d $monitor->{Device}";
+      } else {
+        $command = "zmdc.pl restart zmc -m $monitor->{Id}";
+      }
+      runCommand($command);
+      runCommand("zmdc.pl start zma -m $$monitor{Id}") if $monitor->{Function} ne 'Monitor';
+    } elsif ( $monitor->{Function} ne 'Monitor' ) {
+# Now check analysis daemon
+      $restart = 0;
+# Check we have got an image recently
+      my $image_time = zmGetLastReadTime($monitor);
+      if ( !defined($image_time) ) {
+# Can't read from shared data
+        $restart = 1;
+        Error("Error reading shared data for $$monitor{Id} $$monitor{Name}");
+      } elsif ( !$image_time ) {
+# We can't get the last capture time so can't be sure it's died.
+        $restart = 1;
+        Error("Last analyse time for $$monitor{Id} $$monitor{Name} was zero.");
+      } else {
+
+        my $max_image_delay = ( $monitor->{MaxFPS}
+            &&($monitor->{MaxFPS}>0)
+            &&($monitor->{MaxFPS}<1)
+            ) ? (3/$monitor->{MaxFPS})
+          : $Config{ZM_WATCH_MAX_DELAY}
+        ;
+        my $image_delay = $now-$image_time;
+        Debug("Monitor $monitor->{Id} last analysed $image_delay seconds ago, max is $max_image_delay");
+        if ( $image_delay > $max_image_delay ) {
+          Info("Analysis daemon for $$monitor{Id} $$monitor{Name} needs restarting,"
+              ." time since last analysis $image_delay seconds ($now-$image_time)"
+              );
+          $restart = 1;
         }
-        elsif ( $monitor->{Function} ne 'Monitor' )
-        {
-            # Now check analysis daemon
-            $restart = 0;
-            # Check we have got an image recently
-            my $image_time = zmGetLastReadTime( $monitor );
-            if ( !defined($image_time) ) {
-                # Can't read from shared data
-                $restart = 1;
-                Error( "Error reading shared data for $$monitor{id} $$monitor{Name}\n");
-            } elsif ( !$image_time ) {
-                # We can't get the last capture time so can't be sure it's died.
-                $restart = 1;
-                Error( "Error getting last capture time for $$monitor{id} $$monitor{Name}\n");
-            } else {
+      }
 
-                my $max_image_delay = ( $monitor->{MaxFPS}
-                                        &&($monitor->{MaxFPS}>0)
-                                        &&($monitor->{MaxFPS}<1)
-                                      ) ? (3/$monitor->{MaxFPS})
-                                        : $Config{ZM_WATCH_MAX_DELAY}
-                ;
-                my $image_delay = $now-$image_time;
-                Debug( "Monitor $monitor->{Id} last analysed $image_delay seconds ago, max is $max_image_delay\n" );
-                if ( $image_delay > $max_image_delay )
-                {
-                    Info( "Analysis daemon for $$monitor{id} $$monitor{Name} needs restarting,"
-                          ." time since last analysis $image_delay seconds ($now-$image_time)\n"
-                    );
-                    $restart = 1;
-                }
-            }
+      if ( $restart ) {
+        Info("Restarting analysis daemon for $$monitor{Id} $$monitor{Name}");
+        my $command = 'zmdc.pl restart zma -m '.$monitor->{Id};
+        runCommand($command);
+      } # end if restart
+    } # end if check analysis daemon
+    # Prevent open handles building up if we have connect to shared memory
+    zmMemInvalidate($monitor); # Close our file handle to the zmc process we are about to end
+  } # end foreach monitor
 
-            if ( $restart )
-            {
-                Info( "Restarting analysis daemon for $$monitor{id} $$monitor{Name}\n");
-                my $command = "zmdc.pl restart zma -m ".$monitor->{Id};
-                runCommand( $command );
-            } # end if restart
-        } # end if check analysis daemon
-        # Prevent open handles building up if we have connect to shared memory
-        zmMemInvalidate( $monitor );
-    } # end foreach monitor
-    sleep( $Config{ZM_WATCH_CHECK_INTERVAL} );
+  sleep($Config{ZM_WATCH_CHECK_INTERVAL});
 } # end while (1)
-Info( "Watchdog exiting\n" );
+
+Info("Watchdog exiting");
 exit();
+
+1;
+__END__

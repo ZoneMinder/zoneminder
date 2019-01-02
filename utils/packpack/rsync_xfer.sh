@@ -27,7 +27,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
     echo
 
     mkdir -p ./zmrepo
-    ssh_mntchk="$(sshfs zmrepo@zmrepo.zoneminder.com:./ ./zmrepo -o workaround=rename,reconnect)"
+    ssh_mntchk="$(sshfs zmrepo@zmrepo.zoneminder.com:./ ./zmrepo -o workaround=rename,reconnect 2>&1)"
 
     if [ -z "$ssh_mntchk" ]; then
         echo
@@ -37,7 +37,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
 
         # Don't keep packages older than 5 days
         find ./zmrepo/$targetfolder/ -maxdepth 1 -type f -mtime +5 -delete
-        rsync -vzh --ignore-errors build/* zmrepo/$targetfolder/
+        rsync -vzlh --ignore-errors build/* zmrepo/$targetfolder/
         fusermount -zu zmrepo
     else
         echo

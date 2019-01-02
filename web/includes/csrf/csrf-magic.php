@@ -52,7 +52,7 @@ $GLOBALS['csrf']['rewrite-js'] = false;
  * place it here. If you change this value, all previously generated tokens
  * will become invalid.
  */
-$GLOBALS['csrf']['secret'] = '';
+$GLOBALS['csrf']['secret'] = ZM_AUTH_HASH_SECRET;
 // nota bene: library code should use csrf_get_secret() and not access
 // this global directly
 
@@ -102,7 +102,7 @@ $GLOBALS['csrf']['user'] = false;
  * tokens, and have Squid ignore that cookie for get requests, for anonymous
  * users. (If you haven't guessed, this scheme was(?) used for MediaWiki).
  */
-$GLOBALS['csrf']['key'] = false;
+$GLOBALS['csrf']['key'] = ZM_AUTH_HASH_SECRET;
 
 /**
  * The name of the magic CSRF token that will be placed in all forms, i.e.
@@ -188,11 +188,23 @@ function csrf_check($fatal = true) {
     $ok = false;
     $tokens = '';
     do {
-        if (!isset($_POST[$name])) break;
+        if (!isset($_POST[$name])) {
+#Logger::Debug("POST[$name] is not set");
+break;
+#} else {
+#Logger::Debug("POST[$name] is set as " . $_POST[$name] );
+
+}
         // we don't regenerate a token and check it because some token creation
         // schemes are volatile.
         $tokens = $_POST[$name];
-        if (!csrf_check_tokens($tokens)) break;
+        if (!csrf_check_tokens($tokens)) {
+#Logger::Debug("Failed checking tokens");
+break;
+
+#} else {
+#Logger::Debug("Token passed");
+}
         $ok = true;
     } while (false);
     if ($fatal && !$ok) {
@@ -225,13 +237,13 @@ function csrf_get_tokens() {
     csrf_start();
 
     // These are "strong" algorithms that don't require per se a secret
+    if ($GLOBALS['csrf']['key']) return 'key:' . csrf_hash($GLOBALS['csrf']['key']) . $ip;
     if (session_id()) return 'sid:' . csrf_hash(session_id()) . $ip;
     if ($GLOBALS['csrf']['cookie']) {
         $val = csrf_generate_secret();
         setcookie($GLOBALS['csrf']['cookie'], $val);
         return 'cookie:' . csrf_hash($val) . $ip;
     }
-    if ($GLOBALS['csrf']['key']) return 'key:' . csrf_hash($GLOBALS['csrf']['key']) . $ip;
     // These further algorithms require a server-side secret
     if (!$secret) return 'invalid';
     if ($GLOBALS['csrf']['user'] !== false) {
@@ -296,24 +308,41 @@ function csrf_check_tokens($tokens) {
  * Checks if a token is valid.
  */
 function csrf_check_token($token) {
-    if (strpos($token, ':') === false) return false;
+#Logger::Debug("Checking CSRF token $token");
+    if (strpos($token, ':') === false) { 
+#Logger::Debug("Checking CSRF token $token bad because no :");
+      return false;
+    }
     list($type, $value) = explode(':', $token, 2);
-    if (strpos($value, ',') === false) return false;
+    if (strpos($value, ',') === false) {
+#Logger::Debug("Checking CSRF token $token bad because no ,");
+      return false;
+    }
     list($x, $time) = explode(',', $token, 2);
     if ($GLOBALS['csrf']['expires']) {
-        if (time() > $time + $GLOBALS['csrf']['expires']) return false;
+        if (time() > $time + $GLOBALS['csrf']['expires']) {
+#Logger::Debug("Checking CSRF token $token bad because expired");
+return false;
+        }
     }
     switch ($type) {
         case 'sid':
+            {
+ #Logger::Debug("Checking sid: $value === " . csrf_hash(session_id(), $time) );
             return $value === csrf_hash(session_id(), $time);
+            }
         case 'cookie':
             $n = $GLOBALS['csrf']['cookie'];
             if (!$n) return false;
             if (!isset($_COOKIE[$n])) return false;
             return $value === csrf_hash($_COOKIE[$n], $time);
         case 'key':
-            if (!$GLOBALS['csrf']['key']) return false;
-            return $value === csrf_hash($GLOBALS['csrf']['key'], $time);
+            if (!$GLOBALS['csrf']['key']) {
+		    Logger::Debug("Checking key: no key set"  );
+		    return false;
+	    }
+ #Logger::Debug("Checking sid: $value === " . csrf_hash($GLOBALS['csrf']['key'], $time) );
+	    return $value === csrf_hash($GLOBALS['csrf']['key'], $time);
         // We could disable these 'weaker' checks if 'key' was set, but
         // that doesn't make me feel good then about the cookie-based
         // implementation.

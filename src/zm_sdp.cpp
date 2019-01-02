@@ -159,8 +159,7 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
   MediaDescriptor *currMedia = 0;
 
   StringVector lines = split( sdp, "\r\n" );
-  for ( StringVector::const_iterator iter = lines.begin(); iter != lines.end(); iter++ )
-  {
+  for ( StringVector::const_iterator iter = lines.begin(); iter != lines.end(); ++iter ) {
     std::string line = *iter;
     if ( line.empty() )
       break;
@@ -276,48 +275,26 @@ SessionDescriptor::SessionDescriptor( const std::string &url, const std::string 
               {
                 StringVector attr3Tokens = split( attr2Tokens[i], "=" );
                 //Info( "Name = %s, Value = %s", attr3Tokens[0].c_str(), attr3Tokens[1].c_str() );
-                if ( attr3Tokens[0] == "profile-level-id" )
-                {
-                }
-                else if ( attr3Tokens[0] == "config" )
-                {
-                }
-                else if ( attr3Tokens[0] == "sprop-parameter-sets" )
-                {
+                if ( attr3Tokens[0] == "profile-level-id" ) {
+                } else if ( attr3Tokens[0] == "config" ) {
+                } else if ( attr3Tokens[0] == "sprop-parameter-sets" ) {
                     size_t t = attr2Tokens[i].find("=");
                     char *c = (char *)attr2Tokens[i].c_str() + t + 1;
                     Debug(4, "sprop-parameter-sets value %s", c);
                   currMedia->setSprops(std::string(c));
-                }
-                else if ( attr3Tokens[0] == "sprop-parameter-sets" )
-                {
-                    size_t t = attr2Tokens[i].find("=");
-                    char *c = (char *)attr2Tokens[i].c_str() + t + 1;
-                    Debug(4, "sprop-parameter-sets value %s", c);
-                  currMedia->setSprops(std::string(c));
-                }
-                else 
-                {
+                } else {
                   Debug( 3, "Ignoring SDP fmtp attribute '%s' for media '%s'", attr3Tokens[0].c_str(), currMedia->getType().c_str() )
                 }
               }
             }
-          }
-          else if ( attrName == "mpeg4-iod" )
-          {
+          } else if ( attrName == "mpeg4-iod" ) {
             // a=mpeg4-iod: "data:application/mpeg4-iod;base64,AoEAAE8BAf73AQOAkwABQHRkYXRhOmFwcGxpY2F0aW9uL21wZWc0LW9kLWF1O2Jhc2U2NCxBVGdCR3dVZkF4Y0F5U1FBWlFRTklCRUVrK0FBQWEyd0FBR3RzQVlCQkFFWkFwOERGUUJsQlFRTlFCVUFDN2dBQVBvQUFBRDZBQVlCQXc9PQQNAQUABAAAAAAAAAAAAAYJAQAAAAAAAAAAA0IAAkA+ZGF0YTphcHBsaWNhdGlvbi9tcGVnNC1iaWZzLWF1O2Jhc2U2NCx3QkFTZ1RBcUJYSmhCSWhRUlFVL0FBPT0EEgINAAACAAAAAAAAAAAFAwAAQAYJAQAAAAAAAAAA"
-          }
-          else if ( attrName == "mpeg4-esid" )
-          {
+          } else if ( attrName == "mpeg4-esid" ) {
             // a=mpeg4-esid:201
-          }
-          else
-          {
+          } else {
             Debug( 3, "Ignoring SDP attribute '%s' for media '%s'", line.c_str(), currMedia->getType().c_str() )
           }
-        }
-        else
-        {
+        } else {
           Debug( 3, "Ignoring general SDP attribute '%s'", line.c_str() );
         }
         break;
@@ -369,8 +346,7 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     strncpy( formatContext->comment, mInfo.c_str(), sizeof(formatContext->comment) );
 */
   //formatContext->nb_streams = mMediaList.size();
-  for ( unsigned int i = 0; i < mMediaList.size(); i++ )
-  {
+  for ( unsigned int i = 0; i < mMediaList.size(); i++ ) {
     const MediaDescriptor *mediaDesc = mMediaList[i];
 #if !LIBAVFORMAT_VERSION_CHECK(53, 10, 0, 17, 0)
     AVStream *stream = av_new_stream( formatContext, i );
@@ -379,62 +355,62 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
     stream->id = i;
 #endif
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    AVCodecContext *codec_context = avcodec_alloc_context3(NULL);
+    avcodec_parameters_to_context(codec_context, stream->codecpar);
+#else
+    AVCodecContext *codec_context = stream->codec;
+#endif
+
     Debug( 1, "Looking for codec for %s payload type %d / %s",  mediaDesc->getType().c_str(), mediaDesc->getPayloadType(), mediaDesc->getPayloadDesc().c_str() );
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
     if ( mediaDesc->getType() == "video" )
-      stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+      codec_context->codec_type = AVMEDIA_TYPE_VIDEO;
     else if ( mediaDesc->getType() == "audio" )
-      stream->codec->codec_type = AVMEDIA_TYPE_AUDIO;
+      codec_context->codec_type = AVMEDIA_TYPE_AUDIO;
     else if ( mediaDesc->getType() == "application" )
-      stream->codec->codec_type = AVMEDIA_TYPE_DATA;
+      codec_context->codec_type = AVMEDIA_TYPE_DATA;
 #else
     if ( mediaDesc->getType() == "video" )
-      stream->codec->codec_type = CODEC_TYPE_VIDEO;
+      codec_context->codec_type = CODEC_TYPE_VIDEO;
     else if ( mediaDesc->getType() == "audio" )
-      stream->codec->codec_type = CODEC_TYPE_AUDIO;
+      codec_context->codec_type = CODEC_TYPE_AUDIO;
     else if ( mediaDesc->getType() == "application" )
-      stream->codec->codec_type = CODEC_TYPE_DATA;
+      codec_context->codec_type = CODEC_TYPE_DATA;
 #endif
 
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
     std::string codec_name;
 #endif
-    if ( mediaDesc->getPayloadType() < PAYLOAD_TYPE_DYNAMIC )
-    {
+    if ( mediaDesc->getPayloadType() < PAYLOAD_TYPE_DYNAMIC ) {
       // Look in static table
-      for ( unsigned int i = 0; i < (sizeof(smStaticPayloads)/sizeof(*smStaticPayloads)); i++ )
-      {
-        if ( smStaticPayloads[i].payloadType == mediaDesc->getPayloadType() )
-        {
+      for ( unsigned int i = 0; i < (sizeof(smStaticPayloads)/sizeof(*smStaticPayloads)); i++ ) {
+        if ( smStaticPayloads[i].payloadType == mediaDesc->getPayloadType() ) {
           Debug( 1, "Got static payload type %d, %s", smStaticPayloads[i].payloadType, smStaticPayloads[i].payloadName );
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
           codec_name = std::string( smStaticPayloads[i].payloadName );
 #else
-          strncpy( stream->codec->codec_name, smStaticPayloads[i].payloadName, sizeof(stream->codec->codec_name) );;
+          strncpy( codec_context->codec_name, smStaticPayloads[i].payloadName, sizeof(codec_context->codec_name) );;
 #endif
-          stream->codec->codec_type = smStaticPayloads[i].codecType;
-          stream->codec->codec_id = smStaticPayloads[i].codecId;
-          stream->codec->sample_rate = smStaticPayloads[i].clockRate;
+          codec_context->codec_type = smStaticPayloads[i].codecType;
+          codec_context->codec_id = smStaticPayloads[i].codecId;
+          codec_context->sample_rate = smStaticPayloads[i].clockRate;
           break;
         }
       }
-    }
-    else
-    {
+    } else {
       // Look in dynamic table
-      for ( unsigned int i = 0; i < (sizeof(smDynamicPayloads)/sizeof(*smDynamicPayloads)); i++ )
-      {
-        if ( smDynamicPayloads[i].payloadName == mediaDesc->getPayloadDesc() )
-        {
+      for ( unsigned int i = 0; i < (sizeof(smDynamicPayloads)/sizeof(*smDynamicPayloads)); i++ ) {
+        if ( smDynamicPayloads[i].payloadName == mediaDesc->getPayloadDesc() ) {
           Debug( 1, "Got dynamic payload type %d, %s", mediaDesc->getPayloadType(), smDynamicPayloads[i].payloadName );
 #if LIBAVCODEC_VERSION_CHECK(55, 50, 3, 60, 103)
           codec_name = std::string( smStaticPayloads[i].payloadName );
 #else
-          strncpy( stream->codec->codec_name, smDynamicPayloads[i].payloadName, sizeof(stream->codec->codec_name) );;
+          strncpy( codec_context->codec_name, smDynamicPayloads[i].payloadName, sizeof(codec_context->codec_name) );;
 #endif
-          stream->codec->codec_type = smDynamicPayloads[i].codecType;
-          stream->codec->codec_id = smDynamicPayloads[i].codecId;
-          stream->codec->sample_rate = mediaDesc->getClock();
+          codec_context->codec_type = smDynamicPayloads[i].codecType;
+          codec_context->codec_id = smDynamicPayloads[i].codecId;
+          codec_context->sample_rate = mediaDesc->getClock();
           break;
         }
       }
@@ -450,14 +426,13 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
       //return( 0 );
     }
     if ( mediaDesc->getWidth() )
-      stream->codec->width = mediaDesc->getWidth();
+      codec_context->width = mediaDesc->getWidth();
     if ( mediaDesc->getHeight() )
-      stream->codec->height = mediaDesc->getHeight();
-    if ( stream->codec->codec_id == AV_CODEC_ID_H264 && mediaDesc->getSprops().size())
-    {
+      codec_context->height = mediaDesc->getHeight();
+    if ( codec_context->codec_id == AV_CODEC_ID_H264 && mediaDesc->getSprops().size()) {
       uint8_t start_sequence[]= { 0, 0, 1 };
-      stream->codec->extradata_size= 0;
-      stream->codec->extradata= NULL;
+      codec_context->extradata_size= 0;
+      codec_context->extradata= NULL;
       char pvalue[1024], *value = pvalue;
     
       strcpy(pvalue, mediaDesc->getSprops().c_str());
@@ -482,22 +457,33 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const
         if (packet_size) {
           uint8_t *dest = 
           (uint8_t *)av_malloc(packet_size + sizeof(start_sequence) +
-                       stream->codec->extradata_size +
-                       FF_INPUT_BUFFER_PADDING_SIZE);
+                       codec_context->extradata_size +
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+                       AV_INPUT_BUFFER_PADDING_SIZE
+#else
+                       FF_INPUT_BUFFER_PADDING_SIZE
+#endif
+);
           if(dest) {
-              if(stream->codec->extradata_size) {
+              if(codec_context->extradata_size) {
                 // av_realloc?
-              memcpy(dest, stream->codec->extradata, stream->codec->extradata_size);
-                av_free(stream->codec->extradata);
+              memcpy(dest, codec_context->extradata, codec_context->extradata_size);
+                av_free(codec_context->extradata);
               }
 
-              memcpy(dest+stream->codec->extradata_size, start_sequence, sizeof(start_sequence));
-              memcpy(dest+stream->codec->extradata_size+sizeof(start_sequence), decoded_packet, packet_size);
-              memset(dest+stream->codec->extradata_size+sizeof(start_sequence)+
-                     packet_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
+              memcpy(dest+codec_context->extradata_size, start_sequence, sizeof(start_sequence));
+              memcpy(dest+codec_context->extradata_size+sizeof(start_sequence), decoded_packet, packet_size);
+              memset(dest+codec_context->extradata_size+sizeof(start_sequence)+
+                     packet_size, 0,
+#if LIBAVCODEC_VERSION_CHECK(57, 0, 0, 0, 0)
+                       AV_INPUT_BUFFER_PADDING_SIZE
+#else
+                       FF_INPUT_BUFFER_PADDING_SIZE
+#endif
+);
 
-              stream->codec->extradata= dest;
-              stream->codec->extradata_size+= sizeof(start_sequence)+packet_size;
+              codec_context->extradata= dest;
+              codec_context->extradata_size+= sizeof(start_sequence)+packet_size;
 //          } else {
 //            av_log(codec, AV_LOG_ERROR, "Unable to allocate memory for extradata!");
 //            return AVERROR(ENOMEM);

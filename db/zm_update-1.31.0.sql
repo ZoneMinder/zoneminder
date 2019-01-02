@@ -1,7 +1,7 @@
 --
 -- This updates a 1.29.0 database to 1.30.0
 --
-
+SELECT 'Checking for SaveJPEGs in Monitors';
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
 	FROM INFORMATION_SCHEMA.COLUMNS
@@ -16,6 +16,7 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+SELECT 'Checking for VideoWriter in Monitors';
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
 	FROM INFORMATION_SCHEMA.COLUMNS
@@ -30,6 +31,7 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+SELECT 'Checking for EncoderParameters in Monitors';
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
 	FROM INFORMATION_SCHEMA.COLUMNS
@@ -44,6 +46,7 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+SELECT 'Checking for DefaultVideo in Events';
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
 	FROM INFORMATION_SCHEMA.COLUMNS
@@ -52,12 +55,13 @@ SET @s = (SELECT IF(
 	AND column_name = 'DefaultVideo'
 	) > 0,
 "SELECT 'Column DefaultVideo exists in Events'",
-"ALTER TABLE `Events` ADD `DefaultVideo` VARCHAR( 64 ) NOT NULL AFTER `AlarmFrames`"
+"ALTER TABLE `Events` ADD `DefaultVideo` VARCHAR( 64 ) NOT NULL default '' AFTER `AlarmFrames`"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+SELECT 'Checking for RecordAudio in Monitors';
 SET @s = (SELECT IF(
 	(SELECT COUNT(*)
 	FROM INFORMATION_SCHEMA.COLUMNS

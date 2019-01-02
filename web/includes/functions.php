@@ -2222,7 +2222,6 @@ function getStreamHTML( $monitor, $options = array() ) {
   }
 } // end function getStreamHTML
 
-<<<<<<< HEAD
 function getStreamMode( ) {
   $streamMode = '';
   if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {

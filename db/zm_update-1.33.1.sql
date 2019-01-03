@@ -5,9 +5,12 @@
 -- Add Refresh column to Monitors table
 --
 
+ALTER TABLE `Monitors` 
+CHANGE COLUMN `Type` `Type` ENUM('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL DEFAULT 'Local' ;
+
 ALTER TABLE `MonitorPresets` 
 CHANGE COLUMN `Type` `Type` ENUM('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL DEFAULT 'Local' ;
 
 ALTER TABLE `Controls` 
-CHANGE COLUMN `Type` `Type` ENUM('Local','Remote','Ffmpeg','Libvlc','cURL','WebSite') NOT NULL DEFAULT 'Local' ;
+CHANGE COLUMN `Type` `Type` ENUM('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite','NVSocket') NOT NULL DEFAULT 'Local' ;
 

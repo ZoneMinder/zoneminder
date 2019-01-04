@@ -2258,6 +2258,27 @@ function csrf_startup() {
     csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
 }
 
+function check_timezone() {
+  $now = new DateTime();
+
+  # Probably need to check the results of these for errors
+  $sys_tzoffset = trim(shell_exec('date "+%z"'));
+  $php_tzoffset = trim($now->format('O'));
+  $mysql_tzoffset = trim(dbFetchOne("SELECT TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),'%H%i');",'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'));
+
+  Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20 
+                 PHP timezone offset determine to be: $php_tzoffset,\x20 
+                 Mysql timezone offset determine to be: $mysql_tzoffset
+               ");
+
+  if ( $sys_tzoffset != $php_tzoffset )
+        Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
+
+  if ( $sys_tzoffset != $mysql_tzoffset )
+        Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");
+
+}
+
 function unparse_url($parsed_url, $substitutions = array() ) { 
   $fields = array('scheme','host','port','user','pass','path','query','fragment');
 

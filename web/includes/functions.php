@@ -2348,4 +2348,23 @@ if ( !function_exists('ftok') ) {
   }
 }
 
+function getAffectedIds( $name ) {
+  $names = $name.'s';
+  $ids = array();
+	if ( isset($_REQUEST[$names]) ) {
+		if ( is_array($_REQUEST[$names]) ) {
+			$ids = $_REQUEST[$names];
+		} else {
+			$ids = array($_REQUEST[$names]);
+		}
+	} else if ( isset($_REQUEST[$name]) ) {
+		if ( is_array($_REQUEST[$name]) ) {
+			$ids = $_REQUEST[$name];
+		} else {
+			$ids = array($_REQUEST[$name]);
+		}
+	}
+	return $ids;
+}
+
 ?>

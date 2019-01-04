@@ -210,7 +210,14 @@ if (
 }
 
 # Need to include actions because it does auth
-require_once('includes/actions.php');
+if ( $action ) {
+  if ( file_exists('includes/actions/'.$view.'.php') ) {
+    Logger::Debug("Including includes/actions/$view.php");
+    require_once('includes/actions/'.$view.'.php');
+  } else {
+    Warning("No includes/actions/$view.php for action $action");
+  }
+}
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH and !isset($user) ) {

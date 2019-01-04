@@ -39,7 +39,6 @@ xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
     <div id="content">
       <form name="groupForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="action" value="group"/>
         <input type="hidden" name="gid" value="<?php echo $newGroup->Id() ?>"/>
         <table id="contentTable" class="major">
           <tbody>
@@ -119,7 +118,7 @@ echo htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('on
           </tbody>
         </table>
         <div id="contentButtons">
-          <button type="submit" name="saveBtn" value="Save"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>>
+          <button type="submit" name="action" value="Save"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>>
           <?php echo translate('Save') ?>
           </button>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>

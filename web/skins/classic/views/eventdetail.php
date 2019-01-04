@@ -33,7 +33,7 @@ if ( isset($_REQUEST['eid']) ) {
   $sqlValues = array();
   foreach ( $_REQUEST['eids'] as $eid ) {
     $sqlWhere[] = 'E.Id = ?';
-    $sqlValues[] = $eid;
+    $sqlValues[] = validInt($eid);
   }
   unset($eid);
   $sql .= join(' OR ', $sqlWhere);
@@ -80,14 +80,14 @@ if ( $mode == 'single' ) {
 <?php
 if ( $mode == 'single' ) {
 ?>
-        <input type="hidden" name="eid" value="<?php echo $eid ?>"/>
+        <input type="hidden" name="markEids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
 } else if ( $mode = 'multi' ) {
 ?>
 <?php
     foreach ( $_REQUEST['eids'] as $eid ) {
 ?>
-        <input type="hidden" name="markEids[]" value="<?php echo validHtmlStr($eid) ?>"/>
+        <input type="hidden" name="markEids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
     }
 }

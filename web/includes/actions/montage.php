@@ -25,7 +25,7 @@ if ( isset($_REQUEST['object']) ) {
       Warning("Need System permissions to edit layouts");
       return;
     }
-    require_once('MontageLayout.php');
+    require_once('includes/MontageLayout.php');
     if ( $action == 'Save' ) {
       $Layout = null;
       if ( $_REQUEST['Name'] != '' ) {

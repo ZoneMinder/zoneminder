@@ -48,18 +48,24 @@ if ( $action == 'delete' ) {
   }
 
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
-  $configCat = $configCats[$_REQUEST['tab']];
+
+  $result = dbQuery('SELECT Name,Value,Type FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
+  if ( !$result ) {
+    echo mysql_error();
+    return;
+  }
+
   $changed = false;
-  foreach ( $configCat as $name=>$value ) {
+  while( $config = dbFetchNext($result) ) {
     unset($newValue);
-    if ( $value['Type'] == 'boolean' && empty($_REQUEST['newConfig'][$name]) ) {
+    if ( $config['Type'] == 'boolean' && empty($_REQUEST['newConfig'][$config['Name']]) ) {
       $newValue = 0;
-    } else if ( isset($_REQUEST['newConfig'][$name]) ) {
-      $newValue = preg_replace("/\r\n/", "\n", stripslashes($_REQUEST['newConfig'][$name]));
+    } else if ( isset($_REQUEST['newConfig'][$config['Name']]) ) {
+      $newValue = preg_replace("/\r\n/", "\n", stripslashes($_REQUEST['newConfig'][$config['Name']]));
     }
 
-    if ( isset($newValue) && ($newValue != $value['Value']) ) {
-      dbQuery('UPDATE Config SET Value=? WHERE Name=?', array($newValue, $name));
+    if ( isset($newValue) && ($newValue != $config['Value']) ) {
+      dbQuery('UPDATE Config SET Value=? WHERE Name=?', array($newValue, $config['Name']));
       $changed = true;
     }
   }

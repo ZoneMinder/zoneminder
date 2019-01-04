@@ -31,7 +31,7 @@ if ( !canEdit('Events') ) {
 
 if ( $action == 'eventdetail' ) {
   $dbConn->beginTransaction();
-  foreach ( getAffectedIds('markEid') as $markEid ) {
+  foreach ( $_REQUEST['markEids'] as $markEid ) {
     dbQuery('UPDATE Events SET Cause=?, Notes=? WHERE Id=?',
       array(
         $_REQUEST['newEvent']['Cause'],

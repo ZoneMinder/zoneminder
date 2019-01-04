@@ -2261,7 +2261,6 @@ function csrf_startup() {
 function check_timezone() {
   $now = new DateTime();
 
-  # Probably need to check the results of these for errors
   $sys_tzoffset = trim(shell_exec('date "+%z"'));
   $php_tzoffset = trim($now->format('O'));
   $mysql_tzoffset = trim(dbFetchOne("SELECT TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),'%H%i');",'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'));

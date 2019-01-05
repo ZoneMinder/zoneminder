@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !isset($_REQUEST['eids']) ) {
+if ( !isset($_REQUEST['markEids']) ) {
   Warning('Events actions require eids');
   return;
 }
@@ -29,26 +29,19 @@ if ( !canEdit('Events') ) {
   return;
 } // end if ! canEdit(Events)
 
-if ( $action == 'archive' ) {
+if ( $action == 'eventdetail' ) {
   $dbConn->beginTransaction();
-  foreach( getAffectedIds('markEid') as $markEid ) {
-    dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(1, $markEid));
+  foreach ( $_REQUEST['markEids'] as $markEid ) {
+    dbQuery('UPDATE Events SET Cause=?, Notes=? WHERE Id=?',
+      array(
+        $_REQUEST['newEvent']['Cause'],
+        $_REQUEST['newEvent']['Notes'],
+        $markEid
+      )
+    );
   }
   $dbConn->commit();
   $refreshParent = true;
-} else if ( $action == 'unarchive' ) {
-  $dbConn->beginTransaction();
-  foreach( getAffectedIds('markEid') as $markEid ) {
-    dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $markEid));
-  }
-  $dbConn->commit();
-  $refreshParent = true;
-} else if ( $action == 'delete' ) {
-  $dbConn->beginTransaction();
-  foreach ( getAffectedIds('markEid') as $markEid ) {
-    deleteEvent($markEid);
-  }
-  $dbConn->commit();
-  $refreshParent = true;
+  $closePopup = true;
 }
 ?>

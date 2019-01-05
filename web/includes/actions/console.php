@@ -25,7 +25,7 @@ if ( $action == 'delete' ) {
   }
 
   if ( isset($_REQUEST['markMids']) && !$user['MonitorIds'] ) {
-    require_once('Monitor.php');
+    require_once('includes/Monitor.php');
     foreach ( $_REQUEST['markMids'] as $markMid ) {
       if ( canEdit('Monitors', $markMid) ) {
         // This could be faster as a select all

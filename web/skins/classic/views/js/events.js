@@ -51,8 +51,8 @@ function deleteEvents( element, name ) {
   }
   var form = element.form;
   var count = 0;
-  for (var i = 0; i < form.elements.length; i++) {
-    if (form.elements[i].name.indexOf(name) == 0) {
+  for (var i = 0, len=form.elements.length; i < len; i++) {
+    if ( form.elements[i].name.indexOf(name) == 0 ) {
       if ( form.elements[i].checked ) {
         count++;
         break;
@@ -60,7 +60,7 @@ function deleteEvents( element, name ) {
     }
   }
   if ( count > 0 ) {
-    if ( confirm( confirmDeleteEventsString ) ) {
+    if ( confirm(confirmDeleteEventsString) ) {
       form.elements['action'].value = 'delete';
       form.submit();
     }
@@ -74,14 +74,14 @@ function editEvents( element, name ) {
   }
   var form = element.form;
   var eids = new Array();
-  for (var i = 0; i < form.elements.length; i++) {
-    if (form.elements[i].name.indexOf(name) == 0) {
+  for (var i = 0, len=form.elements.length; i < len; i++) {
+    if ( form.elements[i].name.indexOf(name) == 0 ) {
       if ( form.elements[i].checked ) {
         eids[eids.length] = 'eids[]='+form.elements[i].value;
       }
     }
   }
-  createPopup( '?view=eventdetail&'+eids.join( '&' ), 'zmEventDetail', 'eventdetail' );
+  createPopup('?view=eventdetail&'+eids.join('&'), 'zmEventDetail', 'eventdetail');
 }
 
 function downloadVideo( element, name ) {

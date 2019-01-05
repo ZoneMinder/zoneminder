@@ -845,22 +845,23 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
             packet_count += 1;
             //Write the packet to our video store
-            Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue->size() );
+            Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)",
+                avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue->size());
             if ( avp->stream_index == mVideoStreamId ) {
               ret = videoStore->writeVideoFramePacket( avp );
               have_video_keyframe = true;
             } else if ( avp->stream_index == mAudioStreamId ) {
               ret = videoStore->writeAudioFramePacket( avp );
             } else {
-              Warning("Unknown stream id in queued packet (%d)", avp->stream_index );
+              Warning("Unknown stream id in queued packet (%d)", avp->stream_index);
               ret = -1;
             }
             if ( ret < 0 ) {
-              //Less than zero and we skipped a frame
+              // Less than zero and we skipped a frame
             }
             delete queued_packet;
           } // end while packets in the packetqueue
-          Debug(2, "Wrote %d queued packets", packet_count );
+          Debug(2, "Wrote %d queued packets", packet_count);
         }
       } // end if ! was recording
 

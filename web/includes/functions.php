@@ -608,6 +608,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
         }
         break;
+      case 'integer' :
+        if ( (!isset($values[$key])) or $values[$key] != $value ) {
+          $changes[$key] = $key . ' = '.intval($value);
+        }
+        break;
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
@@ -845,13 +850,7 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
 }
 
 function viewImagePath( $path, $querySep='&amp;' ) {
-  if ( strncmp( $path, ZM_DIR_IMAGES, strlen(ZM_DIR_IMAGES) ) == 0 ) {
-    // Thumbnails
-    return( $path );
-  } elseif ( strpos( ZM_DIR_EVENTS, '/' ) === 0 ) {
-    return( '?view=image'.$querySep.'path='.$path );
-  }
-  return( ZM_DIR_EVENTS.'/'.$path );
+  return( '?view=image'.$querySep.'path='.$path );
 }
 
 function createListThumbnail( $event, $overwrite=false ) {
@@ -2347,6 +2346,25 @@ if ( !function_exists('ftok') ) {
       return dechex(array_sum($key));
     }
   }
+}
+
+function getAffectedIds( $name ) {
+  $names = $name.'s';
+  $ids = array();
+	if ( isset($_REQUEST[$names]) ) {
+		if ( is_array($_REQUEST[$names]) ) {
+			$ids = $_REQUEST[$names];
+		} else {
+			$ids = array($_REQUEST[$names]);
+		}
+	} else if ( isset($_REQUEST[$name]) ) {
+		if ( is_array($_REQUEST[$name]) ) {
+			$ids = $_REQUEST[$name];
+		} else {
+			$ids = array($_REQUEST[$name]);
+		}
+	}
+	return $ids;
 }
 
 ?>

@@ -118,13 +118,13 @@ class MontageLayout {
       $sql = 'UPDATE MontageLayouts SET '.implode(', ', array_map( function($field) {return $field.'=?';}, $fields ) ) . ' WHERE Id=?';
       $values = array_map( function($field){return $this->{$field};}, $fields );
       $values[] = $this->{'Id'};
-    dbQuery( $sql, $values );
+      dbQuery($sql, $values);
     } else {
       $sql = 'INSERT INTO MontageLayouts ('.implode( ',', $fields ).') VALUES ('.implode(',',array_map( function(){return '?';}, $fields ) ).')';
       $values = array_map( function($field){return $this->{$field};}, $fields );
-      dbQuery( $sql, $values );
+      dbQuery($sql, $values);
       global $dbConn;
-      $this->{Id} = $dbConn->lastInsertId();
+      $this->{'Id'} = $dbConn->lastInsertId();
     }
   } // end function save
 

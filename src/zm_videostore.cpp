@@ -350,7 +350,7 @@ VideoStore::~VideoStore() {
 
   if ( oc->pb ) {
 
-    if (audio_out_codec) {
+    if ( audio_out_codec ) {
       // The codec queues data.  We need to send a flush command and out
       // whatever we get. Failures are not fatal.
       AVPacket pkt;
@@ -366,7 +366,7 @@ VideoStore::~VideoStore() {
         ret = avcodec_receive_packet(audio_out_ctx, &pkt);
         if ( ret < 0 ) {
           if ( AVERROR_EOF != ret ) {
-            Error("ERror encoding audio while flushing (%d) (%s)", ret,
+            Error("Error encoding audio while flushing (%d) (%s)", ret,
                 av_err2str(ret));
           }
           break;
@@ -411,7 +411,7 @@ VideoStore::~VideoStore() {
 
     Debug(1,"Writing trailer");
     /* Write the trailer before close */
-    if (int rc = av_write_trailer(oc)) {
+    if ( int rc = av_write_trailer(oc) ) {
       Error("Error writing trailer %s", av_err2str(rc));
     } else {
       Debug(3, "Success Writing trailer");
@@ -421,7 +421,7 @@ VideoStore::~VideoStore() {
     if ( !(out_format->flags & AVFMT_NOFILE) ) {
       /* Close the out file. */
       Debug(2, "Closing");
-      if (int rc = avio_close(oc->pb)) {
+      if ( int rc = avio_close(oc->pb) ) {
         oc->pb = NULL;
         Error("Error closing avio %s", av_err2str(rc));
       }
@@ -510,8 +510,7 @@ bool VideoStore::setup_resampler() {
 #else
   audio_in_codec = avcodec_find_decoder(audio_in_ctx->codec_id);
 #endif
-  ret = avcodec_open2(audio_in_ctx, audio_in_codec, NULL);
-  if ( ret < 0 ) {
+  if ( (ret = avcodec_open2(audio_in_ctx, audio_in_codec, NULL)) < 0 ) {
     Error("Can't open in codec!");
     return false;
   }
@@ -540,11 +539,13 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx = audio_out_stream->codec;
 #endif
   // Some formats (i.e. WAV) do not produce the proper channel layout
-  if ( audio_in_ctx->channel_layout == 0 )
+  if ( audio_in_ctx->channel_layout == 0 ) {
+    Debug(2, "Setting input channel layout to mono");
     audio_in_ctx->channel_layout = av_get_channel_layout("mono");
+  }
 
   /* put sample parameters */
-  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 96000 ? audio_in_ctx->bit_rate : 96000;
+  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 32768 ? audio_in_ctx->bit_rate : 32768;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
@@ -582,13 +583,12 @@ bool VideoStore::setup_resampler() {
 
   /* check that the encoder supports s16 pcm in */
   if ( !check_sample_fmt(audio_out_codec, audio_out_ctx->sample_fmt) ) {
-    Debug(3, "Encoder does not support sample format %s, setting to FLTP",
+    Debug(2, "Encoder does not support sample format %s, setting to FLTP",
           av_get_sample_fmt_name(audio_out_ctx->sample_fmt));
     audio_out_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
   }
 
-  audio_out_ctx->time_base =
-      (AVRational){1, audio_out_ctx->sample_rate};
+  audio_out_ctx->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
   AVDictionary *opts = NULL;
   if ( (ret = av_dict_set(&opts, "strict", "experimental", 0)) < 0 ) {
@@ -655,6 +655,7 @@ bool VideoStore::setup_resampler() {
     swr_free(&resample_ctx);
     return false;
   }
+  Debug(1,"Success setting up SWRESAMPLE");
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
   // Setup the audio resampler
@@ -884,14 +885,12 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
 
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    ret = avcodec_send_packet(audio_in_ctx, ipkt);
-    if ( ret < 0 ) {
+    if ( (ret = avcodec_send_packet(audio_in_ctx, ipkt)) < 0 ) {
       Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
       return 0;
     }
 
-    ret = avcodec_receive_frame(audio_in_ctx, in_frame);
-    if (ret < 0) {
+    if ( (ret = avcodec_receive_frame(audio_in_ctx, in_frame)) < 0 ) {
       Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
       return 0;
     }
@@ -928,17 +927,22 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     Debug(2, "Converting  %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
     if (
   #if defined(HAVE_LIBSWRESAMPLE)
+#if 0
         (ret = swr_convert(resample_ctx,
             out_frame->data, frame_size,
-            (const uint8_t**)in_frame->data,
-            in_frame->nb_samples))
+            (const uint8_t**)in_frame->data, in_frame->nb_samples
+            ))
+#else
+        (ret = swr_convert_frame(resample_ctx, out_frame, in_frame))
+
+#endif
   #else
     #if defined(HAVE_LIBAVRESAMPLE)
     (ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
                                 0, in_frame->nb_samples))
   #endif
   #endif
-      < 0) {
+      < 0 ) {
       Error("Could not resample frame (error '%s')",
             av_make_error_string(ret).c_str());
       av_frame_unref(in_frame);
@@ -971,7 +975,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     Debug(5, "after init packet");
 
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    if ((ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0) {
+    if ( (ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0 ) {
       Error("Could not send frame (error '%s')",
             av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);
@@ -995,14 +999,14 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
   #else
-    if ((ret = avcodec_encode_audio2(audio_out_ctx, &opkt, out_frame,
-                                     &data_present)) < 0) {
+    if ( (ret = avcodec_encode_audio2(audio_out_ctx, &opkt, out_frame,
+                                     &data_present)) < 0 ) {
       Error("Could not encode frame (error '%s')",
             av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);
       return 0;
     }
-    if (!data_present) {
+    if ( !data_present ) {
       Debug(2, "Not ready to out a frame yet.");
       zm_av_packet_unref(&opkt);
       return 0;

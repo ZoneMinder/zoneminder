@@ -48,7 +48,6 @@ use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
-use constant IMAGE_PATH => $Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_IMAGES};
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
                            ? $Config{ZM_DIR_EVENTS}
                            : ($Config{ZM_PATH_WEB}.'/'.$Config{ZM_DIR_EVENTS})
@@ -144,7 +143,8 @@ require ZoneMinder::Event;
 
 my $max_image_age = 6/24; # 6 hours
 my $max_swap_age = 24/24; # 24 hours
-my $image_path = IMAGE_PATH;
+# images now live under the event path
+my $image_path = EVENT_PATH;
 
 my $loop = 1;
 my $cleaned = 0;

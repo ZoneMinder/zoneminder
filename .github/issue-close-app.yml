@@ -1,0 +1,16 @@
+# Comment that will be sent if an issue is judged to be closed
+comment: "This issue is closed because it does not meet our bug report issue template. Please read it."
+issueConfigs:
+# There can be several configs for different kind of issues.
+- content:
+# Example 1: bug report
+  - "Describe Your Environment"
+  - "Describe the bug"
+  - "Expected behavior"
+# Optional configuration:
+#
+# whether the keywords are case-insensitive
+# default value is false, which means keywords are case-sensitive
+caseInsensitive: true
+# The issue is judged to be legal if it includes all keywords from any of these two configs.
+# Or it will be closed by the app.

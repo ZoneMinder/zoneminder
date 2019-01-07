@@ -1,6 +1,6 @@
 **THIS FORUM IS FOR BUG REPORTS ONLY**
 
-Do not post feature or enhancement requests, general discussions or support questions here.
+Do not post feature or enhancement requests, general discussions, or support questions here.
 
 Feature and enhancement requests, general discussions, and support questions should occur in one of the following areas:
 
@@ -9,7 +9,9 @@ Feature and enhancement requests, general discussions, and support questions sho
 
 Docker related issues should be posted here: https://github.com/ZoneMinder/zmdockerfiles
 
-In order to submit a bug report, please populate the fields below. This is required.
+In order to submit a bug report, please populate the fields below this line. This is required.
+
+----------------------------------------------------------------------------------------------------
 
 **Describe Your Environment**
 - Version of ZoneMinder [release version, development version, or commit]

@@ -608,6 +608,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
         }
         break;
+      case 'integer' :
+        if ( (!isset($values[$key])) or $values[$key] != $value ) {
+          $changes[$key] = $key . ' = '.intval($value);
+        }
+        break;
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
@@ -2342,6 +2347,25 @@ if( !function_exists('ftok') ) {
       return dechex(array_sum($key));
     }
   }
+}
+
+function getAffectedIds( $name ) {
+  $names = $name.'s';
+  $ids = array();
+	if ( isset($_REQUEST[$names]) ) {
+		if ( is_array($_REQUEST[$names]) ) {
+			$ids = $_REQUEST[$names];
+		} else {
+			$ids = array($_REQUEST[$names]);
+		}
+	} else if ( isset($_REQUEST[$name]) ) {
+		if ( is_array($_REQUEST[$name]) ) {
+			$ids = $_REQUEST[$name];
+		} else {
+			$ids = array($_REQUEST[$name]);
+		}
+	}
+	return $ids;
 }
 
 ?>

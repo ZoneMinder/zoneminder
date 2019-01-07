@@ -2646,7 +2646,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
     } else {
       // check if end of alarm
       if (old_zone_alarmed) {
-        Debug(3, "Preclusive Zone %s alarm Ends. Prevíous score: %d", zone->Label(), old_zone_score);
+        Debug(3, "Preclusive Zone %s alarm Ends. Previous score: %d", zone->Label(), old_zone_score);
         if (old_zone_score > 0) {
           zone->SetExtendAlarmCount(zone->GetExtendAlarmFrames());
         }

@@ -128,7 +128,7 @@ if ( ! $Event->Id() ) {
 <?php
 if ( canEdit('Events') ) {
 ?>
-        <div id="deleteEvent"><button type="button" onclick="deleteEvent()"><?php echo translate('Delete') ?></button></div>
+        <div id="deleteEvent"><button type="button" onclick="deleteEvent()" <?php echo $Event->Archived == 1 ? ' disabled="disabled" title="You cannot delete an archived event. Unarchive it first."' : ''  ?>><?php echo translate('Delete') ?></button></div>
         <div id="editEvent"><button type="button" onclick="editEvent()"><?php echo translate('Edit') ?></button></div>
         <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><button type="button" onclick="archiveEvent()"><?php echo translate('Archive') ?></button></div>
         <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><button type="button" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></button></div>

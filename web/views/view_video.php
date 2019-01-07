@@ -98,7 +98,6 @@ if ( $begin > 0 || $end < $size-1 ) {
 }
 
 // Apparently without these we get a few extra bytes of output at the end...
-ob_clean();
 flush();
 
 $cur = $begin;

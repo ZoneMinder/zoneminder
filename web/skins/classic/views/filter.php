@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
@@ -28,7 +28,7 @@ parseSort();
 $filterNames = array( ''=>translate('ChooseFilter') );
 $filter = NULL;
 
-foreach ( dbFetchAll( 'SELECT * FROM Filters ORDER BY Name' ) as $row ) {
+foreach ( dbFetchAll('SELECT * FROM Filters ORDER BY Name') as $row ) {
   $filterNames[$row['Id']] = $row['Id'] . ' ' . $row['Name'];
   if ( $row['Background'] )
     $filterNames[$row['Id']] .= '*';
@@ -36,7 +36,7 @@ foreach ( dbFetchAll( 'SELECT * FROM Filters ORDER BY Name' ) as $row ) {
     $filterNames[$row['Id']] .= '&';
 
   if ( isset($_REQUEST['Id']) && $_REQUEST['Id'] == $row['Id'] ) {
-    $filter = new Filter( $row );
+    $filter = new Filter($row);
   }
 }
 if ( ! $filter ) {
@@ -69,8 +69,8 @@ if (count($filter->terms()) > 0) {
 
 if ( count($terms) ) {
   for ( $i = 0; $i <= count($terms)-2; $i++ ) {
-    $obracketTypes[$i] = str_repeat( '(', $i );
-    $cbracketTypes[$i] = str_repeat( ')', $i );
+    $obracketTypes[$i] = str_repeat('(', $i);
+    $cbracketTypes[$i] = str_repeat(')', $i);
   }
 }
 
@@ -130,28 +130,28 @@ $archiveTypes = array(
 
 $focusWindow = true;
 
-$storageareas = array( '' => 'All' );
+$storageareas = array('' => 'All');
 //$storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
-foreach ( dbFetchAll( 'SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC' ) as $storage ) {
+foreach ( dbFetchAll('SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC') as $storage ) {
   $storageareas[$storage['Id']] = $storage['Name'];
 }
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ ) {
-  $weekdays[$i] = strftime( '%A', mktime( 12, 0, 0, 1, $i+1, 2001 ) );
+  $weekdays[$i] = strftime('%A', mktime(12, 0, 0, 1, $i+1, 2001));
 }
 $states = array();
-foreach ( dbFetchAll( 'SELECT Id,Name FROM States ORDER BY lower(Name) ASC' ) as $state_row ) {
+foreach ( dbFetchAll('SELECT Id,Name FROM States ORDER BY lower(Name) ASC') as $state_row ) {
   $states[$state_row['Id']] = $state_row['Name'];
 }
 $servers = array();
 $servers['ZM_SERVER_ID'] = 'Current Server';
 $servers['NULL'] = 'No Server';
-foreach ( dbFetchAll( 'SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC' ) as $server ) {
+foreach ( dbFetchAll('SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC') as $server ) {
   $servers[$server['Id']] = $server['Name'];
 }
 $monitors = array();
-foreach ( dbFetchAll( 'select Id,Name from Monitors order by Name asc' ) as $monitor ) {
-  if ( visibleMonitor( $monitor['Id'] ) ) {
+foreach ( dbFetchAll('SELECT Id,Name FROM Monitors ORDER BY Name ASC') as $monitor ) {
+  if ( visibleMonitor($monitor['Id']) ) {
     $monitors[$monitor['Name']] = $monitor['Name'];
   }
 }
@@ -168,7 +168,7 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
         <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
 <?php
 if ( count($filterNames) > 1 ) {
-   echo htmlSelect( 'Id', $filterNames, $filter->Id(), 'this.form.submit();' );
+   echo htmlSelect('Id', $filterNames, $filter->Id(), 'this.form.submit();');
 } else {
 ?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select>
 <?php
@@ -219,36 +219,36 @@ for ( $i=0; $i < count($terms); $i++ ) {
 <?php
   } else {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']); ?></td>
 <?php
   }
 ?>
-              <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[Query][terms][$i][obr]", $obracketTypes, $term['obr'] ); } else { ?>&nbsp;<?php } ?></td>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][attr]", $attrTypes, $term['attr'], "checkValue( this );" ); ?></td>
+              <td><?php if ( count($terms) > 2 ) { echo htmlSelect("filter[Query][terms][$i][obr]", $obracketTypes, $term['obr']); } else { ?>&nbsp;<?php } ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][attr]", $attrTypes, $term['attr'], 'checkValue(this);'); ?></td>
 <?php
   if ( isset($term['attr']) ) {
     if ( $term['attr'] == 'Archived' ) {
 ?>
               <td><?php echo translate('OpEq') ?><input type="hidden" name="filter[Query][terms][<?php echo $i ?>][op]" value="="/></td>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $archiveTypes, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']); ?></td>
 <?php
     } elseif ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
                 <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false}); </script>
               </td>
 <?php
-    } elseif ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate') {
+    } elseif ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false}); </script>
+                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});</script>
               </td>
 <?php
-    } elseif ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime') {
+    } elseif ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
 ?>
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
@@ -258,46 +258,46 @@ for ( $i=0; $i < count($terms); $i++ ) {
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $states, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $states, $term['val']); ?></td>
 <?php
     } elseif ( strpos($term['attr'], 'Weekday') !== false ) {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $weekdays, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val']); ?></td>
 <?php
     } elseif ( $term['attr'] == 'MonitorName' ) {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $monitors, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $monitors, $term['val']); ?></td>
 <?php
     } elseif ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $servers, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']); ?></td>
 <?php
     } elseif ( $term['attr'] == 'StorageId' ) {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][val]", $storageareas, $term['val'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']); ?></td>
 <?php
     } else {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo $term['val'] ?>"/></td>
 <?php
     }
   } else {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?$term['val']:'' ?>"/></td>
 <?php
   }
 ?>
-              <td><?php if ( count($terms) > 2 ) { echo htmlSelect( "filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr'] ); } else { ?>&nbsp;<?php } ?></td>
+              <td><?php if ( count($terms) > 2 ) { echo htmlSelect("filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr']); } else { ?>&nbsp;<?php } ?></td>
               <td>
-                <input type="button" onclick="addTerm( this )" value="+"/>
-                <input type="button" onclick="delTerm( this )" value="-" <?php echo count($terms) == 1 ? 'disabled' : '' ?>/>
+                <input type="button" onclick="addTerm(this)" value="+"/>
+                <input type="button" onclick="delTerm(this)" value="-" <?php echo count($terms) == 1 ? 'disabled' : '' ?>/>
               </td>
             </tr>
 <?php
@@ -387,9 +387,8 @@ if ( ZM_OPT_MESSAGE ) {
 ?>
             <p>
               <label><?php echo translate('FilterExecuteEvents') ?></label>
-              
-                <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
-                <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?$filter->AutoExecuteCmd():'' ?>" maxlength="255" onchange="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
+              <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?$filter->AutoExecuteCmd():'' ?>" maxlength="255" onchange="updateButtons( this )"/>
             </p>
             <p>
               <label><?php echo translate('FilterDeleteEvents') ?></label>
@@ -413,14 +412,14 @@ if ( ZM_OPT_MESSAGE ) {
           <button type="submit" onclick="submitToEvents(this);"><?php echo translate('ListMatches') ?></button>
           <button type="submit" name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
 <?php 
-if ( canEdit( 'Events' ) ) {
+if ( canEdit('Events') ) {
 ?>
           <button type="submit" name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
           <button type="submit" name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>
-   <button type="button" value="Delete" onclick="deleteFilter(this, '<?php echo $filter->Name() ?>');"><?php echo translate('Delete') ?></button>
+          <button type="button" value="Delete" onclick="deleteFilter(this, '<?php echo $filter->Name() ?>');"><?php echo translate('Delete') ?></button>
 <?php 
   }
 }

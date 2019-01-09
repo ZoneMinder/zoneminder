@@ -197,7 +197,7 @@ If you have previsouly cloned the ZoneMinder git repo and wish to update it to t
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/ZoneMinder
     git pull origin master
     
 Get the crud submodule tarball:
@@ -210,14 +210,14 @@ At this point, you can make changes to the source code. Depending on what you wa
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/ZoneMinder
     git checkout -b mynewbranch
 
 Again, depending on what you want to do with those changes, you may want to commit your changes:
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/ZoneMinder
     git add .
     git commit
 
@@ -231,7 +231,7 @@ Scroll down until you see the Version field. Note the value, which will be in th
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/ZoneMinder
     git archive --prefix=ZoneMinder-1.31.1/ -o ~/rpmbuild/SOURCES/zoneminder-1.31.1.tar.gz HEAD
 
 Replace "1.31.1" with the Version shown in the rpm specfile.
@@ -240,7 +240,7 @@ From the root of the local ZoneMinder git repo, execute the following:
 
 ::
 
-    cd ~\ZoneMinder
+    cd ~/ZoneMinder
     rpmbuild -bs --nodeps distros/redhat/zoneminder.spec
 
 This step will create a source rpm and it will tell you where it was saved. For example:

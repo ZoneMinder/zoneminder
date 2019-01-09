@@ -116,8 +116,15 @@ class Monitor extends AppModel {
       'OutputCodec'     => array('h264','mjpeg','mpeg1','mpeg2'),
       'OutputContainer' => array('auto','mp4','mkv'),
       'DefaultView'     => array('Events','Control'),
-      'Status'          => array('Unknown','NotRunning','Running','NoSignal','Signal'),
+      #'Status'          => array('Unknown','NotRunning','Running','NoSignal','Signal'),
     )
   );
 
+  public $hasOne = array(
+    'Monitor_Status' => array(
+      'className' => 'Monitor_Status',
+      'foreignKey' => 'MonitorId',
+      'joinTable' =>  'Monitor_Status',
+    )
+  );
 }

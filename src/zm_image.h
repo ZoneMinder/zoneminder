@@ -94,6 +94,11 @@ class Image {
     delta_fptr_t delta8_argb;
     delta_fptr_t delta8_abgr;
     delta_fptr_t delta8_gray8;
+
+    // Per object function pointer that we can set once we know the image dimensions
+    blend_fptr_t blend;
+
+    void update_function_pointers();
 protected:
 
 	struct Edge {

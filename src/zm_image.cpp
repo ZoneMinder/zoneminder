@@ -75,6 +75,32 @@ static deinterlace_4field_fptr_t fptr_deinterlace_4field_gray8;
 /* Pointer to image buffer memory copy function */
 imgbufcpy_fptr_t fptr_imgbufcpy;
 
+void Image::update_function_pointers() {
+  /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
+  if ( pixels % 16 || pixels % 12 ) {
+    // have to use non-loop unrolled functions
+    delta8_rgb = &std_delta8_rgb;
+    delta8_bgr = &std_delta8_bgr;
+    delta8_rgba = &std_delta8_rgba;
+    delta8_bgra = &std_delta8_bgra;
+    delta8_argb = &std_delta8_argb;
+    delta8_abgr = &std_delta8_abgr;
+    delta8_gray8 = &std_delta8_gray8;
+    blend = &std_blend;
+  } else {
+    // Use either sse or neon, or loop unrolled version
+    delta8_rgb = fptr_delta8_rgb;
+    delta8_bgr = fptr_delta8_bgr;
+    delta8_rgba = fptr_delta8_rgba;
+    delta8_bgra = fptr_delta8_bgra;
+    delta8_argb = fptr_delta8_argb;
+    delta8_abgr = fptr_delta8_abgr;
+    delta8_gray8 = fptr_delta8_gray8;
+    blend = fptr_blend;
+  }
+}
+
+// This constructor is not used anywhere
 Image::Image() {
   if ( !initialised )
     Initialise();
@@ -89,6 +115,7 @@ Image::Image() {
   buffertype = 0;
   holdbuffer = 0;
   text[0] = '\0';
+  blend = fptr_blend;
 }
 
 Image::Image( const char *filename ) {
@@ -104,8 +131,9 @@ Image::Image( const char *filename ) {
   buffer = 0;
   buffertype = 0;
   holdbuffer = 0;
-  ReadJpeg( filename, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  ReadJpeg(filename, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   text[0] = '\0';
+  update_function_pointers();
 }
 
 Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer ) {
@@ -128,26 +156,7 @@ Image::Image( int p_width, int p_height, int p_colours, int p_subpixelorder, uin
   }
   text[0] = '\0';
 
-  /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
-  if ( pixels % 16 || pixels % 12 ) {
-    // have to use non-loop unrolled functions
-    delta8_rgb = &std_delta8_rgb;
-    delta8_bgr = &std_delta8_bgr;
-    delta8_rgba = &std_delta8_rgba;
-    delta8_bgra = &std_delta8_bgra;
-    delta8_argb = &std_delta8_argb;
-    delta8_abgr = &std_delta8_abgr;
-    delta8_gray8 = &std_delta8_gray8;
-  } else {
-    // Use either sse or neon, or loop unrolled version
-    delta8_rgb = fptr_delta8_rgb;
-    delta8_bgr = fptr_delta8_bgr;
-    delta8_rgba = fptr_delta8_rgba;
-    delta8_bgra = fptr_delta8_bgra;
-    delta8_argb = fptr_delta8_argb;
-    delta8_abgr = fptr_delta8_abgr;
-    delta8_gray8 = fptr_delta8_gray8;
-  }
+  update_function_pointers();
 }
 
 Image::Image( const AVFrame *frame ) {
@@ -189,6 +198,7 @@ Image::Image( const AVFrame *frame ) {
   Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE
   av_frame_free( &dest_frame );
+  update_function_pointers();
 }
 
 Image::Image( const Image &p_image ) {
@@ -205,6 +215,7 @@ Image::Image( const Image &p_image ) {
   AllocImgBuffer(size);
   (*fptr_imgbufcpy)(buffer, p_image.buffer, size);
   strncpy( text, p_image.text, sizeof(text) );
+  update_function_pointers();
 }
 
 Image::~Image() {
@@ -1617,7 +1628,7 @@ void Image::Blend( const Image &image, int transparency ) {
 #endif
 
   /* Do the blending */
-  (*fptr_blend)(buffer, image.buffer, new_buffer, size, transparency);
+  (*blend)(buffer, image.buffer, new_buffer, size, transparency);
 
 #ifdef ZM_IMAGE_PROFILING
   clock_gettime(CLOCK_THREAD_CPUTIME_ID,&end);
@@ -1644,7 +1655,7 @@ Image *Image::Merge( unsigned int n_images, Image *images[] ) {
     }
   }
 
-  Image *result = new Image( width, height, images[0]->colours, images[0]->subpixelorder);
+  Image *result = new Image(width, height, images[0]->colours, images[0]->subpixelorder);
   unsigned int size = result->size;
   for ( unsigned int i = 0; i < size; i++ ) {
     unsigned int total = 0;
@@ -1750,37 +1761,33 @@ void Image::Delta( const Image &image, Image* targetimage) const {
   clock_gettime(CLOCK_THREAD_CPUTIME_ID,&start);
 #endif
 
-  switch(colours) {
+  switch (colours) {
     case ZM_COLOUR_RGB24:
-      {
-        if(subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-          /* BGR subpixel order */
-          (*fptr_delta8_bgr)(buffer, image.buffer, pdiff, pixels);
-        } else {
-          /* Assume RGB subpixel order */
-          (*fptr_delta8_rgb)(buffer, image.buffer, pdiff, pixels);
-        }
-        break;
+      if ( subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
+        /* BGR subpixel order */
+        (*delta8_bgr)(buffer, image.buffer, pdiff, pixels);
+      } else {
+        /* Assume RGB subpixel order */
+        (*delta8_rgb)(buffer, image.buffer, pdiff, pixels);
       }
+      break;
     case ZM_COLOUR_RGB32:
-      {
-        if(subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-          /* ARGB subpixel order */
-          (*fptr_delta8_argb)(buffer, image.buffer, pdiff, pixels);
-        } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-          /* ABGR subpixel order */
-          (*fptr_delta8_abgr)(buffer, image.buffer, pdiff, pixels);
-        } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-          /* BGRA subpixel order */
-          (*fptr_delta8_bgra)(buffer, image.buffer, pdiff, pixels);
-        } else {
-          /* Assume RGBA subpixel order */
-          (*fptr_delta8_rgba)(buffer, image.buffer, pdiff, pixels);
-        }
-        break;
+      if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
+        /* ARGB subpixel order */
+        (*delta8_argb)(buffer, image.buffer, pdiff, pixels);
+      } else if(subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+        /* ABGR subpixel order */
+        (*delta8_abgr)(buffer, image.buffer, pdiff, pixels);
+      } else if(subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+        /* BGRA subpixel order */
+        (*delta8_bgra)(buffer, image.buffer, pdiff, pixels);
+      } else {
+        /* Assume RGBA subpixel order */
+        (*delta8_rgba)(buffer, image.buffer, pdiff, pixels);
       }
+      break;
     case ZM_COLOUR_GRAY8:
-      (*fptr_delta8_gray8)(buffer, image.buffer, pdiff, pixels);
+      (*delta8_gray8)(buffer, image.buffer, pdiff, pixels);
       break;
     default:
       Panic("Delta called with unexpected colours: %d",colours);
@@ -1793,7 +1800,7 @@ void Image::Delta( const Image &image, Image* targetimage) const {
 
   executetime = (1000000000ull * diff.tv_sec) + diff.tv_nsec;
   milpixels = (unsigned long)((long double)pixels)/((((long double)executetime)/1000));
-  Debug(5, "Delta: %u delta pixels generated in %llu nanoseconds, %lu million pixels/s\n",pixels,executetime,milpixels);
+  Debug(5, "Delta: %u delta pixels generated in %llu nanoseconds, %lu million pixels/s",pixels,executetime,milpixels);
 #endif
 }
 

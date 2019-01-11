@@ -19,7 +19,11 @@
 //
 
 $optionHelpIndex = preg_replace( '/^ZM_/', '', $_REQUEST['option'] );
-$optionHelpText = !empty($OLANG[$optionHelpIndex])?$OLANG[$optionHelpIndex]['Help']:$config[$_REQUEST['option']]['Help'];
+if ( !empty($OLANG[$optionHelpIndex]) ) {
+  $optionHelpText = $OLANG[$optionHelpIndex]['Help'];
+} else {
+  $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($_REQUEST['option']) );
+}
 $optionHelpText = validHtmlStr($optionHelpText);
 $optionHelpText = preg_replace( "/~~/", "<br/>", $optionHelpText );
 $optionHelpText = preg_replace( "/\[(.+)\]\((.+)\)/", "<a href=\"$2\" target=\"_blank\">$1</a>", $optionHelpText );

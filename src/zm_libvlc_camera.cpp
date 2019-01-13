@@ -186,6 +186,8 @@ int LibvlcCamera::PrimeCapture() {
     Error("Unable to create libvlc instance due to: %s", libvlc_errmsg());
     return -1;
   }
+  libvlc_log_set(mLibvlcInstance, LibvlcCamera::log_callback, NULL);
+
 
   mLibvlcMedia = libvlc_media_new_location(mLibvlcInstance, mPath.c_str());
   if ( mLibvlcMedia == NULL ) {
@@ -213,6 +215,7 @@ int LibvlcCamera::PrimeCapture() {
 
   return 0;
 }
+
 
 int LibvlcCamera::PreCapture() {    
   return 0;
@@ -244,4 +247,28 @@ int LibvlcCamera::PostCapture() {
   return 0;
 }
 
+void LibvlcCamera::log_callback(void *ptr, int level, const libvlc_log_t *ctx, const char *fmt, va_list vargs) {
+  Logger *log = Logger::fetch();
+  int log_level = Logger::NOLOG;
+  if ( level == LIBVLC_ERROR ) {
+    log_level = Logger::WARNING; // ffmpeg outputs a lot of errors that don't really affect anything.
+    //log_level = Logger::ERROR;
+  } else if ( level == LIBVLC_WARNING ) {
+    log_level = Logger::INFO;
+    //log_level = Logger::WARNING;
+  } else if ( level == LIBVLC_NOTICE ) {
+    log_level = Logger::DEBUG1;
+    //log_level = Logger::INFO;
+  } else if ( level == LIBVLC_DEBUG ) {
+    log_level = Logger::DEBUG3;
+  } else {
+    Error("Unknown log level %d", level);
+  }
+
+  if ( log ) {
+    char            logString[8192];
+    vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
+    log->logPrint(false, __FILE__, __LINE__, log_level, logString);
+  }
+}
 #endif // HAVE_LIBVLC

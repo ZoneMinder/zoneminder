@@ -45,5 +45,6 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       $refreshParent = true;
     }
   } // end if action 
+  $view = 'none';
 } // end if $mid and canEdit($mid)
 ?>

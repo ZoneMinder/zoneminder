@@ -3,3 +3,8 @@
     margin-left: 3px;
     padding: 0px;
 }
+
+.SourceOptions input,
+.SourcePath input {
+  width: 100%;
+}

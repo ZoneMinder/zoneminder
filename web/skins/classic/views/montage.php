@@ -140,9 +140,7 @@ xhtmlHeaders(__FILE__, translate('Montage'));
         <div id="headerButtons">
 <?php
 if ( $showControl ) {
-?>
-        <a href="#" onclick="createPopup('?view=control', 'zmControl', 'control')"><?php echo translate('Control') ?></a>
-<?php
+  echo makePopupLink('?view=control', 'zmControl', 'control', translate('Control'));
 }
 if ( $showZones ) {
 ?>
@@ -201,9 +199,13 @@ foreach ( $monitors as $monitor ) {
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div
               id="imageFeed<?php echo $monitor->Id() ?>"
-              class="imageFeed"
-              onclick="createPopup('?view=watch&amp;mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );">
-            <?php 
+              class="imageFeed popup-link"
+              data-url="?view=watch&amp;mid=<?php echo $monitor->Id() ?>"
+              data-name="zmWatch<?php echo $monitor->Id() ?>"
+              data-tag="watch"
+              data-width="<?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>"
+              data-height="<?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?>">
+            <?php
   $monitor_options = $options;
   if ( $Positions ) {
     $monitor_options['width'] = '100%';

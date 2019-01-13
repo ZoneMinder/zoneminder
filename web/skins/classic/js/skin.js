@@ -127,6 +127,7 @@ $j(document).ready(function() {
       url = el.getAttribute("href");
     } else {
       // buttons
+      url = el.getAttribute("data-url");
     }
     var name = el.getAttribute("data-window-name");
     var tag = el.getAttribute("data-window-tag");

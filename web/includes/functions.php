@@ -421,11 +421,20 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
 }
 
 function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, $options='' ) {
-  if ( is_array( $winSize ) )
-    $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
-  else
-    $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
-  $string = '<input type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
+  $string = '<input type="button" class="popup-link" value="' . htmlspecialchars($buttonValue) . '"';
+  $string .= ' data-url="' . htmlspecialchars($url) . '"';
+  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
+    if ( is_array( $winSize ) ) {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
+      $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
+      $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
+    } else {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
+    }
+    if ($condtion) {
+     $string .= ' disabled="disabled"';
+    }
+    $string  .=  ($options ? (' ' . $options) : '') . '/>';
   return( $string );
 }
 

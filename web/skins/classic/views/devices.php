@@ -75,7 +75,7 @@ foreach( $devices as $device )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('New') ?>" onclick="createPopup( '?view=device&amp;did=0', 'zmDevice', 'device' )"<?php echo canEdit('Devices')?'':' disabled="disabled"' ?>/>
+          <?php echo makePopupButton('?view=device&did=0', 'zmDevice', 'device', translate('New'), canEdit( 'Devices' )); ?>
           <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteDevice( this )" disabled="disabled"/>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
         </div>

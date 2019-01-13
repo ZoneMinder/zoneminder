@@ -193,7 +193,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
           <input type="password" name="password" value=""onChange="configureButtons(this)"/>
         </p>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
           <input type="submit" name="nextBtn" value="<?php echo translate('Next') ?>" data-on-click-this="gotoStep2" disabled="disabled"/>
         </div>
       </form>
@@ -261,7 +261,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
         </p>
         <div id="contentButtons">
           <input type="button" name="prevBtn" value="<?php echo translate('Prev') ?>" data-on-click-this="gotoStep1"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
           <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" data-on-click-this="submitCamera" disabled="disabled"/>
         </div>
       </form>

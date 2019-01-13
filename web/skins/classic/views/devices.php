@@ -77,7 +77,7 @@ foreach( $devices as $device )
         <div id="contentButtons">
           <?php echo makePopupButton('?view=device&did=0', 'zmDevice', 'device', translate('New'), canEdit( 'Devices' )); ?>
           <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" data-on-click-this="deleteDevice" disabled="disabled"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

@@ -106,7 +106,7 @@ xhtmlHeaders(__FILE__, translate('Video'));
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow()"><?php echo translate('Close') ?></a>
+        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('Video') ?></h2>
     </div>

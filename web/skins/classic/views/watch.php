@@ -93,8 +93,8 @@ if ( canView('Control') && $monitor->Type() == 'Local' ) {
 if ( canEdit('Monitors') ) {
 ?>
         <div id="forceCancelAlarm">
-            <a id="forceAlarmLink" href="#" onclick="cmdForceAlarm();"><?php echo translate('ForceAlarm') ?></a>
-            <a id="cancelAlarmLink" href="#" onclick="cmdCancelForcedAlarm();" class="hidden"><?php echo translate('CancelForcedAlarm') ?></a>
+            <a id="forceAlarmLink" href="#" data-on-click="cmdForceAlarm"><?php echo translate('ForceAlarm') ?></a>
+            <a id="cancelAlarmLink" href="#" data-on-click="cmdCancelForcedAlarm" class="hidden"><?php echo translate('CancelForcedAlarm') ?></a>
         </div>
 <?php
 }
@@ -122,7 +122,7 @@ if ( $streamMode == 'jpeg' ) {
 <?php
   }
 ?>
-        <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" onclick="streamCmdZoomOut()"/>
+        <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut"/>
 <?php
 } // end if streamMode==jpeg
 ?>

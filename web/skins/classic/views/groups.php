@@ -89,7 +89,7 @@ if ( isset( $children[null] ) )
           </tbody>
         </table>
         <div id="contentButtons">
-          <button type="button" value="New" onclick="newGroup();"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>>
+          <button type="button" value="New" data-on-click="newGroup"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>>
           <?php echo translate('New') ?>
           </button>
           <button type="button" name="deleteBtn" value="Delete" data-on-click-this="deleteGroup" disabled="disabled">

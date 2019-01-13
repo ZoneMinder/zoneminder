@@ -1044,7 +1044,7 @@ if ( $monitor->Type() == 'Local' ) {
         </table>
         <div id="contentButtons">
           <button type="submit" value="Save"<?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
-          <button onclick="closeWindow()"><?php echo translate('Cancel') ?></button>
+          <button data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

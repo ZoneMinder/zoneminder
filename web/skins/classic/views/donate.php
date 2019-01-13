@@ -56,7 +56,7 @@ xhtmlHeaders(__FILE__, translate('Donate') );
         </p>
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Apply') ?>" data-on-click-this="submitForm">
-          <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()">
+          <input type="button" value="<?php echo translate('Close') ?>" data-on-click="closeWindow">
         </div>
       </form>
     </div>

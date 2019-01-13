@@ -404,8 +404,8 @@ function xhtmlFooter() {
     include("skins/$skin/views/state.php");
   }
 ?>
+  <script>$j('.chosen').chosen();</script>
   </body>
-  <script type="text/javascript">$j('.chosen').chosen();</script>
 </html>
 <?php
 } // end xhtmlFooter

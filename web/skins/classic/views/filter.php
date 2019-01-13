@@ -296,8 +296,8 @@ for ( $i=0; $i < count($terms); $i++ ) {
 ?>
               <td><?php if ( count($terms) > 2 ) { echo htmlSelect("filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr']); } else { ?>&nbsp;<?php } ?></td>
               <td>
-                <input type="button" onclick="addTerm(this)" value="+"/>
-                <input type="button" onclick="delTerm(this)" value="-" <?php echo count($terms) == 1 ? 'disabled' : '' ?>/>
+                <input type="button" data-on-click-this="addTerm" value="+"/>
+                <input type="button" data-on-click-this="delTerm" value="-" <?php echo count($terms) == 1 ? 'disabled' : '' ?>/>
               </td>
             </tr>
 <?php
@@ -346,17 +346,17 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
         <div id="actionsTable" class="filterTable">
             <p>
               <label><?php echo translate('FilterArchiveEvents') ?></label>
-              <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( $filter->AutoArchive() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( $filter->AutoArchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p><label><?php echo translate('FilterUpdateDiskSpace') ?></label>
-              <input type="checkbox" name="filter[UpdateDiskSpace]" value="1"<?php echo !$filter->UpdateDiskSpace() ? '' : ' checked="checked"' ?> onclick="updateButtons(this);"/>
+              <input type="checkbox" name="filter[UpdateDiskSpace]" value="1"<?php echo !$filter->UpdateDiskSpace() ? '' : ' checked="checked"' ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
 if ( ZM_OPT_FFMPEG ) {
 ?>
             <p>
               <label><?php echo translate('FilterVideoEvents') ?></label>
-              <input type="checkbox" name="filter[AutoVideo]" value="1"<?php if ( $filter->AutoVideo() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoVideo]" value="1"<?php if ( $filter->AutoVideo() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
 }
@@ -364,7 +364,7 @@ if ( ZM_OPT_UPLOAD ) {
 ?>
             <p>
               <label><?php echo translate('FilterUploadEvents') ?></label>
-              <input type="checkbox" name="filter[AutoUpload]" value="1"<?php if ( $filter->AutoUpload() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoUpload]" value="1"<?php if ( $filter->AutoUpload() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
 }
@@ -372,7 +372,7 @@ if ( ZM_OPT_EMAIL ) {
 ?>
             <p>
               <label><?php echo translate('FilterEmailEvents') ?></label>
-              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoEmail]" value="1"<?php if ( $filter->AutoEmail() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
 }
@@ -380,7 +380,7 @@ if ( ZM_OPT_MESSAGE ) {
 ?>
             <p>
               <label><?php echo translate('FilterMessageEvents') ?></label>
-              <input type="checkbox" name="filter[AutoMessage]" value="1"<?php if ( $filter->AutoMessage() ) { ?> checked="checked"<?php } ?> onclick="updateButtons( this )"/>
+              <input type="checkbox" name="filter[AutoMessage]" value="1"<?php if ( $filter->AutoMessage() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
 <?php
 }
@@ -392,7 +392,7 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p>
               <label><?php echo translate('FilterDeleteEvents') ?></label>
-              <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this)"/>
+              <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p><label><?php echo translate('FilterMoveEvents') ?></label>
               <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);if(this.checked){$j(this.form.elements['filter[AutoMoveTo]']).css('display','inline');}else{this.form.elements['filter[AutoMoveTo]'].hide();};"/>
@@ -400,22 +400,22 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>
-              <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( $filter->Background() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);"/>
+              <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( $filter->Background() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p>
               <label for="Concurrent"><?php echo translate('ConcurrentFilter') ?></label>
-              <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( $filter->Concurrent() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);"/>
+              <input type="checkbox" id="filter[Concurrent]" name="filter[Concurrent]" value="1"<?php if ( $filter->Concurrent() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
         </div>
         <hr/>
         <div id="contentButtons">
-          <button type="submit" onclick="submitToEvents(this);"><?php echo translate('ListMatches') ?></button>
-          <button type="submit" name="executeButton" id="executeButton" onclick="executeFilter( this );"><?php echo translate('Execute') ?></button>
+          <button type="submit" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
+          <button type="submit" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit('Events') ) {
 ?>
-          <button type="submit" name="Save" value="Save" onclick="saveFilter(this);"><?php echo translate('Save') ?></button>
-          <button type="submit" name="SaveAs" value="SaveAs" onclick="saveFilter(this);"><?php echo translate('SaveAs') ?></button>
+          <button type="submit" name="Save" value="Save" data-on-click-this="saveFilter"><?php echo translate('Save') ?></button>
+          <button type="submit" name="SaveAs" value="SaveAs" data-on-click-this="saveFilter"><?php echo translate('SaveAs') ?></button>
 <?php 
   if ( $filter->Id() ) {
  ?>
@@ -424,7 +424,7 @@ if ( canEdit('Events') ) {
   }
 }
 ?>
-          <button type="button" value="Reset" onclick="resetFilter( this );"><?php echo translate('Reset') ?></button>
+          <button type="button" value="Reset" data-on-click-this="resetFilter"><?php echo translate('Reset') ?></button>
         </div>
       </form>
     </div><!--content-->

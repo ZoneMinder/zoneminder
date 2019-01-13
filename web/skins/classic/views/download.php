@@ -88,9 +88,9 @@ if ( !empty($_REQUEST['eid']) ) {
             <tr>
               <th scope="row"><?php echo translate('ExportFormat') ?></th>
               <td>
-                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar" onclick="configureExportButton(this)"/>
+                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar" data-on-click-this="configureExportButton"/>
                 <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>
-                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked" onclick="configureExportButton(this);"/>
+                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked" data-on-click-this="configureExportButton"/>
                 <label for="exportFormatZip"><?php echo translate('ExportFormatZip') ?></label>
               </td>
             </tr>

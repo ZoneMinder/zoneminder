@@ -51,7 +51,7 @@ xhtmlHeaders(__FILE__, translate('MonitorPreset') );
           <label for="preset"><?php echo translate('Preset') ?></label><?php echo buildSelect( "preset", $presets, 'configureButtons( this )' ); ?>
         </p>
         <div id="contentButtons">
-          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" onclick="submitPreset( this )" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" data-on-click-this="submitPreset" disabled="disabled"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
         </div>
       </form>
     </div>

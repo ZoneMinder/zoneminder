@@ -72,7 +72,7 @@ foreach( $controls as $control )
               <td class="colCanIris"><?php echo $control['CanIris']?translate('Yes'):translate('No') ?></td>
               <td class="colCanWhiteBal"><?php echo $control['CanWhite']?translate('Yes'):translate('No') ?></td>
               <td class="colHasPresets"><?php echo $control['HasHomePreset']?'H':'' ?><?php echo $control['HasPresets']?$control['NumPresets']:'0' ?></td>
-              <td class="colMark"><input type="checkbox" name="markCids[]" value="<?php echo $control['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/></td>
+              <td class="colMark"><input type="checkbox" name="markCids[]" value="<?php echo $control['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
 }

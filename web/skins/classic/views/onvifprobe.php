@@ -194,7 +194,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
         </p>
         <div id="contentButtons">
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
-          <input type="submit" name="nextBtn" value="<?php echo translate('Next') ?>" onclick="gotoStep2(this)" disabled="disabled"/>
+          <input type="submit" name="nextBtn" value="<?php echo translate('Next') ?>" data-on-click-this="gotoStep2" disabled="disabled"/>
         </div>
       </form>
     </div>
@@ -260,9 +260,9 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
           <?php echo htmlSelect('probe', $profiles, null, array('onchange'=>'configureButtons(this)')); ?>
         </p>
         <div id="contentButtons">
-          <input type="button" name="prevBtn" value="<?php echo translate('Prev') ?>" onclick="gotoStep1(this)"/>
+          <input type="button" name="prevBtn" value="<?php echo translate('Prev') ?>" data-on-click-this="gotoStep1"/>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
-          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" onclick="submitCamera(this)" disabled="disabled"/>
+          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" data-on-click-this="submitCamera" disabled="disabled"/>
         </div>
       </form>
     </div>

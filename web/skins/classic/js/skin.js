@@ -136,6 +136,12 @@ $j(document).ready(function() {
     createPopup(url, name, tag, width, height);
     evt.preventDefault();
   });
+
+  // The 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
+  document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
+    var fnName = el.getAttribute("data-on-click-this");
+    el.onclick = window[fnName].bind(el, el);
+  });
 });
 
 function createEventPopup( eventId, eventFilter, width, height ) {

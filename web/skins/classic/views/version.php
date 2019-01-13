@@ -80,7 +80,7 @@ else
         <p><?php echo sprintf( $CLANG['LatestRelease'], ZM_DYN_LAST_VERSION, ZM_VERSION ) ?></p>
         <p><?php echo buildSelect( "option", $options ); ?></p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )"/>
+          <input type="submit" value="<?php echo translate('Apply') ?>" data-on-click-this="submitForm"/>
           <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
         </div>
       </form>

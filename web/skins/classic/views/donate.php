@@ -55,7 +55,7 @@ xhtmlHeaders(__FILE__, translate('Donate') );
           <?php echo buildSelect( "option", $options ); ?>
         </p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )">
+          <input type="submit" value="<?php echo translate('Apply') ?>" data-on-click-this="submitForm">
           <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()">
         </div>
       </form>

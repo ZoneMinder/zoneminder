@@ -400,7 +400,8 @@ function makeLink( $url, $label, $condition=1, $options='' ) {
 }
 
 function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options='' ) {
-  $string = '<a class="popup-link" href="' . htmlspecialchars($url) . '"';
+  // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
+  $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
   $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
   if ( $condition ) {
     if ( is_array( $winSize ) ) {
@@ -422,7 +423,7 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
 
 function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, $options='' ) {
   $string = '<input type="button" class="popup-link" value="' . htmlspecialchars($buttonValue) . '"';
-  $string .= ' data-url="' . htmlspecialchars($url) . '"';
+  $string .= ' data-url="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
   $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
     if ( is_array( $winSize ) ) {
       $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';

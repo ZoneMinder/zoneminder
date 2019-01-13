@@ -35,6 +35,10 @@ function noCacheHeaders() {
   header('Pragma: no-cache');         // HTTP/1.0
 }
 
+function CSPHeaders($view, $nonce) {
+  header("Content-Security-Policy-Report-Only: script-src 'self' 'nonce-$nonce'");
+}
+
 function CORSHeaders() {
   if ( isset($_SERVER['HTTP_ORIGIN']) ) {
 

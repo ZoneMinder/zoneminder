@@ -400,14 +400,18 @@ function makeLink( $url, $label, $condition=1, $options='' ) {
 }
 
 function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options='' ) {
-  $string = '';
+  $string = '<a class="popup-link" href="' . htmlspecialchars($url) . '"';
+  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
   if ( $condition ) {
-    if ( is_array( $winSize ) )
-      $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
-    else
-      $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
+    if ( is_array( $winSize ) ) {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
+      $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
+      $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
+    } else {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
+    }
 
-    $string .= '<a href="'.$url.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($options?(' '.$options):'').'>';
+    $string .= ($options ? (' ' . $options ) : '') . '>';
   } else {
     $string .= '<a>';
   }

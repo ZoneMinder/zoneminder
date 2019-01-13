@@ -63,7 +63,7 @@ foreach( $controls as $control )
 {
 ?>
             <tr>
-              <td class="colName"><?php echo makePopupLink( '?view=controlcap&amp;cid='.$control['Id'], 'zmControlCap', 'controlcap', $control['Name'], canView( 'Control' ) ) ?></td>
+              <td class="colName"><?php echo makePopupLink( '?view=controlcap&cid='.$control['Id'], 'zmControlCap', 'controlcap', $control['Name'], canView( 'Control' ) ) ?></td>
               <td class="colType"><?php echo $control['Type'] ?></td>
               <td class="colProtocol"><?php echo $control['Protocol'] ?></td>
               <td class="colCanMove"><?php echo $control['CanMove']?translate('Yes'):translate('No') ?></td>
@@ -80,7 +80,8 @@ foreach( $controls as $control )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewControl') ?>" onclick="createPopup( '?view=controlcap', 'zmControlCap', 'controlcap' );"<?php if ( !canEdit( 'Control' ) ) {?> disabled="disabled"<?php } ?>/><input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
+          <?php echo makePopupButton('?view=controlcap', 'zmControlCap', 'controlcap', translate('AddNewControl'), canEdit( 'Control' )); ?>
+          <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
       </form>
     </div>

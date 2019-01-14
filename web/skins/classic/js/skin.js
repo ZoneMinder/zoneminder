@@ -150,6 +150,12 @@ $j(document).ready(function() {
       window[fnName]();
     };
   });
+
+  // 'data-on-change' adds an event listener for the global function in the attribute value when a change happens.
+  document.querySelectorAll("select[data-on-change], input[data-on-change]").forEach(function attachOnChange(el) {
+    var fnName = el.getAttribute("data-on-change");
+    el.onchange = window[fnName];
+  });
 });
 
 function createEventPopup( eventId, eventFilter, width, height ) {
@@ -296,6 +302,10 @@ function submitTab( tab ) {
   form.action.value = "";
   form.tab.value = tab;
   form.submit();
+}
+
+function submitThisForm() {
+  this.form.submit();
 }
 
 function toggleCheckbox( element, name ) {

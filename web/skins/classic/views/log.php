@@ -62,29 +62,29 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
         <tr class="row">
           <td class="col">
             <?php echo translate('Component') ?>
-            <select class="form-control chosen" id="filter[Component]" onchange="filterLog(this)"><option value="">-----</option></select>
+            <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
           </td>
           <td class="col">
             <?php echo translate('Server') ?>
-            <select class="form-control chosen" id="filter[ServerId]" onchange="filterLog(this)"><option value="">-----</option></select>
+            <select class="form-control chosen" id="filter[ServerId]" data-on-change="filterLog"><option value="">-----</option></select>
           </td>
           <td class="col">
             <?php echo translate('Pid') ?>
-            <select class="form-control chosen" id="filter[Pid]" onchange="filterLog(this)"><option value="">-----</option></select>
+            <select class="form-control chosen" id="filter[Pid]" data-on-change="filterLog"><option value="">-----</option></select>
           </td>
         </tr>
         <tr class="row">
           <td class="col">
             <?php echo translate('Level') ?>
-            <select class="form-control chosen" id="filter[Level]" onchange="filterLog(this)"><option value="">---</option></select>
+            <select class="form-control chosen" id="filter[Level]" data-on-change="filterLog"><option value="">---</option></select>
           </td>
           <td class="col">
             <?php echo translate('File') ?>
-            <select class="form-control chosen" id="filter[File]" onchange="filterLog(this)"><option value="">------</option></select>
+            <select class="form-control chosen" id="filter[File]" data-on-change="filterLog"><option value="">------</option></select>
           </td>
           <td  class="col">
             <?php echo translate('Line') ?>
-            <select class="form-control chosen" id="filter[Line]" onchange="filterLog(this)"><option value="">----</option></select>
+            <select class="form-control chosen" id="filter[Line]" data-on-change="filterLog"><option value="">----</option></select>
           </td>
         </tr>
       </table>

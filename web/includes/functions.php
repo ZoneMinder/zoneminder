@@ -608,6 +608,11 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
           }
         }
         break;
+      case 'integer' :
+        if ( (!isset($values[$key])) or $values[$key] != $value ) {
+          $changes[$key] = $key . ' = '.intval($value);
+        }
+        break;
       default :
         {
           if ( !isset($values[$key]) || ($values[$key] != $value) ) {
@@ -845,13 +850,7 @@ function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $ov
 }
 
 function viewImagePath( $path, $querySep='&amp;' ) {
-  if ( strncmp( $path, ZM_DIR_IMAGES, strlen(ZM_DIR_IMAGES) ) == 0 ) {
-    // Thumbnails
-    return( $path );
-  } elseif ( strpos( ZM_DIR_EVENTS, '/' ) === 0 ) {
-    return( '?view=image'.$querySep.'path='.$path );
-  }
-  return( ZM_DIR_EVENTS.'/'.$path );
+  return( '?view=image'.$querySep.'path='.$path );
 }
 
 function createListThumbnail( $event, $overwrite=false ) {
@@ -2279,6 +2278,52 @@ function unparse_url($parsed_url, $substitutions = array() ) {
   return "$scheme$user$pass$host$port$path$query$fragment"; 
 }
 
+// PP - POST request handler for PHP which does not need extensions
+// credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
+
+
+function do_request($method, $url, $data=array(), $optional_headers = null) {
+  global $php_errormsg;
+
+  $params = array('http' => array(
+        'method' => $method,
+        'content' => $data
+        ));
+  if ( $optional_headers !== null ) {
+    $params['http']['header'] = $optional_headers;
+  }
+  $ctx = stream_context_create($params);
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if ( !$fp ) {
+    throw new Exception("Problem with $url, $php_errormsg");
+  }
+  $response = @stream_get_contents($fp);
+  if ( $response === false ) {
+    throw new Exception("Problem reading data from $url, $php_errormsg");
+  }
+  return $response;
+}
+
+function do_post_request($url, $data, $optional_headers = null) {
+  $params = array('http' => array(
+        'method' => 'POST',
+        'content' => $data
+        ));
+  if ( $optional_headers !== null ) {
+    $params['http']['header'] = $optional_headers;
+  }
+  $ctx = stream_context_create($params);
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if ( !$fp ) {
+    throw new Exception("Problem with $url, $php_errormsg");
+  }
+  $response = @stream_get_contents($fp);
+  if ( $response === false ) {
+    throw new Exception("Problem reading data from $url, $php_errormsg");
+  }
+  return $response;
+}
+
 // The following works around php not being built with semaphore functions.
 if (!function_exists('sem_get')) {
   function sem_get($key) {
@@ -2302,6 +2347,25 @@ if( !function_exists('ftok') ) {
       return dechex(array_sum($key));
     }
   }
+}
+
+function getAffectedIds( $name ) {
+  $names = $name.'s';
+  $ids = array();
+	if ( isset($_REQUEST[$names]) ) {
+		if ( is_array($_REQUEST[$names]) ) {
+			$ids = $_REQUEST[$names];
+		} else {
+			$ids = array($_REQUEST[$names]);
+		}
+	} else if ( isset($_REQUEST[$name]) ) {
+		if ( is_array($_REQUEST[$name]) ) {
+			$ids = $_REQUEST[$name];
+		} else {
+			$ids = array($_REQUEST[$name]);
+		}
+	}
+	return $ids;
 }
 
 ?>

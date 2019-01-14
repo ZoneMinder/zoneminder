@@ -117,21 +117,12 @@ function getImageSource( monId, time ) {
     Event = events[Frame.EventId];
 
     var storage = Storage[Event.StorageId];
-    var server = storage.ServerId ? Servers[storage.ServerId] : Servers[serverId];
-    if ( server ) {
-      return server.url() +
-      //location.protocol + '//' + server.Hostname + 
-        //'/cgi-bin/zms?mode=jpeg&replay=single&event=' + event_id +
-        //'&frame='+Frame.FrameId +
-        '/index.php?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
-        "&width=" + monitorCanvasObj[monId].width + 
-        "&height=" + monitorCanvasObj[monId].height;
-    }
-    console.log("No server found for " + ( storage.ServerId ? storage.ServerId : serverId ));
-    //console.log("No storage found for " + eStorageId[i] );
-    return '/zm/index.php?view=image&eid=' + Frame.EventId + '&fid='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
-    //return "/cgi-bin/zms?mode=single&replay=single&event=" + Frame.EventId + '&time='+time+ "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
-    //return "/cgi-bin/zms?mode=jpeg&replay=single&event=" + Frame.EventId + '&frame='+frame_id + "&width=" + monitorCanvasObj[monId].width + "&height=" + monitorCanvasObj[monId].height;
+    // monitorServerId may be 0, which gives us the default Server entry
+    var server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
+    return server.PathToIndex() +
+	    '?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
+	    "&width=" + monitorCanvasObj[monId].width + 
+	    "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame
   return '';
   //return "no data";

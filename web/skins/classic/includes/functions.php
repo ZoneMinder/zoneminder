@@ -81,10 +81,10 @@ echo output_link_if_exists( array(
   'css/'.$css.'/skin.css',
   'css/base/views/'.$basename.'.css',
   'css/'.$css.'/views/'.$basename.'.css',
-  '/js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  '/js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-  '/css/jquery-ui-1.12.1/jquery-ui.theme.min.css',
-  '/css/'.$css.'/jquery-ui-theme.css',
+  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
+  'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
+  'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
+  'css/'.$css.'/jquery-ui-theme.css',
 )
 );
 ?>
@@ -201,6 +201,23 @@ echo output_link_if_exists( array(
 <?php
 } // end function xhtmlHeaders( $file, $title )
 
+// Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
+function getBodyTopHTML() {
+  echo '
+<body>
+<noscript>
+<div style="background-color:red;color:white;font-size:x-large;">
+'. ZM_WEB_TITLE .' requires Javascript. Please enable Javascript in your browser for this site.
+
+</div>
+</noscript>
+';
+  global $error_message;
+  if ( $error_message ) {
+   echo '<div class="error">'.$error_message.'</div>';
+  }
+} // end function getBodyTopHTML
+
 function getNavBarHTML($reload = null) {
   # Provide a facility to turn off the headers if you put headers=0 into the url
   if ( isset($_REQUEST['navbar']) and $_REQUEST['navbar']=='0' )
@@ -228,11 +245,6 @@ function getNavBarHTML($reload = null) {
       $running = daemonCheck();
     $status = $running?translate('Running'):translate('Stopped');
 ?>
-<noscript>
-<div style="background-color:red;color:white;font-size:x-large;">
-<?php echo ZM_WEB_TITLE ?> requires Javascript. Please enable Javascript in your browser for this site.
-</div>
-</noscript>
 <div class="navbar navbar-inverse navbar-static-top">
 	<div class="container-fluid">
 		<div class="navbar-header">

@@ -20,9 +20,11 @@
 #ifndef ZM_CONFIG_H
 #define ZM_CONFIG_H
 
+#if !defined(PATH_MAX)
+#define PATH_MAX 1024
+#endif
 #include "config.h"
 #include "zm_config_defines.h"
-#include "zm.h"
 
 #include <string>
 
@@ -74,7 +76,6 @@ struct StaticConfig {
   std::string SERVER_NAME;
   unsigned int SERVER_ID;
   std::string DIR_EVENTS;
-  std::string DIR_IMAGES;
   std::string DIR_SOUNDS;
   std::string DIR_EXPORTS;
   std::string PATH_ZMS;

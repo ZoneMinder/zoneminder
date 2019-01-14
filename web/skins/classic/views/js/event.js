@@ -1,7 +1,7 @@
 var vid = null;
 
 function vjsReplay() {
-  let endTime = (Date.parse(eventData.EndTime)).getTime();
+  var endTime = (Date.parse(eventData.EndTime)).getTime();
   switch(replayMode.value) {
     case 'none':
       break;
@@ -10,22 +10,22 @@ function vjsReplay() {
       break;
     case 'all':
       if (nextEventId == 0) {
-        let overLaid = $j("#videoobj");
+        var overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
       } else {
-        let nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+        var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
         if (nextStartTime <= endTime) {
          streamNext( true );
          return;
         }
-        let overLaid = $j("#videoobj");
+        var overLaid = $j("#videoobj");
         vid.pause();
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-        let gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
-        let messageP = $j(".vjsMessage");
-        let x = setInterval(function() {
-          let now = new Date().getTime();
-          let remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
+        var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+        var messageP = $j(".vjsMessage");
+        var x = setInterval(function() {
+          var now = new Date().getTime();
+          var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
           messageP.html(remainder + ' to next event.');
           if (remainder < 0) {
             clearInterval(x);
@@ -70,7 +70,7 @@ function renderAlarmCues (containerEl) {
   var pixSkew = 0;
   var skip = 0;
 var num_cueFrames = cueFrames.length;
-  for ( let i = 0; i < num_cueFrames; i++ ) {
+  for ( var i = 0; i < num_cueFrames; i++ ) {
     skip = 0;
     frame = cueFrames[i];
     if (frame.Type == "Alarm" && alarmed == 0) { //From nothing to alarm.  End nothing and start alarm.
@@ -78,7 +78,7 @@ var num_cueFrames = cueFrames.length;
       if (frame.Delta == 0) continue;  //If event starts with an alarm or too few for a nonespan
       spanTimeEnd = frame.Delta * 100;
       spanTime = spanTimeEnd - spanTimeStart;
-      let pix = cueRatio * spanTime;
+      var pix = cueRatio * spanTime;
       pixSkew += pix - Math.round(pix);//average out the rounding errors.
       pix = Math.round(pix);
       if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span. 
@@ -147,20 +147,20 @@ function changeCodec(element) {
 }
 
 function changeScale() {
-  let scale = $j('#scale').val();
-  let newWidth;
-  let newHeight;
-  let autoScale;
-  let eventViewer;
-  let alarmCue = $j('div.alarmCue');
-  let bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
+  var scale = $j('#scale').val();
+  var newWidth;
+  var newHeight;
+  var autoScale;
+  var eventViewer;
+  var alarmCue = $j('div.alarmCue');
+  var bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
   if (streamMode == 'stills') {
     eventViewer = $j('#eventThumbs');
   } else {
     eventViewer = $j(vid ? '#videoobj' : '#evtStream');
   }
   if ( scale == "auto" ) {
-    let newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
+    var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
@@ -279,7 +279,8 @@ function pauseClicked() {
 }
 
 function vjsPause() {
-  stopFastRev();
+  if ( intervalRewind )
+    stopFastRev();
   streamPause();
 }
 
@@ -311,7 +312,7 @@ function vjsPlay() { //catches if we change mode programatically
   if ( intervalRewind )
     stopFastRev();
   $j('#rateValue').html(vid.playbackRate());
-  Cookie.write('zmEventRate', vid.playbackRate(), {duration: 10*365});
+  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
   streamPlay();
 }
 
@@ -403,14 +404,14 @@ function streamFastRev( action ) {
 function streamPrev(action) {
   if ( action ) {
     $j(".vjsMessage").remove();
-    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery + '&popup='+popup);
     return;
 
     if ( vid && PrevEventDefVideoPath.indexOf("view_video") > 0 ) {
       CurEventDefVideoPath = PrevEventDefVideoPath;
       eventQuery(prevEventId);
     } else if (zmsBroke || (vid && PrevEventDefVideoPath.indexOf("view_video") < 0) || $j("#vjsMessage").length || PrevEventDefVideoPath.indexOf("view_video") > 0) {//zms broke, leaving videojs, last event, moving to videojs
-      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery + '&popup='+popup);
     } else {
       streamReq.send(streamParms+"&command="+CMD_PREV);
       streamPlay();
@@ -423,8 +424,8 @@ function streamNext(action) {
     $j(".vjsMessage").remove();//This shouldn't happen
     if ( nextEventId == 0 ) { //handles deleting last event.
       pauseClicked();
-      let hideContainer = $j('#eventVideo');
-      let hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
+      var hideContainer = $j('#eventVideo');
+      var hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
       hideContainer.prepend('<p class="vjsMessage" style="height: ' + hideStream + 'px; line-height: ' + hideStream + 'px;">No more events</p>');
       if ( vid == null ) zmsBroke = true;
       return;
@@ -432,13 +433,13 @@ function streamNext(action) {
     // We used to try to dynamically update all the bits in the page, which is really complex
     // How about we just reload the page?
     //
-    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery + '&popup='+popup);
     return;
     if ( vid && ( NextEventDefVideoPath.indexOf("view_video") > 0 ) ) { //on and staying with videojs
       CurEventDefVideoPath = NextEventDefVideoPath;
       eventQuery(nextEventId);
     } else if ( zmsBroke || (vid && NextEventDefVideoPath.indexOf("view_video") < 0) || NextEventDefVideoPath.indexOf("view_video") > 0) {//reload zms, leaving vjs, moving to vjs
-      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery + '&popup='+popup);
     } else {
       streamReq.send(streamParms+"&command="+CMD_NEXT);
       streamPlay();
@@ -447,15 +448,15 @@ function streamNext(action) {
 }
 
 function vjsPanZoom (action, x, y) { //Pan and zoom with centering where the click occurs
-  let outer = $j('#videoobj');
-  let video = outer.children().first();
-  let zoom =  parseFloat($j('#zoomValue').html());
-  let zoomRate = .5;
-  let matrix = video.css('transform').split(',');
-  let currentPanX = parseFloat(matrix[4]);
-  let currentPanY = parseFloat(matrix[5]);
-  let xDist = outer.width()/2 - x //Click distance from center of view
-  let yDist = outer.height()/2 - y
+  var outer = $j('#videoobj');
+  var video = outer.children().first();
+  var zoom =  parseFloat($j('#zoomValue').html());
+  var zoomRate = .5;
+  var matrix = video.css('transform').split(',');
+  var currentPanX = parseFloat(matrix[4]);
+  var currentPanY = parseFloat(matrix[5]);
+  var xDist = outer.width()/2 - x //Click distance from center of view
+  var yDist = outer.height()/2 - y
   if (action == 'zoomOut') {
     zoom -= zoomRate;
     if (x && y) {
@@ -480,8 +481,8 @@ function vjsPanZoom (action, x, y) { //Pan and zoom with centering where the cli
     x = xDist + currentPanX;
     y = yDist + currentPanY;
   }
-  let limitX = ((zoom*outer.width()) - outer.width())/2; //Calculate outer bounds of video
-  let limitY = ((zoom*outer.height()) - outer.height())/2;
+  var limitX = ((zoom*outer.width()) - outer.width())/2; //Calculate outer bounds of video
+  var limitY = ((zoom*outer.height()) - outer.height())/2;
   x = Math.min(Math.max((x),-limitX),limitX); //Limit pan to outer bounds of video
   y = Math.min(Math.max((y),-limitY),limitY);
   video.css('transform', 'matrix('+zoom+', 0, 0, '+zoom+', '+x+', '+y+')');
@@ -579,7 +580,7 @@ function getEventResponse( respObj, respText ) {
     drawProgressBar();
   }
   nearEventsQuery( eventData.Id );
-}
+} // end function getEventResponse
 
 var eventReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
 
@@ -954,7 +955,7 @@ function videoEvent() {
 
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
-  let barWidth = $j('#evtStream').width();
+  var barWidth = $j('#evtStream').width();
   $j('#progressBar').css( 'width', barWidth );
 }
 

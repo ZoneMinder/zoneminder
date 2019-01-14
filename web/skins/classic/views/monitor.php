@@ -113,7 +113,6 @@ if ( ! $monitor ) {
           'FPSReportInterval' => 100,
           'RefBlendPerc' => 6,
           'AlarmRefBlendPerc' => 6,
-          'DefaultView' => 'Events',
           'DefaultRate' => '100',
           'DefaultScale' => '100',
           'DefaultCodec' => 'auto',
@@ -461,8 +460,8 @@ $codecs = array(
 );
 
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
     <div id="header">
 <?php
@@ -664,7 +663,6 @@ if ( $tab != 'misc' ) {
       <input type="hidden" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($monitor->MotionFrameSkip()) ?>"/>
       <input type="hidden" name="newMonitor[AnalysisUpdateDelay]" value="<?php echo validHtmlStr($monitor->AnalysisUpdateDelay()) ?>"/>
       <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>"/>
-      <input type="hidden" name="newMonitor[DefaultView]" value="<?php echo validHtmlStr($monitor->DefaultView()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultRate]" value="<?php echo validHtmlStr($monitor->DefaultRate()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultScale]" value="<?php echo validHtmlStr($monitor->DefaultScale()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultCodec]" value="<?php echo validHtmlStr($monitor->DefaultCodec()) ?>"/>
@@ -889,9 +887,12 @@ include('_monitor_source_nvsocket.php');
 <?php
       } elseif ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
 ?>
-          <tr><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" size="36"/></td></tr>
+          <tr class="SourcePath"><td><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" /></td></tr>
           <tr><td><?php echo translate('RemoteMethod') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_RTSPTrans', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><?php echo htmlSelect( "newMonitor[Method]", $rtspFFMpegMethods, $monitor->Method() ); ?></td></tr>
-          <tr><td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($monitor->Type()), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td><td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>" size="36"/></td></tr>
+          <tr class="SourceOptions">
+            <td><?php echo translate('Options') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_'.strtoupper($monitor->Type()), 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
+            <td><input type="text" name="newMonitor[Options]" value="<?php echo validHtmlStr($monitor->Options()) ?>"/></td>
+          </tr>
 <?php
       }
 if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
@@ -1018,17 +1019,6 @@ if ( $monitor->Type() == 'Local' ) {
         <tr><td><?php echo translate('MotionFrameSkip') ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($monitor->MotionFrameSkip()) ?>" size="6"/></td></tr>
         <tr><td><?php echo translate('AnalysisUpdateDelay') ?></td><td><input type="text" name="newMonitor[AnalysisUpdateDelay]" value="<?php echo validHtmlStr($monitor->AnalysisUpdateDelay()) ?>" size="6"/></td></tr>
         <tr><td><?php echo translate('FPSReportInterval') ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>" size="6"/></td></tr>
-        <tr><td><?php echo translate('DefaultView') ?></td><td><select name="newMonitor[DefaultView]">
-<?php
-      foreach ( getEnumValues( 'Monitors', 'DefaultView' ) as $opt_view ) {
-        if ( $opt_view == 'Control' && ( !ZM_OPT_CONTROL || !$monitor->Controllable()) )
-          continue;
-?>
-          <option value="<?php echo $opt_view ?>"<?php if ( $opt_view == $monitor->DefaultView()) { ?> selected="selected"<?php } ?>><?php echo $opt_view ?></option>
-<?php
-      }
-?>
-        </select></td></tr>
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultCodec') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultCodec]", $codecs, $monitor->DefaultCodec() ); ?></td></tr>

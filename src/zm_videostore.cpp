@@ -225,7 +225,7 @@ VideoStore::VideoStore(
   audio_out_stream = NULL;
   in_frame = NULL;
   out_frame = NULL;
-#ifdef HAVE_LIBAVRESAMPLE
+#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
   resample_ctx = NULL;
 #endif
 
@@ -493,10 +493,16 @@ VideoStore::~VideoStore() {
     avcodec_free_context(&audio_out_ctx);
 #endif
     audio_out_ctx = NULL;
-#ifdef HAVE_LIBAVRESAMPLE
+#if defined(HAVE_LIBAVRESAMPLE) || defined(HAVE_LIBSWRESAMPLE)
     if ( resample_ctx ) {
+#if defined(HAVE_LIBSWRESAMPLE)
+      swr_free(&resample_ctx);
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
       avresample_close(resample_ctx);
       avresample_free(&resample_ctx);
+#endif
+#endif
     }
     if ( in_frame ) {
       av_frame_free(&in_frame);
@@ -518,7 +524,12 @@ VideoStore::~VideoStore() {
 } // VideoStore::~VideoStore()
 
 bool VideoStore::setup_resampler() {
-#ifdef HAVE_LIBAVRESAMPLE
+#if !defined(HAVE_LIBSWRESAMPLE) && !defined(HAVE_LIBAVRESAMPLE)
+  Error(
+     "Not built with resample library. "
+     "Cannot do audio conversion to AAC");
+  return false;
+#else
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // Newer ffmpeg wants to keep everything separate... so have to lookup our own
@@ -526,8 +537,7 @@ bool VideoStore::setup_resampler() {
   audio_in_codec =
       avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
 #else
-  audio_in_codec =
-      avcodec_find_decoder(audio_in_ctx->codec_id);
+  audio_in_codec = avcodec_find_decoder(audio_in_ctx->codec_id);
 #endif
   ret = avcodec_open2(audio_in_ctx, audio_in_codec, NULL);
   if ( ret < 0 ) {
@@ -555,9 +565,12 @@ bool VideoStore::setup_resampler() {
   audio_out_stream = avformat_new_stream(oc, NULL);
   audio_out_ctx = audio_out_stream->codec;
 #endif
+  // Some formats (i.e. WAV) do not produce the proper channel layout
+  if ( audio_in_ctx->channel_layout == 0 )
+    audio_in_ctx->channel_layout = av_get_channel_layout("mono");
 
   /* put sample parameters */
-  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate;
+  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 96000 ? audio_in_ctx->bit_rate : 96000;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
@@ -647,40 +660,55 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 
+#if defined(HAVE_LIBSWRESAMPLE)
+  resample_ctx = swr_alloc_set_opts(NULL,
+      av_get_default_channel_layout(audio_out_ctx->channels),
+      audio_out_ctx->sample_fmt,
+      audio_out_ctx->sample_rate,
+      av_get_default_channel_layout(audio_in_ctx->channels),
+      audio_in_ctx->sample_fmt,
+      audio_in_ctx->sample_rate,
+      0, NULL);
+  if ( !resample_ctx ) {
+    Error("Could not allocate resample context");
+    av_frame_free(&in_frame);
+    av_frame_free(&out_frame);
+    return false;
+  }
+  if ( (ret = swr_init(resample_ctx)) < 0 ) {
+    Error("Could not open resampler");
+    av_frame_free(&in_frame);
+    av_frame_free(&out_frame);
+    swr_free(&resample_ctx);
+    return false;
+  }
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
   // Setup the audio resampler
   resample_ctx = avresample_alloc_context();
   if ( !resample_ctx ) {
     Error("Could not allocate resample ctx");
+    av_frame_free(&in_frame);
+    av_frame_free(&out_frame);
     return false;
   }
 
-  // Some formats (i.e. WAV) do not produce the proper channel layout
-  uint64_t layout = av_get_channel_layout("mono");
-  if ( audio_in_ctx->channel_layout == 0 ) {
-    av_opt_set_int(resample_ctx, "in_channel_layout", layout, 0);
-    Debug(1, "Bad in channel layout. Need to set it to mono (%d).", layout);
-  } else {
-    av_opt_set_int(resample_ctx, "in_channel_layout",
-                   audio_in_ctx->channel_layout, 0);
-    layout = audio_in_ctx->channel_layout;
-  }
-
+  av_opt_set_int(resample_ctx, "in_channel_layout",
+      audio_in_ctx->channel_layout, 0);
   av_opt_set_int(resample_ctx, "in_sample_fmt",
-                 audio_in_ctx->sample_fmt, 0);
+      audio_in_ctx->sample_fmt, 0);
   av_opt_set_int(resample_ctx, "in_sample_rate",
-                 audio_in_ctx->sample_rate, 0);
-  av_opt_set_int(resample_ctx, "in_channels", audio_in_ctx->channels,
-                 0);
-  // av_opt_set_int( resample_ctx, "out_channel_layout",
-  // audio_out_ctx->channel_layout, 0);
+      audio_in_ctx->sample_rate, 0);
+  av_opt_set_int(resample_ctx, "in_channels",
+      audio_in_ctx->channels, 0);
   av_opt_set_int(resample_ctx, "out_channel_layout",
-                 layout, 0);
+      audio_in_ctx->channel_layout, 0);
   av_opt_set_int(resample_ctx, "out_sample_fmt",
-                 audio_out_ctx->sample_fmt, 0);
+      audio_out_ctx->sample_fmt, 0);
   av_opt_set_int(resample_ctx, "out_sample_rate",
-                 audio_out_ctx->sample_rate, 0);
+      audio_out_ctx->sample_rate, 0);
   av_opt_set_int(resample_ctx, "out_channels",
-                 audio_out_ctx->channels, 0);
+      audio_out_ctx->channels, 0);
 
   ret = avresample_open(resample_ctx);
   if ( ret < 0 ) {
@@ -689,6 +717,8 @@ bool VideoStore::setup_resampler() {
   } else {
     Debug(2, "Success opening resampler");
   }
+#endif
+#endif
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
@@ -719,11 +749,6 @@ bool VideoStore::setup_resampler() {
   }
 
   return true;
-#else
-  Error(
-      "Not built with libavresample library. Cannot do audio conversion to "
-      "AAC");
-  return false;
 #endif
 }  // end bool VideoStore::setup_resampler()
 
@@ -859,9 +884,9 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 
   if ( audio_out_codec ) {
     Debug(3, "Have audio codec");
-#ifdef HAVE_LIBAVRESAMPLE
+#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     ret = avcodec_send_packet(audio_in_ctx, ipkt);
     if ( ret < 0 ) {
       Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
@@ -878,7 +903,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
           "layout(%d)",
           in_frame->nb_samples, in_frame->format,
           in_frame->sample_rate, in_frame->channel_layout);
-#else
+  #else
     /**
      * Decode the audio frame stored in the packet.
      * The in audio stream decoder is used to do this.
@@ -886,8 +911,8 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
      * to flush it.
      */
     int data_present;
-    if ( (ret = avcodec_decode_audio4(audio_in_ctx, in_frame,
-                                     &data_present, ipkt)) < 0 ) {
+    if ( (ret = avcodec_decode_audio4(
+            audio_in_ctx, in_frame, &data_present, ipkt)) < 0 ) {
       Error("Could not decode frame (error '%s')",
             av_make_error_string(ret).c_str());
       dumpPacket(video_in_stream, ipkt);
@@ -899,20 +924,31 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       Debug(2, "Not ready to transcode a frame yet.");
       return 0;
     }
-#endif
+  #endif
     int frame_size = out_frame->nb_samples;
 
     // Resample the in into the audioSampleBuffer until we process the whole
     // decoded data
-    ret = avresample_convert(resample_ctx, NULL, 0, 0,
-        in_frame->data, 0, in_frame->nb_samples);
-    av_frame_unref(in_frame);
-    if ( ret < 0 ) {
+    Debug(2, "Converting  %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
+    if (
+  #if defined(HAVE_LIBSWRESAMPLE)
+        (ret = swr_convert(resample_ctx,
+            out_frame->data, frame_size,
+            (const uint8_t**)in_frame->data,
+            in_frame->nb_samples))
+  #else
+    #if defined(HAVE_LIBAVRESAMPLE)
+    (ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
+                                0, in_frame->nb_samples))
+  #endif
+  #endif
+      < 0) {
       Error("Could not resample frame (error '%s')",
             av_make_error_string(ret).c_str());
       return 0;
     }
 
+  #if defined(HAVE_LIBAVRESAMPLE)
     int samples_available = avresample_available(resample_ctx);
     if ( samples_available < frame_size ) {
       Debug(1, "Not enough samples yet (%d)", samples_available);
@@ -926,6 +962,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       Warning("Error reading resampled audio.");
       return 0;
     }
+  #endif
     Debug(2,
           "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d)",
           out_frame->nb_samples, out_frame->format,
@@ -934,7 +971,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     av_init_packet(&opkt);
     Debug(5, "after init packet");
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( (ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0 ) {
       Error("Could not send frame (error '%s')",
             av_make_error_string(ret).c_str());
@@ -955,7 +992,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       // av_frame_unref( out_frame );
       return 0;
     }
-#else
+  #else
     if ( (ret = avcodec_encode_audio2(
             audio_out_ctx, &opkt, out_frame, &data_present)) < 0 ) {
       Error("Could not encode frame (error '%s')",
@@ -968,8 +1005,9 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       zm_av_packet_unref(&opkt);
       return 0;
     }
-#endif
-
+  #endif
+#else
+    Error("Have audio codec but no resampler?!");
 #endif
   } else {
     av_init_packet(&opkt);

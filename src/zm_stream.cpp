@@ -54,7 +54,7 @@ bool StreamBase::loadMonitor(int monitor_id) {
 
 bool StreamBase::checkInitialised() {
   if ( !monitor ) {
-    Fatal( "Cannot stream, not initialised" );
+    Fatal("Cannot stream, not initialised");
     return false;
   }
   return true;
@@ -67,10 +67,10 @@ void StreamBase::updateFrameRate(double fps) {
   Debug(3, "FPS:%.2f, MaxFPS:%.2f, BaseFPS:%.2f, EffectiveFPS:%.2f, FrameMod:%d, replay_rate(%d)",
       fps, maxfps, base_fps, effective_fps, frame_mod, replay_rate);
   // Min frame repeat?
-  while( effective_fps > maxfps ) {
+  while ( effective_fps > maxfps ) {
     effective_fps /= 2.0;
     frame_mod *= 2;
-    Debug(3, "EffectiveFPS:%.2f, FrameMod:%d", effective_fps, frame_mod);
+    Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d", maxfps, effective_fps, frame_mod);
   }
 }
 

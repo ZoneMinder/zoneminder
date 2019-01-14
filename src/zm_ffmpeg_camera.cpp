@@ -721,7 +721,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     //Video recording
     if ( keyframe && recording.tv_sec ) {
 
-      uint32_t last_event_id = monitor->GetLastEventId() ;
+      uint32_t last_event_id = monitor->GetLastEventId();
       uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
 
       if ( last_event_id != video_writer_event_id ) {

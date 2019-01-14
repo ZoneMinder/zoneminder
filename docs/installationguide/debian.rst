@@ -130,7 +130,7 @@ CTRL+x to exit
 
 **Step 12:** Please check the configuration
 Zoneminder 1.32.x
-    1. Check path of ZM_PATH in '/etc/zm/conf.d/zmcuston.conf' is ZM_PATH_ZMS=/zm/cgi-bin/nph-zms
+    1. Check path of ZM_PATH in '/etc/zm/conf.d/zmcustom.conf' is ZM_PATH_ZMS=/zm/cgi-bin/nph-zms
         ::
             cat /etc/zm/conf.d/zmcuston.conf
             

@@ -278,6 +278,18 @@ static void zm_log_fps(double d, const char *postfix) {
   }
 }
 
+void zm_dump_frame(const AVFrame *frame,const char *text) {
+  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d layout %d",
+      text,
+      frame->format,
+      av_get_sample_fmt_name((AVSampleFormat)frame->format),
+      frame->sample_rate,
+      frame->nb_samples,
+      frame->channels,
+      frame->channel_layout
+      );
+}
+
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {
   Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d) bit_rate(%d) format(%d = %s)", 

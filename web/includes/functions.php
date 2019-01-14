@@ -36,7 +36,24 @@ function noCacheHeaders() {
 }
 
 function CSPHeaders($view, $nonce) {
-  header("Content-Security-Policy-Report-Only: script-src 'self' 'nonce-$nonce'");
+  switch ($view) {
+    case "bandwidth":
+    case "function":
+    case "logout":
+    case "options":
+    case "version": {
+      // Enforce script-src on pages where inline scripts and event handlers have been fixed.
+      // 'unsafe-inline' is only for backwards compatibility with browsers which
+      // only support CSP 1 (with no nonce-* support).
+      header("Content-Security-Policy: script-src 'unsafe-inline' 'self' 'nonce-$nonce'");
+      break;
+    }
+    default: {
+      // Use Report-Only mode on all other pages.
+      header("Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self' 'nonce-$nonce'");
+      break;
+    }
+  }
 }
 
 function CORSHeaders() {

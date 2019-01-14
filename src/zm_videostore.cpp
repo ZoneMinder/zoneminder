@@ -554,7 +554,7 @@ bool VideoStore::setup_resampler() {
 #else
   audio_out_ctx->refcounted_frames = 1;
 #endif
-  if ( ! audio_out_ctx->channel_layout ) {
+  if ( !audio_out_ctx->channel_layout ) {
     Debug(3, "Correcting channel layout from (%d) to (%d)",
         audio_out_ctx->channel_layout,
         av_get_default_channel_layout(audio_out_ctx->channels)
@@ -696,7 +696,9 @@ bool VideoStore::setup_resampler() {
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
+  out_frame->channels = audio_out_ctx->channels;
   out_frame->channel_layout = audio_out_ctx->channel_layout;
+  out_frame->sample_rate = audio_out_ctx->sample_rate;
 
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
@@ -717,7 +719,7 @@ bool VideoStore::setup_resampler() {
   if ( avcodec_fill_audio_frame(out_frame, audio_out_ctx->channels,
                                audio_out_ctx->sample_fmt,
                                (const uint8_t *)converted_in_samples,
-                               audioSampleBuffer_size, 0) < 0) {
+                               audioSampleBuffer_size, 0) < 0 ) {
     Error("Could not allocate converted in sample pointers");
     return false;
   }
@@ -920,11 +922,10 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
   #endif
-    int frame_size = out_frame->nb_samples;
-
     // Resample the in into the audioSampleBuffer until we proceed the whole
     // decoded data
-    Debug(2, "Converting  %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
+    zm_dump_frame(in_frame, "In frame");
+    zm_dump_frame(out_frame, "Out frame before resample");
     if (
   #if defined(HAVE_LIBSWRESAMPLE)
 #if 0
@@ -958,7 +959,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
 
-    Debug(3, "Output_frame samples (%d)", out_frame->nb_samples);
     // Read a frame audio data from the resample fifo
     if ( avresample_read(resample_ctx, out_frame->data, frame_size) !=
         frame_size) {
@@ -966,10 +966,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
   #endif
-    Debug(2,
-          "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d)",
-          out_frame->nb_samples, out_frame->format,
-          out_frame->sample_rate, out_frame->channel_layout);
+    zm_dump_frame(out_frame,"Out frame after resample");
 
     av_init_packet(&opkt);
     Debug(5, "after init packet");

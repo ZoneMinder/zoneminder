@@ -78,6 +78,7 @@ class EventStream : public StreamBase {
     int curr_frame_id;
     double curr_stream_time;
     bool  send_frame;
+    struct timeval start;     // clock time when started the event
 
     EventData *event_data;
     FFmpeg_Input  *ffmpeg_input;
@@ -108,7 +109,6 @@ class EventStream : public StreamBase {
       input_codec = 0;
 
       ffmpeg_input = NULL;
-
     }
     void setStreamStart( uint64_t init_event_id, unsigned int init_frame_id );
     void setStreamStart( int monitor_id, time_t event_time );

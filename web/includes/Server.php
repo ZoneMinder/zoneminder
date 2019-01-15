@@ -214,5 +214,19 @@ class Server {
     return $results[0];
   }
 
+  public function to_json() {
+    $json = array();
+    foreach ($this->defaults as $key => $value) {
+      if ( is_callable(array($this, $key)) ) {
+        $json[$key] = $this->$key();
+      } else if ( array_key_exists($key, $this) ) {
+        $json[$key] = $this->{$key};
+      } else {
+        $json[$key] = $this->defaults{$key};
+      }
+    }
+    return json_encode($json);
+  }
+
 } # end class Server
 ?>

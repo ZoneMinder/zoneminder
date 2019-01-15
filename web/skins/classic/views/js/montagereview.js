@@ -53,6 +53,10 @@ function getFrame( monId, time ) {
       continue;
     
     var duration = Event.EndTimeSecs - Event.StartTimeSecs;
+    if ( ! Event.FramesById ) {
+      console.log("No FramesById for event " + event_id);
+      return;
+    }
     var frame = parseInt((time - Event.StartTimeSecs)/(duration)*Object.keys(Event.FramesById).length)+1;
     // Need to get frame by time, not some fun calc that assumes frames have the same mlength.
     // Frames are not sorted.
@@ -119,7 +123,7 @@ function getImageSource( monId, time ) {
     var storage = Storage[Event.StorageId];
     // monitorServerId may be 0, which gives us the default Server entry
     var server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
-    return server.PathToIndex() +
+    return server.PathToIndex +
 	    '?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
 	    "&width=" + monitorCanvasObj[monId].width + 
 	    "&height=" + monitorCanvasObj[monId].height;

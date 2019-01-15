@@ -127,7 +127,8 @@ echo "\nvar Servers = [];\n";
 $Server = new Server();
 echo 'Servers[0] = new Server(' . json_encode($Server). ");\n";
 foreach ( Server::find() as $Server ) {
-  echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
+  echo '//'.$Server->PathToIndex()."\n"; // Otherwise get null when json_encoding
+  echo 'Servers[' . $Server->Id() . '] = new Server(' . $Server->to_json(). ");\n";
 }
 
 

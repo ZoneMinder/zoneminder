@@ -145,7 +145,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->storage_id = dbrow[1] ? atoi( dbrow[1] ) : 0;
   event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[2]);
   event_data->start_time = atoi(dbrow[3]);
-  event_data->duration = atof(dbrow[4]);
+  event_data->duration = dbrow[4] ? atof(dbrow[4]) : 0.0;
   strncpy( event_data->video_file, dbrow[5], sizeof(event_data->video_file)-1 );
   std::string scheme_str = std::string(dbrow[6]);
   if ( scheme_str == "Deep" ) {
@@ -762,7 +762,7 @@ Debug(1, "Loading image");
   }
   last_frame_sent = TV_2_FLOAT(now);
   return true;
-}
+} // sendFrame(int delta_us)
 
 void EventStream::runStream() {
   openComms();
@@ -780,11 +780,12 @@ void EventStream::runStream() {
 
   Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration);
   updateFrameRate((double)event_data->frame_count/event_data->duration);
+    gettimeofday(&start, NULL);
 
   while( !zm_terminate ) {
     gettimeofday(&now, NULL);
 
-    unsigned int delta_us = 0;
+    int delta_us = 0;
     send_frame = false;
 
     // commands may set send_frame to true
@@ -850,6 +851,7 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
         Debug(3,"delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
         // but must not exceed maxfps
         delta_us = max(delta_us, 1000000 / maxfps);
+        Debug(3,"delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
         send_frame = true;
       }
     } else if ( step != 0 ) {
@@ -870,18 +872,34 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
       if ( !sendFrame(delta_us) )
         zm_terminate = true;
 
+
     curr_stream_time = frame_data->timestamp;
 
     if ( !paused ) {
       curr_frame_id += (replay_rate>0) ? 1 : -1;
+
+
+
       if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
         Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
         curr_frame_id = 1;
       }
+      frame_data = &event_data->frames[curr_frame_id-1];
+
+      uint64_t now_usec = (now.tv_sec * 1000000 + now.tv_usec);
+      uint64_t start_usec = (start.tv_sec * 1000000 + start.tv_usec);
+      uint64_t frame_delta = frame_data->delta*1000000;
+
+      delta_us = frame_delta - (now_usec - start_usec);
+      Debug(2, "New delta_us now %" PRIu64 " - start %" PRIu64 " = %d - frame %" PRIu64 " = %d",
+          now_usec, start_usec, now_usec-start_usec, frame_delta,
+          delta_us);
+
       if ( send_frame && type != STREAM_MPEG ) {
-        Debug( 3, "dUs: %d", delta_us );
-        if ( delta_us )
+        if ( delta_us > 0 ) {
+          Debug( 3, "dUs: %d", delta_us );
           usleep( delta_us );
+        }
       }
     } else {
       usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );

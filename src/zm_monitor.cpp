@@ -1347,8 +1347,6 @@ bool Monitor::Analyse() {
     auto_resume_time = 0;
   }
 
-  static int last_section_mod = 0;
-
   if ( Enabled() ) {
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
@@ -1384,7 +1382,6 @@ bool Monitor::Analyse() {
           if ( event && !signal ) {
             Info( "%s: %03d - Closing event %" PRIu64 ", signal loss", name, image_count, event->Id() );
             closeEvent();
-            last_section_mod = 0;
           }
           if ( !event ) {
             if ( cause.length() )
@@ -1455,29 +1452,14 @@ bool Monitor::Analyse() {
           if ( event ) {
             Debug(3, "Have signal and recording with open event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
 
-            if ( section_length && ( timestamp->tv_sec >= section_length ) ) {
-              // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
-              int section_mod = timestamp->tv_sec % section_length;
-              Debug(3,
-                  "Section length (%d) Last Section Mod(%d), new section mod(%d)",
-                  section_length, last_section_mod, section_mod
+            if ( section_length && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length ) ) {
+              Info( "%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
+                  name, image_count, event->Id(),
+                  timestamp->tv_sec, video_store_data->recording.tv_sec, 
+                  timestamp->tv_sec - video_store_data->recording.tv_sec,
+                  section_length
                   );
-              if ( section_mod < last_section_mod ) {
-                //if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
-                  //if ( state == TAPE ) {
-                    //shared_data->state = state = IDLE;
-                    //Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
-                  //} else {
-                    Info( "%s: %03d - Closing event %" PRIu64 ", section end forced ", name, image_count, event->Id() );
-                  //}
-                  closeEvent();
-                  last_section_mod = 0;
-                //} else {
-                  //Debug( 2, "Time to close event, but state (%d) is not IDLE or TAPE and event_close_mode is not CLOSE_TIME (%d)", state, event_close_mode );
-                //}
-              } else {
-                last_section_mod = section_mod;
-              }
+              closeEvent();
             } // end if section_length
           } // end if event
 
@@ -1737,11 +1719,10 @@ Error("Creating new event when one exists");
       }
     } else {
       if ( event ) {
-        Info( "%s: %03d - Closing event %" PRIu64 ", trigger off", name, image_count, event->Id() );
+        Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name, image_count, event->Id());
         closeEvent();
       }
       shared_data->state = state = IDLE;
-      last_section_mod = 0;
       trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 

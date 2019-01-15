@@ -815,33 +815,37 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   }
   // Just because the in stream wraps, doesn't mean the out needs to.  Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.  So need to handle in wrap, without causing out wrap.
   if ( ipkt->dts != AV_NOPTS_VALUE ) {
+#if 0
     if ( (!video_first_dts) && ( ipkt->dts >= 0 ) ) {
       // This is the first packet.
       opkt.dts = 0;
       Debug(1, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
       video_first_dts = ipkt->dts;
     } else {
+#endif
       opkt.dts = av_rescale_q(
-          ipkt->dts - video_first_dts,
+          ipkt->dts - video_first_pts,
           video_in_stream->time_base,
           video_out_stream->time_base
           );
-      Debug(3, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_dts(%" PRId64 ")",
-          opkt.dts, ipkt->dts, video_first_dts);
+      Debug(3, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_pts(%" PRId64 ")",
+          opkt.dts, ipkt->dts, video_first_pts);
       video_last_dts = ipkt->dts;
+#if 0
     }
-  } else {
-    Debug(3, "opkt.dts = undef");
-    opkt.dts = AV_NOPTS_VALUE;
-  }
-
-  if ( opkt.dts > opkt.pts ) {
-    Debug(1,
+#endif
+    if ( opkt.dts > opkt.pts ) {
+      Debug(1,
           "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 "). Decompression must happen "
           "before presentation.",
           opkt.dts, opkt.pts);
-    opkt.dts = opkt.pts;
+      opkt.dts = opkt.pts;
+    }
+  } else {
+    Debug(3, "opkt.dts = undef");
+    opkt.dts = 0;
   }
+
 
   opkt.flags = ipkt->flags;
   opkt.pos = -1;

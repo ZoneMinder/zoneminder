@@ -718,15 +718,15 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     bytes += packet.size;
     dumpPacket(mFormatContext->streams[packet.stream_index], &packet, "Captured");
 
-    //Video recording
-    if ( keyframe && recording.tv_sec ) {
+    // Video recording
+    if ( recording.tv_sec ) {
 
       uint32_t last_event_id = monitor->GetLastEventId();
       uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
 
       if ( last_event_id != video_writer_event_id ) {
         Debug(2, "Have change of event.  last_event(%d), our current (%d)",
-			last_event_id, video_writer_event_id);
+            last_event_id, video_writer_event_id);
 
         if ( videoStore ) {
           Info("Re-starting video storage module");
@@ -800,7 +800,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
             packet_count += 1;
             //Write the packet to our video store
-            Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
+            Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)",
+                avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
             if ( avp->stream_index == mVideoStreamId ) {
               ret = videoStore->writeVideoFramePacket( avp );
               have_video_keyframe = true;
@@ -822,35 +823,34 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     } else {
       // Not recording
       
-      if ( videoStore && keyframe ) {
-        Info("Deleting videoStore instance");
+      if ( videoStore ) {
+        Debug(1,"Deleting videoStore instance");
         delete videoStore;
         videoStore = NULL;
         have_video_keyframe = false;
         monitor->SetVideoWriterEventId(0);
       }
-      if ( ! videoStore ) {
-        // Buffer video packets, since we are not recording.
-        // All audio packets are keyframes, so only if it's a video keyframe
-        if ( packet.stream_index == mVideoStreamId ) {
-          if ( keyframe ) {
-            packetqueue.clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
-            packetqueue.queuePacket(&packet);
-          } else if ( packetqueue.size() ) {
-            Debug(3, "queue has %d", packetqueue.size());
-            // it's a keyframe or we already have something in the queue
-            packetqueue.queuePacket(&packet);
-          } 
-        } else if ( packet.stream_index == mAudioStreamId ) {
-        // The following lines should ensure that the queue always begins with a video keyframe
-  //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
-          if ( record_audio && packetqueue.size() ) { 
-            // if it's audio, and we are doing audio, and there is already something in the queue
-            packetqueue.queuePacket(&packet);
-          }
-        }
-      }
     } // end if recording or not
+
+    // Buffer video packets, we need to always have from the last keyframe buffered
+    // All audio packets are keyframes, so only if it's a video keyframe
+    if ( packet.stream_index == mVideoStreamId ) {
+      if ( keyframe ) {
+        packetqueue.clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
+        packetqueue.queuePacket(&packet);
+      } else if ( packetqueue.size() ) {
+        Debug(3, "queue has %d", packetqueue.size());
+        // it's a keyframe or we already have something in the queue
+        packetqueue.queuePacket(&packet);
+      } 
+    } else if ( packet.stream_index == mAudioStreamId ) {
+      // The following lines should ensure that the queue always begins with a video keyframe
+      //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
+      if ( record_audio && packetqueue.size() ) { 
+        // if it's audio, and we are doing audio, and there is already something in the queue
+        packetqueue.queuePacket(&packet);
+      }
+    }
 
     if ( packet.stream_index == mVideoStreamId ) {
       // only do decode if we have had a keyframe, should save a few cycles.

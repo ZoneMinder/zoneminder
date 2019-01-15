@@ -57,7 +57,7 @@ xhtmlHeaders(__FILE__, translate('Zones') );
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('AddNewZone') ?>" onclick="createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=0', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+          <?php echo makePopupButton('?view=zone&mid=' . $mid . '&zid=0', 'zmZone', array('zone', $monitor->Width(), $monitor->Height()), translate('AddNewZone'), canEdit('Monitors')); ?>
           <input type="submit" name="deleteBtn" value="<?php echo translate('Delete') ?>" disabled="disabled"/>
         </div>
         <table id="contentTable" class="major" cellspacing="0">
@@ -74,7 +74,7 @@ xhtmlHeaders(__FILE__, translate('Zones') );
 foreach( $zones as $zone ) {
 ?>
             <tr>
-              <td class="colName"><a href="#" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width() ?>, <?php echo $monitor->Height() ?> ); return( false );"><?php echo $zone['Name'] ?></a></td>
+              <td class="colName"><?php echo makePopupLink('?view=zone&mid=' . $mid . '&zid=' . $zone['Id'], 'zmZone', array('zone', $monitor->Width(), $monitor->Height()), $zone['Name'], true, 'onclick="streamCmdQuit( true ); return( false );"'); ?></td>
               <td class="colType"><?php echo $zone['Type'] ?></td>
               <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor->Width()*$monitor->Height()) ) ?></td>
               <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
@@ -90,7 +90,12 @@ foreach( $zones as $zone ) {
 <?php
       foreach( array_reverse($zones) as $zone ) {
 ?>
-          <polygon points="<?php echo $zone['AreaCoords'] ?>" class="<?php echo $zone['Type']?>" onclick="streamCmdQuit( true ); createPopup( '?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>', 'zmZone', 'zone', <?php echo $monitor->Width ?>, <?php echo $monitor->Height ?> ); return( false );"/>
+          <polygon points="<?php echo $zone['AreaCoords'] ?>" class="popup-link <?php echo $zone['Type']?>" onclick="streamCmdQuit( true ); return( false );"
+                   data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
+                   data-window-name="zmZone"
+                   data-window-tag="zone"
+                   data-window-width="<?php echo $monitor->Width ?>"
+                   data-window-height="<?php echo $monitor->Height ?>"/>
 <?php
       } // end foreach zone
 ?>

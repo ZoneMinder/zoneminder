@@ -400,14 +400,19 @@ function makeLink( $url, $label, $condition=1, $options='' ) {
 }
 
 function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options='' ) {
-  $string = '';
+  // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
+  $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
+  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
   if ( $condition ) {
-    if ( is_array( $winSize ) )
-      $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
-    else
-      $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
+    if ( is_array( $winSize ) ) {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
+      $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
+      $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
+    } else {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
+    }
 
-    $string .= '<a href="'.$url.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($options?(' '.$options):'').'>';
+    $string .= ($options ? (' ' . $options ) : '') . '>';
   } else {
     $string .= '<a>';
   }
@@ -417,11 +422,20 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
 }
 
 function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, $options='' ) {
-  if ( is_array( $winSize ) )
-    $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
-  else
-    $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
-  $string = '<input type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
+  $string = '<input type="button" class="popup-link" value="' . htmlspecialchars($buttonValue) . '"';
+  $string .= ' data-url="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
+  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
+    if ( is_array( $winSize ) ) {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
+      $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
+      $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
+    } else {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
+    }
+    if ($condtion) {
+     $string .= ' disabled="disabled"';
+    }
+    $string  .=  ($options ? (' ' . $options) : '') . '/>';
   return( $string );
 }
 
@@ -2256,6 +2270,29 @@ function human_filesize($size, $precision = 2) {
 
 function csrf_startup() {
     csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
+}
+
+function check_timezone() {
+  $now = new DateTime();
+
+  $sys_tzoffset = trim(shell_exec('date "+%z"'));
+  $php_tzoffset = trim($now->format('O'));
+  $mysql_tzoffset = trim(dbFetchOne("SELECT TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),'%H%i');",'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'));
+
+  Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20 
+                 PHP timezone offset determine to be: $php_tzoffset,\x20 
+                 Mysql timezone offset determine to be: $mysql_tzoffset
+               ");
+
+  if ( $sys_tzoffset != $php_tzoffset )
+    Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
+
+  if ( $sys_tzoffset != $mysql_tzoffset )
+    Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");
+
+  if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone')))
+    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+
 }
 
 function unparse_url($parsed_url, $substitutions = array() ) { 

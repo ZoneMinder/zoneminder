@@ -118,6 +118,26 @@ function createPopup( url, name, tag, width, height ) {
   }
 }
 
+$j(document).ready(function() {
+  $j(".popup-link").click(function onClick(evt) {
+    var el = this;
+    var url;
+    if (el.hasAttribute("href")) {
+      // <a>
+      url = el.getAttribute("href");
+    } else {
+      // buttons
+      url = el.getAttribute("data-url");
+    }
+    var name = el.getAttribute("data-window-name");
+    var tag = el.getAttribute("data-window-tag");
+    var width = el.getAttribute("data-window-width");
+    var height = el.getAttribute("data-window-height");
+    createPopup(url, name, tag, width, height);
+    evt.preventDefault();
+  });
+});
+
 function createEventPopup( eventId, eventFilter, width, height ) {
   var url = '?view=event&eid='+eventId;
   if ( eventFilter )

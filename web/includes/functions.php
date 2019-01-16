@@ -454,7 +454,7 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
     } else {
       $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
     }
-    if ($condtion) {
+    if ($condition) {
      $string .= ' disabled="disabled"';
     }
     $string  .=  ($options ? (' ' . $options) : '') . '/>';

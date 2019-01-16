@@ -104,7 +104,7 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
         </table>
         <div id="contentButtons">
           <button name="action" type="submit" value="Save"><?php echo translate('Save') ?></button>
-          <button type="button" onclick="closeWindow();"><?php echo translate('Cancel') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

@@ -69,7 +69,7 @@ xhtmlHeaders(__FILE__, validHtmlStr($monitor['Name'])." - ".translate('Settings'
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Close') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

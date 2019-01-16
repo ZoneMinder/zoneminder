@@ -179,11 +179,11 @@ if ( $showZones ) {
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('onchange'=>'selectLayout(this);', 'id'=>'zmMontageLayout')); ?>
           </span>
           <input type="hidden" name="Positions"/>
-          <input type="button" id="EditLayout" value="<?php echo translate('EditLayout') ?>" onclick="edit_layout(this);"/>
+          <input type="button" id="EditLayout" value="<?php echo translate('EditLayout') ?>" data-on-click-this="edit_layout"/>
           <span id="SaveLayout" style="display:none;">
             <input type="text" name="Name" placeholder="Enter new name for layout if desired" />
-            <input type="button" value="<?php echo translate('Save') ?>" onclick="save_layout(this);"/>
-            <input type="button" value="Cancel" onclick="cancel_layout(this);"/>
+            <input type="button" value="<?php echo translate('Save') ?>" data-on-click-this="save_layout"/>
+            <input type="button" value="Cancel" data-on-click-this="cancel_layout"/>
           </span>
         </form>
       </div>

@@ -263,12 +263,12 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 <div id="imagevideo" align="center"></div>
 <br>
 <div align="center">
-<button onclick="stepbackward()">< Step</button><button 
-	id="btnrwd" onclick="rewind()" >Rwd</button><button
-	id="btnplay" onclick="playstop()">Stop</button><button
-	onclick="stepforward()">Step ></button><button
-	id="btnspeedup" onclick="speedup()">speedup</button><button
-	id="btnspeeddown" onclick="speeddown()">slowdown</button>
+<button data-on-click="stepbackward">< Step</button><button 
+	id="btnrwd" data-on-click="rewind" >Rwd</button><button
+	id="btnplay" data-on-click="playstop">Stop</button><button
+	data-on-click="stepforward">Step ></button><button
+	id="btnspeedup" data-on-click="speedup">speedup</button><button
+	id="btnspeeddown" data-on-click="speeddown">slowdown</button>
 </div>
 <div align="center"><div class="horizontal_track" >
 	<div class="horizontal_slit" >&nbsp;</div>

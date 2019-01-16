@@ -99,7 +99,7 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$Server->Name());
         <div id="contentButtons">
           <input type="hidden" name="action" value="Save"/>
           <input type="submit" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

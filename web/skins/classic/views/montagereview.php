@@ -255,19 +255,19 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
         <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
       </div>
       <div id="ButtonsDiv">
-        <button type="button" id="panleft"   onclick="click_panleft();"    >&lt; <?php echo translate('Pan') ?></button>
-        <button type="button" id="zoomin"    onclick="click_zoomin();"     ><?php echo translate('In +') ?></button>
-        <button type="button" id="zoomout"   onclick="click_zoomout();"    ><?php echo translate('Out -') ?></button>
-        <button type="button" id="lasteight" onclick="click_lastEight();"  ><?php echo translate('8 Hour') ?></button>
-        <button type="button" id="lasthour"  onclick="click_lastHour();"   ><?php echo translate('1 Hour') ?></button>
-        <button type="button" id="allof"     onclick="click_all_events();" ><?php echo translate('All Events') ?></button>
+        <button type="button" id="panleft"   data-on-click="click_panleft"    >&lt; <?php echo translate('Pan') ?></button>
+        <button type="button" id="zoomin"    data-on-click="click_zoomin"     ><?php echo translate('In +') ?></button>
+        <button type="button" id="zoomout"   data-on-click="click_zoomout"    ><?php echo translate('Out -') ?></button>
+        <button type="button" id="lasteight" data-on-click="click_lastEight"  ><?php echo translate('8 Hour') ?></button>
+        <button type="button" id="lasthour"  data-on-click="click_lastHour"   ><?php echo translate('1 Hour') ?></button>
+        <button type="button" id="allof"     data-on-click="click_all_events" ><?php echo translate('All Events') ?></button>
         <button type="button" id="liveButton"      onclick="setLive(1-liveMode); console.log('live');return false;"><?php echo translate('Live') ?></button>
         <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
-        <button type="button" id="panright"  onclick="click_panright();"   ><?php echo translate('Pan') ?> &gt;</button>
+        <button type="button" id="panright"  data-on-click="click_panright"   ><?php echo translate('Pan') ?> &gt;</button>
 <?php
 if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
 ?>
-        <button type="button" id="downloadVideo" onclick="click_download();"><?php echo translate('Download Video') ?></button>
+        <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php
 }
 ?>

@@ -39,7 +39,7 @@ if ( ZM_USER_SELF_EDIT ) {
   echo makePopupButton('?view=user&uid=' . $user['Id'], 'zmUser', 'user', translate('Config'));
 }
 ?>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </p>
       </form>
     </div>

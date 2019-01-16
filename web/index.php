@@ -172,6 +172,10 @@ $view = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
+# Add CSP Headers
+$cspNonce = bin2hex(openssl_random_pseudo_bytes(16));
+CSPHeaders($view, $cspNonce);
+
 $request = null;
 if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);

@@ -48,7 +48,7 @@ xhtmlHeaders(__FILE__, translate('Zones') );
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
+      <div id="headerButtons"><a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a></div>
       <h2><?php echo translate('Zones') ?></h2>
     </div>
     <div id="content" style="width:<?php echo $monitor->Width() ?>px; height:<?php echo $monitor->Height() ?>px; position:relative; margin: 0 auto;">
@@ -77,7 +77,7 @@ foreach( $zones as $zone ) {
               <td class="colName"><?php echo makePopupLink('?view=zone&mid=' . $mid . '&zid=' . $zone['Id'], 'zmZone', array('zone', $monitor->Width(), $monitor->Height()), $zone['Name'], true, 'onclick="streamCmdQuit( true ); return( false );"'); ?></td>
               <td class="colType"><?php echo $zone['Type'] ?></td>
               <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor->Width()*$monitor->Height()) ) ?></td>
-              <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" onclick="configureDeleteButton( this );"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
 }

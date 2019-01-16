@@ -150,24 +150,25 @@ function csrf_ob_handler($buffer, $flags) {
             return $buffer;
         }
     }
+    global $cspNonce;
     $tokens = csrf_get_tokens();
     $name = $GLOBALS['csrf']['input-name'];
     $endslash = $GLOBALS['csrf']['xhtml'] ? ' /' : '';
     $input = "<input type='hidden' name='$name' value=\"$tokens\"$endslash>";
     $buffer = preg_replace('#(<form[^>]*method\s*=\s*["\']post["\'][^>]*>)#i', '$1' . $input, $buffer);
     if ($GLOBALS['csrf']['frame-breaker']) {
-        $buffer = str_ireplace('</head>', '<script type="text/javascript">if (top != self) {top.location.href = self.location.href;}</script></head>', $buffer);
+        $buffer = str_ireplace('</head>', '<script nonce="'.$cspNonce.'">if (top != self) {top.location.href = self.location.href;}</script></head>', $buffer);
     }
     if ($js = $GLOBALS['csrf']['rewrite-js']) {
         $buffer = str_ireplace(
             '</head>',
-            '<script type="text/javascript">'.
+            '<script nonce="'.$cspNonce.'">'.
                 'var csrfMagicToken = "'.$tokens.'";'.
                 'var csrfMagicName = "'.$name.'";</script>'.
-            '<script src="'.$js.'" type="text/javascript"></script></head>',
+            '<script src="'.$js.'"></script></head>',
             $buffer
         );
-        $script = '<script type="text/javascript">CsrfMagic.end();</script>';
+        $script = '<script nonce="'.$cspNonce.'">CsrfMagic.end();</script>';
         $buffer = str_ireplace('</body>', $script . '</body>', $buffer, $count);
         if (!$count) {
             $buffer .= $script;
@@ -183,6 +184,7 @@ function csrf_ob_handler($buffer, $flags) {
  */
 function csrf_check($fatal = true) {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') return true;
+    global $cspNonce;
     csrf_start();
     $name = $GLOBALS['csrf']['input-name'];
     $ok = false;

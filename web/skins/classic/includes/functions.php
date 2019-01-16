@@ -120,7 +120,7 @@ echo output_link_if_exists( array(
   <script src="skins/<?php echo $skin; ?>/js/dateTimePicker/jquery-ui-timepicker-addon.js"></script>
 
   <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
-  <script> 
+  <script nonce="<?php echo $cspNonce; ?>">
   jQuery(document).ready(function(){
     jQuery("#flip").click(function(){
       jQuery("#panel").slideToggle("slow");
@@ -150,7 +150,7 @@ echo output_link_if_exists( array(
 <?php
   if ( $skinJsPhpFile ) {
 ?>
-  <script>
+  <script nonce="<?php echo $cspNonce; ?>">
   //<![CDATA[
   <!--
 <?php
@@ -163,7 +163,7 @@ echo output_link_if_exists( array(
   }
   if ( $viewJsPhpFile ) {
 ?>
-  <script>
+  <script nonce="<?php echo $cspNonce; ?>">
   //<![CDATA[
   <!--
 <?php
@@ -397,6 +397,7 @@ if ($reload == 'reload') return ob_get_clean();
 } // end function getNavBarHTML()
 
 function xhtmlFooter() {
+  global $cspNonce;
   global $view;
   global $skin;
   global $running;
@@ -404,8 +405,8 @@ function xhtmlFooter() {
     include("skins/$skin/views/state.php");
   }
 ?>
+  <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
-  <script type="text/javascript">$j('.chosen').chosen();</script>
 </html>
 <?php
 } // end xhtmlFooter

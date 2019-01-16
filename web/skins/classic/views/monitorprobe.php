@@ -333,9 +333,9 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
           <?php echo buildSelect('probe', $cameras, 'configureButtons(this)'); ?>
         </p>
         <div id="contentButtons">
-        <button type="button" name="saveBtn" value="Save" onclick="submitCamera(this);" disabled="disabled">
+        <button type="button" name="saveBtn" value="Save" data-on-click-this="submitCamera" disabled="disabled">
         <?php echo translate('Save') ?></button>
-        <button type="button" onclick="closeWindow();"><?php echo translate('Cancel') ?></button>
+        <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

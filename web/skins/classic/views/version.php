@@ -55,7 +55,7 @@ if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) )
       <p class="errorText"><?php echo sprintf( $CLANG['VersionMismatch'], ZM_VERSION, ZM_DYN_DB_VERSION ) ?></p>
       <p><?php echo translate('RunLocalUpdate') ?></p>
       <div id="contentButtons">
-        <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
+        <input type="button" value="<?php echo translate('Close') ?>" data-on-click="closeWindow"/>
       </div>
 <?php
 }
@@ -64,9 +64,9 @@ elseif ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) )
 ?>
       <p><?php echo sprintf( $CLANG['RunningRecentVer'], ZM_VERSION ) ?></p>
       <p><?php echo translate('UpdateNotNecessary') ?></p>
-      <p><input type="button" value="<?php echo translate('GoToZoneMinder') ?>" onclick="zmWindow()"/></p>
+      <p><input type="button" value="<?php echo translate('GoToZoneMinder') ?>" data-on-click="zmWindow"/></p>
       <div id="contentButtons">
-        <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
+        <input type="button" value="<?php echo translate('Close') ?>" data-on-click="closeWindow"/>
       </div>
 <?php
 }
@@ -80,8 +80,8 @@ else
         <p><?php echo sprintf( $CLANG['LatestRelease'], ZM_DYN_LAST_VERSION, ZM_VERSION ) ?></p>
         <p><?php echo buildSelect( "option", $options ); ?></p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )"/>
-          <input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Apply') ?>" data-on-click-this="submitForm"/>
+          <input type="button" value="<?php echo translate('Close') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
 <?php

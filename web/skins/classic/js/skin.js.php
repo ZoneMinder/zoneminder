@@ -64,7 +64,7 @@ if ( ( ! empty($closePopup) ) and ( $closePopup == true ) ) {
 
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
-var imagePrefix = "<?php echo "?view=image&eid=" ?>";
+var imagePrefix = "<?php echo '?view=image&eid=' ?>";
 
 var auth_hash;
 <?php if ( ZM_OPT_USE_AUTH && ZM_AUTH_HASH_LOGINS ) { ?>

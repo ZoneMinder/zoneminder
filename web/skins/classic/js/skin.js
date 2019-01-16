@@ -118,6 +118,46 @@ function createPopup( url, name, tag, width, height ) {
   }
 }
 
+$j(document).ready(function() {
+  $j(".popup-link").click(function onClick(evt) {
+    var el = this;
+    var url;
+    if (el.hasAttribute("href")) {
+      // <a>
+      url = el.getAttribute("href");
+    } else {
+      // buttons
+      url = el.getAttribute("data-url");
+    }
+    var name = el.getAttribute("data-window-name");
+    var tag = el.getAttribute("data-window-tag");
+    var width = el.getAttribute("data-window-width");
+    var height = el.getAttribute("data-window-height");
+    createPopup(url, name, tag, width, height);
+    evt.preventDefault();
+  });
+
+  // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
+  document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
+    var fnName = el.getAttribute("data-on-click-this");
+    el.onclick = window[fnName].bind(el, el);
+  });
+
+  // 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
+  document.querySelectorAll("a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
+    var fnName = el.getAttribute("data-on-click");
+    el.onclick = function() {
+      window[fnName]();
+    };
+  });
+
+  // 'data-on-change' adds an event listener for the global function in the attribute value when a change happens.
+  document.querySelectorAll("select[data-on-change], input[data-on-change]").forEach(function attachOnChange(el) {
+    var fnName = el.getAttribute("data-on-change");
+    el.onchange = window[fnName];
+  });
+});
+
 function createEventPopup( eventId, eventFilter, width, height ) {
   var url = '?view=event&eid='+eventId;
   if ( eventFilter )
@@ -262,6 +302,10 @@ function submitTab( tab ) {
   form.action.value = "";
   form.tab.value = tab;
   form.submit();
+}
+
+function submitThisForm() {
+  this.form.submit();
 }
 
 function toggleCheckbox( element, name ) {

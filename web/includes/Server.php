@@ -9,8 +9,8 @@ class Server {
     'Name'        => '',
     'Protocol'    => '',
     'Hostname'    => '',
-    'Port'        =>  null,
-    'PathToIndex' => '/zm/index.php',
+    'Port'        => null,
+    'PathToIndex' => null,
     'PathToZMS'   => ZM_PATH_ZMS,
     'PathToApi'   => '/zm/api',
     'zmaudit'     => 1,
@@ -212,6 +212,20 @@ class Server {
       return;
     }
     return $results[0];
+  }
+
+  public function to_json() {
+    $json = array();
+    foreach ($this->defaults as $key => $value) {
+      if ( is_callable(array($this, $key)) ) {
+        $json[$key] = $this->$key();
+      } else if ( array_key_exists($key, $this) ) {
+        $json[$key] = $this->{$key};
+      } else {
+        $json[$key] = $this->defaults{$key};
+      }
+    }
+    return json_encode($json);
   }
 
 } # end class Server

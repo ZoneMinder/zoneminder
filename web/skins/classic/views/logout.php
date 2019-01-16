@@ -30,7 +30,7 @@ xhtmlHeaders(__FILE__, translate('Logout') );
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
         <input type="hidden" name="action" value="logout"/>
-        <input type="hidden" name="view" value="login"/>
+        <input type="hidden" name="view" value="logout"/>
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
         <p>
           <input type="submit" value="<?php echo translate('Logout') ?>"/>

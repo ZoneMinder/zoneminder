@@ -65,6 +65,7 @@ class EventStream : public StreamBase {
       FrameData       *frames;
       char            video_file[PATH_MAX];
       Storage::Schemes  scheme;
+      int             SaveJPEGs;
     };
 
   protected:

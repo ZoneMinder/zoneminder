@@ -24,7 +24,8 @@ function validateForm ( form ) {
   return true;
 }
 
-function updateButtons( element ) {
+function updateButtons() {
+  var element = this;
   var form = element.form;
 
   if ( element.type == 'checkbox' && element.checked ) {
@@ -97,7 +98,8 @@ function saveFilter( element ) {
   form.target = window.name;
   form.elements['action'].value = element.value;
   form.action = thisUrl + '?view=filter';
-  form.submit();
+  //form.submit();
+  // Submit is done by the button type="submit"
 }
 
 function deleteFilter( element, name ) {

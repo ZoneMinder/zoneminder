@@ -49,7 +49,7 @@ xhtmlHeaders(__FILE__, translate('Bandwidth') );
         <p><?php echo translate('SetNewBandwidth') ?></p>
         <p><?php echo buildSelect( "newBandwidth", $bandwidth_options ) ?></p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

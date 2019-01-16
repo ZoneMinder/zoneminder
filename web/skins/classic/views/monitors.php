@@ -88,7 +88,7 @@ The following monitors will have these settings update when you click Save:<br/>
         </p>
         <div id="contentButtons">
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>
-          <button type="button" onclick="closeWindow()"><?php echo translate('Cancel') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

@@ -452,7 +452,7 @@ private $control_fields = array(
     } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
-      $url = $Server->UrlToApi().'/monitors/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi().'/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmc.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
@@ -464,17 +464,8 @@ private $control_fields = array(
         }
       }
       Logger::Debug("sending command to $url");
-      $data = array('Monitor[Function]' => $this->{'Function'} );
 
-      // use key 'http' even if you send the request to https://...
-      $options = array(
-          'http' => array(
-            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-            'method'  => 'POST',
-            'content' => http_build_query($data)
-            )
-          );
-      $context  = stream_context_create($options);
+      $context  = stream_context_create();
       try {
         $result = file_get_contents($url, false, $context);
         if ($result === FALSE) { /* Handle error */ 
@@ -510,6 +501,33 @@ private $control_fields = array(
           daemonControl( 'reload', 'zma', '-m '.$this->{'Id'} );
         }
       }
+    } else if ( $this->ServerId() ) {
+      $Server = $this->Server();
+
+      $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zma.json';
+      if ( ZM_OPT_USE_AUTH ) {
+        if ( ZM_AUTH_RELAY == 'hashed' ) {
+          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+        } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+          $url = '?user='.$_SESSION['username'];
+          $url = '?pass='.$_SESSION['password'];
+        } elseif ( ZM_AUTH_RELAY == 'none' ) {
+          $url = '?user='.$_SESSION['username'];
+        }
+      }
+      Logger::Debug("sending command to $url");
+
+      $context  = stream_context_create();
+      try {
+        $result = file_get_contents($url, false, $context);
+        if ($result === FALSE) { /* Handle error */
+          Error("Error restarting zma using $url");
+        }
+      } catch ( Exception $e ) {
+        Error("Except $e thrown trying to restart zma");
+      }
+    } else {
+      Error("Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.");
     } // end if we are on the recording server
   } // end public function zmaControl
 

@@ -475,15 +475,13 @@ if ( canEdit( 'Monitors' ) ) {
   }
 ?>
     <div id="headerButtons">
-      <a href="#" onclick="createPopup( '?view=monitorprobe&amp;mid=<?php echo $monitor->Id()?>', 'zmMonitorProbe<?php echo $monitor->Id()?>', 'monitorprobe' ); return( false );"><?php echo translate('Probe') ?></a>
+      <?php echo makePopupLink('?view=monitorprobe&mid=' . $monitor->Id(), 'zmMonitorProbe' . $monitor->Id(), 'monitorprobe', translate('Probe')); ?>
 <?php
    if ( ZM_HAS_ONVIF ) {
-?>
-      <a href="#" onclick="createPopup( '?view=onvifprobe&amp;mid=<?php echo $monitor->Id()?>', 'zmOnvifProbe<?php echo $monitor->Id()?>', 'onvifprobe' ); return( false );"><?php echo  translate('OnvifProbe') ?></a>
-<?php
+       echo makePopupLink('?view=onvifprobe&mid=' . $monitor->Id(), 'zmOnvifProbe' . $monitor->Id(), 'onvifprobe', translate('OnvifProbe'));
   }
 ?>
-      <a href="#" onclick="createPopup( '?view=monitorpreset&amp;mid=<?php echo $monitor->Id()?>', 'zmMonitorPreset<?php echo $monitor->Id()?>', 'monitorpreset' ); return( false );"><?php echo translate('Presets') ?></a>
+      <?php echo makePopupLink('?view=monitorpreset&mid=' . $monitor->Id(), 'zmMonitorPreset' . $monitor->Id(), 'monitorpreset', translate('Presets')); ?>
     </div>
 <?php
 } // end if canEdit('Monitors')
@@ -983,7 +981,7 @@ if ( $monitor->Type() == 'Local' ) {
     {
 ?>
             <tr><td><?php echo translate('Controllable') ?></td><td><input type="checkbox" name="newMonitor[Controllable]" value="1"<?php if ( $monitor->Controllable() ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><td><?php echo translate('ControlType') ?></td><td><?php echo buildSelect( "newMonitor[ControlId]", $controlTypes, 'loadLocations( this )' ); ?><?php if ( canEdit( 'Control' ) ) { ?>&nbsp;<a href="#" onclick="createPopup( '?view=controlcaps', 'zmControlCaps', 'controlcaps' );"><?php echo translate('Edit') ?></a><?php } ?></td></tr>
+            <tr><td><?php echo translate('ControlType') ?></td><td><?php echo buildSelect( "newMonitor[ControlId]", $controlTypes, 'loadLocations( this )' ); ?><?php if ( canEdit( 'Control' ) ) { ?>&nbsp;<?php echo makePopupLink('?view=controlcaps', 'zmControlCaps', 'controlcaps', translate('Edit')); ?></a><?php } ?></td></tr>
             <tr><td><?php echo translate('ControlDevice') ?></td><td><input type="text" name="newMonitor[ControlDevice]" value="<?php echo validHtmlStr($monitor->ControlDevice()) ?>" size="32"/></td></tr>
             <tr><td><?php echo translate('ControlAddress') ?></td><td><input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->ControlAddress()) ?>" size="32"/></td></tr>
             <tr><td><?php echo translate('AutoStopTimeout') ?></td><td><input type="text" name="newMonitor[AutoStopTimeout]" value="<?php echo validHtmlStr($monitor->AutoStopTimeout()) ?>" size="4"/></td></tr>
@@ -1055,7 +1053,7 @@ if ( $monitor->Type() == 'Local' ) {
         </table>
         <div id="contentButtons">
           <button type="submit" value="Save"<?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
-          <button onclick="closeWindow()"><?php echo translate('Cancel') ?></button>
+          <button data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

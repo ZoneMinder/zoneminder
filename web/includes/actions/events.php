@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !isset($_REQUEST['markEids']) ) {
+if ( !isset($_REQUEST['eids']) ) {
   Warning('Events actions require eids');
   return;
 }

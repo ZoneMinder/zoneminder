@@ -31,12 +31,16 @@ use warnings;
 require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Storage;
+require ZoneMinder::Frame;
 require Date::Manip;
 require File::Find;
 require File::Path;
 require File::Copy;
 require File::Basename;
 require Number::Bytes::Human;
+require Date::Parse;
+require POSIX;
+use Date::Format qw(time2str);
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -50,9 +54,8 @@ use parent qw(ZoneMinder::Object);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
-require Date::Parse;
 
-use vars qw/ $table $primary_key %fields $serial @identified_by/;
+use vars qw/ $table $primary_key %fields $serial @identified_by %defaults/;
 $table = 'Events';
 @identified_by = ('Id');
 $serial = $primary_key = 'Id';
@@ -84,10 +87,21 @@ $serial = $primary_key = 'Id';
   StateId
   Orientation
   DiskSpace
+  SaveJPEGs
   Scheme
 );
+%defaults = (
+  Cause =>  q`'Unknown'`,
+  DefaultVideo  => q`''`,
+  TotScore => '0',
+  Archived  =>  '0',
+  Videoed  =>  '0',
+  Uploaded  =>  '0',
+  Emailed   =>  '0',
+  Messaged  =>  '0',
+  Executed  =>  '0',
+);
 
-use POSIX;
 
 sub Time {
   if ( @_ > 1 ) {
@@ -101,56 +115,10 @@ sub Time {
   return $_[0]{Time};
 }
 
-sub Name {
-  if ( @_ > 1 ) {
-    $_[0]{Name} = $_[1];
-  }
-  return $_[0]{Name};
-} # end sub Name
-
-sub find {
-  shift if $_[0] eq 'ZoneMinder::Event';
-  my %sql_filters = @_;
-
-  my $sql = 'SELECT * FROM Events';
-  my @sql_filters;
-  my @sql_values;
-
-  if ( exists $sql_filters{Name} ) {
-    push @sql_filters , ' Name = ? ';
-    push @sql_values, $sql_filters{Name};
-  }
-  if ( exists $sql_filters{Id} ) {
-    push @sql_filters , ' Id = ? ';
-    push @sql_values, $sql_filters{Id};
-  }
-
-  $sql .= ' WHERE ' . join(' AND ', @sql_filters ) if @sql_filters;
-  $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
-
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-  my $res = $sth->execute( @sql_values )
-    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-  my @results;
-
-  while( my $db_filter = $sth->fetchrow_hashref() ) {
-    my $filter = new ZoneMinder::Event( $$db_filter{Id}, $db_filter );
-    push @results, $filter;
-  } # end while
-  $sth->finish();
-  return @results;
-}
-
-sub find_one {
-  my @results = find(@_);
-  return $results[0] if @results;
-}
-
 sub getPath {
   return Path( @_ );
 }
+
 sub Path {
   my $event = shift;
 
@@ -170,6 +138,7 @@ sub Path {
 
 sub Scheme {
   my $self = shift;
+
   $$self{Scheme} = shift if @_;
 
   if ( ! $$self{Scheme} ) {
@@ -186,16 +155,15 @@ sub Scheme {
 
 sub RelativePath {
   my $event = shift;
-  if ( @_ ) {
-    $$event{RelativePath} = $_[0];
-  }
+
+  $$event{RelativePath} = shift if @_;
 
   if ( ! $$event{RelativePath} ) {
     if ( $$event{Scheme} eq 'Deep' ) {
       if ( $event->Time() ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
-            strftime( '%y/%m/%d/%H/%M/%S',
+            POSIX::strftime( '%y/%m/%d/%H/%M/%S',
               localtime($event->Time())
               ),
             );
@@ -207,7 +175,7 @@ sub RelativePath {
       if ( $event->Time() ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
-            strftime( '%Y-%m-%d', localtime($event->Time())),
+            POSIX::strftime('%Y-%m-%d', localtime($event->Time())),
             $event->{Id},
             );
       } else {
@@ -227,16 +195,15 @@ sub RelativePath {
 
 sub LinkPath {
   my $event = shift;
-  if ( @_ ) {
-    $$event{LinkPath} = $_[0];
-  }
+
+  $$event{LinkPath} = shift if @_;
 
   if ( ! $$event{LinkPath} ) {
     if ( $$event{Scheme} eq 'Deep' ) {
       if ( $event->Time() ) {
         $$event{LinkPath} = join('/',
             $event->{MonitorId},
-            strftime( '%y/%m/%d',
+            POSIX::strftime( '%y/%m/%d',
               localtime($event->Time())
               ),
             '.'.$$event{Id}
@@ -483,9 +450,23 @@ sub delete_files {
   }
 } # end sub delete_files
 
+sub StorageId {
+  my $event = shift;
+  if ( @_ ) {
+    $$event{StorageId} = shift;
+    delete $$event{Storage};
+    delete $$event{Path};
+  }
+  return $$event{StorageId};
+}
+
 sub Storage {
   if ( @_ > 1 ) {
     $_[0]{Storage} = $_[1];
+    if ( $_[0]{Storage} ) {
+      $_[0]{StorageId} = $_[0]{Storage}->Id();
+      delete $_[0]{Path};
+    }
   }
   if ( ! $_[0]{Storage} ) {
     $_[0]{Storage} = new ZoneMinder::Storage($_[0]{StorageId});
@@ -692,6 +673,92 @@ Debug("Committing");
 Debug("Done deleting files, returning");
   return $error;
 } # end sub MoveTo
+
+# Assumes $path is absolute
+#
+sub recover_timestamps {
+  my ( $Event, $path ) = @_;
+  $path = $Event->Path() if ! $path;
+
+  if ( !opendir(DIR, $path) ) {
+    Error("Can't open directory '$path': $!");
+    return;
+  }
+  my @contents = readdir(DIR);
+  Debug('Have ' . @contents . " files in $path");
+  closedir(DIR);
+
+  my @mp4_files = grep( /^\d+\-video\.mp4$/, @contents);
+  if ( @mp4_files ) {
+    $$Event{DefaultVideo} = $mp4_files[0];
+  }
+
+  my @analyse_jpgs = grep( /^\d+\-analyse\.jpg$/, @contents);
+  if ( @analyse_jpgs ) {
+    $$Event{Save_JPEGs} |= 2;
+  }
+
+  my @capture_jpgs = grep( /^\d+\-capture\.jpg$/, @contents);
+  if ( @capture_jpgs ) {
+    $$Event{Frames} = scalar @capture_jpgs;
+    $$Event{Save_JPEGs} |= 1;
+    # can get start and end times from stat'ing first and last jpg
+    @capture_jpgs = sort { $a cmp $b } @capture_jpgs;
+    my $first_file = "$path/$capture_jpgs[0]";
+    ( $first_file ) = $first_file =~ /^(.*)$/;
+    my $first_timestamp = (stat($first_file))[9];
+
+    my $last_file = "$path/$capture_jpgs[@capture_jpgs-1]";
+    ( $last_file ) = $last_file =~ /^(.*)$/;
+    my $last_timestamp = (stat($last_file))[9];
+
+    my $duration = $last_timestamp - $first_timestamp;
+    $Event->Length($duration);
+    $Event->StartTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
+    $Event->EndTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $last_timestamp) );
+    Debug("From capture Jpegs have duration $duration = $last_timestamp - $first_timestamp : $$Event{StartTime} to $$Event{EndTime}");
+    $ZoneMinder::Database::dbh->begin_work();
+    foreach my $jpg ( @capture_jpgs ) {
+      my ( $id ) = $jpg =~ /^(\d+)\-capture\.jpg$/;
+
+      if ( ! ZoneMinder::Frame->find_one( EventId=>$$Event{Id}, FrameId=>$id ) ) {
+        my $file = "$path/$jpg";
+        ( $file ) = $file =~ /^(.*)$/;
+        my $timestamp = (stat($file))[9];
+        my $Frame = new ZoneMinder::Frame();
+        $Frame->save({
+            EventId=>$$Event{Id}, FrameId=>$id,
+            TimeStamp=>Date::Format::time2str('%Y-%m-%d %H:%M:%S',$timestamp),
+            Delta => $timestamp - $first_timestamp,
+            Type=>'Normal',
+            Score=>0,
+          });
+      }
+    }
+    $ZoneMinder::Database::dbh->commit();
+  } elsif ( @mp4_files ) {
+    my $file = "$path/$mp4_files[0]";
+    ( $file ) = $file =~ /^(.*)$/;
+
+    my $first_timestamp = (stat($file))[9];
+    my $output = `ffprobe $file 2>&1`;
+    my ($duration) = $output =~ /Duration: [:\.0-9]+/gm;
+    Debug("From mp4 have duration $duration, start: $first_timestamp");
+
+    my ( $h, $m, $s, $u );
+      if ( $duration =~ m/(\d+):(\d+):(\d+)\.(\d+)/ ) {
+        ( $h, $m, $s, $u ) = ($1, $2, $3, $4 );
+        Debug("( $h, $m, $s, $u ) from /^(\\d{2}):(\\d{2}):(\\d{2})\.(\\d+)/");
+      }
+    my $seconds = ($h*60*60)+($m*60)+$s;
+    $Event->Length($seconds.'.'.$u);
+    $Event->StartTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp) );
+    $Event->EndTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $first_timestamp+$seconds) );
+  }
+  if ( @mp4_files ) {
+    $Event->DefaultVideo($mp4_files[0]);
+  }
+}
 
 1;
 __END__

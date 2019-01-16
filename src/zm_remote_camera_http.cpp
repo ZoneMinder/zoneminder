@@ -35,6 +35,14 @@
 #include <netinet/in.h>
 #endif
 
+#if HAVE_LIBPCRE
+static RegExpr *header_expr = 0;
+static RegExpr *status_expr = 0;
+static RegExpr *connection_expr = 0;
+static RegExpr *content_length_expr = 0;
+static RegExpr *content_type_expr = 0;
+#endif
+
 RemoteCameraHttp::RemoteCameraHttp(
   unsigned int p_monitor_id,
   const std::string &p_method,
@@ -72,30 +80,25 @@ RemoteCameraHttp::RemoteCameraHttp(
 
   if ( p_method == "simple" )
     method = SIMPLE;
-  else if ( p_method == "regexp" )
+  else if ( p_method == "regexp" ) {
     method = REGEXP;
-  else
+  } else
     Fatal( "Unrecognised method '%s' when creating HTTP camera %d", p_method.c_str(), monitor_id );
-  if ( capture )
-  {
+  if ( capture ) {
     Initialise();
   }
 }
 
-RemoteCameraHttp::~RemoteCameraHttp()
-{
-  if ( capture )
-  {
+RemoteCameraHttp::~RemoteCameraHttp() {
+  if ( capture ) {
     Terminate();
   }
 }
 
-void RemoteCameraHttp::Initialise()
-{
+void RemoteCameraHttp::Initialise() {
   RemoteCamera::Initialise();
 
-  if ( request.empty() )
-  {
+  if ( request.empty() ) {
     request = stringtf( "GET %s HTTP/%s\r\n", path.c_str(), config.http_version );
     request += stringtf( "User-Agent: %s/%s\r\n", config.http_ua, ZM_VERSION );
     request += stringtf( "Host: %s\r\n", host.c_str());
@@ -107,8 +110,7 @@ void RemoteCameraHttp::Initialise()
     Debug( 2, "Request: %s", request.c_str() );
   }
 
-  if ( !timeout.tv_sec )
-  {
+  if ( !timeout.tv_sec ) {
     timeout.tv_sec = config.http_timeout/1000; 
     timeout.tv_usec = (config.http_timeout%1000)*1000;
   }
@@ -120,10 +122,25 @@ void RemoteCameraHttp::Initialise()
   mode = SINGLE_IMAGE;
   format = UNDEF;
   state = HEADER;
-}
+
+#if HAVE_LIBPCRE
+    if ( method == REGEXP ) {
+			if ( !header_expr )
+				header_expr = new RegExpr("^(.+?\r?\n\r?\n)", PCRE_DOTALL);
+			if ( !status_expr )
+				status_expr = new RegExpr("^HTTP/(1\\.[01]) +([0-9]+) +(.+?)\r?\n", PCRE_CASELESS);
+			if ( !connection_expr )
+				connection_expr = new RegExpr("Connection: ?(.+?)\r?\n", PCRE_CASELESS);
+			if ( !content_length_expr )
+				content_length_expr = new RegExpr("Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS);
+			if ( !content_type_expr )
+				content_type_expr = new RegExpr("Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE_CASELESS);
+		}
+#endif
+} // end void RemoteCameraHttp::Initialise()
 
 int RemoteCameraHttp::Connect() {
-  struct addrinfo *p;
+  struct addrinfo *p = NULL;
 
   for ( p = hp; p != NULL; p = p->ai_next ) {
     sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
@@ -157,27 +174,24 @@ int RemoteCameraHttp::Connect() {
   return sd;
 } // end int RemoteCameraHttp::Connect()
 
-int RemoteCameraHttp::Disconnect()
-{
-  close( sd );
+int RemoteCameraHttp::Disconnect() {
+  close(sd);
   sd = -1;
-  Debug( 3, "Disconnected from host" );
-  return( 0 );
+  Debug(3, "Disconnected from host");
+  return 0;
 }
 
-int RemoteCameraHttp::SendRequest()
-{
-  Debug( 2, "Sending request: %s", request.c_str() );
-  if ( write( sd, request.data(), request.length() ) < 0 )
-  {
-    Error( "Can't write: %s", strerror(errno) );
+int RemoteCameraHttp::SendRequest() {
+  Debug(2, "Sending request: %s", request.c_str());
+  if ( write(sd, request.data(), request.length()) < 0 ) {
+    Error("Can't write: %s", strerror(errno));
     Disconnect();
-    return( -1 );
+    return -1;
   }
   format = UNDEF;
   state = HEADER;
-  Debug( 3, "Request sent" );
-  return( 0 );
+  Debug(3, "Request sent");
+  return 0;
 }
 
 /* Return codes are as follows:
@@ -273,17 +287,15 @@ int RemoteCameraHttp::ReadData( Buffer &buffer, unsigned int bytes_expected ) {
     total_bytes_to_read -= bytes_read;
   } while ( total_bytes_to_read );
 
-  Debug( 4, buffer );
+  Debug(4, buffer);
 
-  return( total_bytes_read );
+  return total_bytes_read;
 }
 
-int RemoteCameraHttp::GetResponse()
-{
+int RemoteCameraHttp::GetResponse() {
   int buffer_len;
 #if HAVE_LIBPCRE
-  if ( method == REGEXP )
-  {
+  if ( method == REGEXP ) {
     const char *header = 0;
     int header_len = 0;
     const char *http_version = 0;
@@ -298,36 +310,23 @@ int RemoteCameraHttp::GetResponse()
     //int subcontent_length = 0;
     //const char *subcontent_type = "";
 
-    while ( true )
-    {
-      switch( state )
-      {
+    while ( !zm_terminate ) {
+      switch( state ) {
         case HEADER :
           {
-            static RegExpr *header_expr = 0;
-            static RegExpr *status_expr = 0;
-            static RegExpr *connection_expr = 0;
-            static RegExpr *content_length_expr = 0;
-            static RegExpr *content_type_expr = 0;
-
             while ( !( buffer_len = ReadData(buffer) ) && !zm_terminate ) {
 							Debug(4, "Timeout waiting for REGEXP HEADER");
             }
             if ( buffer_len < 0 ) {
-              Error( "Unable to read header data" );
-              return( -1 );
+              Error("Unable to read header data");
+              return -1;
             }
 						bytes += buffer_len;
-            if ( !header_expr )
-              header_expr = new RegExpr( "^(.+?\r?\n\r?\n)", PCRE_DOTALL );
-            if ( header_expr->Match( (char*)buffer, buffer.size() ) == 2 )
-            {
+            if ( header_expr->Match( (char*)buffer, buffer.size() ) == 2 ) {
               header = header_expr->MatchString( 1 );
               header_len = header_expr->MatchLength( 1 );
-              Debug( 4, "Captured header (%d bytes):\n'%s'", header_len, header );
+              Debug(4, "Captured header (%d bytes):\n'%s'", header_len, header);
 
-              if ( !status_expr )
-                status_expr = new RegExpr( "^HTTP/(1\\.[01]) +([0-9]+) +(.+?)\r?\n", PCRE_CASELESS );
               if ( status_expr->Match( header, header_len ) < 4 )
               {
                 Error( "Unable to extract HTTP status from header" );
@@ -366,24 +365,18 @@ int RemoteCameraHttp::GetResponse()
               }
               Debug( 3, "Got status '%d' (%s), http version %s", status_code, status_mesg, http_version );
 
-              if ( !connection_expr )
-                connection_expr = new RegExpr( "Connection: ?(.+?)\r?\n", PCRE_CASELESS );
               if ( connection_expr->Match( header, header_len ) == 2 )
               {
                 connection_type = connection_expr->MatchString( 1 );
                 Debug( 3, "Got connection '%s'", connection_type );
               }
 
-              if ( !content_length_expr )
-                content_length_expr = new RegExpr( "Content-length: ?([0-9]+)\r?\n", PCRE_CASELESS );
               if ( content_length_expr->Match( header, header_len ) == 2 )
               {
                 content_length = atoi( content_length_expr->MatchString( 1 ) );
                 Debug( 3, "Got content length '%d'", content_length );
               }
 
-              if ( !content_type_expr )
-                content_type_expr = new RegExpr( "Content-type: ?(.+?)(?:; ?boundary=\x22?(.+?)\x22?)?\r?\n", PCRE_CASELESS );
               if ( content_type_expr->Match( header, header_len ) >= 2 )
               {
                 content_type = content_type_expr->MatchString( 1 );
@@ -567,17 +560,14 @@ int RemoteCameraHttp::GetResponse()
                 }
               }
             }
-            if ( mode == SINGLE_IMAGE )
-            {
+            if ( mode == SINGLE_IMAGE ) {
               state = HEADER;
               Disconnect();
-            }
-            else
-            {
+            } else {
               state = SUBHEADER;
             }
             Debug( 3, "Returning %d (%d) bytes of captured content", content_length, buffer.size() );
-            return( content_length );
+            return content_length;
           }
         case HEADERCONT :
         case SUBHEADERCONT :
@@ -587,8 +577,7 @@ int RemoteCameraHttp::GetResponse()
           }
       }
     }
-  }
-  else
+  } else
 #endif // HAVE_LIBPCRE
   {
     static const char *http_match = "HTTP/";
@@ -641,7 +630,7 @@ int RemoteCameraHttp::GetResponse()
     static char content_boundary[64];
     static int content_boundary_len;
 
-    while ( true ) {
+    while ( !zm_terminate ) {
       switch( state ) {
         case HEADER :
           {
@@ -664,11 +653,11 @@ int RemoteCameraHttp::GetResponse()
         case HEADERCONT :
           {
             while ( !( buffer_len = ReadData(buffer) ) && !zm_terminate ) {
-								Debug(4, "Timeout waiting for HEADERCONT");
+								Debug(1, "Timeout waiting for HEADERCONT");
             }
             if ( buffer_len < 0 ) {
-              Error( "Unable to read header" );
-              return( -1 );
+              Error("Unable to read header");
+              return -1;
             }
 						bytes += buffer_len;
 
@@ -678,9 +667,10 @@ int RemoteCameraHttp::GetResponse()
             bool all_headers = false;
 
             while( true ) {
-              int crlf_len = memspn( header_ptr, "\r\n", header_len );
+              int crlf_len = memspn(header_ptr, "\r\n", header_len);
               if ( n_headers ) {
                 if ( (crlf_len == 2 && !strncmp( header_ptr, "\n\n", crlf_len )) || (crlf_len == 4 && !strncmp( header_ptr, "\r\n\r\n", crlf_len )) ) {
+									Debug(3, "Have double linefeed, done headers");
                   *header_ptr = '\0';
                   header_ptr += crlf_len;
                   header_len -= buffer.consume( header_ptr-(char *)buffer );
@@ -740,7 +730,7 @@ int RemoteCameraHttp::GetResponse()
               start_ptr = http_header;
               end_ptr = start_ptr+strspn( start_ptr, "10." );
 
-              // FIXME WHy are we memsetting every time?  Can we not do it once?
+              // FIXME Why are we memsetting every time?  Can we not do it once?
               memset( http_version, 0, sizeof(http_version) );
               strncpy( http_version, start_ptr, end_ptr-start_ptr );
 
@@ -824,7 +814,7 @@ int RemoteCameraHttp::GetResponse()
                   strcpy( content_type, start_ptr );
                   Debug( 3, "Got content type '%s'", content_type );
                 }
-              }
+              } // end if content_type_header
 
               if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) ) {
                 // Single image
@@ -859,10 +849,10 @@ int RemoteCameraHttp::GetResponse()
                 return( -1 );
               }
             } else {
-              Debug( 3, "Unable to extract entire header from stream, continuing" );
+              Debug(3, "Unable to extract entire header from stream, continuing");
               state = HEADERCONT;
               //return( -1 );
-            }
+            } // end if all_headers
             break;
           }
         case SUBHEADER :

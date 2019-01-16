@@ -133,7 +133,6 @@ function getStreamCmdFailure(xhr) {
 }
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk("stream");
-  console.log('stream');
   if ( streamCmdTimer )
     streamCmdTimer = clearTimeout(streamCmdTimer);
   if ( respObj.result == 'Ok' ) {

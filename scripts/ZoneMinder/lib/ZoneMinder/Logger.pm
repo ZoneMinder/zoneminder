@@ -91,7 +91,7 @@ use ZoneMinder::Config qw(:all);
 
 use DBI;
 use Carp;
-use POSIX;
+require POSIX;
 use IO::Handle;
 use Data::Dumper;
 use Time::HiRes qw/gettimeofday/;
@@ -535,7 +535,7 @@ sub logPrint {
     if ( $level <= $this->{fileLevel} or $level <= $this->{termLevel} ) {
       my $message = sprintf(
           '%s.%06d %s[%d].%s [%s:%d] [%s]'
-          , strftime('%x %H:%M:%S', localtime($seconds))
+          , POSIX::strftime('%x %H:%M:%S', localtime($seconds))
           , $microseconds
           , $this->{id}
           , $$

@@ -105,7 +105,7 @@ $html .= '<span class="FunctionFilter"><label>'.translate('Function').'</label>'
 $html .= htmlSelect('Function[]', $Functions,
   (isset($_SESSION['Function'])?$_SESSION['Function']:''),
     array(
-      'onchange'=>'this.form.submit();',
+      'data-on-change'=>'submitThisForm',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
@@ -118,7 +118,7 @@ if ( count($ServersById) > 1 ) {
   $html .= htmlSelect('ServerId[]', $ServersById,
     (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
     array(
-      'onchange'=>'this.form.submit();',
+      'data-on-change'=>'submitThisForm',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
@@ -132,7 +132,7 @@ if ( count($StorageById) > 1 ) {
   $html .= htmlSelect('StorageId[]', $StorageById,
     (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
     array(
-      'onchange'=>'this.form.submit();',
+      'data-on-change'=>'submitThisForm',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
@@ -150,7 +150,7 @@ $status_options = array(
 $html .= htmlSelect( 'Status[]', $status_options,
   ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),
   array(
-    'onchange'=>'this.form.submit();',
+    'data-on-change'=>'submitThisForm',
     'class'=>'chosen',
     'multiple'=>'multiple',
     'data-placeholder'=>'All'
@@ -235,7 +235,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
   $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').'</label>';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
-      'onchange'=>'this.form.submit();',
+      'data-on-change'=>'submitThisForm',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',

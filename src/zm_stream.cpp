@@ -32,8 +32,8 @@
 StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC
   if ( vid_stream ) {
-		delete vid_stream;
-		vid_stream = NULL;
+    delete vid_stream;
+    vid_stream = NULL;
   }
 #endif
   closeComms();
@@ -275,7 +275,7 @@ void StreamBase::openComms() {
       }
     }
 
-		unsigned int length = snprintf(
+    unsigned int length = snprintf(
         sock_path_lock,
         sizeof(sock_path_lock),
         "%s/zms-%06d.lock",
@@ -287,11 +287,23 @@ void StreamBase::openComms() {
     }
     Debug(1, "Trying to open the lock on %s", sock_path_lock);
 
+    // Under systemd, we get chrooted to something like /tmp/systemd-apache-blh/ so the dir may not exist.
+    if ( mkdir(staticConfig.PATH_SOCKS.c_str(), 0755) ) {
+      if ( errno != EEXIST ) {
+        Error("Can't mkdir %s: %s", staticConfig.PATH_SOCKS.c_str(), strerror(errno));
+        return;
+      } else {
+        Debug(3, "SOCKS dir %s already exists", staticConfig.PATH_SOCKS.c_str() );
+      }
+    } else {
+      Debug(3, "Success making SOCKS dir %s", staticConfig.PATH_SOCKS.c_str() );
+    }
+
     lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
     if ( lock_fd <= 0 ) {
       Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno));
       lock_fd = 0;
-		} else if ( flock(lock_fd, LOCK_EX) != 0 ) {
+    } else if ( flock(lock_fd, LOCK_EX) != 0 ) {
       Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno));
       close(lock_fd);
       lock_fd = 0;
@@ -302,8 +314,8 @@ void StreamBase::openComms() {
     sd = socket(AF_UNIX, SOCK_DGRAM, 0);
     if ( sd < 0 ) {
       Fatal("Can't create socket: %s", strerror(errno));
-		} else {
-			Debug(1, "Have socket %d", sd);
+    } else {
+      Debug(3, "Have socket %d", sd);
     }
 
     length = snprintf(
@@ -325,7 +337,7 @@ void StreamBase::openComms() {
 
     strncpy(loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path));
     loc_addr.sun_family = AF_UNIX;
-		Debug(3, "Binding to %s", loc_sock_path);
+    Debug(3, "Binding to %s", loc_sock_path);
     if ( ::bind(sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1) < 0 ) {
       Fatal("Can't bind: %s", strerror(errno));
     }
@@ -336,7 +348,7 @@ void StreamBase::openComms() {
 
     gettimeofday(&last_comm_update, NULL);
   } // end if connKey > 0
-	Debug(2, "comms open");
+  Debug(3, "comms open");
 } // end void StreamBase::openComms()
 
 void StreamBase::closeComms() {

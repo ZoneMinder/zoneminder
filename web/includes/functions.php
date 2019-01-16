@@ -35,6 +35,28 @@ function noCacheHeaders() {
   header('Pragma: no-cache');         // HTTP/1.0
 }
 
+function CSPHeaders($view, $nonce) {
+  switch ($view) {
+    case 'bandwidth':
+    case 'function':
+    case 'log':
+    case 'logout':
+    case 'options':
+    case 'version': {
+      // Enforce script-src on pages where inline scripts and event handlers have been fixed.
+      // 'unsafe-inline' is only for backwards compatibility with browsers which
+      // only support CSP 1 (with no nonce-* support).
+      header("Content-Security-Policy: script-src 'unsafe-inline' 'self' 'nonce-$nonce'");
+      break;
+    }
+    default: {
+      // Use Report-Only mode on all other pages.
+      header("Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self' 'nonce-$nonce'");
+      break;
+    }
+  }
+}
+
 function CORSHeaders() {
   if ( isset($_SERVER['HTTP_ORIGIN']) ) {
 
@@ -44,6 +66,11 @@ function CORSHeaders() {
     if ( sizeof($Servers) < 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
+      if ( ZM_MIN_STREAMING_PORT ) {
+        Logger::Debug("Setting default Access-Control-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Headers: x-requested-with,x-request');
+      }
       return;
     }
     foreach( $Servers as $Server ) {
@@ -400,14 +427,19 @@ function makeLink( $url, $label, $condition=1, $options='' ) {
 }
 
 function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options='' ) {
-  $string = '';
+  // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
+  $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
+  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
   if ( $condition ) {
-    if ( is_array( $winSize ) )
-      $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
-    else
-      $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
+    if ( is_array( $winSize ) ) {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
+      $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
+      $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
+    } else {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
+    }
 
-    $string .= '<a href="'.$url.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($options?(' '.$options):'').'>';
+    $string .= ($options ? (' ' . $options ) : '') . '>';
   } else {
     $string .= '<a>';
   }
@@ -417,11 +449,20 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
 }
 
 function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, $options='' ) {
-  if ( is_array( $winSize ) )
-    $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
-  else
-    $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
-  $string = '<input type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
+  $string = '<input type="button" class="popup-link" value="' . htmlspecialchars($buttonValue) . '"';
+  $string .= ' data-url="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
+  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
+    if ( is_array( $winSize ) ) {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
+      $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
+      $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
+    } else {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
+    }
+    if ($condition) {
+     $string .= ' disabled="disabled"';
+    }
+    $string  .=  ($options ? (' ' . $options) : '') . '/>';
   return( $string );
 }
 
@@ -1118,7 +1159,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             if ( ! $StorageArea ) {
               for ( $j = 0; $j < count($terms); $j++ ) {
                 if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
-                  $StorageArea = new Storage($terms[$j]['val']);
+                  $StorageArea = Storage::find_one(array('Id'=>$terms[$j]['val']));
                   break;
                 }
               } // end foreach remaining term
@@ -1132,7 +1173,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             if ( ! $StorageArea ) {
               for ( $j = $i; $j < count($terms); $j++ ) {
                 if ( isset($terms[$i]['attr']) and $terms[$i]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
-                  $StorageArea = new Storage($terms[$i]['val']);
+                  $StorageArea = Storage::find_one(array('Id'=>$terms[$j]['val']));
                 }
               } // end foreach remaining term
             } // end no StorageArea found yet
@@ -1164,7 +1205,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
               }
               break;
             case 'StorageId':
-              $StorageArea = new Storage( $value );
+              $StorageArea = Storage::find_one(array('Id'=>$value));
               if ( $value != 'NULL' )
                 $value = dbEscape($value);
               break;
@@ -2258,6 +2299,29 @@ function csrf_startup() {
     csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
 }
 
+function check_timezone() {
+  $now = new DateTime();
+
+  $sys_tzoffset = trim(shell_exec('date "+%z"'));
+  $php_tzoffset = trim($now->format('O'));
+  $mysql_tzoffset = trim(dbFetchOne("SELECT TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),'%H%i');",'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'));
+
+  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20 
+                 #PHP timezone offset determine to be: $php_tzoffset,\x20 
+                 #Mysql timezone offset determine to be: $mysql_tzoffset
+               #");
+
+  if ( $sys_tzoffset != $php_tzoffset )
+    Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
+
+  if ( $sys_tzoffset != $mysql_tzoffset )
+    Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");
+
+  if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone')))
+    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+
+}
+
 function unparse_url($parsed_url, $substitutions = array() ) { 
   $fields = array('scheme','host','port','user','pass','path','query','fragment');
 
@@ -2280,7 +2344,6 @@ function unparse_url($parsed_url, $substitutions = array() ) {
 
 // PP - POST request handler for PHP which does not need extensions
 // credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
-
 
 function do_request($method, $url, $data=array(), $optional_headers = null) {
   global $php_errormsg;
@@ -2325,7 +2388,7 @@ function do_post_request($url, $data, $optional_headers = null) {
 }
 
 // The following works around php not being built with semaphore functions.
-if (!function_exists('sem_get')) {
+if ( !function_exists('sem_get') ) {
   function sem_get($key) {
     return fopen(__FILE__ . '.sem.' . $key, 'w+');
   }
@@ -2337,7 +2400,7 @@ if (!function_exists('sem_get')) {
   }
 }
 
-if( !function_exists('ftok') ) {
+if ( !function_exists('ftok') ) {
   function ftok($filename = "", $proj = "") {
     if ( empty($filename) || !file_exists($filename) ) {
       return -1;

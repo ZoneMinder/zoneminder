@@ -70,7 +70,7 @@ if ( $tab == 'skins' ) {
     $reload = true;
   }
   if ( $reload )
-    echo "<script type=\"text/javascript\">if(window.opener){window.opener.location.reload();}window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
+    echo "<script nonce=\"$cspNonce\">if(window.opener){window.opener.location.reload();}window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
 } # end if tab == skins
 
 ?>

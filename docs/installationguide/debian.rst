@@ -130,9 +130,9 @@ CTRL+x to exit
 
 **Step 12:** Please check the configuration
 Zoneminder 1.32.x
-    1. Check path of ZM_PATH in '/etc/zm/conf.d/zmcuston.conf' is ZM_PATH_ZMS=/zm/cgi-bin/nph-zms
+    1. Check path of ZM_PATH in '/etc/zm/conf.d/zmcustom.conf' is ZM_PATH_ZMS=/zm/cgi-bin/nph-zms
         ::
-            cat /etc/zm/conf.d/zmcuston.conf
+            cat /etc/zm/conf.d/zmcustom.conf
             
     2. Check config of /etc/apache2/conf-enabled/zoneminder.conf has the same ScriptAlias /zm/cgi-bin that is configured
        in ZM_PATH. The part /nph-zms has to be left out of the ScriptAlias

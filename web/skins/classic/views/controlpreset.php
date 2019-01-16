@@ -61,7 +61,7 @@ xhtmlHeaders(__FILE__, translate('SetPreset') );
         </p>
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

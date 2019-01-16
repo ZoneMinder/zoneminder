@@ -178,23 +178,23 @@ getBodyTopHTML();
     </div>
 
     <div class="container-fluid">
-      <button type="button" name="addBtn" onclick="addMonitor(this);"
+      <button type="button" name="addBtn" data-on-click-this="addMonitor"
       <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
       >
       <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
       </button>
-      <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
+      <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
       <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
       style="display:none;">
       <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
       </button>
-      <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
+      <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
       <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
       </button>
-      <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
+      <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
       <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
       </button>
-      <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
+      <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled"><?php echo translate('Select')?></button>
 <?php
 ob_start();
 ?>
@@ -327,7 +327,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   if ( canEdit('Monitors') ) {
 ?>
             <td class="colMark">
-              <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+              <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" data-on-click-this="setButtonStates"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
               <span class="glyphicon glyphicon-sort" title="Click and drag to change order"></span>
             </td>
 <?php

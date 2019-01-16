@@ -503,7 +503,7 @@ switch ( $tab )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

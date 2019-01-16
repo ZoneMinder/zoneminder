@@ -283,7 +283,7 @@ for ( $i = 0; $i < $pointCols; $i++ )
               </tr>
             </tbody>
           </table>
-          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" onclick="streamCmdPauseToggle()"/>
+          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" data-on-click="streamCmdPauseToggle"/>
           <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="refreshParentWindow(); closeWindow();"/>
         </div>

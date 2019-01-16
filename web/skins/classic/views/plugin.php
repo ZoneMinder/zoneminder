@@ -158,7 +158,8 @@ foreach($pluginOptions as $name => $popt)
 ?>
             </tbody>
           </table>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

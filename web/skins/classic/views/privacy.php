@@ -65,7 +65,7 @@ xhtmlHeaders(__FILE__, translate('Privacy') );
         <p><?php echo buildSelect( "option", $options ); ?></p>
 
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )">
+          <input type="submit" value="<?php echo translate('Apply') ?>" data-on-click-this="submitForm">
         </div>
       </form>
     </div>

@@ -66,6 +66,11 @@ function CORSHeaders() {
     if ( sizeof($Servers) < 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
+      if ( ZM_MIN_STREAMING_PORT ) {
+        Logger::Debug("Setting default Access-Control-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Headers: x-requested-with,x-request');
+      }
       return;
     }
     foreach( $Servers as $Server ) {
@@ -2301,10 +2306,10 @@ function check_timezone() {
   $php_tzoffset = trim($now->format('O'));
   $mysql_tzoffset = trim(dbFetchOne("SELECT TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),'%H%i');",'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'));
 
-  Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20 
-                 PHP timezone offset determine to be: $php_tzoffset,\x20 
-                 Mysql timezone offset determine to be: $mysql_tzoffset
-               ");
+  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20 
+                 #PHP timezone offset determine to be: $php_tzoffset,\x20 
+                 #Mysql timezone offset determine to be: $mysql_tzoffset
+               #");
 
   if ( $sys_tzoffset != $php_tzoffset )
     Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");

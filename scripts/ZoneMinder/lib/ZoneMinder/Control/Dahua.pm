@@ -1,3 +1,24 @@
+# ==========================================================================
+# 
+# CGI Control Protocol
+#
+# This module is using code from bobylapointe69300 
+# https://forums.zoneminder.com/viewtopic.php?f=9&t=27000&p=104601&hilit=dahua#p104601
+# 
+#Control Address field on Control tab should be like :
+#   Field 'Controll Address' in Monitor Options 
+#    -> contains:  admin:password@192.168.1.XX:80
+#    -> must not contain:  http:// or https://
+#    -> adjust with your own parameters (IP, port, username and password)
+#   Control Capabilities for 'Dahua' has 
+#   -> in field 'Protocol' the value: Dahua
+# 
+# This module works if URL of camera control contains '/cgi-bin/ptz.cgi?'
+# for commands see 'DAHUA HTTP API FOR IPC Version 1.67'
+# e.g. found at https://www.telecamera.ru/bitrix/components/bitrix/forum.interface/show_file.php?fid=1022477&action=download
+# ==========================================================================
+
+
 package ZoneMinder::Control::Dahua;
 
 use 5.8.0;
@@ -58,7 +79,7 @@ sub open
     # channel "0", here.
     $self->{dahua_channel_number} = "0";
 
-    if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/ ) ) {
+    if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>http?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/ ) ) {
         $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
         $USERNAME = $+{USERNAME} if $+{USERNAME};
         $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
@@ -207,10 +228,125 @@ sub sendMomentaryPtzCommand
     my $duration_ms = shift;
 
     $self->sendPtzCommand("start", $command_code, $arg1, $arg2, $arg3);
-    my $duration_ns = $duration_ms * 1000;
+    my $duration_ns = $duration_ms * 1000; 
+    
     usleep($duration_ns);
     $self->sendPtzCommand("stop", $command_code, $arg1, $arg2, $arg3);
 }
+
+##############################
+##added code
+#Control URL to camera : 
+#example for moving camera 'Up' -> "cgi-bin/ptz.cgi?action=start&channel=0&code=Up&arg1=0&arg2=1&arg3=0&arg4=0";
+
+
+# Reboot the Camera
+sub reset
+{
+    my $self = shift;
+    Debug( "Camera Reset" );
+    my $cmd = "cgi-bin/magicBox.cgi?action=reboot";
+    $self->sendGetRequest($cmd);
+
+}
+
+#Left Arrow
+sub moveConLeft
+{
+    my $self = shift;
+    Debug("Move Up Left");
+    $self->sendMomentaryPtzCommand("Left", 0, 1, 0, 0);
+}
+
+#Right Arrow
+sub moveConRight
+{
+    my $self = shift;
+    Debug( "Move Right" );
+    $self->sendMomentaryPtzCommand("Right", 0, 1, 0, 0);
+}
+
+
+#Up Arrow
+sub moveConUp
+{
+    my $self = shift;
+    # you can change the speed of movement 1-8 with arg 2, same for Down, Right...    
+    Debug( "Move Up" );
+    $self->sendMomentaryPtzCommand("Up", 0, 1, 0, 0);
+}
+
+#Down Arrow
+sub moveConDown
+{
+    my $self = shift;
+    Debug( "Move Down" );
+    $self->sendMomentaryPtzCommand("Down", 0, 1, 0, 0);
+}
+
+
+
+#Zoom In
+sub zoomConTele
+{
+    my $self = shift;
+    Debug( "Zoom Tele" );
+    $self->sendMomentaryPtzCommand("ZoomTele", 0, 1, 0, 0);
+}
+
+#Zoom Out
+sub zoomConWide
+{
+    my $self = shift;
+    Debug( "Zoom Wide" );
+    $self->sendMomentaryPtzCommand("ZoomWide", 0, 1, 0, 0);
+}
+
+#Diagonally Up Right Arrow
+sub moveConUpRight
+{
+    my $self = shift;
+    Debug( "Move Diagonally Up Right" );
+    $self->sendMomentaryPtzCommand("RightUp", 1, 1, 0, 0); 
+}
+
+#Diagonally Down Right Arrow
+sub moveConDownRight
+{
+    my $self = shift;
+    Debug( "Move Diagonally Down Right" );
+    $self->sendMomentaryPtzCommand("RightDown", 1, 1, 0, 0); 
+}
+
+
+#Diagonally Up Left Arrow
+sub moveConUpLeft
+{
+    my $self = shift;
+    Debug( "Move Diagonally Up Left" );
+    $self->sendMomentaryPtzCommand("LeftUp", 1, 1, 0, 0); 
+}
+
+#Diagonally Down Left Arrow
+sub moveConDownLeft
+{
+    my $self = shift;
+    Debug( "Move Diagonally Up Right" );
+    $self->sendMomentaryPtzCommand("LeftDown", 1, 1, 0, 0); 
+}
+
+#Stop, for center button on control panel
+sub moveStop
+{
+    my $self = shift;
+    Debug( "Move Stop" );
+# you can put any kind of code to stop the camera, I put Up by default. 
+    my $cmd = "cgi-bin/ptz.cgi?action=stop&channel=0&code=Up&arg1=0&arg2=1&arg3=0";
+    $self->sendPtzCommand("stop", 0, 0, 1, 0);
+}
+
+
+###################
 
 sub moveRelUpLeft
 {

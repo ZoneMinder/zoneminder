@@ -100,6 +100,7 @@ VideoStore::VideoStore(
   }
   // Since we are not re-encoding, all we have to do is copy the parameters
   video_out_ctx = video_out_stream->codec;
+  video_out_ctx->time_base = video_in_ctx->time_base;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // Copy params from instream to ctx

@@ -362,6 +362,7 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     Warning("Unknown method (%s)", method.c_str() );
   }
+//#av_dict_set(&opts, "timeout", "10000000", 0); // in microseconds.
 
   if ( ret < 0 ) {
     Warning("Could not set rtsp_transport method '%s'\n", method.c_str());
@@ -1039,7 +1040,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   //FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
-
+  Debug(4, "FfmpegInterruptCallback");
   return zm_terminate;
 }
 

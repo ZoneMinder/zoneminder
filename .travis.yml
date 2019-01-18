@@ -44,12 +44,28 @@ env:
   - OS=ubuntu DIST=trusty ARCH=i386
   - OS=ubuntu DIST=xenial ARCH=i386
   - OS=raspbian DIST=stretch ARCH=armhf DOCKER_REPO=knnniggett/packpack
+  - ZM_JOB=lint
 
 compiler:
 - gcc
 services:
 - mysql
 - docker
+
+# Only lint if ZM_JOB is 'lint'
+stages:
+  - name: before_script
+    if: env(ZM_JOB) = lint
+  - name: script
+    if: env(ZM_JOB) != lint
+  - name: before_deploy
+    if: env(ZM_JOB) != lint
+  - name: deploy
+    if: env(ZM_JOB) != lint
+
+before_script:
+- npm install -g eslint@3.18.0 eslint-config-google@0.7.1 && eslint .
+
 script:
 - utils/packpack/startpackpack.sh
 

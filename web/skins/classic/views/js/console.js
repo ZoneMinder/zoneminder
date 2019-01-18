@@ -40,7 +40,6 @@ function addMonitor(element) {
 
 function cloneMonitor(element) {
   var form = element.form;
-  var dupParam;
   var monitorId=-1;
   // get the value of the first checkbox
   for ( var i = 0; i < form.elements.length; i++ ) {

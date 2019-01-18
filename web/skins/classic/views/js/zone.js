@@ -444,7 +444,6 @@ var lastAlarmState = STATE_IDLE;
 function setAlarmState( currentAlarmState ) {
   alarmState = currentAlarmState;
 
-  var stateString = "Unknown";
   var stateClass = "";
   if ( alarmState == STATE_ALARM ) {
     stateClass = "alarm";
@@ -513,8 +512,6 @@ function getStreamCmdResponse( respObj, respText ) {
     $('fpsValue').set( 'text', streamStatus.fps );
 
     setAlarmState( streamStatus.state );
-
-    var delayString = secsToTime( streamStatus.delay );
 
     if ( streamStatus.paused == true ) {
       streamCmdPause( false );

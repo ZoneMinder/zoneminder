@@ -46,7 +46,7 @@ function checkSize() {
 
 // Deprecated
 function newWindow( url, name, width, height ) {
-  var windowId = window.open( url, name, popupOptions+",width="+width+",height="+height );
+  window.open( url, name, popupOptions+",width="+width+",height="+height );
 }
 
 function getPopupSize( tag, width, height ) {

@@ -697,7 +697,6 @@ function loadEventImage( event, frame ) {
 }
 
 function hideEventImageComplete() {
-  var eventImg = $('eventImage');
   var thumbImg = $('eventThumb'+$('eventImage').getProperty( 'alt' ));
   if ( thumbImg ) {
     thumbImg.removeClass('selected');

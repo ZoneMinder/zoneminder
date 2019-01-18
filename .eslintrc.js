@@ -15,7 +15,11 @@ module.exports = {
       newIsCapExceptionPattern: "^Asset\.."
     }],
     "no-array-constructor": "off",
-    "no-unused-vars": "off",
+    "no-unused-vars": ["error", {
+      "vars": "local",
+      "args": "none",
+      "ignoreRestSiblings": false
+    }],
     "no-var": "off",
     "prefer-rest-params": "off",
     "quotes": "off",

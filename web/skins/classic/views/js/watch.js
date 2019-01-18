@@ -64,7 +64,6 @@ var lastAlarmState = STATE_IDLE;
 function setAlarmState( currentAlarmState ) {
   alarmState = currentAlarmState;
 
-  var stateString = "Unknown";
   var stateClass = "";
   if ( alarmState == STATE_ALARM ) {
     stateClass = "alarm";
@@ -532,8 +531,6 @@ function getEventCmdResponse( respObj, respText ) {
         new Element( 'td', {'class': 'colScore'} ).inject( row );
         new Element( 'td', {'class': 'colDelete'} ).inject( row );
 
-        var cells = row.getElements( 'td' );
-
         var link = new Element( 'a', {'href': '#', 'events': {'click': createEventPopup.pass( [event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height] )}});
         link.set( 'text', event.Id );
         link.inject( row.getElement( 'td.colId' ) );
@@ -773,7 +770,7 @@ function initPage() {
       $j('#closeControl').html('');
     }
   } else if ( monitorRefresh > 0 ) {
-    var myReload = setInterval(reloadWebSite, monitorRefresh*1000);
+    setInterval(reloadWebSite, monitorRefresh*1000);
   }
 }
 

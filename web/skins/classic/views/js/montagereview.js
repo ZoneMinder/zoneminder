@@ -112,7 +112,6 @@ function getImageSource( monId, time ) {
   var Frame = getFrame(monId, time);
   if ( Frame ) {
     // Adjust for bulk frames
-    var frame_id;
     if ( Frame.NextFrameId ) {
       var duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
       frame_id = Frame.FrameId + parseInt( (Frame.NextFrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
@@ -445,7 +444,6 @@ function redrawScreen() {
     $('ScaleDiv').style.display="none";
     $('fit').innerHTML="Scale";
     var vh=window.innerHeight;
-    var vw=window.innerWidth;
     var pos=$('monitors').getPosition();
     var mh=(vh - pos.y - $('fps').getSize().y);
     $('monitors').setStyle('height', mh.toString() + "px"); // leave a small gap at bottom
@@ -705,7 +703,6 @@ function maxfit2(divW, divH) {
   var bestFitX2=[];
   var bestFitY=[];
   var bestFitY2=[];
-  var bestFitScale;
 
   var minScale=0.05;
   var maxScale=5.00;

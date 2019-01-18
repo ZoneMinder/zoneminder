@@ -395,19 +395,19 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 <?php
         } else if ( $value['Type'] == 'integer' ) {
 ?>
-              <input type="number" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="small"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="number" class="form-control small" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else if ( $value['Type'] == 'hexadecimal' ) {
 ?>
-              <input type="text" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="medium"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control medium" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else if ( $value['Type'] == 'decimal' ) {
 ?>
-              <input type="text" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="small"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control small" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else {
 ?>
-              <input type="text" class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" class="large"<?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control large" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         }
 ?>

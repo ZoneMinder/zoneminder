@@ -1049,8 +1049,8 @@ if ( $monitor->Type() == 'Local' ) {
       </form>
     </div>
     </div>
+    <script nonce="<?php echo $cspNonce;?>">
+      $j('.chosen').chosen();
+    </script>
   </body>
-  <script type="text/javascript">
-  $j('.chosen').chosen();
-  </script>
 </html>

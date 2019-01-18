@@ -19,14 +19,14 @@
 //
 
 ?>
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE html>
 <html>
 <?php
 if ( !empty($refreshParent) )
 {
 ?>
 <head>
-<script type="text/javascript">
+<script nonce="<?php echo $cspNonce;?>">
 //self.onerror = function() { return( true ); }
 opener.location.reload(true);
 </script>
@@ -34,4 +34,5 @@ opener.location.reload(true);
 <?php
 }
 ?>
+<body></body>
 </html>

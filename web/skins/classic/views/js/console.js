@@ -22,7 +22,7 @@ function setButtonStates( element ) {
     form.deleteBtn.disabled = false;
     form.selectBtn.disabled = false;
     if ( checked == 1 ) {
-      $j(form.cloneBtn).css('display','inline');
+      $j(form.cloneBtn).css('display', 'inline');
     } else {
       form.cloneBtn.hide();
     }
@@ -39,7 +39,6 @@ function addMonitor(element) {
 }
 
 function cloneMonitor(element) {
-
   var form = element.form;
   var dupParam;
   var monitorId=-1;
@@ -66,7 +65,7 @@ function editMonitor( element ) {
   var monitorIds = Array();
 
   for ( var i = 0; i < form.elements.length; i++ ) {
-    if ( 
+    if (
       form.elements[i].type == "checkbox"
       &&
       form.elements[i].name == "markMids[]"
@@ -82,8 +81,8 @@ function editMonitor( element ) {
   } // end foreach checkboxes
   if ( monitorIds.length == 1 )
         createPopup( '?view=monitor&mid='+monitorIds[0], 'zmMonitor'+monitorIds[0], 'monitor' );
-  else if ( monitorIds.length > 1 ) 
-        createPopup( '?view=monitors&'+(monitorIds.map(function(mid){return 'mids[]='+mid;}).join('&')), 'zmMonitors', 'monitors' );
+  else if ( monitorIds.length > 1 )
+        createPopup( '?view=monitors&'+(monitorIds.map(function(mid) {return 'mids[]='+mid;}).join('&')), 'zmMonitors', 'monitors' );
 }
 
 function deleteMonitor( element ) {

@@ -61,7 +61,7 @@ function logResponse( respObj ) {
               if ( ( !minLogTime ) || ( log.TimeKey < minLogTime ) )
                 minLogTime = log.TimeKey;
               var row = logTable.push( [{ content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
-              
+
               delete log.Message;
               row.tr.store( 'log', log );
               if ( log.Level <= -3 )
@@ -256,7 +256,6 @@ function updateFilterSelectors() {
       }
       if ( filter[key] )
         selector.set('value', filter[key]);
-
     }
   );
 }

@@ -34,7 +34,7 @@ function initPage() {
       dateFormat: "yy-mm-dd",
       maxDate: +0,
       constrainInput: false,
-      onClose: function (newDate, oldData) {
+      onClose: function(newDate, oldData) {
         if (newDate !== oldData.lastVal) {
           changeDateTime();
         }
@@ -46,7 +46,7 @@ function initPage() {
       minDate: $j('#minTime').val(),
       maxDate: +0,
       constrainInput: false,
-      onClose: function (newDate, oldData) {
+      onClose: function(newDate, oldData) {
         if (newDate !== oldData.lastVal) {
           changeDateTime();
         }

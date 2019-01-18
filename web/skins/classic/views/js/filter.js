@@ -1,4 +1,4 @@
-function validateForm ( form ) {
+function validateForm( form ) {
   var rows = $j(form).find('tbody').eq(0).find('tr');
   var obrCount = 0;
   var cbrCount = 0;
@@ -24,8 +24,7 @@ function validateForm ( form ) {
   return true;
 }
 
-function updateButtons() {
-  var element = this;
+function updateButtons(element) {
   var form = element.form;
 
   if ( element.type == 'checkbox' && element.checked ) {
@@ -59,7 +58,7 @@ function updateButtons() {
   }
 }
 
-function checkValue ( element ) {
+function checkValue( element ) {
   var rows = $j(element).closest('tbody').children();
   parseRows(rows);
   //clearValue(element);
@@ -103,7 +102,7 @@ function deleteFilter( element, name ) {
   }
 }
 
-function parseRows (rows) {
+function parseRows(rows) {
   for (var rowNum = 0; rowNum < rows.length; rowNum++) { //Each row is a term
     var queryPrefix = 'filter[Query][terms][';
     var inputTds = rows.eq(rowNum).children();
@@ -112,7 +111,7 @@ function parseRows (rows) {
     if (rowNum > 0) { //add and/or to 1+
       var cnjVal = inputTds.eq(0).children().val();
       var conjSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cnj]').attr('id', queryPrefix + rowNum + '][cnj]');
-      $j.each(conjTypes, function (i) {
+      $j.each(conjTypes, function(i) {
         conjSelect.append('<option value="' + i + '" >' + i + '</option>');
       });
       inputTds.eq(0).html(conjSelect).children().val(cnjVal === undefined ? 'and' : cnjVal);
@@ -153,7 +152,6 @@ function parseRows (rows) {
       }
       var archiveVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).chosen({width: "101%"});
-
     } else if ( attr.indexOf('Weekday') >= 0 ) {  //Weekday selection
       var weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < weekdays.length; i++) {
@@ -161,7 +159,6 @@ function parseRows (rows) {
       }
       var weekdayVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(weekdaySelect).children().val(weekdayVal).chosen({width: "101%"});
-
     } else if ( attr == 'StateId' ) { //Run state
       var stateSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var key in states) {
@@ -169,7 +166,6 @@ function parseRows (rows) {
       }
       var stateVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(stateSelect).children().val(stateVal).chosen({width: "101%"});
-
     } else if ( attr == 'ServerId' || attr == 'MonitorServerId' || attr == 'StorageServerId' || attr == 'FilterServerId' ) { //Select Server
       var serverSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var key in servers) {
@@ -177,7 +173,6 @@ function parseRows (rows) {
       }
       var serverVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(serverSelect).children().val(serverVal).chosen({width: "101%"});
-
     } else if ( attr == 'StorageId' ) { //Choose by storagearea
       var storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
 			for ( key in storageareas ) {
@@ -185,7 +180,6 @@ function parseRows (rows) {
       }
       var storageVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
-
     } else if ( attr == 'MonitorName' ) { //Monitor names
       var monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var key in monitors) {
@@ -212,7 +206,7 @@ function parseRows (rows) {
       inputTds.eq(4).children().timepicker({timeFormat: "HH:mm:ss", constrainInput: false});
     }
 
-    attr = inputTds.find("[name$='attr\\]']") // Set attr list id and name
+    attr = inputTds.find("[name$='attr\\]']"); // Set attr list id and name
     var term = attr.attr('name').split(/[[\]]{1,2}/);
     term.length--;
     term.shift();
@@ -223,7 +217,7 @@ function parseRows (rows) {
   history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
 }
 
-function stringFilter (term) {
+function stringFilter(term) {
   var termString = '';
   term.forEach(function(item) {
    termString += '[' + item + ']';
@@ -236,7 +230,7 @@ function addTerm( element ) {
   row.find('select').chosen("destroy");
   var newRow = row.clone().insertAfter(row);
   row.find('select').chosen({width: "101%"});
-  newRow.find('select').each( function () { //reset new row to default
+  newRow.find('select').each( function() { //reset new row to default
     this[0].selected = 'selected';
   }).chosen({width: "101%"});
   newRow.find('input[type="text"]').val('');

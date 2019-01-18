@@ -24,7 +24,7 @@ $j(document).ready(function() {
 
 	// Delete a state
 	$j("#btnDelete").click(function() {
-    		StateStuff( 'delete', $j("#runState").val( ));
+                StateStuff( 'delete', $j("#runState").val( ));
 	});
 
 

@@ -124,9 +124,9 @@ function getImageSource( monId, time ) {
     // monitorServerId may be 0, which gives us the default Server entry
     var server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
     return server.PathToIndex +
-	    '?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
-	    "&width=" + monitorCanvasObj[monId].width +
-	    "&height=" + monitorCanvasObj[monId].height;
+      '?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
+      "&width=" + monitorCanvasObj[monId].width +
+      "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame
   return '';
   //return "no data";

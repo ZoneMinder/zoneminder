@@ -71,12 +71,12 @@ var Overlay = new Class({
     this.element.position();
     this.mask.position();
   },
-  showAnimation:function() {
+  showAnimation: function() {
     showOverlay();
 
     //console.log( "Showing overlay loading" );
     if ( !this.loading ) {
-      this.loading = new Element( 'div', { 'id': 'loading'+this.key, 'styles': { 'display':'none' } } );
+      this.loading = new Element( 'div', { 'id': 'loading'+this.key, 'styles': { 'display': 'none' } } );
       this.loading.grab( this.loadingImage );
       document.body.grab( this.loading );
     }
@@ -85,7 +85,7 @@ var Overlay = new Class({
     $(window).addEvent( 'resize', this.update.bind(this) );
     $(window).addEvent( 'scroll', this.update.bind(this) );
   },
-  hideAnimation:function() {
+  hideAnimation: function() {
     $(window).removeEvent( 'resize', this.update.bind(this) );
     $(window).removeEvent( 'scroll', this.update.bind(this) );
     if ( this.loading ) {

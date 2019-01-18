@@ -20,12 +20,12 @@
 if ( !window.console ) {
   window.console =
     {
-      init:function() {},
-      log:function() {},
-      debug:function() {},
-      info:function() {},
-      warn:function() {},
-      error:function() {}
+      init: function() {},
+      log: function() {},
+      debug: function() {},
+      info: function() {},
+      warn: function() {},
+      error: function() {}
     };
 }
 if ( !console.debug ) {

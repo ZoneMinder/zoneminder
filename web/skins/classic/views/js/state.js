@@ -40,11 +40,11 @@ $j(document).ready(function() {
 
   function stateStuff( action, runState, newState ) {
     var formData = {
-      'view' : 'console',
-      'action' : action,
-      'apply' : 1,
-      'runState' : runState,
-      'newState' : newState
+      'view': 'console',
+      'action': action,
+      'apply': 1,
+      'runState': runState,
+      'newState': newState
     };
     console.log(formData);
 

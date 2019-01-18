@@ -9,7 +9,6 @@ module.exports = {
     "camelcase": "off",
     "comma-dangle": "off",
     "guard-for-in": "off",
-    "key-spacing": "off",
     "max-len": "off",
     "new-cap": ["error", {
       capIsNewExceptions: ["Error", "Warning", "Debug", "Polygon_calcArea", "Play", "Stop"],

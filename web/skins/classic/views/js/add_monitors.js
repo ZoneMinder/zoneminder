@@ -1,5 +1,5 @@
 
-var probeReq = new Request.JSON( { url:thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getProbeResponse } );
+var probeReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getProbeResponse } );
 
 function probe( url_e ) {
   probeReq.send( "request=add_monitors&action=probe&url="+url_e.value );
@@ -86,12 +86,12 @@ function import_csv( form ) {
   //formData.append('file', $('#file')[0].files[0]);
 
   $j.ajax({
-    url : thisUrl+"?request=add_monitors&action=import",
-    type : 'POST',
-    data : formData,
+    url: thisUrl+"?request=add_monitors&action=import",
+    type: 'POST',
+    data: formData,
     processData: false, // tell jQuery not to process the data
     contentType: false, // tell jQuery not to set contentType
-    success : function(data) {
+    success: function(data) {
       var json = JSON.parse(data);
       parseStreams( json.Streams );
     }

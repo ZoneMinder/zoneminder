@@ -494,7 +494,7 @@ function relMouseCoords(event) {
   canvasX = event.pageX - totalOffsetX;
   canvasY = event.pageY - totalOffsetY;
 
-  return {x:canvasX, y:canvasY};
+  return {x: canvasX, y: canvasY};
 }
 HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 
@@ -944,6 +944,6 @@ function initPage() {
     }
   });
 }
-window.addEventListener("resize", redrawScreen, {passive:true});
+window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEvent( 'domready', initPage );

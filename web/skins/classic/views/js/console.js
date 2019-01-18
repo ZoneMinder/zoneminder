@@ -131,7 +131,7 @@ function initPage() {
     $j( "#consoleTableBody" ).sortable({
       handle: ".glyphicon-sort",
       update: applySort,
-      axis:'Y' } );
+      axis: 'Y' } );
     $j( "#consoleTableBody" ).disableSelection();
   } );
 }

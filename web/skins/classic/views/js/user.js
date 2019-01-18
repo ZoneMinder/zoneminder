@@ -21,7 +21,7 @@ function validateForm( form, newUser ) {
   form.elements['newUser[MonitorIds]'].value = monitorIds.join( ',' );
   if ( errors.length ) {
     alert( errors.join( "\n" ) );
-    return( false );
+    return ( false );
   }
-  return( true );
+  return ( true );
 }

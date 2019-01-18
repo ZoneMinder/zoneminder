@@ -31,7 +31,7 @@ function createEventHtml( event, frame ) {
     new Element( 'p' ).inject( eventHtml ).set( 'text', archivedString );
   }
 
-  return( eventHtml );
+  return ( eventHtml );
 }
 
 function showEventDetail( eventHtml ) {
@@ -122,7 +122,7 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
       var sources = vid.getElementsByTagName('source');
       sources[0].src = newsource;
       var tracks = vid.getElementsByTagName('track');
-      if(tracks.length) {
+      if (tracks.length) {
         tracks[0].parentNode.removeChild(tracks[0]);
       }
       vid.load();

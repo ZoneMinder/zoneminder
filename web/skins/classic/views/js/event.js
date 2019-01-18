@@ -2,7 +2,7 @@ var vid = null;
 
 function vjsReplay() {
   var endTime = (Date.parse(eventData.EndTime)).getTime();
-  switch(replayMode.value) {
+  switch (replayMode.value) {
     case 'none':
       break;
     case 'single':
@@ -808,9 +808,9 @@ function checkFrames( eventId, frameId, loadImage ) {
             function( thumbImg, index ) {
               if ( parseInt(img.getProperty( 'alt' )) < parseInt(thumbImg.getProperty( 'alt' )) ) {
                 img.inject( thumbImg, 'before' );
-                return( true );
+                return ( true );
               }
-              return( false );
+              return ( false );
             }
         );
       }

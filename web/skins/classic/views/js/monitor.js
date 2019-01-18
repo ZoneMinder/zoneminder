@@ -6,7 +6,7 @@ function updateMonitorDimensions( element ) {
   if ( form.elements['preserveAspectRatio'].checked ) {
     var monitorWidth = parseInt(form.elements['newMonitor[Width]'].value);
     var monitorHeight = parseInt(form.elements['newMonitor[Height]'].value);
-    switch( element.name ) {
+    switch ( element.name ) {
       case 'newMonitor[Width]':
         if ( monitorWidth >= 0 ) {
           form.elements['newMonitor[Height]'].value = Math.round((monitorWidth * heightFactor) / widthFactor);
@@ -23,7 +23,7 @@ function updateMonitorDimensions( element ) {
         break;
     }
   }
-  return( false );
+  return ( false );
 }
 
 function loadLocations( element ) {

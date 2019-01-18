@@ -52,18 +52,18 @@ function newWindow( url, name, width, height ) {
 function getPopupSize( tag, width, height ) {
   if ( typeof popupSizes == 'undefined' ) {
     Error( "Can't find any window sizes" );
-    return( { 'width': 0, 'height': 0 } );
+    return ( { 'width': 0, 'height': 0 } );
   }
   var popupSize = Object.clone( popupSizes[tag] );
   if ( !popupSize ) {
     Error( "Can't find window size for tag '"+tag+"'" );
-    return( { 'width': 0, 'height': 0 } );
+    return ( { 'width': 0, 'height': 0 } );
   }
   if ( popupSize.width && popupSize.height ) {
     if ( width || height ) {
       Warning( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'" );
     }
-    return( popupSize );
+    return ( popupSize );
   }
   if ( popupSize.addWidth ) {
     popupSize.width = popupSize.addWidth;
@@ -95,7 +95,7 @@ function getPopupSize( tag, width, height ) {
     Warning( "Adjusting to minimum height ("+popupSize.minHeight+") when getting popup size for tag '"+tag+"' because calculated height is " + popupSize.height );
     popupSize.height = popupSize.minHeight;
   }
-  return( popupSize );
+  return ( popupSize );
 }
 
 function zmWindow() {
@@ -313,7 +313,7 @@ function secsToTime( seconds ) {
     }
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
-  return( timeString );
+  return ( timeString );
 }
 
 function submitTab( tab ) {
@@ -354,7 +354,7 @@ function configureDeleteButton( element ) {
 }
 
 function confirmDelete( message ) {
-  return( confirm( message?message:'Are you sure you wish to delete?' ) );
+  return ( confirm( message?message:'Are you sure you wish to delete?' ) );
 }
 
 if ( refreshParent ) {

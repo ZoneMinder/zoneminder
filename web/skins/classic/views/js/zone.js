@@ -49,9 +49,9 @@ function validateForm( form ) {
   }
   if ( errors.length ) {
     alert( errors.join( "\n" ) );
-    return( false );
+    return ( false );
   }
-  return( true );
+  return ( true );
 }
 
 function submitForm( form ) {
@@ -256,7 +256,7 @@ function getCoordString() {
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     coords[coords.length] = zone['Points'][i].x+','+zone['Points'][i].y;
   }
-  return( coords.join( " " ) );
+  return ( coords.join( " " ) );
 }
 
 function updateZoneImage() {
@@ -376,9 +376,9 @@ function saveChanges( element ) {
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
       alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
     }
-    return( true );
+    return ( true );
   }
-  return( false );
+  return ( false );
 }
 
 function drawZonePoints() {

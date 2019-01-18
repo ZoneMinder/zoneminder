@@ -300,7 +300,7 @@ function drawSliderOnGraph(val) {
     // try to get length and then when we get too close to the right switch to the left
     var len = o.offsetWidth;
     var x;
-    if(sliderX > cWidth/2) {
+    if (sliderX > cWidth/2) {
       x=sliderX - len - 10;
     } else {
       x=sliderX + 10;
@@ -389,14 +389,14 @@ function drawGraph() {
       // Now put in scored frames (if any)
       var x1=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth); // round low end down
       var x2=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
-      if(x2-x1 < 2) x2=x1+2; // So it is visible make them all at least this number of seconds wide
+      if (x2-x1 < 2) x2=x1+2; // So it is visible make them all at least this number of seconds wide
       ctx.fillStyle=monitorColour[Event.MonitorId];
       ctx.globalAlpha = 0.4 + 0.6 * (1 - Frame.Score/maxScore); // Background is scaled but even lowest is twice as dark as the background
       ctx.fillRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
     } // end foreach frame
   } // end foreach Event
 
-  for(var i=0; i<numMonitors; i++) {
+  for (var i=0; i<numMonitors; i++) {
     // Note that this may be a sparse array
     ctx.font= parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
     ctx.fillStyle="white";
@@ -449,13 +449,13 @@ function redrawScreen() {
     var pos=$('monitors').getPosition();
     var mh=(vh - pos.y - $('fps').getSize().y);
     $('monitors').setStyle('height', mh.toString() + "px"); // leave a small gap at bottom
-    if(maxfit2($('monitors').getSize().x, $('monitors').getSize().y) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+    if (maxfit2($('monitors').getSize().x, $('monitors').getSize().y) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
       fitMode=1-fitMode;
     }
   } else {
     // switch out of fit mode
     // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
-    for( var i=0; i<numMonitors; i++ ) {
+    for ( var i=0; i<numMonitors; i++ ) {
       monitorCanvasObj[monitorPtr[i]].style.position="";
     }
     $('monitors').setStyle('height', "auto");
@@ -489,7 +489,7 @@ function relMouseCoords(event) {
   do {
     totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
     totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
-  } while(currentElement = currentElement.offsetParent);
+  } while (currentElement = currentElement.offsetParent);
 
   canvasX = event.pageX - totalOffsetX;
   canvasY = event.pageY - totalOffsetY;
@@ -562,7 +562,7 @@ function showScale(newscale) {
 function setScale(newscale) {
   // makes actual change
   showScale(newscale);
-  for(var i=0; i<numMonitors; i++) {
+  for (var i=0; i<numMonitors; i++) {
     monitorCanvasObj[monitorPtr[i]].width=monitorWidth[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
     monitorCanvasObj[monitorPtr[i]].height=monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
   }
@@ -715,8 +715,8 @@ function maxfit2(divW, divH) {
 
   //monitorPtr.sort(compSize); //Sorts monitors by size in viewport.  If enabled makes captions not line up with graphs.
 
-  while(1) {
-    if( maxScale - minScale < 0.01 ) break;
+  while (1) {
+    if ( maxScale - minScale < 0.01 ) break;
     var thisScale = (maxScale + minScale) / 2;
     var allFit=1;
     var thisArea=0;
@@ -730,10 +730,10 @@ function maxfit2(divW, divH) {
       var monId = monitorPtr[m];
 
       function doesItFit(x, y, w, h, d) { // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
-        if(x+w>=divW) return 0;
-        if(y+h>=divH) return 0;
-        for(var i=0; i<=d; i++) {
-          if( !( thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y ) ) return 0;
+        if (x+w>=divW) return 0;
+        if (y+h>=divH) return 0;
+        for (var i=0; i<=d; i++) {
+          if ( !( thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y ) ) return 0;
         }
         return 1; // it's OK
       }
@@ -779,7 +779,7 @@ function maxfit2(divW, divH) {
     }
     if ( allFit == 1 ) {
       minScale=thisScale;
-      if(bestFitArea<thisArea) {
+      if (bestFitArea<thisArea) {
         bestFitArea=thisArea;
         bestFitX=thisX;
         bestFitY=thisY;

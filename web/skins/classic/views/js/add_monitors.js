@@ -37,7 +37,7 @@ function parseStreams( Streams ) {
   results_div.innerHTML = '';
   var html = '';
 
-  for( i in Streams ) {
+  for ( i in Streams ) {
     var stream = Streams[i];
     if ( stream.url ) {
       html += '<p>'+stream.Monitor.Name + ' at ' + stream.url;

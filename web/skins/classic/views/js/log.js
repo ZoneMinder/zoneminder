@@ -112,7 +112,7 @@ function logResponse( respObj ) {
           }
         }
         logTable.reSort();
-      } catch( e ) {
+      } catch ( e ) {
         console.error( e );
       }
       logTimeout /= 2;

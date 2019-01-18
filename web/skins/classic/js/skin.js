@@ -214,16 +214,16 @@ function refreshWindow() {
 function refreshParentWindow() {
   if ( refreshParent ) {
     if ( window.opener ) {
-      if ( refreshParent == true ) 
+      if ( refreshParent == true )
         window.opener.location.reload( true );
-      else 
+      else
         window.opener.location.href = refreshParent;
     }
   }
 }
 
 if ( currentView != 'none' && currentView != 'login' ) {
-  $j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+  $j.ajaxSetup({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
     if ($j('.navbar').length) {
@@ -349,19 +349,19 @@ if ( closePopup ) {
 
 window.addEvent( 'domready', checkSize );
 
-function convertLabelFormat(LabelFormat, monitorName){
+function convertLabelFormat(LabelFormat, monitorName) {
 	//convert label format from strftime to moment's format (modified from
 	//https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
 	//added %f and %N below (TODO: add %Q)
-	var replacements = { a: 'ddd', A: 'dddd', b: 'MMM', B: 'MMMM', d: 'DD', e: 'D', F: 'YYYY-MM-DD', H: 'HH', I: 'hh', j: 'DDDD', k: 'H', l: 'h', m: 'MM', M: 'mm', p: 'A', S: 'ss', u: 'E', w: 'd', W: 'WW', y: 'YY', Y: 'YYYY', z: 'ZZ', Z: 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%' };
-	var momentLabelFormat = Object.keys(replacements).reduce(function (momentFormat, key) {
+	var replacements = { "a": 'ddd', "A": 'dddd', "b": 'MMM', "B": 'MMMM', "d": 'DD', "e": 'D', "F": 'YYYY-MM-DD', "H": 'HH', "I": 'hh', "j": 'DDDD', "k": 'H', "l": 'h', "m": 'MM', "M": 'mm', "p": 'A', "S": 'ss', "u": 'E', "w": 'd', "W": 'WW', "y": 'YY', "Y": 'YYYY', "z": 'ZZ', "Z": 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%' };
+	var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
 	      var value = replacements[key];
 	      return momentFormat.replace("%" + key, value);
 	}, LabelFormat);
 	return momentLabelFormat;
 }
 
-function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime){
+function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {
 //This is a hacky way to handle changing the texttrack. If we ever upgrade vjs in a revamp replace this.  Old method preserved because it's the right way.
   var cues = vid.textTracks()[0].cues();
   var labelFormat = convertLabelFormat(LabelFormat, monitorName);
@@ -403,14 +403,14 @@ function endOfResize(e) {
   resizeTimer = setTimeout(changeScale, 250);
 }
 
-function scaleToFit (baseWidth, baseHeight, scaleEl, bottomEl) {
-  $j(window).on('resize', endOfResize)  //set delayed scaling when Scale to Fit is selected
+function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
+  $j(window).on('resize', endOfResize);  //set delayed scaling when Scale to Fit is selected
   var ratio = baseWidth / baseHeight;
   var container = $j('#content');
   var viewPort = $j(window);
 // jquery does not provide a bottom offet, and offset dows not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
-  var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true))
+  var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   var newWidth = ratio * newHeight;
   if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth();
@@ -420,7 +420,7 @@ function scaleToFit (baseWidth, baseHeight, scaleEl, bottomEl) {
   var scales = $j('#scale option').map(function() {return parseInt($j(this).val());}).get();
   scales.shift();
   var closest;
-  $j(scales).each(function () { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
+  $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
     }

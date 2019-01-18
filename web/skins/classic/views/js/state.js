@@ -20,7 +20,7 @@ $j(document).ready(function() {
 			$j("#btnSave").prop( "disabled", false );
 		}
 	});
-	
+
 
 	// Delete a state
 	$j("#btnDelete").click(function() {
@@ -38,7 +38,7 @@ $j(document).ready(function() {
 		StateStuff( 'state', $j("#runState").val() );
 	});
 
-	function StateStuff( action, runState, newState ){
+	function StateStuff( action, runState, newState ) {
 		var formData = {
 			'view' : 'console',
 			'action' : action,
@@ -59,7 +59,5 @@ $j(document).ready(function() {
 		}).done(function(data) {
 			location.reload();
 		});
-
 	}
-
 });

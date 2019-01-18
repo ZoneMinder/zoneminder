@@ -43,7 +43,7 @@ function Monitor( monitorData ) {
   this.onFailure = function( xhr ) {
     console.log('onFailure: ' + this.connKey);
     console.log(xhr);
-    if ( ! requestQueue.hasNext("cmdReq"+this.id) ) { 
+    if ( ! requestQueue.hasNext("cmdReq"+this.id) ) {
       console.log("Not requeuing because there is one already");
       requestQueue.addRequest("cmdReq"+this.id, this.streamCmdReq);
     }
@@ -132,7 +132,7 @@ function Monitor( monitorData ) {
       }
     } // end if Ok or not
     var streamCmdTimeout = statusRefreshTimeout;
-    // The idea here is if we are alarmed, do updates faster.  However, there is a timeout in the php side which isn't getting modified, so this may cause a problem. Also the server may only be able to update so fast. 
+    // The idea here is if we are alarmed, do updates faster.  However, there is a timeout in the php side which isn't getting modified, so this may cause a problem. Also the server may only be able to update so fast.
     //if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT ) {
       //streamCmdTimeout = streamCmdTimeout/5;
     //}
@@ -165,7 +165,6 @@ function Monitor( monitorData ) {
     console.log("queueing for " + this.id + " " + this.connKey );
     requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
   }
-
 }
 
 function selectLayout( element ) {
@@ -187,18 +186,18 @@ function selectLayout( element ) {
 
       // Apply default layout options, like float left
       if ( layout.Positions['default'] ) {
-        styles = layout.Positions['default']; 
+        styles = layout.Positions['default'];
         for ( style in styles ) {
-          monitor_frame.css(style, styles[style]); 
+          monitor_frame.css(style, styles[style]);
         }
       } else {
         console.log("No default styles to apply" + layout.Positions);
       } // end if default styles
 
       if ( layout.Positions['mId'+monitor.id] ) {
-        styles = layout.Positions['mId'+monitor.id]; 
+        styles = layout.Positions['mId'+monitor.id];
         for ( style in styles ) {
-          monitor_frame.css(style, styles[style]); 
+          monitor_frame.css(style, styles[style]);
           console.log("Applying " + style + ' : ' + styles[style] );
         }
       } else {
@@ -221,7 +220,7 @@ if ( 1 ) {
       if ( streamImg ) {
         if ( streamImg.nodeName == 'IMG' ) {
           var src = streamImg.src;
-          src = src.replace(/width=[\.\d]+/i,'width=0' );
+          src = src.replace(/width=[\.\d]+/i, 'width=0' );
           if ( src != streamImg.src ) {
             streamImg.src='';
             streamImg.src = src;
@@ -246,7 +245,7 @@ function changeSize() {
 
   for ( var x = 0; x < monitors.length; x++ ) {
     var monitor = monitors[x];
-  
+
     // Scale the frame
       monitor_frame = $j('#monitorFrame'+monitor.id);
       if ( ! monitor_frame ) {
@@ -254,18 +253,18 @@ function changeSize() {
         continue;
       }
       if ( width )
-        monitor_frame.css('width',width+'px');
+        monitor_frame.css('width', width+'px');
       if ( height )
-        monitor_frame.css('height',height+'px');
-    /*Stream could be an applet so can't use moo tools*/ 
+        monitor_frame.css('height', height+'px');
+    /*Stream could be an applet so can't use moo tools*/
     var streamImg = $( 'liveStream'+monitor.id );
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
         streamImg.src='';
-        src = src.replace(/width=[\.\d]+/i,'width='+width );
-        src = src.replace(/height=[\.\d]+/i,'height='+height );
-        src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+        src = src.replace(/width=[\.\d]+/i, 'width='+width );
+        src = src.replace(/height=[\.\d]+/i, 'height='+height );
+        src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
       }
       streamImg.style.width = width? width + "px" : null;
@@ -308,9 +307,9 @@ function changeScale() {
         continue;
       }
       if ( width )
-        monitor_frame.css('width',width+'px');
+        monitor_frame.css('width', width+'px');
       if ( height )
-        monitor_frame.css('height',height+'px');
+        monitor_frame.css('height', height+'px');
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $j('#liveStream'+monitor.id )[0];
     if ( streamImg ) {
@@ -319,9 +318,9 @@ function changeScale() {
         streamImg.src='';
 
         //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-        src = src.replace(/scale=[\.\d]+/i,'scale='+ scale );
-        src = src.replace(/width=[\.\d]+/i,'width='+newWidth );
-        src = src.replace(/height=[\.\d]+/i,'height='+newHeight );
+        src = src.replace(/scale=[\.\d]+/i, 'scale='+ scale );
+        src = src.replace(/width=[\.\d]+/i, 'width='+newWidth );
+        src = src.replace(/height=[\.\d]+/i, 'height='+newHeight );
         streamImg.src = src;
       }
       streamImg.style.width = newWidth + "px";
@@ -341,9 +340,8 @@ function toGrid(value) {
 
 // Makes monitorFrames draggable.
 function edit_layout(button) {
-
   // Turn off the onclick on the image.
-  
+
   for ( var i = 0; i < monitors.length; i++ ) {
     var monitor = monitors[i];
     monitor_feed = $j('#imageFeed'+monitor.id)[0];
@@ -366,7 +364,7 @@ function save_layout(button) {
     var monitor = monitors[i];
     monitor_frame = $j('#monitorFrame'+monitor.id);
 
-    Positions['mId'+monitor.id] = { 
+    Positions['mId'+monitor.id] = {
       width: monitor_frame.css('width'),
       height: monitor_frame.css('height'),
       top: monitor_frame.css('top'),
@@ -397,9 +395,8 @@ function reloadWebSite(ndx) {
 
 var monitors = new Array();
 function initPage() {
-
-  jQuery(document).ready(function(){
-    jQuery("#hdrbutton").click(function(){
+  jQuery(document).ready(function() {
+    jQuery("#hdrbutton").click(function() {
       jQuery("#flipMontageHeader").slideToggle("slow");
       jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
       Cookie.write( 'zmMontageHeaderFlip', jQuery('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
@@ -418,7 +415,7 @@ function initPage() {
     monitors[i].start( delay );
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
         setInterval(reloadWebSite, interval*1000, i);
-    }    
+    }
   }
   selectLayout('#zmMontageLayout');
 

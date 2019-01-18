@@ -25,7 +25,7 @@ function vjsReplay() {
         var messageP = $j(".vjsMessage");
         var x = setInterval(function() {
           var now = new Date().getTime();
-          var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
+          var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
           messageP.html(remainder + ' to next event.');
           if (remainder < 0) {
             clearInterval(x);
@@ -40,21 +40,21 @@ function vjsReplay() {
   }
 }
 
-$j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+$j.ajaxSetup({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
 
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
 
-function initialAlarmCues (eventId) {
+function initialAlarmCues(eventId) {
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues); //get frames data for alarmCues and inserts into html
 }
 
-function setAlarmCues (data) {
+function setAlarmCues(data) {
   cueFrames = data.frames;
   alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
   $j(".alarmCue").html(alarmSpans);
 }
 
-function renderAlarmCues (containerEl) {
+function renderAlarmCues(containerEl) {
   if ( !( cueFrames && cueFrames.length ) ) {
     console.log("No cue frames for event");
     return;
@@ -81,7 +81,7 @@ var num_cueFrames = cueFrames.length;
       var pix = cueRatio * spanTime;
       pixSkew += pix - Math.round(pix);//average out the rounding errors.
       pix = Math.round(pix);
-      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span. 
+      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
@@ -443,16 +443,16 @@ function streamNext(action) {
   }
 }
 
-function vjsPanZoom (action, x, y) { //Pan and zoom with centering where the click occurs
+function vjsPanZoom(action, x, y) { //Pan and zoom with centering where the click occurs
   var outer = $j('#videoobj');
   var video = outer.children().first();
-  var zoom =  parseFloat($j('#zoomValue').html());
+  var zoom = parseFloat($j('#zoomValue').html());
   var zoomRate = .5;
   var matrix = video.css('transform').split(',');
   var currentPanX = parseFloat(matrix[4]);
   var currentPanY = parseFloat(matrix[5]);
-  var xDist = outer.width()/2 - x //Click distance from center of view
-  var yDist = outer.height()/2 - y
+  var xDist = outer.width()/2 - x; //Click distance from center of view
+  var yDist = outer.height()/2 - y;
   if (action == 'zoomOut') {
     zoom -= zoomRate;
     if (x && y) {
@@ -479,8 +479,8 @@ function vjsPanZoom (action, x, y) { //Pan and zoom with centering where the cli
   }
   var limitX = ((zoom*outer.width()) - outer.width())/2; //Calculate outer bounds of video
   var limitY = ((zoom*outer.height()) - outer.height())/2;
-  x = Math.min(Math.max((x),-limitX),limitX); //Limit pan to outer bounds of video
-  y = Math.min(Math.max((y),-limitY),limitY);
+  x = Math.min(Math.max((x), -limitX), limitX); //Limit pan to outer bounds of video
+  y = Math.min(Math.max((y), -limitY), limitY);
   video.css('transform', 'matrix('+zoom+', 0, 0, '+zoom+', '+x+', '+y+')');
 }
 
@@ -965,11 +965,11 @@ function updateProgressBar() {
 } // end function updateProgressBar()
 
 // Handles seeking when clicking on the progress bar.
-function progressBarNav (){
-  $j('#progressBar').click(function(e){
+function progressBarNav() {
+  $j('#progressBar').click(function(e) {
     var x = e.pageX - $j(this).offset().left;
     var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
-    streamSeek (seekTime);
+    streamSeek(seekTime);
   });
 }
 
@@ -1002,8 +1002,8 @@ function initPage() {
     vid.on('ended', vjsReplay);
     vid.on('play', vjsPlay);
     vid.on('pause', vjsPause);
-    vid.on('click', function(event){handleClick(event);});
-    vid.on('timeupdate', function (){$j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())))});
+    vid.on('click', function(event) {handleClick(event);});
+    vid.on('timeupdate', function() {$j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));});
 
     if ( rate > 1 ) {
       // rate should be 100 = 1x, etc.

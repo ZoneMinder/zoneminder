@@ -36,7 +36,7 @@ function parseStreams( Streams ) {
     }
     results_div.innerHTML = '';
     var html = '';
-    
+
     for( i in Streams ) {
       var stream = Streams[i];
       if ( stream.url ) {
@@ -53,7 +53,7 @@ function parseStreams( Streams ) {
         //console.log(stream);
       }
     } // end for eah Stream
-      
+
     results_div.innerHTML = html;
 }
 
@@ -77,7 +77,7 @@ function addMonitor(url) {
   }
   createPopup( popup_url, 'zmMonitor'+mid, 'monitor' );
 }
-  
+
 function import_csv( form ) {
   var formData = new FormData( form );
   console.log(formData);

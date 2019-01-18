@@ -350,15 +350,15 @@ if ( closePopup ) {
 window.addEvent( 'domready', checkSize );
 
 function convertLabelFormat(LabelFormat, monitorName) {
-	//convert label format from strftime to moment's format (modified from
-	//https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
-	//added %f and %N below (TODO: add %Q)
-	var replacements = { "a": 'ddd', "A": 'dddd', "b": 'MMM', "B": 'MMMM', "d": 'DD', "e": 'D', "F": 'YYYY-MM-DD', "H": 'HH', "I": 'hh', "j": 'DDDD', "k": 'H', "l": 'h', "m": 'MM', "M": 'mm', "p": 'A', "S": 'ss', "u": 'E', "w": 'd', "W": 'WW', "y": 'YY', "Y": 'YYYY', "z": 'ZZ', "Z": 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%' };
-	var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
-	      var value = replacements[key];
-	      return momentFormat.replace("%" + key, value);
-	}, LabelFormat);
-	return momentLabelFormat;
+  //convert label format from strftime to moment's format (modified from
+  //https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
+  //added %f and %N below (TODO: add %Q)
+  var replacements = { "a": 'ddd', "A": 'dddd', "b": 'MMM', "B": 'MMMM', "d": 'DD', "e": 'D', "F": 'YYYY-MM-DD', "H": 'HH', "I": 'hh', "j": 'DDDD', "k": 'H', "l": 'h', "m": 'MM', "M": 'mm', "p": 'A', "S": 'ss', "u": 'E', "w": 'd', "W": 'WW', "y": 'YY', "Y": 'YYYY', "z": 'ZZ', "Z": 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%' };
+  var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
+    var value = replacements[key];
+    return momentFormat.replace("%" + key, value);
+  }, LabelFormat);
+  return momentLabelFormat;
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {

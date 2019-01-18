@@ -15,7 +15,6 @@ module.exports = {
       newIsCapExceptionPattern: "^Asset\.."
     }],
     "no-array-constructor": "off",
-    "no-caller": "off",
     "no-unused-vars": "off",
     "no-var": "off",
     "prefer-rest-params": "off",

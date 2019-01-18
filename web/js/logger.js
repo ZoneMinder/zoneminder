@@ -46,10 +46,11 @@ function logReport( level, message, file, line ) {
   if ( typeof(MooTools) == "undefined" ) {
     return;
   }
-
+  /* eslint-disable no-caller */
   if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.name ) {
     message += ' - '+arguments.callee.caller.caller.name+'()';
   }
+  /* eslint-enable no-caller */
 
   if ( !debugReq ) {
     if ( Browser ) {

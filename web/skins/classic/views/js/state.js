@@ -24,21 +24,21 @@ $j(document).ready(function() {
 
 	// Delete a state
 	$j("#btnDelete").click(function() {
-                StateStuff( 'delete', $j("#runState").val( ));
+                stateStuff( 'delete', $j("#runState").val( ));
 	});
 
 
 	// Save a new state
 	$j("#btnSave").click(function() {
-		StateStuff( 'save', undefined, $j("#newState").val() );
+		stateStuff( 'save', undefined, $j("#newState").val() );
 	});
 
 	// Change state
 	$j("#btnApply").click(function() {
-		StateStuff( 'state', $j("#runState").val() );
+		stateStuff( 'state', $j("#runState").val() );
 	});
 
-	function StateStuff( action, runState, newState ) {
+	function stateStuff( action, runState, newState ) {
 		var formData = {
 			'view' : 'console',
 			'action' : action,

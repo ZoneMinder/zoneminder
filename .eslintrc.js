@@ -19,7 +19,6 @@ module.exports = {
     "no-new-object": "off",
     "no-unused-vars": "off",
     "no-var": "off",
-    "object-curly-spacing": "off",
     "prefer-rest-params": "off",
     "quotes": "off",
     "require-jsdoc": "off",

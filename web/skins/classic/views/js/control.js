@@ -1,5 +1,5 @@
 var controlParms = "view=request&request=control";
-var controlReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: getControlResponse } );
+var controlReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: getControlResponse} );
 
 function getControlResponse( respObj, respText ) {
   if ( !respObj ) {

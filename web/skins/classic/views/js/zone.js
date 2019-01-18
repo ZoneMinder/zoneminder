@@ -310,9 +310,9 @@ function addPoint( index ) {
   var newX = parseInt(Math.round((zone['Points'][index]['x']+zone['Points'][nextIndex]['x'])/2));
   var newY = parseInt(Math.round((zone['Points'][index]['y']+zone['Points'][nextIndex]['y'])/2));
   if ( nextIndex == 0 ) {
-    zone['Points'][zone['Points'].length] = { 'x': newX, 'y': newY };
+    zone['Points'][zone['Points'].length] = {'x': newX, 'y': newY};
   } else {
-    zone['Points'].splice( nextIndex, 0, { 'x': newX, 'y': newY } );
+    zone['Points'].splice( nextIndex, 0, {'x': newX, 'y': newY} );
   }
   drawZonePoints();
   // drawZonePoints calls updateZoneImage
@@ -386,7 +386,7 @@ function drawZonePoints() {
     element.destroy();
   } );
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var div = new Element( 'div', { 'id': 'point'+i, 'class': 'zonePoint', 'title': 'Point '+(i+1), 'styles': { 'left': zone['Points'][i].x, 'top': zone['Points'][i].y } } );
+    var div = new Element( 'div', {'id': 'point'+i, 'class': 'zonePoint', 'title': 'Point '+(i+1), 'styles': {'left': zone['Points'][i].x, 'top': zone['Points'][i].y}} );
     div.addEvent( 'mouseover', highlightOn.pass( i ) );
     div.addEvent( 'mouseout', highlightOff.pass( i ) );
     div.inject( $('imageFrame') );
@@ -403,28 +403,28 @@ function drawZonePoints() {
     table.getElement( 'tbody' ).empty();
   } );
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var row = new Element( 'tr', { 'id': 'row'+i } );
-    row.addEvents( { 'mouseover': highlightOn.pass( i ), 'mouseout': highlightOff.pass( i ) } );
+    var row = new Element( 'tr', {'id': 'row'+i} );
+    row.addEvents( {'mouseover': highlightOn.pass( i ), 'mouseout': highlightOff.pass( i )} );
     var cell = new Element( 'td' );
     cell.set( 'text', i+1 );
     cell.inject( row );
 
     cell = new Element( 'td' );
-    var input = new Element( 'input', { 'id': 'newZone[Points]['+i+'][x]', 'name': 'newZone[Points]['+i+'][x]', 'value': zone['Points'][i].x, 'size': 5 } );
+    var input = new Element( 'input', {'id': 'newZone[Points]['+i+'][x]', 'name': 'newZone[Points]['+i+'][x]', 'value': zone['Points'][i].x, 'size': 5} );
     input.addEvent( 'input', updateX.pass( i ) );
     input.inject( cell );
     cell.inject( row );
 
     cell = new Element( 'td' );
-    input = new Element( 'input', { 'id': 'newZone[Points]['+i+'][y]', 'name': 'newZone[Points]['+i+'][y]', 'value': zone['Points'][i].y, 'size': 5 } );
+    input = new Element( 'input', {'id': 'newZone[Points]['+i+'][y]', 'name': 'newZone[Points]['+i+'][y]', 'value': zone['Points'][i].y, 'size': 5} );
     input.addEvent( 'input', updateY.pass( i ) );
     input.inject( cell );
     cell.inject( row );
 
     cell = new Element( 'td' );
-    new Element( 'a', { 'href': '#', 'events': { 'click': addPoint.pass( i ) } } ).set( 'text', '+' ).inject( cell );
+    new Element( 'a', {'href': '#', 'events': {'click': addPoint.pass( i )}} ).set( 'text', '+' ).inject( cell );
     if ( zone['Points'].length > 3 ) {
-      new Element( 'a', { 'id': 'delete'+i, 'href': '#', 'events': { 'click': delPoint.pass( i ) } } ).set( 'text', '-' ).inject( cell );
+      new Element( 'a', {'id': 'delete'+i, 'href': '#', 'events': {'click': delPoint.pass( i )}} ).set( 'text', '-' ).inject( cell );
     }
     cell.inject( row );
 

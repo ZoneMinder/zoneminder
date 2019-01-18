@@ -78,8 +78,8 @@ function frameDataResponse( respObj, respText ) {
   previewEvent(frame.EventId, frame.FrameId);
 }
 
-var eventQuery = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: eventDataResponse } );
-var frameQuery = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: frameDataResponse } );
+var eventQuery = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: eventDataResponse} );
+var frameQuery = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: frameDataResponse} );
 
 function requestFrameData( eventId, frameId ) {
   if ( !events[eventId] ) {

@@ -40,7 +40,7 @@ function vjsReplay() {
   }
 }
 
-$j.ajaxSetup({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+$j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
 
@@ -190,7 +190,7 @@ function changeScale() {
 function changeReplayMode() {
   var replayMode = $('replayMode').get('value');
 
-  Cookie.write('replayMode', replayMode, { duration: 10*365 });
+  Cookie.write('replayMode', replayMode, {duration: 10*365});
 
   refreshWindow();
 }
@@ -587,7 +587,7 @@ function getEventResponse( respObj, respText ) {
   nearEventsQuery( eventData.Id );
 } // end function getEventResponse
 
-var eventReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
+var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse} );
 
 function eventQuery( eventId ) {
   var eventParms = "view=request&request=status&entity=event&id="+eventId;
@@ -620,7 +620,7 @@ function getNearEventsResponse( respObj, respText ) {
   $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 }
 
-var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
+var nearEventsReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse} );
 
 function nearEventsQuery( eventId ) {
   var parms = "view=request&request=status&entity=nearevents&id="+eventId+filterQuery+sortQuery;
@@ -679,7 +679,7 @@ function loadEventImage( event, frame ) {
     if ( eventImagePanel.getStyle( 'display' ) == 'none' ) {
       eventImagePanel.setOpacity( 0 );
       eventImagePanel.setStyle( 'display', 'inline-block' );
-      new Fx.Tween( eventImagePanel, { duration: 500, transition: Fx.Transitions.Sine } ).start( 'opacity', 0, 1 );
+      new Fx.Tween( eventImagePanel, {duration: 500, transition: Fx.Transitions.Sine} ).start( 'opacity', 0, 1 );
     }
 
     eventImg.setProperties( {
@@ -713,7 +713,7 @@ function hideEventImageComplete() {
 
 function hideEventImage() {
   if ( $('eventImagePanel').getStyle( 'display' ) != 'none' ) {
-    new Fx.Tween( $('eventImagePanel'), { duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete } ).start( 'opacity', 1, 0 );
+    new Fx.Tween( $('eventImagePanel'), {duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete} ).start( 'opacity', 1, 0 );
   }
 }
 
@@ -761,7 +761,7 @@ function getFrameResponse( respObj, respText ) {
   loadEventThumb( eventData, frame, respObj.loopback=="true" );
 }
 
-var frameReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse } );
+var frameReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse} );
 
 function frameQuery( eventId, frameId, loadImage ) {
   var parms = "view=request&request=status&entity=frameimage&id[0]="+eventId+"&id[1]="+frameId+"&loopback="+loadImage;
@@ -793,7 +793,7 @@ function checkFrames( eventId, frameId, loadImage ) {
 
   for ( var fid = loFid; fid <= hiFid; fid++ ) {
     if ( !$('eventThumb'+fid) ) {
-      var img = new Element( 'img', { 'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder' } );
+      var img = new Element( 'img', {'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder'} );
       img.addEvent( 'click', function() {
         eventData['frames'][fid] = null; checkFrames( eventId, fid );
       } );
@@ -888,7 +888,7 @@ function getActResponse( respObj, respText ) {
   }
 }
 
-var actReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse } );
+var actReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse} );
 
 function actQuery( action, parms ) {
   var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
@@ -906,7 +906,7 @@ function deleteEvent() {
 
 function renameEvent() {
   var newName = $('eventName').get('value');
-  actQuery( 'rename', { eventName: newName } );
+  actQuery( 'rename', {eventName: newName} );
 }
 
 function editEvent() {
@@ -963,7 +963,7 @@ function showStills() {
     scroll = new Fx.Scroll( 'eventThumbs', {
       wait: false,
       duration: 500,
-      offset: { 'x': 0, 'y': 0 },
+      offset: {'x': 0, 'y': 0},
       transition: Fx.Transitions.Quad.easeInOut
     }
     );

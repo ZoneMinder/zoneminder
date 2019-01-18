@@ -3,7 +3,7 @@ var Overlay = new Class({
   initialize: function( id, options ) {
     this.setOptions( options );
 
-    this.mask = new Mask( document.body, { 'maskMargins': false, 'class': 'overlayMask' } );
+    this.mask = new Mask( document.body, {'maskMargins': false, 'class': 'overlayMask'} );
 
     this.id = id?id:'overlay';
     if ( typeOf(this.id) == 'string' ) {
@@ -15,18 +15,18 @@ var Overlay = new Class({
       this.id = this.element.get('id');
     }
     if ( !this.element ) {
-      this.element = new Element( 'div', { 'id': this.id, 'class': 'overlay', 'styles': { 'display': 'none' } } );
+      this.element = new Element( 'div', {'id': this.id, 'class': 'overlay', 'styles': {'display': 'none'}} );
       if ( this.options.title || this.options.buttons ) {
-        var overlayHeader = new Element( 'div', { 'class': 'overlayHeader' } );
+        var overlayHeader = new Element( 'div', {'class': 'overlayHeader'} );
         if ( this.options.title ) {
-          var overlayTitle = new Element( 'div', { 'class': 'overlayTitle', 'text': this.options.title } );
+          var overlayTitle = new Element( 'div', {'class': 'overlayTitle', 'text': this.options.title} );
           overlayHeader.grab( overlayTitle );
         }
         if ( this.options.buttons ) {
-          var overlayToolbar = new Element( 'div', { 'class': 'overlayToolbar' } );
+          var overlayToolbar = new Element( 'div', {'class': 'overlayToolbar'} );
           this.options.buttons.each(
               function( button ) {
-                var overlayButton = new Element( 'button', { 'text': button.text } );
+                var overlayButton = new Element( 'button', {'text': button.text} );
                 if ( button.id ) {
                   overlayButton.setProperty( 'id', button.id );
                 }
@@ -39,8 +39,8 @@ var Overlay = new Class({
           overlayHeader.grab( overlayTitle );
         }
         this.element.grab( overlayHeader );
-        var overlayBody = new Element( 'div', { 'class': 'overlayBody' } );
-        var overlayContent = new Element( 'div', { 'class': 'overlayContent' } );
+        var overlayBody = new Element( 'div', {'class': 'overlayBody'} );
+        var overlayContent = new Element( 'div', {'class': 'overlayContent'} );
         overlayContent.grab( this.options.content );
         overlayBody.grab( overlayContent );
         this.element.grab( overlayBody );
@@ -65,7 +65,7 @@ var Overlay = new Class({
     this.mask.hide();
   },
   hide: function() {
-    new Fx.Tween( this.element, { duration: 400, transition: Fx.Transitions.Sine, onComplete: this.hideComplete.bind(this) } ).start( 'opacity', 1.0, 0 );
+    new Fx.Tween( this.element, {duration: 400, transition: Fx.Transitions.Sine, onComplete: this.hideComplete.bind(this)} ).start( 'opacity', 1.0, 0 );
   },
   update: function() {
     this.element.position();
@@ -76,7 +76,7 @@ var Overlay = new Class({
 
     //console.log( "Showing overlay loading" );
     if ( !this.loading ) {
-      this.loading = new Element( 'div', { 'id': 'loading'+this.key, 'styles': { 'display': 'none' } } );
+      this.loading = new Element( 'div', {'id': 'loading'+this.key, 'styles': {'display': 'none'}} );
       this.loading.grab( this.loadingImage );
       document.body.grab( this.loading );
     }

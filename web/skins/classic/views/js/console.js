@@ -131,7 +131,7 @@ function initPage() {
     $j( "#consoleTableBody" ).sortable({
       handle: ".glyphicon-sort",
       update: applySort,
-      axis: 'Y' } );
+      axis: 'Y'} );
     $j( "#consoleTableBody" ).disableSelection();
   } );
 }
@@ -140,7 +140,7 @@ function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
   var ajax = new Request.JSON( {
     url: 'index.php?request=console',
-    data: { monitor_ids: monitor_ids, action: 'sort' },
+    data: {monitor_ids: monitor_ids, action: 'sort'},
     method: 'post',
     timeout: AJAX_TIMEOUT
   } );

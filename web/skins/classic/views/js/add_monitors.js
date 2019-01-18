@@ -1,5 +1,5 @@
 
-var probeReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getProbeResponse } );
+var probeReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getProbeResponse} );
 
 function probe( url_e ) {
   probeReq.send( "request=add_monitors&action=probe&url="+url_e.value );

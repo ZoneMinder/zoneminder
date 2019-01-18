@@ -1,5 +1,5 @@
 var logParms = "view=request&request=log&task=query";
-var logReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse } );
+var logReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse} );
 var logTimer = undefined;
 var logTable = undefined;
 
@@ -64,7 +64,7 @@ function logResponse( respObj ) {
               if ( ( !minLogTime ) || ( log.TimeKey < minLogTime ) ) {
                 minLogTime = log.TimeKey;
               }
-              var row = logTable.push( [{ content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
+              var row = logTable.push( [{content: log.DateTime, properties: {style: 'white-space: nowrap'}}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
 
               delete log.Message;
               row.tr.store( 'log', log );
@@ -210,7 +210,7 @@ function exportRequest() {
   $('exportError').hide();
   if ( form.validate() ) {
     var exportParms = "view=request&request=log&task=export";
-    var exportReq = new Request.JSON( { url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail } );
+    var exportReq = new Request.JSON( {url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail} );
     var selection = form.getElement('input[name=selector]:checked').get('value');
     if ( selection == 'filter' || selection == 'current' ) {
       $$('#filters select').each(

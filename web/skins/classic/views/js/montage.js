@@ -1,4 +1,4 @@
-var requestQueue = new Request.Queue( { concurrent: monitorData.length, stopOnFailure: false } );
+var requestQueue = new Request.Queue( {concurrent: monitorData.length, stopOnFailure: false} );
 
 function Monitor( monitorData ) {
   this.id = monitorData.id;
@@ -217,9 +217,9 @@ function selectLayout( element ) {
   if ( ! layout ) {
     return;
   }
-  Cookie.write( 'zmMontageLayout', layout_id, { duration: 10*365 } );
+  Cookie.write( 'zmMontageLayout', layout_id, {duration: 10*365} );
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
-    Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+    Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
     $('scale').set('value', '' );
     $('width').set('value', '');
     if ( 1 ) {
@@ -289,9 +289,9 @@ function changeSize() {
     }
   }
   $('scale').set('value', '' );
-  Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
-  Cookie.write( 'zmMontageWidth', width, { duration: 10*365 } );
-  Cookie.write( 'zmMontageHeight', height, { duration: 10*365 } );
+  Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
+  Cookie.write( 'zmMontageWidth', width, {duration: 10*365} );
+  Cookie.write( 'zmMontageHeight', height, {duration: 10*365} );
   selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
@@ -299,9 +299,9 @@ function changeScale() {
   var scale = $('scale').get('value');
   $('width').set('value', '');
   $('height').set('value', '');
-  Cookie.write( 'zmMontageScale', scale, { duration: 10*365 } );
-  Cookie.write( 'zmMontageWidth', '', { duration: 10*365 } );
-  Cookie.write( 'zmMontageHeight', '', { duration: 10*365 } );
+  Cookie.write( 'zmMontageScale', scale, {duration: 10*365} );
+  Cookie.write( 'zmMontageWidth', '', {duration: 10*365} );
+  Cookie.write( 'zmMontageHeight', '', {duration: 10*365} );
   if ( ! scale ) {
     selectLayout('#zmMontageLayout');
     return;
@@ -412,7 +412,7 @@ function initPage() {
     jQuery("#hdrbutton").click(function() {
       jQuery("#flipMontageHeader").slideToggle("slow");
       jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-      Cookie.write( 'zmMontageHeaderFlip', jQuery('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
+      Cookie.write( 'zmMontageHeaderFlip', jQuery('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', {duration: 10*365} );
     });
   });
   if ( Cookie.read('zmMontageHeaderFlip') == 'down' ) {

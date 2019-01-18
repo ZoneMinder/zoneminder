@@ -44,7 +44,7 @@ function changeScale() {
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
-  Cookie.write( 'zmWatchScale'+monitorId, scale, { duration: 10*365 } );
+  Cookie.write( 'zmWatchScale'+monitorId, scale, {duration: 10*365} );
 
   /*Stream could be an applet so can't use moo tools*/
   var streamImg = $('liveStream'+monitorId);
@@ -392,7 +392,7 @@ if ( monitorType != 'WebSite' ) {
   if ( auth_hash ) {
     statusCmdParms += '&auth='+auth_hash;
   }
-  var statusCmdReq = new Request.JSON( { url: monitorUrl, method: 'get', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
+  var statusCmdReq = new Request.JSON( {url: monitorUrl, method: 'get', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse} );
   var statusCmdTimer = null;
 }
 
@@ -523,39 +523,39 @@ function getEventCmdResponse( respObj, respText ) {
       var row = $('event'+event.Id);
       var newEvent = (row == null ? true : false);
       if ( newEvent ) {
-        row = new Element( 'tr', { 'id': 'event'+event.Id } );
-        new Element( 'td', { 'class': 'colId' } ).inject( row );
-        new Element( 'td', { 'class': 'colName' } ).inject( row );
-        new Element( 'td', { 'class': 'colTime' } ).inject( row );
-        new Element( 'td', { 'class': 'colSecs' } ).inject( row );
-        new Element( 'td', { 'class': 'colFrames' } ).inject( row );
-        new Element( 'td', { 'class': 'colScore' } ).inject( row );
-        new Element( 'td', { 'class': 'colDelete' } ).inject( row );
+        row = new Element( 'tr', {'id': 'event'+event.Id} );
+        new Element( 'td', {'class': 'colId'} ).inject( row );
+        new Element( 'td', {'class': 'colName'} ).inject( row );
+        new Element( 'td', {'class': 'colTime'} ).inject( row );
+        new Element( 'td', {'class': 'colSecs'} ).inject( row );
+        new Element( 'td', {'class': 'colFrames'} ).inject( row );
+        new Element( 'td', {'class': 'colScore'} ).inject( row );
+        new Element( 'td', {'class': 'colDelete'} ).inject( row );
 
         var cells = row.getElements( 'td' );
 
-        var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height] ) } });
+        var link = new Element( 'a', {'href': '#', 'events': {'click': createEventPopup.pass( [event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height] )}});
         link.set( 'text', event.Id );
         link.inject( row.getElement( 'td.colId' ) );
 
-        link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height] ) } });
+        link = new Element( 'a', {'href': '#', 'events': {'click': createEventPopup.pass( [event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height] )}});
         link.set( 'text', event.Name );
         link.inject( row.getElement( 'td.colName' ) );
 
         row.getElement( 'td.colTime' ).set( 'text', event.StartTime );
         row.getElement( 'td.colSecs' ).set( 'text', event.Length );
 
-        link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramesPopup.pass( [event.Id, event.Width, event.Height] ) } });
+        link = new Element( 'a', {'href': '#', 'events': {'click': createFramesPopup.pass( [event.Id, event.Width, event.Height] )}});
         link.set( 'text', event.Frames+'/'+event.AlarmFrames );
         link.inject( row.getElement( 'td.colFrames' ) );
 
-        link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramePopup.pass( [event.Id, '0', event.Width, event.Height] ) } });
+        link = new Element( 'a', {'href': '#', 'events': {'click': createFramePopup.pass( [event.Id, '0', event.Width, event.Height] )}});
         link.set( 'text', event.AvgScore+'/'+event.MaxScore );
         link.inject( row.getElement( 'td.colScore' ) );
 
-        link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( e ) {
+        link = new Element( 'a', {'href': '#', 'title': deleteString, 'events': {'click': function( e ) {
           deleteEvent( e, event.Id );
-        }, 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
+        }, 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row )}});
         link.set( 'text', 'X' );
         link.inject( row.getElement( 'td.colDelete' ) );
 
@@ -613,7 +613,7 @@ if ( monitorType != 'WebSite' ) {
   if ( auth_hash ) {
     controlParms += '&auth='+auth_hash;
   }
-  var controlReq = new Request.JSON( { url: monitorUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse } );
+  var controlReq = new Request.JSON( {url: monitorUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse} );
 }
 
 function getControlResponse( respObj, respText ) {

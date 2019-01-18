@@ -20,7 +20,7 @@ function exportResponse( respObj, respText ) {
 function exportEvent( form ) {
   var parms = 'view=request&request=event&action=download';
   parms += '&'+$(form).toQueryString();
-  var query = new Request.JSON( { url: thisUrl, method: 'post', data: parms, onSuccess: exportResponse } );
+  var query = new Request.JSON( {url: thisUrl, method: 'post', data: parms, onSuccess: exportResponse} );
   query.send();
   $('exportProgress').removeClass( 'hidden' );
   $('exportProgress').setProperty( 'class', 'warnText' );

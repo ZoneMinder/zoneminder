@@ -52,12 +52,12 @@ function newWindow( url, name, width, height ) {
 function getPopupSize( tag, width, height ) {
   if ( typeof popupSizes == 'undefined' ) {
     Error( "Can't find any window sizes" );
-    return ( { 'width': 0, 'height': 0 } );
+    return ( {'width': 0, 'height': 0} );
   }
   var popupSize = Object.clone( popupSizes[tag] );
   if ( !popupSize ) {
     Error( "Can't find window size for tag '"+tag+"'" );
-    return ( { 'width': 0, 'height': 0 } );
+    return ( {'width': 0, 'height': 0} );
   }
   if ( popupSize.width && popupSize.height ) {
     if ( width || height ) {
@@ -239,7 +239,7 @@ function refreshParentWindow() {
 }
 
 if ( currentView != 'none' && currentView != 'login' ) {
-  $j.ajaxSetup({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+  $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
     if ($j('.navbar').length) {
@@ -374,7 +374,7 @@ function convertLabelFormat(LabelFormat, monitorName) {
   //convert label format from strftime to moment's format (modified from
   //https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
   //added %f and %N below (TODO: add %Q)
-  var replacements = { "a": 'ddd', "A": 'dddd', "b": 'MMM', "B": 'MMMM', "d": 'DD', "e": 'D', "F": 'YYYY-MM-DD', "H": 'HH', "I": 'hh', "j": 'DDDD', "k": 'H', "l": 'h', "m": 'MM', "M": 'mm', "p": 'A', "S": 'ss', "u": 'E', "w": 'd', "W": 'WW', "y": 'YY', "Y": 'YYYY', "z": 'ZZ', "Z": 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%' };
+  var replacements = {"a": 'ddd', "A": 'dddd', "b": 'MMM', "B": 'MMMM', "d": 'DD', "e": 'D', "F": 'YYYY-MM-DD', "H": 'HH', "I": 'hh', "j": 'DDDD', "k": 'H', "l": 'h', "m": 'MM', "M": 'mm', "p": 'A', "S": 'ss', "u": 'E', "w": 'd', "W": 'WW', "y": 'YY', "Y": 'YYYY', "z": 'ZZ', "Z": 'z', 'f': 'SS', 'N': "["+monitorName+"]", '%': '%'};
   var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
     var value = replacements[key];
     return momentFormat.replace("%" + key, value);

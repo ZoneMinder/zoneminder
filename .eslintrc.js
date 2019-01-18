@@ -16,7 +16,6 @@ module.exports = {
     }],
     "no-array-constructor": "off",
     "no-caller": "off",
-    "no-new-object": "off",
     "no-unused-vars": "off",
     "no-var": "off",
     "prefer-rest-params": "off",

@@ -69,7 +69,7 @@ function frameDataResponse( respObj, respText ) {
 
   if ( !event['frames'] ) {
     console.log("No frames data in event response");
-    event['frames'] = new Object();
+    event['frames'] = {};
   }
 
   event['frames'][frame.FrameId] = frame;

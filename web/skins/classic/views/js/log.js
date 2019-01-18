@@ -3,13 +3,13 @@ var logReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIME
 var logTimer = undefined;
 var logTable = undefined;
 
-var logCodes = new Object({
+var logCodes = {
   '0': 'INF',
   '-1': 'WAR',
   '-2': 'ERR',
   '-3': 'FAT',
   '-4': 'PNC',
-});
+};
 
 var minSampleTime = 2000;
 var maxSampleTime = 16000;

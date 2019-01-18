@@ -753,7 +753,7 @@ function getFrameResponse( respObj, respText ) {
   }
 
   if ( !eventData['frames'] ) {
-    eventData['frames'] = new Object();
+    eventData['frames'] = {};
   }
 
   eventData['frames'][frame.FrameId] = frame;
@@ -777,7 +777,7 @@ function checkFrames( eventId, frameId, loadImage ) {
   }
 
   if ( !eventData['frames'] ) {
-    eventData['frames'] = new Object();
+    eventData['frames'] = {};
   }
 
   currFrameId = frameId;

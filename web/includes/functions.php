@@ -38,10 +38,13 @@ function noCacheHeaders() {
 function CSPHeaders($view, $nonce) {
   switch ($view) {
     case 'bandwidth':
+    case 'blank':
     case 'function':
     case 'log':
+    case 'login':
     case 'logout':
     case 'options':
+    case 'privacy':
     case 'version': {
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
       // 'unsafe-inline' is only for backwards compatibility with browsers which

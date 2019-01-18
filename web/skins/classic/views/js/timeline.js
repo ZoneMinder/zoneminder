@@ -1,6 +1,6 @@
 var events = {};
 
-function showEvent( eid, fid, width, height ) {    
+function showEvent( eid, fid, width, height ) {
   var url = '?view=event&eid='+eid+'&fid='+fid;
   url += filterQuery;
   window.location.href = url;
@@ -89,7 +89,6 @@ function requestFrameData( eventId, frameId ) {
 }
 
 function previewEvent(eventId, frameId) {
-
   if ( events[eventId] ) {
     var event = events[eventId];
     if ( event['frames'] ) {
@@ -111,7 +110,7 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
   if ( videoName && vid ) {
     vid.show();
     imageSrc.hide();
-    var newsource=imagePath.slice(0,imagePath.lastIndexOf('/'))+'/'+videoName;
+    var newsource=imagePath.slice(0, imagePath.lastIndexOf('/'))+'/'+videoName;
     //console.log(newsource);
     //console.log(sources[0].src.slice(-newsource.length));
     if ( newsource != vid.currentSrc.slice(-newsource.length) || vid.readyState == 0 ) {
@@ -120,11 +119,11 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
       var sources = vid.getElementsByTagName('source');
       sources[0].src = newsource;
       var tracks = vid.getElementsByTagName('track');
-      if(tracks.length){
+      if(tracks.length) {
         tracks[0].parentNode.removeChild(tracks[0]);
       }
       vid.load();
-      addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime)
+      addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime);
         vid.currentTime = fid/fps;
     } else {
       if ( ! vid.seeking )
@@ -135,7 +134,7 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
     imageSrc.show();
     imageSrc.setProperty('src', imagePath);
     imageSrc.removeEvent('click');
-    imageSrc.addEvent('click', showEvent.pass([ eid, fid, width, height ]));
+    imageSrc.addEvent('click', showEvent.pass([eid, fid, width, height]));
   }
 
   var eventData = $('eventData');

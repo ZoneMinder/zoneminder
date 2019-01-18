@@ -30,7 +30,7 @@ function changeScale() {
   var newWidth;
   var newHeight;
   if (scale == "auto") {
-    let newSize = scaleToFit(monitorWidth, monitorHeight, $j('#liveStream'+monitorId), $j('#replayStatus'));
+    var newSize = scaleToFit(monitorWidth, monitorHeight, $j('#liveStream'+monitorId), $j('#replayStatus'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
@@ -123,7 +123,7 @@ if ( monitorType != 'WebSite' ) {
 
 var streamStatus;
 
-function getStreamCmdError(text,error) {
+function getStreamCmdError(text, error) {
   console.log(error);
   // Error are normally due to failed auth. reload the page.
   window.location.reload();
@@ -230,7 +230,7 @@ function getStreamCmdResponse(respObj, respText) {
     if ( 0 ) {
     var streamImg = $('liveStream'+monitorId);
     if ( streamImg ) {
-      streamImg.src = streamImg.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+      streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
       console.log("Changing livestream src to " + streamImg.src);
     } else {
       console.log("Unable to find streamImg liveStream");
@@ -500,26 +500,26 @@ function getEventCmdResponse( respObj, respText ) {
 
         var cells = row.getElements( 'td' );
 
-        var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height ] ) } });
+        var link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height] ) } });
         link.set( 'text', event.Id );
         link.inject( row.getElement( 'td.colId' ) );
 
-        link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [ event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height ] ) } });
+        link = new Element( 'a', { 'href': '#', 'events': { 'click': createEventPopup.pass( [event.Id, '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId+'&page=1&popup=1', event.Width, event.Height] ) } });
         link.set( 'text', event.Name );
         link.inject( row.getElement( 'td.colName' ) );
 
         row.getElement( 'td.colTime' ).set( 'text', event.StartTime );
         row.getElement( 'td.colSecs' ).set( 'text', event.Length );
 
-        link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramesPopup.pass( [ event.Id, event.Width, event.Height ] ) } });
+        link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramesPopup.pass( [event.Id, event.Width, event.Height] ) } });
         link.set( 'text', event.Frames+'/'+event.AlarmFrames );
         link.inject( row.getElement( 'td.colFrames' ) );
 
-        link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramePopup.pass( [ event.Id, '0', event.Width, event.Height ] ) } });
+        link = new Element( 'a', { 'href': '#', 'events': { 'click': createFramePopup.pass( [event.Id, '0', event.Width, event.Height] ) } });
         link.set( 'text', event.AvgScore+'/'+event.MaxScore );
         link.inject( row.getElement( 'td.colScore' ) );
 
-        link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( e ) { deleteEvent( e, event.Id ); }.bind( link ), 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
+        link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( e ) { deleteEvent( e, event.Id ); }, 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
         link.set( 'text', 'X' );
         link.inject( row.getElement( 'td.colDelete' ) );
 
@@ -627,7 +627,7 @@ function controlCmdImage( x, y ) {
 }
 
 function fetchImage( streamImage ) {
-  streamImage.src = streamImage.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+  streamImage.src = streamImage.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
 }
 
 function handleClick( event ) {

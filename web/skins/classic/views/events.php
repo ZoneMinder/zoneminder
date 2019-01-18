@@ -297,7 +297,7 @@ if ( $pagination ) {
       </form>
     </div>
   </div>
-<script type="text/javascript">
+<script nonce="<?php echo $cspNonce;?>">
   // These are defined in the .js.php but need to be updated down here.
   archivedEvents = <?php echo !empty($archived)?'true':'false' ?>;
   unarchivedEvents = <?php echo !empty($unarchived)?'true':'false' ?>;

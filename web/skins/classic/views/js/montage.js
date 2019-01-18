@@ -223,7 +223,7 @@ function selectLayout(element) {
       if ( streamImg ) {
         if ( streamImg.nodeName == 'IMG' ) {
           var src = streamImg.src;
-          src = src.replace(/width=[\.\d]+/i,'width=0' );
+          src = src.replace(/width=[\.\d]+/i, 'width=0' );
           if ( src != streamImg.src ) {
             streamImg.src = '';
             streamImg.src = src;
@@ -265,9 +265,9 @@ function changeSize() {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
         streamImg.src = '';
-        src = src.replace(/width=[\.\d]+/i,'width='+width);
-        src = src.replace(/height=[\.\d]+/i,'height='+height);
-        src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+        src = src.replace(/width=[\.\d]+/i, 'width='+width);
+        src = src.replace(/height=[\.\d]+/i, 'height='+height);
+        src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
       }
       streamImg.style.width = width ? width + "px" : null;
@@ -310,9 +310,9 @@ function changeScale() {
         continue;
       }
       if ( width )
-        monitor_frame.css('width',width+'px');
+        monitor_frame.css('width', width+'px');
       if ( height )
-        monitor_frame.css('height',height+'px');
+        monitor_frame.css('height', height+'px');
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $j('#liveStream'+monitor.id)[0];
     if ( streamImg ) {
@@ -343,7 +343,6 @@ function toGrid(value) {
 
 // Makes monitorFrames draggable.
 function edit_layout(button) {
-
   // Turn off the onclick on the image.
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
@@ -400,9 +399,8 @@ function reloadWebSite(ndx) {
 
 var monitors = new Array();
 function initPage() {
-
-  jQuery(document).ready(function(){
-    jQuery("#hdrbutton").click(function(){
+  jQuery(document).ready(function() {
+    jQuery("#hdrbutton").click(function() {
       jQuery("#flipMontageHeader").slideToggle("slow");
       jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
       Cookie.write( 'zmMontageHeaderFlip', jQuery('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );

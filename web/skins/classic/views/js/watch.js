@@ -483,7 +483,9 @@ function getEventCmdResponse( respObj, respText ) {
     var eventListBody = $(eventList).getElement( 'tbody' );
     var eventListRows = $(eventListBody).getElements( 'tr' );
 
-    eventListRows.each( function( row ) { row.removeClass( 'updated' ); } );
+    eventListRows.each( function( row ) {
+      row.removeClass( 'updated' );
+    } );
 
     for ( var i = 0; i < dbEvents.length; i++ ) {
       var event = dbEvents[i];
@@ -520,7 +522,9 @@ function getEventCmdResponse( respObj, respText ) {
         link.set( 'text', event.AvgScore+'/'+event.MaxScore );
         link.inject( row.getElement( 'td.colScore' ) );
 
-        link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( e ) { deleteEvent( e, event.Id ); }, 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
+        link = new Element( 'a', { 'href': '#', 'title': deleteString, 'events': { 'click': function( e ) {
+          deleteEvent( e, event.Id );
+        }, 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row ) } });
         link.set( 'text', 'X' );
         link.inject( row.getElement( 'td.colDelete' ) );
 
@@ -711,7 +715,9 @@ function initPage() {
         streamImg.addEvent('click', fetchImage.pass(streamImg));
         fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
       } else
-        streamImg.addEvent('click', function(event) { handleClick(event); });
+        streamImg.addEvent('click', function(event) {
+          handleClick(event);
+        });
     }
 
     if ( refreshApplet && appletRefreshTime )

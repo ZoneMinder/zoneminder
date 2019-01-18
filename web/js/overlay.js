@@ -1,39 +1,30 @@
 var Overlay = new Class({
   Implements: [Options, Events],
-  initialize: function( id, options )
-  {
+  initialize: function( id, options ) {
     this.setOptions( options );
 
     this.mask = new Mask( document.body, { 'maskMargins': false, 'class': 'overlayMask' } );
 
     this.id = id?id:'overlay';
-    if ( typeOf(this.id) == 'string' )
-    {
+    if ( typeOf(this.id) == 'string' ) {
       if ( $(this.id) )
         this.element = $(this.id);
-    }
-    else
-    {
+    } else {
       this.element = this.id;
       this.id = this.element.get('id');
     }
-    if ( !this.element )
-    {
+    if ( !this.element ) {
       this.element = new Element( 'div', { 'id': this.id, 'class': 'overlay', 'styles': { 'display': 'none' } } );
-      if ( this.options.title || this.options.buttons )
-      {
+      if ( this.options.title || this.options.buttons ) {
         var overlayHeader = new Element( 'div', { 'class': 'overlayHeader' } );
-        if ( this.options.title )
-        {
+        if ( this.options.title ) {
           var overlayTitle = new Element( 'div', { 'class': 'overlayTitle', 'text': this.options.title } );
           overlayHeader.grab( overlayTitle );
         }
-        if ( this.options.buttons )
-        {
+        if ( this.options.buttons ) {
           var overlayToolbar = new Element( 'div', { 'class': 'overlayToolbar' } );
           this.options.buttons.each(
-              function( button )
-              {
+              function( button ) {
                 var overlayButton = new Element( 'button', { 'text': button.text } );
                 if ( button.id )
                   overlayButton.setProperty( 'id', button.id );
@@ -55,8 +46,7 @@ var Overlay = new Class({
       this.element.inject( this.target );
     }
   },
-  show: function()
-  {
+  show: function() {
     this.mask.show();
     $(window).addEvent( 'resize', this.update.bind(this) );
     $(window).addEvent( 'scroll', this.update.bind(this) );
@@ -65,29 +55,24 @@ var Overlay = new Class({
     this.element.position();
     this.mask.position();
   },
-  hideComplete: function()
-  {
+  hideComplete: function() {
     $(window).removeEvent( 'resize', this.update.bind(this) );
     $(window).removeEvent( 'scroll', this.update.bind(this) );
     this.element.hide();
     this.mask.hide();
   },
-  hide: function()
-  {
+  hide: function() {
     new Fx.Tween( this.element, { duration: 400, transition: Fx.Transitions.Sine, onComplete: this.hideComplete.bind(this) } ).start( 'opacity', 1.0, 0 );
   },
-  update: function()
-  {
+  update: function() {
     this.element.position();
     this.mask.position();
   },
-  showAnimation:function()
-  {
+  showAnimation:function() {
     showOverlay();
 
     //console.log( "Showing overlay loading" );
-    if ( !this.loading )
-    {
+    if ( !this.loading ) {
       this.loading = new Element( 'div', { 'id': 'loading'+this.key, 'styles': { 'display':'none' } } );
       this.loading.grab( this.loadingImage );
       document.body.grab( this.loading );
@@ -97,8 +82,7 @@ var Overlay = new Class({
     $(window).addEvent( 'resize', this.update.bind(this) );
     $(window).addEvent( 'scroll', this.update.bind(this) );
   },
-  hideAnimation:function()
-  {
+  hideAnimation:function() {
     $(window).removeEvent( 'resize', this.update.bind(this) );
     $(window).removeEvent( 'scroll', this.update.bind(this) );
     if ( this.loading )
@@ -106,26 +90,27 @@ var Overlay = new Class({
   }
 });
 
-function setupOverlays()
-{
+function setupOverlays() {
   try {
     $$('.overlay').each(
-        function( overlay )
-        {
+        function( overlay ) {
           overlay.element = new Overlay( overlay.get('id') );
           overlay.getElements('.overlayCloser').each(
-              function( closer )
-              {
-                closer.addEvent( 'click', function() { overlay.element.hide(); } );
+              function( closer ) {
+                closer.addEvent( 'click', function() {
+                  overlay.element.hide();
+                } );
               }
           );
-          overlay.overlayShow = function() { overlay.element.show(); };
-          overlay.overlayHide = function() { overlay.element.hide(); };
+          overlay.overlayShow = function() {
+            overlay.element.show();
+          };
+          overlay.overlayHide = function() {
+            overlay.element.hide();
+          };
         }
     );
-  }
-  catch ( e )
-  {
+  } catch ( e ) {
     alert( e );
   }
 }

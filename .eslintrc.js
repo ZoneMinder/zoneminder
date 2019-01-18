@@ -6,8 +6,6 @@ module.exports = {
   },
   "extends": ["google"],
   "rules": {
-    "block-spacing": "off",
-    "brace-style": "off",
     "camelcase": "off",
     "comma-dangle": "off",
     "curly": "off",

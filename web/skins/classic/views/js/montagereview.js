@@ -493,10 +493,18 @@ HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 // These are the functions for mouse movement in the timeline.  Note that touch is treated as a mouse move with mouse down
 
 var mouseisdown=false;
-function mdown(event) {mouseisdown=true; mmove(event);}
-function mup(event) {mouseisdown=false;}
-function mout(event) {mouseisdown=false;} // if we go outside treat it as release
-function tmove(event) {mouseisdown=true; mmove(event);}
+function mdown(event) {
+  mouseisdown=true; mmove(event);
+}
+function mup(event) {
+  mouseisdown=false;
+}
+function mout(event) {
+  mouseisdown=false;
+} // if we go outside treat it as release
+function tmove(event) {
+  mouseisdown=true; mmove(event);
+}
 
 function mmove(event) {
   if ( mouseisdown ) {
@@ -876,8 +884,12 @@ function initPage() {
       monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
       var imageObject = monitorImageObject[monId] = new Image();
       imageObject.monId = monId;
-      imageObject.onload = function() {imagedone(this, this.monId, true );};
-      imageObject.onerror = function() {imagedone(this, this.monId, false );};
+      imageObject.onload = function() {
+        imagedone(this, this.monId, true );
+      };
+      imageObject.onerror = function() {
+        imagedone(this, this.monId, false );
+      };
       loadImage2Monitor( monId, monitorImageURL[monId] );
     }
   }

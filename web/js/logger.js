@@ -17,8 +17,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !window.console )
-{
+if ( !window.console ) {
   window.console =
     {
       init:function() {},
@@ -37,8 +36,7 @@ var reportLogs = true;
 var debugParms;
 var debugReq;
 
-function logReport( level, message, file, line )
-{
+function logReport( level, message, file, line ) {
   if ( !reportLogs )
     return;
 
@@ -48,8 +46,7 @@ function logReport( level, message, file, line )
   if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.name )
     message += ' - '+arguments.callee.caller.caller.name+'()';
 
-  if ( !debugReq )
-  {
+  if ( !debugReq ) {
     if ( Browser )
       debugParms = "view=request&request=log&task=create&browser[name]="+Browser.name+"&browser[version]="+Browser.version+"&browser[platform]="+(Browser.Platform?Browser.Platform.name:'unknown');
     else
@@ -69,53 +66,45 @@ function logReport( level, message, file, line )
   debugReq.send( requestParms );
 }
 
-function Panic( message )
-{
+function Panic( message ) {
   console.error( message );
   logReport( "PNC", message );
   alert( "PANIC: "+message );
 }
 
-function Fatal( message )
-{
+function Fatal( message ) {
   console.error( message );
   logReport( "FAT", message );
   alert( "FATAL: "+message );
 }
 
-function Error( message )
-{
+function Error( message ) {
   console.error( message );
   logReport( "ERR", message );
 }
 
-function Warning( message )
-{
+function Warning( message ) {
   console.warn( message );
   logReport( "WAR", message );
 }
 
-function Info( message )
-{
+function Info( message ) {
   console.info( message );
   logReport( "INF", message );
 }
 
-function Debug( message )
-{
+function Debug( message ) {
   console.debug( message );
   //logReport( "DBG", message );
 }
 
-function Dump( value, label )
-{
+function Dump( value, label ) {
   if ( label )
     console.debug( label+" => " );
   console.debug( value );
 }
 
 window.onerror =
-    function( message, url, line )
-    {
+    function( message, url, line ) {
       logReport( "ERR", message, url, line );
     };

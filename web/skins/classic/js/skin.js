@@ -423,7 +423,9 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
     newHeight = newWidth / ratio;
   }
   var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
-  var scales = $j('#scale option').map(function() {return parseInt($j(this).val());}).get();
+  var scales = $j('#scale option').map(function() {
+    return parseInt($j(this).val());
+  }).get();
   scales.shift();
   var closest;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.

@@ -82,7 +82,9 @@ function editMonitor( element ) {
   if ( monitorIds.length == 1 )
     createPopup( '?view=monitor&mid='+monitorIds[0], 'zmMonitor'+monitorIds[0], 'monitor' );
   else if ( monitorIds.length > 1 )
-    createPopup( '?view=monitors&'+(monitorIds.map(function(mid) {return 'mids[]='+mid;}).join('&')), 'zmMonitors', 'monitors' );
+    createPopup( '?view=monitors&'+(monitorIds.map(function(mid) {
+      return 'mids[]='+mid;
+    }).join('&')), 'zmMonitors', 'monitors' );
 }
 
 function deleteMonitor( element ) {

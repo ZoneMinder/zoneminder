@@ -633,7 +633,9 @@ function loadEventThumb( event, frame, loadImage ) {
           thumbImg.setProperty( 'class', frame.Type=='Alarm'?'alarm':'normal' );
           thumbImg.setProperty( 'title', frame.FrameId+' / '+((frame.Type=='Alarm')?frame.Score:0) );
           thumbImg.removeEvents( 'click' );
-          thumbImg.addEvent( 'click', function() { locateImage( frame.FrameId, true ); } );
+          thumbImg.addEvent( 'click', function() {
+            locateImage( frame.FrameId, true );
+          } );
           if ( loadImage )
             loadEventImage( event, frame );
         } ).pass( loadImage )
@@ -772,7 +774,9 @@ function checkFrames( eventId, frameId, loadImage ) {
   for ( var fid = loFid; fid <= hiFid; fid++ ) {
     if ( !$('eventThumb'+fid) ) {
       var img = new Element( 'img', { 'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder' } );
-      img.addEvent( 'click', function() { eventData['frames'][fid] = null; checkFrames( eventId, fid ); } );
+      img.addEvent( 'click', function() {
+        eventData['frames'][fid] = null; checkFrames( eventId, fid );
+      } );
       frameQuery( eventId, fid, loadImage && (fid == frameId) );
       var imgs = $('eventThumbs').getElements( 'img' );
       var injected = false;
@@ -1002,8 +1006,12 @@ function initPage() {
     vid.on('ended', vjsReplay);
     vid.on('play', vjsPlay);
     vid.on('pause', vjsPause);
-    vid.on('click', function(event) {handleClick(event);});
-    vid.on('timeupdate', function() {$j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));});
+    vid.on('click', function(event) {
+      handleClick(event);
+    });
+    vid.on('timeupdate', function() {
+      $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
+    });
 
     if ( rate > 1 ) {
       // rate should be 100 = 1x, etc.
@@ -1020,7 +1028,9 @@ function initPage() {
         var streamImg = imageFeed.getElement('img');
         if ( !streamImg )
           streamImg = imageFeed.getElement('object');
-        $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
+        $(streamImg).addEvent( 'click', function( event ) {
+          handleClick( event );
+        } );
       }
     }
   }

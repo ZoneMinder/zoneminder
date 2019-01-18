@@ -376,7 +376,9 @@ function saveChanges( element ) {
 }
 
 function drawZonePoints() {
-  $('imageFrame').getElements( 'div.zonePoint' ).each( function( element ) { element.destroy(); } );
+  $('imageFrame').getElements( 'div.zonePoint' ).each( function( element ) {
+    element.destroy();
+  } );
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var div = new Element( 'div', { 'id': 'point'+i, 'class': 'zonePoint', 'title': 'Point '+(i+1), 'styles': { 'left': zone['Points'][i].x, 'top': zone['Points'][i].y } } );
     div.addEvent( 'mouseover', highlightOn.pass( i ) );
@@ -391,7 +393,9 @@ function drawZonePoints() {
   }
 
   var tables = $('zonePoints').getElements( 'table' );
-  tables.each( function( table ) { table.getElement( 'tbody' ).empty(); } );
+  tables.each( function( table ) {
+    table.getElement( 'tbody' ).empty();
+  } );
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var row = new Element( 'tr', { 'id': 'row'+i } );
     row.addEvents( { 'mouseover': highlightOn.pass( i ), 'mouseout': highlightOff.pass( i ) } );

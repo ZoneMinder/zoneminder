@@ -388,7 +388,7 @@ if ( ZM_OPT_MESSAGE ) {
             <p>
               <label><?php echo translate('FilterExecuteEvents') ?></label>
               <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
-              <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?$filter->AutoExecuteCmd():'' ?>" maxlength="255" data-on-change="updateButtons"/>
+              <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?$filter->AutoExecuteCmd():'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
             <p>
               <label><?php echo translate('FilterDeleteEvents') ?></label>

@@ -71,10 +71,10 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 }
   -->
   </style>
-  <script type="text/javascript">
+  <script nonce="<?php echo $cspNonce;?>">
 <?php include(ZM_SKIN_PATH.'/js/jquery.js') ?>
 </script>
-  <script type="text/javascript" language="javascript" charset="utf-8">
+  <script nonce="<?php echo $cspNonce;?>">
 
   /*==========[tab code]==========*/
  $(document).ready(function() {
@@ -278,7 +278,7 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 <div align="center"><div class="display_holder" ><input id="imageslider_display_id" class="value_display" type="text" value="0" onfocus="blur(this);" /></div></div>
 
 
-<script language="JavaScript1.2">
+<script nonce="<?php echo $cspNonce;?>">
 
 /***********************************************
 * Flexi Slideshow- © Dynamic Drive (www.dynamicdrive.com)
@@ -660,7 +660,7 @@ function exportEventImagesMaster( $eids ) {
 </td>
 </tr></table>
 
-<script type="text/javascript">
+<script nonce="<?php echo $cspNonce;?>">
 function switchevent(src) { 
 	if(document.all) document.all.myframe.src = src;
 	else window.frames['myframe'].location.href = src; 

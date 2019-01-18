@@ -24,8 +24,7 @@ function validateForm ( form ) {
   return true;
 }
 
-function updateButtons() {
-  var element = this;
+function updateButtons(element) {
   var form = element.form;
 
   if ( element.type == 'checkbox' && element.checked ) {

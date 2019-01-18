@@ -151,6 +151,12 @@ $j(document).ready(function() {
     };
   });
 
+  // 'data-on-change-this' calls the global function in the attribute value with the element when a change happens.
+  document.querySelectorAll("select[data-on-change-this], input[data-on-change-this]").forEach(function attachOnChangeThis(el) {
+    var fnName = el.getAttribute("data-on-change-this");
+    el.onchange = window[fnName].bind(el, el);
+  });
+
   // 'data-on-change' adds an event listener for the global function in the attribute value when a change happens.
   document.querySelectorAll("select[data-on-change], input[data-on-change]").forEach(function attachOnChange(el) {
     var fnName = el.getAttribute("data-on-change");

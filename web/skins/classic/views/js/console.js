@@ -79,12 +79,13 @@ function editMonitor( element ) {
       //break;
     }
   } // end foreach checkboxes
-  if ( monitorIds.length == 1 )
+  if ( monitorIds.length == 1 ) {
     createPopup( '?view=monitor&mid='+monitorIds[0], 'zmMonitor'+monitorIds[0], 'monitor' );
-  else if ( monitorIds.length > 1 )
+  } else if ( monitorIds.length > 1 ) {
     createPopup( '?view=monitors&'+(monitorIds.map(function(mid) {
       return 'mids[]='+mid;
     }).join('&')), 'zmMonitors', 'monitors' );
+  }
 }
 
 function deleteMonitor( element ) {
@@ -118,10 +119,12 @@ function reloadWindow() {
 
 function initPage() {
   reloadWindow.periodical( consoleRefreshTimeout );
-  if ( showVersionPopup )
+  if ( showVersionPopup ) {
     createPopup( '?view=version', 'zmVersion', 'version' );
-  if ( showDonatePopup )
+  }
+  if ( showDonatePopup ) {
     createPopup( '?view=donate', 'zmDonate', 'donate' );
+  }
 
   // Makes table sortable
   $j( function() {

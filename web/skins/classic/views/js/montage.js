@@ -9,27 +9,32 @@ function Monitor( monitorData ) {
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
   this.onclick = monitorData.onclick;
-  if ( auth_hash )
+  if ( auth_hash ) {
     this.streamCmdParms += '&auth='+auth_hash;
+  }
   this.streamCmdTimer = null;
   this.type = monitorData.type;
   this.refresh = monitorData.refresh;
   this.start = function( delay ) {
-    if ( this.streamCmdQuery )
+    if ( this.streamCmdQuery ) {
       this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
-    else
+    } else {
       console.log("No streamCmdQuery");
+    }
   };
 
 
   this.setStateClass = function( element, stateClass ) {
     if ( !element.hasClass( stateClass ) ) {
-      if ( stateClass != 'alarm' )
+      if ( stateClass != 'alarm' ) {
         element.removeClass( 'alarm' );
-      if ( stateClass != 'alert' )
+      }
+      if ( stateClass != 'alert' ) {
         element.removeClass( 'alert' );
-      if ( stateClass != 'idle' )
+      }
+      if ( stateClass != 'idle' ) {
         element.removeClass( 'idle' );
+      }
       element.addClass( stateClass );
     }
   };
@@ -49,8 +54,9 @@ function Monitor( monitorData ) {
     }
     if ( 0 ) {
     // Requeue, but want to wait a while.
-      if ( this.streamCmdTimer )
+      if ( this.streamCmdTimer ) {
         this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
+      }
       var streamCmdTimeout = 1000*statusRefreshTimeout;
       this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this, true );
       requestQueue.resume();
@@ -59,8 +65,9 @@ function Monitor( monitorData ) {
   };
 
   this.getStreamCmdResponse = function( respObj, respText ) {
-    if ( this.streamCmdTimer )
+    if ( this.streamCmdTimer ) {
       this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
+    }
 
     var stream = $j('#liveStream'+this.id)[0];
 
@@ -70,12 +77,13 @@ function Monitor( monitorData ) {
         this.alarmState = this.status.state;
 
         var stateClass = "";
-        if ( this.alarmState == STATE_ALARM )
+        if ( this.alarmState == STATE_ALARM ) {
           stateClass = "alarm";
-        else if ( this.alarmState == STATE_ALERT )
+        } else if ( this.alarmState == STATE_ALERT ) {
           stateClass = "alert";
-        else
+        } else {
           stateClass = "idle";
+        }
 
         if ( (!COMPACT_MONTAGE) && (this.type != 'WebSite') ) {
           $('fpsValue'+this.id).set( 'text', this.status.fps );
@@ -111,8 +119,9 @@ function Monitor( monitorData ) {
         if ( this.status.auth ) {
           if ( this.status.auth != auth_hash ) {
             // Try to reload the image stream.
-            if ( stream )
+            if ( stream ) {
               stream.src = stream.src.replace( /auth=\w+/i, 'auth='+this.status.auth );
+            }
             console.log("Changed auth from " + auth_hash + " to " + this.status.auth );
             auth_hash = this.status.auth;
           }
@@ -252,10 +261,12 @@ function changeSize() {
       console.log("Error finding frame for " + monitor.id );
       continue;
     }
-    if ( width )
+    if ( width ) {
       monitor_frame.css('width', width+'px');
-    if ( height )
+    }
+    if ( height ) {
       monitor_frame.css('height', height+'px');
+    }
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $( 'liveStream'+monitor.id );
     if ( streamImg ) {
@@ -306,10 +317,12 @@ function changeScale() {
       console.log("Error finding frame for " + monitor.id );
       continue;
     }
-    if ( width )
+    if ( width ) {
       monitor_frame.css('width', width+'px');
-    if ( height )
+    }
+    if ( height ) {
       monitor_frame.css('height', height+'px');
+    }
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $j('#liveStream'+monitor.id )[0];
     if ( streamImg ) {
@@ -423,8 +436,9 @@ function initPage() {
     // What is the purpose of this code?  I think it just starts up a second ajax thread,
     //increasing the load on the server.
     for ( var i = 0; i < monitorData.length; i++ ) {
-      if ( monitors[i].type == 'WebSite' )
+      if ( monitors[i].type == 'WebSite' ) {
         continue;
+      }
       var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
       console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
       monitors[i].streamCmdQuery.delay( delay, monitors[i] );

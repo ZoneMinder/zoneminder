@@ -7,8 +7,9 @@ var Overlay = new Class({
 
     this.id = id?id:'overlay';
     if ( typeOf(this.id) == 'string' ) {
-      if ( $(this.id) )
+      if ( $(this.id) ) {
         this.element = $(this.id);
+      }
     } else {
       this.element = this.id;
       this.id = this.element.get('id');
@@ -26,10 +27,12 @@ var Overlay = new Class({
           this.options.buttons.each(
               function( button ) {
                 var overlayButton = new Element( 'button', { 'text': button.text } );
-                if ( button.id )
+                if ( button.id ) {
                   overlayButton.setProperty( 'id', button.id );
-                if ( button.events )
+                }
+                if ( button.events ) {
                   overlayButton.set( 'events', events );
+                }
                 overlayToolbar.grab( overlayButton );
               }
           );
@@ -85,8 +88,9 @@ var Overlay = new Class({
   hideAnimation:function() {
     $(window).removeEvent( 'resize', this.update.bind(this) );
     $(window).removeEvent( 'scroll', this.update.bind(this) );
-    if ( this.loading )
+    if ( this.loading ) {
       this.loading.setStyle( 'display', 'none' );
+    }
   }
 });
 

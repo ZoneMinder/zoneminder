@@ -31,22 +31,23 @@ function updateButtons(element) {
     form.elements['executeButton'].disabled = false;
   } else {
     var canExecute = false;
-    if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked )
+    if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked )
+    } else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked )
+    } else if ( form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked )
+    } else if ( form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked )
+    } else if ( form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '' )
+    } else if ( form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '' ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoDelete]'].checked )
+    } else if ( form.elements['filter[AutoDelete]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[UpdateDiskSpace]'].checked )
+    } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
       canExecute = true;
+    }
     form.elements['executeButton'].disabled = !canExecute;
   }
   if ( form.elements['filter[Name]'].value ) {

@@ -176,13 +176,15 @@ function applyPreset() {
 }
 
 function toPixels( field, maxValue ) {
-  if ( field.value != '' )
+  if ( field.value != '' ) {
     field.value = Math.round((field.value*maxValue)/100);
+  }
 }
 
 function toPercent( field, maxValue ) {
-  if ( field.value != '' )
+  if ( field.value != '' ) {
     field.value = Math.round((100*100*field.value)/maxValue)/100;
+  }
 }
 
 function applyZoneUnits() {
@@ -209,8 +211,9 @@ function applyZoneUnits() {
 }
 
 function limitRange( field, minValue, maxValue ) {
-  if ( field.value != '' )
+  if ( field.value != '' ) {
     field.value = constrainValue( parseInt(field.value), parseInt(minValue), parseInt(maxValue) );
+  }
 }
 
 function limitFilter( field ) {
@@ -250,8 +253,9 @@ function unsetActivePoint( index ) {
 
 function getCoordString() {
   var coords = new Array();
-  for ( var i = 0; i < zone['Points'].length; i++ )
+  for ( var i = 0; i < zone['Points'].length; i++ ) {
     coords[coords.length] = zone['Points'][i].x+','+zone['Points'][i].y;
+  }
   return( coords.join( " " ) );
 }
 
@@ -300,14 +304,16 @@ function updateActivePoint( index ) {
 
 function addPoint( index ) {
   var nextIndex = index+1;
-  if ( index >= (zone['Points'].length-1) )
+  if ( index >= (zone['Points'].length-1) ) {
     nextIndex = 0;
+  }
   var newX = parseInt(Math.round((zone['Points'][index]['x']+zone['Points'][nextIndex]['x'])/2));
   var newY = parseInt(Math.round((zone['Points'][index]['y']+zone['Points'][nextIndex]['y'])/2));
-  if ( nextIndex == 0 )
+  if ( nextIndex == 0 ) {
     zone['Points'][zone['Points'].length] = { 'x': newX, 'y': newY };
-  else
+  } else {
     zone['Points'].splice( nextIndex, 0, { 'x': newX, 'y': newY } );
+  }
   drawZonePoints();
   // drawZonePoints calls updateZoneImage
   //updateZoneImage();
@@ -417,8 +423,9 @@ function drawZonePoints() {
 
     cell = new Element( 'td' );
     new Element( 'a', { 'href': '#', 'events': { 'click': addPoint.pass( i ) } } ).set( 'text', '+' ).inject( cell );
-    if ( zone['Points'].length > 3 )
+    if ( zone['Points'].length > 3 ) {
       new Element( 'a', { 'id': 'delete'+i, 'href': '#', 'events': { 'click': delPoint.pass( i ) } } ).set( 'text', '-' ).inject( cell );
+    }
     cell.inject( row );
 
     row.inject( tables[i%tables.length].getElement( 'tbody' ) );
@@ -439,15 +446,17 @@ function setAlarmState( currentAlarmState ) {
 
   var stateString = "Unknown";
   var stateClass = "";
-  if ( alarmState == STATE_ALARM )
+  if ( alarmState == STATE_ALARM ) {
     stateClass = "alarm";
-  else if ( alarmState == STATE_ALERT )
+  } else if ( alarmState == STATE_ALERT ) {
     stateClass = "alert";
+  }
   $('stateValue').set( 'text', stateStrings[alarmState] );
-  if ( stateClass )
+  if ( stateClass ) {
     $('stateValue').setProperty( 'class', stateClass );
-  else
+  } else {
     $('stateValue').removeProperty( 'class' );
+  }
 
   var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
   var wasAlarmed = ( lastAlarmState == STATE_ALARM || lastAlarmState == STATE_ALERT );
@@ -458,27 +467,30 @@ function setAlarmState( currentAlarmState ) {
   if ( newAlarm ) {
     if ( SOUND_ON_ALARM ) {
       // Enable the alarm sound
-      if ( !canPlayPauseAudio )
+      if ( !canPlayPauseAudio ) {
         $('alarmSound').removeClass( 'hidden' );
-      else
+      } else {
         $('MediaPlayer').Play();
+      }
     }
   }
   if ( SOUND_ON_ALARM ) {
     if ( oldAlarm ) {
       // Disable alarm sound
-      if ( !canPlayPauseAudio )
+      if ( !canPlayPauseAudio ) {
         $('alarmSound').addClass( 'hidden' );
-      else
+      } else {
         $('MediaPlayer').Stop();
+      }
     }
   }
   lastAlarmState = alarmState;
 }
 
 var streamCmdParms = "view=request&request=stream&connkey="+connKey;
-if ( auth_hash )
+if ( auth_hash ) {
   streamCmdParms += '&auth='+auth_hash;
+}
 var streamCmdReq = new Request.JSON( {
   url: monitorUrl,
   method: 'get',
@@ -492,8 +504,9 @@ var streamStatus;
 
 function getStreamCmdResponse( respObj, respText ) {
   watchdogOk("stream");
-  if ( streamCmdTimer )
+  if ( streamCmdTimer ) {
     streamCmdTimer = clearTimeout( streamCmdTimer );
+  }
 
   if ( respObj.result == 'Ok' ) {
     streamStatus = respObj.status;
@@ -513,15 +526,17 @@ function getStreamCmdResponse( respObj, respText ) {
     if ( ! streamPause ) {
       // Try to reload the image stream.
       var streamImg = $('liveStream'+monitorId);
-      if ( streamImg )
+      if ( streamImg ) {
         streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+      }
     }
   }
 
   if ( ! streamPause ) {
     var streamCmdTimeout = statusRefreshTimeout;
-    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
       streamCmdTimeout = streamCmdTimeout/5;
+    }
     streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
   }
 }
@@ -541,18 +556,21 @@ function streamCmdPauseToggle() {
 }
 
 function streamCmdPause( action ) {
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_PAUSE );
+  }
 }
 
 function streamCmdPlay( action ) {
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_PLAY );
+  }
 }
 
 function streamCmdStop( action ) {
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_STOP );
+  }
 }
 
 function streamCmdQuery() {
@@ -560,8 +578,9 @@ function streamCmdQuery() {
 }
 
 var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-if ( auth_hash )
+if ( auth_hash ) {
   statusCmdParms += '&auth='+auth_hash;
+}
 var statusCmdReq = new Request.JSON( {
   url: monitorUrl,
   method: 'get',
@@ -574,19 +593,22 @@ var statusCmdTimer = null;
 
 function getStatusCmdResponse( respObj, respText ) {
   watchdogOk("status");
-  if ( statusCmdTimer )
+  if ( statusCmdTimer ) {
     statusCmdTimer = clearTimeout( statusCmdTimer );
+  }
 
   if ( respObj.result == 'Ok' ) {
     $('fpsValue').set( 'text', respObj.monitor.FrameRate );
     setAlarmState( respObj.monitor.Status );
-  } else
+  } else {
     checkStreamForErrors("getStatusCmdResponse", respObj);
+  }
 
   if ( ! streamPause ) {
     var statusCmdTimeout = statusRefreshTimeout;
-    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
       statusCmdTimeout = statusCmdTimeout/5;
+    }
     statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
   }
 }
@@ -605,8 +627,9 @@ function appletRefresh() {
     var parent = streamImg.getParent();
     streamImg.dispose();
     streamImg.inject( parent );
-    if ( appletRefreshTime )
+    if ( appletRefreshTime ) {
       appletRefresh.delay( appletRefreshTime*1000 );
+    }
   } else {
     appletRefresh.delay( 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
   }
@@ -687,16 +710,18 @@ function initPage() {
 
   if ( canStreamNative || streamMode == "single" ) {
     var streamImg = $('imageFrame').getElement('img');
-    if ( !streamImg )
+    if ( !streamImg ) {
       streamImg = $('imageFrame').getElement('object');
+    }
     if ( streamMode == "single" ) {
       streamImg.addEvent( 'click', fetchImage.pass( streamImg ) );
       fetchImage.pass( streamImg ).periodical( imageRefreshTimeout );
     }
   }
 
-  if ( refreshApplet && appletRefreshTime )
+  if ( refreshApplet && appletRefreshTime ) {
     appletRefresh.delay( appletRefreshTime*1000 );
+  }
 }
 
 function Polygon_calcArea( coords ) {

@@ -8,16 +8,18 @@ function updateMonitorDimensions( element ) {
     var monitorHeight = parseInt(form.elements['newMonitor[Height]'].value);
     switch( element.name ) {
       case 'newMonitor[Width]':
-        if ( monitorWidth >= 0 )
+        if ( monitorWidth >= 0 ) {
           form.elements['newMonitor[Height]'].value = Math.round((monitorWidth * heightFactor) / widthFactor);
-        else
+        } else {
           form.elements['newMonitor[Height]'].value = '';
+        }
         break;
       case 'newMonitor[Height]':
-        if ( monitorHeight >= 0 )
+        if ( monitorHeight >= 0 ) {
           form.elements['newMonitor[Width]'].value = Math.round((monitorHeight * widthFactor) / heightFactor);
-        else
+        } else {
           form.elements['newMonitor[Width]'].value = '';
+        }
         break;
     }
   }

@@ -8,7 +8,6 @@ module.exports = {
   "rules": {
     "camelcase": "off",
     "comma-dangle": "off",
-    "curly": "off",
     "guard-for-in": "off",
     "key-spacing": "off",
     "keyword-spacing": "off",

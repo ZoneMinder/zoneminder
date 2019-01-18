@@ -6,10 +6,11 @@ var exportTimer = null;
 
 function exportProgress() {
   var tickerText = $('exportProgressTicker').get('text');
-  if ( tickerText.length < 1 || tickerText.length > 4 )
+  if ( tickerText.length < 1 || tickerText.length > 4 ) {
     $('exportProgressTicker').set( 'text', '.' );
-  else
+  } else {
     $('exportProgressTicker').appendText( '.' );
+  }
 }
 
 function exportResponse( respObj, respText ) {

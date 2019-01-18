@@ -31,12 +31,15 @@ function checkSize() {
       var prevW = w;
       var h = window.outerHeight;
       var prevH = h;
-      if (h > screen.availHeight)
+      if (h > screen.availHeight) {
         h = screen.availHeight;
-      if (w > screen.availWidth)
+      }
+      if (w > screen.availWidth) {
         w = screen.availWidth;
-      if (w != prevW || h != prevH)
+      }
+      if (w != prevW || h != prevH) {
         window.resizeTo(w, h);
+      }
     }
   }
 }
@@ -57,16 +60,18 @@ function getPopupSize( tag, width, height ) {
     return( { 'width': 0, 'height': 0 } );
   }
   if ( popupSize.width && popupSize.height ) {
-    if ( width || height )
+    if ( width || height ) {
       Warning( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'" );
+    }
     return( popupSize );
   }
   if ( popupSize.addWidth ) {
     popupSize.width = popupSize.addWidth;
-    if ( !width )
+    if ( !width ) {
       Error( "Got addWidth but no passed width when getting popup size for tag '"+tag+"'" );
-    else
+    } else {
       popupSize.width += parseInt(width);
+    }
   } else if ( width ) {
     popupSize.width = width;
     Error( "Got passed width but no addWidth when getting popup size for tag '"+tag+"'" );
@@ -77,10 +82,11 @@ function getPopupSize( tag, width, height ) {
   }
   if ( popupSize.addHeight ) {
     popupSize.height = popupSize.addHeight;
-    if ( !height )
+    if ( !height ) {
       Error( "Got addHeight but no passed height when getting popup size for tag '"+tag+"'" );
-    else
+    } else {
       popupSize.height += parseInt(height);
+    }
   } else if ( height ) {
     popupSize.height = height;
     Error( "Got passed height but no addHeight when getting popup size for tag '"+tag+"'" );
@@ -105,10 +111,12 @@ function zmWindow() {
 function createPopup( url, name, tag, width, height ) {
   var popupSize = getPopupSize( tag, width, height );
   var popupDimensions = "";
-  if ( popupSize.width > 0 )
+  if ( popupSize.width > 0 ) {
     popupDimensions += ",width="+popupSize.width;
-  if ( popupSize.height > 0 )
+  }
+  if ( popupSize.height > 0 ) {
     popupDimensions += ",height="+popupSize.height;
+  }
   var popup = window.open( url+"&popup=1", name, popupOptions+popupDimensions );
   if ( ! popup ) {
     // if popup blocking is enabled, the popup won't be defined.
@@ -166,8 +174,9 @@ $j(document).ready(function() {
 
 function createEventPopup( eventId, eventFilter, width, height ) {
   var url = '?view=event&eid='+eventId;
-  if ( eventFilter )
+  if ( eventFilter ) {
     url += eventFilter;
+  }
   var name = 'zmEvent';
   var popupSize = getPopupSize( 'event', width, height );
   var popup = window.open( url, name, popupOptions+",width="+popupSize.width+",height="+popupSize.height );
@@ -220,10 +229,11 @@ function refreshWindow() {
 function refreshParentWindow() {
   if ( refreshParent ) {
     if ( window.opener ) {
-      if ( refreshParent == true )
+      if ( refreshParent == true ) {
         window.opener.location.reload( true );
-      else
+      } else {
         window.opener.location.href = refreshParent;
+      }
     }
   }
 }
@@ -281,23 +291,26 @@ function secsToTime( seconds ) {
   } else if ( seconds < 60*60 ) {
     var timeMins = parseInt(seconds/60);
     var timeSecs = seconds%60;
-    if ( timeSecs < 10 )
+    if ( timeSecs < 10 ) {
       timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    else
+    } else {
       timeSecs = timeSecs.toString().substr( 0, 5 );
+    }
     timeString = timeMins+":"+timeSecs;
   } else {
     var timeHours = parseInt(seconds/3600);
     var timeMins = (seconds%3600)/60;
     var timeSecs = seconds%60;
-    if ( timeMins < 10 )
+    if ( timeMins < 10 ) {
       timeMins = '0'+timeMins.toString().substr( 0, 4 );
-    else
+    } else {
       timeMins = timeMins.toString().substr( 0, 5 );
-    if ( timeSecs < 10 )
+    }
+    if ( timeSecs < 10 ) {
       timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    else
+    } else {
       timeSecs = timeSecs.toString().substr( 0, 5 );
+    }
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
   return( timeString );
@@ -317,9 +330,11 @@ function submitThisForm() {
 function toggleCheckbox( element, name ) {
   var form = element.form;
   var checked = element.checked;
-  for (var i = 0; i < form.elements.length; i++)
-    if (form.elements[i].name.indexOf(name) == 0)
+  for (var i = 0; i < form.elements.length; i++) {
+    if (form.elements[i].name.indexOf(name) == 0) {
       form.elements[i].checked = checked;
+    }
+  }
 }
 
 function configureDeleteButton( element ) {

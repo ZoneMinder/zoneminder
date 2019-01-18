@@ -69,10 +69,12 @@ function addMonitor(url) {
   popup_url = '?view=monitor&mid='+mid+'&newMonitor[Path]='+url;
   keys = Object.keys( Monitor );
   for ( i in Monitor ) {
-    if ( ! Monitor[i] )
+    if ( ! Monitor[i] ) {
       continue;
-    if ( Monitor[i] == 'null' )
+    }
+    if ( Monitor[i] == 'null' ) {
       Monitor[i]='';
+    }
     popup_url += '&newMonitor['+i+']='+Monitor[i];
   }
   createPopup( popup_url, 'zmMonitor'+mid, 'monitor' );

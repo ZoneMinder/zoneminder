@@ -4,10 +4,11 @@ function configureExportButton( element ) {
   var checkCount = 0;
   var radioCount = 0;
   for ( var i = 0; i < form.elements.length; i++ ) {
-    if ( form.elements[i].type == "checkbox" && form.elements[i].checked )
+    if ( form.elements[i].type == "checkbox" && form.elements[i].checked ) {
       checkCount++;
-    else if ( form.elements[i].type == "radio" && form.elements[i].checked )
+    } else if ( form.elements[i].type == "radio" && form.elements[i].checked ) {
       radioCount++;
+    }
   }
   form.elements['exportButton'].disabled = (checkCount == 0 || radioCount == 0);
 }
@@ -20,10 +21,11 @@ var exportTimer = null;
 
 function exportProgress() {
   var tickerText = $('exportProgressTicker').get('text');
-  if ( tickerText.length < 1 || tickerText.length > 4 )
+  if ( tickerText.length < 1 || tickerText.length > 4 ) {
     $('exportProgressTicker').set( 'text', '.' );
-  else
+  } else {
     $('exportProgressTicker').appendText( '.' );
+  }
 }
 
 function exportResponse( respObj, respText ) {

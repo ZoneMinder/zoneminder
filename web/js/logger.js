@@ -28,8 +28,10 @@ if ( !window.console ) {
       error:function() {}
     };
 }
-if ( !console.debug )//IE8 has console but doesn't have console.debug so lets alias it.
+if ( !console.debug ) {
+  // IE8 has console but doesn't have console.debug so lets alias it.
   console.debug = console.log;
+}
 
 var reportLogs = true;
 
@@ -37,32 +39,37 @@ var debugParms;
 var debugReq;
 
 function logReport( level, message, file, line ) {
-  if ( !reportLogs )
+  if ( !reportLogs ) {
     return;
+  }
 
-  if ( typeof(MooTools) == "undefined" )
+  if ( typeof(MooTools) == "undefined" ) {
     return;
+  }
 
-  if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.name )
+  if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.name ) {
     message += ' - '+arguments.callee.caller.caller.name+'()';
+  }
 
   if ( !debugReq ) {
-    if ( Browser )
+    if ( Browser ) {
       debugParms = "view=request&request=log&task=create&browser[name]="+Browser.name+"&browser[version]="+Browser.version+"&browser[platform]="+(Browser.Platform?Browser.Platform.name:'unknown');
-    else
+    } else {
       debugParms = "view=request&request=log&task=create&browser[name]=unknown&browser[version]=unknown&browser[platform]=unknown";
+    }
     debugReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain' } );
   }
   var requestParms = debugParms;
   requestParms += "&level="+level+"&message="+encodeURIComponent(message);
-  if ( file )
+  if ( file ) {
     requestParms += "&file="+file;
-  else if ( location.search ) {
+  } else if ( location.search ) {
     //location.search is the querystring part, so ?blah=blah but there is almost never any value to this
     requestParms += "&file="+location.search;
   }
-  if ( line )
+  if ( line ) {
     requestParms += "&line="+line;
+  }
   debugReq.send( requestParms );
 }
 
@@ -99,8 +106,9 @@ function Debug( message ) {
 }
 
 function Dump( value, label ) {
-  if ( label )
+  if ( label ) {
     console.debug( label+" => " );
+  }
   console.debug( value );
 }
 

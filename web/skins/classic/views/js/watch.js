@@ -8,20 +8,24 @@ function setButtonState(element, butClass) {
 function showEvents() {
   $('ptzControls').addClass( 'hidden' );
   $('events').removeClass( 'hidden' );
-  if ( $('eventsControl') )
+  if ( $('eventsControl') ) {
     $('eventsControl').addClass('hidden');
-  if ( $('controlControl') )
+  }
+  if ( $('controlControl') ) {
     $('controlControl').removeClass('hidden');
+  }
   showMode = "events";
 }
 
 function showPtzControls() {
   $('events').addClass( 'hidden' );
   $('ptzControls').removeClass( 'hidden' );
-  if ( $('eventsControl') )
+  if ( $('eventsControl') ) {
     $('eventsControl').removeClass('hidden');
-  if ( $('controlControl') )
+  }
+  if ( $('controlControl') ) {
     $('controlControl').addClass('hidden');
+  }
   showMode = "control";
 }
 
@@ -62,15 +66,17 @@ function setAlarmState( currentAlarmState ) {
 
   var stateString = "Unknown";
   var stateClass = "";
-  if ( alarmState == STATE_ALARM )
+  if ( alarmState == STATE_ALARM ) {
     stateClass = "alarm";
-  else if ( alarmState == STATE_ALERT )
+  } else if ( alarmState == STATE_ALERT ) {
     stateClass = "alert";
+  }
   $('stateValue').set( 'text', stateStrings[alarmState] );
-  if ( stateClass )
+  if ( stateClass ) {
     $('stateValue').setProperty( 'class', stateClass );
-  else
+  } else {
     $('stateValue').removeProperty( 'class' );
+  }
 
   var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
   var wasAlarmed = ( lastAlarmState == STATE_ALARM || lastAlarmState == STATE_ALERT );
@@ -81,10 +87,11 @@ function setAlarmState( currentAlarmState ) {
   if ( newAlarm ) {
     if ( SOUND_ON_ALARM ) {
       // Enable the alarm sound
-      if ( !canPlayPauseAudio )
+      if ( !canPlayPauseAudio ) {
         $('alarmSound').removeClass( 'hidden' );
-      else
+      } else {
         $('MediaPlayer').Play();
+      }
     }
     if ( POPUP_ON_ALARM ) {
       window.focus();
@@ -93,22 +100,25 @@ function setAlarmState( currentAlarmState ) {
   if ( SOUND_ON_ALARM ) {
     if ( oldAlarm ) {
       // Disable alarm sound
-      if ( !canPlayPauseAudio )
+      if ( !canPlayPauseAudio ) {
         $('alarmSound').addClass( 'hidden' );
-      else
+      } else {
         $('MediaPlayer').Stop();
+      }
     }
   }
-  if ( oldAlarm) //done with an event do a refresh
+  if (oldAlarm) { // done with an event do a refresh
     eventCmdQuery();
+  }
 
   lastAlarmState = alarmState;
 }
 
 if ( monitorType != 'WebSite' ) {
   var streamCmdParms = "view=request&request=stream&connkey="+connKey;
-  if ( auth_hash )
+  if ( auth_hash ) {
     streamCmdParms += '&auth='+auth_hash;
+  }
   var streamCmdReq = new Request.JSON( {
     url: monitorUrl,
     method: 'get',
@@ -134,8 +144,9 @@ function getStreamCmdFailure(xhr) {
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk("stream");
   console.log('stream');
-  if ( streamCmdTimer )
+  if ( streamCmdTimer ) {
     streamCmdTimer = clearTimeout(streamCmdTimer);
+  }
   if ( respObj.result == 'Ok' ) {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if ( respObj.status ) {
@@ -145,12 +156,13 @@ function getStreamCmdResponse(respObj, respText) {
       setAlarmState(streamStatus.state);
 
       $('levelValue').set('text', streamStatus.level);
-      if ( streamStatus.level > 95 )
+      if ( streamStatus.level > 95 ) {
         $('levelValue').className = "alarm";
-      else if ( streamStatus.level > 80 )
+      } else if ( streamStatus.level > 80 ) {
         $('levelValue').className = "alert";
-      else
+      } else {
         $('levelValue').className = "ok";
+      }
 
       var delayString = secsToTime(streamStatus.delay);
 
@@ -171,15 +183,17 @@ function getStreamCmdResponse(respObj, respText) {
         if ( streamStatus.rate == 1 ) {
           streamCmdPlay(false);
         } else if ( streamStatus.rate > 0 ) {
-          if ( streamStatus.rate < 1 )
+          if ( streamStatus.rate < 1 ) {
             streamCmdSlowFwd(false);
-          else
+          } else {
             streamCmdFastFwd(false);
+          }
         } else {
-          if ( streamStatus.rate > -1 )
+          if ( streamStatus.rate > -1 ) {
             streamCmdSlowRev(false);
-          else
+          } else {
             streamCmdFastRev(false);
+          }
         } // rate
       } else {
         $('modeValue').set( 'text', "Live" );
@@ -190,10 +204,11 @@ function getStreamCmdResponse(respObj, respText) {
       } // end if paused or delayed
 
       $('zoomValue').set( 'text', streamStatus.zoom );
-      if ( streamStatus.zoom == "1.0" )
+      if ( streamStatus.zoom == "1.0" ) {
         setButtonState( $('zoomOutBtn'), 'unavail' );
-      else
+      } else {
         setButtonState( $('zoomOutBtn'), 'inactive' );
+      }
 
       if ( canEditMonitors ) {
         if ( streamStatus.enabled ) {
@@ -219,8 +234,9 @@ function getStreamCmdResponse(respObj, respText) {
         console.log("Have a new auth hash" + streamStatus.auth);
         // Try to reload the image stream.
         var streamImg = $('liveStream');
-        if ( streamImg )
+        if ( streamImg ) {
           streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+        }
       } // end if have a new auth hash
     } // end if respObj.status
   } else {
@@ -240,8 +256,9 @@ function getStreamCmdResponse(respObj, respText) {
   }
 
   var streamCmdTimeout = statusRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
     streamCmdTimeout = streamCmdTimeout/5;
+  }
   streamCmdTimer = streamCmdQuery.delay( streamCmdTimeout );
 }
 
@@ -253,8 +270,9 @@ function streamCmdPause( action ) {
   setButtonState( $('slowFwdBtn'), 'inactive' );
   setButtonState( $('slowRevBtn'), 'inactive' );
   setButtonState( $('fastRevBtn'), 'inactive' );
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_PAUSE );
+  }
 }
 
 function streamCmdPlay( action ) {
@@ -273,8 +291,9 @@ function streamCmdPlay( action ) {
     setButtonState( $('slowRevBtn'), 'unavail' );
     setButtonState( $('fastRevBtn'), 'unavail' );
   }
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_PLAY );
+  }
 }
 
 function streamCmdStop( action ) {
@@ -285,8 +304,9 @@ function streamCmdStop( action ) {
   setButtonState( $('slowFwdBtn'), 'unavail' );
   setButtonState( $('slowRevBtn'), 'unavail' );
   setButtonState( $('fastRevBtn'), 'unavail' );
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_STOP );
+  }
   setButtonState( $('stopBtn'), 'unavail' );
   setButtonState( $('playBtn'), 'active' );
 }
@@ -299,8 +319,9 @@ function streamCmdFastFwd( action ) {
   setButtonState( $('slowFwdBtn'), 'inactive' );
   setButtonState( $('slowRevBtn'), 'inactive' );
   setButtonState( $('fastRevBtn'), 'inactive' );
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_FASTFWD );
+  }
 }
 
 function streamCmdSlowFwd( action ) {
@@ -311,8 +332,9 @@ function streamCmdSlowFwd( action ) {
   setButtonState( $('slowFwdBtn'), 'active' );
   setButtonState( $('slowRevBtn'), 'inactive' );
   setButtonState( $('fastRevBtn'), 'inactive' );
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_SLOWFWD );
+  }
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('slowFwdBtn'), 'inactive' );
 }
@@ -325,8 +347,9 @@ function streamCmdSlowRev( action ) {
   setButtonState( $('slowFwdBtn'), 'inactive' );
   setButtonState( $('slowRevBtn'), 'active' );
   setButtonState( $('fastRevBtn'), 'inactive' );
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_SLOWREV );
+  }
   setButtonState( $('pauseBtn'), 'active' );
   setButtonState( $('slowRevBtn'), 'inactive' );
 }
@@ -339,8 +362,9 @@ function streamCmdFastRev( action ) {
   setButtonState( $('slowFwdBtn'), 'inactive' );
   setButtonState( $('slowRevBtn'), 'inactive' );
   setButtonState( $('fastRevBtn'), 'inactive' );
-  if ( action )
+  if ( action ) {
     streamCmdReq.send( streamCmdParms+"&command="+CMD_FASTREV );
+  }
 }
 
 function streamCmdZoomIn( x, y ) {
@@ -365,26 +389,30 @@ function streamCmdQuery() {
 
 if ( monitorType != 'WebSite' ) {
   var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-  if ( auth_hash )
+  if ( auth_hash ) {
     statusCmdParms += '&auth='+auth_hash;
+  }
   var statusCmdReq = new Request.JSON( { url: monitorUrl, method: 'get', data: statusCmdParms, timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getStatusCmdResponse } );
   var statusCmdTimer = null;
 }
 
 function getStatusCmdResponse(respObj, respText) {
   watchdogOk("status");
-  if ( statusCmdTimer )
+  if ( statusCmdTimer ) {
     statusCmdTimer = clearTimeout(statusCmdTimer);
+  }
 
   if ( respObj.result == 'Ok' ) {
     $('fpsValue').set('text', respObj.monitor.FrameRate);
     setAlarmState(respObj.monitor.Status);
-  } else
+  } else {
     checkStreamForErrors("getStatusCmdResponse", respObj);
+  }
 
   var statusCmdTimeout = statusRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
     statusCmdTimeout = statusCmdTimeout/5;
+  }
   statusCmdTimer = statusCmdQuery.delay( statusCmdTimeout );
 }
 
@@ -394,8 +422,9 @@ function statusCmdQuery() {
 
 if ( monitorType != 'WebSite' ) {
   var alarmCmdParms = "view=request&request=alarm&id="+monitorId;
-  if ( auth_hash )
+  if ( auth_hash ) {
     alarmCmdParms += '&auth='+auth_hash;
+  }
   var alarmCmdReq = new Request.JSON( {
     url: monitorUrl,
     method: 'get',
@@ -453,8 +482,9 @@ function deleteEvent( event, eventId ) {
 
 if ( monitorType != 'WebSite' ) {
   var eventCmdParms = "view=request&request=status&entity=events&id="+monitorId+"&count="+maxDisplayEvents+"&sort=Id%20desc";
-  if ( auth_hash )
+  if ( auth_hash ) {
     eventCmdParms += '&auth='+auth_hash;
+  }
   var eventCmdReq = new Request.JSON( {
     url: monitorUrl,
     method: 'get',
@@ -474,8 +504,9 @@ function highlightRow( row ) {
 
 function getEventCmdResponse( respObj, respText ) {
   watchdogOk("event");
-  if ( eventCmdTimer )
+  if ( eventCmdTimer ) {
     eventCmdTimer = clearTimeout( eventCmdTimer );
+  }
 
   if ( respObj.result == 'Ok' ) {
     var dbEvents = respObj.events.reverse();
@@ -528,12 +559,13 @@ function getEventCmdResponse( respObj, respText ) {
         link.set( 'text', 'X' );
         link.inject( row.getElement( 'td.colDelete' ) );
 
-        if ( i == 0 )
+        if ( i == 0 ) {
           row.inject( $(eventListBody) );
-        else {
+        } else {
           row.inject( $(eventListBody), 'top' );
-          if ( !eventCmdFirst )
+          if ( !eventCmdFirst ) {
             row.addClass( 'recent' );
+          }
         }
       } else {
         row.getElement( 'td.colName a' ).set( 'text', event.Name );
@@ -557,32 +589,37 @@ function getEventCmdResponse( respObj, respText ) {
       rows[rows.length-1].destroy();
       rows.length--;
     }
-  } else
+  } else {
     checkStreamForErrors("getEventCmdResponse", respObj);
+  }
 
   var eventCmdTimeout = eventsRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT )
+  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
     eventCmdTimeout = eventCmdTimeout/5;
+  }
   eventCmdTimer = eventCmdQuery.delay( eventCmdTimeout );
   eventCmdFirst = false;
 }
 
 function eventCmdQuery() {
-  if ( eventCmdTimer ) //avoid firing another if we are firing one
+  if ( eventCmdTimer ) { // avoid firing another if we are firing one
     eventCmdTimer = clearTimeout( eventCmdTimer );
+  }
   eventCmdReq.send();
 }
 
 if ( monitorType != 'WebSite' ) {
   var controlParms = "view=request&request=control&id="+monitorId;
-  if ( auth_hash )
+  if ( auth_hash ) {
     controlParms += '&auth='+auth_hash;
+  }
   var controlReq = new Request.JSON( { url: monitorUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getControlResponse } );
 }
 
 function getControlResponse( respObj, respText ) {
-  if ( !respObj )
+  if ( !respObj ) {
     return;
+  }
   //console.log( respText );
   if ( respObj.result != 'Ok' ) {
     alert( "Control response was status = "+respObj.status+"\nmessage = "+respObj.message );
@@ -601,24 +638,27 @@ function controlCmd( control, event, xtell, ytell ) {
 
     if ( xtell ) {
       var xge = parseInt( (x*100)/coords.width );
-      if ( xtell == -1 )
+      if ( xtell == -1 ) {
         xge = 100 - xge;
-      else if ( xtell == 2 )
+      } else if ( xtell == 2 ) {
         xge = 2*(50 - xge);
+      }
       locParms += "&xge="+xge;
     }
     if ( ytell ) {
       var yge = parseInt( (y*100)/coords.height );
-      if ( ytell == -1 )
+      if ( ytell == -1 ) {
         yge = 100 - yge;
-      else if ( ytell == 2 )
+      } else if ( ytell == 2 ) {
         yge = 2*(50 - yge);
+      }
       locParms += "&yge="+yge;
     }
   }
   controlReq.send( controlParms+"&control="+control+locParms );
-  if ( streamMode == "single" )
+  if ( streamMode == "single" ) {
     fetchImage.pass( $('imageFeed').getElement('img') ).delay( 1000 );
+  }
 }
 
 function controlCmdImage( x, y ) {
@@ -627,8 +667,9 @@ function controlCmdImage( x, y ) {
   imageControlParms += "&control="+imageControlMode;
 
   controlReq.send( imageControlParms+"&x="+x+"&y="+y );
-  if ( streamMode == "single" )
+  if ( streamMode == "single" ) {
     fetchImage.pass( $('imageFeed').getElement('img') ).delay( 1000 );
+  }
 }
 
 function fetchImage( streamImage ) {
@@ -641,10 +682,11 @@ function handleClick( event ) {
   var y = event.page.y - $(target).getTop();
 
   if ( showMode == "events" || !imageControlMode ) {
-    if ( event.shift )
+    if ( event.shift ) {
       streamCmdPan( x, y );
-    else
+    } else {
       streamCmdZoomIn( x, y );
+    }
   } else {
     controlCmdImage( x, y );
   }
@@ -656,8 +698,9 @@ function appletRefresh() {
     var parent = streamImg.getParent();
     streamImg.dispose();
     streamImg.inject( parent );
-    if ( appletRefreshTime )
+    if ( appletRefreshTime ) {
       appletRefresh.delay( appletRefreshTime*1000 );
+    }
   } else {
     appletRefresh.delay( 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
   }
@@ -709,19 +752,22 @@ function initPage() {
 
     if ( canStreamNative || streamMode == "single" ) {
       var streamImg = $('imageFeed').getElement('img');
-      if ( !streamImg )
+      if ( !streamImg ) {
         streamImg = $('imageFeed').getElement('object');
+      }
       if ( streamMode == "single" ) {
         streamImg.addEvent('click', fetchImage.pass(streamImg));
         fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
-      } else
+      } else {
         streamImg.addEvent('click', function(event) {
           handleClick(event);
         });
+      }
     }
 
-    if ( refreshApplet && appletRefreshTime )
+    if ( refreshApplet && appletRefreshTime ) {
       appletRefresh.delay(appletRefreshTime*1000);
+    }
     if ( scale == "auto" ) changeScale();
     if ( window.history.length == 1 ) {
       $j('#closeControl').html('');

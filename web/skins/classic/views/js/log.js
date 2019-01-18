@@ -27,8 +27,9 @@ var options = {};
 
 function buildFetchParms( parms ) {
   var fetchParms = logParms+'&limit='+maxLogFetch;
-  if ( parms )
+  if ( parms ) {
     fetchParms += '&'+parms;
+  }
   Object.each(filter,
       function( value, key ) {
         fetchParms += '&filter['+key+']='+value;
@@ -46,8 +47,9 @@ function fetchPrevLogs() {
 }
 
 function logResponse( respObj ) {
-  if ( logTimer )
+  if ( logTimer ) {
     logTimer = clearTimeout( logTimer );
+  }
 
   if ( respObj.result == 'Ok' ) {
     if ( respObj.logs.length > 0 ) {
@@ -56,22 +58,25 @@ function logResponse( respObj ) {
       try {
         respObj.logs.each(
             function( log ) {
-              if ( ( !maxLogTime ) || ( log.TimeKey > maxLogTime ) )
+              if ( ( !maxLogTime ) || ( log.TimeKey > maxLogTime ) ) {
                 maxLogTime = log.TimeKey;
-              if ( ( !minLogTime ) || ( log.TimeKey < minLogTime ) )
+              }
+              if ( ( !minLogTime ) || ( log.TimeKey < minLogTime ) ) {
                 minLogTime = log.TimeKey;
+              }
               var row = logTable.push( [{ content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
 
               delete log.Message;
               row.tr.store( 'log', log );
-              if ( log.Level <= -3 )
+              if ( log.Level <= -3 ) {
                 row.tr.addClass( 'log-fat' );
-              else if ( log.Level <= -2 )
+              } else if ( log.Level <= -2 ) {
                 row.tr.addClass( 'log-err' );
-              else if ( log.Level <= -1 )
+              } else if ( log.Level <= -1 ) {
                 row.tr.addClass( 'log-war' );
-              else if ( log.Level > 0 )
+              } else if ( log.Level > 0 ) {
                 row.tr.addClass( 'log-dbg' );
+              }
               if ( !firstLoad ) {
                 var color = document.defaultView.getComputedStyle(row.tr, null).getPropertyValue('color');
                 var colorParts = color.match(/^rgb.*\((\d+),\s*(\d+),\s*(\d+)/);
@@ -83,10 +88,11 @@ function logResponse( respObj ) {
         if ( typeof(respObj.options) == 'object' ) {
           $j.each( respObj.options,
               function( field ) {
-                if ( options[field] )
+                if ( options[field] ) {
                   options[field] = Object.assign(options[field], respObj.options[field]);
-                else
+                } else {
                   options[field] = respObj.options[field];
+                }
               }
           );
         }
@@ -101,21 +107,24 @@ function logResponse( respObj ) {
         $('availLogs').set('text', respObj.available);
         $('displayLogs').set('text', logCount);
         if ( firstLoad ) {
-          if ( logCount < displayLimit )
+          if ( logCount < displayLimit ) {
             fetchPrevLogs();
+          }
         }
         logTable.reSort();
       } catch( e ) {
         console.error( e );
       }
       logTimeout /= 2;
-      if ( logTimeout < minSampleTime )
+      if ( logTimeout < minSampleTime ) {
         logTimeout = minSampleTime;
+      }
     } else {
       firstLoad = false;
       logTimeout *= 2;
-      if ( logTimeout > maxSampleTime )
+      if ( logTimeout > maxSampleTime ) {
         logTimeout = maxSampleTime;
+      }
     } // end logs.length > 0
   } // end if result == Ok
   logTimer = fetchNextLogs.delay( logTimeout );
@@ -161,8 +170,9 @@ function filterLog() {
           return;
         }
         var value = selector.get('value');
-        if ( value )
+        if ( value ) {
           filter[field] = value;
+        }
       }
   );
   refreshLog();
@@ -254,16 +264,18 @@ function updateFilterSelectors() {
               }
           );
         }
-        if ( filter[key] )
+        if ( filter[key] ) {
           selector.set('value', filter[key]);
+        }
       }
   );
 }
 
 function initPage() {
   displayLimit = initialDisplayLimit;
-  for ( var i = 1; i <= 9; i++ )
+  for ( var i = 1; i <= 9; i++ ) {
     logCodes[''+i] = 'DB'+i;
+  }
   logTable = new HtmlTable( $('logTable'),
       {
         zebra: true,
@@ -279,10 +291,11 @@ function initPage() {
     if ( logCount > displayLimit ) {
       var rows = tbody.getElements( 'tr' );
       var startIndex;
-      if ( sortReversed )
+      if ( sortReversed ) {
         startIndex = displayLimit;
-      else
+      } else {
         startIndex = 0;
+      }
       for ( var i = startIndex; logCount > displayLimit; i++ ) {
         rows[i].destroy();
         logCount--;

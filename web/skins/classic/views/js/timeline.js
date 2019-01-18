@@ -16,17 +16,20 @@ function showEvent( eid, fid, width, height ) {
 function createEventHtml( event, frame ) {
   var eventHtml = new Element( 'div' );
 
-  if ( event.Archived > 0 )
+  if ( event.Archived > 0 ) {
     eventHtml.addClass( 'archived' );
+  }
 
   new Element( 'p' ).inject( eventHtml ).set( 'text', monitors[event.MonitorId].Name );
   new Element( 'p' ).inject( eventHtml ).set( 'text', event.Name+(frame?("("+frame.FrameId+")"):"") );
   new Element( 'p' ).inject( eventHtml ).set( 'text', event.StartTime+" - "+event.Length+"s" );
   new Element( 'p' ).inject( eventHtml ).set( 'text', event.Cause );
-  if ( event.Notes )
+  if ( event.Notes ) {
     new Element( 'p' ).inject( eventHtml ).set( 'text', event.Notes );
-  if ( event.Archived > 0 )
+  }
+  if ( event.Archived > 0 ) {
     new Element( 'p' ).inject( eventHtml ).set( 'text', archivedString );
+  }
 
   return( eventHtml );
 }
@@ -126,8 +129,9 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
       addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime);
       vid.currentTime = fid/fps;
     } else {
-      if ( ! vid.seeking )
+      if ( ! vid.seeking ) {
         vid.currentTime=fid/fps;
+      }
     }
   } else {
     if ( vid ) vid.hide();

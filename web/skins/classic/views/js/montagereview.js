@@ -21,8 +21,9 @@ function evaluateLoadTimes() {
   freeTimeLastIntervals[imageLoadTimesEvaluated++] = 1 - ((end - start)/currentDisplayInterval);
   if ( imageLoadTimesEvaluated < imageLoadTimesNeeded ) return;
   var avgFrac=0;
-  for ( var i=0; i < imageLoadTimesEvaluated; i++ )
+  for ( var i=0; i < imageLoadTimesEvaluated; i++ ) {
     avgFrac += freeTimeLastIntervals[i];
+  }
   avgFrac = avgFrac / imageLoadTimesEvaluated;
   // The larger this is(positive) the faster we can go
   if (avgFrac >= 0.9) currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1); // we can go much faster
@@ -49,8 +50,9 @@ function getFrame( monId, time ) {
   for ( var event_id in events ) {
     // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
     Event = events[event_id];
-    if ( Event.MonitorId != monId || Event.StartTimeSecs > time || Event.EndTimeSecs < time )
+    if ( Event.MonitorId != monId || Event.StartTimeSecs > time || Event.EndTimeSecs < time ) {
       continue;
+    }
 
     var duration = Event.EndTimeSecs - Event.StartTimeSecs;
     if ( ! Event.FramesById ) {
@@ -263,8 +265,9 @@ function drawSliderOnGraph(val) {
     // if we have no data to display don't do the slider itself
     var sliderX = parseInt( (val - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2); // position left side of slider
     if ( sliderX < 0 ) sliderX = 0;
-    if ( sliderX+sliderWidth > cWidth )
+    if ( sliderX+sliderWidth > cWidth ) {
       sliderX=cWidth-sliderWidth-1;
+    }
 
     // If we have data already saved first restore it from LAST time
 
@@ -297,10 +300,11 @@ function drawSliderOnGraph(val) {
     // try to get length and then when we get too close to the right switch to the left
     var len = o.offsetWidth;
     var x;
-    if(sliderX > cWidth/2)
+    if(sliderX > cWidth/2) {
       x=sliderX - len - 10;
-    else
+    } else {
       x=sliderX + 10;
+    }
     o.style.left=x.toString() + "px";
   }
 
@@ -314,8 +318,9 @@ function drawSliderOnGraph(val) {
   o.style.bottom=labbottom;
   o.style.font=labfont;
   o.style.left="5px";
-  if ( numMonitors == 0 ) // we need a len calculation if we skipped the slider
+  if ( numMonitors == 0 ) { // we need a len calculation if we skipped the slider
     len = o.offsetWidth;
+  }
   // If the slider will overlay part of this suppress (this is the left side)
   if ( len + 10 > sliderX || cWidth < len * 4 ) {
     // that last check is for very narrow browsers
@@ -377,8 +382,9 @@ function drawGraph() {
 
     for ( var frame_id in Event.FramesById ) {
       var Frame = Event.FramesById[frame_id];
-      if ( ! Frame.Score )
+      if ( ! Frame.Score ) {
         continue;
+      }
 
       // Now put in scored frames (if any)
       var x1=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth); // round low end down
@@ -443,13 +449,15 @@ function redrawScreen() {
     var pos=$('monitors').getPosition();
     var mh=(vh - pos.y - $('fps').getSize().y);
     $('monitors').setStyle('height', mh.toString() + "px"); // leave a small gap at bottom
-    if(maxfit2($('monitors').getSize().x, $('monitors').getSize().y) == 0) /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+    if(maxfit2($('monitors').getSize().x, $('monitors').getSize().y) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
       fitMode=1-fitMode;
+    }
   } else {
     // switch out of fit mode
     // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
-    for( var i=0; i<numMonitors; i++ )
+    for( var i=0; i<numMonitors; i++ ) {
       monitorCanvasObj[monitorPtr[i]].style.position="";
+    }
     $('monitors').setStyle('height', "auto");
     $('ScaleDiv').style.display="inline";
     $('ScaleDiv').style.display="inline-flex";
@@ -598,8 +606,9 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
   var maxStr = "";
   var currentStr = "";
   if ( minSecs > 0 ) {
-    if ( maxSecs > now )
+    if ( maxSecs > now ) {
       maxSecs = parseInt(now);
+    }
     maxStr="&maxTime=" + secs2inputstr(maxSecs);
     $('maxTime').value = secs2inputstr(maxSecs);
   }
@@ -613,18 +622,22 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
   }
   var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
   if ( minSecs && maxSecs ) {
-    if ( currentTimeSecs > minSecs && currentTimeSecs < maxSecs ) // make sure time is in the new range
+    if ( currentTimeSecs > minSecs && currentTimeSecs < maxSecs ) { // make sure time is in the new range
       currentStr="&current=" + secs2dbstr(currentTimeSecs);
+    }
   }
 
   var liveStr="&live=0";
-  if ( live == 1 )
+  if ( live == 1 ) {
     liveStr="&live=1";
+  }
 
   var zoomStr="";
-  for ( var i=0; i < numMonitors; i++ )
-    if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 ) // allow for some up/down changes and just treat as 1 of almost 1
+  for ( var i=0; i < numMonitors; i++ ) {
+    if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 ) { // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
+    }
+  }
 
   var uri = "?view=" + currentView + '&fit='+(fitMode==1?'1':'0') + minStr + maxStr + currentStr + intervalStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
@@ -719,13 +732,15 @@ function maxfit2(divW, divH) {
       function doesItFit(x, y, w, h, d) { // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
         if(x+w>=divW) return 0;
         if(y+h>=divH) return 0;
-        for(var i=0; i<=d; i++)
+        for(var i=0; i<=d; i++) {
           if( !( thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y ) ) return 0;
+        }
         return 1; // it's OK
       }
 
-      if ( borders <= 0 )
-        borders=$("Monitor"+monId).getStyle("border").toInt() * 2; // assume fixed size border, and added to both sides and top/bottom
+      if ( borders <= 0 ) {
+        borders=$("Monitor"+monId).getStyle("border").toInt() * 2;
+      } // assume fixed size border, and added to both sides and top/bottom
       // try fitting over first, then down.  Each new one must land at either upper right or lower left corner of last (try in that order)
       // Pick the one with the smallest Y, then smallest X if Y equal
       var fitX = 999999999;
@@ -827,12 +842,13 @@ function clickMonitor(event, monId) {
   var monitor_element = $("Monitor"+monId.toString());
   var pos_x = event.offsetX ? (event.offsetX) : event.pageX - monitor_element.offsetLeft;
   var pos_y = event.offsetY ? (event.offsetY) : event.pageY - monitor_element.offsetTop;
-  if ( pos_x < monitor_element.width/4 && pos_y < monitor_element.height/4 )
+  if ( pos_x < monitor_element.width/4 && pos_y < monitor_element.height/4 ) {
     zoom(monId, 1.15);
-  else if ( pos_x > monitor_element.width * 3/4 && pos_y < monitor_element.height/4 )
+  } else if ( pos_x > monitor_element.width * 3/4 && pos_y < monitor_element.height/4 ) {
     zoom(monId, 1/1.15);
-  else
+  } else {
     showOneMonitor(monId);
+  }
   return;
 }
 
@@ -856,9 +872,11 @@ function changeDateTime(e) {
   var fitStr ="&fit="+(fitMode?"1":"0");
 
   var zoomStr="";
-  for ( var i=0; i < numMonitors; i++ )
-    if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 ) // allow for some up/down changes and just treat as 1 of almost 1
+  for ( var i=0; i < numMonitors; i++ ) {
+    if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 ) { // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
+    }
+  }
 
   var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;

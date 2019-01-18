@@ -137,7 +137,7 @@ function parseRows(rows) {
     }
 
     if (rows.length == 1) {
-      inputTds.eq(6).find(':input[value="-"]').prop('disabled', true);  //enable/disable remove row button
+      inputTds.eq(6).find(':input[value="-"]').prop('disabled', true); //enable/disable remove row button
     } else {
       inputTds.eq(6).find(':input[value="-"]').prop('disabled', false);
     }
@@ -152,7 +152,7 @@ function parseRows(rows) {
       }
       var archiveVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).chosen({width: "101%"});
-    } else if ( attr.indexOf('Weekday') >= 0 ) {  //Weekday selection
+    } else if ( attr.indexOf('Weekday') >= 0 ) { //Weekday selection
       var weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < weekdays.length; i++) {
         weekdaySelect.append('<option value="' + i + '">' + weekdays[i] + '</option>');
@@ -175,7 +175,7 @@ function parseRows(rows) {
       inputTds.eq(4).html(serverSelect).children().val(serverVal).chosen({width: "101%"});
     } else if ( attr == 'StorageId' ) { //Choose by storagearea
       var storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-			for ( key in storageareas ) {
+      for ( key in storageareas ) {
         storageSelect.append('<option value="' + key + '">' + storageareas[key] + '</option>');
       }
       var storageVal = inputTds.eq(4).children().val();
@@ -187,7 +187,7 @@ function parseRows(rows) {
       }
       var monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal);
-    } else {  //Reset to regular text field and operator for everything that isn't special
+    } else { //Reset to regular text field and operator for everything that isn't special
       var opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
       for (var key in opTypes) {
         opSelect.append('<option value="' + key + '">' + opTypes[key] + '</option>');
@@ -220,7 +220,7 @@ function parseRows(rows) {
 function stringFilter(term) {
   var termString = '';
   term.forEach(function(item) {
-   termString += '[' + item + ']';
+    termString += '[' + item + ']';
   });
   return termString;
 }

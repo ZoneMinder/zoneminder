@@ -80,9 +80,9 @@ function editMonitor( element ) {
     }
   } // end foreach checkboxes
   if ( monitorIds.length == 1 )
-        createPopup( '?view=monitor&mid='+monitorIds[0], 'zmMonitor'+monitorIds[0], 'monitor' );
+    createPopup( '?view=monitor&mid='+monitorIds[0], 'zmMonitor'+monitorIds[0], 'monitor' );
   else if ( monitorIds.length > 1 )
-        createPopup( '?view=monitors&'+(monitorIds.map(function(mid) {return 'mids[]='+mid;}).join('&')), 'zmMonitors', 'monitors' );
+    createPopup( '?view=monitors&'+(monitorIds.map(function(mid) {return 'mids[]='+mid;}).join('&')), 'zmMonitors', 'monitors' );
 }
 
 function deleteMonitor( element ) {
@@ -98,12 +98,12 @@ function selectMonitor(element) {
   var url = thisUrl+'?view=console';
   for ( var i = 0; i < form.elements.length; i++ ) {
     if (
-        form.elements[i].type == "checkbox"
+      form.elements[i].type == "checkbox"
         &&
         form.elements[i].name == "markMids[]"
         &&
         form.elements[i].checked
-       ) {
+    ) {
       url += '&MonitorId='+form.elements[i].value;
     }
   }
@@ -124,9 +124,9 @@ function initPage() {
   // Makes table sortable
   $j( function() {
     $j( "#consoleTableBody" ).sortable({
-        handle: ".glyphicon-sort",
-        update: applySort,
-        axis:'Y' } );
+      handle: ".glyphicon-sort",
+      update: applySort,
+      axis:'Y' } );
     $j( "#consoleTableBody" ).disableSelection();
   } );
 }
@@ -134,11 +134,11 @@ function initPage() {
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
   var ajax = new Request.JSON( {
-      url: 'index.php?request=console',
-      data: { monitor_ids: monitor_ids, action: 'sort' },
-      method: 'post',
-      timeout: AJAX_TIMEOUT
-      } );
+    url: 'index.php?request=console',
+    data: { monitor_ids: monitor_ids, action: 'sort' },
+    method: 'post',
+    timeout: AJAX_TIMEOUT
+  } );
   ajax.send();
 } // end function applySort(event,ui)
 

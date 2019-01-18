@@ -15,8 +15,8 @@ function vjsReplay() {
       } else {
         var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
         if (nextStartTime <= endTime) {
-         streamNext( true );
-         return;
+          streamNext( true );
+          return;
         }
         var overLaid = $j("#videoobj");
         vid.pause();
@@ -33,7 +33,7 @@ function vjsReplay() {
           }
         }, 1000);
       }
-        break;
+      break;
     case 'gapless':
       streamNext( true );
       break;
@@ -69,13 +69,13 @@ function renderAlarmCues(containerEl) {
   var alarmHtml = "";
   var pixSkew = 0;
   var skip = 0;
-var num_cueFrames = cueFrames.length;
+  var num_cueFrames = cueFrames.length;
   for ( var i = 0; i < num_cueFrames; i++ ) {
     skip = 0;
     frame = cueFrames[i];
     if (frame.Type == "Alarm" && alarmed == 0) { //From nothing to alarm.  End nothing and start alarm.
       alarmed = 1;
-      if (frame.Delta == 0) continue;  //If event starts with an alarm or too few for a nonespan
+      if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
       spanTimeEnd = frame.Delta * 100;
       spanTime = spanTimeEnd - spanTimeStart;
       var pix = cueRatio * spanTime;
@@ -104,7 +104,7 @@ var num_cueFrames = cueFrames.length;
         }
         indexPlus++;
       }
-      if (skip == 1) continue;  //javascript doesn't support continue 2;
+      if (skip == 1) continue; //javascript doesn't support continue 2;
       spanTimeEnd = frame.Delta *100;
       spanTime = spanTimeEnd - spanTimeStart;
       alarmed = 0;
@@ -166,7 +166,7 @@ function changeScale() {
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
   if ( !(streamMode == 'stills') )
-    eventViewer.width(newWidth);  //stills handles its own width
+    eventViewer.width(newWidth); //stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
     streamScale(scale == "auto" ? autoScale : scale);
@@ -224,7 +224,7 @@ function getCmdResponse( respObj, respText ) {
     if ( eventId != lastEventId ) {
       //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
       eventQuery(eventId);
-      initialAlarmCues(eventId);  //zms uses this instead of a page reload, must call ajax+render
+      initialAlarmCues(eventId); //zms uses this instead of a page reload, must call ajax+render
       lastEventId = eventId;
     }
   } else {
@@ -347,7 +347,7 @@ var revSpeed = .5;
 
 function streamSlowFwd( action ) {
   if ( vid ) {
-   vid.currentTime(vid.currentTime() + spf);
+    vid.currentTime(vid.currentTime() + spf);
   } else {
     streamReq.send(streamParms+"&command="+CMD_SLOWFWD);
   }
@@ -627,7 +627,7 @@ function loadEventThumb( event, frame, loadImage ) {
   }
   var img = new Asset.image( imagePrefix+frame.EventId+"&fid="+frame.FrameId,
       {
-      'onload': ( function( loadImage ) {
+        'onload': ( function( loadImage ) {
           thumbImg.setProperty( 'src', img.getProperty( 'src' ) );
           thumbImg.removeClass( 'placeholder' );
           thumbImg.setProperty( 'class', frame.Type=='Alarm'?'alarm':'normal' );
@@ -636,9 +636,9 @@ function loadEventThumb( event, frame, loadImage ) {
           thumbImg.addEvent( 'click', function() { locateImage( frame.FrameId, true ); } );
           if ( loadImage )
             loadEventImage( event, frame );
-          } ).pass( loadImage )
+        } ).pass( loadImage )
       }
-      );
+  );
 }
 
 function loadEventImage( event, frame ) {
@@ -669,12 +669,12 @@ function loadEventImage( event, frame ) {
     }
 
     eventImg.setProperties( {
-        'class': frame.Type=='Alarm'?'alarm':'normal',
-        'src': thumbImg.getProperty( 'src' ),
-        'title': thumbImg.getProperty( 'title' ),
-        'alt': thumbImg.getProperty( 'alt' ),
-        'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
-        } );
+      'class': frame.Type=='Alarm'?'alarm':'normal',
+      'src': thumbImg.getProperty( 'src' ),
+      'title': thumbImg.getProperty( 'title' ),
+      'alt': thumbImg.getProperty( 'alt' ),
+      'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
+    } );
 
     $('eventImageNo').set( 'text', frame.FrameId );
     $('prevImageBtn').disabled = (frame.FrameId==1);
@@ -709,16 +709,16 @@ function resetEventStills() {
     slider = new Slider( $('thumbsSlider'), $('thumbsKnob'), {
       /*steps: eventData.Frames,*/
       onChange: function( step ) {
-                  if ( !step )
-                    step = 0;
-                  var fid = parseInt((step * eventData.Frames)/this.options.steps);
-                  if ( fid < 1 )
-                    fid = 1;
-                  else if ( fid > eventData.Frames )
-                    fid = eventData.Frames;
-                  checkFrames( eventData.Id, fid, ($j('#eventImagePanel').css('display')=='none'?'':'true'));
-                  scroll.toElement( 'eventThumb'+fid );
-                 }
+        if ( !step )
+          step = 0;
+        var fid = parseInt((step * eventData.Frames)/this.options.steps);
+        if ( fid < 1 )
+          fid = 1;
+        else if ( fid > eventData.Frames )
+          fid = eventData.Frames;
+        checkFrames( eventData.Id, fid, ($j('#eventImagePanel').css('display')=='none'?'':'true'));
+        scroll.toElement( 'eventThumb'+fid );
+      }
     } ).set( 0 );
   }
 }
@@ -788,16 +788,16 @@ function checkFrames( eventId, frameId, loadImage ) {
               }
               return( false );
             }
-            );
+        );
       }
       if ( !injected ) {
         img.inject( $('eventThumbs') );
       }
       var scale = parseInt(img.getStyle('height'));
       img.setStyles( {
-          'width': parseInt((eventData.Width*scale)/100),
-          'height': parseInt((eventData.Height*scale)/100)
-          } );
+        'width': parseInt((eventData.Width*scale)/100),
+        'height': parseInt((eventData.Height*scale)/100)
+      } );
     } else if ( eventData['frames'][fid] ) {
       if ( loadImage && (fid == frameId) ) {
         loadEventImage( eventData, eventData['frames'][fid], loadImage );
@@ -933,7 +933,7 @@ function showStills() {
       duration: 500,
       offset: { 'x': 0, 'y': 0 },
       transition: Fx.Transitions.Quad.easeInOut
-      }
+    }
     );
   }
   resetEventStills();

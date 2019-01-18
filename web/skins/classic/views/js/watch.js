@@ -229,13 +229,13 @@ function getStreamCmdResponse(respObj, respText) {
     // If it's an auth error, we should reload the whole page.
     window.location.reload();
     if ( 0 ) {
-    var streamImg = $('liveStream'+monitorId);
-    if ( streamImg ) {
-      streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-      console.log("Changing livestream src to " + streamImg.src);
-    } else {
-      console.log("Unable to find streamImg liveStream");
-    }
+      var streamImg = $('liveStream'+monitorId);
+      if ( streamImg ) {
+        streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+        console.log("Changing livestream src to " + streamImg.src);
+      } else {
+        console.log("Unable to find streamImg liveStream");
+      }
     }
   }
 

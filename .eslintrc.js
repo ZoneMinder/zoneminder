@@ -6,11 +6,14 @@ module.exports = {
   },
   "extends": ["google"],
   "rules": {
+    "block-spacing": "off",
     "brace-style": "off",
     "camelcase": "off",
     "comma-dangle": "off",
+    "curly": "off",
     "guard-for-in": "off",
     "key-spacing": "off",
+    "keyword-spacing": "off",
     "max-len": "off",
     "new-cap": ["error", {
       capIsNewExceptions: ["Error", "Warning", "Debug", "Polygon_calcArea", "Play", "Stop"],

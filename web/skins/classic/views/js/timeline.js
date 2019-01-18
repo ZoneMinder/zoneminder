@@ -124,7 +124,7 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
       }
       vid.load();
       addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime);
-        vid.currentTime = fid/fps;
+      vid.currentTime = fid/fps;
     } else {
       if ( ! vid.seeking )
         vid.currentTime=fid/fps;

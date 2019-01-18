@@ -26,18 +26,18 @@ var popupOptions = "resizable,scrollbars,status=no,toolbar=yes";
 
 function checkSize() {
   if ( 0 ) {
-  if (window.outerHeight) {
-    var w = window.outerWidth;
-    var prevW = w;
-    var h = window.outerHeight;
-    var prevH = h;
-    if (h > screen.availHeight)
-      h = screen.availHeight;
-    if (w > screen.availWidth)
-      w = screen.availWidth;
-    if (w != prevW || h != prevH)
-      window.resizeTo(w, h);
-  }
+    if (window.outerHeight) {
+      var w = window.outerWidth;
+      var prevW = w;
+      var h = window.outerHeight;
+      var prevH = h;
+      if (h > screen.availHeight)
+        h = screen.availHeight;
+      if (w > screen.availWidth)
+        w = screen.availWidth;
+      if (w != prevW || h != prevH)
+        window.resizeTo(w, h);
+    }
   }
 }
 
@@ -239,15 +239,15 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   function getNavBar() {
     $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar')
-      .done(setNavBar)
-      .fail(function( jqxhr, textStatus, error ) {
-        console.log( "Request Failed: " + textStatus + ", " + error);
-        if ( textStatus != "timeout" ) {
+        .done(setNavBar)
+        .fail(function( jqxhr, textStatus, error ) {
+          console.log( "Request Failed: " + textStatus + ", " + error);
+          if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
-          window.location.reload( true );
-        }
-      });
+            window.location.reload( true );
+          }
+        });
   }
 
   function setNavBar(data) {
@@ -315,11 +315,11 @@ function submitThisForm() {
 }
 
 function toggleCheckbox( element, name ) {
-    var form = element.form;
-    var checked = element.checked;
-    for (var i = 0; i < form.elements.length; i++)
-        if (form.elements[i].name.indexOf(name) == 0)
-          form.elements[i].checked = checked;
+  var form = element.form;
+  var checked = element.checked;
+  for (var i = 0; i < form.elements.length; i++)
+    if (form.elements[i].name.indexOf(name) == 0)
+      form.elements[i].checked = checked;
 }
 
 function configureDeleteButton( element ) {
@@ -379,26 +379,26 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
   }
 }
 /*
-	var labelFormat = convertLabelFormat(LabelFormat, monitorName);
-	var webvttformat = 'HH:mm:ss.SSS', webvttdata="WEBVTT\n\n";
+var labelFormat = convertLabelFormat(LabelFormat, monitorName);
+var webvttformat = 'HH:mm:ss.SSS', webvttdata="WEBVTT\n\n";
 
-	startTime = moment(startTime);
+startTime = moment(startTime);
 
-	var seconds = moment({s:0}), endduration = moment({s:duration});
-	while(seconds.isBefore(endduration)){
-		webvttdata += seconds.format(webvttformat) + " --> ";
-		seconds.add(1,'s');
-		webvttdata += seconds.format(webvttformat) + "\n";
-		webvttdata += startTime.format(labelFormat) + "\n\n";
-		startTime.add(1, 's');
-	}
-	var track = document.createElement('track');
-	track.kind = "captions";
-	track.srclang = "en";
-	track.label = "English";
-	track['default'] = true;
-	track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
-	video.appendChild(track);
+var seconds = moment({s:0}), endduration = moment({s:duration});
+while(seconds.isBefore(endduration)){
+  webvttdata += seconds.format(webvttformat) + " --> ";
+  seconds.add(1,'s');
+  webvttdata += seconds.format(webvttformat) + "\n";
+  webvttdata += startTime.format(labelFormat) + "\n\n";
+  startTime.add(1, 's');
+}
+var track = document.createElement('track');
+track.kind = "captions";
+track.srclang = "en";
+track.label = "English";
+track['default'] = true;
+track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
+video.appendChild(track);
 }
 */
 
@@ -410,11 +410,11 @@ function endOfResize(e) {
 }
 
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
-  $j(window).on('resize', endOfResize);  //set delayed scaling when Scale to Fit is selected
+  $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   var ratio = baseWidth / baseHeight;
   var container = $j('#content');
   var viewPort = $j(window);
-// jquery does not provide a bottom offet, and offset dows not include margins.  outerHeight true minus false gives total vertical margins.
+  // jquery does not provide a bottom offet, and offset dows not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
   var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   var newWidth = ratio * newHeight;

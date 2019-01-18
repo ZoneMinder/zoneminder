@@ -4,11 +4,11 @@ var logTimer = undefined;
 var logTable = undefined;
 
 var logCodes = new Object({
-    '0': 'INF',
-    '-1': 'WAR',
-    '-2': 'ERR',
-    '-3': 'FAT',
-    '-4': 'PNC',
+  '0': 'INF',
+  '-1': 'WAR',
+  '-2': 'ERR',
+  '-3': 'FAT',
+  '-4': 'PNC',
 });
 
 var minSampleTime = 2000;
@@ -33,7 +33,7 @@ function buildFetchParms( parms ) {
       function( value, key ) {
         fetchParms += '&filter['+key+']='+value;
       }
-      );
+  );
   return fetchParms;
 }
 
@@ -65,13 +65,13 @@ function logResponse( respObj ) {
               delete log.Message;
               row.tr.store( 'log', log );
               if ( log.Level <= -3 )
-              row.tr.addClass( 'log-fat' );
+                row.tr.addClass( 'log-fat' );
               else if ( log.Level <= -2 )
-              row.tr.addClass( 'log-err' );
+                row.tr.addClass( 'log-err' );
               else if ( log.Level <= -1 )
-              row.tr.addClass( 'log-war' );
+                row.tr.addClass( 'log-war' );
               else if ( log.Level > 0 )
-              row.tr.addClass( 'log-dbg' );
+                row.tr.addClass( 'log-dbg' );
               if ( !firstLoad ) {
                 var color = document.defaultView.getComputedStyle(row.tr, null).getPropertyValue('color');
                 var colorParts = color.match(/^rgb.*\((\d+),\s*(\d+),\s*(\d+)/);
@@ -82,12 +82,12 @@ function logResponse( respObj ) {
         );
         if ( typeof(respObj.options) == 'object' ) {
           $j.each( respObj.options,
-            function( field ) {
-              if ( options[field] )
-                options[field] = Object.assign(options[field], respObj.options[field]);
-              else
-                options[field] = respObj.options[field];
-            }
+              function( field ) {
+                if ( options[field] )
+                  options[field] = Object.assign(options[field], respObj.options[field]);
+                else
+                  options[field] = respObj.options[field];
+              }
           );
         }
         updateFilterSelectors();
@@ -164,7 +164,7 @@ function filterLog() {
         if ( value )
           filter[field] = value;
       }
-      );
+  );
   refreshLog();
 }
 
@@ -207,7 +207,7 @@ function exportRequest() {
           function( select ) {
             exportParms += "&"+select.get('id')+"="+select.get('value');
           }
-          );
+      );
     }
     if ( selection == 'current' ) {
       var tbody = $(logTable).getElement( 'tbody' );
@@ -226,37 +226,37 @@ function exportRequest() {
 
 function updateFilterSelectors() {
   Object.each(options,
-    function( values, key ) {
-      var selector = $('filter['+key+']');
-      if ( ! selector ) {
-        if ( window.console && window.console.log ) {
-          window.console.log("No selector found for " + key );
+      function( values, key ) {
+        var selector = $('filter['+key+']');
+        if ( ! selector ) {
+          if ( window.console && window.console.log ) {
+            window.console.log("No selector found for " + key );
+          }
+          return;
         }
-        return;
+        selector.options.length = 1;
+        if ( key == 'Level' ) {
+          Object.each(values,
+              function( value, label ) {
+                selector.options[selector.options.length] = new Option(value, label);
+              }
+          );
+        } else if ( key == 'ServerId' ) {
+          Object.each(values,
+              function( value, label ) {
+                selector.options[selector.options.length] = new Option(value, label);
+              }
+          );
+        } else {
+          Object.each(values,
+              function( value, label ) {
+                selector.options[selector.options.length] = new Option(value, label);
+              }
+          );
+        }
+        if ( filter[key] )
+          selector.set('value', filter[key]);
       }
-      selector.options.length = 1;
-      if ( key == 'Level' ) {
-        Object.each(values,
-          function( value, label ) {
-            selector.options[selector.options.length] = new Option(value, label);
-          }
-        );
-      } else if ( key == 'ServerId' ) {
-        Object.each(values,
-          function( value, label ) {
-            selector.options[selector.options.length] = new Option(value, label);
-          }
-        );
-      } else {
-        Object.each(values,
-          function( value, label ) {
-            selector.options[selector.options.length] = new Option(value, label);
-          }
-        );
-      }
-      if ( filter[key] )
-        selector.set('value', filter[key]);
-    }
   );
 }
 
@@ -270,26 +270,26 @@ function initPage() {
         sortable: true,
         sortReverse: true
       }
-      );
+  );
   logTable.addEvent( 'sort', function( tbody, index ) {
-      var header = tbody.getParent( 'table' ).getElement( 'thead' );
-      var columns = header.getElement( 'tr' ).getElements( 'th' );
-      var column = columns[index];
-      sortReversed = column.hasClass( 'table-th-sort-rev' );
-      if ( logCount > displayLimit ) {
-        var rows = tbody.getElements( 'tr' );
-        var startIndex;
-        if ( sortReversed )
-          startIndex = displayLimit;
-        else
-          startIndex = 0;
-        for ( var i = startIndex; logCount > displayLimit; i++ ) {
-          rows[i].destroy();
-          logCount--;
-        }
-        $('displayLogs').set('text', logCount);
-      } // end if loCount > displayLimit
-    }
+    var header = tbody.getParent( 'table' ).getElement( 'thead' );
+    var columns = header.getElement( 'tr' ).getElements( 'th' );
+    var column = columns[index];
+    sortReversed = column.hasClass( 'table-th-sort-rev' );
+    if ( logCount > displayLimit ) {
+      var rows = tbody.getElements( 'tr' );
+      var startIndex;
+      if ( sortReversed )
+        startIndex = displayLimit;
+      else
+        startIndex = 0;
+      for ( var i = startIndex; logCount > displayLimit; i++ ) {
+        rows[i].destroy();
+        logCount--;
+      }
+      $('displayLogs').set('text', logCount);
+    } // end if loCount > displayLimit
+  }
   );
   exportFormValidator = new Form.Validator.Inline($('exportForm'), {
     useTitles: true,

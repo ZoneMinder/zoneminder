@@ -19,18 +19,18 @@
 
 if ( !window.console )
 {
-    window.console =
+  window.console =
     {
-        init:function() {},
-        log:function() {},
-        debug:function() {},
-        info:function() {},
-        warn:function() {},
-        error:function() {}
+      init:function() {},
+      log:function() {},
+      debug:function() {},
+      info:function() {},
+      warn:function() {},
+      error:function() {}
     };
 }
 if ( !console.debug )//IE8 has console but doesn't have console.debug so lets alias it.
-    console.debug = console.log;
+  console.debug = console.log;
 
 var reportLogs = true;
 
@@ -39,83 +39,83 @@ var debugReq;
 
 function logReport( level, message, file, line )
 {
-    if ( !reportLogs )
-        return;
+  if ( !reportLogs )
+    return;
 
-    if ( typeof(MooTools) == "undefined" )
-        return;
+  if ( typeof(MooTools) == "undefined" )
+    return;
 
-    if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.name )
-        message += ' - '+arguments.callee.caller.caller.name+'()';
+  if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.name )
+    message += ' - '+arguments.callee.caller.caller.name+'()';
 
-    if ( !debugReq )
-    {
-      if ( Browser )
-        debugParms = "view=request&request=log&task=create&browser[name]="+Browser.name+"&browser[version]="+Browser.version+"&browser[platform]="+(Browser.Platform?Browser.Platform.name:'unknown');
-      else
-        debugParms = "view=request&request=log&task=create&browser[name]=unknown&browser[version]=unknown&browser[platform]=unknown";
-        debugReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain' } );
-    }
-    var requestParms = debugParms;
-    requestParms += "&level="+level+"&message="+encodeURIComponent(message);
-    if ( file )
-        requestParms += "&file="+file;
-    else if ( location.search ) {
-		//location.search is the querystring part, so ?blah=blah but there is almost never any value to this
-        requestParms += "&file="+location.search;
-	}
-    if ( line )
-        requestParms += "&line="+line;
-    debugReq.send( requestParms );
+  if ( !debugReq )
+  {
+    if ( Browser )
+      debugParms = "view=request&request=log&task=create&browser[name]="+Browser.name+"&browser[version]="+Browser.version+"&browser[platform]="+(Browser.Platform?Browser.Platform.name:'unknown');
+    else
+      debugParms = "view=request&request=log&task=create&browser[name]=unknown&browser[version]=unknown&browser[platform]=unknown";
+    debugReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'chain' } );
+  }
+  var requestParms = debugParms;
+  requestParms += "&level="+level+"&message="+encodeURIComponent(message);
+  if ( file )
+    requestParms += "&file="+file;
+  else if ( location.search ) {
+    //location.search is the querystring part, so ?blah=blah but there is almost never any value to this
+    requestParms += "&file="+location.search;
+  }
+  if ( line )
+    requestParms += "&line="+line;
+  debugReq.send( requestParms );
 }
 
 function Panic( message )
 {
-    console.error( message );
-    logReport( "PNC", message );
-    alert( "PANIC: "+message );
+  console.error( message );
+  logReport( "PNC", message );
+  alert( "PANIC: "+message );
 }
 
 function Fatal( message )
 {
-    console.error( message );
-    logReport( "FAT", message );
-    alert( "FATAL: "+message );
+  console.error( message );
+  logReport( "FAT", message );
+  alert( "FATAL: "+message );
 }
 
 function Error( message )
 {
-    console.error( message );
-    logReport( "ERR", message );
+  console.error( message );
+  logReport( "ERR", message );
 }
 
 function Warning( message )
 {
-    console.warn( message );
-    logReport( "WAR", message );
+  console.warn( message );
+  logReport( "WAR", message );
 }
 
 function Info( message )
 {
-    console.info( message );
-    logReport( "INF", message );
+  console.info( message );
+  logReport( "INF", message );
 }
 
 function Debug( message )
 {
-    console.debug( message );
-    //logReport( "DBG", message );
+  console.debug( message );
+  //logReport( "DBG", message );
 }
 
 function Dump( value, label )
 {
-    if ( label )
-        console.debug( label+" => " );
-    console.debug( value );
+  if ( label )
+    console.debug( label+" => " );
+  console.debug( value );
 }
 
 window.onerror =
     function( message, url, line )
     {
-        logReport( "ERR", message, url, line );
+      logReport( "ERR", message, url, line );
     };

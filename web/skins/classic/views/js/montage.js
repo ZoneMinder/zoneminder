@@ -49,13 +49,13 @@ function Monitor( monitorData ) {
     }
     if ( 0 ) {
     // Requeue, but want to wait a while.
-    if ( this.streamCmdTimer )
-      this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
-    var streamCmdTimeout = 1000*statusRefreshTimeout;
-    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this, true );
-    requestQueue.resume();
+      if ( this.streamCmdTimer )
+        this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
+      var streamCmdTimeout = 1000*statusRefreshTimeout;
+      this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this, true );
+      requestQueue.resume();
     }
-      console.log("done failure");
+    console.log("done failure");
   };
 
   this.getStreamCmdResponse = function( respObj, respText ) {
@@ -134,7 +134,7 @@ function Monitor( monitorData ) {
     var streamCmdTimeout = statusRefreshTimeout;
     // The idea here is if we are alarmed, do updates faster.  However, there is a timeout in the php side which isn't getting modified, so this may cause a problem. Also the server may only be able to update so fast.
     //if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT ) {
-      //streamCmdTimeout = streamCmdTimeout/5;
+    //streamCmdTimeout = streamCmdTimeout/5;
     //}
     this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
     this.lastAlarmState = this.alarmState;
@@ -147,7 +147,7 @@ function Monitor( monitorData ) {
     }
     //console.log("Starting CmdQuery for " + this.connKey );
     if ( this.type != 'WebSite' ) {
-        this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
+      this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
     }
   };
 
@@ -204,7 +204,7 @@ function selectLayout( element ) {
         console.log("No Monitor styles to apply");
       } // end if specific monitor style
     } // end foreach monitor
-  }  // end if a stored layout
+  } // end if a stored layout
   if ( ! layout ) {
     return;
   }
@@ -213,29 +213,29 @@ function selectLayout( element ) {
     Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
     $('scale').set('value', '' );
     $('width').set('value', '');
-if ( 1 ) {
-    for ( var x = 0; x < monitors.length; x++ ) {
-      var monitor = monitors[x];
-      var streamImg = $( 'liveStream'+monitor.id );
-      if ( streamImg ) {
-        if ( streamImg.nodeName == 'IMG' ) {
-          var src = streamImg.src;
-          src = src.replace(/width=[\.\d]+/i, 'width=0' );
-          if ( src != streamImg.src ) {
-            streamImg.src='';
-            streamImg.src = src;
-          }
-        } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
+    if ( 1 ) {
+      for ( var x = 0; x < monitors.length; x++ ) {
+        var monitor = monitors[x];
+        var streamImg = $( 'liveStream'+monitor.id );
+        if ( streamImg ) {
+          if ( streamImg.nodeName == 'IMG' ) {
+            var src = streamImg.src;
+            src = src.replace(/width=[\.\d]+/i, 'width=0' );
+            if ( src != streamImg.src ) {
+              streamImg.src='';
+              streamImg.src = src;
+            }
+          } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
           // APPLET's and OBJECTS need to be re-initialized
+          }
+          streamImg.style.width = '100%';
         }
-        streamImg.style.width = '100%';
-      }
-      var zonesSVG = $('zones'+monitor.id);
-      if ( zonesSVG ) {
-        zonesSVG.style.width = '';
-      }
-    } // end foreach monitor
-}
+        var zonesSVG = $('zones'+monitor.id);
+        if ( zonesSVG ) {
+          zonesSVG.style.width = '';
+        }
+      } // end foreach monitor
+    }
   }
 }
 
@@ -247,15 +247,15 @@ function changeSize() {
     var monitor = monitors[x];
 
     // Scale the frame
-      monitor_frame = $j('#monitorFrame'+monitor.id);
-      if ( ! monitor_frame ) {
-        console.log("Error finding frame for " + monitor.id );
-        continue;
-      }
-      if ( width )
-        monitor_frame.css('width', width+'px');
-      if ( height )
-        monitor_frame.css('height', height+'px');
+    monitor_frame = $j('#monitorFrame'+monitor.id);
+    if ( ! monitor_frame ) {
+      console.log("Error finding frame for " + monitor.id );
+      continue;
+    }
+    if ( width )
+      monitor_frame.css('width', width+'px');
+    if ( height )
+      monitor_frame.css('height', height+'px');
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $( 'liveStream'+monitor.id );
     if ( streamImg ) {
@@ -301,15 +301,15 @@ function changeScale() {
     var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
 
     // Scale the frame
-      monitor_frame = $j('#monitorFrame'+monitor.id);
-      if ( ! monitor_frame ) {
-        console.log("Error finding frame for " + monitor.id );
-        continue;
-      }
-      if ( width )
-        monitor_frame.css('width', width+'px');
-      if ( height )
-        monitor_frame.css('height', height+'px');
+    monitor_frame = $j('#monitorFrame'+monitor.id);
+    if ( ! monitor_frame ) {
+      console.log("Error finding frame for " + monitor.id );
+      continue;
+    }
+    if ( width )
+      monitor_frame.css('width', width+'px');
+    if ( height )
+      monitor_frame.css('height', height+'px');
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $j('#liveStream'+monitor.id )[0];
     if ( streamImg ) {
@@ -390,7 +390,7 @@ function cancel_layout(button) {
 }
 
 function reloadWebSite(ndx) {
-    document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
+  document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
 }
 
 var monitors = new Array();
@@ -414,22 +414,22 @@ function initPage() {
     var interval = monitors[i].refresh;
     monitors[i].start( delay );
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
-        setInterval(reloadWebSite, interval*1000, i);
+      setInterval(reloadWebSite, interval*1000, i);
     }
   }
   selectLayout('#zmMontageLayout');
 
   if ( 0 ) {
     // What is the purpose of this code?  I think it just starts up a second ajax thread,
-      //increasing the load on the server.
-  for ( var i = 0; i < monitorData.length; i++ ) {
-    if ( monitors[i].type == 'WebSite' )
-      continue;
-    var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
-    console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
-    monitors[i].streamCmdQuery.delay( delay, monitors[i] );
+    //increasing the load on the server.
+    for ( var i = 0; i < monitorData.length; i++ ) {
+      if ( monitors[i].type == 'WebSite' )
+        continue;
+      var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
+      console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
+      monitors[i].streamCmdQuery.delay( delay, monitors[i] );
     //monitors[i].zm_startup(delay);
-  }
+    }
   }
 }
 // Kick everything off

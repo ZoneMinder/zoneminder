@@ -8,7 +8,7 @@ function evaluateLoadTimes() {
     if ( monitorName[i] > "" ) {
       if ( monitorLoadEndTimems[i] == 0 ) return;   // if we have a monitor with no time yet just wait
       if ( start == 0 || start > monitorLoadStartTimems[i] ) start = monitorLoadStartTimems[i];
-      if ( end   == 0 || end   < monitorLoadEndTimems[i]   ) end   = monitorLoadEndTimems[i];
+      if ( end == 0 || end < monitorLoadEndTimems[i] ) end = monitorLoadEndTimems[i];
     }
   }
   if ( start == 0 || end == 0 ) return; // we really should not get here
@@ -25,18 +25,18 @@ function evaluateLoadTimes() {
     avgFrac += freeTimeLastIntervals[i];
   avgFrac = avgFrac / imageLoadTimesEvaluated;
   // The larger this is(positive) the faster we can go
-  if      (avgFrac >= 0.9)  currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1);  // we can go much faster
-  else if (avgFrac >= 0.8)  currentDisplayInterval = (currentDisplayInterval * 0.55).toFixed(1);
-  else if (avgFrac >= 0.7)  currentDisplayInterval = (currentDisplayInterval * 0.60).toFixed(1);
-  else if (avgFrac >= 0.6)  currentDisplayInterval = (currentDisplayInterval * 0.65).toFixed(1);
-  else if (avgFrac >= 0.5)  currentDisplayInterval = (currentDisplayInterval * 0.70).toFixed(1);
-  else if (avgFrac >= 0.4)  currentDisplayInterval = (currentDisplayInterval * 0.80).toFixed(1);
+  if (avgFrac >= 0.9) currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1);  // we can go much faster
+  else if (avgFrac >= 0.8) currentDisplayInterval = (currentDisplayInterval * 0.55).toFixed(1);
+  else if (avgFrac >= 0.7) currentDisplayInterval = (currentDisplayInterval * 0.60).toFixed(1);
+  else if (avgFrac >= 0.6) currentDisplayInterval = (currentDisplayInterval * 0.65).toFixed(1);
+  else if (avgFrac >= 0.5) currentDisplayInterval = (currentDisplayInterval * 0.70).toFixed(1);
+  else if (avgFrac >= 0.4) currentDisplayInterval = (currentDisplayInterval * 0.80).toFixed(1);
   else if (avgFrac >= 0.35) currentDisplayInterval = (currentDisplayInterval * 0.90).toFixed(1);
-  else if (avgFrac >= 0.3)  currentDisplayInterval = (currentDisplayInterval * 1.00).toFixed(1);
+  else if (avgFrac >= 0.3) currentDisplayInterval = (currentDisplayInterval * 1.00).toFixed(1);
   else if (avgFrac >= 0.25) currentDisplayInterval = (currentDisplayInterval * 1.20).toFixed(1);
-  else if (avgFrac >= 0.2)  currentDisplayInterval = (currentDisplayInterval * 1.50).toFixed(1);
-  else if (avgFrac >= 0.1)  currentDisplayInterval = (currentDisplayInterval * 2.00).toFixed(1);
-  else currentDisplayInterval                      = (currentDisplayInterval * 2.50).toFixed(1);
+  else if (avgFrac >= 0.2) currentDisplayInterval = (currentDisplayInterval * 1.50).toFixed(1);
+  else if (avgFrac >= 0.1) currentDisplayInterval = (currentDisplayInterval * 2.00).toFixed(1);
+  else currentDisplayInterval = (currentDisplayInterval * 2.50).toFixed(1);
   // limit this from about 40fps to .1 fps
   currentDisplayInterval = Math.min(Math.max(currentDisplayInterval, 40), 10000);
   imageLoadTimesEvaluated=0;
@@ -51,7 +51,7 @@ function getFrame( monId, time ) {
     Event = events[event_id];
     if ( Event.MonitorId != monId || Event.StartTimeSecs > time || Event.EndTimeSecs < time )
       continue;
-    
+
     var duration = Event.EndTimeSecs - Event.StartTimeSecs;
     if ( ! Event.FramesById ) {
       console.log("No FramesById for event " + event_id);
@@ -67,15 +67,15 @@ console.log("Found frame for time " + time );
 console.log(Frame);
         Frame = Event.FramesById[frame_id];
         break;
-      } 
+      }
       frame --;
       continue;
 }
       if (
           Event.FramesById[frame_id].TimeStampSecs == time
           || (
-            Event.FramesById[frame_id].TimeStampSecs < time 
-            && ( 
+            Event.FramesById[frame_id].TimeStampSecs < time
+            && (
              (!Event.FramesById[frame_id].NextTimeStampSecs)
              ||
              (Event.FramesById[frame_id].NextTimeStampSecs > time)
@@ -110,7 +110,7 @@ function getImageSource( monId, time ) {
   var Frame = getFrame(monId, time);
   if ( Frame ) {
     // Adjust for bulk frames
-    var  frame_id;
+    var frame_id;
     if ( Frame.NextFrameId ) {
       var duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
       frame_id = Frame.FrameId + parseInt( (Frame.NextFrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
@@ -124,9 +124,9 @@ function getImageSource( monId, time ) {
     // monitorServerId may be 0, which gives us the default Server entry
     var server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
     return server.PathToIndex +
-	    '?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
-	    "&width=" + monitorCanvasObj[monId].width + 
-	    "&height=" + monitorCanvasObj[monId].height;
+      '?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
+      "&width=" + monitorCanvasObj[monId].width +
+      "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame
   return '';
   //return "no data";
@@ -182,7 +182,7 @@ function loadNoData( monId ) {
     canvasCtx.font = "600 " + textSize.toString() + "px Arial";
     canvasCtx.fillStyle="black";
     var textWidth = canvasCtx.measureText(text).width;
-    canvasCtx.fillText(text,canvasObj.width/2 - textWidth/2,canvasObj.height/2);
+    canvasCtx.fillText(text, canvasObj.width/2 - textWidth/2, canvasObj.height/2);
   } else {
     console.log("No monId in loadNoData");
   }
@@ -197,13 +197,13 @@ function writeText( monId, text ) {
     canvasCtx.font = "600 " + textSize.toString() + "px Arial";
     canvasCtx.fillStyle="white";
     var textWidth = canvasCtx.measureText(text).width;
-    canvasCtx.fillText(text,canvasObj.width/2 - textWidth/2,canvasObj.height/2);
+    canvasCtx.fillText(text, canvasObj.width/2 - textWidth/2, canvasObj.height/2);
   } else {
     console.log("No monId in loadNoData");
   }
 }
 
-// Either draws the 
+// Either draws the
 function loadImage2Monitor( monId, url ) {
   if ( monitorLoading[monId] && monitorImageObject[monId].src != url ) {
     // never queue the same image twice (if it's loading it has to be defined, right?
@@ -260,7 +260,7 @@ function drawSliderOnGraph(val) {
   var labfont = labelpx + "px";  // set this like below row labels
 
   if ( numMonitors > 0 ) {
-    // if we have no data to display don't do the slider itself 
+    // if we have no data to display don't do the slider itself
     var sliderX = parseInt( (val - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2);  // position left side of slider
     if ( sliderX < 0 ) sliderX = 0;
     if ( sliderX+sliderWidth > cWidth )
@@ -269,7 +269,7 @@ function drawSliderOnGraph(val) {
     // If we have data already saved first restore it from LAST time
 
     if ( typeof underSlider !== 'undefined' ) {
-      ctx.putImageData(underSlider,underSliderX, 0, 0, 0, sliderWidth, sliderHeight);
+      ctx.putImageData(underSlider, underSliderX, 0, 0, 0, sliderWidth, sliderHeight);
       underSlider = undefined;
     }
     if ( liveMode == 0 ) {
@@ -280,7 +280,7 @@ function drawSliderOnGraph(val) {
       ctx.lineWidth = sliderLineWidth;
       ctx.strokeStyle = 'black';
       // looks like strokes are on the outside (or could be) so shrink it by the line width so we replace all the pixels
-      ctx.strokeRect(sliderX+sliderLineWidth,sliderLineWidth,sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
+      ctx.strokeRect(sliderX+sliderLineWidth, sliderLineWidth, sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
       underSliderX = sliderX;
     }
     var o = $('scruboutput');
@@ -341,7 +341,7 @@ function drawSliderOnGraph(val) {
 }
 
 function drawGraph() {
-  var divWidth=$('timelinediv').clientWidth
+  var divWidth=$('timelinediv').clientWidth;
   canvas.width = cWidth = divWidth;   // Let it float and determine width (it should be sized a bit smaller percentage of window)
   cHeight = parseInt(window.innerHeight * 0.10);
   if ( cHeight < numMonitors * 20 ) {
@@ -356,7 +356,7 @@ function drawGraph() {
     ctx.fillStyle="white";
     var t="No data found in range - choose differently";
     var l=ctx.measureText(t).width;
-    ctx.fillText(t,(cWidth - l)/2, cHeight-10);
+    ctx.fillText(t, (cWidth - l)/2, cHeight-10);
     underSlider=undefined;
     return;
   }
@@ -369,24 +369,24 @@ function drawGraph() {
 
     // round low end down
     var x1 = parseInt((Event.StartTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth);
-    var x2 = parseInt((Event.EndTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round high end up to be sure consecutive ones connect
+    var x2 = parseInt((Event.EndTimeSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round high end up to be sure consecutive ones connect
     ctx.fillStyle = monitorColour[Event.MonitorId];
     ctx.globalAlpha = 0.2;    // light color for background
-    ctx.clearRect(x1,monitorIndex[Event.MonitorId]*rowHeight,x2-x1,rowHeight);  // Erase any overlap so it doesn't look artificially darker
-    ctx.fillRect(x1,monitorIndex[Event.MonitorId]*rowHeight,x2-x1,rowHeight);
-    
+    ctx.clearRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);  // Erase any overlap so it doesn't look artificially darker
+    ctx.fillRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
+
     for ( var frame_id in Event.FramesById ) {
       var Frame = Event.FramesById[frame_id];
       if ( ! Frame.Score )
         continue;
-      
+
       // Now put in scored frames (if any)
-      var x1=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth) ;        // round low end down
-      var x2=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ) ; // round up
+      var x1=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth);        // round low end down
+      var x2=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
       if(x2-x1 < 2) x2=x1+2;    // So it is visible make them all at least this number of seconds wide
       ctx.fillStyle=monitorColour[Event.MonitorId];
       ctx.globalAlpha = 0.4 + 0.6 * (1 - Frame.Score/maxScore);    // Background is scaled but even lowest is twice as dark as the background
-      ctx.fillRect(x1,monitorIndex[Event.MonitorId]*rowHeight,x2-x1,rowHeight);
+      ctx.fillRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
     } // end foreach frame
   } // end foreach Event
 
@@ -415,8 +415,7 @@ function redrawScreen() {
     $('panleft').style.display="none";
     $('panright').style.display="none";
     if ($('downloadVideo')) $('downloadVideo').style.display="none";
-
-  } else  {
+  } else {
     // switch out of liveview mode
     $('DateTimeDiv').style.display="inline";
     $('DateTimeDiv').style.display="inline-flex";
@@ -443,15 +442,15 @@ function redrawScreen() {
     var vw=window.innerWidth;
     var pos=$('monitors').getPosition();
     var mh=(vh - pos.y - $('fps').getSize().y);
-    $('monitors').setStyle('height',mh.toString() + "px");  // leave a small gap at bottom
-    if(maxfit2($('monitors').getSize().x,$('monitors').getSize().y) == 0)   /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+    $('monitors').setStyle('height', mh.toString() + "px");  // leave a small gap at bottom
+    if(maxfit2($('monitors').getSize().x, $('monitors').getSize().y) == 0)   /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
       fitMode=1-fitMode;
   } else {
     // switch out of fit mode
     // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
     for( var i=0; i<numMonitors; i++ )
       monitorCanvasObj[monitorPtr[i]].style.position="";
-    $('monitors').setStyle('height',"auto");
+    $('monitors').setStyle('height', "auto");
     $('ScaleDiv').style.display="inline";
     $('ScaleDiv').style.display="inline-flex";
     $('fit').innerHTML="Fit";
@@ -464,15 +463,15 @@ function redrawScreen() {
 function outputUpdate(time) {
   drawSliderOnGraph(time);
   for ( var i=0; i < numMonitors; i++ ) {
-    var src = getImageSource(monitorPtr[i],time);
+    var src = getImageSource(monitorPtr[i], time);
     //console.log("New image src: " + src);
-    loadImage2Monitor(monitorPtr[i],src);
+    loadImage2Monitor(monitorPtr[i], src);
   }
   currentTimeSecs = time;
 }
 
 /// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
-function relMouseCoords(event){
+function relMouseCoords(event) {
   var totalOffsetX = 0;
   var totalOffsetY = 0;
   var canvasX = 0;
@@ -487,7 +486,7 @@ function relMouseCoords(event){
   canvasX = event.pageX - totalOffsetX;
   canvasY = event.pageY - totalOffsetY;
 
-  return {x:canvasX, y:canvasY}
+  return {x:canvasX, y:canvasY};
 }
 HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 
@@ -495,8 +494,8 @@ HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 
 var mouseisdown=false;
 function mdown(event) {mouseisdown=true; mmove(event);}
-function mup(event)   {mouseisdown=false;}
-function mout(event)  {mouseisdown=false;} // if we go outside treat it as release
+function mup(event) {mouseisdown=false;}
+function mout(event) {mouseisdown=false;} // if we go outside treat it as release
 function tmove(event) {mouseisdown=true; mmove(event);}
 
 function mmove(event) {
@@ -512,7 +511,7 @@ function secs2inputstr(s) {
     console.log("Invalid value for " + s + " seconds");
     return '';
   }
-    
+
   var m = moment(s*1000);
   if ( ! m ) {
     console.log("No valid date for " + s + " seconds");
@@ -582,7 +581,6 @@ function setLive(value) {
 // The section below are to reload this program with new parameters
 
 function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
-  
   var date = new Date();
   var now = Math.floor(date.getTime() / 1000);
   var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
@@ -641,33 +639,33 @@ function click_zoomin() {
   rangeTimeSecs = parseInt(rangeTimeSecs / 2);
   minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
   maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
-  clicknav(minTimeSecs,maxTimeSecs,0);
+  clicknav(minTimeSecs, maxTimeSecs, 0);
 }
 
 function click_zoomout() {
   rangeTimeSecs = parseInt(rangeTimeSecs * 2);
   minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2);  // this is the slider current time, we center on that
   maxTimeSecs = parseInt(currentTimeSecs + rangeTimeSecs/2);
-  clicknav(minTimeSecs,maxTimeSecs,0);
+  clicknav(minTimeSecs, maxTimeSecs, 0);
 }
 function click_panleft() {
   minTimeSecs = parseInt(minTimeSecs - rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
-  clicknav(minTimeSecs,maxTimeSecs,0);
+  clicknav(minTimeSecs, maxTimeSecs, 0);
 }
 function click_panright() {
   minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
-  clicknav(minTimeSecs,maxTimeSecs,0);
+  clicknav(minTimeSecs, maxTimeSecs, 0);
 }
 function click_download() {
   createPopup( '?view=download', 'zmDownload', 'download' );
 }
 function click_all_events() {
-  clicknav(0,0,0);
+  clicknav(0, 0, 0);
 }
 function allnon() {
-  clicknav(0,0,0);
+  clicknav(0, 0, 0);
 }
 /// >>>>>>>>>>>>>>>>> handles packing different size/aspect monitors on screen    <<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -676,7 +674,7 @@ function compSize(a, b) { // sort array by some size parameter  - height seems t
   var b_value = monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] * monitorNormalizeScale[b] * monitorZoomScale[b];
 
   if ( a_value > b_value ) return -1;
-  else if ( a_value == b_value )  return 0;
+  else if ( a_value == b_value ) return 0;
   else return 1;
 }
 
@@ -694,7 +692,7 @@ function maxfit2(divW, divH) {
 
   var borders=-1;
 
-  //monitorPtr.sort(compSize); //Sorts monitors by size in viewport.  If enabled makes captions not line up with graphs.  
+  //monitorPtr.sort(compSize); //Sorts monitors by size in viewport.  If enabled makes captions not line up with graphs.
 
   while(1) {
     if( maxScale - minScale < 0.01 ) break;
@@ -710,7 +708,7 @@ function maxfit2(divW, divH) {
       // this loop places each monitor (if it can)
       var monId = monitorPtr[m];
 
-      function doesItFit(x,y,w,h,d) {  // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
+      function doesItFit(x, y, w, h, d) {  // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
         if(x+w>=divW) return 0;
         if(y+h>=divH) return 0;
         for(var i=0; i<=d; i++)
@@ -741,7 +739,7 @@ function maxfit2(divW, divH) {
         }
       }
       if ( m == 0 ) { // note for the very first one there were no adjacents so the above loop didn't run
-        if ( doesItFit(0,0,monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, -1) == 1 ) {
+        if ( doesItFit(0, 0, monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, -1) == 1 ) {
           fitX = 0;
           fitY = 0;
         }
@@ -751,7 +749,7 @@ function maxfit2(divW, divH) {
         break; // break out of monitor loop flagging we didn't fit
       }
       thisX[m] =fitX;
-      thisX2[m]=fitX + monitorWidth[monitorPtr[m]]  * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
+      thisX2[m]=fitX + monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
       thisY[m] =fitY;
       thisY2[m]=fitY + monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
       thisArea += (thisX2[m] - thisX[m])*(thisY2[m] - thisY[m]);
@@ -807,7 +805,7 @@ function showOneMonitor(monId) {
   } // end if live/events
 }
 
-function zoom(monId,scale) {
+function zoom(monId, scale) {
   var lastZoomMonPriorScale = monitorZoomScale[monId];
   monitorZoomScale[monId] *= scale;
   if ( redrawScreen() == 0 ) {// failure here is probably because we zoomed too far
@@ -817,14 +815,14 @@ function zoom(monId,scale) {
   }
 }
 
-function clickMonitor(event,monId) {
+function clickMonitor(event, monId) {
   var monitor_element = $("Monitor"+monId.toString());
   var pos_x = event.offsetX ? (event.offsetX) : event.pageX - monitor_element.offsetLeft;
   var pos_y = event.offsetY ? (event.offsetY) : event.pageY - monitor_element.offsetTop;
   if ( pos_x < monitor_element.width/4 && pos_y < monitor_element.height/4 )
-    zoom(monId,1.15);
+    zoom(monId, 1.15);
   else if ( pos_x > monitor_element.width * 3/4 && pos_y < monitor_element.height/4 )
-    zoom(monId,1/1.15);
+    zoom(monId, 1/1.15);
   else
     showOneMonitor(monId);
   return;
@@ -858,12 +856,11 @@ function changeDateTime(e) {
   window.location = uri;
 }
 
-// >>>>>>>>> Initialization that runs on window load by being at the bottom 
+// >>>>>>>>> Initialization that runs on window load by being at the bottom
 
 function initPage() {
-
-  jQuery(document).ready(function(){
-    jQuery("#hdrbutton").click(function(){
+  jQuery(document).ready(function() {
+    jQuery("#hdrbutton").click(function() {
       jQuery("#flipMontageHeader").slideToggle("slow");
       jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
     });
@@ -879,8 +876,8 @@ function initPage() {
       monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
       var imageObject = monitorImageObject[monId] = new Image();
       imageObject.monId = monId;
-      imageObject.onload = function() {imagedone(this, this.monId, true )};
-      imageObject.onerror = function() {imagedone(this, this.monId, false )};
+      imageObject.onload = function() {imagedone(this, this.monId, true );};
+      imageObject.onerror = function() {imagedone(this, this.monId, false );};
       loadImage2Monitor( monId, monitorImageURL[monId] );
     }
   }
@@ -890,7 +887,7 @@ function initPage() {
     drawGraph();
   }
   setSpeed(speedIndex);
-  //setFit(fitMode);  // will redraw 
+  //setFit(fitMode);  // will redraw
   //setLive(liveMode);  // will redraw
   redrawScreen();
   $j('#minTime').datetimepicker({
@@ -898,7 +895,7 @@ function initPage() {
       dateFormat: "yy-mm-dd",
       maxDate: +0,
       constrainInput: false,
-      onClose: function (newDate, oldData) {
+      onClose: function(newDate, oldData) {
         if (newDate !== oldData.lastVal) {
           changeDateTime();
         }
@@ -910,13 +907,13 @@ function initPage() {
       minDate: $j('#minTime').val(),
       maxDate: +0,
       constrainInput: false,
-      onClose: function (newDate, oldData) {
+      onClose: function(newDate, oldData) {
         if (newDate !== oldData.lastVal) {
           changeDateTime();
         }
       }
   });
 }
-window.addEventListener("resize",redrawScreen,{passive:true});
+window.addEventListener("resize", redrawScreen, {passive:true});
 // Kick everything off
 window.addEvent( 'domready', initPage );

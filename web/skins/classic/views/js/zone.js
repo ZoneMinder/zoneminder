@@ -382,9 +382,9 @@ function drawZonePoints() {
     div.addEvent( 'mouseover', highlightOn.pass( i ) );
     div.addEvent( 'mouseout', highlightOff.pass( i ) );
     div.inject( $('imageFrame') );
-    div.makeDraggable( { 
+    div.makeDraggable( {
         'container': $('imageFrame'),
-        'onStart': setActivePoint.pass( i ), 
+        'onStart': setActivePoint.pass( i ),
         'onComplete': fixActivePoint.pass( i ),
         'onDrag': updateActivePoint.pass( i )
         } );
@@ -592,7 +592,7 @@ function statusCmdQuery() {
 }
 
 function fetchImage( streamImage ) {
-  streamImage.src = streamImage.src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
+  streamImage.src = streamImage.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
 }
 
 function appletRefresh() {

@@ -9,6 +9,7 @@ module.exports = {
     "brace-style": "off",
     "camelcase": "off",
     "comma-dangle": "off",
+    "guard-for-in": "off",
     "key-spacing": "off",
     "max-len": "off",
     "new-cap": ["error", {

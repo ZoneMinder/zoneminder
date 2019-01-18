@@ -121,7 +121,7 @@ function viewEvents( element, name ) {
     }
   }
   if ( events.length > 0 ) {
-    let filter = '&filter[Query][terms][0][attr]=Id&filter[Query][terms][0][op]=%3D%5B%5D&filter[Query][terms][0][val]='+events.join('%2C');
+    var filter = '&filter[Query][terms][0][attr]=Id&filter[Query][terms][0][op]=%3D%5B%5D&filter[Query][terms][0][val]='+events.join('%2C');
     window.location.href = thisUrl+'?view=event&eid='+events[0]+filter+sortQuery+'&page=1&play=1';
   }
 }
@@ -148,7 +148,7 @@ if ( openFilterWindow ) {
   location.replace( '?view='+currentView+'&page='+thisPage+filterQuery );
 }
 
-function initPage () {
+function initPage() {
   if (window.history.length == 1) {
     $j('#controls').children().eq(0).html('');
   }

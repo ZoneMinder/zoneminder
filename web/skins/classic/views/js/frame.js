@@ -1,18 +1,18 @@
 function changeScale() {
-  let scale = $j('#scale').val();
-  let img = $j('#frameImg');
-  let controlsLinks = {
-      next: $j('#nextLink'),
-      prev: $j('#prevLink'),
-      first: $j('#firstLink'),
-      last: $j('#lastLink')
-      }
+  var scale = $j('#scale').val();
+  var img = $j('#frameImg');
+  var controlsLinks = {
+    next: $j('#nextLink'),
+    prev: $j('#prevLink'),
+    first: $j('#firstLink'),
+    last: $j('#lastLink')
+  };
 
   if ( img ) {
-    let baseWidth = $j('#base_width').val();
-    let baseHeight = $j('#base_height').val();
+    var baseWidth = $j('#base_width').val();
+    var baseHeight = $j('#base_height').val();
     if ( scale == 'auto' ) {
-      let newSize = scaleToFit(baseWidth, baseHeight, img, $j('#controls'));
+      var newSize = scaleToFit(baseWidth, baseHeight, img, $j('#controls'));
       newWidth = newSize.width;
       newHeight = newSize.height;
       autoScale = newSize.autoScale;
@@ -27,7 +27,6 @@ function changeScale() {
   Cookie.write( 'zmWatchScale', scale, { duration: 10*365 } );
   $j.each(controlsLinks, function(k, anchor) {  //Make frames respect scale choices
     anchor.prop('href', anchor.prop('href').replace(/scale=.*&/, 'scale=' + scale + '&'));
-
   });
 }
 

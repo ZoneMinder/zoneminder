@@ -46,6 +46,7 @@ function CSPHeaders($view, $nonce) {
     case 'logout':
     case 'options':
     case 'privacy':
+    case 'storage':
     case 'version': {
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
       // 'unsafe-inline' is only for backwards compatibility with browsers which

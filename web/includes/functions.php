@@ -36,12 +36,21 @@ function noCacheHeaders() {
 }
 
 function CSPHeaders($view, $nonce) {
+  $additionalScriptSrc = "";
   switch ($view) {
+    case 'login': {
+      if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
+          && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
+          && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
+          && ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY) {
+        $additionalScriptSrc = "https://www.google.com";
+      }
+      // fall through
+    }
     case 'bandwidth':
     case 'blank':
     case 'function':
     case 'log':
-    case 'login':
     case 'logout':
     case 'options':
     case 'privacy':
@@ -49,12 +58,12 @@ function CSPHeaders($view, $nonce) {
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
       // 'unsafe-inline' is only for backwards compatibility with browsers which
       // only support CSP 1 (with no nonce-* support).
-      header("Content-Security-Policy: script-src 'unsafe-inline' 'self' 'nonce-$nonce'");
+      header("Content-Security-Policy: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc");
       break;
     }
     default: {
       // Use Report-Only mode on all other pages.
-      header("Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self' 'nonce-$nonce'");
+      header("Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc");
       break;
     }
   }

@@ -119,6 +119,12 @@ function createPopup( url, name, tag, width, height ) {
 }
 
 $j(document).ready(function() {
+  $j("form.validateFormOnSubmit").submit(function onSubmit(evt) {
+    if (!validateForm(this)) {
+      evt.preventDefault();
+    }
+  });
+
   $j(".popup-link").click(function onClick(evt) {
     var el = this;
     var url;

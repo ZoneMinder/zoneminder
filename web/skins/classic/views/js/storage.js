@@ -1,5 +1,5 @@
-function validateForm( form, newStorage ) {
-    var errors = new Array();
+function validateForm(form) {
+    var errors = [];
     if ( !form.elements['newStorage[Name]'].value ) {
         errors[errors.length] = "You must supply a name";
     }

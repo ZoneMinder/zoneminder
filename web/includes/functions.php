@@ -39,12 +39,14 @@ function CSPHeaders($view, $nonce) {
   switch ($view) {
     case 'bandwidth':
     case 'blank':
+    case 'controlcap':
     case 'function':
     case 'log':
     case 'login':
     case 'logout':
     case 'options':
     case 'privacy':
+    case 'storage':
     case 'version': {
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
       // 'unsafe-inline' is only for backwards compatibility with browsers which
@@ -462,7 +464,7 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
     } else {
       $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
     }
-    if ($condition) {
+    if (!$condition) {
      $string .= ' disabled="disabled"';
     }
     $string  .=  ($options ? (' ' . $options) : '') . '/>';

@@ -176,7 +176,7 @@ foreach ( $tabs as $name=>$value )
     else
     {
 ?>
-        <li><a href="#" onclick="submitTab( '<?php echo $name ?>' ); return( false );"><?php echo $value ?></a></li>
+        <li><a href="#" data-tab-name="<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
     }
 }

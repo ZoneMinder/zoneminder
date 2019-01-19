@@ -137,6 +137,8 @@ $j(document).ready(function() {
     evt.preventDefault();
   });
 
+  $j(".tabList a").click(submitTab);
+
   // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
@@ -303,11 +305,13 @@ function secsToTime( seconds ) {
   return( timeString );
 }
 
-function submitTab( tab ) {
+function submitTab(evt) {
+  var tab = this.getAttribute("data-tab-name");
   var form = $('contentForm');
   form.action.value = "";
   form.tab.value = tab;
   form.submit();
+  evt.preventDefault();
 }
 
 function submitThisForm() {

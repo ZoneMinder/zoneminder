@@ -259,13 +259,14 @@ function collectData() {
         $index = 0;
         $where = array();
         $values = array();
-        foreach( $entitySpec['selector'] as $selector ) {
+        foreach( $entitySpec['selector'] as $selIndex => $selector ) {
+          $selectorParamName = ':selector' . $selIndex;
           if ( is_array( $selector ) ) {
-            $where[] = $selector['selector'].' = ?';
-            $values[] = validInt($id[$index]);
+            $where[] = $selector['selector'].' = '.$selectorParamName;
+            $values[$selectorParamName] = validInt($id[$index]);
           } else {
-            $where[] = $selector.' = ?';
-            $values[] = validInt($id[$index]);
+            $where[] = $selector.' = '.$selectorParamName;
+            $values[$selectorParamName] = validInt($id[$index]);
           }
           $index++;
         }
@@ -274,7 +275,8 @@ function collectData() {
       if ( $groupSql )
         $sql .= ' GROUP BY '.join( ',', array_unique( $groupSql ) );
       if ( !empty($_REQUEST['sort']) )
-        $sql .= ' order by '.$_REQUEST['sort'];
+        $sql .= ' order by :sort';
+      $values[':sort'] = $_REQUEST['sort'];
       if ( !empty($entitySpec['limit']) )
         $limit = $entitySpec['limit'];
       elseif ( !empty($_REQUEST['count']) )

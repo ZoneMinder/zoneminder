@@ -127,6 +127,12 @@ function createPopup( url, name, tag, width, height ) {
 }
 
 $j(document).ready(function() {
+  $j("form.validateFormOnSubmit").submit(function onSubmit(evt) {
+    if (!validateForm(this)) {
+      evt.preventDefault();
+    }
+  });
+
   $j(".popup-link").click(function onClick(evt) {
     var el = this;
     var url;
@@ -144,6 +150,8 @@ $j(document).ready(function() {
     createPopup(url, name, tag, width, height);
     evt.preventDefault();
   });
+
+  $j(".tabList a").click(submitTab);
 
   // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
@@ -316,11 +324,13 @@ function secsToTime( seconds ) {
   return ( timeString );
 }
 
-function submitTab( tab ) {
+function submitTab(evt) {
+  var tab = this.getAttribute("data-tab-name");
   var form = $('contentForm');
   form.action.value = "";
   form.tab.value = tab;
   form.submit();
+  evt.preventDefault();
 }
 
 function submitThisForm() {

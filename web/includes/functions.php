@@ -39,6 +39,7 @@ function CSPHeaders($view, $nonce) {
   switch ($view) {
     case 'bandwidth':
     case 'blank':
+    case 'controlcap':
     case 'function':
     case 'log':
     case 'login':

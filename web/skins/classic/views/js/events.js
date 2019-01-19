@@ -8,9 +8,11 @@ function closeWindows() {
 function toggleCheckbox( element, name ) {
   var form = element.form;
   var checked = element.checked;
-  for (var i = 0; i < form.elements.length; i++)
-    if (form.elements[i].name.indexOf(name) == 0)
+  for (var i = 0; i < form.elements.length; i++) {
+    if (form.elements[i].name.indexOf(name) == 0) {
       form.elements[i].checked = checked;
+    }
+  }
   form.viewBtn.disabled = !(canViewEvents && checked);
   form.editBtn.disabled = !(canEditEvents && checked);
   form.archiveBtn.disabled = unarchivedEvents?!checked:true;
@@ -33,8 +35,9 @@ function configureButton( element, name ) {
       }
     }
   }
-  if ( !element.checked )
+  if ( !element.checked ) {
     form.toggleCheck.checked = false;
+  }
   form.viewBtn.disabled = !(canViewEvents && checked);
   form.editBtn.disabled = !(canEditEvents && checked);
   form.archiveBtn.disabled = (!checked)||(!unarchivedEvents);

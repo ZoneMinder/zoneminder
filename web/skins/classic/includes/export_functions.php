@@ -286,9 +286,9 @@ function exportEventImages( $event, $exportDetail, $exportFrames, $myfilelist )
 * Visit http://www.dynamicdrive.com/ for full source code
 ***********************************************/
 
-var eventWidth = <?php echo$event->Width()?>;
-var eventHeight = <?php echo$event->Height()?>;
-var variableslide=[<?php echo$slides?>];
+var eventWidth = <?php echo $event->Width(); ?>;
+var eventHeight = <?php echo $event->Height(); ?>;
+var variableslide=[<?php echo $slides; ?>];
 
 //configure the below 3 variables to set the dimension/background color of the slideshow
 

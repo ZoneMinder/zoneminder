@@ -1,9 +1,10 @@
 function submitForm( element ) {
   var form = element.form;
-  if ( form.option.selectedIndex == 0 )
+  if ( form.option.selectedIndex == 0 ) {
     form.view.value = currentView;
-  else
+  } else {
     form.view.value = 'none';
+  }
   form.submit();
 }
 

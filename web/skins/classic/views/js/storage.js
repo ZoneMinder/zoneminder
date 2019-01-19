@@ -1,3 +1,4 @@
+
 function validateForm(form) {
     var errors = [];
     if ( !form.elements['newStorage[Name]'].value ) {

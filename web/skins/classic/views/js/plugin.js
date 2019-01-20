@@ -19,4 +19,4 @@ function initPage() {
   return ( true );
 }
 
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

@@ -103,4 +103,4 @@ function initPage() {
     probe(url);
   }
 }
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

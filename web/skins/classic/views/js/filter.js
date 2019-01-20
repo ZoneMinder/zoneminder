@@ -254,4 +254,4 @@ function init() {
   $j("#sortTable [name$='sort_field\\]']").chosen();
 }
 
-window.addEvent( 'domready', init );
+window.addEventListener( 'DOMContentLoaded', init );

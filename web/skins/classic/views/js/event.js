@@ -1,41 +1,42 @@
 var vid = null;
 
+// Function called when video.js hits the end of the video
 function vjsReplay() {
-  var endTime = (Date.parse(eventData.EndTime)).getTime();
-  switch (replayMode.value) {
+  switch ( replayMode.value ) {
     case 'none':
       break;
     case 'single':
       vid.play();
       break;
     case 'all':
-      if (nextEventId == 0) {
+      if ( nextEventId == 0 ) {
         var overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
       } else {
+        var endTime = (Date.parse(eventData.EndTime)).getTime();
         var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
-        if (nextStartTime <= endTime) {
-          streamNext( true );
+        if ( nextStartTime <= endTime ) {
+          streamNext(true);
           return;
         }
         var overLaid = $j("#videoobj");
         vid.pause();
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
         var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
-        var messageP = $j(".vjsMessage");
+        var messageP = $j('.vjsMessage');
         var x = setInterval(function() {
           var now = new Date().getTime();
           var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
           messageP.html(remainder + ' to next event.');
-          if (remainder < 0) {
+          if ( remainder < 0 ) {
             clearInterval(x);
-            streamNext( true );
+            streamNext(true);
           }
         }, 1000);
       }
       break;
     case 'gapless':
-      streamNext( true );
+      streamNext(true);
       break;
   }
 }
@@ -572,8 +573,9 @@ function getEventResponse( respObj, respText ) {
   // Technically, events can be different sizes, so may need to update the size of the image, but it might be better to have it stay scaled...
   //var eventImg = $('eventImage');
   //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
-  if (vid && CurEventDefVideoPath) {
+  if ( vid && CurEventDefVideoPath ) {
     vid.src({type: 'video/mp4', src: CurEventDefVideoPath}); //Currently mp4 is all we use
+    console.log("getEventResponse");
     initialAlarmCues(eventData.Id);//ajax and render, new event
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
     CurEventDefVideoPath = null;
@@ -1026,7 +1028,7 @@ function handleClick( event ) {
 
 function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
-  if ($j('#videoobj').length) {
+  if ( $j('#videoobj').length ) {
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
     $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load

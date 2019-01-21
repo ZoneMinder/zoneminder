@@ -219,7 +219,7 @@ ob_start();
 ?>
             <th class="colZones"><?php echo translate('Zones') ?></th>
 <?php if ( canEdit('Monitors') ) { ?>
-            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markMids[]');setButtonStates(this);"/> <?php echo translate('All') ?></th>
+            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/> <?php echo translate('All') ?></th>
 <?php } ?>
           </tr>
         </thead>

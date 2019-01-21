@@ -56,4 +56,4 @@ function initPage() {
   });
 }
 // Kick everything off
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

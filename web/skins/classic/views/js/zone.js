@@ -733,4 +733,4 @@ function Polygon_calcArea( coords ) {
   return Math.round( Math.abs( float_area ) );
 }
 
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

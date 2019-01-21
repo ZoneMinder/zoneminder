@@ -48,4 +48,4 @@ function initPage() {
   //updateMethods( $(protocolSelector) );
 }
 
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

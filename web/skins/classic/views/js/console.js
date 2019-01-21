@@ -146,4 +146,4 @@ function applySort(event, ui) {
   ajax.send();
 } // end function applySort(event,ui)
 
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

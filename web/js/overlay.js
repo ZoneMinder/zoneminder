@@ -51,16 +51,14 @@ var Overlay = new Class({
   },
   show: function() {
     this.mask.show();
-    $(window).addEvent( 'resize', this.update.bind(this) );
-    $(window).addEvent( 'scroll', this.update.bind(this) );
+    window.addEventListener( 'resize', this.update.bind(this) );
+    window.addEventListener( 'scroll', this.update.bind(this) );
     this.element.tween( 'opacity', [0, 1.0] );
     this.element.show();
     this.element.position();
     this.mask.position();
   },
   hideComplete: function() {
-    $(window).removeEvent( 'resize', this.update.bind(this) );
-    $(window).removeEvent( 'scroll', this.update.bind(this) );
     this.element.hide();
     this.mask.hide();
   },
@@ -82,12 +80,10 @@ var Overlay = new Class({
     }
     updateOverlayLoading();
     this.loading.setStyle( 'display', 'block' );
-    $(window).addEvent( 'resize', this.update.bind(this) );
-    $(window).addEvent( 'scroll', this.update.bind(this) );
+    window.addEventListener( 'resize', this.update.bind(this) );
+    window.addEventListener( 'scroll', this.update.bind(this) );
   },
   hideAnimation: function() {
-    $(window).removeEvent( 'resize', this.update.bind(this) );
-    $(window).removeEvent( 'scroll', this.update.bind(this) );
     if ( this.loading ) {
       this.loading.setStyle( 'display', 'none' );
     }
@@ -119,4 +115,4 @@ function setupOverlays() {
   }
 }
 
-window.addEvent( 'domready', setupOverlays );
+window.addEventListener( 'DOMContentLoaded', setupOverlays );

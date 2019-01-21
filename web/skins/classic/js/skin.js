@@ -384,7 +384,7 @@ if ( closePopup ) {
   closeWindow();
 }
 
-window.addEvent( 'domready', checkSize );
+window.addEventListener( 'DOMContentLoaded', checkSize );
 
 function convertLabelFormat(LabelFormat, monitorName) {
   //convert label format from strftime to moment's format (modified from

@@ -13,7 +13,7 @@ switch ( $_REQUEST['task'] ) {
 
       $string = $_POST['message'];
 
-      $file = !empty($_POST['file']) ? preg_replace( '/\w+:\/\/\w+\//', '', $_POST['file'] ) : '';
+      $file = !empty($_POST['file']) ? preg_replace( '/\w+:\/\/[\w.:]+\//', '', $_POST['file'] ) : '';
       if ( !empty( $_POST['line'] ) )
         $line = $_POST['line'];
       else

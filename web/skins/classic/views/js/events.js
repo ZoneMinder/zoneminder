@@ -5,14 +5,9 @@ function closeWindows() {
   filterWindow.close();
 }
 
-function toggleCheckbox( element, name ) {
+function setButtonStates( element ) {
   var form = element.form;
   var checked = element.checked;
-  for (var i = 0; i < form.elements.length; i++) {
-    if (form.elements[i].name.indexOf(name) == 0) {
-      form.elements[i].checked = checked;
-    }
-  }
   form.viewBtn.disabled = !(canViewEvents && checked);
   form.editBtn.disabled = !(canEditEvents && checked);
   form.archiveBtn.disabled = unarchivedEvents?!checked:true;

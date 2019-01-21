@@ -47,7 +47,7 @@ function logReport( level, message, file, line ) {
     return;
   }
   /* eslint-disable no-caller */
-  if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.name ) {
+  if ( arguments && arguments.callee && arguments.callee.caller && arguments.callee.caller.caller && arguments.callee.caller.caller.name ) {
     message += ' - '+arguments.callee.caller.caller.name+'()';
   }
   /* eslint-enable no-caller */
@@ -117,3 +117,12 @@ window.onerror =
     function( message, url, line ) {
       logReport( "ERR", message, url, line );
     };
+
+window.addEventListener("securitypolicyviolation", function logCSP(evt) {
+  var level = evt.disposition == "enforce" ? "ERR" : "DBG";
+  var message = evt.blockedURI + " violated CSP " + evt.violatedDirective;
+  if (evt.sample) {
+    message += " (Sample: " + evt.sample + ")";
+  }
+  logReport(level, message, evt.sourceFile, evt.lineNumber);
+});

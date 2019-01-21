@@ -337,14 +337,20 @@ function submitThisForm() {
   this.form.submit();
 }
 
-function toggleCheckbox( element, name ) {
-  var form = element.form;
-  var checked = element.checked;
+/**
+ * @param {Element} headerCheckbox The select all/none checkbox that was just toggled.
+ * @param {DOMString} name The name of the checkboxes to toggle.
+ */
+function updateFormCheckboxesByName( headerCheckbox ) {
+  var name = headerCheckbox.getAttribute("data-checkbox-name");
+  var form = headerCheckbox.form;
+  var checked = headerCheckbox.checked;
   for (var i = 0; i < form.elements.length; i++) {
     if (form.elements[i].name.indexOf(name) == 0) {
       form.elements[i].checked = checked;
     }
   }
+  setButtonStates(headerCheckbox);
 }
 
 function configureDeleteButton( element ) {
@@ -378,7 +384,7 @@ if ( closePopup ) {
   closeWindow();
 }
 
-window.addEvent( 'domready', checkSize );
+window.addEventListener( 'DOMContentLoaded', checkSize );
 
 function convertLabelFormat(LabelFormat, monitorName) {
   //convert label format from strftime to moment's format (modified from

@@ -943,4 +943,4 @@ function initPage() {
 }
 window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

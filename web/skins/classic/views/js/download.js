@@ -21,10 +21,11 @@ var exportTimer = null;
 
 function exportProgress() {
   var tickerText = $('exportProgressTicker').get('text');
-  if ( tickerText.length < 1 || tickerText.length > 4 )
+  if ( tickerText.length < 1 || tickerText.length > 4 ) {
     $('exportProgressTicker').set( 'text', '.' );
-  else
+  } else {
     $('exportProgressTicker').appendText( '.' );
+  }
 }
 
 function exportResponse( respObj, respText ) {
@@ -34,7 +35,7 @@ function exportResponse( respObj, respText ) {
 function exportEvent( form ) {
   var parms = 'view=request&request=event&action=download';
   parms += '&'+$(form).toQueryString();
-  var query = new Request.JSON( { url: thisUrl, method: 'post', data: parms, onSuccess: exportResponse } );
+  var query = new Request.JSON( {url: thisUrl, method: 'post', data: parms, onSuccess: exportResponse} );
   query.send();
   $('exportProgress').removeClass( 'hidden' );
   $('exportProgress').setProperty( 'class', 'warnText' );
@@ -49,4 +50,4 @@ function initPage() {
   }
 }
 
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

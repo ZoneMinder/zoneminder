@@ -181,7 +181,7 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
     }
 ?>
-              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'eids[]');"/></th>
+              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="eids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
             </tr>
 <?php
   }

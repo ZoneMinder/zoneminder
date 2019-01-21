@@ -1,1 +1,1 @@
-jquery-1.11.3.js
+jquery-2.2.4.js

@@ -869,6 +869,10 @@ double Monitor::GetFPS() const {
   struct timeval time2 = *snap2->timestamp;
 
   double time_diff = tvDiffSec( time2, time1 );
+  if ( ! time_diff ) {
+    Error( "No diff between time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
+    return 0.0;
+  }
   double curr_fps = image_count/time_diff;
 
   if ( curr_fps < 0.0 ) {

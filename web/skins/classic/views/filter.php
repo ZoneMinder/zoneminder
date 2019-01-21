@@ -180,7 +180,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" onsubmit="return validateForm(this);">
+      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit">
         <input type="hidden" name="Id" value="<?php echo $filter->Id() ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="object" value="filter"/>

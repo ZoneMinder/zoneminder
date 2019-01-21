@@ -1075,23 +1075,30 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
   }
 }
 
+function getFilterQueryConjunctionTypes() {
+  return array(
+               'and' => translate('ConjAnd'),
+               'or'  => translate('ConjOr')
+               );
+}
+
 function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
-  $filter['query'] = ''; 
+  $filter['query'] = '';
   $filter['sql'] = '';
   $filter['fields'] = '';
 
+  $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
   $StorageArea = NULL;
 
   $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
-
   if ( isset($terms) && count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {
-      if ( isset($terms[$i]['cnj']) ) {
+      if ( isset($terms[$i]['cnj']) && array_key_exists($terms[$i]['cnj'], $validQueryConjunctionTypes) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($terms[$i]['cnj']);
         $filter['sql'] .= ' '.$terms[$i]['cnj'].' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($terms[$i]['cnj'])."\"/>\n";
       }
-      if ( isset($terms[$i]['obr']) ) {
+      if ( isset($terms[$i]['obr']) && (string)(int)$terms[$i]['obr'] == $terms[$i]['obr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($terms[$i]['obr']);
         $filter['sql'] .= ' '.str_repeat('(', $terms[$i]['obr']).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($terms[$i]['obr'])."\"/>\n";
@@ -1101,7 +1108,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($terms[$i]['attr'])."\"/>\n";
         switch ( $terms[$i]['attr'] ) {
           case 'MonitorName':
-            $filter['sql'] .= 'M.'.preg_replace('/^Monitor/', '', $terms[$i]['attr']);
+            $filter['sql'] .= 'M.Name';
             break;
           case 'ServerId':
           case 'MonitorServerId':
@@ -1295,7 +1302,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 		$filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
 	}
       } // end foreach term
-      if ( isset($terms[$i]['cbr']) ) {
+      if ( isset($terms[$i]['cbr']) && (string)(int)$terms[$i]['cbr'] == $terms[$i]['cbr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($terms[$i]['cbr']);
         $filter['sql'] .= ' '.str_repeat( ')', $terms[$i]['cbr'] ).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($terms[$i]['cbr'])."\"/>\n";

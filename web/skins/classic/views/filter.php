@@ -54,10 +54,7 @@ if ( isset($_REQUEST['filter']) ) {
   # Update our filter object with whatever changes we have made before saving
 }
 
-$conjunctionTypes = array(
-    'and' => translate('ConjAnd'),
-    'or'  => translate('ConjOr')
-    );
+$conjunctionTypes = getFilterQueryConjunctionTypes();
 $obracketTypes = array();
 $cbracketTypes = array();
 

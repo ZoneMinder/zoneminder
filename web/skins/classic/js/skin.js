@@ -405,7 +405,7 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
   startTime = moment(startTime);
 
   for (var i = 0; i <= duration; i++) {
-    cues[i] = {id: i, index: i, startTime: i, Ca: i+1, text: startTime.format(labelFormat)};
+    cues[i] = {id: i, index: i, startTime: i, endTime: i+1, text: startTime.format(labelFormat)};
     startTime.add(1, 's');
   }
 }

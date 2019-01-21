@@ -274,9 +274,10 @@ function collectData() {
       }
       if ( $groupSql )
         $sql .= ' GROUP BY '.join( ',', array_unique( $groupSql ) );
-      if ( !empty($_REQUEST['sort']) )
+      if ( !empty($_REQUEST['sort']) ) {
         $sql .= ' order by :sort';
-      $values[':sort'] = $_REQUEST['sort'];
+        $values[':sort'] = $_REQUEST['sort'];
+      }
       if ( !empty($entitySpec['limit']) )
         $limit = $entitySpec['limit'];
       elseif ( !empty($_REQUEST['count']) )

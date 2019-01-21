@@ -174,7 +174,6 @@ if ( isset($_REQUEST['view']) )
 
 # Add CSP Headers
 $cspNonce = bin2hex(openssl_random_pseudo_bytes(16));
-CSPHeaders($view, $cspNonce);
 
 $request = null;
 if ( isset($_REQUEST['request']) )
@@ -230,6 +229,8 @@ if ( ZM_OPT_USE_AUTH and !isset($user) ) {
   $view = 'privacy';
   $request = null;
 }
+
+CSPHeaders($view, $cspNonce);
 
 if ( $redirect ) {
   header('Location: '.$redirect);

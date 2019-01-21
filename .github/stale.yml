@@ -9,6 +9,8 @@ daysUntilClose: 7
 # Issues with these labels will never be considered stale
 exemptLabels:
   - "Under Review"
+  - "Bounty"
+  - "bug"
 
 # Set to true to ignore issues in a milestone (defaults to false)
 exemptMilestones: true

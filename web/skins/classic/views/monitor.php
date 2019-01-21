@@ -510,7 +510,7 @@ foreach ( $tabs as $name=>$value ) {
 <?php
   } else {
 ?>
-      <li><a href="#" onclick="submitTab( '<?php echo $name ?>' ); return( false );"><?php echo $value ?></a></li>
+      <li><a href="#" data-tab-name="<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
   }
 }
@@ -1049,8 +1049,8 @@ if ( $monitor->Type() == 'Local' ) {
       </form>
     </div>
     </div>
+    <script nonce="<?php echo $cspNonce;?>">
+      $j('.chosen').chosen();
+    </script>
   </body>
-  <script type="text/javascript">
-  $j('.chosen').chosen();
-  </script>
 </html>

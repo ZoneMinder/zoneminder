@@ -121,11 +121,11 @@ echo output_link_if_exists( array(
 
   <script src="<?php echo cache_bust('js/Server.js'); ?>"></script>
   <script nonce="<?php echo $cspNonce; ?>">
-  jQuery(document).ready(function(){
-    jQuery("#flip").click(function(){
+  jQuery(document).ready(function() {
+    jQuery("#flip").click(function() {
       jQuery("#panel").slideToggle("slow");
       jQuery("#flip").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-      Cookie.write( 'zmHeaderFlip', jQuery('#flip').hasClass('glyphicon-menu-up') ? 'up' : 'down', { duration: 10*365 } );
+      Cookie.write( 'zmHeaderFlip', jQuery('#flip').hasClass('glyphicon-menu-up') ? 'up' : 'down', {duration: 10*365} );
     });
   });
   var $j = jQuery.noConflict();

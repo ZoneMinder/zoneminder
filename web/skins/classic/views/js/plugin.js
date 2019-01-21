@@ -1,5 +1,5 @@
 function validateForm( form ) {
-  return( true );
+  return ( true );
 }
 
 function submitForm( form ) {
@@ -16,7 +16,7 @@ function limitRange( field, minValue, maxValue ) {
 }
 
 function initPage() {
-  return( true );
+  return ( true );
 }
 
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

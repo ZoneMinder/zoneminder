@@ -180,7 +180,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" onsubmit="return validateForm(this);">
+      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit">
         <input type="hidden" name="Id" value="<?php echo $filter->Id() ?>"/>
         <input type="hidden" name="action" value=""/>
         <input type="hidden" name="object" value="filter"/>
@@ -237,7 +237,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false}); </script>
+                <script nonce="<?php echo $cspNonce;?>">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
@@ -245,7 +245,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});</script>
+                <script nonce="<?php echo $cspNonce;?>">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});</script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
@@ -253,7 +253,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: false}); </script>
+                <script nonce="<?php echo $cspNonce;?>">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: false}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {
@@ -388,7 +388,7 @@ if ( ZM_OPT_MESSAGE ) {
             <p>
               <label><?php echo translate('FilterExecuteEvents') ?></label>
               <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
-              <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?$filter->AutoExecuteCmd():'' ?>" maxlength="255" data-on-change="updateButtons"/>
+              <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?$filter->AutoExecuteCmd():'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
             <p>
               <label><?php echo translate('FilterDeleteEvents') ?></label>

@@ -1,4 +1,19 @@
+*.min.js
+
+# libraries
 web/api/lib
-web/skins/classic/js/jquery-1.11.3.js
+web/includes/csrf/
+web/js/videojs.zoomrotate.js
+web/skins/classic/js/bootstrap.js
+web/skins/classic/js/chosen
+web/skins/classic/js/dateTimePicker
+web/skins/classic/js/jquery-*.js
+web/skins/classic/js/jquery-ui-*
 web/skins/classic/js/jquery.js
+web/skins/classic/js/moment.js
+web/skins/classic/js/video.js
 web/tools/mootools
+
+# Cannot be parsed as JS
+web/skins/classic/includes/export_functions.php
+web/skins/classic/views/events.php

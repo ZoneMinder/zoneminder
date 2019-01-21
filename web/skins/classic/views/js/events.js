@@ -5,12 +5,9 @@ function closeWindows() {
   filterWindow.close();
 }
 
-function toggleCheckbox( element, name ) {
+function setButtonStates( element ) {
   var form = element.form;
   var checked = element.checked;
-  for (var i = 0; i < form.elements.length; i++)
-    if (form.elements[i].name.indexOf(name) == 0)
-      form.elements[i].checked = checked;
   form.viewBtn.disabled = !(canViewEvents && checked);
   form.editBtn.disabled = !(canEditEvents && checked);
   form.archiveBtn.disabled = unarchivedEvents?!checked:true;
@@ -33,8 +30,9 @@ function configureButton( element, name ) {
       }
     }
   }
-  if ( !element.checked )
+  if ( !element.checked ) {
     form.toggleCheck.checked = false;
+  }
   form.viewBtn.disabled = !(canViewEvents && checked);
   form.editBtn.disabled = !(canEditEvents && checked);
   form.archiveBtn.disabled = (!checked)||(!unarchivedEvents);
@@ -126,7 +124,7 @@ function viewEvents( element, name ) {
     }
   }
   if ( events.length > 0 ) {
-    let filter = '&filter[Query][terms][0][attr]=Id&filter[Query][terms][0][op]=%3D%5B%5D&filter[Query][terms][0][val]='+events.join('%2C');
+    var filter = '&filter[Query][terms][0][attr]=Id&filter[Query][terms][0][op]=%3D%5B%5D&filter[Query][terms][0][val]='+events.join('%2C');
     window.location.href = thisUrl+'?view=event&eid='+events[0]+filter+sortQuery+'&page=1&play=1';
   }
 }
@@ -153,7 +151,7 @@ if ( openFilterWindow ) {
   location.replace( '?view='+currentView+'&page='+thisPage+filterQuery );
 }
 
-function initPage () {
+function initPage() {
   if (window.history.length == 1) {
     $j('#controls').children().eq(0).html('');
   }

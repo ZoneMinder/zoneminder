@@ -67,9 +67,9 @@ html ul.tabs li.active, html ul.tabs li.active a:hover  {
 	border-bottom: 1px solid #e0e0e0;
 }
     </style>
-    <script type="text/javascript" src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>jquery.js"></script>
+    <script src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>jquery.js"></script>
     <!--<script type="text/javascript" src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>video.js"></script>-->
-    <script type="text/javascript">
+    <script nonce="<?php echo $cspNonce;?>">
 
     /*==========[tab code]==========*/
     $(document).ready(function() {
@@ -277,15 +277,15 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
   <button type="button" id="btnspeedup" data-on-click="speedup">speedup</button>
   <button type="button" id="btnspeeddown" data-on-click="speeddown">slowdown</button>
 </div>
-<div align="center"><div class="horizontal_track" >
-	<div class="horizontal_slit" >&nbsp;</div>
+<div align="center"><div class="horizontal_track">
+	<div class="horizontal_slit">&nbsp;</div>
     <div class="horizontal_slider" id="imageslider_id" style="left: 0px;"
         onmousedown="slide(event,'horizontal', <?php echo($event->Width()-20)?>, 1, <?php echo$listcount?>, <?php echo$listcount?>,0, 'imageslider_display_id');">&nbsp;</div>
   </div>
 </div>
 <div align="center"><div class="display_holder"><input id="imageslider_display_id" class="value_display" type="text" value="0" onfocus="blur(this);"/></div></div>
 
-<script type="text/javascript">
+<script nonce="<?php echo $cspNonce;?>">
 
 /***********************************************
 * Flexi Slideshow- © Dynamic Drive (www.dynamicdrive.com)
@@ -293,9 +293,9 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
 * Visit http://www.dynamicdrive.com/ for full source code
 ***********************************************/
 
-var eventWidth = <?php echo $event->Width()?>;
-var eventHeight = <?php echo $event->Height()?>;
-var variableslide=[<?php echo $slides?>];
+var eventWidth = <?php echo $event->Width(); ?>;
+var eventHeight = <?php echo $event->Height(); ?>;
+var variableslide=[<?php echo $slides; ?>];
 
 //configure the below 3 variables to set the dimension/background color of the slideshow
 
@@ -681,7 +681,7 @@ function exportEventImagesMaster($eids) {
   </tr>
 </table>
 
-<script type="text/javascript">
+<script nonce="<?php echo $cspNonce;?>">
 function switchevent(src) { 
   $('#myframe').attr('src',src);
   $('#myframe').show();

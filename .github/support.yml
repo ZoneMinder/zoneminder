@@ -11,8 +11,10 @@ supportComment: >
   attempts to ask a question.
   
   Please use our support channels to get help with or discuss this project:
+  
   - The [ZoneMinder-Chat Slack channel](https://zoneminder-chat.herokuapp.com/)
-  - The [ZoneMinder Forum](https://forums.zoneminder.com/)
+  
+  - The [ZoneMinder USer Forum](https://forums.zoneminder.com/)
 
 # Close issues marked as support requests
 close: true

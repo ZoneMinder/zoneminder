@@ -25,14 +25,13 @@ $skinJsFile = getSkinFile( 'js/skin.js' );
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <title><?php echo ZM_WEB_TITLE_PREFIX ?></title>
-  <script type="text/javascript">
+<script nonce="<?php echo $cspNonce ?>">
 <?php
 require_once( $skinJsPhpFile );
 ?>
   </script>
-
-  <script type="text/javascript" src="<?php echo $skinJsFile ?>"></script>
-  <script type="text/javascript">
+  <script src="<?php echo $skinJsFile ?>"></script>
+<script nonce="<?php echo $cspNonce ?>">
 <?php
 if ( !$debug ) {
 ?>

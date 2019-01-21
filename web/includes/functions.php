@@ -2446,4 +2446,8 @@ function getAffectedIds( $name ) {
 	return $ids;
 }
 
+function format_duration($time, $separator=':') {
+  return sprintf('%02d%s%02d%s%02d', floor($time/3600), $separator, ($time/60)%60, $separator, $time%60);
+}
+
 ?>

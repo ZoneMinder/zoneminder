@@ -26,7 +26,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
     Warning("sock file $localSocketFile already exists?!  Is someone else talking to zms?");
     // They could be.  We can maybe have concurrent requests from a browser.  
   }
-  if ( ! socket_bind( $socket, $localSocketFile ) ) {
+  if ( !socket_bind( $socket, $localSocketFile ) ) {
     ajaxError("socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()) );
   }
 
@@ -52,12 +52,14 @@ if ( sem_acquire($semaphore,1) !== false ) {
     $msg = pack( 'lcN', MSG_CMD, $_REQUEST['command'], $_REQUEST['offset'] );
     break;
   default :
+    Logger::Debug("Sending command " . $_REQUEST['command']);
     $msg = pack( 'lc', MSG_CMD, $_REQUEST['command'] );
     break;
   }
 
   $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock';
-  $max_socket_tries = 10;
+  // Pi can take up to 3 seconds for zms to start up.
+  $max_socket_tries = 1000;
   // FIXME This should not exceed web_ajax_timeout
   while ( !file_exists($remSockFile) && $max_socket_tries-- ) { //sometimes we are too fast for our own good, if it hasn't been setup yet give it a second. 
     // WHY? We will just send another one... 
@@ -92,39 +94,31 @@ if ( sem_acquire($semaphore,1) !== false ) {
   } else if ( $numSockets == 0 ) {
     Error( "Timed out waiting for msg $remSockFile"  );
     socket_Set_nonblock($socket);
-    #ajaxError( "Timed out waiting for msg $remSockFile"  );
+    #ajaxError("Timed out waiting for msg $remSockFile");
   } else if ( $numSockets > 0 ) {
     if ( count($rSockets) != 1 ) {
-      Error( 'Bogus return from select, '.count($rSockets).' sockets available' );
-      ajaxError( 'Bogus return from select, '.count($rSockets).' sockets available' );
+      Error('Bogus return from select, '.count($rSockets).' sockets available');
+      ajaxError('Bogus return from select, '.count($rSockets).' sockets available');
     }
   }
 
   switch( $nbytes = @socket_recvfrom( $socket, $msg, MSG_DATA_SIZE, 0, $remSockFile ) ) {
   case -1 :
-  {
-    ajaxError( "socket_recvfrom( $remSockFile ) failed: ".socket_strerror(socket_last_error()) );
+    ajaxError("socket_recvfrom( $remSockFile ) failed: ".socket_strerror(socket_last_error()));
     break;
-  }
   case 0 :
-  {
-    ajaxError( 'No data to read from socket' );
+    ajaxError('No data to read from socket');
     break;
-  }
   default :
-  {
     if ( $nbytes != MSG_DATA_SIZE )
-      ajaxError( "Got unexpected message size, got $nbytes, expected ".MSG_DATA_SIZE );
+      ajaxError("Got unexpected message size, got $nbytes, expected ".MSG_DATA_SIZE);
     break;
   }
-  }
 
-
-  $data = unpack( 'ltype', $msg );
+  $data = unpack('ltype', $msg);
   switch ( $data['type'] ) {
   case MSG_DATA_WATCH :
-  {
-    $data =  unpack( "ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced", $msg );
+    $data = unpack('ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
     Logger::Debug("FPS: " . $data['fps'] );
     $data['fps'] = round( $data['fps'], 2 );
     Logger::Debug("FPS: " . $data['fps'] );
@@ -140,11 +134,13 @@ if ( sem_acquire($semaphore,1) !== false ) {
     }
     ajaxResponse( array( 'status'=>$data ) );
     break;
-  }
   case MSG_DATA_EVENT :
-  {
-    $data =  unpack( "ltype/Pevent/iprogress/irate/izoom/Cpaused", $msg );
-    //$data['progress'] = sprintf( "%.2f", $data['progress'] );
+    if ( version_compare( phpversion(), '5.6.0', '>') ) {
+      $data = unpack('ltype/ieventlow/ieventhigh/iprogress/irate/izoom/Cpaused', $msg);
+      $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];
+    } else {
+      $data = unpack('ltype/Qevent/iprogress/irate/izoom/Cpaused', $msg);
+    }
     $data['rate'] /= RATE_BASE;
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
     if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
@@ -154,13 +150,10 @@ if ( sem_acquire($semaphore,1) !== false ) {
         $data['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
       } 
     }
-    ajaxResponse( array( 'status'=>$data ) );
+    ajaxResponse(array('status'=>$data));
     break;
-  }
   default :
-  {
-    ajaxError( "Unexpected received message type '$type'" );
-  }
+    ajaxError("Unexpected received message type '$type'");
   }
   sem_release($semaphore);
 } else {

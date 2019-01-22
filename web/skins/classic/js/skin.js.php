@@ -29,16 +29,16 @@ var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 
 var currentView = '<?php echo $view ?>';
-var thisUrl = "<?php echo ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>";
-var skinPath = "<?php echo ZM_SKIN_PATH ?>";
+var thisUrl = '<?php echo ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>';
+var skinPath = '<?php echo ZM_SKIN_PATH ?>';
 var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 
-var canEditSystem = <?php echo canEdit('System' )?'true':'false' ?>;
-var canViewSystem = <?php echo canView('System' )?'true':'false' ?>;
-var canEditEvents = <?php echo canEdit('Events' )?'true':'false' ?>;
-var canViewEvents = <?php echo canView('Events' )?'true':'false' ?>;
+var canEditSystem = <?php echo canEdit('System')?'true':'false' ?>;
+var canViewSystem = <?php echo canView('System')?'true':'false' ?>;
+var canEditEvents = <?php echo canEdit('Events')?'true':'false' ?>;
+var canViewEvents = <?php echo canView('Events')?'true':'false' ?>;
 
-var canEditGroups = <?php echo canEdit('Groups' )?'true':'false' ?>;
+var canEditGroups = <?php echo canEdit('Groups')?'true':'false' ?>;
 
 var refreshParent = <?php
 if ( ! empty($refreshParent) ) {

@@ -126,32 +126,38 @@ function createPopup( url, name, tag, width, height ) {
   }
 }
 
-$j(document).ready(function() {
-  $j("form.validateFormOnSubmit").submit(function onSubmit(evt) {
-    if (!validateForm(this)) {
+window.addEventListener("DOMContentLoaded", function onSkinDCL() {
+  document.querySelectorAll("form.validateFormOnSubmit").forEach(function(el) {
+    el.addEventListener("submit", function onSubmit(evt) {
+      if (!validateForm(this)) {
+        evt.preventDefault();
+      }
+    });
+  });
+
+  document.querySelectorAll(".popup-link").forEach(function(el) {
+    el.addEventListener("click", function onClick(evt) {
+      var el = this;
+      var url;
+      if (el.hasAttribute("href")) {
+        // <a>
+        url = el.getAttribute("href");
+      } else {
+        // buttons
+        url = el.getAttribute("data-url");
+      }
+      var name = el.getAttribute("data-window-name");
+      var tag = el.getAttribute("data-window-tag");
+      var width = el.getAttribute("data-window-width");
+      var height = el.getAttribute("data-window-height");
+      createPopup(url, name, tag, width, height);
       evt.preventDefault();
-    }
+    });
   });
 
-  $j(".popup-link").click(function onClick(evt) {
-    var el = this;
-    var url;
-    if (el.hasAttribute("href")) {
-      // <a>
-      url = el.getAttribute("href");
-    } else {
-      // buttons
-      url = el.getAttribute("data-url");
-    }
-    var name = el.getAttribute("data-window-name");
-    var tag = el.getAttribute("data-window-tag");
-    var width = el.getAttribute("data-window-width");
-    var height = el.getAttribute("data-window-height");
-    createPopup(url, name, tag, width, height);
-    evt.preventDefault();
+  document.querySelectorAll(".tabList a").forEach(function addOnClick(el) {
+    el.addEventListener("click", submitTab);
   });
-
-  $j(".tabList a").click(submitTab);
 
   // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {

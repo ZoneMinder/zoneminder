@@ -148,7 +148,7 @@ sub Sql {
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
 
-        // See getFilterQueryConjunctionTypes()
+        # See getFilterQueryConjunctionTypes()
         if ( exists($term->{cnj}) and $term->{cnj} =~ /^(and|or)$/ ) {
           $self->{Sql} .= ' '.$term->{cnj}.' ';
         }

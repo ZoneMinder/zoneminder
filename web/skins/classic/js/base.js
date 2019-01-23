@@ -64,7 +64,7 @@ var popupSizes = {
   'stats':        {'width': 840, 'height': 200},
   'storage':      {'width': 600, 'height': 405},
   'timeline':     {'width': 760, 'height': 540},
-  'user':         {'width': 360, 'height': 720},
+  'user':         {'width': 460, 'height': 720},
   'version':      {'width': 360, 'height': 185},
   'video':        {'width': 420, 'height': 360},
   'videoview':    {'addWidth': 48, 'addHeight': 80},

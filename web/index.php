@@ -51,7 +51,6 @@ require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
 
-
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
   or
@@ -118,12 +117,12 @@ $skinBase[] = $skin;
 $currentCookieParams = session_get_cookie_params(); 
 //Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
 session_set_cookie_params( 
-    $currentCookieParams['lifetime'], 
-    $currentCookieParams['path'], 
-    $currentCookieParams['domain'],
-    $currentCookieParams['secure'], 
-    true
-); 
+  $currentCookieParams['lifetime'],
+  $currentCookieParams['path'],
+  $currentCookieParams['domain'],
+  $currentCookieParams['secure'],
+  true
+);
 
 ini_set('session.name', 'ZMSESSID');
 
@@ -166,6 +165,7 @@ if ( !is_writable(ZM_DIR_EVENTS) ) {
 }
 
 # Globals
+$action = null;
 $error_message = null;
 $redirect = null;
 $view = null;
@@ -185,9 +185,9 @@ foreach ( getSkinIncludes('skin.php') as $includeFile )
 # User Login will be performed in auth.php
 require_once('includes/auth.php');
 
-if ( isset($_REQUEST['action']) ) {
+if ( isset($_REQUEST['action']) )
   $action = detaintPath($_REQUEST['action']);
-}
+
 
 # The only variable we really need to set is action. The others are informal.
 isset($view) || $view = NULL;
@@ -244,27 +244,27 @@ if ( $request ) {
     require_once $includeFile;
   }
   return;
-} else {
-  if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
-    foreach ( $includeFiles as $includeFile ) {
-      if ( !file_exists($includeFile) )
-        Fatal("View '$view' does not exist");
-      require_once $includeFile;
-    }
-    // If the view overrides $view to 'error', and the user is not logged in, then the
-    // issue is probably resolvable by logging in, so provide the opportunity to do so.
-    // The login view should handle redirecting to the correct location afterward.
-    if ( $view == 'error' && !isset($user) ) {
-      $view = 'login';
-      foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
-        require_once $includeFile;
-    }
+}
+
+if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
+  foreach ( $includeFiles as $includeFile ) {
+    if ( !file_exists($includeFile) )
+      Fatal("View '$view' does not exist");
+    require_once $includeFile;
   }
-  // If the view is missing or the view still returned error with the user logged in,
-  // then it is not recoverable.
-  if ( !$includeFiles || $view == 'error' ) {
-    foreach ( getSkinIncludes('views/error.php', true, true) as $includeFile )
+  // If the view overrides $view to 'error', and the user is not logged in, then the
+  // issue is probably resolvable by logging in, so provide the opportunity to do so.
+  // The login view should handle redirecting to the correct location afterward.
+  if ( $view == 'error' && !isset($user) ) {
+    $view = 'login';
+    foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
       require_once $includeFile;
   }
+}
+// If the view is missing or the view still returned error with the user logged in,
+// then it is not recoverable.
+if ( !$includeFiles || $view == 'error' ) {
+  foreach ( getSkinIncludes('views/error.php', true, true) as $includeFile )
+    require_once $includeFile;
 }
 ?>

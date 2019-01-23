@@ -32,6 +32,12 @@ require_once($skinJsPhpFile);
 ?>
   </script>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
+  <script nonce="<?php echo $cspNonce ?>">
+<?php
+if ( !$debug )
+    echo 'closeWindow();';
+?>
+  </script>
 </head>
 <body>
 </body>

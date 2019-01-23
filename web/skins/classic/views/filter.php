@@ -50,7 +50,7 @@ if ( isset($_REQUEST['sort_field']) && isset($_REQUEST['filter']) ) {
 }
 
 if ( isset($_REQUEST['filter']) ) {
-  $filter->set( $_REQUEST['filter'] );
+  $filter->set($_REQUEST['filter']);
   # Update our filter object with whatever changes we have made before saving
 }
 
@@ -58,7 +58,7 @@ $conjunctionTypes = getFilterQueryConjunctionTypes();
 $obracketTypes = array();
 $cbracketTypes = array();
 
-if (count($filter->terms()) > 0) {
+if ( count($filter->terms()) > 0 ) {
   $terms = $filter->terms();
 } else {
   $terms[] = array();
@@ -177,9 +177,9 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit">
+      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit" action="?view=filter">
         <input type="hidden" name="Id" value="<?php echo $filter->Id() ?>"/>
-        <input type="hidden" name="action" value=""/>
+        <input type="hidden" name="action"/>
         <input type="hidden" name="object" value="filter"/>
 
         <hr/>
@@ -393,7 +393,7 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p><label><?php echo translate('FilterMoveEvents') ?></label>
               <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);if(this.checked){$j(this.form.elements['filter[AutoMoveTo]']).css('display','inline');}else{this.form.elements['filter[AutoMoveTo]'].hide();};"/>
-              <?php echo htmlSelect( "filter[AutoMoveTo]", $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;' ) ); ?>
+              <?php echo htmlSelect('filter[AutoMoveTo]', $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;' )); ?>
             </p>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>
@@ -407,7 +407,7 @@ if ( ZM_OPT_MESSAGE ) {
         <hr/>
         <div id="contentButtons">
           <button type="submit" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
-          <button type="submit" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>
+          <button type="button" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit('Events') ) {
 ?>

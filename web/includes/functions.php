@@ -958,11 +958,11 @@ Logger::Debug("generating Video $command: result($result outptu:(".implode("\n",
   return( $status?"":rtrim($result) );
 }
 
-function executeFilter( $filter ) {
-  $command = ZM_PATH_BIN."/zmfilter.pl --filter ".escapeshellarg($filter);
-  $result = exec( $command, $output, $status );
-  dbQuery( "delete from Filters where Name like '_TempFilter%'" );
-  return( $status );
+function executeFilter( $filter_id ) {
+  $command = ZM_PATH_BIN.'/zmfilter.pl --filter_id '.escapeshellarg($filter_id);
+  $result = exec($command, $output, $status);
+  dbQuery('DELETE FROM Filters WHERE Id=?', array($filter_id));
+  return $status;
 }
 
 # This takes more than one scale amount, so it runs through each and alters dimension.

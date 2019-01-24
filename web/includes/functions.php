@@ -55,6 +55,7 @@ function CSPHeaders($view, $nonce) {
     case 'log':
     case 'logout':
     case 'options':
+    case 'plugin':
     case 'privacy':
     case 'storage':
     case 'version': {

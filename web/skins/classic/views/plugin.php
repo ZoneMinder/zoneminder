@@ -36,7 +36,8 @@ if ( $zid > 0 ) {
    return;
 }
 $monitor = dbFetchMonitor ( $mid );
-$plugin = $_REQUEST['pl'];
+// Only allow certain filename characters (not including a period) to prevent directory traversal.
+$plugin = preg_replace('/[^-a-zA-Z0-9]/', '', $_REQUEST['pl']);
 
 $plugin_path = dirname(ZM_PLUGINS_CONFIG_PATH)."/".$plugin;
 
@@ -103,7 +104,7 @@ function pLang($name)
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo $plugin ?></h2>
+      <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo validHtmlStr($plugin) ?></h2>
     </div>
     <div id="content">
       <form name="pluginForm" id="pluginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
@@ -111,7 +112,7 @@ function pLang($name)
         <input type="hidden" name="action" value="plugin"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
         <input type="hidden" name="zid" value="<?php echo $zid ?>"/>
-        <input type="hidden" name="pl" value="<?php echo $plugin ?>"/>
+        <input type="hidden" name="pl" value="<?php echo validHtmlStr($plugin) ?>"/>
 
         <div id="settingsPanel">
           <table id="pluginSettings" cellspacing="0">

@@ -145,10 +145,10 @@ if ( $showPtzControls ) {
       </div>
 <?php
 }
-if ( canView( 'Events' ) && $monitor->Type() != 'WebSite' ) {
+if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 ?>
       <div id="events">
-        <table id="eventList" cellspacing="0">
+        <table id="eventList">
           <thead>
             <tr>
               <th class="colId"><?php echo translate('Id') ?></th>

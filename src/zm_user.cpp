@@ -100,15 +100,21 @@ bool User::canAccess( int monitor_id )
 // Please note that in auth relay mode = none, password is NULL
 User *zmLoadUser( const char *username, const char *password ) {
   char sql[ZM_SQL_MED_BUFSIZ] = "";
-  char *safer_username = new char[(strlen(username) * 2) + 1];
+  int username_length = strlen(username);
+  char *safer_username = new char[(username_length * 2) + 1];
 
   // According to docs, size of safer_whatever must be 2*length+1 due to unicode conversions + null terminator.
-  mysql_real_escape_string(&dbconn, safer_username, username, strlen( username ) );
+  mysql_real_escape_string(&dbconn, safer_username, username, username_length );
 
   if ( password ) {
-    char *safer_password = new char[(strlen(password) * 2) +1];
-    mysql_real_escape_string(&dbconn, safer_password, password, strlen( password ) );
-    snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", safer_username, safer_password );
+    int password_length = strlen(password);
+    char *safer_password = new char[(password_length * 2) + 1];
+    mysql_real_escape_string(&dbconn, safer_password, password, password_length);
+    snprintf(sql, sizeof(sql),
+        "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
+        " FROM Users WHERE Username = '%s' AND Password = password('%s') AND Enabled = 1",
+        safer_username, safer_password );
+    delete safer_password;
   } else {
     snprintf( sql, sizeof(sql), "select Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Enabled = 1", safer_username );
   }
@@ -138,7 +144,8 @@ User *zmLoadUser( const char *username, const char *password ) {
   User *user = new User( dbrow );
   Info( "Authenticated user '%s'", user->getUsername() );
 
-  mysql_free_result( result );
+  mysql_free_result(result);
+  delete safer_username;
 
   return( user );
 }

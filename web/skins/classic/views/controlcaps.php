@@ -63,9 +63,9 @@ foreach( $controls as $control )
 {
 ?>
             <tr>
-              <td class="colName"><?php echo makePopupLink( '?view=controlcap&cid='.$control['Id'], 'zmControlCap', 'controlcap', $control['Name'], canView( 'Control' ) ) ?></td>
+              <td class="colName"><?php echo makePopupLink( '?view=controlcap&cid='.$control['Id'], 'zmControlCap', 'controlcap', validHtmlStr($control['Name']), canView( 'Control' ) ) ?></td>
               <td class="colType"><?php echo $control['Type'] ?></td>
-              <td class="colProtocol"><?php echo $control['Protocol'] ?></td>
+              <td class="colProtocol"><?php echo validHtmlStr($control['Protocol']) ?></td>
               <td class="colCanMove"><?php echo $control['CanMove']?translate('Yes'):translate('No') ?></td>
               <td class="colCanZoom"><?php echo $control['CanZoom']?translate('Yes'):translate('No') ?></td>
               <td class="colCanFocus"><?php echo $control['CanFocus']?translate('Yes'):translate('No') ?></td>

@@ -51,12 +51,20 @@ function CSPHeaders($view, $nonce) {
     case 'blank':
     case 'console':
     case 'controlcap':
+    case 'cycle':
+    case 'donate':
+    case 'error':
     case 'function':
     case 'log':
     case 'logout':
+    case 'optionhelp':
     case 'options':
     case 'plugin':
+    case 'postlogin':
     case 'privacy':
+    case 'server':
+    case 'state':
+    case 'status':
     case 'storage':
     case 'version': {
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.

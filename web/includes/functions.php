@@ -450,6 +450,9 @@ function makeLink( $url, $label, $condition=1, $options='' ) {
   return( $string );
 }
 
+/**
+ * $label must be already escaped. It can't be done here since it sometimes contains HTML tags.
+ */
 function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options='' ) {
   // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
   $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';

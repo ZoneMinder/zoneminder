@@ -44,6 +44,7 @@ if ( false ) {
 }
 
 require_once('includes/config.php');
+require_once('includes/session.php');
 require_once('includes/logger.php');
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
@@ -114,19 +115,7 @@ if ( !file_exists(ZM_SKIN_PATH) )
   Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
-$currentCookieParams = session_get_cookie_params(); 
-//Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
-session_set_cookie_params( 
-  $currentCookieParams['lifetime'],
-  $currentCookieParams['path'],
-  $currentCookieParams['domain'],
-  $currentCookieParams['secure'],
-  true
-);
-
-ini_set('session.name', 'ZMSESSID');
-
-session_start();
+zm_session_start();
 
 if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) || !isset($_COOKIE['zmSkin']) || $_COOKIE['zmSkin'] != $skin ) {
   $_SESSION['skin'] = $skin;

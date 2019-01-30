@@ -74,8 +74,8 @@ xhtmlHeaders(__FILE__, translate('Zones') );
 foreach( $zones as $zone ) {
 ?>
             <tr>
-              <td class="colName"><?php echo makePopupLink('?view=zone&mid=' . $mid . '&zid=' . $zone['Id'], 'zmZone', array('zone', $monitor->Width(), $monitor->Height()), $zone['Name'], true, 'onclick="streamCmdQuit( true ); return( false );"'); ?></td>
-              <td class="colType"><?php echo $zone['Type'] ?></td>
+              <td class="colName"><?php echo makePopupLink('?view=zone&mid=' . $mid . '&zid=' . $zone['Id'], 'zmZone', array('zone', $monitor->Width(), $monitor->Height()), validHtmlStr($zone['Name']), true, 'onclick="streamCmdQuit( true ); return( false );"'); ?></td>
+              <td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
               <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor->Width()*$monitor->Height()) ) ?></td>
               <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>

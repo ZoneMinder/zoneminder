@@ -51,11 +51,20 @@ function CSPHeaders($view, $nonce) {
     case 'blank':
     case 'console':
     case 'controlcap':
+    case 'cycle':
+    case 'donate':
+    case 'error':
     case 'function':
     case 'log':
     case 'logout':
+    case 'optionhelp':
     case 'options':
+    case 'plugin':
+    case 'postlogin':
     case 'privacy':
+    case 'server':
+    case 'state':
+    case 'status':
     case 'storage':
     case 'version': {
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
@@ -441,6 +450,9 @@ function makeLink( $url, $label, $condition=1, $options='' ) {
   return( $string );
 }
 
+/**
+ * $label must be already escaped. It can't be done here since it sometimes contains HTML tags.
+ */
 function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options='' ) {
   // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
   $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
@@ -958,11 +970,11 @@ Logger::Debug("generating Video $command: result($result outptu:(".implode("\n",
   return( $status?"":rtrim($result) );
 }
 
-function executeFilter( $filter ) {
-  $command = ZM_PATH_BIN."/zmfilter.pl --filter ".escapeshellarg($filter);
-  $result = exec( $command, $output, $status );
-  dbQuery( "delete from Filters where Name like '_TempFilter%'" );
-  return( $status );
+function executeFilter( $filter_id ) {
+  $command = ZM_PATH_BIN.'/zmfilter.pl --filter_id '.escapeshellarg($filter_id);
+  $result = exec($command, $output, $status);
+  dbQuery('DELETE FROM Filters WHERE Id=?', array($filter_id));
+  return $status;
 }
 
 # This takes more than one scale amount, so it runs through each and alters dimension.

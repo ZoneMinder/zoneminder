@@ -93,7 +93,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
     if ( ZM_AUTH_TYPE == 'builtin' ) {
       $_SESSION['passwordHash'] = $user['Password'];
     }
-    session_regenerate_id();
+    zm_session_regenerate_id();
   } else {
     Warning("Login denied for user \"$username\"");
     $_SESSION['loginFailed'] = true;
@@ -107,9 +107,15 @@ function userLogin($username='', $password='', $passwordHashed=false) {
 function userLogout() {
   global $user;
   Info('User "'.$user['Username'].'" logged out');
-  session_start();
-  unset($_SESSION['user']);
   unset($user);
+  session_start();
+  $_SESSION = array();
+  if ( ini_get('session.use_cookies') ) {
+    $p = session_get_cookie_params();
+    # Update the cookie to expire in the past.
+    setcookie(session_name(), '', time() - 31536000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+  }
+  session_unset();
   session_destroy();
 }
 

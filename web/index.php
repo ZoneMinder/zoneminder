@@ -222,6 +222,7 @@ if ( ZM_OPT_USE_AUTH and !isset($user) ) {
 CSPHeaders($view, $cspNonce);
 
 if ( $redirect ) {
+  Logger::Debug("Redirecting to $redirect");
   header('Location: '.$redirect);
   return;
 }

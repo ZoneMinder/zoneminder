@@ -270,14 +270,32 @@ function collectData() {
           }
           $index++;
         }
-        $sql .= ' where '.join( ' and ', $where );
+        $sql .= ' WHERE '.join( ' AND ', $where );
       }
       if ( $groupSql )
         $sql .= ' GROUP BY '.join( ',', array_unique( $groupSql ) );
       if ( !empty($_REQUEST['sort']) ) {
-        $sql .= ' order by :sort';
-        $values[':sort'] = $_REQUEST['sort'];
-      }
+        $sql .= ' ORDER BY ';
+        $sort_fields = explode(',',$_REQUEST['sort']);
+        foreach ( $sort_fields as $sort_field ) {
+          
+          preg_match('/^(\w+)\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
+          if ( count($matches) ) {
+            if ( in_array($matches[1], $fieldSql) ) {
+              $sql .= $matches[1];
+            } else {
+              Error('Sort field ' . $matches[1] . ' not in SQL Fields');
+            }
+            if ( count($matches) > 2 ) {
+              $sql .= ' '.strtoupper($matches[2]);
+              if ( count($matches) > 3 )
+                $sql .= ' '.strtoupper($matches[3]);
+            }
+          } else {
+            Error("Sort field didn't match regexp $sort_field");
+          }
+        } # end foreach sort field
+      } # end if has sort
       if ( !empty($entitySpec['limit']) )
         $limit = $entitySpec['limit'];
       elseif ( !empty($_REQUEST['count']) )

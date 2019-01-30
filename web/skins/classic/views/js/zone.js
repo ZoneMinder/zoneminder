@@ -734,11 +734,13 @@ function Polygon_calcArea( coords ) {
   var n_coords = coords.length;
   var float_area = 0.0;
 
-  for ( i = 0, j = n_coords-1; i < n_coords; j = i++ ) {
-    var trap_area = ( ( coords[i].x - coords[j].x ) * ( coords[i].y + coords[j].y ) ) / 2;
+  for ( i = 0; i < n_coords-1; i++ ) {
+    var trap_area = (coords[i].x*coords[i+1].y - coords[i+1].x*coords[i].y) / 2;
     float_area += trap_area;
     //printf( "%.2f (%.2f)\n", float_area, trap_area );
   }
+  float_area += (coords[n_coords-1].x*coords[0].y - coords[0].x*coords[n_coords-1].y) / 2;
+
   return Math.round( Math.abs( float_area ) );
 }
 

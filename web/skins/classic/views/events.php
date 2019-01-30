@@ -79,7 +79,9 @@ $pagination = getPagination($pages, $page, $maxShortcuts, $filterQuery.$sortQuer
 $focusWindow = true;
 
 if ( $_POST ) {
-  header('Location: ' . $_SERVER['REQUEST_URI'].htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
+  // I think this is basically so that a refresh doesn't repost
+  Logger::Debug("Redirecting to " . $_SERVER['REQUEST_URI']);
+  header('Location: ?view=' . $view.htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
   exit();
 }
 

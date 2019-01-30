@@ -13,9 +13,9 @@
 		// Append '?(GET query)' to URL if the GET query is not empty.
 		var querySuffix = "<?php
 			if (!empty($_POST["postLoginQuery"])) {
-                                parse_str($_POST["postLoginQuery"], $queryParams);
+        parse_str($_POST["postLoginQuery"], $queryParams);
 				echo "?" . http_build_query($queryParams);
-                        }
+      }
 			?>";
 
 		var newUrl = thisUrl + querySuffix;

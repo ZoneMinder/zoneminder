@@ -203,14 +203,12 @@ function canEdit($area, $mid=false) {
   return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
 }
 
-
 if ( ZM_OPT_USE_AUTH ) {
   if ( ZM_AUTH_HASH_LOGINS && empty($user) && ! empty($_REQUEST['auth']) ) {
     if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
       userLogin($authUser['Username'], $authUser['Password'], true);
     }
-  }
-  else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
+  } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
     userLogin($_REQUEST['username'], $_REQUEST['password'], false);
   }
   if ( !empty($user) ) {

@@ -108,15 +108,7 @@ function userLogout() {
   global $user;
   Info('User "'.$user['Username'].'" logged out');
   unset($user);
-  session_start();
-  $_SESSION = array();
-  if ( ini_get('session.use_cookies') ) {
-    $p = session_get_cookie_params();
-    # Update the cookie to expire in the past.
-    setcookie(session_name(), '', time() - 31536000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
-  }
-  session_unset();
-  session_destroy();
+  zm_session_clear();
 }
 
 function getAuthUser($auth) {
@@ -211,18 +203,6 @@ function canEdit($area, $mid=false) {
   return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
 }
 
-function is_session_started() {
-  if ( php_sapi_name() !== 'cli' ) {
-    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
-      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
-    } else {
-      return session_id() === '' ? FALSE : TRUE;
-    }
-  } else {
-    Warning("php_sapi_name === 'cli'");
-  }
-  return FALSE;
-}
 
 if ( ZM_OPT_USE_AUTH ) {
   if ( ZM_AUTH_HASH_LOGINS && empty($user) && ! empty($_REQUEST['auth']) ) {

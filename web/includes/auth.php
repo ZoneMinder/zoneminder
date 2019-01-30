@@ -93,7 +93,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
     if ( ZM_AUTH_TYPE == 'builtin' ) {
       $_SESSION['passwordHash'] = $user['Password'];
     }
-    session_regenerate_id();
+    zm_session_regenerate_id();
   } else {
     Warning("Login denied for user \"$username\"");
     $_SESSION['loginFailed'] = true;
@@ -107,10 +107,8 @@ function userLogin($username='', $password='', $passwordHashed=false) {
 function userLogout() {
   global $user;
   Info('User "'.$user['Username'].'" logged out');
-  session_start();
-  unset($_SESSION['user']);
   unset($user);
-  session_destroy();
+  zm_session_clear();
 }
 
 function getAuthUser($auth) {
@@ -205,18 +203,6 @@ function canEdit($area, $mid=false) {
   return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
 }
 
-function is_session_started() {
-  if ( php_sapi_name() !== 'cli' ) {
-    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
-      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
-    } else {
-      return session_id() === '' ? FALSE : TRUE;
-    }
-  } else {
-    Warning("php_sapi_name === 'cli'");
-  }
-  return FALSE;
-}
 
 if ( ZM_OPT_USE_AUTH ) {
   if ( ZM_AUTH_HASH_LOGINS && empty($user) && ! empty($_REQUEST['auth']) ) {

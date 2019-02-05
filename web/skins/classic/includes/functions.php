@@ -131,7 +131,7 @@ echo output_link_if_exists( array(
   var $j = jQuery.noConflict();
   // $j is now an alias to the jQuery function; creating the new alias is optional.
   </script>
-  <script src="skins/<?php echo $skin; ?>/views/js/state.js"></script>
+  <script src="<?php echo cache_bust('skins/'.$skin.'/views/js/state.js') ?>"></script>
 <?php
   if ( $title == 'Login' && (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA) ) {
 ?>

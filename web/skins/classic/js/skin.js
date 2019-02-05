@@ -173,6 +173,14 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     };
   });
 
+  // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
+  document.querySelectorAll("a[data-on-click-true], button[data-on-click-true], input[data-on-click-true]").forEach(function attachOnClick(el) {
+    var fnName = el.getAttribute("data-on-click-true");
+    el.onclick = function() {
+      window[fnName](true);
+    };
+  });
+
   // 'data-on-change-this' calls the global function in the attribute value with the element when a change happens.
   document.querySelectorAll("select[data-on-change-this], input[data-on-change-this]").forEach(function attachOnChangeThis(el) {
     var fnName = el.getAttribute("data-on-change-this");
@@ -256,7 +264,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
-    if ($j('.navbar').length) {
+    if ( $j('.navbar').length ) {
       setInterval(getNavBar, navBarRefresh);
     }
   });
@@ -264,12 +272,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
   function getNavBar() {
     $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar')
         .done(setNavBar)
-        .fail(function( jqxhr, textStatus, error ) {
-          console.log( "Request Failed: " + textStatus + ", " + error);
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
           if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
-            window.location.reload( true );
+            window.location.reload(true);
           }
         });
   }

@@ -117,25 +117,26 @@ $skinBase[] = $skin;
 
 zm_session_start();
 
-if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) || !isset($_COOKIE['zmSkin']) || $_COOKIE['zmSkin'] != $skin ) {
+if (
+  !isset($_SESSION['skin']) ||
+  isset($_REQUEST['skin']) ||
+  !isset($_COOKIE['zmSkin']) ||
+  $_COOKIE['zmSkin'] != $skin
+) {
   $_SESSION['skin'] = $skin;
   setcookie('zmSkin', $skin, time()+3600*24*30*12*10);
 }
 
-if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) || !isset($_COOKIE['zmCSS']) || $_COOKIE['zmCSS'] != $css ) {
+if (
+  !isset($_SESSION['css']) ||
+  isset($_REQUEST['css']) ||
+  !isset($_COOKIE['zmCSS']) ||
+  $_COOKIE['zmCSS'] != $css
+) {
   $_SESSION['css'] = $css;
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-if ( ZM_OPT_USE_AUTH ) {
-  if ( isset($_SESSION['user']) ) {
-    $user = $_SESSION['user'];
-  } else {
-    unset($user);
-  }
-} else {
-  $user = $defaultUser;
-}
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
 session_write_close();
@@ -168,11 +169,13 @@ $request = null;
 if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
-foreach ( getSkinIncludes('skin.php') as $includeFile )
-  require_once $includeFile;
-
 # User Login will be performed in auth.php
 require_once('includes/auth.php');
+
+foreach ( getSkinIncludes('skin.php') as $includeFile ) {
+  #Logger::Debug("including $includeFile");
+  require_once $includeFile;
+}
 
 if ( isset($_REQUEST['action']) )
   $action = detaintPath($_REQUEST['action']);
@@ -209,13 +212,14 @@ if ( $action ) {
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and !isset($user) ) {
+if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
   Logger::Debug('Redirecting to login');
-  $view = 'login';
+  $view = 'none';
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
   $request = null;
 } else if ( ZM_SHOW_PRIVACY && ($action != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
-  Logger::Debug('Redirecting to privacy');
-  $view = 'privacy';
+  $view = 'none';
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
   $request = null;
 }
 

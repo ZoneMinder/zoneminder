@@ -3944,7 +3944,8 @@ our @options = (
   {
     name  =>  'ZM_COOKIE_LIFETIME',
     default =>  '3600',
-    description => q`The maximum life of a COOKIE used when setting up PHP's session handler.  This will affect how long a session will be valid for since the last request.  Keeping this short helps prevent session hijacking.  Keeping it long allows you to stay logged in longer without refreshing the view.`,
+    description => q`The maximum life of a COOKIE used when setting up PHP's session handler.`,
+  help          => q`This will affect how long a session will be valid for since the last request.  Keeping this short helps prevent session hijacking.  Keeping it long allows you to stay logged in longer without refreshing the view.`,
     type        =>  $types{integer},
     category    =>  'system',
   }

@@ -20,18 +20,16 @@ function zm_session_start() {
   ini_set('session.name', 'ZMSESSID');
 
   session_start();
-  // Do not allow to use too old session ID
-  if ( !empty($_SESSION['last_time']) && ( $_SESSION['last_time'] < (time() - 180) ) ) {
+  // Do not allow to use expired session ID
+  if ( !empty($_SESSION['last_time']) && ($_SESSION['last_time'] < (time() - 180)) ) {
     Info('Destroying session due to timeout. ');
     session_destroy();
     session_start();
   }
-}
+} // function zm_session_start()
 
 // My session regenerate id function
 function zm_session_regenerate_id() {
-  // Call session_create_id() while session is active to 
-  // make sure collision free.
   if ( session_status() != PHP_SESSION_ACTIVE ) {
     session_start();
   }
@@ -43,7 +41,8 @@ function zm_session_regenerate_id() {
 
   session_start();
   session_regenerate_id();
-}
+  unset($_SESSION['last_time']);
+} // function zm_session_regenerate_id()
 
 function is_session_started() {
   if ( php_sapi_name() !== 'cli' ) {
@@ -56,7 +55,7 @@ function is_session_started() {
     Warning("php_sapi_name === 'cli'");
   }
   return FALSE;
-}
+} // function is_session_started()
 
 function zm_session_clear() {
   session_start();
@@ -68,5 +67,5 @@ function zm_session_clear() {
   }
   session_unset();
   session_destroy();
-}
+} // function zm_session_clear()
 ?>

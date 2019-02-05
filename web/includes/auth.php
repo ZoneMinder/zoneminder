@@ -88,7 +88,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
   if ( $dbUser = dbFetchOne($sql, NULL, $sql_values) ) {
     Info("Login successful for user \"$username\"");
-    $_SESSION['user'] = $user = $dbUser;
+    $user = $dbUser;
     unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == 'builtin' ) {
       $_SESSION['passwordHash'] = $user['Password'];
@@ -204,7 +204,25 @@ function canEdit($area, $mid=false) {
 }
 
 if ( ZM_OPT_USE_AUTH ) {
-  if ( ZM_AUTH_HASH_LOGINS && empty($user) && ! empty($_REQUEST['auth']) ) {
+  if ( isset($_SESSION['username']) ) {
+    # Need to refresh permissions and validate that the user still exists
+    $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+    $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
+  }
+
+  $close_session = 0;
+  if ( !is_session_started() ) {
+    session_start();
+    $close_session = 1;
+  }
+
+  if ( ZM_AUTH_RELAY == 'plain' ) {
+    // Need to save this in session
+    $_SESSION['password'] = $password;
+  }
+  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+
+  if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
     if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
       userLogin($authUser['Username'], $authUser['Password'], true);
     }
@@ -215,5 +233,9 @@ if ( ZM_OPT_USE_AUTH ) {
     // generate it once here, while session is open.  Value will be cached in session and return when called later on
     generateAuthHash(ZM_AUTH_HASH_IPS);
   }
+  if ( $close_session )
+    session_write_close();
+} else {
+  $user = $defaultUser;
 }
 ?>

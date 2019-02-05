@@ -38,6 +38,7 @@ $j(document).ready(function() {
   });
 
   function stateStuff(action, runState, newState) {
+    // the state action will redirect to console
     var formData = {
       'view': 'state',
       'action': action,

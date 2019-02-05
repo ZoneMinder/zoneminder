@@ -117,25 +117,26 @@ $skinBase[] = $skin;
 
 zm_session_start();
 
-if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) || !isset($_COOKIE['zmSkin']) || $_COOKIE['zmSkin'] != $skin ) {
+if (
+  !isset($_SESSION['skin']) ||
+  isset($_REQUEST['skin']) ||
+  !isset($_COOKIE['zmSkin']) ||
+  $_COOKIE['zmSkin'] != $skin
+) {
   $_SESSION['skin'] = $skin;
   setcookie('zmSkin', $skin, time()+3600*24*30*12*10);
 }
 
-if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) || !isset($_COOKIE['zmCSS']) || $_COOKIE['zmCSS'] != $css ) {
+if (
+  !isset($_SESSION['css']) ||
+  isset($_REQUEST['css']) ||
+  !isset($_COOKIE['zmCSS']) ||
+  $_COOKIE['zmCSS'] != $css
+) {
   $_SESSION['css'] = $css;
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-if ( ZM_OPT_USE_AUTH ) {
-  if ( isset($_SESSION['user']) ) {
-    $user = $_SESSION['user'];
-  } else {
-    unset($user);
-  }
-} else {
-  $user = $defaultUser;
-}
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
 session_write_close();
@@ -222,6 +223,7 @@ if ( ZM_OPT_USE_AUTH and !isset($user) ) {
 CSPHeaders($view, $cspNonce);
 
 if ( $redirect ) {
+  Logger::Debug("Redirecting to $redirect");
   header('Location: '.$redirect);
   return;
 }

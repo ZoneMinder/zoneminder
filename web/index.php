@@ -169,11 +169,13 @@ $request = null;
 if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
-foreach ( getSkinIncludes('skin.php') as $includeFile )
-  require_once $includeFile;
-
 # User Login will be performed in auth.php
 require_once('includes/auth.php');
+
+foreach ( getSkinIncludes('skin.php') as $includeFile ) {
+  #Logger::Debug("including $includeFile");
+  require_once $includeFile;
+}
 
 if ( isset($_REQUEST['action']) )
   $action = detaintPath($_REQUEST['action']);
@@ -210,13 +212,14 @@ if ( $action ) {
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and !isset($user) ) {
+if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
   Logger::Debug('Redirecting to login');
-  $view = 'login';
+  $view = 'none';
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
   $request = null;
 } else if ( ZM_SHOW_PRIVACY && ($action != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
-  Logger::Debug('Redirecting to privacy');
-  $view = 'privacy';
+  $view = 'none';
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
   $request = null;
 }
 

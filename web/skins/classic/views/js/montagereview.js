@@ -122,6 +122,11 @@ function getImageSource( monId, time ) {
     Event = events[Frame.EventId];
 
     var storage = Storage[Event.StorageId];
+    if ( ! storage ) {
+      // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
+      console.log("No storage area for id " + Event.StorageId);
+      storage = Storage[0];
+    }
     // monitorServerId may be 0, which gives us the default Server entry
     var server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
     return server.PathToIndex +
@@ -500,7 +505,8 @@ HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 
 var mouseisdown=false;
 function mdown(event) {
-  mouseisdown=true; mmove(event);
+  mouseisdown=true;
+  mmove(event);
 }
 function mup(event) {
   mouseisdown=false;
@@ -509,7 +515,8 @@ function mout(event) {
   mouseisdown=false;
 } // if we go outside treat it as release
 function tmove(event) {
-  mouseisdown=true; mmove(event);
+  mouseisdown=true;
+  mmove(event);
 }
 
 function mmove(event) {
@@ -910,6 +917,13 @@ function initPage() {
   }
   if ( !liveMode ) {
     canvas = $("timeline");
+
+    canvas.addEventListener('mousemove', mmove, false);
+    canvas.addEventListener('touchmove', tmove, false);
+    canvas.addEventListener('mousedown', mdown, false);
+    canvas.addEventListener('mouseup', mup, false);
+    canvas.addEventListener('mouseout', mout, false);
+
     ctx = canvas.getContext('2d');
     drawGraph();
   }

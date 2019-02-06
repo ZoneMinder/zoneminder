@@ -1,3 +1,7 @@
+function selectFilter(element) {
+  element.form.submit();
+}
+
 function validateForm( form ) {
   var rows = $j(form).find('tbody').eq(0).find('tr');
   var obrCount = 0;
@@ -21,7 +25,6 @@ function validateForm( form ) {
     alert("There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty.");
     return false;
   }
-  console.log("Success validating");
   return true;
 }
 
@@ -104,9 +107,9 @@ function saveFilter( element ) {
   // Submit is done by the button type="submit"
 }
 
-function deleteFilter( element, name ) {
-  if ( confirm( deleteSavedFilterString+" '"+name+"'?" ) ) {
-    var form = element.form;
+function deleteFilter( element ) {
+  var form = element.form;
+  if ( confirm( deleteSavedFilterString+" '"+form.elements['filter[Name]'].value+"'?" ) ) {
     form.elements['action'].value = 'delete';
     form.submit();
   }

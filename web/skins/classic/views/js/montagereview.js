@@ -842,13 +842,15 @@ function zoom(monId, scale) {
   }
 }
 
-function clickMonitor(event, monId) {
-  var monitor_element = $("Monitor"+monId.toString());
-  var pos_x = event.offsetX ? (event.offsetX) : event.pageX - monitor_element.offsetLeft;
-  var pos_y = event.offsetY ? (event.offsetY) : event.pageY - monitor_element.offsetTop;
-  if ( pos_x < monitor_element.width/4 && pos_y < monitor_element.height/4 ) {
+function clickMonitor(event) {
+  var element = event.target;
+  //var monitor_element = $("Monitor"+monId.toString());
+  var monId = element.getAttribute('monitor_id');
+  var pos_x = event.offsetX ? (event.offsetX) : event.pageX - element.offsetLeft;
+  var pos_y = event.offsetY ? (event.offsetY) : event.pageY - element.offsetTop;
+  if ( pos_x < element.width/4 && pos_y < element.height/4 ) {
     zoom(monId, 1.15);
-  } else if ( pos_x > monitor_element.width * 3/4 && pos_y < monitor_element.height/4 ) {
+  } else if ( pos_x > element.width * 3/4 && pos_y < element.height/4 ) {
     zoom(monId, 1/1.15);
   } else {
     showOneMonitor(monId);
@@ -926,6 +928,15 @@ function initPage() {
 
     ctx = canvas.getContext('2d');
     drawGraph();
+  }
+  for ( i=0, len=monitorPtr.length; i < len; i += 1 ) {
+    var monitor_id = monitorPtr[i];
+    monitor_canvas = $('Monitor'+monitor_id);
+    if ( ! monitor_canvas ) {
+      console.log("No canvas found for monitor " + monitor_id);
+      continue;
+    }
+    monitor_canvas.addEventListener('click',clickMonitor,false);
   }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw

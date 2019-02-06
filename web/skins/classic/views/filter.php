@@ -165,7 +165,7 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
         <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
 <?php
 if ( count($filterNames) > 1 ) {
-   echo htmlSelect('Id', $filterNames, $filter->Id(), 'this.form.submit();');
+   echo htmlSelect('Id', $filterNames, $filter->Id(), array('data-on-change-this'=>'selectFilter'));
 } else {
 ?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select>
 <?php
@@ -416,7 +416,7 @@ if ( canEdit('Events') ) {
 <?php 
   if ( $filter->Id() ) {
  ?>
-          <button type="button" value="Delete" onclick="deleteFilter(this, '<?php echo $filter->Name() ?>');"><?php echo translate('Delete') ?></button>
+          <button type="button" value="Delete" data-on-click-this="deleteFilter"><?php echo translate('Delete') ?></button>
 <?php 
   }
 }

@@ -290,7 +290,7 @@ if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
       </div>
 <?php } // end if !live ?>
       <div id="timelinediv">
-        <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
+        <canvas id="timeline"></canvas>
         <span id="scrubleft"></span>
         <span id="scrubright"></span>
         <span id="scruboutput"></span>

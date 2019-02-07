@@ -232,7 +232,7 @@ while ( $event_row = dbFetchNext($results) ) {
       echo '</td>';
   } // end if ZM_WEB_LIST_THUMBS
 ?>
-              <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event->Id() ?>" data-onclick-this="configureButton"/></td>
+              <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event->Id() ?>" data-on-click-this="configureButton"/></td>
             </tr>
 <?php
 }
@@ -274,25 +274,25 @@ if ( $pagination ) {
 }
 ?>
         <div id="contentButtons">
-          <button type="button" name="viewBtn" value="View" data-onclick-this="viewEvents" disabled="disabled">
+          <button type="button" name="viewBtn" value="View" data-on-click-this="viewEvents" disabled="disabled">
           <?php echo translate('View') ?>
           </button>
-          <button type="button" name="archiveBtn" value="Archive" data-onclick-this="archiveEvents" disabled="disabled">
+          <button type="button" name="archiveBtn" value="Archive" data-on-click-this="archiveEvents" disabled="disabled">
           <?php echo translate('Archive') ?>
           </button>
-          <button type="button" name="unarchiveBtn" value="Unarchive" data-onclick-this="unarchiveEvents" disabled="disabled">
+          <button type="button" name="unarchiveBtn" value="Unarchive" data-on-click-this="unarchiveEvents" disabled="disabled">
           <?php echo translate('Unarchive') ?>
           </button>
-          <button type="button" name="editBtn" value="Edit" data-onclick-this="editEvents" disabled="disabled">
+          <button type="button" name="editBtn" value="Edit" data-on-click-this="editEvents" disabled="disabled">
           <?php echo translate('Edit') ?>
           </button>
-          <button type="button" name="exportBtn" value="Export" data-onclick-this="exportEvents" disabled="disabled">
+          <button type="button" name="exportBtn" value="Export" data-on-click-this="exportEvents" disabled="disabled">
           <?php echo translate('Export') ?>
           </button>
-          <button type="button" name="downloadBtn" value="DownloadVideo" data-onclick-this="downloadVideo" disabled="disabled">
+          <button type="button" name="downloadBtn" value="DownloadVideo" data-on-click-this="downloadVideo" disabled="disabled">
           <?php echo translate('DownloadVideo') ?>
           </button>
-          <button type="button" name="deleteBtn" value="Delete" data-onclick-this="deleteEvents" disabled="disabled">
+          <button type="button" name="deleteBtn" value="Delete" data-on-click-this="deleteEvents" disabled="disabled">
           <?php echo translate('Delete') ?>
           </button>
         </div>

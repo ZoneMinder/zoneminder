@@ -936,7 +936,7 @@ function initPage() {
       console.log("No canvas found for monitor " + monitor_id);
       continue;
     }
-    monitor_canvas.addEventListener('click',clickMonitor,false);
+    monitor_canvas.addEventListener('click', clickMonitor, false);
   }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw

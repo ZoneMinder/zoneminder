@@ -162,12 +162,12 @@ function initPage() {
   if ( window.history.length == 1 ) {
     $j('#controls').children().eq(0).html('');
   }
-  $j('.colThumbnail img').each(function(){
-    this.addEventListener('mouseover',thumbnail_onmouseover,false);
-    this.addEventListener('mouseout',thumbnail_onmouseout,false);
+  $j('.colThumbnail img').each(function() {
+    this.addEventListener('mouseover', thumbnail_onmouseover, false);
+    this.addEventListener('mouseout', thumbnail_onmouseout, false);
   });
-  $j('input[name=markEids\\[\\]]').each(function(){
-    this.addEventListener('click',configureButton,false);
+  $j('input[name=markEids\\[\\]]').each(function() {
+    this.addEventListener('click', configureButton, false);
   });
 }
 

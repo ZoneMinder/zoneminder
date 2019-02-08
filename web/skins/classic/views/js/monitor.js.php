@@ -133,9 +133,9 @@ function validateForm( form ) {
 
   if ( errors.length ) {
     alert( errors.join( "\n" ) );
-    return( false );
+    return false;
   }
-  return( true );
+  return true;
 }
 
 function updateLinkedMonitors( element ) {

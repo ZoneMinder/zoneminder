@@ -108,8 +108,8 @@ if ( ! $monitor ) {
           'EventPrefix' => 'Event-',
           'AnalysisFPSLimit' => '',
           'AnalysisUpdateDelay' => 0,
-          'MaxFPS' => '30',
-          'AlarmMaxFPS' => '30',
+          'MaxFPS' => null,
+          'AlarmMaxFPS' => null,
           'FPSReportInterval' => 100,
           'RefBlendPerc' => 6,
           'AlarmRefBlendPerc' => 6,
@@ -1044,7 +1044,7 @@ if ( $monitor->Type() == 'Local' ) {
         </table>
         <div id="contentButtons">
           <button type="submit" value="Save"<?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
-          <button data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

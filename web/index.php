@@ -224,7 +224,7 @@ if ( ZM_OPT_USE_AUTH and !isset($user) ) {
   Logger::Debug('Redirecting to login');
   $view = 'login';
   $request = null;
-} else if ( ZM_SHOW_PRIVACY && ($action != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
+} else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   Logger::Debug('Redirecting to privacy');
   $view = 'privacy';
   $request = null;

@@ -281,13 +281,13 @@ for ( $i=0; $i < count($terms); $i++ ) {
     } else {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo $term['val'] ?>"/></td>
+              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo validHtmlStr($term['val']) ?>"/></td>
 <?php
     }
   } else {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?$term['val']:'' ?>"/></td>
+              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/></td>
 <?php
   }
 ?>

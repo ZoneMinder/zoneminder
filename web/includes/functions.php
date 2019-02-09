@@ -56,6 +56,7 @@ function CSPHeaders($view, $nonce) {
     case 'download':
     case 'error':
     case 'export':
+    case 'frame':
     case 'function':
     case 'log':
     case 'logout':

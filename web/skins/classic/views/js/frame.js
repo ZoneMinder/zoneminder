@@ -30,4 +30,10 @@ function changeScale() {
   });
 }
 
-if (scale == 'auto') $j(document).ready(changeScale);
+if (scale == 'auto') {
+  $j(document).ready(changeScale);
+}
+
+document.addEventListener('DOMContentLoaded', function onDCL() {
+  document.getElementById('scale').addEventListener('change', changeScale);
+});

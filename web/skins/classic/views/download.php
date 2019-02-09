@@ -47,10 +47,18 @@ if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
 $exportFormat = '';
 if (isset($_REQUEST['exportFormat'])) {
   if (!in_array($_REQUEST['exportFormat'], array('zip', 'tar'))) {
-    Error("Invalid exportFormat");
+    Error('Invalid exportFormat');
     return;
   }
   $exportFormat = $_REQUEST['exportFormat'];
+}
+
+if (!empty($_REQUEST['eid'])) {
+  $Event = new Event( $_REQUEST['eid'] );
+  if (!$Event->Id) {
+    Error('Invalid event id');
+    return;
+  }
 }
 
 $focusWindow = true;
@@ -72,8 +80,7 @@ if ( !empty($_REQUEST['eid']) ) {
 ?>
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
     <?php
-    $Event = new Event( $_REQUEST['eid'] );
-    echo 'Downloading event ' . $_REQUEST['eid'] . ' Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
+    echo 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
 } else if ( !empty($_REQUEST['eids']) ) {
     $total_size = 0;
     foreach ( $_REQUEST['eids'] as $eid ) {
@@ -126,7 +133,7 @@ if ( !empty($_REQUEST['eid']) ) {
     }
     if ( !empty($_REQUEST['generated']) ) {
 ?>
-      <h3 id="downloadLink"><a href="?view=archive&type=<?php echo $exportFormat; ?>"><?php echo translate('Download') ?></a></h3>
+      <h3 id="downloadLink"><a href="?view=archive&amp;type=<?php echo $exportFormat; ?>"><?php echo translate('Download') ?></a></h3>
 <?php
     }
 ?>

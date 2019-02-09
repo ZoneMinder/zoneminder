@@ -455,7 +455,10 @@ function Error( $string ) {
 
 function Fatal( $string ) {
   Logger::fetch()->logPrint( Logger::FATAL, $string );
-  die( htmlentities($string) );
+  if (Logger::fetch()->debugOn()) {
+    echo(htmlentities($string));
+  }
+  exit(1);
 }
 
 function Panic( $string ) {

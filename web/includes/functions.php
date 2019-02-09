@@ -496,7 +496,6 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
 }
 
 function htmlSelect( $name, $contents, $values, $behaviours=false ) {
-
   $behaviourText = '';
   if ( !empty($behaviours) ) {
     if ( is_array($behaviours) ) {
@@ -537,7 +536,7 @@ function htmlOptions($contents, $values) {
     $options_html .= "<option value=\"$value\"".
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      ">$text</option>";
+      ">".htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false)."</option>";
   }
   return $options_html;
 }

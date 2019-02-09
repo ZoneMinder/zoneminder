@@ -53,6 +53,7 @@ function CSPHeaders($view, $nonce) {
     case 'controlcap':
     case 'cycle':
     case 'donate':
+    case 'download':
     case 'error':
     case 'function':
     case 'log':

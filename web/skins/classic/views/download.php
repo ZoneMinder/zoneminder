@@ -44,6 +44,15 @@ if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
 #Logger::Debug("NO montageReviewFilter");
 }
 
+$exportFormat = '';
+if (isset($_REQUEST['exportFormat'])) {
+  if (!in_array($_REQUEST['exportFormat'], array('zip', 'tar'))) {
+    Error("Invalid exportFormat");
+    return;
+  }
+  $exportFormat = $_REQUEST['exportFormat'];
+}
+
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Download') );
@@ -88,15 +97,15 @@ if ( !empty($_REQUEST['eid']) ) {
             <tr>
               <th scope="row"><?php echo translate('ExportFormat') ?></th>
               <td>
-                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar" data-on-click-this="configureExportButton"/>
+                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar"/>
                 <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>
-                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked" data-on-click-this="configureExportButton"/>
+                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked"/>
                 <label for="exportFormatZip"><?php echo translate('ExportFormatZip') ?></label>
               </td>
             </tr>
           </tbody>
         </table>
-        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('GenerateDownload') ?>" onclick="exportEvent(this.form);" />
+        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('GenerateDownload') ?>" />
       </form>
     </div>
 <?php
@@ -117,7 +126,7 @@ if ( !empty($_REQUEST['eid']) ) {
     }
     if ( !empty($_REQUEST['generated']) ) {
 ?>
-      <h3 id="downloadLink"><a href="<?php echo validHtmlStr($_REQUEST['exportFile']) ?>"><?php echo translate('Download') ?></a></h3>
+      <h3 id="downloadLink"><a href="?view=archive&type=<?php echo $exportFormat; ?>"><?php echo translate('Download') ?></a></h3>
 <?php
     }
 ?>

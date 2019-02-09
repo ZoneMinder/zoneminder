@@ -34,7 +34,7 @@ xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Group') ?> - <?php echo $newGroup->Name() ?></h2>
+      <h2><?php echo translate('Group') ?> - <?php echo validHtmlStr($newGroup->Name()); ?></h2>
     </div>
     <div id="content">
       <form name="groupForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">

@@ -126,6 +126,11 @@ function createPopup( url, name, tag, width, height ) {
   }
 }
 
+// Polyfill for NodeList.prototype.forEach on IE.
+if (window.NodeList && !NodeList.prototype.forEach) {
+  NodeList.prototype.forEach = Array.prototype.forEach;
+}
+
 window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   document.querySelectorAll("form.validateFormOnSubmit").forEach(function(el) {
     el.addEventListener("submit", function onSubmit(evt) {

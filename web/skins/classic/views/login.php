@@ -16,7 +16,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
 
 			<div id="loginform">
 
-        <h1><i class="material-icons md-36">account_circle</i> <?php echo ZM_WEB_TITLE . ' ' . translate('Login') ?></h1>
+        <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
 	
 				<label for="inputUsername" class="sr-only"><?php echo translate('Username') ?></label>
 				<input type="text" id="inputUsername" name="username" class="form-control" placeholder="Username" required autofocus />

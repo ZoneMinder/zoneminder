@@ -901,8 +901,19 @@ function actQuery( action, parms ) {
 
 function deleteEvent() {
   pauseClicked(); //Provides visual feedback that your click happened.
-  actQuery( 'delete' );
-  streamNext( true );
+
+  var deleteReq = new Request.JSON({
+    url: thisUrl,
+    method: 'post',
+    timeout: AJAX_TIMEOUT,
+    onSuccess: function onDeleteSuccess(respObj, respText) {
+      getActResponse(respObj, respText);
+      // We must wait for the deletion to happen before navigating to the next
+      // event or this request will be cancelled.
+      streamNext( true );
+    },
+  });
+  deleteReq.send("view=request&request=event&id="+eventData.Id+"&action=delete");
 }
 
 function renameEvent() {

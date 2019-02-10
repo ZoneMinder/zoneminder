@@ -290,7 +290,7 @@ function csrf_callback($tokens) {
         <p>CSRF check failed. Your form session may have expired, or you may not have
         cookies enabled.</p>";
     if (ZM_LOG_DEBUG) {
-      // Don't make it too easy for users to inflict a CSRF attach on themselves.
+      // Don't make it too easy for users to inflict a CSRF attack on themselves.
       echo "<p><strong>Only try again if you weren't sent to this page by someone as this is potentially a sign of an attack.</strong></p>";
       echo "<form method='post' action=''>$data<input type='submit' value='Try again' /></form>";
     }

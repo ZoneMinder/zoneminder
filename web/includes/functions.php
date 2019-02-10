@@ -53,7 +53,11 @@ function CSPHeaders($view, $nonce) {
     case 'controlcap':
     case 'cycle':
     case 'donate':
+    case 'download':
     case 'error':
+    case 'events':
+    case 'export':
+    case 'frame':
     case 'function':
     case 'log':
     case 'logout':
@@ -290,7 +294,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
 
 function outputControlStream( $src, $width, $height, $monitor, $scale, $target ) {
 ?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+  <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
@@ -360,7 +364,7 @@ function getWebSiteUrl( $id, $src, $width, $height, $title='' ) {
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
   ?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+  <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
@@ -494,7 +498,6 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
 }
 
 function htmlSelect( $name, $contents, $values, $behaviours=false ) {
-
   $behaviourText = '';
   if ( !empty($behaviours) ) {
     if ( is_array($behaviours) ) {
@@ -532,10 +535,10 @@ function htmlOptions($contents, $values) {
       $text = $option;
     }
     $selected = is_array($values) ? in_array($value, $values) : !strcmp($value, $values);
-    $options_html .= "<option value=\"$value\"".
+    $options_html .= "<option value=\"".htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false)."\"".
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      ">$text</option>";
+      ">".htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false)."</option>";
   }
   return $options_html;
 }
@@ -610,7 +613,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         {
           if ( is_array($newValues[$key]) ) {
             if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
-              $changes[$key] = "`$key` = ".dbEscape(join(',',$newValues[$key]));
+              $changes[$key] = "`$key` = '".dbEscape(join(',',$newValues[$key]))."'";
             }
           } else if ( (!isset($values[$key])) or $values[$key] ) {
             $changes[$key] = "`$key` = ''";
@@ -1083,7 +1086,7 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
     $_SESSION['sort_asc'] = validHtmlStr($_REQUEST['sort_asc']);
   }
   if ($_REQUEST['limit'] != '') {
-    $limitQuery = "&limit=".$_REQUEST['limit'];
+    $limitQuery = "&limit=".validInt($_REQUEST['limit']);
   }
 }
 
@@ -1424,7 +1427,7 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
 
 function sortHeader( $field, $querySep='&amp;' ) {
   global $view;
-  return( '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.$_REQUEST['limit'] );
+  return '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.validInt($_REQUEST['limit']);
 }
 
 function sortTag( $field ) {

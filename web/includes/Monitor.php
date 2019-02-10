@@ -331,6 +331,20 @@ private $control_fields = array(
     return $this->defaults{$field};
   } // end function Height
 
+  public function SignalCheckColour($new=null) {
+    $field = 'SignalCheckColour';
+    if ($new) {
+      $this->{$field} = $new;
+    }
+
+    // Validate that it's a valid colour (we seem to allow color names, not just hex).
+    // This also helps prevent XSS.
+    if (array_key_exists($field, $this) && preg_match('/^[#0-9a-zA-Z]+$/', $this->{$field})) {
+      return $this->{$field};
+    }
+    return $this->defaults{$field};
+  } // end function SignalCheckColour
+
   public function set($data) {
     foreach ($data as $k => $v) {
       if ( method_exists($this, $k) ) {

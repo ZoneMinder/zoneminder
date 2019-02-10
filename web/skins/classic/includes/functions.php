@@ -57,7 +57,7 @@ function xhtmlHeaders( $file, $title ) {
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title><?php echo ZM_WEB_TITLE_PREFIX ?> - <?php echo validHtmlStr($title) ?></title>
+  <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX); ?> - <?php echo validHtmlStr($title) ?></title>
 <?php
 if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
   echo "
@@ -207,7 +207,7 @@ function getBodyTopHTML() {
 <body>
 <noscript>
 <div style="background-color:red;color:white;font-size:x-large;">
-'. ZM_WEB_TITLE .' requires Javascript. Please enable Javascript in your browser for this site.
+'. validHtmlStr(ZM_WEB_TITLE) .' requires Javascript. Please enable Javascript in your browser for this site.
 
 </div>
 </noscript>
@@ -254,7 +254,7 @@ function getNavBarHTML($reload = null) {
 				<span class="icon-bar"></span>
 				<span class="icon-bar"></span>
 			</button>
-      <div class="navbar-brand"><a href="<?php echo ZM_HOME_URL?>" target="<?php echo ZM_WEB_TITLE ?>"><?php echo ZM_HOME_CONTENT ?></a></div>
+      <div class="navbar-brand"><a href="<?php echo validHtmlStr(ZM_HOME_URL); ?>" target="<?php echo validHtmlStr(ZM_WEB_TITLE); ?>"><?php echo validHtmlStr(ZM_HOME_CONTENT); ?></a></div>
 		</div>
 
 		<div class="collapse navbar-collapse" id="main-header-nav">
@@ -383,7 +383,7 @@ if ($reload == 'reload') ob_start();
 ?></li>
   </ul>
     <?php if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) { ?>
-        <h3 id="development"><?php echo ZM_WEB_CONSOLE_BANNER ?></h3>
+        <h3 id="development"><?php echo validHtmlStr(ZM_WEB_CONSOLE_BANNER); ?></h3>
     <?php } ?>	
 <!-- End .footer/reload --></div>
 <?php

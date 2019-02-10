@@ -63,7 +63,7 @@ if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) ) {
 <?php
 } else {
 ?>
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="version"/>
         <p><?php echo translate('UpdateAvailable') ?></p>

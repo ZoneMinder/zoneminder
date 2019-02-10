@@ -4,7 +4,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
 <body>
 <?php echo getNavBarHTML(); ?>
 	<div class="container">
-		<form class="center-block" name="loginForm" id="loginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+		<form class="center-block" name="loginForm" id="loginForm" method="post" action="?">
 			<input type="hidden" name="action" value="login"/>
 			<input type="hidden" name="view" value="login"/>
 			<input type="hidden" name="postLoginQuery" value="<?php echo htmlspecialchars($_SERVER['QUERY_STRING']) ?>">
@@ -16,7 +16,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
 
 			<div id="loginform">
 
-        <h1><i class="material-icons md-36">account_circle</i> <?php echo ZM_WEB_TITLE . ' ' . translate('Login') ?></h1>
+        <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
 	
 				<label for="inputUsername" class="sr-only"><?php echo translate('Username') ?></label>
 				<input type="text" id="inputUsername" name="username" class="form-control" placeholder="Username" required autofocus autocomplete="username"/>

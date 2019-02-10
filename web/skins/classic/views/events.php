@@ -100,7 +100,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
     <div id="header">
       <div id="info">
         <h2><?php echo sprintf($CLANG['EventCount'], $nEvents, zmVlang($VLANG['Event'], $nEvents)) ?></h2>
-        <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
+        <a id="refreshLink" href="#"><?php echo translate('Refresh') ?></a>
       </div>
       <div id="pagination">
 <?php
@@ -125,7 +125,7 @@ if ( $pages > 1 ) {
 ?>
       </div>
       <div id="controls">
-        <a href="#" onclick="window.history.back();return false;"><?php echo translate('Back') ?></a>
+        <a href="#" id="backLink"><?php echo translate('Back') ?></a>
         <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
       </div>
     </div>

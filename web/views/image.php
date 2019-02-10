@@ -77,7 +77,17 @@ if ( empty($_REQUEST['path']) ) {
       return;
     }
 
-    if ( $_REQUEST['fid'] == 'alarm' ) {
+    if ( $_REQUEST['fid'] == 'objdetect' ) {
+        $Event = new Event($_REQUEST['eid']);
+        $path = $Event->Path().'/objdetect.jpg';
+        unset($Event); # we don't want event object related processing later for this case
+        if ( !file_exists($path)) {
+        header('HTTP/1.0 404 Not Found');
+        Fatal("File ".$path." does not exist. Please make sure store_frame_in_zm is enabled in the object detection config");
+      }
+      
+    }
+    else if ( $_REQUEST['fid'] == 'alarm' ) {
       # look for first alarmed frame
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
                                array('order'=>'FrameId ASC'));
@@ -220,6 +230,7 @@ if ( empty($_REQUEST['path']) ) {
   }
 }
 
+# we now load the actual image to send
 $scale = 0;
 if ( !empty($_REQUEST['scale']) ) {
   if ( is_numeric($_REQUEST['scale']) ) {

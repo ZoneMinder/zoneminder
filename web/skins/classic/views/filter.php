@@ -159,7 +159,7 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
   <div id="page">
 <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
-      <form name="selectForm" id="selectForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="selectForm" id="selectForm" method="get" action="?">
         <input type="hidden" name="view" value="filter"/>
         <hr/>
         <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
@@ -188,7 +188,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
-          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>" oninput="updateButtons(this);"/>
+          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" oninput="updateButtons(this);"/>
         </p>
         <table id="fieldsTable" class="filterTable">
           <tbody>
@@ -281,13 +281,13 @@ for ( $i=0; $i < count($terms); $i++ ) {
     } else {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo $term['val'] ?>"/></td>
+              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo validHtmlStr($term['val']) ?>"/></td>
 <?php
     }
   } else {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?$term['val']:'' ?>"/></td>
+              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/></td>
 <?php
   }
 ?>
@@ -385,7 +385,7 @@ if ( ZM_OPT_MESSAGE ) {
             <p>
               <label><?php echo translate('FilterExecuteEvents') ?></label>
               <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
-              <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?$filter->AutoExecuteCmd():'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
+              <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?validHtmlStr($filter->AutoExecuteCmd()):'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
             <p>
               <label><?php echo translate('FilterDeleteEvents') ?></label>

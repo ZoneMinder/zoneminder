@@ -167,12 +167,20 @@ function initPage() {
   if ( window.history.length == 1 ) {
     $j('#controls').children().eq(0).html('');
   }
-  $j('.colThumbnail img').each(function(){
-    this.addEventListener('mouseover',thumbnail_onmouseover,false);
-    this.addEventListener('mouseout',thumbnail_onmouseout,false);
+  $j('.colThumbnail img').each(function() {
+    this.addEventListener('mouseover', thumbnail_onmouseover, false);
+    this.addEventListener('mouseout', thumbnail_onmouseout, false);
   });
-  $j('input[name=eids\\[\\]]').each(function(){
-    this.addEventListener('click',configureButton,false);
+  $j('input[name=eids\\[\\]]').each(function() {
+    this.addEventListener('click', configureButton, false);
+  });
+  document.getElementById("refreshLink").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+  document.getElementById("backLink").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
   });
 }
 

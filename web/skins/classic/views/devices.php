@@ -40,7 +40,7 @@ xhtmlHeaders(__FILE__, translate('Devices') );
       <h2><?php echo translate('Devices') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="device"/>
         <input type="hidden" name="key" value=""/>

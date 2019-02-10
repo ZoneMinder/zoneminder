@@ -37,7 +37,7 @@ xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
       <h2><?php echo translate('Group') ?> - <?php echo validHtmlStr($newGroup->Name()); ?></h2>
     </div>
     <div id="content">
-      <form name="groupForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="groupForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="gid" value="<?php echo $newGroup->Id() ?>"/>
         <table id="contentTable" class="major">

@@ -4,7 +4,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
 <body>
 <?php echo getNavBarHTML(); ?>
 	<div class="container">
-		<form class="center-block" name="loginForm" id="loginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+		<form class="center-block" name="loginForm" id="loginForm" method="post" action="?">
 			<input type="hidden" name="action" value="login"/>
 			<input type="hidden" name="view" value="login"/>
 			<input type="hidden" name="postLoginQuery" value="<?php echo htmlspecialchars($_SERVER['QUERY_STRING']) ?>">

@@ -74,7 +74,7 @@ xhtmlHeaders(__FILE__, translate('Download') );
       <h2><?php echo translate('Download') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
 <?php
 if ( !empty($_REQUEST['eid']) ) {
 ?>

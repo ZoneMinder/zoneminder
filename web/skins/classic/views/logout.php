@@ -28,7 +28,7 @@ xhtmlHeaders(__FILE__, translate('Logout') );
       <h1><?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Logout') ?></h1>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="action" value="logout"/>
         <input type="hidden" name="view" value="logout"/>
         <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>

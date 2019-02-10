@@ -18,8 +18,7 @@
       }
 			?>";
 
-		//var newUrl = thisUrl + querySuffix;
-    var newUrl = '<?php echo $_SERVER['PHP_SELF'] ?>' + querySuffix;
+    var newUrl = querySuffix;
 console.log("Redirecting to" + newUrl + ' ' + thisUrl);
 		window.location.replace(newUrl);
 	}

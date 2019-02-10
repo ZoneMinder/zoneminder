@@ -159,7 +159,7 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
   <div id="page">
 <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
-      <form name="selectForm" id="selectForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="selectForm" id="selectForm" method="get" action="?">
         <input type="hidden" name="view" value="filter"/>
         <hr/>
         <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>

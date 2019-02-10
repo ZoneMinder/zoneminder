@@ -61,7 +61,7 @@ xhtmlHeaders(__FILE__, translate('User').' - '.$newUser['Username']);
       <h2><?php echo translate('User').' - '.validHtmlStr($newUser['Username']); ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this, <?php echo empty($newUser['Password'])?'true':'false' ?> )">
+      <form name="contentForm" method="post" action="?" onsubmit="return validateForm( this, <?php echo empty($newUser['Password'])?'true':'false' ?> )">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="user"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($_REQUEST['uid']) ?>"/>

@@ -107,7 +107,7 @@ function pLang($name)
       <h2><?php echo translate('Monitor') ?> <?php echo $monitor['Name'] ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?> - <?php echo translate('Plugin') ?> <?php echo validHtmlStr($plugin) ?></h2>
     </div>
     <div id="content">
-      <form name="pluginForm" id="pluginForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="pluginForm" id="pluginForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="plugin"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>

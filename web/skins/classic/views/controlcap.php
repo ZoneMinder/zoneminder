@@ -183,7 +183,7 @@ foreach ( $tabs as $name=>$value )
 ?>
       </ul>
       <div class="clear"></div>
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" class="validateFormOnSubmit">
+      <form name="contentForm" id="contentForm" method="post" action="?" class="validateFormOnSubmit">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="controlcap"/>

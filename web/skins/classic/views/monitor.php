@@ -517,7 +517,7 @@ foreach ( $tabs as $name=>$value ) {
   ?>
     </ul>
     <div class="clear"></div>
-    <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="if(validateForm(this)){$j('#contentButtons').hide();return true;}else{return false;};">
+    <form name="contentForm" id="contentForm" method="post" action="?" onsubmit="if(validateForm(this)){$j('#contentButtons').hide();return true;}else{return false;};">
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
       <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
       <input type="hidden" name="action" value="monitor"/>

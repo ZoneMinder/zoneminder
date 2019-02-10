@@ -234,7 +234,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
 <body>
   <div id="page">
   <?php echo getNavBarHTML() ?>
-  <form id="montagereview_form" action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
+  <form id="montagereview_form" action="?" method="get">
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">&nbsp;&nbsp;
     <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>

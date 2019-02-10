@@ -169,6 +169,14 @@ function initPage() {
   $j('input[name=markEids\\[\\]]').each(function() {
     this.addEventListener('click', configureButton, false);
   });
+  document.getElementById("refreshLink").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+  document.getElementById("backLink").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
 }
 
 $j(document).ready(initPage);

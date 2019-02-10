@@ -462,7 +462,7 @@ if ( canEdit( 'Monitors' ) ) {
   if ( isset ($_REQUEST['dupId'])) {
 ?>
     <div class="alert alert-info">
-      Configuration cloned from Monitor: <?php echo $clonedName ?>
+      Configuration cloned from Monitor: <?php echo validHtmlStr($clonedName) ?>
     </div>
 <?php
   }
@@ -724,7 +724,7 @@ switch ( $tab ) {
       foreach ( $monitors as $linked_monitor ) {
         if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor( $linked_monitor['Id'] ) ) {
 ?>
-              <option value="<?php echo $linked_monitor['Id'] ?>"<?php if ( array_key_exists( $linked_monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($linked_monitor['Name']) ?></option>
+              <option value="<?php echo validHtmlStr($linked_monitor['Id']); ?>"<?php if ( array_key_exists( $linked_monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($linked_monitor['Name']) ?></option>
 <?php
         }
       }
@@ -835,7 +835,7 @@ echo htmlOptions(Group::get_dropdown_options( ), $monitor->GroupIds() );
             <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( $monitor->V4LMultiBuffer() ? 'checked="checked"' : '' ) ?>/>
             <label for="newMonitor[V4LMultiBuffer]">Use Config Value</label>
           </td></tr>
-          <tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo $monitor->V4LCapturesPerFrame()?>"/></td></tr>
+          <tr><td><?php echo translate('V4LCapturesPerFrame') ?></td><td><input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo validHtmlStr($monitor->V4LCapturesPerFrame()); ?>"/></td></tr>
 <?php
       
       } else if ( $monitor->Type() == 'NVSocket' ) {
@@ -873,7 +873,7 @@ include('_monitor_source_nvsocket.php');
           <tr><td><?php echo translate('WebSiteUrl') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" size="36"/></td></tr>
           <tr><td><?php echo translate('Width') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4";"/></td></tr>
         <tr><td><?php echo translate('Height') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4";"/></td></tr>
-        <tr><td><?php echo 'Web Site Refresh (Optional)' ?></td><td><input type="number" name="newMonitor[Refresh]" value="<?php echo $monitor->Refresh()?>"/></td></tr>
+        <tr><td><?php echo 'Web Site Refresh (Optional)' ?></td><td><input type="number" name="newMonitor[Refresh]" value="<?php echo validHtmlStr($monitor->Refresh()); ?>"/></td></tr>
 <?php
       } elseif ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
 ?>
@@ -897,11 +897,11 @@ if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
       } 
 if ( $monitor->Type() == 'Local' ) {
 ?>
-            <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo validHtmlStr($value); ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($name); ?></option><?php } ?></select></td></tr>
             <?php
         } else if ( $monitor->Type() != 'WebSite' ) {
 ?>
-            <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts as $name => $value ) { ?><option value="<?php echo validHtmlStr($value); ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($name); ?></option><?php } ?></select></td></tr>
 <?php
         }
       ?>
@@ -915,7 +915,7 @@ if ( $monitor->Type() == 'Local' ) {
     }
   case 'storage' :
 ?>
-            <tr><td><?php echo translate('SaveJPEGs') ?></td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->SaveJPEGs() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('SaveJPEGs') ?></td><td><select name="newMonitor[SaveJPEGs]"><?php foreach ( $savejpegopts as $name => $value ) { ?><option value="<?php echo validHtmlStr($value); ?>"<?php if ( $value == $monitor->SaveJPEGs() ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($name); ?></option><?php } ?></select></td></tr>
             <tr><td><?php echo translate('VideoWriter') ?></td><td>
 <?php 
 	$videowriteropts = array(
@@ -953,7 +953,7 @@ if ( $monitor->Type() == 'Local' ) {
             <tr><td><?php echo translate('TimestampLabelFormat') ?></td><td><input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>" size="32"/></td></tr>
             <tr><td><?php echo translate('TimestampLabelX') ?></td><td><input type="text" name="newMonitor[LabelX]" value="<?php echo validHtmlStr($monitor->LabelX()) ?>" size="4"/></td></tr>
             <tr><td><?php echo translate('TimestampLabelY') ?></td><td><input type="text" name="newMonitor[LabelY]" value="<?php echo validHtmlStr($monitor->LabelY()) ?>" size="4"/></td></tr>
-            <tr><td><?php echo translate('TimestampLabelSize') ?></td><td><select name="newMonitor[LabelSize]"><?php foreach ( $label_size as $name => $value ) { ?><option value="<?php echo $value ?>"<?php if ( $value == $monitor->LabelSize() ) { ?> selected="selected"<?php } ?>><?php echo $name ?></option><?php } ?></select></td></tr>
+            <tr><td><?php echo translate('TimestampLabelSize') ?></td><td><select name="newMonitor[LabelSize]"><?php foreach ( $label_size as $name => $value ) { ?><option value="<?php echo validHtmlStr($value); ?>"<?php if ( $value == $monitor->LabelSize() ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($name); ?></option><?php } ?></select></td></tr>
 <?php
       break;
     }

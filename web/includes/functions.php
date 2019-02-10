@@ -535,7 +535,7 @@ function htmlOptions($contents, $values) {
       $text = $option;
     }
     $selected = is_array($values) ? in_array($value, $values) : !strcmp($value, $values);
-    $options_html .= "<option value=\"$value\"".
+    $options_html .= "<option value=\"".htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false)."\"".
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
       ">".htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false)."</option>";

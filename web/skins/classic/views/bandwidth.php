@@ -44,7 +44,7 @@ xhtmlHeaders(__FILE__, translate('Bandwidth') );
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="get" action="?">
-        <input type="hidden" name="view" value="none"/>
+        <input type="hidden" name="view" value="bandwidth"/>
         <input type="hidden" name="action" value="bandwidth"/>
         <p><?php echo translate('SetNewBandwidth') ?></p>
         <p><?php echo buildSelect( "newBandwidth", $bandwidth_options ) ?></p>

@@ -477,7 +477,10 @@ function Panic( $string ) {
     }
   }
   Logger::fetch()->logPrint( Logger::PANIC, $string.$backtrace );
-  die( $string );
+  if (Logger::fetch()->debugOn()) {
+    echo $string;
+  }
+  exit(1);
 }
 
 function ErrorHandler( $error, $string, $file, $line ) {

@@ -375,7 +375,7 @@ our @options = (
       this, the attacker must write a very specific web page and get
       you to navigate to it, while you are logged into the ZoneMinder
       web console at the same time. Enabling ZM_ENABLE_CSRF_MAGIC will
-      help mitigate these kinds of attackes.
+      help mitigate these kinds of attacks.
       `,
     type        => $types{boolean},
     category    => 'system',

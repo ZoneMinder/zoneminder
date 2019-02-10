@@ -95,7 +95,7 @@ if ( ! empty($user['MonitorIds']) ) {
 }
 
 $html .= '<span class="MonitorNameFilter"><label>'.translate('Name').'</label>';
-$html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?$_SESSION['MonitorName']:'').'" placeholder="text or regular expression"/>';
+$html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="text or regular expression"/>';
 $html .= '</span>';
 
 $Functions = array();
@@ -160,7 +160,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
   $html .= '</span>';
 
   $html .= '<span class="SourceFilter"><label>'.translate('Source').'</label>';
-  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?$_SESSION['Source']:'').'" placeholder="text or regular expression"/>';
+  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?validHtmlStr($_SESSION['Source']):'').'" placeholder="text or regular expression"/>';
   $html .= '</span>';
 
   $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS, S.AnalysisFPS AS AnalysisFPS, S.CaptureBandwidth AS CaptureBandwidth

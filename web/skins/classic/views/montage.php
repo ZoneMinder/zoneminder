@@ -176,7 +176,7 @@ if ( $showZones ) {
           </span> 
           <span id="layoutControl">
             <label for="layout"><?php echo translate('Layout') ?>:</label>
-            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('onchange'=>'selectLayout(this);', 'id'=>'zmMontageLayout')); ?>
+            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('onchange'=>'selectLayout(this);')); ?>
           </span>
           <input type="hidden" name="Positions"/>
           <input type="button" id="EditLayout" value="<?php echo translate('EditLayout') ?>" data-on-click-this="edit_layout"/>

@@ -294,7 +294,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
 
 function outputControlStream( $src, $width, $height, $monitor, $scale, $target ) {
 ?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+  <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
@@ -364,7 +364,7 @@ function getWebSiteUrl( $id, $src, $width, $height, $title='' ) {
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
   ?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+  <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">

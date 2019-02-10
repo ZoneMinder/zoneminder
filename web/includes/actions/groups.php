@@ -43,7 +43,7 @@ if ( $action == 'delete' ) {
       $Group->delete();
     }
   }
-  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=groups';
+  $redirect = '?view=groups';
   $refreshParent = true;
 } # end if action
 ?>

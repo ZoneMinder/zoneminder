@@ -89,7 +89,7 @@ if ( $action == 'delete' ) {
     case 'lowband' :
       break;
     }
-    $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=options&tab='.$_REQUEST['tab'];
+    $redirect = '?view=options&tab='.$_REQUEST['tab'];
   }
   loadConfig(false);
   return;

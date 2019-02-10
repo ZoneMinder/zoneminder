@@ -11,6 +11,7 @@ assignees: ''
 - Version of ZoneMinder [release version, development version, or commit]
 - How you installed ZoneMinder [e.g. PPA, RPMFusion, from-source, etc]
 - Full name and version of OS
+- Browser name and version (if this is an issue with the web interface)
 
 **If the issue concerns a camera**
 - Make and Model

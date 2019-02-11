@@ -40,8 +40,7 @@ class MonitorsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      //$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
-      $conditions = $this->request->params['named'];
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
     } else {
       $conditions = array();
     }
@@ -313,6 +312,10 @@ class MonitorsController extends AppController {
 
     if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
+    }
+
+    if (preg_match('/^[a-z]+$/i', $daemon) !== 1) {
+      throw new BadRequestException(__('Invalid command'));
     }
 
     $monitor = $this->Monitor->find('first', array(

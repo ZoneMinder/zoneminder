@@ -44,9 +44,8 @@ class EventsController extends AppController {
     }
 
     if ( $this->request->params['named'] ) {
-      //$this->FilterComponent = $this->Components->load('Filter');
-      //$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
-      $conditions = $this->request->params['named'];
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
     } else {
       $conditions = array();
     }

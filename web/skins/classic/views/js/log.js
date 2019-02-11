@@ -67,10 +67,10 @@ function logResponse( respObj ) {
 
               // Manually create table cells by setting the text since `push` will set HTML which
               // can lead to XSS.
-              let messageCell = new Element('td');
+              var messageCell = new Element('td');
               messageCell.set('text', log.Message);
 
-              let fileCell = new Element('td');
+              var fileCell = new Element('td');
               fileCell.set('text', log.File);
 
               var row = logTable.push( [{content: log.DateTime, properties: {style: 'white-space: nowrap'}}, log.Component, log.Server, log.Pid, log.Code, messageCell, fileCell, log.Line] );

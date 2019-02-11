@@ -258,10 +258,11 @@ function getNavBarHTML($reload = null) {
 		</div>
 
 		<div class="collapse navbar-collapse" id="main-header-nav">
-<?php if ( canView('Monitors') ) { ?>
 		<ul class="nav navbar-nav">
+<?php if ( canView('Monitors') ) { ?>
 			<li><a href="?view=console"><?php echo translate('Console') ?></a></li>
-<?php if ( canView( 'System' ) ) { ?>
+<?php } // end if canView('Monitors') ?>
+<?php if ( canView('System') ) { ?>
 			<li><a href="?view=options"><?php echo translate('Options') ?></a></li>
 			<li>
 <?php
@@ -275,14 +276,14 @@ function getNavBarHTML($reload = null) {
 } // end if canview(System)
 ?></li>
 <?php
-if ( ZM_OPT_X10 && canView( 'Devices' ) ) { ?>
+if ( ZM_OPT_X10 && canView('Devices') ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
 <li><a href="?view=groups"<?php echo $view=='groups'?' class="selected"':''?>><?php echo translate('Groups') ?></a></li>
       <li><a href="?view=filter<?php echo $filterQuery.$sortQuery.$limitQuery ?>"<?php echo $view=='filter'?' class="selected"':''?>><?php echo translate('Filters') ?></a></li>
 
 <?php 
-  if ( canView( 'Stream' ) ) {
+  if ( canView('Stream') ) {
 ?>
       <li><a href="?view=cycle"<?php echo $view=='cycle'?' class="selected"':''?>><?php echo translate('Cycle') ?></a></li>
       <li><a href="?view=montage"<?php echo $view=='montage'?' class="selected"':''?>><?php echo translate('Montage') ?></a></li>
@@ -295,44 +296,43 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
   $terms = $_REQUEST['filter']['Query']['terms'];
   $count = 0;
   foreach ($terms as $term) {
-    if ($term['attr'] == "StartDateTime") {
+    if ( $term['attr'] == 'StartDateTime' ) {
       $count += 1;
       if ($term['op'] == '>=') $minTime = $term['val'];
       if ($term['op'] == '<=') $maxTime = $term['val'];
     }
   }
-  if ($count == 2) {
+  if ( $count == 2 ) {
     $montageReviewQuery = '&minTime='.$minTime.'&maxTime='.$maxTime;
   }
 }
   if ( canView('Events') ) {
  ?>
-   <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
+      <li><a href="?view=montagereview<?php echo isset($montageReviewQuery)?'&fit=1'.$montageReviewQuery.'&live=0':'' ?>"<?php echo $view=='montagereview'?' class="selected"':''?>><?php echo translate('MontageReview')?></a></li>
 <?php
   }
 ?>
       <li><a href="?view=report_event_audit"<?php echo $view=='report_event_audit'?' class="selected"':''?>><?php echo translate('ReportEventAudit') ?></a></li>
       <li><a href="#"><span id="flip" class="glyphicon glyphicon-menu-<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up' ?> pull-right"></span></a></li>
 		</ul>
-<?php } // end if canView('Monitors') ?>
 
 <div class="navbar-right">
 <?php if ( ZM_OPT_USE_AUTH and $user ) { ?>
 	<p class="navbar-text"><i class="material-icons">account_circle</i> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
 <?php } ?>
 
-<?php if ( canEdit( 'System' ) ) { ?>
+<?php if ( canEdit('System') ) { ?>
 		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
 
-<?php } else if ( canView( 'System' ) ) { ?>
-		<p class="navbar-text"> <?php echo $status ?> </p>
+<?php } else if ( canView('System') ) { ?>
+		<p class="navbar-text"> <?php echo $status ?></p>
 <?php } ?>
 </div>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
   <div id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
-}//end reload null.  Runs on full page load
+} //end reload null.  Runs on full page load
 
 if ( (!ZM_OPT_USE_AUTH) or $user ) {
 if ($reload == 'reload') ob_start();
@@ -342,7 +342,7 @@ if ($reload == 'reload') ob_start();
       <?php echo makePopupLink( '?view=bandwidth', 'zmBandwidth', 'bandwidth', "<i class='material-icons md-18'>network_check</i>&nbsp;".$bandwidth_options[$_COOKIE['zmBandwidth']] . ' ', ($user && $user['MaxBandwidth'] != 'low' ) ) ?>
     </div>
     <div id="Version" class="pull-right">
-      <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit( 'System' ) ) ?>
+      <?php echo makePopupLink( '?view=version', 'zmVersion', 'version', '<span class="version '.$versionClass.'">v'.ZM_VERSION.'</span>', canEdit('System') ) ?>
     </div>
     <ul class="list-inline">
       <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
@@ -366,9 +366,9 @@ if ($reload == 'reload') ob_start();
   $func = function($S){
     $class = '';
     if ( $S->disk_usage_percent() > 98 ) {
-      $class = "error";
+      $class = 'error';
     } else if ( $S->disk_usage_percent() > 90 ) {
-      $class = "warning";
+      $class = 'warning';
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );

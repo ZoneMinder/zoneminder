@@ -219,7 +219,7 @@ function getBodyTopHTML() {
 } // end function getBodyTopHTML
 
 function getNavBarHTML($reload = null) {
-  # Provide a facility to turn off the headers if you put headers=0 into the url
+  # Provide a facility to turn off the headers if you put navbar=0 into the url
   if ( isset($_REQUEST['navbar']) and $_REQUEST['navbar']=='0' )
     return '';
 

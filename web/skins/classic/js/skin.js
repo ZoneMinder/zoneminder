@@ -155,8 +155,8 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       var tag = el.getAttribute("data-window-tag");
       var width = el.getAttribute("data-window-width");
       var height = el.getAttribute("data-window-height");
-      createPopup(url, name, tag, width, height);
       evt.preventDefault();
+      createPopup(url, name, tag, width, height);
     });
   });
 

@@ -233,17 +233,33 @@ class EventsController extends AppController {
 
   public function search() {
     $this->Event->recursive = -1;
+    // Unmodified conditions to pass to find()
+    $find_conditions = array();
+    // Conditions to be filtered by buildFilter
     $conditions = array();
 
     foreach ($this->params['named'] as $param_name => $value) {
-      // Transform params into mysql
-      if ( preg_match('/interval/i', $value, $matches) ) {
-        $condition = array("$param_name >= (date_sub(now(), $value))");
+      // Transform params into conditions
+      if ( preg_match('/^\s?interval\s?/i', $value) ) {
+        if (preg_match('/^[a-z0-9]+$/i', $param_name) !== 1) {
+          throw new Exception('Invalid field name: ' . $param_name);
+        }
+        $matches = NULL;
+        $value = preg_replace('/^\s?interval\s?/i', '', $value);
+        if (preg_match('/^(?P<expr>[ -.:0-9\']+)\s+(?P<unit>[_a-z]+)$/i', trim($value), $matches) !== 1) {
+          throw new Exception('Invalid interval: ' . $value);
+        }
+        $expr = trim($matches['expr']);
+        $unit = trim($matches['unit']);
+        array_push($find_conditions, "$param_name >= DATE_SUB(NOW(), INTERVAL $expr $unit)");
       } else {
-        $condition = array($param_name => $value);
+        $conditions[$param_name] = $value;
       }
-      array_push($conditions, $condition);
     }
+
+    $this->FilterComponent = $this->Components->load('Filter');
+    $conditions = $this->FilterComponent->buildFilter($conditions);
+    array_push($conditions, $find_conditions);
 
     $results = $this->Event->find('all', array(
       'conditions' => $conditions
@@ -260,18 +276,32 @@ class EventsController extends AppController {
   // consoleEvents/1 hour/AlarmFrames >=: 1/AlarmFrames <=: 20.json
 
   public function consoleEvents($interval = null) {
+    $matches = NULL;
+    // https://dev.mysql.com/doc/refman/5.5/en/expressions.html#temporal-intervals
+    // Examples: `'1-1' YEAR_MONTH`, `'-1 10' DAY_HOUR`, `'1.999999' SECOND_MICROSECOND`
+    if (preg_match('/^(?P<expr>[ -.:0-9\']+)\s+(?P<unit>[_a-z]+)$/i', trim($interval), $matches) !== 1) {
+      throw new Exception('Invalid interval: ' . $interval);
+    }
+    $expr = trim($matches['expr']);
+    $unit = trim($matches['unit']);
+
     $this->Event->recursive = -1;
     $results = array();
+    $this->FilterComponent = $this->Components->load('Filter');
+    $conditions = $this->FilterComponent->buildFilter($conditions);
+    array_push($conditions, array("StartTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
 
-    $moreconditions = '';
-    foreach ($this->request->params['named'] as $name => $param) {
-      $moreconditions = $moreconditions . ' AND '.$name.$param;
-    }  
-
-    $query = $this->Event->query("SELECT MonitorId, COUNT(*) AS Count FROM Events WHERE (StartTime >= (DATE_SUB(NOW(), interval $interval)) $moreconditions) GROUP BY MonitorId;");
+    $query = $this->Event->find('all', array(
+                                             'fields' => array(
+                                                               'MonitorId',
+                                                               'COUNT(*) AS Count',
+                                                               ),
+                                             'conditions' => $conditions,
+                                             'group' => 'MonitorId',
+    ));
 
     foreach ($query as $result) {
-      $results[$result['Events']['MonitorId']] = $result[0]['Count'];
+      $results[$result['Event']['MonitorId']] = $result[0]['Count'];
     }
 
     $this->set(array(

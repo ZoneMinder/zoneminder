@@ -80,10 +80,10 @@ if ( empty($_REQUEST['path']) ) {
     if ( $_REQUEST['fid'] == 'objdetect' ) {
         $Event = new Event($_REQUEST['eid']);
         $path = $Event->Path().'/objdetect.jpg';
-        unset($Event); # we don't want event object related processing later for this case
+        $Event= null; # we don't want event object related processing later for this case
         if ( !file_exists($path)) {
         header('HTTP/1.0 404 Not Found');
-        Fatal("File ".$path." does not exist. Please make sure store_frame_in_zm is enabled in the object detection config");
+        Fatal("File ".$path." does not exist. It may have been deleted, or you don't have store_frame_in_zm enabled in the object detection config");
       }
       
     }

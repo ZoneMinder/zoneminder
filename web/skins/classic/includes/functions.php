@@ -259,6 +259,7 @@ function getNavBarHTML($reload = null) {
 
 		<div class="collapse navbar-collapse" id="main-header-nav">
 		<ul class="nav navbar-nav">
+<?php if ( $user and $user['Username'] ) { ?>
 <?php if ( canView('Monitors') ) { ?>
 			<li><a href="?view=console"><?php echo translate('Console') ?></a></li>
 <?php } // end if canView('Monitors') ?>
@@ -273,9 +274,9 @@ function getNavBarHTML($reload = null) {
     }
     echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
   }
-} // end if canview(System)
 ?></li>
 <?php
+} // end if canview(System)
 if ( ZM_OPT_X10 && canView('Devices') ) { ?>
 			<li><a href="?view=devices">Devices</a></li>
 <?php } ?>
@@ -328,6 +329,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 		<p class="navbar-text"> <?php echo $status ?></p>
 <?php } ?>
 </div>
+<?php } # end if !$user or $user['Id'] meaning logged in ?>
 		</div><!-- End .navbar-collapse -->
 	</div> <!-- End .container-fluid -->
   <div id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>

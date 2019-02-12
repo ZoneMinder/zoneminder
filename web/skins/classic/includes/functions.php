@@ -91,7 +91,7 @@ echo output_link_if_exists( array(
   <!--Chosen can't be cache-busted because it loads sprites by relative path-->
 <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
-  if ($basename == 'watch') {
+  if ( $basename == 'watch' ) {
     echo output_link_if_exists( array(
       '/css/base/views/control.css',
       '/css/'.$css.'/views/control.css'
@@ -100,11 +100,9 @@ echo output_link_if_exists( array(
   if ( $viewCssPhpFile ) {
 ?>
   <style type="text/css">
-  /*<![CDATA[*/
 <?php
-    require_once( $viewCssPhpFile );
+    require_once($viewCssPhpFile);
 ?>
-  /*]]>*/
   </style>
 <?php
   }

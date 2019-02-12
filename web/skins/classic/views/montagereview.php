@@ -234,7 +234,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
 <body>
   <div id="page">
   <?php echo getNavBarHTML() ?>
-  <form id="montagereview_form" action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
+  <form id="montagereview_form" action="?" method="get">
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">&nbsp;&nbsp;
     <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
@@ -255,19 +255,19 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
         <span id="speedslideroutput"><?php echo $speeds[$speedIndex] ?> fps</span>
       </div>
       <div id="ButtonsDiv">
-        <button type="button" id="panleft"   onclick="click_panleft();"    >&lt; <?php echo translate('Pan') ?></button>
-        <button type="button" id="zoomin"    onclick="click_zoomin();"     ><?php echo translate('In +') ?></button>
-        <button type="button" id="zoomout"   onclick="click_zoomout();"    ><?php echo translate('Out -') ?></button>
-        <button type="button" id="lasteight" onclick="click_lastEight();"  ><?php echo translate('8 Hour') ?></button>
-        <button type="button" id="lasthour"  onclick="click_lastHour();"   ><?php echo translate('1 Hour') ?></button>
-        <button type="button" id="allof"     onclick="click_all_events();" ><?php echo translate('All Events') ?></button>
+        <button type="button" id="panleft"   data-on-click="click_panleft"    >&lt; <?php echo translate('Pan') ?></button>
+        <button type="button" id="zoomin"    data-on-click="click_zoomin"     ><?php echo translate('In +') ?></button>
+        <button type="button" id="zoomout"   data-on-click="click_zoomout"    ><?php echo translate('Out -') ?></button>
+        <button type="button" id="lasteight" data-on-click="click_lastEight"  ><?php echo translate('8 Hour') ?></button>
+        <button type="button" id="lasthour"  data-on-click="click_lastHour"   ><?php echo translate('1 Hour') ?></button>
+        <button type="button" id="allof"     data-on-click="click_all_events" ><?php echo translate('All Events') ?></button>
         <button type="button" id="liveButton"      onclick="setLive(1-liveMode); console.log('live');return false;"><?php echo translate('Live') ?></button>
         <button type="button" id="fit"       onclick="setFit(1-fitMode);"  ><?php echo translate('Fit') ?></button>
-        <button type="button" id="panright"  onclick="click_panright();"   ><?php echo translate('Pan') ?> &gt;</button>
+        <button type="button" id="panright"  data-on-click="click_panright"   ><?php echo translate('Pan') ?> &gt;</button>
 <?php
 if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
 ?>
-        <button type="button" id="downloadVideo" onclick="click_download();"><?php echo translate('Download Video') ?></button>
+        <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php
 }
 ?>
@@ -290,7 +290,7 @@ if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
       </div>
 <?php } // end if !live ?>
       <div id="timelinediv">
-        <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
+        <canvas id="timeline"></canvas>
         <span id="scrubleft"></span>
         <span id="scrubright"></span>
         <span id="scruboutput"></span>
@@ -304,8 +304,8 @@ if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
   <div id="monitors">
 <?php
   // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
-  foreach ($monitors as $m) {
-    echo '<canvas title="'.$m->Id().' ' .$m->Name().'" width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:1px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
+  foreach ( $monitors as $m ) {
+    echo '<canvas title="'.$m->Id().' ' .$m->Name().'" width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:1px solid ' . $m->WebColour() . '" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>';
   }
 ?>
   </div>

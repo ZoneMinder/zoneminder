@@ -366,7 +366,7 @@ our @options = (
   },
   {
     name        => 'ZM_ENABLE_CSRF_MAGIC',
-    default     => 'no',
+    default     => 'yes',
     description => 'Enable csrf-magic library',
     help        => q`
       CSRF stands for Cross-Site Request Forgery which, under specific
@@ -375,11 +375,7 @@ our @options = (
       this, the attacker must write a very specific web page and get
       you to navigate to it, while you are logged into the ZoneMinder
       web console at the same time. Enabling ZM_ENABLE_CSRF_MAGIC will
-      help mitigate these kinds of attackes. Be warned this feature
-      is experimental and may cause problems, particularly with the API.
-      If you find a false positive and can document how to reproduce it,
-      then please report it. This feature defaults to OFF currently due to
-      its experimental nature.
+      help mitigate these kinds of attacks.
       `,
     type        => $types{boolean},
     category    => 'system',
@@ -3035,7 +3031,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_H_REFRESH_NAVBAR',
-    default     => '5',
+    default     => '60',
     description => 'How often (in seconds) the navigation header should refresh itself',
     help        => q`
       The navigation header contains the general status information about server load and storage space.
@@ -3308,7 +3304,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_M_REFRESH_NAVBAR',
-    default     => '15',
+    default     => '120',
     description => 'How often (in seconds) the navigation header should refresh itself',
     help        => q`
       The navigation header contains the general status information about server load and storage space.
@@ -3581,7 +3577,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_L_REFRESH_NAVBAR',
-    default     => '35',
+    default     => '180',
     description => 'How often (in seconds) the navigation header should refresh itself',
     help        => q`
       The navigation header contains the general status information about server load and storage space.

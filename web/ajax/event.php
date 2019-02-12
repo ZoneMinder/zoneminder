@@ -71,7 +71,7 @@ if ( canView( 'Events' ) ) {
 
         $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
         if ( $exportFile = exportEvents( $exportIds, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat ) )
-          ajaxResponse( array( 'exportFile'=>$exportFile ) );
+          ajaxResponse( array( 'exportFormat'=>$exportFormat ) );
         else
           ajaxError( 'Export Failed' );
         break;
@@ -84,7 +84,7 @@ if ( canView( 'Events' ) ) {
         $exportStructure = 'flat';
         $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
         if ( $exportFile = exportEvents( $exportIds, false, false, false, $exportVideo, false, $exportFormat, $exportStructure ) )
-          ajaxResponse( array( 'exportFile'=>$exportFile ) );
+          ajaxResponse( array( 'exportFormat'=>$exportFormat ) );
         else
           ajaxError( 'Export Failed' );
         break;

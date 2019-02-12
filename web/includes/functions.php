@@ -35,6 +35,56 @@ function noCacheHeaders() {
   header('Pragma: no-cache');         // HTTP/1.0
 }
 
+function CSPHeaders($view, $nonce) {
+  $additionalScriptSrc = "";
+  switch ($view) {
+    case 'login': {
+      if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
+          && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
+          && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
+          && ZM_OPT_USE_GOOG_RECAPTCHA && ZM_OPT_GOOG_RECAPTCHA_SITEKEY && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY) {
+        $additionalScriptSrc = "https://www.google.com";
+      }
+      // fall through
+    }
+    case 'bandwidth':
+    case 'blank':
+    case 'console':
+    case 'controlcap':
+    case 'cycle':
+    case 'donate':
+    case 'download':
+    case 'error':
+    case 'events':
+    case 'export':
+    case 'frame':
+    case 'function':
+    case 'log':
+    case 'logout':
+    case 'optionhelp':
+    case 'options':
+    case 'plugin':
+    case 'postlogin':
+    case 'privacy':
+    case 'server':
+    case 'state':
+    case 'status':
+    case 'storage':
+    case 'version': {
+      // Enforce script-src on pages where inline scripts and event handlers have been fixed.
+      // 'unsafe-inline' is only for backwards compatibility with browsers which
+      // only support CSP 1 (with no nonce-* support).
+      header("Content-Security-Policy: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc");
+      break;
+    }
+    default: {
+      // Use Report-Only mode on all other pages.
+      header("Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc");
+      break;
+    }
+  }
+}
+
 function CORSHeaders() {
   if ( isset($_SERVER['HTTP_ORIGIN']) ) {
 
@@ -44,6 +94,11 @@ function CORSHeaders() {
     if ( sizeof($Servers) < 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
+      if ( ZM_MIN_STREAMING_PORT ) {
+        Logger::Debug("Setting default Access-Control-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Headers: x-requested-with,x-request');
+      }
       return;
     }
     foreach( $Servers as $Server ) {
@@ -239,7 +294,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
 
 function outputControlStream( $src, $width, $height, $monitor, $scale, $target ) {
 ?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+  <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
@@ -309,7 +364,7 @@ function getWebSiteUrl( $id, $src, $width, $height, $title='' ) {
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
   ?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+  <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
@@ -399,15 +454,23 @@ function makeLink( $url, $label, $condition=1, $options='' ) {
   return( $string );
 }
 
+/**
+ * $label must be already escaped. It can't be done here since it sometimes contains HTML tags.
+ */
 function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options='' ) {
-  $string = '';
+  // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
+  $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
+  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
   if ( $condition ) {
-    if ( is_array( $winSize ) )
-      $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
-    else
-      $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
+    if ( is_array( $winSize ) ) {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
+      $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
+      $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
+    } else {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
+    }
 
-    $string .= '<a href="'.$url.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($options?(' '.$options):'').'>';
+    $string .= ($options ? (' ' . $options ) : '') . '>';
   } else {
     $string .= '<a>';
   }
@@ -417,16 +480,24 @@ function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options
 }
 
 function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, $options='' ) {
-  if ( is_array( $winSize ) )
-    $popupParms = "'".$url."', '".$winName."', '".$winSize[0]."', ".$winSize[1].", ".$winSize[2];
-  else
-    $popupParms = "'".$url."', '".$winName."', '".$winSize."'";
-  $string = '<input type="button" value="'.$buttonValue.'" onclick="createPopup( '.$popupParms.' ); return( false );"'.($condition?'':' disabled="disabled"').($options?(' '.$options):'').'/>';
+  $string = '<input type="button" class="popup-link" value="' . htmlspecialchars($buttonValue) . '"';
+  $string .= ' data-url="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
+  $string .= ' data-window-name="' . htmlspecialchars($winName) . '"';
+    if ( is_array( $winSize ) ) {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize[0]) . '"';
+      $string .= ' data-window-width="' . htmlspecialchars($winSize[1]) . '"';
+      $string .= ' data-window-height="' . htmlspecialchars($winSize[2]) . '"';
+    } else {
+      $string .= ' data-window-tag="' . htmlspecialchars($winSize) . '"';
+    }
+    if (!$condition) {
+     $string .= ' disabled="disabled"';
+    }
+    $string  .=  ($options ? (' ' . $options) : '') . '/>';
   return( $string );
 }
 
 function htmlSelect( $name, $contents, $values, $behaviours=false ) {
-
   $behaviourText = '';
   if ( !empty($behaviours) ) {
     if ( is_array($behaviours) ) {
@@ -464,10 +535,10 @@ function htmlOptions($contents, $values) {
       $text = $option;
     }
     $selected = is_array($values) ? in_array($value, $values) : !strcmp($value, $values);
-    $options_html .= "<option value=\"$value\"".
+    $options_html .= "<option value=\"".htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false)."\"".
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      ">$text</option>";
+      ">".htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false)."</option>";
   }
   return $options_html;
 }
@@ -542,7 +613,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         {
           if ( is_array($newValues[$key]) ) {
             if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
-              $changes[$key] = "`$key` = ".dbEscape(join(',',$newValues[$key]));
+              $changes[$key] = "`$key` = '".dbEscape(join(',',$newValues[$key]))."'";
             }
           } else if ( (!isset($values[$key])) or $values[$key] ) {
             $changes[$key] = "`$key` = ''";
@@ -902,11 +973,11 @@ Logger::Debug("generating Video $command: result($result outptu:(".implode("\n",
   return( $status?"":rtrim($result) );
 }
 
-function executeFilter( $filter ) {
-  $command = ZM_PATH_BIN."/zmfilter.pl --filter ".escapeshellarg($filter);
-  $result = exec( $command, $output, $status );
-  dbQuery( "delete from Filters where Name like '_TempFilter%'" );
-  return( $status );
+function executeFilter( $filter_id ) {
+  $command = ZM_PATH_BIN.'/zmfilter.pl --filter_id '.escapeshellarg($filter_id);
+  $result = exec($command, $output, $status);
+  dbQuery('DELETE FROM Filters WHERE Id=?', array($filter_id));
+  return $status;
 }
 
 # This takes more than one scale amount, so it runs through each and alters dimension.
@@ -1015,27 +1086,34 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
     $_SESSION['sort_asc'] = validHtmlStr($_REQUEST['sort_asc']);
   }
   if ($_REQUEST['limit'] != '') {
-    $limitQuery = "&limit=".$_REQUEST['limit'];
+    $limitQuery = "&limit=".validInt($_REQUEST['limit']);
   }
 }
 
+function getFilterQueryConjunctionTypes() {
+  return array(
+               'and' => translate('ConjAnd'),
+               'or'  => translate('ConjOr')
+               );
+}
+
 function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
-  $filter['query'] = ''; 
+  $filter['query'] = '';
   $filter['sql'] = '';
   $filter['fields'] = '';
 
+  $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
   $StorageArea = NULL;
 
   $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
-
   if ( isset($terms) && count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {
-      if ( isset($terms[$i]['cnj']) ) {
+      if ( isset($terms[$i]['cnj']) && array_key_exists($terms[$i]['cnj'], $validQueryConjunctionTypes) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($terms[$i]['cnj']);
         $filter['sql'] .= ' '.$terms[$i]['cnj'].' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($terms[$i]['cnj'])."\"/>\n";
       }
-      if ( isset($terms[$i]['obr']) ) {
+      if ( isset($terms[$i]['obr']) && (string)(int)$terms[$i]['obr'] == $terms[$i]['obr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($terms[$i]['obr']);
         $filter['sql'] .= ' '.str_repeat('(', $terms[$i]['obr']).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($terms[$i]['obr'])."\"/>\n";
@@ -1045,7 +1123,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($terms[$i]['attr'])."\"/>\n";
         switch ( $terms[$i]['attr'] ) {
           case 'MonitorName':
-            $filter['sql'] .= 'M.'.preg_replace('/^Monitor/', '', $terms[$i]['attr']);
+            $filter['sql'] .= 'M.Name';
             break;
           case 'ServerId':
           case 'MonitorServerId':
@@ -1239,7 +1317,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 		$filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
 	}
       } // end foreach term
-      if ( isset($terms[$i]['cbr']) ) {
+      if ( isset($terms[$i]['cbr']) && (string)(int)$terms[$i]['cbr'] == $terms[$i]['cbr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($terms[$i]['cbr']);
         $filter['sql'] .= ' '.str_repeat( ')', $terms[$i]['cbr'] ).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($terms[$i]['cbr'])."\"/>\n";
@@ -1349,7 +1427,7 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
 
 function sortHeader( $field, $querySep='&amp;' ) {
   global $view;
-  return( '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.$_REQUEST['limit'] );
+  return '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.validInt($_REQUEST['limit']);
 }
 
 function sortTag( $field ) {
@@ -2258,6 +2336,29 @@ function csrf_startup() {
     csrf_conf('rewrite-js', 'includes/csrf/csrf-magic.js');
 }
 
+function check_timezone() {
+  $now = new DateTime();
+
+  $sys_tzoffset = trim(shell_exec('date "+%z"'));
+  $php_tzoffset = trim($now->format('O'));
+  $mysql_tzoffset = trim(dbFetchOne("SELECT TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),'%H%i');",'TIME_FORMAT(TIMEDIFF(NOW(), UTC_TIMESTAMP),\'%H%i\')'));
+
+  #Logger::Debug("System timezone offset determine to be: $sys_tzoffset,\x20 
+                 #PHP timezone offset determine to be: $php_tzoffset,\x20 
+                 #Mysql timezone offset determine to be: $mysql_tzoffset
+               #");
+
+  if ( $sys_tzoffset != $php_tzoffset )
+    Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
+
+  if ( $sys_tzoffset != $mysql_tzoffset )
+    Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");
+
+  if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone')))
+    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+
+}
+
 function unparse_url($parsed_url, $substitutions = array() ) { 
   $fields = array('scheme','host','port','user','pass','path','query','fragment');
 
@@ -2347,6 +2448,29 @@ if( !function_exists('ftok') ) {
       return dechex(array_sum($key));
     }
   }
+}
+
+function getAffectedIds( $name ) {
+  $names = $name.'s';
+  $ids = array();
+	if ( isset($_REQUEST[$names]) ) {
+		if ( is_array($_REQUEST[$names]) ) {
+			$ids = $_REQUEST[$names];
+		} else {
+			$ids = array($_REQUEST[$names]);
+		}
+	} else if ( isset($_REQUEST[$name]) ) {
+		if ( is_array($_REQUEST[$name]) ) {
+			$ids = $_REQUEST[$name];
+		} else {
+			$ids = array($_REQUEST[$name]);
+		}
+	}
+	return $ids;
+}
+
+function format_duration($time, $separator=':') {
+  return sprintf('%02d%s%02d%s%02d', floor($time/3600), $separator, ($time/60)%60, $separator, $time%60);
 }
 
 ?>

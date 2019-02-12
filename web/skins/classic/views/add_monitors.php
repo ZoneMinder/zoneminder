@@ -33,7 +33,7 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
     <?php echo $navbar ?>
     <div id="content">
 
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <div style="position:relative;">
         <div id="results" style="position: absolute; top:0; right: 0; width: 50%; height: 100%;">
           <fieldset><legend>Results</legend>

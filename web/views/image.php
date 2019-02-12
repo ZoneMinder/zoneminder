@@ -77,7 +77,15 @@ if ( empty($_REQUEST['path']) ) {
       return;
     }
 
-    if ( $_REQUEST['fid'] == 'alarm' ) {
+    if ( $_REQUEST['fid'] == 'objdetect' ) {
+      $path = $Event->Path().'/objdetect.jpg';
+      if ( !file_exists($path) ) {
+        header('HTTP/1.0 404 Not Found');
+        Fatal("File $path does not exist. Please make sure store_frame_in_zm is enabled in the object detection config");
+      }
+      $Frame = new Frame();
+      $Frame->Id('objdetect');
+    } else if ( $_REQUEST['fid'] == 'alarm' ) {
       # look for first alarmed frame
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
                                array('order'=>'FrameId ASC'));
@@ -97,13 +105,12 @@ if ( empty($_REQUEST['path']) ) {
       } else {
         $path = $Event->Path().'/alarm.jpg';
       }
-    }
-    else if ( $_REQUEST['fid'] == 'snapshot' ) {
+    } else if ( $_REQUEST['fid'] == 'snapshot' ) {
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Score'=>$Event->MaxScore()));
       if ( !$Frame )
         $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid']));
       if ( !$Frame ) {
-        Warning("No frame found for event " + $_REQUEST['eid']);
+        Warning('No frame found for event ' . $_REQUEST['eid']);
         $Frame = new Frame();
         $Frame->Delta(1);
         $Frame->FrameId('snapshot');
@@ -220,6 +227,7 @@ if ( empty($_REQUEST['path']) ) {
   }
 }
 
+# we now load the actual image to send
 $scale = 0;
 if ( !empty($_REQUEST['scale']) ) {
   if ( is_numeric($_REQUEST['scale']) ) {

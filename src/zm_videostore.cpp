@@ -971,7 +971,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     Debug(5, "after init packet");
 
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    if ((ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0) {
+    if ( (ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0 ) {
       Error("Could not send frame (error '%s')",
             av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);
@@ -980,8 +980,8 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 
     // av_frame_unref( out_frame );
 
-    if ((ret = avcodec_receive_packet(audio_out_ctx, &opkt)) < 0) {
-      if (AVERROR(EAGAIN) == ret) {
+    if ( (ret = avcodec_receive_packet(audio_out_ctx, &opkt)) < 0 ) {
+      if ( AVERROR(EAGAIN) == ret ) {
         // THe codec may need more samples than it has, perfectly valid
         Debug(3, "Could not recieve packet (error '%s')",
               av_make_error_string(ret).c_str());
@@ -995,8 +995,8 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
   #else
-    if ((ret = avcodec_encode_audio2(audio_out_ctx, &opkt, out_frame,
-                                     &data_present)) < 0) {
+    if ( (ret = avcodec_encode_audio2(audio_out_ctx, &opkt, out_frame,
+                                     &data_present)) < 0 ) {
       Error("Could not encode frame (error '%s')",
             av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);

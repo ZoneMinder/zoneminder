@@ -23,17 +23,18 @@ if ( !canView( 'Control' ) ) {
   return;
 }
 
+$params = array();
 $groupSql = '';
 if ( !empty($_REQUEST['group']) ) {
-  $row = dbFetchOne( 'SELECT * FROM Groups WHERE Id = ?', NULL, array($_REQUEST['group']) );
-  $groupSql = " and find_in_set( Id, '".$row['MonitorIds']."' )";
+  $groupSql = " AND gm.GroupId = :groupid";
+  $params[":groupid"] = $_REQUEST['group'];
 }
 
 $mid = !empty($_REQUEST['mid']) ? validInt($_REQUEST['mid']) : 0;
 
-$sql = "SELECT * FROM Monitors WHERE Function != 'None' AND Controllable = 1$groupSql ORDER BY Sequence";
+$sql = "SELECT m.* FROM Monitors m INNER JOIN Groups_Monitors AS gm ON m.Id = gm.MonitorId WHERE m.Function != 'None' AND m.Controllable = 1$groupSql ORDER BY Sequence";
 $mids = array();
-foreach( dbFetchAll( $sql ) as $row ) {
+foreach( dbFetchAll( $sql, false, $params ) as $row ) {
   if ( !visibleMonitor( $row['Id'] ) ) {
     continue;
   }
@@ -55,11 +56,11 @@ xhtmlHeaders(__FILE__, translate('Control') );
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a>
+        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('Control') ?></h2>
       <div id="headerControl">
-        <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <form name="contentForm" id="contentForm" method="get" action="?">
           <input type="hidden" name="view" value="<?php echo $view ?>"/>
           <?php echo buildSelect( "mid", $mids, "this.form.submit();" ); ?>
         </form>

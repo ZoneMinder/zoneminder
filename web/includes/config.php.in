@@ -158,29 +158,19 @@ $GLOBALS['defaultUser'] = array(
 
 function loadConfig( $defineConsts=true ) {
   global $config;
-  global $configCats;
   global $dbConn;
 
   $config = array();
-  $configCat = array();
 
-  $result = $dbConn->query( 'select * from Config order by Id asc' );
+  $result = $dbConn->query('SELECT Name,Value FROM Config');
   if ( !$result )
     echo mysql_error();
-  $monitors = array();
   while( $row = dbFetchNext( $result ) ) {
     if ( $defineConsts )
       define( $row['Name'], $row['Value'] );
     $config[$row['Name']] = $row;
-    if ( !($configCat = &$configCats[$row['Category']]) ) {
-      $configCats[$row['Category']] = array();
-      $configCat = &$configCats[$row['Category']];
-    }
-    $configCat[$row['Name']] = $row;
   }
-  //print_r( $config );
-  //print_r( $configCats );
-}
+} # end function loadConfig
 
 // For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
 if ( ! defined('ZM_SERVER_ID') ) {

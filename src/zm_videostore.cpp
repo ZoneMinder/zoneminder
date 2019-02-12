@@ -31,17 +31,21 @@ extern "C" {
 #include "libavutil/time.h"
 }
 
-VideoStore::VideoStore(const char *filename_in, const char *format_in,
-                       AVStream *p_video_in_stream,
-                       AVStream *p_audio_in_stream, int64_t nStartTime,
-                       Monitor *monitor) {
+VideoStore::VideoStore(
+    const char *filename_in,
+    const char *format_in,
+    AVStream *p_video_in_stream,
+    AVStream *p_audio_in_stream,
+    int64_t nStartTime,
+    Monitor *monitor
+    ) {
   video_in_stream = p_video_in_stream;
   audio_in_stream = p_audio_in_stream;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   video_in_ctx = avcodec_alloc_context3(NULL);
-  avcodec_parameters_to_context(video_in_ctx,
-                                video_in_stream->codecpar);
+  avcodec_parameters_to_context(video_in_ctx, video_in_stream->codecpar);
+  video_in_ctx->time_base = video_in_stream->time_base;
 // zm_dump_codecpar( video_in_stream->codecpar );
 #else
   video_in_ctx = video_in_stream->codec;
@@ -91,18 +95,17 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   video_out_ctx = avcodec_alloc_context3(NULL);
 
   // Copy params from instream to ctx
-  ret = avcodec_parameters_to_context(video_out_ctx,
-                                      video_in_stream->codecpar);
-  if (ret < 0) {
-    Error("Could not initialize ctx parameteres");
+  ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
+  if ( ret < 0 ) {
+    Error("Could not initialize video_out_ctx parameters");
     return;
   } else {
     zm_dump_codec(video_out_ctx);
   }
 
   video_out_stream = avformat_new_stream(oc, NULL);
-  if (!video_out_stream) {
-    Error("Unable to create video out stream\n");
+  if ( !video_out_stream ) {
+    Error("Unable to create video out stream");
     return;
   } else {
     Debug(2, "Success creating video out stream");
@@ -117,7 +120,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   // Now copy them to the out stream
   ret = avcodec_parameters_from_context(video_out_stream->codecpar,
                                         video_out_ctx);
-  if (ret < 0) {
+  if ( ret < 0 ) {
     Error("Could not initialize stream parameteres");
     return;
   } else {
@@ -143,7 +146,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   } else {
     Debug(3, "Success copying ctx");
   }
-  if (!video_out_ctx->codec_tag) {
+  if ( !video_out_ctx->codec_tag ) {
     Debug(2, "No codec_tag");
     if (!oc->oformat->codec_tag ||
         av_codec_get_id(oc->oformat->codec_tag,
@@ -182,17 +185,17 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   }
 
   Monitor::Orientation orientation = monitor->getOrientation();
-  if (orientation) {
-    if (orientation == Monitor::ROTATE_0) {
+  if ( orientation ) {
+    if ( orientation == Monitor::ROTATE_0 ) {
     } else if (orientation == Monitor::ROTATE_90) {
       dsr = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
-      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-    } else if (orientation == Monitor::ROTATE_180) {
+      if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+    } else if ( orientation == Monitor::ROTATE_180 ) {
       dsr = av_dict_set(&video_out_stream->metadata, "rotate", "180", 0);
-      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
-    } else if (orientation == Monitor::ROTATE_270) {
+      if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+    } else if ( orientation == Monitor::ROTATE_270 ) {
       dsr = av_dict_set(&video_out_stream->metadata, "rotate", "270", 0);
-      if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+      if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
     } else {
       Warning("Unsupported Orientation(%d)", orientation);
     }
@@ -209,13 +212,14 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
   resample_ctx = NULL;
 #endif
 
-  if (audio_in_stream) {
+  if ( audio_in_stream ) {
     Debug(3, "Have audio stream");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 
     audio_in_ctx = avcodec_alloc_context3(NULL);
     ret = avcodec_parameters_to_context(audio_in_ctx,
                                         audio_in_stream->codecpar);
+    audio_in_ctx->time_base = audio_in_stream->time_base;
 #else
     audio_in_ctx = audio_in_stream->codec;
 #endif
@@ -225,7 +229,7 @@ VideoStore::VideoStore(const char *filename_in, const char *format_in,
       avcodec_string(error_buffer, sizeof(error_buffer), audio_in_ctx, 0);
       Debug(2, "Got something other than AAC (%s)", error_buffer);
 
-      if (!setup_resampler()) {
+      if ( !setup_resampler() ) {
         return;
       }
     } else {
@@ -540,7 +544,8 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx = audio_out_stream->codec;
 #endif
   // Some formats (i.e. WAV) do not produce the proper channel layout
-  if ( audio_in_ctx->channel_layout == 0 )
+  // Perhaps we should not be modifying the audio_in_ctx....
+   if ( audio_in_ctx->channel_layout == 0 )
     audio_in_ctx->channel_layout = av_get_channel_layout("mono");
 
   /* put sample parameters */
@@ -553,7 +558,7 @@ bool VideoStore::setup_resampler() {
 #else
   audio_out_ctx->refcounted_frames = 1;
 #endif
-  if ( ! audio_out_ctx->channel_layout ) {
+  if ( !audio_out_ctx->channel_layout ) {
     Debug(3, "Correcting channel layout from (%d) to (%d)",
         audio_out_ctx->channel_layout,
         av_get_default_channel_layout(audio_out_ctx->channels)
@@ -635,10 +640,10 @@ bool VideoStore::setup_resampler() {
 
 #if defined(HAVE_LIBSWRESAMPLE)
   resample_ctx = swr_alloc_set_opts(NULL,
-      av_get_default_channel_layout(audio_out_ctx->channels),
+      audio_out_ctx->channel_layout,
       audio_out_ctx->sample_fmt,
       audio_out_ctx->sample_rate,
-      av_get_default_channel_layout(audio_in_ctx->channels),
+      audio_in_ctx->channel_layout,
       audio_in_ctx->sample_fmt,
       audio_in_ctx->sample_rate,
       0, NULL);
@@ -695,7 +700,9 @@ bool VideoStore::setup_resampler() {
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
+  out_frame->channels = audio_out_ctx->channels;
   out_frame->channel_layout = audio_out_ctx->channel_layout;
+  out_frame->sample_rate = audio_out_ctx->sample_rate;
 
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
@@ -713,10 +720,11 @@ bool VideoStore::setup_resampler() {
   }
 
   // Setup the data pointers in the AVFrame
-  if ( avcodec_fill_audio_frame(out_frame, audio_out_ctx->channels,
-                               audio_out_ctx->sample_fmt,
-                               (const uint8_t *)converted_in_samples,
-                               audioSampleBuffer_size, 0) < 0) {
+  if ( avcodec_fill_audio_frame(
+        out_frame, audio_out_ctx->channels,
+        audio_out_ctx->sample_fmt,
+        (const uint8_t *)converted_in_samples,
+        audioSampleBuffer_size, 0) < 0) {
     Error("Could not allocate converted in sample pointers");
     return false;
   }
@@ -896,10 +904,14 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
     Debug(2,
-          "Input Frame: samples(%d), format(%d), sample_rate(%d), channel "
-          "layout(%d)",
-          in_frame->nb_samples, in_frame->format,
-          in_frame->sample_rate, in_frame->channel_layout);
+          "In Frame: samples(%d), format(%d), sample_rate(%d), "
+          "channels(%d) channel layout(%d) pts(%" PRId64 ")",
+          in_frame->nb_samples,
+          in_frame->format,
+          in_frame->sample_rate,
+          in_frame->channels,
+          in_frame->channel_layout,
+          in_frame->pts);
   #else
     /**
      * Decode the audio frame stored in the packet.
@@ -961,9 +973,13 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     }
   #endif
     Debug(2,
-          "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d)",
+          "Out Frame: samples(%d), format(%d), sample_rate(%d), "
+          "channels(%d) channel layout(%d) pts(%" PRId64 ")",
           out_frame->nb_samples, out_frame->format,
-          out_frame->sample_rate, out_frame->channel_layout);
+          out_frame->sample_rate,
+          out_frame->channels,
+          out_frame->channel_layout,
+          out_frame->pts);
 
     av_init_packet(&opkt);
     Debug(5, "after init packet");

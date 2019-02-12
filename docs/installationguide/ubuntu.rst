@@ -158,21 +158,6 @@ You may also want to enable to following modules to improve caching performance
 
 **Step 9:** Edit Timezone in PHP
 
-To find the config file that PHP will be using, you can run this
-
-::
-
-        php --ini | grep 'Configuration File'
-
-That will give you some output similar to this
-
-::
-
-        Configuration File (php.ini) Path: /etc/php/7.0/apache2
-        Loaded Configuration File:         /etc/php/7.0/apache2/php.ini
-
-You can then edit the config file it gives you with nano
-
 ::
 
         nano /etc/php/7.0/apache2/php.ini
@@ -191,16 +176,6 @@ date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.
 CTRL+o then [Enter] to save
 
 CTRL+x to exit
-
-You can verify that it worked by going into the PHP interactive shell (with ``php -a``) and entering the following
-
-::
-
-    php > $date = new DateTime();
-    php > $timeZone = $date->getTimezone();
-    php > echo $timeZone->getName();
-
-If it worked, you should see it return the desired timezone.
 
 **Step 10:** Reload Apache service
 
@@ -271,21 +246,6 @@ Easy Way: Ubuntu 14.x
 
 **Step 6:** Edit Timezone in PHP
 
-To find the config file that PHP will be using, you can run this
-
-::
-
-        php --ini | grep 'Configuration File'
-
-That will give you some output similar to this
-
-::
-
-        Configuration File (php.ini) Path: /etc/php5/apache2
-        Loaded Configuration File:         /etc/php5/apache2/php.ini
-
-You can then edit the config file it gives you with nano
-
 ::
 
         nano /etc/php5/apache2/php.ini
@@ -304,16 +264,6 @@ date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.
 CTRL+o then [Enter] to save
 
 CTRL+x to exit
-
-You can verify that it worked by going into the PHP interactive shell (with ``php -a``) and entering the following
-
-::
-
-    php > $date = new DateTime();
-    php > $timeZone = $date->getTimezone();
-    php > echo $timeZone->getName();
-
-If it worked, you should see it return the desired timezone.
 
 **Step 7:** Restart Apache service and start ZoneMinder
 

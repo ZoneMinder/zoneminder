@@ -891,7 +891,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     }
 
     ret = avcodec_receive_frame(audio_in_ctx, in_frame);
-    if (ret < 0) {
+    if ( ret < 0 ) {
       Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
       return 0;
     }
@@ -926,25 +926,23 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     // Resample the in into the audioSampleBuffer until we proceed the whole
     // decoded data
     Debug(2, "Converting  %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
-    if (
   #if defined(HAVE_LIBSWRESAMPLE)
-        (ret = swr_convert(resample_ctx,
-            out_frame->data, frame_size,
-            (const uint8_t**)in_frame->data,
-            in_frame->nb_samples))
+    (ret = swr_convert(resample_ctx,
+                       out_frame->data, frame_size,
+                       (const uint8_t**)in_frame->data,
+                       in_frame->nb_samples));
   #else
     #if defined(HAVE_LIBAVRESAMPLE)
     (ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
-                                0, in_frame->nb_samples))
+                              0, in_frame->nb_samples))
+    #endif
   #endif
-  #endif
-      < 0) {
+    av_frame_unref(in_frame);
+    if ( ret < 0 ) {
       Error("Could not resample frame (error '%s')",
             av_make_error_string(ret).c_str());
-      av_frame_unref(in_frame);
       return 0;
     }
-    av_frame_unref(in_frame);
 
   #if defined(HAVE_LIBAVRESAMPLE)
     int samples_available = avresample_available(resample_ctx);

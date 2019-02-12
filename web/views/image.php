@@ -92,7 +92,7 @@ if ( empty($_REQUEST['path']) ) {
       if ( !$Frame ) { # no alarms, get first one I find
         $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid']));
         if ( !$Frame ) { 
-          Warning("No frame found for event " + $_REQUEST['eid']);
+          Warning('No frame found for event '.$_REQUEST['eid']);
           $Frame = new Frame();
           $Frame->Delta(1);
           $Frame->FrameId(1);

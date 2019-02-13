@@ -344,6 +344,7 @@ int main(int argc, char *argv[]) {
       }
       if ( result < 0 ) {
         // Failure, try reconnecting
+				sleep(1);
         break;
       }
     }  // end while ! zm_terminate

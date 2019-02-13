@@ -270,7 +270,7 @@ function controlPresets( $monitor, $cmds ) {
 <?php
   for ( $i = 1; $i <= $monitor->NumPresets(); $i++ ) {
     ?>
-      <input type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?$labels[$i]:"" ?>" value="<?php echo $i ?>" onclick="controlCmd('<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>');"/>
+      <input type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?htmlentities($labels[$i]):'' ?>" value="<?php echo $i ?>" onclick="controlCmd('<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>');"/>
 <?php
     if ( $i && (($i%$presetBreak) == 0) ) {
 ?><br/><?php

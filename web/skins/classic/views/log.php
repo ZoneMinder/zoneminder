@@ -90,7 +90,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog') );
       </table>
       <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
     </div>
-    <form name="logForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+    <form name="logForm" method="post" action="?">
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
       <table id="logTable" class="major">
         <thead class="thead-highlight">

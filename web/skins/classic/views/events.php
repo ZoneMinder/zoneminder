@@ -100,7 +100,7 @@ xhtmlHeaders(__FILE__, translate('Events') );
     <div id="header">
       <div id="info">
         <h2><?php echo sprintf($CLANG['EventCount'], $nEvents, zmVlang($VLANG['Event'], $nEvents)) ?></h2>
-        <a id="refreshLink" href="#" onclick="location.reload(true);"><?php echo translate('Refresh') ?></a>
+        <a id="refreshLink" href="#"><?php echo translate('Refresh') ?></a>
       </div>
       <div id="pagination">
 <?php
@@ -125,7 +125,7 @@ if ( $pages > 1 ) {
 ?>
       </div>
       <div id="controls">
-        <a href="#" onclick="window.history.back();return false;"><?php echo translate('Back') ?></a>
+        <a href="#" id="backLink"><?php echo translate('Back') ?></a>
         <a id="timelineLink" href="?view=timeline<?php echo $filterQuery ?>"><?php echo translate('ShowTimeline') ?></a>
       </div>
     </div>
@@ -194,7 +194,23 @@ while ( $event_row = dbFetchNext($results) ) {
               <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
               <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->Monitorid(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
               <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
-                    <?php if ($event->Notes() && ($event->Notes() != 'Forced Web: ')) echo "<br/><div class=\"small text-nowrap text-muted\">".$event->Notes()."</div>" ?></td>
+                    <?php
+                        # display notes as small text
+                        if ($event->Notes()) {
+                            # if notes include detection objects, then link it to objdetect.jpg
+                            if (strpos($event->Notes(),"detected:")!== false){
+                             # make a link
+                                echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
+                                     array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
+                                     "<div class=\"small text-nowrap text-muted\"><u>".$event->Notes()."</u></div>");
+                            }
+                            elseif ($event->Notes() != 'Forced Web: ') {
+                                echo "<br/><div class=\"small text-nowrap text-muted\">".$event->Notes()."</div>";
+                            }
+                        }
+                ?>
+
+              </td>
               <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) . 
 ( $event->EndTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) : '' ) ?>
               </td>

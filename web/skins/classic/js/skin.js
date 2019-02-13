@@ -126,6 +126,11 @@ function createPopup( url, name, tag, width, height ) {
   }
 }
 
+// Polyfill for NodeList.prototype.forEach on IE.
+if (window.NodeList && !NodeList.prototype.forEach) {
+  NodeList.prototype.forEach = Array.prototype.forEach;
+}
+
 window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   document.querySelectorAll("form.validateFormOnSubmit").forEach(function(el) {
     el.addEventListener("submit", function onSubmit(evt) {
@@ -150,8 +155,8 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       var tag = el.getAttribute("data-window-tag");
       var width = el.getAttribute("data-window-width");
       var height = el.getAttribute("data-window-height");
-      createPopup(url, name, tag, width, height);
       evt.preventDefault();
+      createPopup(url, name, tag, width, height);
     });
   });
 

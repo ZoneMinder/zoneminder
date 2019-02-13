@@ -24,7 +24,7 @@ if ( !canEdit('System') ) {
 }
 ?>
 <div id="modalState" class="modal fade">
-  <form class="form-horizontal" name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>?view=state">
+  <form class="form-horizontal" name="contentForm" id="contentForm" method="get" action="?view=state">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -54,7 +54,7 @@ if ( $running ) {
 $states = dbFetchAll('SELECT * FROM States');
 foreach ( $states as $state ) {
 ?>
-                <option value="<?php echo $state['Name'] ?>"><?php echo $state['Name'] ?></option>
+                <option value="<?php echo validHtmlStr($state['Name']) ?>"><?php echo validHtmlStr($state['Name']); ?></option>
 <?php
 }
 ?>

@@ -47,6 +47,13 @@ if ( isset($_SESSION['export']) ) {
   $_REQUEST['exportCompress'] = 0;
 }
 
+if (isset($_REQUEST['exportFormat'])) {
+  if (!in_array($_REQUEST['exportFormat'], array('zip', 'tar'))) {
+    Error('Invalid exportFormat');
+    return;
+  }
+}
+
 $focusWindow = true;
 $connkey = isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : generateConnKey();
 
@@ -205,7 +212,7 @@ while ( $event_row = dbFetchNext($results) ) {
             </tr>
           </tbody>
         </table>
-        <button type="button" id="exportButton" name="exportButton" value="Export" onclick="exportEvent(this.form);" disabled="disabled"><?php echo translate('Export') ?></button>
+        <button type="button" id="exportButton" name="exportButton" value="Export" disabled="disabled"><?php echo translate('Export') ?></button>
       </form>
     </div>
 <?php

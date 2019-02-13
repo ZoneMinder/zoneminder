@@ -245,3 +245,18 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
   Debug(1, "No user found for auth_key %s", auth );
   return 0;
 }
+
+//Function to check Username length
+bool checkUser ( const char *username) {
+  if ( strlen(username) > 32) {
+    return false;
+  }
+  return true;
+}
+//Function to check password length
+bool checkPass (const char *password) {
+  if ( strlen(password) > 64) {
+    return false;
+  }
+  return true;
+}

@@ -48,7 +48,7 @@ xhtmlHeaders(__FILE__, translate('Function'));
     <div id="content">
 The following monitors will have these settings update when you click Save:<br/><br/>
       <?php echo implode('<br/>', array_map(function($m){return $m->Id().' ' .$m->Name();}, $monitors)); ?>
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="$j('#contentButtons').hide();return true;">
+      <form name="contentForm" id="contentForm" method="post" action="?" onsubmit="$j('#contentButtons').hide();return true;">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="save"/>
         <input type="hidden" name="object" value="Monitor"/>

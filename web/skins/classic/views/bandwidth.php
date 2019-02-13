@@ -40,7 +40,7 @@ xhtmlHeaders(__FILE__, translate('Bandwidth'));
       <h2><?php echo translate('Bandwidth') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="bandwidth"/>
         <input type="hidden" name="action" value="bandwidth"/>
         <p><?php echo translate('SetNewBandwidth') ?></p>

@@ -47,7 +47,7 @@ xhtmlHeaders(__FILE__, translate('Groups'));
   <div id="page">
     <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
-      <form name="groupsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="groupsForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="setgroup"/>
         <table id="contentTable" class="major">
@@ -72,7 +72,7 @@ function group_line( $Group ) {
     $html .= validHtmlStr($Group->Name());
   }
   $html .= '</td><td class="colIds">'. monitorIdsToNames($Group->MonitorIds(), 30).'</td>
-                <td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" onclick="configureButtons(this);"/></td>
+                <td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" data-on-click-this="configureButtons"/></td>
               </tr>
   ';
   if ( isset( $children[$Group->Id()] ) ) {
@@ -89,10 +89,10 @@ if ( isset( $children[null] ) )
           </tbody>
         </table>
         <div id="contentButtons">
-          <button type="button" value="New" onclick="newGroup();"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>>
+          <button type="button" value="New" data-on-click="newGroup"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>>
           <?php echo translate('New') ?>
           </button>
-          <button type="button" name="deleteBtn" value="Delete" onclick="deleteGroup(this);" disabled="disabled">
+          <button type="button" name="deleteBtn" value="Delete" data-on-click-this="deleteGroup" disabled="disabled">
           <?php echo translate('Delete') ?>
           </button>
         </div>

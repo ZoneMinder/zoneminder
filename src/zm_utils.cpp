@@ -432,7 +432,7 @@ void touch(const char *pathname) {
       0666);
   if ( fd < 0 ) {
     // Couldn't open that path.
-    Error("Couldn't open() path \"%s in touch", pathname);
+    Error("Couldn't open() path %s in touch", pathname);
     return;
   }
   int rc = utimensat(AT_FDCWD,

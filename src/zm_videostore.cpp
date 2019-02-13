@@ -355,6 +355,7 @@ bool VideoStore::open() {
     audio_in_ctx = avcodec_alloc_context3(NULL);
     ret = avcodec_parameters_to_context(audio_in_ctx,
         audio_in_stream->codecpar);
+    audio_in_ctx->time_base = audio_in_stream->time_base;
 #else
     audio_in_ctx = audio_in_stream->codec;
 #endif
@@ -583,7 +584,7 @@ VideoStore::~VideoStore() {
     if ( !(out_format->flags & AVFMT_NOFILE) ) {
       /* Close the out file. */
       Debug(2, "Closing");
-      if (int rc = avio_close(oc->pb)) {
+      if ( int rc = avio_close(oc->pb) ) {
         oc->pb = NULL;
         Error("Error closing avio %s", av_err2str(rc));
       }
@@ -705,11 +706,14 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx = audio_out_stream->codec;
 #endif
   // Some formats (i.e. WAV) do not produce the proper channel layout
-  if ( audio_in_ctx->channel_layout == 0 )
+  if ( audio_in_ctx->channel_layout == 0 ) {
+    Debug(2, "Setting input channel layout to mono");
+    // Perhaps we should not be modifying the audio_in_ctx....
     audio_in_ctx->channel_layout = av_get_channel_layout("mono");
+  }
 
   /* put sample parameters */
-  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 96000 ? audio_in_ctx->bit_rate : 96000;
+  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 32768 ? audio_in_ctx->bit_rate : 32768;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
   audio_out_ctx->channels = audio_in_ctx->channels;
@@ -718,7 +722,7 @@ bool VideoStore::setup_resampler() {
 #else
   audio_out_ctx->refcounted_frames = 1;
 #endif
-  if ( ! audio_out_ctx->channel_layout ) {
+  if ( !audio_out_ctx->channel_layout ) {
     Debug(3, "Correcting channel layout from (%d) to (%d)",
         audio_out_ctx->channel_layout,
         av_get_default_channel_layout(audio_out_ctx->channels)
@@ -825,10 +829,10 @@ bool VideoStore::setup_resampler() {
 
 #if defined(HAVE_LIBSWRESAMPLE)
   resample_ctx = swr_alloc_set_opts(NULL,
-      av_get_default_channel_layout(audio_out_ctx->channels),
+      audio_out_ctx->channel_layout,
       audio_out_ctx->sample_fmt,
       audio_out_ctx->sample_rate,
-      av_get_default_channel_layout(audio_in_ctx->channels),
+      audio_in_ctx->channel_layout,
       audio_in_ctx->sample_fmt,
       audio_in_ctx->sample_rate,
       0, NULL);
@@ -845,6 +849,7 @@ bool VideoStore::setup_resampler() {
     swr_free(&resample_ctx);
     return false;
   }
+  Debug(1,"Success setting up SWRESAMPLE");
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
   // Setup the audio resampler
@@ -885,7 +890,9 @@ bool VideoStore::setup_resampler() {
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
+  out_frame->channels = audio_out_ctx->channels;
   out_frame->channel_layout = audio_out_ctx->channel_layout;
+  out_frame->sample_rate = audio_out_ctx->sample_rate;
 
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
@@ -903,10 +910,11 @@ bool VideoStore::setup_resampler() {
   }
 
   // Setup the data pointers in the AVFrame
-  if ( avcodec_fill_audio_frame(out_frame, audio_out_ctx->channels,
-                               audio_out_ctx->sample_fmt,
-                               (const uint8_t *)converted_in_samples,
-                               audioSampleBuffer_size, 0) < 0) {
+  if ( avcodec_fill_audio_frame(
+        out_frame, audio_out_ctx->channels,
+        audio_out_ctx->sample_fmt,
+        (const uint8_t *)converted_in_samples,
+        audioSampleBuffer_size, 0) < 0) {
     Error("Could not allocate converted in sample pointers");
     return false;
   }
@@ -1201,15 +1209,20 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
       Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
       return 0;
     }
+
     if ( (ret = avcodec_receive_frame(audio_in_ctx, in_frame)) < 0 ) {
       Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
       return 0;
     }
     Debug(2,
-          "Input Frame: samples(%d), format(%d), sample_rate(%d), channel "
-          "layout(%d)",
-          in_frame->nb_samples, in_frame->format,
-          in_frame->sample_rate, in_frame->channel_layout);
+          "In Frame: samples(%d), format(%d), sample_rate(%d), "
+          "channels(%d) channel layout(%d) pts(%" PRId64 ")",
+          in_frame->nb_samples,
+          in_frame->format,
+          in_frame->sample_rate,
+          in_frame->channels,
+          in_frame->channel_layout,
+          in_frame->pts);
   #else
     /**
      * Decode the audio frame stored in the packet.
@@ -1218,11 +1231,11 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
      * to flush it.
      */
     int data_present;
-    if ( (ret = avcodec_decode_audio4(audio_in_ctx, in_frame,
-            &data_present, ipkt)) < 0 ) {
+    if ( (ret = avcodec_decode_audio4(
+            audio_in_ctx, in_frame, &data_present, ipkt)) < 0 ) {
       Error("Could not decode frame (error '%s')",
           av_make_error_string(ret).c_str());
-      dumpPacket(autdio_in_stream, ipkt);
+      dumpPacket(audio_in_stream, ipkt);
       av_frame_free(&in_frame);
       return 0;
     }
@@ -1236,30 +1249,31 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
 
     // Resample the in into the audioSampleBuffer until we proceed the whole
     // decoded data
+    zm_dump_frame(in_frame, "In frame");
+    zm_dump_frame(out_frame, "Out frame before resample");
   #if defined(HAVE_LIBSWRESAMPLE)
-    Debug(2, "Converting  %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
-    if ((ret = swr_convert(resample_ctx,
+#if 0
+        (ret = swr_convert(resample_ctx,
             out_frame->data, frame_size,
             (const uint8_t**)in_frame->data,
-            in_frame->nb_samples)) < 0) {
-      Error("Could not resample frame (error '%s')\n",
-            av_make_error_string(ret).c_str());
-      av_frame_unref(in_frame);
-      return 0;
-    }
+            in_frame->nb_samples
+            ))
+#else
+    ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
+
+#endif
   #else
     #if defined(HAVE_LIBAVRESAMPLE)
-    if ((ret =
-             avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
-                                0, in_frame->nb_samples)) < 0) {
-      Error("Could not resample frame (error '%s')\n",
-          av_make_error_string(ret).c_str());
-      av_frame_unref(in_frame);
-      return 0;
-    }
-  #endif
+    ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
+                              0, in_frame->nb_samples);
+    #endif
   #endif
     av_frame_unref(in_frame);
+    if ( ret < 0 ) {
+      Error("Could not resample frame (error '%s')",
+            av_make_error_string(ret).c_str());
+      return 0;
+    }
 
   #if defined(HAVE_LIBAVRESAMPLE)
     int samples_available = avresample_available(resample_ctx);
@@ -1268,23 +1282,20 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
       return 0;
     }
 
-    Debug(3, "Output_frame samples (%d)", out_frame->nb_samples);
     // Read a frame audio data from the resample fifo
-    if ( avresample_read(resample_ctx, out_frame->data, frame_size) != frame_size) {
-      Warning("Error reading resampled audio: ");
+    if ( avresample_read(resample_ctx, out_frame->data, frame_size) !=
+        frame_size) {
+      Warning("Error reading resampled audio:");
       return 0;
     }
   #endif
-    Debug(2,
-        "Frame: samples(%d), format(%d), sample_rate(%d), channel layout(%d)",
-        out_frame->nb_samples, out_frame->format,
-        out_frame->sample_rate, out_frame->channel_layout);
+    zm_dump_frame(out_frame,"Out frame after resample");
 
     av_init_packet(&opkt);
     Debug(5, "after init packet");
 
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    if ((ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0) {
+    if ( (ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0 ) {
       Error("Could not send frame (error '%s')",
           av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);

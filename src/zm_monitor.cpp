@@ -770,24 +770,28 @@ bool Monitor::connect() {
   if ( map_fd < 0 ) {
     Fatal("Can't open memory map file %s, probably not enough space free: %s", mem_file, strerror(errno));
   } else {
-    Debug(3, "Success opening mmap file at (%s)", mem_file );
+    Debug(3, "Success opening mmap file at (%s)", mem_file);
   }
 
   struct stat map_stat;
-  if ( fstat( map_fd, &map_stat ) < 0 )
-    Fatal( "Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno) );
+  if ( fstat(map_fd, &map_stat) < 0 )
+    Fatal("Can't stat memory map file %s: %s, is the zmc process for this monitor running?", mem_file, strerror(errno));
 
   if ( map_stat.st_size != mem_size ) {
     if ( purpose == CAPTURE ) {
       // Allocate the size
-      if ( ftruncate( map_fd, mem_size ) < 0 ) {
-        Fatal( "Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno) );
+      if ( ftruncate(map_fd, mem_size) < 0 ) {
+        Fatal("Can't extend memory map file %s to %d bytes: %s", mem_file, mem_size, strerror(errno));
       }
     } else if ( map_stat.st_size == 0 ) {
-      Error( "Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size );
+      Error("Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size, mem_size);
+      close(map_fd);
+      map_fd = -1;
       return false;
     } else {
-      Error( "Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size );
+      Error("Got unexpected memory map file size %ld, expected %d", map_stat.st_size, mem_size);
+      close(map_fd);
+      map_fd = -1;
       return false;
     }
   }
@@ -798,33 +802,30 @@ bool Monitor::connect() {
   if ( mem_ptr == MAP_FAILED ) {
     if ( errno == EAGAIN ) {
       Debug(1, "Unable to map file %s (%d bytes) to locked memory, trying unlocked", mem_file, mem_size);
-
 #endif
       mem_ptr = (unsigned char *)mmap(NULL, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED, map_fd, 0);
       Debug(1, "Mapped file %s (%d bytes) to unlocked memory", mem_file, mem_size);
 #ifdef MAP_LOCKED
     } else {
-      Error("Unable to map file %s (%d bytes) to locked memory (%s)", mem_file, mem_size , strerror(errno));
+      Error("Unable to map file %s (%d bytes) to locked memory (%s)", mem_file, mem_size, strerror(errno));
     }
   }
 #endif
   if ( mem_ptr == MAP_FAILED )
-    Fatal( "Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno );
+    Fatal("Can't map file %s (%d bytes) to memory: %s(%d)", mem_file, mem_size, strerror(errno), errno);
   if ( mem_ptr == NULL ) {
-    Error( "mmap gave a null address:" );
+    Error("mmap gave a null address:");
   } else {
-    Debug(3, "mmapped to %p", mem_ptr );
+    Debug(3, "mmapped to %p", mem_ptr);
   }
 #else // ZM_MEM_MAPPED
-  shm_id = shmget( (config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700 );
+  shm_id = shmget((config.shm_key&0xffff0000)|id, mem_size, IPC_CREAT|0700);
   if ( shm_id < 0 ) {
-    Error( "Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
-    exit( -1 );
+    Fatal("Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
   }
   mem_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
   if ( mem_ptr < (void *)0 ) {
-    Error( "Can't shmat: %s", strerror(errno));
-    exit( -1 );
+    Fatal("Can't shmat: %s", strerror(errno));
   }
 #endif // ZM_MEM_MAPPED
   shared_data = (SharedData *)mem_ptr;
@@ -961,22 +962,20 @@ Monitor::~Monitor() {
     if ( purpose == CAPTURE ) {
       // How about we store this in the object on instantiation so that we don't have to do this again.
       char mmap_path[PATH_MAX] = "";
-      snprintf( mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id );
+      snprintf(mmap_path, sizeof(mmap_path), "%s/zm.mmap.%d", staticConfig.PATH_MAP.c_str(), id);
 
-      if ( unlink( mmap_path ) < 0 ) {
-        Warning( "Can't unlink '%s': %s", mmap_path, strerror(errno) );
+      if ( unlink(mmap_path) < 0 ) {
+        Warning("Can't unlink '%s': %s", mmap_path, strerror(errno));
       }
     }
 #else // ZM_MEM_MAPPED
     struct shmid_ds shm_data;
     if ( shmctl(shm_id, IPC_STAT, &shm_data) < 0 ) {
-      Error("Can't shmctl: %s", strerror(errno));
-      exit(-1);
+      Fatal("Can't shmctl: %s", strerror(errno));
     }
     if ( shm_data.shm_nattch <= 1 ) {
       if ( shmctl(shm_id, IPC_RMID, 0) < 0 ) {
-        Error("Can't shmctl: %s", strerror(errno));
-        exit(-1);
+        Fatal("Can't shmctl: %s", strerror(errno));
       }
     }
 #endif // ZM_MEM_MAPPED
@@ -1168,6 +1167,7 @@ double Monitor::GetFPS() const {
 
   double time_diff = tvDiffSec( time2, time1 );
   if ( ! time_diff ) {
+    Error( "No diff between time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
     return 0.0;
   }
   double curr_fps = fps_image_count/time_diff;
@@ -2347,10 +2347,15 @@ int Monitor::Capture() {
           Info("%s: images:%d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec", name, image_count, new_capture_fps, new_capture_bandwidth);
           capture_fps = new_capture_fps;
           last_fps_time = now;
-          static char sql[ZM_SQL_SML_BUFSIZ];
           db_mutex.lock();
+          static char sql[ZM_SQL_SML_BUFSIZ];
+          // The reason we update the Status as well is because if mysql restarts, the Monitor_Status table is lost,
+          // and nothing else will update the status until zmc restarts. Since we are successfully capturing we can
+          // assume that we are connected
           snprintf(sql, sizeof(sql),
-            "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth) VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE CaptureFPS = %.2lf, CaptureBandwidth=%u",
+            "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth,Status) "
+            "VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE "
+            "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
             id, capture_fps, new_capture_bandwidth, capture_fps, new_capture_bandwidth);
           if ( mysql_query(&dbconn, sql) ) {
             Error("Can't run query: %s", mysql_error(&dbconn));
@@ -2508,7 +2513,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
     } else {
       // check if end of alarm
       if (old_zone_alarmed) {
-        Debug(3, "Preclusive Zone %s alarm Ends. Prevíous score: %d", zone->Label(), old_zone_score);
+        Debug(3, "Preclusive Zone %s alarm Ends. Previous score: %d", zone->Label(), old_zone_score);
         if (old_zone_score > 0) {
           zone->SetExtendAlarmCount(zone->GetExtendAlarmFrames());
         }

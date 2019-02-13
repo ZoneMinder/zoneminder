@@ -40,7 +40,7 @@ xhtmlHeaders(__FILE__, translate('Privacy') );
       <h1>ZoneMinder - <?php echo translate('Privacy') ?></h1>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="privacy"/>
         <h6><?php echo translate('PrivacyAbout') ?></h6>
@@ -65,7 +65,7 @@ xhtmlHeaders(__FILE__, translate('Privacy') );
         <p><?php echo buildSelect( "option", $options ); ?></p>
 
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )">
+          <input type="submit" value="<?php echo translate('Apply') ?>" data-on-click-this="submitForm">
         </div>
       </form>
     </div>

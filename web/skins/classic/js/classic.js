@@ -23,6 +23,7 @@
 //
 
 // Javascript window sizes
+/* eslint-disable key-spacing */
 var popupSizes = {
     'bandwidth':    { 'width': 300, 'height': 220 },
     'console':      { 'width': 750, 'height': 312 },
@@ -72,3 +73,4 @@ var popupSizes = {
     'zone':         { 'addWidth': 450, 'addHeight': 200, 'minHeight': 450 },
     'zones':        { 'addWidth': 72, 'addHeight': 232 }
 };
+/* eslint-enable key-spacing */

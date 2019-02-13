@@ -88,44 +88,53 @@ bool User::canAccess( int monitor_id ) {
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
 User *zmLoadUser( const char *username, const char *password ) {
-  char sql[ZM_SQL_SML_BUFSIZ] = "";
-  char safer_username[65]; // current db username size is 32
+  char sql[ZM_SQL_MED_BUFSIZ] = "";
+  int username_length = strlen(username);
+  char *safer_username = new char[(username_length * 2) + 1];
 
   // According to docs, size of safer_whatever must be 2*length+1 due to unicode conversions + null terminator.
-  mysql_real_escape_string(&dbconn, safer_username, username, strlen( username ) );
+  mysql_real_escape_string(&dbconn, safer_username, username, username_length );
 
   if ( password ) {
-    char safer_password[129]; // current db password size is 64
-    mysql_real_escape_string(&dbconn, safer_password, password, strlen( password ) );
-    snprintf( sql, sizeof(sql), "select Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Password = password('%s') and Enabled = 1", safer_username, safer_password );
+    int password_length = strlen(password);
+    char *safer_password = new char[(password_length * 2) + 1];
+    mysql_real_escape_string(&dbconn, safer_password, password, password_length);
+    snprintf(sql, sizeof(sql),
+        "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
+        " FROM Users WHERE Username = '%s' AND Password = password('%s') AND Enabled = 1",
+        safer_username, safer_password );
+    delete safer_password;
   } else {
-    snprintf( sql, sizeof(sql), "select Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds from Users where Username = '%s' and Enabled = 1", safer_username );
+    snprintf(sql, sizeof(sql),
+        "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
+        " FROM Users where Username = '%s' and Enabled = 1", safer_username );
   }
 
-  if ( mysql_query( &dbconn, sql ) ) {
-    Error( "Can't run query: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't run query: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
-  MYSQL_RES *result = mysql_store_result( &dbconn );
+  MYSQL_RES *result = mysql_store_result(&dbconn);
   if ( !result ) {
-    Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+    Error("Can't use query result: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
-  int n_users = mysql_num_rows( result );
+  int n_users = mysql_num_rows(result);
 
   if ( n_users != 1 ) {
-    mysql_free_result( result );
-    Warning( "Unable to authenticate user %s", username );
-    return( 0 );
+    mysql_free_result(result);
+    Warning("Unable to authenticate user %s", username);
+    return NULL;
   }
 
-  MYSQL_ROW dbrow = mysql_fetch_row( result );
+  MYSQL_ROW dbrow = mysql_fetch_row(result);
 
-  User *user = new User( dbrow );
-  Info( "Authenticated user '%s'", user->getUsername() );
+  User *user = new User(dbrow);
+  Info("Authenticated user '%s'", user->getUsername());
 
-  mysql_free_result( result );
+  mysql_free_result(result);
+  delete safer_username;
 
   return user;
 }
@@ -236,4 +245,19 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 #endif // HAVE_DECL_MD5
   Debug(1, "No user found for auth_key %s", auth );
   return 0;
+}
+
+//Function to check Username length
+bool checkUser ( const char *username) {
+  if ( strlen(username) > 32) {
+    return false;
+  }
+  return true;
+}
+//Function to check password length
+bool checkPass (const char *password) {
+  if ( strlen(password) > 64) {
+    return false;
+  }
+  return true;
 }

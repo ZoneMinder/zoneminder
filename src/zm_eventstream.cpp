@@ -54,13 +54,13 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if ( !result ) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
-    exit( mysql_errno( &dbconn ) );
+    exit(mysql_errno(&dbconn));
   }
   MYSQL_ROW dbrow = mysql_fetch_row(result);
 
   if ( mysql_errno(&dbconn) ) {
     Error("Can't fetch row: %s", mysql_error(&dbconn));
-    exit( mysql_errno(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
   uint64_t init_event_id = atoll(dbrow[0]);
@@ -78,12 +78,11 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
         //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
         if ( event_data->frames[i].timestamp >= event_time ) {
           curr_frame_id = i+1;
-          Debug( 3, "Set cst:%.2f", curr_stream_time );
-          Debug( 3, "Set cfid:%d", curr_frame_id );
+          Debug(3, "Set curr_stream_time:%.2f, curr_frame_id:%d", curr_stream_time, curr_frame_id);
           break;
         }
       }
-      Debug( 3, "Skipping %ld frames", event_data->frame_count );
+      Debug(3, "Skipping %ld frames", event_data->frame_count);
     }
   }
   return true;
@@ -94,7 +93,7 @@ bool EventStream::loadInitialEventData( uint64_t init_event_id, unsigned int ini
 
   if ( init_frame_id ) {
     if ( init_frame_id >= event_data->frame_count ) {
-      Error("Invalid frame id specified. %d > %d", init_frame_id, event_data->frame_count );
+      Error("Invalid frame id specified. %d > %d", init_frame_id, event_data->frame_count);
       curr_stream_time = event_data->start_time;
     } else {
       curr_stream_time = event_data->frames[init_frame_id-1].timestamp;
@@ -141,12 +140,12 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data = new EventData;
   event_data->event_id = event_id;
 
-  event_data->monitor_id = atoi( dbrow[0] );
-  event_data->storage_id = dbrow[1] ? atoi( dbrow[1] ) : 0;
+  event_data->monitor_id = atoi(dbrow[0]);
+  event_data->storage_id = dbrow[1] ? atoi(dbrow[1]) : 0;
   event_data->frame_count = dbrow[2] == NULL ? 0 : atoi(dbrow[2]);
   event_data->start_time = atoi(dbrow[3]);
-  event_data->duration = atof(dbrow[4]);
-  strncpy( event_data->video_file, dbrow[5], sizeof(event_data->video_file)-1 );
+  event_data->duration = dbrow[4] ? atof(dbrow[4]) : 0.0;
+  strncpy(event_data->video_file, dbrow[5], sizeof(event_data->video_file)-1);
   std::string scheme_str = std::string(dbrow[6]);
   if ( scheme_str == "Deep" ) {
     event_data->scheme = Storage::DEEP;
@@ -165,39 +164,44 @@ bool EventStream::loadEventData(uint64_t event_id) {
     struct tm *event_time = localtime(&event_data->start_time);
 
     if ( storage_path[0] == '/' )
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
+      snprintf(event_data->path, sizeof(event_data->path),
+          "%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
           storage_path, event_data->monitor_id,
           event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
-          event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+          event_time->tm_hour, event_time->tm_min, event_time->tm_sec);
     else
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
+      snprintf(event_data->path, sizeof(event_data->path),
+          "%s/%s/%ld/%02d/%02d/%02d/%02d/%02d/%02d",
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_time->tm_year-100, event_time->tm_mon+1, event_time->tm_mday,
-          event_time->tm_hour, event_time->tm_min, event_time->tm_sec );
+          event_time->tm_hour, event_time->tm_min, event_time->tm_sec);
   } else if ( event_data->scheme == Storage::MEDIUM ) {
-    struct tm *event_time = localtime( &event_data->start_time );
+    struct tm *event_time = localtime(&event_data->start_time);
     if ( storage_path[0] == '/' )
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%04d-%02d-%02d/%" PRIu64,
+      snprintf(event_data->path, sizeof(event_data->path),
+          "%s/%ld/%04d-%02d-%02d/%" PRIu64,
           storage_path, event_data->monitor_id,
           event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday,
-          event_data->event_id );
+          event_data->event_id);
     else
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%04d-%02d-%02d/%" PRIu64,
+      snprintf(event_data->path, sizeof(event_data->path),
+          "%s/%s/%ld/%04d-%02d-%02d/%" PRIu64,
           staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
           event_time->tm_year+1900, event_time->tm_mon+1, event_time->tm_mday, 
-          event_data->event_id );
+          event_data->event_id);
 
   } else {
     if ( storage_path[0] == '/' )
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%ld/%" PRIu64,
-          storage_path, event_data->monitor_id, event_data->event_id );
+      snprintf(event_data->path, sizeof(event_data->path), "%s/%ld/%" PRIu64,
+          storage_path, event_data->monitor_id, event_data->event_id);
     else
-      snprintf( event_data->path, sizeof(event_data->path), "%s/%s/%ld/%" PRIu64, 
-          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id, event_data->event_id );
+      snprintf(event_data->path, sizeof(event_data->path), "%s/%s/%ld/%" PRIu64, 
+          staticConfig.PATH_WEB.c_str(), storage_path, event_data->monitor_id,
+          event_data->event_id);
   }
   delete storage; storage = NULL;
 
-  updateFrameRate( (double)event_data->frame_count/event_data->duration );
+  updateFrameRate((double)event_data->frame_count/event_data->duration);
   Debug(3,"fps set by frame_count(%d)/duration(%f)", event_data->frame_count, event_data->duration);
 
   snprintf(sql, sizeof(sql), "SELECT FrameId, unix_timestamp(`TimeStamp`), Delta FROM Frames WHERE EventId = %" PRIu64 " ORDER BY FrameId ASC", event_id);
@@ -296,15 +300,15 @@ void EventStream::processCommand(const CmdMsg *msg) {
   // Check for incoming command
   switch( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
-        Debug( 1, "Got PAUSE command" );
+        Debug(1, "Got PAUSE command");
 
         // Set paused flag
         paused = true;
         replay_rate = ZM_RATE_BASE;
-        last_frame_sent = TV_2_FLOAT( now );
+        last_frame_sent = TV_2_FLOAT(now);
         break;
     case CMD_PLAY :
-        Debug( 1, "Got PLAY command" );
+        Debug(1, "Got PLAY command");
         if ( paused ) {
           paused = false;
         }
@@ -320,18 +324,18 @@ void EventStream::processCommand(const CmdMsg *msg) {
         replay_rate = ZM_RATE_BASE;
         break;
     case CMD_VARPLAY :
-        Debug( 1, "Got VARPLAY command" );
+        Debug(1, "Got VARPLAY command");
         if ( paused ) {
           paused = false;
         }
         replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
         break;
     case CMD_STOP :
-        Debug( 1, "Got STOP command" );
+        Debug(1, "Got STOP command");
         paused = false;
         break;
     case CMD_FASTFWD :
-        Debug( 1, "Got FAST FWD command" );
+        Debug(1, "Got FAST FWD command");
         if ( paused ) {
           paused = false;
         }
@@ -356,19 +360,19 @@ void EventStream::processCommand(const CmdMsg *msg) {
         }
         break;
     case CMD_SLOWFWD :
-        Debug( 1, "Got SLOW FWD command" );
+        Debug(1, "Got SLOW FWD command");
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = 1;
         break;
     case CMD_SLOWREV :
-        Debug( 1, "Got SLOW REV command" );
+        Debug(1, "Got SLOW REV command");
         paused = true;
         replay_rate = ZM_RATE_BASE;
         step = -1;
         break;
     case CMD_FASTREV :
-        Debug( 1, "Got FAST REV command" );
+        Debug(1, "Got FAST REV command");
         paused = false;
         // Set play rate
         switch ( replay_rate ) {
@@ -393,7 +397,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     case CMD_ZOOMIN :
         x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
         y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-        Debug( 1, "Got ZOOM IN command, to %d,%d", x, y );
+        Debug(1, "Got ZOOM IN command, to %d,%d", x, y);
         switch ( zoom ) {
           case 100:
             zoom = 150;
@@ -415,7 +419,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
         send_frame = true;
         break;
     case CMD_ZOOMOUT :
-        Debug( 1, "Got ZOOM OUT command" );
+        Debug(1, "Got ZOOM OUT command");
         switch ( zoom ) {
           case 500:
             zoom = 400;
@@ -439,14 +443,14 @@ void EventStream::processCommand(const CmdMsg *msg) {
     case CMD_PAN :
         x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
         y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-        Debug( 1, "Got PAN command, to %d,%d", x, y );
+        Debug(1, "Got PAN command, to %d,%d", x, y);
         break;
     case CMD_SCALE :
         scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-        Debug( 1, "Got SCALE command, to %d", scale );
+        Debug(1, "Got SCALE command, to %d", scale);
         break;
     case CMD_PREV :
-        Debug( 1, "Got PREV command" );
+        Debug(1, "Got PREV command");
         if ( replay_rate >= 0 )
           curr_frame_id = 0;
         else
@@ -455,7 +459,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
         forceEventChange = true;
         break;
     case CMD_NEXT :
-        Debug( 1, "Got NEXT command" );
+        Debug(1, "Got NEXT command");
         if ( replay_rate >= 0 )
           curr_frame_id = event_data->frame_count+1;
         else
@@ -467,12 +471,12 @@ void EventStream::processCommand(const CmdMsg *msg) {
       {
         int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
         curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
-        Debug( 1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id );
+        Debug(1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id);
         send_frame = true;
         break;
       }
     case CMD_QUERY :
-        Debug( 1, "Got QUERY command, sending STATUS" );
+        Debug(1, "Got QUERY command, sending STATUS");
         break;
     case CMD_QUIT :
         Info("User initiated exit - CMD_QUIT");
@@ -494,7 +498,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
   status_data.rate = replay_rate;
   status_data.zoom = zoom;
   status_data.paused = paused;
-  Debug( 2, "Event:%" PRIu64 ", Paused:%d, progress:%d Rate:%d, Zoom:%d",
+  Debug(2, "Event:%" PRIu64 ", Paused:%d, progress:%d Rate:%d, Zoom:%d",
     status_data.event_id,
     status_data.paused,
     status_data.progress,
@@ -520,73 +524,71 @@ void EventStream::processCommand(const CmdMsg *msg) {
 }
 
 void EventStream::checkEventLoaded() {
-  bool reload_event = false;
   static char sql[ZM_SQL_SML_BUFSIZ];
 
   if ( curr_frame_id <= 0 ) {
-    snprintf( sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id < %" PRIu64 " ORDER BY Id DESC LIMIT 1", event_data->monitor_id, event_data->event_id );
-    reload_event = true;
+    snprintf(sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id < %" PRIu64 " ORDER BY Id DESC LIMIT 1", event_data->monitor_id, event_data->event_id);
   } else if ( (unsigned int)curr_frame_id > event_data->frame_count ) {
-    snprintf( sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id > %" PRIu64 " ORDER BY Id ASC LIMIT 1", event_data->monitor_id, event_data->event_id );
-    reload_event = true;
+    snprintf(sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id > %" PRIu64 " ORDER BY Id ASC LIMIT 1", event_data->monitor_id, event_data->event_id);
+  } else {
+    // No event change required
+    return;
   }
 
-  if ( reload_event ) {
-    if ( forceEventChange || ( mode != MODE_SINGLE && mode != MODE_NONE ) ) {
-      //Info( "SQL:%s", sql );
-      if ( mysql_query( &dbconn, sql ) ) {
-        Error( "Can't run query: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
-      }
+  // Event change required.
+  if ( forceEventChange || ( mode != MODE_SINGLE && mode != MODE_NONE ) ) {
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't run query: %s", mysql_error(&dbconn));
+      exit(mysql_errno(&dbconn));
+    }
 
-      MYSQL_RES *result = mysql_store_result( &dbconn );
-      if ( !result ) {
-        Error( "Can't use query result: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
-      }
-      MYSQL_ROW dbrow = mysql_fetch_row( result );
+    MYSQL_RES *result = mysql_store_result(&dbconn);
+    if ( !result ) {
+      Error("Can't use query result: %s", mysql_error(&dbconn));
+      exit(mysql_errno(&dbconn));
+    }
+    MYSQL_ROW dbrow = mysql_fetch_row(result);
 
-      if ( mysql_errno( &dbconn ) ) {
-        Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
-        exit( mysql_errno( &dbconn ) );
-      }
+    if ( mysql_errno(&dbconn)) {
+      Error("Can't fetch row: %s", mysql_error(&dbconn));
+      exit(mysql_errno(&dbconn));
+    }
 
-      if ( dbrow ) {
-        uint64_t event_id = atoll(dbrow[0]);
-        Debug( 1, "Loading new event %" PRIu64, event_id );
+    if ( dbrow ) {
+      uint64_t event_id = atoll(dbrow[0]);
+      Debug(1, "Loading new event %" PRIu64, event_id);
 
-        loadEventData(event_id);
+      loadEventData(event_id);
 
-        Debug( 2, "Current frame id = %d", curr_frame_id );
-        if ( replay_rate < 0 )
-          curr_frame_id = event_data->frame_count;
-        else
-          curr_frame_id = 1;
-        Debug( 2, "New frame id = %d", curr_frame_id );
-      } else {
-        if ( curr_frame_id <= 0 )
-          curr_frame_id = 1;
-        else
-          curr_frame_id = event_data->frame_count;
-        paused = true;
-      }
-      mysql_free_result( result );
-      forceEventChange = false;
+      Debug(2, "Current frame id = %d", curr_frame_id);
+      if ( replay_rate < 0 ) //rewind
+        curr_frame_id = event_data->frame_count;
+      else
+        curr_frame_id = 1;
+      Debug(2, "New frame id = %d", curr_frame_id);
     } else {
       if ( curr_frame_id <= 0 )
         curr_frame_id = 1;
       else
         curr_frame_id = event_data->frame_count;
       paused = true;
-    }
+    } // end if found a new event or not
+    mysql_free_result(result);
+    forceEventChange = false;
+  } else {
+    if ( curr_frame_id <= 0 )
+      curr_frame_id = 1;
+    else
+      curr_frame_id = event_data->frame_count;
+    paused = true;
   }
-}
+} // void EventStream::checkEventLoaded()
 
 Image * EventStream::getImage( ) {
   static char filepath[PATH_MAX];
 
   Debug(2, "EventStream::getImage path(%s) frame(%d)", event_data->path, curr_frame_id);
-  snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id);
+  snprintf(filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id);
   Debug(2, "EventStream::getImage path(%s) ", filepath, curr_frame_id);
   Image *image = new Image(filepath);
   return image;
@@ -602,27 +604,27 @@ bool EventStream::sendFrame(int delta_us) {
   // This needs to be abstracted.  If we are saving jpgs, then load the capture file.  If we are only saving analysis frames, then send that.
   // // This is also wrong, need to have this info stored in the event! FIXME
   if ( event_data->SaveJPEGs & 1 ) {
-    snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
+    snprintf(filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id);
   } else if ( event_data->SaveJPEGs & 2 ) {
-    snprintf( filepath, sizeof(filepath), staticConfig.analyse_file_format, event_data->path, curr_frame_id );
-    if ( stat( filepath, &filestat ) < 0 ) {
+    snprintf(filepath, sizeof(filepath), staticConfig.analyse_file_format, event_data->path, curr_frame_id);
+    if ( stat(filepath, &filestat ) < 0 ) {
       Debug(1, "analyze file %s not found will try to stream from other", filepath);
-      snprintf( filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id );
-      if ( stat( filepath, &filestat ) < 0 ) {
+      snprintf(filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id);
+      if ( stat(filepath, &filestat ) < 0 ) {
         Debug(1, "capture file %s not found either", filepath);
         filepath[0] = 0;
       }
     }
 
-  } else if ( ! ffmpeg_input ) {
-    Fatal("JPEGS not saved.zms is not capable of streaming jpegs from mp4 yet");
+  } else if ( !ffmpeg_input ) {
+    Fatal("JPEGS not saved. zms is not capable of streaming jpegs from mp4 yet");
     return false;
   }
 
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {
 Debug(2,"Streaming MPEG");
-    Image image( filepath );
+    Image image(filepath);
 
     Image *send_image = prepareImage(&image);
 
@@ -631,7 +633,7 @@ Debug(2,"Streaming MPEG");
       fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
-    /* double pts = */ vid_stream->EncodeFrame( send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_us*1000 );
+    /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_us*1000);
   } else
 #endif // HAVE_LIBAVCODEC
   {
@@ -642,7 +644,7 @@ Debug(2,"Streaming MPEG");
 
     bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE)) && filepath[0];
 
-    fprintf( stdout, "--ZoneMinderFrame\r\n" );
+    fprintf(stdout, "--ZoneMinderFrame\r\n");
 
     if ( (type != STREAM_JPEG) || (!filepath[0]) )
       send_raw = false;
@@ -654,8 +656,8 @@ Debug(2,"Streaming MPEG");
         return false;
       }
 #if HAVE_SENDFILE
-      if( fstat(fileno(fdj),&filestat) < 0 ) {
-        Error( "Failed getting information about file %s: %s", filepath, strerror(errno) );
+      if ( fstat(fileno(fdj),&filestat) < 0 ) {
+        Error("Failed getting information about file %s: %s", filepath, strerror(errno));
         return false;
       }
 #else
@@ -691,7 +693,7 @@ Debug(1, "Loading image");
       
       Image *send_image = prepareImage(image);
 
-      switch( type ) {
+      switch ( type ) {
         case STREAM_JPEG :
           send_image->EncodeJpeg(img_buffer, &img_buffer_size);
           break;
@@ -710,22 +712,22 @@ Debug(1, "Loading image");
           img_buffer_size = send_image->Size();
           break;
         default:
-          Fatal( "Unexpected frame type %d", type );
+          Fatal("Unexpected frame type %d", type);
           break;
       }
       delete image;
       image = NULL;
-    }
+    } // end if send_raw or not
 
-    switch( type ) {
+    switch ( type ) {
       case STREAM_JPEG :
-        fputs( "Content-Type: image/jpeg\r\n", stdout );
+        fputs("Content-Type: image/jpeg\r\n", stdout);
         break;
       case STREAM_RAW :
-        fputs( "Content-Type: image/x-rgb\r\n", stdout );
+        fputs("Content-Type: image/x-rgb\r\n", stdout);
         break;
       case STREAM_ZIP :
-        fputs( "Content-Type: image/x-rgbz\r\n", stdout );
+        fputs("Content-Type: image/x-rgbz\r\n", stdout);
         break;
       default :
         Fatal("Unexpected frame type %d", type);
@@ -734,40 +736,40 @@ Debug(1, "Loading image");
 
     if ( send_raw ) {
 #if HAVE_SENDFILE
-      fprintf( stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size );
+      fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size);
       if ( zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size) != (int)filestat.st_size ) {
         /* sendfile() failed, use standard way instead */
         img_buffer_size = fread( img_buffer, 1, sizeof(temp_img_buffer), fdj );
-        if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+        if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
           fclose(fdj); /* Close the file handle */
           Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
-          return( false );
+          return false;
         }
       }
 #else
-      fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
-      if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
+      fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
+      if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
         fclose(fdj); /* Close the file handle */
         Error("Unable to send raw frame %u: %s",curr_frame_id,strerror(errno));
-        return( false );
+        return false;
       }
 #endif
       fclose(fdj); /* Close the file handle */
     } else {
-      Debug(3, "Content length: %d", img_buffer_size );
-      fprintf( stdout, "Content-Length: %d\r\n\r\n", img_buffer_size );
-      if ( fwrite( img_buffer, img_buffer_size, 1, stdout ) != 1 ) {
-        Error( "Unable to send stream frame: %s", strerror(errno) );
-        return( false );
+      Debug(3, "Content length: %d", img_buffer_size);
+      fprintf(stdout, "Content-Length: %d\r\n\r\n", img_buffer_size);
+      if ( fwrite(img_buffer, img_buffer_size, 1, stdout) != 1 ) {
+        Error("Unable to send stream frame: %s", strerror(errno));
+        return false;
       }
-    }
+    } // end if send_raw or not
 
     fputs("\r\n\r\n", stdout);
     fflush(stdout);
-  }
+  } // end if stream MPEG or other
   last_frame_sent = TV_2_FLOAT(now);
   return true;
-}
+} // bool EventStream::sendFrame( int delta_us )
 
 void EventStream::runStream() {
   openComms();
@@ -786,14 +788,16 @@ void EventStream::runStream() {
   Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration);
   updateFrameRate((double)event_data->frame_count/event_data->duration);
 
-  while( !zm_terminate ) {
+  while ( !zm_terminate ) {
     gettimeofday(&now, NULL);
 
     unsigned int delta_us = 0;
     send_frame = false;
 
     // commands may set send_frame to true
-    while(checkCommandQueue());
+    while ( checkCommandQueue() && !zm_terminate ) {
+      // The idea is to loop here processing all commands before proceeding.
+    }
 
     // Update modified time of the socket .lock file so that we can tell which ones are stale.
     if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
@@ -827,6 +831,7 @@ void EventStream::runStream() {
       }
       if ( !in_event ) {
         double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
+        // > 1 second
         if ( actual_delta_time > 1 ) {
           static char frame_text[64];
           snprintf(frame_text, sizeof(frame_text), "Time to next event = %d seconds", (int)time_to_event);
@@ -835,12 +840,12 @@ void EventStream::runStream() {
         }
         //else
         //{
-          usleep( STREAM_PAUSE_WAIT );
+          usleep(STREAM_PAUSE_WAIT);
           //curr_stream_time += (replay_rate>0?1:-1) * ((1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000));
           curr_stream_time += (1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
         //}
         continue;
-      }
+      } // end if !in_event
 
       // Figure out if we should send this frame
 Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
@@ -869,7 +874,7 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
         Debug(2, "Sending keepalive frame");
         send_frame = true;
       }
-    }
+    } // end if streaming stepping or doing nothing
 
     if ( send_frame )
       if ( !sendFrame(delta_us) )
@@ -884,12 +889,12 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
         curr_frame_id = 1;
       }
       if ( send_frame && type != STREAM_MPEG ) {
-        Debug( 3, "dUs: %d", delta_us );
+        Debug(3, "dUs: %d", delta_us);
         if ( delta_us )
-          usleep( delta_us );
+          usleep(delta_us);
       }
     } else {
-      usleep( (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))) );
+      usleep((unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))));
     }
   } // end while ! zm_terminate
 #if HAVE_LIBAVCODEC
@@ -898,15 +903,17 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
 #endif // HAVE_LIBAVCODEC
 
   closeComms();
-}
+} // void EventStream::runStream()
+
 void EventStream::setStreamStart( uint64_t init_event_id, unsigned int init_frame_id=0 ) {
-  loadInitialEventData( init_event_id, init_frame_id );
-  if ( !(monitor = Monitor::Load( event_data->monitor_id, false, Monitor::QUERY )) ) {
-    Fatal( "Unable to load monitor id %d for streaming", event_data->monitor_id );
+  loadInitialEventData(init_event_id, init_frame_id);
+  if ( !(monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY)) ) {
+    Fatal("Unable to load monitor id %d for streaming", event_data->monitor_id);
     return;
   }
 }
-void EventStream::setStreamStart( int monitor_id, time_t event_time ) {
+
+void EventStream::setStreamStart(int monitor_id, time_t event_time) {
   loadInitialEventData(monitor_id, event_time);
   if ( !(monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY)) ) {
     Fatal("Unable to load monitor id %d for streaming", monitor_id);

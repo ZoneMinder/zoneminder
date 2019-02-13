@@ -322,7 +322,7 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
       <h2><?php echo translate('MonitorProbe') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <p>
@@ -333,9 +333,9 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
           <?php echo buildSelect('probe', $cameras, 'configureButtons(this)'); ?>
         </p>
         <div id="contentButtons">
-        <button type="button" name="saveBtn" value="Save" onclick="submitCamera(this);" disabled="disabled">
+        <button type="button" name="saveBtn" value="Save" data-on-click-this="submitCamera" disabled="disabled">
         <?php echo translate('Save') ?></button>
-        <button type="button" onclick="closeWindow();"><?php echo translate('Cancel') ?></button>
+        <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

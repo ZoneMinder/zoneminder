@@ -349,6 +349,7 @@ int main(int argc, char *argv[]) {
       sigprocmask(SIG_UNBLOCK, &block_set, 0);
       if ( result < 0 ) {
         // Failure, try reconnecting
+				sleep(1);
         break;
       }
       if ( zm_reload ) {

@@ -46,6 +46,8 @@ foreach ( $storage_areas as $S ) {
 $html =
 '
 <div class="controlHeader">
+  <!-- Used to submit the form with the enter key -->
+  <input type="submit" class="hide"/>
   <input type="hidden" name="filtering" value=""/>
 ';
 
@@ -93,7 +95,7 @@ if ( ! empty($user['MonitorIds']) ) {
 }
 
 $html .= '<span class="MonitorNameFilter"><label>'.translate('Name').'</label>';
-$html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?$_SESSION['MonitorName']:'').'" onkeydown="if(event&&event.keyCode==13){this.form.submit();}" placeholder="text or regular expression"/>';
+$html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="text or regular expression"/>';
 $html .= '</span>';
 
 $Functions = array();
@@ -105,7 +107,7 @@ $html .= '<span class="FunctionFilter"><label>'.translate('Function').'</label>'
 $html .= htmlSelect('Function[]', $Functions,
   (isset($_SESSION['Function'])?$_SESSION['Function']:''),
     array(
-      'onchange'=>'this.form.submit();',
+      'data-on-change'=>'submitThisForm',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
@@ -118,7 +120,7 @@ if ( count($ServersById) > 1 ) {
   $html .= htmlSelect('ServerId[]', $ServersById,
     (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
     array(
-      'onchange'=>'this.form.submit();',
+      'data-on-change'=>'submitThisForm',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
@@ -132,7 +134,7 @@ if ( count($StorageById) > 1 ) {
   $html .= htmlSelect('StorageId[]', $StorageById,
     (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
     array(
-      'onchange'=>'this.form.submit();',
+      'data-on-change'=>'submitThisForm',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
@@ -150,7 +152,7 @@ $status_options = array(
 $html .= htmlSelect( 'Status[]', $status_options,
   ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),
   array(
-    'onchange'=>'this.form.submit();',
+    'data-on-change'=>'submitThisForm',
     'class'=>'chosen',
     'multiple'=>'multiple',
     'data-placeholder'=>'All'
@@ -158,7 +160,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
   $html .= '</span>';
 
   $html .= '<span class="SourceFilter"><label>'.translate('Source').'</label>';
-  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?$_SESSION['Source']:'').'" onkeydown="if(event&&event.keyCode==13){this.form.submit();}" placeholder="text or regular expression"/>';
+  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?validHtmlStr($_SESSION['Source']):'').'" placeholder="text or regular expression"/>';
   $html .= '</span>';
 
   $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS, S.AnalysisFPS AS AnalysisFPS, S.CaptureBandwidth AS CaptureBandwidth
@@ -235,7 +237,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
   $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').'</label>';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
-      'onchange'=>'this.form.submit();',
+      'data-on-change'=>'submitThisForm',
       'class'=>'chosen',
       'multiple'=>'multiple',
       'data-placeholder'=>'All',

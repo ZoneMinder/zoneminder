@@ -144,11 +144,11 @@ if ( $showControl ) {
 }
 if ( $showZones ) {
 ?>
-        <a id="ShowZones" href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=0'; ?>">Hide Zones</a>
+        <a id="ShowZones" href="?view=montage&showZones=0">Hide Zones</a>
 <?php
 } else {
 ?>
-        <a id="ShowZones" href="<?php echo $_SERVER['PHP_SELF'].'?view=montage&showZones=1'; ?>">Show Zones</a>
+        <a id="ShowZones" href="?view=montage&showZones=1">Show Zones</a>
 <?php
 }
 ?>
@@ -176,7 +176,7 @@ if ( $showZones ) {
           </span> 
           <span id="layoutControl">
             <label for="layout"><?php echo translate('Layout') ?>:</label>
-            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('onchange'=>'selectLayout(this);', 'id'=>'zmMontageLayout')); ?>
+            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('onchange'=>'selectLayout(this);')); ?>
           </span>
           <input type="hidden" name="Positions"/>
           <input type="button" id="EditLayout" value="<?php echo translate('EditLayout') ?>" data-on-click-this="edit_layout"/>

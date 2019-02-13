@@ -51,11 +51,24 @@ function CSPHeaders($view, $nonce) {
     case 'blank':
     case 'console':
     case 'controlcap':
+    case 'cycle':
+    case 'donate':
+    case 'download':
+    case 'error':
+    case 'events':
+    case 'export':
+    case 'frame':
     case 'function':
     case 'log':
     case 'logout':
+    case 'optionhelp':
     case 'options':
+    case 'plugin':
+    case 'postlogin':
     case 'privacy':
+    case 'server':
+    case 'state':
+    case 'status':
     case 'storage':
     case 'version': {
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
@@ -281,7 +294,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
 
 function outputControlStream( $src, $width, $height, $monitor, $scale, $target ) {
 ?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+  <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
@@ -351,7 +364,7 @@ function getWebSiteUrl( $id, $src, $width, $height, $title='' ) {
 
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
   ?>
-  <form name="ctrlForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" target="<?php echo $target ?>">
+  <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
     <input type="hidden" name="view" value="blank">
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
     <input type="hidden" name="action" value="control">
@@ -441,6 +454,9 @@ function makeLink( $url, $label, $condition=1, $options='' ) {
   return( $string );
 }
 
+/**
+ * $label must be already escaped. It can't be done here since it sometimes contains HTML tags.
+ */
 function makePopupLink( $url, $winName, $winSize, $label, $condition=1, $options='' ) {
   // Avoid double-encoding since some consumers incorrectly pass a pre-escaped URL.
   $string = '<a class="popup-link" href="' . htmlspecialchars($url, ENT_COMPAT | ENT_HTML401, ini_get("default_charset"), false) . '"';
@@ -482,7 +498,6 @@ function makePopupButton( $url, $winName, $winSize, $buttonValue, $condition=1, 
 }
 
 function htmlSelect( $name, $contents, $values, $behaviours=false ) {
-
   $behaviourText = '';
   if ( !empty($behaviours) ) {
     if ( is_array($behaviours) ) {
@@ -520,10 +535,10 @@ function htmlOptions($contents, $values) {
       $text = $option;
     }
     $selected = is_array($values) ? in_array($value, $values) : !strcmp($value, $values);
-    $options_html .= "<option value=\"$value\"".
+    $options_html .= "<option value=\"".htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false)."\"".
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
-      ">$text</option>";
+      ">".htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false)."</option>";
   }
   return $options_html;
 }
@@ -598,7 +613,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         {
           if ( is_array($newValues[$key]) ) {
             if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
-              $changes[$key] = "`$key` = ".dbEscape(join(',',$newValues[$key]));
+              $changes[$key] = "`$key` = '".dbEscape(join(',',$newValues[$key]))."'";
             }
           } else if ( (!isset($values[$key])) or $values[$key] ) {
             $changes[$key] = "`$key` = ''";
@@ -958,11 +973,11 @@ Logger::Debug("generating Video $command: result($result outptu:(".implode("\n",
   return( $status?"":rtrim($result) );
 }
 
-function executeFilter( $filter ) {
-  $command = ZM_PATH_BIN."/zmfilter.pl --filter ".escapeshellarg($filter);
-  $result = exec( $command, $output, $status );
-  dbQuery( "delete from Filters where Name like '_TempFilter%'" );
-  return( $status );
+function executeFilter( $filter_id ) {
+  $command = ZM_PATH_BIN.'/zmfilter.pl --filter_id '.escapeshellarg($filter_id);
+  $result = exec($command, $output, $status);
+  dbQuery('DELETE FROM Filters WHERE Id=?', array($filter_id));
+  return $status;
 }
 
 # This takes more than one scale amount, so it runs through each and alters dimension.
@@ -1071,27 +1086,34 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
     $_SESSION['sort_asc'] = validHtmlStr($_REQUEST['sort_asc']);
   }
   if ($_REQUEST['limit'] != '') {
-    $limitQuery = "&limit=".$_REQUEST['limit'];
+    $limitQuery = "&limit=".validInt($_REQUEST['limit']);
   }
 }
 
+function getFilterQueryConjunctionTypes() {
+  return array(
+               'and' => translate('ConjAnd'),
+               'or'  => translate('ConjOr')
+               );
+}
+
 function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
-  $filter['query'] = ''; 
+  $filter['query'] = '';
   $filter['sql'] = '';
   $filter['fields'] = '';
 
+  $validQueryConjunctionTypes = getFilterQueryConjunctionTypes();
   $StorageArea = NULL;
 
   $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
-
   if ( isset($terms) && count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {
-      if ( isset($terms[$i]['cnj']) ) {
+      if ( isset($terms[$i]['cnj']) && array_key_exists($terms[$i]['cnj'], $validQueryConjunctionTypes) ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($terms[$i]['cnj']);
         $filter['sql'] .= ' '.$terms[$i]['cnj'].' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($terms[$i]['cnj'])."\"/>\n";
       }
-      if ( isset($terms[$i]['obr']) ) {
+      if ( isset($terms[$i]['obr']) && (string)(int)$terms[$i]['obr'] == $terms[$i]['obr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($terms[$i]['obr']);
         $filter['sql'] .= ' '.str_repeat('(', $terms[$i]['obr']).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($terms[$i]['obr'])."\"/>\n";
@@ -1101,7 +1123,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($terms[$i]['attr'])."\"/>\n";
         switch ( $terms[$i]['attr'] ) {
           case 'MonitorName':
-            $filter['sql'] .= 'M.'.preg_replace('/^Monitor/', '', $terms[$i]['attr']);
+            $filter['sql'] .= 'M.Name';
             break;
           case 'ServerId':
           case 'MonitorServerId':
@@ -1295,7 +1317,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 		$filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
 	}
       } // end foreach term
-      if ( isset($terms[$i]['cbr']) ) {
+      if ( isset($terms[$i]['cbr']) && (string)(int)$terms[$i]['cbr'] == $terms[$i]['cbr'] ) {
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($terms[$i]['cbr']);
         $filter['sql'] .= ' '.str_repeat( ')', $terms[$i]['cbr'] ).' ';
         $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($terms[$i]['cbr'])."\"/>\n";
@@ -1405,7 +1427,7 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
 
 function sortHeader( $field, $querySep='&amp;' ) {
   global $view;
-  return( '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.$_REQUEST['limit'] );
+  return '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.validInt($_REQUEST['limit']);
 }
 
 function sortTag( $field ) {

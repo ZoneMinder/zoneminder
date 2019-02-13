@@ -12,13 +12,14 @@
 	function () {
 		// Append '?(GET query)' to URL if the GET query is not empty.
 		var querySuffix = "<?php
-			if (!empty($_POST["postLoginQuery"])) {
-                                parse_str($_POST["postLoginQuery"], $queryParams);
-				echo "?" . http_build_query($queryParams);
-                        }
+			if (!empty($_POST['postLoginQuery'])) {
+        parse_str($_POST['postLoginQuery'], $queryParams);
+        echo '?' . http_build_query($queryParams);
+      }
 			?>";
 
-		var newUrl = thisUrl + querySuffix;
+		//var newUrl = thisUrl + querySuffix;
+    var newUrl = '<?php echo $_SERVER['PHP_SELF'] ?>' + querySuffix;
 		window.location.replace(newUrl);
 	}
 ).delay( 500 );

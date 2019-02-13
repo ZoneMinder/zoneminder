@@ -52,7 +52,7 @@ xhtmlHeaders(__FILE__, translate('Zones') );
       <h2><?php echo translate('Zones') ?></h2>
     </div>
     <div id="content" style="width:<?php echo $monitor->Width() ?>px; height:<?php echo $monitor->Height() ?>px; position:relative; margin: 0 auto;">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="delete"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
@@ -74,8 +74,8 @@ xhtmlHeaders(__FILE__, translate('Zones') );
 foreach( $zones as $zone ) {
 ?>
             <tr>
-              <td class="colName"><?php echo makePopupLink('?view=zone&mid=' . $mid . '&zid=' . $zone['Id'], 'zmZone', array('zone', $monitor->Width(), $monitor->Height()), $zone['Name'], true, 'onclick="streamCmdQuit( true ); return( false );"'); ?></td>
-              <td class="colType"><?php echo $zone['Type'] ?></td>
+              <td class="colName"><?php echo makePopupLink('?view=zone&mid=' . $mid . '&zid=' . $zone['Id'], 'zmZone', array('zone', $monitor->Width(), $monitor->Height()), validHtmlStr($zone['Name']), true, 'onclick="streamCmdQuit( true ); return( false );"'); ?></td>
+              <td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
               <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf( "%.2f", ($zone['Area']*100)/($monitor->Width()*$monitor->Height()) ) ?></td>
               <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>

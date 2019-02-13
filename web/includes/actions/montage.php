@@ -40,7 +40,7 @@ if ( isset($_REQUEST['object']) ) {
       $_SESSION['zmMontageLayout'] = $Layout->Id();
       setcookie('zmMontageLayout', $Layout->Id(), 1);
       session_write_close();
-      $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montage';
+      $redirect = '?view=montage';
     } // end if save
 
   } # end if isset($_REQUEST['object'] )

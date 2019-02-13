@@ -285,7 +285,11 @@ void zm_dump_frame(const AVFrame *frame,const char *text) {
       av_get_sample_fmt_name((AVSampleFormat)frame->format),
       frame->sample_rate,
       frame->nb_samples,
+#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
       frame->channels,
+#else
+0,
+#endif
       frame->channel_layout
       );
 }

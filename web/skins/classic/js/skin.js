@@ -126,32 +126,43 @@ function createPopup( url, name, tag, width, height ) {
   }
 }
 
-$j(document).ready(function() {
-  $j("form.validateFormOnSubmit").submit(function onSubmit(evt) {
-    if (!validateForm(this)) {
+// Polyfill for NodeList.prototype.forEach on IE.
+if (window.NodeList && !NodeList.prototype.forEach) {
+  NodeList.prototype.forEach = Array.prototype.forEach;
+}
+
+window.addEventListener("DOMContentLoaded", function onSkinDCL() {
+  document.querySelectorAll("form.validateFormOnSubmit").forEach(function(el) {
+    el.addEventListener("submit", function onSubmit(evt) {
+      if (!validateForm(this)) {
+        evt.preventDefault();
+      }
+    });
+  });
+
+  document.querySelectorAll(".popup-link").forEach(function(el) {
+    el.addEventListener("click", function onClick(evt) {
+      var el = this;
+      var url;
+      if (el.hasAttribute("href")) {
+        // <a>
+        url = el.getAttribute("href");
+      } else {
+        // buttons
+        url = el.getAttribute("data-url");
+      }
+      var name = el.getAttribute("data-window-name");
+      var tag = el.getAttribute("data-window-tag");
+      var width = el.getAttribute("data-window-width");
+      var height = el.getAttribute("data-window-height");
       evt.preventDefault();
-    }
+      createPopup(url, name, tag, width, height);
+    });
   });
 
-  $j(".popup-link").click(function onClick(evt) {
-    var el = this;
-    var url;
-    if (el.hasAttribute("href")) {
-      // <a>
-      url = el.getAttribute("href");
-    } else {
-      // buttons
-      url = el.getAttribute("data-url");
-    }
-    var name = el.getAttribute("data-window-name");
-    var tag = el.getAttribute("data-window-tag");
-    var width = el.getAttribute("data-window-width");
-    var height = el.getAttribute("data-window-height");
-    createPopup(url, name, tag, width, height);
-    evt.preventDefault();
+  document.querySelectorAll(".tabList a").forEach(function addOnClick(el) {
+    el.addEventListener("click", submitTab);
   });
-
-  $j(".tabList a").click(submitTab);
 
   // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
@@ -164,6 +175,14 @@ $j(document).ready(function() {
     var fnName = el.getAttribute("data-on-click");
     el.onclick = function() {
       window[fnName]();
+    };
+  });
+
+  // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
+  document.querySelectorAll("a[data-on-click-true], button[data-on-click-true], input[data-on-click-true]").forEach(function attachOnClick(el) {
+    var fnName = el.getAttribute("data-on-click-true");
+    el.onclick = function() {
+      window[fnName](true);
     };
   });
 
@@ -250,7 +269,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
-    if ($j('.navbar').length) {
+    if ( $j('.navbar').length ) {
       setInterval(getNavBar, navBarRefresh);
     }
   });
@@ -258,12 +277,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
   function getNavBar() {
     $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar')
         .done(setNavBar)
-        .fail(function( jqxhr, textStatus, error ) {
-          console.log( "Request Failed: " + textStatus + ", " + error);
+        .fail(function(jqxhr, textStatus, error) {
+          console.log("Request Failed: " + textStatus + ", " + error);
           if ( textStatus != "timeout" ) {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
-            window.location.reload( true );
+            window.location.reload(true);
           }
         });
   }

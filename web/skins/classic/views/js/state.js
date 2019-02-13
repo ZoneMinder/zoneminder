@@ -4,49 +4,48 @@ $j(document).ready(function() {
     runstate = $j(this).val();
 
     if ( (runstate == 'stop') || (runstate == 'restart') || (runstate == 'start') || (runstate == 'default') ) {
-      $j("#btnDelete").prop( "disabled", true );
+      $j("#btnDelete").prop("disabled", true);
     } else {
-      $j("#btnDelete").prop( "disabled", false );
+      $j("#btnDelete").prop("disabled", false);
     }
   });
 
   // Enable or disable the Save button when entering a new state
   $j("#newState").keyup(function() {
     length = $j(this).val().length;
-    console.log(length);
-    if (length < 1) {
-      $j("#btnSave").prop( "disabled", true );
+    if ( length < 1 ) {
+      $j("#btnSave").prop("disabled", true);
     } else {
-      $j("#btnSave").prop( "disabled", false );
+      $j("#btnSave").prop("disabled", false);
     }
   });
 
 
   // Delete a state
   $j("#btnDelete").click(function() {
-    stateStuff( 'delete', $j("#runState").val( ));
+    stateStuff('delete', $j("#runState").val());
   });
 
 
   // Save a new state
   $j("#btnSave").click(function() {
-    stateStuff( 'save', undefined, $j("#newState").val() );
+    stateStuff('save', undefined, $j("#newState").val());
   });
 
   // Change state
   $j("#btnApply").click(function() {
-    stateStuff( 'state', $j("#runState").val() );
+    stateStuff('state', $j("#runState").val());
   });
 
-  function stateStuff( action, runState, newState ) {
+  function stateStuff(action, runState, newState) {
+    // the state action will redirect to console
     var formData = {
-      'view': 'console',
+      'view': 'state',
       'action': action,
       'apply': 1,
       'runState': runState,
       'newState': newState
     };
-    console.log(formData);
 
     $j("#pleasewait").toggleClass("hidden");
 

@@ -59,6 +59,9 @@ function initPage() {
   if ( exportReady ) {
     startDownload.pass( exportFile ).delay( 1500 );
   }
+  document.getElementById('exportButton').addEventListener('click', function onClick() {
+    exportEvent(this.form);
+  });
 }
 
 window.addEventListener( 'DOMContentLoaded', initPage );

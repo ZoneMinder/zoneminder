@@ -44,13 +44,13 @@ if ( false ) {
 }
 
 require_once('includes/config.php');
+require_once('includes/session.php');
 require_once('includes/logger.php');
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
 require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
-
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
@@ -115,39 +115,28 @@ if ( !file_exists(ZM_SKIN_PATH) )
   Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
-$currentCookieParams = session_get_cookie_params(); 
-//Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
-session_set_cookie_params( 
-    $currentCookieParams['lifetime'], 
-    $currentCookieParams['path'], 
-    $currentCookieParams['domain'],
-    $currentCookieParams['secure'], 
-    true
-); 
+zm_session_start();
 
-ini_set('session.name', 'ZMSESSID');
-
-session_start();
-
-if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) || !isset($_COOKIE['zmSkin']) || $_COOKIE['zmSkin'] != $skin ) {
+if (
+  !isset($_SESSION['skin']) ||
+  isset($_REQUEST['skin']) ||
+  !isset($_COOKIE['zmSkin']) ||
+  $_COOKIE['zmSkin'] != $skin
+) {
   $_SESSION['skin'] = $skin;
   setcookie('zmSkin', $skin, time()+3600*24*30*12*10);
 }
 
-if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) || !isset($_COOKIE['zmCSS']) || $_COOKIE['zmCSS'] != $css ) {
+if (
+  !isset($_SESSION['css']) ||
+  isset($_REQUEST['css']) ||
+  !isset($_COOKIE['zmCSS']) ||
+  $_COOKIE['zmCSS'] != $css
+) {
   $_SESSION['css'] = $css;
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-if ( ZM_OPT_USE_AUTH ) {
-  if ( isset($_SESSION['user']) ) {
-    $user = $_SESSION['user'];
-  } else {
-    unset($user);
-  }
-} else {
-  $user = $defaultUser;
-}
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
 session_write_close();
@@ -166,6 +155,7 @@ if ( !is_writable(ZM_DIR_EVENTS) ) {
 }
 
 # Globals
+$action = null;
 $error_message = null;
 $redirect = null;
 $view = null;
@@ -179,15 +169,17 @@ $request = null;
 if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
-foreach ( getSkinIncludes('skin.php') as $includeFile )
-  require_once $includeFile;
-
 # User Login will be performed in auth.php
 require_once('includes/auth.php');
 
-if ( isset($_REQUEST['action']) ) {
-  $action = detaintPath($_REQUEST['action']);
+foreach ( getSkinIncludes('skin.php') as $includeFile ) {
+  #Logger::Debug("including $includeFile");
+  require_once $includeFile;
 }
+
+if ( isset($_REQUEST['action']) )
+  $action = detaintPath($_REQUEST['action']);
+
 
 # The only variable we really need to set is action. The others are informal.
 isset($view) || $view = NULL;
@@ -220,19 +212,22 @@ if ( $action ) {
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and !isset($user) ) {
+if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
   Logger::Debug('Redirecting to login');
-  $view = 'login';
+  $view = 'none';
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
   $request = null;
-} else if ( ZM_SHOW_PRIVACY && ($action != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
+} else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
+  $view = 'none';
   Logger::Debug('Redirecting to privacy');
-  $view = 'privacy';
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
   $request = null;
 }
 
 CSPHeaders($view, $cspNonce);
 
 if ( $redirect ) {
+  Logger::Debug("Redirecting to $redirect");
   header('Location: '.$redirect);
   return;
 }
@@ -244,27 +239,27 @@ if ( $request ) {
     require_once $includeFile;
   }
   return;
-} else {
-  if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
-    foreach ( $includeFiles as $includeFile ) {
-      if ( !file_exists($includeFile) )
-        Fatal("View '$view' does not exist");
-      require_once $includeFile;
-    }
-    // If the view overrides $view to 'error', and the user is not logged in, then the
-    // issue is probably resolvable by logging in, so provide the opportunity to do so.
-    // The login view should handle redirecting to the correct location afterward.
-    if ( $view == 'error' && !isset($user) ) {
-      $view = 'login';
-      foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
-        require_once $includeFile;
-    }
+}
+
+if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
+  foreach ( $includeFiles as $includeFile ) {
+    if ( !file_exists($includeFile) )
+      Fatal("View '$view' does not exist");
+    require_once $includeFile;
   }
-  // If the view is missing or the view still returned error with the user logged in,
-  // then it is not recoverable.
-  if ( !$includeFiles || $view == 'error' ) {
-    foreach ( getSkinIncludes('views/error.php', true, true) as $includeFile )
+  // If the view overrides $view to 'error', and the user is not logged in, then the
+  // issue is probably resolvable by logging in, so provide the opportunity to do so.
+  // The login view should handle redirecting to the correct location afterward.
+  if ( $view == 'error' && !isset($user) ) {
+    $view = 'login';
+    foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
       require_once $includeFile;
   }
+}
+// If the view is missing or the view still returned error with the user logged in,
+// then it is not recoverable.
+if ( !$includeFiles || $view == 'error' ) {
+  foreach ( getSkinIncludes('views/error.php', true, true) as $includeFile )
+    require_once $includeFile;
 }
 ?>

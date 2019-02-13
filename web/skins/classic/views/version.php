@@ -18,29 +18,28 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canView('System') ) {
+  $view = 'error';
+  return;
 }
+
 $options = array(
-    "go" => translate('GoToZoneMinder')
+  'go' => translate('GoToZoneMinder')
 );
 
-if ( verNum( ZM_DYN_CURR_VERSION ) != verNum( ZM_DYN_LAST_VERSION ) )
-{
-    $options = array_merge( $options, array(
-        "ignore" => translate('VersionIgnore'),
-        "hour"   => translate('VersionRemindHour'),
-        "day"    => translate('VersionRemindDay'),
-        "week"   => translate('VersionRemindWeek'),
-        "never"  => translate('VersionRemindNever')
-    ) );
+if ( verNum(ZM_DYN_CURR_VERSION) != verNum(ZM_DYN_LAST_VERSION) and canEdit('System') ) {
+  $options = array_merge( $options, array(
+    'ignore' => translate('VersionIgnore'),
+    'hour'   => translate('VersionRemindHour'),
+    'day'    => translate('VersionRemindDay'),
+    'week'   => translate('VersionRemindWeek'),
+    'never'  => translate('VersionRemindNever')
+  ) );
 }
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Version') );
+xhtmlHeaders(__FILE__, translate('Version'));
 ?>
 <body>
   <div id="page">
@@ -49,44 +48,39 @@ xhtmlHeaders(__FILE__, translate('Version') );
     </div>
     <div id="content">
 <?php
-if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) )
-{
+if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) ) {
 ?>
       <p class="errorText"><?php echo sprintf( $CLANG['VersionMismatch'], ZM_VERSION, ZM_DYN_DB_VERSION ) ?></p>
       <p><?php echo translate('RunLocalUpdate') ?></p>
       <div id="contentButtons">
-        <input type="button" value="<?php echo translate('Close') ?>" data-on-click="closeWindow"/>
-      </div>
 <?php
-}
-elseif ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) )
-{
+} else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) ) {
 ?>
-      <p><?php echo sprintf( $CLANG['RunningRecentVer'], ZM_VERSION ) ?></p>
+      <p><?php echo sprintf($CLANG['RunningRecentVer'], ZM_VERSION) ?></p>
       <p><?php echo translate('UpdateNotNecessary') ?></p>
-      <p><input type="button" value="<?php echo translate('GoToZoneMinder') ?>" data-on-click="zmWindow"/></p>
       <div id="contentButtons">
-        <input type="button" value="<?php echo translate('Close') ?>" data-on-click="closeWindow"/>
-      </div>
+      <button type="button" data-on-click="zmWindow"><?php echo translate('GoToZoneMinder') ?></button>
 <?php
-}
-else
-{
+} else {
 ?>
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="version"/>
         <p><?php echo translate('UpdateAvailable') ?></p>
         <p><?php echo sprintf( $CLANG['LatestRelease'], ZM_DYN_LAST_VERSION, ZM_VERSION ) ?></p>
         <p><?php echo buildSelect( "option", $options ); ?></p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>" data-on-click-this="submitForm"/>
-          <input type="button" value="<?php echo translate('Close') ?>" data-on-click="closeWindow"/>
-        </div>
-      </form>
 <?php
+  if ( canEdit('System') ) {
+?>
+          <button type="submit" data-on-click-this="submitForm" value="Apply"><?php echo translate('Apply') ?></button>
+<?php
+  }
 }
 ?>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
+        </div>
+      </form>
     </div>
   </div>
 </body>

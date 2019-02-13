@@ -1,3 +1,7 @@
+function selectFilter(element) {
+  element.form.submit();
+}
+
 function validateForm( form ) {
   var rows = $j(form).find('tbody').eq(0).find('tr');
   var obrCount = 0;
@@ -7,18 +11,18 @@ function validateForm( form ) {
       obrCount += parseInt(form.elements['filter[Query][terms][' + i + '][obr]'].value);
       cbrCount += parseInt(form.elements['filter[Query][terms][' + i + '][cbr]'].value);
     }
-    if (form.elements['filter[Query][terms][' + i + '][val]'].value == '') {
-      alert( errorValue );
+    if ( form.elements['filter[Query][terms][' + i + '][val]'].value == '' ) {
+      alert(errorValue);
       return false;
     }
   }
-  if (obrCount - cbrCount != 0) {
-    alert( errorBrackets );
+  if ( (obrCount - cbrCount) != 0 ) {
+    alert(errorBrackets);
     return false;
   }
   var numbers_reg = /\D/;
-  if ( numbers_reg.test( form.elements['filter[Query][limit]'].value ) ) {
-    alert( "There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty." );
+  if ( numbers_reg.test(form.elements['filter[Query][limit]'].value) ) {
+    alert("There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty.");
     return false;
   }
   return true;
@@ -88,9 +92,10 @@ function submitToExport(element) {
 
 function executeFilter( element ) {
   var form = element.form;
-  form.action = thisUrl + '?view=events';
+  form.action = thisUrl + '?view=filter';
   form.elements['action'].value = 'execute';
-  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+  form.submit();
+  //history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
 
 function saveFilter( element ) {
@@ -102,9 +107,9 @@ function saveFilter( element ) {
   // Submit is done by the button type="submit"
 }
 
-function deleteFilter( element, name ) {
-  if ( confirm( deleteSavedFilterString+" '"+name+"'?" ) ) {
-    var form = element.form;
+function deleteFilter( element ) {
+  var form = element.form;
+  if ( confirm( deleteSavedFilterString+" '"+form.elements['filter[Name]'].value+"'?" ) ) {
     form.elements['action'].value = 'delete';
     form.submit();
   }
@@ -235,12 +240,12 @@ function stringFilter(term) {
 
 function addTerm( element ) {
   var row = $j(element).closest('tr');
-  row.find('select').chosen("destroy");
+  row.find('select').chosen('destroy');
   var newRow = row.clone().insertAfter(row);
-  row.find('select').chosen({width: "101%"});
+  row.find('select').chosen({width: '101%'});
   newRow.find('select').each( function() { //reset new row to default
     this[0].selected = 'selected';
-  }).chosen({width: "101%"});
+  }).chosen({width: '101%'});
   newRow.find('input[type="text"]').val('');
   var rows = $j(row).parent().children();
   parseRows(rows);

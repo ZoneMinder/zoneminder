@@ -257,7 +257,7 @@ sub saveConfigToDB {
         $option->{category},
         $option->{readonly} ? 1 : 0,
         $option->{db_requires}
-        ) or croak( "Can't execute: ".$sth->errstr() );
+        ) or croak("Can't execute when updating config entry $$option{name}: ".$sth->errstr() );
   } # end foreach option
   $sth->finish();
 

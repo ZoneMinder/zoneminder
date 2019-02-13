@@ -944,13 +944,13 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             in_frame->nb_samples
             ))
 #else
-        (ret = swr_convert_frame(resample_ctx, out_frame, in_frame))
+    ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
 
 #endif
   #else
     #if defined(HAVE_LIBAVRESAMPLE)
-    (ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
-                              0, in_frame->nb_samples))
+    ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
+                              0, in_frame->nb_samples);
     #endif
   #endif
     av_frame_unref(in_frame);

@@ -25,7 +25,7 @@ if ( !canEdit('Control') ) {
 } // end if !canEdit Controls
 
 if ( $action == 'controlcap' ) {
-  require_once('Control.php');
+  require_once('includes/Control.php');
   $Control = new Control( !empty($_REQUEST['cid']) ? $_REQUEST['cid'] : null );
 
   //$changes = getFormChanges( $control, $_REQUEST['newControl'], $types, $columns );

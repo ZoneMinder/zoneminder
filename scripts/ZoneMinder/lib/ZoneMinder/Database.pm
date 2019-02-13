@@ -208,7 +208,7 @@ sub zmDbGetMonitor {
     return undef;
   }
   my $res = $sth->execute($id);
-  if ( $res ) {
+  if ( !$res ) {
     Error("Can't execute '$sql': ".$sth->errstr());
     return undef;
   }

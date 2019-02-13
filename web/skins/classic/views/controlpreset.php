@@ -48,7 +48,7 @@ xhtmlHeaders(__FILE__, translate('SetPreset') );
       <h2><?php echo translate('SetPreset') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
         <input type="hidden" name="action" value="control"/>
@@ -61,7 +61,7 @@ xhtmlHeaders(__FILE__, translate('SetPreset') );
         </p>
         <div id="contentButtons">
           <input type="submit" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

@@ -69,7 +69,7 @@ if ( empty($_REQUEST['path']) ) {
   }
 
   if ( !empty($_REQUEST['eid']) ) {
-Logger::Debug("Loading by eid");
+    Logger::Debug("Loading by eid");
     $Event = Event::find_one(array('Id'=>$_REQUEST['eid']));
     if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
@@ -77,29 +77,40 @@ Logger::Debug("Loading by eid");
       return;
     }
 
-    # if alarm, get the fid of the first alarmed frame if available and let the
-    # fid= code continue processing it. Sort it to get the first alarmed frame
-    if ( $_REQUEST['fid'] == 'alarm' ) {
+    if ( $_REQUEST['fid'] == 'objdetect' ) {
+      $path = $Event->Path().'/objdetect.jpg';
+      if ( !file_exists($path) ) {
+        header('HTTP/1.0 404 Not Found');
+        Fatal("File $path does not exist. Please make sure store_frame_in_zm is enabled in the object detection config");
+      }
+      $Frame = new Frame();
+      $Frame->Id('objdetect');
+    } else if ( $_REQUEST['fid'] == 'alarm' ) {
+      # look for first alarmed frame
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
                                array('order'=>'FrameId ASC'));
-      if ( !$Frame ) # no alarms
-        $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'])); # first frame
-      if ( !$Frame ) {
-        Warning("No frame found for event " + $_REQUEST['eid']);
-        $Frame = new Frame();
-        $Frame->Delta(1);
-        $Frame->FrameId('snapshot');
+      if ( !$Frame ) { # no alarms, get first one I find
+        $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid']));
+        if ( !$Frame ) { 
+          Warning('No frame found for event '.$_REQUEST['eid']);
+          $Frame = new Frame();
+          $Frame->Delta(1);
+          $Frame->FrameId(1);
+        }
       }
-     $_REQUEST['fid']=$Frame->FrameId();
-    }
-
-
-    if ( $_REQUEST['fid'] == 'snapshot' ) {
+      $Monitor = $Event->Monitor();
+      if ( $Monitor->SaveJPEGs() & 1 ) {
+        # If we store Frames as jpgs, then we don't store an alarmed snapshot
+        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
+      } else {
+        $path = $Event->Path().'/alarm.jpg';
+      }
+    } else if ( $_REQUEST['fid'] == 'snapshot' ) {
       $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Score'=>$Event->MaxScore()));
       if ( !$Frame )
         $Frame = Frame::find_one(array('EventId'=>$_REQUEST['eid']));
       if ( !$Frame ) {
-        Warning("No frame found for event " + $_REQUEST['eid']);
+        Warning('No frame found for event ' . $_REQUEST['eid']);
         $Frame = new Frame();
         $Frame->Delta(1);
         $Frame->FrameId('snapshot');
@@ -130,14 +141,14 @@ Logger::Debug("Loading by eid");
           $percentage = ($Frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
 
           $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
-Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
+          Logger::Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
         } else {
           Fatal('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
         }
       }
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
-Logger::Debug("Path: $path");
+      Logger::Debug("Path: $path");
     }
 
   } else {
@@ -216,6 +227,7 @@ Logger::Debug("Path: $path");
   }
 }
 
+# we now load the actual image to send
 $scale = 0;
 if ( !empty($_REQUEST['scale']) ) {
   if ( is_numeric($_REQUEST['scale']) ) {

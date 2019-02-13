@@ -1,60 +1,61 @@
 var vid = null;
 
+// Function called when video.js hits the end of the video
 function vjsReplay() {
-  let endTime = (Date.parse(eventData.EndTime)).getTime();
-  switch(replayMode.value) {
+  switch ( replayMode.value ) {
     case 'none':
       break;
     case 'single':
       vid.play();
       break;
     case 'all':
-      if (nextEventId == 0) {
-        let overLaid = $j("#videoobj");
+      if ( nextEventId == 0 ) {
+        var overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
       } else {
-        let nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
-        if (nextStartTime <= endTime) {
-         streamNext( true );
-         return;
+        var endTime = (Date.parse(eventData.EndTime)).getTime();
+        var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+        if ( nextStartTime <= endTime ) {
+          streamNext(true);
+          return;
         }
-        let overLaid = $j("#videoobj");
+        var overLaid = $j("#videoobj");
         vid.pause();
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-        let gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
-        let messageP = $j(".vjsMessage");
-        let x = setInterval(function() {
-          let now = new Date().getTime();
-          let remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11,8);
+        var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+        var messageP = $j('.vjsMessage');
+        var x = setInterval(function() {
+          var now = new Date().getTime();
+          var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
           messageP.html(remainder + ' to next event.');
-          if (remainder < 0) {
+          if ( remainder < 0 ) {
             clearInterval(x);
-            streamNext( true );
+            streamNext(true);
           }
         }, 1000);
       }
-        break;
+      break;
     case 'gapless':
-      streamNext( true );
+      streamNext(true);
       break;
   }
 }
 
-$j.ajaxSetup ({timeout: AJAX_TIMEOUT }); //sets timeout for all getJSON.
+$j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
 
-function initialAlarmCues (eventId) {
+function initialAlarmCues(eventId) {
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frames&id=' + eventId, setAlarmCues); //get frames data for alarmCues and inserts into html
 }
 
-function setAlarmCues (data) {
+function setAlarmCues(data) {
   cueFrames = data.frames;
   alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
   $j(".alarmCue").html(alarmSpans);
 }
 
-function renderAlarmCues (containerEl) {
+function renderAlarmCues(containerEl) {
   if ( !( cueFrames && cueFrames.length ) ) {
     console.log("No cue frames for event");
     return;
@@ -69,19 +70,19 @@ function renderAlarmCues (containerEl) {
   var alarmHtml = "";
   var pixSkew = 0;
   var skip = 0;
-var num_cueFrames = cueFrames.length;
-  for ( let i = 0; i < num_cueFrames; i++ ) {
+  var num_cueFrames = cueFrames.length;
+  for ( var i = 0; i < num_cueFrames; i++ ) {
     skip = 0;
     frame = cueFrames[i];
     if (frame.Type == "Alarm" && alarmed == 0) { //From nothing to alarm.  End nothing and start alarm.
       alarmed = 1;
-      if (frame.Delta == 0) continue;  //If event starts with an alarm or too few for a nonespan
+      if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
       spanTimeEnd = frame.Delta * 100;
       spanTime = spanTimeEnd - spanTimeStart;
-      let pix = cueRatio * spanTime;
+      var pix = cueRatio * spanTime;
       pixSkew += pix - Math.round(pix);//average out the rounding errors.
       pix = Math.round(pix);
-      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span. 
+      if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
@@ -104,7 +105,7 @@ var num_cueFrames = cueFrames.length;
         }
         indexPlus++;
       }
-      if (skip == 1) continue;  //javascript doesn't support continue 2;
+      if (skip == 1) continue; //javascript doesn't support continue 2;
       spanTimeEnd = frame.Delta *100;
       spanTime = spanTimeEnd - spanTimeStart;
       alarmed = 0;
@@ -143,20 +144,20 @@ function setButtonState( element, butClass ) {
 }
 
 function changeScale() {
-  let scale = $j('#scale').val();
-  let newWidth;
-  let newHeight;
-  let autoScale;
-  let eventViewer;
-  let alarmCue = $j('div.alarmCue');
-  let bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
+  var scale = $j('#scale').val();
+  var newWidth;
+  var newHeight;
+  var autoScale;
+  var eventViewer;
+  var alarmCue = $j('div.alarmCue');
+  var bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
   if (streamMode == 'stills') {
     eventViewer = $j('#eventThumbs');
   } else {
     eventViewer = $j(vid ? '#videoobj' : '#evtStream');
   }
   if ( scale == "auto" ) {
-    let newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
+    var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
@@ -165,8 +166,9 @@ function changeScale() {
     newWidth = eventData.Width * scale / SCALE_BASE;
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
-  if ( !(streamMode == 'stills') )
-    eventViewer.width(newWidth);  //stills handles its own width
+  if ( !(streamMode == 'stills') ) {
+    eventViewer.width(newWidth);
+  } //stills handles its own width
   eventViewer.height(newHeight);
   if ( !vid ) { // zms needs extra sizing
     streamScale(scale == "auto" ? autoScale : scale);
@@ -189,7 +191,7 @@ function changeScale() {
 function changeReplayMode() {
   var replayMode = $('replayMode').get('value');
 
-  Cookie.write('replayMode', replayMode, { duration: 10*365 });
+  Cookie.write('replayMode', replayMode, {duration: 10*365});
 
   refreshWindow();
 }
@@ -212,19 +214,21 @@ function getCmdResponse( respObj, respText ) {
 
   zmsBroke = false;
 
-  if ( streamCmdTimer )
+  if ( streamCmdTimer ) {
     streamCmdTimer = clearTimeout(streamCmdTimer);
+  }
 
   streamStatus = respObj.status;
-  if ( streamStatus.progress >= Math.round(parseFloat(eventData.Length)) )
-    streamStatus.progress = parseFloat(eventData.Length); //Limit progress to reality
+  if ( streamStatus.progress >= Math.round(parseFloat(eventData.Length)) ) {
+    streamStatus.progress = parseFloat(eventData.Length);
+  } //Limit progress to reality
 
   var eventId = streamStatus.event;
   if ( lastEventId ) {
     if ( eventId != lastEventId ) {
       //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
       eventQuery(eventId);
-      initialAlarmCues(eventId);  //zms uses this instead of a page reload, must call ajax+render
+      initialAlarmCues(eventId); //zms uses this instead of a page reload, must call ajax+render
       lastEventId = eventId;
     }
   } else {
@@ -240,18 +244,20 @@ function getCmdResponse( respObj, respText ) {
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
   $j('#zoomValue').html(streamStatus.zoom);
-  if ( streamStatus.zoom == "1.0" )
+  if ( streamStatus.zoom == "1.0" ) {
     setButtonState( $('zoomOutBtn'), 'unavail' );
-  else
+  } else {
     setButtonState( $('zoomOutBtn'), 'inactive' );
+  }
 
   updateProgressBar();
 
   if ( streamStatus.auth ) {
     // Try to reload the image stream.
     var streamImg = $j('#evtStream');
-    if ( streamImg )
+    if ( streamImg ) {
       streamImg.src = streamImg.src.replace( /auth=\w+/i, 'auth='+streamStatus.auth );
+    }
   } // end if haev a new auth hash
 
   streamCmdTimer = streamQuery.delay( streamTimeout ); //Timeout is refresh rate for progressBox and time display
@@ -275,7 +281,9 @@ function pauseClicked() {
 }
 
 function vjsPause() {
-  stopFastRev();
+  if ( intervalRewind ) {
+    stopFastRev();
+  }
   streamPause();
 }
 
@@ -304,10 +312,11 @@ function playClicked( ) {
 }
 
 function vjsPlay() { //catches if we change mode programatically
-  if ( intervalRewind )
+  if ( intervalRewind ) {
     stopFastRev();
+  }
   $j('#rateValue').html(vid.playbackRate());
-  Cookie.write('zmEventRate', vid.playbackRate(), {duration: 10*365});
+  Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
   streamPlay();
 }
 
@@ -331,8 +340,9 @@ function streamFastFwd( action ) {
   if ( vid ) {
     if ( revSpeed != .5 ) stopFastRev();
     vid.playbackRate(rates[rates.indexOf(vid.playbackRate()*100)-1]/100);
-    if ( rates.indexOf(vid.playbackRate()*100)-1 == -1 )
+    if ( rates.indexOf(vid.playbackRate()*100)-1 == -1 ) {
       setButtonState($('fastFwdBtn'), 'unavail');
+    }
     $j('#rateValue').html(vid.playbackRate());
     Cookie.write('zmEventRate', vid.playbackRate()*100, {duration: 10*365});
   } else {
@@ -346,7 +356,7 @@ var revSpeed = .5;
 
 function streamSlowFwd( action ) {
   if ( vid ) {
-   vid.currentTime(vid.currentTime() + spf);
+    vid.currentTime(vid.currentTime() + spf);
   } else {
     streamReq.send(streamParms+"&command="+CMD_SLOWFWD);
   }
@@ -399,14 +409,14 @@ function streamFastRev( action ) {
 function streamPrev(action) {
   if ( action ) {
     $j(".vjsMessage").remove();
-    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery + '&popup='+popup);
     return;
 
     if ( vid && PrevEventDefVideoPath.indexOf("view_video") > 0 ) {
       CurEventDefVideoPath = PrevEventDefVideoPath;
       eventQuery(prevEventId);
     } else if (zmsBroke || (vid && PrevEventDefVideoPath.indexOf("view_video") < 0) || $j("#vjsMessage").length || PrevEventDefVideoPath.indexOf("view_video") > 0) {//zms broke, leaving videojs, last event, moving to videojs
-      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery + '&popup='+popup);
     } else {
       streamReq.send(streamParms+"&command="+CMD_PREV);
       streamPlay();
@@ -419,8 +429,8 @@ function streamNext(action) {
     $j(".vjsMessage").remove();//This shouldn't happen
     if ( nextEventId == 0 ) { //handles deleting last event.
       pauseClicked();
-      let hideContainer = $j('#eventVideo');
-      let hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
+      var hideContainer = $j('#eventVideo');
+      var hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
       hideContainer.prepend('<p class="vjsMessage" style="height: ' + hideStream + 'px; line-height: ' + hideStream + 'px;">No more events</p>');
       if ( vid == null ) zmsBroke = true;
       return;
@@ -428,13 +438,13 @@ function streamNext(action) {
     // We used to try to dynamically update all the bits in the page, which is really complex
     // How about we just reload the page?
     //
-    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery + '&popup='+popup);
     return;
     if ( vid && ( NextEventDefVideoPath.indexOf("view_video") > 0 ) ) { //on and staying with videojs
       CurEventDefVideoPath = NextEventDefVideoPath;
       eventQuery(nextEventId);
     } else if ( zmsBroke || (vid && NextEventDefVideoPath.indexOf("view_video") < 0) || NextEventDefVideoPath.indexOf("view_video") > 0) {//reload zms, leaving vjs, moving to vjs
-      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+      location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery + '&popup='+popup);
     } else {
       streamReq.send(streamParms+"&command="+CMD_NEXT);
       streamPlay();
@@ -442,16 +452,16 @@ function streamNext(action) {
   }
 }
 
-function vjsPanZoom (action, x, y) { //Pan and zoom with centering where the click occurs
-  let outer = $j('#videoobj');
-  let video = outer.children().first();
-  let zoom =  parseFloat($j('#zoomValue').html());
-  let zoomRate = .5;
-  let matrix = video.css('transform').split(',');
-  let currentPanX = parseFloat(matrix[4]);
-  let currentPanY = parseFloat(matrix[5]);
-  let xDist = outer.width()/2 - x //Click distance from center of view
-  let yDist = outer.height()/2 - y
+function vjsPanZoom(action, x, y) { //Pan and zoom with centering where the click occurs
+  var outer = $j('#videoobj');
+  var video = outer.children().first();
+  var zoom = parseFloat($j('#zoomValue').html());
+  var zoomRate = .5;
+  var matrix = video.css('transform').split(',');
+  var currentPanX = parseFloat(matrix[4]);
+  var currentPanY = parseFloat(matrix[5]);
+  var xDist = outer.width()/2 - x; //Click distance from center of view
+  var yDist = outer.height()/2 - y;
   if (action == 'zoomOut') {
     zoom -= zoomRate;
     if (x && y) {
@@ -476,10 +486,10 @@ function vjsPanZoom (action, x, y) { //Pan and zoom with centering where the cli
     x = xDist + currentPanX;
     y = yDist + currentPanY;
   }
-  let limitX = ((zoom*outer.width()) - outer.width())/2; //Calculate outer bounds of video
-  let limitY = ((zoom*outer.height()) - outer.height())/2;
-  x = Math.min(Math.max((x),-limitX),limitX); //Limit pan to outer bounds of video
-  y = Math.min(Math.max((y),-limitY),limitY);
+  var limitX = ((zoom*outer.width()) - outer.width())/2; //Calculate outer bounds of video
+  var limitY = ((zoom*outer.height()) - outer.height())/2;
+  x = Math.min(Math.max((x), -limitX), limitX); //Limit pan to outer bounds of video
+  y = Math.min(Math.max((y), -limitY), limitY);
   video.css('transform', 'matrix('+zoom+', 0, 0, '+zoom+', '+x+', '+y+')');
 }
 
@@ -533,8 +543,9 @@ function getEventResponse( respObj, respText ) {
   eventData = respObj.event;
   var eventStills = $('eventStills');
 
-  if ( eventStills && !$('eventStills').hasClass( 'hidden' ) && currEventId != eventData.Id )
+  if ( eventStills && !$('eventStills').hasClass( 'hidden' ) && currEventId != eventData.Id ) {
     resetEventStills();
+  }
   currEventId = eventData.Id;
 
   $('dataId').set( 'text', eventData.Id );
@@ -562,8 +573,9 @@ function getEventResponse( respObj, respText ) {
   // Technically, events can be different sizes, so may need to update the size of the image, but it might be better to have it stay scaled...
   //var eventImg = $('eventImage');
   //eventImg.setStyles( { 'width': eventData.width, 'height': eventData.height } );
-  if (vid && CurEventDefVideoPath) {
+  if ( vid && CurEventDefVideoPath ) {
     vid.src({type: 'video/mp4', src: CurEventDefVideoPath}); //Currently mp4 is all we use
+    console.log("getEventResponse");
     initialAlarmCues(eventData.Id);//ajax and render, new event
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
     CurEventDefVideoPath = null;
@@ -575,9 +587,9 @@ function getEventResponse( respObj, respText ) {
     drawProgressBar();
   }
   nearEventsQuery( eventData.Id );
-}
+} // end function getEventResponse
 
-var eventReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse } );
+var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getEventResponse} );
 
 function eventQuery( eventId ) {
   var eventParms = "view=request&request=status&entity=event&id="+eventId;
@@ -592,8 +604,9 @@ var PrevEventDefVideoPath = "";
 var NextEventDefVideoPath = "";
 
 function getNearEventsResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getNearEventsResponse", respObj ) )
+  if ( checkStreamForErrors( "getNearEventsResponse", respObj ) ) {
     return;
+  }
   prevEventId = respObj.nearevents.PrevEventId;
   nextEventId = respObj.nearevents.NextEventId;
   prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
@@ -609,7 +622,7 @@ function getNearEventsResponse( respObj, respText ) {
   $j('#nextBtn').prop('disabled', nextEventId == 0 ? true : false).attr('class', nextEventId == 0 ? 'unavail' : 'inactive');
 }
 
-var nearEventsReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse } );
+var nearEventsReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getNearEventsResponse} );
 
 function nearEventsQuery( eventId ) {
   var parms = "view=request&request=status&entity=nearevents&id="+eventId+filterQuery+sortQuery;
@@ -626,18 +639,21 @@ function loadEventThumb( event, frame, loadImage ) {
   }
   var img = new Asset.image( imagePrefix+frame.EventId+"&fid="+frame.FrameId,
       {
-      'onload': ( function( loadImage ) {
+        'onload': ( function( loadImage ) {
           thumbImg.setProperty( 'src', img.getProperty( 'src' ) );
           thumbImg.removeClass( 'placeholder' );
           thumbImg.setProperty( 'class', frame.Type=='Alarm'?'alarm':'normal' );
           thumbImg.setProperty( 'title', frame.FrameId+' / '+((frame.Type=='Alarm')?frame.Score:0) );
           thumbImg.removeEvents( 'click' );
-          thumbImg.addEvent( 'click', function() { locateImage( frame.FrameId, true ); } );
-          if ( loadImage )
+          thumbImg.addEvent( 'click', function() {
+            locateImage( frame.FrameId, true );
+          } );
+          if ( loadImage ) {
             loadEventImage( event, frame );
-          } ).pass( loadImage )
+          }
+        } ).pass( loadImage )
       }
-      );
+  );
 }
 
 function loadEventImage( event, frame ) {
@@ -654,26 +670,27 @@ function loadEventImage( event, frame ) {
     }
 
     $('eventImageBar').setStyle( 'width', event.Width );
-    if ( frame.Type=='Alarm' )
+    if ( frame.Type=='Alarm' ) {
       $('eventImageStats').removeClass( 'hidden' );
-    else
+    } else {
       $('eventImageStats').addClass( 'hidden' );
+    }
     thumbImg.addClass( 'selected' );
     thumbImg.setOpacity( 0.5 );
 
     if ( eventImagePanel.getStyle( 'display' ) == 'none' ) {
       eventImagePanel.setOpacity( 0 );
       eventImagePanel.setStyle( 'display', 'inline-block' );
-      new Fx.Tween( eventImagePanel, { duration: 500, transition: Fx.Transitions.Sine } ).start( 'opacity', 0, 1 );
+      new Fx.Tween( eventImagePanel, {duration: 500, transition: Fx.Transitions.Sine} ).start( 'opacity', 0, 1 );
     }
 
     eventImg.setProperties( {
-        'class': frame.Type=='Alarm'?'alarm':'normal',
-        'src': thumbImg.getProperty( 'src' ),
-        'title': thumbImg.getProperty( 'title' ),
-        'alt': thumbImg.getProperty( 'alt' ),
-        'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
-        } );
+      'class': frame.Type=='Alarm'?'alarm':'normal',
+      'src': thumbImg.getProperty( 'src' ),
+      'title': thumbImg.getProperty( 'title' ),
+      'alt': thumbImg.getProperty( 'alt' ),
+      'height': $j('#eventThumbs').height() - $j('#eventImageBar').outerHeight(true)-10
+    } );
 
     $('eventImageNo').set( 'text', frame.FrameId );
     $('prevImageBtn').disabled = (frame.FrameId==1);
@@ -682,7 +699,6 @@ function loadEventImage( event, frame ) {
 }
 
 function hideEventImageComplete() {
-  var eventImg = $('eventImage');
   var thumbImg = $('eventThumb'+$('eventImage').getProperty( 'alt' ));
   if ( thumbImg ) {
     thumbImg.removeClass('selected');
@@ -697,8 +713,9 @@ function hideEventImageComplete() {
 }
 
 function hideEventImage() {
-  if ( $('eventImagePanel').getStyle( 'display' ) != 'none' )
-    new Fx.Tween( $('eventImagePanel'), { duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete } ).start( 'opacity', 1, 0 );
+  if ( $('eventImagePanel').getStyle( 'display' ) != 'none' ) {
+    new Fx.Tween( $('eventImagePanel'), {duration: 500, transition: Fx.Transitions.Sine, onComplete: hideEventImageComplete} ).start( 'opacity', 1, 0 );
+  }
 }
 
 function resetEventStills() {
@@ -708,23 +725,26 @@ function resetEventStills() {
     slider = new Slider( $('thumbsSlider'), $('thumbsKnob'), {
       /*steps: eventData.Frames,*/
       onChange: function( step ) {
-                  if ( !step )
-                    step = 0;
-                  var fid = parseInt((step * eventData.Frames)/this.options.steps);
-                  if ( fid < 1 )
-                    fid = 1;
-                  else if ( fid > eventData.Frames )
-                    fid = eventData.Frames;
-                  checkFrames( eventData.Id, fid, ($j('#eventImagePanel').css('display')=='none'?'':'true'));
-                  scroll.toElement( 'eventThumb'+fid );
-                 }
+        if ( !step ) {
+          step = 0;
+        }
+        var fid = parseInt((step * eventData.Frames)/this.options.steps);
+        if ( fid < 1 ) {
+          fid = 1;
+        } else if ( fid > eventData.Frames ) {
+          fid = eventData.Frames;
+        }
+        checkFrames( eventData.Id, fid, ($j('#eventImagePanel').css('display')=='none'?'':'true'));
+        scroll.toElement( 'eventThumb'+fid );
+      }
     } ).set( 0 );
   }
 }
 
 function getFrameResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getFrameResponse", respObj ) )
+  if ( checkStreamForErrors( "getFrameResponse", respObj ) ) {
     return;
+  }
 
   var frame = respObj.frameimage;
 
@@ -733,15 +753,16 @@ function getFrameResponse( respObj, respText ) {
     return;
   }
 
-  if ( !eventData['frames'] )
-    eventData['frames'] = new Object();
+  if ( !eventData['frames'] ) {
+    eventData['frames'] = {};
+  }
 
   eventData['frames'][frame.FrameId] = frame;
 
   loadEventThumb( eventData, frame, respObj.loopback=="true" );
 }
 
-var frameReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse } );
+var frameReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'chain', onSuccess: getFrameResponse} );
 
 function frameQuery( eventId, frameId, loadImage ) {
   var parms = "view=request&request=status&entity=frameimage&id[0]="+eventId+"&id[1]="+frameId+"&loopback="+loadImage;
@@ -756,22 +777,27 @@ function checkFrames( eventId, frameId, loadImage ) {
     return;
   }
 
-  if ( !eventData['frames'] )
-    eventData['frames'] = new Object();
+  if ( !eventData['frames'] ) {
+    eventData['frames'] = {};
+  }
 
   currFrameId = frameId;
 
   var loFid = frameId - frameBatch/2;
-  if ( loFid < 1 )
+  if ( loFid < 1 ) {
     loFid = 1;
+  }
   var hiFid = loFid + (frameBatch-1);
-  if ( hiFid > eventData.Frames )
+  if ( hiFid > eventData.Frames ) {
     hiFid = eventData.Frames;
+  }
 
   for ( var fid = loFid; fid <= hiFid; fid++ ) {
     if ( !$('eventThumb'+fid) ) {
-      var img = new Element( 'img', { 'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder' } );
-      img.addEvent( 'click', function() { eventData['frames'][fid] = null; checkFrames( eventId, fid ); } );
+      var img = new Element( 'img', {'id': 'eventThumb'+fid, 'src': 'graphics/transparent.png', 'alt': fid, 'class': 'placeholder'} );
+      img.addEvent( 'click', function() {
+        eventData['frames'][fid] = null; checkFrames( eventId, fid );
+      } );
       frameQuery( eventId, fid, loadImage && (fid == frameId) );
       var imgs = $('eventThumbs').getElements( 'img' );
       var injected = false;
@@ -783,20 +809,20 @@ function checkFrames( eventId, frameId, loadImage ) {
             function( thumbImg, index ) {
               if ( parseInt(img.getProperty( 'alt' )) < parseInt(thumbImg.getProperty( 'alt' )) ) {
                 img.inject( thumbImg, 'before' );
-                return( true );
+                return ( true );
               }
-              return( false );
+              return ( false );
             }
-            );
+        );
       }
       if ( !injected ) {
         img.inject( $('eventThumbs') );
       }
       var scale = parseInt(img.getStyle('height'));
       img.setStyles( {
-          'width': parseInt((eventData.Width*scale)/100),
-          'height': parseInt((eventData.Height*scale)/100)
-          } );
+        'width': parseInt((eventData.Width*scale)/100),
+        'height': parseInt((eventData.Height*scale)/100)
+      } );
     } else if ( eventData['frames'][fid] ) {
       if ( loadImage && (fid == frameId) ) {
         loadEventImage( eventData, eventData['frames'][fid], loadImage );
@@ -808,30 +834,35 @@ function checkFrames( eventId, frameId, loadImage ) {
 }
 
 function locateImage( frameId, loadImage ) {
-  if ( slider )
+  if ( slider ) {
     slider.fireEvent( 'tick', slider.toPosition( parseInt((frameId-1)*slider.options.steps/eventData.Frames) ));
+  }
   checkFrames( eventData.Id, frameId, loadImage );
   scroll.toElement( 'eventThumb'+frameId );
 }
 
 function prevImage() {
-  if ( currFrameId > 1 )
+  if ( currFrameId > 1 ) {
     locateImage( parseInt(currFrameId)-1, true );
+  }
 }
 
 function nextImage() {
-  if ( currFrameId < eventData.Frames )
+  if ( currFrameId < eventData.Frames ) {
     locateImage( parseInt(currFrameId)+1, true );
+  }
 }
 
 function prevThumbs() {
-  if ( currFrameId > 1 )
+  if ( currFrameId > 1 ) {
     locateImage( parseInt(currFrameId)>10?(parseInt(currFrameId)-10):1, $('eventImagePanel').getStyle('display')!="none" );
+  }
 }
 
 function nextThumbs() {
-  if ( currFrameId < eventData.Frames )
+  if ( currFrameId < eventData.Frames ) {
     locateImage( parseInt(currFrameId)<(eventData.Frames-10)?(parseInt(currFrameId)+10):eventData.Frames, $('eventImagePanel').getStyle('display')!="none" );
+  }
 }
 
 function prevEvent() {
@@ -849,31 +880,45 @@ function nextEvent() {
 }
 
 function getActResponse( respObj, respText ) {
-  if ( checkStreamForErrors( "getActResponse", respObj ) )
+  if ( checkStreamForErrors( "getActResponse", respObj ) ) {
     return;
+  }
 
-  if ( respObj.refreshEvent )
+  if ( respObj.refreshEvent ) {
     eventQuery( eventData.Id );
+  }
 }
 
-var actReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse } );
+var actReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse} );
 
 function actQuery( action, parms ) {
   var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
-  if ( parms != null )
+  if ( parms != null ) {
     actParms += "&"+Object.toQueryString( parms );
+  }
   actReq.send( actParms );
 }
 
 function deleteEvent() {
   pauseClicked(); //Provides visual feedback that your click happened.
-  actQuery( 'delete' );
-  streamNext( true );
+
+  var deleteReq = new Request.JSON({
+    url: thisUrl,
+    method: 'post',
+    timeout: AJAX_TIMEOUT,
+    onSuccess: function onDeleteSuccess(respObj, respText) {
+      getActResponse(respObj, respText);
+      // We must wait for the deletion to happen before navigating to the next
+      // event or this request will be cancelled.
+      streamNext( true );
+    },
+  });
+  deleteReq.send("view=request&request=event&id="+eventData.Id+"&action=delete");
 }
 
 function renameEvent() {
   var newName = $('eventName').get('value');
-  actQuery( 'rename', { eventName: newName } );
+  actQuery( 'rename', {eventName: newName} );
 }
 
 function editEvent() {
@@ -930,9 +975,9 @@ function showStills() {
     scroll = new Fx.Scroll( 'eventThumbs', {
       wait: false,
       duration: 500,
-      offset: { 'x': 0, 'y': 0 },
+      offset: {'x': 0, 'y': 0},
       transition: Fx.Transitions.Quad.easeInOut
-      }
+    }
     );
   }
   resetEventStills();
@@ -950,7 +995,7 @@ function videoEvent() {
 
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
-  let barWidth = $j('#evtStream').width();
+  var barWidth = $j('#evtStream').width();
   $j('#progressBar').css( 'width', barWidth );
 }
 
@@ -964,11 +1009,11 @@ function updateProgressBar() {
 } // end function updateProgressBar()
 
 // Handles seeking when clicking on the progress bar.
-function progressBarNav (){
-  $j('#progressBar').click(function(e){
+function progressBarNav() {
+  $j('#progressBar').click(function(e) {
     var x = e.pageX - $j(this).offset().left;
     var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
-    streamSeek (seekTime);
+    streamSeek(seekTime);
   });
 }
 
@@ -994,15 +1039,19 @@ function handleClick( event ) {
 
 function initPage() {
   //FIXME prevent blocking...not sure what is happening or best way to unblock
-  if ($j('#videoobj').length) {
+  if ( $j('#videoobj').length ) {
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartTime);
     $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
     vid.on('play', vjsPlay);
     vid.on('pause', vjsPause);
-    vid.on('click', function(event){handleClick(event);});
-    vid.on('timeupdate', function (){$j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())))});
+    vid.on('click', function(event) {
+      handleClick(event);
+    });
+    vid.on('timeupdate', function() {
+      $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
+    });
 
     if ( rate > 1 ) {
       // rate should be 100 = 1x, etc.
@@ -1017,9 +1066,12 @@ function initPage() {
         console.log('No element with id tag imageFeed found.');
       } else {
         var streamImg = imageFeed.getElement('img');
-        if ( !streamImg )
+        if ( !streamImg ) {
           streamImg = imageFeed.getElement('object');
-        $(streamImg).addEvent( 'click', function( event ) { handleClick( event ); } );
+        }
+        $(streamImg).addEvent( 'click', function( event ) {
+          handleClick( event );
+        } );
       }
     }
   }
@@ -1029,4 +1081,4 @@ function initPage() {
 }
 
 // Kick everything off
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

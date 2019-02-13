@@ -58,3 +58,4 @@ var deleteString = "<?php echo translate('Delete') ?>";
 var causeString = "<?php echo translate('AttrCause') ?>";
 var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
+var popup = '<?php echo $popup ?>';

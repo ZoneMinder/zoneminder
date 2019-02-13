@@ -71,7 +71,8 @@ class HostController extends AppController {
       $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
       if ( $zmAuthRelay == 'hashed' ) {
         $zmAuthHashIps = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
-        $credentials = 'auth='.generateAuthHash($zmAuthHashIps);
+        // make sure auth is regenerated each time we call this API
+        $credentials = 'auth='.generateAuthHash($zmAuthHashIps,true);
       } else {
         // user will need to append the store password here
         $credentials = 'user='.$this->Session->read('user.Username').'&pass=';

@@ -13,7 +13,7 @@ function configureButtons( element ) {
 
     if ( form.elements['newGroup[Name]'].value == '' ) {
       disabled = true;
-    } 
+    }
     form.saveBtn.disabled = disabled;
   }
 }

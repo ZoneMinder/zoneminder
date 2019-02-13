@@ -9,8 +9,8 @@ class Server {
     'Name'        => '',
     'Protocol'    => '',
     'Hostname'    => '',
-    'Port'        =>  null,
-    'PathToIndex' => '/zm/index.php',
+    'Port'        => null,
+    'PathToIndex' => null,
     'PathToZMS'   => ZM_PATH_ZMS,
     'PathToApi'   => '/zm/api',
     'zmaudit'     => 1,
@@ -51,8 +51,8 @@ class Server {
     } else if ( $this->Id() ) {
       return $this->{'Name'};
     }
-    # Use HTTP_HOST instead of SERVER_NAME here for nginx compatiblity
-    return $_SERVER['HTTP_HOST'];
+    $result = explode(':',$_SERVER['HTTP_HOST']);
+    return $result[0];
   }
 
   public function Protocol( $new = null ) {
@@ -62,7 +62,12 @@ class Server {
     if ( isset($this->{'Protocol'}) and ( $this->{'Protocol'} != '' ) ) {
       return $this->{'Protocol'};
     }
-    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https' : 'http';
+
+    return  ( 
+              ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
+              or
+              ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
+            ) ? 'https' : 'http';
   }
 
   public function Port( $new = '' ) {
@@ -72,6 +77,11 @@ class Server {
     if ( isset($this->{'Port'}) and $this->{'Port'} ) {
       return $this->{'Port'};
     }
+
+    if ( isset($_SERVER['HTTP_X_FORWARDED_PORT']) ) {
+      return $_SERVER['HTTP_X_FORWARDED_PORT'];
+    }
+
     return $_SERVER['SERVER_PORT'];
   }
 
@@ -91,12 +101,7 @@ class Server {
 
 	public function Url( $port = null ) {
     $url = $this->Protocol().'://';
-		if ( $this->Id() ) {
-			$url .= $this->Hostname();
-		} else {
-                        # Use HTTP_HOST instead of SERVER_NAME here for nginx compatiblity
-			$url .= $_SERVER['HTTP_HOST'];
-		}
+		$url .= $this->Hostname();
     if ( $port ) {
       $url .= ':'.$port;
     } else {
@@ -112,7 +117,8 @@ class Server {
     if ( isset($this->{'PathToIndex'}) and $this->{'PathToIndex'} ) {
       return $this->{'PathToIndex'};
     }
-    return $_SERVER['PHP_SELF'];
+    // We can't trust PHP_SELF to not include an XSS vector. See note in skin.js.php.
+    return preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']);
   }
 
   public function UrlToIndex( $port=null ) {
@@ -207,6 +213,20 @@ class Server {
       return;
     }
     return $results[0];
+  }
+
+  public function to_json() {
+    $json = array();
+    foreach ($this->defaults as $key => $value) {
+      if ( is_callable(array($this, $key)) ) {
+        $json[$key] = $this->$key();
+      } else if ( array_key_exists($key, $this) ) {
+        $json[$key] = $this->{$key};
+      } else {
+        $json[$key] = $this->defaults{$key};
+      }
+    }
+    return json_encode($json);
   }
 
 } # end class Server

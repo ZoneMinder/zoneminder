@@ -91,7 +91,7 @@ Adjust permissions to the zm.conf file to allow web account to access it.
 
 **Step 9:** Setup ZoneMinder service
 
-::
+   ::
 
     systemctl enable zoneminder.service
 
@@ -127,7 +127,23 @@ CTRL+o then [Enter] to save
 
 CTRL+x to exit
 
-**Step 12:** Start ZoneMinder
+
+**Step 12:** Please check the configuration
+Zoneminder 1.32.x
+    1. Check path of ZM_PATH in '/etc/zm/conf.d/zmcustom.conf' is ZM_PATH_ZMS=/zm/cgi-bin/nph-zms
+        ::
+            cat /etc/zm/conf.d/zmcustom.conf
+            
+    2. Check config of /etc/apache2/conf-enabled/zoneminder.conf has the same ScriptAlias /zm/cgi-bin that is configured
+       in ZM_PATH. The part /nph-zms has to be left out of the ScriptAlias
+       
+        ScriptAlias /zm/cgi-bin "/usr/lib/zoneminder/cgi-bin"
+        <Directory "/usr/lib/zoneminder/cgi-bin">
+        
+        ::
+            cat /etc/apache2/conf-enabled/zoneminder.conf 
+
+**Step 13:** Start ZoneMinder
 
 Reload Apache to enable your changes and then start ZoneMinder.
 
@@ -136,7 +152,7 @@ Reload Apache to enable your changes and then start ZoneMinder.
     systemctl reload apache2
     systemctl start zoneminder
 
-**Step 13:** Making sure ZoneMinder works
+**Step 14:** Making sure ZoneMinder works
 
 1. Open up a browser and go to ``http://hostname_or_ip/zm`` - should bring up ZoneMinder Console
 

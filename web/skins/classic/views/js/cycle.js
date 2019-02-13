@@ -6,4 +6,4 @@ function initCycle() {
   nextCycleView.periodical(cycleRefreshTimeout);
 }
 
-window.addEvent('domready', initCycle);
+window.addEventListener('DOMContentLoaded', initCycle);

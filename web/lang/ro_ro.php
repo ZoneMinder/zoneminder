@@ -882,10 +882,6 @@ $OLANG = array(
         'Prompt' => "Directorul &#238;n care sunt stocate evenimentele",
         'Help' => "Acesta este subdirectorul &#238;n care sunt salvate imaginile generate de evenimente &#351;i alte fi&#351;iere. Implicit este un subdirector al directorului r&#259;d&#259;cina zoneminder; dac&#259; spa&#355;iul nu v&#259; permite pute&#355;i s&#259; stoca&#355;i imaginile pe alt&#259; parti&#355;ie, caz &#238;n care ar trebui s&#259; face&#355;i un link la subdirectorul implicit."
     ),
-    'DIR_IMAGES' => array(
-        'Prompt' => "Directorul &#238;n care sunt stocate imaginile",
-        'Help' => "ZoneMinder genereaz&#259; multe imagini, majoritate asociate cu evenimente. &#206;n acest director vor fi stocate imaginile neasociate evenimentelor."
-    ),
     'DIR_SOUNDS' => array(
         'Prompt' => "Directorul cu sunetele care pot fi folosite de ZoneMinder",
         'Help' => "ZoneMinder poate rula un sunet atunci c&#226;nd este detectat&#259; o alarm&#259;. Acesta este directorul &#238;n care este stocat sunetul care va fi rulat."

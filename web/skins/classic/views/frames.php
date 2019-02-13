@@ -35,11 +35,11 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id() );
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
+      <div id="headerButtons"><a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a></div>
       <h2><?php echo translate('Frames') ?> - <?php echo $Event->Id() ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>

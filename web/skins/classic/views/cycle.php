@@ -38,6 +38,7 @@ ob_end_clean();
 
 $monIdx = 0;
 $monitors = array();
+$monitor = NULL;
 foreach( $displayMonitors as &$row ) {
   if ( $row['Function'] == 'None' )
     continue;

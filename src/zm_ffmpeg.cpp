@@ -34,15 +34,18 @@ void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) 
   } else if ( level == AV_LOG_FATAL ) { // 8
     log_level = Logger::FATAL;
   } else if ( level == AV_LOG_ERROR ) { // 16
-    log_level = Logger::ERROR;
+    log_level = Logger::WARNING; // ffmpeg outputs a lot of errors that don't really affect anything.
+    //log_level = Logger::ERROR;
   } else if ( level == AV_LOG_WARNING ) { //24
-    log_level = Logger::WARNING;
-  } else if ( level == AV_LOG_INFO ) { //32
     log_level = Logger::INFO;
-  } else if ( level == AV_LOG_VERBOSE ) { //40
+    //log_level = Logger::WARNING;
+  } else if ( level == AV_LOG_INFO ) { //32
     log_level = Logger::DEBUG1;
-  } else if ( level == AV_LOG_DEBUG ) { //48
+    //log_level = Logger::INFO;
+  } else if ( level == AV_LOG_VERBOSE ) { //40
     log_level = Logger::DEBUG2;
+  } else if ( level == AV_LOG_DEBUG ) { //48
+    log_level = Logger::DEBUG3;
 #ifdef AV_LOG_TRACE
   } else if ( level == AV_LOG_TRACE ) {
     log_level = Logger::DEBUG8;
@@ -58,7 +61,6 @@ void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) 
   if ( log ) {
     char            logString[8192];
     vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
-
     log->logPrint(false, __FILE__, __LINE__, log_level, logString);
   }
 }
@@ -71,7 +73,10 @@ void FFMPEGInit() {
       av_log_set_level( AV_LOG_DEBUG ); 
     else
       av_log_set_level( AV_LOG_QUIET ); 
-    av_log_set_callback(log_libav_callback); 
+    if ( config.log_ffmpeg ) 
+        av_log_set_callback(log_libav_callback); 
+    else
+        Info("Not enabling ffmpeg logs, as LOG_FFMPEG is disabled in options");
 #if LIBAVCODEC_VERSION_CHECK(58, 18, 0, 64, 0)
 #else
     av_register_all();
@@ -271,6 +276,22 @@ static void zm_log_fps(double d, const char *postfix) {
   } else {
     Debug(1, "%1.0fk %s", d / 1000, postfix);
   }
+}
+
+void zm_dump_frame(const AVFrame *frame,const char *text) {
+  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d layout %d",
+      text,
+      frame->format,
+      av_get_sample_fmt_name((AVSampleFormat)frame->format),
+      frame->sample_rate,
+      frame->nb_samples,
+#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
+      frame->channels,
+#else
+0,
+#endif
+      frame->channel_layout
+      );
 }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)

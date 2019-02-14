@@ -953,6 +953,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
                               0, in_frame->nb_samples);
     #endif
   #endif
+    out_frame->pts = in_frame->pts;
     av_frame_unref(in_frame);
     if ( ret < 0 ) {
       Error("Could not resample frame (error '%s')",

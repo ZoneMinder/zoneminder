@@ -939,17 +939,23 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     // decoded data
     Debug(2, "Converting  %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
   #if defined(HAVE_LIBSWRESAMPLE)
-    (ret = swr_convert(resample_ctx,
+#if 0
+    ret = swr_convert(resample_ctx,
                        out_frame->data, frame_size,
                        (const uint8_t**)in_frame->data,
-                       in_frame->nb_samples));
+                       in_frame->nb_samples
+                      );
+#else
+      ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
+
+#endif
   #else
     #if defined(HAVE_LIBAVRESAMPLE)
     (ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
                               0, in_frame->nb_samples))
     #endif
   #endif
-    out_frame->pts = in_frame->pts;
+//out_frame->pts = in_frame->pts;
     av_frame_unref(in_frame);
     if ( ret < 0 ) {
       Error("Could not resample frame (error '%s')",

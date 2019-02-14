@@ -150,13 +150,12 @@ sub sendCmd
         $result = !undef;
         # Command to camera appears successful, write Info item to log
         Info( "Camera control: '".$res->status_line()."' for URL ".$self->{Monitor}->{ControlAddress}."/$cmd" );
+	# TODO: Add code to retrieve $res->message_decode or some such. Then we could do things like check the camera status.
     }
     else
     {
         Error( "Camera control command FAILED: '".$res->status_line()."' for URL ".$self->{Monitor}->{ControlAddress}."/$cmd" );
     }
-
-    #&close;
 
     return( $result );
 }
@@ -178,7 +177,6 @@ sub presetHome
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=0&arg2=0&arg3=0' );
 }
 
-#Up Arrow
 sub moveConUp
 {
     my $self = shift;
@@ -188,7 +186,6 @@ sub moveConUp
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&code=Up&channel=0&arg1=0&arg2=1&arg3=0' );
 }
 
-#Down Arrow
 sub moveConDown
 {
     my $self = shift;
@@ -198,7 +195,6 @@ sub moveConDown
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&code=Down&channel=0&arg1=0&arg2=1&arg3=0' );
 }
 
-#Left Arrow
 sub moveConLeft
 {
     my $self = shift;
@@ -208,7 +204,6 @@ sub moveConLeft
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&code=Left&channel=0&arg1=0&arg2=1&arg3=0' );
 }
 
-#Right Arrow
 sub moveConRight
 {
     my $self = shift;
@@ -220,7 +215,6 @@ sub moveConRight
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&code=Right&channel=0&arg1=0&arg2=1&arg3=0' );
 }
 
-#Diagonally Up Right Arrow
 sub moveConUpRight
 {
     my $self = shift;
@@ -230,7 +224,6 @@ sub moveConUpRight
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&code=RightUp&channel=0&arg1=0&arg2=1&arg3=0' );    
 }
 
-#Diagonally Down Right Arrow
 sub moveConDownRight
 {
     my $self = shift;
@@ -240,7 +233,6 @@ sub moveConDownRight
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&code=RightDown&channel=0&arg1=0&arg2=1&arg3=0' );  
 }
 
-#Diagonally Up Left Arrow
 sub moveConUpLeft
 {
     my $self = shift;
@@ -250,7 +242,6 @@ sub moveConUpLeft
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&code=LeftUp&channel=0&arg1=0&arg2=1&arg3=0' ); 
 }
 
-#Diagonally Down Left Arrow
 sub moveConDownLeft
 {
     my $self = shift;
@@ -260,8 +251,9 @@ sub moveConDownLeft
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&code=LeftDown&channel=0&arg1=0&arg2=1&arg3=0' ); 
 }
 
-# Stop - not "correctly" implemented as control_functions.php translates this to "Center"
-# So we'll just send the camera to 0* Horz, 0* Vert, zoom out
+# Stop is not "correctly" implemented as control_functions.php translates this to "Center"
+# So we'll just send the camera to 0* Horz, 0* Vert, zoom out; Also, Amcrest does not seem to
+# support a generic stop-of-all-current-action.
 sub moveStop
 {
     my $self = shift;
@@ -269,7 +261,7 @@ sub moveStop
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=0&arg2=0&arg3=0&arg4=1' );
 }
 
-#Move Camera to Home Position - not implemented, sorry
+#Move Camera to Home Position
 #sub presetHome
 #{
 #    my $self = shift;
@@ -335,11 +327,12 @@ sub zoomAbsWide
 1;
 
 __END__
+
 =pod
 
 =head1 NAME
 
-ZoneMinder::Control::amcrest841 - Amcrest camera control
+ZoneMinder::Control::Amcrest_HTTP - Amcrest camera control
 
 =head1 DESCRIPTION
 

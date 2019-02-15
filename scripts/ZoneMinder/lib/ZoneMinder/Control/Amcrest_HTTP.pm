@@ -1,10 +1,16 @@
 # ==========================================================================
 #
-# ZoneMinder Acrest 781 IP Control Protocol Module, 20160101, Rev2
-# Changes from Rev1:
-# Fixed installation instructions text, no changes to functionality.
-# Copyright (C) 2016 Herndon Elliott
-# alabamatoy at gmail dot com
+# ZoneMinder Acrest HTTP API Control Protocol Module, 20180214, Rev 3.0
+#
+# Change Log
+#
+# Rev 3.0:
+#  - Fixes incorrect method names
+#  - Updates control sequences to Amcrest HTTP Protocol API v 2.12
+#  - Extends control features
+#  
+# Rev 2.0:
+#  - Fixed installation instructions text, no changes to functionality.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -21,7 +27,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 # ==========================================================================
-#
+
 package ZoneMinder::Control::Amcrest_HTTP;
 
 use 5.006;
@@ -37,7 +43,7 @@ our @ISA = qw(ZoneMinder::Control);
 
 # ==========================================================================
 #
-# Amcrest 781 IP Control Protocol
+# Amcrest HTTP API Control Protocol
 #
 # ==========================================================================
 
@@ -253,7 +259,8 @@ sub moveConDownLeft
 
 # Stop is not "correctly" implemented as control_functions.php translates this to "Center"
 # So we'll just send the camera to 0* Horz, 0* Vert, zoom out; Also, Amcrest does not seem to
-# support a generic stop-of-all-current-action.
+# support a generic stop-all-current-action command.
+
 sub moveStop
 {
     my $self = shift;
@@ -337,53 +344,13 @@ ZoneMinder::Control::Amcrest_HTTP - Amcrest camera control
 =head1 DESCRIPTION
 
 This module contains the implementation of the Amcrest Camera 
-controllable SDK API.  It implements only the pan and tilt functions.  The
-Amcrest HTTP API SDK is available here:
-https://support.amcrest.com/hc/en-us/article_attachments/215199368/AMCREST_HTTP_API_SDK_V2.10.pdf
+controllable SDK API.
 
 NOTE: This module implements interaction with the camera in clear text.
-I have not been able to get around this.  The login and password are
-transmitted from ZM to the camera in clear text, and as such, this module
-should be used ONLY on a blind LAN implementation where interception of the
-packets is very low risk.
 
-Copy the file amcrest781.pm to /usr/share/perl5/ZoneMinder/Control folder.
-This is where it belongs in Ubuntu 16.04, your setup may be different.
-
-Next, in the camera monitor, under the control tab, select "Controllable".
-
-Select "edit" beside the "Control Type" text box, and a new window will open,
-click on "ADD NEW CONTROL" and give it whatever name you want, I used 
-"Amcrest 781".  Select "TYPE as "Remote" and "PROTOCOL" as "amcrest781".
-Select "CAN RESET".  Under the "Move" tab, select "CAN MOVE, "CAN MOVE
-DIAGONALLY" and "CAN MOVE MAPPED".  Under the "Pan" tab, select "CAN PAN".
-Under the "Tilt" tab, select "CAN TILT". Under the "Zoom" tab, select 
-"CAN ZOOM".  Under "Presets" tab, select "HAS PRESETS", I used 3 for num
-presets, but your camera documentation should tell
-you how many you actually can have, also select "CAN SET PRESETS".  The Amcrest
-documentation linked above indicates no home preset, so that is not implemented,
-don't select it.  Click on "SAVE" at the bottom.  You should have a new control
-capability listed with whatever name you gave it.
-
-Set "Control Type" to whatever you named the new control.  This choice
-should be listed as one available in the pulldown.
-
-Set "Control Address" to "login:password@ip_address:port" where login is your
-camera login, password is your camera password, and ip_address is the camera
-IP.  Port is required by the digest authentication.  Please be mindful of NOTE
-above.
-
-Set "Control Device" to be the camera's serial number string.  This will be
-appended to the string "Login to " to form the realm used by the digest
-authentication.  It can be found on the Information -> Version tab when you
-login to the camera.
-
-Save the monitor.
-
-Open the camera and you should see a hyperlinked word "control" above the
-camera display.  Click on that, and you should get a rose of controls below
-the camera image.  You can also click on the image itself to make gross
-adjustments.
+The login and password are transmitted from ZM to the camera in clear text,
+and as such, this module should be used ONLY on a blind LAN implementation
+where interception of the packets is very low risk.
 
 The "usleep (X);" lines throughout the script may need adjustments for your
 situation.  This is the time that the script waits between sending a "start"
@@ -392,5 +359,33 @@ result in the camera panning full to its leftmost position if there were no
 stop signal.  So the usleep time sets how long the script waits to allow the
 camera to start moving before issuing a stop.  The X value of usleep is in
 microseconds, so "usleep (100000);" is equivalent to wait one second.
+
+=head1 SEE ALSO
+
+https://s3.amazonaws.com/amcrest-files/Amcrest+HTTP+API+3.2017.pdf
+
+=head1 AUTHORS
+
+Herndon Elliott alabamatoy at gmail dot com
+Chris Nighswonger chris dot nighswonger at gmail dot com
+
+=head1 COPYRIGHT AND LICENSE
+
+(C) 2016 Herndon Elliott alabamatoy at gmail dot com
+(C) 2018 Chris Nighswonger chris dot nighswonger at gmail dot com
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 =cut

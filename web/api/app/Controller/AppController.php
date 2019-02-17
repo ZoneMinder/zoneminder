@@ -70,7 +70,7 @@ class AppController extends Controller {
     $user = $this->Session->read('user');
     
     if ( ZM_OPT_USE_AUTH ) {
-      require_once '../../../includes/auth.php';
+      require_once __DIR__ .'../../../includes/auth.php';
 
       $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
       $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');

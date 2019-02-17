@@ -66,7 +66,7 @@ class HostController extends AppController {
 
     if ( $isZmAuth ) {
     // In future, we may want to completely move to AUTH_HASH_LOGINS and return &auth= for all cases
-      require_once "../../../includes/auth.php"; # in the event we directly call getCredentials.json
+      require_once __DIR__ ."../../../includes/auth.php"; # in the event we directly call getCredentials.json
       $this->Session->read('user'); # this is needed for command line/curl to recognize a session
       $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
       if ( $zmAuthRelay == 'hashed' ) {

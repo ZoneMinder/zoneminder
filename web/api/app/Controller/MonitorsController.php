@@ -207,8 +207,10 @@ class MonitorsController extends AppController {
     if ( !$this->Monitor->exists() ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    if ( $this->Session->Read('systemPermission') != 'Edit' ) {
-       throw new UnauthorizedException(__('Insufficient privileges'));
+    global $user;
+    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
     $this->request->allowMethod('post', 'delete');

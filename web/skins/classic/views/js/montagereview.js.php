@@ -18,7 +18,7 @@ var speedIndex=<?php echo $speedIndex?>;
 // for history, and fps for live, and dynamically determined (in ms)
 
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
-var playSecsperInterval=1;         // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
+var playSecsperInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
@@ -35,7 +35,7 @@ var timeLabelsFractOfRow = 0.9;
 
 $index = 0;
 $anyAlarms = false;
-$maxScore=0;
+$maxScore = 0;
 
 if ( !$liveMode ) {
   $result = dbQuery($eventsSql);
@@ -53,7 +53,7 @@ if ( !$liveMode ) {
 
   $next_frames = array();
 
-  if ( $result = dbQuery($frameSql) ) {
+  if ( $result = dbQuery($framesSql) ) {
     $next_frame = null;
     while( $frame = $result->fetch(PDO::FETCH_ASSOC) ) {
       $event_id = $frame['EventId'];
@@ -118,17 +118,31 @@ echo " };\n";
   echo "var maxScore=$maxScore;\n";  // used to skip frame load if we find no alarms.
 } // end if initialmodeislive
 
-echo "var Storage = [];\n";
-foreach ( Storage::find_all() as $Storage ) {
-echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
+echo "\nvar Storage = [];\n";
+$have_storage_zero = 0;
+foreach ( Storage::find() as $Storage ) {
+  echo 'Storage[' . $Storage->Id() . '] = ' . $Storage->to_json(). ";\n";
+  if ( $Storage->Id() == 0 )
+    $have_storage_zero = true;
 }
+if ( !$have_storage_zero ) {
+  $Storage = new Storage();
+  echo 'Storage[0] = ' . $Storage->to_json(). ";\n";
+}
+
 echo "\nvar Servers = [];\n";
-foreach ( Server::find_all() as $Server ) {
-echo 'Servers[' . $Server->Id() . '] = ' . json_encode($Server). ";\n";
+// Fall back to get Server paths, etc when no using multi-server mode
+$Server = new Server();
+echo 'Servers[0] = new Server(' . $Server->to_json(). ");\n";
+foreach ( Server::find() as $Server ) {
+  echo 'Servers[' . $Server->Id() . '] = new Server(' . $Server->to_json(). ");\n";
 }
+
+
 echo '
 var monitorName = [];
 var monitorLoading = [];
+var monitorServerId = [];
 var monitorImageObject = [];
 var monitorImageURL = [];
 var monitorLoadingStageURL = [];
@@ -164,6 +178,7 @@ foreach ( $monitors as $m ) {
   echo "  monitorWidth["           . $m->Id() . "]=" . $m->Width() . ";\n";
   echo "  monitorHeight["          . $m->Id() . "]=" . $m->Height() . ";\n";
   echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
+  echo "  monitorServerId["        . $m->Id() . "]='" .($m->ServerId() ?  $m->ServerId() : '0'). "';\n";
   echo "  monitorName["            . $m->Id() . "]=\"" . $m->Name() . "\";\n";
   echo "  monitorLoadStartTimems[" . $m->Id() . "]=0;\n";
   echo "  monitorLoadEndTimems["   . $m->Id() . "]=0;\n";

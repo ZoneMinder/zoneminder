@@ -66,7 +66,7 @@ int main( int argc, const char *argv[] ) {
   double maxfps = 10.0;
   unsigned int bitrate = 100000;
   unsigned int ttl = 0;
-  EventStream::StreamMode replay = EventStream::MODE_SINGLE;
+  EventStream::StreamMode replay = EventStream::MODE_NONE;
   std::string username;
   std::string password;
   char auth[64] = "";
@@ -137,8 +137,17 @@ int main( int argc, const char *argv[] ) {
       } else if ( !strcmp( name, "ttl" ) ) {
         ttl = atoi(value);
       } else if ( !strcmp( name, "replay" ) ) {
-        replay = !strcmp( value, "gapless" )?EventStream::MODE_ALL_GAPLESS:EventStream::MODE_SINGLE;
-        replay = !strcmp( value, "all" )?EventStream::MODE_ALL:replay;
+        if ( !strcmp(value, "gapless") ) {
+          replay = EventStream::MODE_ALL_GAPLESS;
+        } else if ( !strcmp(value, "all") ) {
+          replay = EventStream::MODE_ALL;
+        } else if ( !strcmp(value, "none") ) {
+          replay = EventStream::MODE_NONE;
+        } else if ( !strcmp(value, "single") ) {
+          replay = EventStream::MODE_SINGLE;
+        } else {
+          Error("Unsupported value %s for replay, defaulting to none", value);
+        }
       } else if ( !strcmp( name, "connkey" ) ) {
         connkey = atoi(value);
       } else if ( !strcmp( name, "buffer" ) ) {
@@ -182,9 +191,12 @@ int main( int argc, const char *argv[] ) {
     User *user = 0;
 
     if ( strcmp(config.auth_relay, "none") == 0 ) {
-      if ( username.length() ) {
+      if ( checkUser(username.c_str()) ) {
         user = zmLoadUser(username.c_str());
+      } else {
+        Error("")
       }
+
     } else {
       //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
       {

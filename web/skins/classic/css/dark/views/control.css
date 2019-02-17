@@ -21,7 +21,7 @@
 }
 
 .ptzControls input[type=image] {
-    border: 0px;
+    border: 0;
 }
 
 .ptzControls .controlsPanel .arrowControl {
@@ -115,7 +115,7 @@
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .centerBtn {
-    background: url("../skins/classic/graphics/graphics/center.png") no-repeat 0 0;
+    background: url("../skins/classic/graphics/center.png") no-repeat 0 0;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .rightBtn {

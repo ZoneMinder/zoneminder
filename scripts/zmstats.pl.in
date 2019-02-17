@@ -1,39 +1,4 @@
 #!/usr/bin/perl -wT
-#
-# ==========================================================================
-#
-# ZoneMinder WatchDog Script, $Date$, $Revision$
-# Copyright (C) 2001-2008 Philip Coombes
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-#
-# ==========================================================================
-
-=head1 NAME
-
-zmwatch.pl - ZoneMinder Stats Updating Script
-
-=head1 SYNOPSIS
-
-zmstats.pl
-
-=head1 DESCRIPTION
-
-This does background updating various stats in the db like event counts, diskspace, etc.
-
-=cut
 use strict;
 use bytes;
 
@@ -66,8 +31,8 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 logInit();
 logSetSignal();
 
-Info( "Stats Daemon starting in ".START_DELAY." seconds\n" );
-sleep( START_DELAY );
+Info("Stats Daemon starting in ".START_DELAY." seconds");
+sleep(START_DELAY);
 
 my $dbh = zmDbConnect();
 
@@ -88,7 +53,43 @@ while( 1 ) {
   sleep($Config{ZM_STATS_UPDATE_INTERVAL});
 } # end while (1)
 
-Info( "Stats Daemon exiting\n" );
+Info("Stats Daemon exiting");
 exit();
 1;
 __END__
+
+#
+# ==========================================================================
+#
+# ZoneMinder WatchDog Script, $Date$, $Revision$
+# Copyright (C) 2001-2008 Philip Coombes
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# ==========================================================================
+
+=head1 NAME
+
+zmstats.pl - ZoneMinder Stats Updating Script
+
+=head1 SYNOPSIS
+
+zmstats.pl
+
+=head1 DESCRIPTION
+
+This does background updating various stats in the db like event counts, diskspace, etc.
+
+=cut

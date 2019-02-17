@@ -3,15 +3,27 @@ require_once('database.php');
 
 $storage_cache = array();
 class Storage {
+  private $defaults = array(
+    'Id'        => null,
+    'Path'      => '',
+    'Name'      => '',
+    'Type'      => 'local',
+    'Url'       => '',
+    'DiskSpace' => null,
+    'Scheme'    => 'Medium',
+    'ServerId'  => 0,
+    'DoDelete'  => 1,
+  );
+
   public function __construct( $IdOrRow = NULL ) {
     global $storage_cache;
     
     $row = NULL;
     if ( $IdOrRow ) {
-      if ( is_integer( $IdOrRow ) or is_numeric( $IdOrRow ) ) {
-        $row = dbFetchOne( 'SELECT * FROM Storage WHERE Id=?', NULL, array( $IdOrRow ) );
+      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
+        $row = dbFetchOne('SELECT * FROM Storage WHERE Id=?', NULL, array($IdOrRow));
         if ( ! $row ) {
-          Error("Unable to load Storage record for Id=" . $IdOrRow );
+          Error('Unable to load Storage record for Id=' . $IdOrRow);
         }
       } else if ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
@@ -59,7 +71,13 @@ class Storage {
     if ( array_key_exists($fn, $this) )
       return $this->{$fn};
         
+    if ( array_key_exists( $fn, $this->defaults ) )
+      return $this->defaults{$fn};
+
     $backTrace = debug_backtrace();
+    $file = $backTrace[0]['file'];
+    $line = $backTrace[0]['line'];
+    Warning("Unknown function call Storage->$fn from $file:$line");
     $file = $backTrace[1]['file'];
     $line = $backTrace[1]['line'];
     Warning("Unknown function call Storage->$fn from $file:$line");
@@ -73,6 +91,7 @@ class Storage {
         isset($storage_cache[$parameters['Id']]) ) {
       return $storage_cache[$parameters['Id']];
     }
+
     $results = Storage::find($parameters, $options);
     if ( count($results) > 1 ) {
       Error("Storage Returned more than 1");
@@ -111,12 +130,12 @@ class Storage {
       } # end if options
       if ( isset($options['limit']) ) {
         if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $limit;
+          $sql .= ' LIMIT ' . $option['limit'];
         } else {
           $backTrace = debug_backtrace();
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
-          Error("Invalid value for limit($limit) passed to Control::find from $file:$line");
+          Error("Invalid value for limit(".$options['limit'].") passed to Control::find from $file:$line");
           return array();
         }
       } # end if limit
@@ -124,9 +143,9 @@ class Storage {
     $storage_areas = array();
     $result = dbQuery($sql, $values);
     if ( $result ) {
-      $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage');
-      foreach ( $results as $row => $obj ) {
-        $storage_areas[] = $obj;
+      $results = $result->fetchALL();
+      foreach ( $results as $row ) {
+        $storage_areas[] = new Storage($row);
       }
     }
     return $storage_areas;
@@ -170,7 +189,7 @@ class Storage {
     # This isn't a function like this in php, so we have to add up the space used in each event.
     if ( ( !array_key_exists('disk_used_space', $this)) or !$this->{'disk_used_space'} ) {
       if ( $this->{'Type'} == 's3fs' ) {
-        $this->{'disk_used_space'} = $this->disk_event_space();
+        $this->{'disk_used_space'} = $this->event_disk_space();
       } else { 
         $path = $this->Path();
         if ( file_exists($path) ) {
@@ -203,6 +222,20 @@ class Storage {
       $this->{'Server'}= new Server( $this->{'ServerId'} );
     }
     return $this->{'Server'};
+  }
+
+  public function to_json() {
+    $json = array();
+    foreach ($this->defaults as $key => $value) {
+      if ( is_callable(array($this, $key)) ) {
+        $json[$key] = $this->$key();
+      } else if ( array_key_exists($key, $this) ) {
+        $json[$key] = $this->{$key};
+      } else {
+        $json[$key] = $this->defaults{$key};
+      }
+    }
+    return json_encode($json);
   }
 }
 ?>

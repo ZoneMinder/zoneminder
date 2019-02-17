@@ -101,7 +101,7 @@ var streamMode = "<?php echo $streamMode ?>";
 var connKey = '<?php echo $connkey ?>';
 
 var monitorId = <?php echo $monitor->Id() ?>;
-var monitorUrl = '<?php echo ( $monitor->Server()->Url() ) ?>';
+var monitorUrl = '<?php echo ( $monitor->UrlToIndex() ) ?>';
 
 var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 

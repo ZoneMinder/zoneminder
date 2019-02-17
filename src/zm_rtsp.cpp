@@ -388,7 +388,7 @@ int RtspThread::run() {
   std::string trackUrl = mUrl;
   std::string controlUrl;
   
-  _AVCODECID codecId;
+  _AVCODECID codecId = AV_CODEC_ID_NONE;
   
   if ( mFormatContext->nb_streams >= 1 ) {
     for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {

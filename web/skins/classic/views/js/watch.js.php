@@ -48,7 +48,7 @@ var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 var monitorId = <?php echo $monitor->Id() ?>;
 var monitorWidth = <?php echo $monitor->Width() ?>;
 var monitorHeight = <?php echo $monitor->Height() ?>;
-var monitorUrl = '<?php echo ( $monitor->Server()->Url() . ( ZM_MIN_STREAMING_PORT ? ':'. (ZM_MIN_STREAMING_PORT+$monitor->Id()) : '' ) ) ?>';
+var monitorUrl = '<?php echo $monitor->UrlToIndex(); ?>';
 var monitorType = '<?php echo ( $monitor->Type() ) ?>';
 var monitorRefresh = '<?php echo ( $monitor->Refresh() ) ?>';
 

@@ -62,39 +62,39 @@ $minY = 0;
 $maxY = $monitor->Height()-1;
 
 if ( !isset($newZone) ) {
-    if ( $zid > 0 ) {
-        $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
-    } else {
-        $zone = array(
-            'Id' => 0,
-            'Name' => translate('New'),
-            'Type'  =>  'Active',
-            'MonitorId' => $monitor->Id(),
-            'NumCoords' => 4,
-            'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
-            'Area' => $monitor->Width() * $monitor->Height(),
-            'AlarmRGB' => 0xff0000,
-            'CheckMethod' => 'Blobs',
-            'MinPixelThreshold' => '',
-            'MaxPixelThreshold' => '',
-            'MinAlarmPixels' => '',
-            'MaxAlarmPixels' => '',
-            'FilterX' => '',
-            'FilterY' => '',
-            'MinFilterPixels' => '',
-            'MaxFilterPixels' => '',
-            'MinBlobPixels' => '',
-            'MaxBlobPixels' => '',
-            'MinBlobs' => '',
-            'MaxBlobs' => '',
-            'OverloadFrames' => '',
-            'ExtendAlarmFrames' => '',
-        );
-    }
-    $zone['Points'] = coordsToPoints( $zone['Coords'] );
-    $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
+  if ( $zid > 0 ) {
+    $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
+  } else {
+    $zone = array(
+      'Id' => 0,
+      'Name' => translate('New'),
+      'Type'  =>  'Active',
+      'MonitorId' => $monitor->Id(),
+      'NumCoords' => 4,
+      'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
+      'Area' => $monitor->Width() * $monitor->Height(),
+      'AlarmRGB' => 0xff0000,
+      'CheckMethod' => 'Blobs',
+      'MinPixelThreshold' => '',
+      'MaxPixelThreshold' => '',
+      'MinAlarmPixels' => '',
+      'MaxAlarmPixels' => '',
+      'FilterX' => '',
+      'FilterY' => '',
+      'MinFilterPixels' => '',
+      'MaxFilterPixels' => '',
+      'MinBlobPixels' => '',
+      'MaxBlobPixels' => '',
+      'MinBlobs' => '',
+      'MaxBlobs' => '',
+      'OverloadFrames' => '',
+      'ExtendAlarmFrames' => '',
+    );
+  }
+  $zone['Points'] = coordsToPoints( $zone['Coords'] );
+  $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
 
-    $newZone = $zone;
+  $newZone = $zone;
 } # end if new Zone
 
 # Ensure Zone fits within the limits of the Monitor
@@ -122,7 +122,7 @@ xhtmlHeaders(__FILE__, translate('Zone') );
       <h2><?php echo translate('Monitor') ?> <?php echo $monitor->Name() ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?></h2>
     </div>
     <div id="content">
-      <form name="zoneForm" id="zoneForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onkeypress="return event.keyCode != 13;">
+      <form name="zoneForm" id="zoneForm" method="post" action="?" onkeypress="return event.keyCode != 13;">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="zone"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
@@ -283,7 +283,7 @@ for ( $i = 0; $i < $pointCols; $i++ )
               </tr>
             </tbody>
           </table>
-          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" onclick="streamCmdPauseToggle()"/>
+          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" data-on-click="streamCmdPauseToggle"/>
           <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/>
           <input type="button" value="<?php echo translate('Cancel') ?>" onclick="refreshParentWindow(); closeWindow();"/>
         </div>

@@ -1,3 +1,4 @@
+# Leaving this to allow one to build zoneminder-http subpackage using arbitrary user account
 %global zmuid_final apache
 %global zmgid_final apache
 
@@ -6,10 +7,6 @@
 
 # CakePHP-Enum-Behavior is configured as a git submodule
 %global ceb_version 1.0-zm
-
-%if "%{zmuid_final}" == "nginx"
-%global with_nginx 1
-%endif
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
@@ -22,10 +19,11 @@
 %global with_apcu_bc 1
 %endif
 
+# The default for everything but el7 these days
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.31.47
+Version: 1.33.0
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -44,7 +42,7 @@ BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
-BuildRequires: cmake >= 2.8.7
+BuildRequires: cmake3
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
 BuildRequires: pcre-devel 
@@ -74,6 +72,7 @@ BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
+BuildRequires: gzip
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
@@ -83,11 +82,25 @@ BuildRequires: ffmpeg-devel
 BuildRequires: libmp4v2-devel
 BuildRequires: x264-devel
 
-%{?with_nginx:Requires: nginx}
-%{?with_nginx:Requires: fcgiwrap}
-%{?with_nginx:Requires: php-fpm}
-%{!?with_nginx:Requires: httpd}
-%{!?with_nginx:Requires: php}
+# Allow existing user base to seamlessly transition to sub-packages
+Requires: %{name}-common%{?_isa} = %{version}-%{release}
+Requires: %{name}-httpd%{?_isa} = %{version}-%{release}
+
+%description
+ZoneMinder is a set of applications which is intended to provide a complete
+solution allowing you to capture, analyze, record and monitor any cameras you
+have attached to a Linux based machine. It is designed to run on kernels which
+support the Video For Linux (V4L) interface and has been tested with cameras
+attached to BTTV cards, various USB cameras and IP network cameras. It is
+designed to support as many cameras as you can attach to your computer without
+too much degradation of performance.
+
+This is a meta package for backwards compatibility with the existing
+ZoneMinder user base.
+
+%package common
+Summary: Common files for ZoneMinder, not tied to a specific web server
+
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
@@ -112,16 +125,12 @@ Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: ca-certificates
 Requires: zip
-
-Requires(post): systemd
-Requires(post): systemd-sysv
-Requires(preun): systemd
-Requires(postun): systemd
+%{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd
-Requires(post): %{_bindir}/less
+Requires(post): %{_bindir}/chown
 
-%description
+%description common
 ZoneMinder is a set of applications which is intended to provide a complete
 solution allowing you to capture, analyze, record and monitor any cameras you
 have attached to a Linux based machine. It is designed to run on kernels which
@@ -130,15 +139,57 @@ attached to BTTV cards, various USB cameras and IP network cameras. It is
 designed to support as many cameras as you can attach to your computer without
 too much degradation of performance.
 
+This is a meta-package that exists solely to allow the existing user base to
+seamlessly transition to sub-packages.
+
+%package httpd
+Summary: ZoneMinder configuration for Apache web server
+Requires: %{name}-common%{?_isa} = %{version}-%{release}
+Requires: httpd
+Requires: php
+
+Conflicts: %{name}-nginx
+
+%description httpd
+ZoneMinder is a set of applications which is intended to provide a complete
+solution allowing you to capture, analyze, record and monitor any cameras you
+have attached to a Linux based machine. It is designed to run on kernels which
+support the Video For Linux (V4L) interface and has been tested with cameras
+attached to BTTV cards, various USB cameras and IP network cameras. It is
+designed to support as many cameras as you can attach to your computer without
+too much degradation of performance.
+
+This sub-package contains configuration specific to Apache web server
+
+%package nginx
+Summary: ZoneMinder configuration for Nginx web server
+Requires: %{name}-common%{?_isa} = %{version}-%{release}
+Requires: nginx
+Requires: php-fpm
+Requires: fcgiwrap
+
+Conflicts: %{name}-httpd
+
+%description nginx
+ZoneMinder is a set of applications which is intended to provide a complete
+solution allowing you to capture, analyze, record and monitor any cameras you
+have attached to a Linux based machine. It is designed to run on kernels which
+support the Video For Linux (V4L) interface and has been tested with cameras
+attached to BTTV cards, various USB cameras and IP network cameras. It is
+designed to support as many cameras as you can attach to your computer without
+too much degradation of performance.
+
+This sub-package contains support for ZoneMinder with the Nginx web server
+
 %prep
-%autosetup -p 1 -a 1 -n ZoneMinder-%{version}
-%{__rm} -rf ./web/api/app/Plugin/Crud
-%{__mv} -f crud-%{crud_version} ./web/api/app/Plugin/Crud
+%autosetup -p 1 -a 1
+rm -rf ./web/api/app/Plugin/Crud
+mv -f crud-%{crud_version} ./web/api/app/Plugin/Crud
 
 # The all powerful autosetup macro does not work after the second source tarball
-%{__gzip} -dc %{_sourcedir}/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
-%{__rm} -rf ./web/api/app/Plugin/CakePHP-Enum-Behavior
-%{__mv} -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Behavior
+gzip -dc %{_sourcedir}/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
+rm -rf ./web/api/app/Plugin/CakePHP-Enum-Behavior
+mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Behavior
 
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
@@ -149,9 +200,9 @@ too much degradation of performance.
 ./utils/zmeditconfigdata.sh ZM_OPT_FAST_DELETE no
 
 %build
-%cmake \
+%cmake3 \
         -DZM_WEB_USER="%{zmuid_final}" \
-        -DZM_WEB_GROUP="%{zmuid_final}" \
+        -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
         .
 
@@ -173,10 +224,13 @@ find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist
 find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!%{_buildshell}\' {} \; -exec %{__chmod} 755 {} \;
 
 # Use the system cacert file rather then the one bundled with CakePHP
-%{__rm} -f %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
-%{__ln_s} ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
+rm -f %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
+ln -s ../../../../../../../..%{_sysconfdir}/pki/tls/certs/ca-bundle.crt %{buildroot}%{_datadir}/zoneminder/www/api/lib/Cake/Config/cacert.pem
 
-%post
+# Handle the polkit file differently for web server agnostic support (see post)
+rm -f %{buildroot}%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+
+%post common
 # Initial installation
 if [ $1 -eq 1 ] ; then
     %systemd_post %{name}.service
@@ -184,28 +238,48 @@ fi
 
 # Upgrade from a previous version of zoneminder 
 if [ $1 -eq 2 ] ; then
-
     # Add any new PTZ control configurations to the database (will not overwrite)
     %{_bindir}/zmcamtool.pl --import >/dev/null 2>&1 || :
 
     # Freshen the database
     %{_bindir}/zmupdate.pl -f  >/dev/null 2>&1 || :
-
-    # We can't run this automatically when new sql account permissions need to
-    # be manually added first
-    # Run zmupdate non-interactively
-    # zmupdate.pl --nointeractive
 fi
+
+# Warn the end user to read the README file
+echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README file\nto finish the installation or upgrade!"
+echo -e "\nThe README file is located here: %{_pkgdocdir}-common/README\n"
+
+%post httpd
+# For the case of changing from nginx <-> httpd, files in these folders must change ownership if they exist
+%{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_sharedstatedir}/php/session/* >/dev/null 2>&1 || :
+%{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_localstatedir}/log/zoneminder/* >/dev/null 2>&1 || :
+
+ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.httpd %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+# backwards compatibility
+ln -sf %{_sysconfdir}/zm/www/zoneminder.httpd.conf %{_sysconfdir}/zm/www/zoneminder.conf
 
 # Allow zoneminder access to local video sources, serial ports, and x10
 %{_bindir}/gpasswd -a %{zmuid_final} video >/dev/null 2>&1 || :
 %{_bindir}/gpasswd -a %{zmuid_final} dialout >/dev/null 2>&1 || :
 
-# Warn the end user to read the README file
-echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README file\nto finish the installation or upgrade!"
-echo -e "\nThe README file is located here: %{_pkgdocdir}/README\n"
+%post nginx
 
-%if 0%{?with_nginx}
+# Php package owns the session folder and sets group ownership to apache account
+# We could override the folder permission, but adding nginx to the apache group works better
+%{_bindir}/gpasswd -a nginx apache >/dev/null 2>&1 || :
+
+# For the case of changing from httpd <-> nginx, files in these folders must change ownership if they exist
+%{_bindir}/chown -R nginx:nginx %{_sharedstatedir}/php/session/* >/dev/null 2>&1 || :
+%{_bindir}/chown -R nginx:nginx %{_localstatedir}/log/zoneminder/* >/dev/null 2>&1 || :
+
+ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+# backwards compatibility
+ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zoneminder.conf
+
+# Allow zoneminder access to local video sources, serial ports, and x10
+%{_bindir}/gpasswd -a nginx video >/dev/null 2>&1 || :
+%{_bindir}/gpasswd -a nginx dialout >/dev/null 2>&1 || :
+
 # Nginx does not create an SSL certificate like the apache package does so lets do that here
 if [ -f %{sslkey} -o -f %{sslcert} ]; then
    exit 0
@@ -231,7 +305,6 @@ SomeOrganizationalUnit
 ${FQDN}
 root@${FQDN}
 EOF
-%endif
 
 %preun
 %systemd_preun %{name}.service
@@ -239,19 +312,12 @@ EOF
 %postun
 %systemd_postun_with_restart %{name}.service
 
-%triggerun -- zoneminder < 1.25.0-4
-# Save the current service runlevel info
-# User must manually run systemd-sysv-convert --apply zoneminder
-# to migrate them to systemd targets
-%{_bindir}/systemd-sysv-convert --save zoneminder >/dev/null 2>&1 ||:
-
-# Run these because the SysV package being removed won't do them
-/sbin/chkconfig --del zoneminder >/dev/null 2>&1 || :
-/bin/systemctl try-restart zoneminder.service >/dev/null 2>&1 || :
-
 %files
+# nothing
+
+%files common
 %license COPYING
-%doc AUTHORS README.md distros/redhat/readme/README distros/redhat/readme/README.https
+%doc AUTHORS README.md distros/redhat/readme/README distros/redhat/readme/README.httpd distros/redhat/readme/README.nginx distros/redhat/readme/README.https
 
 # We want these two folders to have "normal" read permission
 # compared to the folder contents
@@ -261,21 +327,11 @@ EOF
 # Config folder contents contain sensitive info
 # and should not be readable by normal users
 %{_sysconfdir}/zm/conf.d/README
-%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
-%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/*.conf
-%ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 
-%config(noreplace) %attr(644,root,root) /etc/zm/www/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
-%if 0%{?with_nginx}
-%config(noreplace) %{_sysconfdir}/php-fpm.d/zoneminder.conf
-%endif
-
-%{_tmpfilesdir}/zoneminder.conf
 %{_unitdir}/zoneminder.service
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
-%{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 %{_bindir}/zmsystemctl.pl
 
 %{_bindir}/zma
@@ -306,25 +362,101 @@ EOF
 
 %{_libexecdir}/zoneminder/
 %{_datadir}/zoneminder/
-%{_datadir}/applications/*%{name}.desktop
+%{_datadir}/applications/*zoneminder.desktop
 
+%files httpd
+%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/zm.conf
+%config(noreplace) %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/0*.conf
+%ghost %attr(640,root,%{zmgid_final}) %{_sysconfdir}/zm/conf.d/zmcustom.conf
+%config(noreplace) %{_sysconfdir}/zm/www/zoneminder.httpd.conf
+%ghost %{_sysconfdir}/zm/www/zoneminder.conf
+%config(noreplace) %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.httpd
+%ghost %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+
+%{_unitdir}/zoneminder.service.d/zm-httpd.conf
+%{_tmpfilesdir}/zoneminder.httpd.tmpfiles.conf
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/images
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/cache/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/run/zoneminder
+
+%files nginx
+%config(noreplace) %attr(640,root,nginx) %{_sysconfdir}/zm/zm.conf
+%config(noreplace) %attr(640,root,nginx) %{_sysconfdir}/zm/conf.d/*.conf
+%ghost %attr(640,root,nginx) %{_sysconfdir}/zm/conf.d/zmcustom.conf
+%config(noreplace) %{_sysconfdir}/zm/www/zoneminder.nginx.conf
+%config(noreplace) %{_sysconfdir}/zm/www/redirect.nginx.conf
+%ghost %{_sysconfdir}/zm/www/zoneminder.conf
+%config(noreplace) %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx
+%ghost %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
+
+%config(noreplace) %{_sysconfdir}/php-fpm.d/zoneminder.php-fpm.conf
+
+
+%{_unitdir}/zoneminder.service.d/zm-nginx.conf
+%{_tmpfilesdir}/zoneminder.nginx.tmpfiles.conf
+%dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder
+%dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/events
+%dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/sock
+%dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/swap
+%dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/temp
+%dir %attr(755,nginx,nginx) %{_localstatedir}/cache/zoneminder
+%dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
+%dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
-* Sun Apr 22 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.31.42-1
-- Remove support for sysvinit a.k.a. el6
-- use desktop-file-install for new zoneminder.desktop file
-- add new web cache folder
-- 1.31.42 development snapshot
+* Tue Dec 11 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.0-1
+- Bump tp 1.33.0 Development
+
+* Sat Dec 08 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.3-1
+- 1.32.3 Release
+- Break into sub-packages
+
+* Tue Nov 13 2018 Antonio Trande <sagitter@fedoraproject.org> - 1.32.2-2
+- Rebuild for ffmpeg-3.4.5 on el7
+- Use CMake3
+
+* Sat Oct 13 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.2-1
+- 1.32.2 release
+- Bug fix release
+
+* Thu Oct 04 2018 Sérgio Basto <sergio@serjux.com> - 1.32.1-2
+- Mass rebuild for x264 and/or x265
+
+* Tue Oct 2 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.1-1
+- 1.32.1 release
+- Bug fix release
+
+* Wed Sep 12 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.0-1
+- 1.32.0 release
+- remove el6 (sys v init) support
+- Make README name consistent across all supported distros
+- remove jscalendar
+- add requires php-json, zip
+- support zm/conf.d folder
+- support zm cache (busting) folder
+
+* Sun Aug 19 2018 Leigh Scott <leigh123linux@googlemail.com> - 1.30.4-9
+- Rebuilt for Fedora 29 Mass Rebuild binutils issue
+
+* Fri Jul 27 2018 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.30.4-8
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
+
+* Thu Mar 08 2018 RPM Fusion Release Engineering <leigh123linux@googlemail.com> - 1.30.4-7
+- Rebuilt for new ffmpeg snapshot
+
+* Thu Mar 01 2018 RPM Fusion Release Engineering <leigh123linux@googlemail.com> - 1.30.4-6
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
+
+* Thu Jan 18 2018 Leigh Scott <leigh123linux@googlemail.com> - 1.30.4-5
+- Rebuilt for ffmpeg-3.5 git
+
+* Thu Aug 31 2017 RPM Fusion Release Engineering <kwizart@rpmfusion.org> - 1.30.4-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
 
 * Tue May 09 2017 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.30.4-1
 - modify autosetup macro parameters

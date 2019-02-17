@@ -259,22 +259,43 @@ function collectData() {
         $index = 0;
         $where = array();
         $values = array();
-        foreach( $entitySpec['selector'] as $selector ) {
+        foreach( $entitySpec['selector'] as $selIndex => $selector ) {
+          $selectorParamName = ':selector' . $selIndex;
           if ( is_array( $selector ) ) {
-            $where[] = $selector['selector'].' = ?';
-            $values[] = validInt($id[$index]);
+            $where[] = $selector['selector'].' = '.$selectorParamName;
+            $values[$selectorParamName] = validInt($id[$index]);
           } else {
-            $where[] = $selector.' = ?';
-            $values[] = validInt($id[$index]);
+            $where[] = $selector.' = '.$selectorParamName;
+            $values[$selectorParamName] = validInt($id[$index]);
           }
           $index++;
         }
-        $sql .= ' where '.join( ' and ', $where );
+        $sql .= ' WHERE '.join( ' AND ', $where );
       }
       if ( $groupSql )
         $sql .= ' GROUP BY '.join( ',', array_unique( $groupSql ) );
-      if ( !empty($_REQUEST['sort']) )
-        $sql .= ' order by '.$_REQUEST['sort'];
+      if ( !empty($_REQUEST['sort']) ) {
+        $sql .= ' ORDER BY ';
+        $sort_fields = explode(',',$_REQUEST['sort']);
+        foreach ( $sort_fields as $sort_field ) {
+          
+          preg_match('/^(\w+)\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
+          if ( count($matches) ) {
+            if ( in_array($matches[1], $fieldSql) ) {
+              $sql .= $matches[1];
+            } else {
+              Error('Sort field ' . $matches[1] . ' not in SQL Fields');
+            }
+            if ( count($matches) > 2 ) {
+              $sql .= ' '.strtoupper($matches[2]);
+              if ( count($matches) > 3 )
+                $sql .= ' '.strtoupper($matches[3]);
+            }
+          } else {
+            Error("Sort field didn't match regexp $sort_field");
+          }
+        } # end foreach sort field
+      } # end if has sort
       if ( !empty($entitySpec['limit']) )
         $limit = $entitySpec['limit'];
       elseif ( !empty($_REQUEST['count']) )
@@ -383,7 +404,7 @@ function getNearEvents() {
   parseSort();
 
   if ( $user['MonitorIds'] )
-    $midSql = ' and MonitorId in ('.join( ',', preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).')';
+    $midSql = ' AND MonitorId IN ('.join( ',', preg_split( '/["\'\s]*,["\'\s]*/', $user['MonitorIds'] ) ).')';
   else
     $midSql = '';
 
@@ -392,32 +413,40 @@ function getNearEvents() {
     $sortOrder = 'asc';
   }
 
-  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." ORDER BY $sortColumn ".($sortOrder=='asc'?'desc':'asc') . ' LIMIT 2';
-  $result = dbQuery( $sql );
-  while ( $id = dbFetchNext( $result, 'Id' ) ) {
-    if ( $id == $eventId ) {
-      $prevEvent = dbFetchNext( $result );
-      break;
-    }
+  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'<=':'>=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql.' AND E.Id<'.$event['Id'] . " ORDER BY $sortColumn ".($sortOrder=='asc'?'desc':'asc');
+  if ( $sortColumn != 'E.Id' ) {
+    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    $sql .= ', E.Id DESC';
   }
+  $sql .= ' LIMIT 1';
+  $result = dbQuery( $sql );
+  $prevEvent = dbFetchNext( $result );
 
-  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql." ORDER BY $sortColumn $sortOrder LIMIT 2";
-  $result = dbQuery( $sql );
-  while ( $id = dbFetchNext( $result, 'Id' ) ) {
-    if ( $id == $eventId ) {
-      $nextEvent = dbFetchNext( $result );
-      break;
-    }
+  $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql.' AND E.Id>'.$event['Id'] . " ORDER BY $sortColumn $sortOrder";
+  if ( $sortColumn != 'E.Id' ) {
+    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    $sql .= ', E.Id ASC';
   }
+  $sql .= ' LIMIT 1';
+  $result = dbQuery( $sql );
+  $nextEvent = dbFetchNext( $result );
 
   $result = array( 'EventId'=>$eventId );
-  $result['PrevEventId'] = empty($prevEvent)?0:$prevEvent['Id'];
-  $result['NextEventId'] = empty($nextEvent)?0:$nextEvent['Id'];
-  $result['PrevEventStartTime'] = empty($prevEvent)?0:$prevEvent['StartTime'];
-  $result['NextEventStartTime'] = empty($nextEvent)?0:$nextEvent['StartTime'];
-  $result['PrevEventDefVideoPath'] = empty($prevEvent)?0:(getEventDefaultVideoPath($prevEvent['Id']));
-  $result['NextEventDefVideoPath'] = empty($nextEvent)?0:(getEventDefaultVideoPath($nextEvent['Id']));
-  return( $result );
+  if ( $prevEvent ) {
+    $result['PrevEventId'] = $prevEvent['Id'];
+    $result['PrevEventStartTime'] = $prevEvent['StartTime'];
+    $result['PrevEventDefVideoPath'] = getEventDefaultVideoPath($prevEvent['Id']);
+  } else {
+    $result['PrevEventId'] = $result['PrevEventStartTime'] = $result['PrevEventDefVideoPath'] = 0;
+  }
+  if ( $nextEvent ) {
+    $result['NextEventId'] = $nextEvent['Id'];
+    $result['NextEventStartTime'] = $nextEvent['StartTime'];
+    $result['NextEventDefVideoPath'] = getEventDefaultVideoPath($nextEvent['Id']);
+  } else {
+    $result['NextEventId'] = $result['NextEventStartTime'] = $result['NextEventDefVideoPath'] = 0;
+  }
+  return $result;
 }
 
 ?>

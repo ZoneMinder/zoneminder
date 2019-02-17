@@ -82,6 +82,7 @@ class Event {
     bool            videoEvent;
     int        frames;
     int        alarm_frames;
+    bool alarm_frame_written;
     unsigned int  tot_score;
     unsigned int  max_score;
     char      path[PATH_MAX];

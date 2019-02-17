@@ -59,7 +59,7 @@ class FfmpegCamera : public Camera {
     bool hwaccel;
 #if HAVE_AVUTIL_HWCONTEXT_H
     AVFrame             *hwFrame;
-    DecodeContext decode;
+    DecodeContext       decode;
 #endif
 
     // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
@@ -99,12 +99,13 @@ class FfmpegCamera : public Camera {
     void Initialise();
     void Terminate();
 
-    static int FfmpegInterruptCallback(void*ctx);
 
     int PrimeCapture();
     int PreCapture();
     int Capture( Image &image );
     int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
     int PostCapture();
+  private:
+    static int FfmpegInterruptCallback(void*ctx);
 };
 #endif // ZM_FFMPEG_CAMERA_H

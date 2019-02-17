@@ -11,6 +11,7 @@ public $defaults = array(
     'AutoDelete'      =>  0,
     'AutoArchive'     =>  0,
     'AutoVideo'       =>  0,
+    'AutoUpload'      =>  0,
     'AutoMessage'     =>  0,
     'AutoMove'        =>  0,
     'AutoMoveTo'      =>  0,
@@ -139,12 +140,12 @@ public $defaults = array(
       }
       if ( isset($options['limit']) ) {
         if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $limit;
+          $sql .= ' LIMIT ' . $options['limit'];
         } else {
           $backTrace = debug_backtrace();
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
-          Error("Invalid value for limit($limit) passed to Filter::find from $file:$line");
+          Error("Invalid value for limit(".$options['limit'].") passed to Filter::find from $file:$line");
           return array();
         }
       }
@@ -166,7 +167,7 @@ public $defaults = array(
   } # end find_one()
 
   public function delete() {
-    dbQuery('DELETE FROM Filters WHERE Id = ?', array($this->{'Id'}));
+    dbQuery('DELETE FROM Filters WHERE Id=?', array($this->{'Id'}));
   } # end function delete()
 
   public function set( $data ) {
@@ -184,7 +185,61 @@ public $defaults = array(
         $this->{$k} = $v;
       }
     }
-  }
-} # end class
+  } # end function set
+
+  public function control($command, $server_id=null) {
+    $Servers = $server_id ? Server::find(array('Id'=>$server_id)) : Server::find();
+    if ( !count($Servers) and !$server_id ) {
+      # This will be the non-multi-server case
+      $Servers = array(new Server());
+    }
+    foreach ( $Servers as $Server ) {
+
+      if ( !defined('ZM_SERVER_ID') or !$Server->Id() or ZM_SERVER_ID==$Server->Id() ) {
+        # Local
+        Logger::Debug("Controlling filter locally $command for server ".$Server->Id());
+        daemonControl($command, 'zmfilter.pl', '--filter_id='.$this->{'Id'});
+      } else {
+        # Remote case
+
+        $url = $Server->UrlToIndex();
+        if ( ZM_OPT_USE_AUTH ) {
+          if ( ZM_AUTH_RELAY == 'hashed' ) {
+            $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+          } else if ( ZM_AUTH_RELAY == 'plain' ) {
+            $url = '?user='.$_SESSION['username'];
+            $url = '?pass='.$_SESSION['password'];
+          } else if ( ZM_AUTH_RELAY == 'none' ) {
+            $url = '?user='.$_SESSION['username'];
+          }
+        }
+        $url .= '&view=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId'.$Server->Id();
+        Logger::Debug("sending command to $url");
+        $data = array();
+        if ( defined('ZM_ENABLE_CSRF_MAGIC') )
+          $data['__csrf_magic'] = csrf_get_secret();
+
+        // use key 'http' even if you send the request to https://...
+        $options = array(
+          'http' => array(
+            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method'  => 'POST',
+            'content' => http_build_query($data)
+          )
+        );
+        $context  = stream_context_create($options);
+        try {
+          $result = file_get_contents($url, false, $context);
+          if ( $result === FALSE ) { /* Handle error */
+            Error("Error restarting zmfilter.pl using $url");
+          }
+        } catch ( Exception $e ) {
+          Error("Except $e thrown trying to restart zmfilter");
+        }
+      } # end if local or remote
+    } # end foreach erver
+  } # end function control
+
+} # end class Filter
 
 ?>

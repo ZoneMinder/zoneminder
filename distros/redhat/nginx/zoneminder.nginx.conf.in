@@ -1,0 +1,57 @@
+server {
+    listen       443 ssl default_server;
+    listen       [::]:443 ssl default_server;
+    server_name = localhost $hostname;
+
+    ssl_certificate "/etc/pki/tls/certs/localhost.crt";
+    ssl_certificate_key "/etc/pki/tls/private/localhost.key";
+    ssl_session_cache shared:SSL:1m;
+    ssl_session_timeout  10m;
+    ssl_ciphers PROFILE=SYSTEM;
+    ssl_prefer_server_ciphers on;
+
+    # Auto redirect to server/zm when no url suffix was given
+    location = / {
+        return 301 zm;
+    }
+
+    location /cgi-bin-zm {
+        gzip off;
+        alias "@ZM_CGIDIR@";
+
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $request_filename;
+        fastcgi_pass  unix:/run/fcgiwrap/fcgiwrap-nginx.sock;
+    }
+
+    location /zm/cache {
+        alias "@ZM_CACHEDIR@";
+    }
+
+    location /zm {
+        gzip off;
+        alias                   "@ZM_WEBDIR@";
+        index                   index.php;
+
+        location ~ \.php$ {
+            try_files $uri =404;
+            expires             epoch;
+            include             /etc/nginx/fastcgi_params;
+            fastcgi_param       SCRIPT_FILENAME         $request_filename;
+            fastcgi_index       index.php;
+            fastcgi_pass        unix:/run/php-fpm/www.sock;
+        }
+
+        location ~ \.(jpg|jpeg|gif|png|ico)$ {
+            access_log          off;
+            expires         33d;
+        }
+
+        location /zm/api/ {
+            alias                   "@ZM_WEBDIR@";
+            rewrite ^/zm/api(.+)$ /zm/api/app/webroot/index.php?p=$1 last;
+        }
+    }
+
+}
+

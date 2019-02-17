@@ -75,7 +75,7 @@ if ( canView('Control') && $monitor->Type() == 'Local' ) {
 ?>
           <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
         </div>
-        <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back()' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+        <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'history.go(-1);return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
     <div id="content">
       <div id="imageFeed"><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
@@ -93,8 +93,8 @@ if ( canView('Control') && $monitor->Type() == 'Local' ) {
 if ( canEdit('Monitors') ) {
 ?>
         <div id="forceCancelAlarm">
-            <a id="forceAlarmLink" href="#" onclick="cmdForceAlarm();"><?php echo translate('ForceAlarm') ?></a>
-            <a id="cancelAlarmLink" href="#" onclick="cmdCancelForcedAlarm();" class="hidden"><?php echo translate('CancelForcedAlarm') ?></a>
+            <a id="forceAlarmLink" href="#" data-on-click="cmdForceAlarm"><?php echo translate('ForceAlarm') ?></a>
+            <a id="cancelAlarmLink" href="#" data-on-click="cmdCancelForcedAlarm" class="hidden"><?php echo translate('CancelForcedAlarm') ?></a>
         </div>
 <?php
 }
@@ -106,23 +106,23 @@ if ( canEdit('Monitors') ) {
 if ( $streamMode == 'jpeg' ) {
   if ( $monitor->StreamReplayBuffer() != 0 ) {
 ?>
-        <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" onclick="streamCmdFastRev(true)"/>
-        <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowRev(true)"/>
+        <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastRev"/>
+        <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowRev"/>
 <?php 
   }
 ?>
-        <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" onclick="streamCmdPause(true)"/>
-        <input type="button" value="[]" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" onclick="streamCmdStop(true)"/>
-        <input type="button" value="|&gt;" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" onclick="streamCmdPlay(true)"/>
+        <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click-true="streamCmdPause"/>
+        <input type="button" value="[]" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdStop"/>
+        <input type="button" value="|&gt;" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click-true="streamCmdPlay"/>
 <?php
   if ( $monitor->StreamReplayBuffer() != 0 ) {
 ?>
-        <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" onclick="streamCmdSlowFwd(true)"/>
-        <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" onclick="streamCmdFastFwd(true)"/>
+        <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowFwd"/>
+        <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastFwd"/>
 <?php
   }
 ?>
-        <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" onclick="streamCmdZoomOut()"/>
+        <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut"/>
 <?php
 } // end if streamMode==jpeg
 ?>
@@ -145,10 +145,10 @@ if ( $showPtzControls ) {
       </div>
 <?php
 }
-if ( canView( 'Events' ) && $monitor->Type() != 'WebSite' ) {
+if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 ?>
       <div id="events">
-        <table id="eventList" cellspacing="0">
+        <table id="eventList">
           <thead>
             <tr>
               <th class="colId"><?php echo translate('Id') ?></th>

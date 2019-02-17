@@ -51,7 +51,6 @@ require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
 
-
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
   or
@@ -69,11 +68,9 @@ define('ZM_BASE_PROTOCOL', $protocol);
 // Use relative URL's instead
 define('ZM_BASE_URL', '');
 
-// Check time zone is set
-if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone'))) {
-  date_default_timezone_set('UTC');
-  Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
-}
+// Verify the system, php, and mysql timezones all match
+require_once('includes/functions.php');
+check_timezone();
 
 if ( isset($_GET['skin']) ) {
   $skin = $_GET['skin'];
@@ -120,12 +117,12 @@ $skinBase[] = $skin;
 $currentCookieParams = session_get_cookie_params(); 
 //Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
 session_set_cookie_params( 
-    $currentCookieParams['lifetime'], 
-    $currentCookieParams['path'], 
-    $currentCookieParams['domain'],
-    $currentCookieParams['secure'], 
-    true
-); 
+  $currentCookieParams['lifetime'],
+  $currentCookieParams['path'],
+  $currentCookieParams['domain'],
+  $currentCookieParams['secure'],
+  true
+);
 
 ini_set('session.name', 'ZMSESSID');
 
@@ -155,8 +152,6 @@ if ( ZM_OPT_USE_AUTH ) {
 session_write_close();
 
 require_once('includes/lang.php');
-require_once('includes/functions.php');
-require_once('includes/auth.php');
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -165,15 +160,20 @@ $running = null;
 CORSHeaders();
 
 // Check for valid content dirs
-if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
-  Warning("Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+if ( !is_writable(ZM_DIR_EVENTS) ) {
+  Warning("Cannot write to event folder ".ZM_DIR_EVENTS.". Check that it exists and is owned by the web account user.");
 }
 
 # Globals
+$action = null;
+$error_message = null;
 $redirect = null;
 $view = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
+
+# Add CSP Headers
+$cspNonce = bin2hex(openssl_random_pseudo_bytes(16));
 
 $request = null;
 if ( isset($_REQUEST['request']) )
@@ -182,23 +182,12 @@ if ( isset($_REQUEST['request']) )
 foreach ( getSkinIncludes('skin.php') as $includeFile )
   require_once $includeFile;
 
-if ( ZM_OPT_USE_AUTH ) {
-  if ( ZM_AUTH_HASH_LOGINS ) {
-    if ( empty($user) && ! empty($_REQUEST['auth']) ) {
-      if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
-        userLogin($authUser['Username'], $authUser['Password'], true);
-      }
-    } 
-  }
-  if ( !empty($user) ) {
-    // generate it once here, while session is open.  Value will be cached in session and return when called later on
-    generateAuthHash(ZM_AUTH_HASH_IPS);
-  }
-}
+# User Login will be performed in auth.php
+require_once('includes/auth.php');
 
-if ( isset($_REQUEST['action']) ) {
+if ( isset($_REQUEST['action']) )
   $action = detaintPath($_REQUEST['action']);
-}
+
 
 # The only variable we really need to set is action. The others are informal.
 isset($view) || $view = NULL;
@@ -221,18 +210,27 @@ if (
 }
 
 # Need to include actions because it does auth
-require_once('includes/actions.php');
+if ( $action ) {
+  if ( file_exists('includes/actions/'.$view.'.php') ) {
+    Logger::Debug("Including includes/actions/$view.php");
+    require_once('includes/actions/'.$view.'.php');
+  } else {
+    Warning("No includes/actions/$view.php for action $action");
+  }
+}
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH and !isset($user) ) {
   Logger::Debug('Redirecting to login');
   $view = 'login';
   $request = null;
-} else if ( ZM_SHOW_PRIVACY && ($action != 'privacy') && ($view !='options') && (!$request) && canEdit('System') ) {
+} else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   Logger::Debug('Redirecting to privacy');
   $view = 'privacy';
   $request = null;
 }
+
+CSPHeaders($view, $cspNonce);
 
 if ( $redirect ) {
   header('Location: '.$redirect);
@@ -246,27 +244,27 @@ if ( $request ) {
     require_once $includeFile;
   }
   return;
-} else {
-  if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
-    foreach ( $includeFiles as $includeFile ) {
-      if ( !file_exists($includeFile) )
-        Fatal("View '$view' does not exist");
-      require_once $includeFile;
-    }
-    // If the view overrides $view to 'error', and the user is not logged in, then the
-    // issue is probably resolvable by logging in, so provide the opportunity to do so.
-    // The login view should handle redirecting to the correct location afterward.
-    if ( $view == 'error' && !isset($user) ) {
-      $view = 'login';
-      foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
-        require_once $includeFile;
-    }
+}
+
+if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
+  foreach ( $includeFiles as $includeFile ) {
+    if ( !file_exists($includeFile) )
+      Fatal("View '$view' does not exist");
+    require_once $includeFile;
   }
-  // If the view is missing or the view still returned error with the user logged in,
-  // then it is not recoverable.
-  if ( !$includeFiles || $view == 'error' ) {
-    foreach ( getSkinIncludes('views/error.php', true, true) as $includeFile )
+  // If the view overrides $view to 'error', and the user is not logged in, then the
+  // issue is probably resolvable by logging in, so provide the opportunity to do so.
+  // The login view should handle redirecting to the correct location afterward.
+  if ( $view == 'error' && !isset($user) ) {
+    $view = 'login';
+    foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
       require_once $includeFile;
   }
+}
+// If the view is missing or the view still returned error with the user logged in,
+// then it is not recoverable.
+if ( !$includeFiles || $view == 'error' ) {
+  foreach ( getSkinIncludes('views/error.php', true, true) as $includeFile )
+    require_once $includeFile;
 }
 ?>

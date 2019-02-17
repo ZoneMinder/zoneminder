@@ -35,7 +35,7 @@ monitorData[monitorData.length] = {
   'connKey': <?php echo $monitor->connKey() ?>, 
   'width': <?php echo $monitor->Width() ?>,
   'height':<?php echo $monitor->Height() ?>,
-  'server_url': '<?php echo $monitor->Server()->Url().$_SERVER['PHP_SELF'] ?>',
+  'url': '<?php echo $monitor->UrlToIndex() ?>',
   'onclick': function(){createPopup( '?view=watch&mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?> );},
   'type': '<?php echo $monitor->Type() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>'

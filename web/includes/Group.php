@@ -85,23 +85,22 @@ class Group {
       }
       if ( isset($options['limit']) ) {
         if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $limit;
+          $sql .= ' LIMIT ' . $options['limit'];
         } else {
           $backTrace = debug_backtrace();
           $file = $backTrace[1]['file'];
           $line = $backTrace[1]['line'];
-          Error("Invalid value for limit($limit) passed to Group::find from $file:$line");
+          Error("Invalid value for limit(".$options['limit'].") passed to Group::find from $file:$line");
           return array();
         }
       }
     } # end if options
-    $groups = array();
-    $result = dbQuery($sql, $values);
-    $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Group');
-    foreach ( $results as $row => $obj ) {
-      $groups[] = $obj;
+
+    $results = dbFetchAll($sql, NULL, $values);
+    if ( $results ) {
+      return array_map( function($row){ return new Group($row); }, $results );
     }
-    return $groups;
+    return array();
   } # end find()
 
   public static function find_one($parameters = null, $options = null) {
@@ -121,12 +120,13 @@ class Group {
     } else {
       return null;
     }
-  }
+  } # end function find_one
 
   public function delete() {
     if ( array_key_exists('Id', $this) ) {
-      dbQuery( 'DELETE FROM Groups_Monitors WHERE GroupId=?', array($this->{'Id'}) );
-      dbQuery( 'DELETE FROM Groups WHERE Id=?', array($this->{'Id'}) );
+      dbQuery('DELETE FROM Groups_Monitors WHERE GroupId=?', array($this->{'Id'}));
+      dbQuery('UPDATE Groups SET ParentId=NULL WHERE ParentId=?', array($this->{'Id'}));
+      dbQuery('DELETE FROM Groups WHERE Id=?', array($this->{'Id'}));
       if ( isset($_COOKIE['zmGroup']) ) {
         if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
           unset($_COOKIE['zmGroup']);
@@ -151,16 +151,17 @@ class Group {
         $this->{$k} = $v;
       }
     }
-  }
+  } # end function set
+
   public function depth( $new = null ) {
     if ( isset($new) ) {
       $this->{'depth'} = $new;
     }
-    if ( ! array_key_exists('depth', $this) or ($this->{'depth'} == null) ) {
-      $this->{'depth'} = 1;
+    if ( !array_key_exists('depth', $this) or ($this->{'depth'} === null) ) {
+      $this->{'depth'} = 0;
       if ( $this->{'ParentId'} != null ) {
         $Parent = Group::find_one(array('Id'=>$this->{'ParentId'}));
-        $this->{'depth'} += $Parent->depth();
+        $this->{'depth'} += $Parent->depth()+1;
       }
     }
     return $this->{'depth'};
@@ -187,7 +188,7 @@ class Group {
     session_write_close();
 
     return htmlSelect( 'Group[]', Group::get_dropdown_options(), isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
-          'onchange' => 'this.form.submit();',
+          'data-on-change' => 'submitThisForm',
           'class'=>'chosen',
           'multiple'=>'multiple',
           'data-placeholder'=>'All',
@@ -211,7 +212,7 @@ class Group {
           $children[$Group->ParentId()] = array();
         $children[$Group->ParentId()][] = $Group;
       }
-    }
+    } # end foreach
 
     function get_options($Group) {
       global $children;
@@ -222,7 +223,8 @@ class Group {
         }
       }
       return $options;
-    }
+    } # end function get_options
+
     $group_options = array();
     foreach ( $Groups as $id=>$Group ) {
       if ( ! $Group->ParentId() ) {
@@ -230,7 +232,7 @@ class Group {
       }
     }
     return $group_options;
-  }
+  } # end function get_dropdown_options
 
   public static function get_group_sql($group_id) {
     $groupSql = '';

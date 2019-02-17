@@ -18,11 +18,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Events' ) ) {
+if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
-require_once( 'includes/Frame.php' );
+require_once('includes/Frame.php');
 $Event = new Event( $_REQUEST['eid'] );
 
 $sql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId';
@@ -30,16 +30,16 @@ $frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid'] ) );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Frames')." - ".$Event->Id() );
+xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id() );
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <div id="headerButtons"><a href="#" onclick="closeWindow();"><?php echo translate('Close') ?></a></div>
+      <div id="headerButtons"><a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a></div>
       <h2><?php echo translate('Frames') ?> - <?php echo $Event->Id() ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <table id="contentTable" class="major" cellspacing="0">
           <thead>

@@ -62,8 +62,13 @@ bool StreamBase::checkInitialised() {
 
 void StreamBase::updateFrameRate(double fps) {
   base_fps = fps;
-  effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
   frame_mod = 1;
+  if ( !fps ) {
+    Debug(1, "Zero fps in updateFrameRate. Setting frame_mod=1 and effective_fps=0.0");
+    effective_fps = 0.0;
+    return;
+  }
+  effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
   Debug(3, "FPS:%.2f, MXFPS:%.2f, BFPS:%.2f, EFPS:%.2f, FM:%d", fps, maxfps, base_fps, effective_fps, frame_mod);
   // Min frame repeat?
   while( effective_fps > maxfps ) {
@@ -267,7 +272,20 @@ bool StreamBase::sendTextFrame( const char *frame_text ) {
 void StreamBase::openComms() {
   if ( connkey > 0 ) {
 
-		unsigned int length = snprintf(sock_path_lock, sizeof(sock_path_lock), "%s/zms-%06d.lock", staticConfig.PATH_SOCKS.c_str(), connkey);
+    // Have to mkdir because systemd is now chrooting and the dir may not exist
+    if ( mkdir(staticConfig.PATH_SOCKS.c_str(), 0755) ) {
+      if ( errno != EEXIST ) {
+        Error("Can't mkdir ZM_PATH_SOCKS %s: %s.", staticConfig.PATH_SOCKS.c_str(), strerror(errno));
+      }
+    }
+
+		unsigned int length = snprintf(
+        sock_path_lock,
+        sizeof(sock_path_lock),
+        "%s/zms-%06d.lock",
+        staticConfig.PATH_SOCKS.c_str(),
+        connkey
+        );
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
     }
@@ -275,14 +293,14 @@ void StreamBase::openComms() {
 
     lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
     if ( lock_fd <= 0 ) {
-      Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno) );
+      Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno));
       lock_fd = 0;
 		} else if ( flock(lock_fd, LOCK_EX) != 0 ) {
-      Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno) );
+      Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno));
       close(lock_fd);
       lock_fd = 0;
     } else {
-      Debug( 1, "We have obtained a lock on %s fd: %d", sock_path_lock, lock_fd);
+      Debug(1, "We have obtained a lock on %s fd: %d", sock_path_lock, lock_fd);
     }
 
     sd = socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -292,7 +310,13 @@ void StreamBase::openComms() {
 			Debug(1, "Have socket %d", sd);
     }
 
-    length = snprintf(loc_sock_path, sizeof(loc_sock_path), "%s/zms-%06ds.sock", staticConfig.PATH_SOCKS.c_str(), connkey);
+    length = snprintf(
+        loc_sock_path,
+        sizeof(loc_sock_path),
+        "%s/zms-%06ds.sock",
+        staticConfig.PATH_SOCKS.c_str(),
+        connkey
+        );
     if ( length >= sizeof(loc_sock_path) ) {
       Warning("Socket path was truncated.");
       length = sizeof(loc_sock_path)-1;
@@ -306,13 +330,15 @@ void StreamBase::openComms() {
     strncpy(loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path));
     loc_addr.sun_family = AF_UNIX;
 		Debug(3, "Binding to %s", loc_sock_path);
-    if ( bind(sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1) < 0 ) {
+    if ( ::bind(sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1) < 0 ) {
       Fatal("Can't bind: %s", strerror(errno));
     }
 
     snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey);
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path)-1);
     rem_addr.sun_family = AF_UNIX;
+
+    gettimeofday(&last_comm_update, NULL);
   } // end if connKey > 0
 	Debug(2, "comms open");
 } // end void StreamBase::openComms()

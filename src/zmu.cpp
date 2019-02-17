@@ -425,6 +425,10 @@ int main(int argc, char *argv[]) {
 
   if ( config.opt_use_auth ) {
     if ( strcmp(config.auth_relay, "none") == 0 ) {
+      if ( !checkUser(username)) {
+        fprintf(stderr, "Error, username greater than allowed 32 characters\n");
+        exit_zmu(-1);
+      }
       if ( !username ) {
         fprintf(stderr, "Error, username must be supplied\n");
         exit_zmu(-1);
@@ -438,7 +442,14 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Error, username and password or auth string must be supplied\n");
         exit_zmu(-1);
       }
-
+      if ( !checkUser(username)) {
+        fprintf(stderr, "Error, username greater than allowed 32 characters\n");
+        exit_zmu(-1);
+      }
+      if ( !checkPass(password)) {
+        fprintf(stderr, "Error, password greater than allowed 64 characters\n");
+        exit_zmu(-1);
+      }
       //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
       {
         if ( auth ) {
@@ -463,10 +474,10 @@ int main(int argc, char *argv[]) {
   } // end if auth
 
   if ( mon_id > 0 ) {
-		fprintf(stderr,"Monitor %d\n", mon_id);
+		//fprintf(stderr,"Monitor %d\n", mon_id);
     Monitor *monitor = Monitor::Load(mon_id, function&(ZMU_QUERY|ZMU_ZONES), Monitor::QUERY);
     if ( monitor ) {
-        fprintf(stderr,"Monitor %d(%s)\n", monitor->Id(), monitor->Name());
+        //fprintf(stderr,"Monitor %d(%s)\n", monitor->Id(), monitor->Name());
       if ( verbose ) {
         printf("Monitor %d(%s)\n", monitor->Id(), monitor->Name());
       }
@@ -479,9 +490,9 @@ int main(int argc, char *argv[]) {
       bool have_output = false;
       if ( function & ZMU_STATE ) {
         Monitor::State state = monitor->GetState();
-        if ( verbose )
+        if ( verbose ) {
           printf("Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"));
-        else {
+        } else {
           if ( have_output ) printf("%c", separator);
           printf("%d", state);
           have_output = true;
@@ -560,6 +571,11 @@ int main(int argc, char *argv[]) {
         if ( verbose )
           printf( "Forcing alarm on\n" );
         monitor->ForceAlarmOn( config.forced_alarm_score, "Forced Web" );
+        while ( monitor->GetState() != Monitor::ALARM ) {
+          // Wait for monitor to notice.
+          usleep(1000);
+        }
+        printf( "Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId() );
       }
       if ( function & ZMU_NOALARM ) {
         if ( verbose )

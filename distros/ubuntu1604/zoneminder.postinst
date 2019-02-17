@@ -22,7 +22,7 @@ if [ "$1" = "configure" ]; then
 
   if [ "$ZM_DB_HOST" = "localhost" ]; then
 
-    if [ -e "/lib/systemd/system/mysql.service" ] || [ -e "/lib/systemd/system/mariadb.service" ]; then
+    if [ -e "/lib/systemd/system/mysql.service" ] || [ -e "/lib/systemd/system/mariadb.service" ] || [ -e "/etc/init.d/mysql" ]; then
       # Ensure zoneminder is stopped
       deb-systemd-invoke stop zoneminder.service || exit $?
           
@@ -68,6 +68,7 @@ if [ "$1" = "configure" ]; then
 
         # Add any new PTZ control configurations to the database (will not overwrite)
         zmcamtool.pl --import >/dev/null 2>&1
+        echo "Done Updating; starting ZoneMinder."
       else
         echo 'NOTE: MySQL/MariaDB not running; please start mysql and run dpkg-reconfigure zoneminder when it is running.'
       fi
@@ -78,7 +79,6 @@ if [ "$1" = "configure" ]; then
   else
     echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
   fi
-  echo "Done Updating; starting ZoneMinder."
   deb-systemd-invoke restart zoneminder.service
 
 fi

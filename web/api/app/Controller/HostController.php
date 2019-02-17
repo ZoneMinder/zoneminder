@@ -65,18 +65,18 @@ class HostController extends AppController {
     $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
 
     if ( $isZmAuth ) {
+    // In future, we may want to completely move to AUTH_HASH_LOGINS and return &auth= for all cases
       require_once "../../../includes/auth.php"; # in the event we directly call getCredentials.json
       $this->Session->read('user'); # this is needed for command line/curl to recognize a session
       $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
       if ( $zmAuthRelay == 'hashed' ) {
-        $zmAuthHashIps= $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
-        $credentials = 'auth='.generateAuthHash($zmAuthHashIps);
-      } else if ( $zmAuthRelay == 'plain' ) {
+        $zmAuthHashIps = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
+        // make sure auth is regenerated each time we call this API
+        $credentials = 'auth='.generateAuthHash($zmAuthHashIps,true);
+      } else {
         // user will need to append the store password here
         $credentials = 'user='.$this->Session->read('user.Username').'&pass=';
         $appendPassword = 1;
-      } else if ( $zmAuthRelay == 'none' ) {
-        $credentials = 'user='.$this->Session->read('user.Username');
       }
     }
     return array($credentials, $appendPassword);
@@ -101,27 +101,25 @@ class HostController extends AppController {
     $this->loadModel('Monitor');
 
     // If $mid is passed, see if it is valid
-    if ($mid) {
-      if (!$this->Monitor->exists($mid)) {
+    if ( $mid ) {
+      if ( !$this->Monitor->exists($mid) ) {
         throw new NotFoundException(__('Invalid monitor'));
       }
     }
 
-    $zm_dir_events = $this->Config->find('list', array(
-      'conditions' => array('Name' => 'ZM_DIR_EVENTS'),
-      'fields' => array('Name', 'Value')
-    ));
-    $zm_dir_events = $zm_dir_events['ZM_DIR_EVENTS' ];
+    $zm_dir_events = ZM_DIR_EVENTS;
 
     // Test to see if $zm_dir_events is relative or absolute
-    if ('/' === "" || strrpos($zm_dir_events, '/', -strlen($zm_dir_events)) !== TRUE) {
+    #if ('/' === "" || strrpos($zm_dir_events, '/', -strlen($zm_dir_events)) !== TRUE) {
+    if ( substr($zm_dir_events, 0, 1) != '/' ) {
       // relative - so add the full path
-      $zm_dir_events = Configure::read('ZM_PATH_WEB') . '/' . $zm_dir_events;
+      $zm_dir_events = ZM_PATH_WEB . '/' . $zm_dir_events;
     }
 
-    if ($mid) {
+    if ( $mid ) {
       // Get disk usage for $mid
-      $usage = shell_exec ("du -sh0 $zm_dir_events/$mid | awk '{print $1}'");
+      Logger::Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
+      $usage = shell_exec("du -s0 $zm_dir_events/$mid | awk '{print $1}'");
     } else {
       $monitors = $this->Monitor->find('all', array(
         'fields' => array('Id', 'Name', 'WebColour')

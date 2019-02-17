@@ -331,6 +331,8 @@ int FfmpegCamera::OpenFfmpeg() {
     ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
   } else if ( method == "rtpRtspHttp" ) {
     ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
+  } else if ( method == "rtpUni" ) {
+    ret = av_dict_set(&opts, "rtsp_transport", "udp", 0);
   } else {
     Warning("Unknown method (%s)", method.c_str() );
   }
@@ -599,7 +601,8 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-  mConvertContext = sws_getContext(mVideoCodecContext->width,
+  mConvertContext = sws_getContext(
+      mVideoCodecContext->width,
       mVideoCodecContext->height,
       mVideoCodecContext->pix_fmt,
       width, height,
@@ -716,7 +719,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
 
       if ( last_event_id != video_writer_event_id ) {
-        Debug(2, "Have change of event.  last_event(%d), our current (%d)", last_event_id, video_writer_event_id );
+        Debug(2, "Have change of event.  last_event(%d), our current (%d)",
+			last_event_id, video_writer_event_id);
 
         if ( videoStore ) {
           Info("Re-starting video storage module");
@@ -725,7 +729,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           // Also don't know how much it matters for audio.
           if ( packet.stream_index == mVideoStreamId ) {
             //Write the packet to our video store
-            int ret = videoStore->writeVideoFramePacket( &packet );
+            int ret = videoStore->writeVideoFramePacket(&packet);
             if ( ret < 0 ) { //Less than zero and we skipped a frame
               Warning("Error writing last packet to videostore.");
             }

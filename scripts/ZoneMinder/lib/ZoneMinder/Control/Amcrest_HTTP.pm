@@ -268,20 +268,23 @@ sub moveStop
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=0&arg2=0&arg3=0&arg4=1' );
 }
 
-#Move Camera to Home Position
+# Move Camera to Home Position
+# The current API does not support a Home per se, so we'll just send the camera to preset #1
+# NOTE: It goes without saying that the user must have set up preset #1 for this to work.
+
 #sub presetHome
-#{
-#    my $self = shift;
-#    Debug( "Home Preset" );
-#    $self->sendCmd( 'decoder_control.cgi?command=25&' );
-#}
+{
+    my $self = shift;
+    Debug( "Home Preset" );
+    $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&channel=0&code=GotoPreset&&arg1=0&arg2=1&arg3=0&arg4=0' );
+}
 
 sub presetGoto
 {
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );    
-    Debug( "Go To Preset 1" );
+    Debug( "Go To Preset $preset" );
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&channel=0&code=GotoPreset&&arg1=0&arg2='.$preset.'&arg3=0&arg4=0' );
 }
 

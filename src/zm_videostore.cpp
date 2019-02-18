@@ -74,6 +74,9 @@ VideoStore::VideoStore(
   out_frame = NULL;
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
   resample_ctx = NULL;
+#if defined(HAVE_LIBSWRESAMPLE)
+  fifo = NULL;
+#endif
 #endif
   FFMPEGInit();
 
@@ -632,6 +635,10 @@ VideoStore::~VideoStore() {
 #if defined(HAVE_LIBAVRESAMPLE) || defined(HAVE_LIBSWRESAMPLE)
     if ( resample_ctx ) {
 #if defined(HAVE_LIBSWRESAMPLE)
+      if ( fifo ) {
+        av_audio_fifo_free(fifo);
+        fifo = NULL;
+      }
       swr_free(&resample_ctx);
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
@@ -732,7 +739,7 @@ bool VideoStore::setup_resampler() {
 
   if ( audio_out_codec->supported_samplerates ) {
     int found = 0;
-    for ( unsigned int i = 0; audio_out_codec->supported_samplerates[i]; i++) {
+    for ( unsigned int i = 0; audio_out_codec->supported_samplerates[i]; i++ ) {
       if ( audio_out_ctx->sample_rate ==
           audio_out_codec->supported_samplerates[i] ) {
         found = 1;
@@ -767,7 +774,7 @@ bool VideoStore::setup_resampler() {
   ret = avcodec_open2(audio_out_ctx, audio_out_codec, &opts);
   av_dict_free(&opts);
   if ( ret < 0 ) {
-    Error("could not open codec (%d) (%s)\n", ret, av_make_error_string(ret).c_str());
+    Error("could not open codec (%d) (%s)", ret, av_make_error_string(ret).c_str());
     audio_out_codec = NULL;
     audio_out_ctx = NULL;
     audio_out_stream = NULL;
@@ -788,6 +795,12 @@ bool VideoStore::setup_resampler() {
   avcodec_copy_context( audio_out_stream->codec, audio_out_ctx );
 #endif
 
+  Debug(1,
+        "Audio in bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
+        "layout(%d) frame_size(%d)",
+        audio_in_ctx->bit_rate, audio_in_ctx->sample_rate,
+        audio_in_ctx->channels, audio_in_ctx->sample_fmt,
+        audio_in_ctx->channel_layout, audio_in_ctx->frame_size);
   Debug(1,
       "Audio out context bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
       "layout(%d) frame_size(%d)",
@@ -828,6 +841,12 @@ bool VideoStore::setup_resampler() {
   out_frame->sample_rate = audio_out_ctx->sample_rate;
 
 #if defined(HAVE_LIBSWRESAMPLE)
+  if (!(fifo = av_audio_fifo_alloc(
+          audio_out_ctx->sample_fmt,
+          audio_out_ctx->channels, 1))) {
+    Error("Could not allocate FIFO");
+    return false;
+  }
   resample_ctx = swr_alloc_set_opts(NULL,
       audio_out_ctx->channel_layout,
       audio_out_ctx->sample_fmt,
@@ -914,7 +933,7 @@ bool VideoStore::setup_resampler() {
         out_frame, audio_out_ctx->channels,
         audio_out_ctx->sample_fmt,
         (const uint8_t *)converted_in_samples,
-        audioSampleBuffer_size, 0) < 0) {
+        audioSampleBuffer_size, 0) < 0 ) {
     Error("Could not allocate converted in sample pointers");
     return false;
   }
@@ -1249,33 +1268,59 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
 
     // Resample the in into the audioSampleBuffer until we proceed the whole
     // decoded data
-    zm_dump_frame(in_frame, "In frame");
-    zm_dump_frame(out_frame, "Out frame before resample");
+    Debug(2, "Converting %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
   #if defined(HAVE_LIBSWRESAMPLE)
 #if 0
-        (ret = swr_convert(resample_ctx,
-            out_frame->data, frame_size,
-            (const uint8_t**)in_frame->data,
-            in_frame->nb_samples
-            ))
+    ret = swr_convert(resample_ctx,
+                       out_frame->data, frame_size,
+                       (const uint8_t**)in_frame->data,
+                       in_frame->nb_samples
+                      );
 #else
     ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
-
-#endif
-  #else
-    #if defined(HAVE_LIBAVRESAMPLE)
-    ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
-                              0, in_frame->nb_samples);
-    #endif
-  #endif
     av_frame_unref(in_frame);
     if ( ret < 0 ) {
       Error("Could not resample frame (error '%s')",
             av_make_error_string(ret).c_str());
       return 0;
     }
+#endif
+    if ((ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples)) < 0) {
+      Error("Could not reallocate FIFO");
+      return 0;
+    }
+    /** Store the new samples in the FIFO buffer. */
+    ret = av_audio_fifo_write(fifo, (void **)out_frame->data, out_frame->nb_samples);
+    if ( ret < frame_size ) {
+        Error("Could not write data to FIFO on %d written", ret);
+        return 0;
+    }
 
-  #if defined(HAVE_LIBAVRESAMPLE)
+    // Reset frame_size to output_frame_size
+    frame_size = audio_out_ctx->frame_size;
+
+    // AAC requires 1024 samples per encode.  Our input tends to be 160, so need to buffer them.
+    if ( frame_size > av_audio_fifo_size(fifo) ) {
+      return 0;
+    }
+
+    if ( av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size) < frame_size ) {
+      Error("Could not read data from FIFO");
+      return 0;
+    }
+    out_frame->nb_samples = frame_size;
+    /// FIXME this is not the correct pts
+    out_frame->pts = in_frame->pts;
+  #else
+    #if defined(HAVE_LIBAVRESAMPLE)
+    (ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
+                              0, in_frame->nb_samples))
+    av_frame_unref(in_frame);
+    if ( ret < 0 ) {
+      Error("Could not resample frame (error '%s')",
+            av_make_error_string(ret).c_str());
+      return 0;
+    }
     int samples_available = avresample_available(resample_ctx);
     if ( samples_available < frame_size ) {
       Debug(1, "Not enough samples yet (%d)", samples_available);
@@ -1288,11 +1333,11 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
       Warning("Error reading resampled audio:");
       return 0;
     }
+    #endif
   #endif
-    zm_dump_frame(out_frame,"Out frame after resample");
+    zm_dump_frame(out_frame, "Out frame after resample");
 
     av_init_packet(&opkt);
-    Debug(5, "after init packet");
 
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( (ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0 ) {
@@ -1306,7 +1351,7 @@ int VideoStore::writeAudioFramePacket(ZMPacket *zm_packet) {
 
     if ( (ret = avcodec_receive_packet(audio_out_ctx, &opkt)) < 0 ) {
       if ( AVERROR(EAGAIN) == ret ) {
-        // THe codec may need more samples than it has, perfectly valid
+        // The codec may need more samples than it has, perfectly valid
         Debug(3, "Could not recieve packet (error '%s')",
             av_make_error_string(ret).c_str());
       } else {

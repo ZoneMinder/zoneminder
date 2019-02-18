@@ -27,6 +27,7 @@ zm_packetqueue::zm_packetqueue( int video_image_count, int p_video_stream_id, in
   video_packet_count = 0;
   analysis_it = pktQueue.begin();
   first_video_packet_index = -1;
+  Debug(4, "packetqueue init, first_video_packet_index is %d", first_video_packet_index);
 
   max_stream_id = p_video_stream_id > p_audio_stream_id ? p_video_stream_id : p_audio_stream_id;
   packet_counts = new int[max_stream_id+1];
@@ -46,8 +47,11 @@ zm_packetqueue::~zm_packetqueue() {
  */
 
 bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
+  Debug(4, "packetqueue queuepacket, first_video_packet_index is %d", first_video_packet_index);
 
   if ( zm_packet->image_index != -1 ) {
+    // It's a video packet
+
     // If we can never queue the same packet, then they can never go past
     if ( zm_packet->image_index == first_video_packet_index ) {
       Debug(2, "queuing packet that is already on the queue(%d)", zm_packet->image_index);
@@ -94,6 +98,7 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
     } else if ( first_video_packet_index == -1 ) {
       // Initialize the first_video_packet indicator
       first_video_packet_index = zm_packet->image_index;
+      video_packet_count += 1;
     } // end if
   } // end if queuing a video packet
 
@@ -211,9 +216,11 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
           first_video_packet_index += 1;
           first_video_packet_index %= max_video_packet_count;
         } else {
+          // Re-init
           first_video_packet_index = -1;
         }
       }
+      packet_counts[packet->packet.stream_index] -= 1;
       pktQueue.pop_front();
       if ( packet->image_index == -1 )
         delete packet;

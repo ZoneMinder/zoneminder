@@ -176,6 +176,22 @@ sub reset
     #Exit (0);
 }
 
+# NOTE: I'm putting this in, but absolute camera movement does not seem to be well supported in the classic skin ATM.
+# Reading www/skins/classic/include/control_functions.php seems to indicate a faulty implementation, unless I'm
+# reading it wrong. I see nowhere where the user is able to specify the absolute location to move to. Rather,
+# the call is passed back movement in increments of 1 unit. At least with the Amcrest/Duhua API this would result
+# in the camera moving to the 1* or 0* etc. position.
+
+sub moveAbs ## Up, Down, Left, Right, etc. ??? Doesn't make sense here...
+{
+    my $self = shift;
+    my $pan_degrees = shift || 0;
+    my $tilt_degrees = shift || 0;
+    my $speed = shift || 1;
+    Debug( "Move ABS" );
+    $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1='.$pan_degress.'&arg2='.$tilt_degrees.'&arg3=0&arg4='.$speed );
+}
+
 sub moveConUp
 {
     my $self = shift;

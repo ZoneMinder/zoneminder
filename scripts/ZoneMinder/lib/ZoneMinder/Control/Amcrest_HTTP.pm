@@ -176,13 +176,6 @@ sub reset
     #Exit (0);
 }
 
-sub presetHome
-{
-    my $self = shift;
-    Debug( "Home" );
-    $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=0&arg2=0&arg3=0' );
-}
-
 sub moveConUp
 {
     my $self = shift;

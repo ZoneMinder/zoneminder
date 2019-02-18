@@ -613,7 +613,7 @@ function getFormChanges( $values, $newValues, $types=false, $columns=false ) {
         {
           if ( is_array($newValues[$key]) ) {
             if ( (!isset($values[$key])) or ( join(',',$newValues[$key]) != $values[$key] ) ) {
-              $changes[$key] = "`$key` = '".dbEscape(join(',',$newValues[$key]))."'";
+              $changes[$key] = "`$key` = ".dbEscape(join(',',$newValues[$key]));
             }
           } else if ( (!isset($values[$key])) or $values[$key] ) {
             $changes[$key] = "`$key` = ''";

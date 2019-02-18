@@ -342,11 +342,13 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(3, "Found audio stream at index %d", mAudioStreamId);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  mVideoCodecContext = avcodec_alloc_context3(NULL);
-  avcodec_parameters_to_context( mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar );
+  //mVideoCodecContext = avcodec_alloc_context3(NULL);
+  //avcodec_parameters_to_context( mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar );
+  // this isn't copied.
+  //mVideoCodecContext->time_base = mFormatContext->streams[mVideoStreamId]->codec->time_base;
 #else
-  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
 #endif
+  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
 	// STolen from ispy
 	//this fixes issues with rtsp streams!! woot.
 	//mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG2_CHUNKS | CODEC_FLAG_LOW_DELAY;  // Enable faster H264 decode.
@@ -413,21 +415,16 @@ int FfmpegCamera::OpenFfmpeg() {
     if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 ){
 #else
     Debug ( 1, "Calling video avcodec_open2" );
-    if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 ) {
+    ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
+    AVDictionaryEntry *e = NULL;
+    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+      Warning("Option %s not recognized by ffmpeg", e->key);
+    }
+    av_dict_free(&opts);
 #endif
-      AVDictionaryEntry *e = NULL;
-      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Warning("Option %s not recognized by ffmpeg", e->key);
-      }
+    if ( ret < 0 ) {
       Error("Unable to open codec for video stream from %s", mPath.c_str());
-      av_dict_free(&opts);
       return -1;
-    } else {
-      AVDictionaryEntry *e = NULL;
-      if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Warning("Option %s not recognized by ffmpeg", e->key);
-      }
-      av_dict_free(&opts);
     }
   } // end if success opening codec
 
@@ -488,8 +485,9 @@ int FfmpegCamera::Close() {
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
+    Debug(1,"After codec close");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    avcodec_free_context(&mVideoCodecContext);
+    //avcodec_free_context(&mVideoCodecContext);
 #endif
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }

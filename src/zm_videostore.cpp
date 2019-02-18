@@ -605,7 +605,7 @@ VideoStore::~VideoStore() {
   if ( video_out_stream ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
-    avcodec_free_context(&video_in_ctx);
+    //avcodec_free_context(&video_in_ctx);
 #endif
     video_in_ctx=NULL;
 

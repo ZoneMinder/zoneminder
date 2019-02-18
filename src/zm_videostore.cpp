@@ -43,13 +43,14 @@ VideoStore::VideoStore(
   audio_in_stream = p_audio_in_stream;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  video_in_ctx = avcodec_alloc_context3(NULL);
-  avcodec_parameters_to_context(video_in_ctx, video_in_stream->codecpar);
-  video_in_ctx->time_base = video_in_stream->time_base;
+  //video_in_ctx = avcodec_alloc_context3(NULL);
+  //avcodec_parameters_to_context(video_in_ctx,
+                                //video_in_stream->codecpar);
+  //video_in_ctx->time_base = video_in_stream->time_base;
 // zm_dump_codecpar( video_in_stream->codecpar );
 #else
-  video_in_ctx = video_in_stream->codec;
 #endif
+  video_in_ctx = video_in_stream->codec;
 
   // store ins in variables local to class
   filename = filename_in;
@@ -89,7 +90,8 @@ VideoStore::VideoStore(
   oc->metadata = pmetadata;
   out_format = oc->oformat;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+#if 0
+  //LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 
   // Since we are not re-encoding, all we have to do is copy the parameters
   video_out_ctx = avcodec_alloc_context3(NULL);
@@ -166,6 +168,20 @@ VideoStore::VideoStore(
 	  video_out_ctx->time_base = AV_TIME_BASE_Q;
   }	
   video_out_stream->time_base = video_in_stream->time_base;
+  if ( video_in_stream->avg_frame_rate.num ) {
+    Debug(3,"Copying avg_frame_rate (%d/%d)",
+        video_in_stream->avg_frame_rate.num, 
+        video_in_stream->avg_frame_rate.den 
+        );
+    video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
+  }
+  if ( video_in_stream->r_frame_rate.num ) {
+    Debug(3,"Copying r_frame_rate (%d/%d)",
+        video_in_stream->r_frame_rate.num, 
+        video_in_stream->r_frame_rate.den 
+        );
+    video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
+  }
 
   Debug(3,
         "Time bases: VIDEO in stream (%d/%d) in codec: (%d/%d) out "
@@ -173,8 +189,7 @@ VideoStore::VideoStore(
         video_in_stream->time_base.num, video_in_stream->time_base.den,
         video_in_ctx->time_base.num, video_in_ctx->time_base.den,
         video_out_stream->time_base.num, video_out_stream->time_base.den,
-        video_out_ctx->time_base.num,
-        video_out_ctx->time_base.den);
+        video_out_ctx->time_base.num, video_out_ctx->time_base.den);
 
   if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
@@ -330,7 +345,7 @@ bool VideoStore::open() {
 
   AVDictionary *opts = NULL;
   // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
+  av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
   // av_dict_set(&opts, "movflags",
   // "frag_keyframe+empty_moov+default_base_moof", 0);
   if ((ret = avformat_write_header(oc, &opts)) < 0) {
@@ -444,13 +459,13 @@ VideoStore::~VideoStore() {
   if ( video_out_stream ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
-    avcodec_free_context(&video_in_ctx);
+    //avcodec_free_context(&video_in_ctx);
 #endif
     video_in_ctx = NULL;
 
     avcodec_close(video_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    avcodec_free_context(&video_out_ctx);
+    //avcodec_free_context(&video_out_ctx);
 #endif
     video_out_ctx = NULL;
     Debug(4, "Success freeing video_out_ctx");

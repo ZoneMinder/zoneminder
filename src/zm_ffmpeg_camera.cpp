@@ -466,11 +466,13 @@ int FfmpegCamera::OpenFfmpeg() {
   packetqueue = new zm_packetqueue( mVideoStreamId > mAudioStreamId ? mVideoStreamId : mAudioStreamId );
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  mVideoCodecContext = avcodec_alloc_context3(NULL);
-  avcodec_parameters_to_context( mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar );
+  //mVideoCodecContext = avcodec_alloc_context3(NULL);
+  //avcodec_parameters_to_context( mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar );
+  // this isn't copied.
+  //mVideoCodecContext->time_base = mFormatContext->streams[mVideoStreamId]->codec->time_base;
 #else
-  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
 #endif
+  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
 	// STolen from ispy
 	//this fixes issues with rtsp streams!! woot.
 	//mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG2_CHUNKS | CODEC_FLAG_LOW_DELAY;  // Enable faster H264 decode.
@@ -513,16 +515,6 @@ int FfmpegCamera::OpenFfmpeg() {
         }
       }
     }
-  } else {
-#ifdef AV_CODEC_ID_H265
-    if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H265 ) {
-      Debug( 1, "Input stream appears to be h265.  The stored event file may not be viewable in browser." );
-    } else {
-#endif
-      Warning( "Input stream is not h264.  The stored event file may not be viewable in browser." );
-#ifdef AV_CODEC_ID_H265
-    }
-#endif
   } // end if h264
 #endif
   if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
@@ -540,29 +532,30 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     Debug(1, "Video Found decoder %s", mVideoCodec->name);
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
-  // Open the codec
+    // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  Debug ( 1, "Calling avcodec_open" );
-  if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 ){
+    Debug(1, "Calling avcodec_open");
+    if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 )
 #else
-    Debug ( 1, "Calling avcodec_open2" );
-  if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 ) {
+      Debug(1, "Calling avcodec_open2");
+    if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 )
 #endif
-    AVDictionaryEntry *e = NULL;
-    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-      Warning( "Option %s not recognized by ffmpeg", e->key);
-    }
-    Error( "Unable to open codec for video stream from %s", mPath.c_str() );
-    av_dict_free(&opts);
-    return -1;
-  } else {
+    {
+      AVDictionaryEntry *e = NULL;
+      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+        Warning( "Option %s not recognized by ffmpeg", e->key);
+      }
+      Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+      av_dict_free(&opts);
+      return -1;
+    } else {
 
-    AVDictionaryEntry *e = NULL;
-    if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-      Warning( "Option %s not recognized by ffmpeg", e->key);
+      AVDictionaryEntry *e = NULL;
+      if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+        Warning( "Option %s not recognized by ffmpeg", e->key);
+      }
+      av_dict_free(&opts);
     }
-    av_dict_free(&opts);
-  }
   }
 
   if (mVideoCodecContext->hwaccel != NULL) {
@@ -683,8 +676,9 @@ int FfmpegCamera::Close() {
 
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
+    Debug(1,"After codec close");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    avcodec_free_context(&mVideoCodecContext);
+    //avcodec_free_context(&mVideoCodecContext);
 #endif
     mVideoCodecContext = NULL; // Freed by av_close_input_file
   }

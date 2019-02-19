@@ -30,10 +30,6 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
   } elseif ( $action == 'delterm' ) {
     $_REQUEST['filter'] = delFilterTerm($_REQUEST['filter'], $_REQUEST['line']);
   } else if ( canEdit('Events') ) {
-    if ( empty($_REQUEST['Id']) ) {
-      Error("No filter id specified.");
-      return;
-    }
 
     require_once('includes/Filter.php');
     $filter = new Filter($_REQUEST['Id']);

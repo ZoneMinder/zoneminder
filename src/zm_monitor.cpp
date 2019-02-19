@@ -735,6 +735,7 @@ Camera * Monitor::getCamera() {
   } // end if type
 
   camera->setMonitor(this);
+  return camera;
 } // end Monitor::getCamera
 
 Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
@@ -2708,7 +2709,7 @@ void Monitor::get_ref_image() {
       ) {
     Info("Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)",
         shared_data->last_write_index, shared_data->last_write_time);
-    usleep(50000);
+    usleep(10000);
   }
   if ( zm_terminate )
     return;

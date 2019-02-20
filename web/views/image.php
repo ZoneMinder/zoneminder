@@ -93,7 +93,7 @@ if ( empty($_REQUEST['path']) ) {
         $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
         if ( !$Frame ) { 
           ZM\Warning('No frame found for event '.$_REQUEST['eid']);
-          $Frame = new Frame();
+          $Frame = new ZM\Frame();
           $Frame->Delta(1);
           $Frame->FrameId(1);
         }

@@ -119,7 +119,7 @@ if ( canEdit( 'Events' ) ) {
       }
     case 'delete' :
       {
-        $Event = new Event( $_REQUEST['id'] );
+        $Event = new ZM\Event( $_REQUEST['id'] );
         if ( ! $Event->Id() ) {
           ajaxResponse( array( 'refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.' ) );
         } else {

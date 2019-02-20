@@ -63,7 +63,7 @@ $scale = $scale ?: "auto";
 
 $imageData = $Event->getImageSrc( $frame, $scale, 0 );
 if ( ! $imageData ) {
-  Error("No data found for Event $eid frame $fid");
+  ZM\Error("No data found for Event $eid frame $fid");
   $imageData = array();
 }
 

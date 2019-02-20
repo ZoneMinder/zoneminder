@@ -325,21 +325,19 @@ sub moveMap
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1='.$pan.'&arg2='.$tilt.'&arg3=1&arg4=1');
 }
 
-sub zoomAbsTele
+sub zoomConTele
 {
     my $self = shift;
-    Debug( "Set Zoom" );
+    Debug( "Zoom continuous tele" );
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&channel=0&code=ZoomTele&arg1=0&arg2=0&arg3=0&arg4=0' );
     usleep (100000);
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&channel=0&code=ZoomTele&arg1=0&arg2=0&arg3=0&arg4=0' );
 }
 
-sub zoomAbsWide
+sub zoomConWide
 {
     my $self = shift;
-    #my $params = shift;
-    #my $preset = $self->getParam( $params, 'preset' );
-    Debug( "Set Zoom" );
+    Debug( "Zoom continuous wide" );
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&channel=0&code=ZoomWide&arg1=0&arg2=0&arg3=0&arg4=0' );
     usleep (100000);
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=stop&channel=0&code=ZoomWide&arg1=0&arg2=0&arg3=0&arg4=0' );

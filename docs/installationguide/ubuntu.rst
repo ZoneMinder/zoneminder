@@ -3,6 +3,205 @@ Ubuntu
 
 .. contents::
 
+Easy Way: Ubuntu 18.04
+----------------------
+These instructions are for a brand new ubuntu 18.04 system which does not have ZM
+installed.
+
+
+It is recommended that you use an Ubuntu Server install and select the LAMP option
+during install to install Apache, MySQL and PHP. If you failed to do this you can
+achieve the same result by running:
+
+::
+
+    sudo tasksel install lamp-server
+
+During installation it will ask you to set up a master/root password for the MySQL.
+Installing LAMP is not ZoneMinder specific so you will find plenty of resources to 
+guide you with a quick search.
+
+**Step 1:** Either run commands in this install using sudo or use the below to become root
+::
+
+    sudo -i
+
+**Step 2:** Update Repos
+
+.. topic :: Latest Release
+
+    ZoneMinder is now part of the current standard Ubuntu repository, but
+    sometimes the official repository can lag behind. To find out check our
+    `releases page <https://github.com/ZoneMinder/zoneminder/releases>`_ for
+    the latest release.
+    
+    Alternatively, the ZoneMinder project team maintains a `PPA <https://askubuntu.com/questions/4983/what-are-ppas-and-how-do-i-use-them>`_, which is updated immediately
+    following a new release of ZoneMinder. To use this repository instead of the
+    official Ubuntu repository, enter the following from the command line:
+
+    ::
+
+        add-apt-repository ppa:iconnor/zoneminder
+
+    Please note that as of 1.32.0 We are creating a new PPA for each major version, as a means to prevent automatic upgrades from one major version to another.  So instead of the above ppa line use the following:
+
+    ::
+
+        add-apt-repository ppa:iconnor/zoneminder-1.32
+
+    If you are on Trusty or Xenial, you may want to add both, as there are some packages for dependencies included in the old ppa.
+  
+
+Update repo and upgrade.
+
+::
+
+	apt-get update
+        apt-get upgrade
+        apt-get dist-upgrade
+
+
+**Step 3:** Configure MySQL
+
+.. sidebar :: Note
+
+    The MySQL default configuration file (/etc/mysql/mysql.cnf)is read through
+    several symbolic links beginning with /etc/mysql/my.cnf as follows:
+
+    | /etc/mysql/my.cnf -> /etc/alternatives/my.cnf
+    | /etc/alternatives/my.cnf -> /etc/mysql/mysql.cnf
+    | /etc/mysql/mysql.cnf is a basic file
+
+Certain new defaults in MySQL 5.7 cause some issues with ZoneMinder < 1.32.0,
+the workaround is to modify the sql_mode setting of MySQL. Please note that these 
+changes are NOT required for ZoneMinder 1.32.0 and some people have reported them 
+causing problems in 1.32.0.
+
+To better manage the MySQL server it is recommended to copy the sample config file and
+replace the default my.cnf symbolic link.
+
+::
+
+        rm /etc/mysql/my.cnf  (this removes the current symbolic link)
+        cp /etc/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/my.cnf
+
+To change MySQL settings:
+
+::
+
+        nano /etc/mysql/my.cnf
+
+In the [mysqld] section add the following
+
+::
+
+        sql_mode = NO_ENGINE_SUBSTITUTION
+
+CTRL+o then [Enter] to save
+
+CTRL+x to exit
+
+Restart MySQL
+
+::
+
+        systemctl restart mysql
+
+
+**Step 4:** Install ZoneMinder
+
+::
+
+	apt-get install zoneminder
+
+**Step 5:** Configure the ZoneMinder Database
+
+This step should not be required on ZoneMinder 1.32.0.
+
+::
+
+	mysql -uroot -p < /usr/share/zoneminder/db/zm_create.sql
+	mysql -uroot -p -e "grant lock tables,alter,drop,select,insert,update,delete,create,index,alter routine,create routine, trigger,execute on zm.* to 'zmuser'@localhost identified by 'zmpass';"
+
+
+**Step 6:** Set permissions
+
+Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
+
+::
+
+        chmod 740 /etc/zm/zm.conf
+        chown root:www-data /etc/zm/zm.conf
+        chown -R www-data:www-data /usr/share/zoneminder/
+
+**Step 7:** Configure Apache correctly:
+
+::
+
+        a2enmod cgi
+        a2enmod rewrite
+        a2enconf zoneminder
+
+You may also want to enable to following modules to improve caching performance
+
+::
+
+         a2enmod expires
+         a2enmod headers
+
+**Step 8:** Enable and start Zoneminder
+
+::
+
+        systemctl enable zoneminder
+        systemctl start zoneminder
+
+**Step 9:** Edit Timezone in PHP
+
+::
+
+        nano /etc/php/7.2/apache2/php.ini
+
+Search for [Date] (Ctrl + w then type Date and press Enter) and change
+date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.php).
+**Don't forget to remove the ; from in front of date.timezone**
+
+::
+
+        [Date]
+        ; Defines the default timezone used by the date functions
+        ; http://php.net/date.timezone
+        date.timezone = America/New_York
+
+CTRL+o then [Enter] to save
+
+CTRL+x to exit
+
+**Step 10:** Reload Apache service
+
+::
+
+	systemctl reload apache2
+
+**Step 11:** Making sure ZoneMinder works
+
+1. Open up a browser and go to ``http://hostname_or_ip/zm`` - should bring up ZoneMinder Console
+
+2. (Optional API Check)Open up a tab in the same browser and go to ``http://hostname_or_ip/zm/api/host/getVersion.json``
+
+    If it is working correctly you should get version information similar to the example below:
+
+    ::
+
+            {
+                "version": "1.29.0",
+                "apiversion": "1.29.0.1"
+            }
+
+**Congratulations**  Your installation is complete
+
+PPA install may need some tweaking of ZMS_PATH in ZoneMinder options. `Socket_sendto or no live streaming`_
+
 Easy Way: Ubuntu 16.04
 ----------------------
 These instructions are for a brand new ubuntu 16.04 system which does not have ZM

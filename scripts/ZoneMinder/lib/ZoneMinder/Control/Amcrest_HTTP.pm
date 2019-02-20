@@ -281,7 +281,7 @@ sub moveStop
 # The current API does not support a Home per se, so we'll just send the camera to preset #1
 # NOTE: It goes without saying that the user must have set up preset #1 for this to work.
 
-#sub presetHome
+sub presetHome
 {
     my $self = shift;
     Debug( "Home Preset" );

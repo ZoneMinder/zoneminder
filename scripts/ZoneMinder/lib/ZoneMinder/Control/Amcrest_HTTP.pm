@@ -306,6 +306,8 @@ sub presetSet
     $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&channel=0&code=SetPreset&arg1=0&arg2='.$preset.'&arg3=0&arg4=0' );
 }
 
+# NOTE: This does not appear to be implemented in the classic skin. But we'll leave it here for later.
+
 sub moveMap 
 {
     my $self = shift;

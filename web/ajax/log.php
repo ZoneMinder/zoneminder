@@ -9,7 +9,7 @@ switch ( $_REQUEST['task'] ) {
   {
     // Silently ignore bogus requests
     if ( !empty($_POST['level']) && !empty($_POST['message']) ) {
-      logInit(array('id'=>'web_js'));
+      ZM\logInit(array('id'=>'web_js'));
 
       $string = $_POST['message'];
 

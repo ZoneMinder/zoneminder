@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 require_once( 'database.php' );
 require_once( 'Event.php' );
 

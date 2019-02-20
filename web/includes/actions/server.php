@@ -20,7 +20,7 @@
 
 // System edit actions
 if ( ! canEdit('System') ) {
-  Warning("Need System permissions to add servers");
+  ZM\Warning('Need System permissions to add servers');
   return;
 }
 
@@ -48,6 +48,6 @@ if ( $action == 'Save' ) {
   }
   $view = 'none';
 } else {
-  Error("Unknown action $action in saving Server");
+  ZM\Error("Unknown action $action in saving Server");
 }
 ?>

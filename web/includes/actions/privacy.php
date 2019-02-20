@@ -19,7 +19,7 @@
 //
 
 if ( !canEdit('System') ) {
-  Warning("Need System permissions to update privacy");
+  ZM\Warning('Need System permissions to update privacy');
   return;
 }
 

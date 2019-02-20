@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 
 require_once('database.php');
 
@@ -98,9 +99,9 @@ class MontageLayout {
     }
     $result = dbQuery($sql, $values);
     if ( $result ) {
-      $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'MontageLayout');
-      foreach ( $results as $row => $obj ) {
-        $filters[] = $obj;
+      $results = $result->fetchALL();
+      foreach ( $results as $row ) {
+        $filters[] = new MontageLayout($row);
       }
     }
     return $filters;

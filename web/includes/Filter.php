@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 
 class Filter {
 

@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 
 $group_cache = array();
 

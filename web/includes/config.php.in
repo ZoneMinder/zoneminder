@@ -138,7 +138,7 @@ define( 'MYSQL_FMT_DATETIME_SHORT', '%y/%m/%d %H:%i:%S' );  // MySQL date_format
 require_once( 'database.php' );
 require_once( 'logger.php' );
 loadConfig();
-Logger::fetch()->initialise();
+ZM\Logger::fetch()->initialise();
 
 $GLOBALS['defaultUser'] = array(
   'Username'  => 'admin',

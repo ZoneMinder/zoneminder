@@ -36,7 +36,7 @@ if ( ! $Server ) {
 
 $monitor = null;
 if ( ! empty($_REQUEST['mid']) ) {
-  $monitor = new Monitor( $_REQUEST['mid'] );
+  $monitor = new ZM\Monitor( $_REQUEST['mid'] );
   if ( $monitor and ZM_OPT_X10 )
     $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']) );
 } 
@@ -44,7 +44,7 @@ if ( ! $monitor ) {
 
   $nextId = getTableAutoInc( 'Monitors' );
   if ( isset( $_REQUEST['dupId'] ) ) {
-    $monitor = new Monitor( $_REQUEST['dupId'] );
+    $monitor = new ZM\Monitor( $_REQUEST['dupId'] );
     $monitor->GroupIds(); // have to load before we change the Id
     if ( ZM_OPT_X10 )
       $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
@@ -52,7 +52,7 @@ if ( ! $monitor ) {
     $monitor->Name( translate('Monitor').'-'.$nextId );
     $monitor->Id( $nextId );
   } else {
-    $monitor = new Monitor();
+    $monitor = new ZM\Monitor();
     $monitor->set( array(
           'Id' => 0,
           'Name' => translate('Monitor').'-'.$nextId,
@@ -678,10 +678,8 @@ switch ( $tab ) {
           <tr><td><?php echo translate('Server') ?></td><td>
 <?php 
       $servers = array(''=>'None','auto'=>'Auto');
-      $result = dbQuery( 'SELECT * FROM Servers ORDER BY Name');
-      $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Server' );
-      foreach ( $results as $row => $server_obj ) {
-        $servers[$server_obj->Id()] = $server_obj->Name();
+      foreach ( ZM\Server::find(NULL, array('order'=>'lower(Name)')) as $Server ) {
+        $servers[$Server->Id()] = $Server->Name();
       }
       echo htmlSelect( 'newMonitor[ServerId]', $servers, $monitor->ServerId() );
 ?>
@@ -689,10 +687,8 @@ switch ( $tab ) {
           <tr><td><?php echo translate('StorageArea') ?></td><td>
 <?php
       $storage_areas = array(0=>'Default');
-      $result = dbQuery( 'SELECT * FROM Storage ORDER BY Name');
-      $results = $result->fetchALL(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Storage' );
-      foreach ( $results as $row => $storage_obj ) {
-        $storage_areas[$storage_obj->Id] = $storage_obj->Name();
+      foreach ( ZM\Storage::find( NULL, array('order'=>'lower(Name)') ) as $Storage ) {
+        $storage_areas[$Storage->Id()] = $Storage->Name();
       }
       echo htmlSelect( 'newMonitor[StorageId]', $storage_areas, $monitor->StorageId() );
 ?>
@@ -733,7 +729,7 @@ switch ( $tab ) {
           </td>
         </tr>
 <tr><td><?php echo translate('Groups'); ?></td><td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
-echo htmlOptions(Group::get_dropdown_options( ), $monitor->GroupIds() );
+echo htmlOptions(ZM\Group::get_dropdown_options( ), $monitor->GroupIds() );
 ?></td></tr>
         <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" size="6"/></td></tr>
 <?php

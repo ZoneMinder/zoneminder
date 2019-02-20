@@ -29,7 +29,7 @@ $eid = validInt($_REQUEST['eid']);
 if ( !empty($_REQUEST['fid']) )
   $fid = validInt($_REQUEST['fid']);
 
-$Event = new Event($eid);
+$Event = new ZM\Event($eid);
 $Monitor = $Event->Monitor();
 
 if ( !empty($fid) ) {
@@ -39,7 +39,7 @@ if ( !empty($fid) ) {
 } else {
   $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array( $eid, $Event->MaxScore() ) );
 }
-$Frame = new Frame($frame);
+$Frame = new ZM\Frame($frame);
 
 $maxFid = $Event->Frames();
 

@@ -20,7 +20,7 @@
 
 if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
   $mid = validInt($_REQUEST['mid']);
-  $monitor = new Monitor($mid);
+  $monitor = new ZM\Monitor($mid);
   
   if ( $action == 'delete' ) {
     if ( isset($_REQUEST['markZids']) ) {

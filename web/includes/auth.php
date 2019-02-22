@@ -87,7 +87,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
   }
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
   if ( $dbUser = dbFetchOne($sql, NULL, $sql_values) ) {
-    Info("Login successful for user \"$username\"");
+    ZM\Info("Login successful for user \"$username\"");
     $_SESSION['user'] = $user = $dbUser;
     unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == 'builtin' ) {
@@ -95,7 +95,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
     }
     session_regenerate_id();
   } else {
-    Warning("Login denied for user \"$username\"");
+    ZM\Warning("Login denied for user \"$username\"");
     $_SESSION['loginFailed'] = true;
     unset($user);
   }
@@ -106,7 +106,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
 
 function userLogout() {
   global $user;
-  Info('User "'.$user['Username'].'" logged out');
+  ZM\Info('User "'.$user['Username'].'" logged out');
   session_start();
   unset($_SESSION['user']);
   unset($user);
@@ -119,7 +119,7 @@ function getAuthUser($auth) {
     if ( ZM_AUTH_HASH_IPS ) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
       if ( !$remoteAddr ) {
-        Error("Can't determine remote address for authentication, using empty string");
+        ZM\Error("Can't determine remote address for authentication, using empty string");
         $remoteAddr = '';
       }
     }
@@ -145,7 +145,7 @@ function getAuthUser($auth) {
       } // end foreach hour
     } // end foreach user
   } // end if using auth hash
-  Error("Unable to authenticate user from auth hash '$auth'");
+  ZM\Error("Unable to authenticate user from auth hash '$auth'");
   return false;
 } // end getAuthUser($auth)
 
@@ -213,7 +213,7 @@ function is_session_started() {
       return session_id() === '' ? FALSE : TRUE;
     }
   } else {
-    Warning("php_sapi_name === 'cli'");
+    ZM\Warning("php_sapi_name === 'cli'");
   }
   return FALSE;
 }

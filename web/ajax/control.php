@@ -8,7 +8,7 @@ if ( empty($_REQUEST['id']) )
 
 if ( canView( 'Control', $_REQUEST['id'] ) )
 {
-    $monitor = new Monitor( $_REQUEST['id'] );
+    $monitor = new ZM\Monitor( $_REQUEST['id'] );
 
     $ctrlCommand = buildControlCommand( $monitor );
 

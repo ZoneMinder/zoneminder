@@ -757,7 +757,6 @@ if ( $mode == 'overlay' ) {
   echo drawYGrid( $chart, $majYScale, 'majLabelY', 'majTickY', 'majGridY graphWidth' );
 }
 echo drawXGrid( $chart, $majXScale, 'majLabelX', 'majTickX', 'majGridX graphHeight', 'zoom graphHeight' );
-Warning("Mode: $mode");
 if ( $mode == 'overlay' ) {
 ?>
           <div id='activity' class='activitySize'>

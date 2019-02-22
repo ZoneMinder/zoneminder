@@ -21,12 +21,12 @@
 
 // Monitor edit actions, require a monitor id and edit permissions for that monitor
 if ( empty($_REQUEST['mid']) ) {
-  Error("Must specify mid");
+  ZM\Error('Must specify mid');
   return;
 }
 $mid = validInt($_REQUEST['mid']);
 if ( !canEdit('Monitors', $mid) ) {
-  Error("You do not have permission to edit monitor $mid");
+  ZM\Error("You do not have permission to edit monitor $mid");
   return;
 }
 
@@ -52,7 +52,7 @@ if ( $action == 'function' ) {
     }
     $refreshParent = true;
   } else {
-    Logger::Debug("No change to function, not doing anything.");
+    ZM\Logger::Debug('No change to function, not doing anything.');
   }
 } // end if action 
 $view = 'none';

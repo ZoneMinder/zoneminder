@@ -48,7 +48,7 @@ $scheme_options = array(
   'Shallow' => translate('Shallow'),
 );
 
-$servers = Server::find( null, array('order'=>'lower(Name)') );
+$servers = ZM\Server::find( null, array('order'=>'lower(Name)') );
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;

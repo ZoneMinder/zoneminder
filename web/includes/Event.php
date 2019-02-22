@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 
 $event_cache = array();
 

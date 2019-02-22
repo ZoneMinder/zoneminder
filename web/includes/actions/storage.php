@@ -20,7 +20,7 @@
 
 // System edit actions
 if ( ! canEdit('System') ) {
-  Warning("Need System permission to edit Storage");
+  ZM\Warning('Need System permission to edit Storage');
   return;
 }
 
@@ -43,7 +43,7 @@ if ( $action == 'Save' ) {
   }
   $view = 'none';
 } else {
-  Error("Unknown action $action in saving Storage");
+  ZM\Error("Unknown action $action in saving Storage");
 }
 
 ?>

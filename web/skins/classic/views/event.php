@@ -26,7 +26,7 @@ if ( !canView('Events') ) {
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$Event = new Event( $eid );
+$Event = new ZM\Event( $eid );
 if ( $user['MonitorIds'] ) {
   $monitor_ids = explode( ',', $user['MonitorIds'] );
   if ( count($monitor_ids) and ! in_array( $Event->MonitorId(), $monitor_ids ) ) {
@@ -122,22 +122,22 @@ if ( ! $Event->Id() ) {
       <div id="menuBar1">
         <div id="nameControl">
           <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
-          <button value="Rename" type="button" onclick="renameEvent()"<?php if ( !canEdit('Events') ) { ?> disabled="disabled"<?php } ?>>
+          <button value="Rename" type="button" data-on-click="renameEvent"<?php if ( !canEdit('Events') ) { ?> disabled="disabled"<?php } ?>>
 <?php echo translate('Rename') ?></button>
         </div>
 <?php
 if ( canEdit('Events') ) {
 ?>
-        <div id="deleteEvent"><button type="button" onclick="deleteEvent()" <?php echo $Event->Archived == 1 ? ' disabled="disabled" title="You cannot delete an archived event. Unarchive it first."' : ''  ?>><?php echo translate('Delete') ?></button></div>
-        <div id="editEvent"><button type="button" onclick="editEvent()"><?php echo translate('Edit') ?></button></div>
-        <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><button type="button" onclick="archiveEvent()"><?php echo translate('Archive') ?></button></div>
-        <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><button type="button" onclick="unarchiveEvent()"><?php echo translate('Unarchive') ?></button></div>
+        <div id="deleteEvent"><button type="button" data-on-click="deleteEvent" <?php echo $Event->Archived == 1 ? ' disabled="disabled" title="You cannot delete an archived event. Unarchive it first."' : ''  ?>><?php echo translate('Delete') ?></button></div>
+        <div id="editEvent"><button type="button" data-on-click="editEvent"><?php echo translate('Edit') ?></button></div>
+        <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><button type="button" data-on-click="archiveEvent"><?php echo translate('Archive') ?></button></div>
+        <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><button type="button" data-on-click="unarchiveEvent"><?php echo translate('Unarchive') ?></button></div>
 <?php
 } // end if can edit Events
 ?>
-        <div id="framesEvent"><button type="button" onclick="showEventFrames()"><?php echo translate('Frames') ?></button></div>
-        <div id="streamEvent" class="hidden"><button onclick="showStream()"><?php echo translate('Stream') ?></button></div>
-        <div id="stillsEvent"><button type="button" onclick="showStills()"><?php echo translate('Stills') ?></button></div>
+        <div id="framesEvent"><button type="button" data-on-click="showEventFrames"><?php echo translate('Frames') ?></button></div>
+        <div id="streamEvent" class="hidden"><button data-on-click="showStream"><?php echo translate('Stream') ?></button></div>
+        <div id="stillsEvent"><button type="button" data-on-click="showStills"><?php echo translate('Stills') ?></button></div>
 <?php
   if ( $Event->DefaultVideo() ) { 
 ?>
@@ -145,11 +145,11 @@ if ( canEdit('Events') ) {
 <?php
   } else {
 ?>
-        <div id="videoEvent"><button type="button" onclick="videoEvent();"><?php echo translate('Video') ?></button></div>
+        <div id="videoEvent"><button type="button" data-on-click="videoEvent"><?php echo translate('Video') ?></button></div>
 <?php
   } // end if Event->DefaultVideo
 ?>
-        <div id="exportEvent"><button type="button" onclick="exportEvent();"><?php echo translate('Export') ?></button></div>
+        <div id="exportEvent"><button type="button" data-on-click="exportEvent"><?php echo translate('Export') ?></button></div>
         <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
         <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
       </div>
@@ -191,15 +191,15 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
       </div><!--imageFeed-->
 <?php } /*end if !DefaultVideo*/ ?>
         <p id="dvrControls">
-          <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" onclick="streamPrev( true );"/>
-          <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" onclick="streamFastRev( true );"/>
-          <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" onclick="streamSlowRev( true );"/>
-          <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" onclick="pauseClicked();"/>
-          <input type="button" value="|>" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" onclick="playClicked();"/>
-          <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" onclick="streamSlowFwd( true );"/>
-          <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" onclick="streamFastFwd( true );"/>
-          <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" onclick="streamZoomOut();"/>
-          <input type="button" value="+&gt;" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" onclick="streamNext( true );"/>
+          <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev"/>
+          <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" data-on-click-true="streamFastRev"/>
+          <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowRev"/>
+          <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click="pauseClicked"/>
+          <input type="button" value="|>" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click="playClicked"/>
+          <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowFwd"/>
+          <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd"/>
+          <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="streamZoomOut"/>
+          <input type="button" value="+&gt;" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext"/>
         </p>
         <div id="replayStatus">
           <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
@@ -217,8 +217,8 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           <div id="eventImageFrame">
             <img id="eventImage" src="graphics/transparent.png" alt=""/>
             <div id="eventImageBar">
-              <div id="eventImageClose"><button type="button" onclick="hideEventImage()"><?php echo translate('Close') ?></button></div>
-              <div id="eventImageStats" class="hidden"><button type="button" onclick="showFrameStats()"><?php echo translate('Stats') ?></button></div>
+              <div id="eventImageClose"><button type="button" data-on-click="hideEventImage"><?php echo translate('Close') ?></button></div>
+              <div id="eventImageStats" class="hidden"><button type="button" data-on-click="showFrameStats"><?php echo translate('Stats') ?></button></div>
               <div id="eventImageData"><?php echo translate('Frame') ?> <span id="eventImageNo"></span></div>
             </div>
           </div>
@@ -233,12 +233,12 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           </div>
           <div id="eventImageButtons">
             <div id="prevButtonsPanel">
-              <input id="prevEventBtn" type="button" value="&lt;E" onclick="prevEvent()" disabled="disabled"/>
-              <input id="prevThumbsBtn" type="button" value="&lt;&lt;" onclick="prevThumbs()" disabled="disabled"/>
-              <input id="prevImageBtn" type="button" value="&lt;" onclick="prevImage()" disabled="disabled"/>
-              <input id="nextImageBtn" type="button" value="&gt;" onclick="nextImage()" disabled="disabled"/>
-              <input id="nextThumbsBtn" type="button" value="&gt;&gt;" onclick="nextThumbs()" disabled="disabled"/>
-              <input id="nextEventBtn" type="button" value="E&gt;" onclick="nextEvent()" disabled="disabled"/>
+              <input id="prevEventBtn" type="button" value="&lt;E" data-on-click="prevEvent" disabled="disabled"/>
+              <input id="prevThumbsBtn" type="button" value="&lt;&lt;" data-on-click="prevThumbs" disabled="disabled"/>
+              <input id="prevImageBtn" type="button" value="&lt;" data-on-click="prevImage" disabled="disabled"/>
+              <input id="nextImageBtn" type="button" value="&gt;" data-on-click="nextImage" disabled="disabled"/>
+              <input id="nextThumbsBtn" type="button" value="&gt;&gt;" data-on-click="nextThumbs" disabled="disabled"/>
+              <input id="nextEventBtn" type="button" value="E&gt;" data-on-click="nextEvent" disabled="disabled"/>
             </div>
           </div>
         </div>

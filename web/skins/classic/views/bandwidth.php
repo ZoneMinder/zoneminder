@@ -43,13 +43,13 @@ xhtmlHeaders(__FILE__, translate('Bandwidth') );
       <h2><?php echo translate('Bandwidth') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="none"/>
+      <form name="contentForm" id="contentForm" method="get" action="?">
+        <input type="hidden" name="view" value="bandwidth"/>
         <input type="hidden" name="action" value="bandwidth"/>
         <p><?php echo translate('SetNewBandwidth') ?></p>
         <p><?php echo buildSelect( "newBandwidth", $bandwidth_options ) ?></p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

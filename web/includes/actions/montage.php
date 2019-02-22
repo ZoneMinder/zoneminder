@@ -22,7 +22,7 @@ if ( isset($_REQUEST['object']) ) {
   if ( $_REQUEST['object'] == 'MontageLayout' ) {
     // System edit actions
     if ( ! canEdit('System') ) {
-      Warning("Need System permissions to edit layouts");
+      ZM\Warning('Need System permissions to edit layouts');
       return;
     }
     require_once('includes/MontageLayout.php');
@@ -40,7 +40,7 @@ if ( isset($_REQUEST['object']) ) {
       $_SESSION['zmMontageLayout'] = $Layout->Id();
       setcookie('zmMontageLayout', $Layout->Id(), 1);
       session_write_close();
-      $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montage';
+      $redirect = '?view=montage';
     } // end if save
 
   } # end if isset($_REQUEST['object'] )

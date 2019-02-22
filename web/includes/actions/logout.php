@@ -23,5 +23,6 @@ if ( $action == 'logout' ) {
   userLogout();
   $refreshParent = true;
   $view = 'none';
+  $closePopup = true;
 }
 ?>

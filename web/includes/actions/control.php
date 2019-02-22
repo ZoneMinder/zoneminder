@@ -20,11 +20,11 @@
 
 // Monitor control actions, require a monitor id and control view permissions for that monitor
 if ( empty($_REQUEST['mid']) ) {
-  Warning("Settings requires a monitor id");
+  ZM\Warning('Settings requires a monitor id');
   return;
 }
 if ( ! canView('Control', $_REQUEST['mid']) ) {
-  Warning("Settings requires the Control permission");
+  ZM\Warning('Settings requires the Control permission');
   return;
 }
 
@@ -32,7 +32,7 @@ require_once('control_functions.php');
 require_once('Monitor.php');
 $mid = validInt($_REQUEST['mid']);
 if ( $action == 'control' ) {
-  $monitor = new Monitor($mid);
+  $monitor = new ZM\Monitor($mid);
 
   $ctrlCommand = buildControlCommand($monitor);
   sendControlCommand($monitor->Id(), $ctrlCommand);

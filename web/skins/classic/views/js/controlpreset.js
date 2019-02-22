@@ -9,4 +9,4 @@ function updateLabel() {
     form.newLabel.value = '';
   }
 }
-window.addEvent('domready', updateLabel);
+window.addEventListener('DOMContentLoaded', updateLabel);

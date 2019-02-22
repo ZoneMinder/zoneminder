@@ -527,8 +527,9 @@ void MonitorStream::runStream() {
 
     bool was_paused = paused;
     if ( connkey ) {
-      while(checkCommandQueue()) {
-Debug(2, "Have checking command Queue for connkey: %d", connkey );
+      while ( checkCommandQueue() && !zm_terminate ) {
+        // Loop in here until all commands are processed.
+        Debug(2, "Have checking command Queue for connkey: %d", connkey);
         got_command = true;
       }
       // Update modified time of the socket .lock file so that we can tell which ones are stale.
@@ -536,8 +537,7 @@ Debug(2, "Have checking command Queue for connkey: %d", connkey );
         touch(sock_path_lock);
         last_comm_update = now;
       }
-
-    }
+    } // end if connkey
 
     if ( paused ) {
       if ( !was_paused ) {

@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 require_once( 'database.php' );
 require_once( 'Event.php' );
 
@@ -50,9 +51,8 @@ class Frame {
   }
 
   public function getImageSrc( $show='capture' ) {
-    
-    return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'FrameId'}.'&eid='.$this->{'EventId'}.'&show='.$show;
-    #return $_SERVER['PHP_SELF'].'?view=image&fid='.$this->{'Id'}.'&show='.$show.'&filename='.$this->Event()->MonitorId().'_'.$this->{'EventId'}.'_'.$this->{'FrameId'}.'.jpg';
+    return '?view=image&fid='.$this->{'FrameId'}.'&eid='.$this->{'EventId'}.'&show='.$show;
+    #return '?view=image&fid='.$this->{'Id'}.'&show='.$show.'&filename='.$this->Event()->MonitorId().'_'.$this->{'EventId'}.'_'.$this->{'FrameId'}.'.jpg';
   } // end function getImageSrc
 
 	public static function find( $parameters = array(), $options = NULL ) {

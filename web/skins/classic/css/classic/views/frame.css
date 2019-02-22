@@ -9,8 +9,3 @@
     display: flex;
     justify-content: space-between;
 }
-
-#controls a {
-    width: 40px;
-    margin-left: -20px;
-}

@@ -33,17 +33,17 @@ if ( ($action == 'setgroup') && canView('Groups')) {
 # Should probably verify that each monitor id is a valid monitor, that we have access to.
 # However at the moment, you have to have System permissions to do this
 if ( ! canEdit('Groups') ) {
-  Warning("Need group edit permissions to edit groups");
+  ZM\Warning('Need group edit permissions to edit groups');
   return;
 }
 
 if ( $action == 'delete' ) {
   if ( !empty($_REQUEST['gid']) ) {
-    foreach ( Group::find(array('Id'=>$_REQUEST['gid'])) as $Group ) {
+    foreach ( ZM\Group::find(array('Id'=>$_REQUEST['gid'])) as $Group ) {
       $Group->delete();
     }
   }
-  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=groups';
+  $redirect = '?view=groups';
   $refreshParent = true;
 } # end if action
 ?>

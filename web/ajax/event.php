@@ -71,7 +71,7 @@ if ( canView( 'Events' ) ) {
 
         $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
         if ( $exportFile = exportEvents( $exportIds, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc, $exportFormat ) )
-          ajaxResponse( array( 'exportFile'=>$exportFile ) );
+          ajaxResponse( array( 'exportFormat'=>$exportFormat ) );
         else
           ajaxError( 'Export Failed' );
         break;
@@ -84,7 +84,7 @@ if ( canView( 'Events' ) ) {
         $exportStructure = 'flat';
         $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
         if ( $exportFile = exportEvents( $exportIds, false, false, false, $exportVideo, false, $exportFormat, $exportStructure ) )
-          ajaxResponse( array( 'exportFile'=>$exportFile ) );
+          ajaxResponse( array( 'exportFormat'=>$exportFormat ) );
         else
           ajaxError( 'Export Failed' );
         break;
@@ -119,7 +119,7 @@ if ( canEdit( 'Events' ) ) {
       }
     case 'delete' :
       {
-        $Event = new Event( $_REQUEST['id'] );
+        $Event = new ZM\Event( $_REQUEST['id'] );
         if ( ! $Event->Id() ) {
           ajaxResponse( array( 'refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.' ) );
         } else {

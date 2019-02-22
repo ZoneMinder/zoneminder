@@ -25,7 +25,7 @@ $skinJsFile = getSkinFile('js/skin.js');
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title><?php echo ZM_WEB_TITLE_PREFIX ?></title>
+  <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX); ?></title>
   <script nonce="<?php echo $cspNonce ?>">
 <?php
 require_once($skinJsPhpFile);

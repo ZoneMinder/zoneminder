@@ -20,16 +20,15 @@
 
 
 if ( !canEdit('Control') ) {
-  Warning("Need Control permissions to edit control capabilities");
+  ZM\Warning('Need Control permissions to edit control capabilities');
   return;
 } // end if !canEdit Controls
-}
 
 if ( $action == 'delete' ) {
   if ( isset($_REQUEST['markCids']) ) {
     foreach( $_REQUEST['markCids'] as $markCid ) {
-      dbQuery('DELETE FROM Controls WHERE Id = ?', array($markCid));
       dbQuery('UPDATE Monitors SET Controllable = 0, ControlId = 0 WHERE ControlId = ?', array($markCid));
+      dbQuery('DELETE FROM Controls WHERE Id = ?', array($markCid));
       $refreshParent = true;
     }
   }

@@ -70,7 +70,11 @@ if ( $tab == 'skins' ) {
     $reload = true;
   }
   if ( $reload )
-    echo "<script nonce=\"$cspNonce\">if(window.opener){window.opener.location.reload();}window.location.href=\"{$_SERVER['PHP_SELF']}?view={$view}&tab={$tab}\"</script>";
+    echo "<script nonce=\"$cspNonce\">if (window.opener) {
+window.opener.location.reload();
+}
+window.location.href=\"?view={$view}&tab={$tab}\";
+</script>";
 } # end if tab == skins
 
 ?>
@@ -95,7 +99,7 @@ foreach ( $tabs as $name=>$value ) {
 <?php 
 if ( $tab == 'skins' ) {
 ?>
-          <form name="optionsForm" class="form-horizontal" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+          <form name="optionsForm" class="form-horizontal" method="get" action="?">
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
             <div class="form-group">
@@ -132,7 +136,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
       <?php
 } else if ( $tab == 'users' ) {
 ?>
-      <form name="userForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="userForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
@@ -199,7 +203,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
       </form>
 <?php
 } else if ( $tab == 'servers' ) { ?>
-      <form name="serversForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="serversForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
@@ -226,7 +230,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           <tbody>
 <?php
   $monitor_counts = dbFetchAssoc('SELECT Id,(SELECT COUNT(Id) FROM Monitors WHERE ServerId=Servers.Id) AS MonitorCount FROM Servers', 'Id', 'MonitorCount');
-  foreach ( Server::find() as $Server ) {
+  foreach ( ZM\Server::find() as $Server ) {
 ?>
             <tr>
               <td class="colName"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->Name()), $canEdit) ?></td>
@@ -264,7 +268,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
       </form>
 <?php
 } else if ( $tab == 'storage' ) { ?>
-      <form name="storageForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="storageForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="delete"/>
@@ -283,7 +287,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
             </tr>
           </thead>
           <tbody>
-<?php foreach( Storage::find( null, array('order'=>'lower(Name)') ) as $Storage ) { ?>
+<?php foreach( ZM\Storage::find( null, array('order'=>'lower(Name)') ) as $Storage ) { ?>
             <tr>
               <td class="colId"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Id()), $canEdit ) ?></td>
               <td class="colName"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
@@ -328,7 +332,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
     }
 ?>
-      <form name="optionsForm" class="form-horizontal" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="optionsForm" class="form-horizontal" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>

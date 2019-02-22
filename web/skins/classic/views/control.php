@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Control' ) ) {
+if ( !canView('Control') ) {
   $view = 'error';
   return;
 }
@@ -26,16 +26,16 @@ if ( !canView( 'Control' ) ) {
 $params = array();
 $groupSql = '';
 if ( !empty($_REQUEST['group']) ) {
-  $groupSql = " AND gm.GroupId = :groupid";
-  $params[":groupid"] = $_REQUEST['group'];
+  $groupSql = ' AND gm.GroupId = :groupid';
+  $params[':groupid'] = $_REQUEST['group'];
 }
 
 $mid = !empty($_REQUEST['mid']) ? validInt($_REQUEST['mid']) : 0;
 
 $sql = "SELECT m.* FROM Monitors m INNER JOIN Groups_Monitors AS gm ON m.Id = gm.MonitorId WHERE m.Function != 'None' AND m.Controllable = 1$groupSql ORDER BY Sequence";
 $mids = array();
-foreach( dbFetchAll( $sql, false, $params ) as $row ) {
-  if ( !visibleMonitor( $row['Id'] ) ) {
+foreach ( dbFetchAll($sql, false, $params) as $row ) {
+  if ( !visibleMonitor($row['Id']) ) {
     continue;
   }
   if ( empty($mid) )
@@ -43,14 +43,14 @@ foreach( dbFetchAll( $sql, false, $params ) as $row ) {
   $mids[$row['Id']] = $row['Name'];
 }
 
-foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
+foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
   require_once $includeFile;
 
-$monitor = new Monitor( $mid );
+$monitor = new ZM\Monitor($mid);
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Control') );
+xhtmlHeaders(__FILE__, translate('Control'));
 ?>
 <body>
   <div id="page">
@@ -60,15 +60,15 @@ xhtmlHeaders(__FILE__, translate('Control') );
       </div>
       <h2><?php echo translate('Control') ?></h2>
       <div id="headerControl">
-        <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <form name="contentForm" id="contentForm" method="get" action="?">
           <input type="hidden" name="view" value="<?php echo $view ?>"/>
-          <?php echo buildSelect( "mid", $mids, "this.form.submit();" ); ?>
+          <?php echo buildSelect('mid', $mids, 'this.form.submit();'); ?>
         </form>
       </div>
     </div>
     <div id="content">
       <div id="ptzControls" class="ptzControls">
-      <?php echo ptzControls( $monitor ) ?>
+      <?php echo ptzControls($monitor) ?>
       </div>
     </div>
   </div>

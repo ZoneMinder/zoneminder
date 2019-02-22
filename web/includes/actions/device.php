@@ -20,7 +20,7 @@
 
 // Device view actions
 if ( !canEdit('Devices') ) {
-  Warning("No devices permission in editing device");
+  ZM\Warning('No devices permission in editing device');
   return;
 } // end if !canEdit(Devices)
 
@@ -39,7 +39,7 @@ if ( $action == 'device' ) {
     $view = 'none';
   }
 } else {
-  Error("Unknown action in device");
+  ZM\Error('Unknown action in device');
 } // end if action
 
 ?>

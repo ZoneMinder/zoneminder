@@ -34,7 +34,7 @@ function probeV4L() {
 
   $result = exec(escapeshellcmd($command), $output, $status);
   if ( $status ) {
-    Error("Unable to probe local cameras, status is '$status'");
+    ZM\Error("Unable to probe local cameras using $command, status is '$status' " . implode("\n",$output));
     return $cameras;
   }
 
@@ -47,7 +47,7 @@ function probeV4L() {
   $preferredFormats = array('BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY');
   foreach ( $output as $line ) {
     if ( !preg_match('/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches) )
-      Fatal("Can't parse command output '$line'");
+      ZM\Fatal("Can't parse command output '$line'");
     $standards = explode('/',$deviceMatches[2]);
     $preferredStandard = false;
     foreach ( $preferredStandards as $standard ) {
@@ -74,7 +74,7 @@ function probeV4L() {
     $inputs = array();
     for ( $i = 0; $i < $deviceMatches[4]; $i++ ) {
       if ( !preg_match('/i'.$i.':([^|]+)\|i'.$i.'T:([^|]+)\|/', $deviceMatches[5], $inputMatches) )
-        Fatal("Can't parse input '".$deviceMatches[5]."'");
+        ZM\Fatal("Can't parse input '".$deviceMatches[5]."'");
       if ( $inputMatches[2] == 'Camera' ) {
         $input = array(
           'index' => $i,
@@ -247,13 +247,13 @@ function probeNetwork() {
   $arp_command = ZM_PATH_ARP;
   $result = explode(' ', $arp_command);
   if ( !is_executable($result[0]) ) {
-    Error("ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.");
+    ZM\Error("ARP compatible binary not found or not executable by the web user account. Verify ZM_PATH_ARP points to a valid arp tool.");
     return;
   }
 
   $result = exec(escapeshellcmd($arp_command), $output, $status);
   if ( $status ) {
-    Error("Unable to probe network cameras, status is '$status'");
+    ZM\Error("Unable to probe network cameras, status is '$status'");
     return;
   }
 
@@ -322,7 +322,7 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
       <h2><?php echo translate('MonitorProbe') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <p>

@@ -44,6 +44,23 @@ if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
 #Logger::Debug("NO montageReviewFilter");
 }
 
+$exportFormat = '';
+if (isset($_REQUEST['exportFormat'])) {
+  if (!in_array($_REQUEST['exportFormat'], array('zip', 'tar'))) {
+    Error('Invalid exportFormat');
+    return;
+  }
+  $exportFormat = $_REQUEST['exportFormat'];
+}
+
+if (!empty($_REQUEST['eid'])) {
+  $Event = new Event( $_REQUEST['eid'] );
+  if (!$Event->Id) {
+    Error('Invalid event id');
+    return;
+  }
+}
+
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Download') );
@@ -57,14 +74,13 @@ xhtmlHeaders(__FILE__, translate('Download') );
       <h2><?php echo translate('Download') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
 <?php
 if ( !empty($_REQUEST['eid']) ) {
 ?>
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
     <?php
-    $Event = new Event( $_REQUEST['eid'] );
-    echo 'Downloading event ' . $_REQUEST['eid'] . ' Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
+    echo 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
 } else if ( !empty($_REQUEST['eids']) ) {
     $total_size = 0;
     foreach ( $_REQUEST['eids'] as $eid ) {
@@ -88,15 +104,15 @@ if ( !empty($_REQUEST['eid']) ) {
             <tr>
               <th scope="row"><?php echo translate('ExportFormat') ?></th>
               <td>
-                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar" data-on-click-this="configureExportButton"/>
+                <input type="radio" id="exportFormatTar" name="exportFormat" value="tar"/>
                 <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>
-                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked" data-on-click-this="configureExportButton"/>
+                <input type="radio" id="exportFormatZip" name="exportFormat" value="zip" checked="checked"/>
                 <label for="exportFormatZip"><?php echo translate('ExportFormatZip') ?></label>
               </td>
             </tr>
           </tbody>
         </table>
-        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('GenerateDownload') ?>" onclick="exportEvent(this.form);" />
+        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('GenerateDownload') ?>" />
       </form>
     </div>
 <?php
@@ -117,7 +133,7 @@ if ( !empty($_REQUEST['eid']) ) {
     }
     if ( !empty($_REQUEST['generated']) ) {
 ?>
-      <h3 id="downloadLink"><a href="<?php echo validHtmlStr($_REQUEST['exportFile']) ?>"><?php echo translate('Download') ?></a></h3>
+      <h3 id="downloadLink"><a href="?view=archive&amp;type=<?php echo $exportFormat; ?>"><?php echo translate('Download') ?></a></h3>
 <?php
     }
 ?>

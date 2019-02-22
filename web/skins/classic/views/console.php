@@ -160,7 +160,7 @@ if ( $show_storage_areas ) $left_columns += 1;
 xhtmlHeaders( __FILE__, translate('Console') );
 getBodyTopHTML();
 ?>
-  <form name="monitorForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+  <form name="monitorForm" method="get" action="?">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
@@ -230,7 +230,7 @@ ob_end_clean();
 echo $table_head;
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
-  $Monitor = new Monitor($monitor);
+  $Monitor = new ZM\Monitor($monitor);
 
   if ( $monitor_i and ( $monitor_i % 100 == 0 ) ) {
     echo '</table>';
@@ -275,12 +275,12 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
               <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>" aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
               <?php echo implode('<br/>',
                   array_map(function($group_id){
-                    $Group = Group::find_one(array('Id'=>$group_id));
+                    $Group = ZM\Group::find_one(array('Id'=>$group_id));
                     if ( $Group ) {
                       $Groups = $Group->Parents();
                       array_push( $Groups, $Group );
                     }
-                    return implode(' &gt; ', array_map(function($Group){ return '<a href="'. ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview&amp;GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
+                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </div></td>
@@ -305,10 +305,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
               </div></td>
 <?php
   if ( count($servers) ) { ?>
-            <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
+            <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new ZM\Server($monitor['ServerId']); echo $Server->Name(); ?></td>
 <?php
   }
-  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.$Monitor->Source().'</span>', canEdit('Monitors') ).'</td>';
+  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.validHtmlStr($Monitor->Source()).'</span>', canEdit('Monitors') ).'</td>';
   if ( $show_storage_areas ) {
 ?>
             <td class="colStorage"><?php if ( isset($StorageById[$monitor['StorageId']]) ) { echo $StorageById[ $monitor['StorageId'] ]->Name(); } ?></td>

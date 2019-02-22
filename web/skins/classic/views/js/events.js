@@ -17,12 +17,13 @@ function setButtonStates( element ) {
   form.deleteBtn.disabled = !(canEditEvents && checked);
 }
 
-function configureButton( element, name ) {
+function configureButton(event) {
+  var element = event.target;
   var form = element.form;
   var checked = element.checked;
   if ( !checked ) {
-    for (var i = 0; i < form.elements.length; i++) {
-      if ( form.elements[i].name.indexOf(name) == 0) {
+    for (var i = 0, len=form.elements.length; i < len; i++) {
+      if ( form.elements[i].name.indexOf('markEids') == 0) {
         if ( form.elements[i].checked ) {
           checked = true;
           break;
@@ -42,15 +43,17 @@ function configureButton( element, name ) {
   form.deleteBtn.disabled = !(canEditEvents && checked);
 }
 
-function deleteEvents( element, name ) {
+function deleteEvents( element ) {
   if ( ! canEditEvents ) {
     alert("You do not have permission to delete events.");
     return;
   }
   var form = element.form;
+
   var count = 0;
+  // This is slightly more efficient than a jquery selector because we stop after finding one.
   for (var i = 0; i < form.elements.length; i++) {
-    if (form.elements[i].name.indexOf(name) == 0) {
+    if (form.elements[i].name.indexOf('markEids') == 0) {
       if ( form.elements[i].checked ) {
         count++;
         break;
@@ -65,15 +68,15 @@ function deleteEvents( element, name ) {
   }
 }
 
-function editEvents( element, name ) {
+function editEvents( element ) {
   if ( ! canEditEvents ) {
     alert("You do not have permission to delete events.");
     return;
   }
   var form = element.form;
   var eids = new Array();
-  for (var i = 0; i < form.elements.length; i++) {
-    if (form.elements[i].name.indexOf(name) == 0) {
+  for (var i = 0, len=form.elements.length; i < len; i++) {
+    if (form.elements[i].name.indexOf('markEids') == 0) {
       if ( form.elements[i].checked ) {
         eids[eids.length] = 'eids[]='+form.elements[i].value;
       }
@@ -82,24 +85,24 @@ function editEvents( element, name ) {
   createPopup( '?view=eventdetail&'+eids.join( '&' ), 'zmEventDetail', 'eventdetail' );
 }
 
-function downloadVideo( element, name ) {
+function downloadVideo( element ) {
   var form = element.form;
   var eids = new Array();
-  for (var i = 0; i < form.elements.length; i++) {
-    if (form.elements[i].name.indexOf(name) == 0) {
+  for (var i = 0, len=form.elements.length; i < len; i++) {
+    if (form.elements[i].name.indexOf('markEids') == 0 ) {
       if ( form.elements[i].checked ) {
         eids[eids.length] = 'eids[]='+form.elements[i].value;
       }
     }
   }
-  createPopup( '?view=download&'+eids.join( '&' ), 'zmDownload', 'download' );
+  createPopup( '?view=download&'+eids.join('&'), 'zmDownload', 'download' );
 }
 
-function exportEvents( element, name ) {
+function exportEvents( element ) {
   var form = element.form;
   var eids = new Array();
-  for (var i = 0; i < form.elements.length; i++) {
-    if (form.elements[i].name.indexOf(name) == 0) {
+  for (var i = 0, len=form.elements.length; i < len; i++) {
+    if (form.elements[i].name.indexOf('markEids') == 0 ) {
       if ( form.elements[i].checked ) {
         eids[eids.length] = 'eids[]='+form.elements[i].value;
       }
@@ -108,11 +111,11 @@ function exportEvents( element, name ) {
   createPopup( '?view=export&'+eids.join( '&' ), 'zmExport', 'export' );
 }
 
-function viewEvents( element, name ) {
+function viewEvents( element ) {
   var form = element.form;
   var events = new Array();
-  for (var i = 0; i < form.elements.length; i++) {
-    if ( form.elements[i].name.indexOf(name) == 0) {
+  for (var i = 0, len=form.elements.length; i < len; i++) {
+    if ( form.elements[i].name.indexOf('markEids') == 0 ) {
       if ( form.elements[i].checked ) {
         events[events.length] = form.elements[i].value;
       }
@@ -124,13 +127,13 @@ function viewEvents( element, name ) {
   }
 }
 
-function archiveEvents( element, name ) {
+function archiveEvents(element) {
   var form = element.form;
   form.elements['action'].value = 'archive';
   form.submit();
 }
 
-function unarchiveEvents(element, name) {
+function unarchiveEvents(element) {
   if ( ! canEditEvents ) {
     alert("You do not have permission to delete events.");
     return;
@@ -146,10 +149,34 @@ if ( openFilterWindow ) {
   location.replace( '?view='+currentView+'&page='+thisPage+filterQuery );
 }
 
+function thumbnail_onmouseover(event) {
+  var img = event.target;
+  img.src = img.getAttribute('stream_src');
+}
+function thumbnail_onmouseout(event) {
+  var img = event.target;
+  img.src = img.getAttribute('still_src');
+}
+
 function initPage() {
-  if (window.history.length == 1) {
+  if ( window.history.length == 1 ) {
     $j('#controls').children().eq(0).html('');
   }
+  $j('.colThumbnail img').each(function() {
+    this.addEventListener('mouseover', thumbnail_onmouseover, false);
+    this.addEventListener('mouseout', thumbnail_onmouseout, false);
+  });
+  $j('input[name=markEids\\[\\]]').each(function() {
+    this.addEventListener('click', configureButton, false);
+  });
+  document.getElementById("refreshLink").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+  document.getElementById("backLink").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
 }
 
 $j(document).ready(initPage);

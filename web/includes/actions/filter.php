@@ -20,7 +20,7 @@
 
 // Event scope actions, view permissions only required
 if ( !canView('Events') ) {
-  Warning('You do not have permission to view Events.');
+  ZM\Warning('You do not have permission to view Events.');
   return;
 }
 
@@ -30,9 +30,19 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
   } elseif ( $action == 'delterm' ) {
     $_REQUEST['filter'] = delFilterTerm($_REQUEST['filter'], $_REQUEST['line']);
   } else if ( canEdit('Events') ) {
+
+    require_once('includes/Filter.php');
+    $filter = new ZM\Filter($_REQUEST['Id']);
+
     if ( $action == 'delete' ) {
       if ( !empty($_REQUEST['Id']) ) {
-        dbQuery('DELETE FROM Filters WHERE Id=?', array($_REQUEST['Id']));
+          if ( $filter->Background() ) {
+            $filter->control('stop');
+          }
+          $filter->delete();
+
+      } else {
+        ZM\Error("No filter id passed when deleting");
       }
     } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) ) {
 
@@ -66,15 +76,30 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
 
       if ( $_REQUEST['Id'] and ( $action == 'Save' ) ) {
         dbQuery('UPDATE Filters SET '.$sql.' WHERE Id=?', array($_REQUEST['Id']));
+        if ( $filter->Background() )
+          $filter->control('stop');
       } else {
         dbQuery('INSERT INTO Filters SET'.$sql);
         $_REQUEST['Id'] = dbInsertId();
+        $filter = new Filter($_REQUEST['Id']);
       }
+      if ( !empty($_REQUEST['filter']['Background']) )
+        $filter->control('start');
+
       if ( $action == 'execute' ) {
         executeFilter($_REQUEST['Id']);
         $view = 'events';
       }
 
+    } else if ( $action == 'control' ) {
+      if ( $_REQUEST['command'] == 'start'
+        or $_REQUEST['command'] == 'stop'
+        or $_REQUEST['command'] == 'restart'
+      ) {
+        $filter->control($_REQUEST['command'], $_REQUEST['ServerId']);
+      } else {
+        ZM\Error('Invalid command for filter ('.$_REQUEST['command'].')');
+      }
     } // end if save or execute
   } // end if canEdit(Events)
 } // end if object == filter

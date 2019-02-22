@@ -122,6 +122,11 @@ function getImageSource( monId, time ) {
     Event = events[Frame.EventId];
 
     var storage = Storage[Event.StorageId];
+    if ( ! storage ) {
+      // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
+      console.log("No storage area for id " + Event.StorageId);
+      storage = Storage[0];
+    }
     // monitorServerId may be 0, which gives us the default Server entry
     var server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
     return server.PathToIndex +
@@ -500,7 +505,8 @@ HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
 
 var mouseisdown=false;
 function mdown(event) {
-  mouseisdown=true; mmove(event);
+  mouseisdown=true;
+  mmove(event);
 }
 function mup(event) {
   mouseisdown=false;
@@ -509,7 +515,8 @@ function mout(event) {
   mouseisdown=false;
 } // if we go outside treat it as release
 function tmove(event) {
-  mouseisdown=true; mmove(event);
+  mouseisdown=true;
+  mmove(event);
 }
 
 function mmove(event) {
@@ -835,13 +842,15 @@ function zoom(monId, scale) {
   }
 }
 
-function clickMonitor(event, monId) {
-  var monitor_element = $("Monitor"+monId.toString());
-  var pos_x = event.offsetX ? (event.offsetX) : event.pageX - monitor_element.offsetLeft;
-  var pos_y = event.offsetY ? (event.offsetY) : event.pageY - monitor_element.offsetTop;
-  if ( pos_x < monitor_element.width/4 && pos_y < monitor_element.height/4 ) {
+function clickMonitor(event) {
+  var element = event.target;
+  //var monitor_element = $("Monitor"+monId.toString());
+  var monId = element.getAttribute('monitor_id');
+  var pos_x = event.offsetX ? (event.offsetX) : event.pageX - element.offsetLeft;
+  var pos_y = event.offsetY ? (event.offsetY) : event.pageY - element.offsetTop;
+  if ( pos_x < element.width/4 && pos_y < element.height/4 ) {
     zoom(monId, 1.15);
-  } else if ( pos_x > monitor_element.width * 3/4 && pos_y < monitor_element.height/4 ) {
+  } else if ( pos_x > element.width * 3/4 && pos_y < element.height/4 ) {
     zoom(monId, 1/1.15);
   } else {
     showOneMonitor(monId);
@@ -910,8 +919,24 @@ function initPage() {
   }
   if ( !liveMode ) {
     canvas = $("timeline");
+
+    canvas.addEventListener('mousemove', mmove, false);
+    canvas.addEventListener('touchmove', tmove, false);
+    canvas.addEventListener('mousedown', mdown, false);
+    canvas.addEventListener('mouseup', mup, false);
+    canvas.addEventListener('mouseout', mout, false);
+
     ctx = canvas.getContext('2d');
     drawGraph();
+  }
+  for ( i=0, len=monitorPtr.length; i < len; i += 1 ) {
+    var monitor_id = monitorPtr[i];
+    monitor_canvas = $('Monitor'+monitor_id);
+    if ( ! monitor_canvas ) {
+      console.log("No canvas found for monitor " + monitor_id);
+      continue;
+    }
+    monitor_canvas.addEventListener('click', clickMonitor, false);
   }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw

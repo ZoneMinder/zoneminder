@@ -58,14 +58,14 @@ xhtmlHeaders(__FILE__, translate('User').' - '.$newUser['Username']);
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('User').' - '.$newUser['Username'] ?></h2>
+      <h2><?php echo translate('User').' - '.validHtmlStr($newUser['Username']); ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this, <?php echo empty($newUser['Password'])?'true':'false' ?> )">
+      <form name="contentForm" method="post" action="?" onsubmit="return validateForm( this, <?php echo empty($newUser['Password'])?'true':'false' ?> )">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="user"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($_REQUEST['uid']) ?>"/>
-        <input type="hidden" name="newUser[MonitorIds]" value="<?php echo $newUser['MonitorIds'] ?>"/>
+        <input type="hidden" name="newUser[MonitorIds]" value="<?php echo validHtmlStr($newUser['MonitorIds']); ?>"/>
         <table id="contentTable" class="major">
           <tbody>
 <?php
@@ -73,18 +73,18 @@ if ( canEdit('System') ) {
 ?>
             <tr>
               <th scope="row"><?php echo translate('Username') ?></th>
-              <td><input type="text" name="newUser[Username]" value="<?php echo $newUser['Username'] ?>"/></td>
+              <td><input type="text" name="newUser[Username]" value="<?php echo validHtmlStr($newUser['Username']); ?>"/></td>
             </tr>
 <?php
 }
 ?>
             <tr>
               <th scope="row"><?php echo translate('NewPassword') ?></th>
-              <td><input type="password" name="newUser[Password]"/></td>
+              <td><input type="password" name="newUser[Password]" autocomplete="new-password"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('ConfirmPassword') ?></th>
-              <td><input type="password" name="conf_password"/></td>
+              <td><input type="password" name="conf_password" autocomplete="new-password"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Language') ?></th>

@@ -24,9 +24,9 @@ if ( !canEdit('Groups') ) {
 }
 
 if ( !empty($_REQUEST['gid']) ) {
-  $newGroup = new Group($_REQUEST['gid']);
+  $newGroup = new ZM\Group($_REQUEST['gid']);
 } else {
-  $newGroup = new Group();
+  $newGroup = new ZM\Group();
 }
 
 xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
@@ -34,10 +34,10 @@ xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Group') ?> - <?php echo $newGroup->Name() ?></h2>
+      <h2><?php echo translate('Group') ?> - <?php echo validHtmlStr($newGroup->Name()); ?></h2>
     </div>
     <div id="content">
-      <form name="groupForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="groupForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="gid" value="<?php echo $newGroup->Id() ?>"/>
         <table id="contentTable" class="major">
@@ -51,7 +51,7 @@ xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
               <td>
 <?php
 $Groups = array();
-foreach ( Group::find() as $Group ) {
+foreach ( ZM\Group::find() as $Group ) {
   $Groups[$Group->Id()] = $Group;
 }
 

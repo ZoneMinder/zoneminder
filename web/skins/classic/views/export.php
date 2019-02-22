@@ -38,6 +38,13 @@ if ( isset($_SESSION['export']) ) {
     $_REQUEST['exportFormat'] = $_SESSION['export']['format'];
 }
 
+if (isset($_REQUEST['exportFormat'])) {
+  if (!in_array($_REQUEST['exportFormat'], array('zip', 'tar'))) {
+    ZM\Error('Invalid exportFormat');
+    return;
+  }
+}
+
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Export') );
@@ -51,7 +58,7 @@ xhtmlHeaders(__FILE__, translate('Export') );
       <h2><?php echo translate('ExportOptions') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
 <?php
 if ( !empty($_REQUEST['eid']) ) {
 ?>
@@ -97,7 +104,7 @@ if ( !empty($_REQUEST['eid']) ) {
             </tr>
           </tbody>
         </table>
-        <button type="button" id="exportButton" name="exportButton" value="Export" onclick="exportEvent(this.form);" disabled="disabled"><?php echo translate('Export') ?></button>
+        <button type="button" id="exportButton" name="exportButton" value="Export" disabled="disabled"><?php echo translate('Export') ?></button>
       </form>
     </div>
 <?php
@@ -112,7 +119,7 @@ if ( !empty($_REQUEST['eid']) ) {
     }
     if ( !empty($_REQUEST['generated']) ) {
 ?>
-      <h3 id="downloadLink"><a href="<?php echo validHtmlStr($_REQUEST['exportFile']) ?>"><?php echo translate('Download') ?></a></h3>
+      <h3 id="downloadLink"><a href="?view=archive&amp;type=<?php echo $_REQUEST['exportFormat']; ?>"><?php echo translate('Download') ?></a></h3>
 <?php
     }
 ?>

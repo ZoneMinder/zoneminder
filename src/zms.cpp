@@ -191,9 +191,12 @@ int main( int argc, const char *argv[] ) {
     User *user = 0;
 
     if ( strcmp(config.auth_relay, "none") == 0 ) {
-      if ( username.length() ) {
+      if ( checkUser(username.c_str()) ) {
         user = zmLoadUser(username.c_str());
+      } else {
+        Error("")
       }
+
     } else {
       //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
       {

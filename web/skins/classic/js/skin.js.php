@@ -29,7 +29,11 @@ var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 
 var currentView = '<?php echo $view ?>';
-var thisUrl = '<?php echo ZM_BASE_URL.$_SERVER['PHP_SELF'] ?>';
+<?php
+/* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
+   will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,
+   try to avoid using PHP_SELF but here I try to replace everything after '.php'. */ ?>
+var thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
 var skinPath = '<?php echo ZM_SKIN_PATH ?>';
 var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 

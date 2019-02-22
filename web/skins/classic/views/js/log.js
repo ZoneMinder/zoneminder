@@ -64,7 +64,16 @@ function logResponse( respObj ) {
               if ( ( !minLogTime ) || ( log.TimeKey < minLogTime ) ) {
                 minLogTime = log.TimeKey;
               }
-              var row = logTable.push( [{content: log.DateTime, properties: {style: 'white-space: nowrap'}}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
+
+              // Manually create table cells by setting the text since `push` will set HTML which
+              // can lead to XSS.
+              var messageCell = new Element('td');
+              messageCell.set('text', log.Message);
+
+              var fileCell = new Element('td');
+              fileCell.set('text', log.File);
+
+              var row = logTable.push( [{content: log.DateTime, properties: {style: 'white-space: nowrap'}}, log.Component, log.Server, log.Pid, log.Code, messageCell, fileCell, log.Line] );
 
               delete log.Message;
               row.tr.store( 'log', log );

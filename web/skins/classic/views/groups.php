@@ -28,7 +28,7 @@ $group_id = 0;
 $max_depth = 0;
 
 $Groups = array();
-foreach ( Group::find() as $Group ) {
+foreach ( ZM\Group::find() as $Group ) {
   $Groups[$Group->Id()] = $Group;
 }
 
@@ -47,7 +47,7 @@ xhtmlHeaders(__FILE__, translate('Groups'));
   <div id="page">
     <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
-      <form name="groupsForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="groupsForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="setgroup"/>
         <table id="contentTable" class="major">

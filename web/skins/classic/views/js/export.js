@@ -29,7 +29,7 @@ function exportProgress() {
 }
 
 function exportResponse( respObj, respText ) {
-  window.location.replace( thisUrl+'?view='+currentView+'&'+eidParm+'&exportFile='+respObj.exportFile+'&generated='+((respObj.result=='Ok')?1:0) );
+  window.location.replace( thisUrl+'?view='+currentView+'&'+eidParm+'&exportFormat='+respObj.exportFormat+'&generated='+((respObj.result=='Ok')?1:0) );
 }
 
 function exportEvent( form ) {
@@ -49,6 +49,9 @@ function initPage() {
   if ( exportReady ) {
     startDownload.pass( exportFile ).delay( 1500 );
   }
+  document.getElementById('exportButton').addEventListener('click', function onClick() {
+    exportEvent(this.form);
+  });
 }
 
 window.addEventListener( 'DOMContentLoaded', initPage );

@@ -1,7 +1,9 @@
 <?php
+namespace ZM;
 require_once('database.php');
 
 $server_cache = array();
+
 
 class Server {
   private $defaults = array(
@@ -117,7 +119,8 @@ class Server {
     if ( isset($this->{'PathToIndex'}) and $this->{'PathToIndex'} ) {
       return $this->{'PathToIndex'};
     }
-    return $_SERVER['PHP_SELF'];
+    // We can't trust PHP_SELF to not include an XSS vector. See note in skin.js.php.
+    return preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']);
   }
 
   public function UrlToIndex( $port=null ) {

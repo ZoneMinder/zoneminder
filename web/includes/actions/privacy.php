@@ -23,14 +23,14 @@ if ( !canEdit('System') ) {
   return;
 }
 
-if ( ($action == 'privacy') && isset($_REQUEST['option']) ) {
-  switch( $_REQUEST['option'] ) {
-  case 'decline' :
+if ( ($action == 'privacy') && isset($_POST['option']) ) {
+  switch( $_POST['option'] ) {
+  case '0' :
     dbQuery("UPDATE Config SET Value = '0' WHERE Name = 'ZM_SHOW_PRIVACY'");
     dbQuery("UPDATE Config SET Value = '0' WHERE Name = 'ZM_TELEMETRY_DATA'");
     $redirect = '?view=console';
     break;
-  case 'accept' :
+  case '1' :
     dbQuery("UPDATE Config SET Value = '0' WHERE Name = 'ZM_SHOW_PRIVACY'");
     dbQuery("UPDATE Config SET Value = '1' WHERE Name = 'ZM_TELEMETRY_DATA'");
     $redirect = '?view=console';

@@ -942,6 +942,7 @@ void LocalCamera::Initialise() {
     v4l2_std_id stdId;
 
     memset(&input, 0, sizeof(input));
+    input.index = channel;
 
     if ( vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0 ) {
       Fatal("Failed to enumerate input %d: %s", channel, strerror(errno));
@@ -952,8 +953,8 @@ void LocalCamera::Initialise() {
     }
 
     stdId = standard;
-    if ( (input.std != V4L2_STD_UNKNOWN) && vidioctl( vid_fd, VIDIOC_S_STD, &stdId ) < 0 )   {
-      Fatal("Failed to set video standard %d: %s", standard, strerror(errno));
+    if ( (input.std != V4L2_STD_UNKNOWN) && (vidioctl(vid_fd, VIDIOC_S_STD, &stdId) < 0) )   {
+      Fatal("Failed to set video standard %d: %d %s", standard, errno, strerror(errno));
     }
 
     Contrast(contrast);

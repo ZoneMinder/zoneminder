@@ -29,7 +29,7 @@ function configureButtons( element ) {
       (form.username == "") || (form.username == null) ||
       (form.password == "") || (form.password == null);
   }
-  if(form.elements.namedItem("saveBtn")) {
+  if (form.elements.namedItem("saveBtn")) {
     form.saveBtn.disabled = (form.probe.selectedIndex==0);
   }
 }

@@ -119,15 +119,23 @@ echo " };\n";
 } // end if initialmodeislive
 
 echo "\nvar Storage = [];\n";
-foreach ( Storage::find() as $Storage ) {
-  echo 'Storage[' . $Storage->Id() . '] = ' . json_encode($Storage). ";\n";
+$have_storage_zero = 0;
+foreach ( ZM\Storage::find() as $Storage ) {
+  echo 'Storage[' . $Storage->Id() . '] = ' . $Storage->to_json(). ";\n";
+  if ( $Storage->Id() == 0 )
+    $have_storage_zero = true;
 }
+if ( !$have_storage_zero ) {
+  $Storage = new ZM\Storage();
+  echo 'Storage[0] = ' . $Storage->to_json(). ";\n";
+}
+
 echo "\nvar Servers = [];\n";
 // Fall back to get Server paths, etc when no using multi-server mode
-$Server = new Server();
-echo 'Servers[0] = new Server(' . json_encode($Server). ");\n";
-foreach ( Server::find() as $Server ) {
-  echo 'Servers[' . $Server->Id() . '] = new Server(' . json_encode($Server). ");\n";
+$Server = new ZM\Server();
+echo 'Servers[0] = new Server(' . $Server->to_json(). ");\n";
+foreach ( ZM\Server::find() as $Server ) {
+  echo 'Servers[' . $Server->Id() . '] = new Server(' . $Server->to_json(). ");\n";
 }
 
 

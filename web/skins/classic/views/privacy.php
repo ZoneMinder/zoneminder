@@ -18,20 +18,19 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) )
-{
-    $view = "error";
-    return;
+if ( !canEdit('System') ) {
+  $view = 'error';
+  return;
 }
 
 $options = array( 
-    "accept"      => translate('Accept'),
-    "decline"    => translate('Decline'),
+  '1' => translate('Accept'),
+  '0' => translate('Decline'),
 );
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Privacy') );
+xhtmlHeaders(__FILE__, translate('Privacy'));
 ?>
 <body>
   <div id="page">
@@ -40,32 +39,32 @@ xhtmlHeaders(__FILE__, translate('Privacy') );
       <h1>ZoneMinder - <?php echo translate('Privacy') ?></h1>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="none"/>
+      <form name="contentForm" id="contentForm" method="post" action="?">
+        <input type="hidden" name="view" value="privacy"/>
         <input type="hidden" name="action" value="privacy"/>
         <h6><?php echo translate('PrivacyAbout') ?></h6>
         <p><?php echo translate('PrivacyAboutText') ?></p>
-        <br>
+        <br/>
 
         <h6><?php echo translate('PrivacyContact') ?></h6>
         <p><?php echo translate('PrivacyContactText') ?></p>
-        <br>
+        <br/>
 
         <h6><?php echo translate('PrivacyCookies') ?></h6>
         <p><?php echo translate('PrivacyCookiesText') ?></p>
-        <br>
+        <br/>
 
         <h6><?php echo translate('PrivacyTelemetry') ?></h6>
         <p><?php echo translate('PrivacyTelemetryText') ?></p>
-        <br>
+        <br/>
 
         <p><?php echo translate('PrivacyTelemetryList') ?></p>
         <p><?php echo translate('PrivacyMonitorList') ?></p>
         <p><?php echo translate('PrivacyConclusionText') ?></p>
-        <p><?php echo buildSelect( "option", $options ); ?></p>
+        <p><?php echo htmlSelect('option', $options, ZM_TELEMETRY_DATA); ?></p>
 
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Apply') ?>" onclick="submitForm( this )">
+          <button type="submit" value="Apply"><?php echo translate('Apply') ?></button>
         </div>
       </form>
     </div>

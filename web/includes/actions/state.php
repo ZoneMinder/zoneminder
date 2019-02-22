@@ -20,7 +20,7 @@
 
 // System edit actions
 if ( !canEdit('System') ) {
-  Warning("Need System Permission to edit states");
+  ZM\Warning('Need System Permission to edit states');
   return;
 }
 if ( $action == 'state' ) {
@@ -29,7 +29,7 @@ if ( $action == 'state' ) {
     packageControl($_REQUEST['runState']);
     $refreshParent = true;
   }
-} elseif ( $action == 'save' ) {
+} else if ( $action == 'save' ) {
   if ( !empty($_REQUEST['runState']) || !empty($_REQUEST['newState']) ) {
     $sql = 'SELECT Id,Function,Enabled FROM Monitors ORDER BY Id';
     $definitions = array();
@@ -41,8 +41,9 @@ if ( $action == 'state' ) {
       $_REQUEST['runState'] = $_REQUEST['newState'];
     dbQuery('REPLACE INTO States SET Name=?, Definition=?', array($_REQUEST['runState'],$definition));
   }
-} elseif ( $action == 'delete' ) {
+} else if ( $action == 'delete' ) {
   if ( isset($_REQUEST['runState']) )
     dbQuery('DELETE FROM States WHERE Name=?', array($_REQUEST['runState']));
 }
+$view = 'console';
 ?>

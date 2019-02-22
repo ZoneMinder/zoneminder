@@ -74,7 +74,7 @@ if ( $mode == 'single' ) {
 ?>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="action" value="eventdetail"/>
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
 <?php
@@ -108,7 +108,7 @@ if ( $mode == 'single' ) {
           <button type="submit" value="Save" <?php echo !canEdit('Events') ? ' disabled="disabled"' : '' ?>>
           <?php echo translate('Save') ?>
           </button>
-          <button type="button" onclick="closeWindow()"><?php echo translate('Cancel') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

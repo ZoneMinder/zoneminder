@@ -44,7 +44,7 @@ xhtmlHeaders(__FILE__, validHtmlStr($monitor['Name'])." - ".translate('Settings'
       <h2><?php echo validHtmlStr($monitor['Name']) ?> - <?php echo translate('Settings') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="settings"/>
         <input type="hidden" name="mid" value="<?php echo validInt($_REQUEST['mid']) ?>"/>
@@ -69,7 +69,7 @@ xhtmlHeaders(__FILE__, validHtmlStr($monitor['Name'])." - ".translate('Settings'
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Close') ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Close') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

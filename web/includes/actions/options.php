@@ -20,7 +20,7 @@
 
 // System edit actions
 if ( !canEdit('System') ) {
-  Warning("Must have System permissions to perform options actions");
+  ZM\Warning('Must have System permissions to perform options actions');
   return;
 }
 
@@ -89,7 +89,7 @@ if ( $action == 'delete' ) {
     case 'lowband' :
       break;
     }
-    $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=options&tab='.$_REQUEST['tab'];
+    $redirect = '?view=options&tab='.$_REQUEST['tab'];
   }
   loadConfig(false);
   return;

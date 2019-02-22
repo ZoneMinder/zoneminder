@@ -19,13 +19,13 @@
 //
 
 if ( !isset($_REQUEST['markEids']) ) {
-  Warning('Events actions require eids');
+  ZM\Warning('Events actions require eids');
   return;
 }
 
 // Event scope actions, view permissions only required
 if ( !canEdit('Events') ) {
-  Warning("Events actions require Edit permissions");
+  ZM\Warning('Events actions require Edit permissions');
   return;
 } // end if ! canEdit(Events)
 

@@ -45,7 +45,6 @@ if ( $archivetype ) {
     $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
     ZM\Logger::Debug("downloading archive from $filename_path");
     if ( is_readable($filename_path) ) {
-      ob_clean();
       header("Content-type: application/$mimetype" );
       header("Content-Disposition: inline; filename=$filename");
       header('Content-Length: ' . filesize($filename_path) );

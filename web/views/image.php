@@ -259,8 +259,6 @@ if ( !empty($_REQUEST['height']) ) {
 if ( $errorText ) {
   ZM\Error($errorText);
 } else {
-  # Clears the output buffer. Not sure what is there, but have had troubles.
-  ob_end_clean();
   header('Content-type: image/jpeg');
   if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
@@ -309,7 +307,6 @@ ZM\Logger::Debug("Figuring out height using width: $height = ($width * $oldHeigh
       imagedestroy($iScale);
       $scaled_jpeg_data = ob_get_contents();
       file_put_contents($scaled_path, $scaled_jpeg_data);
-      ob_end_clean();
       echo $scaled_jpeg_data;
     } else {
       ZM\Logger::Debug("Sending $scaled_path");

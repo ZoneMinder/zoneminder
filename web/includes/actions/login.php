@@ -29,7 +29,6 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
     $view = 'login';
   } else {
     $view = 'postlogin';
-    $redirect = '?view=console';
   }
 }
 ?>

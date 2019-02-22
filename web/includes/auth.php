@@ -17,6 +17,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+//
+require_once('session.php');
 
 function userLogin($username='', $password='', $passwordHashed=false) {
   global $user;
@@ -88,12 +90,12 @@ function userLogin($username='', $password='', $passwordHashed=false) {
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
   if ( $dbUser = dbFetchOne($sql, NULL, $sql_values) ) {
     ZM\Info("Login successful for user \"$username\"");
-    $_SESSION['user'] = $user = $dbUser;
+    $user = $dbUser;
     unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == 'builtin' ) {
       $_SESSION['passwordHash'] = $user['Password'];
     }
-    session_regenerate_id();
+    zm_session_regenerate_id();
   } else {
     ZM\Warning("Login denied for user \"$username\"");
     $_SESSION['loginFailed'] = true;
@@ -107,10 +109,8 @@ function userLogin($username='', $password='', $passwordHashed=false) {
 function userLogout() {
   global $user;
   ZM\Info('User "'.$user['Username'].'" logged out');
-  session_start();
-  unset($_SESSION['user']);
   unset($user);
-  session_destroy();
+  zm_session_clear();
 }
 
 function getAuthUser($auth) {
@@ -164,7 +164,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       } else {
         $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
-      #Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
+      #ZM\Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5($authKey);
       if ( !$force ) {
         $close_session = 0;
@@ -178,9 +178,9 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       } else {
         return $auth;
       }
-      #Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
+      #ZM\Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
       #} else {
-      #Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
+      #ZM\Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'.$_SESSION['remoteAddr']];
   } # end if using AUTH and AUTH_RELAY
@@ -205,31 +205,39 @@ function canEdit($area, $mid=false) {
   return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
 }
 
-function is_session_started() {
-  if ( php_sapi_name() !== 'cli' ) {
-    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
-      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
-    } else {
-      return session_id() === '' ? FALSE : TRUE;
-    }
-  } else {
-    ZM\Warning("php_sapi_name === 'cli'");
-  }
-  return FALSE;
-}
-
 if ( ZM_OPT_USE_AUTH ) {
-  if ( ZM_AUTH_HASH_LOGINS && empty($user) && ! empty($_REQUEST['auth']) ) {
+  if ( isset($_SESSION['username']) ) {
+    # Need to refresh permissions and validate that the user still exists
+    $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+    $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
+  }
+
+  $close_session = 0;
+  if ( !is_session_started() ) {
+    session_start();
+    $close_session = 1;
+  }
+
+  if ( ZM_AUTH_RELAY == 'plain' ) {
+    // Need to save this in session
+    $_SESSION['password'] = $password;
+  }
+  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+
+  if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
     if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
       userLogin($authUser['Username'], $authUser['Password'], true);
     }
-  }
-  else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
+  } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
     userLogin($_REQUEST['username'], $_REQUEST['password'], false);
   }
   if ( !empty($user) ) {
     // generate it once here, while session is open.  Value will be cached in session and return when called later on
     generateAuthHash(ZM_AUTH_HASH_IPS);
   }
+  if ( $close_session )
+    session_write_close();
+} else {
+  $user = $defaultUser;
 }
 ?>

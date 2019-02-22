@@ -3,7 +3,7 @@ ZoneMinder
 
 [![Build Status](https://travis-ci.org/ZoneMinder/zoneminder.png)](https://travis-ci.org/ZoneMinder/zoneminder) [![Bountysource](https://api.bountysource.com/badge/team?team_id=204&style=bounties_received)](https://www.bountysource.com/teams/zoneminder/issues?utm_source=ZoneMinder&utm_medium=shield&utm_campaign=bounties_received)
 
-[![Join Slack](https://github.com/ozonesecurity/ozonebase/blob/master/img/slacksm.png?raw=true)](https://zoneminder-chat.herokuapp.com)
+[![Join Slack](https://github.com/ozonesecurity/ozonebase/blob/master/img/slacksm.png?raw=true)](https://join.slack.com/t/zoneminder-chat/shared_invite/enQtNTU0NDkxMDM5NDQwLTlhZDU2MGU4MmZmN2MxOTg1MmNmNmZjZGRmY2EzMThhNGQ0MWNmZTg1ZmYzNDQ4YjliMzVmYTQ3MDc5MTkzODE)
 
 All documentation for ZoneMinder is now online at https://zoneminder.readthedocs.org
 

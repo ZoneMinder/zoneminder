@@ -68,7 +68,6 @@ if ( count($GroupsById) ) {
 
 $selected_monitor_ids = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : array();
 if ( ! is_array( $selected_monitor_ids ) ) {
-  ZM\Logger::Warning("Turning selected_monitor_ids into an array $selected_monitor_ids");
   $selected_monitor_ids = array($selected_monitor_ids);
 }
 

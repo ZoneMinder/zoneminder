@@ -37,7 +37,7 @@ if ( ! visibleMonitor($mid) ) {
   return;
 }
 
-$monitor = new Monitor($mid);
+$monitor = new ZM\Monitor($mid);
 
 #Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );

@@ -23,14 +23,14 @@ if ( !canEdit('Monitors') ) {
   return;
 }
 
-$monitors = Monitor::find(array('Id' => $_REQUEST['mids']));
+$monitors = ZM\Monitor::find(array('Id' => $_REQUEST['mids']));
 $monitor = $monitors[0];
-$servers = Server::find();
+$servers = ZM\Server::find();
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
-$storage_areas = Storage::find();
+$storage_areas = ZM\Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;

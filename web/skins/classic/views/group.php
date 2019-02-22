@@ -24,9 +24,9 @@ if ( !canEdit('Groups') ) {
 }
 
 if ( !empty($_REQUEST['gid']) ) {
-  $newGroup = new Group($_REQUEST['gid']);
+  $newGroup = new ZM\Group($_REQUEST['gid']);
 } else {
-  $newGroup = new Group();
+  $newGroup = new ZM\Group();
 }
 
 xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
@@ -51,7 +51,7 @@ xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
               <td>
 <?php
 $Groups = array();
-foreach ( Group::find() as $Group ) {
+foreach ( ZM\Group::find() as $Group ) {
   $Groups[$Group->Id()] = $Group;
 }
 

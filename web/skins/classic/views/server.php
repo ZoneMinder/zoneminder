@@ -23,7 +23,7 @@ if ( !canEdit('System') ) {
   return;
 }
 
-$Server = new Server($_REQUEST['id']);
+$Server = new ZM\Server($_REQUEST['id']);
 if ( $_REQUEST['id'] and ! $Server->Id() ) {
   $view = 'error';
   return;
@@ -97,9 +97,8 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$Server->Name());
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="hidden" name="action" value="Save"/>
-          <input type="submit" value="<?php echo translate('Save') ?>"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
+          <button type="submit" name="action" value="Save" ><?php echo translate('Save') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

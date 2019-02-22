@@ -20,7 +20,7 @@
 
 // If there is an action on an event, then we must have an id.
 if ( !empty($_REQUEST['eid']) ) {
-  Warning("No eid in action on event view");
+  ZM\Warning('No eid in action on event view');
   return;
 }
 

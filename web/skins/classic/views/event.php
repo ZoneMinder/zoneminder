@@ -26,7 +26,7 @@ if ( !canView('Events') ) {
 $eid = validInt( $_REQUEST['eid'] );
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$Event = new Event( $eid );
+$Event = new ZM\Event( $eid );
 if ( $user['MonitorIds'] ) {
   $monitor_ids = explode( ',', $user['MonitorIds'] );
   if ( count($monitor_ids) and ! in_array( $Event->MonitorId(), $monitor_ids ) ) {

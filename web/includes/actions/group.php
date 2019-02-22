@@ -22,7 +22,7 @@
 # Should probably verify that each monitor id is a valid monitor, that we have access to.
 # However at the moment, you have to have System permissions to do this
 if ( ! canEdit('Groups') ) {
-  Warning("Need group edit permissions to edit groups");
+  ZM\Warning('Need group edit permissions to edit groups');
   return;
 }
 

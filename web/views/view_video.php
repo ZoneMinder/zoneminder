@@ -38,19 +38,19 @@ $path = '';
 $Event = null;
 
 if ( ! empty($_REQUEST['eid']) ) {
-  $Event = new Event($_REQUEST['eid']);
+  $Event = new ZM\Event($_REQUEST['eid']);
   $path = $Event->Path().'/'.$Event->DefaultVideo();
-	Logger::Debug("Path: $path");
+	ZM\Logger::Debug("Path: $path");
 } else if ( ! empty($_REQUEST['event_id']) ) {
-  $Event = new Event($_REQUEST['event_id']);
+  $Event = new ZM\Event($_REQUEST['event_id']);
   $path = $Event->Path().'/'.$Event->DefaultVideo();
-	Logger::Debug("Path: $path");
+	ZM\Logger::Debug("Path: $path");
 } else {
   $errorText = 'No video path';
 }
 
 if ( $errorText ) {
-  Error($errorText);
+  ZM\Error($errorText);
   header('HTTP/1.0 404 Not Found');
   die();
 } 
@@ -68,14 +68,14 @@ $end = $size-1;
 $length = $size;
 
 if ( isset($_SERVER['HTTP_RANGE']) ) {
-  Logger::Debug('Using Range ' . $_SERVER['HTTP_RANGE']);
+  ZM\Logger::Debug('Using Range ' . $_SERVER['HTTP_RANGE']);
   if ( preg_match('/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches) ) {
     $begin = intval($matches[1]);
     if ( ! empty($matches[2]) ) {
       $end = intval($matches[2]);
     }
     $length = $end - $begin + 1;
-    Logger::Debug("Using Range $begin $end size: $size, length: $length");
+    ZM\Logger::Debug("Using Range $begin $end size: $size, length: $length");
   }
 } # end if HTTP_RANGE
 
@@ -98,7 +98,6 @@ if ( $begin > 0 || $end < $size-1 ) {
 }
 
 // Apparently without these we get a few extra bytes of output at the end...
-ob_clean();
 flush();
 
 $cur = $begin;

@@ -17,6 +17,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
+namespace ZM;
 
 error_reporting(E_ALL);
 
@@ -219,7 +220,6 @@ if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
   $request = null;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';
-  Logger::Debug('Redirecting to privacy');
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
   $request = null;
 }

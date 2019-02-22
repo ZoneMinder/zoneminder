@@ -89,7 +89,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
   }
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
   if ( $dbUser = dbFetchOne($sql, NULL, $sql_values) ) {
-    Info("Login successful for user \"$username\"");
+    ZM\Info("Login successful for user \"$username\"");
     $user = $dbUser;
     unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == 'builtin' ) {
@@ -97,7 +97,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
     }
     zm_session_regenerate_id();
   } else {
-    Warning("Login denied for user \"$username\"");
+    ZM\Warning("Login denied for user \"$username\"");
     $_SESSION['loginFailed'] = true;
     unset($user);
   }
@@ -108,7 +108,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
 
 function userLogout() {
   global $user;
-  Info('User "'.$user['Username'].'" logged out');
+  ZM\Info('User "'.$user['Username'].'" logged out');
   unset($user);
   zm_session_clear();
 }
@@ -119,7 +119,7 @@ function getAuthUser($auth) {
     if ( ZM_AUTH_HASH_IPS ) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
       if ( !$remoteAddr ) {
-        Error("Can't determine remote address for authentication, using empty string");
+        ZM\Error("Can't determine remote address for authentication, using empty string");
         $remoteAddr = '';
       }
     }
@@ -145,7 +145,7 @@ function getAuthUser($auth) {
       } // end foreach hour
     } // end foreach user
   } // end if using auth hash
-  Error("Unable to authenticate user from auth hash '$auth'");
+  ZM\Error("Unable to authenticate user from auth hash '$auth'");
   return false;
 } // end getAuthUser($auth)
 
@@ -164,7 +164,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       } else {
         $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
-      #Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
+      #ZM\Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5($authKey);
       if ( !$force ) {
         $close_session = 0;
@@ -178,9 +178,9 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       } else {
         return $auth;
       }
-      #Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
+      #ZM\Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
       #} else {
-      #Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
+      #ZM\Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'.$_SESSION['remoteAddr']];
   } # end if using AUTH and AUTH_RELAY

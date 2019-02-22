@@ -284,7 +284,7 @@ function collectData() {
             if ( in_array($matches[1], $fieldSql) ) {
               $sql .= $matches[1];
             } else {
-              Error('Sort field ' . $matches[1] . ' not in SQL Fields');
+              ZM\Error('Sort field ' . $matches[1] . ' not in SQL Fields');
             }
             if ( count($matches) > 2 ) {
               $sql .= ' '.strtoupper($matches[2]);
@@ -292,7 +292,7 @@ function collectData() {
                 $sql .= ' '.strtoupper($matches[3]);
             }
           } else {
-            Error("Sort field didn't match regexp $sort_field");
+            ZM\Error("Sort field didn't match regexp $sort_field");
           }
         } # end foreach sort field
       } # end if has sort
@@ -323,7 +323,7 @@ function collectData() {
       }
     }
   }
-  #Logger::Debug(print_r($data, true));
+  #ZM\Logger::Debug(print_r($data, true));
   return $data;
 }
 

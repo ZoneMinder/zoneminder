@@ -8,7 +8,7 @@ function zm_session_start() {
   $currentCookieParams = session_get_cookie_params(); 
   $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
 
-  Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+  ZM\Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
   session_set_cookie_params( 
     $currentCookieParams['lifetime'],
     $currentCookieParams['path'],
@@ -22,7 +22,7 @@ function zm_session_start() {
   session_start();
   // Do not allow to use expired session ID
   if ( !empty($_SESSION['last_time']) && ($_SESSION['last_time'] < (time() - 180)) ) {
-    Info('Destroying session due to timeout. ');
+    ZM\Info('Destroying session due to timeout. ');
     session_destroy();
     session_start();
   }

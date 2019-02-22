@@ -25,10 +25,10 @@ if ( isset($_REQUEST['object']) and $_REQUEST['object'] == 'Monitor' ) {
     foreach ( $_REQUEST['mids'] as $mid ) {
       $mid = ValidInt($mid);
       if ( ! canEdit('Monitors', $mid) ) {
-        Warning("Cannot edit monitor $mid");
+        ZM\Warning("Cannot edit monitor $mid");
         continue;
       }
-      $Monitor = new Monitor($mid);
+      $Monitor = new ZM\Monitor($mid);
       if ( $Monitor->Type() != 'WebSite' ) {
         $Monitor->zmaControl('stop');
         $Monitor->zmcControl('stop');
@@ -47,7 +47,7 @@ if ( isset($_REQUEST['object']) and $_REQUEST['object'] == 'Monitor' ) {
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
 if ( ! canEdit('Monitors') ) {
-  Warning("Monitor actions require Monitors Permissions");
+  ZM\Warning("Monitor actions require Monitors Permissions");
   return;
 }
 
@@ -68,7 +68,7 @@ if ( $action == 'monitor' ) {
       $x10Monitor = array();
     }
   }
-  $Monitor = new Monitor($monitor);
+  $Monitor = new ZM\Monitor($monitor);
 
   // Define a field type for anything that's not simple text equivalent
   $types = array(
@@ -86,10 +86,10 @@ if ( $action == 'monitor' ) {
   if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
     $_REQUEST['newMonitor']['ServerId'] = dbFetchOne(
       'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
-    Logger::Debug('Auto selecting server: Got ' . $_REQUEST['newMonitor']['ServerId'] );
+    ZM\Logger::Debug('Auto selecting server: Got ' . $_REQUEST['newMonitor']['ServerId'] );
     if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
       $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
-      Logger::Debug('Auto selecting server to ' . ZM_SERVER_ID);
+      ZM\Logger::Debug('Auto selecting server to ' . ZM_SERVER_ID);
     }
   }
 
@@ -107,12 +107,12 @@ if ( $action == 'monitor' ) {
       dbQuery('UPDATE Monitors SET '.implode(', ', $changes).' WHERE Id=?', array($mid));
       // Groups will be added below
       if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
-        $OldStorage = new Storage($monitor['StorageId']);
+        $OldStorage = new ZM\Storage($monitor['StorageId']);
         $saferOldName = basename($monitor['Name']);
         if ( file_exists($OldStorage->Path().'/'.$saferOldName) )
           unlink($OldStorage->Path().'/'.$saferOldName);
 
-        $NewStorage = new Storage($_REQUEST['newMonitor']['StorageId']);
+        $NewStorage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
         if ( ! file_exists($NewStorage->Path().'/'.$mid) )
           mkdir($NewStorage->Path().'/'.$mid, 0755);
         $saferNewName = basename($_REQUEST['newMonitor']['Name']);
@@ -164,24 +164,24 @@ if ( $action == 'monitor' ) {
         $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
         dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
         //$view = 'none';
-        $Storage = new Storage($_REQUEST['newMonitor']['StorageId']);
+        $Storage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
         mkdir($Storage->Path().'/'.$mid, 0755);
         $saferName = basename($_REQUEST['newMonitor']['Name']);
         symlink($mid, $Storage->Path().'/'.$saferName);
 
       } else {
-        Error('Error saving new Monitor.');
+        ZM\Error('Error saving new Monitor.');
         $error_message = dbError($sql);
         return;
       }
     } else {
-      Error('Users with Monitors restrictions cannot create new monitors.');
+      ZM\Error('Users with Monitors restrictions cannot create new monitors.');
       return;
     }
 
     $restart = true;
   } else {
-    Logger::Debug('No action due to no changes to Monitor');
+    ZM\Logger::Debug('No action due to no changes to Monitor');
   } # end if count(changes)
 
   if (
@@ -220,7 +220,7 @@ if ( $action == 'monitor' ) {
 
   if ( $restart ) {
     
-    $new_monitor = new Monitor($mid);
+    $new_monitor = new ZM\Monitor($mid);
     //fixDevices();
 
     if ( $new_monitor->Type() != 'WebSite' ) {
@@ -238,6 +238,6 @@ if ( $action == 'monitor' ) {
   } // end if restart
   $view = 'none';
 } else {
-  Warning("Unknown action $action in Monitor");
+  ZM\Warning("Unknown action $action in Monitor");
 } // end if action == Delete
 ?>

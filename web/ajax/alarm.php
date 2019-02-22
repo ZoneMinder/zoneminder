@@ -1,6 +1,6 @@
 <?php
-define("MSG_TIMEOUT", 2.0);
-define("MSG_DATA_SIZE", 4+256);
+define('MSG_TIMEOUT', 2.0);
+define('MSG_DATA_SIZE', 4+256);
 
 if ( canEdit('Monitors') ) {
     $zmuCommand = getZmuCommand(' -m '.validInt($_REQUEST['id']));

@@ -54,7 +54,7 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod ) {
   $optCheckMethods[$optCheckMethod] = $optCheckMethod;
 }
 
-$monitor = new Monitor( $mid );
+$monitor = new ZM\Monitor( $mid );
 
 $minX = 0;
 $maxX = $monitor->Width()-1;

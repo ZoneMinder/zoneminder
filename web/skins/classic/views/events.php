@@ -80,12 +80,12 @@ $focusWindow = true;
 
 if ( $_POST ) {
   // I think this is basically so that a refresh doesn't repost
-  Logger::Debug("Redirecting to " . $_SERVER['REQUEST_URI']);
+  ZM\Logger::Debug('Redirecting to ' . $_SERVER['REQUEST_URI']);
   header('Location: ?view=' . $view.htmlspecialchars_decode($filterQuery).htmlspecialchars_decode($sortQuery).$limitQuery.'&page='.$page);
   exit();
 }
 
-$storage_areas = Storage::find();
+$storage_areas = ZM\Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
@@ -146,7 +146,7 @@ $disk_space_total = 0;
 
 $results = dbQuery($eventsSql);
 while ( $event_row = dbFetchNext($results) ) {
-  $event = new Event($event_row);
+  $event = new ZM\Event($event_row);
   if ( $event_row['Archived'] )
     $archived = true;
   else
@@ -248,7 +248,7 @@ while ( $event_row = dbFetchNext($results) ) {
       echo '</td>';
   } // end if ZM_WEB_LIST_THUMBS
 ?>
-              <td class="colMark"><input type="checkbox" name="eids[]" value="<?php echo $event->Id() ?>" data-on-click-this="configureButton"/></td>
+              <td class="colMark"><input type="checkbox" name="eids[]" value="<?php echo $event->Id() ?>"/></td>
             </tr>
 <?php
 }

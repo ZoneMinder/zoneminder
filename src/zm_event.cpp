@@ -242,30 +242,19 @@ Event::~Event() {
     videoStore = NULL;
   }
 
-  if ( frame_data.size() )
-    WriteDbFrames();
-
-  // Should not be static because we are multi-threaded
-  char sql[ZM_SQL_MED_BUFSIZ];
   struct DeltaTimeval delta_time;
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
 
   if ( frames > last_db_frame ) {
     Debug(1, "Adding closing frame %d to DB", frames);
-    snprintf(sql, sizeof(sql), 
-        "INSERT INTO Frames ( EventId, FrameId, TimeStamp, Delta ) VALUES ( %" PRIu64 ", %d, from_unixtime( %ld ), %s%ld.%02ld )",
-        id, frames, end_time.tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
-    db_mutex.lock();
-    if ( mysql_query(&dbconn, sql) ) {
-      db_mutex.unlock();
-      Error("Can't insert frame: %s", mysql_error(&dbconn));
-    } else {
-      db_mutex.unlock();
-      Debug(1,"Success writing last frame");
-    }
+    frame_data.push(new Frame(id, frames, NORMAL, end_time, delta_time, 0));
   }
+  if ( frame_data.size() )
+    WriteDbFrames();
 
+  // Should not be static because we might be multi-threaded
+  char sql[ZM_SQL_MED_BUFSIZ];
   snprintf(sql, sizeof(sql), 
       "UPDATE Events SET Name='%s %" PRIu64 "', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' WHERE Id = %" PRIu64,
       monitor->EventPrefix(), id, end_time.tv_sec,
@@ -537,13 +526,12 @@ void Event::WriteDbFrames() {
   *(sql_ptr-2) = '\0';
   db_mutex.lock();
   if ( mysql_query(&dbconn, sql) ) {
-    Error("Can't insert frames: %s", mysql_error(&dbconn));
-    Error("SQL was %s", sql);
     db_mutex.unlock();
+    Error("Can't insert frames: %s, sql was %s", mysql_error(&dbconn), sql);
     return;
   }
   db_mutex.unlock();
-}
+} // end void Event::WriteDbFrames()
 
 void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image) {
   if ( !timestamp.tv_sec ) {
@@ -591,10 +579,10 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
     static char sql[ZM_SQL_MED_BUFSIZ];
 
-    frame_data.push( new Frame(id, frames, frame_type, timestamp, delta_time, score ) );
-    if ( frame_data.size() > 10 ) {
+    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
+    if ( frame_data.size() > 20 ) {
       WriteDbFrames();
-      Debug(1, "Adding 10 frames to DB");
+      Debug(1, "Adding 20 frames to DB");
       last_db_frame = frames;
     }
 

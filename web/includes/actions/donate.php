@@ -19,7 +19,7 @@
 //
 
 if ( !canEdit('System') ) {
-  Warning("Need System permissions to update donation");
+  ZM\Warning('Need System permissions to update donation');
   return;
 }
 

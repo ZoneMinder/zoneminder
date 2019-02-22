@@ -252,7 +252,7 @@ function getNavBarHTML($reload = null) {
 				<span class="icon-bar"></span>
 				<span class="icon-bar"></span>
 			</button>
-      <div class="navbar-brand"><a href="<?php echo validHtmlStr(ZM_HOME_URL); ?>" target="<?php echo validHtmlStr(ZM_WEB_TITLE); ?>"><?php echo validHtmlStr(ZM_HOME_CONTENT); ?></a></div>
+      <div class="navbar-brand"><a href="<?php echo validHtmlStr(ZM_HOME_URL); ?>" target="<?php echo validHtmlStr(ZM_WEB_TITLE); ?>"><?php echo ZM_HOME_CONTENT ?></a></div>
 		</div>
 
 		<div class="collapse navbar-collapse" id="main-header-nav">
@@ -265,7 +265,7 @@ function getNavBarHTML($reload = null) {
 			<li><a href="?view=options"><?php echo translate('Options') ?></a></li>
 			<li>
 <?php
-  if ( logToDatabase() > Logger::NOLOG ) { 
+  if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
     if ( ! ZM_RUN_AUDIT ) {
     # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
      dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
@@ -355,13 +355,13 @@ if ($reload == 'reload') ob_start();
 ?>
 	  <li><?php echo translate('Storage') ?>:
 <?php
-  $storage_areas = Storage::find();
+  $storage_areas = ZM\Storage::find();
   $storage_paths = null;
   foreach ( $storage_areas as $area ) {
     $storage_paths[$area->Path()] = $area;
   }
   if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
-    array_push( $storage_areas, new Storage() );
+    array_push( $storage_areas, new ZM\Storage() );
   }
   $func = function($S){
     $class = '';

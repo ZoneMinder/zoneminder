@@ -22,7 +22,7 @@ if ( isset($_REQUEST['object']) ) {
   if ( $_REQUEST['object'] == 'MontageLayout' ) {
     // System edit actions
     if ( ! canEdit('System') ) {
-      Warning("Need System permissions to edit layouts");
+      ZM\Warning('Need System permissions to edit layouts');
       return;
     }
     require_once('includes/MontageLayout.php');

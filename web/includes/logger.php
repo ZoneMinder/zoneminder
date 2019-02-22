@@ -1,5 +1,6 @@
 <?php
 
+namespace ZM;
 require_once( 'config.php' );
 
 class Logger {

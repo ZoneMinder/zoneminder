@@ -40,7 +40,7 @@ if ( isset($_SESSION['export']) ) {
 
 if (isset($_REQUEST['exportFormat'])) {
   if (!in_array($_REQUEST['exportFormat'], array('zip', 'tar'))) {
-    Error('Invalid exportFormat');
+    ZM\Error('Invalid exportFormat');
     return;
   }
 }

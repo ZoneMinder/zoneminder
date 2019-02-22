@@ -1,7 +1,9 @@
 <?php
+namespace ZM;
 require_once('database.php');
 
 $server_cache = array();
+
 
 class Server {
   private $defaults = array(

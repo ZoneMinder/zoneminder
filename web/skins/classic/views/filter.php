@@ -36,11 +36,11 @@ foreach ( dbFetchAll('SELECT * FROM Filters ORDER BY Name') as $row ) {
     $filterNames[$row['Id']] .= '&';
 
   if ( isset($_REQUEST['Id']) && $_REQUEST['Id'] == $row['Id'] ) {
-    $filter = new Filter($row);
+    $filter = new ZM\Filter($row);
   }
 }
 if ( ! $filter ) {
-  $filter = new Filter();
+  $filter = new ZM\Filter();
 }
 
 if ( isset($_REQUEST['sort_field']) && isset($_REQUEST['filter']) ) {

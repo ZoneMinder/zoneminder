@@ -23,7 +23,7 @@ if ( !canView('Events') ) {
   return;
 }
 require_once('includes/Frame.php');
-$Event = new Event( $_REQUEST['eid'] );
+$Event = new ZM\Event($_REQUEST['eid']);
 
 $sql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId';
 $frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid'] ) );
@@ -62,7 +62,7 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id() );
 <?php
 if ( count($frames) ) {
   foreach ( $frames as $frame ) {
-    $Frame = new Frame( $frame );
+    $Frame = new ZM\Frame( $frame );
 
     $class = strtolower($frame['Type']);
 ?>

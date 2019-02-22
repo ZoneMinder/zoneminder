@@ -474,6 +474,11 @@ foreach ($monitors as $m)
     $numMonitors += 1;
 }
 echo "var numMonitors = $numMonitors;\n";
+
+if ( ! $minTimeSecs )
+$minTimeSecs = strtotime("2036-01-01 01:01:01");
+if ( ! $maxTimeSecs )
+$maxTimeSecs = strtotime("1950-01-01 01:01:01");
 echo "var minTimeSecs="     . $minTimeSecs . ";\n";
 echo "var maxTimeSecs="     . $maxTimeSecs . ";\n";
 echo "var rangeTimeSecs="   . ( $maxTimeSecs - $minTimeSecs + 1) . ";\n";

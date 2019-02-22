@@ -39,7 +39,7 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$Server->Name());
       <h2><?php echo translate('Server').' - '.$Server->Name() ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm(this, <?php echo empty($Server->Name())?'true':'false' ?>)">
+      <form name="contentForm" method="post" action="?" onsubmit="return validateForm(this)">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="object" value="server"/>
         <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>

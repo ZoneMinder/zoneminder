@@ -8,7 +8,7 @@ function zm_session_start() {
   $currentCookieParams = session_get_cookie_params(); 
   $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
 
-  Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
+  ZM\Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
   session_set_cookie_params( 
     $currentCookieParams['lifetime'],
     $currentCookieParams['path'],

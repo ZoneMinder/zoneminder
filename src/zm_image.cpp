@@ -1650,6 +1650,7 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
   unsigned int size = result->size;
   for ( unsigned int c = 0; c < colours; c++ )
   {
+    unsigned int ref_colour_rgb = RGB_VAL(ref_colour,c);
     for ( unsigned int i = 0; i < size; i++ )
     {
       unsigned int count = 0;
@@ -1658,12 +1659,8 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
       {
         uint8_t *psrc = images[j]->buffer+c;
 
-#ifndef SOLARIS
-        if ( (unsigned)abs((*psrc)-RGB_VAL(ref_colour,c)) >= RGB_VAL(threshold,c) )
-#else
-        if ( (unsigned)std::abs((*psrc)-RGB_VAL(ref_colour,c)) >= RGB_VAL(threshold,c) )
-#endif
-        {
+        unsigned int diff = ((*psrc)-ref_colour_rgb) > 0 ? (*psrc)-ref_colour_rgb : ref_colour_rgb - (*psrc);
+        if (diff >= RGB_VAL(threshold,c)) {
           count++;
         }
         psrc += colours;

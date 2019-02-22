@@ -90,12 +90,12 @@ function CORSHeaders() {
 
 # The following is left for future reference/use.
     $valid = false;
-    $Servers = Server::find();
+    $Servers = ZM\Server::find();
     if ( sizeof($Servers) < 1 ) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
       if ( ZM_MIN_STREAMING_PORT ) {
-        Logger::Debug("Setting default Access-Control-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
+        ZM\Logger::Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
       }
@@ -108,14 +108,14 @@ function CORSHeaders() {
         preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
       ) {
         $valid = true;
-        Logger::Debug("Setting Access-Control-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
+        ZM\Logger::Debug("Setting Access-Control-Allow-Origin from " . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
         break;
       }
     }
     if ( !$valid ) {
-      Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
+      ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
     }
   }
 }
@@ -409,7 +409,7 @@ function getZmuCommand( $args ) {
 }
 
 function getEventDefaultVideoPath( $event ) {
-  $Event = new Event( $event );
+  $Event = new ZM\Event( $event );
   return $Event->getStreamSrc( array( 'mode'=>'mpeg', 'format'=>'h264' ) );
 }
 
@@ -424,15 +424,15 @@ function deletePath( $path ) {
 function deleteEvent( $event ) {
 
   if ( empty($event) ) {
-    Error( 'Empty event passed to deleteEvent.');
+    ZM\Error('Empty event passed to deleteEvent.');
     return;
   }
 
   if ( gettype($event) != 'array' ) {
 # $event could be an eid, so turn it into an event hash
-    $event = new Event( $event );
+    $event = new ZM\Event( $event );
   } else {
-Logger::Debug("Event type: " . gettype($event));
+ZM\Logger::Debug("Event type: " . gettype($event));
   }
 
   global $user;
@@ -527,7 +527,7 @@ function htmlOptions($contents, $values) {
 
       if ( isset($option['disabled']) ) {
         $disabled = $option['disabled'];
-        Error("Setting to disabled");
+        ZM\Error("Setting to disabled");
       }
     } else if ( is_object($option) ) {
       $text = $option->Name();
@@ -556,7 +556,7 @@ function buildSelect( $name, $contents, $behaviours=false ) {
     elseif ( isset($_REQUEST[$arr]) )
       $value = $_REQUEST[$arr];
     if ( !preg_match_all( '/\[\s*[\'"]?(\w+)["\']?\s*\]/', $matches[2], $matches ) ) {
-      Fatal( "Can't parse selector '$name'" );
+      ZM\Fatal( "Can't parse selector '$name'" );
     }
     for ( $i = 0; $i < count($matches[1]); $i++ ) {
       $idx = $matches[1][$i];
@@ -833,17 +833,17 @@ function daemonControl( $command, $daemon=false, $args=false ) {
   }
   $string = escapeshellcmd( $string );
   #$string .= ' 2>/dev/null >&- <&- >/dev/null';
-Logger::Debug("daemonControl $string");
+ZM\Logger::Debug("daemonControl $string");
   exec( $string );
 }
 
 function zmcControl($monitor, $mode=false) {
-  $Monitor = new Monitor( $monitor );
+  $Monitor = new ZM\Monitor( $monitor );
   return $Monitor->zmcControl($mode);
 }
 
 function zmaControl($monitor, $mode=false) {
-  $Monitor = new Monitor($monitor);
+  $Monitor = new ZM\Monitor($monitor);
   return $Monitor->zmaControl($mode);
 }
 
@@ -916,7 +916,7 @@ function zmaCheck( $monitor ) {
 }
 
 function getImageSrc( $event, $frame, $scale=SCALE_BASE, $captureOnly=false, $overwrite=false ) {
-  $Event = new Event( $event );
+  $Event = new ZM\Event( $event );
   return $Event->getImageSrc( $frame, $scale, $captureOnly, $overwrite );
 }
 
@@ -940,7 +940,7 @@ function createListThumbnail( $event, $overwrite=false ) {
     $scale = (SCALE_BASE*ZM_WEB_LIST_THUMB_HEIGHT)/$event['Height'];
     $thumbWidth = reScale( $event['Width'], $scale );
   } else {
-    Fatal( "No thumbnail width or height specified, please check in Options->Web" );
+    ZM\Fatal( "No thumbnail width or height specified, please check in Options->Web" );
   }
 
   $imageData = getImageSrc( $event, $frame, $scale, false, $overwrite );
@@ -1196,11 +1196,11 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             if ( ! $StorageArea ) {
               for ( $j = 0; $j < count($terms); $j++ ) {
                 if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
-                  $StorageArea = Storage::find_one(array('Id'=>$terms[$j]['val']));
+                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
                   break;
                 }
               } // end foreach remaining term
-              if ( ! $StorageArea ) $StorageArea = new Storage();
+              if ( ! $StorageArea ) $StorageArea = new ZM\Storage();
             } // end no StorageArea found yet
 
             $filter['sql'] .= getDiskPercent( $StorageArea->Path() );
@@ -1210,7 +1210,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             if ( ! $StorageArea ) {
               for ( $j = $i; $j < count($terms); $j++ ) {
                 if ( isset($terms[$i]['attr']) and $terms[$i]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
-                  $StorageArea = Storage::find_one(array('Id'=>$terms[$j]['val']));
+                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
                 }
               } // end foreach remaining term
             } // end no StorageArea found yet
@@ -1242,7 +1242,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
               }
               break;
             case 'StorageId':
-              $StorageArea = Storage::find_one(array('Id'=>$value));
+              $StorageArea = ZM\Storage::find_one(array('Id'=>$value));
               if ( $value != 'NULL' )
                 $value = dbEscape($value);
               break;
@@ -1462,7 +1462,7 @@ function getDiskPercent($path = ZM_DIR_EVENTS) {
 }
 
 function getDiskBlocks() {
-  if ( ! $StorageArea ) $StorageArea = new Storage();
+  if ( ! $StorageArea ) $StorageArea = new ZM\Storage();
   $df = shell_exec( 'df '.escapeshellarg($StorageArea->Path() ));
   $space = -1;
   if ( preg_match( '/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches ) )
@@ -1847,17 +1847,17 @@ function coordsToPoints( $coords ) {
 function limitPoints( &$points, $min_x, $min_y, $max_x, $max_y ) {
   foreach ( $points as &$point ) {
     if ( $point['x'] < $min_x ) {
-      Logger::Debug('Limiting point x'.$point['x'].' to min_x ' . $min_x );
+      ZM\Logger::Debug('Limiting point x'.$point['x'].' to min_x ' . $min_x );
       $point['x'] = $min_x;
     } else if ( $point['x'] > $max_x ) {
-      Logger::Debug('Limiting point x'.$point['x'].' to max_x ' . $max_x );
+      ZM\Logger::Debug('Limiting point x'.$point['x'].' to max_x ' . $max_x );
       $point['x'] = $max_x;
     }
     if ( $point['y'] < $min_y ) {
-      Logger::Debug('Limiting point y'.$point['y'].' to min_y ' . $min_y );
+      ZM\Logger::Debug('Limiting point y'.$point['y'].' to min_y ' . $min_y );
       $point['y'] = $min_y;
     } else if ( $point['y'] > $max_y ) {
-      Logger::Debug('Limiting point y'.$point['y'].' to max_y ' . $max_y );
+      ZM\Logger::Debug('Limiting point y'.$point['y'].' to max_y ' . $max_y );
       $point['y'] = $max_y;
     }
   } // end foreach point
@@ -1912,13 +1912,13 @@ function initX10Status() {
   if ( !isset($x10_status) ) {
     $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
     if ( $socket < 0 ) {
-      Fatal( 'socket_create() failed: '.socket_strerror($socket) );
+      ZM\Fatal( 'socket_create() failed: '.socket_strerror($socket) );
     }
     $sock_file = ZM_PATH_SOCKS.'/zmx10.sock';
     if ( @socket_connect( $socket, $sock_file ) ) {
       $command = 'status';
       if ( !socket_write( $socket, $command ) ) {
-        Fatal( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
+        ZM\Fatal( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
       }
       socket_shutdown( $socket, 1 );
       $x10Output = '';
@@ -1954,13 +1954,13 @@ function getDeviceStatusX10( $key ) {
 function setDeviceStatusX10( $key, $status ) {
   $socket = socket_create( AF_UNIX, SOCK_STREAM, 0 );
   if ( $socket < 0 ) {
-    Fatal( 'socket_create() failed: '.socket_strerror($socket) );
+    ZM\Fatal( 'socket_create() failed: '.socket_strerror($socket) );
   }
   $sock_file = ZM_PATH_SOCKS.'/zmx10.sock';
   if ( @socket_connect( $socket, $sock_file ) ) {
     $command = "$status;$key";
     if ( !socket_write( $socket, $command ) ) {
-      Fatal( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
+      ZM\Fatal( "Can't write to control socket: ".socket_strerror(socket_last_error($socket)) );
     }
     socket_shutdown( $socket, 1 );
     $x10Response = socket_read( $socket, 256 );
@@ -1983,18 +1983,18 @@ function logState() {
   $state = 'ok';
 
   $levelCounts = array(
-      Logger::FATAL => array( ZM_LOG_ALERT_FAT_COUNT, ZM_LOG_ALARM_FAT_COUNT ),
-      Logger::ERROR => array( ZM_LOG_ALERT_ERR_COUNT, ZM_LOG_ALARM_ERR_COUNT ),
-      Logger::WARNING => array( ZM_LOG_ALERT_WAR_COUNT, ZM_LOG_ALARM_WAR_COUNT ),
+      ZM\Logger::FATAL => array( ZM_LOG_ALERT_FAT_COUNT, ZM_LOG_ALARM_FAT_COUNT ),
+      ZM\Logger::ERROR => array( ZM_LOG_ALERT_ERR_COUNT, ZM_LOG_ALARM_ERR_COUNT ),
+      ZM\Logger::WARNING => array( ZM_LOG_ALERT_WAR_COUNT, ZM_LOG_ALARM_WAR_COUNT ),
       );
 
   # This is an expensive request, as it has to hit every row of the Logs Table
-  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
+  $sql = 'SELECT Level, COUNT(Level) AS LevelCount FROM Logs WHERE Level < '.ZM\Logger::INFO.' AND TimeKey > unix_timestamp(now() - interval '.ZM_LOG_CHECK_PERIOD.' second) GROUP BY Level ORDER BY Level ASC';
   $counts = dbFetchAll($sql);
   if ( $counts ) {
     foreach ( $counts as $count ) {
-      if ( $count['Level'] <= Logger::PANIC )
-        $count['Level'] = Logger::FATAL;
+      if ( $count['Level'] <= ZM\Logger::PANIC )
+        $count['Level'] = ZM\Logger::FATAL;
       if ( !($levelCount = $levelCounts[$count['Level']]) ) {
         Error('Unexpected Log level '.$count['Level']);
         next;
@@ -2026,15 +2026,15 @@ function checkJsonError($value) {
     $value = var_export($value,true);
     switch( json_last_error() ) {
       case JSON_ERROR_DEPTH :
-        Fatal( "Unable to decode JSON string '$value', maximum stack depth exceeded" );
+        ZM\Fatal( "Unable to decode JSON string '$value', maximum stack depth exceeded" );
       case JSON_ERROR_CTRL_CHAR :
-        Fatal( "Unable to decode JSON string '$value', unexpected control character found" );
+        ZM\Fatal( "Unable to decode JSON string '$value', unexpected control character found" );
       case JSON_ERROR_STATE_MISMATCH :
-        Fatal( "Unable to decode JSON string '$value', invalid or malformed JSON" );
+        ZM\Fatal( "Unable to decode JSON string '$value', invalid or malformed JSON" );
       case JSON_ERROR_SYNTAX :
-        Fatal( "Unable to decode JSON string '$value', syntax error" );
+        ZM\Fatal( "Unable to decode JSON string '$value', syntax error" );
       default :
-        Fatal( "Unable to decode JSON string '$value', unexpected error ".json_last_error() );
+        ZM\Fatal( "Unable to decode JSON string '$value', unexpected error ".json_last_error() );
       case JSON_ERROR_NONE:
         break;
     }
@@ -2122,7 +2122,7 @@ define( 'HTTP_STATUS_BAD_REQUEST', 400 );
 define( 'HTTP_STATUS_FORBIDDEN', 403 );
 
 function ajaxError( $message, $code=HTTP_STATUS_OK ) {
-  Error( $message );
+  ZM\Error( $message );
   if ( function_exists( 'ajaxCleanup' ) )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
@@ -2168,7 +2168,7 @@ function cache_bust( $file ) {
   if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
     return 'cache/'.$cacheFile;
   } else {
-    Warning("Failed linking $file to $cacheFile");
+    ZM\Warning("Failed linking $file to $cacheFile");
   }
   return $file;
 }
@@ -2292,7 +2292,7 @@ function getStreamHTML( $monitor, $options = array() ) {
           $monitor->Name());
   } else {
     if ( $options['mode'] == 'stream' ) {
-      Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
+      ZM\Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
     $options['mode'] = 'single';
     $streamSrc = $monitor->getStreamSrc( $options );
@@ -2308,7 +2308,7 @@ function getStreamMode( ) {
     $streamMode = 'jpeg';
   } else {
     $streamMode = 'single';
-    Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
+    ZM\Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
   }
   return $streamMode;
 } // end function getStreamMode
@@ -2349,13 +2349,13 @@ function check_timezone() {
                #");
 
   if ( $sys_tzoffset != $php_tzoffset )
-    Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
+    ZM\Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
 
   if ( $sys_tzoffset != $mysql_tzoffset )
-    Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");
+    ZM\Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");
 
   if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone')))
-    Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+    ZM\Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
 
 }
 

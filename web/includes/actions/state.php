@@ -20,7 +20,7 @@
 
 // System edit actions
 if ( !canEdit('System') ) {
-  Warning('Need System Permission to edit states');
+  ZM\Warning('Need System Permission to edit states');
   return;
 }
 if ( $action == 'state' ) {

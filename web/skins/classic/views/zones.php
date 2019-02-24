@@ -18,13 +18,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Monitors' ) ) {
+if ( !canView('Monitors') ) {
   $view = 'error';
   return;
 }
 
 $mid = validInt($_REQUEST['mid']);
-$monitor = new Monitor( $mid );
+$monitor = new ZM\Monitor( $mid );
 # Width() and Height() are already rotated
 $minX = 0;
 $maxX = $monitor->Width()-1;

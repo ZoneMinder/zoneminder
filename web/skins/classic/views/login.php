@@ -7,7 +7,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
 		<form class="center-block" name="loginForm" id="loginForm" method="post" action="?">
 			<input type="hidden" name="action" value="login"/>
 			<input type="hidden" name="view" value="login"/>
-			<input type="hidden" name="postLoginQuery" value="<?php echo htmlspecialchars($_SERVER['QUERY_STRING']) ?>">
+			<input type="hidden" name="postLoginQuery" value="<?php echo isset($_SERVER['QUERY_STRING']) ? htmlspecialchars($_SERVER['QUERY_STRING']) : ''?>">
 
 			<div id="loginError" class="hidden alarm" role="alert">
 				<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>

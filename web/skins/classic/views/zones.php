@@ -24,7 +24,7 @@ if ( !canView('Monitors') ) {
 }
 
 $mid = validInt($_REQUEST['mid']);
-$monitor = new ZM\Monitor( $mid );
+$monitor = new ZM\Monitor($mid);
 # Width() and Height() are already rotated
 $minX = 0;
 $maxX = $monitor->Width()-1;
@@ -32,18 +32,18 @@ $minY = 0;
 $maxY = $monitor->Height()-1;
 
 $zones = array();
-foreach( dbFetchAll( 'SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($mid) ) as $row ) {
-  $row['Points'] = coordsToPoints( $row['Coords'] );
+foreach( dbFetchAll('SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($mid)) as $row ) {
+  $row['Points'] = coordsToPoints($row['Coords']);
 
-  limitPoints( $row['Points'], $minX, $minY, $maxX, $maxY );
-  $row['Coords'] = pointsToCoords( $row['Points'] );
-  $row['AreaCoords'] = preg_replace( '/\s+/', ',', $row['Coords'] );
+  limitPoints($row['Points'], $minX, $minY, $maxX, $maxY);
+  $row['Coords'] = pointsToCoords($row['Points']);
+  $row['AreaCoords'] = preg_replace('/\s+/', ',', $row['Coords']);
   $zones[] = $row;
 }
 
 $connkey = generateConnKey();
 
-xhtmlHeaders(__FILE__, translate('Zones') );
+xhtmlHeaders(__FILE__, translate('Zones'));
 ?>
 <body>
   <div id="page">

@@ -74,9 +74,9 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
 } // end bool MonitorStream::checkSwapPath( const char *path, bool create_path ) 
 
 void MonitorStream::processCommand(const CmdMsg *msg) {
-  Debug( 2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0] );
+  Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
   // Check for incoming command
-  switch( (MsgCommand)msg->msg_data[0] ) {
+  switch ( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
       Debug(1, "Got PAUSE command");
       paused = true;
@@ -414,19 +414,19 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
       return false;
     }
     fputs("\r\n\r\n",stdout);
-    fflush( stdout );
+    fflush(stdout);
 
     struct timeval frameEndTime;
-    gettimeofday( &frameEndTime, NULL );
+    gettimeofday(&frameEndTime, NULL);
 
-    int frameSendTime = tvDiffMsec( frameStartTime, frameEndTime );
+    int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
     if ( frameSendTime > 1000/maxfps ) {
       maxfps /= 1.5;
-      Error( "Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps );
+      Error("Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps);
     }
   }
-  last_frame_sent = TV_2_FLOAT( now );
-  return( true );
+  last_frame_sent = TV_2_FLOAT(now);
+  return true;
 } // end bool MonitorStream::sendFrame( Image *image, struct timeval *timestamp )
 
 void MonitorStream::runStream() {
@@ -483,7 +483,7 @@ void MonitorStream::runStream() {
     } else {
       swap_path = staticConfig.PATH_SWAP;
 
-      Debug( 3, "Checking swap path folder: %s", swap_path.c_str() );
+      Debug(3, "Checking swap path folder: %s", swap_path.c_str());
       if ( checkSwapPath(swap_path.c_str(), true) ) {
         swap_path += stringtf("/zmswap-m%d", monitor->Id());
 
@@ -503,8 +503,8 @@ void MonitorStream::runStream() {
       } else {
         Debug(2, "Assigning temporary buffer");
         temp_image_buffer = new SwapImage[temp_image_buffer_count];
-        memset( temp_image_buffer, 0, sizeof(*temp_image_buffer)*temp_image_buffer_count );
-        Debug( 2, "Assigned temporary buffer" );
+        memset(temp_image_buffer, 0, sizeof(*temp_image_buffer)*temp_image_buffer_count);
+        Debug(2, "Assigned temporary buffer");
       }
     }
   } else {

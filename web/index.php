@@ -215,8 +215,9 @@ if ( $action ) {
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
   Logger::Debug('Redirecting to login');
-  $view = 'none';
-  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
+  # We adjust the view instead of redirecting so that we can store the original url and just to it after logging in
+  $view = 'login';
+  #$redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
   $request = null;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';

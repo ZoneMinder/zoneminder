@@ -1630,6 +1630,7 @@ bool Monitor::Analyse() {
 
   ZMPacket *snap;
   // Is it possible for snap->score to be ! -1?
+  // get_analysis_packet will lock the packet
   while ( ( snap = packetqueue->get_analysis_packet() ) && ( snap->score == -1 ) ) {
     unsigned int index = snap->image_index;
     Debug(2, "Analysis index (%d), last_Write(%d)", index, shared_data->last_write_index);
@@ -1638,7 +1639,6 @@ bool Monitor::Analyse() {
       return 0;
     }
 
-    snap->lock();
     packets_processed += 1;
 
     if ( snap->image_index == -1 ) {
@@ -2069,7 +2069,6 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
 
         db_mutex.lock();
         static char sql[ZM_SQL_SML_BUFSIZ];
-        db_mutex.lock();
         snprintf(sql, sizeof(sql), "SELECT Id, Name FROM Monitors WHERE Id = %d AND Function != 'None' AND Function != 'Monitor' AND Enabled = 1", link_ids[i] );
         if ( mysql_query(&dbconn, sql) ) {
 					db_mutex.unlock();
@@ -2177,25 +2176,27 @@ int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose p
 int Monitor::Capture() {
   static int FirstCapture = 1; // Used in de-interlacing to indicate whether this is the even or odd image
 
-  unsigned int index = image_count % image_buffer_count;
+  unsigned int index = 0;
+  //image_count % image_buffer_count;
 
   if ( (index == shared_data->last_read_index) && (function > MONITOR) ) {
-    Warning( "Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count );
+    Warning("Buffer overrun at index %d, image %d, slow down capture, speed up analysis or increase ring buffer size", index, image_count);
     time_t now = time(0);
     double approxFps = double(image_buffer_count)/double(now-image_buffer[index].timestamp->tv_sec);
     time_t last_read_delta = now - shared_data->last_read_time;
     if ( last_read_delta > (image_buffer_count/approxFps) ) {
-      Warning( "Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta )
+      Warning("Last image read from shared memory %ld seconds ago, zma may have gone away", last_read_delta)
         shared_data->last_read_index = image_buffer_count;
     }
   } else {
-    Debug(2,"Capture: Current write index %d, last read index %d, current (%d)", shared_data->last_write_index, shared_data->last_read_index, index );
+    Debug(2,"Capture: Last write(capture) index %d, last read(analysis) index %d, current (%d)",
+        shared_data->last_write_index, shared_data->last_read_index, index );
   }
 
-  ZMPacket *packet = &image_buffer[index];
-  Debug(2,"before lock");
+  ZMPacket *packet = new ZMPacket();
+  //&image_buffer[index];
+  Debug(2,"before packet lock");
   packet->lock();
-  Debug(2,"before reset");
   packet->reset();
   Image* capture_image = packet->image;
   int captureResult = 0;
@@ -2243,23 +2244,23 @@ int Monitor::Capture() {
       if ( packet->packet.stream_index != video_stream_id ) {
         Debug(2, "Have audio packet (%d) != videostream_id:(%d) q.vpktcount(%d) event?(%d) ",
             packet->packet.stream_index, video_stream_id, packetqueue->video_packet_count, ( event ? 1 : 0 ) );
-        // Only queue if we have some video packets in there.
-        mutex.lock();
+        // Only queue if we have some video packets in there. Should push this logic into packetqueue
+        //mutex.lock();
         if ( packetqueue->video_packet_count || event ) {
           // Need to copy it into another ZMPacket.
-          ZMPacket *audio_packet = new ZMPacket(*packet);
+          //ZMPacket *audio_packet = new ZMPacket(*packet);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-          audio_packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
+          packet->codec_type = camera->get_AudioStream()->codecpar->codec_type;
 #else
-          audio_packet->codec_type = camera->get_AudioStream()->codec->codec_type;
+          packet->codec_type = camera->get_AudioStream()->codec->codec_type;
 #endif
           Debug(2, "Queueing packet");
-          packetqueue->queuePacket(audio_packet);
+          packetqueue->queuePacket(packet);
         }
         // Don't update last_write_index because that is used for live streaming
         //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
         
-        mutex.unlock();
+        //mutex.unlock();
         packet->unlock();
         return 1;
       }
@@ -2274,20 +2275,21 @@ int Monitor::Capture() {
         //Debug(2,"About to decode");
         if ( packet->decode(camera->get_VideoCodecContext()) ) {
           //Debug(2,"Getimage");
-          packet->get_image();
+          packet->get_image( image_buffer[index].image );
         }
         // Have an av_packet, 
       }
 
-      Debug(2,"Before mutex lock");
-      mutex.lock();
+      //Debug(2,"Before mutex lock");
+      // FIXME this mutex is useless, packetqueue has it's own
+      //mutex.lock();
       if ( packetqueue->video_packet_count || packet->keyframe || event ) {
         Debug(2, "Have video packet for index (%d)", index);
         packetqueue->queuePacket(packet);
       } else {
         Debug(2, "Not queuing video packet for index (%d)", index);
       }
-      mutex.unlock();
+      //mutex.unlock();
 
       /* Deinterlacing */
       if ( deinterlacing_value ) {
@@ -2355,7 +2357,7 @@ int Monitor::Capture() {
           // assume that we are connected
           snprintf(sql, sizeof(sql),
             "INSERT INTO Monitor_Status (MonitorId,CaptureFPS,CaptureBandwidth,Status) "
-            "VALUES (%d, %.2lf,%u) ON DUPLICATE KEY UPDATE "
+            "VALUES (%d, %.2lf, %u, 'Connected') ON DUPLICATE KEY UPDATE "
             "CaptureFPS = %.2lf, CaptureBandwidth=%u, Status='Connected'",
             id, capture_fps, new_capture_bandwidth, capture_fps, new_capture_bandwidth);
           if ( mysql_query(&dbconn, sql) ) {
@@ -2701,24 +2703,18 @@ Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 
 // Wait for camera to get an image, and then assign it as the base reference image. So this should be done as the first task in the analysis thread startup.
 void Monitor::get_ref_image() {
-  while (
-      ( shared_data->last_write_index == (unsigned int)image_buffer_count )
-      &&
-      ( shared_data->last_write_time == 0 )
-      && ! zm_terminate
-      ) {
-    Info("Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)",
+  ZMPacket * snap;
+  while ( ((!( snap = packetqueue->get_analysis_packet())) || ( snap->image_index == -1 )) && !zm_terminate) {
+    Debug(1, "Waiting for capture daemon lastwriteindex(%d) lastwritetime(%d)",
         shared_data->last_write_index, shared_data->last_write_time);
-    usleep(10000);
+    //usleep(10000);
   }
   if ( zm_terminate )
     return;
-  int last_write_index = shared_data->last_write_index ;
 
-  Debug(2,"Waiting for capture daemon unlock");
-  image_buffer[last_write_index].mutex.lock();
-  ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[last_write_index].image->Buffer(), camera->ImageSize());
-  image_buffer[last_write_index].mutex.unlock();
+  ref_image.Assign(width, height, camera->Colours(), camera->SubpixelOrder(), snap->image->Buffer(), camera->ImageSize());
+  Debug(2,"Have image about to unlock");
+  snap->unlock();
 }
 
 std::vector<Group *>  Monitor::Groups() {

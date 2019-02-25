@@ -62,8 +62,12 @@ class ZMPacket {
     explicit ZMPacket( ZMPacket &packet );
     ZMPacket();
     ~ZMPacket();
-    void lock() { mutex.lock(); };
-    void unlock() { mutex.unlock(); };
+    void lock() {
+      Debug(2,"Locking packet %d", this->image_index);
+      mutex.lock();
+      Debug(2,"packet %d locked", this->image_index);
+    };
+    void unlock() { Debug(2,"packet %d unlocked", this->image_index);mutex.unlock(); };
     AVFrame *get_out_frame( const AVCodecContext *ctx );
     int get_codec_imgsize() { return codec_imgsize; };
 };

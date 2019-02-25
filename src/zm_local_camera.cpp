@@ -2082,6 +2082,10 @@ int LocalCamera::Capture( ZMPacket &zm_packet ) {
 
   } /* prime capture */    
 
+  if ( ! zm_packet.image ) {
+    zm_packet.image = new Image(width, height, colours, subpixelorder);
+  }
+
   if ( conversion_type != 0 ) {
 
     Debug(3, "Performing format conversion");

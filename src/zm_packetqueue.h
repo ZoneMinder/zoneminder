@@ -42,7 +42,8 @@ class zm_packetqueue {
     int max_stream_id;
     int *packet_counts;     /* packet count for each stream_id, to keep track of how many video vs audio packets are in the queue */
 
-    Mutex mutex;
+    RecursiveMutex mutex;
+    Condition *condition;
 
   public:
     zm_packetqueue(int p_max_video_packet_count, int p_video_stream_id, int p_audio_stream_id);
@@ -60,6 +61,7 @@ class zm_packetqueue {
     // Functions to manage the analysis frame logic
     bool increment_analysis_it();
     ZMPacket *get_analysis_packet();
+    void lock_packet( ZMPacket &packet );
 };
 
 #endif /* ZM_PACKETQUEUE_H */

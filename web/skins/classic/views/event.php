@@ -36,7 +36,7 @@ if ( $user['MonitorIds'] ) {
 }
 $Monitor = $Event->Monitor();
 
-if (isset($_REQUEST['rate'])) {
+if ( isset($_REQUEST['rate']) ) {
   $rate = validInt($_REQUEST['rate']);
 } else if ( isset($_COOKIE['zmEventRate']) ) {
   $rate = $_COOKIE['zmEventRate'];
@@ -44,7 +44,7 @@ if (isset($_REQUEST['rate'])) {
   $rate = reScale(RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
 }
 
-if (isset($_REQUEST['scale'])) {
+if ( isset($_REQUEST['scale']) ) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset( $_COOKIE['zmEventScaleAuto'] ) ) {
   // If we're using scale to fit use it on all monitors
@@ -56,12 +56,12 @@ if (isset($_REQUEST['scale'])) {
 }
 
 $codec = 'auto';
-if (isset($_REQUEST['codec'])) {
+if ( isset($_REQUEST['codec']) ) {
   $codec = $_REQUEST['codec'];
   session_start();
   $_SESSION['zmEventCodec'.$Event->MonitorId()] = $codec;
   session_write_close();
-} else if ( isset( $_SESSION['zmEventCodec'.$Event->MonitorId()] ) ) {
+} else if ( isset($_SESSION['zmEventCodec'.$Event->MonitorId()]) ) {
   $codec = $_SESSION['zmEventCodec'.$Event->MonitorId()];
 } else {
   $codec = $Monitor->DefaultCodec();
@@ -91,7 +91,7 @@ if ( isset( $_REQUEST['replayMode'] ) )
 if ( isset( $_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']) )
   $replayMode = validHtmlStr($_COOKIE['replayMode']);
 
-if ( ( ! $replayMode ) or ( ! $replayModes[$replayMode] ) ) {
+if ( ( !$replayMode ) or ( !$replayModes[$replayMode] ) ) {
   $replayMode = 'none';
 }
 
@@ -145,7 +145,7 @@ if ( ! $Event->Id() ) {
         <div id="nameControl">
           <input type="text" id="eventName" name="eventName" value="<?php echo validHtmlStr($Event->Name()) ?>" />
           <button value="Rename" type="button" data-on-click="renameEvent"<?php if ( !canEdit('Events') ) { ?> disabled="disabled"<?php } ?>>
-<?php echo translate('Rename') ?></button>
+          <?php echo translate('Rename') ?></button>
         </div>
 <?php
 if ( canEdit('Events') ) {
@@ -172,8 +172,8 @@ if ( canEdit('Events') ) {
   } // end if Event->DefaultVideo
 ?>
         <div id="exportEvent"><button type="button" data-on-click="exportEvent"><?php echo translate('Export') ?></button></div>
-        <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect( "replayMode", $replayModes, "changeReplayMode();" ); ?></div>
-        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect( "scale", $scales, "changeScale();" ); ?></div>
+        <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect('replayMode', $replayModes, 'changeReplayMode();'); ?></div>
+        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect('scale', $scales, 'changeScale();'); ?></div>
         <div id="codecControl"><label for="codec"><?php echo translate('Codec') ?></label><?php echo htmlSelect('codec', $codecs, $codec, array('onchange'=>'changeCodec(this);') ); ?></div>
       </div>
      </div>
@@ -192,7 +192,6 @@ if ( $video_tag ) {
 <?php
 } else {
 ?>
-<?php if ( !$video_tag ) { ?>
       <div id="imageFeed">
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
@@ -212,7 +211,9 @@ if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->
       </div><!--imageFeed-->
-<?php } /*end if !DefaultVideo*/ ?>
+<?php
+} /*end if !DefaultVideo*/
+?>
         <p id="dvrControls">
           <input type="button" value="&lt;+" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev"/>
           <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" data-on-click-true="streamFastRev"/>

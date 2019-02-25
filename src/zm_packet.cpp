@@ -31,7 +31,7 @@ ZMPacket::ZMPacket( ) {
   out_frame = NULL;
   image = NULL;
   buffer = NULL;
-  av_init_packet( &packet );
+  av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.
   timestamp = NULL;
   analysis_image = NULL;
@@ -47,8 +47,8 @@ ZMPacket::ZMPacket( ZMPacket &p ) {
   out_frame = NULL;
   image = NULL;
   buffer = NULL;
-  av_init_packet( &packet );
-  if ( zm_av_packet_ref( &packet, &p.packet ) < 0 ) {
+  av_init_packet(&packet);
+  if ( zm_av_packet_ref(&packet, &p.packet) < 0 ) {
     Error("error refing packet");
   }
   timestamp = new struct timeval;
@@ -59,17 +59,17 @@ ZMPacket::ZMPacket( ZMPacket &p ) {
 }
 
 ZMPacket::~ZMPacket() {
-  zm_av_packet_unref( &packet );
+  zm_av_packet_unref(&packet);
   if ( in_frame ) {
     //av_free(frame->data);
-    av_frame_free( &in_frame );
+    av_frame_free(&in_frame);
   }
   if ( out_frame ) {
     //av_free(frame->data);
-    av_frame_free( &out_frame );
+    av_frame_free(&out_frame);
   }
   if ( buffer ) {
-    av_freep( &buffer );
+    av_freep(&buffer);
   }
   if ( analysis_image ) {
     delete analysis_image;
@@ -82,19 +82,19 @@ ZMPacket::~ZMPacket() {
 
 void ZMPacket::reset() {
   //Debug(2,"reset");
-  zm_av_packet_unref( &packet );
+  zm_av_packet_unref(&packet);
   packet.size = 0;
   if ( in_frame ) {
   //Debug(4,"reset frame");
-    av_frame_free( &in_frame );
+    av_frame_free(&in_frame);
   }
   if ( out_frame ) {
   //Debug(4,"reset frame");
-    av_frame_free( &out_frame );
+    av_frame_free(&out_frame);
   }
   if ( buffer ) {
   //Debug(4,"freeing buffer");
-    av_freep( &buffer );
+    av_freep(&buffer);
   }
   if ( analysis_image ) {
     delete analysis_image;
@@ -111,42 +111,44 @@ void ZMPacket::reset() {
 }
 
 int ZMPacket::decode( AVCodecContext *ctx ) {
-  Debug(4, "about to decode video, image_index is (%d)", image_index );
+  Debug(4, "about to decode video, image_index is (%d)", image_index);
 
   if ( in_frame ) {
-      Error("Already have a frame?");
+    Error("Already have a frame?");
   } else {
-      in_frame = zm_av_frame_alloc();
+    in_frame = zm_av_frame_alloc();
   }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  int ret = avcodec_send_packet( ctx, &packet );
+  Debug(4,"send_packet");
+  int ret = avcodec_send_packet(ctx, &packet);
   if ( ret < 0 ) {
-    Error( "Unable to send packet: %s", av_make_error_string(ret).c_str() );
-    av_frame_free( &in_frame );
+    Error("Unable to send packet: %s", av_make_error_string(ret).c_str());
+    av_frame_free(&in_frame);
     return 0;
   }
 
 #if HAVE_AVUTIL_HWCONTEXT_H
   if ( hwaccel ) {
-    ret = avcodec_receive_frame( ctx, hwFrame );
+    ret = avcodec_receive_frame(ctx, hwFrame);
     if ( ret < 0 ) {
-      Error( "Unable to receive frame: %s", av_make_error_string(ret).c_str() );
-      av_frame_free( &in_frame );
+      Error("Unable to receive frame: %s", av_make_error_string(ret).c_str());
+      av_frame_free(&in_frame);
       return 0;
     }
     ret = av_hwframe_transfer_data(frame, hwFrame, 0);
     if ( ret < 0 ) {
-      Error( "Unable to transfer frame: %s", av_make_error_string(ret).c_str() );
-      av_frame_free( &in_frame );
+      Error("Unable to transfer frame: %s", av_make_error_string(ret).c_str());
+      av_frame_free(&in_frame);
       return 0;
     }
   } else {
 #endif
-    ret = avcodec_receive_frame( ctx, in_frame );
+    Debug(4,"receive_frame");
+    ret = avcodec_receive_frame(ctx, in_frame);
     if ( ret < 0 ) {
-      Error( "Unable to receive frame: %s", av_make_error_string(ret).c_str() );
-      av_frame_free( &in_frame );
+      Error("Unable to receive frame: %s", av_make_error_string(ret).c_str());
+      av_frame_free(&in_frame);
       return 0;
     }
 
@@ -156,38 +158,38 @@ int ZMPacket::decode( AVCodecContext *ctx ) {
 
 # else
   int frameComplete = 0;
-  int ret = zm_avcodec_decode_video( ctx, in_frame, &frameComplete, &packet );
+  int ret = zm_avcodec_decode_video(ctx, in_frame, &frameComplete, &packet);
   if ( ret < 0 ) {
-    Error( "Unable to decode frame at frame %s", av_make_error_string(ret).c_str() );
-    av_frame_free( &in_frame );
+    Error("Unable to decode frame at frame %s", av_make_error_string(ret).c_str());
+    av_frame_free(&in_frame);
     return 0;
   }
-  if ( ! frameComplete ) {
+  if ( !frameComplete ) {
     Debug(1, "incomplete frame?");
-    av_frame_free( &in_frame );
+    av_frame_free(&in_frame);
     return 0;
   }
 #endif
   return 1;
 } // end ZMPacket::decode
 
-Image * ZMPacket::get_image( Image *i ) {
-  if ( ! in_frame ) {
+Image *ZMPacket::get_image(Image *i) {
+  if ( !in_frame ) {
     Error("Can't get image without frame.. maybe need to decode first");
     return NULL;
   }
-  if ( ! image ) {
-    if ( ! i ) {
+  if ( !image ) {
+    if ( !i ) {
       Error("Need a pre-allocated image buffer");
       return NULL;
     } 
     image = i;
   }
-  image->Assign( in_frame );
+  image->Assign(in_frame);
   return image;
 }
 
-Image *ZMPacket::set_image( Image *i ) {
+Image *ZMPacket::set_image(Image *i) {
   image = i;
   return image;
 }

@@ -241,7 +241,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   if ( ret < 0 ) {
-    Warning("Could not set rtsp_transport method '%s'\n", method.c_str());
+    Warning("Could not set rtsp_transport method '%s'", method.c_str());
   }
 
   Debug(1, "Calling avformat_open_input for %s", mPath.c_str());

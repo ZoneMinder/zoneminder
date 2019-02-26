@@ -597,6 +597,7 @@ void Image::AssignDirect( const unsigned int p_width, const unsigned int p_heigh
     buffertype = p_buffertype;
     buffer = new_buffer;
   }
+  update_function_pointers();
 
 }
 
@@ -647,6 +648,7 @@ void Image::Assign(const unsigned int p_width, const unsigned int p_height, cons
 
   if ( new_buffer != buffer )
     (*fptr_imgbufcpy)(buffer, new_buffer, size);
+  update_function_pointers();
 
 }
 
@@ -1747,7 +1749,7 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
 }
 
 /* New function to allow buffer re-using instead of allocationg memory for the delta image every time */
-void Image::Delta( const Image &image, Image* targetimage) const {
+void Image::Delta(const Image &image, Image* targetimage) const {
 #ifdef ZM_IMAGE_PROFILING
   struct timespec start,end,diff;
   unsigned long long executetime;
@@ -4200,6 +4202,7 @@ void ssse3_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t* resul
 
 /* RGB32: RGBA SSSE3 */
 void ssse3_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count) {
+  Debug(2,"sse3 rgba");
   ssse3_delta8_rgb32(col1, col2, result, count, 0x00010502);
 }
 

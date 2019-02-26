@@ -461,6 +461,8 @@ void MonitorStream::runStream() {
   temp_read_index = temp_image_buffer_count;
   temp_write_index = temp_image_buffer_count;
 
+  struct timeval last_frame_time;
+
   std::string swap_path;
   bool buffered_playback = false;
 
@@ -631,9 +633,11 @@ void MonitorStream::runStream() {
       }
     } // end if ( buffered_playback && delayed )
 
-    if ( last_read_index != monitor->shared_data->last_write_index ) {
       // have a new image to send
       int index = monitor->shared_data->last_write_index % monitor->image_buffer_count; // % shouldn't be neccessary
+          ZMPacket *snap = &monitor->image_buffer[index];
+    if ( tvCmp(last_frame_time, *(snap->timestamp)) ) {
+
       last_read_index = monitor->shared_data->last_write_index;
       Debug( 2, "index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)", index, frame_mod, frame_count, paused, delayed );
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {

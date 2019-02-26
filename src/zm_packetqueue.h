@@ -61,7 +61,6 @@ class zm_packetqueue {
     // Functions to manage the analysis frame logic
     bool increment_analysis_it();
     ZMPacket *get_analysis_packet();
-    void lock_packet( ZMPacket &packet );
 };
 
 #endif /* ZM_PACKETQUEUE_H */

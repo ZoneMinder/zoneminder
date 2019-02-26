@@ -117,7 +117,7 @@ class HostController extends AppController {
 
     if ( $mid ) {
       // Get disk usage for $mid
-      Logger::Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
+      ZM\Logger::Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
       $usage = shell_exec("du -s0 $zm_dir_events/$mid | awk '{print $1}'");
     } else {
       $monitors = $this->Monitor->find('all', array(

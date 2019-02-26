@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Monitors' ) ) {
+if ( !canEdit('Monitors') ) {
   $view = 'error';
   return;
 }
@@ -33,7 +33,7 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
     <?php echo $navbar ?>
     <div id="content">
 
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <div style="position:relative;">
         <div id="results" style="position: absolute; top:0; right: 0; width: 50%; height: 100%;">
           <fieldset><legend>Results</legend>
@@ -61,8 +61,8 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
                 <th>Group</th>
               </tr>
               <tr title="Example Data">
-                <td>Example Name MN1-30 INQ37.01</td>
-                <td>http://10.34.152.20:2001/?action=stream</td>
+                <td>Example Name Driveway</td>
+                <td>http://192.168.1.0/?action=stream</td>
                 <td>MN1</td>
               </tr>
             </table>
@@ -80,7 +80,7 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
 ?>
               </td></tr>
 <?php
-              $servers = Server::find();
+              $servers = ZM\Server::find();
               $ServersById = array();
               foreach ( $servers as $S ) {
                 $ServersById[$S->Id()] = $S;
@@ -92,7 +92,7 @@ xhtmlHeaders(__FILE__, translate('AddMonitors'));
               </td></tr>
 <?php
               }
-              $storage_areas = Storage::find();
+              $storage_areas = ZM\Storage::find();
               $StorageById = array();
               foreach ( $storage_areas as $S ) {
                 $StorageById[$S->Id()] = $S;

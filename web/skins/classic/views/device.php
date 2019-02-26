@@ -41,7 +41,7 @@ xhtmlHeaders( __FILE__, translate('Device')." - ".$newDevice['Name'] );
       <h2><?php echo translate('Device')." - ".validHtmlStr($newDevice['Name']) ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="device"/>
         <input type="hidden" name="did" value="<?php echo $newDevice['Id'] ?>"/>
@@ -58,7 +58,7 @@ xhtmlHeaders( __FILE__, translate('Device')." - ".$newDevice['Name'] );
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Devices' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow()"/>
+          <input type="submit" value="<?php echo translate('Save') ?>"<?php if ( !canEdit( 'Devices' ) ) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

@@ -12,13 +12,19 @@
 	function () {
 		// Append '?(GET query)' to URL if the GET query is not empty.
 		var querySuffix = "<?php
-			if (!empty($_POST["postLoginQuery"])) {
-                                parse_str($_POST["postLoginQuery"], $queryParams);
-				echo "?" . http_build_query($queryParams);
-                        }
+			if (!empty($_POST['postLoginQuery'])) {
+        parse_str($_POST['postLoginQuery'], $queryParams);
+        echo '?' . http_build_query($queryParams);
+      }
 			?>";
 
-		var newUrl = thisUrl + querySuffix;
+    if ( querySuffix == '?view=login' ) {
+      // If we didn't redirect elsewhere, then don't show login page, go to console
+      querySuffix = '?view=console';
+    }
+    var newUrl = querySuffix;
+
+console.log("Redirecting to" + newUrl + ' ' + thisUrl);
 		window.location.replace(newUrl);
 	}
 ).delay( 500 );

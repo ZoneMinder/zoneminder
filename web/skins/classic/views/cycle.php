@@ -38,6 +38,7 @@ ob_end_clean();
 
 $monIdx = 0;
 $monitors = array();
+$monitor = NULL;
 foreach( $displayMonitors as &$row ) {
   if ( $row['Function'] == 'None' )
     continue;
@@ -49,7 +50,7 @@ foreach( $displayMonitors as &$row ) {
   $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
 
   $row['connKey'] = generateConnKey();
-  $monitors[] = new Monitor($row);
+  $monitors[] = new ZM\Monitor($row);
 } # end foreach Monitor
 
 if ( $monitors ) {

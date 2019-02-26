@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 
 $group_cache = array();
 
@@ -188,7 +189,7 @@ class Group {
     session_write_close();
 
     return htmlSelect( 'Group[]', Group::get_dropdown_options(), isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
-          'onchange' => 'this.form.submit();',
+          'data-on-change' => 'submitThisForm',
           'class'=>'chosen',
           'multiple'=>'multiple',
           'data-placeholder'=>'All',

@@ -1,7 +1,9 @@
 <?php
+namespace ZM;
 require_once('database.php');
 
 $server_cache = array();
+
 
 class Server {
   private $defaults = array(
@@ -9,8 +11,8 @@ class Server {
     'Name'        => '',
     'Protocol'    => '',
     'Hostname'    => '',
-    'Port'        =>  null,
-    'PathToIndex' => '/zm/index.php',
+    'Port'        => null,
+    'PathToIndex' => null,
     'PathToZMS'   => ZM_PATH_ZMS,
     'PathToApi'   => '/zm/api',
     'zmaudit'     => 1,
@@ -117,7 +119,8 @@ class Server {
     if ( isset($this->{'PathToIndex'}) and $this->{'PathToIndex'} ) {
       return $this->{'PathToIndex'};
     }
-    return $_SERVER['PHP_SELF'];
+    // We can't trust PHP_SELF to not include an XSS vector. See note in skin.js.php.
+    return preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']);
   }
 
   public function UrlToIndex( $port=null ) {
@@ -212,6 +215,20 @@ class Server {
       return;
     }
     return $results[0];
+  }
+
+  public function to_json() {
+    $json = array();
+    foreach ($this->defaults as $key => $value) {
+      if ( is_callable(array($this, $key)) ) {
+        $json[$key] = $this->$key();
+      } else if ( array_key_exists($key, $this) ) {
+        $json[$key] = $this->{$key};
+      } else {
+        $json[$key] = $this->defaults{$key};
+      }
+    }
+    return json_encode($json);
   }
 
 } # end class Server

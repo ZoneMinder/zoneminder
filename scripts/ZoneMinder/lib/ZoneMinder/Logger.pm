@@ -696,9 +696,14 @@ sub error {
 }
 
 sub Fatal( @ ) {
-  fetch()->logPrint(FATAL, @_, caller);
+  my $this = fetch();
+  $this->logPrint(FATAL, @_, caller);
   if ( $SIG{TERM} and ( $SIG{TERM} ne 'DEFAULT' ) ) {
     $SIG{TERM}();
+  }
+  if ( $$this{sth} ) {
+    $$this{sth}->finish();
+    $$this{sth} = undef;
   }
   # I think if we don't disconnect we will leave sockets around in TIME_WAIT
   ZoneMinder::Database::zmDbDisconnect();

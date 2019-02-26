@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 
 $event_cache = array();
 
@@ -414,15 +415,13 @@ class Event {
     if ( ! file_exists($captPath) ) {
       Error( "Capture file does not exist at $captPath" );
     }
-    $thumbCaptPath = ZM_DIR_IMAGES.'/'.$this->{'Id'}.'-'.$captImage;
     
-    //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
+    //echo "CI:$captImage, CP:$captPath, TCP:$captPath<br>";
 
     $analImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId'] );
     $analPath = $eventPath.'/'.$analImage;
 
-    $thumbAnalPath = ZM_DIR_IMAGES.'/'.$this->{'Id'}.'-'.$analImage;
-    //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
+    //echo "AI:$analImage, AP:$analPath, TAP:$analPath<br>";
 
     $alarmFrame = $frame['Type']=='Alarm';
 
@@ -440,8 +439,8 @@ class Event {
         $fraction = sprintf( '%.3f', $scale/SCALE_BASE );
       $scale = (int)round( $scale );
 
-      $thumbCaptPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $thumbCaptPath );
-      $thumbAnalPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $thumbAnalPath );
+      $thumbCaptPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $captPath );
+      $thumbAnalPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $analPath );
 
       if ( $isAnalImage ) {
         $imagePath = $analPath;

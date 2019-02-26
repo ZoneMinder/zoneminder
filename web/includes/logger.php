@@ -1,5 +1,6 @@
 <?php
 
+namespace ZM;
 require_once( 'config.php' );
 
 class Logger {
@@ -455,7 +456,10 @@ function Error( $string ) {
 
 function Fatal( $string ) {
   Logger::fetch()->logPrint( Logger::FATAL, $string );
-  die( htmlentities($string) );
+  if (Logger::fetch()->debugOn()) {
+    echo(htmlentities($string));
+  }
+  exit(1);
 }
 
 function Panic( $string ) {
@@ -474,7 +478,10 @@ function Panic( $string ) {
     }
   }
   Logger::fetch()->logPrint( Logger::PANIC, $string.$backtrace );
-  die( $string );
+  if (Logger::fetch()->debugOn()) {
+    echo $string;
+  }
+  exit(1);
 }
 
 function ErrorHandler( $error, $string, $file, $line ) {

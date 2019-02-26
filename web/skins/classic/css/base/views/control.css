@@ -15,6 +15,9 @@
 .ptzControls input.ptzTextBtn {
     margin-top: 2px;
 }
+.ptzControls button {
+  border: none;
+}
 
 .ptzControls .controlsPanel {
     margin: 0 auto;

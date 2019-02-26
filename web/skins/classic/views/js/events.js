@@ -23,7 +23,7 @@ function configureButton(event) {
   var checked = element.checked;
   if ( !checked ) {
     for (var i = 0, len=form.elements.length; i < len; i++) {
-      if ( form.elements[i].name.indexOf('markEids') == 0) {
+      if ( form.elements[i].name.indexOf('eids') == 0) {
         if ( form.elements[i].checked ) {
           checked = true;
           break;
@@ -53,7 +53,7 @@ function deleteEvents( element ) {
   var count = 0;
   // This is slightly more efficient than a jquery selector because we stop after finding one.
   for (var i = 0; i < form.elements.length; i++) {
-    if (form.elements[i].name.indexOf('markEids') == 0) {
+    if (form.elements[i].name.indexOf('eids') == 0) {
       if ( form.elements[i].checked ) {
         count++;
         break;
@@ -61,7 +61,7 @@ function deleteEvents( element ) {
     }
   }
   if ( count > 0 ) {
-    if ( confirm( confirmDeleteEventsString ) ) {
+    if ( confirm(confirmDeleteEventsString) ) {
       form.elements['action'].value = 'delete';
       form.submit();
     }
@@ -76,20 +76,20 @@ function editEvents( element ) {
   var form = element.form;
   var eids = new Array();
   for (var i = 0, len=form.elements.length; i < len; i++) {
-    if (form.elements[i].name.indexOf('markEids') == 0) {
+    if (form.elements[i].name.indexOf('eids') == 0) {
       if ( form.elements[i].checked ) {
         eids[eids.length] = 'eids[]='+form.elements[i].value;
       }
     }
   }
-  createPopup( '?view=eventdetail&'+eids.join( '&' ), 'zmEventDetail', 'eventdetail' );
+  createPopup('?view=eventdetail&'+eids.join('&'), 'zmEventDetail', 'eventdetail');
 }
 
 function downloadVideo( element ) {
   var form = element.form;
   var eids = new Array();
   for (var i = 0, len=form.elements.length; i < len; i++) {
-    if (form.elements[i].name.indexOf('markEids') == 0 ) {
+    if (form.elements[i].name.indexOf('eids') == 0 ) {
       if ( form.elements[i].checked ) {
         eids[eids.length] = 'eids[]='+form.elements[i].value;
       }
@@ -102,7 +102,7 @@ function exportEvents( element ) {
   var form = element.form;
   var eids = new Array();
   for (var i = 0, len=form.elements.length; i < len; i++) {
-    if (form.elements[i].name.indexOf('markEids') == 0 ) {
+    if (form.elements[i].name.indexOf('eids') == 0 ) {
       if ( form.elements[i].checked ) {
         eids[eids.length] = 'eids[]='+form.elements[i].value;
       }
@@ -115,7 +115,7 @@ function viewEvents( element ) {
   var form = element.form;
   var events = new Array();
   for (var i = 0, len=form.elements.length; i < len; i++) {
-    if ( form.elements[i].name.indexOf('markEids') == 0 ) {
+    if ( form.elements[i].name.indexOf('eids') == 0 ) {
       if ( form.elements[i].checked ) {
         events[events.length] = form.elements[i].value;
       }
@@ -166,7 +166,7 @@ function initPage() {
     this.addEventListener('mouseover', thumbnail_onmouseover, false);
     this.addEventListener('mouseout', thumbnail_onmouseout, false);
   });
-  $j('input[name=markEids\\[\\]]').each(function() {
+  $j('input[name=eids\\[\\]]').each(function() {
     this.addEventListener('click', configureButton, false);
   });
   document.getElementById("refreshLink").addEventListener("click", function onRefreshClick(evt) {

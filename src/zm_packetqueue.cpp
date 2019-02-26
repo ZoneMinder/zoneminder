@@ -19,6 +19,7 @@
 
 #include "zm_packetqueue.h"
 #include "zm_ffmpeg.h"
+#include "zm_signal.h"
 #include <sys/time.h>
 
 zm_packetqueue::zm_packetqueue( int video_image_count, int p_video_stream_id, int p_audio_stream_id ) {
@@ -53,6 +54,7 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
   Debug(4, "packetqueue queuepacket, first_video_packet_index is %d", first_video_packet_index);
   mutex.lock();
 
+#if 0
   if ( zm_packet->image_index != -1 ) {
     // It's a video packet
 
@@ -87,9 +89,17 @@ bool zm_packetqueue::queuePacket( ZMPacket* zm_packet ) {
     } // end if
     video_packet_count += 1;
   } // end if queuing a video packet
-
+#endif
+  if ( zm_packet->packet.stream_index == video_stream_id ) {
+    video_packet_count += 1;
+  }
 	pktQueue.push_back(zm_packet);
   packet_counts[zm_packet->packet.stream_index] += 1;
+  if ( analysis_it == pktQueue.end() ) {
+    // Analsys_it should only point to end when queue is empty
+    Debug(2,"pointing analysis_it to begining");
+    analysis_it = pktQueue.begin();
+  }
 
 #if 0
   // This code should not be neccessary. Taken care of by the above code that ensure that no packet appears twice
@@ -218,7 +228,7 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
       }
       packet_counts[packet->packet.stream_index] -= 1;
       pktQueue.pop_front();
-      if ( packet->image_index == -1 )
+      //if ( packet->image_index == -1 )
         delete packet;
 
       delete_count += 1;
@@ -249,7 +259,7 @@ void zm_packetqueue::clearQueue() {
     packet = pktQueue.front();
     packet_counts[packet->packet.stream_index] -= 1;
     pktQueue.pop_front();
-    if ( packet->image_index == -1 )
+    //if ( packet->image_index == -1 )
       delete packet;
     delete_count += 1;
 	}
@@ -276,7 +286,7 @@ int zm_packetqueue::packet_count( int stream_id ) {
 ZMPacket *zm_packetqueue::get_analysis_packet() {
 
   mutex.lock();
-  while ( (! pktQueue.size()) || ( analysis_it == pktQueue.end() ) ) {
+  while ( ((! pktQueue.size()) || ( analysis_it == pktQueue.end() )) && !zm_terminate ) {
     Debug(2,"waiting.  Queue size %d analysis_it == end? %d", pktQueue.size(), ( analysis_it == pktQueue.end() ) );
 
     condition->wait();
@@ -305,44 +315,3 @@ bool zm_packetqueue::increment_analysis_it( ) {
   analysis_it = next_it;
   return true;
 } // end bool zm_packetqueue::increment_analysis_it( )
-
-// Locks the packet, but also removes it from the queue including analysis_it
-void zm_packetqueue::lock_packet( ZMPacket &packet ) {
-  mutex.lock();
-  if ( packet.image_index != -1 ) {
-    // It's a video packet
-
-    // If we can never queue the same packet, then they can never go past
-    if ( packet.image_index == first_video_packet_index ) {
-      Debug(2, "queuing packet that is already on the queue(%d)", packet.image_index);
-      while ( pktQueue.size() ) {
-        mutex.unlock();
-        ZMPacket *p = popPacket();
-        Debug(2,"Front packet index: %d", p->image_index);
-        mutex.lock();
-
-        if ( p->codec_type != AVMEDIA_TYPE_VIDEO ) {
-          Debug(2, "Deleting audio frame(%d)", p->image_index);
-          delete p;
-          p = NULL;
-        }
-        Debug(2,"pktQueue.size(%d)", pktQueue.size());
-        if ( p->image_index == packet.image_index )
-          break;
-      } // end while there are packets at the head of the queue that are not this one
-
-      if ( analysis_it == pktQueue.end() ) {
-        // Analsys_it should only point to end when queue is empty
-        Debug(2,"pointing analysis_it to begining");
-        analysis_it = pktQueue.begin();
-      }
-    } 
-    if ( first_video_packet_index == -1 ) {
-      // Initialize the first_video_packet indicator
-      first_video_packet_index = packet.image_index;
-    } // end if
-    video_packet_count += 1;
-  } // end if queuing a video packet
-  packet.lock();
-  mutex.unlock();
-}

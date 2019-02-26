@@ -103,6 +103,7 @@ sub open
 
         if ($$headers{'www-authenticate'}) {
             my ($auth, $tokens) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
+            Debug("Tokens: " . $tokens);
             if ($tokens =~ /\w+="([^"]+)"/i) {
                 if ($REALM ne $1) {
                     $REALM = $1;
@@ -112,6 +113,7 @@ sub open
                     $res = $self->{ua}->request($req);
                     if ($res->is_success()) {
                         $self->{state} = 'open';
+                        Debug('Authentication succeeded...');
                         return;
                     }
                     Debug('Authentication still failed after updating REALM' . $res->status_line);
@@ -155,7 +157,11 @@ sub sendGetRequest {
     my $url = $PROTOCOL . $ADDRESS . $url_path;
     my $req = HTTP::Request->new(GET=>$url);
 
+    Debug("Attempting to sendGetRequest...");
+
     my $res = $self->{ua}->request($req);
+    my $headers = $res->headers();      ## XXX: I'm not sure why, but this fixes an auth failure which occurs if
+                                        ## it is missing.
 
     if ($res->is_success) {
         $result = !undef;
@@ -197,8 +203,9 @@ sub sendPtzCommand
     $url_path .= "arg2=" . $arg2 . "&";
     $url_path .= "arg3=" . $arg3 . "&";
     $url_path .= "arg4=" . $arg4;
-    $self->sendGetRequest($url_path);
+    return $self->sendGetRequest($url_path);
 }
+
 sub sendMomentaryPtzCommand
 {
     my $self = shift;
@@ -295,7 +302,6 @@ sub zoomRelWide
     $self->sendMomentaryPtzCommand("ZoomWide", 0, 0, 0, 500);
 }
 
-
 sub presetClear
 {
     my $self = shift;
@@ -339,6 +345,22 @@ sub presetHome
     my $self = shift;
 
     $self->_sendAbsolutePositionCommand( 0, 0, 0, 1 );
+}
+
+sub focusRelNear
+{
+    my $self = shift;
+
+    my $response = $self->sendPtzCommand("start", "FocusNear", 0, 1, 0, 0);
+    Debug("focusRelNear response: " . $response);
+}
+
+sub focusRelFar
+{
+    my $self = shift;
+
+    my $response = $self->sendPtzCommand("start", "FocusFar", 0, 1, 0, 0);
+    Debug("focusRelFar response: " . $response);
 }
 
 1;

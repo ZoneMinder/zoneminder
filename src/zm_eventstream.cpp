@@ -761,15 +761,17 @@ void EventStream::runStream() {
     unsigned int delta_us = 0;
     send_frame = false;
 
-    // commands may set send_frame to true
-    while ( checkCommandQueue() && !zm_terminate ) {
-      // The idea is to loop here processing all commands before proceeding.
-    }
+    if ( connkey ) {
+      // commands may set send_frame to true
+      while ( checkCommandQueue() && !zm_terminate ) {
+        // The idea is to loop here processing all commands before proceeding.
+      }
 
-    // Update modified time of the socket .lock file so that we can tell which ones are stale.
-    if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
-      touch(sock_path_lock);
-      last_comm_update = now;
+      // Update modified time of the socket .lock file so that we can tell which ones are stale.
+      if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
+        touch(sock_path_lock);
+        last_comm_update = now;
+      }
     }
 
     if ( step != 0 )

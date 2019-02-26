@@ -19,33 +19,33 @@
 //
 
 if ( !isset($_REQUEST['eids']) ) {
-  Warning('Events actions require eids');
+  ZM\Warning('Events actions require eids');
   return;
 }
 
 // Event scope actions, view permissions only required
 if ( !canEdit('Events') ) {
-  Warning("Events actions require Edit permissions");
+  ZM\Warning('Events actions require Edit permissions');
   return;
 } // end if ! canEdit(Events)
 
 if ( $action == 'archive' ) {
   $dbConn->beginTransaction();
-  foreach( getAffectedIds('markEid') as $markEid ) {
+  foreach( getAffectedIds('eids') as $markEid ) {
     dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(1, $markEid));
   }
   $dbConn->commit();
   $refreshParent = true;
 } else if ( $action == 'unarchive' ) {
   $dbConn->beginTransaction();
-  foreach( getAffectedIds('markEid') as $markEid ) {
+  foreach( getAffectedIds('eids') as $markEid ) {
     dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $markEid));
   }
   $dbConn->commit();
   $refreshParent = true;
 } else if ( $action == 'delete' ) {
   $dbConn->beginTransaction();
-  foreach ( getAffectedIds('markEid') as $markEid ) {
+  foreach ( getAffectedIds('eids') as $markEid ) {
     deleteEvent($markEid);
   }
   $dbConn->commit();

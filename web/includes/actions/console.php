@@ -20,7 +20,7 @@
 
 if ( $action == 'delete' ) {
   if ( ! canEdit('Monitors') ) {
-    Warning("No permission to delete monitors");
+    ZM\Warning('No permission to delete monitors');
     return;
   }
 
@@ -30,7 +30,7 @@ if ( $action == 'delete' ) {
       if ( canEdit('Monitors', $markMid) ) {
         // This could be faster as a select all
         if ( $monitor = dbFetchOne('SELECT * FROM Monitors WHERE Id = ?', NULL, array($markMid)) ) {
-          $Monitor = new Monitor($monitor);
+          $Monitor = new ZM\Monitor($monitor);
           $Monitor->delete();
         } // end if monitor found in db
       } // end if canedit this monitor

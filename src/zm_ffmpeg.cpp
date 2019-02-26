@@ -343,16 +343,15 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   /* the pid is an important information, so we display it */
   /* XXX: add a generic system */
   if (flags & AVFMT_SHOW_IDS)
-    Debug(1, "[0x%x]", st->id);
+    Debug(1, "ids [0x%x]", st->id);
   if (lang)
-    Debug(1, "(%s)", lang->value);
-  Debug(1, ", frames:%d, frame_size:%d timebase: %d/%d",
-      st->codec_info_nb_frames,
-      codec->frame_size,
-      st->time_base.num,
-      st->time_base.den);
+    Debug(1, "lang:%s", lang->value);
+  Debug(1, "frames:%d, frame_size:%d stream timebase: %d/%d codec timebase: %d/%d",
+      st->codec_info_nb_frames, codec->frame_size, st->time_base.num, st->time_base.den,
+      st->codec->time_base.num, st->codec->time_base.den
+      );
   avcodec_string(buf, sizeof(buf), st->codec, is_output);
-  Debug(1, ": %s", buf);
+  Debug(1, "codec: %s", buf);
 
   if ( st->sample_aspect_ratio.num && // default
       av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)
@@ -373,13 +372,10 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     int tbn = st->time_base.den && st->time_base.num;
     int tbc = st->codec->time_base.den && st->codec->time_base.num;
 
-    if (fps || tbn || tbc)
-      Debug(3, "\n" );
-
     if (fps)
-      zm_log_fps(av_q2d(st->avg_frame_rate), tbn || tbc ? "fps, " : "fps");
+      zm_log_fps(av_q2d(st->avg_frame_rate), "fps");
     if (tbn)
-      zm_log_fps(1 / av_q2d(st->time_base), tbc ? "stream tb numerator , " : "stream tb numerator");
+      zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
     if (tbc)
       zm_log_fps(1 / av_q2d(st->codec->time_base), "codec time base:");
   }

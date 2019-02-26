@@ -28,7 +28,7 @@ $group_id = 0;
 $max_depth = 0;
 
 $Groups = array();
-foreach ( Group::find() as $Group ) {
+foreach ( ZM\Group::find() as $Group ) {
   $Groups[$Group->Id()] = $Group;
 }
 

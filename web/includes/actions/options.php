@@ -20,7 +20,7 @@
 
 // System edit actions
 if ( !canEdit('System') ) {
-  Warning("Must have System permissions to perform options actions");
+  ZM\Warning('Must have System permissions to perform options actions');
   return;
 }
 

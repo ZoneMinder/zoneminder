@@ -20,7 +20,7 @@
 
 // Event scope actions, view permissions only required
 if ( !canView('Events') ) {
-  Warning('You do not have permission to view Events.');
+  ZM\Warning('You do not have permission to view Events.');
   return;
 }
 
@@ -30,13 +30,9 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
   } elseif ( $action == 'delterm' ) {
     $_REQUEST['filter'] = delFilterTerm($_REQUEST['filter'], $_REQUEST['line']);
   } else if ( canEdit('Events') ) {
-    if ( empty($_REQUEST['Id']) ) {
-      Error("No filter id specified.");
-      return;
-    }
 
     require_once('includes/Filter.php');
-    $filter = new Filter($_REQUEST['Id']);
+    $filter = new ZM\Filter($_REQUEST['Id']);
 
     if ( $action == 'delete' ) {
       if ( !empty($_REQUEST['Id']) ) {
@@ -46,7 +42,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
           $filter->delete();
 
       } else {
-        Error("No filter id passed when deleting");
+        ZM\Error("No filter id passed when deleting");
       }
     } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) ) {
 
@@ -85,7 +81,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       } else {
         dbQuery('INSERT INTO Filters SET'.$sql);
         $_REQUEST['Id'] = dbInsertId();
-        $filter = new Filter($_REQUEST['Id']);
+        $filter = new ZM\Filter($_REQUEST['Id']);
       }
       if ( !empty($_REQUEST['filter']['Background']) )
         $filter->control('start');
@@ -102,7 +98,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       ) {
         $filter->control($_REQUEST['command'], $_REQUEST['ServerId']);
       } else {
-        Error('Invalid command for filter ('.$_REQUEST['command'].')');
+        ZM\Error('Invalid command for filter ('.$_REQUEST['command'].')');
       }
     } // end if save or execute
   } // end if canEdit(Events)

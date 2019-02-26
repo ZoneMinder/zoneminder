@@ -23,7 +23,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
 
   $localSocketFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'w.sock';
   if ( file_exists( $localSocketFile ) ) {
-    Warning("sock file $localSocketFile already exists?!  Is someone else talking to zms?");
+    ZM\Warning("sock file $localSocketFile already exists?!  Is someone else talking to zms?");
     // They could be.  We can maybe have concurrent requests from a browser.  
   }
   if ( !socket_bind( $socket, $localSocketFile ) ) {
@@ -32,23 +32,23 @@ if ( sem_acquire($semaphore,1) !== false ) {
 
   switch ( $_REQUEST['command'] ) {
   case CMD_VARPLAY :
-    Logger::Debug( 'Varplaying to '.$_REQUEST['rate'] );
+    ZM\Logger::Debug( 'Varplaying to '.$_REQUEST['rate'] );
     $msg = pack( 'lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['rate']+32768 );
     break;
   case CMD_ZOOMIN :
-    Logger::Debug( 'Zooming to '.$_REQUEST['x'].",".$_REQUEST['y'] );
+    ZM\Logger::Debug( 'Zooming to '.$_REQUEST['x'].",".$_REQUEST['y'] );
     $msg = pack( 'lcnn', MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y'] );
     break;
   case CMD_PAN :
-    Logger::Debug( 'Panning to '.$_REQUEST['x'].",".$_REQUEST['y'] );
+    ZM\Logger::Debug( 'Panning to '.$_REQUEST['x'].",".$_REQUEST['y'] );
     $msg = pack( 'lcnn', MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y'] );
     break;
   case CMD_SCALE :
-    Logger::Debug( 'Scaling to '.$_REQUEST['scale'] );
+    ZM\Logger::Debug( 'Scaling to '.$_REQUEST['scale'] );
     $msg = pack( 'lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['scale'] );
     break;
   case CMD_SEEK :
-    Logger::Debug( 'Seeking to '.$_REQUEST['offset'] );
+    ZM\Logger::Debug( 'Seeking to '.$_REQUEST['offset'] );
     $msg = pack( 'lcN', MSG_CMD, $_REQUEST['command'], $_REQUEST['offset'] );
     break;
   default :
@@ -86,18 +86,18 @@ if ( sem_acquire($semaphore,1) !== false ) {
   $numSockets = socket_select( $rSockets, $wSockets, $eSockets, intval($timeout/1000), ($timeout%1000)*1000 );
 
   if ( $numSockets === false ) {
-    Error('socket_select failed: ' . socket_strerror(socket_last_error()) );
+    ZM\Error('socket_select failed: ' . socket_strerror(socket_last_error()) );
     ajaxError( 'socket_select failed: '.socket_strerror(socket_last_error()) );
   } else if ( $numSockets < 0 ) {
-    Error( "Socket closed $remSockFile"  );
+    ZM\Error( "Socket closed $remSockFile"  );
     ajaxError( "Socket closed $remSockFile"  );
   } else if ( $numSockets == 0 ) {
-    Error( "Timed out waiting for msg $remSockFile"  );
+    ZM\Error( "Timed out waiting for msg $remSockFile"  );
     socket_Set_nonblock($socket);
     #ajaxError("Timed out waiting for msg $remSockFile");
   } else if ( $numSockets > 0 ) {
     if ( count($rSockets) != 1 ) {
-      Error('Bogus return from select, '.count($rSockets).' sockets available');
+      ZM\Error('Bogus return from select, '.count($rSockets).' sockets available');
       ajaxError('Bogus return from select, '.count($rSockets).' sockets available');
     }
   }
@@ -119,9 +119,9 @@ if ( sem_acquire($semaphore,1) !== false ) {
   switch ( $data['type'] ) {
   case MSG_DATA_WATCH :
     $data = unpack('ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
-    Logger::Debug("FPS: " . $data['fps'] );
+    ZM\Logger::Debug('FPS: ' . $data['fps']);
     $data['fps'] = round( $data['fps'], 2 );
-    Logger::Debug("FPS: " . $data['fps'] );
+    ZM\Logger::Debug("FPS: " . $data['fps'] );
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
@@ -157,7 +157,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
   }
   sem_release($semaphore);
 } else {
-  Logger::Debug("Couldn't get semaphore");
+  ZM\Logger::Debug("Couldn't get semaphore");
   ajaxResponse( array() );
 }
 

@@ -46,7 +46,7 @@ foreach ( dbFetchAll($sql, false, $params) as $row ) {
 foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
   require_once $includeFile;
 
-$monitor = new Monitor($mid);
+$monitor = new ZM\Monitor($mid);
 
 $focusWindow = true;
 

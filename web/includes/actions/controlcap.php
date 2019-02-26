@@ -20,13 +20,13 @@
 
 
 if ( !canEdit('Control') ) {
-  Warning("Need Control permissions to edit control capabilities");
+  ZM\Warning('Need Control permissions to edit control capabilities');
   return;
 } // end if !canEdit Controls
 
 if ( $action == 'controlcap' ) {
   require_once('includes/Control.php');
-  $Control = new Control( !empty($_REQUEST['cid']) ? $_REQUEST['cid'] : null );
+  $Control = new ZM\Control( !empty($_REQUEST['cid']) ? $_REQUEST['cid'] : null );
 
   //$changes = getFormChanges( $control, $_REQUEST['newControl'], $types, $columns );
   $Control->save($_REQUEST['newControl']);

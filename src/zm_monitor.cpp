@@ -2481,7 +2481,7 @@ int Monitor::Capture() {
       // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
       if ( now != last_fps_time ) {
         // # of images per interval / the amount of time it took
-        double new_fps = double(fps_report_interval)/(now-last_fps_time);
+        double new_fps = double(image_count%fps_report_interval?image_count:fps_report_interval)/(now-last_fps_time);
         unsigned int new_camera_bytes = camera->Bytes();
         unsigned int new_capture_bandwidth = (new_camera_bytes - last_camera_bytes)/(now-last_fps_time);
         last_camera_bytes = new_camera_bytes;

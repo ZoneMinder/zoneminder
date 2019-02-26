@@ -223,7 +223,7 @@ $monitors = array();
 foreach( $displayMonitors as $row ) {
   if ( $row['Function'] == 'None' || $row['Type'] == 'WebSite' )
     continue;
-  $Monitor = new Monitor($row);
+  $Monitor = new ZM\Monitor($row);
   $monitors[] = $Monitor;
 }
 

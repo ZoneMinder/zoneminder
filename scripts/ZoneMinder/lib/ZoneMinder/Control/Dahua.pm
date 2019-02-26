@@ -214,7 +214,7 @@ sub sendMomentaryPtzCommand
     $self->sendPtzCommand("stop", $command_code, $arg1, $arg2, $arg3);
 }
 
-sub sendAbsolutePositionCommand
+sub _sendAbsolutePositionCommand
 {
     my $self = shift;
     my $arg1 = shift;
@@ -334,23 +334,18 @@ sub presetGoto
     $self->sendPtzCommand("start", "GotoPreset", 0, $preset_id, 0);
 }
 
-# NOTE:
-#
-# The Dahua protocol does not appear to support a preset Home feature.
-# We could allow the user to assign a preset slot as the "home" slot.
-# Dahua does appear to support naming presets which may lend itself
-# to this sort of thing. At this point, we'll just send the camera
-# back to center.
-
 sub presetHome
 {
     my $self = shift;
 
-    $self->sendAbsolutePositionCommand( 0, 0, 0, 1 );
+    $self->_sendAbsolutePositionCommand( 0, 0, 0, 1 );
 }
 
 1;
 __END__
+=pod
+
+=encoding utf8
 
 =head1 NAME
 
@@ -387,4 +382,32 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+=head1 Private Methods
+
+=head2 _sendAbsolutePositionCommand( $arg1, $arg2, $arg3, $arg4 )
+
+    Where:
+
+        $arg1 = Horizontal angle 0° to 360°
+        $arg2 = Vertical angle 0° to -90°
+        $arg3 = Zoom multiplier
+        $arg4 = Speed 1 to 8
+
+    This is an private method used to send an absolute position command to the
+    camera.
+
+=head1 Public Methods
+
+=head2 presetHome
+
+    This method "homes" the camera to a preset position. It accepts no arguments.
+
+    NOTE:
+
+    The Dahua protocol does not appear to support a preset Home feature. We could
+    allow the user to assign a preset slot as the "home" slot. Dahua does appear
+    to support naming presets which may lend itself to this sort of thing. At
+    this point, we'll just send the camera back to center and zoom wide. (0°,0°,0)
+
 =cut
+

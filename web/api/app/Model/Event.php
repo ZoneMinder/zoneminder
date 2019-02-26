@@ -126,10 +126,10 @@ class Event extends AppModel {
       if ( file_exists($storage['Storage']['Path'].'/'.$this->Relative_Path().'/'.$event['DefaultVideo']) ) {
         return 1;
       } else {
-        Logger::Debug("FIle does not exist at " . $storage['Storage']['Path'].'/'.$this->Relative_Path().'/'.$event['DefaultVideo'] );
+        ZM\Logger::Debug("FIle does not exist at " . $storage['Storage']['Path'].'/'.$this->Relative_Path().'/'.$event['DefaultVideo'] );
       }
     } else {
-Logger::Debug("No DefaultVideo in Event" . $this->Event);
+      ZM\Logger::Debug("No DefaultVideo in Event" . $this->Event);
       return 0;
     }
   } // end function fileExists($event)

@@ -205,17 +205,18 @@ function canEdit($area, $mid=false) {
   return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
 }
 
+global $user;
 if ( ZM_OPT_USE_AUTH ) {
-  if ( isset($_SESSION['username']) ) {
-    # Need to refresh permissions and validate that the user still exists
-    $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
-    $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
-  }
-
   $close_session = 0;
   if ( !is_session_started() ) {
     session_start();
     $close_session = 1;
+  }
+
+  if ( isset($_SESSION['username']) ) {
+    # Need to refresh permissions and validate that the user still exists
+    $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+    $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
   }
 
   if ( ZM_AUTH_RELAY == 'plain' ) {

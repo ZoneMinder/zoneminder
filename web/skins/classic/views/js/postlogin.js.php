@@ -18,8 +18,13 @@
       }
 			?>";
 
-		//var newUrl = thisUrl + querySuffix;
-    var newUrl = '<?php echo $_SERVER['PHP_SELF'] ?>' + querySuffix;
+    if ( querySuffix == '?view=login' ) {
+      // If we didn't redirect elsewhere, then don't show login page, go to console
+      querySuffix = '?view=console';
+    }
+    var newUrl = querySuffix;
+
+console.log("Redirecting to" + newUrl + ' ' + thisUrl);
 		window.location.replace(newUrl);
 	}
 ).delay( 500 );

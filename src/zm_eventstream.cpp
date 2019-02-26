@@ -336,6 +336,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
             replay_rate = 50 * ZM_RATE_BASE;
             break;
           default :
+            Debug(1,"Defaulting replay_rate to 2*ZM_RATE_BASE because it is %d", replay_rate);
             replay_rate = 2 * ZM_RATE_BASE;
             break;
         }
@@ -490,6 +491,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
   DataMsg status_msg;
   status_msg.msg_type = MSG_DATA_EVENT;
   memcpy(&status_msg.msg_data, &status_data, sizeof(status_data));
+  Debug(1,"Size of msg %d", sizeof(status_data));
   if ( sendto(sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr)) < 0 ) {
     //if ( errno != EAGAIN )
     {
@@ -502,7 +504,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     exit(0);
 
   updateFrameRate((double)event_data->frame_count/event_data->duration);
-}
+} // void EventStream::processCommand(const CmdMsg *msg)
 
 void EventStream::checkEventLoaded() {
   static char sql[ZM_SQL_SML_BUFSIZ];
@@ -513,6 +515,7 @@ void EventStream::checkEventLoaded() {
     snprintf(sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id > %" PRIu64 " ORDER BY Id ASC LIMIT 1", event_data->monitor_id, event_data->event_id);
   } else {
     // No event change required
+    //Debug(3, "No event change required");
     return;
   }
 
@@ -769,13 +772,16 @@ void EventStream::runStream() {
     unsigned int delta_us = 0;
     send_frame = false;
 
+    //Debug(3,"Before checking command queue");
     // commands may set send_frame to true
     while ( checkCommandQueue() && !zm_terminate ) {
       // The idea is to loop here processing all commands before proceeding.
     }
+    ////Debug(3,"After checking command queue");
 
     // Update modified time of the socket .lock file so that we can tell which ones are stale.
     if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
+    //Debug(3,"Touching sock path");
       touch(sock_path_lock);
       last_comm_update = now;
     }
@@ -793,6 +799,7 @@ void EventStream::runStream() {
     //Info( "cfid:%d", curr_frame_id );
     //Info( "fdt:%d", frame_data->timestamp );
     if ( !paused ) {
+      Debug(3,"Not paused");
       bool in_event = true;
       double time_to_event = 0;
       if ( replay_rate > 0 ) {
@@ -815,6 +822,7 @@ void EventStream::runStream() {
         }
         //else
         //{
+        Debug(2,"Sleeping because paused");
           usleep(STREAM_PAUSE_WAIT);
           //curr_stream_time += (replay_rate>0?1:-1) * ((1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000));
           curr_stream_time += (1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
@@ -834,6 +842,7 @@ void EventStream::runStream() {
         send_frame = true;
       }
     } else if ( step != 0 ) {
+      Debug(2,"Paused with step");
       // We are paused and are just stepping forward or backward one frame
       step = 0;
       send_frame = true;
@@ -844,12 +853,18 @@ void EventStream::runStream() {
         // Send keepalive
         Debug(2, "Sending keepalive frame");
         send_frame = true;
+      //} else {
+        //Debug(2, "Not Sending keepalive frame");
       }
     } // end if streaming stepping or doing nothing
 
-    if ( send_frame )
+    if ( send_frame ) {
+      //Debug(3,"sending frame");
       if ( !sendFrame(delta_us) )
         zm_terminate = true;
+    //} else {
+      //Debug(3,"Not sending frame");
+    }
 
     curr_stream_time = frame_data->timestamp;
 
@@ -861,11 +876,26 @@ void EventStream::runStream() {
       }
       if ( send_frame && type != STREAM_MPEG ) {
         Debug(3, "dUs: %d", delta_us);
-        if ( delta_us )
+        if ( delta_us ) {
           usleep(delta_us);
+          Debug(3, "Done sleeping: %d usec", delta_us);
+        }
       }
     } else {
+      delta_us = ((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*(replay_rate?abs(replay_rate*2):2)));
+
+      Debug(2,"Sleeping %d because 1000000 * ZM_RATE_BASE(%d) / ( base_fps (%f), replay_rate(%d)",
+          (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))),
+          ZM_RATE_BASE,
+          (base_fps?base_fps:1),
+          (replay_rate?abs(replay_rate*2):200)
+          );
+      if ( delta_us > 0 and delta_us < 100000 ) {
       usleep((unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))));
+      } else {
+        //Error("Not sleeping!");
+        usleep(100000);
+      }
     }
   } // end while ! zm_terminate
 #if HAVE_LIBAVCODEC

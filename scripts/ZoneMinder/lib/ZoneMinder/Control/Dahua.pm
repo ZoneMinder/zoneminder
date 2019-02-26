@@ -382,10 +382,6 @@ place this in /usr/share/perl5/ZoneMinder/Control
 
 This module is an implementation of the Dahua IP camera HTTP control API.
 
-=head2 EXPORT
-
-None by default.
-
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2018 ZoneMinder LLC
@@ -406,6 +402,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =head1 Private Methods
 
+    Methods intended for use internally but documented here for future developers.
+
 =head2 _sendAbsolutePositionCommand( $arg1, $arg2, $arg3, $arg4 )
 
     Where:
@@ -420,6 +418,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =head1 Public Methods
 
+    Methods made available to control.pl via ZoneMinder::Control
+
 =head2 presetHome
 
     This method "homes" the camera to a preset position. It accepts no arguments.
@@ -431,5 +431,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     to support naming presets which may lend itself to this sort of thing. At
     this point, we'll just send the camera back to center and zoom wide. (0°,0°,0)
 
-=cut
+=head2 focusRelFar
 
+    This method performs a far focus relative to the current focus
+
+    NOTE:
+
+    This only just does work. The Dahua API specifies "multiples" as the input.
+    We pass in a 1 for that as it does not seem to matter what number (0-8) is
+    provided, the camera focus behaves the same.
+
+=head2 focusRelNear
+
+    This method performs a near focus relative to the current focus
+
+    NOTE:
+
+    This only just does work. The Dahua API specifies "multiples" as the input.
+    We pass in a 1 for that as it does not seem to matter what number (0-8) is
+    provided, the camera focus behaves the same.
+
+=cut

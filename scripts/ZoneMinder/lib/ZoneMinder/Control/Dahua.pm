@@ -182,9 +182,10 @@ sub sendPtzCommand
     my $self = shift;
     my $action = shift;
     my $command_code = shift;
-    my $arg1 = shift;
-    my $arg2 = shift;
-    my $arg3 = shift;
+    my $arg1 = shift || 0;
+    my $arg2 = shift || 0;
+    my $arg3 = shift || 0;
+    my $arg4 = shift || 0;
 
     my $channel = $self->{dahua_channel_number};
 
@@ -194,7 +195,8 @@ sub sendPtzCommand
     $url_path .= "code=" . $command_code . "&";
     $url_path .= "arg1=" . $arg1 . "&";
     $url_path .= "arg2=" . $arg2 . "&";
-    $url_path .= "arg3=" . $arg3;
+    $url_path .= "arg3=" . $arg3 . "&";
+    $url_path .= "arg4=" . $arg4;
     $self->sendGetRequest($url_path);
 }
 sub sendMomentaryPtzCommand
@@ -210,6 +212,17 @@ sub sendMomentaryPtzCommand
     my $duration_ns = $duration_ms * 1000;
     usleep($duration_ns);
     $self->sendPtzCommand("stop", $command_code, $arg1, $arg2, $arg3);
+}
+
+sub sendAbsolutePositionCommand
+{
+    my $self = shift;
+    my $arg1 = shift;
+    my $arg2 = shift;
+    my $arg3 = shift;
+    my $arg4 = shift;
+
+    $self->sendPtzCommand("start", "PositionABS", $arg1, $arg2, $arg3, $arg4);
 }
 
 sub moveRelUpLeft
@@ -319,6 +332,21 @@ sub presetGoto
     my $preset_id = $self->getParam($params, 'preset');
 
     $self->sendPtzCommand("start", "GotoPreset", 0, $preset_id, 0);
+}
+
+# NOTE:
+#
+# The Dahua protocol does not appear to support a preset Home feature.
+# We could allow the user to assign a preset slot as the "home" slot.
+# Dahua does appear to support naming presets which may lend itself
+# to this sort of thing. At this point, we'll just send the camera
+# back to center.
+
+sub presetHome
+{
+    my $self = shift;
+
+    $self->sendAbsolutePositionCommand( 0, 0, 0, 1 );
 }
 
 1;

@@ -101,7 +101,6 @@ class AppController extends Controller {
         }
       } # end if ! login or logout
     } # end if ZM_OPT_AUTH
-      require_once '../../../includes/functions.php';
    
   } # end function beforeFilter()
 }

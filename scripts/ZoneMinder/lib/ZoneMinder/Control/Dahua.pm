@@ -46,6 +46,9 @@ sub AUTOLOAD
     Fatal( "Can't access $name member of object of class $class" );
 }
 
+#XXX:   This might be of some use:
+#       {"method":"global.keepAlive","params":{"timeout":300,"active":false},"id":1518,"session":"dae233a51c0693519395209b271411b6"}[!http]
+
 sub open
 {
     my $self = shift;
@@ -104,6 +107,7 @@ sub open
         if ($$headers{'www-authenticate'}) {
             my ($auth, $tokens) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
             Debug("Tokens: " . $tokens);
+            ## FIXME: This is necessary because the Dahua spec does not match reality
             if ($tokens =~ /\w+="([^"]+)"/i) {
                 if ($REALM ne $1) {
                     $REALM = $1;
@@ -420,9 +424,39 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
     Methods made available to control.pl via ZoneMinder::Control
 
+=head2 Notes:
+
+=over 1
+
+    Which methods are invoked depends on which types of movement are selected in 
+    the camera control type. For example: if the 'Can Move Continuous' option is
+    checked, then methods including 'Con' in their names are invoked. Likewise if
+    the 'Can Move Relative" option is checked, then methods including 'Rel' in
+    their names are invoked.
+
+
+    At present, these types of movement are prioritized and exclusive. This applies
+    to all types of movement, not just PTZ, but focus, iris, etc. as well. The options
+    are tested in the following order:
+
+    1.  Continuous
+
+    2.  Relative
+
+    3.  Absolute
+
+    These types are exclusive meaning that the first one that matches is the one
+    ZoneMinder will use to control with. It would be nice to allow the user to
+    select the type used given that some cameras support all three types of
+    movement.
+
+=back
+
 =head2 presetHome
 
     This method "homes" the camera to a preset position. It accepts no arguments.
+    When either continuous or relative movement is enabled, pressing the center
+    button on the movement controls invokes this method.
 
     NOTE:
 

@@ -82,11 +82,6 @@ function userLogin($username='', $password='', $passwordHashed=false) {
     session_start();
     $close_session = 1;
   }
-  $_SESSION['username'] = $username;
-  if ( ZM_AUTH_RELAY == 'plain' ) {
-    // Need to save this in session
-    $_SESSION['password'] = $password;
-  }
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
   if ( $dbUser = dbFetchOne($sql, NULL, $sql_values) ) {
     ZM\Info("Login successful for user \"$username\"");
@@ -94,6 +89,11 @@ function userLogin($username='', $password='', $passwordHashed=false) {
     unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == 'builtin' ) {
       $_SESSION['passwordHash'] = $user['Password'];
+    }
+    $_SESSION['username'] = $user['Username'];
+    if ( ZM_AUTH_RELAY == 'plain' ) {
+      // Need to save this in session, can't use the value in User because it is hashed
+      $_SESSION['password'] = $_REQUEST['password'];
     }
     zm_session_regenerate_id();
   } else {
@@ -124,17 +124,19 @@ function getAuthUser($auth) {
       }
     }
 
+    $values = array();
     if ( isset($_SESSION['username']) ) {
       # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
       # Only really important if you have a lot of users.
-      $sql = "SELECT * FROM Users WHERE Enabled = 1 AND Username='".$_SESSION['username']."'";
+      $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username=?';
+      array_push($values, $_SESSION['username']);
     } else {
       $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     }
 
-    foreach ( dbFetchAll($sql) as $user ) {
+    foreach ( dbFetchAll($sql, NULL, $values) as $user ) {
       $now = time();
-      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= (3600) ) { // Try for last two hours
+      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= ZM_AUTH_HASH_TTL * 1800 ) { // Try for last two hours
         $time = localtime($now);
         $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
         $authHash = md5($authKey);

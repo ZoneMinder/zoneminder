@@ -376,7 +376,7 @@ if ($reload == 'reload') ob_start();
     return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) >= 4 ) 
-    $storage_areas = Storage::find( array('ServerId'=>null) );
+    $storage_areas = ZM\Storage::find( array('ServerId'=>null) );
   if ( count($storage_areas) < 4 )
     echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';

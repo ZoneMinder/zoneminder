@@ -94,6 +94,13 @@ xhtmlHeaders(__FILE__, translate('Server').' - '.$Server->Name());
                 <input type="radio" name="newServer[zmtrigger]" value="0"<?php echo $Server->zmtrigger() ? '' : ' checked="checked"' ?>/> No
               </td>
             </tr>
+            <tr>
+              <th scope="row"><?php echo translate('RunEventNotification') ?></th>
+              <td>
+                <input type="radio" name="newServer[zmeventnotification]" value="1"<?php echo $Server->zmeventnotification() ? ' checked="checked"' : '' ?>/> Yes
+                <input type="radio" name="newServer[zmeventnotification]" value="0"<?php echo $Server->zmeventnotification() ? '' : ' checked="checked"' ?>/> No
+              </td>
+            </tr>
           </tbody>
         </table>
         <div id="contentButtons">

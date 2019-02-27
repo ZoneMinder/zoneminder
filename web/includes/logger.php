@@ -16,9 +16,9 @@ class Logger {
 
   private $initialised = false;
 
-  private $id = "web";
-  private $idRoot = "web";
-  private $idArgs = "";
+  private $id = 'web';
+  private $idRoot = 'web';
+  private $idArgs = '';
   private $useErrorLog = true;
 
   private $level = self::INFO;
@@ -32,17 +32,17 @@ class Logger {
   private $hasTerm = false;
 
   private $logPath = ZM_PATH_LOGS;
-  private $logFile = "";
+  private $logFile = '';
   private $logFd = NULL;
 
   public static $codes = array(
-    self::DEBUG => "DBG",
-    self::INFO => "INF",
-    self::WARNING => "WAR",
-    self::ERROR => "ERR",
-    self::FATAL => "FAT",
-    self::PANIC => "PNC",
-    self::NOLOG => "OFF",
+    self::DEBUG => 'DBG',
+    self::INFO => 'INF',
+    self::WARNING => 'WAR',
+    self::ERROR => 'ERR',
+    self::FATAL => 'FAT',
+    self::PANIC => 'PNC',
+    self::NOLOG => 'OFF',
   );
   private static $syslogPriorities = array(
     self::DEBUG   => LOG_DEBUG,
@@ -63,7 +63,7 @@ class Logger {
 
   private function __construct() {
     $this->hasTerm = (php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']));
-    $this->logFile = $this->logPath."/".$this->id.".log";
+    $this->logFile = $this->logPath.'/'.$this->id.'.log';
   }
 
   public function __destruct() {
@@ -78,12 +78,12 @@ class Logger {
     //$this->useErrorLog = $options['useErrorLog'];
     if ( isset($options['logPath']) ) {
       $this->logPath = $options['logPath'];
-      $tempLogFile = $this->logPath."/".$this->id.".log";
+      $tempLogFile = $this->logPath.'/'.$this->id.'.log';
     }
     if ( isset($options['logFile']) )
       $tempLogFile = $options['logFile'];
     else
-      $tempLogFile = $this->logPath."/".$this->id.".log";
+      $tempLogFile = $this->logPath.'/'.$this->id.'.log';
     if ( !is_null($logFile = $this->getTargettedEnv('LOG_FILE')) )
       $tempLogFile = $logFile;
 
@@ -177,10 +177,10 @@ class Logger {
   }
 
   private function getTargettedEnv( $name ) {
-    $envName = $name."_".$this->id;
+    $envName = $name.'_'.$this->id;
     $value = getenv( $envName );
     if ( $value === false && $this->id != $this->idRoot )
-      $value = getenv( $name."_".$this->idRoot );
+      $value = getenv( $name.'_'.$this->idRoot );
     if ( $value === false )
       $value = getenv( $name );
     return( $value !== false ? $value : NULL );
@@ -269,7 +269,7 @@ class Logger {
         if ( $this->databaseLevel > self::NOLOG ) {
           if ( (include_once 'database.php') === FALSE ) {
             $this->databaseLevel = self::NOLOG;
-            Warning( "Unable to write log entries to DB, database.php not found" );
+            Warning( 'Unable to write log entries to DB, database.php not found' );
           }
         }
       }
@@ -424,7 +424,7 @@ class Logger {
 function logInit( $options=array() ) {
   $logger = Logger::fetch();
   $logger->initialise( $options );
-  set_error_handler( 'ErrorHandler' );
+  set_error_handler( 'ZM\ErrorHandler' );
 }
 
 function logToDatabase( $level=NULL ) {
@@ -487,7 +487,7 @@ function Panic( $string ) {
 function ErrorHandler( $error, $string, $file, $line ) {
   if ( ! (error_reporting() & $error) ) {
     // This error code is not included in error_reporting
-    return( false );
+    return false;
   }
 
   switch ( $error ) {
@@ -507,7 +507,7 @@ function ErrorHandler( $error, $string, $file, $line ) {
     Panic( "Unknown error type: [$error] $string" );
     break;
   }
-  return( true );
+  return true;
 }
 
 ?>

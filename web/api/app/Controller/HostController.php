@@ -48,8 +48,7 @@ class HostController extends AppController {
 
   // clears out session
   function logout() {
-    global $user;
-    $this->Session->Write('user', null);
+    userLogout();
 
     $this->set(array(
       'result' => 'ok',
@@ -67,7 +66,7 @@ class HostController extends AppController {
     if ( $isZmAuth ) {
     // In future, we may want to completely move to AUTH_HASH_LOGINS and return &auth= for all cases
       require_once __DIR__ .'/../../../includes/auth.php'; # in the event we directly call getCredentials.json
-      $this->Session->read('user'); # this is needed for command line/curl to recognize a session
+
       $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
       if ( $zmAuthRelay == 'hashed' ) {
         $zmAuthHashIps = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
@@ -75,7 +74,7 @@ class HostController extends AppController {
         $credentials = 'auth='.generateAuthHash($zmAuthHashIps,true);
       } else {
         // user will need to append the store password here
-        $credentials = 'user='.$this->Session->read('user.Username').'&pass=';
+        $credentials = 'user='.$this->Session->read('Username').'&pass=';
         $appendPassword = 1;
       }
     }
@@ -118,7 +117,7 @@ class HostController extends AppController {
 
     if ( $mid ) {
       // Get disk usage for $mid
-      Logger::Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
+      ZM\Logger::Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
       $usage = shell_exec("du -s0 $zm_dir_events/$mid | awk '{print $1}'");
     } else {
       $monitors = $this->Monitor->find('all', array(

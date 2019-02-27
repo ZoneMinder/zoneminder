@@ -663,6 +663,7 @@ $SLANG = array(
     'RunState'              => 'Run State',
     'RunStats'              => 'Run Stats Process',
     'RunTrigger'            => 'Run Trigger Process',
+    'RunEventNotification'  => 'Run Event Notification Process',
     'SaveAs'                => 'Save as',
     'SaveFilter'            => 'Save Filter',
     'SaveJPEGs'             => 'Save JPEGs',

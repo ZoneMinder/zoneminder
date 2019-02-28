@@ -236,6 +236,76 @@ sub _sendAbsolutePositionCommand
     $self->_sendPtzCommand("start", "PositionABS", $arg1, $arg2, $arg3, $arg4);
 }
 
+sub moveConLeft
+{
+    my $self = shift;
+    Debug("Move Up Left");
+    $self->_sendMomentaryPtzCommand("Left", 0, 1, 0, 0);
+}
+
+sub moveConRight
+{
+    my $self = shift;
+    Debug( "Move Right" );
+    $self->_sendMomentaryPtzCommand("Right", 0, 1, 0, 0);
+}
+
+sub moveConUp
+{
+    my $self = shift;
+    Debug( "Move Up" );
+    $self->_sendMomentaryPtzCommand("Up", 0, 1, 0, 0);
+}
+
+sub moveConDown
+{
+    my $self = shift;
+    Debug( "Move Down" );
+    $self->_sendMomentaryPtzCommand("Down", 0, 1, 0, 0);
+}
+
+sub moveConUpRight
+{
+    my $self = shift;
+    Debug( "Move Diagonally Up Right" );
+    $self->_sendMomentaryPtzCommand("RightUp", 1, 1, 0, 0); 
+}
+
+sub moveConDownRight
+{
+    my $self = shift;
+    Debug( "Move Diagonally Down Right" );
+    $self->_sendMomentaryPtzCommand("RightDown", 1, 1, 0, 0); 
+}
+
+sub moveConUpLeft
+{
+    my $self = shift;
+    Debug( "Move Diagonally Up Left" );
+    $self->_sendMomentaryPtzCommand("LeftUp", 1, 1, 0, 0); 
+}
+
+sub moveConDownLeft
+{
+    my $self = shift;
+    Debug( "Move Diagonally Up Right" );
+    $self->_sendMomentaryPtzCommand("LeftDown", 1, 1, 0, 0); 
+}
+
+sub zoomConTele
+{
+    my $self = shift;
+    Debug( "Zoom Tele" );
+    $self->_sendMomentaryPtzCommand("ZoomTele", 0, 1, 0, 0);
+}
+
+sub zoomConWide
+{
+    my $self = shift;
+    Debug( "Zoom Wide" );
+    $self->_sendMomentaryPtzCommand("ZoomWide", 0, 1, 0, 0);
+}
+
 sub moveRelUpLeft
 {
     my $self = shift;
@@ -322,6 +392,14 @@ sub focusRelFar
     Debug("focusRelFar response: " . $response);
 }
 
+sub moveStop
+{
+    my $self = shift;
+    Debug( "Move Stop" );
+    # The command does not matter here, just the stop...
+    $self->_sendPtzCommand("stop", "Up", 0, 0, 1, 0);
+}
+
 sub presetClear
 {
     my $self = shift;
@@ -369,10 +447,16 @@ sub presetHome
 sub reset
 {
     my $self = shift;
+    Debug( "Camera Reset" );
+    $self->_sendPtzCommand("Reset", 0, 0, 0, 0);
+}
+
+sub reboot
+{
+    my $self = shift;
     Debug( "Camera Reboot" );
     my $cmd = "cgi-bin/magicBox.cgi?action=reboot";
     $self->_sendGetRequest($cmd);
-
 }
 
 1;
@@ -481,6 +565,26 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
     This method appears to be used for debugging.
 
+=head2 moveCon<direction>
+
+    This set of methods invoke continuous movement in the direction indicated by
+    the <direction> portion of their name. They accept no arguments and move the
+    camera at a speed of 1 for 0ms. The speed index of 1 is the lowest of the
+    accepted range of 1-8.
+
+    NOTE:
+
+    This is not true continuous movmement as currently implemented.
+
+=head2 focusCon<range>
+
+    This set of methods invoke continuous focus in the range direction indicated
+    by the <range> portion of their name. They accept no arguments.
+
+    NOTE:
+
+    This is not true continuous movmement as currently implemented.
+
 =head2 moveRel<direction>
 
     This set of methods invoke relatvie movement in the direction indicated by
@@ -499,6 +603,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     We pass in a 1 for that as it does not seem to matter what number (0-8) is
     provided, the camera focus behaves the same.
 
+=head2 moveStop
+
+    This method attempts to stop the camera. The problem is that if continuous
+    motion is occurring in multiple directions, this will only stop the motion
+    in the 'Up' direction. Dahua does not support an "all-stop" command.
+
 =head2 presetHome
 
     This method "homes" the camera to a preset position. It accepts no arguments.
@@ -514,7 +624,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =head2 reset
 
-    This method performs a reboot of the camera. Dahua protocol does not support
-    any other sort of reset. Interestingly enough, it does support a shutdown.
+    This method will reset the PTZ controls to their "default." It is not clear
+    what that is.
+
+=head2 reboot
+
+    This method performs a reboot of the camera. This will take the camera offline
+    for the time it takes to reboot.
 
 =cut

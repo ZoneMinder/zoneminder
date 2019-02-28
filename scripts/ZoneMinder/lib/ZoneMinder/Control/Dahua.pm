@@ -152,7 +152,7 @@ sub printMsg
     Debug( $msg."[".$msg_len."]" );
 }
 
-sub sendGetRequest {
+sub _sendGetRequest {
     my $self = shift;
     my $url_path = shift;
 
@@ -187,7 +187,7 @@ sub sendGetRequest {
     return($result);
 }
 
-sub sendPtzCommand
+sub _sendPtzCommand
 {
     my $self = shift;
     my $action = shift;
@@ -207,10 +207,10 @@ sub sendPtzCommand
     $url_path .= "arg2=" . $arg2 . "&";
     $url_path .= "arg3=" . $arg3 . "&";
     $url_path .= "arg4=" . $arg4;
-    return $self->sendGetRequest($url_path);
+    return $self->_sendGetRequest($url_path);
 }
 
-sub sendMomentaryPtzCommand
+sub _sendMomentaryPtzCommand
 {
     my $self = shift;
     my $command_code = shift;
@@ -219,10 +219,10 @@ sub sendMomentaryPtzCommand
     my $arg3 = shift;
     my $duration_ms = shift;
 
-    $self->sendPtzCommand("start", $command_code, $arg1, $arg2, $arg3);
+    $self->_sendPtzCommand("start", $command_code, $arg1, $arg2, $arg3);
     my $duration_ns = $duration_ms * 1000;
     usleep($duration_ns);
-    $self->sendPtzCommand("stop", $command_code, $arg1, $arg2, $arg3);
+    $self->_sendPtzCommand("stop", $command_code, $arg1, $arg2, $arg3);
 }
 
 sub _sendAbsolutePositionCommand
@@ -233,77 +233,77 @@ sub _sendAbsolutePositionCommand
     my $arg3 = shift;
     my $arg4 = shift;
 
-    $self->sendPtzCommand("start", "PositionABS", $arg1, $arg2, $arg3, $arg4);
+    $self->_sendPtzCommand("start", "PositionABS", $arg1, $arg2, $arg3, $arg4);
 }
 
 sub moveRelUpLeft
 {
     my $self = shift;
     Debug("Move Up Left");
-    $self->sendMomentaryPtzCommand("LeftUp", 4, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("LeftUp", 4, 4, 0, 500);
 }
 
 sub moveRelUp
 {
     my $self = shift;
     Debug("Move Up");
-    $self->sendMomentaryPtzCommand("Up", 0, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("Up", 0, 4, 0, 500);
 }
 
 sub moveRelUpRight
 {
     my $self = shift;
     Debug("Move Up Right");
-    $self->sendMomentaryPtzCommand("RightUp", 0, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("RightUp", 0, 4, 0, 500);
 }
 
 sub moveRelLeft
 {
     my $self = shift;
     Debug("Move Left");
-    $self->sendMomentaryPtzCommand("Left", 0, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("Left", 0, 4, 0, 500);
 }
 
 sub moveRelRight
 {
     my $self = shift;
     Debug("Move Right");
-    $self->sendMomentaryPtzCommand("Right", 0, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("Right", 0, 4, 0, 500);
 }
 
 sub moveRelDownLeft
 {
     my $self = shift;
     Debug("Move Down Left");
-    $self->sendMomentaryPtzCommand("LeftDown", 4, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("LeftDown", 4, 4, 0, 500);
 }
 
 sub moveRelDown
 {
     my $self = shift;
     Debug("Move Down");
-    $self->sendMomentaryPtzCommand("Down", 0, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("Down", 0, 4, 0, 500);
 }
 
 sub moveRelDownRight
 {
     my $self = shift;
     Debug("Move Down Right");
-    $self->sendMomentaryPtzCommand("RightDown", 4, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("RightDown", 4, 4, 0, 500);
 }
 
 sub zoomRelTele
 {
     my $self = shift;
     Debug("Zoom Relative Tele");
-    $self->sendMomentaryPtzCommand("ZoomTele", 0, 0, 0, 500);
+    $self->_sendMomentaryPtzCommand("ZoomTele", 0, 0, 0, 500);
 }
 
 sub zoomRelWide
 {
     my $self = shift;
     Debug("Zoom Relative Wide");
-    $self->sendMomentaryPtzCommand("ZoomWide", 0, 0, 0, 500);
+    $self->_sendMomentaryPtzCommand("ZoomWide", 0, 0, 0, 500);
 }
 
 sub presetClear
@@ -311,9 +311,8 @@ sub presetClear
     my $self = shift;
     my $params = shift;
     my $preset_id = $self->getParam($params, 'preset');
-    $self->sendPtzCommand("start", "ClearPreset", 0, $preset_id, 0);
+    $self->_sendPtzCommand("start", "ClearPreset", 0, $preset_id, 0);
 }
-
 
 sub presetSet
 {
@@ -331,8 +330,8 @@ sub presetSet
     my $control_preset_row = $sth->fetchrow_hashref();
     my $new_label_name = $control_preset_row->{'Label'};
 
-    $self->sendPtzCommand("start", "SetPreset", 0, $preset_id, 0);
-    $self->sendPtzCommand("start", "SetPresetName", $preset_id, $new_label_name, 0);
+    $self->_sendPtzCommand("start", "SetPreset", 0, $preset_id, 0);
+    $self->_sendPtzCommand("start", "SetPresetName", $preset_id, $new_label_name, 0);
 }
 
 sub presetGoto
@@ -341,7 +340,7 @@ sub presetGoto
     my $params = shift;
     my $preset_id = $self->getParam($params, 'preset');
 
-    $self->sendPtzCommand("start", "GotoPreset", 0, $preset_id, 0);
+    $self->_sendPtzCommand("start", "GotoPreset", 0, $preset_id, 0);
 }
 
 sub presetHome
@@ -355,7 +354,7 @@ sub focusRelNear
 {
     my $self = shift;
 
-    my $response = $self->sendPtzCommand("start", "FocusNear", 0, 1, 0, 0);
+    my $response = $self->_sendPtzCommand("start", "FocusNear", 0, 1, 0, 0);
     Debug("focusRelNear response: " . $response);
 }
 
@@ -363,12 +362,14 @@ sub focusRelFar
 {
     my $self = shift;
 
-    my $response = $self->sendPtzCommand("start", "FocusFar", 0, 1, 0, 0);
+    my $response = $self->_sendPtzCommand("start", "FocusFar", 0, 1, 0, 0);
     Debug("focusRelFar response: " . $response);
 }
 
 1;
+
 __END__
+
 =pod
 
 =encoding utf8
@@ -451,6 +452,32 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     movement.
 
 =back
+
+=head2 new
+
+    This method instantiates a new control object based upon this control module
+    and sets the 'id' attribute to the value passed in.
+
+=head2 open
+
+    This method opens an HTTP connection to the camera. It handles authentication,
+    etc. Upon success it sets the 'state' attribute to 'open.'
+
+=head2 close
+
+    This method effectively closes the HTTP connection to the camera. It sets the
+    'state' attribute to 'close.'
+
+=head2 printMsg
+
+    This method appears to be used for debugging.
+
+=head2 moveRel<direction>
+
+    This set of methods invoke relatvie movement in the direction indicated by
+    the <direction> portion of their name. They accept no arguments and move the
+    camera at a speed of 4 for 500ms. The speed index of 4 is half-way between
+    the accepted range of 1-8.
 
 =head2 presetHome
 

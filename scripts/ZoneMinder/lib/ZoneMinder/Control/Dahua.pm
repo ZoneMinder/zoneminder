@@ -366,6 +366,15 @@ sub presetHome
     $self->_sendAbsolutePositionCommand( 0, 0, 0, 1 );
 }
 
+sub reset
+{
+    my $self = shift;
+    Debug( "Camera Reboot" );
+    my $cmd = "cgi-bin/magicBox.cgi?action=reboot";
+    $self->_sendGetRequest($cmd);
+
+}
+
 1;
 
 __END__
@@ -479,6 +488,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     camera at a speed of 4 for 500ms. The speed index of 4 is half-way between
     the accepted range of 1-8.
 
+=head2 focusRel<range>
+
+    This set of methods invoke realtive focus in the range direction indicated by
+    the <range> portion of their name. They accept no arguments.
+
+    NOTE:
+
+    This only just does work. The Dahua API specifies "multiples" as the input.
+    We pass in a 1 for that as it does not seem to matter what number (0-8) is
+    provided, the camera focus behaves the same.
+
 =head2 presetHome
 
     This method "homes" the camera to a preset position. It accepts no arguments.
@@ -492,24 +512,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     to support naming presets which may lend itself to this sort of thing. At
     this point, we'll just send the camera back to center and zoom wide. (0°,0°,0)
 
-=head2 focusRelFar
+=head2 reset
 
-    This method performs a far focus relative to the current focus
-
-    NOTE:
-
-    This only just does work. The Dahua API specifies "multiples" as the input.
-    We pass in a 1 for that as it does not seem to matter what number (0-8) is
-    provided, the camera focus behaves the same.
-
-=head2 focusRelNear
-
-    This method performs a near focus relative to the current focus
-
-    NOTE:
-
-    This only just does work. The Dahua API specifies "multiples" as the input.
-    We pass in a 1 for that as it does not seem to matter what number (0-8) is
-    provided, the camera focus behaves the same.
+    This method performs a reboot of the camera. Dahua protocol does not support
+    any other sort of reset. Interestingly enough, it does support a shutdown.
 
 =cut

@@ -306,6 +306,22 @@ sub zoomRelWide
     $self->_sendMomentaryPtzCommand("ZoomWide", 0, 0, 0, 500);
 }
 
+sub focusRelNear
+{
+    my $self = shift;
+
+    my $response = $self->_sendPtzCommand("start", "FocusNear", 0, 1, 0, 0);
+    Debug("focusRelNear response: " . $response);
+}
+
+sub focusRelFar
+{
+    my $self = shift;
+
+    my $response = $self->_sendPtzCommand("start", "FocusFar", 0, 1, 0, 0);
+    Debug("focusRelFar response: " . $response);
+}
+
 sub presetClear
 {
     my $self = shift;
@@ -348,22 +364,6 @@ sub presetHome
     my $self = shift;
 
     $self->_sendAbsolutePositionCommand( 0, 0, 0, 1 );
-}
-
-sub focusRelNear
-{
-    my $self = shift;
-
-    my $response = $self->_sendPtzCommand("start", "FocusNear", 0, 1, 0, 0);
-    Debug("focusRelNear response: " . $response);
-}
-
-sub focusRelFar
-{
-    my $self = shift;
-
-    my $response = $self->_sendPtzCommand("start", "FocusFar", 0, 1, 0, 0);
-    Debug("focusRelFar response: " . $response);
 }
 
 1;

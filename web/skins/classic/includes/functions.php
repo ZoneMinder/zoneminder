@@ -267,8 +267,19 @@ function getNavBarHTML($reload = null) {
 <?php
   if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
     if ( ! ZM_RUN_AUDIT ) {
-    # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
-     dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+     # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
+      if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
+        # Number of lines, instead of an interval
+        $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows' );
+        if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
+          dbQuery('DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
+        }
+      } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
+      ZM\Logger::Debug("have interval ".$matches[1]);
+        dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+      } else {
+        ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
+      }
     }
     echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
   }
@@ -376,7 +387,7 @@ if ($reload == 'reload') ob_start();
     return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) >= 4 ) 
-    $storage_areas = Storage::find( array('ServerId'=>null) );
+    $storage_areas = ZM\Storage::find( array('ServerId'=>null) );
   if ( count($storage_areas) < 4 )
     echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';

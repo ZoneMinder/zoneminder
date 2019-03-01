@@ -7,17 +7,18 @@ $server_cache = array();
 
 class Server {
   private $defaults = array(
-    'Id'          => null,
-    'Name'        => '',
-    'Protocol'    => '',
-    'Hostname'    => '',
-    'Port'        => null,
-    'PathToIndex' => null,
-    'PathToZMS'   => ZM_PATH_ZMS,
-    'PathToApi'   => '/zm/api',
-    'zmaudit'     => 1,
-    'zmstats'     => 1,
-    'zmtrigger'   => 0,
+    'Id'                   => null,
+    'Name'                 => '',
+    'Protocol'             => '',
+    'Hostname'             => '',
+    'Port'                 => null,
+    'PathToIndex'          => null,
+    'PathToZMS'            => ZM_PATH_ZMS,
+    'PathToApi'            => '/zm/api',
+    'zmaudit'              => 1,
+    'zmstats'              => 1,
+    'zmtrigger'            => 0,
+    'zmeventnotification'  => 0,
   );
 
   public function __construct($IdOrRow = NULL) {

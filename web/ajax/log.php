@@ -19,7 +19,7 @@ switch ( $_REQUEST['task'] ) {
       else
         $line = NULL;
 
-      $levels = array_flip(Logger::$codes);
+      $levels = array_flip(ZM\Logger::$codes);
       if ( !isset($levels[$_POST['level']]) )
         ZM\Panic("Unexpected logger level '".$_POST['level']."'");
       $level = $levels[$_POST['level']];
@@ -322,7 +322,7 @@ switch ( $_REQUEST['task'] ) {
         $classLevel = ZM\Logger::FATAL;
       elseif ( $classLevel > ZM\Logger::DEBUG )
         $classLevel = ZM\Logger::DEBUG;
-      $logClass = 'log-'.strtolower(Logger::$codes[$classLevel]);
+      $logClass = 'log-'.strtolower(ZM\Logger::$codes[$classLevel]);
       fprintf( $exportFP, "        <tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $logClass, $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
     }
     fwrite( $exportFP, 

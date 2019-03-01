@@ -38,7 +38,7 @@ if ( version_compare(phpversion(), '4.1.0', '<') ) {
 if ( false ) {
   ob_start();
   phpinfo(INFO_VARIABLES);
-  $fp = fopen('/tmp/env.html', 'w');
+  $fp = fopen('/tmp/env.html', 'w+');
   fwrite($fp, ob_get_contents());
   fclose($fp);
   ob_end_clean();
@@ -70,8 +70,15 @@ define('ZM_BASE_PROTOCOL', $protocol);
 // Use relative URL's instead
 define('ZM_BASE_URL', '');
 
-// Verify the system, php, and mysql timezones all match
 require_once('includes/functions.php');
+if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
+  Logger::Debug("OPTIONS Method, only doing CORS");
+  # Add Cross domain access headers
+  CORSHeaders();
+  return;
+}
+
+// Verify the system, php, and mysql timezones all match
 check_timezone();
 
 if ( isset($_GET['skin']) ) {
@@ -187,7 +194,7 @@ isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-Logger::Debug("View: $view Request: $request Action: $action");
+Logger::Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
@@ -214,6 +221,12 @@ if ( $action ) {
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
+  /* AJAX check  */
+  if ( !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+    && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' ) {
+    header('HTTP/1.1 401 Unauthorized');
+    exit;
+  }
   Logger::Debug('Redirecting to login');
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';

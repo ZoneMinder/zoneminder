@@ -634,7 +634,8 @@ private $control_fields = array(
   } // end function Source
 
   public function UrlToIndex() {
-    return $this->Server()->UrlToIndex(ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
+    return $this->Server()->UrlToIndex();
+    //ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
   }
 
 } // end class Monitor

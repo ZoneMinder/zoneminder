@@ -318,12 +318,13 @@ function changeScale() {
       console.log("Error finding frame for " + monitor.id );
       continue;
     }
-    if ( width ) {
-      monitor_frame.css('width', width);
+    if ( newWidth ) {
+      monitor_frame.css('width', newWidth);
     }
-    if ( height ) {
-      monitor_frame.css('height', height+'px');
-    }
+    // We don't set the frame height because it has the status bar as well
+    //if ( height ) {
+      ////monitor_frame.css('height', height+'px');
+    //}
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $j('#liveStream'+monitor.id )[0];
     if ( streamImg ) {

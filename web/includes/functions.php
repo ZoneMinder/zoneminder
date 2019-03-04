@@ -288,7 +288,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? 'width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'"/>';
   }
 }
 
@@ -2239,15 +2239,15 @@ function getStreamHTML( $monitor, $options = array() ) {
 
   if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
     //Warning("Scale to " . $options['scale'] );
-    $options['width'] = reScale( $monitor->Width(), $options['scale'] ) . 'px';
-    $options['height'] = reScale( $monitor->Height(), $options['scale'] ) . 'px';
+    $options['width'] = reScale($monitor->Width(), $options['scale']).'px';
+    $options['height'] = reScale($monitor->Height(), $options['scale']).'px';
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty
     if ( ! ( isset($options['width']) and $options['width'] ) ) {
-      $options['width'] = $monitor->Width() . 'px';
+      $options['width'] = $monitor->Width().'px';
       if ( ! ( isset($options['height']) and $options['height'] ) ) {
-        $options['height'] = $monitor->Height() . 'px';
+        $options['height'] = $monitor->Height().'px';
       }
     } else if ( ! isset($options['height']) ) {
       $options['height'] = '';

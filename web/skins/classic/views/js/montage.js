@@ -140,6 +140,7 @@ function Monitor( monitorData ) {
         console.log( 'No stream to reload?' );
       }
     } // end if Ok or not
+
     var streamCmdTimeout = statusRefreshTimeout;
     // The idea here is if we are alarmed, do updates faster.  However, there is a timeout in the php side which isn't getting modified, so this may cause a problem. Also the server may only be able to update so fast.
     //if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT ) {
@@ -262,10 +263,10 @@ function changeSize() {
       continue;
     }
     if ( width ) {
-      monitor_frame.css('width', width+'px');
+      monitor_frame.css('width', width);
     }
     if ( height ) {
-      monitor_frame.css('height', height+'px');
+      monitor_frame.css('height', height);
     }
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $( 'liveStream'+monitor.id );
@@ -278,14 +279,14 @@ function changeSize() {
         src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
       }
-      streamImg.style.width = width? width + "px" : null;
-      streamImg.style.height = height ? height + "px" : null;
+      streamImg.style.width = width ? width : null;
+      streamImg.style.height = height ? height : null;
       //streamImg.style.height = '';
     }
     var zonesSVG = $('zones'+monitor.id);
     if ( zonesSVG ) {
-      zonesSVG.style.width = width ? width + "px" : '100%';
-      zonesSVG.style.height = height + "px";
+      zonesSVG.style.width = width ? width : '100%';
+      zonesSVG.style.height = height;
     }
   }
   $('scale').set('value', '' );
@@ -297,12 +298,12 @@ function changeSize() {
 
 function changeScale() {
   var scale = $('scale').get('value');
-  $('width').set('value', '');
-  $('height').set('value', '');
-  Cookie.write( 'zmMontageScale', scale, {duration: 10*365} );
-  Cookie.write( 'zmMontageWidth', '', {duration: 10*365} );
-  Cookie.write( 'zmMontageHeight', '', {duration: 10*365} );
-  if ( ! scale ) {
+  $('width').set('value', 'auto');
+  $('height').set('value', 'auto');
+  Cookie.write('zmMontageScale', scale, { duration: 10*365 });
+  Cookie.write('zmMontageWidth', '', { duration: 10*365 });
+  Cookie.write('zmMontageHeight', '', { duration: 10*365 });
+  if ( !scale ) {
     selectLayout('#zmMontageLayout');
     return;
   }
@@ -318,7 +319,7 @@ function changeScale() {
       continue;
     }
     if ( width ) {
-      monitor_frame.css('width', width+'px');
+      monitor_frame.css('width', width);
     }
     if ( height ) {
       monitor_frame.css('height', height+'px');

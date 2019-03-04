@@ -139,6 +139,7 @@ function Monitor(monitorData) {
         console.log('No stream to reload?');
       }
     } // end if Ok or not
+
     var streamCmdTimeout = statusRefreshTimeout;
     // The idea here is if we are alarmed, do updates faster.
     // However, there is a timeout in the php side which isn't getting modified,
@@ -261,10 +262,10 @@ function changeSize() {
       continue;
     }
     if ( width ) {
-      monitor_frame.css('width', width+'px');
+      monitor_frame.css('width', width);
     }
     if ( height ) {
-      monitor_frame.css('height', height+'px');
+      monitor_frame.css('height', height);
     }
 
     /*Stream could be an applet so can't use moo tools*/
@@ -278,14 +279,14 @@ function changeSize() {
         src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
       }
-      streamImg.style.width = width ? width + "px" : null;
-      streamImg.style.height = height ? height + "px" : null;
+      streamImg.style.width = width ? width : null;
+      streamImg.style.height = height ? height : null;
       //streamImg.style.height = '';
     }
     var zonesSVG = $('zones'+monitor.id);
     if ( zonesSVG ) {
-      zonesSVG.style.width = width ? width + "px" : '100%';
-      zonesSVG.style.height = height + "px";
+      zonesSVG.style.width = width ? width : '100%';
+      zonesSVG.style.height = height;
     }
   }
   $('scale').set('value', '');
@@ -297,8 +298,8 @@ function changeSize() {
 
 function changeScale() {
   var scale = $('scale').get('value');
-  $('width').set('value', '');
-  $('height').set('value', '');
+  $('width').set('value', 'auto');
+  $('height').set('value', 'auto');
   Cookie.write('zmMontageScale', scale, { duration: 10*365 });
   Cookie.write('zmMontageWidth', '', { duration: 10*365 });
   Cookie.write('zmMontageHeight', '', { duration: 10*365 });
@@ -317,12 +318,13 @@ function changeScale() {
       console.log("Error finding frame for " + monitor.id);
       continue;
     }
-    if ( width ) {
-      monitor_frame.css('width', width+'px');
+    if ( newWidth ) {
+      monitor_frame.css('width', newWidth);
     }
-    if ( height ) {
-      monitor_frame.css('height', height+'px');
-    }
+    // We don't set the frame height because it has the status bar as well
+    //if ( height ) {
+      ////monitor_frame.css('height', height+'px');
+    //}
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $j('#liveStream'+monitor.id)[0];
     if ( streamImg ) {

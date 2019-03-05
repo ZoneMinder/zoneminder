@@ -300,9 +300,9 @@ function changeScale() {
   var scale = $('scale').get('value');
   $('width').set('value', 'auto');
   $('height').set('value', 'auto');
-  Cookie.write('zmMontageScale', scale, { duration: 10*365 });
-  Cookie.write('zmMontageWidth', '', { duration: 10*365 });
-  Cookie.write('zmMontageHeight', '', { duration: 10*365 });
+  Cookie.write('zmMontageScale', scale, {duration: 10*365});
+  Cookie.write('zmMontageWidth', '', {duration: 10*365});
+  Cookie.write('zmMontageHeight', '', {duration: 10*365});
   if ( !scale ) {
     selectLayout('#zmMontageLayout');
     return;
@@ -323,7 +323,7 @@ function changeScale() {
     }
     // We don't set the frame height because it has the status bar as well
     //if ( height ) {
-      ////monitor_frame.css('height', height+'px');
+    ////monitor_frame.css('height', height+'px');
     //}
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $j('#liveStream'+monitor.id)[0];

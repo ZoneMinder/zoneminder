@@ -16,10 +16,12 @@ function cycleStart() {
 }
 function cycleNext() {
   monIdx ++;
-  if ( monIdx >= monitorData.length )
+  if ( monIdx >= monitorData.length ) {
     monIdx = 0;
-  if ( !monitorData[monIdx] )
+  }
+  if ( !monitorData[monIdx] ) {
     console.log("No monitorData for " + monIdx);
+  }
 
   window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
 }
@@ -71,9 +73,9 @@ function changeSize() {
     console.log("Did not find liveStream"+monitorData[monIdx].id);
   }
   $('scale').set('value', '');
-  Cookie.write('zmCycleScale', '', { duration: 10*365 });
-  Cookie.write('zmCycleWidth', width, { duration: 10*365 });
-  Cookie.write('zmCycleHeight', height, { duration: 10*365 });
+  Cookie.write('zmCycleScale', '', {duration: 10*365});
+  Cookie.write('zmCycleWidth', width, {duration: 10*365});
+  Cookie.write('zmCycleHeight', height, {duration: 10*365});
 } // end function changeSize()
 
 function changeScale() {

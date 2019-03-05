@@ -18,33 +18,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-// I think this is saving a Monitor from ajax...
-
-if ( isset($_REQUEST['object']) and $_REQUEST['object'] == 'Monitor' ) {
-  if ( $action == 'save' ) {
-    foreach ( $_REQUEST['mids'] as $mid ) {
-      $mid = ValidInt($mid);
-      if ( ! canEdit('Monitors', $mid) ) {
-        ZM\Warning("Cannot edit monitor $mid");
-        continue;
-      }
-      $Monitor = new ZM\Monitor($mid);
-      if ( $Monitor->Type() != 'WebSite' ) {
-        $Monitor->zmaControl('stop');
-        $Monitor->zmcControl('stop');
-      }
-      $Monitor->save($_REQUEST['newMonitor']);
-      if ( $Monitor->Function() != 'None' && $Monitor->Type() != 'WebSite' ) {
-        $Monitor->zmcControl('start');
-        if ( $Monitor->Enabled() ) {
-          $Monitor->zmaControl('start');
-        }
-      }
-    } // end foreach mid
-    $refreshParent = true;
-  } // end if action == save
-} // end if object is Monitor
-
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
 if ( ! canEdit('Monitors') ) {
   ZM\Warning("Monitor actions require Monitors Permissions");

@@ -27,28 +27,32 @@ if ( $action == 'donate' && isset($_REQUEST['option']) ) {
   $option = $_REQUEST['option'];
   switch( $option ) {
     case 'go' :
-        // Ignore this, the caller will open the page itself
-        break;
+      // Ignore this, the caller will open the page itself
+      break;
     case 'hour' :
     case 'day' :
     case 'week' :
     case 'month' :
-        $nextReminder = time();
-        if ( $option == 'hour' ) {
-          $nextReminder += 60*60;
-        } elseif ( $option == 'day' ) {
-          $nextReminder += 24*60*60;
-        } elseif ( $option == 'week' ) {
-          $nextReminder += 7*24*60*60;
-        } elseif ( $option == 'month' ) {
-          $nextReminder += 30*24*60*60;
-        }
-        dbQuery("UPDATE Config SET Value = '".$nextReminder."' WHERE Name = 'ZM_DYN_DONATE_REMINDER_TIME'");
-        break;
+      $nextReminder = time();
+      if ( $option == 'hour' ) {
+        $nextReminder += 60*60;
+      } elseif ( $option == 'day' ) {
+        $nextReminder += 24*60*60;
+      } elseif ( $option == 'week' ) {
+        $nextReminder += 7*24*60*60;
+      } elseif ( $option == 'month' ) {
+        $nextReminder += 30*24*60*60;
+      }
+      dbQuery("UPDATE Config SET Value = '".$nextReminder."' WHERE Name = 'ZM_DYN_DONATE_REMINDER_TIME'");
+      break;
     case 'never' :
     case 'already' :
-        dbQuery("UPDATE Config SET Value = '0' WHERE Name = 'ZM_DYN_SHOW_DONATE_REMINDER'");
-        break;
+      dbQuery("UPDATE Config SET Value = '0' WHERE Name = 'ZM_DYN_SHOW_DONATE_REMINDER'");
+      break;
+    default :
+      Warning("Unknown value for option in donate: $option");
+      break;
   } // end switch option
+  $view = 'none';
 }
 ?>

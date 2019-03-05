@@ -51,7 +51,9 @@ sub AUTOLOAD
 
 sub open
 {
+    Debug("Invoking &open at " . time);
     my $self = shift;
+    my $cgi = shift || '/cgi-bin/configManager.cgi?action=getConfig&name=Ptz';
     $self->loadMonitor();
 
     # The Dahua camera firmware API supports the concept of having multiple
@@ -89,13 +91,13 @@ sub open
     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
 
     # Detect REALM
-    my $get_config_url = $PROTOCOL . $ADDRESS . "/cgi-bin/configManager.cgi?action=getConfig&name=Ptz";
-    my $req = HTTP::Request->new(GET=>$get_config_url);
+    my $url = $PROTOCOL . $ADDRESS . $cgi;
+    my $req = HTTP::Request->new(GET=>$url);
     my $res = $self->{ua}->request($req);
 
     if ($res->is_success) {
         $self->{state} = 'open';
-        return;
+        return 1;
     }
 
     if ( $res->status_line() eq '401 Unauthorized' ) {
@@ -113,12 +115,12 @@ sub open
                     $REALM = $1;
                     Debug("Changing REALM to '" . $REALM . "'");
                     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
-                    my $req = HTTP::Request->new(GET=>$get_config_url);
+                    my $req = HTTP::Request->new(GET=>$url);
                     $res = $self->{ua}->request($req);
                     if ($res->is_success()) {
                         $self->{state} = 'open';
                         Debug('Authentication succeeded...');
-                        return;
+                        return 1;
                     }
                     Debug('Authentication still failed after updating REALM' . $res->status_line);
                     $headers = $res->headers();
@@ -135,6 +137,7 @@ sub open
             Error('No WWW-Authenticate Header');
         } # end if headers
     } # end if $res->status_line() eq '401 Unauthorized'
+    return 1;
 }
 
 sub close
@@ -156,35 +159,7 @@ sub _sendGetRequest {
     my $self = shift;
     my $url_path = shift;
 
-    my $result = undef;
-
-    my $url = $PROTOCOL . $ADDRESS . $url_path;
-    my $req = HTTP::Request->new(GET=>$url);
-
-    Debug("Attempting to sendGetRequest...");
-
-    my $res = $self->{ua}->request($req);
-    my $headers = $res->headers();      ## XXX: I'm not sure why, but this fixes an auth failure which occurs if
-                                        ## it is missing.
-
-    if ($res->is_success) {
-        $result = !undef;
-    } else {
-        if ($res->status_line() eq '401 Unauthorized') {
-            Debug("Error check failed, trying again: USERNAME: $USERNAME realm: $REALM password: " . $PASSWORD);
-            Debug("Content was " . $res->content() );
-            my $res = $self->{ua}->request($req);
-            if ($res->is_success) {
-                $result = !undef;
-            } else {
-                Error("Content was " . $res->content() );
-            }
-        }
-        if ( ! $result ) {
-            Error("Error check failed: '".$res->status_line());
-        }
-    }
-    return($result);
+    return($self->open($url_path));
 }
 
 sub _sendPtzCommand

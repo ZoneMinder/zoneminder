@@ -345,7 +345,8 @@ bool VideoStore::open() {
 
   AVDictionary *opts = NULL;
   // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
+  // Shiboleth reports that this may break seeking in mp4 before it downloads
+  //av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
   // av_dict_set(&opts, "movflags",
   // "frag_keyframe+empty_moov+default_base_moof", 0);
   if ((ret = avformat_write_header(oc, &opts)) < 0) {

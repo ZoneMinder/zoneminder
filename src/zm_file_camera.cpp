@@ -84,7 +84,7 @@ int FileCamera::PreCapture() {
 }
 
 int FileCamera::Capture( Image &image ) {
-  return( image.ReadJpeg( path, colours, subpixelorder )?0:-1 );
+  return( image.ReadJpeg( path, colours, subpixelorder )?1:-1 );
 }
 
 int FileCamera::PostCapture() {

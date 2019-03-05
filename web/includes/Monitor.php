@@ -63,11 +63,11 @@ private $defaults = array(
   'SectionLength'       =>  600,
   'FrameSkip'           =>  0,
   'AnalysisFPSLimit'  =>  null,
-  'AnalysisUpdateDelete'  =>  0,
+  'AnalysisUpdateDelay'  =>  0,
   'MaxFPS' => null,
   'AlarmMaxFPS' => null,
-  'FPSReportIneterval'  =>  100,
-  'RefBlencPerc'        =>  6,
+  'FPSReportInterval'  =>  100,
+  'RefBlendPerc'        =>  6,
   'AlarmRefBlendPerc'   =>  6,
   'Controllable'        =>  0,
   'ControlId' =>  null,
@@ -78,7 +78,6 @@ private $defaults = array(
   'TrackDelay'      =>  null,
   'ReturnLocation'  =>  -1,
   'ReturnDelay'     =>  null,
-  'DefaultView' =>  'Events',
   'DefaultRate' =>  100,
   'DefaultScale'  =>  100,
   'SignalCheckPoints' =>  0,
@@ -634,7 +633,8 @@ private $control_fields = array(
   } // end function Source
 
   public function UrlToIndex() {
-    return $this->Server()->UrlToIndex(ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
+    return $this->Server()->UrlToIndex();
+    //ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
   }
 
 } // end class Monitor

@@ -49,7 +49,7 @@ xhtmlHeaders(__FILE__, translate('Function'));
 The following monitors will have these settings update when you click Save:<br/><br/>
       <?php echo implode('<br/>', array_map(function($m){return $m->Id().' ' .$m->Name();}, $monitors)); ?>
       <form name="contentForm" id="contentForm" method="post" action="?" onsubmit="$j('#contentButtons').hide();return true;">
-        <input type="hidden" name="view" value="none"/>
+        <input type="hidden" name="view" value="monitors"/>
         <input type="hidden" name="action" value="save"/>
         <input type="hidden" name="object" value="Monitor"/>
 <?php
@@ -57,7 +57,7 @@ The following monitors will have these settings update when you click Save:<br/>
     "\n",
     array_map(function($m){
       return '<input type="hidden" name="mids[]" value="'.$m->Id().'"/>';
-      }, $monitors)
+    }, $monitors)
   );
   if ( count($ServersById) > 0 ) { ?>
         <p class="Server"><label><?php echo translate('Server')?></label>
@@ -73,7 +73,7 @@ The following monitors will have these settings update when you click Save:<br/>
 <?php
   }
 ?>
-        <p><label><?php echo translate('Function') ?></label>
+        <p class="Function"><label><?php echo translate('Function') ?></label>
 <?php
   $options = array();
   foreach ( getEnumValues('Monitors', 'Function') as $opt ) {

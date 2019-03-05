@@ -48,6 +48,7 @@ sub AUTOLOAD
 
 #XXX:   This might be of some use:
 #       {"method":"global.keepAlive","params":{"timeout":300,"active":false},"id":1518,"session":"dae233a51c0693519395209b271411b6"}[!http]
+#       It may be possible to POST commands as JSON
 
 sub open
 {
@@ -127,17 +128,17 @@ sub open
                     foreach my $k ( keys %$headers ) {
                         Debug("Initial Header $k => $$headers{$k}");
                     }  # end foreach
-                } else {
-                    Error('Authentication failed, not a REALM problem');
+                } else {        ## NOTE: Each of these else conditions is fatal as the command will not be
+                                ##       executed. No use going further.
+                    Fatal('Authentication failed: Check username and password.');
                 }
             } else {
-                Error('Failed to match realm in tokens');
+                Fatal('Authentication failed: Incorrect realm.');
             } # end if
         } else {
-            Error('No WWW-Authenticate Header');
+            Fatal('Authentication failed: No www-authenticate header returned.');
         } # end if headers
     } # end if $res->status_line() eq '401 Unauthorized'
-    return 1;
 }
 
 sub close

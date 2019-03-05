@@ -149,26 +149,18 @@ echo output_link_if_exists( array(
   if ( $skinJsPhpFile ) {
 ?>
   <script nonce="<?php echo $cspNonce; ?>">
-  //<![CDATA[
-  <!--
 <?php
     require_once( $skinJsPhpFile );
 ?>
-  //-->
-  //]]>
   </script>
 <?php
   }
   if ( $viewJsPhpFile ) {
 ?>
   <script nonce="<?php echo $cspNonce; ?>">
-  //<![CDATA[
-  <!--
 <?php
     require_once( $viewJsPhpFile );
 ?>
-  //-->
-  //]]>
   </script>
 <?php
   }
@@ -186,12 +178,12 @@ echo output_link_if_exists( array(
   if ($basename == 'watch' or $basename == 'log' ) {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
-<script type="text/javascript" src="js/overlay.js"></script>
+<script src="js/overlay.js"></script>
 <?php } ?>
 <?php
   if ( $viewJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo cache_bust($viewJsFile) ?>"></script>
+  <script src="<?php echo cache_bust($viewJsFile) ?>"></script>
 <?php
   }
 ?>

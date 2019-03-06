@@ -110,7 +110,7 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
   char errbuf[AV_ERROR_MAX_STRING_SIZE];
 
   while ( !frameComplete ) {
-    int ret = av_read_frame( input_format_context, &packet );
+    int ret = av_read_frame(input_format_context, &packet);
     if ( ret < 0 ) {
       av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
       if (
@@ -135,9 +135,10 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       ret = avcodec_send_packet(context, &packet);
       if ( ret < 0 ) {
-        av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to send packet at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
-        zm_av_packet_unref( &packet );
+        av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
+        Error("Unable to send packet at frame %d: %s, continuing",
+            streams[packet.stream_index].frame_count, errbuf);
+        zm_av_packet_unref(&packet);
         continue;
       }
 
@@ -159,12 +160,12 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
       }
     } else {
 #endif
-  if ( frame ) {
-    av_frame_free(&frame);
-    frame = zm_av_frame_alloc();
-  } else {
-    frame = zm_av_frame_alloc();
-  }
+      if ( frame ) {
+        av_frame_free(&frame);
+        frame = zm_av_frame_alloc();
+      } else {
+        frame = zm_av_frame_alloc();
+      }
       //Debug(1,"Getting frame %d", streams[packet.stream_index].frame_count);
       ret = avcodec_receive_frame(context, frame);
       if ( ret < 0 ) {
@@ -181,12 +182,12 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
 
     frameComplete = 1;
 # else
-  if ( frame ) {
-    av_frame_free(&frame);
-    frame = zm_av_frame_alloc();
-  } else {
-    frame = zm_av_frame_alloc();
-  }
+    if ( frame ) {
+      av_frame_free(&frame);
+      frame = zm_av_frame_alloc();
+    } else {
+      frame = zm_av_frame_alloc();
+    }
     ret = zm_avcodec_decode_video(context, frame, &frameComplete, &packet);
     if ( ret < 0 ) {
       av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
@@ -198,7 +199,7 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id ) {
 #endif
   } // end if it's the right stream
 
-    zm_av_packet_unref( &packet );
+    zm_av_packet_unref(&packet);
 
   } // end while ! frameComplete
   return frame;
@@ -220,7 +221,7 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id, double at ) {
       return frame;
     }
     if ( frame->pts < seek_target  ) {
-      Debug(2, "Frame pts %" PRId64 " pkt_pts %" PRId64 " duration %" PRId64, frame->pts, frame->pkt_pts, frame->pkt_duration);
+      Debug(2, "Frame pts %" PRId64 " duration %" PRId64, frame->pts, frame->pkt_duration);
       while ( frame && (frame->pts < seek_target) ) {
         if ( ! get_frame(stream_id) ) 
           return frame;
@@ -237,9 +238,10 @@ AVFrame *FFmpeg_Input::get_frame( int stream_id, double at ) {
     }
 
   } else {
+    // No previous frame... are we asking for first frame?
     // Must go for a keyframe
     if ( ( ret = av_seek_frame(input_format_context, stream_id, seek_target, 
-            AVSEEK_FLAG_FRAME
+            AVSEEK_FLAG_BACKWARD | AVSEEK_FLAG_FRAME
             ) < 0 ) ) {
       Error("Unable to seek in stream");
       return NULL;

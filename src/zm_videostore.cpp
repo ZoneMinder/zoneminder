@@ -979,13 +979,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     // decoded data
     Debug(2, "Converting %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
   #if defined(HAVE_LIBSWRESAMPLE)
-#if 0
-    ret = swr_convert(resample_ctx,
-                       out_frame->data, frame_size,
-                       (const uint8_t**)in_frame->data,
-                       in_frame->nb_samples
-                      );
-#else
     ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
     av_frame_unref(in_frame);
     if ( ret < 0 ) {
@@ -993,7 +986,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             av_make_error_string(ret).c_str());
       return 0;
     }
-#endif
     if ((ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples)) < 0) {
       Error("Could not reallocate FIFO");
       return 0;
@@ -1031,7 +1023,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
 
-  #if defined(HAVE_LIBAVRESAMPLE)
     int samples_available = avresample_available(resample_ctx);
     if ( samples_available < frame_size ) {
       Debug(1, "Not enough samples yet (%d)", samples_available);

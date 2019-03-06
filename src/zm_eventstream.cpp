@@ -228,7 +228,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     //timestamp = atof(dbrow[1]);
     double delta = atof(dbrow[2]);
     int id_diff = id - last_id;
-    double frame_delta = id_diff ? (delta-last_delta)/id_diff : (delta - last_delta);
+    double frame_delta = id_diff ? (delta-last_delta)/id_diff : (delta-last_delta);
     // Fill in data between bulk frames
     if ( id_diff > 1 ) {
       for ( int i = last_id+1; i < id; i++ ) {
@@ -262,8 +262,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
         );
   }
   if ( mysql_errno( &dbconn ) ) {
-    Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+    Error("Can't fetch row: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
   mysql_free_result(result);
@@ -676,10 +676,6 @@ Debug(1, "Loading image");
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
         AVFrame *frame;
-        if ( curr_frame_id == 1 ) {
-          // Special case, first frame, we want to send the initial keyframe.
-          frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), 0 );
-        }
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
         frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), frame_data->offset );
         if ( frame ) {
@@ -790,7 +786,9 @@ void EventStream::runStream() {
 
   Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration);
   updateFrameRate((double)event_data->frame_count/event_data->duration);
-    gettimeofday(&start, NULL);
+  gettimeofday(&start, NULL);
+  uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
+  uint64_t last_frame_offset = 0;
 
   while ( !zm_terminate ) {
     gettimeofday(&now, NULL);
@@ -868,7 +866,7 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
         Debug(3,"delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
         // but must not exceed maxfps
         delta_us = max(delta_us, 1000000 / maxfps);
-        Debug(3,"delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
+        Debug(3,"delta %u = base_fps(%f)/effective fps(%f) from 30fps", delta_us, base_fps, effective_fps);
         send_frame = true;
       }
     } else if ( step != 0 ) {
@@ -896,13 +894,11 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
       //Debug(3,"Not sending frame");
     }
 
-
     curr_stream_time = frame_data->timestamp;
 
     if ( !paused ) {
-      curr_frame_id += (replay_rate>0) ? 1 : -1;
-
-
+      // +/- 1? What if we are skipping frames?
+      curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;
 
       if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
         Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
@@ -910,14 +906,28 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
       }
       frame_data = &event_data->frames[curr_frame_id-1];
 
+      // sending the frame may have taken some time, so reload now
+      gettimeofday(&now, NULL);
       uint64_t now_usec = (now.tv_sec * 1000000 + now.tv_usec);
-      uint64_t start_usec = (start.tv_sec * 1000000 + start.tv_usec);
-      uint64_t frame_delta = frame_data->delta*1000000;
+      // frame_data->delta is the time since last frame as a float in seconds
+      // but what if we are skipping frames? We need the distance from the last frame sent
+      // Also, what about reverse? needs to be absolute value
 
-      delta_us = frame_delta - (now_usec - start_usec);
-      Debug(2, "New delta_us now %" PRIu64 " - start %" PRIu64 " = %d - frame %" PRIu64 " = %d",
-          now_usec, start_usec, now_usec-start_usec, frame_delta,
-          delta_us);
+      // There are two ways to go about this, not sure which is correct.
+      // you can calculate the relationship between now and the start
+      // or calc the relationship from the last frame.  I think from the start is better as it self-corrects
+
+      if ( last_frame_offset ) {
+        // We assume that we are going forward and the next frame is in the future.
+        delta_us = frame_data->offset * 1000000 - (now_usec-start_usec);
+       // - (now_usec - start_usec);
+        Debug(2, "New delta_us now %" PRIu64 " - start %" PRIu64 " = %d offset %" PRId64 " - elapsed = %dusec",
+            now_usec, start_usec, now_usec-start_usec, frame_data->offset * 1000000, delta_us);
+      } else {
+        Debug(2, "No last frame_offset, no sleep");
+        delta_us = 0;
+      }
+      last_frame_offset = frame_data->offset * 1000000;
 
       if ( send_frame && type != STREAM_MPEG ) {
         if ( delta_us > 0 ) {

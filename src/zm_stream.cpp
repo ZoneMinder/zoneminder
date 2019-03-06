@@ -62,7 +62,7 @@ bool StreamBase::checkInitialised() {
 
 void StreamBase::updateFrameRate(double fps) {
   frame_mod = 1;
-  if ( (fps < 0) || !fps ) {
+  if ( (fps < 0) || !fps || isinf(fps) ) {
     Debug(1, "Zero or negative fps %f in updateFrameRate. Setting frame_mod=1 and effective_fps=0.0", fps);
     effective_fps = 0.0;
     base_fps = 0.0;

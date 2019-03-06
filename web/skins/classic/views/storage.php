@@ -48,7 +48,7 @@ $scheme_options = array(
   'Shallow' => translate('Shallow'),
 );
 
-$servers = Server::find( null, array('order'=>'lower(Name)') );
+$servers = ZM\Server::find( null, array('order'=>'lower(Name)') );
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
@@ -63,7 +63,7 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
       <h2><?php echo translate('Storage')." - ".$newStorage['Name'] ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return validateForm( this, <?php echo empty($newStorage['Name'])?'true':'false' ?> )">
+      <form name="contentForm" method="post" action="?" class="validateFormOnSubmit">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="object" value="storage"/>
         <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>

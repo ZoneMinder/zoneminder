@@ -223,7 +223,7 @@ $monitors = array();
 foreach( $displayMonitors as $row ) {
   if ( $row['Function'] == 'None' || $row['Type'] == 'WebSite' )
     continue;
-  $Monitor = new Monitor($row);
+  $Monitor = new ZM\Monitor($row);
   $monitors[] = $Monitor;
 }
 
@@ -234,7 +234,7 @@ xhtmlHeaders(__FILE__, translate('MontageReview') );
 <body>
   <div id="page">
   <?php echo getNavBarHTML() ?>
-  <form id="montagereview_form" action="<?php echo $_SERVER['PHP_SELF'] ?>" method="get">
+  <form id="montagereview_form" action="?" method="get">
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">&nbsp;&nbsp;
     <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
@@ -290,7 +290,7 @@ if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
       </div>
 <?php } // end if !live ?>
       <div id="timelinediv">
-        <canvas id="timeline" onmousemove="mmove(event);" ontouchmove="tmove(event);" onmousedown="mdown(event);" onmouseup="mup(event);" onmouseout="mout(event);"></canvas>
+        <canvas id="timeline"></canvas>
         <span id="scrubleft"></span>
         <span id="scrubright"></span>
         <span id="scruboutput"></span>
@@ -304,8 +304,8 @@ if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
   <div id="monitors">
 <?php
   // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
-  foreach ($monitors as $m) {
-    echo '<canvas title="'.$m->Id().' ' .$m->Name().'" width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:1px solid ' . $m->WebColour() . '" onclick="clickMonitor(event,' . $m->Id() . ')">No Canvas Support!!</canvas>';
+  foreach ( $monitors as $m ) {
+    echo '<canvas title="'.$m->Id().' ' .$m->Name().'" width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:1px solid ' . $m->WebColour() . '" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>';
   }
 ?>
   </div>

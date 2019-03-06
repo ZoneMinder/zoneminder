@@ -20,7 +20,7 @@
 
 // System edit actions
 if ( !canEdit('System') ) {
-  Warning("Need System permissions to update version");
+  ZM\Warning('Need System permissions to update version');
   return;
 }
 if ( $action == 'version' && isset($_REQUEST['option']) ) {

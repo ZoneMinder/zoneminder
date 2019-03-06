@@ -1,4 +1,7 @@
 <?php
+namespace ZM;
+require_once('Storage.php');
+require_once('functions.php');
 
 $event_cache = array();
 

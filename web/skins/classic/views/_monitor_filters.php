@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$servers = Server::find(null, array('order'=>'lower(Name)'));
+$servers = ZM\Server::find(null, array('order'=>'lower(Name)'));
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
@@ -37,7 +37,7 @@ foreach ( array('Group','Function','ServerId','StorageId','Status','MonitorId','
 }
 session_write_close();
 
-$storage_areas = Storage::find();
+$storage_areas = ZM\Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
@@ -46,11 +46,13 @@ foreach ( $storage_areas as $S ) {
 $html =
 '
 <div class="controlHeader">
+  <!-- Used to submit the form with the enter key -->
+  <input type="submit" class="hide"/>
   <input type="hidden" name="filtering" value=""/>
 ';
 
 $GroupsById = array();
-foreach ( Group::find() as $G ) {
+foreach ( ZM\Group::find() as $G ) {
   $GroupsById[$G->Id()] = $G;
 }
 
@@ -59,14 +61,13 @@ if ( count($GroupsById) ) {
   $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
   # This will end up with the group_id of the deepest selection
   $group_id = isset($_SESSION['Group']) ? $_SESSION['Group'] : null;
-  $html .= Group::get_group_dropdown();
-  $groupSql = Group::get_group_sql($group_id);
+  $html .= ZM\Group::get_group_dropdown();
+  $groupSql = ZM\Group::get_group_sql($group_id);
   $html .= '</span>';
 }
 
 $selected_monitor_ids = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : array();
 if ( ! is_array( $selected_monitor_ids ) ) {
-  Warning("Turning selected_monitor_ids into an array $selected_monitor_ids");
   $selected_monitor_ids = array($selected_monitor_ids);
 }
 
@@ -93,7 +94,7 @@ if ( ! empty($user['MonitorIds']) ) {
 }
 
 $html .= '<span class="MonitorNameFilter"><label>'.translate('Name').'</label>';
-$html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?$_SESSION['MonitorName']:'').'" onkeydown="if(event&&event.keyCode==13){this.form.submit();}" placeholder="text or regular expression"/>';
+$html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="text or regular expression"/>';
 $html .= '</span>';
 
 $Functions = array();
@@ -158,7 +159,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
   $html .= '</span>';
 
   $html .= '<span class="SourceFilter"><label>'.translate('Source').'</label>';
-  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?$_SESSION['Source']:'').'" onkeydown="if(event&&event.keyCode==13){this.form.submit();}" placeholder="text or regular expression"/>';
+  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?validHtmlStr($_SESSION['Source']):'').'" placeholder="text or regular expression"/>';
   $html .= '</span>';
 
   $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS, S.AnalysisFPS AS AnalysisFPS, S.CaptureBandwidth AS CaptureBandwidth
@@ -187,12 +188,12 @@ $html .= htmlSelect( 'Status[]', $status_options,
 
   for ( $i = 0; $i < count($monitors); $i++ ) {
     if ( !visibleMonitor($monitors[$i]['Id']) ) {
-      Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
+      ZM\Logger::Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
       continue;
     }
 
     if ( isset($_SESSION['MonitorName']) ) {
-      $Monitor = new Monitor($monitors[$i]);
+      $Monitor = new ZM\Monitor($monitors[$i]);
       ini_set('track_errors', 'on');
       $php_errormsg = '';
       $regexp = $_SESSION['MonitorName'];
@@ -208,7 +209,7 @@ $html .= htmlSelect( 'Status[]', $status_options,
     }
 
     if ( isset($_SESSION['Source']) ) {
-      $Monitor = new Monitor($monitors[$i]);
+      $Monitor = new ZM\Monitor($monitors[$i]);
       ini_set('track_errors', 'on');
       $php_errormsg = '';
       $regexp = $_SESSION['Source'];

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ .'/../../../includes/Event.php';
+
 App::uses('AppModel', 'Model');
 /**
  * Event Model
@@ -100,20 +102,20 @@ class Event extends AppModel {
     ),
   );
 
-  public function Relative_Path($event) {
-    $event_path = '';
-
-    if ( $event['Scheme'] == 'Deep' ) {
-      $event_path = $event['MonitorId'] .'/'.strftime('%y/%m/%d/%H/%M/%S', strtotime($event['StartTime']));
-    } else if ( $event['Scheme'] == 'Medium' ) {
-      $event_path = $event['MonitorId'] .'/'.strftime('%Y-%m-%d', strtotime($event['StartTime'])) . '/'.$event['Id'];
-    } else {
-      $event_path = $event['MonitorId'] .'/'.$event['Id'];
-    }
-
-    return $event_path;
+  public function Relative_Path() {
+    $Event = new ZM\Event($this->data);
+    return $Event->Relative_Path();
   } // end function Relative_Path()
 
+   public function Path() {
+    $Event = new ZM\Event($this->data);
+    return $Event->Path();
+  }
+
+  public function Link_Path() {
+    $Event = new ZM\Event($this->data);
+    return $Event->Link_Path();
+  }
 
   public function fileExists($event) {
     //$data = $this->findById($id);
@@ -121,13 +123,13 @@ class Event extends AppModel {
     $storage = $this->Storage->findById($event['StorageId']);
 
     if ( $event['DefaultVideo'] ) {
-      if ( file_exists($storage['Storage']['Path'].'/'.$this->Relative_Path($event).'/'.$event['DefaultVideo']) ) {
+      if ( file_exists($storage['Storage']['Path'].'/'.$this->Relative_Path().'/'.$event['DefaultVideo']) ) {
         return 1;
       } else {
-        Logger::Debug("FIle does not exist at " . $storage['Storage']['Path'].'/'.$this->Relative_Path($event).'/'.$event['DefaultVideo'] );
+        ZM\Logger::Debug("FIle does not exist at " . $storage['Storage']['Path'].'/'.$this->Relative_Path().'/'.$event['DefaultVideo'] );
       }
     } else {
-Logger::Debug("No DefaultVideo in Event" . $this->Event);
+      ZM\Logger::Debug("No DefaultVideo in Event" . $this->Event);
       return 0;
     }
   } // end function fileExists($event)
@@ -136,4 +138,8 @@ Logger::Debug("No DefaultVideo in Event" . $this->Event);
     $storage = $this->Storage->findById($event['StorageId']);
     return filesize($storage['Storage']['Path'].'/'.$this->Relative_Path($event).'/'.$event['DefaultVideo']);
   }
+  public function beforeDelete($cascade=true) {
+    $Event = new ZM\Event($this->data);
+    return $Event->delete();
+  } // end function afterDelete
 }

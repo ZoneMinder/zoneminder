@@ -96,6 +96,7 @@ class EventStream : public StreamBase {
   public:
     EventStream() {
       mode = DEFAULT_MODE;
+    replay_rate = DEFAULT_RATE;
 
       forceEventChange = false;
 

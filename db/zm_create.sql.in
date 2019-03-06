@@ -223,7 +223,7 @@ CREATE TABLE `Events_Hour` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
-  `DiskSpace`   bigint unsigned default NULL,
+  `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Hour_MonitorId_idx` (`MonitorId`),
   KEY `Events_Hour_StartTime_idx` (`StartTime`)
@@ -234,7 +234,7 @@ CREATE TABLE `Events_Day` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
-  `DiskSpace`   bigint unsigned default NULL,
+  `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Day_MonitorId_idx` (`MonitorId`),
   KEY `Events_Day_StartTime_idx` (`StartTime`)
@@ -245,7 +245,7 @@ CREATE TABLE `Events_Week` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
-  `DiskSpace`   bigint unsigned default NULL,
+  `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Week_MonitorId_idx` (`MonitorId`),
   KEY `Events_Week_StartTime_idx` (`StartTime`)
@@ -256,7 +256,7 @@ CREATE TABLE `Events_Month` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
   `StartTime` datetime default NULL,
-  `DiskSpace`   bigint unsigned default NULL,
+  `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Month_MonitorId_idx` (`MonitorId`),
   KEY `Events_Month_StartTime_idx` (`StartTime`)
@@ -267,7 +267,7 @@ DROP TABLE IF EXISTS `Events_Archived`;
 CREATE TABLE `Events_Archived` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `DiskSpace`   bigint unsigned default NULL,
+  `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Archived_MonitorId_idx` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -573,6 +573,7 @@ CREATE TABLE `Servers` (
   `zmstats`  BOOLEAN NOT NULL DEFAULT FALSE,
   `zmaudit`  BOOLEAN NOT NULL DEFAULT FALSE,
   `zmtrigger`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmeventnotification`  BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -789,6 +790,7 @@ INSERT INTO `Controls` VALUES (NULL,'Trendnet','Remote','Trendnet',1,1,1,0,0,0,0
 INSERT INTO `Controls` VALUES (NULL,'PSIA','Remote','PSIA',0,0,0,1,0,0,1,0,0,0,0,0,0,0,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20,0,1,1,1,0,0,1,0,1,0,0,0,0,1,-100,100,0,0,1,0,0,0,0,1,-100,100,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Dahua','Remote','Dahua',0,0,0,1,0,0,1,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20,0,1,1,1,0,0,1,0,1,0,0,0,0,1,1,8,0,0,1,0,0,0,0,1,1,8,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'FOSCAMR2C','Libvlc','FOSCAMR2C',1,1,1,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,12,0,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,4,0,NULL,1,NULL,NULL,NULL,NULL,1,0,4,0,NULL,0,0);
+INSERT INTO `Controls` VALUES (NULL,'Amcrest HTTP API','Ffmpeg','Amcrest_HTTP',0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,5);
 
 --
 -- Add some monitor preset values

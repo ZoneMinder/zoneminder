@@ -1,6 +1,6 @@
 var events = {};
 
-function showEvent( eid, fid, width, height ) {    
+function showEvent( eid, fid, width, height ) {
   var url = '?view=event&eid='+eid+'&fid='+fid;
   url += filterQuery;
   window.location.href = url;
@@ -16,19 +16,22 @@ function showEvent( eid, fid, width, height ) {
 function createEventHtml( event, frame ) {
   var eventHtml = new Element( 'div' );
 
-  if ( event.Archived > 0 )
+  if ( event.Archived > 0 ) {
     eventHtml.addClass( 'archived' );
+  }
 
   new Element( 'p' ).inject( eventHtml ).set( 'text', monitors[event.MonitorId].Name );
   new Element( 'p' ).inject( eventHtml ).set( 'text', event.Name+(frame?("("+frame.FrameId+")"):"") );
   new Element( 'p' ).inject( eventHtml ).set( 'text', event.StartTime+" - "+event.Length+"s" );
   new Element( 'p' ).inject( eventHtml ).set( 'text', event.Cause );
-  if ( event.Notes )
+  if ( event.Notes ) {
     new Element( 'p' ).inject( eventHtml ).set( 'text', event.Notes );
-  if ( event.Archived > 0 )
+  }
+  if ( event.Archived > 0 ) {
     new Element( 'p' ).inject( eventHtml ).set( 'text', archivedString );
+  }
 
-  return( eventHtml );
+  return ( eventHtml );
 }
 
 function showEventDetail( eventHtml ) {
@@ -66,7 +69,7 @@ function frameDataResponse( respObj, respText ) {
 
   if ( !event['frames'] ) {
     console.log("No frames data in event response");
-    event['frames'] = new Object();
+    event['frames'] = {};
   }
 
   event['frames'][frame.FrameId] = frame;
@@ -75,8 +78,8 @@ function frameDataResponse( respObj, respText ) {
   previewEvent(frame.EventId, frame.FrameId);
 }
 
-var eventQuery = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: eventDataResponse } );
-var frameQuery = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: frameDataResponse } );
+var eventQuery = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: eventDataResponse} );
+var frameQuery = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: frameDataResponse} );
 
 function requestFrameData( eventId, frameId ) {
   if ( !events[eventId] ) {
@@ -89,7 +92,6 @@ function requestFrameData( eventId, frameId ) {
 }
 
 function previewEvent(eventId, frameId) {
-
   if ( events[eventId] ) {
     var event = events[eventId];
     if ( event['frames'] ) {
@@ -111,7 +113,7 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
   if ( videoName && vid ) {
     vid.show();
     imageSrc.hide();
-    var newsource=imagePath.slice(0,imagePath.lastIndexOf('/'))+'/'+videoName;
+    var newsource=imagePath.slice(0, imagePath.lastIndexOf('/'))+'/'+videoName;
     //console.log(newsource);
     //console.log(sources[0].src.slice(-newsource.length));
     if ( newsource != vid.currentSrc.slice(-newsource.length) || vid.readyState == 0 ) {
@@ -120,22 +122,23 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
       var sources = vid.getElementsByTagName('source');
       sources[0].src = newsource;
       var tracks = vid.getElementsByTagName('track');
-      if(tracks.length){
+      if (tracks.length) {
         tracks[0].parentNode.removeChild(tracks[0]);
       }
       vid.load();
-      addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime)
-        vid.currentTime = fid/fps;
+      addVideoTimingTrack(vid, Monitor.LabelFormat, Monitor.Name, duration, startTime);
+      vid.currentTime = fid/fps;
     } else {
-      if ( ! vid.seeking )
+      if ( ! vid.seeking ) {
         vid.currentTime=fid/fps;
+      }
     }
   } else {
     if ( vid ) vid.hide();
     imageSrc.show();
     imageSrc.setProperty('src', imagePath);
     imageSrc.removeEvent('click');
-    imageSrc.addEvent('click', showEvent.pass([ eid, fid, width, height ]));
+    imageSrc.addEvent('click', showEvent.pass([eid, fid, width, height]));
   }
 
   var eventData = $('eventData');

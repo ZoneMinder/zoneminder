@@ -19,7 +19,7 @@
 //
 
 
-if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 'remote' || isset($_REQUEST['password']) ) ) {
+if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 'remote' || isset($_REQUEST['password']) ) ) {
 
   $refreshParent = true;
   // User login is automatically performed in includes/auth.php So we don't need to perform a login here,
@@ -28,8 +28,7 @@ if ( $action == 'login' && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 're
   if ( !$user ) {
     $view = 'login';
   } else {
-    $view = 'console';
-    $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=console';
+    $view = 'postlogin';
   }
 }
 ?>

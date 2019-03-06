@@ -1,4 +1,8 @@
-function validateForm ( form ) {
+function selectFilter(element) {
+  element.form.submit();
+}
+
+function validateForm( form ) {
   var rows = $j(form).find('tbody').eq(0).find('tr');
   var obrCount = 0;
   var cbrCount = 0;
@@ -7,47 +11,47 @@ function validateForm ( form ) {
       obrCount += parseInt(form.elements['filter[Query][terms][' + i + '][obr]'].value);
       cbrCount += parseInt(form.elements['filter[Query][terms][' + i + '][cbr]'].value);
     }
-    if (form.elements['filter[Query][terms][' + i + '][val]'].value == '') {
-      alert( errorValue );
+    if ( form.elements['filter[Query][terms][' + i + '][val]'].value == '' ) {
+      alert(errorValue);
       return false;
     }
   }
-  if (obrCount - cbrCount != 0) {
-    alert( errorBrackets );
+  if ( (obrCount - cbrCount) != 0 ) {
+    alert(errorBrackets);
     return false;
   }
   var numbers_reg = /\D/;
-  if ( numbers_reg.test( form.elements['filter[Query][limit]'].value ) ) {
-    alert( "There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty." );
+  if ( numbers_reg.test(form.elements['filter[Query][limit]'].value) ) {
+    alert("There appear to be non-numeric characters in your limit. Limit must be a positive integer value or empty.");
     return false;
   }
   return true;
 }
 
-function updateButtons() {
-  var element = this;
+function updateButtons(element) {
   var form = element.form;
 
   if ( element.type == 'checkbox' && element.checked ) {
     form.elements['executeButton'].disabled = false;
   } else {
     var canExecute = false;
-    if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked )
+    if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked )
+    } else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked )
+    } else if ( form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked )
+    } else if ( form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked )
+    } else if ( form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '' )
+    } else if ( form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '' ) {
       canExecute = true;
-    else if ( form.elements['filter[AutoDelete]'].checked )
+    } else if ( form.elements['filter[AutoDelete]'].checked ) {
       canExecute = true;
-    else if ( form.elements['filter[UpdateDiskSpace]'].checked )
+    } else if ( form.elements['filter[UpdateDiskSpace]'].checked ) {
       canExecute = true;
+    }
     form.elements['executeButton'].disabled = !canExecute;
   }
   if ( form.elements['filter[Name]'].value ) {
@@ -59,7 +63,7 @@ function updateButtons() {
   }
 }
 
-function checkValue ( element ) {
+function checkValue( element ) {
   var rows = $j(element).closest('tbody').children();
   parseRows(rows);
   //clearValue(element);
@@ -88,9 +92,10 @@ function submitToExport(element) {
 
 function executeFilter( element ) {
   var form = element.form;
-  form.action = thisUrl + '?view=events';
+  form.action = thisUrl + '?view=filter';
   form.elements['action'].value = 'execute';
-  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+  form.submit();
+  //history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
 
 function saveFilter( element ) {
@@ -102,15 +107,15 @@ function saveFilter( element ) {
   // Submit is done by the button type="submit"
 }
 
-function deleteFilter( element, name ) {
-  if ( confirm( deleteSavedFilterString+" '"+name+"'?" ) ) {
-    var form = element.form;
+function deleteFilter( element ) {
+  var form = element.form;
+  if ( confirm( deleteSavedFilterString+" '"+form.elements['filter[Name]'].value+"'?" ) ) {
     form.elements['action'].value = 'delete';
     form.submit();
   }
 }
 
-function parseRows (rows) {
+function parseRows(rows) {
   for (var rowNum = 0; rowNum < rows.length; rowNum++) { //Each row is a term
     var queryPrefix = 'filter[Query][terms][';
     var inputTds = rows.eq(rowNum).children();
@@ -119,7 +124,7 @@ function parseRows (rows) {
     if (rowNum > 0) { //add and/or to 1+
       var cnjVal = inputTds.eq(0).children().val();
       var conjSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cnj]').attr('id', queryPrefix + rowNum + '][cnj]');
-      $j.each(conjTypes, function (i) {
+      $j.each(conjTypes, function(i) {
         conjSelect.append('<option value="' + i + '" >' + i + '</option>');
       });
       inputTds.eq(0).html(conjSelect).children().val(cnjVal === undefined ? 'and' : cnjVal);
@@ -145,7 +150,7 @@ function parseRows (rows) {
     }
 
     if (rows.length == 1) {
-      inputTds.eq(6).find(':input[value="-"]').prop('disabled', true);  //enable/disable remove row button
+      inputTds.eq(6).find(':input[value="-"]').prop('disabled', true); //enable/disable remove row button
     } else {
       inputTds.eq(6).find(':input[value="-"]').prop('disabled', false);
     }
@@ -160,15 +165,13 @@ function parseRows (rows) {
       }
       var archiveVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).chosen({width: "101%"});
-
-    } else if ( attr.indexOf('Weekday') >= 0 ) {  //Weekday selection
+    } else if ( attr.indexOf('Weekday') >= 0 ) { //Weekday selection
       var weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < weekdays.length; i++) {
         weekdaySelect.append('<option value="' + i + '">' + weekdays[i] + '</option>');
       }
       var weekdayVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(weekdaySelect).children().val(weekdayVal).chosen({width: "101%"});
-
     } else if ( attr == 'StateId' ) { //Run state
       var stateSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var key in states) {
@@ -176,7 +179,6 @@ function parseRows (rows) {
       }
       var stateVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(stateSelect).children().val(stateVal).chosen({width: "101%"});
-
     } else if ( attr == 'ServerId' || attr == 'MonitorServerId' || attr == 'StorageServerId' || attr == 'FilterServerId' ) { //Select Server
       var serverSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var key in servers) {
@@ -184,15 +186,13 @@ function parseRows (rows) {
       }
       var serverVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(serverSelect).children().val(serverVal).chosen({width: "101%"});
-
     } else if ( attr == 'StorageId' ) { //Choose by storagearea
       var storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-			for ( key in storageareas ) {
+      for ( key in storageareas ) {
         storageSelect.append('<option value="' + key + '">' + storageareas[key] + '</option>');
       }
       var storageVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
-
     } else if ( attr == 'MonitorName' ) { //Monitor names
       var monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var key in monitors) {
@@ -200,7 +200,7 @@ function parseRows (rows) {
       }
       var monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal);
-    } else {  //Reset to regular text field and operator for everything that isn't special
+    } else { //Reset to regular text field and operator for everything that isn't special
       var opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
       for (var key in opTypes) {
         opSelect.append('<option value="' + key + '">' + opTypes[key] + '</option>');
@@ -219,7 +219,7 @@ function parseRows (rows) {
       inputTds.eq(4).children().timepicker({timeFormat: "HH:mm:ss", constrainInput: false});
     }
 
-    attr = inputTds.find("[name$='attr\\]']") // Set attr list id and name
+    attr = inputTds.find("[name$='attr\\]']"); // Set attr list id and name
     var term = attr.attr('name').split(/[[\]]{1,2}/);
     term.length--;
     term.shift();
@@ -230,22 +230,22 @@ function parseRows (rows) {
   history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
 }
 
-function stringFilter (term) {
+function stringFilter(term) {
   var termString = '';
   term.forEach(function(item) {
-   termString += '[' + item + ']';
+    termString += '[' + item + ']';
   });
   return termString;
 }
 
 function addTerm( element ) {
   var row = $j(element).closest('tr');
-  row.find('select').chosen("destroy");
+  row.find('select').chosen('destroy');
   var newRow = row.clone().insertAfter(row);
-  row.find('select').chosen({width: "101%"});
-  newRow.find('select').each( function () { //reset new row to default
+  row.find('select').chosen({width: '101%'});
+  newRow.find('select').each( function() { //reset new row to default
     this[0].selected = 'selected';
-  }).chosen({width: "101%"});
+  }).chosen({width: '101%'});
   newRow.find('input[type="text"]').val('');
   var rows = $j(row).parent().children();
   parseRows(rows);
@@ -266,4 +266,4 @@ function init() {
   $j("#sortTable [name$='sort_field\\]']").chosen();
 }
 
-window.addEvent( 'domready', init );
+window.addEventListener( 'DOMContentLoaded', init );

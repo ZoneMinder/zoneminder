@@ -277,7 +277,11 @@ if ( $command =~ /^(?:start|restart)$/ ) {
       runCommand('zmdc.pl start zmtelemetry.pl');
     }
     if ($Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
+      if ( $Server and exists $$Server{'zmeventnotification'} and ! $$Server{'zmeventnotification'} ) {
+        Debug("Not running zmnotification.pl because it is turned off for this server.");
+      } else {
         runCommand('zmdc.pl start zmeventnotification.pl');
+      }
     }
     if ( $Server and exists $$Server{'zmstats'} and ! $$Server{'zmstats'} ) {
       Debug("Not running zmstats.pl because it is turned off for this server.");

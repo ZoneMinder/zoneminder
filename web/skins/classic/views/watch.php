@@ -37,7 +37,7 @@ if ( ! visibleMonitor($mid) ) {
   return;
 }
 
-$monitor = new Monitor($mid);
+$monitor = new ZM\Monitor($mid);
 
 #Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
@@ -145,10 +145,10 @@ if ( $showPtzControls ) {
       </div>
 <?php
 }
-if ( canView( 'Events' ) && $monitor->Type() != 'WebSite' ) {
+if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 ?>
       <div id="events">
-        <table id="eventList" cellspacing="0">
+        <table id="eventList">
           <thead>
             <tr>
               <th class="colId"><?php echo translate('Id') ?></th>

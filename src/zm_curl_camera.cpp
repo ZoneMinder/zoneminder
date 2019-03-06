@@ -298,7 +298,7 @@ int cURLCamera::Capture( Image &image ) {
   if(!frameComplete)
     return -1;
 
-  return 0;
+  return 1;
 }
 
 int cURLCamera::PostCapture() {

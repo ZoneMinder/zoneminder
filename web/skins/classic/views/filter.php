@@ -36,11 +36,11 @@ foreach ( dbFetchAll('SELECT * FROM Filters ORDER BY Name') as $row ) {
     $filterNames[$row['Id']] .= '&';
 
   if ( isset($_REQUEST['Id']) && $_REQUEST['Id'] == $row['Id'] ) {
-    $filter = new Filter($row);
+    $filter = new ZM\Filter($row);
   }
 }
 if ( ! $filter ) {
-  $filter = new Filter();
+  $filter = new ZM\Filter();
 }
 
 if ( isset($_REQUEST['sort_field']) && isset($_REQUEST['filter']) ) {
@@ -50,18 +50,15 @@ if ( isset($_REQUEST['sort_field']) && isset($_REQUEST['filter']) ) {
 }
 
 if ( isset($_REQUEST['filter']) ) {
-  $filter->set( $_REQUEST['filter'] );
+  $filter->set($_REQUEST['filter']);
   # Update our filter object with whatever changes we have made before saving
 }
 
-$conjunctionTypes = array(
-    'and' => translate('ConjAnd'),
-    'or'  => translate('ConjOr')
-    );
+$conjunctionTypes = getFilterQueryConjunctionTypes();
 $obracketTypes = array();
 $cbracketTypes = array();
 
-if (count($filter->terms()) > 0) {
+if ( count($filter->terms()) > 0 ) {
   $terms = $filter->terms();
 } else {
   $terms[] = array();
@@ -162,13 +159,13 @@ xhtmlHeaders(__FILE__, translate('EventFilter') );
   <div id="page">
 <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
-      <form name="selectForm" id="selectForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="selectForm" id="selectForm" method="get" action="?">
         <input type="hidden" name="view" value="filter"/>
         <hr/>
         <div id="filterSelector"><label for="<?php echo 'Id' ?>"><?php echo translate('UseFilter') ?></label>
 <?php
 if ( count($filterNames) > 1 ) {
-   echo htmlSelect('Id', $filterNames, $filter->Id(), 'this.form.submit();');
+   echo htmlSelect('Id', $filterNames, $filter->Id(), array('data-on-change-this'=>'selectFilter'));
 } else {
 ?><select disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select>
 <?php
@@ -180,9 +177,9 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" onsubmit="return validateForm(this);">
+      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit" action="?view=filter">
         <input type="hidden" name="Id" value="<?php echo $filter->Id() ?>"/>
-        <input type="hidden" name="action" value=""/>
+        <input type="hidden" name="action"/>
         <input type="hidden" name="object" value="filter"/>
 
         <hr/>
@@ -191,7 +188,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
-          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo $filter->Name() ?>" oninput="updateButtons(this);"/>
+          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" oninput="updateButtons(this);"/>
         </p>
         <table id="fieldsTable" class="filterTable">
           <tbody>
@@ -237,7 +234,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false}); </script>
+                <script nonce="<?php echo $cspNonce;?>">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
@@ -245,7 +242,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});</script>
+                <script nonce="<?php echo $cspNonce;?>">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});</script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
@@ -253,7 +250,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-                <script type="text/javascript">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: false}); </script>
+                <script nonce="<?php echo $cspNonce;?>">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: false}); </script>
               </td>
 <?php
     } elseif ( $term['attr'] == 'StateId' ) {
@@ -284,13 +281,13 @@ for ( $i=0; $i < count($terms); $i++ ) {
     } else {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo $term['val'] ?>"/></td>
+              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo validHtmlStr($term['val']) ?>"/></td>
 <?php
     }
   } else {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?$term['val']:'' ?>"/></td>
+              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/></td>
 <?php
   }
 ?>
@@ -388,7 +385,7 @@ if ( ZM_OPT_MESSAGE ) {
             <p>
               <label><?php echo translate('FilterExecuteEvents') ?></label>
               <input type="checkbox" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
-              <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?$filter->AutoExecuteCmd():'' ?>" maxlength="255" data-on-change="updateButtons"/>
+              <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?validHtmlStr($filter->AutoExecuteCmd()):'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
             <p>
               <label><?php echo translate('FilterDeleteEvents') ?></label>
@@ -396,7 +393,7 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
             <p><label><?php echo translate('FilterMoveEvents') ?></label>
               <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);if(this.checked){$j(this.form.elements['filter[AutoMoveTo]']).css('display','inline');}else{this.form.elements['filter[AutoMoveTo]'].hide();};"/>
-              <?php echo htmlSelect( "filter[AutoMoveTo]", $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;' ) ); ?>
+              <?php echo htmlSelect('filter[AutoMoveTo]', $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;' )); ?>
             </p>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>
@@ -411,7 +408,7 @@ if ( ZM_OPT_MESSAGE ) {
         <div id="contentButtons">
           <button type="submit" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
-          <button type="submit" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>
+          <button type="button" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>
 <?php 
 if ( canEdit('Events') ) {
 ?>
@@ -420,7 +417,7 @@ if ( canEdit('Events') ) {
 <?php 
   if ( $filter->Id() ) {
  ?>
-          <button type="button" value="Delete" onclick="deleteFilter(this, '<?php echo $filter->Name() ?>');"><?php echo translate('Delete') ?></button>
+          <button type="button" value="Delete" data-on-click-this="deleteFilter"><?php echo translate('Delete') ?></button>
 <?php 
   }
 }

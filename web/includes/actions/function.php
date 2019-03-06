@@ -20,31 +20,41 @@
 
 
 // Monitor edit actions, require a monitor id and edit permissions for that monitor
-if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
-  $mid = validInt($_REQUEST['mid']);
-  if ( $action == 'function' ) {
-    $monitor = dbFetchOne('SELECT * FROM Monitors WHERE Id=?', NULL, array($mid));
+if ( empty($_REQUEST['mid']) ) {
+  ZM\Error('Must specify mid');
+  return;
+}
+$mid = validInt($_REQUEST['mid']);
+if ( !canEdit('Monitors', $mid) ) {
+  ZM\Error("You do not have permission to edit monitor $mid");
+  return;
+}
 
-    $newFunction = validStr($_REQUEST['newFunction']);
-    # Because we use a checkbox, it won't get passed in the request. So not being in _REQUEST means 0
-    $newEnabled = ( !isset($_REQUEST['newEnabled']) or $_REQUEST['newEnabled'] != '1' ) ? '0' : '1';
-    $oldFunction = $monitor['Function'];
-    $oldEnabled = $monitor['Enabled'];
-    if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled ) {
-      dbQuery('UPDATE Monitors SET Function=?, Enabled=? WHERE Id=?',
-        array($newFunction, $newEnabled, $mid));
+if ( $action == 'function' ) {
+  $monitor = dbFetchOne('SELECT * FROM Monitors WHERE Id=?', NULL, array($mid));
 
-      $monitor['Function'] = $newFunction;
-      $monitor['Enabled'] = $newEnabled;
-      if ( daemonCheck() && ($monitor['Type'] != 'WebSite') ) {
-        $restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
-        zmaControl($monitor, 'stop');
-        zmcControl($monitor, $restart?'restart':'');
-        zmaControl($monitor, 'start');
-      }
-      $refreshParent = true;
+  $newFunction = validStr($_REQUEST['newFunction']);
+  # Because we use a checkbox, it won't get passed in the request. So not being in _REQUEST means 0
+  $newEnabled = ( !isset($_REQUEST['newEnabled']) or $_REQUEST['newEnabled'] != '1' ) ? '0' : '1';
+  $oldFunction = $monitor['Function'];
+  $oldEnabled = $monitor['Enabled'];
+  if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled ) {
+    dbQuery('UPDATE Monitors SET Function=?, Enabled=? WHERE Id=?',
+      array($newFunction, $newEnabled, $mid));
+
+    $monitor['Function'] = $newFunction;
+    $monitor['Enabled'] = $newEnabled;
+    if ( daemonCheck() && ($monitor['Type'] != 'WebSite') ) {
+      $restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
+      zmaControl($monitor, 'stop');
+      zmcControl($monitor, $restart?'restart':'');
+      zmaControl($monitor, 'start');
     }
-  } // end if action 
-  $view = 'none';
-} // end if $mid and canEdit($mid)
+    $refreshParent = true;
+  } else {
+    ZM\Logger::Debug('No change to function, not doing anything.');
+  }
+} // end if action 
+$view = 'none';
+$closePopup = true;
 ?>

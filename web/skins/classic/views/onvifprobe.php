@@ -36,12 +36,12 @@ function execONVIF( $cmd ) {
 
   if ( $status ) {
     $html_output = implode( '<br/>', $output );
-    Fatal( "Unable to probe network cameras, status is '$status'. Output was:<br/><br/>
+    ZM\Fatal( "Unable to probe network cameras, status is '$status'. Output was:<br/><br/>
         $html_output<br/><br/>
         Please the following command from a command line for more information:<br/><br/>$shell_command"
         );
   } else {
-    Logger::Debug( "Results from probe: " . implode( '<br/>', $output ) );
+    ZM\Logger::Debug( "Results from probe: " . implode( '<br/>', $output ) );
   }
 
   return $output;
@@ -73,7 +73,7 @@ function probeCameras( $localIp ) {
             } elseif ( $tokens[1] == 'location' ) {
               //                      $camera['location'] = $tokens[2];
             } else {
-              Logger::Debug('Unknown token ' . $tokens[1]);
+              ZM\Logger::Debug('Unknown token ' . $tokens[1]);
             }
           }
         } // end foreach token
@@ -109,7 +109,7 @@ function probeProfiles( $device_ep, $soapversion, $username, $password ) {
             );
         $profiles[] = $profile;
       } else {
-        Logger::Debug("Line did not match preg: $line");
+        ZM\Logger::Debug("Line did not match preg: $line");
       }
     } // end foreach line
   } // end if results from execONVIF
@@ -170,7 +170,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
       <h2><?php echo translate('MonitorProbe') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <input type="hidden" name="step" value=""/>
@@ -190,7 +190,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
         </p>
         <p>
           <label for="password"><?php echo translate('Password') ?></label>
-          <input type="password" name="password" value=""onChange="configureButtons(this)"/>
+          <input type="password" name="password" value="" onChange="configureButtons(this)"/>
         </p>
         <div id="contentButtons">
           <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
@@ -206,12 +206,12 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
 //==== STEP 2 ============================================================
 } else if($_REQUEST['step'] == '2') {
   if ( empty($_REQUEST['probe']) ) 
-    Fatal('No probe passed in request. Please go back and try again.');
+    ZM\Fatal('No probe passed in request. Please go back and try again.');
 #|| empty($_REQUEST['username']) || 
        #empty($_REQUEST['password']) )
     
   $probe = json_decode(base64_decode($_REQUEST['probe']));
-  Logger::Debug(print_r($probe,true));
+  ZM\Logger::Debug(print_r($probe,true));
   foreach ( $probe as $name=>$value ) {
     if ( isset($value) ) {
       $monitor[$name] = $value;
@@ -248,7 +248,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
       <h2><?php echo translate('ProfileProbe') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
         <input type="hidden" name="step"/>

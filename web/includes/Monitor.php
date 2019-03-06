@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 require_once('database.php');
 require_once('Server.php');
 
@@ -62,11 +63,11 @@ private $defaults = array(
   'SectionLength'       =>  600,
   'FrameSkip'           =>  0,
   'AnalysisFPSLimit'  =>  null,
-  'AnalysisUpdateDelete'  =>  0,
+  'AnalysisUpdateDelay'  =>  0,
   'MaxFPS' => null,
   'AlarmMaxFPS' => null,
-  'FPSReportIneterval'  =>  100,
-  'RefBlencPerc'        =>  6,
+  'FPSReportInterval'  =>  100,
+  'RefBlendPerc'        =>  6,
   'AlarmRefBlendPerc'   =>  6,
   'Controllable'        =>  0,
   'ControlId' =>  null,
@@ -77,7 +78,6 @@ private $defaults = array(
   'TrackDelay'      =>  null,
   'ReturnLocation'  =>  -1,
   'ReturnDelay'     =>  null,
-  'DefaultView' =>  'Events',
   'DefaultRate' =>  100,
   'DefaultScale'  =>  100,
   'SignalCheckPoints' =>  0,
@@ -331,6 +331,20 @@ private $control_fields = array(
       return $this->{$field};
     return $this->defaults{$field};
   } // end function Height
+
+  public function SignalCheckColour($new=null) {
+    $field = 'SignalCheckColour';
+    if ($new) {
+      $this->{$field} = $new;
+    }
+
+    // Validate that it's a valid colour (we seem to allow color names, not just hex).
+    // This also helps prevent XSS.
+    if (array_key_exists($field, $this) && preg_match('/^[#0-9a-zA-Z]+$/', $this->{$field})) {
+      return $this->{$field};
+    }
+    return $this->defaults{$field};
+  } // end function SignalCheckColour
 
   public function set($data) {
     foreach ($data as $k => $v) {
@@ -638,7 +652,8 @@ private $control_fields = array(
   } // end function Source
 
   public function UrlToIndex() {
-    return $this->Server()->UrlToIndex(ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
+    return $this->Server()->UrlToIndex();
+    //ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
   }
 
 } // end class Monitor

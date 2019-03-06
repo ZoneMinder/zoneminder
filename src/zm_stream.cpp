@@ -70,14 +70,16 @@ void StreamBase::updateFrameRate(double fps) {
   }
   base_fps = fps;
   effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
-  Debug(3, "FPS:%.2f, MXFPS:%.2f, BFPS:%.2f, EFPS:%.2f, FM:%d", fps, maxfps, base_fps, effective_fps, frame_mod);
+  Debug(3, "FPS:%.2f, MXFPS:%.2f, BFPS:%.2f, EFPS:%.2f, FM:%d",
+      fps, maxfps, base_fps, effective_fps, frame_mod);
   // Min frame repeat?
-  while( effective_fps > maxfps ) {
+  // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.  
+  while ( effective_fps > maxfps ) {
     effective_fps /= 2.0;
     frame_mod *= 2;
     Debug(3, "EffectiveFPS:%.2f, FrameMod:%d", effective_fps, frame_mod);
   }
-}
+} // void StreamBase::updateFrameRate(double fps)
 
 bool StreamBase::checkCommandQueue() {
   if ( sd >= 0 ) {

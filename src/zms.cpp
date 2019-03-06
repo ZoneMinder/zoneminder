@@ -156,30 +156,16 @@ int main( int argc, const char *argv[] ) {
         connkey = atoi(value);
       } else if ( !strcmp( name, "buffer" ) ) {
         playback_buffer = atoi(value);
-      } else if ( config.opt_use_auth ) {
-        if ( strcmp( config.auth_relay, "none" ) == 0 ) {
-          if ( !strcmp( name, "user" ) ) {
-            username = value;
-          }
-        } else {
-          //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
-          {
-            if ( !strcmp( name, "auth" ) ) {
-              strncpy( auth, value, sizeof(auth)-1 );
-            }
-          }
-          //else if ( strcmp( config.auth_relay, "plain" ) == 0 )
-          {
-            if ( !strcmp( name, "user" ) ) {
-              username = UriDecode( value );
-            }
-            if ( !strcmp( name, "pass" ) ) {
-              password = UriDecode( value );
-              Debug( 1, "Have %s for password", password.c_str() );
-            }
-          }
-        }
-      }
+      } else if ( !strcmp( name, "auth" ) ) {
+        strncpy( auth, value, sizeof(auth)-1 );
+      } else if ( !strcmp( name, "user" ) ) {
+        username = UriDecode( value );
+      } else if ( !strcmp( name, "pass" ) ) {
+        password = UriDecode(value);
+        Debug(1, "Have %s for password", password.c_str());
+      } else {
+        Debug(1, "Unknown parameter passed to zms %s=%s", name, value);
+      } // end if possible parameter names
     } // end foreach parm
   } else {
     Fatal("No query string.");
@@ -328,5 +314,5 @@ int main( int argc, const char *argv[] ) {
   logTerm();
   zmDbClose();
 
-  return( 0 );
+  return(0);
 }

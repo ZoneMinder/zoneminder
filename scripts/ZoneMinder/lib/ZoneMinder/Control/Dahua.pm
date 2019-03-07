@@ -100,6 +100,7 @@ sub open
     }
 
     if ( $res->status_line() eq '401 Unauthorized' ) {
+        my $headers = $res->headers();
         if ($$headers{'www-authenticate'}) {
             my ($auth, $tokens) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
             Debug("Tokens: " . $tokens);

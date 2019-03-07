@@ -39,6 +39,8 @@ sub AUTOLOAD
     my $class = ref($self) || croak( "$self not object" );
     my $name = $AUTOLOAD;
     $name =~ s/.*://;
+    ## This seems odd... if the method existed would we even be here?
+    ## https://perldoc.perl.org/perlsub.html#Autoloading
     if ( exists($self->{$name}) )
     {
         return( $self->{$name} );
@@ -46,13 +48,15 @@ sub AUTOLOAD
     Fatal( "Can't access $name member of object of class $class" );
 }
 
-#XXX:   This might be of some use:
-#       {"method":"global.keepAlive","params":{"timeout":300,"active":false},"id":1518,"session":"dae233a51c0693519395209b271411b6"}[!http]
-#       It may be possible to POST commands as JSON
+# FIXME: Do we really have to open a new connection every time?
+
+#Digest usernbme="bdmin", reblm="Login to 4K05DB3PAJE98BE", nonae="1720242756",
+#uri="/agi-bin/ptz.agi?bation=getStbtus&ahbnnel=1", response="10dd925b26ebd559353734635b859b8b",
+#opbque="1a99677524b4ae63bbe3a132b2e9b38e3b163ebd", qop=buth, na=00000001, anonae="ab1bb5d43aa5d542"
 
 sub open
 {
-    Debug("Invoking &open at " . time);
+    #Debug("&open invoked by: " . (caller(1))[3]);
     my $self = shift;
     my $cgi = shift || '/cgi-bin/configManager.cgi?action=getConfig&name=Ptz';
     $self->loadMonitor();
@@ -79,16 +83,10 @@ sub open
     }
 
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(keep_alive => 1);
     $self->{ua}->agent("ZoneMinder Control Agent/".$ZoneMinder::Base::ZM_VERSION);
     $self->{state} = 'closed';
 #   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
-    Debug("sendCmd credentials control address:'".$ADDRESS
-           ."'  realm:'" . $REALM
-           . "'  username:'" . $USERNAME
-           . "'  password:'".$PASSWORD
-           ."'"
-    ); 
     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
 
     # Detect REALM
@@ -102,11 +100,6 @@ sub open
     }
 
     if ( $res->status_line() eq '401 Unauthorized' ) {
-        my $headers = $res->headers();
-        foreach my $k (keys %$headers) {
-            Debug("Initial Header $k => $$headers{$k}");
-        }
-
         if ($$headers{'www-authenticate'}) {
             my ($auth, $tokens) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
             Debug("Tokens: " . $tokens);
@@ -118,6 +111,7 @@ sub open
                     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
                     my $req = HTTP::Request->new(GET=>$url);
                     $res = $self->{ua}->request($req);
+
                     if ($res->is_success()) {
                         $self->{state} = 'open';
                         Debug('Authentication succeeded...');
@@ -160,7 +154,25 @@ sub _sendGetRequest {
     my $self = shift;
     my $url_path = shift;
 
-    return($self->open($url_path));
+    # Attempt to reuse the connection
+
+    # FIXME: I think we need some sort of keepalive/heartbeat sent to the camera
+    #        in order to keep the session alive. As it is, it appears that the
+    #        ua's authentication times out or some such.
+    #
+    # This might be of some use:
+    #   {"method":"global.keepAlive","params":{"timeout":300,"active":false},"id":1518,"session":"dae233a51c0693519395209b271411b6"}[!http]
+    #   The web browser interface POSTs commands as JSON using js
+
+    my $url = $PROTOCOL . $ADDRESS . $url_path;
+    my $req = HTTP::Request->new(GET => $url);
+    my $res = $self->{ua}->request($req);
+
+    if ($res->is_success) {
+        return 1;
+    } else {
+        return($self->open($url_path)); # if we have to, open a new connection
+    }
 }
 
 sub _sendPtzCommand

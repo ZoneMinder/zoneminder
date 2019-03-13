@@ -324,7 +324,7 @@ function controlPower( $monitor, $cmds ) {
   }
   if ( $monitor->CanReboot() ) {
 ?>
-    <button type="button" class="ptzTextBtn" value="Reset" onclick="controlCmd('<?php echo $cmds['Reboot'] ?>')"><?php echo translate('Reboot') ?></button>
+    <button type="button" class="ptzTextBtn" value="Reboot" onclick="controlCmd('<?php echo $cmds['Reboot'] ?>')"><?php echo translate('Reboot') ?></button>
 <?php
   }
 ?>

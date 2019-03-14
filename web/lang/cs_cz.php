@@ -205,6 +205,7 @@ $SLANG = array(
     'CanMoveRel'           => 'Umí relativní pohyb',
     'CanPan'               => 'Umí otáčení',
     'CanReset'             => 'Umí reset',
+	'CanReboot'             => 'Can Reboot',
     'CanSetPresets'        => 'Umí navolit předvolby',
     'CanSleep'             => 'Může spát',
     'CanTilt'              => 'Umí náklon',

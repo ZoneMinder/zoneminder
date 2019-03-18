@@ -93,8 +93,9 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my @daemons = (
     'zmc',
     'zma',
-    'zmfilter.pl',
     'zmaudit.pl',
+    'zmcontrol.pl',
+    'zmfilter.pl',
     'zmtrigger.pl',
     'zmx10.pl',
     'zmwatch.pl',
@@ -105,7 +106,7 @@ my @daemons = (
     );
 
 if ( $Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
-	push @daemons,'zmeventnotification.pl';
+	push @daemons, 'zmeventnotification.pl';
 }
 
 my $command = shift @ARGV;

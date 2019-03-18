@@ -800,13 +800,17 @@ void EventStream::runStream() {
       // commands may set send_frame to true
       while ( checkCommandQueue() && !zm_terminate ) {
         // The idea is to loop here processing all commands before proceeding.
+      Debug(1, "Have command queue");
       }
+      Debug(1, "Done command queue");
 
       // Update modified time of the socket .lock file so that we can tell which ones are stale.
       if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
         touch(sock_path_lock);
         last_comm_update = now;
       }
+    } else {
+      Debug(1, "Not checking command queue");
     }
 
     if ( step != 0 )

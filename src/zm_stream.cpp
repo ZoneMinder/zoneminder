@@ -357,7 +357,7 @@ void StreamBase::openComms() {
 
     gettimeofday(&last_comm_update, NULL);
   } // end if connKey > 0
-  Debug(3, "comms open");
+  Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()
 
 void StreamBase::closeComms() {

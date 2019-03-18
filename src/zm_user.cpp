@@ -248,15 +248,19 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 
 //Function to check Username length
 bool checkUser ( const char *username) {
-  if ( strlen(username) > 32) {
+  if ( ! username )
     return false;
-  }
+  if ( strlen(username) > 32 )
+    return false;
+
   return true;
 }
 //Function to check password length
 bool checkPass (const char *password) {
-  if ( strlen(password) > 64) {
+  if ( !password )
     return false;
-  }
+  if ( strlen(password) > 64 )
+    return false;
+
   return true;
 }

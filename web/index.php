@@ -17,7 +17,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
-namespace ZM;
 
 error_reporting(E_ALL);
 
@@ -194,7 +193,7 @@ isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-Logger::Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
+ZM\Logger::Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
@@ -205,17 +204,17 @@ if (
   ( $view != 'archive' )
 ) {
   require_once( 'includes/csrf/csrf-magic.php' );
-  #Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+  #ZM\Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();
 }
 
 # Need to include actions because it does auth
 if ( $action ) {
   if ( file_exists('includes/actions/'.$view.'.php') ) {
-    Logger::Debug("Including includes/actions/$view.php");
+    ZM\Logger::Debug("Including includes/actions/$view.php");
     require_once('includes/actions/'.$view.'.php');
   } else {
-    Warning("No includes/actions/$view.php for action $action");
+    ZM\Warning("No includes/actions/$view.php for action $action");
   }
 }
 
@@ -227,7 +226,7 @@ if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
     header('HTTP/1.1 401 Unauthorized');
     exit;
   }
-  Logger::Debug('Redirecting to login');
+  ZM\Logger::Debug('Redirecting to login');
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
   $request = null;
@@ -240,7 +239,7 @@ if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
 CSPHeaders($view, $cspNonce);
 
 if ( $redirect ) {
-  Logger::Debug("Redirecting to $redirect");
+  ZM\Logger::Debug("Redirecting to $redirect");
   header('Location: '.$redirect);
   return;
 }
@@ -248,7 +247,7 @@ if ( $redirect ) {
 if ( $request ) {
   foreach ( getSkinIncludes('ajax/'.$request.'.php', true, true) as $includeFile ) {
     if ( !file_exists($includeFile) )
-      Fatal("Request '$request' does not exist");
+      ZM\Fatal("Request '$request' does not exist");
     require_once $includeFile;
   }
   return;
@@ -257,7 +256,7 @@ if ( $request ) {
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   foreach ( $includeFiles as $includeFile ) {
     if ( !file_exists($includeFile) )
-      Fatal("View '$view' does not exist");
+      ZM\Fatal("View '$view' does not exist");
     require_once $includeFile;
   }
   // If the view overrides $view to 'error', and the user is not logged in, then the

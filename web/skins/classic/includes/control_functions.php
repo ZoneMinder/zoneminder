@@ -24,6 +24,7 @@ function getControlCommands( $monitor ) {
   $cmds['Wake'] = 'wake';
   $cmds['Sleep'] = 'sleep';
   $cmds['Reset'] = 'reset';
+  $cmds['Reboot'] = 'reboot';
 
   $cmds['PresetSet'] = 'presetSet';
   $cmds['PresetGoto'] = 'presetGoto';
@@ -319,6 +320,11 @@ function controlPower( $monitor, $cmds ) {
   if ( $monitor->CanReset() ) {
 ?>
     <button type="button" class="ptzTextBtn" value="Reset" onclick="controlCmd('<?php echo $cmds['Reset'] ?>')"><?php echo translate('Reset') ?></button>
+<?php
+  }
+  if ( $monitor->CanReboot() ) {
+?>
+    <button type="button" class="ptzTextBtn" value="Reboot" onclick="controlCmd('<?php echo $cmds['Reboot'] ?>')"><?php echo translate('Reboot') ?></button>
 <?php
   }
 ?>

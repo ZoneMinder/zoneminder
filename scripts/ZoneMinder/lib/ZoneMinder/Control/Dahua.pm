@@ -444,7 +444,7 @@ sub reboot
 {
     my $self = shift;
     Debug( "Camera Reboot" );
-    my $cmd = "cgi-bin/magicBox.cgi?action=reboot";
+    my $cmd = "/cgi-bin/magicBox.cgi?action=reboot";
     $self->_sendGetRequest($cmd);
 }
 

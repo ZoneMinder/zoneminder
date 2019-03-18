@@ -68,6 +68,7 @@ CREATE TABLE `Controls` (
   `CanWake` tinyint(3) unsigned NOT NULL default '0',
   `CanSleep` tinyint(3) unsigned NOT NULL default '0',
   `CanReset` tinyint(3) unsigned NOT NULL default '0',
+  `CanReboot` tinyint(3) unsigned NOT NULL default '0',
   `CanZoom` tinyint(3) unsigned NOT NULL default '0',
   `CanAutoZoom` tinyint(3) unsigned NOT NULL default '0',
   `CanZoomAbs` tinyint(3) unsigned NOT NULL default '0',

@@ -394,7 +394,7 @@ int main(int argc, char *argv[]) {
         //fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
         break;
     }
-  }
+  } // end getopt loop
 
   if ( optind < argc ) {
     fprintf(stderr, "Extraneous options, ");
@@ -425,44 +425,38 @@ int main(int argc, char *argv[]) {
 
   if ( config.opt_use_auth ) {
     if ( strcmp(config.auth_relay, "none") == 0 ) {
-      if ( !checkUser(username)) {
-        fprintf(stderr, "Error, username greater than allowed 32 characters\n");
-        exit_zmu(-1);
-      }
       if ( !username ) {
         fprintf(stderr, "Error, username must be supplied\n");
         exit_zmu(-1);
       }
 
-      if ( username ) {
-        user = zmLoadUser(username);
-      }
-    } else {
-      if ( !(username && password) && !auth ) {
-        fprintf(stderr, "Error, username and password or auth string must be supplied\n");
-        exit_zmu(-1);
-      }
       if ( !checkUser(username)) {
         fprintf(stderr, "Error, username greater than allowed 32 characters\n");
         exit_zmu(-1);
       }
-      if ( !checkPass(password)) {
-        fprintf(stderr, "Error, password greater than allowed 64 characters\n");
+
+      user = zmLoadUser(username);
+    } else {
+       
+      if ( !(username && password) && !auth ) {
+        fprintf(stderr, "Error, username and password or auth string must be supplied\n");
         exit_zmu(-1);
       }
-      //if ( strcmp( config.auth_relay, "hashed" ) == 0 )
-      {
-        if ( auth ) {
-          user = zmLoadAuthUser(auth, false);
-        }
+      if ( auth ) {
+        user = zmLoadAuthUser(auth, false);
       }
-      //else if ( strcmp( config.auth_relay, "plain" ) == 0 )
-      {
-        if ( username && password ) {
-          user = zmLoadUser(username, password);
+      if ( username && password ) {
+        if ( !checkUser(username)) {
+          fprintf(stderr, "Error, username greater than allowed 32 characters\n");
+          exit_zmu(-1);
         }
-      }
-    }
+        if ( !checkPass(password)) {
+          fprintf(stderr, "Error, password greater than allowed 64 characters\n");
+          exit_zmu(-1);
+        }
+        user = zmLoadUser(username, password);
+      } // end if username && password
+    } // end if relay or not
     if ( !user ) {
       fprintf(stderr, "Error, unable to authenticate user\n");
       return exit_zmu(-1);

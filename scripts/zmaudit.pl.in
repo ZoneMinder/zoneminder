@@ -62,7 +62,6 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $report = 0;
 my $interactive = 0;
 my $continuous = 0;
-my $date = undef;
 my $level = 1;
 my $monitor_id = 0;
 my $version;
@@ -74,7 +73,6 @@ logInit();
 
 GetOptions(
     continuous     =>\$continuous,
-    'date=s'       =>\$date,
     force          =>\$force,
     interactive    =>\$interactive,
     level          =>\$level,
@@ -112,24 +110,24 @@ if ( -e ZM_AUDIT_PID ) {
   }
 } # end if ZM_AUDIT_PID exists
 
-if ( open(my $PID, '>', ZM_AUDIT_PID) ) {
-  print($PID $$);
-  close($PID);
+if ( open( my $PID, '>', ZM_AUDIT_PID ) ) {
+  print( $PID $$ );
+  close( $PID );
 } else {
-  Error("Can't open pid file at " . ZM_PID);
+  Error( "Can't open pid file at " . ZM_PID );
 }
 
 sub HupHandler {
-  Info('Received HUP, reloading');
+  Info("Received HUP, reloading");
   &ZoneMinder::Logger::logHupHandler();
 }
 sub TermHandler {
-  Info('Received TERM, exiting');
+  Info("Received TERM, exiting");
   Term();
 }
 sub Term {
   unlink ZM_AUDIT_PID;
-  exit(0);
+  exit( 0 );
 }
 $SIG{HUP} = \&HupHandler;
 $SIG{TERM} = \&TermHandler;
@@ -156,7 +154,7 @@ MAIN: while( $loop ) {
     # if we are running continuously, then just skip to the next
     # interval, otherwise we are a one off run, so wait a second and
     # retry until someone kills us.
-    sleep($Config{ZM_AUDIT_CHECK_INTERVAL});
+    sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
   } else {
     sleep 1;
   } # end if
@@ -184,53 +182,53 @@ MAIN: while( $loop ) {
       Error("No Storage Area found with Id $storage_id");
       Term();
     }
-    Info("Auditing Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}".( $date ? " limited to $date" : ''));
+    Info("Auditing Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}");
   } elsif ( $server_id ) {
     @Storage_Areas = ZoneMinder::Storage->find( ServerId => $server_id );
     if ( ! @Storage_Areas ) {
-      Error('No Storage Area found with ServerId =' . $server_id);
+      Error("No Storage Area found with ServerId =" . $server_id);
       Term();
     }
     foreach my $Storage ( @Storage_Areas ) {
-      Info('Auditing ' . $Storage->Name() . ' at ' . $Storage->Path() . ' on ' . $Storage->Server()->Name().( $date ? " limited to $date" : ''));
+      Info('Auditing ' . $Storage->Name() . ' at ' . $Storage->Path() . ' on ' . $Storage->Server()->Name() );
     }
   } else {
     @Storage_Areas = ZoneMinder::Storage->find();
-    Info('Auditing All Storage Areas'.( $date ? " limited to $date" : ''));
+    Info("Auditing All Storage Areas");
   }
 
   my %Monitors;
   my $db_monitors;
   my $monitorSelectSql = $monitor_id ? 'SELECT * FROM Monitors WHERE Id=?' : 'SELECT * FROM Monitors ORDER BY Id';
-  my $monitorSelectSth = $dbh->prepare_cached($monitorSelectSql)
-    or Fatal("Can't prepare '$monitorSelectSql': ".$dbh->errstr());
+  my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql )
+    or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
 
   my $eventSelectSql = 'SELECT Id, (unix_timestamp() - unix_timestamp(StartTime)) AS Age
     FROM Events WHERE MonitorId = ?'.(@Storage_Areas ? ' AND StorageId IN ('.join(',',map { '?'} @Storage_Areas).')' : '' ). ' ORDER BY Id';
-  my $eventSelectSth = $dbh->prepare_cached($eventSelectSql)
-    or Fatal("Can't prepare '$eventSelectSql': ".$dbh->errstr());
+  my $eventSelectSth = $dbh->prepare_cached( $eventSelectSql )
+    or Fatal( "Can't prepare '$eventSelectSql': ".$dbh->errstr() );
 
   $cleaned = 0;
   my $res = $monitorSelectSth->execute( $monitor_id ? $monitor_id : () )
-    or Fatal("Can't execute: $monitorSelectSql ".$monitorSelectSth->errstr());
+    or Fatal( "Can't execute: $monitorSelectSql ".$monitorSelectSth->errstr() );
   while( my $monitor = $monitorSelectSth->fetchrow_hashref() ) {
     $Monitors{$$monitor{Id}} = $monitor;
 
     my $db_events = $db_monitors->{$monitor->{Id}} = {};
     my $res = $eventSelectSth->execute( $monitor->{Id}, map { $$_{Id} } @Storage_Areas )
-      or Fatal("Can't execute: ".$eventSelectSth->errstr());
+      or Fatal( "Can't execute: ".$eventSelectSth->errstr() );
     while ( my $event = $eventSelectSth->fetchrow_hashref() ) {
       $db_events->{$event->{Id}} = $event->{Age};
     }
-    Debug('Got '.int(keys(%$db_events))." events for monitor $monitor->{Id}");
+    Debug( 'Got '.int(keys(%$db_events))." events for monitor $monitor->{Id}" );
   } # end while monitors
 
   my $fs_monitors;
 
   foreach my $Storage ( @Storage_Areas ) {
-    Debug('Checking events in ' . $Storage->Path());
+    Debug('Checking events in ' . $Storage->Path() );
     if ( ! chdir( $Storage->Path() ) ) {
-      Error('Unable to change dir to ' . $Storage->Path());
+      Error( 'Unable to change dir to ' . $Storage->Path() );
       next;
     } # end if
 
@@ -245,7 +243,7 @@ MAIN: while( $loop ) {
         next;
       }
 
-      Debug("Found filesystem monitor '$monitor'");
+      Debug( "Found filesystem monitor '$monitor'" );
       $fs_monitors->{$monitor} = {} if ! $fs_monitors->{$monitor};
       my $fs_events = $fs_monitors->{$monitor};
 
@@ -253,11 +251,10 @@ MAIN: while( $loop ) {
       ( my $monitor_dir ) = ( $monitor =~ /^(.*)$/ );
 
       {
-        my ( $y, $m, $d ) = $date =~ /^(\d\d\d\d)\-(\d\d)\-(\d\d)$/;
-        my @day_dirs = glob($date ? "$monitor_dir/$y/$m/$d" : "$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]");
+        my @day_dirs = glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]");
         Debug(qq`Checking for Deep Events under $$Storage{Path} using glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]") returned `. scalar @day_dirs . ' events');
         foreach my $day_dir ( @day_dirs ) {
-          Debug("Checking day dir $day_dir");
+          Debug( "Checking day dir $day_dir" );
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
           if ( !chdir($day_dir) ) {
             Error("Can't chdir to '$$Storage{Path}/$day_dir': $!");
@@ -270,7 +267,7 @@ MAIN: while( $loop ) {
           my %event_ids_by_path;
 
           my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
-          Debug('Have ' . @event_links . ' event links');
+          Debug("Have " . @event_links . ' event links');
           closedir(DIR);
 
           my $count = 0;
@@ -386,12 +383,11 @@ MAIN: while( $loop ) {
 
       Debug("Checking for Medium Scheme Events under $$Storage{Path}/$monitor_dir");
       {
-        my $glob = $date ? "$monitor_dir/$date/*":"$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*";
-        my @event_dirs = glob($glob);
-        Debug(qq`glob($glob) returned ` . scalar @event_dirs . ' entries.' );
+        my @event_dirs = glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*");
+        Debug(qq`glob("$monitor_dir/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/*") returned ` . scalar @event_dirs . ' entries.' );
         foreach my $event_dir ( @event_dirs ) {
           if ( ! -d $event_dir ) {
-            Debug("$event_dir is not a dir. Skipping");
+            Debug( "$event_dir is not a dir. Skipping" );
             next;
           }
           my ( $date, $event_id ) = $event_dir =~ /^$monitor_dir\/(\d{4}\-\d{2}\-\d{2})\/(\d+)$/;
@@ -414,11 +410,11 @@ MAIN: while( $loop ) {
       if ( ! $$Storage{Scheme} ) {
         Error("Storage Scheme not set on $$Storage{Name}");
         if ( ! chdir( $monitor_dir ) ) {
-          Error("Can't chdir directory '$$Storage{Path}/$monitor_dir': $!");
+          Error( "Can't chdir directory '$$Storage{Path}/$monitor_dir': $!" );
           next;
         }
         if ( ! opendir( DIR, "." ) ) {
-          Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
+          Error( "Can't open directory '$$Storage{Path}/$monitor_dir': $!" );
           next;
         }
         my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
@@ -433,7 +429,7 @@ MAIN: while( $loop ) {
         } # end foreach event
         chdir( $Storage->Path() );
       } # if USE_DEEP_STORAGE
-      Debug('Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir");
+      Debug( 'Got '.int(keys(%$fs_events))." filesystem events for monitor $monitor_dir" );
 
       delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
     } # end foreach monitor
@@ -467,7 +463,7 @@ MAIN: while( $loop ) {
             my $age = $Event->age();
 
             if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-              aud_print("Filesystem event $fs_event_id at $$Event{Path} does not exist in database and is $age seconds old");
+              aud_print( "Filesystem event $fs_event_id at $$Event{Path} does not exist in database and is $age seconds old" );
               if ( confirm() ) {
                 $Event->delete_files();
                 $cleaned = 1;
@@ -477,7 +473,7 @@ MAIN: while( $loop ) {
           } # end if ! in db events
         } # end foreach fs event
       } else {
-        aud_print("Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database");
+        aud_print( "Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database" );
 
         if ( confirm() ) {
           my $command = "rm -rf $monitor_id";
@@ -492,7 +488,7 @@ MAIN: while( $loop ) {
       next if ( !-l $link );
       next if ( -e $link );
 
-      aud_print("Filesystem monitor link '$link' does not point to valid monitor directory");
+      aud_print( "Filesystem monitor link '$link' does not point to valid monitor directory" );
       if ( confirm() ) {
         ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
         my $command = qq`rm "$link"`;
@@ -1053,7 +1049,6 @@ yet.
 =head1 OPTIONS
 
  -c, --continuous           - Run continuously
- -d, --date                 - Limit search for events on given date. Use YYYY-MM-DD format
  -f, --force                - Run even if pid file exists
  -i, --interactive          - Ask before applying any changes
  -m, --monitor_id           - Only consider the given monitor

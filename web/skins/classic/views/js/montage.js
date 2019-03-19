@@ -11,7 +11,6 @@ function Monitor(monitorData) {
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
-  this.onclick = monitorData.onclick;
   if ( auth_hash ) {
     this.streamCmdParms += '&auth='+auth_hash;
   }
@@ -26,8 +25,30 @@ function Monitor(monitorData) {
     }
   };
 
+  this.onclick = function() {
+      var el = this;
+      var url = '?view=watch&mid='+this.id;
+      var name = 'zmWatch'+this.id;
+      var tag = 'watch';
+      var width = el.getAttribute("data-window-width");
+      var height = el.getAttribute("data-window-height");
+      evt.preventDefault();
+      createPopup(url, name, tag, width, height);
+  };
+
+  this.setup_onclick = function() {
+    document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
+      el.addEventListener('click', this.onclick);
+    });
+  }
+  this.disable_onclick = function() {
+    document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
+      el.removeEventListener('click',this.onclick);
+    });
+  }
+
   this.setStateClass = function(element, stateClass) {
-    if ( !element.hasClass(stateClass) ) {
+    if ( !element.hasClass( stateClass ) ) {
       if ( stateClass != 'alarm' )
         element.removeClass('alarm');
       if ( stateClass != 'alert' )
@@ -359,8 +380,7 @@ function edit_layout(button) {
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor_feed = $j('#imageFeed'+monitor.id)[0];
-    monitor_feed.onclick = '';
+    monitor.disable_onclick();
   };
 
   $j('#monitors .monitorFrame').draggable({
@@ -435,8 +455,9 @@ function initPage() {
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
       setInterval(reloadWebSite, interval*1000, i);
     }
+    monitors[i].setup_onclick();
   }
   selectLayout('#zmMontageLayout');
 }
 // Kick everything off
-window.addEventListener( 'DOMContentLoaded', initPage );
+window.addEventListener('DOMContentLoaded', initPage);

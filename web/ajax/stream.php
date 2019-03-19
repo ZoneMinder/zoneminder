@@ -10,8 +10,7 @@ if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
   ajaxError("Unexpected received message type '$type'");
 }
 
-if (!mkdir(ZM_PATH_SOCKS) ) {
-}
+#mkdir(ZM_PATH_SOCKS);
 
 # The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
 $key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock', 'Z');
@@ -121,7 +120,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
     $data = unpack('ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
     ZM\Logger::Debug('FPS: ' . $data['fps']);
     $data['fps'] = round( $data['fps'], 2 );
-    ZM\Logger::Debug("FPS: " . $data['fps'] );
+    ZM\Logger::Debug('FPS: ' . $data['fps'] );
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
@@ -135,7 +134,8 @@ if ( sem_acquire($semaphore,1) !== false ) {
     ajaxResponse( array( 'status'=>$data ) );
     break;
   case MSG_DATA_EVENT :
-    if ( version_compare( phpversion(), '5.6.0', '>') ) {
+    if ( version_compare( phpversion(), '5.6.0', '<') ) {
+      ZM\Logger::Debug('Using old unpack methods to handle 64bit event id');
       $data = unpack('ltype/ieventlow/ieventhigh/iprogress/irate/izoom/Cpaused', $msg);
       $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];
     } else {

@@ -71,7 +71,7 @@ define('ZM_BASE_URL', '');
 
 require_once('includes/functions.php');
 if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
-  Logger::Debug("OPTIONS Method, only doing CORS");
+  ZM\Logger::Debug("OPTIONS Method, only doing CORS");
   # Add Cross domain access headers
   CORSHeaders();
   return;
@@ -158,7 +158,7 @@ CORSHeaders();
 
 // Check for valid content dirs
 if ( !is_writable(ZM_DIR_EVENTS) ) {
-  Warning("Cannot write to event folder ".ZM_DIR_EVENTS.". Check that it exists and is owned by the web account user.");
+  ZM\Warning("Cannot write to event folder ".ZM_DIR_EVENTS.". Check that it exists and is owned by the web account user.");
 }
 
 # Globals
@@ -180,7 +180,7 @@ if ( isset($_REQUEST['request']) )
 require_once('includes/auth.php');
 
 foreach ( getSkinIncludes('skin.php') as $includeFile ) {
-  #Logger::Debug("including $includeFile");
+  #ZM\Logger::Debug("including $includeFile");
   require_once $includeFile;
 }
 

@@ -51,7 +51,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
     $msg = pack( 'lcN', MSG_CMD, $_REQUEST['command'], $_REQUEST['offset'] );
     break;
   default :
-    Logger::Debug("Sending command " . $_REQUEST['command']);
+    ZM\Logger::Debug('Sending command ' . $_REQUEST['command']);
     $msg = pack( 'lc', MSG_CMD, $_REQUEST['command'] );
     break;
   }
@@ -64,7 +64,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
     // WHY? We will just send another one... 
     // ANSWER: Because otherwise we get a log of errors logged
 
-    //Logger::Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
+    //ZM\Logger::Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
     usleep(1000);
   }
 
@@ -92,7 +92,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
     ajaxError( "Socket closed $remSockFile"  );
   } else if ( $numSockets == 0 ) {
     ZM\Error( "Timed out waiting for msg $remSockFile"  );
-    socket_Set_nonblock($socket);
+    socket_set_nonblock($socket);
     #ajaxError("Timed out waiting for msg $remSockFile");
   } else if ( $numSockets > 0 ) {
     if ( count($rSockets) != 1 ) {

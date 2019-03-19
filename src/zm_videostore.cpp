@@ -93,7 +93,6 @@ VideoStore::VideoStore(
   oc->metadata = pmetadata;
   out_format = oc->oformat;
 
-
   video_out_stream = avformat_new_stream(oc, NULL);
   if ( !video_out_stream ) {
     Error("Unable to create video out stream");
@@ -101,39 +100,8 @@ VideoStore::VideoStore(
   } else {
     Debug(2, "Success creating video out stream");
   }
-  // Since we are not re-encoding, all we have to do is copy the parameters
-  video_out_ctx = video_out_stream->codec;
-  video_out_ctx->time_base = video_in_ctx->time_base;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  // Copy params from instream to ctx
-  ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
-  if ( ret < 0 ) {
-    Error("Could not initialize video_out_ctx parameters");
-    return;
-  } else {
-    zm_dump_codec(video_out_ctx);
-  }
-
-  if ( !video_out_ctx->codec_tag ) {
-    video_out_ctx->codec_tag =
-        av_codec_get_tag(oc->oformat->codec_tag, video_in_ctx->codec_id);
-    Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
-  }
-
-  // Now copy them to the out stream
-  ret = avcodec_parameters_from_context(video_out_stream->codecpar,
-                                        video_out_ctx);
-  if ( ret < 0 ) {
-    Error("Could not initialize stream parameters");
-    return;
-  } else {
-    Debug(2, "Success setting parameters");
-  }
-  zm_dump_codecpar(video_in_stream->codecpar);
-  zm_dump_codecpar(video_out_stream->codecpar);
-
-  AVCodec *video_out_codec = avcodec_find_encoder(video_out_ctx->codec_id);
+  AVCodec *video_out_codec = avcodec_find_encoder(video_in_ctx->codec_id);
   if ( !video_out_codec ) {
 #if (LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
     Fatal("Could not find encoder for '%s'", avcodec_get_name(video_out_ctx->codec_id));
@@ -142,20 +110,18 @@ VideoStore::VideoStore(
 #endif
   }
 
-  AVDictionary *opts = 0;
-  if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
-    Warning("Can't open video codec (%s) %s",
-        video_out_codec->name,
-        av_make_error_string(ret).c_str()
-        );
-    video_out_codec = NULL;
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  video_out_stream->codec = avcodec_alloc_context3(video_out_codec);
+  // Since we are not re-encoding, all we have to do is copy the parameters
+  video_out_ctx = video_out_stream->codec;
+  // Copy params from instream to ctx
+  ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
+  if ( ret < 0 ) {
+    Error("Could not initialize video_out_ctx parameters");
+    return;
+  } else {
+    zm_dump_codec(video_out_ctx);
   }
-
-  AVDictionaryEntry *e = NULL;
-  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-    Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
-  }
-
 #else
   ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
   if ( ret < 0 ) {
@@ -164,6 +130,57 @@ VideoStore::VideoStore(
   } else {
     Debug(3, "Success copying ctx");
   }
+#endif
+
+  // Just copy them from the in, no reason to choose different
+  video_out_ctx->time_base = video_in_ctx->time_base;
+  if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+    Debug(2,"No timebase found in video in context, defaulting to Q");
+	  video_out_ctx->time_base = AV_TIME_BASE_Q;
+  }
+
+  //video_out_ctx->pix_fmt = codec_data[i].pix_fmt;
+  video_out_ctx->level = 32;
+
+  // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
+  video_out_ctx->width = monitor->Width();
+  video_out_ctx->height = monitor->Height();
+  video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+
+  video_out_ctx->codec_id = AV_CODEC_ID_H264;
+  video_out_ctx->bit_rate = 400*1024;
+  //video_out_ctx->thread_count = 0;
+  //// Fix deprecated formats
+  switch ( video_out_ctx->pix_fmt ) {
+    case AV_PIX_FMT_YUVJ422P  :
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
+      break;
+    case AV_PIX_FMT_YUVJ444P   :
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV444P;
+      break;
+    case AV_PIX_FMT_YUVJ440P :
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
+      break;
+    case AV_PIX_FMT_NONE :
+    case AV_PIX_FMT_YUVJ420P :
+    default:
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+      break;
+  }
+
+  if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
+    video_out_ctx->max_b_frames = 1;
+    if ( video_out_ctx->priv_data ) {
+      av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
+      //av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
+    } else {
+      Debug(2, "Not setting priv_data");
+    }
+  } else {
+    Error("Unknown codec id");
+  }
+
+
   if ( !video_out_ctx->codec_tag ) {
     Debug(2, "No codec_tag");
     if ( 
@@ -177,14 +194,7 @@ VideoStore::VideoStore(
       video_out_ctx->codec_tag = video_in_ctx->codec_tag;
     }
   }
-#endif
 
-  // Just copy them from the in, no reason to choose different
-  video_out_ctx->time_base = video_in_ctx->time_base;
-  if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
-    Debug(2,"No timebase found in video in context, defaulting to Q");
-	  video_out_ctx->time_base = AV_TIME_BASE_Q;
-  }
   video_out_stream->time_base = video_in_stream->time_base;
   if ( video_in_stream->avg_frame_rate.num ) {
     Debug(3,"Copying avg_frame_rate (%d/%d)",
@@ -201,6 +211,8 @@ VideoStore::VideoStore(
     video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
   }
 
+  zm_dump_codecpar(video_in_stream->codecpar);
+  zm_dump_codecpar(video_out_stream->codecpar);
   Debug(3,
         "Time bases: VIDEO in stream (%d/%d) in codec: (%d/%d) out "
         "stream: (%d/%d) out codec (%d/%d)",
@@ -215,6 +227,21 @@ VideoStore::VideoStore(
 #else
     video_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 #endif
+  }
+
+
+  AVDictionary *opts = 0;
+  if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
+    Warning("Can't open video codec (%s) %s",
+        video_out_codec->name,
+        av_make_error_string(ret).c_str()
+        );
+    video_out_codec = NULL;
+  }
+
+  AVDictionaryEntry *e = NULL;
+  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+    Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
   }
 
   Monitor::Orientation orientation = monitor->getOrientation();

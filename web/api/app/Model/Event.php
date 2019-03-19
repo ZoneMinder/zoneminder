@@ -138,8 +138,11 @@ class Event extends AppModel {
     $storage = $this->Storage->findById($event['StorageId']);
     return filesize($storage['Storage']['Path'].'/'.$this->Relative_Path($event).'/'.$event['DefaultVideo']);
   }
+
   public function beforeDelete($cascade=true) {
-    $Event = new ZM\Event($this->data);
-    return $Event->delete();
+    $Event = new ZM\Event($this->id);
+    $Event->delete();
+    // Event->delete() will do it all, so cake doesn't have to do anything.
+    return false;
   } // end function afterDelete
 }

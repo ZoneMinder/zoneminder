@@ -272,6 +272,7 @@ $SLANG = array(
     'Debug'                 => 'Debug',
     'DefaultRate'           => 'Default Rate',
     'DefaultScale'          => 'Default Scale',
+    'DefaultCodec'          => 'Default Method For Live View',
     'DefaultView'           => 'Default View',
     'Deinterlacing'         => 'Deinterlacing',
     'RTSPDescribe'         => 'Use RTSP Response Media URL',

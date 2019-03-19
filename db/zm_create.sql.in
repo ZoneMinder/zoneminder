@@ -499,7 +499,7 @@ CREATE TABLE `Monitors` (
   `ReturnDelay` smallint(5) unsigned,
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
-  `DefaultCodec` enum('auto','H264','H265','MJPEG') NOT NULL default 'auto',
+  `DefaultCodec` enum('auto','MP4','MJPEG') NOT NULL default 'auto',
   `SignalCheckPoints` INT UNSIGNED NOT NULL default '0',
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',

@@ -454,8 +454,7 @@ $savejpegopts = array(
 
 $codecs = array(
   'auto'  => translate('Auto'),
-  'H264'  => translate('H264'),
-  'H265'  => translate('H265'),
+  'MP4'  => translate('MP4'),
   'MJPEG' => translate('MJPEG'),
 );
 

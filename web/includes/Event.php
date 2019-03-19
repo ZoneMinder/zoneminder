@@ -122,7 +122,12 @@ class Event {
 
   public function Path() {
     $Storage = $this->Storage();
-    return $Storage->Path().'/'.$this->Relative_Path();
+    if ( $Storage->Path() and $this->Relative_Path() ) {
+      return $Storage->Path().'/'.$this->Relative_Path();
+    } else {
+      Error("Event Path not complete. Storage: " . $Storage->Path() . " relative: " . $this->Relative_Path());
+      return '';
+    }
   }
 
   public function Relative_Path() {
@@ -148,17 +153,19 @@ class Event {
   }
 
   public function delete() {
-    # This wouldn't work with foreign keys
-    dbQuery( 'DELETE FROM Events WHERE Id = ?', array($this->{'Id'}) );
+    if ( ! $this->{'Id'} ) {
+      Error('Event delete on event with empty Id');
+      return;
+    }
     if ( !ZM_OPT_FAST_DELETE ) {
-      dbQuery( 'DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}) );
-      dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}) );
+      dbQuery('DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}));
+      dbQuery('DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}));
       if ( $this->{'Scheme'} == 'Deep' ) {
 
 # Assumption: All events have a start time
-        $start_date = date_parse( $this->{'StartTime'} );
+        $start_date = date_parse($this->{'StartTime'});
         if ( ! $start_date ) {
-          Error('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.' );
+          Error('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.');
           return;
         }
         $start_date['year'] = $start_date['year'] % 100;
@@ -166,37 +173,42 @@ class Event {
 # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
         if ( ! $link_path ) {
-          Error('Unable to determine link path for event ' . $this->{'Id'} . ' not deleting files.' );
+          Error('Unable to determine link path for event ' . $this->{'Id'} . ' not deleting files.');
           return;
         }
         
         $Storage = $this->Storage();
         $eventlink_path = $Storage->Path().'/'.$link_path;
 
-        if ( $id_files = glob( $eventlink_path ) ) {
+        if ( $id_files = glob($eventlink_path) ) {
           if ( ! $eventPath = readlink($id_files[0]) ) {
             Error("Unable to read link at $id_files[0]");
             return;
           }
 # I know we are using arrays here, but really there can only ever be 1 in the array
           $eventPath = preg_replace( '/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0] );
-          deletePath( $eventPath );
-          deletePath( $id_files[0] );
-          $pathParts = explode(  '/', $eventPath );
+          deletePath($eventPath);
+          deletePath($id_files[0]);
+          $pathParts = explode('/', $eventPath);
           for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
-            $deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
-            if ( !glob( $deletePath."/*" ) ) {
-              deletePath( $deletePath );
+            $deletePath = join('/', array_slice($pathParts, 0, $i));
+            if ( !glob($deletePath.'/*') ) {
+              deletePath($deletePath);
             }
           }
         } else {
-          Warning( "Found no event files under $eventlink_path" );
+          Warning("Found no event files under $eventlink_path");
         } # end if found files
       } else {
         $eventPath = $this->Path();
-        deletePath( $eventPath );
+        if ( ! $eventPath ) {
+          Error("No event Path in Event delete. Not deleting");
+          return;
+        }
+        deletePath($eventPath);
       } # USE_DEEP_STORAGE OR NOT
     } # ! ZM_OPT_FAST_DELETE
+    dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
   } # end Event->delete
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {

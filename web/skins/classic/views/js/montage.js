@@ -8,7 +8,6 @@ function Monitor( monitorData ) {
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
-  this.onclick = monitorData.onclick;
   if ( auth_hash ) {
     this.streamCmdParms += '&auth='+auth_hash;
   }
@@ -23,6 +22,27 @@ function Monitor( monitorData ) {
     }
   };
 
+  this.onclick = function() {
+      var el = this;
+      var url = '?view=watch&mid='+this.id;
+      var name = 'zmWatch'+this.id;
+      var tag = 'watch';
+      var width = el.getAttribute("data-window-width");
+      var height = el.getAttribute("data-window-height");
+      evt.preventDefault();
+      createPopup(url, name, tag, width, height);
+  };
+
+  this.setup_onclick = function() {
+    document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
+      el.addEventListener('click', this.onclick);
+    });
+  }
+  this.disable_onclick = function() {
+    document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
+      el.removeEventListener('click',this.onclick);
+    });
+  }
 
   this.setStateClass = function( element, stateClass ) {
     if ( !element.hasClass( stateClass ) ) {
@@ -359,8 +379,7 @@ function edit_layout(button) {
 
   for ( var i = 0; i < monitors.length; i++ ) {
     var monitor = monitors[i];
-    monitor_feed = $j('#imageFeed'+monitor.id)[0];
-    monitor_feed.onclick='';
+    monitor.disable_onclick();
   };
 
   $j('#monitors .monitorFrame').draggable({
@@ -372,7 +391,7 @@ function edit_layout(button) {
 } // end function edit_layout
 
 function save_layout(button) {
-  var form=button.form;
+  var form = button.form;
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
   for ( var i = 0; i < monitors.length; i++ ) {
@@ -390,7 +409,7 @@ function save_layout(button) {
       float: monitor_frame.css('float'),
     };
   } // end foreach monitor
-  form.Positions.value = JSON.stringify( Positions );
+  form.Positions.value = JSON.stringify(Positions);
   form.submit();
 }
 function cancel_layout(button) {
@@ -399,7 +418,7 @@ function cancel_layout(button) {
   for ( var i = 0; i < monitors.length; i++ ) {
     var monitor = monitors[i];
     monitor_feed = $j('#imageFeed'+monitor.id);
-    monitor_feed.click( monitor.onclick );
+    monitor_feed.click(monitor.onclick);
   };
   selectLayout('#zmMontageLayout');
 }
@@ -431,6 +450,7 @@ function initPage() {
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
       setInterval(reloadWebSite, interval*1000, i);
     }
+    monitors[i].setup_onclick();
   }
   selectLayout('#zmMontageLayout');
 
@@ -444,6 +464,7 @@ function initPage() {
       var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
       console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
       monitors[i].streamCmdQuery.delay( delay, monitors[i] );
+
     //monitors[i].zm_startup(delay);
     }
   }

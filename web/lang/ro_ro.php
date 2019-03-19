@@ -176,6 +176,7 @@ $SLANG = array(
     'CanMoveRel'           => 'Mi&#351;care relativ&#259;',
     'CanPan'               => 'Rotativ' ,
     'CanReset'             => 'Can Reset',
+	'CanReboot'             => 'Can Reboot',
     'CanSetPresets'        => 'Can Set Presets',
     'CanSleep'             => 'Can Sleep',
     'CanTilt'              => 'Se poate &#238;nclina',

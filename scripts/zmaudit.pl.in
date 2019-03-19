@@ -1005,17 +1005,17 @@ sub delete_empty_directories {
     Error("delete_empty_directories: Can't open directory '/$_[0]': $!" );
     return;
   }
-  my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
+  my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir($DIR);
   #Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents <= 2 ? join(',',@contents) : '' ));
   my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
-    Debug("Have " . @dirs . " dirs in $_[0]");
+    Debug('Have ' . @dirs . " dirs in $_[0]");
     foreach ( @dirs ) {
-      delete_empty_directories( $_[0].'/'.$_ );
+      delete_empty_directories($_[0].'/'.$_);
     }
 #Reload, since we may now be empty
     rewinddir $DIR;
-    @contents = map { ($_ eq '.' or $_ eq '..') ? () : $_ } readdir( $DIR );
+    @contents = map { ($_ eq '.' or $_ eq '..') ? () : $_ } readdir($DIR);
   }
   closedir($DIR);
   if ( ! @contents ) {

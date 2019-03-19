@@ -248,6 +248,7 @@ $SLANG = array(
     'CanMoveRel'           => 'Relatíven tud mozogni',
     'CanPan'               => 'Tud jobb-bal mozgást' ,
     'CanReset'             => 'Tud alaphelyzetbe jönni',
+	'CanReboot'             => 'Can Reboot',
     'CanSetPresets'        => 'Tud menteni profilokat',
     'CanSleep'             => 'Tud phihenő üzemmódot',
     'CanTilt'              => 'Tud fel-le mozgást',

@@ -1,6 +1,6 @@
-# ==========================================================================
+############################################################################
 #
-# ZoneMinder Logger Module, $Date$, $Revision$
+# ZoneMinder Logger Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -17,7 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# ==========================================================================
+############################################################################
 #
 # This module contains the debug definitions and functions used by the rest
 # of the ZoneMinder scripts
@@ -81,11 +81,11 @@ our @EXPORT = qw();
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
-# ==========================================================================
+############################################################################
 #
 # Logger Facilities
 #
-# ==========================================================================
+############################################################################
 
 require ZoneMinder::Config;
 

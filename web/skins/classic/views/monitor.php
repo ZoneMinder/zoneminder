@@ -21,36 +21,36 @@
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
 
-if ( !canView( 'Monitors' ) ) {
+if ( !canView('Monitors') ) {
   $view = 'error';
   return;
 }
 
 $Server = null;
-if ( defined( 'ZM_SERVER_ID' ) ) {
-  $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
+if ( defined('ZM_SERVER_ID') ) {
+  $Server = dbFetchOne('SELECT * FROM Servers WHERE Id=?', NULL, array(ZM_SERVER_ID));
 }
-if ( ! $Server ) {
-  $Server = array( 'Id' => '' );
+if ( !$Server ) {
+  $Server = array('Id' => '');
 }
 
 $monitor = null;
 if ( ! empty($_REQUEST['mid']) ) {
   $monitor = new ZM\Monitor( $_REQUEST['mid'] );
   if ( $monitor and ZM_OPT_X10 )
-    $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']) );
+    $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']));
 } 
 if ( ! $monitor ) {
 
-  $nextId = getTableAutoInc( 'Monitors' );
-  if ( isset( $_REQUEST['dupId'] ) ) {
-    $monitor = new ZM\Monitor( $_REQUEST['dupId'] );
+  $nextId = getTableAutoInc('Monitors');
+  if ( isset($_REQUEST['dupId']) ) {
+    $monitor = new ZM\Monitor($_REQUEST['dupId']);
     $monitor->GroupIds(); // have to load before we change the Id
     if ( ZM_OPT_X10 )
-      $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
+      $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
     $clonedName = $monitor->Name();
-    $monitor->Name( translate('Monitor').'-'.$nextId );
-    $monitor->Id( $nextId );
+    $monitor->Name(translate('Monitor').'-'.$nextId);
+    $monitor->Id(0);
   } else {
     $monitor = new ZM\Monitor();
     $monitor->set( array(

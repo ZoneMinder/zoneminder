@@ -463,19 +463,8 @@ VideoStore::~VideoStore() {
           break;
         }
 #endif
-        Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)",
-            pkt.pts, pkt.dts, pkt.duration);
-
-#if 0
-        if ( pkt.duration > 0 )
-          pkt.duration =
-            av_rescale_q(pkt.duration, audio_out_ctx->time_base,
-                audio_out_stream->time_base);
-
-        Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
-            pkt.dts, pkt.duration);
-#endif
         pkt.stream_index = audio_out_stream->index;
+        dumpPacket(audio_out_stream, &pkt, "writing flushed packet");
         av_interleaved_write_frame(oc, &pkt);
         zm_av_packet_unref(&pkt);
       } // while have buffered frames
@@ -1006,9 +995,10 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 
     // Resample the in into the audioSampleBuffer until we proceed the whole
     // decoded data
-    Debug(2, "Converting %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
   #if defined(HAVE_LIBSWRESAMPLE)
+    Debug(2, "Converting %d to %d samples using swresample", in_frame->nb_samples, out_frame->nb_samples);
     ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
+    out_frame->pts = in_frame->pts;
     av_frame_unref(in_frame);
     if ( ret < 0 ) {
       Error("Could not resample frame (error '%s')",
@@ -1040,7 +1030,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     }
     out_frame->nb_samples = frame_size;
     /// FIXME this is not the correct pts
-    out_frame->pts = in_frame->pts;
   #else
     #if defined(HAVE_LIBAVRESAMPLE)
     (ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
@@ -1115,6 +1104,9 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     opkt.size = ipkt->size;
   }
 
+  opkt.pos = -1;
+  opkt.stream_index = audio_out_stream->index;
+
   if ( out_frame ) {
     opkt.duration = out_frame->nb_samples;
   } else if ( ipkt->duration != AV_NOPTS_VALUE ) {
@@ -1125,7 +1117,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   } else {
     // calculate it?
   }
-  dumpPacket(audio_out_stream, &opkt);
+  dumpPacket(audio_out_stream, &opkt, "raw opkt");
 // PTS is difficult, because of the buffering of the audio packets in the
 // resampler.  So we have to do it once we actually have a packet...
 // audio_last_pts is the pts of ipkt, audio_next_pts is the last pts of the
@@ -1193,9 +1185,8 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     opkt.dts = opkt.pts;
   }
 
+  dumpPacket(audio_out_stream, &opkt, "finished opkt");
   // pkt.pos:  byte position in stream, -1 if unknown
-  opkt.pos = -1;
-  opkt.stream_index = audio_out_stream->index;
   //audio_next_dts = opkt.dts + opkt.duration;
   //audio_next_pts = opkt.pts + opkt.duration;
 

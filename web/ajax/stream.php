@@ -10,7 +10,7 @@ if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
   ajaxError("Unexpected received message type '$type'");
 }
 
-#mkdir(ZM_PATH_SOCKS);
+mkdir(ZM_PATH_SOCKS);
 
 # The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
 $key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock', 'Z');

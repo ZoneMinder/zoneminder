@@ -26,35 +26,38 @@ function Monitor(monitorData) {
   };
 
   this.onclick = function() {
-      var el = this;
-      var url = '?view=watch&mid='+this.id;
-      var name = 'zmWatch'+this.id;
-      var tag = 'watch';
-      var width = el.getAttribute("data-window-width");
-      var height = el.getAttribute("data-window-height");
-      evt.preventDefault();
-      createPopup(url, name, tag, width, height);
+    var el = this;
+    var url = '?view=watch&mid='+this.id;
+    var name = 'zmWatch'+this.id;
+    var tag = 'watch';
+    var width = el.getAttribute("data-window-width");
+    var height = el.getAttribute("data-window-height");
+    evt.preventDefault();
+    createPopup(url, name, tag, width, height);
   };
 
   this.setup_onclick = function() {
     document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
       el.addEventListener('click', this.onclick);
     });
-  }
+  };
   this.disable_onclick = function() {
     document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
-      el.removeEventListener('click',this.onclick);
+      el.removeEventListener('click', this.onclick);
     });
-  }
+  };
 
   this.setStateClass = function(element, stateClass) {
     if ( !element.hasClass( stateClass ) ) {
-      if ( stateClass != 'alarm' )
+      if ( stateClass != 'alarm' ) {
         element.removeClass('alarm');
-      if ( stateClass != 'alert' )
+      }
+      if ( stateClass != 'alert' ) {
         element.removeClass('alert');
-      if ( stateClass != 'idle' )
+      }
+      if ( stateClass != 'idle' ) {
         element.removeClass('idle');
+      }
       element.addClass(stateClass);
     }
   };
@@ -240,9 +243,9 @@ function selectLayout(element) {
   if ( ! layout ) {
     return;
   }
-  Cookie.write('zmMontageLayout', layout_id, { duration: 10*365 });
+  Cookie.write('zmMontageLayout', layout_id, {duration: 10*365});
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
-    Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+    Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
     $('scale').set('value', '');
     $('width').set('value', '');
     for ( var i = 0, length = monitors.length; i < length; i++ ) {
@@ -311,9 +314,9 @@ function changeSize() {
     }
   }
   $('scale').set('value', '');
-  Cookie.write('zmMontageScale', '', { duration: 10*365 });
-  Cookie.write('zmMontageWidth', width, { duration: 10*365 });
-  Cookie.write('zmMontageHeight', height, { duration: 10*365 });
+  Cookie.write('zmMontageScale', '', {duration: 10*365});
+  Cookie.write('zmMontageWidth', width, {duration: 10*365});
+  Cookie.write('zmMontageHeight', height, {duration: 10*365});
   selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
@@ -395,7 +398,7 @@ function save_layout(button) {
   var form = button.form;
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
-  for ( var i = 0, length = monitors.length; i < lenth; i++ ) {
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
     monitor_frame = $j('#monitorFrame'+monitor.id);
 

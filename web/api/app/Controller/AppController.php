@@ -67,7 +67,6 @@ class AppController extends Controller {
 
     # For use throughout the app. If not logged in, this will be null.
     global $user;
-    $user = $this->Session->read('user');
     
     if ( ZM_OPT_USE_AUTH ) {
       require_once __DIR__ .'/../../../includes/auth.php';

@@ -288,7 +288,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? ' width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? 'width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'"/>';
   }
 }
 
@@ -356,7 +356,7 @@ function getWebSiteUrl( $id, $src, $width, $height, $title='' ) {
         if (array_key_exists('X-Frame-Options', $header)) {
             $header = $header['X-Frame-Options'];
             if ( stripos($header, 'sameorigin') === 0 )
-                Warning("Web site $src has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.");
+                ZM\Warning("Web site $src has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.");
         }
     }
     return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';
@@ -807,7 +807,7 @@ function canStreamNative() {
 
 function canStreamApplet() {
   if ( (ZM_OPT_CAMBOZOLA && !file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) ) {
-    Warning ( 'ZM_OPT_CAMBOZOLA is enabled, but the system cannot find '.ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA );
+    ZM\Warning('ZM_OPT_CAMBOZOLA is enabled, but the system cannot find '.ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA);
   }
 
   return( (ZM_OPT_CAMBOZOLA && file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) );
@@ -1196,7 +1196,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             if ( ! $StorageArea ) {
               for ( $j = 0; $j < count($terms); $j++ ) {
                 if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
-                  $StorageArea = new ZM\Storage($terms[$j]['val']);
+                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
                   break;
                 }
               } // end foreach remaining term
@@ -1210,7 +1210,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             if ( ! $StorageArea ) {
               for ( $j = $i; $j < count($terms); $j++ ) {
                 if ( isset($terms[$i]['attr']) and $terms[$i]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
-                  $StorageArea = new ZM\Storage($terms[$i]['val']);
+                  $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
                 }
               } // end foreach remaining term
             } // end no StorageArea found yet
@@ -1242,7 +1242,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
               }
               break;
             case 'StorageId':
-              $StorageArea = new ZM\Storage( $value );
+              $StorageArea = ZM\Storage::find_one(array('Id'=>$value));
               if ( $value != 'NULL' )
                 $value = dbEscape($value);
               break;
@@ -1307,7 +1307,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             $filter['sql'] .= " IS NOT $value";
             break;
           default:
-            Warning("Invalid operator in filter: " . $terms[$i]['op'] );
+            ZM\Warning("Invalid operator in filter: " . $terms[$i]['op'] );
         }
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);
@@ -2239,15 +2239,15 @@ function getStreamHTML( $monitor, $options = array() ) {
 
   if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
     //Warning("Scale to " . $options['scale'] );
-    $options['width'] = reScale( $monitor->Width(), $options['scale'] ) . 'px';
-    $options['height'] = reScale( $monitor->Height(), $options['scale'] ) . 'px';
+    $options['width'] = reScale($monitor->Width(), $options['scale']).'px';
+    $options['height'] = reScale($monitor->Height(), $options['scale']).'px';
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty
     if ( ! ( isset($options['width']) and $options['width'] ) ) {
-      $options['width'] = $monitor->Width() . 'px';
+      $options['width'] = $monitor->Width().'px';
       if ( ! ( isset($options['height']) and $options['height'] ) ) {
-        $options['height'] = $monitor->Height() . 'px';
+        $options['height'] = $monitor->Height().'px';
       }
     } else if ( ! isset($options['height']) ) {
       $options['height'] = '';
@@ -2382,7 +2382,6 @@ function unparse_url($parsed_url, $substitutions = array() ) {
 // PP - POST request handler for PHP which does not need extensions
 // credit: http://wezfurlong.org/blog/2006/nov/http-post-from-php-without-curl/
 
-
 function do_request($method, $url, $data=array(), $optional_headers = null) {
   global $php_errormsg;
 
@@ -2426,7 +2425,7 @@ function do_post_request($url, $data, $optional_headers = null) {
 }
 
 // The following works around php not being built with semaphore functions.
-if (!function_exists('sem_get')) {
+if ( !function_exists('sem_get') ) {
   function sem_get($key) {
     return fopen(__FILE__ . '.sem.' . $key, 'w+');
   }
@@ -2438,7 +2437,7 @@ if (!function_exists('sem_get')) {
   }
 }
 
-if( !function_exists('ftok') ) {
+if ( !function_exists('ftok') ) {
   function ftok($filename = "", $proj = "") {
     if ( empty($filename) || !file_exists($filename) ) {
       return -1;

@@ -86,6 +86,19 @@ inline static void DumpBuffer(uint8_t* buffer, int buffertype) {
 // camera in raw form.
 //
 class Image {
+  private:
+    delta_fptr_t delta8_rgb;
+    delta_fptr_t delta8_bgr;
+    delta_fptr_t delta8_rgba;
+    delta_fptr_t delta8_bgra;
+    delta_fptr_t delta8_argb;
+    delta_fptr_t delta8_abgr;
+    delta_fptr_t delta8_gray8;
+
+    // Per object function pointer that we can set once we know the image dimensions
+    blend_fptr_t blend;
+
+    void update_function_pointers();
 protected:
 
 	struct Edge {
@@ -275,6 +288,14 @@ void std_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, 
 void std_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void std_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 
+void fast_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_rgb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_bgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_argb(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+void fast_delta8_abgr(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
+
 void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void neon32_armv7_delta8_rgba(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
 void neon32_armv7_delta8_bgra(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count);
@@ -303,6 +324,15 @@ void std_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long 
 void std_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void std_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+
+void fast_convert_rgb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_bgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_abgr_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+void fast_convert_yuyv_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
+
 void ssse3_convert_rgba_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_bgra_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);
 void ssse3_convert_argb_gray8(const uint8_t* col1, uint8_t* result, unsigned long count);

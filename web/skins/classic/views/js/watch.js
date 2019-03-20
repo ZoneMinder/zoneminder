@@ -142,7 +142,6 @@ function getStreamCmdFailure(xhr) {
 }
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk("stream");
-  console.log('stream');
   if ( streamCmdTimer ) {
     streamCmdTimer = clearTimeout(streamCmdTimer);
   }
@@ -449,10 +448,16 @@ function cmdEnableAlarms() {
 
 function cmdForceAlarm() {
   alarmCmdReq.send(alarmCmdParms+"&command=forceAlarm");
+  if (window.event) {
+    window.event.preventDefault();
+  }
 }
 
 function cmdCancelForcedAlarm() {
   alarmCmdReq.send(alarmCmdParms+"&command=cancelForcedAlarm");
+  if (window.event) {
+    window.event.preventDefault();
+  }
   return false;
 }
 

@@ -68,6 +68,7 @@ CREATE TABLE `Controls` (
   `CanWake` tinyint(3) unsigned NOT NULL default '0',
   `CanSleep` tinyint(3) unsigned NOT NULL default '0',
   `CanReset` tinyint(3) unsigned NOT NULL default '0',
+  `CanReboot` tinyint(3) unsigned NOT NULL default '0',
   `CanZoom` tinyint(3) unsigned NOT NULL default '0',
   `CanAutoZoom` tinyint(3) unsigned NOT NULL default '0',
   `CanZoomAbs` tinyint(3) unsigned NOT NULL default '0',
@@ -498,6 +499,7 @@ CREATE TABLE `Monitors` (
   `ReturnDelay` smallint(5) unsigned,
   `DefaultRate` smallint(5) unsigned NOT NULL default '100',
   `DefaultScale` smallint(5) unsigned NOT NULL default '100',
+  `DefaultCodec` enum('auto','MP4','MJPEG') NOT NULL default 'auto',
   `SignalCheckPoints` INT UNSIGNED NOT NULL default '0',
   `SignalCheckColour` varchar(32) NOT NULL default '#0000BE',
   `WebColour` varchar(32) NOT NULL default 'red',
@@ -572,6 +574,7 @@ CREATE TABLE `Servers` (
   `zmstats`  BOOLEAN NOT NULL DEFAULT FALSE,
   `zmaudit`  BOOLEAN NOT NULL DEFAULT FALSE,
   `zmtrigger`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `zmeventnotification`  BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

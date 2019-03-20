@@ -376,7 +376,10 @@ int X264MP4Writer::x264config() {
   x264params.b_annexb = 0;
 
   /* TODO: Setup error handler */
-  // x264params.i_log_level = X264_LOG_DEBUG;
+  if ( logDebugging() )
+    x264params.i_log_level = X264_LOG_DEBUG;
+  else
+    x264params.i_log_level = X264_LOG_NONE;
 
   /* Process user parameters (excluding preset, tune and profile) */
   for ( unsigned int i = 0; i < user_params.size(); i++ ) {

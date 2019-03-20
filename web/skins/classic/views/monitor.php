@@ -115,6 +115,7 @@ if ( ! $monitor ) {
           'AlarmRefBlendPerc' => 6,
           'DefaultRate' => '100',
           'DefaultScale' => '100',
+          'DefaultCodec' => 'auto',
           'SignalCheckPoints' => '10',
           'SignalCheckColour' => '#0000c0',
           'WebColour' => 'red',
@@ -451,6 +452,11 @@ $savejpegopts = array(
     'Frames + Analysis images (if available)'             => 3,
     );
 
+$codecs = array(
+  'auto'  => translate('Auto'),
+  'MP4'  => translate('MP4'),
+  'MJPEG' => translate('MJPEG'),
+);
 
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
 getBodyTopHTML();
@@ -656,6 +662,7 @@ if ( $tab != 'misc' ) {
       <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultRate]" value="<?php echo validHtmlStr($monitor->DefaultRate()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultScale]" value="<?php echo validHtmlStr($monitor->DefaultScale()) ?>"/>
+      <input type="hidden" name="newMonitor[DefaultCodec]" value="<?php echo validHtmlStr($monitor->DefaultCodec()) ?>"/>
       <input type="hidden" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>"/>
       <input type="hidden" name="newMonitor[Exif]" value="<?php echo validHtmlStr($monitor->Exif()) ?>"/>
 <?php
@@ -1007,6 +1014,7 @@ if ( $monitor->Type() == 'Local' ) {
         <tr><td><?php echo translate('FPSReportInterval') ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>" size="6"/></td></tr>
         <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
         <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
+        <tr><td><?php echo translate('DefaultCodec') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultCodec]", $codecs, $monitor->DefaultCodec() ); ?></td></tr>
         <tr>
           <td><?php echo translate('SignalCheckPoints') ?></td>
           <td>

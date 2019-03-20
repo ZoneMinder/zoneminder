@@ -28,13 +28,14 @@ if ( ! canView('Control', $_REQUEST['mid']) ) {
   return;
 }
 
-require_once('control_functions.php');
-require_once('Monitor.php');
+require_once('includes/control_functions.php');
+require_once('includes/Monitor.php');
 $mid = validInt($_REQUEST['mid']);
 if ( $action == 'control' ) {
   $monitor = new ZM\Monitor($mid);
 
   $ctrlCommand = buildControlCommand($monitor);
   sendControlCommand($monitor->Id(), $ctrlCommand);
+  $view = 'none';
 }
 ?>

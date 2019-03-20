@@ -412,7 +412,7 @@ Monitor::Monitor(
        + (image_buffer_count*camera->ImageSize())
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
-  Debug(1, "mem.size SharedData=%d TriggerData=%d VideoStoreData=%d total=%d",
+  Debug(1, "mem.size SharedData=%d TriggerData=%d VideoStoreData=%d total=%" PRId64,
      sizeof(SharedData), sizeof(TriggerData), sizeof(VideoStoreData), mem_size);
   mem_ptr = NULL;
 
@@ -824,6 +824,7 @@ unsigned int Monitor::GetLastWriteIndex() const {
 }
 
 uint64_t Monitor::GetLastEventId() const {
+#if 0
   Debug(2, "mem_ptr(%x), State(%d) last_read_index(%d) last_read_time(%d) last_event(%" PRIu64 ")",
       mem_ptr,
       shared_data->state,
@@ -831,6 +832,7 @@ uint64_t Monitor::GetLastEventId() const {
       shared_data->last_read_time,
       shared_data->last_event
       );
+#endif
   return shared_data->last_event;
 }
 
@@ -1349,8 +1351,6 @@ bool Monitor::Analyse() {
     auto_resume_time = 0;
   }
 
-  static int last_section_mod = 0;
-
   if ( Enabled() ) {
     bool signal = shared_data->signal;
     bool signal_change = (signal != last_signal);
@@ -1386,7 +1386,6 @@ bool Monitor::Analyse() {
           if ( event && !signal ) {
             Info( "%s: %03d - Closing event %" PRIu64 ", signal loss", name, image_count, event->Id() );
             closeEvent();
-            last_section_mod = 0;
           }
           if ( !event ) {
             if ( cause.length() )
@@ -1402,7 +1401,7 @@ bool Monitor::Analyse() {
 
         } else if ( signal && Active() && (function == MODECT || function == MOCORD) ) {
           Event::StringSet zoneSet;
-          if ( !(image_count % (motion_frame_skip+1) ) ) {
+          if ( (!motion_frame_skip) || !(image_count % (motion_frame_skip+1) ) ) {
             // Get new score.
             int new_motion_score = DetectMotion(*snap_image, zoneSet);
 
@@ -1455,31 +1454,16 @@ bool Monitor::Analyse() {
         //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
         if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
           if ( event ) {
-            Debug(3, "Detected new event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
+            Debug(3, "Have signal and recording with open event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
 
-            if ( section_length && ( timestamp->tv_sec >= section_length ) ) {
-              // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
-              int section_mod = timestamp->tv_sec % section_length;
-              Debug(3,
-                  "Section length (%d) Last Section Mod(%d), new section mod(%d)",
-                  section_length, last_section_mod, section_mod
+            if ( section_length && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length ) ) {
+              Info( "%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
+                  name, image_count, event->Id(),
+                  timestamp->tv_sec, video_store_data->recording.tv_sec, 
+                  timestamp->tv_sec - video_store_data->recording.tv_sec,
+                  section_length
                   );
-              if ( section_mod < last_section_mod ) {
-                //if ( state == IDLE || state == TAPE || event_close_mode == CLOSE_TIME ) {
-                  //if ( state == TAPE ) {
-                    //shared_data->state = state = IDLE;
-                    //Info( "%s: %03d - Closing event %d, section end", name, image_count, event->Id() )
-                  //} else {
-                    Info( "%s: %03d - Closing event %" PRIu64 ", section end forced ", name, image_count, event->Id() );
-                  //}
-                  closeEvent();
-                  last_section_mod = 0;
-                //} else {
-                  //Debug( 2, "Time to close event, but state (%d) is not IDLE or TAPE and event_close_mode is not CLOSE_TIME (%d)", state, event_close_mode );
-                //}
-              } else {
-                last_section_mod = section_mod;
-              }
+              closeEvent();
             } // end if section_length
           } // end if event
 
@@ -1727,7 +1711,7 @@ Error("Creating new event when one exists");
               //Warning("In state TAPE,
               //video_store_data->recording = event->StartTime();
             //}
-            if ( !(image_count%(frame_skip+1)) ) {
+            if ( (!frame_skip) || !(image_count%(frame_skip+1)) ) {
               if ( config.bulk_frame_interval > 1 ) {
                 event->AddFrame( snap_image, *timestamp, (event->Frames()<pre_event_count?0:-1) );
               } else {
@@ -1739,11 +1723,10 @@ Error("Creating new event when one exists");
       }
     } else {
       if ( event ) {
-        Info( "%s: %03d - Closing event %" PRIu64 ", trigger off", name, image_count, event->Id() );
+        Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name, image_count, event->Id());
         closeEvent();
       }
       shared_data->state = state = IDLE;
-      last_section_mod = 0;
       trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
@@ -1770,7 +1753,7 @@ Error("Creating new event when one exists");
 
   image_count++;
 
-  return( true );
+  return true;
 }
 
 void Monitor::Reload() {
@@ -2481,7 +2464,7 @@ int Monitor::Capture() {
       // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
       if ( now != last_fps_time ) {
         // # of images per interval / the amount of time it took
-        double new_fps = double(fps_report_interval)/(now-last_fps_time);
+        double new_fps = double(image_count%fps_report_interval?image_count:fps_report_interval)/(now-last_fps_time);
         unsigned int new_camera_bytes = camera->Bytes();
         unsigned int new_capture_bandwidth = (new_camera_bytes - last_camera_bytes)/(now-last_fps_time);
         last_camera_bytes = new_camera_bytes;

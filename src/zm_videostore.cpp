@@ -39,6 +39,7 @@ VideoStore::VideoStore(
     int64_t nStartTime,
     Monitor *monitor
     ) {
+
   video_in_stream = p_video_in_stream;
   audio_in_stream = p_audio_in_stream;
 
@@ -50,6 +51,8 @@ VideoStore::VideoStore(
 // zm_dump_codecpar( video_in_stream->codecpar );
 #else
 #endif
+
+  // In future, we should just pass in the codec context instead of the stream.  Don't really need the stream.
   video_in_ctx = video_in_stream->codec;
 
   // store ins in variables local to class
@@ -59,7 +62,7 @@ VideoStore::VideoStore(
   Info("Opening video storage stream %s format: %s", filename, format);
 
   ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
-  if (ret < 0) {
+  if ( ret < 0 ) {
     Warning(
         "Could not create video storage stream %s as no out ctx"
         " could be assigned based on filename: %s",
@@ -71,7 +74,7 @@ VideoStore::VideoStore(
   // Couldn't deduce format from filename, trying from format name
   if ( !oc ) {
     avformat_alloc_output_context2(&oc, NULL, format, filename);
-    if (!oc) {
+    if ( !oc ) {
       Error(
           "Could not create video storage stream %s as no out ctx"
           " could not be assigned based on filename or format %s",
@@ -85,25 +88,10 @@ VideoStore::VideoStore(
   AVDictionary *pmetadata = NULL;
   int dsr =
       av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
-  if (dsr < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+  if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
-
-#if 0
-  //LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-
-  // Since we are not re-encoding, all we have to do is copy the parameters
-  video_out_ctx = avcodec_alloc_context3(NULL);
-
-  // Copy params from instream to ctx
-  ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
-  if ( ret < 0 ) {
-    Error("Could not initialize video_out_ctx parameters");
-    return;
-  } else {
-    zm_dump_codec(video_out_ctx);
-  }
 
   video_out_stream = avformat_new_stream(oc, NULL);
   if ( !video_out_stream ) {
@@ -113,60 +101,100 @@ VideoStore::VideoStore(
     Debug(2, "Success creating video out stream");
   }
 
-  if ( !video_out_ctx->codec_tag ) {
-    video_out_ctx->codec_tag =
-        av_codec_get_tag(oc->oformat->codec_tag, video_in_ctx->codec_id);
-    Debug(2, "No codec_tag, setting to %d", video_out_ctx->codec_tag);
+  AVCodec *video_out_codec = avcodec_find_encoder(video_in_ctx->codec_id);
+  if ( !video_out_codec ) {
+#if (LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
+    Fatal("Could not find encoder for '%s'", avcodec_get_name(video_out_ctx->codec_id));
+#else
+    Fatal("Could not find encoder for '%d'", video_out_ctx->codec_id);
+#endif
   }
 
-  // Now copy them to the out stream
-  ret = avcodec_parameters_from_context(video_out_stream->codecpar,
-                                        video_out_ctx);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  video_out_stream->codec = avcodec_alloc_context3(video_out_codec);
+  // Since we are not re-encoding, all we have to do is copy the parameters
+  video_out_ctx = video_out_stream->codec;
+  // Copy params from instream to ctx
+  ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
   if ( ret < 0 ) {
-    Error("Could not initialize stream parameteres");
+    Error("Could not initialize video_out_ctx parameters");
     return;
   } else {
-    Debug(2, "Success setting parameters");
+    zm_dump_codec(video_out_ctx);
   }
-  zm_dump_codecpar(video_out_stream->codecpar);
-
 #else
-  video_out_stream =
-      avformat_new_stream(oc, NULL);
-//(AVCodec *)(video_in_ctx->codec));
-      //avformat_new_stream(oc,(const AVCodec *)(video_in_ctx->codec));
-  if ( !video_out_stream ) {
-    Fatal("Unable to create video out stream\n");
-  } else {
-    Debug(2, "Success creating video out stream");
-  }
-  video_out_ctx = video_out_stream->codec;
   ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
-  if (ret < 0) {
-    Fatal("Unable to copy in video ctx to out video ctx %s\n",
+  if ( ret < 0 ) {
+    Fatal("Unable to copy in video ctx to out video ctx %s",
           av_make_error_string(ret).c_str());
   } else {
     Debug(3, "Success copying ctx");
-  }
-  if ( !video_out_ctx->codec_tag ) {
-    Debug(2, "No codec_tag");
-    if (!oc->oformat->codec_tag ||
-        av_codec_get_id(oc->oformat->codec_tag,
-                        video_in_ctx->codec_tag) ==
-            video_out_ctx->codec_id ||
-        av_codec_get_tag(oc->oformat->codec_tag,
-                         video_in_ctx->codec_id) <= 0) {
-      Warning("Setting codec tag");
-      video_out_ctx->codec_tag = video_in_ctx->codec_tag;
-    }
   }
 #endif
 
   // Just copy them from the in, no reason to choose different
   video_out_ctx->time_base = video_in_ctx->time_base;
   if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
+    Debug(2,"No timebase found in video in context, defaulting to Q");
 	  video_out_ctx->time_base = AV_TIME_BASE_Q;
-  }	
+  }
+
+  //video_out_ctx->pix_fmt = codec_data[i].pix_fmt;
+  video_out_ctx->level = 32;
+
+  // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
+  video_out_ctx->width = monitor->Width();
+  video_out_ctx->height = monitor->Height();
+  video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
+
+  video_out_ctx->codec_id = AV_CODEC_ID_H264;
+  video_out_ctx->bit_rate = 400*1024;
+  //video_out_ctx->thread_count = 0;
+  //// Fix deprecated formats
+  switch ( video_out_ctx->pix_fmt ) {
+    case AV_PIX_FMT_YUVJ422P  :
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV422P;
+      break;
+    case AV_PIX_FMT_YUVJ444P   :
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV444P;
+      break;
+    case AV_PIX_FMT_YUVJ440P :
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV440P;
+      break;
+    case AV_PIX_FMT_NONE :
+    case AV_PIX_FMT_YUVJ420P :
+    default:
+      video_out_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+      break;
+  }
+
+  if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
+    video_out_ctx->max_b_frames = 1;
+    if ( video_out_ctx->priv_data ) {
+      av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
+      //av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
+    } else {
+      Debug(2, "Not setting priv_data");
+    }
+  } else {
+    Error("Unknown codec id");
+  }
+
+
+  if ( !video_out_ctx->codec_tag ) {
+    Debug(2, "No codec_tag");
+    if ( 
+        !oc->oformat->codec_tag
+        ||
+        av_codec_get_id(oc->oformat->codec_tag, video_in_ctx->codec_tag) == video_out_ctx->codec_id
+        ||
+        av_codec_get_tag(oc->oformat->codec_tag, video_in_ctx->codec_id) <= 0
+        ) {
+      Warning("Setting codec tag");
+      video_out_ctx->codec_tag = video_in_ctx->codec_tag;
+    }
+  }
+
   video_out_stream->time_base = video_in_stream->time_base;
   if ( video_in_stream->avg_frame_rate.num ) {
     Debug(3,"Copying avg_frame_rate (%d/%d)",
@@ -183,6 +211,8 @@ VideoStore::VideoStore(
     video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
   }
 
+  zm_dump_codecpar(video_in_stream->codecpar);
+  zm_dump_codecpar(video_out_stream->codecpar);
   Debug(3,
         "Time bases: VIDEO in stream (%d/%d) in codec: (%d/%d) out "
         "stream: (%d/%d) out codec (%d/%d)",
@@ -191,7 +221,7 @@ VideoStore::VideoStore(
         video_out_stream->time_base.num, video_out_stream->time_base.den,
         video_out_ctx->time_base.num, video_out_ctx->time_base.den);
 
-  if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
+  if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
     video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 #else
@@ -199,10 +229,25 @@ VideoStore::VideoStore(
 #endif
   }
 
+
+  AVDictionary *opts = 0;
+  if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
+    Warning("Can't open video codec (%s) %s",
+        video_out_codec->name,
+        av_make_error_string(ret).c_str()
+        );
+    video_out_codec = NULL;
+  }
+
+  AVDictionaryEntry *e = NULL;
+  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+    Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
+  }
+
   Monitor::Orientation orientation = monitor->getOrientation();
   if ( orientation ) {
     if ( orientation == Monitor::ROTATE_0 ) {
-    } else if (orientation == Monitor::ROTATE_90) {
+    } else if ( orientation == Monitor::ROTATE_90 ) {
       dsr = av_dict_set(&video_out_stream->metadata, "rotate", "90", 0);
       if ( dsr < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
     } else if ( orientation == Monitor::ROTATE_180 ) {
@@ -233,7 +278,6 @@ VideoStore::VideoStore(
   if ( audio_in_stream ) {
     Debug(3, "Have audio stream");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-
     audio_in_ctx = avcodec_alloc_context3(NULL);
     ret = avcodec_parameters_to_context(audio_in_ctx,
                                         audio_in_stream->codecpar);
@@ -251,7 +295,7 @@ VideoStore::VideoStore(
         return;
       }
     } else {
-      Debug(3, "Got AAC");
+      Debug(2, "Got AAC");
 
       audio_out_stream =
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -266,14 +310,14 @@ VideoStore::VideoStore(
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
         audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
         // Copy params from instream to ctx
-        ret = avcodec_parameters_to_context(audio_out_ctx,
-                                            audio_in_stream->codecpar);
+        ret = avcodec_parameters_to_context(
+            audio_out_ctx, audio_in_stream->codecpar);
         if ( ret < 0 ) {
           Error("Unable to copy audio params to ctx %s",
                 av_make_error_string(ret).c_str());
         }
-        ret = avcodec_parameters_from_context(audio_out_stream->codecpar,
-                                              audio_out_ctx);
+        ret = avcodec_parameters_from_context(
+            audio_out_stream->codecpar, audio_out_ctx);
         if ( ret < 0 ) {
           Error("Unable to copy audio params to stream %s",
                 av_make_error_string(ret).c_str());
@@ -302,28 +346,32 @@ VideoStore::VideoStore(
             Debug(3, "Audio is mono");
           }
         }
-      }  // end if audio_out_stream
-    }    // end if is AAC
+      } // end if audio_out_stream
+    } // end if is AAC
 
     if ( audio_out_stream ) {
       if ( oc->oformat->flags & AVFMT_GLOBALHEADER ) {
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
-    audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+        audio_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 #else
-    audio_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
+        audio_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 #endif
       }
     }
   }  // end if audio_in_stream
 
+  video_first_pts = 0;
+  video_first_dts = 0;
   video_last_pts = 0;
   video_last_dts = 0;
+
+  audio_first_pts = 0;
+  audio_first_dts = 0;
   audio_last_pts = 0;
   audio_last_dts = 0;
-  video_next_pts = 0;
-  video_next_dts = 0;
   audio_next_pts = 0;
   audio_next_dts = 0;
+
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {
@@ -331,30 +379,28 @@ bool VideoStore::open() {
   if ( !(out_format->flags & AVFMT_NOFILE) ) {
     ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL);
     if ( ret < 0 ) {
-      Error("Could not open out file '%s': %s\n", filename,
+      Error("Could not open out file '%s': %s", filename,
             av_make_error_string(ret).c_str());
       return false;
     }
   }
 
-  // os->ctx_inited = 1;
-  // avio_flush(ctx->pb);
-  // av_dict_free(&opts);
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
   AVDictionary *opts = NULL;
   // av_dict_set(&opts, "movflags", "frag_custom+dash+delay_moov", 0);
-  av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
+  // Shiboleth reports that this may break seeking in mp4 before it downloads
+  //av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
   // av_dict_set(&opts, "movflags",
   // "frag_keyframe+empty_moov+default_base_moof", 0);
-  if ((ret = avformat_write_header(oc, &opts)) < 0) {
+  if ( (ret = avformat_write_header(oc, &opts)) < 0 ) {
     // if ((ret = avformat_write_header(oc, &opts)) < 0) {
     Warning("Unable to set movflags to frag_custom+dash+delay_moov");
     /* Write the stream header, if any. */
     ret = avformat_write_header(oc, NULL);
   } else if (av_dict_count(opts) != 0) {
-    Warning("some options not set\n");
+    Warning("some options not set");
   }
   if ( opts ) av_dict_free(&opts);
   if ( ret < 0 ) {
@@ -365,6 +411,14 @@ bool VideoStore::open() {
     //avformat_free_context(oc);
     return false;
   }
+  Debug(3,
+        "Time bases: VIDEO in stream (%d/%d) in codec: (%d/%d) out "
+        "stream: (%d/%d) out codec (%d/%d)",
+        video_in_stream->time_base.num, video_in_stream->time_base.den,
+        video_in_ctx->time_base.num, video_in_ctx->time_base.den,
+        video_out_stream->time_base.num, video_out_stream->time_base.den,
+        video_out_ctx->time_base.num,
+        video_out_ctx->time_base.den);
   return true;
 } // end VideoStore::open()
 
@@ -372,7 +426,7 @@ VideoStore::~VideoStore() {
 
   if ( oc->pb ) {
 
-    if (audio_out_codec) {
+    if ( audio_out_codec ) {
       // The codec queues data.  We need to send a flush command and out
       // whatever we get. Failures are not fatal.
       AVPacket pkt;
@@ -388,7 +442,7 @@ VideoStore::~VideoStore() {
         ret = avcodec_receive_packet(audio_out_ctx, &pkt);
         if ( ret < 0 ) {
           if ( AVERROR_EOF != ret ) {
-            Error("ERror encoding audio while flushing (%d) (%s)", ret,
+            Error("Error encoding audio while flushing (%d) (%s)", ret,
                 av_err2str(ret));
           }
           break;
@@ -398,7 +452,7 @@ VideoStore::~VideoStore() {
         ret =
           avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet);
         if ( ret < 0 ) {
-          Error("ERror encoding audio while flushing (%d) (%s)", ret,
+          Error("Error encoding audio while flushing (%d) (%s)", ret,
               av_err2str(ret));
           break;
         }
@@ -407,20 +461,18 @@ VideoStore::~VideoStore() {
           break;
         }
 #endif
-        Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
-            pkt.dts, pkt.duration);
-        pkt.pts = audio_next_pts;
-        pkt.dts = audio_next_dts;
+        Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)",
+            pkt.pts, pkt.dts, pkt.duration);
 
+#if 0
         if ( pkt.duration > 0 )
           pkt.duration =
             av_rescale_q(pkt.duration, audio_out_ctx->time_base,
                 audio_out_stream->time_base);
-        audio_next_pts += pkt.duration;
-        audio_next_dts += pkt.duration;
 
         Debug(2, "writing flushed packet pts(%d) dts(%d) duration(%d)", pkt.pts,
             pkt.dts, pkt.duration);
+#endif
         pkt.stream_index = audio_out_stream->index;
         av_interleaved_write_frame(oc, &pkt);
         zm_av_packet_unref(&pkt);
@@ -443,7 +495,7 @@ VideoStore::~VideoStore() {
     if ( !(out_format->flags & AVFMT_NOFILE) ) {
       /* Close the out file. */
       Debug(2, "Closing");
-      if (int rc = avio_close(oc->pb)) {
+      if ( int rc = avio_close(oc->pb) ) {
         oc->pb = NULL;
         Error("Error closing avio %s", av_err2str(rc));
       }
@@ -451,6 +503,7 @@ VideoStore::~VideoStore() {
       Debug(3, "Not closing avio because we are not writing to a file.");
     }
   } // end if ( oc->pb )
+
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the ctx
   // allocation/de-allocation constantly, or whether we can just re-use it.
@@ -469,17 +522,19 @@ VideoStore::~VideoStore() {
 #endif
     video_out_ctx = NULL;
     Debug(4, "Success freeing video_out_ctx");
-  }
+  } // end if video_out_stream
+
   if ( audio_out_stream ) {
     if ( audio_in_codec ) {
       avcodec_close(audio_in_ctx);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      // We allocate and copy in newer ffmpeg, so need to free it
-      avcodec_free_context(&audio_in_ctx);
-#endif
-      audio_in_ctx = NULL;
       audio_in_codec = NULL;
     } // end if audio_in_codec
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // We allocate and copy in newer ffmpeg, so need to free it
+    avcodec_free_context(&audio_in_ctx);
+#endif
+    audio_in_ctx = NULL;
 
     avcodec_close(audio_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -514,7 +569,7 @@ VideoStore::~VideoStore() {
       converted_in_samples = NULL;
     }
 #endif
-  }
+  } // end if audio_out_stream
 
   /* free the stream */
   avformat_free_context(oc);
@@ -536,8 +591,7 @@ bool VideoStore::setup_resampler() {
 #else
   audio_in_codec = avcodec_find_decoder(audio_in_ctx->codec_id);
 #endif
-  ret = avcodec_open2(audio_in_ctx, audio_in_codec, NULL);
-  if ( ret < 0 ) {
+  if ( (ret = avcodec_open2(audio_in_ctx, audio_in_codec, NULL)) < 0 ) {
     Error("Can't open in codec!");
     return false;
   }
@@ -547,7 +601,6 @@ bool VideoStore::setup_resampler() {
     Error("Could not find codec for AAC");
     return false;
   }
-  Debug(2, "Have audio out codec");
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // audio_out_ctx = audio_out_stream->codec;
@@ -558,20 +611,20 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 
-  Debug(2, "Have audio_out_ctx");
-  // Now copy them to the out stream
   audio_out_stream = avformat_new_stream(oc, audio_out_codec);
 #else 
   audio_out_stream = avformat_new_stream(oc, NULL);
   audio_out_ctx = audio_out_stream->codec;
 #endif
   // Some formats (i.e. WAV) do not produce the proper channel layout
-  // Perhaps we should not be modifying the audio_in_ctx....
-   if ( audio_in_ctx->channel_layout == 0 )
+  if ( audio_in_ctx->channel_layout == 0 ) {
+    Debug(2, "Setting input channel layout to mono");
+    // Perhaps we should not be modifying the audio_in_ctx....
     audio_in_ctx->channel_layout = av_get_channel_layout("mono");
+  }
 
   /* put sample parameters */
-  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 96000 ? audio_in_ctx->bit_rate : 96000;
+  audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 32768 ? audio_in_ctx->bit_rate : 32768;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
@@ -590,7 +643,7 @@ bool VideoStore::setup_resampler() {
 
   if ( audio_out_codec->supported_samplerates ) {
     int found = 0;
-    for ( unsigned int i = 0; audio_out_codec->supported_samplerates[i]; i++) {
+    for ( unsigned int i = 0; audio_out_codec->supported_samplerates[i]; i++ ) {
       if ( audio_out_ctx->sample_rate ==
           audio_out_codec->supported_samplerates[i] ) {
         found = 1;
@@ -609,13 +662,12 @@ bool VideoStore::setup_resampler() {
 
   /* check that the encoder supports s16 pcm in */
   if ( !check_sample_fmt(audio_out_codec, audio_out_ctx->sample_fmt) ) {
-    Debug(3, "Encoder does not support sample format %s, setting to FLTP",
+    Debug(2, "Encoder does not support sample format %s, setting to FLTP",
           av_get_sample_fmt_name(audio_out_ctx->sample_fmt));
     audio_out_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
   }
 
-  audio_out_ctx->time_base =
-      (AVRational){1, audio_out_ctx->sample_rate};
+  audio_out_ctx->time_base = (AVRational){1, audio_out_ctx->sample_rate};
 
   AVDictionary *opts = NULL;
   if ( (ret = av_dict_set(&opts, "strict", "experimental", 0)) < 0 ) {
@@ -624,7 +676,8 @@ bool VideoStore::setup_resampler() {
   ret = avcodec_open2(audio_out_ctx, audio_out_codec, &opts);
   av_dict_free(&opts);
   if ( ret < 0 ) {
-    Error("could not open codec (%d) (%s)\n", ret, av_make_error_string(ret).c_str());
+    Error("could not open codec (%d) (%s)",
+        ret, av_make_error_string(ret).c_str());
     audio_out_codec = NULL;
     audio_out_ctx = NULL;
     audio_out_stream = NULL;
@@ -694,6 +747,7 @@ bool VideoStore::setup_resampler() {
     swr_free(&resample_ctx);
     return false;
   }
+  Debug(1,"Success setting up SWRESAMPLE");
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
   // Setup the audio resampler
@@ -758,7 +812,7 @@ bool VideoStore::setup_resampler() {
         out_frame, audio_out_ctx->channels,
         audio_out_ctx->sample_fmt,
         (const uint8_t *)converted_in_samples,
-        audioSampleBuffer_size, 0) < 0) {
+        audioSampleBuffer_size, 0) < 0 ) {
     Error("Could not allocate converted in sample pointers");
     return false;
   }
@@ -770,136 +824,117 @@ bool VideoStore::setup_resampler() {
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   av_init_packet(&opkt);
 
-  opkt.pts = video_next_pts;
-  opkt.dts = video_next_dts;
-  opkt.duration = 0;
+  dumpPacket(video_in_stream, ipkt, "input packet");
 
   int64_t duration;
-  if ( !video_last_pts ) {
-    duration = 0;
-  } else {
-    duration =
-        av_rescale_q(ipkt->pts - video_last_pts, video_in_stream->time_base,
-                     video_out_stream->time_base);
-    Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(% " PRId64 ") = (%" PRId64 ")",
+  if ( ipkt->duration ) {
+    duration = av_rescale_q(
+        ipkt->duration,
+        video_in_stream->time_base,
+        video_out_stream->time_base);
+    Debug(1, "duration from ipkt: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
         ipkt->pts,
         video_last_pts,
-        duration);
-    if (duration <= 0) {
+        ipkt->duration,
+        duration,
+        video_in_stream->time_base.num,
+        video_in_stream->time_base.den,
+        video_out_stream->time_base.num,
+        video_out_stream->time_base.den
+        );
+  } else {
+    duration = av_rescale_q(
+          ipkt->pts - video_last_pts,
+          video_in_stream->time_base,
+          video_out_stream->time_base);
+    Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
+        ipkt->pts,
+        video_last_pts,
+        ipkt->pts - video_last_pts,
+        duration
+        );
+    if ( duration <= 0 ) {
+      // Why are we setting the duration to 1? 
       duration = ipkt->duration ? ipkt->duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
     }
   }
+  opkt.duration = duration;
 
-  //#if ( 0 && video_last_pts && ( ipkt->duration == AV_NOPTS_VALUE || !
-  //ipkt->duration ) ) {
-  // Video packets don't really have a duration. Audio does.
-  // opkt.duration = av_rescale_q(duration, video_in_stream->time_base,
-  // video_out_stream->time_base);
-  // opkt.duration = 0;
-  //} else {
-  // duration = opkt.duration = av_rescale_q(ipkt->duration,
-  // video_in_stream->time_base, video_out_stream->time_base);
-  //}
-  video_last_pts = ipkt->pts;
-  video_last_dts = ipkt->dts;
-
-#if 0
-  //Scale the PTS of the outgoing packet to be the correct time base
+  // Scale the PTS of the outgoing packet to be the correct time base
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
 
-    if ( ! video_last_pts ) {
+    // ffmpeg has a bug where it screws up the pts to massively negative.
+    if ( (!video_first_pts) && (ipkt->pts >= 0) ) {
       // This is the first packet.
       opkt.pts = 0;
-      Debug(2, "Starting video video_last_pts will become (%d)", ipkt->pts);
+      Debug(2, "Starting video first_pts will become %" PRId64, ipkt->pts);
+      video_first_pts = ipkt->pts;
     } else {
-      if ( ipkt->pts < video_last_pts ) {
-        Debug(1, "Resetting video_last_pts from (%d) to (%d)",  video_last_pts, ipkt->pts);
-        // wrap around, need to figure out the distance FIXME having this wrong should cause a jump, but then play ok?
-        opkt.pts = video_next_pts + av_rescale_q( ipkt->pts, video_in_stream->time_base, video_out_stream->time_base);
-      } else {
-        opkt.pts = video_next_pts + av_rescale_q( ipkt->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
-      }
+      opkt.pts = av_rescale_q(
+          ipkt->pts - video_first_pts,
+          video_in_stream->time_base,
+          video_out_stream->time_base
+          );
     }
-    Debug(3, "opkt.pts = %d from ipkt->pts(%d) - last_pts(%d)", opkt.pts, ipkt->pts, video_last_pts);
+    Debug(3, "opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")", opkt.pts, ipkt->pts, video_first_pts);
     video_last_pts = ipkt->pts;
   } else {
     Debug(3, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
   }
   // Just because the in stream wraps, doesn't mean the out needs to.  Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.  So need to handle in wrap, without causing out wrap.
-  if ( !video_last_dts ) {
-    // This is the first packet.
-    opkt.dts = 0;
-    Debug(1, "Starting video video_last_dts will become (%lu)", ipkt->dts);
-    video_last_dts = ipkt->dts;
-  } else {
-    // Scale the DTS of the outgoing packet to be the correct time base
-
-    if ( ipkt->dts == AV_NOPTS_VALUE ) {
-      // why are we using cur_dts instead of packet.dts? I think cur_dts is in AV_TIME_BASE_Q, but ipkt.dts is in video_in_stream->time_base
-      if ( video_in_stream->cur_dts < video_last_dts ) {
-        Debug(1, "Resetting video_last_dts from (%d) to (%d) p.dts was (%d)",  video_last_dts, video_in_stream->cur_dts, ipkt->dts);
-        opkt.dts = video_next_dts + av_rescale_q(video_in_stream->cur_dts, AV_TIME_BASE_Q, video_out_stream->time_base);
-      } else {
-        opkt.dts = video_next_dts + av_rescale_q(video_in_stream->cur_dts - video_last_dts, AV_TIME_BASE_Q, video_out_stream->time_base);
-      }
-      Debug(3, "opkt.dts = %d from video_in_stream->cur_dts(%d) - previus_dts(%d)", opkt.dts, video_in_stream->cur_dts, video_last_dts);
-      video_last_dts = video_in_stream->cur_dts;
+  if ( ipkt->dts != AV_NOPTS_VALUE ) {
+#if 0
+    if ( (!video_first_dts) && ( ipkt->dts >= 0 ) ) {
+      // This is the first packet.
+      opkt.dts = 0;
+      Debug(1, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
+      video_first_dts = ipkt->dts;
     } else {
-      if ( ipkt->dts < video_last_dts ) {
-        Debug(1, "Resetting video_last_dts from (%d) to (%d)",  video_last_dts, ipkt->dts);
-        opkt.dts = video_next_dts + av_rescale_q( ipkt->dts,  video_in_stream->time_base, video_out_stream->time_base);
-      } else {
-        opkt.dts = video_next_dts + av_rescale_q( ipkt->dts - video_last_dts, video_in_stream->time_base, video_out_stream->time_base);
-      }
-      Debug(3, "opkt.dts = %d from ipkt.dts(%d) - previus_dts(%d)", opkt.dts, ipkt->dts, video_last_dts);
-      video_last_dts = ipkt->dts;
-    }
-  }
 #endif
-  if (opkt.dts > opkt.pts) {
-    Debug(1,
-          "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen "
+      opkt.dts = av_rescale_q(
+          ipkt->dts - video_first_pts,
+          video_in_stream->time_base,
+          video_out_stream->time_base
+          );
+      Debug(3, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_pts(%" PRId64 ")",
+          opkt.dts, ipkt->dts, video_first_pts);
+      video_last_dts = ipkt->dts;
+#if 0
+    }
+#endif
+    if ( opkt.dts > opkt.pts ) {
+      Debug(1,
+          "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 "). Decompression must happen "
           "before presentation.",
           opkt.dts, opkt.pts);
-    opkt.dts = opkt.pts;
+      opkt.dts = opkt.pts;
+    }
+  } else {
+    Debug(3, "opkt.dts = undef");
+    opkt.dts = 0;
   }
+
 
   opkt.flags = ipkt->flags;
   opkt.pos = -1;
-
   opkt.data = ipkt->data;
   opkt.size = ipkt->size;
-
   opkt.stream_index = video_out_stream->index;
 
-  AVPacket safepkt;
-  memcpy(&safepkt, &opkt, sizeof(AVPacket));
-
-  dumpPacket( &opkt, "writing video packet" );
-  if ((opkt.data == NULL) || (opkt.size < 1)) {
+  dumpPacket(video_out_stream, &opkt, "writing video packet");
+  if ( (opkt.data == NULL) || (opkt.size < 1) ) {
     Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
-    dumpPacket(ipkt);
-    dumpPacket(&opkt);
-
-  } else if ((video_next_dts > 0) && (video_next_dts > opkt.dts)) {
-    Warning("%s:%d: DTS out of order: %lld \u226E %lld; discarding frame",
-            __FILE__, __LINE__, video_next_dts, opkt.dts);
-    video_next_dts = opkt.dts;
-    dumpPacket(&opkt);
-
+    dumpPacket(video_in_stream, ipkt,"In Packet");
+    dumpPacket(video_out_stream, &opkt);
   } else {
-    video_next_dts = opkt.dts + duration;
-    video_next_pts = opkt.pts + duration;
     ret = av_interleaved_write_frame(oc, &opkt);
-    if (ret < 0) {
+    if ( ret < 0 ) {
       // There's nothing we can really do if the frame is rejected, just drop it
       // and get on with the next
       Warning(
-          "%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d) "
-          " ",
+          "%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)",
           __FILE__, __LINE__, av_make_error_string(ret).c_str(), ret);
-      dumpPacket(&safepkt);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       zm_dump_codecpar(video_in_stream->codecpar);
       zm_dump_codecpar(video_out_stream->codecpar);
@@ -913,7 +948,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )
 
 int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
-  Debug(4, "writeAudioFrame");
 
   if ( !audio_out_stream ) {
     Debug(1, "Called writeAudioFramePacket when no audio_out_stream");
@@ -926,14 +960,12 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
 
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    ret = avcodec_send_packet(audio_in_ctx, ipkt);
-    if ( ret < 0 ) {
+    if ( (ret = avcodec_send_packet(audio_in_ctx, ipkt)) < 0 ) {
       Error("avcodec_send_packet fail %s", av_make_error_string(ret).c_str());
       return 0;
     }
 
-    ret = avcodec_receive_frame(audio_in_ctx, in_frame);
-    if ( ret < 0 ) {
+    if ( (ret = avcodec_receive_frame(audio_in_ctx, in_frame)) < 0 ) {
       Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
       return 0;
     }
@@ -958,7 +990,8 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             audio_in_ctx, in_frame, &data_present, ipkt)) < 0 ) {
       Error("Could not decode frame (error '%s')",
             av_make_error_string(ret).c_str());
-      dumpPacket(ipkt);
+      dumpPacket(video_in_stream, ipkt);
+      // I'm not sure if we should be freeing the frame.
       av_frame_free(&in_frame);
       return 0;
     }
@@ -973,13 +1006,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     // decoded data
     Debug(2, "Converting %d to %d samples", in_frame->nb_samples, out_frame->nb_samples);
   #if defined(HAVE_LIBSWRESAMPLE)
-#if 0
-    ret = swr_convert(resample_ctx,
-                       out_frame->data, frame_size,
-                       (const uint8_t**)in_frame->data,
-                       in_frame->nb_samples
-                      );
-#else
     ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
     av_frame_unref(in_frame);
     if ( ret < 0 ) {
@@ -987,7 +1013,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             av_make_error_string(ret).c_str());
       return 0;
     }
-#endif
     if ((ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples)) < 0) {
       Error("Could not reallocate FIFO");
       return 0;
@@ -1024,33 +1049,24 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             av_make_error_string(ret).c_str());
       return 0;
     }
-    int samples_available = avresample_available(resample_ctx);
 
+    int samples_available = avresample_available(resample_ctx);
     if ( samples_available < frame_size ) {
       Debug(1, "Not enough samples yet (%d)", samples_available);
       return 0;
     }
 
-    Debug(3, "Output_frame samples (%d)", out_frame->nb_samples);
     // Read a frame audio data from the resample fifo
     if ( avresample_read(resample_ctx, out_frame->data, frame_size) !=
         frame_size) {
-      Warning("Error reading resampled audio:");
+      Warning("Error reading resampled audio.");
       return 0;
     }
     #endif
   #endif
-    Debug(2,
-          "Out Frame: samples(%d), format(%d), sample_rate(%d), "
-          "channels(%d) channel layout(%d) pts(%" PRId64 ")",
-          out_frame->nb_samples, out_frame->format,
-          out_frame->sample_rate,
-          out_frame->channels,
-          out_frame->channel_layout,
-          out_frame->pts);
+    zm_dump_frame(out_frame, "Out frame after resample");
 
     av_init_packet(&opkt);
-    Debug(5, "after init packet");
 
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( (ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0 ) {
@@ -1059,8 +1075,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       zm_av_packet_unref(&opkt);
       return 0;
     }
-
-    // av_frame_unref( out_frame );
 
     if ( (ret = avcodec_receive_packet(audio_out_ctx, &opkt)) < 0 ) {
       if ( AVERROR(EAGAIN) == ret ) {
@@ -1072,19 +1086,18 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
               av_make_error_string(ret).c_str());
       }
       zm_av_packet_unref(&opkt);
-      av_frame_unref(in_frame);
       // av_frame_unref( out_frame );
       return 0;
     }
   #else
-    if ( (ret = avcodec_encode_audio2(audio_out_ctx, &opkt, out_frame,
-                                     &data_present)) < 0 ) {
+    if ( (ret = avcodec_encode_audio2(
+            audio_out_ctx, &opkt, out_frame, &data_present)) < 0 ) {
       Error("Could not encode frame (error '%s')",
             av_make_error_string(ret).c_str());
       zm_av_packet_unref(&opkt);
       return 0;
     }
-    if (!data_present) {
+    if ( !data_present ) {
       Debug(2, "Not ready to out a frame yet.");
       zm_av_packet_unref(&opkt);
       return 0;
@@ -1100,25 +1113,36 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     opkt.size = ipkt->size;
   }
 
+  if ( out_frame ) {
+    opkt.duration = out_frame->nb_samples;
+  } else if ( ipkt->duration != AV_NOPTS_VALUE ) {
+    opkt.duration = av_rescale_q(
+        ipkt->duration,
+        audio_in_stream->time_base,
+        audio_out_stream->time_base);
+  } else {
+    // calculate it?
+  }
+  dumpPacket(audio_out_stream, &opkt);
 // PTS is difficult, because of the buffering of the audio packets in the
 // resampler.  So we have to do it once we actually have a packet...
 // audio_last_pts is the pts of ipkt, audio_next_pts is the last pts of the
 // out
 
 // Scale the PTS of the outgoing packet to be the correct time base
-#if 0
+#if 1
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
-    if ( !audio_last_pts ) {
+    if ( !audio_first_pts ) {
       opkt.pts = 0;
-      Debug(1, "No audio_last_pts");
+      audio_first_pts = ipkt->pts;
+      Debug(1, "No audio_first_pts");
     } else {
-      if ( audio_last_pts > ipkt->pts ) {
-        Debug(1, "Resetting audio_start_pts from (%d) to (%d)",  audio_last_pts, ipkt->pts);
-        opkt.pts = audio_next_pts + av_rescale_q(ipkt->pts, audio_in_stream->time_base, audio_out_stream->time_base);
-      } else {
-        opkt.pts = audio_next_pts + av_rescale_q(ipkt->pts - audio_last_pts, audio_in_stream->time_base, audio_out_stream->time_base);
-      }
-      Debug(2, "audio opkt.pts = %d from ipkt->pts(%d) - last_pts(%d)", opkt.pts, ipkt->pts, audio_last_pts);
+      opkt.pts = av_rescale_q(
+          ipkt->pts - audio_first_pts,
+          audio_in_stream->time_base,
+          audio_out_stream->time_base);
+      Debug(2, "audio opkt.pts = %d from ipkt->pts(%d) - first_pts(%d)",
+          opkt.pts, ipkt->pts, audio_first_pts);
     }
     audio_last_pts = ipkt->pts;
   } else {
@@ -1130,67 +1154,56 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   opkt.dts = audio_next_dts;
 #endif
 
-#if 0
-    if ( ipkt->dts == AV_NOPTS_VALUE ) {
-      // So if the in has no dts assigned... still need an out dts... so we use cur_dts?
+#if 1
+  if ( ipkt->dts != AV_NOPTS_VALUE ) {
+    // So if the in has no dts assigned... still need an out dts... so we use cur_dts?
 
-      if ( audio_last_dts >= audio_in_stream->cur_dts ) {
-        Debug(1, "Resetting audio_last_dts from (%d) to cur_dts (%d)", audio_last_dts, audio_in_stream->cur_dts);
-        opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts,  AV_TIME_BASE_Q, audio_out_stream->time_base);
-      } else {
-        opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts - audio_last_dts, AV_TIME_BASE_Q, audio_out_stream->time_base);
-      }
-      audio_last_dts = audio_in_stream->cur_dts;
-      Debug(2, "opkt.dts = %d from video_in_stream->cur_dts(%d) - last_dts(%d)", opkt.dts, audio_in_stream->cur_dts, audio_last_dts);
+#if 0
+    if ( audio_last_dts >= audio_in_stream->cur_dts ) {
+      Debug(1, "Resetting audio_last_dts from (%d) to cur_dts (%d)", audio_last_dts, audio_in_stream->cur_dts);
+      opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts,  AV_TIME_BASE_Q, audio_out_stream->time_base);
     } else {
-      if ( audio_last_dts >= ipkt->dts ) {
-        Debug(1, "Resetting audio_last_dts from (%d) to (%d)",  audio_last_dts, ipkt->dts );
-        opkt.dts = audio_next_dts + av_rescale_q(ipkt->dts, audio_in_stream->time_base, audio_out_stream->time_base);
-      } else {
-        opkt.dts = audio_next_dts + av_rescale_q(ipkt->dts - audio_last_dts, audio_in_stream->time_base, audio_out_stream->time_base);
-        Debug(2, "opkt.dts = %d from previous(%d) + ( ipkt->dts(%d) - last_dts(%d) )", opkt.dts, audio_next_dts, ipkt->dts, audio_last_dts );
-      }
+      opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts - audio_last_dts, AV_TIME_BASE_Q, audio_out_stream->time_base);
     }
+#endif
+    if ( !audio_first_dts ) {
+      opkt.dts = 0;
+      audio_first_dts = ipkt->dts;
+    } else {
+      opkt.dts = av_rescale_q(
+          ipkt->dts - audio_first_dts,
+          audio_in_stream->time_base,
+          audio_out_stream->time_base);
+      Debug(2, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_dts(%" PRId64 ")",
+         opkt.dts, ipkt->dts, audio_first_dts);
+    }
+    audio_last_dts = ipkt->dts;
+  } else {
+    opkt.dts = AV_NOPTS_VALUE;
   }
 #endif
   // audio_last_dts = ipkt->dts;
-  if (opkt.dts > opkt.pts) {
+  if ( opkt.dts > opkt.pts ) {
     Debug(1,
-          "opkt.dts(%d) must be <= opkt.pts(%d). Decompression must happen "
-          "before presentation.",
+          "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 ")."
+          "Decompression must happen before presentation.",
           opkt.dts, opkt.pts);
     opkt.dts = opkt.pts;
   }
 
-  // I wonder if we could just use duration instead of all the hoop jumping
-  // above?
-  //
-  if (out_frame) {
-    opkt.duration = out_frame->nb_samples;
-  } else {
-    opkt.duration = ipkt->duration;
-  }
-  // opkt.duration = av_rescale_q(ipkt->duration, audio_in_stream->time_base,
-  // audio_out_stream->time_base);
-  Debug(2, "opkt.pts (%d), opkt.dts(%d) opkt.duration = (%d)", opkt.pts,
-        opkt.dts, opkt.duration);
-
   // pkt.pos:  byte position in stream, -1 if unknown
   opkt.pos = -1;
   opkt.stream_index = audio_out_stream->index;
-  audio_next_dts = opkt.dts + opkt.duration;
-  audio_next_pts = opkt.pts + opkt.duration;
+  //audio_next_dts = opkt.dts + opkt.duration;
+  //audio_next_pts = opkt.pts + opkt.duration;
 
-  AVPacket safepkt;
-  memcpy(&safepkt, &opkt, sizeof(AVPacket));
   ret = av_interleaved_write_frame(oc, &opkt);
-  if (ret != 0) {
-    Error("Error writing audio frame packet: %s\n",
+  if ( ret != 0 ) {
+    Error("Error writing audio frame packet: %s",
           av_make_error_string(ret).c_str());
-    dumpPacket(&safepkt);
   } else {
     Debug(2, "Success writing audio frame");
   }
   zm_av_packet_unref(&opkt);
   return 0;
-}  // end int VideoStore::writeAudioFramePacket( AVPacket *ipkt )
+} // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)

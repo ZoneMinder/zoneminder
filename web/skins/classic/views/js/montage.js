@@ -1,6 +1,9 @@
-var requestQueue = new Request.Queue( {concurrent: monitorData.length, stopOnFailure: false} );
+var requestQueue = new Request.Queue({
+  concurrent: monitorData.length,
+  stopOnFailure: false
+});
 
-function Monitor( monitorData ) {
+function Monitor(monitorData) {
   this.id = monitorData.id;
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
@@ -8,44 +11,61 @@ function Monitor( monitorData ) {
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
-  this.onclick = monitorData.onclick;
   if ( auth_hash ) {
     this.streamCmdParms += '&auth='+auth_hash;
   }
   this.streamCmdTimer = null;
   this.type = monitorData.type;
   this.refresh = monitorData.refresh;
-  this.start = function( delay ) {
+  this.start = function(delay) {
     if ( this.streamCmdQuery ) {
-      this.streamCmdTimer = this.streamCmdQuery.delay( delay, this );
+      this.streamCmdTimer = this.streamCmdQuery.delay(delay, this);
     } else {
       console.log("No streamCmdQuery");
     }
   };
 
+  this.onclick = function() {
+      var el = this;
+      var url = '?view=watch&mid='+this.id;
+      var name = 'zmWatch'+this.id;
+      var tag = 'watch';
+      var width = el.getAttribute("data-window-width");
+      var height = el.getAttribute("data-window-height");
+      evt.preventDefault();
+      createPopup(url, name, tag, width, height);
+  };
 
-  this.setStateClass = function( element, stateClass ) {
+  this.setup_onclick = function() {
+    document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
+      el.addEventListener('click', this.onclick);
+    });
+  }
+  this.disable_onclick = function() {
+    document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
+      el.removeEventListener('click',this.onclick);
+    });
+  }
+
+  this.setStateClass = function(element, stateClass) {
     if ( !element.hasClass( stateClass ) ) {
-      if ( stateClass != 'alarm' ) {
-        element.removeClass( 'alarm' );
-      }
-      if ( stateClass != 'alert' ) {
-        element.removeClass( 'alert' );
-      }
-      if ( stateClass != 'idle' ) {
-        element.removeClass( 'idle' );
-      }
-      element.addClass( stateClass );
+      if ( stateClass != 'alarm' )
+        element.removeClass('alarm');
+      if ( stateClass != 'alert' )
+        element.removeClass('alert');
+      if ( stateClass != 'idle' )
+        element.removeClass('idle');
+      element.addClass(stateClass);
     }
   };
 
-  this.onError = function( text, error ) {
+  this.onError = function(text, error) {
     console.log('onerror: ' + text + ' error:'+error);
     // Requeue, but want to wait a while.
-    var streamCmdTimeout = 1000*statusRefreshTimeout;
+    var streamCmdTimeout = 10*statusRefreshTimeout;
     this.streamCmdTimer = this.streamCmdQuery.delay(streamCmdTimeout, this);
   };
-  this.onFailure = function( xhr ) {
+  this.onFailure = function(xhr) {
     console.log('onFailure: ' + this.connKey);
     console.log(xhr);
     if ( ! requestQueue.hasNext("cmdReq"+this.id) ) {
@@ -64,7 +84,7 @@ function Monitor( monitorData ) {
     console.log("done failure");
   };
 
-  this.getStreamCmdResponse = function( respObj, respText ) {
+  this.getStreamCmdResponse = function(respObj, respText) {
     if ( this.streamCmdTimer ) {
       this.streamCmdTimer = clearTimeout( this.streamCmdTimer );
     }
@@ -86,11 +106,11 @@ function Monitor( monitorData ) {
         }
 
         if ( (!COMPACT_MONTAGE) && (this.type != 'WebSite') ) {
-          $('fpsValue'+this.id).set( 'text', this.status.fps );
-          $('stateValue'+this.id).set( 'text', stateStrings[this.alarmState] );
-          this.setStateClass( $('monitorState'+this.id), stateClass );
+          $('fpsValue'+this.id).set('text', this.status.fps);
+          $('stateValue'+this.id).set('text', stateStrings[this.alarmState]);
+          this.setStateClass($('monitorState'+this.id), stateClass);
         }
-        this.setStateClass( $('monitor'+this.id), stateClass );
+        this.setStateClass($('monitor'+this.id), stateClass);
 
         /*Stream could be an applet so can't use moo tools*/
         stream.className = stateClass;
@@ -104,7 +124,7 @@ function Monitor( monitorData ) {
         if ( newAlarm ) {
           if ( false && SOUND_ON_ALARM ) {
             // Enable the alarm sound
-            $('alarmSound').removeClass( 'hidden' );
+            $('alarmSound').removeClass('hidden');
           }
           if ( POPUP_ON_ALARM ) {
             windowToFront();
@@ -113,50 +133,53 @@ function Monitor( monitorData ) {
         if ( false && SOUND_ON_ALARM ) {
           if ( oldAlarm ) {
             // Disable alarm sound
-            $('alarmSound').addClass( 'hidden' );
+            $('alarmSound').addClass('hidden');
           }
         }
         if ( this.status.auth ) {
           if ( this.status.auth != auth_hash ) {
             // Try to reload the image stream.
             if ( stream ) {
-              stream.src = stream.src.replace( /auth=\w+/i, 'auth='+this.status.auth );
+              stream.src = stream.src.replace(/auth=\w+/i, 'auth='+this.status.auth);
             }
-            console.log("Changed auth from " + auth_hash + " to " + this.status.auth );
+            console.log("Changed auth from " + auth_hash + " to " + this.status.auth);
             auth_hash = this.status.auth;
           }
         } // end if have a new auth hash
       } // end if has state
     } else {
-      console.error( respObj.message );
+      console.error(respObj.message);
       // Try to reload the image stream.
       if ( stream ) {
         if ( stream.src ) {
-          console.log('Reloading stream: ' + stream.src );
+          console.log('Reloading stream: ' + stream.src);
           stream.src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         } else {
         }
       } else {
-        console.log( 'No stream to reload?' );
+        console.log('No stream to reload?');
       }
     } // end if Ok or not
+
     var streamCmdTimeout = statusRefreshTimeout;
-    // The idea here is if we are alarmed, do updates faster.  However, there is a timeout in the php side which isn't getting modified, so this may cause a problem. Also the server may only be able to update so fast.
+    // The idea here is if we are alarmed, do updates faster.
+    // However, there is a timeout in the php side which isn't getting modified,
+    // so this may cause a problem. Also the server may only be able to update so fast.
     //if ( this.alarmState == STATE_ALARM || this.alarmState == STATE_ALERT ) {
     //streamCmdTimeout = streamCmdTimeout/5;
     //}
-    this.streamCmdTimer = this.streamCmdQuery.delay( streamCmdTimeout, this );
+    this.streamCmdTimer = this.streamCmdQuery.delay(streamCmdTimeout, this);
     this.lastAlarmState = this.alarmState;
   };
 
-  this.streamCmdQuery = function( resent ) {
+  this.streamCmdQuery = function(resent) {
     if ( resent ) {
-      console.log( this.connKey+": Resending" );
+      console.log(this.connKey+": timeout: Resending");
       this.streamCmdReq.cancel();
     }
     //console.log("Starting CmdQuery for " + this.connKey );
     if ( this.type != 'WebSite' ) {
-      this.streamCmdReq.send( this.streamCmdParms+"&command="+CMD_QUERY );
+      this.streamCmdReq.send(this.streamCmdParms+"&command="+CMD_QUERY);
     }
   };
 
@@ -164,32 +187,32 @@ function Monitor( monitorData ) {
     this.streamCmdReq = new Request.JSON( {
       url: this.url,
       method: 'get',
-      timeout: 1000+AJAX_TIMEOUT,
-      onSuccess: this.getStreamCmdResponse.bind( this ),
-      onTimeout: this.streamCmdQuery.bind( this, true ),
+      timeout: AJAX_TIMEOUT,
+      onSuccess: this.getStreamCmdResponse.bind(this),
+      onTimeout: this.streamCmdQuery.bind(this, true),
       onError: this.onError.bind(this),
       onFailure: this.onFailure.bind(this),
       link: 'cancel'
     } );
-    console.log("queueing for " + this.id + " " + this.connKey );
-    requestQueue.addRequest( "cmdReq"+this.id, this.streamCmdReq );
+    console.log("queueing for " + this.id + " " + this.connKey + " timeout is: " + AJAX_TIMEOUT);
+    requestQueue.addRequest("cmdReq"+this.id, this.streamCmdReq);
   }
-}
+} // end function Monitor
 
-function selectLayout( element ) {
+function selectLayout(element) {
   layout = $j(element).val();
 
   if ( layout_id = parseInt(layout) ) {
     layout = layouts[layout];
     console.log(layout);
 
-    for ( var i = 0; i < monitors.length; i++ ) {
+    for ( var i = 0, length = monitors.length; i < length; i++ ) {
       monitor = monitors[i];
       // Need to clear the current positioning, and apply the new
 
       monitor_frame = $j('#monitorFrame'+monitor.id);
       if ( ! monitor_frame ) {
-        console.log("Error finding frame for " + monitor.id );
+        console.log("Error finding frame for " + monitor.id);
         continue;
       }
 
@@ -207,7 +230,7 @@ function selectLayout( element ) {
         styles = layout.Positions['mId'+monitor.id];
         for ( style in styles ) {
           monitor_frame.css(style, styles[style]);
-          console.log("Applying " + style + ' : ' + styles[style] );
+          console.log("Applying " + style + ' : ' + styles[style]);
         }
       } else {
         console.log("No Monitor styles to apply");
@@ -217,123 +240,123 @@ function selectLayout( element ) {
   if ( ! layout ) {
     return;
   }
-  Cookie.write( 'zmMontageLayout', layout_id, {duration: 10*365} );
+  Cookie.write('zmMontageLayout', layout_id, { duration: 10*365 });
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
-    Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
-    $('scale').set('value', '' );
+    Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+    $('scale').set('value', '');
     $('width').set('value', '');
-    if ( 1 ) {
-      for ( var x = 0; x < monitors.length; x++ ) {
-        var monitor = monitors[x];
-        var streamImg = $( 'liveStream'+monitor.id );
-        if ( streamImg ) {
-          if ( streamImg.nodeName == 'IMG' ) {
-            var src = streamImg.src;
-            src = src.replace(/width=[\.\d]+/i, 'width=0' );
-            if ( src != streamImg.src ) {
-              streamImg.src='';
-              streamImg.src = src;
-            }
-          } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
-          // APPLET's and OBJECTS need to be re-initialized
+    for ( var i = 0, length = monitors.length; i < length; i++ ) {
+      var monitor = monitors[i];
+      var streamImg = $('liveStream'+monitor.id);
+      if ( streamImg ) {
+        if ( streamImg.nodeName == 'IMG' ) {
+          var src = streamImg.src;
+          src = src.replace(/width=[\.\d]+/i, 'width=0' );
+          if ( src != streamImg.src ) {
+            streamImg.src = '';
+            streamImg.src = src;
           }
-          streamImg.style.width = '100%';
+        } else if ( streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT' ) {
+          // APPLET's and OBJECTS need to be re-initialized
         }
-        var zonesSVG = $('zones'+monitor.id);
-        if ( zonesSVG ) {
-          zonesSVG.style.width = '';
-        }
-      } // end foreach monitor
-    }
+        streamImg.style.width = '100%';
+      }
+      var zonesSVG = $('zones'+monitor.id);
+      if ( zonesSVG ) {
+        zonesSVG.style.width = '';
+      }
+    } // end foreach monitor
   }
-}
+} // end function selectLayout(element)
 
 function changeSize() {
   var width = $('width').get('value');
   var height = $('height').get('value');
 
-  for ( var x = 0; x < monitors.length; x++ ) {
-    var monitor = monitors[x];
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+    var monitor = monitors[i];
 
     // Scale the frame
     monitor_frame = $j('#monitorFrame'+monitor.id);
-    if ( ! monitor_frame ) {
-      console.log("Error finding frame for " + monitor.id );
+    if ( !monitor_frame ) {
+      console.log("Error finding frame for " + monitor.id);
       continue;
     }
     if ( width ) {
-      monitor_frame.css('width', width+'px');
+      monitor_frame.css('width', width);
     }
     if ( height ) {
-      monitor_frame.css('height', height+'px');
+      monitor_frame.css('height', height);
     }
+
     /*Stream could be an applet so can't use moo tools*/
-    var streamImg = $( 'liveStream'+monitor.id );
+    var streamImg = $('liveStream'+monitor.id);
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
-        streamImg.src='';
-        src = src.replace(/width=[\.\d]+/i, 'width='+width );
-        src = src.replace(/height=[\.\d]+/i, 'height='+height );
+        streamImg.src = '';
+        src = src.replace(/width=[\.\d]+/i, 'width='+width);
+        src = src.replace(/height=[\.\d]+/i, 'height='+height);
         src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
       }
-      streamImg.style.width = width? width + "px" : null;
-      streamImg.style.height = height ? height + "px" : null;
+      streamImg.style.width = width ? width : null;
+      streamImg.style.height = height ? height : null;
       //streamImg.style.height = '';
     }
     var zonesSVG = $('zones'+monitor.id);
     if ( zonesSVG ) {
-      zonesSVG.style.width = width ? width + "px" : '100%';
-      zonesSVG.style.height = height + "px";
+      zonesSVG.style.width = width ? width : '100%';
+      zonesSVG.style.height = height;
     }
   }
-  $('scale').set('value', '' );
-  Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
-  Cookie.write( 'zmMontageWidth', width, {duration: 10*365} );
-  Cookie.write( 'zmMontageHeight', height, {duration: 10*365} );
+  $('scale').set('value', '');
+  Cookie.write('zmMontageScale', '', { duration: 10*365 });
+  Cookie.write('zmMontageWidth', width, { duration: 10*365 });
+  Cookie.write('zmMontageHeight', height, { duration: 10*365 });
   selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
 function changeScale() {
   var scale = $('scale').get('value');
-  $('width').set('value', '');
-  $('height').set('value', '');
-  Cookie.write( 'zmMontageScale', scale, {duration: 10*365} );
-  Cookie.write( 'zmMontageWidth', '', {duration: 10*365} );
-  Cookie.write( 'zmMontageHeight', '', {duration: 10*365} );
-  if ( ! scale ) {
+  $('width').set('value', 'auto');
+  $('height').set('value', 'auto');
+  Cookie.write('zmMontageScale', scale, {duration: 10*365});
+  Cookie.write('zmMontageWidth', '', {duration: 10*365});
+  Cookie.write('zmMontageHeight', '', {duration: 10*365});
+  if ( !scale ) {
     selectLayout('#zmMontageLayout');
     return;
   }
-  for ( var x = 0; x < monitors.length; x++ ) {
-    var monitor = monitors[x];
-    var newWidth = ( monitorData[x].width * scale ) / SCALE_BASE;
-    var newHeight = ( monitorData[x].height * scale ) / SCALE_BASE;
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+    var monitor = monitors[i];
+    var newWidth = ( monitorData[i].width * scale ) / SCALE_BASE;
+    var newHeight = ( monitorData[i].height * scale ) / SCALE_BASE;
 
     // Scale the frame
     monitor_frame = $j('#monitorFrame'+monitor.id);
-    if ( ! monitor_frame ) {
-      console.log("Error finding frame for " + monitor.id );
+    if ( !monitor_frame ) {
+      console.log("Error finding frame for " + monitor.id);
       continue;
     }
-    if ( width ) {
-      monitor_frame.css('width', width+'px');
+    if ( newWidth ) {
+      monitor_frame.css('width', newWidth);
     }
-    if ( height ) {
-      monitor_frame.css('height', height+'px');
-    }
+    // We don't set the frame height because it has the status bar as well
+    //if ( height ) {
+    ////monitor_frame.css('height', height+'px');
+    //}
     /*Stream could be an applet so can't use moo tools*/
-    var streamImg = $j('#liveStream'+monitor.id )[0];
+    var streamImg = $j('#liveStream'+monitor.id)[0];
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
-        streamImg.src='';
+        streamImg.src = '';
 
         //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-        src = src.replace(/scale=[\.\d]+/i, 'scale='+ scale );
-        src = src.replace(/width=[\.\d]+/i, 'width='+newWidth );
-        src = src.replace(/height=[\.\d]+/i, 'height='+newHeight );
+        src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
+        src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
+        src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
         streamImg.src = src;
       }
       streamImg.style.width = newWidth + "px";
@@ -355,10 +378,9 @@ function toGrid(value) {
 function edit_layout(button) {
   // Turn off the onclick on the image.
 
-  for ( var i = 0; i < monitors.length; i++ ) {
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor_feed = $j('#imageFeed'+monitor.id)[0];
-    monitor_feed.onclick='';
+    monitor.disable_onclick();
   };
 
   $j('#monitors .monitorFrame').draggable({
@@ -370,10 +392,10 @@ function edit_layout(button) {
 } // end function edit_layout
 
 function save_layout(button) {
-  var form=button.form;
+  var form = button.form;
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
-  for ( var i = 0; i < monitors.length; i++ ) {
+  for ( var i = 0, length = monitors.length; i < lenth; i++ ) {
     var monitor = monitors[i];
     monitor_frame = $j('#monitorFrame'+monitor.id);
 
@@ -388,16 +410,17 @@ function save_layout(button) {
       float: monitor_frame.css('float'),
     };
   } // end foreach monitor
-  form.Positions.value = JSON.stringify( Positions );
+  form.Positions.value = JSON.stringify(Positions);
   form.submit();
-}
+} // end function save_layout
+
 function cancel_layout(button) {
   $j('#SaveLayout').hide();
   $j('#EditLayout').show();
-  for ( var i = 0; i < monitors.length; i++ ) {
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
     monitor_feed = $j('#imageFeed'+monitor.id);
-    monitor_feed.click( monitor.onclick );
+    monitor_feed.click(monitor.onclick);
   };
   selectLayout('#zmMontageLayout');
 }
@@ -421,30 +444,20 @@ function initPage() {
     jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
 
-  for ( var i = 0; i < monitorData.length; i++ ) {
+  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new Monitor(monitorData[i]);
+
+    // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    monitors[i].start(delay);
+
     var interval = monitors[i].refresh;
-    monitors[i].start( delay );
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
       setInterval(reloadWebSite, interval*1000, i);
     }
+    monitors[i].setup_onclick();
   }
   selectLayout('#zmMontageLayout');
-
-  if ( 0 ) {
-    // What is the purpose of this code?  I think it just starts up a second ajax thread,
-    //increasing the load on the server.
-    for ( var i = 0; i < monitorData.length; i++ ) {
-      if ( monitors[i].type == 'WebSite' ) {
-        continue;
-      }
-      var delay = Math.round( (Math.random()+0.75)*statusRefreshTimeout );
-      console.log("Delay for monitor " + monitorData[i].id + " is " + delay );
-      monitors[i].streamCmdQuery.delay( delay, monitors[i] );
-    //monitors[i].zm_startup(delay);
-    }
-  }
 }
 // Kick everything off
-window.addEventListener( 'DOMContentLoaded', initPage );
+window.addEventListener('DOMContentLoaded', initPage);

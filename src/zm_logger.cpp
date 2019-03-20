@@ -57,9 +57,9 @@ static void subtractTime( struct timeval * const tp1, struct timeval * const tp2
 
 void Logger::usrHandler( int sig ) {
   Logger *logger = fetch();
-  if ( sig == SIGUSR1 ) {
+  if ( sig == SIGUSR1 )
     logger->level(logger->level()+1);
-  } else if ( sig == SIGUSR2 )
+  else if ( sig == SIGUSR2 )
     logger->level(logger->level()-1);
   Info("Logger - Level changed to %d", logger->level());
 }

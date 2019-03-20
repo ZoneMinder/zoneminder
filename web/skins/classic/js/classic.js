@@ -33,7 +33,7 @@ var popupSizes = {
   'cycle':        {'addWidth': 32, 'minWidth': 384, 'addHeight': 62},
   'device':       {'width': 260, 'height': 150},
   'devices':      {'width': 400, 'height': 240},
-  'donate':       {'width': 500, 'height': 280},
+  'donate':       {'width': 500, 'height': 480},
   'download':     {'width': 350, 'height': 215},
   'event':        {'addWidth': 108, 'minWidth': 496, 'addHeight': 230, 'minHeight': 540},
   'eventdetail':  {'width': 600, 'height': 420},

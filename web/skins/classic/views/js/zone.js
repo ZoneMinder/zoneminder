@@ -49,9 +49,9 @@ function validateForm( form ) {
   }
   if ( errors.length ) {
     alert( errors.join( "\n" ) );
-    return ( false );
+    return false;
   }
-  return ( true );
+  return true;
 }
 
 function submitForm( form ) {
@@ -330,7 +330,7 @@ function limitPointValue( point, loVal, hiVal ) {
 }
 
 function updateArea( ) {
-  area = Polygon_calcArea( zone['Points'] );
+  area = Polygon_calcArea(zone['Points']);
   zone.Area = area;
   var form = $('zoneForm');
   form.elements['newZone[Area]'].value = area;
@@ -339,7 +339,7 @@ function updateArea( ) {
   } else if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
     form.elements['newZone[TempArea]'].value = area;
   } else {
-    alert("Unknown units: " + form.elements['newZone[Units]'].value );
+    alert("Unknown units: " + form.elements['newZone[Units]'].value);
   }
 }
 
@@ -376,9 +376,9 @@ function saveChanges( element ) {
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
       alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
     }
-    return ( true );
+    return true;
   }
-  return ( false );
+  return false;
 }
 
 function drawZonePoints() {
@@ -386,7 +386,15 @@ function drawZonePoints() {
     element.destroy();
   } );
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var div = new Element( 'div', {'id': 'point'+i, 'class': 'zonePoint', 'title': 'Point '+(i+1), 'styles': {'left': zone['Points'][i].x, 'top': zone['Points'][i].y}} );
+    var div = new Element( 'div', {
+      'id': 'point'+i,
+      'class': 'zonePoint',
+      'title': 'Point '+(i+1),
+      'styles': {
+        'left': zone['Points'][i].x,
+        'top': zone['Points'][i].y
+      }
+    } );
     div.addEvent( 'mouseover', highlightOn.pass( i ) );
     div.addEvent( 'mouseout', highlightOff.pass( i ) );
     div.inject( $('imageFrame') );
@@ -422,9 +430,10 @@ function drawZonePoints() {
     cell.inject( row );
 
     cell = new Element( 'td' );
-    new Element( 'a', {'href': '#', 'events': {'click': addPoint.pass( i )}} ).set( 'text', '+' ).inject( cell );
+    new Element( 'button', { 'type': 'button', 'events': { 'click': addPoint.pass( i ) } } ).set( 'text', '+' ).inject( cell );
     if ( zone['Points'].length > 3 ) {
-      new Element( 'a', {'id': 'delete'+i, 'href': '#', 'events': {'click': delPoint.pass( i )}} ).set( 'text', '-' ).inject( cell );
+      cell.appendText(' ');
+      new Element( 'button', { 'id': 'delete'+i, 'type': 'button', 'events': { 'click': delPoint.pass( i ) } } ).set( 'text', '-' ).inject( cell );
     }
     cell.inject( row );
 

@@ -216,6 +216,7 @@ $SLANG = array(
     'CanMoveRel'            => 'Podržava Relativno kretanje',
     'CanPan'                => 'Podržava Pomak' ,
     'CanReset'              => 'PodržavaReset',
+	'CanReboot'             => 'Can Reboot',
     'CanSetPresets'         => 'Podržava presetove',
     'CanSleep'              => 'Podržava Sleep',
     'CanTilt'               => 'Podržava nagib',

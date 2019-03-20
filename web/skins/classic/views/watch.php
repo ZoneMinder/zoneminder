@@ -73,7 +73,7 @@ if ( canView('Control') && $monitor->Type() == 'Local' ) {
 <?php
 }
 ?>
-          <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect( "scale", $scales, "changeScale( this );" ); ?></div>
+          <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect('scale', $scales, 'changeScale(this);'); ?></div>
         </div>
         <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'history.go(-1);return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>

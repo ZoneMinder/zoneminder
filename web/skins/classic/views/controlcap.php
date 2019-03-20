@@ -59,6 +59,7 @@ else
             'CanWake' => "",
             'CanSleep' => "",
             'CanReset' => "",
+            'CanReboot' => "",
             'CanMove' => "",
             'CanMoveDiag' => "",
             'CanMoveMap' => "",
@@ -352,6 +353,7 @@ switch ( $tab )
             <tr><th scope="row"><?php echo translate('CanWake') ?></th><td><input type="checkbox" name="newControl[CanWake]" value="1"<?php if ( !empty($newControl['CanWake']) ) { ?> checked="checked"<?php } ?>/></td></tr>
             <tr><th scope="row"><?php echo translate('CanSleep') ?></th><td><input type="checkbox" name="newControl[CanSleep]" value="1"<?php if ( !empty($newControl['CanSleep']) ) { ?> checked="checked"<?php } ?>/></td></tr>
             <tr><th scope="row"><?php echo translate('CanReset') ?></th><td><input type="checkbox" name="newControl[CanReset]" value="1"<?php if ( !empty($newControl['CanReset']) ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr><th scope="row"><?php echo translate('CanReboot') ?></th><td><input type="checkbox" name="newControl[CanReboot]" value="1"<?php if ( !empty($newControl['CanReboot']) ) { ?> checked="checked"<?php } ?>/></td></tr>
 <?php
         break;
     }

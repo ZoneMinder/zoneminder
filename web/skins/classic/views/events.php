@@ -183,7 +183,7 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
     }
 ?>
-              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markEids" data-on-click-this="updateFormCheckboxesByName"/></th>
+              <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="eids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
             </tr>
 <?php
   }
@@ -248,7 +248,7 @@ while ( $event_row = dbFetchNext($results) ) {
       echo '</td>';
   } // end if ZM_WEB_LIST_THUMBS
 ?>
-              <td class="colMark"><input type="checkbox" name="markEids[]" value="<?php echo $event->Id() ?>"/></td>
+              <td class="colMark"><input type="checkbox" name="eids[]" value="<?php echo $event->Id() ?>"/></td>
             </tr>
 <?php
 }

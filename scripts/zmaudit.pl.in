@@ -176,8 +176,10 @@ MAIN: while( $loop ) {
   } # end while can't connect to the db
 
   my @Storage_Areas;
+  my @all_Storage_Areas = ZoneMinder::Storage->find();
+
   if ( defined $storage_id ) {
-    @Storage_Areas = ZoneMinder::Storage->find( Id=>$storage_id );
+    @Storage_Areas = map { $$_{Id} == $storage_id ? $_ : () } @all_Storage_Areas;
     if ( !@Storage_Areas ) {
       Error("No Storage Area found with Id $storage_id");
       Term();
@@ -403,27 +405,28 @@ MAIN: while( $loop ) {
           $$Event{RelativePath} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
-          $Event->StartTime( POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($$Event{Path})) ) );
+          $Event->StartTime( POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path())) ) );
         } # end foreach event
       }
 
       if ( ! $$Storage{Scheme} ) {
         Error("Storage Scheme not set on $$Storage{Name}");
-        if ( ! chdir( $monitor_dir ) ) {
-          Error( "Can't chdir directory '$$Storage{Path}/$monitor_dir': $!" );
+        if ( ! chdir($monitor_dir) ) {
+          Error("Can't chdir directory '$$Storage{Path}/$monitor_dir': $!");
           next;
         }
-        if ( ! opendir( DIR, "." ) ) {
-          Error( "Can't open directory '$$Storage{Path}/$monitor_dir': $!" );
+        if ( ! opendir(DIR, '.') ) {
+          Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
           next;
         }
-        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
-        closedir( DIR );
+        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir(DIR);
+        closedir(DIR);
         my $count = 0;
         foreach my $event ( @temp_events ) {
           my $Event = $fs_events->{$event} = new ZoneMinder::Event();
           $$Event{Id} = $event;
           #$$Event{Path} = $event_path;
+          $$Event{Scheme} = 'Shallow';
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
         } # end foreach event
@@ -528,7 +531,7 @@ MAIN: while( $loop ) {
     # If we found the monitor in the file system
     my $fs_events = $fs_monitors->{$db_monitor};
 
-    while ( my ( $db_event, $age ) = each( %$db_events ) ) {
+EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
       if ( ! ($fs_events and defined( $fs_events->{$db_event} ) ) ) {
         Debug("Don't have an fs event for $db_event");
         my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
@@ -537,6 +540,21 @@ MAIN: while( $loop ) {
           next;
         }
         Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
+        # Check for existence in other Storage Areas
+        foreach my $Storage ( @all_Storage_Areas ) {
+          next if $$Storage{Id} == $$Event{StorageId};
+
+          my $path = $Storage->Path().'/'.$Event->RelativePath();
+          if ( -e $path ) {
+            Info("Event $$Event{Id} found at $path instead of $$Event{Path}");
+            if ( confirm('update', 'updating') ) {
+              $Event->save({StorageId=>$$Storage{Id}});
+              next EVENT;
+            }
+          } else {
+            Debug("$$Event{Id} Not found at $path");
+          }
+        }
         if ( $Event->Archived() ) {
           Warning("Event $$Event{Id} is Archived. Taking no further action on it.");
           next;
@@ -563,7 +581,7 @@ MAIN: while( $loop ) {
           Debug("Database event $$Event{Id} apparently exists at " . $Event->Path() );
         } else {
           if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-            aud_print( "Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem, deleting' );
+            aud_print("Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem, deleting');
             if ( confirm() ) {
               $Event->delete();
               $cleaned = 1;
@@ -573,12 +591,13 @@ MAIN: while( $loop ) {
           }
         } # end if exists in filesystem
       } else {
-        Debug("Found fs event for $db_event, $age at " . $$fs_events{$db_event}->Path());
-        my $Event = new ZoneMinder::Event( $db_event );
-        if ( ! $Event->check_for_in_filesystem() ) {
+        Debug("Found fs event for id $db_event, $age seconds old at " . $$fs_events{$db_event}->Path());
+        my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+        if ( $Event and ! $Event->check_for_in_filesystem() ) {
           Warning("Not found at " . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path() );
           Warning($Event->to_string());
           Warning($$fs_events{$db_event}->to_string());
+          $$Event{Scheme} = '' if ! defined $$Event{Scheme};
           if ( $$fs_events{$db_event}->Scheme() ne $Event->Scheme() ) {
             Info("Updating scheme on event $$Event{Id} from $$Event{Scheme} to $$fs_events{$db_event}{Scheme}");
             $Event->Scheme($$fs_events{$db_event}->Scheme());
@@ -962,10 +981,11 @@ sub deleteSwapImage {
 
 # Deletes empty sub directories of the given path.
 # Does not delete the path if empty. Is not meant to be recursive.
+# Assumes absolute path
 sub delete_empty_subdirs {
   my $DIR;
   if ( !opendir($DIR, $_[0]) ) {
-    Error("delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
+    Error("delete_empty_subdirs: Can't open directory '/$_[0]': $!" );
     return;
   }
   my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
@@ -978,23 +998,24 @@ sub delete_empty_subdirs {
   closedir($DIR);
 }
 
+# Assumes absolute path
 sub delete_empty_directories {
   my $DIR;
   if ( !opendir($DIR, $_[0]) ) {
-    Error("delete_empty_directories: Can't open directory '".getcwd()."/$_[0]': $!" );
+    Error("delete_empty_directories: Can't open directory '/$_[0]': $!" );
     return;
   }
-  my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
+  my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir($DIR);
   #Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents <= 2 ? join(',',@contents) : '' ));
   my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
-    Debug("Have " . @dirs . " dirs");
+    Debug('Have ' . @dirs . " dirs in $_[0]");
     foreach ( @dirs ) {
-      delete_empty_directories( $_[0].'/'.$_ );
+      delete_empty_directories($_[0].'/'.$_);
     }
 #Reload, since we may now be empty
     rewinddir $DIR;
-    @contents = map { ($_ eq '.' or $_ eq '..') ? () : $_ } readdir( $DIR );
+    @contents = map { ($_ eq '.' or $_ eq '..') ? () : $_ } readdir($DIR);
   }
   closedir($DIR);
   if ( ! @contents ) {

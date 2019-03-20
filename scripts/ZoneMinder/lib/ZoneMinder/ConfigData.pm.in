@@ -3952,7 +3952,7 @@ our %options_hash = map { ( $_->{name}, $_ ) } @options;
 # This function should never need to be called explicitly, except if
 # this module is 'require'd rather than 'use'd. See zmconfgen.pl.
 sub initialiseConfig {
-  return if ( $configInitialised );
+  return if $configInitialised;
 
 # Do some initial data munging to finish the data structures
 # Create option ids

@@ -279,7 +279,7 @@ static void zm_log_fps(double d, const char *postfix) {
 }
 
 void zm_dump_frame(const AVFrame *frame,const char *text) {
-  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d layout %d",
+  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d layout %d pts %" PRId64,
       text,
       frame->format,
       av_get_sample_fmt_name((AVSampleFormat)frame->format),
@@ -290,7 +290,8 @@ void zm_dump_frame(const AVFrame *frame,const char *text) {
 #else
 0,
 #endif
-      frame->channel_layout
+      frame->channel_layout,
+      frame->pts
       );
 }
 

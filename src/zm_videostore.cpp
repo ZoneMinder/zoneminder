@@ -211,8 +211,10 @@ VideoStore::VideoStore(
     video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
   }
 
+#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
   zm_dump_codecpar(video_in_stream->codecpar);
   zm_dump_codecpar(video_out_stream->codecpar);
+#endif
   Debug(3,
         "Time bases: VIDEO in stream (%d/%d) in codec: (%d/%d) out "
         "stream: (%d/%d) out codec (%d/%d)",

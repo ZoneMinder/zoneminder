@@ -3,7 +3,7 @@ function configureExportButton( element ) {
 
   var checkCount = 0;
   var radioCount = 0;
-  for ( var i = 0; i < form.elements.length; i++ ) {
+  for ( var i = 0, len=form.elements.length; i < len; i++ ) {
     if ( form.elements[i].type == "checkbox" && form.elements[i].checked )
       checkCount++;
     else if ( form.elements[i].type == "radio" && form.elements[i].checked )

@@ -233,11 +233,11 @@ function getNavBarHTML($reload = null) {
   if (!$sortQuery) {
     parseSort();
   }
-  if (!$filterQuery) {
-    parseFilter( $_REQUEST['filter'] );
+  if ( (!$filterQuery) and isset($_REQUEST['filter']) ) {
+    parseFilter($_REQUEST['filter']);
     $filterQuery = $_REQUEST['filter']['query'];
   }
-  if ($reload === null) {
+  if ( $reload === null ) {
     ob_start();
     if ( $running == null )
       $running = daemonCheck();
@@ -270,7 +270,7 @@ function getNavBarHTML($reload = null) {
      # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
       if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
         # Number of lines, instead of an interval
-        $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows' );
+        $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows');
         if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
           dbQuery('DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
         }

@@ -31,7 +31,7 @@ if ( isset($_SESSION['montageReviewFilter']) and !isset($_REQUEST['eids']) ) {
   $results = dbQuery($eventsSql);
   $eids = [];
   while ( $event_row = dbFetchNext( $results ) ) {
-    array_push($eids, 'eids[]='.$event_row['Id']);
+    array_push($eids, $event_row['Id']);
     $total_size += $event_row['DiskSpace'];
   }
   $_REQUEST['eids'] = $eids;
@@ -55,7 +55,7 @@ if ( isset($_REQUEST['exportFormat']) ) {
 }
 
 if ( !empty($_REQUEST['eid']) ) {
-  $Event = new ZM\Event( $_REQUEST['eid'] );
+  $Event = new ZM\Event($_REQUEST['eid']);
   if ( !$Event->Id ) {
     Error('Invalid event id');
     return;
@@ -92,7 +92,7 @@ if ( !empty($_REQUEST['eid']) ) {
         ZM\Warning("Invalid event id in eids[] $eid");
         continue;
       }
-      $Event = new Event($eid);
+      $Event = new ZM\Event($eid);
       $total_size += $Event->DiskSpace();
 ?>
         <input type="hidden" name="eids[]" value="<?php echo validInt($eid) ?>"/>
@@ -104,7 +104,7 @@ if ( !empty($_REQUEST['eid']) ) {
     echo '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
 }
 ?>
-        <table id="contentTable" class="minor" cellspacing="0">
+        <table id="contentTable" class="minor">
           <tbody>
             <tr>
               <td><input type="hidden" name="exportVideo" value="1"/></td>

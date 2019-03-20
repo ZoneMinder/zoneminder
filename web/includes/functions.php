@@ -1108,20 +1108,23 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
   if ( isset($terms) && count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {
-      if ( isset($terms[$i]['cnj']) && array_key_exists($terms[$i]['cnj'], $validQueryConjunctionTypes) ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($terms[$i]['cnj']);
-        $filter['sql'] .= ' '.$terms[$i]['cnj'].' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($terms[$i]['cnj'])."\"/>\n";
+
+      $term = $terms[$i];
+
+      if ( isset($term['cnj']) && array_key_exists($term['cnj'], $validQueryConjunctionTypes) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cnj]").'='.urlencode($term['cnj']);
+        $filter['sql'] .= ' '.$term['cnj'].' ';
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cnj]\" value=\"".htmlspecialchars($term['cnj'])."\"/>\n";
       }
-      if ( isset($terms[$i]['obr']) && (string)(int)$terms[$i]['obr'] == $terms[$i]['obr'] ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($terms[$i]['obr']);
-        $filter['sql'] .= ' '.str_repeat('(', $terms[$i]['obr']).' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($terms[$i]['obr'])."\"/>\n";
+      if ( isset($term['obr']) && (string)(int)$term['obr'] == $term['obr'] ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][obr]").'='.urlencode($term['obr']);
+        $filter['sql'] .= ' '.str_repeat('(', $term['obr']).' ';
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][obr]\" value=\"".htmlspecialchars($term['obr'])."\"/>\n";
       }
-      if ( isset($terms[$i]['attr']) ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($terms[$i]['attr']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($terms[$i]['attr'])."\"/>\n";
-        switch ( $terms[$i]['attr'] ) {
+      if ( isset($term['attr']) ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][attr]").'='.urlencode($term['attr']);
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][attr]\" value=\"".htmlspecialchars($term['attr'])."\"/>\n";
+        switch ( $term['attr'] ) {
           case 'MonitorName':
             $filter['sql'] .= 'M.Name';
             break;
@@ -1189,7 +1192,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           case 'Notes':
           case 'StateId':
           case 'Archived':
-            $filter['sql'] .= 'E.'.$terms[$i]['attr'];
+            $filter['sql'] .= 'E.'.$term['attr'];
             break;
           case 'DiskPercent':
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
@@ -1209,7 +1212,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             // Need to specify a storage area, so need to look through other terms looking for a storage area, else we default to ZM_EVENTS_PATH
             if ( ! $StorageArea ) {
               for ( $j = $i; $j < count($terms); $j++ ) {
-                if ( isset($terms[$i]['attr']) and $terms[$i]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
+                if ( isset($terms[$j]['attr']) and $terms[$j]['attr'] == 'StorageId' and isset($terms[$j]['val']) ) {
                   $StorageArea = ZM\Storage::find_one(array('Id'=>$terms[$j]['val']));
                 }
               } // end foreach remaining term
@@ -1221,8 +1224,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             break;
         }
         $valueList = array();
-        foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $terms[$i]['val'] ) ) as $value ) {
-          switch ( $terms[$i]['attr'] ) {
+        foreach ( preg_split( '/["\'\s]*?,["\'\s]*?/', preg_replace( '/^["\']+?(.+)["\']+?$/', '$1', $term['val'] ) ) as $value ) {
+          switch ( $term['attr'] ) {
             case 'MonitorName':
             case 'Name':
             case 'Cause':
@@ -1270,16 +1273,16 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
               break;
           }
           $valueList[] = $value;
-        }
+        } // end foreach value
 
-        switch ( $terms[$i]['op'] ) {
+        switch ( $term['op'] ) {
           case '=' :
           case '!=' :
           case '>=' :
           case '>' :
           case '<' :
           case '<=' :
-            $filter['sql'] .= ' '.$terms[$i]['op'].' '. $value;
+            $filter['sql'] .= ' '.$term['op'].' '. $value;
             break;
           case '=~' :
             $filter['sql'] .= ' regexp '.$value;
@@ -1307,28 +1310,41 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             $filter['sql'] .= " IS NOT $value";
             break;
           default:
-            ZM\Warning("Invalid operator in filter: " . $terms[$i]['op'] );
-        }
+            ZM\Warning("Invalid operator in filter: " . $term['op'] );
+        } // end switch op
 
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($terms[$i]['op']);
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($terms[$i]['op'])."\"/>\n";
-	if ( isset($terms[$i]['val']) ) {
-		$filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($terms[$i]['val']);
-		$filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($terms[$i]['val'])."\"/>\n";
-	}
-      } // end foreach term
-      if ( isset($terms[$i]['cbr']) && (string)(int)$terms[$i]['cbr'] == $terms[$i]['cbr'] ) {
-        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($terms[$i]['cbr']);
-        $filter['sql'] .= ' '.str_repeat( ')', $terms[$i]['cbr'] ).' ';
-        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($terms[$i]['cbr'])."\"/>\n";
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($term['op']);
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][op]\" value=\"".htmlspecialchars($term['op'])."\"/>\n";
+        if ( isset($term['val']) ) {
+          $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][val]").'='.urlencode($term['val']);
+          $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][val]\" value=\"".htmlspecialchars($term['val'])."\"/>\n";
+        }
+      } // end if ( isset($term['attr']) )
+      if ( isset($term['cbr']) && (string)(int)$term['cbr'] == $term['cbr'] ) {
+        $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][cbr]").'='.urlencode($term['cbr']);
+        $filter['sql'] .= ' '.str_repeat( ')', $term['cbr'] ).' ';
+        $filter['fields'] .= "<input type=\"hidden\" name=\"filter[Query][terms][$i][cbr]\" value=\"".htmlspecialchars($term['cbr'])."\"/>\n";
       }
-    }
+    } // end foreach term
     if ( $filter['sql'] )
       $filter['sql'] = ' and ( '.$filter['sql'].' )';
     if ( $saveToSession ) {
       $_SESSION['filter'] = $filter;
     }
-  }
+  } else {
+    ZM\Warning("No terms in filter");
+  } // end if terms
+
+  #if ( 0 ) {
+    #// ICON I feel like these should be here, but not yet
+  #if ( isset($filter['Query']['sort_field']) ) {
+    #$filter['sql'] .= ' ORDER BY ' . $filter['Query']['sort_field'] . (
+      #( $filter['Query']['sort_asc'] ? ' ASC' : ' DESC' ) );
+  #}
+  #if ( $filter['Query']['limit'] ) {
+    #$filter['sql'] .= ' LIMIT ' . validInt($filter['Query']['limit']);
+  #}
+  #}
 }
 
 // Please note that the filter is passed in by copy, so you need to use the return value from this function.

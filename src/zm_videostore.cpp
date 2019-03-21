@@ -93,13 +93,6 @@ VideoStore::VideoStore(
   oc->metadata = pmetadata;
   out_format = oc->oformat;
 
-  video_out_stream = avformat_new_stream(oc, NULL);
-  if ( !video_out_stream ) {
-    Error("Unable to create video out stream");
-    return;
-  } else {
-    Debug(2, "Success creating video out stream");
-  }
 
   AVCodec *video_out_codec = avcodec_find_encoder(video_in_ctx->codec_id);
   if ( !video_out_codec ) {
@@ -110,10 +103,19 @@ VideoStore::VideoStore(
 #endif
   }
 
+  video_out_stream = avformat_new_stream(oc, video_out_codec);
+  if ( !video_out_stream ) {
+    Error("Unable to create video out stream");
+    return;
+  } else {
+    Debug(2, "Success creating video out stream");
+  }
+
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  video_out_stream->codec = avcodec_alloc_context3(video_out_codec);
+  //video_out_stream->codec = avcodec_alloc_context3(video_out_codec);
   // Since we are not re-encoding, all we have to do is copy the parameters
   video_out_ctx = video_out_stream->codec;
+  //video_out_ctx = avcodec_alloc_context3(video_out_codec);
   // Copy params from instream to ctx
   ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
   if ( ret < 0 ) {
@@ -139,16 +141,9 @@ VideoStore::VideoStore(
 	  video_out_ctx->time_base = AV_TIME_BASE_Q;
   }
 
-  //video_out_ctx->pix_fmt = codec_data[i].pix_fmt;
-  video_out_ctx->level = 32;
+  zm_dump_codec(video_out_ctx);
 
-  // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
-  video_out_ctx->width = monitor->Width();
-  video_out_ctx->height = monitor->Height();
-  video_out_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-
-  video_out_ctx->codec_id = AV_CODEC_ID_H264;
-  video_out_ctx->bit_rate = 400*1024;
+  //video_out_ctx->bit_rate = 400*1024;
   //video_out_ctx->thread_count = 0;
   //// Fix deprecated formats
   switch ( video_out_ctx->pix_fmt ) {
@@ -176,10 +171,7 @@ VideoStore::VideoStore(
     } else {
       Debug(2, "Not setting priv_data");
     }
-  } else {
-    Error("Unknown codec id");
   }
-
 
   if ( !video_out_ctx->codec_tag ) {
     Debug(2, "No codec_tag");
@@ -209,6 +201,13 @@ VideoStore::VideoStore(
         video_in_stream->r_frame_rate.den 
         );
     video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
+  }
+  ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
+  if ( ret < 0 ) {
+    Error("Could not initialize video_out_ctx parameters");
+    return;
+  } else {
+    zm_dump_codec(video_out_ctx);
   }
 
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)

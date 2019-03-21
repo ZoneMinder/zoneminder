@@ -25,26 +25,28 @@ function Monitor(monitorData) {
     }
   };
 
-  this.onclick = function() {
-    var el = this;
-    var url = '?view=watch&mid='+this.id;
-    var name = 'zmWatch'+this.id;
+  this.eventHandler = function( event ) {
+    console.log(event);
+  }
+
+  this.onclick = function(evt) {
+    var el = evt.currentTarget;
     var tag = 'watch';
-    var width = el.getAttribute("data-window-width");
-    var height = el.getAttribute("data-window-height");
+    var id = el.getAttribute("data-monitor-id");
+    var width = el.getAttribute("data-width");
+    var height = el.getAttribute("data-height");
+    var url = '?view=watch&mid='+id;
+    var name = 'zmWatch'+id;
     evt.preventDefault();
     createPopup(url, name, tag, width, height);
   };
 
   this.setup_onclick = function() {
-    document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
-      el.addEventListener('click', this.onclick);
-    });
+    var el = document.getElementById('imageFeed'+this.id);
+    if ( el ) el.addEventListener('click', this.onclick, false);
   };
   this.disable_onclick = function() {
-    document.querySelectorAll('#imageFeed'+this.id).forEach(function(el) {
-      el.removeEventListener('click', this.onclick);
-    });
+    document.getElementById('imageFeed'+this.id).removeEventListener('click', this.onclick );
   };
 
   this.setStateClass = function(element, stateClass) {
@@ -422,8 +424,10 @@ function cancel_layout(button) {
   $j('#EditLayout').show();
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor_feed = $j('#imageFeed'+monitor.id);
-    monitor_feed.click(monitor.onclick);
+    monitor.setup_onclick();
+
+    //monitor_feed = $j('#imageFeed'+monitor.id);
+    //monitor_feed.click(monitor.onclick);
   };
   selectLayout('#zmMontageLayout');
 }

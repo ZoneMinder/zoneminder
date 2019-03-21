@@ -200,6 +200,7 @@ foreach ( $monitors as $monitor ) {
             <div
               id="imageFeed<?php echo $monitor->Id() ?>"
               class="imageFeed"
+              data-monitor-id="<?php echo $monitor->Id() ?>"
               data-width="<?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>"
               data-height="<?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?>">
             <?php

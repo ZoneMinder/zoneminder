@@ -202,6 +202,7 @@ VideoStore::VideoStore(
         );
     video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
   }
+#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
   ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
   if ( ret < 0 ) {
     Error("Could not initialize video_out_ctx parameters");
@@ -210,7 +211,6 @@ VideoStore::VideoStore(
     zm_dump_codec(video_out_ctx);
   }
 
-#if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
   zm_dump_codecpar(video_in_stream->codecpar);
   zm_dump_codecpar(video_out_stream->codecpar);
 #endif

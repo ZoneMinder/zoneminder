@@ -307,7 +307,7 @@ private $control_fields = array(
       $args['rand'] = time();
     }
 
-    $streamSrc .= '?'.http_build_query($args,'', $querySep);
+    $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
     return $streamSrc;
   } // end function getStreamSrc

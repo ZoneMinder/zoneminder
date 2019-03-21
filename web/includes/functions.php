@@ -283,7 +283,7 @@ function outputImageStream( $id, $src, $width, $height, $title='' ) {
   echo getImageStreamHTML( $id, $src, $width, $height, $title );
 }
 
-
+// width and height MUST be valid and include the px
 function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
@@ -2251,10 +2251,9 @@ function validHtmlStr( $input ) {
   return( htmlspecialchars( $input, ENT_QUOTES ) );
 }
 
-function getStreamHTML( $monitor, $options = array() ) {
+function getStreamHTML($monitor, $options = array()) {
 
-  if ( isset($options['scale']) and $options['scale'] and ( $options['scale'] != 100 ) ) {
-    //Warning("Scale to " . $options['scale'] );
+  if ( isset($options['scale']) and $options['scale'] and ($options['scale'] != 100) ) {
     $options['width'] = reScale($monitor->Width(), $options['scale']).'px';
     $options['height'] = reScale($monitor->Height(), $options['scale']).'px';
   } else {
@@ -2287,10 +2286,10 @@ function getStreamHTML( $monitor, $options = array() ) {
   //FIXME, the width and height of the image need to be scaled.
   } else if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $monitor->getStreamSrc( array(
-      'mode'=>'mpeg',
-      'scale'=>(isset($options['scale'])?$options['scale']:100),
-      'bitrate'=>ZM_WEB_VIDEO_BITRATE,
-      'maxfps'=>ZM_WEB_VIDEO_MAXFPS,
+      'mode'   => 'mpeg',
+      'scale'  => (isset($options['scale'])?$options['scale']:100),
+      'bitrate'=> ZM_WEB_VIDEO_BITRATE,
+      'maxfps' => ZM_WEB_VIDEO_MAXFPS,
       'format' => ZM_MPEG_LIVE_FORMAT
     ) );
     return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
@@ -2311,7 +2310,7 @@ function getStreamHTML( $monitor, $options = array() ) {
       ZM\Info( 'The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.' );
     }
     $options['mode'] = 'single';
-    $streamSrc = $monitor->getStreamSrc( $options );
+    $streamSrc = $monitor->getStreamSrc($options);
     return getImageStill( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
   }
 } // end function getStreamHTML

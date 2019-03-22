@@ -1106,6 +1106,13 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
   $StorageArea = NULL;
 
   $terms = isset($filter['Query']) ? $filter['Query']['terms'] : NULL;
+  if ( ! isset($terms) ) {
+        $backTrace = debug_backtrace();
+        $file = $backTrace[1]['file'];
+        $line = $backTrace[1]['line'];
+        ZM\Warning("No terms in filter from $file:$line");
+        ZM\Warning(print_r($filter,true));
+  }
   if ( isset($terms) && count($terms) ) {
     for ( $i = 0; $i < count($terms); $i++ ) {
 
@@ -1331,8 +1338,6 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
     if ( $saveToSession ) {
       $_SESSION['filter'] = $filter;
     }
-  } else {
-    ZM\Warning("No terms in filter");
   } // end if terms
 
   #if ( 0 ) {

@@ -256,7 +256,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colStats"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', $Server->zmstats() ? 'yes' : 'no', $canEdit) ?></td>
               <td class="colAudit"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', $Server->zmaudit() ? 'yes' : 'no', $canEdit) ?></td>
               <td class="colTrigger"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', $Server->zmtrigger() ? 'yes' : 'no', $canEdit) ?></td>
-              <td class="colEventNotification"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', $Server->zmeventserver() ? 'yes' : 'no', $canEdit) ?></td>
+              <td class="colEventNotification"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', $Server->zmeventnotification() ? 'yes' : 'no', $canEdit) ?></td>
 
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Server->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
 			</tr>

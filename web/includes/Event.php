@@ -427,31 +427,31 @@ class Event {
 
     $captPath = $eventPath.'/'.$captImage;
     if ( ! file_exists($captPath) ) {
-      Error( "Capture file does not exist at $captPath" );
+      Error("Capture file does not exist at $captPath");
     }
     
     //echo "CI:$captImage, CP:$captPath, TCP:$captPath<br>";
 
-    $analImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId'] );
+    $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
     $analPath = $eventPath.'/'.$analImage;
 
     //echo "AI:$analImage, AP:$analPath, TAP:$analPath<br>";
 
     $alarmFrame = $frame['Type']=='Alarm';
 
-    $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
+    $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
     $isAnalImage = $hasAnalImage && !$captureOnly;
 
-    if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) ) {
-      $imagePath = $thumbPath = $isAnalImage?$analPath:$captPath;
+    if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists('imagecreatefromjpeg') ) {
+      $imagePath = $thumbPath = $isAnalImage ? $analPath : $captPath;
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;
     } else {
       if ( version_compare( phpversion(), '4.3.10', '>=') )
-        $fraction = sprintf( '%.3F', $scale/SCALE_BASE );
+        $fraction = sprintf('%.3F', $scale/SCALE_BASE);
       else
-        $fraction = sprintf( '%.3f', $scale/SCALE_BASE );
-      $scale = (int)round( $scale );
+        $fraction = sprintf('%.3f', $scale/SCALE_BASE);
+      $scale = (int)round($scale);
 
       $thumbCaptPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $captPath );
       $thumbAnalPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $analPath );

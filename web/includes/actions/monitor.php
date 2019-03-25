@@ -86,10 +86,15 @@ if ( $action == 'monitor' ) {
           unlink($OldStorage->Path().'/'.$saferOldName);
 
         $NewStorage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
-        if ( ! file_exists($NewStorage->Path().'/'.$mid) )
-          mkdir($NewStorage->Path().'/'.$mid, 0755);
+        if ( !file_exists($NewStorage->Path().'/'.$mid) ) {
+          if ( !mkdir($NewStorage->Path().'/'.$mid, 0755) ) {
+            Error('Unable to mkdir ' . $NewStorage->Path().'/'.$mid);
+          }
+        }
         $saferNewName = basename($_REQUEST['newMonitor']['Name']);
-        symlink($mid, $NewStorage->Path().'/'.$saferNewName);
+        if ( !symlink($NewStorage->Path().'/'.$mid, $NewStorage->Path().'/'.$saferNewName) ) {
+          Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
+        }
       }
       if ( isset($changes['Width']) || isset($changes['Height']) ) {
         $newW = $_REQUEST['newMonitor']['Width'];

@@ -114,8 +114,7 @@ VideoStore::VideoStore(
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   //video_out_stream->codec = avcodec_alloc_context3(video_out_codec);
   // Since we are not re-encoding, all we have to do is copy the parameters
-  video_out_ctx = video_out_stream->codec;
-  //video_out_ctx = avcodec_alloc_context3(video_out_codec);
+  video_out_ctx = avcodec_alloc_context3(video_out_codec);
   // Copy params from instream to ctx
   ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
   if ( ret < 0 ) {
@@ -125,6 +124,7 @@ VideoStore::VideoStore(
     zm_dump_codec(video_out_ctx);
   }
 #else
+  video_out_ctx = video_out_stream->codec;
   ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
   if ( ret < 0 ) {
     Fatal("Unable to copy in video ctx to out video ctx %s",

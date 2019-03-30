@@ -352,6 +352,7 @@ EOF
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl
 %{_bindir}/zmstats.pl
+%{_bindir}/zmrecover.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*

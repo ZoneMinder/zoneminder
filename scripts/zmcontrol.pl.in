@@ -63,8 +63,8 @@ GetOptions(
   'autostop'      =>\$options{autostop},
 ) or pod2usage(-exitstatus => -1);
 
-if ( !$id || !$options{command} ) {
-  print( STDERR "Please give a valid monitor id and command\n" );
+if ( !$id ) {
+  print( STDERR "Please give a valid monitor id\n" );
   pod2usage(-exitstatus => -1);
 }
 
@@ -201,8 +201,10 @@ if ( !$server_up ) {
 #print( "Writing commands\n" );
 CLIENT->autoflush();
 
-my $message = jsonEncode(\%options);
-print(CLIENT $message);
+if ( $options{command} ) {
+  my $message = jsonEncode(\%options);
+  print(CLIENT $message);
+}
 shutdown(CLIENT, 1);
 
 exit(0);
@@ -216,7 +218,7 @@ zmcontrol.pl - ZoneMinder control script
 
 =head1 SYNOPSIS
 
- zmcontrol.pl --id {monitor_id} --command={command} [various options]
+ zmcontrol.pl --id {monitor_id} [--command={command}] [various options]
 
 =head1 DESCRIPTION
 

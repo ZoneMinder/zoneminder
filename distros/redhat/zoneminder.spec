@@ -23,7 +23,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.33.0
+Version: 1.33.4
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -409,6 +409,9 @@ EOF
 %dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
+* Sat Mar 30 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.4-1
+- Bump tp 1.33.4 Development
+
 * Tue Dec 11 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.0-1
 - Bump tp 1.33.0 Development
 

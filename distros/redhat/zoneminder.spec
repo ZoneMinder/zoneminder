@@ -317,7 +317,7 @@ EOF
 
 %files common
 %license COPYING
-%doc AUTHORS README.md distros/redhat/readme/README distros/redhat/readme/README.httpd distros/redhat/readme/README.nginx distros/redhat/readme/README.https
+%doc README.md distros/redhat/readme/README distros/redhat/readme/README.httpd distros/redhat/readme/README.nginx distros/redhat/readme/README.https
 
 # We want these two folders to have "normal" read permission
 # compared to the folder contents

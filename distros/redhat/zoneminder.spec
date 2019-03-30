@@ -409,7 +409,7 @@ EOF
 %dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
-* Sat Mar 30 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.4-1
+* Sat Mar 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.4-1
 - Bump tp 1.33.4 Development
 
 * Tue Dec 11 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.0-1

@@ -65,8 +65,9 @@ void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) 
   }
 }
 
+static bool bInit = false;
+
 void FFMPEGInit() {
-  static bool bInit = false;
 
   if ( !bInit ) {
     if ( logDebugging() )
@@ -84,6 +85,11 @@ void FFMPEGInit() {
     avformat_network_init();
     bInit = true;
   }
+}
+
+void FFMPEGDeInit() {
+  avformat_network_deinit();
+  bInit = false;
 }
 
 #if HAVE_LIBAVUTIL

@@ -199,6 +199,7 @@ extern "C" {
 
 /* A single function to initialize ffmpeg, to avoid multiple initializations */		
 void FFMPEGInit();
+void FFMPEGDeInit();
 
 #if HAVE_LIBAVUTIL
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);

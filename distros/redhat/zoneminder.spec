@@ -23,7 +23,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.33.0
+Version: 1.33.4
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -317,7 +317,7 @@ EOF
 
 %files common
 %license COPYING
-%doc AUTHORS README.md distros/redhat/readme/README distros/redhat/readme/README.httpd distros/redhat/readme/README.nginx distros/redhat/readme/README.https
+%doc README.md distros/redhat/readme/README distros/redhat/readme/README.httpd distros/redhat/readme/README.nginx distros/redhat/readme/README.https
 
 # We want these two folders to have "normal" read permission
 # compared to the folder contents
@@ -352,6 +352,7 @@ EOF
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl
 %{_bindir}/zmstats.pl
+%{_bindir}/zmrecover.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
@@ -409,6 +410,9 @@ EOF
 %dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
+* Sat Mar 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.4-1
+- Bump tp 1.33.4 Development
+
 * Tue Dec 11 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.0-1
 - Bump tp 1.33.0 Development
 

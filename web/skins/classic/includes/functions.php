@@ -178,7 +178,7 @@ echo output_link_if_exists( array(
 <?php
 } else {
 ?>
-  <script src="skins/classic/js/base.js"></script>
+  <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="js/logger.js"></script>

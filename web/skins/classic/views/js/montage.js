@@ -27,7 +27,7 @@ function Monitor(monitorData) {
 
   this.eventHandler = function( event ) {
     console.log(event);
-  }
+  };
 
   this.onclick = function(evt) {
     var el = evt.currentTarget;

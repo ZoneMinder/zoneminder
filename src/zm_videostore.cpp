@@ -435,11 +435,13 @@ VideoStore::~VideoStore() {
       pkt.data = NULL;
       pkt.size = 0;
       av_init_packet(&pkt);
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      // Put encoder into flushing mode
+      avcodec_send_frame(audio_out_ctx, NULL);
+#endif
 
       while (1) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-        // Put encoder into flushing mode
-        avcodec_send_frame(audio_out_ctx, NULL);
         ret = avcodec_receive_packet(audio_out_ctx, &pkt);
         if ( ret < 0 ) {
           if ( AVERROR_EOF != ret ) {
@@ -450,8 +452,7 @@ VideoStore::~VideoStore() {
         }
 #else
         int got_packet = 0;
-        ret =
-          avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet);
+        ret = avcodec_encode_audio2(audio_out_ctx, &pkt, NULL, &got_packet);
         if ( ret < 0 ) {
           Error("Error encoding audio while flushing (%d) (%s)", ret,
               av_err2str(ret));
@@ -1056,8 +1057,27 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   #endif
     zm_dump_frame(out_frame, "Out frame after resample");
 
-    av_init_packet(&opkt);
+    // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
+    if ( ipkt->pts != AV_NOPTS_VALUE ) {
+      if ( !audio_first_pts ) {
+        out_frame->pts = 0;
+        audio_first_pts = ipkt->pts;
+        Debug(1, "No audio_first_pts");
+      } else {
+        out_frame->pts = av_rescale_q(
+            out_frame->pts - audio_first_pts,
+            audio_in_stream->time_base,
+            audio_out_stream->time_base);
+        Debug(2, "audio out_frame.pts = %d from ipkt->pts(%d) - first_pts(%d)",
+            out_frame->pts, ipkt->pts, audio_first_pts);
+      }
+    } else {
+      Debug(2, "out_frame.pts = undef");
+      out_frame->pts = AV_NOPTS_VALUE;
+    }
+    zm_dump_frame(out_frame, "Out frame after resample and pts adjustment");
 
+    av_init_packet(&opkt);
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( (ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0 ) {
       Error("Could not send frame (error '%s')",
@@ -1098,7 +1118,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 #endif
   } else {
     av_init_packet(&opkt);
-    Debug(5, "after init packet");
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
   }
@@ -1123,7 +1142,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 // out
 
 // Scale the PTS of the outgoing packet to be the correct time base
-#if 1
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
     if ( !audio_first_pts ) {
       opkt.pts = 0;
@@ -1142,12 +1160,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     Debug(2, "opkt.pts = undef");
     opkt.pts = AV_NOPTS_VALUE;
   }
-#else
-  opkt.pts = audio_next_pts;
-  opkt.dts = audio_next_dts;
-#endif
 
-#if 1
   if ( ipkt->dts != AV_NOPTS_VALUE ) {
     // So if the in has no dts assigned... still need an out dts... so we use cur_dts?
 
@@ -1174,8 +1187,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   } else {
     opkt.dts = AV_NOPTS_VALUE;
   }
-#endif
-  // audio_last_dts = ipkt->dts;
   if ( opkt.dts > opkt.pts ) {
     Debug(1,
           "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 ")."
@@ -1185,9 +1196,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   }
 
   dumpPacket(audio_out_stream, &opkt, "finished opkt");
-  // pkt.pos:  byte position in stream, -1 if unknown
-  //audio_next_dts = opkt.dts + opkt.duration;
-  //audio_next_pts = opkt.pts + opkt.duration;
 
   ret = av_interleaved_write_frame(oc, &opkt);
   if ( ret != 0 ) {

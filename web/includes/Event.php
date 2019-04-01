@@ -43,9 +43,9 @@ class Event {
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
-        $row = dbFetchOne('SELECT *,unix_timestamp(StartTime) as Time FROM Events WHERE Id=?', NULL, array($IdOrRow));
+        $row = dbFetchOne('SELECT *,unix_timestamp(StartTime) AS Time FROM Events WHERE Id=?', NULL, array($IdOrRow));
         if ( ! $row ) {
-          Error('Unable to load Event record for Id=' . $IdOrRow );
+          Error('Unable to load Event record for Id=' . $IdOrRow);
         }
       } elseif ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
@@ -53,8 +53,7 @@ class Event {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
-        Error("Unknown argument passed to Event Constructor from $file:$line)");
-        Error("Unknown argument passed to Event Constructor ($IdOrRow)");
+        Error("Unknown argument passed to Event Constructor from $file:$line) Id was $IdOrRow");
         return;
       }
 
@@ -95,11 +94,11 @@ class Event {
     return new Monitor();
   }
 
-  public function __call( $fn, array $args){
-  if ( count( $args )  ) {
+  public function __call($fn, array $args){
+  if ( count($args) ) {
       $this->{$fn} = $args[0];
     }
-    if ( array_key_exists( $fn, $this ) ) {
+    if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
         
       $backTrace = debug_backtrace();
@@ -109,7 +108,7 @@ class Event {
       $file = $backTrace[1]['file'];
       $line = $backTrace[1]['line'];
       Warning("Unknown function call Event->$fn from $file:$line");
-      Warning(print_r( $this, true ));
+      Warning(print_r($this, true));
     }
   }
 
@@ -125,7 +124,7 @@ class Event {
     if ( $Storage->Path() and $this->Relative_Path() ) {
       return $Storage->Path().'/'.$this->Relative_Path();
     } else {
-      Error("Event Path not complete. Storage: " . $Storage->Path() . " relative: " . $this->Relative_Path());
+      Error('Event Path not complete. Storage: '.$Storage->Path().' relative: '.$this->Relative_Path());
       return '';
     }
   }
@@ -134,11 +133,11 @@ class Event {
     $event_path = '';
 
     if ( $this->{'Scheme'} == 'Deep' ) {
-      $event_path = $this->{'MonitorId'} .'/'.strftime( '%y/%m/%d/%H/%M/%S', $this->Time()) ;
+      $event_path = $this->{'MonitorId'}.'/'.strftime('%y/%m/%d/%H/%M/%S', $this->Time());
     } else if ( $this->{'Scheme'} == 'Medium' ) {
-      $event_path = $this->{'MonitorId'} .'/'.strftime( '%Y-%m-%d', $this->Time() ) . '/'.$this->{'Id'};
+      $event_path = $this->{'MonitorId'}.'/'.strftime('%Y-%m-%d', $this->Time()).'/'.$this->{'Id'};
     } else {
-      $event_path = $this->{'MonitorId'} .'/'.$this->{'Id'};
+      $event_path = $this->{'MonitorId'}.'/'.$this->{'Id'};
     }
 
     return $event_path;
@@ -146,7 +145,7 @@ class Event {
 
   public function Link_Path() {
     if ( $this->{'Scheme'} == 'Deep' ) {
-      return $this->{'MonitorId'} .'/'.strftime( '%y/%m/%d/.', $this->Time()).$this->{'Id'};
+      return $this->{'MonitorId'}.'/'.strftime('%y/%m/%d/.', $this->Time()).$this->{'Id'};
     }
     Error('Calling Link_Path when not using deep storage');
     return '';
@@ -173,7 +172,7 @@ class Event {
 # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
         if ( ! $link_path ) {
-          Error('Unable to determine link path for event ' . $this->{'Id'} . ' not deleting files.');
+          Error('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
           return;
         }
         
@@ -186,7 +185,7 @@ class Event {
             return;
           }
 # I know we are using arrays here, but really there can only ever be 1 in the array
-          $eventPath = preg_replace( '/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0] );
+          $eventPath = preg_replace('/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0]);
           deletePath($eventPath);
           deletePath($id_files[0]);
           $pathParts = explode('/', $eventPath);
@@ -202,7 +201,7 @@ class Event {
       } else {
         $eventPath = $this->Path();
         if ( ! $eventPath ) {
-          Error("No event Path in Event delete. Not deleting");
+          Error('No event Path in Event delete. Not deleting');
           return;
         }
         deletePath($eventPath);
@@ -581,8 +580,8 @@ class Event {
     if ( file_exists( $this->Path().'/'.$this->DefaultVideo() ) ) {
       return true;
     }
-      $Storage= $this->Storage();
-      $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
+    $Storage= $this->Storage();
+    $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
@@ -649,14 +648,14 @@ class Event {
             'content' => ''
             )
           );
-      $context  = stream_context_create($options);
+      $context = stream_context_create($options);
       try {
         $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
+        if ( $result === FALSE ) { /* Handle error */
           Error("Error restarting zmc using $url");
         }
         $event_data = json_decode($result,true);
-        Logger::Debug(print_r($event_data['event']['Event'],1));
+        Logger::Debug(print_r($event_data['event']['Event'], 1));
         return $event_data['event']['Event']['fileSize'];
       } catch ( Exception $e ) {
         Error("Except $e thrown trying to get event data");

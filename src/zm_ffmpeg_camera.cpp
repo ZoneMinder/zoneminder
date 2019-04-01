@@ -168,7 +168,7 @@ FfmpegCamera::~FfmpegCamera() {
   if ( capture ) {
     Terminate();
   }
-  avformat_network_deinit();
+  FFMPEGDeInit();
 }
 
 void FfmpegCamera::Initialise() {
@@ -1034,7 +1034,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   //FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
-  Debug(4, "FfmpegInterruptCallback");
+  //Debug(4, "FfmpegInterruptCallback");
   return zm_terminate;
 }
 

@@ -81,7 +81,7 @@ VideoStore::VideoStore(
           filename, format);
       return;
     } else {
-      Debug(4, "Success alocateing out ctx");
+      Debug(4, "Success allocating out ctx");
     }
   }  // end if ! oc
 
@@ -94,7 +94,7 @@ VideoStore::VideoStore(
   out_format = oc->oformat;
 
 
-  AVCodec *video_out_codec = avcodec_find_encoder(video_in_ctx->codec_id);
+  video_out_codec = avcodec_find_encoder(video_in_ctx->codec_id);
   if ( !video_out_codec ) {
 #if (LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
     Fatal("Could not find encoder for '%s'", avcodec_get_name(video_out_ctx->codec_id));
@@ -112,9 +112,8 @@ VideoStore::VideoStore(
   }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  //video_out_stream->codec = avcodec_alloc_context3(video_out_codec);
-  // Since we are not re-encoding, all we have to do is copy the parameters
   video_out_ctx = avcodec_alloc_context3(video_out_codec);
+  // Since we are not re-encoding, all we have to do is copy the parameters
   // Copy params from instream to ctx
   ret = avcodec_parameters_to_context(video_out_ctx, video_in_stream->codecpar);
   if ( ret < 0 ) {
@@ -230,7 +229,6 @@ VideoStore::VideoStore(
 #endif
   }
 
-
   AVDictionary *opts = 0;
   if ( (ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0 ) {
     Warning("Can't open video codec (%s) %s",
@@ -278,16 +276,14 @@ VideoStore::VideoStore(
 
   if ( audio_in_stream ) {
     Debug(3, "Have audio stream");
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    audio_in_ctx = avcodec_alloc_context3(NULL);
-    ret = avcodec_parameters_to_context(audio_in_ctx,
-                                        audio_in_stream->codecpar);
-    audio_in_ctx->time_base = audio_in_stream->time_base;
-#else
-    audio_in_ctx = audio_in_stream->codec;
-#endif
 
-    if ( audio_in_ctx->codec_id != AV_CODEC_ID_AAC ) {
+    if (
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+        audio_in_stream->codecpar->codec_id
+#else
+        audio_in_stream->codec->codec_id
+#endif
+        != AV_CODEC_ID_AAC ) {
       static char error_buffer[256];
       avcodec_string(error_buffer, sizeof(error_buffer), audio_in_ctx, 0);
       Debug(2, "Got something other than AAC (%s)", error_buffer);
@@ -297,6 +293,15 @@ VideoStore::VideoStore(
       }
     } else {
       Debug(2, "Got AAC");
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      audio_in_ctx = avcodec_alloc_context3(NULL);
+      ret = avcodec_parameters_to_context(audio_in_ctx,
+          audio_in_stream->codecpar);
+      audio_in_ctx->time_base = audio_in_stream->time_base;
+#else
+      audio_in_ctx = audio_in_stream->codec;
+#endif
 
       audio_out_stream =
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -506,30 +511,39 @@ VideoStore::~VideoStore() {
 #endif
     video_in_ctx = NULL;
 
+    if ( video_out_codec ) {
+      avcodec_close(video_out_ctx);
+      Debug(4, "Success closing video_out_ctx");
+      video_out_codec = NULL;
+    } // end if video_out_codec
     avcodec_close(video_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    //avcodec_free_context(&video_out_ctx);
+    avcodec_free_context(&video_out_ctx);
 #endif
     video_out_ctx = NULL;
-    Debug(4, "Success freeing video_out_ctx");
   } // end if video_out_stream
 
   if ( audio_out_stream ) {
     if ( audio_in_codec ) {
       avcodec_close(audio_in_ctx);
+      Debug(4, "Success closing audio_in_ctx");
       audio_in_codec = NULL;
     } // end if audio_in_codec
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
     avcodec_free_context(&audio_in_ctx);
+    Debug(4, "Success freeing audio_in_ctx");
 #endif
     audio_in_ctx = NULL;
 
-    avcodec_close(audio_out_ctx);
+    if ( audio_out_ctx ) {
+      avcodec_close(audio_out_ctx);
+      Debug(4, "Success closing audio_out_ctx");
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    avcodec_free_context(&audio_out_ctx);
+      avcodec_free_context(&audio_out_ctx);
 #endif
+    }
     audio_out_ctx = NULL;
 #if defined(HAVE_LIBAVRESAMPLE) || defined(HAVE_LIBSWRESAMPLE)
     if ( resample_ctx ) {
@@ -579,8 +593,11 @@ bool VideoStore::setup_resampler() {
   audio_in_codec =
       avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
 #else
-  audio_in_codec = avcodec_find_decoder(audio_in_ctx->codec_id);
+// codec is already open in ffmpeg_camera
+  audio_in_codec = avcodec_find_decoder(audio_in_stream->codec->codec_id);
 #endif
+  audio_in_ctx = avcodec_alloc_context3(audio_in_codec);
+
   if ( (ret = avcodec_open2(audio_in_ctx, audio_in_codec, NULL)) < 0 ) {
     Error("Can't open in codec!");
     return false;
@@ -592,6 +609,7 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 
+  audio_out_stream = avformat_new_stream(oc, audio_out_codec);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // audio_out_ctx = audio_out_stream->codec;
   audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
@@ -600,10 +618,7 @@ bool VideoStore::setup_resampler() {
     audio_out_stream = NULL;
     return false;
   }
-
-  audio_out_stream = avformat_new_stream(oc, audio_out_codec);
 #else 
-  audio_out_stream = avformat_new_stream(oc, NULL);
   audio_out_ctx = audio_out_stream->codec;
 #endif
   // Some formats (i.e. WAV) do not produce the proper channel layout

@@ -142,7 +142,7 @@ class EventsController extends AppController {
       'event' => $event,
       '_serialize' => array('event')
     ));
-  }
+  } // end function view
 
 
   /**

@@ -56,7 +56,7 @@ function initPage() {
       $j('#WebSwatch').css('background-color', event.target.value);
     };
   });
-  $j('#contentForm').submit(function(event){
+  $j('#contentForm').submit(function(event) {
     if ( validateForm(this) ) {
       $j('#contentButtons').hide();
       return true;

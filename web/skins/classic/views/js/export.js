@@ -47,12 +47,12 @@ function exportResponse(respObj, respText) {
   return;
 
   if ( 0 ) {
-  var eids = new Array();
-  for (var i = 0, len=form.elements.length; i < len; i++) {
-    if ( form.elements[i].name == 'eids[]' ) {
-      eids[eids.length] = 'eids[]='+form.elements[i].value;
+    var eids = new Array();
+    for (var i = 0, len=form.elements.length; i < len; i++) {
+      if ( form.elements[i].name == 'eids[]' ) {
+        eids[eids.length] = 'eids[]='+form.elements[i].value;
+      }
     }
-  }
   }
   form.submit();
 

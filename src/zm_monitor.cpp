@@ -1533,7 +1533,7 @@ bool Monitor::Analyse() {
               }
             } // end if false or config.overlap_timed_events
           } // end if ! event
-        }
+        } // end if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
         if ( score ) {
           if ( state == IDLE || state == TAPE || state == PREALARM ) {
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
@@ -1700,6 +1700,19 @@ Error("Creating new event when one exists");
             }
             if ( event && noteSetMap.size() > 0 )
               event->updateNotes( noteSetMap );
+
+            if ( section_length
+                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                && ! (image_count % fps_report_interval)
+                ) {
+              Warning( "%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
+                  name, image_count, event->Id(),
+                  timestamp->tv_sec, video_store_data->recording.tv_sec,
+                  timestamp->tv_sec - video_store_data->recording.tv_sec,
+                  section_length
+                  );
+            }
+
           } else if ( state == ALERT ) {
             event->AddFrame( snap_image, *timestamp );
             if ( noteSetMap.size() > 0 )

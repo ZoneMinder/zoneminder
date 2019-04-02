@@ -14,6 +14,7 @@ private $defaults = array(
     'CanMoveCon' => 0,
     'CanPan' => 0,
     'CanReset' => 0,
+    'CanReboot' =>  0,
     'CanSleep' => 0,
     'CanWake' => 0,
     'MinPanRange' => NULL,

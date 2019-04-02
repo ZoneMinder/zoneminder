@@ -214,11 +214,13 @@ public $defaults = array(
             $url = '?user='.$_SESSION['username'];
           }
         }
-        $url .= '&view=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId'.$Server->Id();
+        $url .= '&view=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId='.$Server->Id();
         Logger::Debug("sending command to $url");
         $data = array();
-        if ( defined('ZM_ENABLE_CSRF_MAGIC') )
-          $data['__csrf_magic'] = csrf_get_secret();
+        if ( defined('ZM_ENABLE_CSRF_MAGIC') ) {
+          require_once( 'includes/csrf/csrf-magic.php' );
+          $data['__csrf_magic'] = csrf_get_tokens();
+        }
 
         // use key 'http' even if you send the request to https://...
         $options = array(

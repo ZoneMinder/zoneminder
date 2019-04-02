@@ -16,8 +16,10 @@ class GroupsController extends AppController {
 
   public function beforeFilter() {
     parent::beforeFilter();
-    $canView = $this->Session->Read('groupsPermission');
-    if ( $canView == 'None' ) {
+    global $user;
+    # We already tested for auth in appController, so we just need to test for specific permission
+    $canView = (!$user) || ($user['Groups'] != 'None');
+    if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -63,16 +65,23 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function add() {
-		if ($this->request->is('post')) {
+		if ( $this->request->is('post') ) {
 
-			if ($this->Session->Read('groupPermission') != 'Edit') {
-        throw new UnauthorizedException(__('Insufficient privileges'));
+      global $user;
+      # We already tested for auth in appController,
+      # so we just need to test for specific permission
+      $canEdit = (!$user) || ($user['Groups'] == 'Edit');
+      if ( !$canEdit ) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
-			}
+      }
 
 			$this->Group->create();
-			if ($this->Group->save($this->request->data)) {
-				return $this->flash(__('The group has been saved.'), array('action' => 'index'));
+			if ( $this->Group->save($this->request->data) ) {
+        return $this->flash(
+          __('The group has been saved.'),
+          array('action' => 'index')
+        );
 			}
 		}
 		$monitors = $this->Group->Monitor->find('list');
@@ -86,17 +95,24 @@ class GroupsController extends AppController {
  * @param string $id
  * @return void
  */
-	public function edit($id = null) {
-		if (!$this->Group->exists($id)) {
+	public function edit( $id = null ) {
+		if ( !$this->Group->exists($id) ) {
 			throw new NotFoundException(__('Invalid group'));
 		}
 		if ( $this->request->is(array('post', 'put'))) {
-      if ( $this->Session->Read('groupPermission') != 'Edit' ) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
+      global $user;
+      # We already tested for auth in appController,
+      # so we just need to test for specific permission
+      $canEdit = (!$user) || ($user['Groups'] == 'Edit');
+      if ( !$canEdit ) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-			if ($this->Group->save($this->request->data)) {
-				return $this->flash(__('The group has been saved.'), array('action' => 'index'));
+			if ( $this->Group->save($this->request->data) ) {
+        return $this->flash(
+          __('The group has been saved.'),
+          array('action' => 'index')
+        );
       } else {
         $message = 'Error';
 			}
@@ -108,7 +124,7 @@ class GroupsController extends AppController {
 		$this->set(array(
 			'message' => $message,
       'monitors'=> $monitors,
-			'_serialize' => array('message',)
+			'_serialize' => array('message')
 		));
 	}
 
@@ -121,19 +137,30 @@ class GroupsController extends AppController {
  */
 	public function delete($id = null) {
 		$this->Group->id = $id;
-		if (!$this->Group->exists()) {
+		if ( !$this->Group->exists() ) {
 			throw new NotFoundException(__('Invalid group'));
 		}
 		$this->request->allowMethod('post', 'delete');
-		if ( $this->Session->Read('groupPermission') != 'Edit' ) {
-			 throw new UnauthorizedException(__('Insufficient privileges'));
-			return;
-		}
 
-		if ($this->Group->delete()) {
-			return $this->flash(__('The group has been deleted.'), array('action' => 'index'));
+    global $user;
+    # We already tested for auth in appController,
+    # so we just need to test for specific permission
+    $canEdit = (!$user) || ($user['Groups'] == 'Edit');
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
+		if ( $this->Group->delete() ) {
+      return $this->flash(
+        __('The group has been deleted.'),
+        array('action' => 'index')
+      );
 		} else {
-			return $this->flash(__('The group could not be deleted. Please, try again.'), array('action' => 'index'));
+      return $this->flash(
+        __('The group could not be deleted. Please, try again.'),
+        array('action' => 'index')
+      );
 		}
 	} // end function delete
 } // end class GroupController

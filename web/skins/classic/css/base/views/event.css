@@ -61,7 +61,7 @@ span.noneCue {
 }
 
 #menuBar1 #replayControl {
-    margin: 0 4px 0 auto;
+    margin: auto 5px auto auto;
 }
 
 #menuBar1 div {

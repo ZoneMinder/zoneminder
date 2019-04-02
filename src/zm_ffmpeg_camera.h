@@ -79,7 +79,7 @@ class FfmpegCamera : public Camera {
 #endif // HAVE_LIBAVFORMAT
 
     VideoStore          *videoStore;
-    zm_packetqueue      packetqueue;
+    zm_packetqueue      *packetqueue;
     bool                have_video_keyframe;
 
 #if HAVE_LIBSWSCALE
@@ -87,6 +87,7 @@ class FfmpegCamera : public Camera {
 #endif
 
     int64_t             startTime;
+    int                 error_count;
 
   public:
     FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
@@ -99,12 +100,13 @@ class FfmpegCamera : public Camera {
     void Initialise();
     void Terminate();
 
-    static int FfmpegInterruptCallback(void*ctx);
 
     int PrimeCapture();
     int PreCapture();
     int Capture( Image &image );
     int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
     int PostCapture();
+  private:
+    static int FfmpegInterruptCallback(void*ctx);
 };
 #endif // ZM_FFMPEG_CAMERA_H

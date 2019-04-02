@@ -20,8 +20,6 @@
 #ifndef ZM_EXCEPTION_H
 #define ZM_EXCEPTION_H
 
-#include "zm.h"
-
 #include <string>
 
 class Exception

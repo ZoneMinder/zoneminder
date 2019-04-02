@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
     struct timeval now;
     struct DeltaTimeval delta_time;
     while ( !zm_terminate ) {
-      sigprocmask(SIG_BLOCK, &block_set, 0);
+      //sigprocmask(SIG_BLOCK, &block_set, 0);
       for ( int i = 0; i < n_monitors; i++ ) {
         long min_delay = MAXINT;
 
@@ -333,7 +333,7 @@ int main(int argc, char *argv[]) {
         }  // end if next_delay <= min_delay || next_delays[i] <= 0 )
 
       }  // end foreach n_monitors
-      sigprocmask(SIG_UNBLOCK, &block_set, 0);
+      //sigprocmask(SIG_UNBLOCK, &block_set, 0);
       if ( zm_reload ) {
         for ( int i = 0; i < n_monitors; i++ ) {
           monitors[i]->Reload();
@@ -344,6 +344,7 @@ int main(int argc, char *argv[]) {
       }
       if ( result < 0 ) {
         // Failure, try reconnecting
+				sleep(1);
         break;
       }
     }  // end while ! zm_terminate

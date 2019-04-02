@@ -259,22 +259,43 @@ function collectData() {
         $index = 0;
         $where = array();
         $values = array();
-        foreach( $entitySpec['selector'] as $selector ) {
+        foreach( $entitySpec['selector'] as $selIndex => $selector ) {
+          $selectorParamName = ':selector' . $selIndex;
           if ( is_array( $selector ) ) {
-            $where[] = $selector['selector'].' = ?';
-            $values[] = validInt($id[$index]);
+            $where[] = $selector['selector'].' = '.$selectorParamName;
+            $values[$selectorParamName] = validInt($id[$index]);
           } else {
-            $where[] = $selector.' = ?';
-            $values[] = validInt($id[$index]);
+            $where[] = $selector.' = '.$selectorParamName;
+            $values[$selectorParamName] = validInt($id[$index]);
           }
           $index++;
         }
-        $sql .= ' where '.join( ' and ', $where );
+        $sql .= ' WHERE '.join( ' AND ', $where );
       }
       if ( $groupSql )
         $sql .= ' GROUP BY '.join( ',', array_unique( $groupSql ) );
-      if ( !empty($_REQUEST['sort']) )
-        $sql .= ' order by '.$_REQUEST['sort'];
+      if ( !empty($_REQUEST['sort']) ) {
+        $sql .= ' ORDER BY ';
+        $sort_fields = explode(',',$_REQUEST['sort']);
+        foreach ( $sort_fields as $sort_field ) {
+          
+          preg_match('/^(\w+)\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
+          if ( count($matches) ) {
+            if ( in_array($matches[1], $fieldSql) ) {
+              $sql .= $matches[1];
+            } else {
+              ZM\Error('Sort field ' . $matches[1] . ' not in SQL Fields');
+            }
+            if ( count($matches) > 2 ) {
+              $sql .= ' '.strtoupper($matches[2]);
+              if ( count($matches) > 3 )
+                $sql .= ' '.strtoupper($matches[3]);
+            }
+          } else {
+            ZM\Error("Sort field didn't match regexp $sort_field");
+          }
+        } # end foreach sort field
+      } # end if has sort
       if ( !empty($entitySpec['limit']) )
         $limit = $entitySpec['limit'];
       elseif ( !empty($_REQUEST['count']) )
@@ -302,7 +323,7 @@ function collectData() {
       }
     }
   }
-  #Logger::Debug(print_r($data, true));
+  #ZM\Logger::Debug(print_r($data, true));
   return $data;
 }
 

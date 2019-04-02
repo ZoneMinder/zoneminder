@@ -68,14 +68,14 @@ NOTE: EL7 users should replace "dnf" with "yum" in the instructions below.
 
    Inspect the web server configuration file and verify it meets your needs:
 
-     /etc/zm/www/zoneminder.apache.conf
+     /etc/zm/www/zoneminder.httpd.conf
 
    If you are running other web enabled services then you may need to edit
    this file to suite. See README.https to learn about other alternatives. 
 
    When in doubt, proceed with the default:
 
-     sudo ln -s /etc/zm/www/zoneminder.apache.conf /etc/httpd/conf.d/
+     sudo ln -sf /etc/zm/www/zoneminder.httpd.conf /etc/httpd/conf.d/
      sudo dnf install mod_ssl
 
 7. Now start the web server:
@@ -137,14 +137,17 @@ Upgrades
    See step 2 of the Installation section to add missing permissions.
    
 3. Verify the ZoneMinder Apache configuration file in the folder 
-   /etc/zm/www. You will have a file called "zoneminder.apache.conf" and there
+   /etc/zm/www. You will have a file called "zoneminder.httpd.conf" and there
    may also be one or more files with "rpmnew" extenstion. If the rpmnew file
    exists, inspect it and merge anything new in that file with zoneminder.conf.
-   Verify the SSL REquirements meet your needs. Read README.https if necessary.
+   Verify the SSL Requirements meet your needs. Read README.https if necessary.
 
    The contents of this file must be merged into your Apache configuration.
    See step 6 of the installation section if you have not already done this
    during a previous upgrade.
+
+   IMPORTANT: Failure to complete this step properly will result in a mostly
+   empty or significantly corrupted web console post-upgrade.
 
 4. Upgrade the database before starting ZoneMinder.
 

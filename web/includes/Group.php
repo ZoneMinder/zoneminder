@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 
 $group_cache = array();
 
@@ -120,12 +121,13 @@ class Group {
     } else {
       return null;
     }
-  }
+  } # end function find_one
 
   public function delete() {
     if ( array_key_exists('Id', $this) ) {
-      dbQuery( 'DELETE FROM Groups_Monitors WHERE GroupId=?', array($this->{'Id'}) );
-      dbQuery( 'DELETE FROM Groups WHERE Id=?', array($this->{'Id'}) );
+      dbQuery('DELETE FROM Groups_Monitors WHERE GroupId=?', array($this->{'Id'}));
+      dbQuery('UPDATE Groups SET ParentId=NULL WHERE ParentId=?', array($this->{'Id'}));
+      dbQuery('DELETE FROM Groups WHERE Id=?', array($this->{'Id'}));
       if ( isset($_COOKIE['zmGroup']) ) {
         if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
           unset($_COOKIE['zmGroup']);
@@ -150,16 +152,17 @@ class Group {
         $this->{$k} = $v;
       }
     }
-  }
+  } # end function set
+
   public function depth( $new = null ) {
     if ( isset($new) ) {
       $this->{'depth'} = $new;
     }
-    if ( ! array_key_exists('depth', $this) or ($this->{'depth'} == null) ) {
-      $this->{'depth'} = 1;
+    if ( !array_key_exists('depth', $this) or ($this->{'depth'} === null) ) {
+      $this->{'depth'} = 0;
       if ( $this->{'ParentId'} != null ) {
         $Parent = Group::find_one(array('Id'=>$this->{'ParentId'}));
-        $this->{'depth'} += $Parent->depth();
+        $this->{'depth'} += $Parent->depth()+1;
       }
     }
     return $this->{'depth'};
@@ -186,7 +189,7 @@ class Group {
     session_write_close();
 
     return htmlSelect( 'Group[]', Group::get_dropdown_options(), isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
-          'onchange' => 'this.form.submit();',
+          'data-on-change' => 'submitThisForm',
           'class'=>'chosen',
           'multiple'=>'multiple',
           'data-placeholder'=>'All',
@@ -210,7 +213,7 @@ class Group {
           $children[$Group->ParentId()] = array();
         $children[$Group->ParentId()][] = $Group;
       }
-    }
+    } # end foreach
 
     function get_options($Group) {
       global $children;
@@ -221,7 +224,8 @@ class Group {
         }
       }
       return $options;
-    }
+    } # end function get_options
+
     $group_options = array();
     foreach ( $Groups as $id=>$Group ) {
       if ( ! $Group->ParentId() ) {
@@ -229,7 +233,7 @@ class Group {
       }
     }
     return $group_options;
-  }
+  } # end function get_dropdown_options
 
   public static function get_group_sql($group_id) {
     $groupSql = '';

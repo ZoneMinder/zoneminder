@@ -23,8 +23,8 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.32.2
-Release: 2%{?dist}
+Version: 1.33.4
+Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # Mootools is inder the MIT license: http://mootools.net/
@@ -42,7 +42,7 @@ BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
-BuildRequires: cmake >= 2.8.7
+BuildRequires: cmake3
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
 BuildRequires: pcre-devel 
@@ -125,7 +125,7 @@ Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: ca-certificates
 Requires: zip
-%{systemd_requires}
+%{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd
 Requires(post): %{_bindir}/chown
@@ -200,7 +200,7 @@ mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Beh
 ./utils/zmeditconfigdata.sh ZM_OPT_FAST_DELETE no
 
 %build
-%cmake \
+%cmake3 \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
@@ -253,7 +253,6 @@ echo -e "\nThe README file is located here: %{_pkgdocdir}-common/README\n"
 # For the case of changing from nginx <-> httpd, files in these folders must change ownership if they exist
 %{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_sharedstatedir}/php/session/* >/dev/null 2>&1 || :
 %{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_localstatedir}/log/zoneminder/* >/dev/null 2>&1 || :
-%{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_sharedstatedir}/zoneminder/events/* >/dev/null 2>&1 || :
 
 ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.httpd %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 # backwards compatibility
@@ -272,7 +271,6 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.httpd.conf %{_sysconfdir}/zm/www/zonemin
 # For the case of changing from httpd <-> nginx, files in these folders must change ownership if they exist
 %{_bindir}/chown -R nginx:nginx %{_sharedstatedir}/php/session/* >/dev/null 2>&1 || :
 %{_bindir}/chown -R nginx:nginx %{_localstatedir}/log/zoneminder/* >/dev/null 2>&1 || :
-%{_bindir}/chown -R nginx:nginx %{_sharedstatedir}/zoneminder/events/* >/dev/null 2>&1 || :
 
 ln -sf %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
 # backwards compatibility
@@ -319,7 +317,7 @@ EOF
 
 %files common
 %license COPYING
-%doc AUTHORS README.md distros/redhat/readme/README distros/redhat/readme/README.httpd distros/redhat/readme/README.nginx distros/redhat/readme/README.https
+%doc README.md distros/redhat/readme/README distros/redhat/readme/README.httpd distros/redhat/readme/README.nginx distros/redhat/readme/README.https
 
 # We want these two folders to have "normal" read permission
 # compared to the folder contents
@@ -354,6 +352,7 @@ EOF
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl
 %{_bindir}/zmstats.pl
+%{_bindir}/zmrecover.pl
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
@@ -379,7 +378,6 @@ EOF
 %{_tmpfilesdir}/zoneminder.httpd.tmpfiles.conf
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/events
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/images
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
@@ -392,6 +390,7 @@ EOF
 %config(noreplace) %attr(640,root,nginx) %{_sysconfdir}/zm/conf.d/*.conf
 %ghost %attr(640,root,nginx) %{_sysconfdir}/zm/conf.d/zmcustom.conf
 %config(noreplace) %{_sysconfdir}/zm/www/zoneminder.nginx.conf
+%config(noreplace) %{_sysconfdir}/zm/www/redirect.nginx.conf
 %ghost %{_sysconfdir}/zm/www/zoneminder.conf
 %config(noreplace) %{_sysconfdir}/zm/www/com.zoneminder.systemctl.rules.nginx
 %ghost %{_datadir}/polkit-1/rules.d/com.zoneminder.systemctl.rules
@@ -403,7 +402,6 @@ EOF
 %{_tmpfilesdir}/zoneminder.nginx.tmpfiles.conf
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/events
-%dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/images
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/sock
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/swap
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/temp
@@ -412,8 +410,19 @@ EOF
 %dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
-* Wed Nov 14 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.2-2
+* Sat Mar 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.4-1
+- Bump tp 1.33.4 Development
+
+* Tue Dec 11 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.0-1
+- Bump tp 1.33.0 Development
+
+* Sat Dec 08 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.3-1
+- 1.32.3 Release
 - Break into sub-packages
+
+* Tue Nov 13 2018 Antonio Trande <sagitter@fedoraproject.org> - 1.32.2-2
+- Rebuild for ffmpeg-3.4.5 on el7
+- Use CMake3
 
 * Sat Oct 13 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.2-1
 - 1.32.2 release

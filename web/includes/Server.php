@@ -1,27 +1,34 @@
 <?php
+namespace ZM;
 require_once('database.php');
 
 $server_cache = array();
 
+
 class Server {
   private $defaults = array(
-    'Id'        =>  null,
-    'Name'      =>  '',
-    'Hostname'  =>  '',
-    'zmaudit'   =>  1,
-    'zmstats'   =>  1,
-    'zmtrigger' =>  0,
+    'Id'                   => null,
+    'Name'                 => '',
+    'Protocol'             => '',
+    'Hostname'             => '',
+    'Port'                 => null,
+    'PathToIndex'          => null,
+    'PathToZMS'            => ZM_PATH_ZMS,
+    'PathToApi'            => '/zm/api',
+    'zmaudit'              => 1,
+    'zmstats'              => 1,
+    'zmtrigger'            => 0,
+    'zmeventnotification'  => 0,
   );
 
-
-  public function __construct( $IdOrRow = NULL ) {
-  global $server_cache;
+  public function __construct($IdOrRow = NULL) {
+    global $server_cache;
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer($IdOrRow) or ctype_digit($IdOrRow) ) {
         $row = dbFetchOne('SELECT * FROM Servers WHERE Id=?', NULL, array($IdOrRow));
         if ( !$row ) {
-          Error("Unable to load Server record for Id=" . $IdOrRow);
+          Error('Unable to load Server record for Id='.$IdOrRow);
         }
       } elseif ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
@@ -33,32 +40,106 @@ class Server {
       }
       $server_cache[$row['Id']] = $this;
     } else {
-      $this->{'Name'} = '';
-      $this->{'Hostname'} = '';
+      # Set defaults
+      foreach ( $this->defaults as $k => $v ) $this->{$k} = $v;
     }
   }
 
+  public function Hostname( $new = null ) {
+    if ( $new != null )
+      $this->{'Hostname'} = $new;
+
+    if ( isset( $this->{'Hostname'}) and ( $this->{'Hostname'} != '' ) ) {
+      return $this->{'Hostname'};
+    } else if ( $this->Id() ) {
+      return $this->{'Name'};
+    }
+    $result = explode(':',$_SERVER['HTTP_HOST']);
+    return $result[0];
+  }
+
+  public function Protocol( $new = null ) {
+    if ( $new != null )
+      $this->{'Protocol'} = $new;
+
+    if ( isset($this->{'Protocol'}) and ( $this->{'Protocol'} != '' ) ) {
+      return $this->{'Protocol'};
+    }
+
+    return  ( 
+              ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
+              or
+              ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
+            ) ? 'https' : 'http';
+  }
+
+  public function Port( $new = '' ) {
+    if ( $new != '' )
+      $this->{'Port'} = $new;
+
+    if ( isset($this->{'Port'}) and $this->{'Port'} ) {
+      return $this->{'Port'};
+    }
+
+    if ( isset($_SERVER['HTTP_X_FORWARDED_PORT']) ) {
+      return $_SERVER['HTTP_X_FORWARDED_PORT'];
+    }
+
+    return $_SERVER['SERVER_PORT'];
+  }
+
+  public function PathToZMS( $new = null ) {
+    if ( $new != null )
+      $this{'PathToZMS'} = $new;
+    if ( $this->Id() and $this->{'PathToZMS'} ) {
+      return $this->{'PathToZMS'};
+    } else {
+      return ZM_PATH_ZMS;
+    }
+  }
+
+  public function UrlToZMS( $port = null ) {
+    return $this->Url($port).$this->PathToZMS();
+  }
+
 	public function Url( $port = null ) {
-    $url = ZM_BASE_PROTOCOL . '://';
-		if ( $this->Id() ) {
-			$url .= $this->Hostname();
-		} else {
-			$url .= $_SERVER['SERVER_NAME'];
-		}
+    $url = $this->Protocol().'://';
+		$url .= $this->Hostname();
     if ( $port ) {
       $url .= ':'.$port;
     } else {
-      $url .= ':'.$_SERVER['SERVER_PORT'];
+      $url .= ':'.$this->Port();
     }
-    $url .= $_SERVER['PHP_SELF'];
     return $url;
 	}
-	public function Hostname() {
-		if ( isset( $this->{'Hostname'} ) and ( $this->{'Hostname'} != '' ) ) {
-			return $this->{'Hostname'};
-		}
-		return $this->{'Name'};
-	}
+
+  public function PathToIndex( $new = null ) {
+    if ( $new != null )
+      $this->{'PathToIndex'} = $new;
+
+    if ( isset($this->{'PathToIndex'}) and $this->{'PathToIndex'} ) {
+      return $this->{'PathToIndex'};
+    }
+    // We can't trust PHP_SELF to not include an XSS vector. See note in skin.js.php.
+    return preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']);
+  }
+
+  public function UrlToIndex( $port=null ) {
+    return $this->Url($port).$this->PathToIndex();
+  }
+  public function UrlToApi( $port=null ) {
+    return $this->Url($port).$this->PathToApi();
+  }
+  public function PathToApi( $new = null ) {
+    if ( $new != null )
+      $this->{'PathToApi'} = $new;
+
+    if ( isset($this->{'PathToApi'}) and $this->{'PathToApi'} ) {
+      return $this->{'PathToApi'};
+    }
+    return '/zm/api';
+  }
+
   public function __call($fn, array $args){
     if ( count($args) ) {
       $this->{$fn} = $args[0];
@@ -66,13 +147,13 @@ class Server {
     if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
     } else {
-      if ( array_key_exists( $fn, $this->defaults ) ) {
+      if ( array_key_exists($fn, $this->defaults) ) {
         return $this->defaults{$fn};
       } else {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
-        Warning( "Unknown function call Server->$fn from $file:$line" );
+        Warning("Unknown function call Server->$fn from $file:$line");
       }
     }
   }
@@ -117,7 +198,7 @@ class Server {
     }
     $results = dbFetchAll( $sql, NULL, $values );
     if ( $results ) {
-      return array_map( function($id){ return new Server($id); }, $results );
+      return array_map(function($id){ return new Server($id); }, $results);
     }
     return array();
   }
@@ -137,5 +218,19 @@ class Server {
     return $results[0];
   }
 
-}
+  public function to_json() {
+    $json = array();
+    foreach ($this->defaults as $key => $value) {
+      if ( is_callable(array($this, $key)) ) {
+        $json[$key] = $this->$key();
+      } else if ( array_key_exists($key, $this) ) {
+        $json[$key] = $this->{$key};
+      } else {
+        $json[$key] = $this->defaults{$key};
+      }
+    }
+    return json_encode($json);
+  }
+
+} # end class Server
 ?>

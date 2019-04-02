@@ -205,6 +205,7 @@ $SLANG = array(
     'CanMoveRel'            => '可以相对移动',
     'CanPan'                => '可以平移' ,
     'CanReset'              => '可以复位',
+	'CanReboot'             => 'Can Reboot',
     'CanSetPresets'         => '可以进行预设',
     'CanSleep'              => '可以休眠',
     'CanTilt'               => '可以倾斜',

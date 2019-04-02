@@ -311,7 +311,7 @@ while( 1 ) {
   # zmDbConnect will ping and reconnect if neccessary
   $dbh = zmDbConnect();
 } # end while ( 1 )
-Info( "Trigger daemon exiting" );
+Info('Trigger daemon exiting');
 exit;
 
 sub loadMonitor {
@@ -327,7 +327,7 @@ sub loadMonitor {
 }
 
 sub loadMonitors {
-  Debug( "Loading monitors" );
+  Debug('Loading monitors');
   $monitor_reload_time = time();
 
   my %new_monitors = ();
@@ -362,25 +362,25 @@ sub handleMessage {
 
   my $monitor = $monitors{$id};
   if ( !$monitor ) {
-    Warning( "Can't find monitor '$id' for message '$message'" );
+    Warning("Can't find monitor '$id' for message '$message'");
     return;
   }
-  Debug( "Found monitor for id '$id'" );
+  Debug("Found monitor for id '$id'");
 
-  next if ( !zmMemVerify( $monitor ) );
+  next if ( !zmMemVerify($monitor) );
 
-  Debug( "Handling action '$action'" );
+  Debug("Handling action '$action'");
   if ( $action =~ /^(enable|disable)(?:\+(\d+))?$/ ) {
     my $state = $1;
     my $delay = $2;
     if ( $state eq 'enable' ) {
-      zmMonitorEnable( $monitor );
+      zmMonitorEnable($monitor);
     } else {
-      zmMonitorDisable( $monitor );
+      zmMonitorDisable($monitor);
     }
 # Force a reload
     $monitor_reload_time = 0;
-    Info( "Set monitor to $state" );
+    Info("Set monitor to $state");
     if ( $delay ) {
       my $action_text = $id.'|'.( ($state eq 'enable')
           ? 'disable'
@@ -395,9 +395,9 @@ sub handleMessage {
     my $delay = $2;
     my $trigger_data;
     if ( $trigger eq 'on' ) {
-      zmTriggerEventOn( $monitor, $score, $cause, $text );
-      zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
-      Info( "Trigger '$trigger' '$cause'" );
+      zmTriggerEventOn($monitor, $score, $cause, $text);
+      zmTriggerShowtext($monitor, $showtext) if defined($showtext);
+      Info("Trigger '$trigger' '$cause'");
       if ( $delay ) {
         my $action_text = $id.'|cancel';
         handleDelay($delay, $connection, $action_text);
@@ -407,29 +407,29 @@ sub handleMessage {
         my $action_text = $id.'|off|0|'.$cause.'|'.$text;
         handleDelay($delay, $connection, $action_text);
       } else {
-        my $last_event = zmGetLastEvent( $monitor );
-        zmTriggerEventOff( $monitor );
-        zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
-        Info( "Trigger '$trigger'" );
+        my $last_event = zmGetLastEvent($monitor);
+        zmTriggerEventOff($monitor);
+        zmTriggerShowtext($monitor, $showtext) if defined($showtext);
+        Info("Trigger '$trigger'");
 # Wait til it's finished
-        while( zmInAlarm( $monitor )
-            && ($last_event == zmGetLastEvent( $monitor ))
+        while( zmInAlarm($monitor)
+            && ($last_event == zmGetLastEvent($monitor))
             ) {
 # Tenth of a second
-          usleep( 100000 );
+          usleep(100000);
         }
-        zmTriggerEventCancel( $monitor );
+        zmTriggerEventCancel($monitor);
       }
     } # end if trigger is on or off
   } elsif( $action eq 'cancel' ) {
-    zmTriggerEventCancel( $monitor );
-    zmTriggerShowtext( $monitor, $showtext ) if defined($showtext);
-    Info( "Cancelled event" );
+    zmTriggerEventCancel($monitor);
+    zmTriggerShowtext($monitor, $showtext) if defined($showtext);
+    Info('Cancelled event');
   } elsif( $action eq 'show' ) {
     zmTriggerShowtext( $monitor, $showtext );
-    Info( "Updated show text to '$showtext'" );
+    Info("Updated show text to '$showtext'");
   } else {
-    Error( "Unrecognised action '$action' in message '$message'" );
+    Error("Unrecognised action '$action' in message '$message'");
   }
 } # end sub handleMessage
 
@@ -444,8 +444,9 @@ sub handleDelay {
     $action_array = $actions{$action_time} = [];
   }
   push( @$action_array, { connection=>$connection, message=>$action_text } );
-  Debug( "Added timed event '$action_text', expires at $action_time (+$delay secs)" );
+  Debug("Added timed event '$action_text', expires at $action_time (+$delay secs)");
 }
+
 1;
 __END__
 
@@ -520,13 +521,13 @@ B<id>|B<action>|B<score>|B<cause>|B<text>|B<showtext>
 
 =back
 
-Note that multiple messages can be sent at once and should be LF or CRLF
-delimited. This script is not necessarily intended to be a solution in
-itself, but is intended to be used as 'glue' to help ZoneMinder interface
-with other systems. It will almost certainly require some customisation
-before you can make any use of it. If all you want to do is generate alarms
-from external sources then using the ZoneMinder::SharedMem perl module is
-likely to be easier.
+  Note that multiple messages can be sent at once and should be LF or CRLF
+  delimited. This script is not necessarily intended to be a solution in
+  itself, but is intended to be used as 'glue' to help ZoneMinder interface
+  with other systems. It will almost certainly require some customisation
+  before you can make any use of it. If all you want to do is generate alarms
+  from external sources then using the ZoneMinder::SharedMem perl module is
+  likely to be easier.
 
 =head1 EXAMPLES
 

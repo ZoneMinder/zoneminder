@@ -76,7 +76,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,trusty"
+    DISTROS="xenial,bionic,cosmic,disco,trusty"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -124,7 +124,11 @@ PPA="";
 if [ "$RELEASE" != "" ]; then
   # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
   IFS='.' read -r -a VERSION <<< "$RELEASE"
-  PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
+  if [ "${VERSION[0]}.${VERSION[1]}" == "1.30" ]; then
+    PPA="ppa:iconnor/zoneminder-stable"
+  else
+    PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
+  fi;
 else
   if [ "$BRANCH" == "" ]; then
     PPA="ppa:iconnor/zoneminder-master";

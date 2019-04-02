@@ -61,8 +61,7 @@ New installs
 6. Configure the web server
 
    This package uses the HTTPS protocol by default to access the web portal,
-   using the default self signed certificate on your system. Requests using
-   HTTP will auto-redirect to HTTPS. 
+   using the default self signed certificate on your system.  
 
    Inspect the web server configuration file and verify it meets your needs:
 
@@ -71,9 +70,13 @@ New installs
    If you are running other web enabled services then you may need to edit
    this file to suite. See README.https to learn about other alternatives. 
 
+   If you wish http requests to auto-redirect to https requests, then link or
+   copy /etc/zm/www/redirect.nginx.conf into /etc/nginx/default.d folder.
+
    When in doubt, proceed with the default:
 
-     sudo ln -s /etc/zm/www/zoneminder.conf /etc/nginx/default.d/
+     sudo ln -sf /etc/zm/www/zoneminder.nginx.conf /etc/nginx/conf.d/
+     sudo ln -sf /etc/zm/www/redirect.nginx.conf /etc/nginx/default.d/
 
 7. Edit /etc/sysconfig/fcgiwrap and set DAEMON_PROCS to the maximum number of
    simulatneous streams the server should support. Generally, a good minimum 

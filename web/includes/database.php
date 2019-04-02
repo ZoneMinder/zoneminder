@@ -93,7 +93,7 @@ function dbLog( $sql, $update=false ) {
   global $dbLogLevel;
   $noExecute = $update && ($dbLogLevel >= DB_LOG_DEBUG);
   if ( $dbLogLevel > DB_LOG_OFF )
-    Logger::Debug( "SQL-LOG: $sql".($noExecute?" (not executed)":"") );
+    ZM\Logger::Debug( "SQL-LOG: $sql".($noExecute?" (not executed)":"") );
   return( $noExecute );
 }
 
@@ -104,7 +104,7 @@ function dbError( $sql ) {
     return '';
 
   $message = "SQL-ERR '".implode("\n",$dbConn->errorInfo())."', statement was '".$sql."'";
-  Error($message);
+  ZM\Error($message);
   return $message;
 }
 
@@ -130,32 +130,32 @@ function dbQuery( $sql, $params=NULL ) {
   try {
     if ( isset($params) ) {
       if ( ! $result = $dbConn->prepare( $sql ) ) {
-        Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
         return NULL;
       }
 
       if ( ! $result->execute( $params ) ) {
-        Error("SQL: Error executing $sql: " . implode(',', $result->errorInfo() ) );
+        ZM\Error("SQL: Error executing $sql: " . implode(',', $result->errorInfo() ) );
         return NULL;
       }
     } else {
       if ( defined('ZM_DB_DEBUG') ) {
-				Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):'') );
+				ZM\Logger::Debug("SQL: $sql values:" . ($params?implode(',',$params):'') );
       }
       $result = $dbConn->query($sql);
       if ( ! $result ) {
-        Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
         return NULL;
       }
     }
     if ( defined('ZM_DB_DEBUG') ) {
       if ( $params )
-        Logger::Debug("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount() );
+        ZM\Logger::Debug("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount() );
       else
-        Logger::Debug("SQL: $sql: rows:" . $result->rowCount()  );
+        ZM\Logger::Debug("SQL: $sql: rows:" . $result->rowCount()  );
     }
   } catch(PDOException $e) {
-    Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):'') );
+    ZM\Error( "SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):'') );
     return NULL;
   }
   return $result;
@@ -164,7 +164,7 @@ function dbQuery( $sql, $params=NULL ) {
 function dbFetchOne( $sql, $col=false, $params=NULL ) {
   $result = dbQuery( $sql, $params );
   if ( ! $result ) {
-    Error( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
+    ZM\Error( "SQL-ERR dbFetchOne no result, statement was '".$sql."'" . ( $params ? 'params: ' . join(',',$params) : '' ) );
     return false;
   }
   if ( ! $result->rowCount() ) {
@@ -175,7 +175,7 @@ function dbFetchOne( $sql, $col=false, $params=NULL ) {
   if ( $result && $dbRow = $result->fetch(PDO::FETCH_ASSOC) ) {
     if ( $col ) {
       if ( ! array_key_exists($col, $dbRow) ) {
-        Warning("$col does not exist in the returned row " . print_r($dbRow, true));
+        ZM\Warning("$col does not exist in the returned row " . print_r($dbRow, true));
       }
       return $dbRow[$col];
     } 
@@ -187,7 +187,7 @@ function dbFetchOne( $sql, $col=false, $params=NULL ) {
 function dbFetchAll( $sql, $col=false, $params=NULL ) {
   $result = dbQuery( $sql, $params );
   if ( ! $result ) {
-    Error( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" . ( $params ? 'params: ' .join(',', $params) : '' ) );
+    ZM\Error( "SQL-ERR dbFetchAll no result, statement was '".$sql."'" . ( $params ? 'params: ' .join(',', $params) : '' ) );
     return false;
   }
 
@@ -294,7 +294,7 @@ function getTableDescription( $table, $asString=1 ) {
           //$desc['minLength'] = -128;
           break;
         default :
-          Error( "Unexpected text qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
+          ZM\Error( "Unexpected text qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
           break;
       }
     } elseif ( preg_match( "/^(enum|set)\((.*)\)$/", $row['Type'], $matches ) ) {
@@ -326,7 +326,7 @@ function getTableDescription( $table, $asString=1 ) {
           //$desc['maxValue'] = 127;
           break;
         default :
-          Error( "Unexpected integer qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
+          ZM\Error( "Unexpected integer qualifier '".$matches[1]."' found for field '".$row['Field']."' in table '".$table."'" );
           break;
       }
       if ( !empty($matches[1]) )
@@ -361,7 +361,7 @@ function getTableDescription( $table, $asString=1 ) {
           break;
       }
     } else {
-      Error( "Can't parse database type '".$row['Type']."' found for field '".$row['Field']."' in table '".$table."'" );
+      ZM\Error( "Can't parse database type '".$row['Type']."' found for field '".$row['Field']."' in table '".$table."'" );
     }
 
     if ( $asString )

@@ -1,4 +1,7 @@
 <?php
+namespace ZM;
+require_once('Storage.php');
+require_once('functions.php');
 
 $event_cache = array();
 
@@ -40,9 +43,9 @@ class Event {
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
-        $row = dbFetchOne('SELECT *,unix_timestamp(StartTime) as Time FROM Events WHERE Id=?', NULL, array($IdOrRow));
+        $row = dbFetchOne('SELECT *,unix_timestamp(StartTime) AS Time FROM Events WHERE Id=?', NULL, array($IdOrRow));
         if ( ! $row ) {
-          Error('Unable to load Event record for Id=' . $IdOrRow );
+          Error('Unable to load Event record for Id=' . $IdOrRow);
         }
       } elseif ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
@@ -50,8 +53,7 @@ class Event {
         $backTrace = debug_backtrace();
         $file = $backTrace[1]['file'];
         $line = $backTrace[1]['line'];
-        Error("Unknown argument passed to Event Constructor from $file:$line)");
-        Error("Unknown argument passed to Event Constructor ($IdOrRow)");
+        Error("Unknown argument passed to Event Constructor from $file:$line) Id was $IdOrRow");
         return;
       }
 
@@ -92,11 +94,11 @@ class Event {
     return new Monitor();
   }
 
-  public function __call( $fn, array $args){
-  if ( count( $args )  ) {
+  public function __call($fn, array $args){
+  if ( count($args) ) {
       $this->{$fn} = $args[0];
     }
-    if ( array_key_exists( $fn, $this ) ) {
+    if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
         
       $backTrace = debug_backtrace();
@@ -106,7 +108,7 @@ class Event {
       $file = $backTrace[1]['file'];
       $line = $backTrace[1]['line'];
       Warning("Unknown function call Event->$fn from $file:$line");
-      Warning(print_r( $this, true ));
+      Warning(print_r($this, true));
     }
   }
 
@@ -119,18 +121,23 @@ class Event {
 
   public function Path() {
     $Storage = $this->Storage();
-    return $Storage->Path().'/'.$this->Relative_Path();
+    if ( $Storage->Path() and $this->Relative_Path() ) {
+      return $Storage->Path().'/'.$this->Relative_Path();
+    } else {
+      Error('Event Path not complete. Storage: '.$Storage->Path().' relative: '.$this->Relative_Path());
+      return '';
+    }
   }
 
   public function Relative_Path() {
     $event_path = '';
 
     if ( $this->{'Scheme'} == 'Deep' ) {
-      $event_path = $this->{'MonitorId'} .'/'.strftime( '%y/%m/%d/%H/%M/%S', $this->Time()) ;
+      $event_path = $this->{'MonitorId'}.'/'.strftime('%y/%m/%d/%H/%M/%S', $this->Time());
     } else if ( $this->{'Scheme'} == 'Medium' ) {
-      $event_path = $this->{'MonitorId'} .'/'.strftime( '%Y-%m-%d', $this->Time() ) . '/'.$this->{'Id'};
+      $event_path = $this->{'MonitorId'}.'/'.strftime('%Y-%m-%d', $this->Time()).'/'.$this->{'Id'};
     } else {
-      $event_path = $this->{'MonitorId'} .'/'.$this->{'Id'};
+      $event_path = $this->{'MonitorId'}.'/'.$this->{'Id'};
     }
 
     return $event_path;
@@ -138,24 +145,26 @@ class Event {
 
   public function Link_Path() {
     if ( $this->{'Scheme'} == 'Deep' ) {
-      return $this->{'MonitorId'} .'/'.strftime( '%y/%m/%d/.', $this->Time()).$this->{'Id'};
+      return $this->{'MonitorId'}.'/'.strftime('%y/%m/%d/.', $this->Time()).$this->{'Id'};
     }
     Error('Calling Link_Path when not using deep storage');
     return '';
   }
 
   public function delete() {
-    # This wouldn't work with foreign keys
-    dbQuery( 'DELETE FROM Events WHERE Id = ?', array($this->{'Id'}) );
+    if ( ! $this->{'Id'} ) {
+      Error('Event delete on event with empty Id');
+      return;
+    }
     if ( !ZM_OPT_FAST_DELETE ) {
-      dbQuery( 'DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}) );
-      dbQuery( 'DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}) );
+      dbQuery('DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}));
+      dbQuery('DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}));
       if ( $this->{'Scheme'} == 'Deep' ) {
 
 # Assumption: All events have a start time
-        $start_date = date_parse( $this->{'StartTime'} );
+        $start_date = date_parse($this->{'StartTime'});
         if ( ! $start_date ) {
-          Error('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.' );
+          Error('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.');
           return;
         }
         $start_date['year'] = $start_date['year'] % 100;
@@ -163,67 +172,74 @@ class Event {
 # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
         if ( ! $link_path ) {
-          Error('Unable to determine link path for event ' . $this->{'Id'} . ' not deleting files.' );
+          Error('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
           return;
         }
         
         $Storage = $this->Storage();
         $eventlink_path = $Storage->Path().'/'.$link_path;
 
-        if ( $id_files = glob( $eventlink_path ) ) {
+        if ( $id_files = glob($eventlink_path) ) {
           if ( ! $eventPath = readlink($id_files[0]) ) {
             Error("Unable to read link at $id_files[0]");
             return;
           }
 # I know we are using arrays here, but really there can only ever be 1 in the array
-          $eventPath = preg_replace( '/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0] );
-          deletePath( $eventPath );
-          deletePath( $id_files[0] );
-          $pathParts = explode(  '/', $eventPath );
+          $eventPath = preg_replace('/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0]);
+          deletePath($eventPath);
+          deletePath($id_files[0]);
+          $pathParts = explode('/', $eventPath);
           for ( $i = count($pathParts)-1; $i >= 2; $i-- ) {
-            $deletePath = join( '/', array_slice( $pathParts, 0, $i ) );
-            if ( !glob( $deletePath."/*" ) ) {
-              deletePath( $deletePath );
+            $deletePath = join('/', array_slice($pathParts, 0, $i));
+            if ( !glob($deletePath.'/*') ) {
+              deletePath($deletePath);
             }
           }
         } else {
-          Warning( "Found no event files under $eventlink_path" );
+          Warning("Found no event files under $eventlink_path");
         } # end if found files
       } else {
         $eventPath = $this->Path();
-        deletePath( $eventPath );
+        if ( ! $eventPath ) {
+          Error('No event Path in Event delete. Not deleting');
+          return;
+        }
+        deletePath($eventPath);
       } # USE_DEEP_STORAGE OR NOT
     } # ! ZM_OPT_FAST_DELETE
+    dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
   } # end Event->delete
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {
 
-    $streamSrc = ZM_BASE_PROTOCOL.'://';
+    $streamSrc = '';
+    $Server = null;
     if ( $this->Storage()->ServerId() ) {
+      # The Event may have been moved to Storage on another server,
+      # So prefer viewing the Event from the Server that is actually
+      # storing the video
       $Server = $this->Storage()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
     } else if ( $this->Monitor()->ServerId() ) {
       # Assume that the server that recorded it has it
       $Server = $this->Monitor()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
-    } else if ( ZM_MIN_STREAMING_PORT ) {
-      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
     } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'];
+      # A default Server will result in the use of ZM_DIR_EVENTS
+      $Server = new Server();
     }
 
+    # If we are in a multi-port setup, then use the multiport, else by
+    # passing null Server->Url will use the Port set in the Server setting
+    $streamSrc .= $Server->Url(
+      ZM_MIN_STREAMING_PORT ?
+      ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
+      null);
+
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
-      $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
+      $streamSrc .= $Server->PathToIndex();
       $args['eid'] = $this->{'Id'};
       $args['view'] = 'view_video';
     } else {
-      $streamSrc .= ZM_PATH_ZMS;
+      $streamSrc .= $Server->PathToZMS();
 
       $args['source'] = 'event';
       $args['event'] = $this->{'Id'};
@@ -238,10 +254,10 @@ class Event {
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
-      } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+      } else if ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
-      } elseif ( ZM_AUTH_RELAY == 'none' ) {
+      } else if ( ZM_AUTH_RELAY == 'none' ) {
         $args['user'] = $_SESSION['username'];
       }
     }
@@ -328,27 +344,21 @@ class Event {
     # The thumbnail is theoretically the image with the most motion.
 # We always store at least 1 image when capturing
 
-    $streamSrc = ZM_BASE_PROTOCOL.'://';
+    $streamSrc = '';
+    $Server = null;
     if ( $this->Storage()->ServerId() ) {
       $Server = $this->Storage()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
     } else if ( $this->Monitor()->ServerId() ) {
+      # Assume that the server that recorded it has it
       $Server = $this->Monitor()->Server();
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
-      }
-
-    } else if ( ZM_MIN_STREAMING_PORT ) {
-      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'MonitorId'});
     } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'];
-    } 
+      $Server = new Server();
+    }
+    $streamSrc .= $Server->UrlToIndex(
+      ZM_MIN_STREAMING_PORT ?
+      ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
+      null);
 
-    $streamSrc .= ( ZM_BASE_PATH != '/' ? ZM_BASE_PATH : '' ).'/index.php';
     $args['eid'] = $this->{'Id'};
     $args['fid'] = 'snapshot';
     $args['view'] = 'image';
@@ -358,10 +368,10 @@ class Event {
     if ( ZM_OPT_USE_AUTH ) {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
-      } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+      } else if ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
         $args['pass'] = $_SESSION['password'];
-      } elseif ( ZM_AUTH_RELAY == 'none' ) {
+      } else if ( ZM_AUTH_RELAY == 'none' ) {
         $args['user'] = $_SESSION['username'];
       }
     }
@@ -416,36 +426,34 @@ class Event {
 
     $captPath = $eventPath.'/'.$captImage;
     if ( ! file_exists($captPath) ) {
-      Error( "Capture file does not exist at $captPath" );
+      Error("Capture file does not exist at $captPath");
     }
-    $thumbCaptPath = ZM_DIR_IMAGES.'/'.$this->{'Id'}.'-'.$captImage;
     
-    //echo "CI:$captImage, CP:$captPath, TCP:$thumbCaptPath<br>";
+    //echo "CI:$captImage, CP:$captPath, TCP:$captPath<br>";
 
-    $analImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId'] );
+    $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
     $analPath = $eventPath.'/'.$analImage;
 
-    $thumbAnalPath = ZM_DIR_IMAGES.'/'.$this->{'Id'}.'-'.$analImage;
-    //echo "AI:$analImage, AP:$analPath, TAP:$thumbAnalPath<br>";
+    //echo "AI:$analImage, AP:$analPath, TAP:$analPath<br>";
 
     $alarmFrame = $frame['Type']=='Alarm';
 
-    $hasAnalImage = $alarmFrame && file_exists( $analPath ) && filesize( $analPath );
+    $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
     $isAnalImage = $hasAnalImage && !$captureOnly;
 
-    if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists( 'imagecreatefromjpeg' ) ) {
-      $imagePath = $thumbPath = $isAnalImage?$analPath:$captPath;
+    if ( !ZM_WEB_SCALE_THUMBS || $scale >= SCALE_BASE || !function_exists('imagecreatefromjpeg') ) {
+      $imagePath = $thumbPath = $isAnalImage ? $analPath : $captPath;
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;
     } else {
       if ( version_compare( phpversion(), '4.3.10', '>=') )
-        $fraction = sprintf( '%.3F', $scale/SCALE_BASE );
+        $fraction = sprintf('%.3F', $scale/SCALE_BASE);
       else
-        $fraction = sprintf( '%.3f', $scale/SCALE_BASE );
-      $scale = (int)round( $scale );
+        $fraction = sprintf('%.3f', $scale/SCALE_BASE);
+      $scale = (int)round($scale);
 
-      $thumbCaptPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $thumbCaptPath );
-      $thumbAnalPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $thumbAnalPath );
+      $thumbCaptPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $captPath );
+      $thumbAnalPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $analPath );
 
       if ( $isAnalImage ) {
         $imagePath = $analPath;
@@ -572,11 +580,11 @@ class Event {
     if ( file_exists( $this->Path().'/'.$this->DefaultVideo() ) ) {
       return true;
     }
-      $Storage= $this->Storage();
-      $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
+    $Storage= $this->Storage();
+    $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
-      $url = $Server->Url() . '/zm/api/events/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
@@ -620,7 +628,7 @@ class Event {
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
-      $url = $Server->Url() . '/zm/api/events/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
@@ -640,14 +648,14 @@ class Event {
             'content' => ''
             )
           );
-      $context  = stream_context_create($options);
+      $context = stream_context_create($options);
       try {
         $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
+        if ( $result === FALSE ) { /* Handle error */
           Error("Error restarting zmc using $url");
         }
         $event_data = json_decode($result,true);
-        Logger::Debug(print_r($event_data['event']['Event'],1));
+        Logger::Debug(print_r($event_data['event']['Event'], 1));
         return $event_data['event']['Event']['fileSize'];
       } catch ( Exception $e ) {
         Error("Except $e thrown trying to get event data");

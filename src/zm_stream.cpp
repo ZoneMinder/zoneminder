@@ -32,8 +32,8 @@
 StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC
   if ( vid_stream ) {
-		delete vid_stream;
-		vid_stream = NULL;
+    delete vid_stream;
+    vid_stream = NULL;
   }
 #endif
   closeComms();
@@ -54,24 +54,34 @@ bool StreamBase::loadMonitor(int monitor_id) {
 
 bool StreamBase::checkInitialised() {
   if ( !monitor ) {
-    Fatal( "Cannot stream, not initialised" );
+    Fatal("Cannot stream, not initialised");
     return false;
   }
   return true;
 }
 
 void StreamBase::updateFrameRate(double fps) {
+  frame_mod = 1;
+  if ( (fps < 0) || !fps || isinf(fps) ) {
+    Debug(1, "Zero or negative fps %f in updateFrameRate. Setting frame_mod=1 and effective_fps=0.0", fps);
+    effective_fps = 0.0;
+    base_fps = 0.0;
+    return;
+  }
   base_fps = fps;
   effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
   frame_mod = 1;
-  Debug(3, "FPS:%.2f, MXFPS:%.2f, BFPS:%.2f, EFPS:%.2f, FM:%d", fps, maxfps, base_fps, effective_fps, frame_mod);
+  Debug(3, "FPS:%.2f, MaxFPS:%.2f, BaseFPS:%.2f, EffectiveFPS:%.2f, FrameMod:%d, replay_rate(%d)",
+      fps, maxfps, base_fps, effective_fps, frame_mod, replay_rate);
   // Min frame repeat?
-  while( effective_fps > maxfps ) {
+  // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.  
+  while ( effective_fps > maxfps ) {
     effective_fps /= 2.0;
     frame_mod *= 2;
-    Debug(3, "EffectiveFPS:%.2f, FrameMod:%d", effective_fps, frame_mod);
+    Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d",
+        maxfps, effective_fps, frame_mod);
   }
-}
+} // void StreamBase::updateFrameRate(double fps)
 
 bool StreamBase::checkCommandQueue() {
   if ( sd >= 0 ) {
@@ -274,7 +284,7 @@ void StreamBase::openComms() {
       }
     }
 
-		unsigned int length = snprintf(
+    unsigned int length = snprintf(
         sock_path_lock,
         sizeof(sock_path_lock),
         "%s/zms-%06d.lock",
@@ -286,11 +296,23 @@ void StreamBase::openComms() {
     }
     Debug(1, "Trying to open the lock on %s", sock_path_lock);
 
+    // Under systemd, we get chrooted to something like /tmp/systemd-apache-blh/ so the dir may not exist.
+    if ( mkdir(staticConfig.PATH_SOCKS.c_str(), 0755) ) {
+      if ( errno != EEXIST ) {
+        Error("Can't mkdir %s: %s", staticConfig.PATH_SOCKS.c_str(), strerror(errno));
+        return;
+      } else {
+        Debug(3, "SOCKS dir %s already exists", staticConfig.PATH_SOCKS.c_str() );
+      }
+    } else {
+      Debug(3, "Success making SOCKS dir %s", staticConfig.PATH_SOCKS.c_str() );
+    }
+
     lock_fd = open(sock_path_lock, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR);
     if ( lock_fd <= 0 ) {
       Error("Unable to open sock lock file %s: %s", sock_path_lock, strerror(errno));
       lock_fd = 0;
-		} else if ( flock(lock_fd, LOCK_EX) != 0 ) {
+    } else if ( flock(lock_fd, LOCK_EX) != 0 ) {
       Error("Unable to lock sock lock file %s: %s", sock_path_lock, strerror(errno));
       close(lock_fd);
       lock_fd = 0;
@@ -301,8 +323,8 @@ void StreamBase::openComms() {
     sd = socket(AF_UNIX, SOCK_DGRAM, 0);
     if ( sd < 0 ) {
       Fatal("Can't create socket: %s", strerror(errno));
-		} else {
-			Debug(1, "Have socket %d", sd);
+    } else {
+      Debug(3, "Have socket %d", sd);
     }
 
     length = snprintf(
@@ -324,7 +346,7 @@ void StreamBase::openComms() {
 
     strncpy(loc_addr.sun_path, loc_sock_path, sizeof(loc_addr.sun_path));
     loc_addr.sun_family = AF_UNIX;
-		Debug(3, "Binding to %s", loc_sock_path);
+    Debug(3, "Binding to %s", loc_sock_path);
     if ( ::bind(sd, (struct sockaddr *)&loc_addr, strlen(loc_addr.sun_path)+sizeof(loc_addr.sun_family)+1) < 0 ) {
       Fatal("Can't bind: %s", strerror(errno));
     }
@@ -335,7 +357,7 @@ void StreamBase::openComms() {
 
     gettimeofday(&last_comm_update, NULL);
   } // end if connKey > 0
-	Debug(2, "comms open");
+  Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()
 
 void StreamBase::closeComms() {

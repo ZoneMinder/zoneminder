@@ -57,9 +57,9 @@ static void subtractTime( struct timeval * const tp1, struct timeval * const tp2
 
 void Logger::usrHandler( int sig ) {
   Logger *logger = fetch();
-  if ( sig == SIGUSR1 ) {
+  if ( sig == SIGUSR1 )
     logger->level(logger->level()+1);
-  } else if ( sig == SIGUSR2 )
+  else if ( sig == SIGUSR2 )
     logger->level(logger->level()-1);
   Info("Logger - Level changed to %d", logger->level());
 }
@@ -444,6 +444,7 @@ void Logger::closeSyslog() {
 void Logger::logPrint( bool hex, const char * const filepath, const int line, const int level, const char *fstring, ... ) {
   if ( level > mEffectiveLevel ) 
     return;
+  log_mutex.lock();
   char            timeString[64];
   char            logString[8192];
   va_list         argPtr;
@@ -579,7 +580,9 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
       abort();
     exit(-1);
   }
+  log_mutex.unlock();
 }
+
 
 void logInit(const char *name, const Logger::Options &options) {
   if ( !Logger::smInstance )

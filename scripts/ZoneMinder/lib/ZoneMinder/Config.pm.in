@@ -30,6 +30,7 @@ use warnings;
 
 require Exporter;
 require ZoneMinder::Base;
+
 use ZoneMinder::ConfigData qw(:all);
 
 our @ISA = qw(Exporter ZoneMinder::Base);
@@ -57,20 +58,22 @@ our %EXPORT_TAGS = (
 push( @{$EXPORT_TAGS{config}}, @EXPORT_CONFIG );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = @{ $EXPORT_TAGS{all} };
 
 our @EXPORT = qw();
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
-use constant ZM_PID => "@ZM_PID@"; # Path to the ZoneMinder run pid file
-use constant ZM_CONFIG => "@ZM_CONFIG@"; # Path to the ZoneMinder config file
-use constant ZM_CONFIG_SUBDIR => "@ZM_CONFIG_SUBDIR@"; # Path to the ZoneMinder config subfolder
+use constant ZM_PID => '@ZM_PID@'; # Path to the ZoneMinder run pid file
+use constant ZM_CONFIG => '@ZM_CONFIG@'; # Path to the ZoneMinder config file
+use constant ZM_CONFIG_SUBDIR => '@ZM_CONFIG_SUBDIR@'; # Path to the ZoneMinder config subfolder
 
 use Carp;
+require ZoneMinder::Database;
 
 # Load the config from the database into the symbol table
 BEGIN {
+require ZoneMinder::Database;
 
   # Process name, value pairs from the main config file first
   my $config_file = ZM_CONFIG;
@@ -78,52 +81,25 @@ BEGIN {
 
   # Search for user created config files. If one or more are found then
   # update the Config hash with those values
-  if ( -d ZM_CONFIG_SUBDIR ) {
+  if ( ZM_CONFIG_SUBDIR and -d ZM_CONFIG_SUBDIR ) {
     if ( -R ZM_CONFIG_SUBDIR ) {
-      foreach my $filename ( glob ZM_CONFIG_SUBDIR."/*.conf" ) {
+      foreach my $filename ( glob ZM_CONFIG_SUBDIR.'/*.conf' ) {
         process_configfile($filename);
       }
     } else {
-      print( STDERR "WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on ".ZM_CONFIG_SUBDIR.".\n" );
+      print( STDERR 'WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.ZM_CONFIG_SUBDIR.".\n" );
     }
   }
 
-  use DBI;
-  my $socket;
-  my ( $host, $portOrSocket ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
-
-  if ( defined($portOrSocket) ) {
-    if ( $portOrSocket =~ /^\// ) {
-      $socket = ';mysql_socket='.$portOrSocket;
-    } else {
-      $socket = ';host='.$host.';port='.$portOrSocket;
-    }
-  } else {
-    $socket = ';host='.$Config{ZM_DB_HOST}; 
-  }
-  my $sslOptions = '';
-  if ( $Config{ZM_DB_SSL_CA_CERT} ) {
-    $sslOptions = ';'.join(';',
-        "mysql_ssl=1",
-        "mysql_ssl_ca_file=".$Config{ZM_DB_SSL_CA_CERT},
-        "mysql_ssl_client_key=".$Config{ZM_DB_SSL_CLIENT_KEY},
-        "mysql_ssl_client_cert=".$Config{ZM_DB_SSL_CLIENT_CERT}
-        );
-  }
-  my $dbh = DBI->connect( "DBI:mysql:database=".$Config{ZM_DB_NAME}
-      .$socket.$sslOptions
-      , $Config{ZM_DB_USER}
-      , $Config{ZM_DB_PASS}
-      ) or croak( "Can't connect to db" );
+	my $dbh = ZoneMinder::Database::zmDbConnect();
   my $sql = 'SELECT Name,Value FROM Config';
-  my $sth = $dbh->prepare_cached( $sql ) or croak( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute() or croak( "Can't execute: ".$sth->errstr() );
+  my $sth = $dbh->prepare_cached($sql) or croak("Can't prepare '$sql': ".$dbh->errstr());
+  my $res = $sth->execute() or croak("Can't execute: ".$sth->errstr());
   while( my $config = $sth->fetchrow_hashref() ) {
     $Config{$config->{Name}} = $config->{Value};
   }
   $sth->finish();
-#$dbh->disconnect();
-  #
+  
   if ( ! $Config{ZM_SERVER_ID} ) {
     $Config{ZM_SERVER_ID} = undef;
     $sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
@@ -143,25 +119,30 @@ BEGIN {
   sub process_configfile {
     my $config_file = shift;
 
-    if ( -R $config_file ) {
-      open( my $CONFIG, '<', $config_file )
-        or croak( "Can't open config file '$config_file': $!" );
-      foreach my $str ( <$CONFIG> ) {
-        next if ( $str =~ /^\s*$/ );
-        next if ( $str =~ /^\s*#/ );
-        my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
-        if ( ! $name ) {
-          print( STDERR "Warning, bad line in $config_file: $str\n" );
-          next;
-        } # end if
-        $name =~ tr/a-z/A-Z/;
-        $Config{$name} = $value;
-      }
-      close( $CONFIG );
-    } else {
-      print( STDERR "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $config_file\n" );
+    if ( ! -R $config_file ) {
+      print(STDERR "WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on $config_file\n");
+      return;
     }
-  }
+    open( my $CONFIG, '<', $config_file )
+      or croak("Can't open config file '$config_file': $!");
+    foreach my $str ( <$CONFIG> ) {
+		  next if ( $str =~ /^\s*$/ );
+      next if ( $str =~ /^\s*#/ );
+      my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
+      if ( !$name ) {
+        print(STDERR "Warning, bad line in $config_file: $str\n");
+        next;
+      } # end if
+      $name =~ tr/a-z/A-Z/;
+      #if ( !$ZoneMinder::ConfigData::options_hash{$name} ) {
+				#print(STDERR "Warning, unknown config option name $name in $config_file\n");
+#} else {
+				#print(STDERR "Warning, known config option name $name in $config_file\n");
+			#}
+			$Config{$name} = $value;
+    } # end foreach config line
+    close($CONFIG);
+  } # end sub process_configfile
 
 } # end BEGIN
 
@@ -257,7 +238,7 @@ sub saveConfigToDB {
         $option->{category},
         $option->{readonly} ? 1 : 0,
         $option->{db_requires}
-        ) or croak( "Can't execute: ".$sth->errstr() );
+        ) or croak("Can't execute when updating config entry $$option{name}: ".$sth->errstr() );
   } # end foreach option
   $sth->finish();
 

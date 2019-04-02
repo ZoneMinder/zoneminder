@@ -176,8 +176,6 @@ void process_configfile( char* configFile) {
       staticConfig.SERVER_ID = atoi(val_ptr);
     else if ( strcasecmp( name_ptr, "ZM_DIR_EVENTS" ) == 0 )
       staticConfig.DIR_EVENTS = std::string(val_ptr);
-    else if ( strcasecmp( name_ptr, "ZM_DIR_IMAGES" ) == 0 )
-      staticConfig.DIR_IMAGES = std::string(val_ptr);
     else if ( strcasecmp( name_ptr, "ZM_DIR_SOUNDS" ) == 0 )
       staticConfig.DIR_SOUNDS = std::string(val_ptr);
     else if ( strcasecmp( name_ptr, "ZM_DIR_EXPORTS" ) == 0 )

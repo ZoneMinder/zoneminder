@@ -366,7 +366,7 @@ our @options = (
   },
   {
     name        => 'ZM_ENABLE_CSRF_MAGIC',
-    default     => 'no',
+    default     => 'yes',
     description => 'Enable csrf-magic library',
     help        => q`
       CSRF stands for Cross-Site Request Forgery which, under specific
@@ -375,11 +375,7 @@ our @options = (
       this, the attacker must write a very specific web page and get
       you to navigate to it, while you are logged into the ZoneMinder
       web console at the same time. Enabling ZM_ENABLE_CSRF_MAGIC will
-      help mitigate these kinds of attackes. Be warned this feature
-      is experimental and may cause problems, particularly with the API.
-      If you find a false positive and can document how to reproduce it,
-      then please report it. This feature defaults to OFF currently due to
-      its experimental nature.
+      help mitigate these kinds of attacks.
       `,
     type        => $types{boolean},
     category    => 'system',
@@ -659,7 +655,7 @@ our @options = (
     description => 'Add a random string to prevent caching of streams',
     help        => q`
       Some browsers can cache the streams used by ZoneMinder. In
-      order to prevent his a harmless random string can be appended
+      order to prevent this a harmless random string can be appended
       to the url to make each invocation of the stream appear unique.
       `,
     type        => $types{boolean},
@@ -1202,6 +1198,20 @@ our @options = (
     category    => 'logging',
   },
   {
+    name        => 'ZM_LOG_FFMPEG',
+    default     => 'yes',
+    description => 'Log FFMPEG messages',
+    help        => q`
+       When enabled (default is on), this option will log FFMPEG messages.
+       FFMPEG messages can be useful when debugging streaming issues. However,
+       depending on your distro and FFMPEG version, this may also result in 
+       more logs than you'd typically like to see. If all your streams are working
+       well, you may choose to turn this off.
+      `,
+    type        => $types{boolean},
+    category    => 'logging',
+  },
+{
     name        => 'ZM_LOG_DEBUG',
     default     => 'no',
     description => 'Switch debugging on',
@@ -2436,7 +2446,7 @@ our @options = (
   },
   {
     name        => 'ZM_RUN_AUDIT',
-    default     => 'yes',
+    default     => 'no',
     description => 'Run zmaudit to check data consistency',
     help        => q`
       The zmaudit daemon exists to check that the saved information
@@ -2665,7 +2675,7 @@ our @options = (
   },
   {
     name        => 'ZM_OPT_CONTROL',
-    default     => 'no',
+    default     => 'yes',
     description => 'Support controllable (e.g. PTZ) cameras',
     help        => q`
       ZoneMinder includes limited support for controllable cameras. A
@@ -2878,7 +2888,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_LIST_THUMBS',
-    default     => 'no',
+    default     => 'yes',
     description => 'Display mini-thumbnails of event images in event lists',
     help        => q`
       Ordinarily the event lists just display text details of the
@@ -3021,7 +3031,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_H_REFRESH_NAVBAR',
-    default     => '5',
+    default     => '60',
     description => 'How often (in seconds) the navigation header should refresh itself',
     help        => q`
       The navigation header contains the general status information about server load and storage space.
@@ -3294,7 +3304,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_M_REFRESH_NAVBAR',
-    default     => '15',
+    default     => '120',
     description => 'How often (in seconds) the navigation header should refresh itself',
     help        => q`
       The navigation header contains the general status information about server load and storage space.
@@ -3567,7 +3577,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_L_REFRESH_NAVBAR',
-    default     => '35',
+    default     => '180',
     description => 'How often (in seconds) the navigation header should refresh itself',
     help        => q`
       The navigation header contains the general status information about server load and storage space.
@@ -3927,6 +3937,14 @@ our @options = (
     type        => $types{string},
     category    => 'mail',
   },
+  {
+    name  =>  'ZM_COOKIE_LIFETIME',
+    default =>  '3600',
+    description => q`The maximum life of a COOKIE used when setting up PHP's session handler.`,
+  help          => q`This will affect how long a session will be valid for since the last request.  Keeping this short helps prevent session hijacking.  Keeping it long allows you to stay logged in longer without refreshing the view.`,
+    type        =>  $types{integer},
+    category    =>  'system',
+  }
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;
@@ -3934,7 +3952,7 @@ our %options_hash = map { ( $_->{name}, $_ ) } @options;
 # This function should never need to be called explicitly, except if
 # this module is 'require'd rather than 'use'd. See zmconfgen.pl.
 sub initialiseConfig {
-  return if ( $configInitialised );
+  return if $configInitialised;
 
 # Do some initial data munging to finish the data structures
 # Create option ids

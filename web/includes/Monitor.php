@@ -1,4 +1,5 @@
 <?php
+namespace ZM;
 require_once('database.php');
 require_once('Server.php');
 
@@ -62,11 +63,11 @@ private $defaults = array(
   'SectionLength'       =>  600,
   'FrameSkip'           =>  0,
   'AnalysisFPSLimit'  =>  null,
-  'AnalysisUpdateDelete'  =>  0,
+  'AnalysisUpdateDelay'  =>  0,
   'MaxFPS' => null,
   'AlarmMaxFPS' => null,
-  'FPSReportIneterval'  =>  100,
-  'RefBlencPerc'        =>  6,
+  'FPSReportInterval'  =>  100,
+  'RefBlendPerc'        =>  6,
   'AlarmRefBlendPerc'   =>  6,
   'Controllable'        =>  0,
   'ControlId' =>  null,
@@ -77,7 +78,6 @@ private $defaults = array(
   'TrackDelay'      =>  null,
   'ReturnLocation'  =>  -1,
   'ReturnDelay'     =>  null,
-  'DefaultView' =>  'Events',
   'DefaultRate' =>  100,
   'DefaultScale'  =>  100,
   'SignalCheckPoints' =>  0,
@@ -99,6 +99,7 @@ private $defaults = array(
   'ArchivedEventDiskSpace' =>  null,
   'ZoneCount' =>  0,
   'Refresh' => null,
+  'DefaultCodec'  => 'auto',
 );
 private $status_fields = array(
   'AnalysisFPS' => null,
@@ -112,6 +113,7 @@ private $control_fields = array(
   'CanWake' => '0',
   'CanSleep' => '0',
   'CanReset' => '0',
+  'CanReboot' =>  '0',
   'CanZoom' => '0',
   'CanAutoZoom' => '0',
   'CanZoomAbs' => '0',
@@ -280,21 +282,12 @@ private $control_fields = array(
     }
   }
 
-  public function getStreamSrc( $args, $querySep='&amp;' ) {
+  public function getStreamSrc($args, $querySep='&amp;') {
 
-    $streamSrc = ZM_BASE_PROTOCOL.'://';
-    if ( isset($this->{'ServerId'}) and $this->{'ServerId'} ) {
-      $Server = new Server( $this->{'ServerId'} );
-      $streamSrc .= $Server->Hostname();
-      if ( ZM_MIN_STREAMING_PORT ) {
-        $streamSrc .= ':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
-      }
-    } else if ( ZM_MIN_STREAMING_PORT ) {
-      $streamSrc .= $_SERVER['SERVER_NAME'].':'.(ZM_MIN_STREAMING_PORT+$this->{'Id'});
-    } else {
-      $streamSrc .= $_SERVER['HTTP_HOST'];
-    }
-    $streamSrc .= ZM_PATH_ZMS;
+    $streamSrc = $this->Server()->UrlToZMS(
+      ZM_MIN_STREAMING_PORT ?
+      ZM_MIN_STREAMING_PORT+$this->{'Id'} :
+      null);
 
     $args['monitor'] = $this->{'Id'};
 
@@ -315,9 +308,9 @@ private $control_fields = array(
       $args['rand'] = time();
     }
 
-    $streamSrc .= '?'.http_build_query( $args,'', $querySep );
+    $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
-    return( $streamSrc );
+    return $streamSrc;
   } // end function getStreamSrc
 
   public function Width($new = null) {
@@ -339,6 +332,20 @@ private $control_fields = array(
       return $this->{$field};
     return $this->defaults{$field};
   } // end function Height
+
+  public function SignalCheckColour($new=null) {
+    $field = 'SignalCheckColour';
+    if ($new) {
+      $this->{$field} = $new;
+    }
+
+    // Validate that it's a valid colour (we seem to allow color names, not just hex).
+    // This also helps prevent XSS.
+    if (array_key_exists($field, $this) && preg_match('/^[#0-9a-zA-Z]+$/', $this->{$field})) {
+      return $this->{$field};
+    }
+    return $this->defaults{$field};
+  } // end function SignalCheckColour
 
   public function set($data) {
     foreach ($data as $k => $v) {
@@ -460,7 +467,7 @@ private $control_fields = array(
     } else if ( $this->ServerId() ) {
       $Server = $this->Server();
 
-      $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/'.$this->{'Id'}.'.json';
+      $url = $Server->UrlToApi().'/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmc.json';
       if ( ZM_OPT_USE_AUTH ) {
         if ( ZM_AUTH_RELAY == 'hashed' ) {
           $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
@@ -472,17 +479,8 @@ private $control_fields = array(
         }
       }
       Logger::Debug("sending command to $url");
-      $data = array('Monitor[Function]' => $this->{'Function'} );
 
-      // use key 'http' even if you send the request to https://...
-      $options = array(
-          'http' => array(
-            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-            'method'  => 'POST',
-            'content' => http_build_query($data)
-            )
-          );
-      $context  = stream_context_create($options);
+      $context  = stream_context_create();
       try {
         $result = file_get_contents($url, false, $context);
         if ($result === FALSE) { /* Handle error */ 
@@ -518,6 +516,33 @@ private $control_fields = array(
           daemonControl( 'reload', 'zma', '-m '.$this->{'Id'} );
         }
       }
+    } else if ( $this->ServerId() ) {
+      $Server = $this->Server();
+
+      $url = ZM_BASE_PROTOCOL . '://'.$Server->Hostname().'/zm/api/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zma.json';
+      if ( ZM_OPT_USE_AUTH ) {
+        if ( ZM_AUTH_RELAY == 'hashed' ) {
+          $url .= '?auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
+        } elseif ( ZM_AUTH_RELAY == 'plain' ) {
+          $url = '?user='.$_SESSION['username'];
+          $url = '?pass='.$_SESSION['password'];
+        } elseif ( ZM_AUTH_RELAY == 'none' ) {
+          $url = '?user='.$_SESSION['username'];
+        }
+      }
+      Logger::Debug("sending command to $url");
+
+      $context  = stream_context_create();
+      try {
+        $result = file_get_contents($url, false, $context);
+        if ($result === FALSE) { /* Handle error */
+          Error("Error restarting zma using $url");
+        }
+      } catch ( Exception $e ) {
+        Error("Except $e thrown trying to restart zma");
+      }
+    } else {
+      Error("Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.");
     } // end if we are on the recording server
   } // end public function zmaControl
 
@@ -600,13 +625,15 @@ private $control_fields = array(
       $source = preg_replace( '/^.*\//', '', $this->{'Path'} );
     } elseif ( $this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite' ) {
       $url_parts = parse_url( $this->{'Path'} );
-      if ( ZM_WEB_FILTER_SOURCE == 'Hostname' ) { # Filter out everything but the hostname
+      if ( ZM_WEB_FILTER_SOURCE == 'Hostname' ) {
+        # Filter out everything but the hostname
         if ( isset($url_parts['host']) ) {
           $source = $url_parts['host'];
         } else {
           $source = $this->{'Path'};
         }
-      } elseif ( ZM_WEB_FILTER_SOURCE == "NoCredentials" ) { # Filter out sensitive and common items
+      } elseif ( ZM_WEB_FILTER_SOURCE == "NoCredentials" ) {
+        # Filter out sensitive and common items
         unset($url_parts['user']);
         unset($url_parts['pass']);
         #unset($url_parts['scheme']);
@@ -625,8 +652,9 @@ private $control_fields = array(
     return $source;
   } // end function Source
 
-  public function Url() {
-    return $this->Server()->Url( ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null );
+  public function UrlToIndex() {
+    return $this->Server()->UrlToIndex();
+    //ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
   }
 
 } // end class Monitor

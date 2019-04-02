@@ -176,6 +176,7 @@ $SLANG = array(
     'CanMoveRel'           => 'Mi&#351;care relativ&#259;',
     'CanPan'               => 'Rotativ' ,
     'CanReset'             => 'Can Reset',
+	'CanReboot'             => 'Can Reboot',
     'CanSetPresets'        => 'Can Set Presets',
     'CanSleep'             => 'Can Sleep',
     'CanTilt'              => 'Se poate &#238;nclina',
@@ -881,10 +882,6 @@ $OLANG = array(
     'DIR_EVENTS' => array(
         'Prompt' => "Directorul &#238;n care sunt stocate evenimentele",
         'Help' => "Acesta este subdirectorul &#238;n care sunt salvate imaginile generate de evenimente &#351;i alte fi&#351;iere. Implicit este un subdirector al directorului r&#259;d&#259;cina zoneminder; dac&#259; spa&#355;iul nu v&#259; permite pute&#355;i s&#259; stoca&#355;i imaginile pe alt&#259; parti&#355;ie, caz &#238;n care ar trebui s&#259; face&#355;i un link la subdirectorul implicit."
-    ),
-    'DIR_IMAGES' => array(
-        'Prompt' => "Directorul &#238;n care sunt stocate imaginile",
-        'Help' => "ZoneMinder genereaz&#259; multe imagini, majoritate asociate cu evenimente. &#206;n acest director vor fi stocate imaginile neasociate evenimentelor."
     ),
     'DIR_SOUNDS' => array(
         'Prompt' => "Directorul cu sunetele care pot fi folosite de ZoneMinder",

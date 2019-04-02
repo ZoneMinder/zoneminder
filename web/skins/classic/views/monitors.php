@@ -23,14 +23,14 @@ if ( !canEdit('Monitors') ) {
   return;
 }
 
-$monitors = Monitor::find(array('Id' => $_REQUEST['mids']));
+$monitors = ZM\Monitor::find(array('Id' => $_REQUEST['mids']));
 $monitor = $monitors[0];
-$servers = Server::find();
+$servers = ZM\Server::find();
 $ServersById = array();
 foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
-$storage_areas = Storage::find();
+$storage_areas = ZM\Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
   $StorageById[$S->Id()] = $S;
@@ -48,8 +48,8 @@ xhtmlHeaders(__FILE__, translate('Function'));
     <div id="content">
 The following monitors will have these settings update when you click Save:<br/><br/>
       <?php echo implode('<br/>', array_map(function($m){return $m->Id().' ' .$m->Name();}, $monitors)); ?>
-      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="$j('#contentButtons').hide();return true;">
-        <input type="hidden" name="view" value="none"/>
+      <form name="contentForm" id="contentForm" method="post" action="?" onsubmit="$j('#contentButtons').hide();return true;">
+        <input type="hidden" name="view" value="monitors"/>
         <input type="hidden" name="action" value="save"/>
         <input type="hidden" name="object" value="Monitor"/>
 <?php
@@ -57,7 +57,7 @@ The following monitors will have these settings update when you click Save:<br/>
     "\n",
     array_map(function($m){
       return '<input type="hidden" name="mids[]" value="'.$m->Id().'"/>';
-      }, $monitors)
+    }, $monitors)
   );
   if ( count($ServersById) > 0 ) { ?>
         <p class="Server"><label><?php echo translate('Server')?></label>
@@ -73,7 +73,7 @@ The following monitors will have these settings update when you click Save:<br/>
 <?php
   }
 ?>
-        <p><label><?php echo translate('Function') ?></label>
+        <p class="Function"><label><?php echo translate('Function') ?></label>
 <?php
   $options = array();
   foreach ( getEnumValues('Monitors', 'Function') as $opt ) {
@@ -88,7 +88,7 @@ The following monitors will have these settings update when you click Save:<br/>
         </p>
         <div id="contentButtons">
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>
-          <button type="button" onclick="closeWindow()"><?php echo translate('Cancel') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

@@ -1,6 +1,6 @@
-# ==========================================================================
+############################################################################
 #
-# ZoneMinder Logger Module, $Date$, $Revision$
+# ZoneMinder Logger Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -17,7 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# ==========================================================================
+############################################################################
 #
 # This module contains the debug definitions and functions used by the rest
 # of the ZoneMinder scripts
@@ -81,17 +81,17 @@ our @EXPORT = qw();
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
-# ==========================================================================
+############################################################################
 #
 # Logger Facilities
 #
-# ==========================================================================
+############################################################################
 
-use ZoneMinder::Config qw(:all);
+require ZoneMinder::Config;
 
 use DBI;
 use Carp;
-use POSIX;
+require POSIX;
 use IO::Handle;
 use Data::Dumper;
 use Time::HiRes qw/gettimeofday/;
@@ -156,7 +156,7 @@ sub new {
   $this->{autoFlush} = 1;
 
   ( $this->{fileName} = $0 ) =~ s|^.*/||;
-  $this->{logPath} = $Config{ZM_PATH_LOGS};
+  $this->{logPath} = $ZoneMinder::Config::Config{ZM_PATH_LOGS};
   $this->{logFile} = $this->{logPath}.'/'.$this->{id}.'.log';
   ($this->{logFile}) = $this->{logFile} =~ /^([\w\.\/]+)$/;
 
@@ -169,7 +169,7 @@ sub new {
 sub BEGIN {
 # Fake the config variables that are used in case they are not defined yet
 # Only really necessary to support upgrade from previous version
-  if ( !eval('defined($Config{ZM_LOG_DEBUG})') ) {
+  if ( !eval('defined($ZoneMinder::Config::Config{ZM_LOG_DEBUG})') ) {
     no strict 'subs';
     no strict 'refs';
     my %dbgConfig = (
@@ -221,17 +221,17 @@ sub initialise( @ ) {
   if ( defined($options{databaseLevel}) ) {
     $tempDatabaseLevel = $options{databaseLevel};
   } else {
-    $tempDatabaseLevel = $Config{ZM_LOG_LEVEL_DATABASE};
+    $tempDatabaseLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_DATABASE};
   }
   if ( defined($options{fileLevel}) ) {
     $tempFileLevel = $options{fileLevel};
   } else {
-    $tempFileLevel = $Config{ZM_LOG_LEVEL_FILE};
+    $tempFileLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_FILE};
   }
   if ( defined($options{syslogLevel}) ) {
     $tempSyslogLevel = $options{syslogLevel};
   } else {
-    $tempSyslogLevel = $Config{ZM_LOG_LEVEL_SYSLOG};
+    $tempSyslogLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_SYSLOG};
   }
 
   if ( defined($ENV{LOG_PRINT}) ) {
@@ -245,19 +245,19 @@ sub initialise( @ ) {
   $tempFileLevel = $level if defined($level = $this->getTargettedEnv('LOG_LEVEL_FILE'));
   $tempSyslogLevel = $level if defined($level = $this->getTargettedEnv('LOG_LEVEL_SYSLOG'));
 
-  if ( $Config{ZM_LOG_DEBUG} ) {
+  if ( $ZoneMinder::Config::Config{ZM_LOG_DEBUG} ) {
     # Splitting on an empty string doesn't return an empty string, it returns an empty array
-    foreach my $target ( $Config{ZM_LOG_DEBUG_TARGET} ? split(/\|/, $Config{ZM_LOG_DEBUG_TARGET}) : '' ) {
+    foreach my $target ( $ZoneMinder::Config::Config{ZM_LOG_DEBUG_TARGET} ? split(/\|/, $ZoneMinder::Config::Config{ZM_LOG_DEBUG_TARGET}) : '' ) {
       if ( $target eq $this->{id}
           || $target eq '_'.$this->{id}
           || $target eq $this->{idRoot}
           || $target eq '_'.$this->{idRoot}
           || $target eq ''
          ) {
-        if ( $Config{ZM_LOG_DEBUG_LEVEL} > NOLOG ) {
-          $tempLevel = $this->limit( $Config{ZM_LOG_DEBUG_LEVEL} );
-          if ( $Config{ZM_LOG_DEBUG_FILE} ne '' ) {
-            $tempLogFile = $Config{ZM_LOG_DEBUG_FILE};
+        if ( $ZoneMinder::Config::Config{ZM_LOG_DEBUG_LEVEL} > NOLOG ) {
+          $tempLevel = $this->limit( $ZoneMinder::Config::Config{ZM_LOG_DEBUG_LEVEL} );
+          if ( $ZoneMinder::Config::Config{ZM_LOG_DEBUG_FILE} ne '' ) {
+            $tempLogFile = $ZoneMinder::Config::Config{ZM_LOG_DEBUG_FILE};
             $tempFileLevel = $tempLevel;
           }
         }
@@ -310,7 +310,7 @@ sub reinitialise {
 
 # Bit of a nasty hack to reopen connections to log files and the DB
   my $syslogLevel = $this->syslogLevel();
-  $this->syslogLevel( NOLOG );
+  $this->syslogLevel(NOLOG);
   $this->syslogLevel($syslogLevel) if $syslogLevel > NOLOG;
 
   my $logfileLevel = $this->fileLevel();
@@ -321,11 +321,10 @@ sub reinitialise {
   $this->databaseLevel(NOLOG);
   $this->databaseLevel($databaseLevel) if $databaseLevel > NOLOG;
 
-  my $screenLevel = $this->termLevel();
+  $this->{hasTerm} = -t STDERR;
+  my $termLevel = $this->termLevel();
   $this->termLevel(NOLOG);
-  $this->termLevel($screenLevel) if $screenLevel > NOLOG;
-
-  $this->{sth} = undef;
+  $this->termLevel($termLevel) if $termLevel > NOLOG;
 }
 
 # Prevents undefined logging levels
@@ -439,16 +438,13 @@ sub databaseLevel {
   my $databaseLevel = shift;
   if ( defined($databaseLevel) ) {
     $databaseLevel = $this->limit($databaseLevel);
-    if ( $this->{databaseLevel} != $databaseLevel ) {
-      if ( ( $databaseLevel > NOLOG ) and ( $this->{databaseLevel} <= NOLOG ) ) {
-        if ( ! ( $ZoneMinder::Database::dbh or ZoneMinder::Database::zmDbConnect() ) ) {
-          Warning("Failed connecting to db.  Not using database logging.");
-          $this->{databaseLevel} = NOLOG;
-          return NOLOG;
-        }
-      }
-      $this->{databaseLevel} = $databaseLevel;
+    if ( $databaseLevel > NOLOG ) {
+      $this->{dbh} = ZoneMinder::Database::zmDbConnect();
+    } else {
+      undef($this->{dbh});
     }
+    $this->{sth} = undef;
+    $this->{databaseLevel} = $databaseLevel;
   }
   return $this->{databaseLevel};
 }
@@ -505,8 +501,8 @@ sub openFile {
   if ( open($LOGFILE, '>>', $this->{logFile}) ) {
     $LOGFILE->autoflush() if $this->{autoFlush};
 
-    my $webUid = (getpwnam($Config{ZM_WEB_USER}))[2];
-    my $webGid = (getgrnam($Config{ZM_WEB_GROUP}))[2];
+    my $webUid = (getpwnam($ZoneMinder::Config::Config{ZM_WEB_USER}))[2];
+    my $webGid = (getgrnam($ZoneMinder::Config::Config{ZM_WEB_GROUP}))[2];
     if ( $> == 0 ) {
       chown( $webUid, $webGid, $this->{logFile} )
         or Fatal("Can't change permissions on log file $$this{logFile}: $!");
@@ -539,7 +535,7 @@ sub logPrint {
     if ( $level <= $this->{fileLevel} or $level <= $this->{termLevel} ) {
       my $message = sprintf(
           '%s.%06d %s[%d].%s [%s:%d] [%s]'
-          , strftime('%x %H:%M:%S', localtime($seconds))
+          , POSIX::strftime('%x %H:%M:%S', localtime($seconds))
           , $microseconds
           , $this->{id}
           , $$
@@ -581,7 +577,7 @@ sub logPrint {
       my $res = $this->{sth}->execute(
         $seconds+($microseconds/1000000.0),
            $this->{id},
-           ($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : undef),
+           ($ZoneMinder::Config::Config{ZM_SERVER_ID} ? $ZoneMinder::Config::Config{ZM_SERVER_ID} : undef),
            $$,
            $level,
            $codes{$level},
@@ -700,9 +696,14 @@ sub error {
 }
 
 sub Fatal( @ ) {
-  fetch()->logPrint(FATAL, @_, caller);
+  my $this = fetch();
+  $this->logPrint(FATAL, @_, caller);
   if ( $SIG{TERM} and ( $SIG{TERM} ne 'DEFAULT' ) ) {
     $SIG{TERM}();
+  }
+  if ( $$this{sth} ) {
+    $$this{sth}->finish();
+    $$this{sth} = undef;
   }
   # I think if we don't disconnect we will leave sockets around in TIME_WAIT
   ZoneMinder::Database::zmDbDisconnect();

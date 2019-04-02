@@ -158,9 +158,9 @@ if ( $show_storage_areas ) $left_columns += 1;
 
 
 xhtmlHeaders( __FILE__, translate('Console') );
+getBodyTopHTML();
 ?>
-<body>
-  <form name="monitorForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+  <form name="monitorForm" method="get" action="?">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
 
@@ -178,23 +178,23 @@ xhtmlHeaders( __FILE__, translate('Console') );
     </div>
 
     <div class="container-fluid">
-      <button type="button" name="addBtn" onclick="addMonitor(this);"
+      <button type="button" name="addBtn" data-on-click-this="addMonitor"
       <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
       >
       <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp;<?php echo translate('AddNewMonitor') ?>
       </button>
-      <button type="button" name="cloneBtn" onclick="cloneMonitor(this);"
+      <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
       <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
       style="display:none;">
       <span class="glyphicon glyphicon-copy"></span>&nbsp;<?php echo translate('CloneMonitor') ?>
       </button>
-      <button type="button" name="editBtn" onclick="editMonitor(this);" disabled="disabled">
+      <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
       <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>&nbsp;<?php echo translate('Edit') ?>
       </button>
-      <button type="button" name="deleteBtn" onclick="deleteMonitor(this);" disabled="disabled">
+      <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
       <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<?php echo translate('Delete') ?>
       </button>
-      <button type="button" name="selectBtn" onclick="selectMonitor(this);" disabled="disabled"><?php echo translate('Select')?></button>
+      <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled"><?php echo translate('Select')?></button>
 <?php
 ob_start();
 ?>
@@ -219,7 +219,7 @@ ob_start();
 ?>
             <th class="colZones"><?php echo translate('Zones') ?></th>
 <?php if ( canEdit('Monitors') ) { ?>
-            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" onclick="toggleCheckbox(this, 'markMids[]');setButtonStates(this);"/> <?php echo translate('All') ?></th>
+            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/> <?php echo translate('All') ?></th>
 <?php } ?>
           </tr>
         </thead>
@@ -230,7 +230,7 @@ ob_end_clean();
 echo $table_head;
 for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   $monitor = $displayMonitors[$monitor_i];
-  $Monitor = new Monitor($monitor);
+  $Monitor = new ZM\Monitor($monitor);
 
   if ( $monitor_i and ( $monitor_i % 100 == 0 ) ) {
     echo '</table>';
@@ -251,15 +251,19 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
     }
   }
   if ( $monitor['Function'] == 'None' )
-    $fclass = 'errorText';
+    $function_class = 'errorText';
   else
-    $fclass = 'infoText';
-  if ( !$monitor['Enabled'] )
-    $fclass .= ' disabledText';
+    $function_class = 'infoText';
+
+
   $scale = max(reScale(SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
   $stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Function'] != 'None');
-  $dot_class=$source_class;
-  if ( $fclass != 'infoText' ) $dot_class=$fclass;
+  $dot_class = $source_class;
+  if ( $function_class != 'infoText' ) {
+    $dot_class = $function_class;
+  } else if ( !$monitor['Enabled'] ) {
+    $dot_class .= ' warnText';
+  }
 
   if ( ZM_WEB_ID_ON_CONSOLE ) {
 ?>
@@ -268,20 +272,20 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   }
 ?>
             <td class="colName">
-              <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>"  aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
+              <span class="glyphicon glyphicon-dot <?php echo $dot_class ?>" aria-hidden="true"></span><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Name'] ?></a><br/><div class="small text-nowrap text-muted">
               <?php echo implode('<br/>',
                   array_map(function($group_id){
-                    $Group = Group::find_one(array('Id'=>$group_id));
+                    $Group = ZM\Group::find_one(array('Id'=>$group_id));
                     if ( $Group ) {
                       $Groups = $Group->Parents();
                       array_push( $Groups, $Group );
                     }
-                    return implode(' &gt; ', array_map(function($Group){ return '<a href="'. ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=montagereview&GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
+                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </div></td>
             <td class="colFunction">
-              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$fclass.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', disabled' : '' ) .'</span>', canEdit( 'Monitors' ) ) ?><br/>
+              <?php echo makePopupLink( '?view=function&amp;mid='.$monitor['Id'], 'zmFunction', 'function', '<span class="'.$function_class.'">'.translate('Fn'.$monitor['Function']).( empty($monitor['Enabled']) ? ', <span class="disabledText">disabled</span>' : '' ) .'</span>', canEdit('Monitors') ) ?><br/>
               <?php echo translate('Status'.$monitor['Status']) ?><br/>
               <div class="small text-nowrap text-muted">
 <?php 
@@ -301,10 +305,10 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
               </div></td>
 <?php
   if ( count($servers) ) { ?>
-            <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new Server( $monitor['ServerId'] ); echo $Server->Name(); ?></td>
+            <td class="colServer"><?php $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new ZM\Server($monitor['ServerId']); echo $Server->Name(); ?></td>
 <?php
   }
-  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.$Monitor->Source().'</span>', canEdit('Monitors') ).'</td>';
+  echo '<td class="colSource">'. makePopupLink( '?view=monitor&amp;mid='.$monitor['Id'], 'zmMonitor'.$monitor['Id'], 'monitor', '<span class="'.$source_class.'">'.validHtmlStr($Monitor->Source()).'</span>', canEdit('Monitors') ).'</td>';
   if ( $show_storage_areas ) {
 ?>
             <td class="colStorage"><?php if ( isset($StorageById[$monitor['StorageId']]) ) { echo $StorageById[ $monitor['StorageId'] ]->Name(); } ?></td>
@@ -323,7 +327,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   if ( canEdit('Monitors') ) {
 ?>
             <td class="colMark">
-              <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" onclick="setButtonStates( this )"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+              <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" data-on-click-this="setButtonStates"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
               <span class="glyphicon glyphicon-sort" title="Click and drag to change order"></span>
             </td>
 <?php

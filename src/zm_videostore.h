@@ -3,8 +3,13 @@
 
 #include "zm_ffmpeg.h"
 extern "C"  {
-#ifdef HAVE_LIBAVRESAMPLE
-#include "libavresample/avresample.h"
+#ifdef HAVE_LIBSWRESAMPLE
+  #include "libswresample/swresample.h"
+  #include "libavutil/audio_fifo.h"
+#else
+  #ifdef HAVE_LIBAVRESAMPLE
+    #include "libavresample/avresample.h"
+  #endif
 #endif
 }
 
@@ -38,8 +43,13 @@ private:
   // The following are used when encoding the audio stream to AAC
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
+#ifdef HAVE_LIBSWRESAMPLE
+  SwrContext *resample_ctx;
+  AVAudioFifo *fifo;
+#else
 #ifdef HAVE_LIBAVRESAMPLE
   AVAudioResampleContext* resample_ctx;
+#endif
 #endif
   uint8_t *converted_in_samples;
     
@@ -51,6 +61,11 @@ private:
   int64_t video_last_dts;
   int64_t audio_last_pts;
   int64_t audio_last_dts;
+
+  int64_t video_first_pts;
+  int64_t video_first_dts;
+  int64_t audio_first_pts;
+  int64_t audio_first_dts;
 
   // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
   int64_t video_next_pts;

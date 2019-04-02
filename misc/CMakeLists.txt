@@ -2,6 +2,7 @@
 
 # Create files from the .in files
 configure_file(apache.conf.in "${CMAKE_CURRENT_BINARY_DIR}/apache.conf" @ONLY)
+configure_file(nginx.conf.in "${CMAKE_CURRENT_BINARY_DIR}/nginx.conf" @ONLY)
 configure_file(logrotate.conf.in "${CMAKE_CURRENT_BINARY_DIR}/logrotate.conf" @ONLY)
 configure_file(syslog.conf.in "${CMAKE_CURRENT_BINARY_DIR}/syslog.conf" @ONLY)
 configure_file(com.zoneminder.systemctl.policy.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.policy" @ONLY)

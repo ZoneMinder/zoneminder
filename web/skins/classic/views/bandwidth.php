@@ -20,22 +20,19 @@
 
 $newBandwidth = $_COOKIE['zmBandwidth'];
 
-if ( $user && !empty($user['MaxBandwidth']) )
-{
-    if ( $user['MaxBandwidth'] == "low" )
-    {
-        unset( $bandwidth_options['high'] );
-        unset( $bandwidth_options['medium'] );
-    }
-    elseif ( $user['MaxBandwidth'] == "medium" )
-    {
-        unset( $bandwidth_options['high'] );
-    }
+# Limit available options to what are available in user
+if ( $user && !empty($user['MaxBandwidth']) ) {
+  if ( $user['MaxBandwidth'] == 'low' ) {
+    unset($bandwidth_options['high']);
+    unset($bandwidth_options['medium']);
+  } else if ( $user['MaxBandwidth'] == 'medium' ) {
+    unset($bandwidth_options['high']);
+  }
 }
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Bandwidth') );
+xhtmlHeaders(__FILE__, translate('Bandwidth'));
 ?>
 <body>
   <div id="page">
@@ -43,13 +40,14 @@ xhtmlHeaders(__FILE__, translate('Bandwidth') );
       <h2><?php echo translate('Bandwidth') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
-        <input type="hidden" name="view" value="none"/>
+      <form name="contentForm" id="contentForm" method="post" action="?">
+        <input type="hidden" name="view" value="bandwidth"/>
         <input type="hidden" name="action" value="bandwidth"/>
         <p><?php echo translate('SetNewBandwidth') ?></p>
-        <p><?php echo buildSelect( "newBandwidth", $bandwidth_options ) ?></p>
+        <p><?php echo buildSelect('newBandwidth', $bandwidth_options) ?></p>
         <div id="contentButtons">
-          <input type="submit" value="<?php echo translate('Save') ?>"/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <button type="submit" value="Save"><?php echo translate('Save') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

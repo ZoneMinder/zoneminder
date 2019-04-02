@@ -37,20 +37,20 @@ if ( version_compare(phpversion(), '4.1.0', '<') ) {
 if ( false ) {
   ob_start();
   phpinfo(INFO_VARIABLES);
-  $fp = fopen('/tmp/env.html', 'w');
+  $fp = fopen('/tmp/env.html', 'w+');
   fwrite($fp, ob_get_contents());
   fclose($fp);
   ob_end_clean();
 }
 
 require_once('includes/config.php');
+require_once('includes/session.php');
 require_once('includes/logger.php');
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
 require_once('includes/Event.php');
 require_once('includes/Group.php');
 require_once('includes/Monitor.php');
-
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
@@ -69,11 +69,16 @@ define('ZM_BASE_PROTOCOL', $protocol);
 // Use relative URL's instead
 define('ZM_BASE_URL', '');
 
-// Check time zone is set
-if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone'))) {
-  date_default_timezone_set('UTC');
-  Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+require_once('includes/functions.php');
+if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
+  ZM\Logger::Debug("OPTIONS Method, only doing CORS");
+  # Add Cross domain access headers
+  CORSHeaders();
+  return;
 }
+
+// Verify the system, php, and mysql timezones all match
+check_timezone();
 
 if ( isset($_GET['skin']) ) {
   $skin = $_GET['skin'];
@@ -117,46 +122,33 @@ if ( !file_exists(ZM_SKIN_PATH) )
   Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
-$currentCookieParams = session_get_cookie_params(); 
-//Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
-session_set_cookie_params( 
-    $currentCookieParams['lifetime'], 
-    $currentCookieParams['path'], 
-    $currentCookieParams['domain'],
-    $currentCookieParams['secure'], 
-    true
-); 
+zm_session_start();
 
-ini_set('session.name', 'ZMSESSID');
-
-session_start();
-
-if ( !isset($_SESSION['skin']) || isset($_REQUEST['skin']) || !isset($_COOKIE['zmSkin']) || $_COOKIE['zmSkin'] != $skin ) {
+if (
+  !isset($_SESSION['skin']) ||
+  isset($_REQUEST['skin']) ||
+  !isset($_COOKIE['zmSkin']) ||
+  $_COOKIE['zmSkin'] != $skin
+) {
   $_SESSION['skin'] = $skin;
   setcookie('zmSkin', $skin, time()+3600*24*30*12*10);
 }
 
-if ( !isset($_SESSION['css']) || isset($_REQUEST['css']) || !isset($_COOKIE['zmCSS']) || $_COOKIE['zmCSS'] != $css ) {
+if (
+  !isset($_SESSION['css']) ||
+  isset($_REQUEST['css']) ||
+  !isset($_COOKIE['zmCSS']) ||
+  $_COOKIE['zmCSS'] != $css
+) {
   $_SESSION['css'] = $css;
   setcookie('zmCSS', $css, time()+3600*24*30*12*10);
 }
 
-if ( ZM_OPT_USE_AUTH ) {
-  if ( isset($_SESSION['user']) ) {
-    $user = $_SESSION['user'];
-  } else {
-    unset($user);
-  }
-} else {
-  $user = $defaultUser;
-}
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
 session_write_close();
 
 require_once('includes/lang.php');
-require_once('includes/functions.php');
-require_once('includes/auth.php');
 
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;
@@ -165,48 +157,43 @@ $running = null;
 CORSHeaders();
 
 // Check for valid content dirs
-if ( !is_writable(ZM_DIR_EVENTS) || !is_writable(ZM_DIR_IMAGES) ) {
-  Warning("Cannot write to content dirs('".ZM_DIR_EVENTS."','".ZM_DIR_IMAGES."').  Check that these exist and are owned by the web account user");
+if ( !is_writable(ZM_DIR_EVENTS) ) {
+  ZM\Warning("Cannot write to event folder ".ZM_DIR_EVENTS.". Check that it exists and is owned by the web account user.");
 }
 
 # Globals
+$action = null;
+$error_message = null;
 $redirect = null;
 $view = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
+# Add CSP Headers
+$cspNonce = bin2hex(openssl_random_pseudo_bytes(16));
+
 $request = null;
 if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
-foreach ( getSkinIncludes('skin.php') as $includeFile )
+# User Login will be performed in auth.php
+require_once('includes/auth.php');
+
+foreach ( getSkinIncludes('skin.php') as $includeFile ) {
+  #ZM\Logger::Debug("including $includeFile");
   require_once $includeFile;
-
-if ( ZM_OPT_USE_AUTH ) {
-    if ( ZM_AUTH_HASH_LOGINS && empty($user) && ! empty($_REQUEST['auth']) ) {
-      if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
-        userLogin($authUser['Username'], $authUser['Password'], true);
-      }
-    } 
-   else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
-	userLogin($_REQUEST['username'], $_REQUEST['password'], false);
-  }
-  if ( !empty($user) ) {
-    // generate it once here, while session is open.  Value will be cached in session and return when called later on
-    generateAuthHash(ZM_AUTH_HASH_IPS);
-  }
 }
 
-if ( isset($_REQUEST['action']) ) {
+if ( isset($_REQUEST['action']) )
   $action = detaintPath($_REQUEST['action']);
-}
+
 
 # The only variable we really need to set is action. The others are informal.
 isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
 
-Logger::Debug("View: $view Request: $request Action: $action");
+ZM\Logger::Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
@@ -217,25 +204,42 @@ if (
   ( $view != 'archive' )
 ) {
   require_once( 'includes/csrf/csrf-magic.php' );
-  #Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
+  #ZM\Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();
 }
 
 # Need to include actions because it does auth
-require_once('includes/actions.php');
+if ( $action ) {
+  if ( file_exists('includes/actions/'.$view.'.php') ) {
+    ZM\Logger::Debug("Including includes/actions/$view.php");
+    require_once('includes/actions/'.$view.'.php');
+  } else {
+    ZM\Warning("No includes/actions/$view.php for action $action");
+  }
+}
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and !isset($user) ) {
-  Logger::Debug('Redirecting to login');
-  $view = 'login';
+if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
+  /* AJAX check  */
+  if ( !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+    && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' ) {
+    header('HTTP/1.1 401 Unauthorized');
+    exit;
+  }
+  ZM\Logger::Debug('Redirecting to login');
+  $view = 'none';
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
   $request = null;
-} else if ( ZM_SHOW_PRIVACY && ($action != 'privacy') && ($view !='options') && (!$request) && canEdit('System') ) {
-  Logger::Debug('Redirecting to privacy');
-  $view = 'privacy';
+} else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
+  $view = 'none';
+  $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
   $request = null;
 }
 
+CSPHeaders($view, $cspNonce);
+
 if ( $redirect ) {
+  ZM\Logger::Debug("Redirecting to $redirect");
   header('Location: '.$redirect);
   return;
 }
@@ -243,31 +247,31 @@ if ( $redirect ) {
 if ( $request ) {
   foreach ( getSkinIncludes('ajax/'.$request.'.php', true, true) as $includeFile ) {
     if ( !file_exists($includeFile) )
-      Fatal("Request '$request' does not exist");
+      ZM\Fatal("Request '$request' does not exist");
     require_once $includeFile;
   }
   return;
-} else {
-  if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
-    foreach ( $includeFiles as $includeFile ) {
-      if ( !file_exists($includeFile) )
-        Fatal("View '$view' does not exist");
-      require_once $includeFile;
-    }
-    // If the view overrides $view to 'error', and the user is not logged in, then the
-    // issue is probably resolvable by logging in, so provide the opportunity to do so.
-    // The login view should handle redirecting to the correct location afterward.
-    if ( $view == 'error' && !isset($user) ) {
-      $view = 'login';
-      foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
-        require_once $includeFile;
-    }
+}
+
+if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
+  foreach ( $includeFiles as $includeFile ) {
+    if ( !file_exists($includeFile) )
+      ZM\Fatal("View '$view' does not exist");
+    require_once $includeFile;
   }
-  // If the view is missing or the view still returned error with the user logged in,
-  // then it is not recoverable.
-  if ( !$includeFiles || $view == 'error' ) {
-    foreach ( getSkinIncludes('views/error.php', true, true) as $includeFile )
+  // If the view overrides $view to 'error', and the user is not logged in, then the
+  // issue is probably resolvable by logging in, so provide the opportunity to do so.
+  // The login view should handle redirecting to the correct location afterward.
+  if ( $view == 'error' && !isset($user) ) {
+    $view = 'login';
+    foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
       require_once $includeFile;
   }
+}
+// If the view is missing or the view still returned error with the user logged in,
+// then it is not recoverable.
+if ( !$includeFiles || $view == 'error' ) {
+  foreach ( getSkinIncludes('views/error.php', true, true) as $includeFile )
+    require_once $includeFile;
 }
 ?>

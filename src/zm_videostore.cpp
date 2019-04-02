@@ -699,6 +699,14 @@ bool VideoStore::setup_resampler() {
   }
 #endif
 
+  Debug(3,
+        "Time bases: AUDIO in stream (%d/%d) in codec: (%d/%d) out "
+        "stream: (%d/%d) out codec (%d/%d)",
+        audio_in_stream->time_base.num, audio_in_stream->time_base.den,
+        audio_in_ctx->time_base.num, audio_in_ctx->time_base.den,
+        audio_out_stream->time_base.num, audio_out_stream->time_base.den,
+        audio_out_ctx->time_base.num, audio_out_ctx->time_base.den);
+
   Debug(1,
         "Audio in bit_rate (%d) sample_rate(%d) channels(%d) fmt(%d) "
         "layout(%d) frame_size(%d)",
@@ -882,7 +890,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
           video_out_stream->time_base
           );
     }
-    Debug(3, "opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")", opkt.pts, ipkt->pts, video_first_pts);
+    Debug(3, "opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")",
+        opkt.pts, ipkt->pts, video_first_pts);
     video_last_pts = ipkt->pts;
   } else {
     Debug(3, "opkt.pts = undef");
@@ -903,7 +912,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
           video_in_stream->time_base,
           video_out_stream->time_base
           );
-      Debug(3, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_pts(%" PRId64 ")",
+      Debug(3, "opkt.dts = %" PRId64 " from ipkt->dts(%" PRId64 ") - first_pts(%" PRId64 ")",
           opkt.dts, ipkt->dts, video_first_pts);
       video_last_dts = ipkt->dts;
 #if 0
@@ -962,7 +971,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   }
 
   if ( audio_out_codec ) {
-    Debug(3, "Have audio codec");
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
 
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -975,22 +983,8 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       Error("avcodec_receive_frame fail %s", av_make_error_string(ret).c_str());
       return 0;
     }
-    Debug(2,
-          "In Frame: samples(%d), format(%d), sample_rate(%d), "
-          "channels(%d) channel layout(%d) pts(%" PRId64 ")",
-          in_frame->nb_samples,
-          in_frame->format,
-          in_frame->sample_rate,
-          in_frame->channels,
-          in_frame->channel_layout,
-          in_frame->pts);
+
   #else
-    /**
-     * Decode the audio frame stored in the packet.
-     * The in audio stream decoder is used to do this.
-     * If we are at the end of the file, pass an empty packet to the decoder
-     * to flush it.
-     */
     int data_present;
     if ( (ret = avcodec_decode_audio4(
             audio_in_ctx, in_frame, &data_present, ipkt)) < 0 ) {
@@ -1006,14 +1000,27 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
   #endif
+    zm_dump_frame(in_frame, "In frame from decode");
     int frame_size = in_frame->nb_samples;
 
     // Resample the in into the audioSampleBuffer until we proceed the whole
-    // decoded data
+    // decoded data. Note: pts does not survive resampling or converting
   #if defined(HAVE_LIBSWRESAMPLE)
     Debug(2, "Converting %d to %d samples using swresample", in_frame->nb_samples, out_frame->nb_samples);
     ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
+    zm_dump_frame(out_frame, "Out frame after convert");
+
     out_frame->pts = in_frame->pts;
+    // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
+    if ( out_frame->pts != AV_NOPTS_VALUE ) {
+      if ( !audio_first_pts ) {
+        audio_first_pts = out_frame->pts;
+        Debug(1, "No audio_first_pts setting to %" PRId64, audio_first_pts);
+        out_frame->pts = 0;
+      } else {
+        out_frame->pts = out_frame->pts - audio_first_pts;
+      }
+    }
     av_frame_unref(in_frame);
     if ( ret < 0 ) {
       Error("Could not resample frame (error '%s')",
@@ -1072,26 +1079,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   #endif
     zm_dump_frame(out_frame, "Out frame after resample");
 
-    // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
-    if ( ipkt->pts != AV_NOPTS_VALUE ) {
-      if ( !audio_first_pts ) {
-        out_frame->pts = 0;
-        audio_first_pts = ipkt->pts;
-        Debug(1, "No audio_first_pts");
-      } else {
-        out_frame->pts = av_rescale_q(
-            out_frame->pts - audio_first_pts,
-            audio_in_stream->time_base,
-            audio_out_stream->time_base);
-        Debug(2, "audio out_frame.pts = %d from ipkt->pts(%d) - first_pts(%d)",
-            out_frame->pts, ipkt->pts, audio_first_pts);
-      }
-    } else {
-      Debug(2, "out_frame.pts = undef");
-      out_frame->pts = AV_NOPTS_VALUE;
-    }
-    zm_dump_frame(out_frame, "Out frame after resample and pts adjustment");
-
     av_init_packet(&opkt);
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( (ret = avcodec_send_frame(audio_out_ctx, out_frame)) < 0 ) {
@@ -1131,77 +1118,81 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 #else
     Error("Have audio codec but no resampler?!");
 #endif
+  //if ( out_frame ) {
+    //opkt.duration = out_frame->nb_samples;
+    opkt.duration = av_rescale_q(opkt.duration, 
+          audio_in_stream->time_base,
+          audio_out_stream->time_base);
+    opkt.pts = av_rescale_q(opkt.pts, 
+          audio_in_stream->time_base,
+          audio_out_stream->time_base);
+    opkt.dts = av_rescale_q(opkt.dts, 
+          audio_in_stream->time_base,
+          audio_out_stream->time_base);
   } else {
     av_init_packet(&opkt);
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
+
+    if ( ipkt->duration != AV_NOPTS_VALUE ) {
+      opkt.duration = av_rescale_q(
+          ipkt->duration,
+          audio_in_stream->time_base,
+          audio_out_stream->time_base);
+    }
+    // Scale the PTS of the outgoing packet to be the correct time base
+    if ( ipkt->pts != AV_NOPTS_VALUE ) {
+      if ( !audio_first_pts ) {
+        opkt.pts = 0;
+        audio_first_pts = ipkt->pts;
+        Debug(1, "No audio_first_pts");
+      } else {
+        opkt.pts = av_rescale_q(
+            ipkt->pts - audio_first_pts,
+            audio_in_stream->time_base,
+            audio_out_stream->time_base);
+        Debug(2, "audio opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")",
+            opkt.pts, ipkt->pts, audio_first_pts);
+      }
+      audio_last_pts = ipkt->pts;
+    } else {
+      Debug(2, "opkt.pts = undef");
+      opkt.pts = AV_NOPTS_VALUE;
+    }
+
+    if ( ipkt->dts != AV_NOPTS_VALUE ) {
+      // So if the in has no dts assigned... still need an out dts... so we use cur_dts?
+
+#if 0
+      if ( audio_last_dts >= audio_in_stream->cur_dts ) {
+        Debug(1, "Resetting audio_last_dts from (%d) to cur_dts (%d)", audio_last_dts, audio_in_stream->cur_dts);
+        opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts,  AV_TIME_BASE_Q, audio_out_stream->time_base);
+      } else {
+        opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts - audio_last_dts, AV_TIME_BASE_Q, audio_out_stream->time_base);
+      }
+#endif
+      if ( !audio_first_dts ) {
+        opkt.dts = 0;
+        audio_first_dts = ipkt->dts;
+      } else {
+        opkt.dts = av_rescale_q(
+            ipkt->dts - audio_first_dts,
+            audio_in_stream->time_base,
+            audio_out_stream->time_base);
+        Debug(2, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_dts(%" PRId64 ")",
+            opkt.dts, ipkt->dts, audio_first_dts);
+      }
+      audio_last_dts = ipkt->dts;
+    } else {
+      opkt.dts = AV_NOPTS_VALUE;
+    }
   }
 
   opkt.pos = -1;
   opkt.stream_index = audio_out_stream->index;
 
-  if ( out_frame ) {
-    opkt.duration = out_frame->nb_samples;
-  } else if ( ipkt->duration != AV_NOPTS_VALUE ) {
-    opkt.duration = av_rescale_q(
-        ipkt->duration,
-        audio_in_stream->time_base,
-        audio_out_stream->time_base);
-  } else {
-    // calculate it?
-  }
   dumpPacket(audio_out_stream, &opkt, "raw opkt");
-// PTS is difficult, because of the buffering of the audio packets in the
-// resampler.  So we have to do it once we actually have a packet...
-// audio_last_pts is the pts of ipkt, audio_next_pts is the last pts of the
-// out
 
-// Scale the PTS of the outgoing packet to be the correct time base
-  if ( ipkt->pts != AV_NOPTS_VALUE ) {
-    if ( !audio_first_pts ) {
-      opkt.pts = 0;
-      audio_first_pts = ipkt->pts;
-      Debug(1, "No audio_first_pts");
-    } else {
-      opkt.pts = av_rescale_q(
-          ipkt->pts - audio_first_pts,
-          audio_in_stream->time_base,
-          audio_out_stream->time_base);
-      Debug(2, "audio opkt.pts = %d from ipkt->pts(%d) - first_pts(%d)",
-          opkt.pts, ipkt->pts, audio_first_pts);
-    }
-    audio_last_pts = ipkt->pts;
-  } else {
-    Debug(2, "opkt.pts = undef");
-    opkt.pts = AV_NOPTS_VALUE;
-  }
-
-  if ( ipkt->dts != AV_NOPTS_VALUE ) {
-    // So if the in has no dts assigned... still need an out dts... so we use cur_dts?
-
-#if 0
-    if ( audio_last_dts >= audio_in_stream->cur_dts ) {
-      Debug(1, "Resetting audio_last_dts from (%d) to cur_dts (%d)", audio_last_dts, audio_in_stream->cur_dts);
-      opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts,  AV_TIME_BASE_Q, audio_out_stream->time_base);
-    } else {
-      opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts - audio_last_dts, AV_TIME_BASE_Q, audio_out_stream->time_base);
-    }
-#endif
-    if ( !audio_first_dts ) {
-      opkt.dts = 0;
-      audio_first_dts = ipkt->dts;
-    } else {
-      opkt.dts = av_rescale_q(
-          ipkt->dts - audio_first_dts,
-          audio_in_stream->time_base,
-          audio_out_stream->time_base);
-      Debug(2, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_dts(%" PRId64 ")",
-         opkt.dts, ipkt->dts, audio_first_dts);
-    }
-    audio_last_dts = ipkt->dts;
-  } else {
-    opkt.dts = AV_NOPTS_VALUE;
-  }
   if ( opkt.dts > opkt.pts ) {
     Debug(1,
           "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 ")."

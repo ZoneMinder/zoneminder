@@ -113,6 +113,7 @@ private $control_fields = array(
   'CanWake' => '0',
   'CanSleep' => '0',
   'CanReset' => '0',
+  'CanReboot' =>  '0',
   'CanZoom' => '0',
   'CanAutoZoom' => '0',
   'CanZoomAbs' => '0',

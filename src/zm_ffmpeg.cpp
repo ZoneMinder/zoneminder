@@ -285,7 +285,8 @@ static void zm_log_fps(double d, const char *postfix) {
 }
 
 void zm_dump_frame(const AVFrame *frame,const char *text) {
-  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d layout %d pts %" PRId64,
+  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d layout %d pts %" PRId64 
+      " duration %" PRId64,
       text,
       frame->format,
       av_get_sample_fmt_name((AVSampleFormat)frame->format),
@@ -297,7 +298,8 @@ void zm_dump_frame(const AVFrame *frame,const char *text) {
 0,
 #endif
       frame->channel_layout,
-      frame->pts
+      frame->pts,
+      frame->pkt_duration
       );
 }
 
@@ -450,6 +452,14 @@ bool is_video_stream( AVStream * stream ) {
   return false;
 }
 
+bool is_video_context( AVCodecContext *codec_context ) {
+  return
+  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+      ( codec_context->codec_type == AVMEDIA_TYPE_VIDEO );
+  #else
+      ( codec_context->codec_type == CODEC_TYPE_VIDEO );
+  #endif
+}
 
 bool is_audio_stream( AVStream * stream ) {
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -464,6 +474,15 @@ bool is_audio_stream( AVStream * stream ) {
     return true;
   }
   return false;
+}
+
+bool is_audio_context( AVCodecContext *codec_context ) {
+  return
+  #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
+      ( codec_context->codec_type == AVMEDIA_TYPE_AUDIO );
+  #else
+      ( codec_context->codec_type == CODEC_TYPE_AUDIO );
+  #endif
 }
 
 int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet ) {
@@ -500,15 +519,20 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
 # else
   int frameComplete = 0;
   while ( !frameComplete ) {
-    if ( (ret = zm_avcodec_decode_video( context, frame, &frameComplete, &packet )) < 0 ) {
-      Error( "Unable to decode frame at frame: %s, continuing",
-          av_make_error_string(ret).c_str() );
+    if ( is_video_context(context) ) {
+      ret = zm_avcodec_decode_video(context, frame, &frameComplete, &packet);
+    } else {
+      ret = avcodec_decode_audio4(context, frame, &frameComplete, &packet);
+    }
+    if ( ret < 0 ) {
+      Error("Unable to decode frame: %s", av_make_error_string(ret).c_str());
       return 0;
     }
-  }
+  } // end while !frameComplete
 #endif
   return 1;
 } // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
+
 void dumpPacket(AVStream *stream, AVPacket *pkt, const char *text) {
   char b[10240];
 

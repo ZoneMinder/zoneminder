@@ -326,8 +326,11 @@ void zm_dump_frame(const AVFrame *frame, const char *text="Frame");
 
 int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
 
-bool is_video_stream( AVStream * stream );
-bool is_audio_stream( AVStream * stream );
+bool is_video_stream(AVStream *);
+bool is_audio_stream(AVStream *);
+bool is_video_context(AVCodec *);
+bool is_audio_context(AVCodec *);
+
 int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet );
 void dumpPacket(AVStream *, AVPacket *,const char *text="");
 #endif // ZM_FFMPEG_H

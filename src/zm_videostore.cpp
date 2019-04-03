@@ -871,7 +871,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   dumpPacket(video_in_stream, ipkt, "input packet");
 
   int64_t duration;
-  if ( ipkt->duration ) {
+  if ( ipkt->duration && ( ipkt->duration != AV_NOPTS_VALUE ) ) {
     duration = av_rescale_q(
         ipkt->duration,
         video_in_stream->time_base,
@@ -925,7 +925,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     video_last_pts = ipkt->pts;
   } else {
     Debug(3, "opkt.pts = undef");
-    opkt.pts = AV_NOPTS_VALUE;
+    opkt.pts = 0;
+    //AV_NOPTS_VALUE;
   }
   // Just because the in stream wraps, doesn't mean the out needs to.  Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.  So need to handle in wrap, without causing out wrap.
   if ( ipkt->dts != AV_NOPTS_VALUE ) {
@@ -1140,6 +1141,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 
   opkt.pos = -1;
   opkt.stream_index = audio_out_stream->index;
+  opkt.flags = ipkt->flags;
 
   if ( opkt.dts > opkt.pts ) {
     Debug(1,

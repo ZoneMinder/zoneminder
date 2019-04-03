@@ -1006,7 +1006,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     zm_dump_frame(in_frame, "In frame from decode");
 
     if ( ! resample_audio() ) {
-      av_frame_unref(in_frame);
+      //av_frame_unref(in_frame);
       return 0;
     }
     zm_dump_frame(out_frame, "Out frame after resample");

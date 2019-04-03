@@ -77,6 +77,7 @@ private:
   int64_t audio_next_dts;
 
   bool setup_resampler();
+  int resample_audio();
 
 public:
 	VideoStore(

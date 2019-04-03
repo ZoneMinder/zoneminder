@@ -665,10 +665,7 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-#else
-  audio_out_ctx->refcounted_frames = 1;
-#endif
+#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
   if ( !audio_out_ctx->channel_layout ) {
     Debug(3, "Correcting channel layout from (%d) to (%d)",
         audio_out_ctx->channel_layout,
@@ -676,7 +673,7 @@ bool VideoStore::setup_resampler() {
         );
       audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
   }
-
+#endif
   if ( audio_out_codec->supported_samplerates ) {
     int found = 0;
     for ( unsigned int i = 0; audio_out_codec->supported_samplerates[i]; i++ ) {
@@ -832,7 +829,9 @@ bool VideoStore::setup_resampler() {
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
+#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
   out_frame->channels = audio_out_ctx->channels;
+#endif
   out_frame->channel_layout = audio_out_ctx->channel_layout;
   out_frame->sample_rate = audio_out_ctx->sample_rate;
 
@@ -1205,13 +1204,15 @@ int VideoStore::resample_audio() {
   out_frame->nb_samples = frame_size;
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
-  (ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
-                            0, in_frame->nb_samples))
+  ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
+                            0, in_frame->nb_samples);
   if ( ret < 0 ) {
     Error("Could not resample frame (error '%s')",
         av_make_error_string(ret).c_str());
     return 0;
   }
+
+  int frame_size = audio_out_ctx->frame_size;
 
   int samples_available = avresample_available(resample_ctx);
   if ( samples_available < frame_size ) {

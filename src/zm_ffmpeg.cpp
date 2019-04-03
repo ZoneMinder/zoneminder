@@ -434,6 +434,9 @@ unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {
   av_new_packet(dst,src->size);
   memcpy(dst->data, src->data, src->size);
   dst->flags = src->flags;
+  dst->pts = src->pts;
+  dst->dts = src->dts;
+  dst->duration = src->duration;
   return 0;
 }
 #endif

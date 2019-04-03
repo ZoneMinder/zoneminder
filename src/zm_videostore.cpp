@@ -104,7 +104,7 @@ VideoStore::VideoStore(
   }
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  video_out_stream = avformat_new_stream(oc, video_out_codec);
+  video_out_stream = avformat_new_stream(oc, NULL);
   if ( !video_out_stream ) {
     Error("Unable to create video out stream");
     return;
@@ -350,7 +350,7 @@ VideoStore::VideoStore(
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       // Just use the ctx to copy the parameters over
-      audio_out_ctx = avcodec_alloc_context3(NULL);
+      audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
       if ( !audio_out_ctx ) {
         Error("Could not allocate new output_context");
         return;
@@ -372,7 +372,6 @@ VideoStore::VideoStore(
         Error("Unable to copy audio params to stream %s",
               av_make_error_string(ret).c_str());
       }
-      avcodec_free_context(&audio_out_ctx);
 #else
       audio_out_ctx = audio_out_stream->codec;
       ret = avcodec_copy_context(audio_out_ctx, audio_in_stream->codec);
@@ -523,7 +522,6 @@ VideoStore::~VideoStore() {
     }
   } // end if ( oc->pb )
 
-#if 0
   // I wonder if we should be closing the file first.
   // I also wonder if we really need to be doing all the ctx
   // allocation/de-allocation constantly, or whether we can just re-use it.
@@ -532,7 +530,7 @@ VideoStore::~VideoStore() {
   if ( video_out_stream ) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
-    avcodec_free_context(&video_in_ctx);
+    //avcodec_free_context(&video_in_ctx);
 #endif
     video_in_ctx = NULL;
 
@@ -542,14 +540,12 @@ VideoStore::~VideoStore() {
       video_out_codec = NULL;
     } // end if video_out_codec
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-#endif
     avcodec_free_context(&video_out_ctx);
+#endif
     video_out_ctx = NULL;
   } // end if video_out_stream
-#endif
 
   if ( audio_out_stream ) {
-#if 0
     if ( audio_in_codec ) {
       avcodec_close(audio_in_ctx);
       Debug(4, "Success closing audio_in_ctx");
@@ -558,20 +554,19 @@ VideoStore::~VideoStore() {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     // We allocate and copy in newer ffmpeg, so need to free it
-#endif
     avcodec_free_context(&audio_in_ctx);
+#endif
     Debug(4, "Success freeing audio_in_ctx");
     audio_in_ctx = NULL;
 
     if ( audio_out_ctx ) {
       avcodec_close(audio_out_ctx);
       Debug(4, "Success closing audio_out_ctx");
-      avcodec_free_context(&audio_out_ctx);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      avcodec_free_context(&audio_out_ctx);
 #endif
     }
     audio_out_ctx = NULL;
-#endif
 
 #if defined(HAVE_LIBAVRESAMPLE) || defined(HAVE_LIBSWRESAMPLE)
     if ( resample_ctx ) {
@@ -621,6 +616,14 @@ bool VideoStore::setup_resampler() {
   audio_in_codec =
       avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
   audio_in_ctx = avcodec_alloc_context3(audio_in_codec);
+  // Copy params from instream to ctx
+  ret = avcodec_parameters_to_context(
+      audio_in_ctx, audio_in_stream->codecpar);
+  if ( ret < 0 ) {
+    Error("Unable to copy audio params to ctx %s",
+        av_make_error_string(ret).c_str());
+  }
+
 #else
 // codec is already open in ffmpeg_camera
   audio_in_ctx = audio_in_stream->codec;
@@ -643,7 +646,7 @@ bool VideoStore::setup_resampler() {
 
   // if the codec is already open, nothing is done.
   if ( (ret = avcodec_open2(audio_in_ctx, audio_in_codec, NULL)) < 0 ) {
-    Error("Can't open in codec!");
+    Error("Can't open audio in codec!");
     return false;
   }
 

@@ -350,7 +350,7 @@ VideoStore::VideoStore(
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       // Just use the ctx to copy the parameters over
-      audio_out_ctx = avcodec_alloc_context3(NULL);
+      audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
       if ( !audio_out_ctx ) {
         Error("Could not allocate new output_context");
         return;
@@ -372,7 +372,6 @@ VideoStore::VideoStore(
         Error("Unable to copy audio params to stream %s",
               av_make_error_string(ret).c_str());
       }
-      avcodec_free_context(&audio_out_ctx);
 #else
       audio_out_ctx = audio_out_stream->codec;
       ret = avcodec_copy_context(audio_out_ctx, audio_in_stream->codec);

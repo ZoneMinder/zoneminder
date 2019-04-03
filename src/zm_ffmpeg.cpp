@@ -285,8 +285,9 @@ static void zm_log_fps(double d, const char *postfix) {
 }
 
 void zm_dump_frame(const AVFrame *frame,const char *text) {
-  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d layout %d pts %" PRId64 
-      " duration %" PRId64,
+  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d"
+      " duration %" PRId64
+      " layout %d pts %" PRId64,
       text,
       frame->format,
       av_get_sample_fmt_name((AVSampleFormat)frame->format),
@@ -294,12 +295,12 @@ void zm_dump_frame(const AVFrame *frame,const char *text) {
       frame->nb_samples,
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
       frame->channels,
+      frame->pkt_duration,
 #else
-0,
+0, 0,
 #endif
       frame->channel_layout,
-      frame->pts,
-      frame->pkt_duration
+      frame->pts
       );
 }
 

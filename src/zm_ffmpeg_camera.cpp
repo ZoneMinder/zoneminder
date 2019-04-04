@@ -565,15 +565,23 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug(1, "HWACCEL not in use");
   }
   if ( mAudioStreamId >= 0 ) {
+    if ( (mAudioCodec = avcodec_find_decoder(
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    mAudioCodecContext = avcodec_alloc_context3( NULL );
-    avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
+            mFormatContext->streams[mAudioStreamId]->codecpar->codec_id
 #else
-    mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+            mFormatContext->streams[mAudioStreamId]->codec->codec_id
 #endif
-    if ( (mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL ) {
+            )) == NULL ) {
       Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
     } else {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
+      avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
+#else
+      mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+     // = avcodec_alloc_context3(mAudioCodec);
+#endif
+
       Debug(1, "Audio Found decoder");
       zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
       // Open the codec
@@ -584,7 +592,7 @@ int FfmpegCamera::OpenFfmpeg() {
       Debug ( 1, "Calling avcodec_open2" );
       if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 ) {
 #endif
-        Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+        Error( "Unable to open codec for audio stream from %s", mPath.c_str() );
         return -1;
       }
       Debug(2, "Opened audio codec");

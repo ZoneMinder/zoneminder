@@ -78,7 +78,7 @@ void FFMPEGInit() {
         av_log_set_callback(log_libav_callback); 
     else
         Info("Not enabling ffmpeg logs, as LOG_FFMPEG is disabled in options");
-#if LIBAVCODEC_VERSION_CHECK(58, 18, 0, 64, 0)
+#if LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
 #else
     av_register_all();
 #endif

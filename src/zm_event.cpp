@@ -193,6 +193,9 @@ Event::Event(
 
   video_name[0] = 0;
 
+  snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
+  snprintf(alarm_file, sizeof(alarm_file), "%s/alarm.jpg", path);
+
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
@@ -464,8 +467,6 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
       // neccessarily be of the motion.  But some events are less than 10 frames, 
       // so I am changing this to 1, but we should overwrite it later with a better snapshot.
       if ( frames == 1 ) {
-        char snapshot_file[PATH_MAX];
-        snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
         WriteFrameImage(images[i], *(timestamps[i]), snapshot_file);
       }
     }
@@ -549,15 +550,11 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   } else {
     //If this is the first frame, we should add a thumbnail to the event directory
     if ( frames == 1 || score > (int)max_score ) {
-      char snapshot_file[PATH_MAX];
-      snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
       WriteFrameImage(image, timestamp, snapshot_file);
     }
     // The first frame with a score will be the frame that alarmed the event
     if (!alarm_frame_written && score > 0) {
       alarm_frame_written = true;
-      char alarm_file[PATH_MAX];
-      snprintf(alarm_file, sizeof(alarm_file), "%s/alarm.jpg", path);
       WriteFrameImage(image, timestamp, alarm_file);
     }
   }

@@ -456,9 +456,9 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
 
     frames++;
 
-    static char event_file[PATH_MAX];
-    snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
     if ( monitor->GetOptSaveJPEGs() & 1 ) {
+      static char event_file[PATH_MAX];
+      snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
       Debug(1, "Writing pre-capture frame %d", frames);
       WriteFrameImage(images[i], *(timestamps[i]), event_file);
     } else {
@@ -539,27 +539,25 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
   frames++;
 
-  static char event_file[PATH_MAX];
-  snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
-
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
+    static char event_file[PATH_MAX];
+    snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
     Debug(1, "Writing capture frame %d to %s", frames, event_file);
     if ( ! WriteFrameImage(image, timestamp, event_file) ) {
       Error("Failed to write frame image");
     }
   } else {
     //If this is the first frame, we should add a thumbnail to the event directory
-    if ( frames == 1 || score > (int)max_score ) {
+    if ( (frames == 1) || (score > (int)max_score) ) {
       WriteFrameImage(image, timestamp, snapshot_file);
     }
     // The first frame with a score will be the frame that alarmed the event
-    if (!alarm_frame_written && score > 0) {
+    if ( (!alarm_frame_written) && (score > 0) ) {
       alarm_frame_written = true;
       WriteFrameImage(image, timestamp, alarm_file);
     }
   }
   if ( videowriter != NULL ) {
-Debug(3, "Writing video");
     WriteFrameVideo(image, timestamp, videowriter);
   }
 
@@ -625,7 +623,7 @@ Debug(3, "Writing video");
         }
       }
     }
-  }
+  } // end if frame_type == ALARM
 
   /* This makes viewing the diagnostic images impossible because it keeps deleting them
   if ( config.record_diag_images ) {

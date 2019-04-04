@@ -254,7 +254,7 @@ Event::~Event() {
     WriteDbFrames();
 
   // Should not be static because we might be multi-threaded
-  char sql[ZM_SQL_MED_BUFSIZ];
+  char sql[ZM_SQL_LGE_BUFSIZ];
   snprintf(sql, sizeof(sql), 
       "UPDATE Events SET Name='%s %" PRIu64 "', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' WHERE Id = %" PRIu64,
       monitor->EventPrefix(), id, end_time.tv_sec,
@@ -616,6 +616,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
     if ( alarm_image ) {
       if ( monitor->GetOptSaveJPEGs() & 2 ) {
+        static char event_file[PATH_MAX];
         snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames);
         Debug(1, "Writing analysis frame %d", frames);
         if ( ! WriteFrameImage(alarm_image, timestamp, event_file, true) ) {

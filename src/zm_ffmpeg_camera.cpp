@@ -675,6 +675,11 @@ int FfmpegCamera::Close() {
   }
 #endif
 
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
+
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
     Debug(1,"After codec close");
@@ -700,10 +705,6 @@ int FfmpegCamera::Close() {
     mFormatContext = NULL;
   }
 
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
-  }
   if ( packetqueue ) {
     delete packetqueue;
     packetqueue = NULL;

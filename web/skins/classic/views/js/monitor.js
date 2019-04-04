@@ -46,6 +46,24 @@ function initPage() {
   //var protocolSelector = $('contentForm').elements['newMonitor[Protocol]'];
   //if ( $(protocolSelector).getTag() == 'select' )
   //updateMethods( $(protocolSelector) );
+  document.querySelectorAll('input[name="newMonitor[SignalCheckColour]"]').forEach(function(el) {
+    el.oninput = function(event) {
+      $j('#SignalCheckSwatch').css('background-color', event.target.value);
+    };
+  });
+  document.querySelectorAll('input[name="newMonitor[WebColour]"]').forEach(function(el) {
+    el.oninput = function(event) {
+      $j('#WebSwatch').css('background-color', event.target.value);
+    };
+  });
+  $j('#contentForm').submit(function(event) {
+    if ( validateForm(this) ) {
+      $j('#contentButtons').hide();
+      return true;
+    } else {
+      return false;
+    };
+  });
 }
 
 window.addEventListener( 'DOMContentLoaded', initPage );

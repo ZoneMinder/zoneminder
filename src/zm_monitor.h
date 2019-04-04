@@ -457,6 +457,7 @@ public:
   void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
+    int GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
   Snapshot *getSnapshot() const;

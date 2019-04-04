@@ -26,10 +26,11 @@ function cycleNext() {
   window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
 }
 function cyclePrev() {
-  if ( monIdx )
+  if (monIdx) {
     monIdx -= 1;
-  else
-    monIdx = monitorData.length-1;
+  } else {
+    monIdx = monitorData.length - 1;
+  }
 
   window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
 }
@@ -82,9 +83,9 @@ function changeScale() {
   var scale = $('scale').get('value');
   $('width').set('value', 'auto');
   $('height').set('value', 'auto');
-  Cookie.write('zmCycleScale', scale, { duration: 10*365 });
-  Cookie.write('zmCycleWidth', 'auto', { duration: 10*365 });
-  Cookie.write('zmCycleHeight', 'auto', { duration: 10*365 });
+  Cookie.write('zmCycleScale', scale, {duration: 10*365});
+  Cookie.write('zmCycleWidth', 'auto', {duration: 10*365});
+  Cookie.write('zmCycleHeight', 'auto', {duration: 10*365});
   var newWidth = ( monitorData[monIdx].width * scale ) / SCALE_BASE;
   var newHeight = ( monitorData[monIdx].height * scale ) / SCALE_BASE;
 

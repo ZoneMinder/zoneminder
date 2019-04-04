@@ -199,15 +199,13 @@ foreach ( $monitors as $monitor ) {
           <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
             <div
               id="imageFeed<?php echo $monitor->Id() ?>"
-              class="imageFeed popup-link"
-              data-url="?view=watch&amp;mid=<?php echo $monitor->Id() ?>"
-              data-name="zmWatch<?php echo $monitor->Id() ?>"
-              data-tag="watch"
+              class="imageFeed"
+              data-monitor-id="<?php echo $monitor->Id() ?>"
               data-width="<?php echo reScale( $monitor->Width(), $monitor->PopupScale() ); ?>"
               data-height="<?php echo reScale( $monitor->Height(), $monitor->PopupScale() ); ?>">
             <?php
   $monitor_options = $options;
-  if ( $Positions ) {
+  if (0 and $Positions ) {
     $monitor_options['width'] = '100%';
     $monitor_options['height'] = '100%';
     if ( 0 ) {

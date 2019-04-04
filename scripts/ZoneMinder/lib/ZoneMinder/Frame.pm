@@ -22,7 +22,7 @@
 # This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
-package ZoneMinder::Monitor;
+package ZoneMinder::Frame;
 
 use 5.006;
 use strict;
@@ -30,34 +30,37 @@ use warnings;
 
 require ZoneMinder::Base;
 require ZoneMinder::Object;
-require ZoneMinder::Storage;
-require ZoneMinder::Server;
 
-#our @ISA = qw(Exporter ZoneMinder::Base);
 use parent qw(ZoneMinder::Object);
 
-use vars qw/ $table $primary_key /;
-$table = 'Monitors';
+use vars qw/ $table $primary_key %fields /;
+$table = 'Frames';
 $primary_key = 'Id';
 
-sub Server {
-	return new ZoneMinder::Server( $_[0]{ServerId} );
-} # end sub Server
+%fields = (
+        Id      => 'Id',
+        EventId => 'EventId',
+        FrameId => 'FrameId',
+        Type    => 'Type',
+        TimeStamp =>  'TimeStamp',
+        Delta     =>  'Delta',
+        Score     =>  'Score',
+);
 
-sub Storage {
-	return new ZoneMinder::Storage( $_[0]{StorageId} );
-} # end sub Storage
+sub Event {
+	return new ZoneMinder::Event( $_[0]{EventId} );
+} # end sub Event
 
 1;
 __END__
 
 =head1 NAME
 
-ZoneMinder::Monitor - Perl Class for Monitors
+ZoneMinder::Frame - Perl Class for Frames
 
 =head1 SYNOPSIS
 
-use ZoneMinder::Monitor;
+use ZoneMinder::Frame;
 
 =head1 AUTHOR
 

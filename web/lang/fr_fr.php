@@ -211,6 +211,7 @@ $SLANG = array(
     'CanMoveRel'           => 'Relatif',
     'CanPan'               => 'Panoramique' ,
     'CanReset'             => 'RàZ',
+	'CanReboot'             => 'Can Reboot',
     'CanSetPresets'        => 'Stockage prépos.',
     'CanSleep'             => 'Veille',
     'CanTilt'              => 'Inclinaison',

@@ -1,3 +1,15 @@
+function configureExportButton( element ) {
+  var form = element.form;
+
+  var radioCount = 0;
+  for ( var i = 0, len=form.elements.length; i < len; i++ ) {
+    if ( form.elements[i].type == "radio" && form.elements[i].checked ) {
+      radioCount++;
+    }
+  }
+  form.elements['exportButton'].disabled = (radioCount == 0);
+}
+
 function startDownload( exportFile ) {
   window.location.replace( exportFile );
 }

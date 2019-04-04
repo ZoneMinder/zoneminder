@@ -84,9 +84,7 @@ if ( !$command ) {
 }
 
 # PP - Sane state check
-Debug("StartisActiveSSantiyCheck");
 isActiveSanityCheck();
-Debug("Done isActiveSSantiyCheck");
 
 # Move to the right place
 chdir($Config{ZM_PATH_WEB})
@@ -222,14 +220,17 @@ if ( $command =~ /^(?:start|restart)$/ ) {
             runCommand("zmdc.pl start zma -m $monitor->{Id}");
           }
           if ( $Config{ZM_OPT_CONTROL} ) {
-            if ( $monitor->{Controllable} && $monitor->{TrackMotion} ) {
-              if ( $monitor->{Function} eq 'Modect' || $monitor->{Function} eq 'Mocord' ) {
-                runCommand( "zmdc.pl start zmtrack.pl -m $monitor->{Id}" );
-              } else {
-                Warning(' Monitor is set to track motion, but does not have motion detection enabled.');
-              } # end if Has motion enabled
-            } # end if track motion
-          } # end if ZM_OPT_CONTROL
+            if ( $monitor->{Controllable} ) {
+              runCommand("zmdc.pl start zmcontrol.pl --id $monitor->{Id}");
+              if ( $monitor->{TrackMotion} ) {
+                if ( $monitor->{Function} eq 'Modect' || $monitor->{Function} eq 'Mocord' ) {
+                  runCommand("zmdc.pl start zmtrack.pl -m $monitor->{Id}");
+                } else {
+                  Warning('Monitor is set to track motion, but does not have motion detection enabled.');
+                } # end if Has motion enabled
+              } # end if track motion
+            } # end if controllable
+          } # end if ZM_OPT_CONTROL        
         } # end if function is not none or Website
       } # end foreach monitor
       $sth->finish();
@@ -253,15 +254,15 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     }
 
     if ( $Config{ZM_RUN_AUDIT} ) {
-      if ( $Server and exists $$Server{'zmaudit'} and ! $$Server{'zmaudit'} ) {
-        Debug("Not running zmaudit.pl because it is turned off for this server.");
+      if ( $Server and exists $$Server{zmaudit} and ! $$Server{zmaudit} ) {
+        Debug('Not running zmaudit.pl because it is turned off for this server.');
       } else {
         runCommand('zmdc.pl start zmaudit.pl -c');
       }
     }
     if ( $Config{ZM_OPT_TRIGGERS} ) {
-      if ( $Server and exists $$Server{'zmtrigger'} and ! $$Server{'zmtrigger'} ) {
-        Debug("Not running zmtrigger.pl because it is turned off for this server.");
+      if ( $Server and exists $$Server{zmtrigger} and ! $$Server{zmtrigger} ) {
+        Debug('Not running zmtrigger.pl because it is turned off for this server.');
       } else {
         runCommand('zmdc.pl start zmtrigger.pl');
       }
@@ -283,8 +284,8 @@ if ( $command =~ /^(?:start|restart)$/ ) {
         runCommand('zmdc.pl start zmeventnotification.pl');
       }
     }
-    if ( $Server and exists $$Server{'zmstats'} and ! $$Server{'zmstats'} ) {
-      Debug("Not running zmstats.pl because it is turned off for this server.");
+    if ( $Server and exists $$Server{zmstats} and ! $$Server{zmstats} ) {
+      Debug('Not running zmstats.pl because it is turned off for this server.');
     } else {
       runCommand('zmdc.pl start zmstats.pl');
     }

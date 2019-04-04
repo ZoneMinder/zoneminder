@@ -211,7 +211,7 @@ global $user;
 if ( ZM_OPT_USE_AUTH ) {
   $close_session = 0;
   if ( !is_session_started() ) {
-    session_start();
+    zm_session_start();
     $close_session = 1;
   }
 

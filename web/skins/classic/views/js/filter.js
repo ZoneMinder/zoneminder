@@ -84,6 +84,12 @@ function submitToEvents( element ) {
   history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
 
+function submitToExport(element) {
+  var form = element.form;
+  window.location.assign('?view=export&'+$j(form).serialize());
+  //createPopup('?view=export&filter_id='+form.elements['Id'].value, 'zmExport', 'export' );
+}
+
 function executeFilter( element ) {
   var form = element.form;
   form.action = thisUrl + '?view=filter';
@@ -97,7 +103,8 @@ function saveFilter( element ) {
   form.target = window.name;
   form.elements['action'].value = element.value;
   form.action = thisUrl + '?view=filter';
-  form.submit();
+  //form.submit();
+  // Submit is done by the button type="submit"
 }
 
 function deleteFilter( element ) {

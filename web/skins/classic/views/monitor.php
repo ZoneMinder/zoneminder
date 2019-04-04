@@ -21,36 +21,36 @@
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
 
-if ( !canView( 'Monitors' ) ) {
+if ( !canView('Monitors') ) {
   $view = 'error';
   return;
 }
 
 $Server = null;
-if ( defined( 'ZM_SERVER_ID' ) ) {
-  $Server = dbFetchOne( 'SELECT * FROM Servers WHERE Id=?', NULL, array( ZM_SERVER_ID ) );
+if ( defined('ZM_SERVER_ID') ) {
+  $Server = dbFetchOne('SELECT * FROM Servers WHERE Id=?', NULL, array(ZM_SERVER_ID));
 }
-if ( ! $Server ) {
-  $Server = array( 'Id' => '' );
+if ( !$Server ) {
+  $Server = array('Id' => '');
 }
 
 $monitor = null;
 if ( ! empty($_REQUEST['mid']) ) {
   $monitor = new ZM\Monitor( $_REQUEST['mid'] );
   if ( $monitor and ZM_OPT_X10 )
-    $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']) );
+    $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['mid']));
 } 
 if ( ! $monitor ) {
 
-  $nextId = getTableAutoInc( 'Monitors' );
-  if ( isset( $_REQUEST['dupId'] ) ) {
-    $monitor = new ZM\Monitor( $_REQUEST['dupId'] );
+  $nextId = getTableAutoInc('Monitors');
+  if ( isset($_REQUEST['dupId']) ) {
+    $monitor = new ZM\Monitor($_REQUEST['dupId']);
     $monitor->GroupIds(); // have to load before we change the Id
     if ( ZM_OPT_X10 )
-      $x10Monitor = dbFetchOne( 'SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']) );
+      $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
     $clonedName = $monitor->Name();
-    $monitor->Name( translate('Monitor').'-'.$nextId );
-    $monitor->Id( $nextId );
+    $monitor->Name(translate('Monitor').'-'.$nextId);
+    $monitor->Id(0);
   } else {
     $monitor = new ZM\Monitor();
     $monitor->set( array(
@@ -115,6 +115,7 @@ if ( ! $monitor ) {
           'AlarmRefBlendPerc' => 6,
           'DefaultRate' => '100',
           'DefaultScale' => '100',
+          'DefaultCodec' => 'auto',
           'SignalCheckPoints' => '10',
           'SignalCheckColour' => '#0000c0',
           'WebColour' => 'red',
@@ -451,6 +452,11 @@ $savejpegopts = array(
     'Frames + Analysis images (if available)'             => 3,
     );
 
+$codecs = array(
+  'auto'  => translate('Auto'),
+  'MP4'  => translate('MP4'),
+  'MJPEG' => translate('MJPEG'),
+);
 
 xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
 getBodyTopHTML();
@@ -517,7 +523,7 @@ foreach ( $tabs as $name=>$value ) {
   ?>
     </ul>
     <div class="clear"></div>
-    <form name="contentForm" id="contentForm" method="post" action="?" onsubmit="if(validateForm(this)){$j('#contentButtons').hide();return true;}else{return false;};">
+    <form name="contentForm" id="contentForm" method="post" action="?">
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
       <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
       <input type="hidden" name="action" value="monitor"/>
@@ -656,6 +662,7 @@ if ( $tab != 'misc' ) {
       <input type="hidden" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultRate]" value="<?php echo validHtmlStr($monitor->DefaultRate()) ?>"/>
       <input type="hidden" name="newMonitor[DefaultScale]" value="<?php echo validHtmlStr($monitor->DefaultScale()) ?>"/>
+      <input type="hidden" name="newMonitor[DefaultCodec]" value="<?php echo validHtmlStr($monitor->DefaultCodec()) ?>"/>
       <input type="hidden" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>"/>
       <input type="hidden" name="newMonitor[Exif]" value="<?php echo validHtmlStr($monitor->Exif()) ?>"/>
 <?php
@@ -999,14 +1006,56 @@ if ( $monitor->Type() == 'Local' ) {
   case 'misc' :
     {
 ?>
-        <tr><td><?php echo translate('EventPrefix') ?></td><td><input type="text" name="newMonitor[EventPrefix]" value="<?php echo validHtmlStr($monitor->EventPrefix()) ?>" size="24"/></td></tr>
-        <tr><td><?php echo translate('Sectionlength') ?></td><td><input type="text" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($monitor->SectionLength()) ?>" size="6"/></td></tr>
-        <tr><td><?php echo translate('FrameSkip') ?></td><td><input type="text" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($monitor->FrameSkip()) ?>" size="6"/></td></tr>
-        <tr><td><?php echo translate('MotionFrameSkip') ?></td><td><input type="text" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($monitor->MotionFrameSkip()) ?>" size="6"/></td></tr>
-        <tr><td><?php echo translate('AnalysisUpdateDelay') ?></td><td><input type="text" name="newMonitor[AnalysisUpdateDelay]" value="<?php echo validHtmlStr($monitor->AnalysisUpdateDelay()) ?>" size="6"/></td></tr>
-        <tr><td><?php echo translate('FPSReportInterval') ?></td><td><input type="text" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>" size="6"/></td></tr>
-        <tr><td><?php echo translate('DefaultRate') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultRate]", $rates, $monitor->DefaultRate() ); ?></td></tr>
-        <tr><td><?php echo translate('DefaultScale') ?></td><td><?php echo htmlSelect( "newMonitor[DefaultScale]", $scales, $monitor->DefaultScale() ); ?></td></tr>
+        <tr>
+          <td><?php echo translate('EventPrefix') ?></td>
+          <td><input type="text" name="newMonitor[EventPrefix]" value="<?php echo validHtmlStr($monitor->EventPrefix()) ?>"/></td>
+        </tr>
+        <tr>
+          <td><?php echo translate('Sectionlength') ?></td>
+          <td>
+            <input type="number" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($monitor->SectionLength()) ?>"/>
+            <?php echo translate('seconds')?>
+          </td>
+        </tr>
+        <tr>
+          <td><?php echo translate('FrameSkip') ?></td>
+          <td>
+            <input type="number" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($monitor->FrameSkip()) ?>"/>
+            <?php echo translate('frames')?>
+          </td>
+        </tr>
+        <tr>
+          <td><?php echo translate('MotionFrameSkip') ?></td>
+          <td>
+            <input type="number" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($monitor->MotionFrameSkip()) ?>"/>
+            <?php echo translate('frames')?>
+          </td>
+        </tr>
+        <tr>
+          <td><?php echo translate('AnalysisUpdateDelay') ?></td>
+          <td>
+            <input type="number" name="newMonitor[AnalysisUpdateDelay]" value="<?php echo validHtmlStr($monitor->AnalysisUpdateDelay()) ?>"/>
+            <?php echo translate('seconds')?>
+          </td></tr>
+        <tr>
+          <td><?php echo translate('FPSReportInterval') ?></td>
+          <td>
+            <input type="number" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>"/>
+            <?php echo translate('frames')?>
+          </td>
+        </tr>
+        <tr>
+          <td><?php echo translate('DefaultRate') ?></td>
+          <td><?php echo htmlSelect('newMonitor[DefaultRate]', $rates, $monitor->DefaultRate()); ?></td>
+        </tr>
+        <tr>
+          <td><?php echo translate('DefaultScale') ?></td>
+          <td><?php echo htmlSelect('newMonitor[DefaultScale]', $scales, $monitor->DefaultScale()); ?></td>
+        </tr>
+        <tr>
+          <td><?php echo translate('DefaultCodec') ?></td>
+          <td><?php echo htmlSelect('newMonitor[DefaultCodec]', $codecs, $monitor->DefaultCodec()); ?></td>
+        </tr>
         <tr>
           <td><?php echo translate('SignalCheckPoints') ?></td>
           <td>
@@ -1016,14 +1065,14 @@ if ( $monitor->Type() == 'Local' ) {
         <tr>
           <td><?php echo translate('SignalCheckColour') ?></td>
           <td>
-            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>" size="10" onchange="$('SignalCheckSwatch').setStyle('backgroundColor', this.value)"/>
+            <input type="text" name="newMonitor[SignalCheckColour]" value="<?php echo validHtmlStr($monitor->SignalCheckColour()) ?>"/>
             <span id="SignalCheckSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($monitor->SignalCheckColour()); ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
           </td>
         </tr>
         <tr>
           <td><?php echo translate('WebColour') ?></td>
           <td>
-            <input type="text" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>" size="10" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/>
+            <input type="text" name="newMonitor[WebColour]" value="<?php echo validHtmlStr($monitor->WebColour()) ?>" onchange="$('WebSwatch').setStyle( 'backgroundColor', this.value )"/>
             <span id="WebSwatch" class="swatch" style="background-color: <?php echo validHtmlStr($monitor->WebColour()) ?>;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
           </td>
         </tr>

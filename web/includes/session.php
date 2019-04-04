@@ -21,7 +21,8 @@ function zm_session_start() {
 
   session_start();
   // Do not allow to use expired session ID
-  if (!empty($_SESSION['last_time']) && $_SESSION['last_time'] < time() - 180) {
+  if ( !empty($_SESSION['last_time']) && ($_SESSION['last_time'] < (time() - 180)) ) {
+    ZM\Info('Destroying session due to timeout. ');
     session_destroy();
     session_start();
   }
@@ -32,8 +33,13 @@ function zm_session_regenerate_id() {
   if ( session_status() != PHP_SESSION_ACTIVE ) {
     session_start();
   }
+
   // Set deleted timestamp. Session data must not be deleted immediately for reasons.
   $_SESSION['last_time'] = time();
+  // Finish session
+  session_write_close();
+
+  session_start();
   session_regenerate_id();
   unset($_SESSION['last_time']);
 } // function zm_session_regenerate_id()

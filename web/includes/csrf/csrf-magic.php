@@ -209,6 +209,7 @@ break;
 }
         $ok = true;
     } while (false);
+
     if ($fatal && !$ok) {
         $callback = $GLOBALS['csrf']['callback'];
         if (trim($tokens, 'A..Za..z0..9:;,') !== '') $tokens = 'hidden';
@@ -293,6 +294,7 @@ function csrf_callback($tokens) {
       // Don't make it too easy for users to inflict a CSRF attack on themselves.
       echo "<p><strong>Only try again if you weren't sent to this page by someone as this is potentially a sign of an attack.</strong></p>";
       echo "<form method='post' action=''>$data<input type='submit' value='Try again' /></form>";
+      ZM\Logger::Debug("Failed csrf check");
     }
     echo "<p>Debug: $tokens</p></body></html>
 ";

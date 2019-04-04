@@ -87,8 +87,9 @@ if ( empty($_REQUEST['path']) ) {
       $Frame->Id('objdetect');
     } else if ( $_REQUEST['fid'] == 'alarm' ) {
       # look for first alarmed frame
-      $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
-                               array('order'=>'FrameId ASC'));
+      $Frame = ZM\Frame::find_one(
+        array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
+        array('order'=>'FrameId ASC'));
       if ( !$Frame ) { # no alarms, get first one I find
         $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
         if ( !$Frame ) { 
@@ -101,7 +102,7 @@ if ( empty($_REQUEST['path']) ) {
       $Monitor = $Event->Monitor();
       if ( $Monitor->SaveJPEGs() & 1 ) {
         # If we store Frames as jpgs, then we don't store an alarmed snapshot
-        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
+        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
       } else {
         $path = $Event->Path().'/alarm.jpg';
       }
@@ -113,12 +114,16 @@ if ( empty($_REQUEST['path']) ) {
         ZM\Warning('No frame found for event ' . $_REQUEST['eid']);
         $Frame = new ZM\Frame();
         $Frame->Delta(1);
-        $Frame->FrameId('snapshot');
+        if ( $Monitor->SaveJPEGs() & 1 ) {
+          $Frame->FrameId(0);
+        } else {
+          $Frame->FrameId('snapshot');
+        }
       }
       $Monitor = $Event->Monitor();
       if ( $Monitor->SaveJPEGs() & 1 ) {
         # If we store Frames as jpgs, then we don't store a snapshot
-        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
+        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
       } else {
         $path = $Event->Path().'/snapshot.jpg';
       }

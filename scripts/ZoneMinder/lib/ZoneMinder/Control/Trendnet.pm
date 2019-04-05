@@ -45,7 +45,7 @@ sub open {
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
-  $self->{ua}->agent('ZoneMinder Control Agent/'.$ZoneMinder::Base::ZM_VERSION);
+  $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
   #   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
   Debug ( "sendCmd credentials control address:'".$ADDRESS

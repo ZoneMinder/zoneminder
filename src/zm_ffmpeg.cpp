@@ -437,6 +437,7 @@ unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {
   dst->pts = src->pts;
   dst->dts = src->dts;
   dst->duration = src->duration;
+  dst->stream_index = src->stream_index;
   return 0;
 }
 #endif

@@ -120,6 +120,7 @@ sub sendCmd {
 
   Debug('sendCmd command: ' . $url);
   if ( $res->is_success ) {
+    Debug($res->content);
     return !undef;
   }
   Error("Error check failed: '".$res->status_line()."' cmd:'".$cmd."'");
@@ -155,6 +156,7 @@ sub sendCmdPost {
   Debug("sendCmdPost credentials control to: $PROTOCOL$ADDRESS$url realm:'" . $REALM . "'  username:'" . $USERNAME . "' password:'".$PASSWORD."'");
 
   if ( $res->is_success ) {
+    Debug($res->content);
     return !undef;
   }
   Error("sendCmdPost Error check failed: '".$res->status_line()."' cmd:");

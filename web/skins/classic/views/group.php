@@ -121,7 +121,7 @@ echo htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('on
           <button type="submit" name="action" value="Save"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>>
           <?php echo translate('Save') ?>
           </button>
-          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

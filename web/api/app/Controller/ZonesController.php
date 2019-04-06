@@ -18,7 +18,7 @@ class ZonesController extends AppController {
     parent::beforeFilter();
 
     global $user;
-    $canView = (!$user) || $user['Monitors'] != 'None';
+    $canView = (!$user) || ($user['Monitors'] != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

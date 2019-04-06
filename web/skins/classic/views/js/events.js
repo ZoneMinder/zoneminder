@@ -100,15 +100,9 @@ function downloadVideo( element ) {
 
 function exportEvents( element ) {
   var form = element.form;
-  var eids = new Array();
-  for (var i = 0, len=form.elements.length; i < len; i++) {
-    if (form.elements[i].name.indexOf('eids') == 0 ) {
-      if ( form.elements[i].checked ) {
-        eids[eids.length] = 'eids[]='+form.elements[i].value;
-      }
-    }
-  }
-  createPopup( '?view=export&'+eids.join( '&' ), 'zmExport', 'export' );
+  form.attr('action', '?view=export');
+  form[0].elements['view'].value='export';
+  form.submit();
 }
 
 function viewEvents( element ) {

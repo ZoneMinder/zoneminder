@@ -24,18 +24,19 @@ if ( !canView('Events') ) {
 }
 
 $total_size = 0;
-if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
+if ( isset($_SESSION['montageReviewFilter']) and !isset($_REQUEST['eids']) ) {
+  # Handles montageReview filter
   $eventsSql = 'SELECT E.Id,E.DiskSpace FROM Events as E WHERE 1';
   $eventsSql .= $_SESSION['montageReviewFilter']['sql'];
   $results = dbQuery($eventsSql);
   $eids = [];
   while ( $event_row = dbFetchNext( $results ) ) {
-    array_push($eids, 'eids[]='.$event_row['Id']);
+    array_push($eids, $event_row['Id']);
     $total_size += $event_row['DiskSpace'];
   }
   $_REQUEST['eids'] = $eids;
   if ( ! count($eids) ) {
-    Error("No events found for download using $eventsSql");
+    ZM\Error("No events found for download using $eventsSql");
   } 
   #session_start();
   #unset($_SESSION['montageReviewFilter']);
@@ -45,25 +46,26 @@ if (isset($_SESSION['montageReviewFilter'])) { //Handles montageReview filter
 }
 
 $exportFormat = '';
-if (isset($_REQUEST['exportFormat'])) {
-  if (!in_array($_REQUEST['exportFormat'], array('zip', 'tar'))) {
-    Error('Invalid exportFormat');
+if ( isset($_REQUEST['exportFormat']) ) {
+  if ( !in_array($_REQUEST['exportFormat'], array('zip', 'tar')) ) {
+    ZM\Error('Invalid exportFormat');
     return;
   }
   $exportFormat = $_REQUEST['exportFormat'];
 }
 
-if (!empty($_REQUEST['eid'])) {
-  $Event = new Event( $_REQUEST['eid'] );
-  if (!$Event->Id) {
+if ( !empty($_REQUEST['eid']) ) {
+  $Event = new ZM\Event($_REQUEST['eid']);
+  if ( !$Event->Id ) {
     Error('Invalid event id');
     return;
   }
 }
 
 $focusWindow = true;
+$connkey = isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : generateConnKey();
 
-xhtmlHeaders(__FILE__, translate('Download') );
+xhtmlHeaders(__FILE__, translate('Download'));
 ?>
 <body>
   <div id="page">
@@ -74,29 +76,35 @@ xhtmlHeaders(__FILE__, translate('Download') );
       <h2><?php echo translate('Download') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="?">
+      <form name="contentForm" id="contentForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+        <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
 <?php
 if ( !empty($_REQUEST['eid']) ) {
 ?>
         <input type="hidden" name="id" value="<?php echo validInt($_REQUEST['eid']) ?>"/>
     <?php
+    $Event = new ZM\Event($_REQUEST['eid']);
     echo 'Downloading event ' . $Event->Id . '. Resulting file should be approximately ' . human_filesize( $Event->DiskSpace() );
 } else if ( !empty($_REQUEST['eids']) ) {
     $total_size = 0;
     foreach ( $_REQUEST['eids'] as $eid ) {
-        $Event = new Event($eid);
-        $total_size += $Event->DiskSpace();
+      if ( ! validInt($eid) ) {
+        ZM\Warning("Invalid event id in eids[] $eid");
+        continue;
+      }
+      $Event = new ZM\Event($eid);
+      $total_size += $Event->DiskSpace();
 ?>
         <input type="hidden" name="eids[]" value="<?php echo validInt($eid) ?>"/>
 <?php
     }
-    unset( $eid );
+    unset($eid);
     echo "Downloading " . count($_REQUEST['eids']) . ' events.  Resulting file should be approximately ' . human_filesize($total_size);
 } else {
     echo '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
 }
 ?>
-        <table id="contentTable" class="minor" cellspacing="0">
+        <table id="contentTable" class="minor">
           <tbody>
             <tr>
               <td><input type="hidden" name="exportVideo" value="1"/></td>
@@ -112,7 +120,9 @@ if ( !empty($_REQUEST['eid']) ) {
             </tr>
           </tbody>
         </table>
-        <input type="button" id="exportButton" name="exportButton" value="<?php echo translate('GenerateDownload') ?>" />
+        <button type="button" id="exportButton" name="exportButton" value="GenerateDownload" onclick="exportEvent(this.form);">
+        <?php echo translate('GenerateDownload') ?>
+        </button>
       </form>
     </div>
 <?php

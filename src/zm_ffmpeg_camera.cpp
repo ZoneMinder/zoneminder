@@ -82,8 +82,35 @@ static AVPixelFormat get_format(AVCodecContext *avctx, const enum AVPixelFormat 
 }
 #endif
 
-FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
-  Camera( p_id, FFMPEG_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
+FfmpegCamera::FfmpegCamera(
+    int p_id,
+    const std::string &p_path,
+    const std::string &p_method,
+    const std::string &p_options,
+    int p_width,
+    int p_height,
+    int p_colours,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio
+    ) :
+  Camera(
+      p_id,
+      FFMPEG_SRC,
+      p_width,
+      p_height,
+      p_colours,
+      ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours),
+      p_brightness,
+      p_contrast,
+      p_hue,
+      p_colour,
+      p_capture,
+      p_record_audio
+      ),
   mPath( p_path ),
   mMethod( p_method ),
   mOptions( p_options )
@@ -113,6 +140,8 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
   videoStore = NULL;
   video_last_pts = 0;
   have_video_keyframe = false;
+  packetqueue = NULL;
+  error_count = 0;
 
 #if HAVE_LIBSWSCALE  
   mConvertContext = NULL;
@@ -134,16 +163,12 @@ FfmpegCamera::FfmpegCamera( int p_id, const std::string &p_path, const std::stri
 
 FfmpegCamera::~FfmpegCamera() {
 
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
-  }
   Close();
 
   if ( capture ) {
     Terminate();
   }
-  avformat_network_deinit();
+  FFMPEGDeInit();
 }
 
 void FfmpegCamera::Initialise() {
@@ -155,12 +180,12 @@ void FfmpegCamera::Terminate() {
 
 int FfmpegCamera::PrimeCapture() {
   if ( mCanCapture ) {
-    Info( "Priming capture from %s, CLosing", mPath.c_str() );
+    Info("Priming capture from %s, Closing", mPath.c_str());
     Close();
   }
   mVideoStreamId = -1;
   mAudioStreamId = -1;
-  Info( "Priming capture from %s", mPath.c_str() );
+  Info("Priming capture from %s", mPath.c_str());
 
   return OpenFfmpeg();
 }
@@ -170,7 +195,7 @@ int FfmpegCamera::PreCapture() {
   if ( ! mCanCapture )
     return OpenFfmpeg();
   // Nothing to do here
-  return( 0 );
+  return 0;
 }
 
 int FfmpegCamera::Capture( Image &image ) {
@@ -310,6 +335,7 @@ int FfmpegCamera::OpenFfmpeg() {
   int ret;
 
   have_video_keyframe = false;
+  error_count = 0;
 
   // Open the input, not necessarily a file
 #if !LIBAVFORMAT_VERSION_CHECK(53, 2, 0, 4, 0)
@@ -336,6 +362,7 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     Warning("Unknown method (%s)", method.c_str() );
   }
+//#av_dict_set(&opts, "timeout", "10000000", 0); // in microseconds.
 
   if ( ret < 0 ) {
     Warning("Could not set rtsp_transport method '%s'\n", method.c_str());
@@ -437,6 +464,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   Debug(3, "Found video stream at index %d", mVideoStreamId);
   Debug(3, "Found audio stream at index %d", mAudioStreamId);
+  packetqueue = new zm_packetqueue( mVideoStreamId > mAudioStreamId ? mVideoStreamId : mAudioStreamId );
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   //mVideoCodecContext = avcodec_alloc_context3(NULL);
@@ -537,15 +565,23 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug(1, "HWACCEL not in use");
   }
   if ( mAudioStreamId >= 0 ) {
+    if ( (mAudioCodec = avcodec_find_decoder(
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    mAudioCodecContext = avcodec_alloc_context3( NULL );
-    avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
+            mFormatContext->streams[mAudioStreamId]->codecpar->codec_id
 #else
-    mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+            mFormatContext->streams[mAudioStreamId]->codec->codec_id
 #endif
-    if ( (mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL ) {
+            )) == NULL ) {
       Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
     } else {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
+      avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
+#else
+      mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+     // = avcodec_alloc_context3(mAudioCodec);
+#endif
+
       Debug(1, "Audio Found decoder");
       zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
       // Open the codec
@@ -556,7 +592,7 @@ int FfmpegCamera::OpenFfmpeg() {
       Debug ( 1, "Calling avcodec_open2" );
       if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 ) {
 #endif
-        Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+        Error( "Unable to open codec for audio stream from %s", mPath.c_str() );
         return -1;
       }
       Debug(2, "Opened audio codec");
@@ -647,6 +683,11 @@ int FfmpegCamera::Close() {
   }
 #endif
 
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
+
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
     Debug(1,"After codec close");
@@ -672,9 +713,9 @@ int FfmpegCamera::Close() {
     mFormatContext = NULL;
   }
 
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
+  if ( packetqueue ) {
+    delete packetqueue;
+    packetqueue = NULL;
   }
 
   return 0;
@@ -708,19 +749,33 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       return -1;
     }
 
+    if ( (packet.pts != AV_NOPTS_VALUE) && (packet.pts < -100000) ) {
+      // Ignore packets that have crazy negative pts.  They aren't supposed to happen.
+      Warning("Ignore packet because pts %" PRId64 " is massively negative. Error count is %d", packet.pts, error_count);
+      dumpPacket(mFormatContext->streams[packet.stream_index], &packet,"Ignored packet");
+      if ( error_count > 100 ) {
+        Error("Bad packet count over 100, going to close and re-open stream");
+        return -1;
+      }
+      error_count += 1;
+      continue;
+    }
+    // If we get a good frame, decrease the error count.. We could zero it...
+    if ( error_count > 0 ) error_count -= 1;
+
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
     bytes += packet.size;
-    dumpPacket(&packet);
+    dumpPacket(mFormatContext->streams[packet.stream_index], &packet, "Captured Packet");
 
-    //Video recording
+    // Video recording
     if ( recording.tv_sec ) {
 
-      uint32_t last_event_id = monitor->GetLastEventId() ;
+      uint32_t last_event_id = monitor->GetLastEventId();
       uint32_t video_writer_event_id = monitor->GetVideoWriterEventId();
 
       if ( last_event_id != video_writer_event_id ) {
         Debug(2, "Have change of event.  last_event(%d), our current (%d)",
-			last_event_id, video_writer_event_id);
+            last_event_id, video_writer_event_id);
 
         if ( videoStore ) {
           Info("Re-starting video storage module");
@@ -787,62 +842,70 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           ZMPacket *queued_packet;
 
           // Clear all packets that predate the moment when the recording began
-          packetqueue.clear_unwanted_packets( &recording, mVideoStreamId );
+          packetqueue->clear_unwanted_packets( &recording, mVideoStreamId );
 
-          while ( ( queued_packet = packetqueue.popPacket() ) ) {
+          while ( ( queued_packet = packetqueue->popPacket() ) ) {
             AVPacket *avp = queued_packet->av_packet();
 
             packet_count += 1;
             //Write the packet to our video store
-            Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)", avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue.size() );
+            Debug(2, "Writing queued packet stream: %d  KEY %d, remaining (%d)",
+                avp->stream_index, avp->flags & AV_PKT_FLAG_KEY, packetqueue->size());
             if ( avp->stream_index == mVideoStreamId ) {
               ret = videoStore->writeVideoFramePacket( avp );
               have_video_keyframe = true;
             } else if ( avp->stream_index == mAudioStreamId ) {
               ret = videoStore->writeAudioFramePacket( avp );
             } else {
-              Warning("Unknown stream id in queued packet (%d)", avp->stream_index );
+              Warning("Unknown stream id in queued packet (%d)", avp->stream_index);
               ret = -1;
             }
             if ( ret < 0 ) {
-              //Less than zero and we skipped a frame
+              // Less than zero and we skipped a frame
             }
             delete queued_packet;
           } // end while packets in the packetqueue
-          Debug(2, "Wrote %d queued packets", packet_count );
+          Debug(2, "Wrote %d queued packets", packet_count);
         }
       } // end if ! was recording
 
     } else {
       // Not recording
+      
       if ( videoStore ) {
-        Info("Deleting videoStore instance");
+        Debug(1,"Deleting videoStore instance");
         delete videoStore;
         videoStore = NULL;
         have_video_keyframe = false;
         monitor->SetVideoWriterEventId(0);
       }
-
-      // Buffer video packets, since we are not recording.
-      // All audio packets are keyframes, so only if it's a video keyframe
-      if ( packet.stream_index == mVideoStreamId ) {
-        if ( keyframe ) {
-          Debug(3, "Clearing queue");
-          packetqueue.clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
-          packetqueue.queuePacket(&packet);
-        } else if ( packetqueue.size() ) {
-          // it's a keyframe or we already have something in the queue
-          packetqueue.queuePacket(&packet);
-        } 
-      } else if ( packet.stream_index == mAudioStreamId ) {
-      // The following lines should ensure that the queue always begins with a video keyframe
-//Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
-        if ( record_audio && packetqueue.size() ) { 
-          // if it's audio, and we are doing audio, and there is already something in the queue
-          packetqueue.queuePacket(&packet);
-        }
-      }
     } // end if recording or not
+
+    // Buffer video packets, since we are not recording.
+    // All audio packets are keyframes, so only if it's a video keyframe
+    if ( packet.stream_index == mVideoStreamId ) {
+      if ( keyframe ) {
+        Debug(3, "Clearing queue");
+        if ( packetqueue->packet_count(mVideoStreamId) >= monitor->GetImageBufferCount() ) {
+          Warning("ImageBufferCount %d is too small.  Needs to be at least %d. Either increase it or decrease time between keyframes", 
+              monitor->GetImageBufferCount(),
+              packetqueue->packet_count(mVideoStreamId)+1 );
+        }
+
+        packetqueue->clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
+        packetqueue->queuePacket(&packet);
+      } else if ( packetqueue->size() ) {
+        // it's a keyframe or we already have something in the queue
+        packetqueue->queuePacket(&packet);
+      } 
+    } else if ( packet.stream_index == mAudioStreamId ) {
+    // The following lines should ensure that the queue always begins with a video keyframe
+//Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
+      if ( record_audio && packetqueue->size() ) { 
+        // if it's audio, and we are doing audio, and there is already something in the queue
+        packetqueue->queuePacket(&packet);
+      }
+    } // end if packet type
 
     if ( packet.stream_index == mVideoStreamId ) {
       // only do decode if we have had a keyframe, should save a few cycles.
@@ -980,7 +1043,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   //FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
-
+  //Debug(4, "FfmpegInterruptCallback");
   return zm_terminate;
 }
 

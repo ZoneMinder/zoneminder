@@ -30,6 +30,7 @@ use warnings;
 
 require ZoneMinder::Base;
 require Date::Manip;
+require POSIX;
 
 use parent qw(ZoneMinder::Object);
 
@@ -47,8 +48,6 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 require ZoneMinder::Storage;
 require ZoneMinder::Server;
-
-use POSIX;
 
 sub Name {
   if ( @_ > 1 ) {
@@ -178,7 +177,7 @@ sub Sql {
             $self->{Sql} .= 'to_days( E.StartTime )';
           } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' ) {
             $self->{Sql} .= 'extract( hour_second from E.StartTime )';
-          } elsif ( $term->{attr} eq 'Weekday' ) {
+          } elsif ( $term->{attr} eq 'Weekday' or $term->{attr} eq 'StartWeekday' ) {
             $self->{Sql} .= 'weekday( E.StartTime )';
 
 # EndTIme options
@@ -436,7 +435,7 @@ sub DateTimeToSQL {
     Error( "Unable to parse date string '$dt_str'\n" );
     return( undef );
   }
-  return( strftime( "%Y-%m-%d %H:%M:%S", localtime( $dt_val ) ) );
+  return( POSIX::strftime( "%Y-%m-%d %H:%M:%S", localtime( $dt_val ) ) );
 }
 
 1;

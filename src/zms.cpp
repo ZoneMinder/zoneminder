@@ -85,6 +85,9 @@ int main( int argc, const char *argv[] ) {
   }
   
   zmLoadConfig();
+  char log_id_string[32] = "zms";
+  logInit( log_id_string );
+  Debug(1,"rate %d", rate);
 
   const char *query = getenv("QUERY_STRING");
   if ( query ) {
@@ -95,7 +98,7 @@ int main( int argc, const char *argv[] ) {
     char *q_ptr = temp_query;
     char *parms[16]; // Shouldn't be more than this
     int parm_no = 0;
-    while( (parm_no < 16) && (parms[parm_no] = strtok(q_ptr, "&")) ) {
+    while ( (parm_no < 16) && (parms[parm_no] = strtok(q_ptr, "&")) ) {
       parm_no++;
       q_ptr = NULL;
     }
@@ -130,6 +133,7 @@ int main( int argc, const char *argv[] ) {
         scale = atoi( value );
       } else if ( !strcmp( name, "rate" ) ) {
         rate = atoi( value );
+        Debug(2,"Setting rate to %d from %s", rate, value);
       } else if ( !strcmp( name, "maxfps" ) ) {
         maxfps = atof( value );
       } else if ( !strcmp( name, "bitrate" ) ) {
@@ -163,9 +167,10 @@ int main( int argc, const char *argv[] ) {
         Debug(1, "Unknown parameter passed to zms %s=%s", name, value);
       } // end if possible parameter names
     } // end foreach parm
+  } else {
+    Fatal("No query string.");
   } // end if query
 
-  char log_id_string[32] = "zms";
   if ( monitor_id ) {
     snprintf(log_id_string, sizeof(log_id_string), "zms_m%d", monitor_id);
   } else {

@@ -18,9 +18,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Monitors' ) ) {
-    $view = 'error';
-    return;
+if ( !canView('Monitors') ) {
+  $view = 'error';
+  return;
 }
 
 $mid = validInt($_REQUEST['mid']);
@@ -71,7 +71,7 @@ if ( !isset($newZone) ) {
       'Type'  =>  'Active',
       'MonitorId' => $monitor->Id(),
       'NumCoords' => 4,
-      'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
+      'Coords' => sprintf('%d,%d %d,%d, %d,%d %d,%d', $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY),
       'Area' => $monitor->Width() * $monitor->Height(),
       'AlarmRGB' => 0xff0000,
       'CheckMethod' => 'Blobs',
@@ -235,16 +235,15 @@ if ( count( $other_zones ) ) {
             </div>
           </div>
           <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
-          <table id="zonePoints" cellspacing="0">
+          <table id="zonePoints">
             <tbody>
               <tr>
 <?php
 $pointCols = 2;
-for ( $i = 0; $i < $pointCols; $i++ )
-{
+for ( $i = 0; $i < $pointCols; $i++ ) {
 ?>
                 <td>
-                  <table cellspacing="0">
+                  <table>
                     <thead>
                       <tr>
                         <th><?php echo translate('Point') ?></th>
@@ -254,26 +253,11 @@ for ( $i = 0; $i < $pointCols; $i++ )
                       </tr>
                     </thead>
                     <tbody>
-<?php
-    if ( false )
-    for ( $j = $i; $j < count($newZone['Points']); $j += 2 )
-    {
-?>
-                      <tr id="row<?php echo $j ?>" onmouseover="highlightOn( <?php echo $j ?> )" onmouseout="highlightOff( <?php echo $j ?> )" onclick="setActivePoint( <?php echo $j ?> )">
-                        <td><?php echo $j+1 ?></td>
-                        <td><input name="newZone[Points][<?php echo $j ?>][x]" id="newZone[Points][<?php echo $j ?>][x]" size="5" value="<?php echo $newZone['Points'][$j]['x'] ?>" oninput="updateX( this, <?php echo $j ?> );"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
-                        <td><input name="newZone[Points][<?php echo $j ?>][y]" id="newZone[Points][<?php echo $j ?>][y]" size="5" value="<?php echo $newZone['Points'][$j]['y'] ?>" oninput="updateY( this, <?php echo $j ?> );"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
-                        <td><a href="#" onclick="addPoint( this, <?php echo $j ?> ); return( false );">+</a><?php if ( count($newZone['Points']) > 3 ) { ?>&nbsp;<a id="delete<?php echo $j ?>" href="#" onclick="delPoint( this, <?php echo $j ?> ); return(false);">&ndash;</a><?php } ?>&nbsp;<a id="cancel<?php echo $j ?>" href="#" onclick="unsetActivePoint( <?php echo $j ?> ); return( false );">X</a></td>
-                      </tr>
-<?php
-    }
-?>
                     </tbody>
                   </table>
                 </td>
 <?php
-    if ( $i < ($pointCols-1) )
-    {
+    if ( $i < ($pointCols-1) ) {
 ?>
                 <td>&nbsp;</td>
 <?php

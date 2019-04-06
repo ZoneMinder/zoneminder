@@ -143,6 +143,10 @@ function setButtonState( element, butClass ) {
   }
 }
 
+function changeCodec(element) {
+  location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+element.value);
+}
+
 function changeScale() {
   var scale = $j('#scale').val();
   var newWidth;

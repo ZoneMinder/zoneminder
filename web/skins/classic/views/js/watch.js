@@ -448,10 +448,16 @@ function cmdEnableAlarms() {
 
 function cmdForceAlarm() {
   alarmCmdReq.send(alarmCmdParms+"&command=forceAlarm");
+  if (window.event) {
+    window.event.preventDefault();
+  }
 }
 
 function cmdCancelForcedAlarm() {
   alarmCmdReq.send(alarmCmdParms+"&command=cancelForcedAlarm");
+  if (window.event) {
+    window.event.preventDefault();
+  }
   return false;
 }
 

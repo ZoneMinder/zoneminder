@@ -33,6 +33,7 @@
 
 #include <set>
 #include <map>
+#include <queue>
 
 #include "zm.h"
 #include "zm_image.h"
@@ -45,7 +46,10 @@ class Monitor;
 class EventStream;
 
 #define MAX_PRE_ALARM_FRAMES  16 // Maximum number of prealarm frames that can be stored
+typedef uint64_t event_id_t;
+    typedef enum { NORMAL=0, BULK, ALARM } FrameType;
 
+#include "zm_frame.h"
 //
 // Class describing events, i.e. captured periods of activity.
 //
@@ -60,7 +64,6 @@ class Event {
     typedef std::map<std::string,StringSet> StringSetMap;
 
   protected:
-    typedef enum { NORMAL=0, BULK, ALARM } FrameType;
     static const char * frame_type_names[3];
 
     struct PreAlarmData {
@@ -69,6 +72,7 @@ class Event {
       unsigned int score;
       Image *alarm_frame;
     };
+    std::queue<Frame*> frame_data;
 
     static int pre_alarm_count;
     static PreAlarmData pre_alarm_data[MAX_PRE_ALARM_FRAMES];
@@ -86,6 +90,8 @@ class Event {
     unsigned int  tot_score;
     unsigned int  max_score;
     char      path[PATH_MAX];
+    char snapshot_file[PATH_MAX];
+    char alarm_file[PATH_MAX];
     VideoWriter* videowriter;
     FILE* timecodes_fd;
     char video_name[PATH_MAX];
@@ -125,6 +131,7 @@ class Event {
 
   private:
     void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );
+    void WriteDbFrames();
 
   public:
     static const char *getSubPath( struct tm *time ) {

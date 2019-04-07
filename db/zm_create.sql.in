@@ -639,7 +639,7 @@ CREATE TABLE `Users` (
   `Devices` enum('None','View','Edit') NOT NULL default 'None',
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16),
-  `MonitorIds` tinytext,
+  `MonitorIds` text,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `UC_Username` (`Username`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

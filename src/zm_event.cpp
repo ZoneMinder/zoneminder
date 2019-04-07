@@ -538,6 +538,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   }
 
   frames++;
+  bool write_to_db = false;
 
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
     static char event_file[PATH_MAX];
@@ -549,10 +550,12 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   } else {
     //If this is the first frame, we should add a thumbnail to the event directory
     if ( (frames == 1) || (score > (int)max_score) ) {
+      write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       WriteFrameImage(image, timestamp, snapshot_file);
     }
     // The first frame with a score will be the frame that alarmed the event
     if ( (!alarm_frame_written) && (score > 0) ) {
+      write_to_db = true; // OD processing will need it, so the db needs to know about it
       alarm_frame_written = true;
       WriteFrameImage(image, timestamp, alarm_file);
     }
@@ -574,7 +577,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     static char sql[ZM_SQL_MED_BUFSIZ];
 
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
-    if ( frame_data.size() > 20 ) {
+    if ( write_to_db || ( frame_data.size() > 20 ) ) {
       WriteDbFrames();
       Debug(1, "Adding 20 frames to DB");
       last_db_frame = frames;

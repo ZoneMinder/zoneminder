@@ -93,7 +93,6 @@ VideoStore::VideoStore(
   oc->metadata = pmetadata;
   out_format = oc->oformat;
 
-
   video_out_codec = avcodec_find_encoder(video_in_ctx->codec_id);
   if ( !video_out_codec ) {
 #if (LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 11, 0) && (LIBAVFORMAT_VERSION_MICRO >= 100))
@@ -870,7 +869,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   dumpPacket(video_in_stream, ipkt, "input packet");
 
   int64_t duration;
-  if ( ipkt->duration && ( ipkt->duration != AV_NOPTS_VALUE ) ) {
+  if ( ipkt->duration != AV_NOPTS_VALUE ) {
     duration = av_rescale_q(
         ipkt->duration,
         video_in_stream->time_base,
@@ -929,8 +928,9 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   }
   // Just because the in stream wraps, doesn't mean the out needs to.  Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.  So need to handle in wrap, without causing out wrap.
   if ( ipkt->dts != AV_NOPTS_VALUE ) {
-#if 0
-    if ( (!video_first_dts) && ( ipkt->dts >= 0 ) ) {
+#if 1
+    if ( (!video_first_dts) ) {
+     // && ( ipkt->dts >= 0 ) ) {
       // This is the first packet.
       opkt.dts = 0;
       Debug(1, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
@@ -938,14 +938,14 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     } else {
 #endif
       opkt.dts = av_rescale_q(
-          ipkt->dts - video_first_pts,
+          ipkt->dts - video_first_dts,
           video_in_stream->time_base,
           video_out_stream->time_base
           );
       Debug(3, "opkt.dts = %" PRId64 " from ipkt->dts(%" PRId64 ") - first_pts(%" PRId64 ")",
-          opkt.dts, ipkt->dts, video_first_pts);
+          opkt.dts, ipkt->dts, video_first_dts);
       video_last_dts = ipkt->dts;
-#if 0
+#if 1
     }
 #endif
     if ( opkt.dts > opkt.pts ) {

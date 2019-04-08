@@ -406,8 +406,8 @@ if ( ZM_OPT_MESSAGE ) {
         </div>
         <hr/>
         <div id="contentButtons">
-          <button type="button" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
-          <button type="button" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatchesInMontageReview') ?></button>
+          <button type="submit" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
+          <!--<button type="submit" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatches') ?></button>-->
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
           <button type="button" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>
 <?php 

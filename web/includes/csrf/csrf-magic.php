@@ -157,7 +157,8 @@ function csrf_ob_handler($buffer, $flags) {
     $input = "<input type='hidden' name='$name' value=\"$tokens\"$endslash>";
     $buffer = preg_replace('#(<form[^>]*method\s*=\s*["\']post["\'][^>]*>)#i', '$1' . $input, $buffer);
     if ($GLOBALS['csrf']['frame-breaker']) {
-        $buffer = str_ireplace('</head>', '<script nonce="'.$cspNonce.'">if (top != self) {top.location.href = self.location.href;}</script></head>', $buffer);
+        $buffer = str_ireplace('</head>', '<script nonce="'.$cspNonce.'">if (top != self) {top.location.href = self.location.href;}</script>
+</head>', $buffer);
     }
     if ($js = $GLOBALS['csrf']['rewrite-js']) {
         $buffer = str_ireplace(
@@ -165,7 +166,8 @@ function csrf_ob_handler($buffer, $flags) {
             '<script nonce="'.$cspNonce.'">'.
                 'var csrfMagicToken = "'.$tokens.'";'.
                 'var csrfMagicName = "'.$name.'";</script>'.
-            '<script src="'.$js.'"></script></head>',
+            '<script src="'.$js.'"></script>
+						</head>',
             $buffer
         );
         $script = '<script nonce="'.$cspNonce.'">CsrfMagic.end();</script>';

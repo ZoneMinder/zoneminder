@@ -320,7 +320,8 @@ void zm_dump_codecpar ( const AVCodecParameters *par ) {
 #endif
 
 void zm_dump_codec(const AVCodecContext *codec) {
-  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d) format(%s)",
+  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d) format(%s)\n"
+      "gop_size %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d",
     codec->codec_type,
     codec->codec_id,
     codec->width,
@@ -328,11 +329,17 @@ void zm_dump_codec(const AVCodecContext *codec) {
     codec->time_base.num,
     codec->time_base.den,
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt))
+    (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt)),
 #else
-    "unsupported on avconv"
+    "unsupported on avconv",
 #endif
-); 
+    codec->gop_size,
+    codec->max_b_frames,
+    codec->me_cmp,
+    codec->me_range,
+    codec->qmin,
+    codec->qmax
+    );
 }
 
 /* "user interface" functions */
@@ -356,9 +363,9 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, "ids [0x%x]", st->id);
   if (lang)
     Debug(1, "language (%s)", lang->value);
-  Debug(1, "frames:%d, frame_size:%d stream timebase: %d/%d codec timebase: %d/%d",
-      st->codec_info_nb_frames, codec->frame_size, st->time_base.num, st->time_base.den,
-      st->codec->time_base.num, st->codec->time_base.den
+  Debug(1, "frames:%d, frame_size:%d stream timebase: %d/%d",
+      st->codec_info_nb_frames, codec->frame_size,
+      st->time_base.num, st->time_base.den
       );
   avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, "codec: %s", buf);
@@ -377,17 +384,14 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
         display_aspect_ratio.num, display_aspect_ratio.den);
   }
 
-  if ( st->codec->codec_type == AVMEDIA_TYPE_VIDEO ) {
+  if ( codec->codec_type == AVMEDIA_TYPE_VIDEO ) {
     int fps = st->avg_frame_rate.den && st->avg_frame_rate.num;
     int tbn = st->time_base.den && st->time_base.num;
-    int tbc = st->codec->time_base.den && st->codec->time_base.num;
 
     if (fps)
       zm_log_fps(av_q2d(st->avg_frame_rate), "fps");
     if (tbn)
       zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
-    if (tbc)
-      zm_log_fps(1 / av_q2d(st->codec->time_base), "codec time base:");
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)

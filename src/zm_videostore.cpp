@@ -92,6 +92,7 @@ VideoStore::VideoStore(
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
+	out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
 
   video_out_codec = avcodec_find_encoder(video_in_ctx->codec_id);
   if ( !video_out_codec ) {
@@ -926,17 +927,18 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     opkt.pts = 0;
     //AV_NOPTS_VALUE;
   }
-  // Just because the in stream wraps, doesn't mean the out needs to.  Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.  So need to handle in wrap, without causing out wrap.
+  // Just because the in stream wraps, doesn't mean the out needs to.
+	// Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.
+	// So need to handle in wrap, without causing out wrap.
+
   if ( ipkt->dts != AV_NOPTS_VALUE ) {
-#if 1
-    if ( (!video_first_dts) ) {
+    if ( !video_first_dts ) {
      // && ( ipkt->dts >= 0 ) ) {
       // This is the first packet.
       opkt.dts = 0;
       Debug(1, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
       video_first_dts = ipkt->dts;
     } else {
-#endif
       opkt.dts = av_rescale_q(
           ipkt->dts - video_first_dts,
           video_in_stream->time_base,
@@ -944,10 +946,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
           );
       Debug(3, "opkt.dts = %" PRId64 " from ipkt->dts(%" PRId64 ") - first_pts(%" PRId64 ")",
           opkt.dts, ipkt->dts, video_first_dts);
-      video_last_dts = ipkt->dts;
-#if 1
     }
-#endif
     if ( opkt.dts > opkt.pts ) {
       Debug(1,
           "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 "). Decompression must happen "
@@ -959,6 +958,17 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     Debug(3, "opkt.dts = undef");
     opkt.dts = 0;
   }
+
+# if 0
+	if ( opkt.dts <= video_out_stream->cur_dts ) {
+		Warning("Fixing non-monotonic dts/pts dts %" PRId64 " pts %" PRId64 " stream %" PRId64,
+				opkt.dts, opkt.pts, video_out_stream->cur_dts);
+		opkt.dts = video_out_stream->cur_dts + 1;
+		if ( opkt.dts > opkt.pts ) {
+			opkt.pts = opkt.dts;
+		}
+	}
+#endif
 
   opkt.flags = ipkt->flags;
   opkt.pos = -1;

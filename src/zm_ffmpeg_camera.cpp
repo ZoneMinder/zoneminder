@@ -535,31 +535,23 @@ int FfmpegCamera::OpenFfmpeg() {
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
     // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-    Debug(1, "Calling avcodec_open");
-    if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 )
+    ret = avcodec_open(mVideoCodecContext, mVideoCodec);
 #else
-      Debug(1, "Calling avcodec_open2");
-    if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 )
+    ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 #endif
-    {
-      AVDictionaryEntry *e = NULL;
-      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Warning( "Option %s not recognized by ffmpeg", e->key);
-      }
-      Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+    AVDictionaryEntry *e = NULL;
+    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+      Warning( "Option %s not recognized by ffmpeg", e->key);
+    }
+    if ( ret < 0 ) {
+      Error("Unable to open codec for video stream from %s", mPath.c_str());
       av_dict_free(&opts);
       return -1;
-    } else {
-
-      AVDictionaryEntry *e = NULL;
-      if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Warning( "Option %s not recognized by ffmpeg", e->key);
-      }
-      av_dict_free(&opts);
     }
+    zm_dump_codec(mVideoCodecContext);
   }
 
-  if (mVideoCodecContext->hwaccel != NULL) {
+  if ( mVideoCodecContext->hwaccel != NULL ) {
     Debug(1, "HWACCEL in use");
   } else {
     Debug(1, "HWACCEL not in use");
@@ -595,7 +587,7 @@ int FfmpegCamera::OpenFfmpeg() {
         Error( "Unable to open codec for audio stream from %s", mPath.c_str() );
         return -1;
       }
-      Debug(2, "Opened audio codec");
+      zm_dump_codec(mAudioCodecContext);
     } // end if find decoder
   } // end if have audio_context
 

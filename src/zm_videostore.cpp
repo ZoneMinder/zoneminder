@@ -119,8 +119,6 @@ VideoStore::VideoStore(
   if ( ret < 0 ) {
     Error("Could not initialize video_out_ctx parameters");
     return;
-  } else {
-    zm_dump_codec(video_out_ctx);
   }
 #else
   video_out_stream = avformat_new_stream(oc, NULL);

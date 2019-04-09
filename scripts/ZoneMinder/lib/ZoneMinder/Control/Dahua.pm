@@ -84,7 +84,7 @@ sub open
 
     use LWP::UserAgent;
     $self->{ua} = LWP::UserAgent->new(keep_alive => 1);
-    $self->{ua}->agent("ZoneMinder Control Agent/".$ZoneMinder::Base::ZM_VERSION);
+    $self->{ua}->agent("ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION);
     $self->{state} = 'closed';
 #   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);

@@ -63,6 +63,15 @@ function updateButtons(element) {
   }
 }
 
+function click_automove(element) {
+  updateButtons(this);
+  if ( this.checked ) {
+    $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
+  } else {
+    this.form.elements['filter[AutoMoveTo]'].hide();
+  }
+}
+
 function checkValue( element ) {
   var rows = $j(element).closest('tbody').children();
   parseRows(rows);
@@ -81,6 +90,11 @@ function resetFilter( element ) {
 function submitToEvents( element ) {
   var form = element.form;
   form.action = thisUrl + '?view=events';
+  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+}
+function submitToMontageReview( element ) {
+  var form = element.form;
+  form.action = thisUrl + '?view=montagereview';
   history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
 

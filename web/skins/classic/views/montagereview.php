@@ -59,8 +59,13 @@ include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
-if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($displayMonitors) != 0) {
-  $filter = array(
+$filter = array();
+if ( isset($_REQUEST['filter']) ) {
+  $filter = $_REQUEST['filter'];
+} else {
+
+  if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($displayMonitors) != 0) {
+    $filter = array(
       'Query' => array(
         'terms' => array(
           array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'),
@@ -68,21 +73,22 @@ if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && count($display
         )
       ),
     );
-  if ( count($selected_monitor_ids) ) {
-    $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
-  } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
-# this should be redundant
-    for ($i=0; $i < count($displayMonitors); $i++) {
-      if ($i == '0') {
-        $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1');
-      } else if ($i == (count($displayMonitors)-1)) {
-        $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1');
-      } else {
-        $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or');
+    if ( count($selected_monitor_ids) ) {
+      $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
+    } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
+      # this should be redundant
+      for ($i=0; $i < count($displayMonitors); $i++) {
+        if ($i == '0') {
+          $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1');
+        } else if ($i == (count($displayMonitors)-1)) {
+          $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1');
+        } else {
+          $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or');
+        }
       }
     }
-  }
-  parseFilter( $filter );
+  } # end if REQUEST[Filter]
+  parseFilter($filter);
   # This is to enable the download button
   session_start();
   $_SESSION['montageReviewFilter'] = $filter;

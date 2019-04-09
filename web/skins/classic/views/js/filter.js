@@ -67,9 +67,9 @@ function click_automove(element) {
   updateButtons(this);
   if ( this.checked ) {
     $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
-   } else {
-      this.form.elements['filter[AutoMoveTo]'].hide();
-   }
+  } else {
+    this.form.elements['filter[AutoMoveTo]'].hide();
+  }
 }
 
 function checkValue( element ) {

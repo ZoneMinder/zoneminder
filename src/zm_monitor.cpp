@@ -1456,7 +1456,10 @@ bool Monitor::Analyse() {
           if ( event ) {
             Debug(3, "Have signal and recording with open event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
 
-            if ( section_length && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length ) ) {
+            if ( section_length
+                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                && ( ! ( timestamp->tv_sec % section_length ) ) 
+                ) {
               Info( "%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
                   name, image_count, event->Id(),
                   timestamp->tv_sec, video_store_data->recording.tv_sec, 

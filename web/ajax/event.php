@@ -1,5 +1,5 @@
 <?php
-#error_reporting(0);
+error_reporting(E_ERROR);
 
 if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
   ajaxError('No event id(s) supplied');

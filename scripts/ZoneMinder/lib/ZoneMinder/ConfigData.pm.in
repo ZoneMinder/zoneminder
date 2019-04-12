@@ -463,6 +463,18 @@ our @options = (
     category    => 'system',
   },
   {
+    name        =>  'ZM_SYSTEM_SHUTDOWN',
+    default     =>  'true',
+    description =>  'Allow Admin users to power off or restart the system from the ZoneMinder UI.',
+    help        =>  'The system will need to have sudo installed and the following added to /etc/sudoers~~
+    ~~
+    @ZM_WEB_USER@ ALL=NOPASSWD: /sbin/shutdown~~
+    ~~
+      to perform the shutdown or reboot',
+    type      =>  $types{boolean},
+    category  =>  'system',
+  },
+  {
     name        => 'ZM_USE_DEEP_STORAGE',
     default     => 'yes',
     description => 'Use a deep filesystem hierarchy for events',

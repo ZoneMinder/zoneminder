@@ -324,7 +324,9 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 
 <?php if ( canEdit('System') ) { ?>
 		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
-
+<?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
+<?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i></button>' ) ?>
+<?php } ?>
 <?php } else if ( canView('System') ) { ?>
 		<p class="navbar-text"> <?php echo $status ?></p>
 <?php } ?>

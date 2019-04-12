@@ -168,7 +168,7 @@ FfmpegCamera::~FfmpegCamera() {
   if ( capture ) {
     Terminate();
   }
-  avformat_network_deinit();
+  FFMPEGDeInit();
 }
 
 void FfmpegCamera::Initialise() {
@@ -535,45 +535,45 @@ int FfmpegCamera::OpenFfmpeg() {
     zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
     // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-    Debug(1, "Calling avcodec_open");
-    if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 )
+    ret = avcodec_open(mVideoCodecContext, mVideoCodec);
 #else
-      Debug(1, "Calling avcodec_open2");
-    if ( avcodec_open2(mVideoCodecContext, mVideoCodec, &opts) < 0 )
+    ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 #endif
-    {
-      AVDictionaryEntry *e = NULL;
-      while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Warning( "Option %s not recognized by ffmpeg", e->key);
-      }
-      Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+    AVDictionaryEntry *e = NULL;
+    while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
+      Warning( "Option %s not recognized by ffmpeg", e->key);
+    }
+    if ( ret < 0 ) {
+      Error("Unable to open codec for video stream from %s", mPath.c_str());
       av_dict_free(&opts);
       return -1;
-    } else {
-
-      AVDictionaryEntry *e = NULL;
-      if ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-        Warning( "Option %s not recognized by ffmpeg", e->key);
-      }
-      av_dict_free(&opts);
     }
+    zm_dump_codec(mVideoCodecContext);
   }
 
-  if (mVideoCodecContext->hwaccel != NULL) {
+  if ( mVideoCodecContext->hwaccel != NULL ) {
     Debug(1, "HWACCEL in use");
   } else {
     Debug(1, "HWACCEL not in use");
   }
   if ( mAudioStreamId >= 0 ) {
+    if ( (mAudioCodec = avcodec_find_decoder(
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    mAudioCodecContext = avcodec_alloc_context3( NULL );
-    avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
+            mFormatContext->streams[mAudioStreamId]->codecpar->codec_id
 #else
-    mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+            mFormatContext->streams[mAudioStreamId]->codec->codec_id
 #endif
-    if ( (mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL ) {
+            )) == NULL ) {
       Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
     } else {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
+      avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
+#else
+      mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+     // = avcodec_alloc_context3(mAudioCodec);
+#endif
+
       Debug(1, "Audio Found decoder");
       zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
       // Open the codec
@@ -584,10 +584,10 @@ int FfmpegCamera::OpenFfmpeg() {
       Debug ( 1, "Calling avcodec_open2" );
       if ( avcodec_open2(mAudioCodecContext, mAudioCodec, 0) < 0 ) {
 #endif
-        Error( "Unable to open codec for video stream from %s", mPath.c_str() );
+        Error( "Unable to open codec for audio stream from %s", mPath.c_str() );
         return -1;
       }
-      Debug(2, "Opened audio codec");
+      zm_dump_codec(mAudioCodecContext);
     } // end if find decoder
   } // end if have audio_context
 
@@ -675,6 +675,11 @@ int FfmpegCamera::Close() {
   }
 #endif
 
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
+
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
     Debug(1,"After codec close");
@@ -700,10 +705,6 @@ int FfmpegCamera::Close() {
     mFormatContext = NULL;
   }
 
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
-  }
   if ( packetqueue ) {
     delete packetqueue;
     packetqueue = NULL;
@@ -740,7 +741,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       return -1;
     }
 
-    if ( packet.pts < -100000 ) {
+    if ( (packet.pts != AV_NOPTS_VALUE) && (packet.pts < -100000) ) {
       // Ignore packets that have crazy negative pts.  They aren't supposed to happen.
       Warning("Ignore packet because pts %" PRId64 " is massively negative. Error count is %d", packet.pts, error_count);
       dumpPacket(mFormatContext->streams[packet.stream_index], &packet,"Ignored packet");
@@ -1034,7 +1035,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   //FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
-  Debug(4, "FfmpegInterruptCallback");
+  //Debug(4, "FfmpegInterruptCallback");
   return zm_terminate;
 }
 

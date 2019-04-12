@@ -90,6 +90,8 @@ class Event {
     unsigned int  tot_score;
     unsigned int  max_score;
     char      path[PATH_MAX];
+    char snapshot_file[PATH_MAX];
+    char alarm_file[PATH_MAX];
     VideoWriter* videowriter;
     FILE* timecodes_fd;
     char video_name[PATH_MAX];

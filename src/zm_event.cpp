@@ -193,6 +193,9 @@ Event::Event(
 
   video_name[0] = 0;
 
+  snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
+  snprintf(alarm_file, sizeof(alarm_file), "%s/alarm.jpg", path);
+
   /* Save as video */
 
   if ( monitor->GetOptVideoWriter() != 0 ) {
@@ -251,7 +254,7 @@ Event::~Event() {
     WriteDbFrames();
 
   // Should not be static because we might be multi-threaded
-  char sql[ZM_SQL_MED_BUFSIZ];
+  char sql[ZM_SQL_LGE_BUFSIZ];
   snprintf(sql, sizeof(sql), 
       "UPDATE Events SET Name='%s %" PRIu64 "', EndTime = from_unixtime( %ld ), Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo = '%s' WHERE Id = %" PRIu64,
       monitor->EventPrefix(), id, end_time.tv_sec,
@@ -453,9 +456,9 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
 
     frames++;
 
-    static char event_file[PATH_MAX];
-    snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
     if ( monitor->GetOptSaveJPEGs() & 1 ) {
+      static char event_file[PATH_MAX];
+      snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
       Debug(1, "Writing pre-capture frame %d", frames);
       WriteFrameImage(images[i], *(timestamps[i]), event_file);
     } else {
@@ -464,8 +467,6 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
       // neccessarily be of the motion.  But some events are less than 10 frames, 
       // so I am changing this to 1, but we should overwrite it later with a better snapshot.
       if ( frames == 1 ) {
-        char snapshot_file[PATH_MAX];
-        snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
         WriteFrameImage(images[i], *(timestamps[i]), snapshot_file);
       }
     }
@@ -537,32 +538,29 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   }
 
   frames++;
-
-  static char event_file[PATH_MAX];
-  snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
+  bool write_to_db = false;
 
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
+    static char event_file[PATH_MAX];
+    snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
     Debug(1, "Writing capture frame %d to %s", frames, event_file);
     if ( ! WriteFrameImage(image, timestamp, event_file) ) {
       Error("Failed to write frame image");
     }
   } else {
     //If this is the first frame, we should add a thumbnail to the event directory
-    if ( frames == 1 || score > (int)max_score ) {
-      char snapshot_file[PATH_MAX];
-      snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
+    if ( (frames == 1) || (score > (int)max_score) ) {
+      write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       WriteFrameImage(image, timestamp, snapshot_file);
     }
     // The first frame with a score will be the frame that alarmed the event
-    if (!alarm_frame_written && score > 0) {
+    if ( (!alarm_frame_written) && (score > 0) ) {
+      write_to_db = true; // OD processing will need it, so the db needs to know about it
       alarm_frame_written = true;
-      char alarm_file[PATH_MAX];
-      snprintf(alarm_file, sizeof(alarm_file), "%s/alarm.jpg", path);
       WriteFrameImage(image, timestamp, alarm_file);
     }
   }
   if ( videowriter != NULL ) {
-Debug(3, "Writing video");
     WriteFrameVideo(image, timestamp, videowriter);
   }
 
@@ -579,7 +577,7 @@ Debug(3, "Writing video");
     static char sql[ZM_SQL_MED_BUFSIZ];
 
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
-    if ( frame_data.size() > 20 ) {
+    if ( write_to_db || ( frame_data.size() > 20 ) ) {
       WriteDbFrames();
       Debug(1, "Adding 20 frames to DB");
       last_db_frame = frames;
@@ -621,6 +619,7 @@ Debug(3, "Writing video");
 
     if ( alarm_image ) {
       if ( monitor->GetOptSaveJPEGs() & 2 ) {
+        static char event_file[PATH_MAX];
         snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path, frames);
         Debug(1, "Writing analysis frame %d", frames);
         if ( ! WriteFrameImage(alarm_image, timestamp, event_file, true) ) {
@@ -628,7 +627,7 @@ Debug(3, "Writing video");
         }
       }
     }
-  }
+  } // end if frame_type == ALARM
 
   /* This makes viewing the diagnostic images impossible because it keeps deleting them
   if ( config.record_diag_images ) {

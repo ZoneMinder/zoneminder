@@ -1,5 +1,5 @@
 <?php
-error_reporting(0);
+error_reporting(E_ERROR);
 
 if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
   ajaxError('No event id(s) supplied');
@@ -136,7 +136,7 @@ if ( canEdit('Events') ) {
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
     break;
   case 'delete' :
-    $Event = new Event($_REQUEST['id']);
+    $Event = new ZM\Event($_REQUEST['id']);
     if ( ! $Event->Id() ) {
       ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
     } else {

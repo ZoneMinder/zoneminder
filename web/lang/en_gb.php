@@ -782,6 +782,7 @@ $SLANG = array(
     'VersionRemindNever'    => 'Don\'t remind about new versions',
     'VersionRemindWeek'     => 'Remind again in 1 week',
     'Version'               => 'Version',
+    'ViewMatches'           => 'View Matches',
     'VideoFormat'           => 'Video Format',
     'VideoGenFailed'        => 'Video Generation Failed!',
     'VideoGenFiles'         => 'Existing Video Files',

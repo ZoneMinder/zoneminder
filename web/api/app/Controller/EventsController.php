@@ -142,7 +142,7 @@ class EventsController extends AppController {
       'event' => $event,
       '_serialize' => array('event')
     ));
-  }
+  } // end function view
 
 
   /**
@@ -288,9 +288,12 @@ class EventsController extends AppController {
     $this->Event->recursive = -1;
     $results = array();
     $this->FilterComponent = $this->Components->load('Filter');
-    $conditions = $this->FilterComponent->buildFilter($conditions);
+    if ( $this->request->params['named'] ) {
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+    } else {
+      $conditions = array();
+    } 
     array_push($conditions, array("StartTime >= DATE_SUB(NOW(), INTERVAL $expr $unit)"));
-
     $query = $this->Event->find('all', array(
                                              'fields' => array(
                                                                'MonitorId',

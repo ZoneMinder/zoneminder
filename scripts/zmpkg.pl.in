@@ -220,14 +220,17 @@ if ( $command =~ /^(?:start|restart)$/ ) {
             runCommand("zmdc.pl start zma -m $monitor->{Id}");
           }
           if ( $Config{ZM_OPT_CONTROL} ) {
-            if ( $monitor->{Controllable} && $monitor->{TrackMotion} ) {
-              if ( $monitor->{Function} eq 'Modect' || $monitor->{Function} eq 'Mocord' ) {
-                runCommand("zmdc.pl start zmtrack.pl -m $monitor->{Id}");
-              } else {
-                Warning('Monitor is set to track motion, but does not have motion detection enabled.');
-              } # end if Has motion enabled
-            } # end if track motion
-          } # end if ZM_OPT_CONTROL
+            if ( $monitor->{Controllable} ) {
+              runCommand("zmdc.pl start zmcontrol.pl --id $monitor->{Id}");
+              if ( $monitor->{TrackMotion} ) {
+                if ( $monitor->{Function} eq 'Modect' || $monitor->{Function} eq 'Mocord' ) {
+                  runCommand("zmdc.pl start zmtrack.pl -m $monitor->{Id}");
+                } else {
+                  Warning('Monitor is set to track motion, but does not have motion detection enabled.');
+                } # end if Has motion enabled
+              } # end if track motion
+            } # end if controllable
+          } # end if ZM_OPT_CONTROL        
         } # end if function is not none or Website
       } # end foreach monitor
       $sth->finish();

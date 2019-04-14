@@ -103,7 +103,6 @@ VideoStore::VideoStore(
 #endif
   }
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   video_out_stream = avformat_new_stream(oc, NULL);
   if ( !video_out_stream ) {
     Error("Unable to create video out stream");
@@ -112,6 +111,7 @@ VideoStore::VideoStore(
     Debug(2, "Success creating video out stream");
   }
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // by allocating our own copy, we don't run into the problems when we free the streams
   video_out_ctx = avcodec_alloc_context3(video_out_codec);
   // Since we are not re-encoding, all we have to do is copy the parameters
@@ -122,21 +122,9 @@ VideoStore::VideoStore(
     return;
   }
 #else
-  video_out_stream = avformat_new_stream(oc, NULL);
-  if ( !video_out_stream ) {
-    Error("Unable to create video out stream");
-    return;
-  } else {
-    Debug(2, "Success creating video out stream");
-  }
   video_out_ctx = video_out_stream->codec;
   // This will wipe out the codec defaults
   ret = avcodec_copy_context(video_out_ctx, video_in_ctx);
-  //video_out_ctx->width = video_in_ctx->width;
-  //video_out_ctx->height = video_in_ctx->height;
-  //video_out_ctx->pix_fmt = video_in_ctx->pix_fmt;
-  //video_out_ctx->max_b_frames = video_in_ctx->max_b_frames;
-  //video_out_ctx->has_b_frames = video_in_ctx->has_b_frames;
   if ( ret < 0 ) {
     Fatal("Unable to copy in video ctx to out video ctx %s",
           av_make_error_string(ret).c_str());
@@ -173,7 +161,6 @@ VideoStore::VideoStore(
       break;
   }
 
-
   if ( !video_out_ctx->codec_tag ) {
     Debug(2, "No codec_tag");
     if ( 
@@ -207,6 +194,7 @@ VideoStore::VideoStore(
     video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
   }
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
+#if 0
   if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
     //video_out_ctx->level = 32;I//
     video_out_ctx->bit_rate = 400*1024;
@@ -218,6 +206,7 @@ VideoStore::VideoStore(
       Debug(2, "Not setting priv_data");
     }
   }
+#endif
   ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
   if ( ret < 0 ) {
     Error("Could not initialize video_out_ctx parameters");

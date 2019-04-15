@@ -360,17 +360,17 @@ Monitor::Monitor(
 {
   strncpy( name, p_name, sizeof(name)-1 );
 
-  strncpy( event_prefix, p_event_prefix, sizeof(event_prefix)-1 );
-  strncpy( label_format, p_label_format, sizeof(label_format)-1 );
+  strncpy(event_prefix, p_event_prefix, sizeof(event_prefix)-1);
+  strncpy(label_format, p_label_format, sizeof(label_format)-1);
 
   // Change \n to actual line feeds
   char *token_ptr = label_format;
   const char *token_string = "\n";
-  while( ( token_ptr = strstr( token_ptr, token_string ) ) ) {
+  while ( ( token_ptr = strstr(token_ptr, token_string) ) ) {
     if ( *(token_ptr+1) ) {
       *token_ptr = '\n';
       token_ptr++;
-      strcpy( token_ptr, token_ptr+1 );
+      strcpy(token_ptr, token_ptr+1);
     } else {
       *token_ptr = '\0';
       break;
@@ -434,7 +434,7 @@ Monitor::Monitor(
       exit(-1);
     }
 
-    memset( mem_ptr, 0, mem_size );
+    memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
     shared_data->active = enabled;
     shared_data->signal = false;
@@ -510,10 +510,17 @@ Monitor::Monitor(
           shared_data->last_write_index, shared_data->last_write_time );
       sleep(1);
     }
-    ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(), image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
+    ref_image.Assign( width, height, camera->Colours(), camera->SubpixelOrder(),
+        image_buffer[shared_data->last_write_index].image->Buffer(), camera->ImageSize());
     adaptive_skip = true;
 
     ReloadLinkedMonitors(p_linked_monitors);
+
+    if ( config.record_diag_images ) {
+      diag_path_r = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
+      diag_path_d = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
+    }
+
   } // end if purpose == ANALYSIS
 } // Monitor::Monitor
 
@@ -2603,39 +2610,24 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
 
   if ( n_zones <= 0 ) return alarm;
 
-  Storage *storage = this->getStorage();
-
-  if ( config.record_diag_images ) {
-    static char diag_path[PATH_MAX] = "";
-    if ( !diag_path[0] ) {
-      // FIXME generate these in the constructor instead of constantly in here
-      snprintf(diag_path, sizeof(diag_path), "%s/%d/diag-r.jpg", storage->Path(), id);
-    }
-    ref_image.WriteJpeg(diag_path);
-  }
-
   ref_image.Delta(comp_image, &delta_image);
 
   if ( config.record_diag_images ) {
-    static char diag_path[PATH_MAX] = "";
-    if ( !diag_path[0] ) {
-      // FIXME, this won't happen because it is already filled with diag-r
-      snprintf(diag_path, sizeof(diag_path), "%s/%d/diag-d.jpg", storage->Path(), id);
-    }
-    delta_image.WriteJpeg(diag_path);
+    ref_image.WriteJpeg(diag_path_r.c_str());
+    delta_image.WriteJpeg(diag_path_d.c_str());
   }
 
   // Blank out all exclusion zones
   for ( int n_zone = 0; n_zone < n_zones; n_zone++ ) {
     Zone *zone = zones[n_zone];
     // need previous alarmed state for preclusive zone, so don't clear just yet
-    if (!zone->IsPreclusive())
+    if ( !zone->IsPreclusive() )
       zone->ClearAlarm();
     if ( !zone->IsInactive() ) {
       continue;
     }
-    Debug( 3, "Blanking inactive zone %s", zone->Label() );
-    delta_image.Fill( RGB_BLACK, zone->GetPolygon() );
+    Debug(3, "Blanking inactive zone %s", zone->Label());
+    delta_image.Fill(RGB_BLACK, zone->GetPolygon());
   } // end foreach zone
 
   // Check preclusive zones first

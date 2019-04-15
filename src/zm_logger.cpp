@@ -572,6 +572,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
 
   free(filecopy);
   if ( level <= FATAL ) {
+    log_mutex.unlock();
     logTerm();
     zmDbClose();
     if ( level <= PANIC )

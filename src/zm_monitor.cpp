@@ -1544,6 +1544,7 @@ bool Monitor::Analyse() {
             } // end if false or config.overlap_timed_events
           } // end if ! event
         } // end if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
+
         if ( score ) {
           if ( state == IDLE || state == TAPE || state == PREALARM ) {
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
@@ -1592,15 +1593,16 @@ bool Monitor::Analyse() {
                   }
 
                   event = new Event(this, *(image_buffer[pre_index].timestamp), cause, noteSetMap);
-                }
+                } // end if analysis_fps && pre_event_count
+
                 shared_data->last_event = event->Id();
                 // lets construct alarm cause. It will contain cause + names of zones alarmed
-                std::string alarm_cause="";
-                for ( int i=0; i < n_zones; i++) {
-                  if (zones[i]->Alarmed()) {
+                std::string alarm_cause = "";
+                for ( int i=0; i < n_zones; i++ ) {
+                  if ( zones[i]->Alarmed() ) {
                     alarm_cause += std::string(zones[i]->Label());
-                    if (i < n_zones-1) {
-                      alarm_cause +=",";
+                    if ( i < n_zones-1 ) {
+                      alarm_cause += ",";
                     }
                   }
                 }
@@ -1641,7 +1643,7 @@ bool Monitor::Analyse() {
             shared_data->state = state = ALARM;
           }
           last_alarm_count = image_count;
-        } else {
+        } else { // not score
           if ( state == ALARM ) {
             Info("%s: %03d - Gone into alert state", name, image_count);
             shared_data->state = state = ALERT;
@@ -1670,7 +1672,8 @@ bool Monitor::Analyse() {
           }
           if ( Event::PreAlarmCount() )
             Event::EmptyPreAlarmFrames();
-        }
+        } // end if score or not
+
         if ( state != IDLE ) {
           if ( state == PREALARM || state == ALARM ) {
             if ( config.create_analysis_images ) {

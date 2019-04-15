@@ -1121,14 +1121,6 @@ unsigned int Monitor::GetLastWriteIndex() const {
 }
 
 uint64_t Monitor::GetLastEventId() const {
-  Debug(2, "mem_ptr(%x), size(%d) State(%d) last_read_index(%d) last_read_time(%d) last_event(%" PRIu64 ")",
-      mem_ptr,
-      shared_data->size,
-      shared_data->state,
-      shared_data->last_read_index,
-      shared_data->last_read_time,
-      shared_data->last_event_id
-      );
   return shared_data->last_event_id;
 }
 
@@ -1905,6 +1897,19 @@ bool Monitor::Analyse() {
 
             if ( noteSetMap.size() > 0 )
               event->updateNotes( noteSetMap );
+
+            if ( section_length
+                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                && ! (image_count % fps_report_interval)
+                ) {
+              Warning( "%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
+                  name, image_count, event->Id(),
+                  timestamp->tv_sec, video_store_data->recording.tv_sec,
+                  timestamp->tv_sec - video_store_data->recording.tv_sec,
+                  section_length
+                  );
+            }
+
           } else if ( state == ALERT ) {
             // Alert means this frame has no motion, but we were alarmed and are still recording.
             if ( noteSetMap.size() > 0 )
@@ -1936,7 +1941,6 @@ bool Monitor::Analyse() {
         closeEvent();
       }
       shared_data->state = state = IDLE;
-      last_section_mod = 0;
       trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 

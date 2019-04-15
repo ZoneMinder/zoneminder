@@ -81,7 +81,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       } else {
         dbQuery('INSERT INTO Filters SET'.$sql);
         $_REQUEST['Id'] = dbInsertId();
-        $filter = new Filter($_REQUEST['Id']);
+        $filter = new ZM\Filter($_REQUEST['Id']);
       }
       if ( !empty($_REQUEST['filter']['Background']) )
         $filter->control('start');

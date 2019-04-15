@@ -67,7 +67,7 @@ sub AUTOLOAD {
   if ( exists($self->{$name}) ) {
     return $self->{$name};
   }
-  Error("Can't access $name member of object of class $class");
+  Error("Can't access $name $AUTOLOAD member of object of class $class");
 }
 
 sub getKey {

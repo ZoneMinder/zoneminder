@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
     struct DeltaTimeval delta_time;
 
     while ( !zm_terminate ) {
-      sigprocmask(SIG_BLOCK, &block_set, 0);
+      //sigprocmask(SIG_BLOCK, &block_set, 0);
       for ( int i = 0; i < n_monitors; i++ ) {
 
         monitors[i]->CheckAction();
@@ -345,13 +345,13 @@ int main(int argc, char *argv[]) {
         last_capture_times[i] = now;
 
       } // end foreach n_monitors
-      //Debug(2,"unblocking");
-      sigprocmask(SIG_UNBLOCK, &block_set, 0);
+
       if ( result < 0 ) {
         // Failure, try reconnecting
 				sleep(1);
         break;
       }
+
       if ( zm_reload ) {
         for ( int i = 0; i < n_monitors; i++ ) {
           monitors[i]->Reload();

@@ -37,7 +37,7 @@ if ( !empty($fid) ) {
   if ( !($frame = dbFetchOne( $sql, NULL, array($eid, $fid) )) )
     $frame = array( 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
 } else {
-  $frame = dbFetchOne( 'SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array( $eid, $Event->MaxScore() ) );
+  $frame = dbFetchOne('SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array($eid, $Event->MaxScore()));
 }
 $Frame = new ZM\Frame($frame);
 
@@ -48,7 +48,7 @@ $prevFid = $Frame->FrameId()-1;
 $nextFid = $Frame->FrameId()+1;
 $lastFid = $maxFid;
 
-$alarmFrame = $Frame->Type()=='Alarm';
+$alarmFrame = $Frame->Type() == 'Alarm';
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validNum($_REQUEST['scale']);
@@ -59,7 +59,7 @@ if ( isset( $_REQUEST['scale'] ) ) {
 } else {
   $scale = max( reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 }
-$scale = $scale ?: "auto";
+$scale = $scale ?: 'auto';
 
 $imageData = $Event->getImageSrc( $frame, $scale, 0 );
 if ( ! $imageData ) {
@@ -76,12 +76,12 @@ if (isset($_REQUEST['show']) && in_array($_REQUEST['show'], array('capt', 'anal'
 
 $imagePath = $imageData['thumbPath'];
 $eventPath = $imageData['eventPath'];
-$dImagePath = sprintf( '%s/%0'.ZM_EVENT_IMAGE_DIGITS.'d-diag-d.jpg', $eventPath, $Frame->FrameId() );
-$rImagePath = sprintf( '%s/%0'.ZM_EVENT_IMAGE_DIGITS.'d-diag-r.jpg', $eventPath, $Frame->FrameId() );
+$dImagePath = sprintf('%s/%0'.ZM_EVENT_IMAGE_DIGITS.'d-diag-d.jpg', $eventPath, $Frame->FrameId());
+$rImagePath = sprintf('%s/%0'.ZM_EVENT_IMAGE_DIGITS.'d-diag-r.jpg', $eventPath, $Frame->FrameId());
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id()." - ".$Frame->FrameId() );
+xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->FrameId());
 ?>
 <body>
   <div id="page">

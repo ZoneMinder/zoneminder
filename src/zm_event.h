@@ -91,6 +91,8 @@ class Event {
     unsigned int  tot_score;
     unsigned int  max_score;
     std::string path;
+    std::string snapshot_file;
+    std::string alarm_file;
     VideoStore *videoStore;
     char video_name[64];
     char video_file[PATH_MAX];

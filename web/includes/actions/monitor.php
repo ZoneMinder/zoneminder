@@ -18,33 +18,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-// I think this is saving a Monitor from ajax...
-
-if ( isset($_REQUEST['object']) and $_REQUEST['object'] == 'Monitor' ) {
-  if ( $action == 'save' ) {
-    foreach ( $_REQUEST['mids'] as $mid ) {
-      $mid = ValidInt($mid);
-      if ( ! canEdit('Monitors', $mid) ) {
-        ZM\Warning("Cannot edit monitor $mid");
-        continue;
-      }
-      $Monitor = new ZM\Monitor($mid);
-      if ( $Monitor->Type() != 'WebSite' ) {
-        $Monitor->zmaControl('stop');
-        $Monitor->zmcControl('stop');
-      }
-      $Monitor->save($_REQUEST['newMonitor']);
-      if ( $Monitor->Function() != 'None' && $Monitor->Type() != 'WebSite' ) {
-        $Monitor->zmcControl('start');
-        if ( $Monitor->Enabled() ) {
-          $Monitor->zmaControl('start');
-        }
-      }
-    } // end foreach mid
-    $refreshParent = true;
-  } // end if action == save
-} // end if object is Monitor
-
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
 if ( ! canEdit('Monitors') ) {
   ZM\Warning("Monitor actions require Monitors Permissions");
@@ -113,10 +86,15 @@ if ( $action == 'monitor' ) {
           unlink($OldStorage->Path().'/'.$saferOldName);
 
         $NewStorage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
-        if ( ! file_exists($NewStorage->Path().'/'.$mid) )
-          mkdir($NewStorage->Path().'/'.$mid, 0755);
+        if ( !file_exists($NewStorage->Path().'/'.$mid) ) {
+          if ( !mkdir($NewStorage->Path().'/'.$mid, 0755) ) {
+            Error('Unable to mkdir ' . $NewStorage->Path().'/'.$mid);
+          }
+        }
         $saferNewName = basename($_REQUEST['newMonitor']['Name']);
-        symlink($mid, $NewStorage->Path().'/'.$saferNewName);
+        if ( !symlink($NewStorage->Path().'/'.$mid, $NewStorage->Path().'/'.$saferNewName) ) {
+          Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
+        }
       }
       if ( isset($changes['Width']) || isset($changes['Height']) ) {
         $newW = $_REQUEST['newMonitor']['Width'];

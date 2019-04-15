@@ -255,7 +255,7 @@ void zm_packetqueue::clearQueue() {
   mutex.lock();
   ZMPacket *packet = NULL;
   int delete_count = 0;
-	while(!pktQueue.empty()) {
+	while ( !pktQueue.empty() ) {
     packet = pktQueue.front();
     packet_counts[packet->packet.stream_index] -= 1;
     pktQueue.pop_front();

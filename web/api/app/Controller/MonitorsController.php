@@ -40,8 +40,7 @@ class MonitorsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      //$conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
-      $conditions = $this->request->params['named'];
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
     } else {
       $conditions = array();
     }
@@ -183,7 +182,7 @@ class MonitorsController extends AppController {
         )
       ) {
         if ( !defined('ZM_SERVER_ID')) {
-          Logger::Debug("Not defined ZM_SERVER_ID");
+          ZM\Logger::Debug("Not defined ZM_SERVER_ID");
         }
         $this->daemonControl($this->Monitor->id, 'start');
       }
@@ -318,6 +317,10 @@ class MonitorsController extends AppController {
       throw new NotFoundException(__('Invalid monitor'));
     }
 
+    if (preg_match('/^[a-z]+$/i', $daemon) !== 1) {
+      throw new BadRequestException(__('Invalid command'));
+    }
+
     $monitor = $this->Monitor->find('first', array(
       'fields' => array('Id', 'Type', 'Device'),
       'conditions' => array('Id' => $id)
@@ -384,7 +387,7 @@ class MonitorsController extends AppController {
       }
 
       $shellcmd = escapeshellcmd("$zm_path_bin/zmdc.pl $command $daemon $args");
-      Logger::Debug("Command $shellcmd");
+      ZM\Logger::Debug("Command $shellcmd");
       $status = exec($shellcmd);
       $status_text .= $status."\n";
     }

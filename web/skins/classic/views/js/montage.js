@@ -11,7 +11,6 @@ function Monitor(monitorData) {
   this.alarmState = STATE_IDLE;
   this.lastAlarmState = STATE_IDLE;
   this.streamCmdParms = 'view=request&request=stream&connkey='+this.connKey;
-  this.onclick = monitorData.onclick;
   if ( auth_hash ) {
     this.streamCmdParms += '&auth='+auth_hash;
   }
@@ -26,14 +25,41 @@ function Monitor(monitorData) {
     }
   };
 
+  this.eventHandler = function( event ) {
+    console.log(event);
+  };
+
+  this.onclick = function(evt) {
+    var el = evt.currentTarget;
+    var tag = 'watch';
+    var id = el.getAttribute("data-monitor-id");
+    var width = el.getAttribute("data-width");
+    var height = el.getAttribute("data-height");
+    var url = '?view=watch&mid='+id;
+    var name = 'zmWatch'+id;
+    evt.preventDefault();
+    createPopup(url, name, tag, width, height);
+  };
+
+  this.setup_onclick = function() {
+    var el = document.getElementById('imageFeed'+this.id);
+    if ( el ) el.addEventListener('click', this.onclick, false);
+  };
+  this.disable_onclick = function() {
+    document.getElementById('imageFeed'+this.id).removeEventListener('click', this.onclick );
+  };
+
   this.setStateClass = function(element, stateClass) {
-    if ( !element.hasClass(stateClass) ) {
-      if ( stateClass != 'alarm' )
+    if ( !element.hasClass( stateClass ) ) {
+      if ( stateClass != 'alarm' ) {
         element.removeClass('alarm');
-      if ( stateClass != 'alert' )
+      }
+      if ( stateClass != 'alert' ) {
         element.removeClass('alert');
-      if ( stateClass != 'idle' )
+      }
+      if ( stateClass != 'idle' ) {
         element.removeClass('idle');
+      }
       element.addClass(stateClass);
     }
   };
@@ -139,6 +165,7 @@ function Monitor(monitorData) {
         console.log('No stream to reload?');
       }
     } // end if Ok or not
+
     var streamCmdTimeout = statusRefreshTimeout;
     // The idea here is if we are alarmed, do updates faster.
     // However, there is a timeout in the php side which isn't getting modified,
@@ -218,9 +245,9 @@ function selectLayout(element) {
   if ( ! layout ) {
     return;
   }
-  Cookie.write('zmMontageLayout', layout_id, { duration: 10*365 });
+  Cookie.write('zmMontageLayout', layout_id, {duration: 10*365});
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
-    Cookie.write( 'zmMontageScale', '', { duration: 10*365 } );
+    Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
     $('scale').set('value', '');
     $('width').set('value', '');
     for ( var i = 0, length = monitors.length; i < length; i++ ) {
@@ -261,10 +288,10 @@ function changeSize() {
       continue;
     }
     if ( width ) {
-      monitor_frame.css('width', width+'px');
+      monitor_frame.css('width', width);
     }
     if ( height ) {
-      monitor_frame.css('height', height+'px');
+      monitor_frame.css('height', height);
     }
 
     /*Stream could be an applet so can't use moo tools*/
@@ -278,30 +305,30 @@ function changeSize() {
         src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         streamImg.src = src;
       }
-      streamImg.style.width = width ? width + "px" : null;
-      streamImg.style.height = height ? height + "px" : null;
+      streamImg.style.width = width ? width : null;
+      streamImg.style.height = height ? height : null;
       //streamImg.style.height = '';
     }
     var zonesSVG = $('zones'+monitor.id);
     if ( zonesSVG ) {
-      zonesSVG.style.width = width ? width + "px" : '100%';
-      zonesSVG.style.height = height + "px";
+      zonesSVG.style.width = width ? width : '100%';
+      zonesSVG.style.height = height;
     }
   }
   $('scale').set('value', '');
-  Cookie.write('zmMontageScale', '', { duration: 10*365 });
-  Cookie.write('zmMontageWidth', width, { duration: 10*365 });
-  Cookie.write('zmMontageHeight', height, { duration: 10*365 });
+  Cookie.write('zmMontageScale', '', {duration: 10*365});
+  Cookie.write('zmMontageWidth', width, {duration: 10*365});
+  Cookie.write('zmMontageHeight', height, {duration: 10*365});
   selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
 function changeScale() {
   var scale = $('scale').get('value');
-  $('width').set('value', '');
-  $('height').set('value', '');
-  Cookie.write('zmMontageScale', scale, { duration: 10*365 });
-  Cookie.write('zmMontageWidth', '', { duration: 10*365 });
-  Cookie.write('zmMontageHeight', '', { duration: 10*365 });
+  $('width').set('value', 'auto');
+  $('height').set('value', 'auto');
+  Cookie.write('zmMontageScale', scale, {duration: 10*365});
+  Cookie.write('zmMontageWidth', '', {duration: 10*365});
+  Cookie.write('zmMontageHeight', '', {duration: 10*365});
   if ( !scale ) {
     selectLayout('#zmMontageLayout');
     return;
@@ -317,12 +344,13 @@ function changeScale() {
       console.log("Error finding frame for " + monitor.id);
       continue;
     }
-    if ( width ) {
-      monitor_frame.css('width', width+'px');
+    if ( newWidth ) {
+      monitor_frame.css('width', newWidth);
     }
-    if ( height ) {
-      monitor_frame.css('height', height+'px');
-    }
+    // We don't set the frame height because it has the status bar as well
+    //if ( height ) {
+    ////monitor_frame.css('height', height+'px');
+    //}
     /*Stream could be an applet so can't use moo tools*/
     var streamImg = $j('#liveStream'+monitor.id)[0];
     if ( streamImg ) {
@@ -357,8 +385,7 @@ function edit_layout(button) {
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor_feed = $j('#imageFeed'+monitor.id)[0];
-    monitor_feed.onclick = '';
+    monitor.disable_onclick();
   };
 
   $j('#monitors .monitorFrame').draggable({
@@ -373,7 +400,7 @@ function save_layout(button) {
   var form = button.form;
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
-  for ( var i = 0, length = monitors.length; i < lenth; i++ ) {
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
     monitor_frame = $j('#monitorFrame'+monitor.id);
 
@@ -397,8 +424,10 @@ function cancel_layout(button) {
   $j('#EditLayout').show();
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor_feed = $j('#imageFeed'+monitor.id);
-    monitor_feed.click(monitor.onclick);
+    monitor.setup_onclick();
+
+    //monitor_feed = $j('#imageFeed'+monitor.id);
+    //monitor_feed.click(monitor.onclick);
   };
   selectLayout('#zmMontageLayout');
 }
@@ -433,8 +462,9 @@ function initPage() {
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
       setInterval(reloadWebSite, interval*1000, i);
     }
+    monitors[i].setup_onclick();
   }
   selectLayout('#zmMontageLayout');
 }
 // Kick everything off
-window.addEventListener( 'DOMContentLoaded', initPage );
+window.addEventListener('DOMContentLoaded', initPage);

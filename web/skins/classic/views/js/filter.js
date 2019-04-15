@@ -63,6 +63,15 @@ function updateButtons(element) {
   }
 }
 
+function click_automove(element) {
+  updateButtons(this);
+  if ( this.checked ) {
+    $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
+  } else {
+    this.form.elements['filter[AutoMoveTo]'].hide();
+  }
+}
+
 function checkValue( element ) {
   var rows = $j(element).closest('tbody').children();
   parseRows(rows);
@@ -83,10 +92,15 @@ function submitToEvents( element ) {
   form.action = thisUrl + '?view=events';
   history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
 }
+function submitToMontageReview( element ) {
+  var form = element.form;
+  form.action = thisUrl + '?view=montagereview';
+  history.replaceState(null, null, '?view=filter&' + $j(form).serialize());
+}
 
 function submitToExport(element) {
   var form = element.form;
-  window.location.assign('?view=export&filter='+$j(form).serialize());
+  window.location.assign('?view=export&'+$j(form).serialize());
   //createPopup('?view=export&filter_id='+form.elements['Id'].value, 'zmExport', 'export' );
 }
 

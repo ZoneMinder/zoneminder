@@ -228,7 +228,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     //timestamp = atof(dbrow[1]);
     double delta = atof(dbrow[2]);
     int id_diff = id - last_id;
-    double frame_delta = id_diff ? (delta-last_delta)/id_diff : (delta - last_delta);
+    double frame_delta = id_diff ? (delta-last_delta)/id_diff : (delta-last_delta);
     // Fill in data between bulk frames
     if ( id_diff > 1 ) {
       for ( int i = last_id+1; i < id; i++ ) {
@@ -262,8 +262,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
         );
   }
   if ( mysql_errno( &dbconn ) ) {
-    Error( "Can't fetch row: %s", mysql_error( &dbconn ) );
-    exit( mysql_errno( &dbconn ) );
+    Error("Can't fetch row: %s", mysql_error(&dbconn));
+    exit(mysql_errno(&dbconn));
   }
 
   mysql_free_result(result);
@@ -355,6 +355,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
             replay_rate = 50 * ZM_RATE_BASE;
             break;
           default :
+            Debug(1,"Defaulting replay_rate to 2*ZM_RATE_BASE because it is %d", replay_rate);
             replay_rate = 2 * ZM_RATE_BASE;
             break;
         }
@@ -509,11 +510,12 @@ void EventStream::processCommand(const CmdMsg *msg) {
   DataMsg status_msg;
   status_msg.msg_type = MSG_DATA_EVENT;
   memcpy(&status_msg.msg_data, &status_data, sizeof(status_data));
+  Debug(1,"Size of msg %d", sizeof(status_data));
   if ( sendto(sd, &status_msg, sizeof(status_msg), MSG_DONTWAIT, (sockaddr *)&rem_addr, sizeof(rem_addr)) < 0 ) {
     //if ( errno != EAGAIN )
     {
       Error("Can't sendto on sd %d: %s", sd, strerror(errno));
-      exit(-1);
+      //exit(-1);
     }
   }
   // quit after sending a status, if this was a quit request
@@ -521,7 +523,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     exit(0);
 
   updateFrameRate((double)event_data->frame_count/event_data->duration);
-}
+} // void EventStream::processCommand(const CmdMsg *msg)
 
 void EventStream::checkEventLoaded() {
   static char sql[ZM_SQL_SML_BUFSIZ];
@@ -532,6 +534,7 @@ void EventStream::checkEventLoaded() {
     snprintf(sql, sizeof(sql), "SELECT Id FROM Events WHERE MonitorId = %ld AND Id > %" PRIu64 " ORDER BY Id ASC LIMIT 1", event_data->monitor_id, event_data->event_id);
   } else {
     // No event change required
+    //Debug(3, "No event change required");
     return;
   }
 
@@ -673,10 +676,6 @@ Debug(1, "Loading image");
         // Get the frame from the mp4 input
         Debug(1,"Getting frame from ffmpeg");
         AVFrame *frame;
-        if ( curr_frame_id == 1 ) {
-          // Special case, first frame, we want to send the initial keyframe.
-          frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), 0 );
-        }
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
         frame = ffmpeg_input->get_frame( ffmpeg_input->get_video_stream_id(), frame_data->offset );
         if ( frame ) {
@@ -787,22 +786,31 @@ void EventStream::runStream() {
 
   Debug(3, "frame rate is: (%f)", (double)event_data->frame_count/event_data->duration);
   updateFrameRate((double)event_data->frame_count/event_data->duration);
+  gettimeofday(&start, NULL);
+  uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
+  uint64_t last_frame_offset = 0;
 
   while ( !zm_terminate ) {
     gettimeofday(&now, NULL);
 
-    unsigned int delta_us = 0;
+    int delta_us = 0;
     send_frame = false;
 
-    // commands may set send_frame to true
-    while ( checkCommandQueue() && !zm_terminate ) {
-      // The idea is to loop here processing all commands before proceeding.
-    }
+    if ( connkey ) {
+      // commands may set send_frame to true
+      while ( checkCommandQueue() && !zm_terminate ) {
+        // The idea is to loop here processing all commands before proceeding.
+      Debug(1, "Have command queue");
+      }
+      Debug(1, "Done command queue");
 
-    // Update modified time of the socket .lock file so that we can tell which ones are stale.
-    if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
-      touch(sock_path_lock);
-      last_comm_update = now;
+      // Update modified time of the socket .lock file so that we can tell which ones are stale.
+      if ( now.tv_sec - last_comm_update.tv_sec > 3600 ) {
+        touch(sock_path_lock);
+        last_comm_update = now;
+      }
+    } else {
+      Debug(1, "Not checking command queue");
     }
 
     if ( step != 0 )
@@ -818,6 +826,7 @@ void EventStream::runStream() {
     //Info( "cfid:%d", curr_frame_id );
     //Info( "fdt:%d", frame_data->timestamp );
     if ( !paused ) {
+      Debug(3,"Not paused");
       bool in_event = true;
       double time_to_event = 0;
       if ( replay_rate > 0 ) {
@@ -840,6 +849,7 @@ void EventStream::runStream() {
         }
         //else
         //{
+        Debug(2,"Sleeping because paused");
           usleep(STREAM_PAUSE_WAIT);
           //curr_stream_time += (replay_rate>0?1:-1) * ((1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000));
           curr_stream_time += (1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
@@ -854,15 +864,17 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
       // so if it is 2, then we send every other frame, if is it 4 then every fourth frame, etc.
       if ( (frame_mod == 1) || (((curr_frame_id-1)%frame_mod) == 0) ) {
         delta_us = (unsigned int)(frame_data->delta * 1000000);
-        Debug(3,"frame delta %u ", delta_us);
+        Debug(3,"frame delta %uus ", delta_us);
         // if effective > base we should speed up frame delivery
         delta_us = (unsigned int)((delta_us * base_fps)/effective_fps);
         Debug(3,"delta %u = base_fps(%f)/effective fps(%f)", delta_us, base_fps, effective_fps);
         // but must not exceed maxfps
         delta_us = max(delta_us, 1000000 / maxfps);
+        Debug(3,"delta %u = base_fps(%f)/effective fps(%f) from 30fps", delta_us, base_fps, effective_fps);
         send_frame = true;
       }
     } else if ( step != 0 ) {
+      Debug(2,"Paused with step");
       // We are paused and are just stepping forward or backward one frame
       step = 0;
       send_frame = true;
@@ -873,28 +885,76 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
         // Send keepalive
         Debug(2, "Sending keepalive frame");
         send_frame = true;
+      //} else {
+        //Debug(2, "Not Sending keepalive frame");
       }
     } // end if streaming stepping or doing nothing
 
-    if ( send_frame )
+    if ( send_frame ) {
+      //Debug(3,"sending frame");
       if ( !sendFrame(delta_us) )
         zm_terminate = true;
+    //} else {
+      //Debug(3,"Not sending frame");
+    }
 
     curr_stream_time = frame_data->timestamp;
 
     if ( !paused ) {
-      curr_frame_id += (replay_rate>0) ? 1 : -1;
+      // +/- 1? What if we are skipping frames?
+      curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;
+
       if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
         Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
         curr_frame_id = 1;
       }
+      frame_data = &event_data->frames[curr_frame_id-1];
+
+      // sending the frame may have taken some time, so reload now
+      gettimeofday(&now, NULL);
+      uint64_t now_usec = (now.tv_sec * 1000000 + now.tv_usec);
+      // frame_data->delta is the time since last frame as a float in seconds
+      // but what if we are skipping frames? We need the distance from the last frame sent
+      // Also, what about reverse? needs to be absolute value
+
+      // There are two ways to go about this, not sure which is correct.
+      // you can calculate the relationship between now and the start
+      // or calc the relationship from the last frame.  I think from the start is better as it self-corrects
+
+      if ( last_frame_offset ) {
+        // We assume that we are going forward and the next frame is in the future.
+        delta_us = frame_data->offset * 1000000 - (now_usec-start_usec);
+       // - (now_usec - start_usec);
+        Debug(2, "New delta_us now %" PRIu64 " - start %" PRIu64 " = %d offset %" PRId64 " - elapsed = %dusec",
+            now_usec, start_usec, now_usec-start_usec, frame_data->offset * 1000000, delta_us);
+      } else {
+        Debug(2, "No last frame_offset, no sleep");
+        delta_us = 0;
+      }
+      last_frame_offset = frame_data->offset * 1000000;
+
       if ( send_frame && type != STREAM_MPEG ) {
-        Debug(3, "dUs: %d", delta_us);
-        if ( delta_us )
+        if ( delta_us > 0 ) {
+          Debug( 3, "dUs: %d", delta_us );
           usleep(delta_us);
+          Debug(3, "Done sleeping: %d usec", delta_us);
+        }
       }
     } else {
+      delta_us = ((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*(replay_rate?abs(replay_rate*2):2)));
+
+      Debug(2,"Sleeping %d because 1000000 * ZM_RATE_BASE(%d) / ( base_fps (%f), replay_rate(%d)",
+          (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))),
+          ZM_RATE_BASE,
+          (base_fps?base_fps:1),
+          (replay_rate?abs(replay_rate*2):200)
+          );
+      if ( delta_us > 0 and delta_us < 100000 ) {
       usleep((unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))));
+      } else {
+        //Error("Not sleeping!");
+        usleep(100000);
+      }
     }
   } // end while ! zm_terminate
 #if HAVE_LIBAVCODEC

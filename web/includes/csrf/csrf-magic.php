@@ -157,7 +157,8 @@ function csrf_ob_handler($buffer, $flags) {
     $input = "<input type='hidden' name='$name' value=\"$tokens\"$endslash>";
     $buffer = preg_replace('#(<form[^>]*method\s*=\s*["\']post["\'][^>]*>)#i', '$1' . $input, $buffer);
     if ($GLOBALS['csrf']['frame-breaker']) {
-        $buffer = str_ireplace('</head>', '<script nonce="'.$cspNonce.'">if (top != self) {top.location.href = self.location.href;}</script></head>', $buffer);
+        $buffer = str_ireplace('</head>', '<script nonce="'.$cspNonce.'">if (top != self) {top.location.href = self.location.href;}</script>
+</head>', $buffer);
     }
     if ($js = $GLOBALS['csrf']['rewrite-js']) {
         $buffer = str_ireplace(
@@ -165,7 +166,8 @@ function csrf_ob_handler($buffer, $flags) {
             '<script nonce="'.$cspNonce.'">'.
                 'var csrfMagicToken = "'.$tokens.'";'.
                 'var csrfMagicName = "'.$name.'";</script>'.
-            '<script src="'.$js.'"></script></head>',
+            '<script src="'.$js.'"></script>
+						</head>',
             $buffer
         );
         $script = '<script nonce="'.$cspNonce.'">CsrfMagic.end();</script>';
@@ -209,6 +211,7 @@ break;
 }
         $ok = true;
     } while (false);
+
     if ($fatal && !$ok) {
         $callback = $GLOBALS['csrf']['callback'];
         if (trim($tokens, 'A..Za..z0..9:;,') !== '') $tokens = 'hidden';
@@ -293,6 +296,7 @@ function csrf_callback($tokens) {
       // Don't make it too easy for users to inflict a CSRF attack on themselves.
       echo "<p><strong>Only try again if you weren't sent to this page by someone as this is potentially a sign of an attack.</strong></p>";
       echo "<form method='post' action=''>$data<input type='submit' value='Try again' /></form>";
+      ZM\Logger::Debug("Failed csrf check");
     }
     echo "<p>Debug: $tokens</p></body></html>
 ";

@@ -293,8 +293,8 @@ for ( $i=0; $i < count($terms); $i++ ) {
 ?>
               <td><?php if ( count($terms) > 2 ) { echo htmlSelect("filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr']); } else { ?>&nbsp;<?php } ?></td>
               <td>
-                <input type="button" data-on-click-this="addTerm" value="+"/>
-                <input type="button" data-on-click-this="delTerm" value="-" <?php echo count($terms) == 1 ? 'disabled' : '' ?>/>
+                <button type="button" data-on-click-this="addTerm">+</button>
+                <button type="button" data-on-click-this="delTerm" <?php echo count($terms) == 1 ? 'disabled' : '' ?>>-</button>
               </td>
             </tr>
 <?php
@@ -392,8 +392,8 @@ if ( ZM_OPT_MESSAGE ) {
               <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
             <p><label><?php echo translate('FilterMoveEvents') ?></label>
-              <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> onclick="updateButtons(this);if(this.checked){$j(this.form.elements['filter[AutoMoveTo]']).css('display','inline');}else{this.form.elements['filter[AutoMoveTo]'].hide();};"/>
-              <?php echo htmlSelect('filter[AutoMoveTo]', $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;' )); ?>
+              <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_automove"/>
+              <?php echo htmlSelect('filter[AutoMoveTo]', $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;')); ?>
             </p>
             <p>
               <label for="background"><?php echo translate('BackgroundFilter') ?></label>
@@ -407,6 +407,7 @@ if ( ZM_OPT_MESSAGE ) {
         <hr/>
         <div id="contentButtons">
           <button type="submit" data-on-click-this="submitToEvents"><?php echo translate('ListMatches') ?></button>
+          <!--<button type="submit" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatches') ?></button>-->
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
           <button type="button" name="executeButton" id="executeButton" data-on-click-this="executeFilter"><?php echo translate('Execute') ?></button>
 <?php 

@@ -84,22 +84,22 @@ void FileCamera::Terminate() {
 
 int FileCamera::PreCapture() {
   struct stat statbuf;
-  if ( stat( path, &statbuf ) < 0 ) {
-    Error( "Can't stat %s: %s", path, strerror(errno) );
-    return( -1 );
+  if ( stat(path, &statbuf) < 0 ) {
+    Error("Can't stat %s: %s", path, strerror(errno));
+    return -1;
   }
 
   // I think this is waiting for file change...
   while ( (time(0) - statbuf.st_mtime) < 1 ) {
-    usleep( 100000 );
+    usleep(100000);
   }
-  return( 0 );
+  return 0;
 }
 
 int FileCamera::Capture( ZMPacket &zm_packet ) {
-  return zm_packet.image->ReadJpeg( path, colours, subpixelorder ) ;
+  return zm_packet.image->ReadJpeg(path, colours, subpixelorder) ? 1 : -1;
 }
 
 int FileCamera::PostCapture() {
-  return( 0 );
+  return 0;
 }

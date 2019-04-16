@@ -1715,20 +1715,22 @@ bool Monitor::Analyse() {
               else
                 event->AddFrame(snap_image, *timestamp, score);
             }
-            if ( event && noteSetMap.size() > 0 )
-              event->updateNotes(noteSetMap);
+            if ( event ) {
+              if ( noteSetMap.size() > 0 )
+                event->updateNotes(noteSetMap);
 
-            if ( section_length
-                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                && ! (image_count % fps_report_interval)
-                ) {
-              Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
-                  name, image_count, event->Id(),
-                  timestamp->tv_sec, video_store_data->recording.tv_sec,
-                  timestamp->tv_sec - video_store_data->recording.tv_sec,
-                  section_length
-                  );
-            }
+              if ( section_length
+                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                  && ! (image_count % fps_report_interval)
+                 ) {
+                Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
+                    name, image_count, event->Id(),
+                    timestamp->tv_sec, video_store_data->recording.tv_sec,
+                    timestamp->tv_sec - video_store_data->recording.tv_sec,
+                    section_length
+                    );
+              }
+            } // end if event
 
           } else if ( state == ALERT ) {
             event->AddFrame(snap_image, *timestamp);

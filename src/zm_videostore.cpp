@@ -1135,11 +1135,22 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     }
   } // end if encoding or copying
 
+
   opkt.pos = -1;
   opkt.stream_index = audio_out_stream->index;
   opkt.flags = ipkt->flags;
 
-  if ( opkt.dts > opkt.pts ) {
+  if ( opkt.dts < audio_out_stream->cur_dts ) {
+    Warning("non increasing dts, fixing");
+    opkt.dts = audio_out_stream->cur_dts;
+    if ( opkt.dts > opkt.pts ) {
+      Debug(1,
+          "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 ")."
+          "Decompression must happen before presentation.",
+          opkt.dts, opkt.pts);
+      opkt.pts = opkt.dts;
+    }
+  } else if ( opkt.dts > opkt.pts ) {
     Debug(1,
           "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 ")."
           "Decompression must happen before presentation.",

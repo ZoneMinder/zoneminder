@@ -1552,12 +1552,10 @@ bool Monitor::Analyse() {
               std::string alarm_cause="";
               for ( int i=0; i < n_zones; i++) {
                 if (zones[i]->Alarmed()) {
-                    alarm_cause += std::string(zones[i]->Label());
-                    if (i < n_zones-1) {
-                        alarm_cause +=",";
-                    }
+                    alarm_cause = alarm_cause+ ","+ std::string(zones[i]->Label());
                 }
             }
+            if (!alarm_cause.empty()) alarm_cause.erase(0,1);
             alarm_cause = cause+" "+alarm_cause;
             strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
             Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
@@ -1565,7 +1563,7 @@ bool Monitor::Analyse() {
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;
                 int pre_event_images = pre_event_count;
-
+                
                 if ( event ) {
                   // Shouldn't be able to happen because 
                   Error("Creating new event when one exists");

@@ -95,6 +95,7 @@ class HostController extends AppController {
   // If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor
   // usage.
+  // This function is deprecated.  Use the Storage object or monitor object instead
   function getDiskPercent($mid = null) {
     $this->loadModel('Config');
     $this->loadModel('Monitor');

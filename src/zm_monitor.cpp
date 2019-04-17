@@ -1562,7 +1562,7 @@ bool Monitor::Analyse() {
             }
             alarm_cause = cause+" "+alarm_cause;
             strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-            Info ("Recorded alarm cause as: %s", alarm_cause);
+            Info ("Recorded alarm cause as: %s", alarm_cause.c_str());
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;
                 int pre_event_images = pre_event_count;

@@ -1555,15 +1555,15 @@ bool Monitor::Analyse() {
                     alarm_cause = alarm_cause+ ","+ std::string(zones[i]->Label());
                 }
             }
-            if (!alarm_cause.empty()) alarm_cause.erase(0,1);
-            alarm_cause = cause+" "+alarm_cause;
+            if (!alarm_cause.empty()) alarm_cause[0]=' ';
+            alarm_cause = cause+alarm_cause;
             strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
             Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;
                 int pre_event_images = pre_event_count;
-                
+
                 if ( event ) {
                   // Shouldn't be able to happen because 
                   Error("Creating new event when one exists");

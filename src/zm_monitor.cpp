@@ -1551,15 +1551,15 @@ bool Monitor::Analyse() {
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count);
               shared_data->state = state = ALARM;
               // lets construct alarm cause. It will contain cause + names of zones alarmed
-                std::string alarm_cause="";
-                for ( int i=0; i < n_zones; i++) {
-                    if (zones[i]->Alarmed()) {
+              std::string alarm_cause="";
+              for ( int i=0; i < n_zones; i++) {
+                if (zones[i]->Alarmed()) {
                     alarm_cause += std::string(zones[i]->Label());
                     if (i < n_zones-1) {
                         alarm_cause +=",";
                     }
-                    }
                 }
+            }
             alarm_cause = cause+" "+alarm_cause;
             strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
               if ( signal_change || (function != MOCORD && state != ALERT) ) {

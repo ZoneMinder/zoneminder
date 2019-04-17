@@ -1547,8 +1547,6 @@ bool Monitor::Analyse() {
         if ( score ) {
           if ( state == IDLE || state == TAPE || state == PREALARM ) {
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
-              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u",
-                  name, image_count, Event::PreAlarmCount(), alarm_frame_count);
               shared_data->state = state = ALARM;
               // lets construct alarm cause. It will contain cause + names of zones alarmed
               std::string alarm_cause="";
@@ -1562,7 +1560,8 @@ bool Monitor::Analyse() {
             }
             alarm_cause = cause+" "+alarm_cause;
             strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-            Info ("Recorded alarm cause as: %s", alarm_cause.c_str());
+            Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
+                  name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;
                 int pre_event_images = pre_event_count;

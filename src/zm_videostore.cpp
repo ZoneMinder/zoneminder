@@ -1005,7 +1005,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 
     zm_dump_frame(in_frame, "In frame from decode");
 
-    if ( ! resample_audio() ) {
+    if ( !resample_audio() ) {
       //av_frame_unref(in_frame);
       return 0;
     }
@@ -1172,7 +1172,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 } // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)
 
 int VideoStore::resample_audio() {
-  // Resample the in into the audioSampleBuffer until we process the whole
+  // Resample the in_frame into the audioSampleBuffer until we process the whole
   // decoded data. Note: pts does not survive resampling or converting
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
 #if defined(HAVE_LIBSWRESAMPLE)
@@ -1192,8 +1192,8 @@ int VideoStore::resample_audio() {
   }
   /** Store the new samples in the FIFO buffer. */
   ret = av_audio_fifo_write(fifo, (void **)out_frame->data, out_frame->nb_samples);
-  if ( ret < in_frame->nb_samples ) {
-    Error("Could not write data to FIFO on %d written", ret);
+  if ( ret < out_frame->nb_samples ) {
+    Error("Could not write data to FIFO on %d written, expecting %d", ret, out_frame->nb_samples);
     return 0;
   }
 

@@ -144,9 +144,6 @@ FfmpegCamera::~FfmpegCamera() {
 
   Close();
 
-  if ( capture ) {
-    Terminate();
-  }
   FFMPEGDeInit();
 }
 
@@ -491,12 +488,6 @@ int FfmpegCamera::Close() {
   if ( mRawFrame ) {
     av_frame_free( &mRawFrame );
     mRawFrame = NULL;
-  }
-
-
-  if ( videoStore ) {
-    delete videoStore;
-    videoStore = NULL;
   }
 
   if ( mVideoCodecContext ) {

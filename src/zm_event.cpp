@@ -192,14 +192,14 @@ Event::Event(
       Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
   } // deep storage or not
 
-  Debug(2,"Created event %d at %s", id, path.c_str());
+  Debug(2, "Created event %d at %s", id, path.c_str());
 
   last_db_frame = 0;
 
   video_name[0] = 0;
 
-  snprintf(snapshot_file, sizeof(snapshot_file), "%s/snapshot.jpg", path);
-  snprintf(alarm_file, sizeof(alarm_file), "%s/alarm.jpg", path);
+  snapshot_file = path + "/snapshot.jpg";
+  alarm_file = path + "/alarm.jpg";
 
   /* Save as video */
 
@@ -562,12 +562,9 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     if ( (!alarm_frame_written) && (score > 0) ) {
       write_to_db = true; // OD processing will need it, so the db needs to know about it
       alarm_frame_written = true;
-      WriteFrameImage(image, timestamp, alarm_file);
+      WriteFrameImage(image, timestamp, alarm_file.c_str());
     }
   } // end if save_jpegs
-  if ( videowriter != NULL ) {
-    WriteFrameVideo(image, timestamp, videowriter);
-  }
 
   struct DeltaTimeval delta_time;
   DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
@@ -625,6 +622,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
     if ( alarm_image ) {
       if ( save_jpegs & 2 ) {
+        static char event_file[PATH_MAX];
         snprintf(event_file, sizeof(event_file), staticConfig.analyse_file_format, path.c_str(), frames);
         Debug(1, "Writing analysis frame %d", frames);
         if ( ! WriteFrameImage(alarm_image, timestamp, event_file, true) ) {

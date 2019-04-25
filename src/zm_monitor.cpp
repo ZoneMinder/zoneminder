@@ -565,6 +565,11 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
         Error("Can't mkdir %s: %s", monitor_dir, strerror(errno));
       }
     }
+  } else if ( purpose == ANALYSIS ) {
+    if ( config.record_diag_images ) {
+      diag_path_r = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
+      diag_path_d = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
+    }
   }
 
   //this0>delta_image( width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE ),
@@ -762,10 +767,6 @@ Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
     }
   }
 #endif
-    if ( config.record_diag_images ) {
-      diag_path_r = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
-      diag_path_d = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
-    }
 
   return monitor;
 } // end Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose)
@@ -1196,7 +1197,6 @@ double Monitor::GetFPS() const {
 
 /* I think this returns the # of micro seconds that we should sleep in order to maintain the desired analysis rate */
 useconds_t Monitor::GetAnalysisRate() {
-<<<<<<< HEAD
   capture_fps = GetFPS();
   if ( !analysis_fps_limit ) {
     return 0;
@@ -2405,48 +2405,47 @@ int Monitor::Capture() {
 } // end Monitor::Capture
 
 void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) const {
-  if ( label_format[0] ) {
-    // Expand the strftime macros first
-    char label_time_text[256];
-    strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time->tv_sec ) );
+  if ( !label_format[0] )
+    return;
 
-    char label_text[1024];
-    const char *s_ptr = label_time_text;
-    char *d_ptr = label_text;
-    while ( *s_ptr && ((d_ptr-label_text) < (unsigned int)sizeof(label_text)) ) {
-      if ( *s_ptr == config.timestamp_code_char[0] ) {
-        bool found_macro = false;
-        switch ( *(s_ptr+1) ) {
-          case 'N' :
-            d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name );
-            found_macro = true;
-            break;
-          case 'Q' :
-            d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", trigger_data->trigger_showtext );
-            found_macro = true;
-            break;
-          case 'f' :
-            d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000 );
-            found_macro = true;
-            break;
-        }
-        if ( found_macro ) {
-          s_ptr += 2;
-          continue;
-        }
+  // Expand the strftime macros first
+  char label_time_text[256];
+  strftime( label_time_text, sizeof(label_time_text), label_format, localtime( &ts_time->tv_sec ) );
+
+  char label_text[1024];
+  const char *s_ptr = label_time_text;
+  char *d_ptr = label_text;
+  while ( *s_ptr && ((d_ptr-label_text) < (unsigned int)sizeof(label_text)) ) {
+    if ( *s_ptr == config.timestamp_code_char[0] ) {
+      bool found_macro = false;
+      switch ( *(s_ptr+1) ) {
+        case 'N' :
+          d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", name );
+          found_macro = true;
+          break;
+        case 'Q' :
+          d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%s", trigger_data->trigger_showtext );
+          found_macro = true;
+          break;
+        case 'f' :
+          d_ptr += snprintf( d_ptr, sizeof(label_text)-(d_ptr-label_text), "%02ld", ts_time->tv_usec/10000 );
+          found_macro = true;
+          break;
+      }
+      if ( found_macro ) {
+        s_ptr += 2;
+        continue;
       }
     }
     *d_ptr++ = *s_ptr++;
   } // end while
   *d_ptr = '\0';
-  ts_image->Annotate( label_text, label_coord, label_size );
+  ts_image->Annotate(label_text, label_coord, label_size);
 } // end void Monitor::TimestampImage
 
 bool Monitor::closeEvent() {
-  if ( event ) {
-    if ( function == RECORD || function == MOCORD ) {
-      gettimeofday(&(event->EndTime()), NULL);
-    }
+  if ( !event )
+    return true;
 #if 0
     if ( event_delete_thread ) {
       event_delete_thread->join();

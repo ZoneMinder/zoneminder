@@ -36,16 +36,13 @@ static struct CodecData codec_data[];
 	AVOutputFormat *out_format;
 	AVFormatContext *oc;
 	AVStream *video_out_stream;
-	AVStream *audio_out_stream;
-int video_in_stream_index;
-int audio_in_stream_index;
+  int video_in_stream_index;
+  int audio_in_stream_index;
 
   AVCodec *video_out_codec;
   AVCodecContext *video_out_ctx;
-  AVStream *video_out_stream;
 
   AVStream *video_in_stream;
-
   AVStream *audio_in_stream;
 
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack

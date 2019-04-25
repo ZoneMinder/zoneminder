@@ -92,8 +92,9 @@ class Event {
     unsigned int  max_score;
     std::string path;
     VideoStore *videoStore;
-    char snapshot_file[PATH_MAX];
-    char alarm_file[PATH_MAX];
+    std::string snapshot_file;
+    std::string alarm_file;
+
     VideoWriter* videowriter;
     char video_name[PATH_MAX];
     char video_file[PATH_MAX];

@@ -29,10 +29,10 @@ if ( isset($_REQUEST['object']) ) {
     if ( $action == 'Save' ) {
       $Layout = null;
       if ( $_REQUEST['Name'] != '' ) {
-        $Layout = new MontageLayout();
+        $Layout = new ZM\MontageLayout();
         $Layout->Name($_REQUEST['Name']);
       } else {
-        $Layout = new MontageLayout($_REQUEST['zmMontageLayout']);
+        $Layout = new ZM\MontageLayout($_REQUEST['zmMontageLayout']);
       }
       $Layout->Positions($_REQUEST['Positions']);
       $Layout->save();

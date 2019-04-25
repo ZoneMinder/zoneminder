@@ -144,7 +144,10 @@ FfmpegCamera::~FfmpegCamera() {
 
   Close();
 
-  avformat_network_deinit();
+  if ( capture ) {
+    Terminate();
+  }
+  FFMPEGDeInit();
 }
 
 int FfmpegCamera::PrimeCapture() {
@@ -239,6 +242,7 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     Warning("Unknown method (%s)", method.c_str());
   }
+//#av_dict_set(&opts, "timeout", "10000000", 0); // in microseconds.
 
   if ( ret < 0 ) {
     Warning("Could not set rtsp_transport method '%s'", method.c_str());
@@ -411,22 +415,21 @@ int FfmpegCamera::OpenFfmpeg() {
 
     // Open the codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-    Debug ( 1, "Calling avcodec_open" );
-    if ( avcodec_open(mVideoCodecContext, mVideoCodec) < 0 ){
+    ret = avcodec_open(mVideoCodecContext, mVideoCodec);
 #else
-    Debug ( 1, "Calling video avcodec_open2" );
     ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
+#endif
     AVDictionaryEntry *e = NULL;
     while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-      Warning("Option %s not recognized by ffmpeg", e->key);
+      Warning( "Option %s not recognized by ffmpeg", e->key);
     }
-    av_dict_free(&opts);
-#endif
     if ( ret < 0 ) {
       Error("Unable to open codec for video stream from %s", mPath.c_str());
+      av_dict_free(&opts);
       return -1;
     }
-  } // end if success opening codec
+    zm_dump_codec(mVideoCodecContext);
+  }
 
   if ( mVideoCodecContext->hwaccel != NULL ) {
     Debug(1, "HWACCEL in use");
@@ -434,15 +437,23 @@ int FfmpegCamera::OpenFfmpeg() {
     Debug(1, "HWACCEL not in use");
   }
   if ( mAudioStreamId >= 0 ) {
+    if ( (mAudioCodec = avcodec_find_decoder(
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    mAudioCodecContext = avcodec_alloc_context3(NULL);
-    avcodec_parameters_to_context(mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar);
+            mFormatContext->streams[mAudioStreamId]->codecpar->codec_id
 #else
-    mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+            mFormatContext->streams[mAudioStreamId]->codec->codec_id
 #endif
-    if ( (mAudioCodec = avcodec_find_decoder(mAudioCodecContext->codec_id)) == NULL ) {
+            )) == NULL ) {
       Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
     } else {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+      mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
+      avcodec_parameters_to_context( mAudioCodecContext, mFormatContext->streams[mAudioStreamId]->codecpar );
+#else
+      mAudioCodecContext = mFormatContext->streams[mAudioStreamId]->codec;
+     // = avcodec_alloc_context3(mAudioCodec);
+#endif
+
       Debug(1, "Audio Found decoder");
       zm_dump_stream_format(mFormatContext, mAudioStreamId, 0, 0);
       // Open the codec
@@ -483,6 +494,11 @@ int FfmpegCamera::Close() {
   }
 
 
+  if ( videoStore ) {
+    delete videoStore;
+    videoStore = NULL;
+  }
+
   if ( mVideoCodecContext ) {
     avcodec_close(mVideoCodecContext);
     Debug(1,"After codec close");
@@ -513,7 +529,7 @@ int FfmpegCamera::Close() {
 
 int FfmpegCamera::FfmpegInterruptCallback(void *ctx) {
   //FfmpegCamera* camera = reinterpret_cast<FfmpegCamera*>(ctx);
-
+  //Debug(4, "FfmpegInterruptCallback");
   return zm_terminate;
 }
 

@@ -255,7 +255,7 @@ void zm_packetqueue::clearQueue() {
   mutex.lock();
   ZMPacket *packet = NULL;
   int delete_count = 0;
-	while(!pktQueue.empty()) {
+	while ( !pktQueue.empty() ) {
     packet = pktQueue.front();
     packet_counts[packet->packet.stream_index] -= 1;
     pktQueue.pop_front();
@@ -288,7 +288,6 @@ ZMPacket *zm_packetqueue::get_analysis_packet() {
   mutex.lock();
   while ( ((! pktQueue.size()) || ( analysis_it == pktQueue.end() )) && !zm_terminate ) {
     Debug(2,"waiting.  Queue size %d analysis_it == end? %d", pktQueue.size(), ( analysis_it == pktQueue.end() ) );
-
     condition->wait();
   }
 

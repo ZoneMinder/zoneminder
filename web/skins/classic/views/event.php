@@ -23,13 +23,13 @@ if ( !canView('Events') ) {
   return;
 }
 
-$eid = validInt( $_REQUEST['eid'] );
+$eid = validInt($_REQUEST['eid']);
 $fid = !empty($_REQUEST['fid'])?validInt($_REQUEST['fid']):1;
 
-$Event = new ZM\Event( $eid );
+$Event = new ZM\Event($eid);
 if ( $user['MonitorIds'] ) {
-  $monitor_ids = explode( ',', $user['MonitorIds'] );
-  if ( count($monitor_ids) and ! in_array( $Event->MonitorId(), $monitor_ids ) ) {
+  $monitor_ids = explode(',', $user['MonitorIds']);
+  if ( count($monitor_ids) and ! in_array($Event->MonitorId(), $monitor_ids) ) {
     $view = 'error';
     return;
   }
@@ -46,10 +46,10 @@ if ( isset($_REQUEST['rate']) ) {
 
 if ( isset($_REQUEST['scale']) ) {
   $scale = validInt($_REQUEST['scale']);
-} else if ( isset( $_COOKIE['zmEventScaleAuto'] ) ) {
+} else if ( isset($_COOKIE['zmEventScaleAuto']) ) {
   // If we're using scale to fit use it on all monitors
   $scale = 'auto';
-} else if ( isset( $_COOKIE['zmEventScale'.$Event->MonitorId()] ) ) {
+} else if ( isset($_COOKIE['zmEventScale'.$Event->MonitorId()]) ) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
   $scale = reScale(SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE);
@@ -68,16 +68,15 @@ if ( isset($_REQUEST['codec']) ) {
 }
 $codecs = array(
   'auto'  => translate('Auto'),
-  'H264'  => translate('H264'),
-  'H265'  => translate('H265'),
+  'MP4'   => translate('MP4'),
   'MJPEG' => translate('MJPEG'),
 );
 
 $replayModes = array(
-    'none'    => translate('None'),
-    'single'  => translate('ReplaySingle'),
-    'all'     => translate('ReplayAll'),
-    'gapless' => translate('ReplayGapless'),
+  'none'    => translate('None'),
+  'single'  => translate('ReplaySingle'),
+  'all'     => translate('ReplayAll'),
+  'gapless' => translate('ReplayGapless'),
 );
 
 if ( isset( $_REQUEST['streamMode'] ) )
@@ -109,8 +108,9 @@ if ( $Monitor->VideoWriter() == '2' ) {
     $Zoom = $Event->Height()/$Event->Width();
 }
 
+// These are here to figure out the next/prev event
 parseSort();
-parseFilter( $_REQUEST['filter'] );
+parseFilter($_REQUEST['filter']);
 $filterQuery = $_REQUEST['filter']['query'];
 
 $connkey = generateConnKey();
@@ -119,7 +119,7 @@ $focusWindow = true;
 
 $popup = (isset($_REQUEST['popup']) && ($_REQUEST['popup'] == 1));
 
-xhtmlHeaders(__FILE__, translate('Event') );
+xhtmlHeaders(__FILE__, translate('Event'));
 ?>
 <body>
   <div id="page">
@@ -174,7 +174,7 @@ if ( canEdit('Events') ) {
         <div id="exportEvent"><button type="button" data-on-click="exportEvent"><?php echo translate('Export') ?></button></div>
         <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect('replayMode', $replayModes, 'changeReplayMode();'); ?></div>
         <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect('scale', $scales, 'changeScale();'); ?></div>
-        <div id="codecControl"><label for="codec"><?php echo translate('Codec') ?></label><?php echo htmlSelect('codec', $codecs, $codec, array('onchange'=>'changeCodec(this);') ); ?></div>
+        <div id="codecControl"><label for="codec"><?php echo translate('Codec') ?></label><?php echo htmlSelect('codec', $codecs, $codec, array('onchange'=>'changeCodec(this);')); ?></div>
       </div>
      </div>
     <div id="content">
@@ -196,13 +196,13 @@ if ( $video_tag ) {
 <?php
 if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
   $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode));
-  outputVideoStream( "evtStream", $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ), ZM_MPEG_LIVE_FORMAT );
+  outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
 } else {
-  $streamSrc = $Event->getStreamSrc( array( 'mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode) );
+  $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode));
   if ( canStreamNative() ) {
-    outputImageStream( 'evtStream', $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ), validHtmlStr($Event->Name()) );
+    outputImageStream('evtStream', $streamSrc, reScale($Event->Width(), $scale).'px', reScale($Event->Height(), $scale).'px', validHtmlStr($Event->Name()));
   } else {
-    outputHelperStream( 'evtStream', $streamSrc, reScale( $Event->Width(), $scale ), reScale( $Event->Height(), $scale ) );
+    outputHelperStream('evtStream', $streamSrc, reScale($Event->Width(), $scale).'px', reScale($Event->Height(), $scale).'px' );
   }
 } // end if stream method
 ?>

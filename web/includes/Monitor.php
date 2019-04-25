@@ -67,10 +67,11 @@ private $defaults = array(
   'Encoder'     =>  'auto',
   'OutputContainer' => 'auto',
   'Triggers'  =>  null,
+  'AnalysisUpdateDelay'  =>  0,
   'MaxFPS' => null,
   'AlarmMaxFPS' => null,
-  'FPSReportIneterval'  =>  100,
-  'RefBlencPerc'        =>  6,
+  'FPSReportInterval'  =>  100,
+  'RefBlendPerc'        =>  6,
   'AlarmRefBlendPerc'   =>  6,
   'Controllable'        =>  0,
   'ControlId' =>  null,
@@ -81,7 +82,6 @@ private $defaults = array(
   'TrackDelay'      =>  null,
   'ReturnLocation'  =>  -1,
   'ReturnDelay'     =>  null,
-  'DefaultView' =>  'Events',
   'DefaultRate' =>  100,
   'DefaultScale'  =>  100,
   'SignalCheckPoints' =>  0,
@@ -117,6 +117,7 @@ private $control_fields = array(
   'CanWake' => '0',
   'CanSleep' => '0',
   'CanReset' => '0',
+  'CanReboot' =>  '0',
   'CanZoom' => '0',
   'CanAutoZoom' => '0',
   'CanZoomAbs' => '0',
@@ -311,7 +312,7 @@ private $control_fields = array(
       $args['rand'] = time();
     }
 
-    $streamSrc .= '?'.http_build_query($args,'', $querySep);
+    $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
     return $streamSrc;
   } // end function getStreamSrc
@@ -656,7 +657,8 @@ private $control_fields = array(
   } // end function Source
 
   public function UrlToIndex() {
-    return $this->Server()->UrlToIndex(ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
+    return $this->Server()->UrlToIndex();
+    //ZM_MIN_STREAMING_PORT ? (ZM_MIN_STREAMING_PORT+$this->Id()) : null);
   }
 
 } // end class Monitor

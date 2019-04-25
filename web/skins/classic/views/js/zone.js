@@ -430,10 +430,17 @@ function drawZonePoints() {
     cell.inject( row );
 
     cell = new Element( 'td' );
-    new Element( 'button', { 'type': 'button', 'events': { 'click': addPoint.pass( i ) } } ).set( 'text', '+' ).inject( cell );
+    new Element( 'button', {
+      'type': 'button',
+      'events': {'click': addPoint.pass(i)}
+    }).set( 'text', '+' ).inject( cell );
     if ( zone['Points'].length > 3 ) {
       cell.appendText(' ');
-      new Element( 'button', { 'id': 'delete'+i, 'type': 'button', 'events': { 'click': delPoint.pass( i ) } } ).set( 'text', '-' ).inject( cell );
+      new Element( 'button', {
+        'id': 'delete'+i,
+        'type': 'button',
+        'events': {'click': delPoint.pass(i)}
+      } ).set( 'text', '-' ).inject( cell );
     }
     cell.inject( row );
 

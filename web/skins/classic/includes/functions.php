@@ -149,26 +149,18 @@ echo output_link_if_exists( array(
   if ( $skinJsPhpFile ) {
 ?>
   <script nonce="<?php echo $cspNonce; ?>">
-  //<![CDATA[
-  <!--
 <?php
     require_once( $skinJsPhpFile );
 ?>
-  //-->
-  //]]>
   </script>
 <?php
   }
   if ( $viewJsPhpFile ) {
 ?>
   <script nonce="<?php echo $cspNonce; ?>">
-  //<![CDATA[
-  <!--
 <?php
     require_once( $viewJsPhpFile );
 ?>
-  //-->
-  //]]>
   </script>
 <?php
   }
@@ -178,7 +170,7 @@ echo output_link_if_exists( array(
 <?php
 } else {
 ?>
-  <script src="skins/classic/js/base.js"></script>
+  <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="js/logger.js"></script>
@@ -186,12 +178,12 @@ echo output_link_if_exists( array(
   if ($basename == 'watch' or $basename == 'log' ) {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
-<script type="text/javascript" src="js/overlay.js"></script>
+<script src="js/overlay.js"></script>
 <?php } ?>
 <?php
   if ( $viewJsFile ) {
 ?>
-  <script type="text/javascript" src="<?php echo cache_bust($viewJsFile) ?>"></script>
+  <script src="<?php echo cache_bust($viewJsFile) ?>"></script>
 <?php
   }
 ?>
@@ -233,11 +225,11 @@ function getNavBarHTML($reload = null) {
   if (!$sortQuery) {
     parseSort();
   }
-  if (!$filterQuery) {
-    parseFilter( $_REQUEST['filter'] );
+  if ( (!$filterQuery) and isset($_REQUEST['filter']) ) {
+    parseFilter($_REQUEST['filter']);
     $filterQuery = $_REQUEST['filter']['query'];
   }
-  if ($reload === null) {
+  if ( $reload === null ) {
     ob_start();
     if ( $running == null )
       $running = daemonCheck();
@@ -267,8 +259,18 @@ function getNavBarHTML($reload = null) {
 <?php
   if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
     if ( ! ZM_RUN_AUDIT ) {
-    # zmaudit can clean the logs, but if we aren't running it, then we should clecan them regularly
-     dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+     # zmaudit can clean the logs, but if we aren't running it, then we should clean them regularly
+      if ( preg_match('/^\d+$/', ZM_LOG_DATABASE_LIMIT) ) {
+        # Number of lines, instead of an interval
+        $rows = dbFetchOne('SELECT Count(*) AS Rows FROM Logs', 'Rows');
+        if ( $rows > ZM_LOG_DATABASE_LIMIT ) {
+          dbQuery('DELETE low_priority FROM Logs ORDER BY TimeKey ASC LIMIT ?', array($rows - ZM_LOG_DATABASE_LIMIT));
+        }
+      } else if ( preg_match('/^\d\s*(hour|minute|day|week|month|year)$/', ZM_LOG_DATABASE_LIMIT, $matches) ) {
+        dbQuery('DELETE FROM Logs WHERE TimeKey < unix_timestamp( NOW() - interval '.ZM_LOG_DATABASE_LIMIT.') LIMIT 100');
+      } else {
+        ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
+      }
     }
     echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
   }
@@ -319,10 +321,13 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 <?php if ( ZM_OPT_USE_AUTH and $user ) { ?>
 	<p class="navbar-text"><i class="material-icons">account_circle</i> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
 <?php } ?>
-
 <?php if ( canEdit('System') ) { ?>
 		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
-
+  <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
+  <p class="navbar-text">
+  <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i></button>' ) ?>
+  </p>
+  <?php } ?>
 <?php } else if ( canView('System') ) { ?>
 		<p class="navbar-text"> <?php echo $status ?></p>
 <?php } ?>
@@ -376,7 +381,7 @@ if ($reload == 'reload') ob_start();
     return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) >= 4 ) 
-    $storage_areas = Storage::find( array('ServerId'=>null) );
+    $storage_areas = ZM\Storage::find( array('ServerId'=>null) );
   if ( count($storage_areas) < 4 )
     echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';

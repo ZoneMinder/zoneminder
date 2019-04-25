@@ -766,7 +766,7 @@ FROM Frames WHERE EventId=?';
   $res = $selectUnclosedEventsSth->execute()
     or Fatal( "Can't execute: ".$selectUnclosedEventsSth->errstr() );
   while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() ) {
-    aud_print( "Found open event '$event->{Id}' at $$event{StartTime}" );
+    aud_print( "Found open event '$event->{Id}' on Monitor $event->{MonitorId} at $$event{StartTime}" );
     if ( confirm( 'close', 'closing' ) ) {
       if ( ! ( $res = $selectFrameDataSth->execute($event->{Id}) ) ) {
         Error( "Can't execute: $selectFrameDataSql:".$selectFrameDataSth->errstr() );
@@ -792,13 +792,13 @@ FROM Frames WHERE EventId=?';
            $frame->{MaxScore},
            RECOVER_TEXT,
            $event->{Id}
-          ) or Error( "Can't execute: ".$updateUnclosedEventsSth->errstr() );
+          ) or Error( 'Can\'t execute: '.$updateUnclosedEventsSth->errstr() );
       } else {
         Error('SHOULD DELETE');
       } # end if has frame data
     }
   } # end while unclosed event
-  Debug("Done closing open events.");
+  Debug('Done closing open events.');
 
 # Now delete any old image files
   if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> ) {
@@ -1005,17 +1005,17 @@ sub delete_empty_directories {
     Error("delete_empty_directories: Can't open directory '/$_[0]': $!" );
     return;
   }
-  my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir( $DIR );
+  my @contents = map { ( $_ eq '.' or $_ eq '..' ) ? () : $_ } readdir($DIR);
   #Debug("delete_empty_directories $_[0] has " . @contents .' entries:' . ( @contents <= 2 ? join(',',@contents) : '' ));
   my @dirs = map { -d $_[0].'/'.$_ ? $_ : () } @contents;
   if ( @dirs ) {
-    Debug("Have " . @dirs . " dirs in $_[0]");
+    Debug('Have ' . @dirs . " dirs in $_[0]");
     foreach ( @dirs ) {
-      delete_empty_directories( $_[0].'/'.$_ );
+      delete_empty_directories($_[0].'/'.$_);
     }
 #Reload, since we may now be empty
     rewinddir $DIR;
-    @contents = map { ($_ eq '.' or $_ eq '..') ? () : $_ } readdir( $DIR );
+    @contents = map { ($_ eq '.' or $_ eq '..') ? () : $_ } readdir($DIR);
   }
   closedir($DIR);
   if ( ! @contents ) {

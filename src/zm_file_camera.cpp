@@ -97,7 +97,7 @@ int FileCamera::PreCapture() {
 }
 
 int FileCamera::Capture( ZMPacket &zm_packet ) {
-  return zm_packet.image->ReadJpeg( path, colours, subpixelorder ) ;
+  return zm_packet.image->ReadJpeg( path, colours, subpixelorder ) ? 1 : -1;
 }
 
 int FileCamera::PostCapture() {

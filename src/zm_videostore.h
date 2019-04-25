@@ -42,9 +42,11 @@ int audio_in_stream_index;
 
   AVCodec *video_out_codec;
   AVCodecContext *video_out_ctx;
+  AVStream *video_out_stream;
 
-	AVStream *video_in_stream;
-	AVStream *audio_in_stream;
+  AVStream *video_in_stream;
+
+  AVStream *audio_in_stream;
 
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
   AVPacket opkt;
@@ -63,6 +65,7 @@ int audio_in_stream_index;
   unsigned int frame_count;
 
   // The following are used when encoding the audio stream to AAC
+  AVStream *audio_out_stream;
   AVCodec *audio_out_codec;
   AVCodecContext *audio_out_ctx;
 #ifdef HAVE_LIBSWRESAMPLE
@@ -98,6 +101,7 @@ int audio_in_stream_index;
   int64_t audio_next_dts;
 
   bool setup_resampler();
+  int resample_audio();
 
 public:
 	VideoStore(

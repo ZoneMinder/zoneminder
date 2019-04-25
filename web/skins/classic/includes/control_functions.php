@@ -24,6 +24,7 @@ function getControlCommands( $monitor ) {
   $cmds['Wake'] = 'wake';
   $cmds['Sleep'] = 'sleep';
   $cmds['Reset'] = 'reset';
+  $cmds['Reboot'] = 'reboot';
 
   $cmds['PresetSet'] = 'presetSet';
   $cmds['PresetGoto'] = 'presetGoto';
@@ -252,7 +253,7 @@ function controlPresets( $monitor, $cmds ) {
   global $SLANG;
 
   // MAX_PRESETS IS PER LINE
-  define( "MAX_PRESETS", "12" );
+  define( 'MAX_PRESETS', '12' );
 
   $sql = 'SELECT * FROM ControlPresets WHERE MonitorId = ?';
   $labels = array();
@@ -282,12 +283,12 @@ function controlPresets( $monitor, $cmds ) {
 <?php
   if ( $monitor->HasHomePreset() ) {
 ?>
-    <button type="button" class="ptzTextBtn" value="<?php echo translate('Home') ?>" onclick="controlCmd('<?php echo $cmds['PresetHome'] ?>');"/>
+    <button type="button" class="ptzTextBtn" value="Home" onclick="controlCmd('<?php echo $cmds['PresetHome'] ?>');"><?php echo translate('Home') ?></button>
 <?php
   }
   if ( canEdit('Monitors') && $monitor->CanSetPresets() ) {
 ?>
-    <button type="button" class="ptzTextBtn popup-link" value="<?php echo translate('Set') ?>" data-url="?view=controlpreset&amp;mid=<?php echo $monitor->Id() ?>" data-window-name="zmPreset" data-window-tag="preset"/>
+    <button type="button" class="ptzTextBtn popup-link" value="Set" data-url="?view=controlpreset&amp;mid=<?php echo $monitor->Id() ?>" data-window-name="zmPreset" data-window-tag="preset"><?php echo translate('Set') ?></button>
 <?php
   }
 ?>
@@ -319,6 +320,11 @@ function controlPower( $monitor, $cmds ) {
   if ( $monitor->CanReset() ) {
 ?>
     <button type="button" class="ptzTextBtn" value="Reset" onclick="controlCmd('<?php echo $cmds['Reset'] ?>')"><?php echo translate('Reset') ?></button>
+<?php
+  }
+  if ( $monitor->CanReboot() ) {
+?>
+    <button type="button" class="ptzTextBtn" value="Reboot" onclick="controlCmd('<?php echo $cmds['Reboot'] ?>')"><?php echo translate('Reboot') ?></button>
 <?php
   }
 ?>

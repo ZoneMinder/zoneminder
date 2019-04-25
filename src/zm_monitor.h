@@ -311,10 +311,12 @@ protected:
 
   unsigned int  last_camera_bytes;
   
-  Image      delta_image;
-  Image      ref_image;
-  Image       alarm_image;  // Used in creating analysis images, will be initialized in Analysis
-  Image       write_image;    // Used when creating snapshot images
+  Image        delta_image;
+  Image        ref_image;
+  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
+  Image        write_image;    // Used when creating snapshot images
+  std::string diag_path_r;
+  std::string diag_path_d;
 
   Purpose      purpose;        // What this monitor has been created to do
   int        event_count;
@@ -337,15 +339,15 @@ protected:
   EventCloseMode  event_close_mode;
 
 #if ZM_MEM_MAPPED
-  int        map_fd;
-  char      mem_file[PATH_MAX];
+  int             map_fd;
+  char            mem_file[PATH_MAX];
 #else // ZM_MEM_MAPPED
-  int       shm_id;
+  int             shm_id;
 #endif // ZM_MEM_MAPPED
-  off_t        mem_size;
-  unsigned char  *mem_ptr;
-  SharedData    *shared_data;
-  TriggerData    *trigger_data;
+  off_t           mem_size;
+  unsigned char   *mem_ptr;
+  SharedData      *shared_data;
+  TriggerData     *trigger_data;
   VideoStoreData  *video_store_data;
 
   struct timeval *shared_timestamps;

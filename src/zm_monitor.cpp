@@ -487,7 +487,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // Change \n to actual line feeds
   char *token_ptr = label_format;
   const char *token_string = "\n";
-  while( ( token_ptr = strstr(token_ptr, token_string) ) ) {
+  while ( ( token_ptr = strstr(token_ptr, token_string) ) ) {
     if ( *(token_ptr+1) ) {
       *token_ptr = '\n';
       token_ptr++;
@@ -762,9 +762,14 @@ Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
     }
   }
 #endif
+    if ( config.record_diag_images ) {
+      diag_path_r = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
+      diag_path_d = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
+    }
 
   return monitor;
 } // end Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose)
+
 
 bool Monitor::connect() {
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose );
@@ -1121,6 +1126,7 @@ unsigned int Monitor::GetLastWriteIndex() const {
 }
 
 uint64_t Monitor::GetLastEventId() const {
+#if 0
   Debug(2, "mem_ptr(%x), size(%d) State(%d) last_read_index(%d) last_read_time(%d) last_event(%" PRIu64 ")",
       mem_ptr,
       shared_data->size,
@@ -1129,6 +1135,7 @@ uint64_t Monitor::GetLastEventId() const {
       shared_data->last_read_time,
       shared_data->last_event_id
       );
+#endif
   return shared_data->last_event_id;
 }
 
@@ -1189,11 +1196,12 @@ double Monitor::GetFPS() const {
 
 /* I think this returns the # of micro seconds that we should sleep in order to maintain the desired analysis rate */
 useconds_t Monitor::GetAnalysisRate() {
+<<<<<<< HEAD
   capture_fps = GetFPS();
   if ( !analysis_fps_limit ) {
     return 0;
   } else if ( analysis_fps_limit > capture_fps ) {
-    Warning( "Analysis fps (%.2f) is greater than capturing fps (%.2f)", analysis_fps_limit, capture_fps );
+    Warning("Analysis fps (%.2f) is greater than capturing fps (%.2f)", analysis_fps_limit, capture_fps);
     return 0;
   } else {
     return( ( 1000000 / analysis_fps_limit ) - ( 1000000 / capture_fps ) );
@@ -1204,10 +1212,10 @@ void Monitor::UpdateAdaptiveSkip() {
   if ( config.opt_adaptive_skip ) {
     double capturing_fps = GetFPS();
     if ( adaptive_skip && analysis_fps && ( analysis_fps < capturing_fps ) ) {
-      Info( "Analysis fps (%.2f) is lower than capturing fps (%.2f), disabling adaptive skip feature", analysis_fps, capturing_fps );
+      Info("Analysis fps (%.2f) is lower than capturing fps (%.2f), disabling adaptive skip feature", analysis_fps, capturing_fps);
       adaptive_skip = false;
     } else if ( !adaptive_skip && ( !analysis_fps || ( analysis_fps >= capturing_fps ) ) ) {
-      Info( "Enabling adaptive skip feature" );
+      Info("Enabling adaptive skip feature");
       adaptive_skip = true;
     }
   } else {
@@ -1218,8 +1226,8 @@ void Monitor::UpdateAdaptiveSkip() {
 void Monitor::ForceAlarmOn( int force_score, const char *force_cause, const char *force_text ) {
   trigger_data->trigger_state = TRIGGER_ON;
   trigger_data->trigger_score = force_score;
-  strncpy( trigger_data->trigger_cause, force_cause, sizeof(trigger_data->trigger_cause)-1 );
-  strncpy( trigger_data->trigger_text, force_text, sizeof(trigger_data->trigger_text)-1 );
+  strncpy(trigger_data->trigger_cause, force_cause, sizeof(trigger_data->trigger_cause)-1);
+  strncpy(trigger_data->trigger_text, force_text, sizeof(trigger_data->trigger_text)-1);
 }
 
 void Monitor::ForceAlarmOff() {
@@ -1266,7 +1274,7 @@ void Monitor::actionResume() {
   shared_data->action |= RESUME;
 }
 
-int Monitor::actionBrightness( int p_brightness ) {
+int Monitor::actionBrightness(int p_brightness) {
   if ( purpose != CAPTURE ) {
     if ( p_brightness >= 0 ) {
       shared_data->brightness = p_brightness;
@@ -1274,10 +1282,10 @@ int Monitor::actionBrightness( int p_brightness ) {
       int wait_loops = 10;
       while ( shared_data->action & SET_SETTINGS ) {
         if ( wait_loops-- ) {
-          usleep( 100000 );
+          usleep(100000);
         } else {
-          Warning( "Timed out waiting to set brightness" );
-          return( -1 );
+          Warning("Timed out waiting to set brightness");
+          return -1;
         }
       }
     } else {
@@ -1285,19 +1293,19 @@ int Monitor::actionBrightness( int p_brightness ) {
       int wait_loops = 10;
       while ( shared_data->action & GET_SETTINGS ) {
         if ( wait_loops-- ) {
-          usleep( 100000 );
+          usleep(100000);
         } else {
-          Warning( "Timed out waiting to get brightness" );
-          return( -1 );
+          Warning("Timed out waiting to get brightness");
+          return -1;
         }
       }
     }
-    return( shared_data->brightness );
+    return shared_data->brightness;
   }
-  return( camera->Brightness( p_brightness ) );
-}
+  return camera->Brightness(p_brightness);
+} // end int Monitor::actionBrightness(int p_brightness)
 
-int Monitor::actionContrast( int p_contrast ) {
+int Monitor::actionContrast(int p_contrast) {
   if ( purpose != CAPTURE ) {
     if ( p_contrast >= 0 ) {
       shared_data->contrast = p_contrast;
@@ -1305,10 +1313,10 @@ int Monitor::actionContrast( int p_contrast ) {
       int wait_loops = 10;
       while ( shared_data->action & SET_SETTINGS ) {
         if ( wait_loops-- ) {
-          usleep( 100000 );
+          usleep(100000);
         } else {
-          Warning( "Timed out waiting to set contrast" );
-          return( -1 );
+          Warning("Timed out waiting to set contrast");
+          return -1;
         }
       }
     } else {
@@ -1316,19 +1324,19 @@ int Monitor::actionContrast( int p_contrast ) {
       int wait_loops = 10;
       while ( shared_data->action & GET_SETTINGS ) {
         if ( wait_loops-- ) {
-          usleep( 100000 );
+          usleep(100000);
         } else {
-          Warning( "Timed out waiting to get contrast" );
-          return( -1 );
+          Warning("Timed out waiting to get contrast");
+          return -1;
         }
       }
     }
-    return( shared_data->contrast );
+    return shared_data->contrast;
   }
-  return( camera->Contrast( p_contrast ) );
-}
+  return camera->Contrast(p_contrast);
+} // end int Monitor::actionContrast(int p_contrast)
 
-int Monitor::actionHue( int p_hue ) {
+int Monitor::actionHue(int p_hue) {
   if ( purpose != CAPTURE ) {
     if ( p_hue >= 0 ) {
       shared_data->hue = p_hue;
@@ -1336,10 +1344,10 @@ int Monitor::actionHue( int p_hue ) {
       int wait_loops = 10;
       while ( shared_data->action & SET_SETTINGS ) {
         if ( wait_loops-- ) {
-          usleep( 100000 );
+          usleep(100000);
         } else {
-          Warning( "Timed out waiting to set hue" );
-          return( -1 );
+          Warning("Timed out waiting to set hue");
+          return -1;
         }
       }
     } else {
@@ -1347,19 +1355,19 @@ int Monitor::actionHue( int p_hue ) {
       int wait_loops = 10;
       while ( shared_data->action & GET_SETTINGS ) {
         if ( wait_loops-- ) {
-          usleep( 100000 );
+          usleep(100000);
         } else {
-          Warning( "Timed out waiting to get hue" );
-          return( -1 );
+          Warning("Timed out waiting to get hue");
+          return -1;
         }
       }
     }
-    return( shared_data->hue );
+    return shared_data->hue;
   }
-  return( camera->Hue( p_hue ) );
-}
+  return camera->Hue(p_hue);
+} // end int Monitor::actionHue(int p_hue)
 
-int Monitor::actionColour( int p_colour ) {
+int Monitor::actionColour(int p_colour) {
   if ( purpose != CAPTURE ) {
     if ( p_colour >= 0 ) {
       shared_data->colour = p_colour;
@@ -1367,10 +1375,10 @@ int Monitor::actionColour( int p_colour ) {
       int wait_loops = 10;
       while ( shared_data->action & SET_SETTINGS ) {
         if ( wait_loops-- ) {
-          usleep( 100000 );
+          usleep(100000);
         } else {
-          Warning( "Timed out waiting to set colour" );
-          return( -1 );
+          Warning("Timed out waiting to set colour");
+          return -1;
         }
       }
     } else {
@@ -1378,19 +1386,19 @@ int Monitor::actionColour( int p_colour ) {
       int wait_loops = 10;
       while ( shared_data->action & GET_SETTINGS ) {
         if ( wait_loops-- ) {
-          usleep( 100000 );
+          usleep(100000);
         } else {
-          Warning( "Timed out waiting to get colour" );
-          return( -1 );
+          Warning("Timed out waiting to get colour");
+          return -1;
         }
       }
     }
-    return( shared_data->colour );
+    return shared_data->colour;
   }
-  return( camera->Colour( p_colour ) );
-}
+  return camera->Colour(p_colour);
+} // end int Monitor::actionColour(int p_colour)
 
-void Monitor::DumpZoneImage( const char *zone_string ) {
+void Monitor::DumpZoneImage(const char *zone_string) {
   int exclude_id = 0;
   int extra_colour = 0;
   Polygon extra_zone;
@@ -1431,7 +1439,7 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
     zone_image->Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   }
 
-  for( int i = 0; i < n_zones; i++ ) {
+  for ( int i = 0; i < n_zones; i++ ) {
     if ( exclude_id && (!extra_colour || extra_zone.getNumCoords()) && zones[i]->Id() == exclude_id )
       continue;
 
@@ -1451,33 +1459,33 @@ void Monitor::DumpZoneImage( const char *zone_string ) {
         colour = RGB_WHITE;
       }
     }
-    zone_image->Fill( colour, 2, zones[i]->GetPolygon() );
-    zone_image->Outline( colour, zones[i]->GetPolygon() );
+    zone_image->Fill(colour, 2, zones[i]->GetPolygon());
+    zone_image->Outline(colour, zones[i]->GetPolygon());
   }
 
   if ( extra_zone.getNumCoords() ) {
-    zone_image->Fill( extra_colour, 2, extra_zone );
-    zone_image->Outline( extra_colour, extra_zone );
+    zone_image->Fill(extra_colour, 2, extra_zone);
+    zone_image->Outline(extra_colour, extra_zone);
   }
 
   static char filename[PATH_MAX];
-  snprintf( filename, sizeof(filename), "Zones%d.jpg", id );
-  zone_image->WriteJpeg( filename );
+  snprintf(filename, sizeof(filename), "Zones%d.jpg", id);
+  zone_image->WriteJpeg(filename);
   delete zone_image;
-}
+} // end void Monitor::DumpZoneImage(const char *zone_string)
 
-void Monitor::DumpImage( Image *dump_image ) const {
+void Monitor::DumpImage(Image *dump_image) const {
   if ( image_count && !(image_count%10) ) {
     static char filename[PATH_MAX];
     static char new_filename[PATH_MAX];
-    snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
-    snprintf( new_filename, sizeof(new_filename), "Monitor%d-new.jpg", id );
-    if ( dump_image->WriteJpeg( new_filename ) )
-      rename( new_filename, filename );
+    snprintf(filename, sizeof(filename), "Monitor%d.jpg", id);
+    snprintf(new_filename, sizeof(new_filename), "Monitor%d-new.jpg", id);
+    if ( dump_image->WriteJpeg(new_filename) )
+      rename(new_filename, filename);
   }
-}
+} // end void Monitor::DumpImage(Image *dump_image)
 
-bool Monitor::CheckSignal( const Image *image ) {
+bool Monitor::CheckSignal(const Image *image) {
   static bool static_undef = true;
   /* RGB24 colors */
   static uint8_t red_val;
@@ -1543,11 +1551,11 @@ bool Monitor::CheckSignal( const Image *image ) {
         }
       }
     } // end for < signal_check_points
-    Debug(1,"SignalCheck: %d points, colour_val(%d)", signal_check_points, colour_val);
+    Debug(1, "SignalCheck: %d points, colour_val(%d)", signal_check_points, colour_val);
     return false;
   } // end if signal_check_points
   return true;
-}
+} // end bool Monitor::CheckSignal(const Image *image)
 
 void Monitor::CheckAction() {
   struct timeval now;
@@ -1698,6 +1706,10 @@ bool Monitor::Analyse() {
             score += 100;
           }
           Warning("%s: %s", SIGNAL_CAUSE, signalText);
+          if ( event && !signal ) {
+            Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name, image_count, event->Id());
+            closeEvent();
+          }
           if ( !event ) {
             if ( cause.length() )
               cause += ", ";
@@ -1770,19 +1782,18 @@ bool Monitor::Analyse() {
 
             if ( event ) {
               Debug(2,"Have event in mocard");
-              if ( section_length ) {
-                // TODO: Wouldn't this be clearer if we just did something like if now - event->start > section_length ?
-                int section_mod = timestamp->tv_sec % section_length;
-                Debug(3, "Section length (%d) Last Section Mod(%d), tv_sec(%d) new section mod(%d)",
-                    section_length, last_section_mod, timestamp->tv_sec, section_mod);
-                // This is not clear, but basically due to pauses, etc we might not get section_mod == 0
-                if ( ( section_mod < last_section_mod ) && ( timestamp->tv_sec >= 10 ) ) {
-                  Info("%s: %03d - Closing event %llu, section end forced ", name, analysis_image_count, event->Id());
-                  closeEvent();
-                  last_section_mod = 0;
-                } else {
-                  last_section_mod = section_mod;
-                }
+              if ( section_length
+                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                  && ( ! ( timestamp->tv_sec % section_length ) ) 
+                 ) {
+
+                Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
+                    name, image_count, event->Id(),
+                    timestamp->tv_sec, video_store_data->recording.tv_sec, 
+                    timestamp->tv_sec - video_store_data->recording.tv_sec,
+                    section_length
+                    );
+                closeEvent();
               } // end if section_length
             } // end if event
 
@@ -1936,7 +1947,6 @@ bool Monitor::Analyse() {
         closeEvent();
       }
       shared_data->state = state = IDLE;
-      last_section_mod = 0;
       trigger_data->trigger_state = TRIGGER_CANCEL;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
@@ -1987,7 +1997,7 @@ void Monitor::Reload() {
   Debug(1, "Reloading monitor %s", name);
 
   if ( event ) {
-    Info( "%s: %03d - Closing event %" PRIu64 ", reloading", name, image_count, event->Id() );
+    Info("%s: %03d - Closing event %" PRIu64 ", reloading", name, image_count, event->Id());
     closeEvent();
   }
 
@@ -2040,9 +2050,9 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
     char link_id_str[8];
     char *dest_ptr = link_id_str;
     const char *src_ptr = p_linked_monitors;
-    while( 1 ) {
+    while ( 1 ) {
       dest_ptr = link_id_str;
-      while( *src_ptr >= '0' && *src_ptr <= '9' ) {
+      while ( *src_ptr >= '0' && *src_ptr <= '9' ) {
         if ( (dest_ptr-link_id_str) < (unsigned int)(sizeof(link_id_str)-1) ) {
           *dest_ptr++ = *src_ptr++;
         } else {
@@ -2120,7 +2130,7 @@ int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose)
     return 0;
   }
   int n_monitors = mysql_num_rows(result);
-  Debug( 1, "Got %d monitors", n_monitors );
+  Debug(1, "Got %d monitors", n_monitors);
   delete[] monitors;
   monitors = new Monitor *[n_monitors];
   for( int i=0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
@@ -2135,7 +2145,7 @@ int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose)
   mysql_free_result(result);
 
   return n_monitors;
-}
+} // end int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose)
 
 #if ZM_HAS_V4L
 int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose) {
@@ -2147,7 +2157,7 @@ int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose 
   if ( staticConfig.SERVER_ID )
     sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
   return LoadMonitors(sql, monitors, purpose);
-}
+} // end int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose)
 #endif // ZM_HAS_V4L
 
 int Monitor::LoadRemoteMonitors(const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose) {
@@ -2158,17 +2168,17 @@ int Monitor::LoadRemoteMonitors(const char *protocol, const char *host, const ch
   if ( protocol )
     sql += stringtf(" AND Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path);
   return LoadMonitors(sql, monitors, purpose);
-}
+} // end int Monitor::LoadRemoteMonitors
 
-int Monitor::LoadFileMonitors( const char *file, Monitor **&monitors, Purpose purpose ) {
+int Monitor::LoadFileMonitors(const char *file, Monitor **&monitors, Purpose purpose) {
   std::string sql = load_monitor_sql + " WHERE Function != 'None' AND Type = 'File'";
   if ( file[0] )
     sql += " AND Path='" + std::string(file) + "'";
   if ( staticConfig.SERVER_ID ) {
-    sql += stringtf( " AND ServerId=%d", staticConfig.SERVER_ID );
+    sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
   }
   return LoadMonitors(sql, monitors, purpose);
-}
+} // end int Monitor::LoadFileMonitors
 
 #if HAVE_LIBAVFORMAT
 int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose purpose) {
@@ -2180,7 +2190,7 @@ int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose p
     sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
   }
   return LoadMonitors(sql, monitors, purpose);
-}
+} // end int Monitor::LoadFfmpegMonitors
 #endif // HAVE_LIBAVFORMAT
 
 /* Returns 0 on success, even if no new images are available (transient error)
@@ -2385,10 +2395,10 @@ int Monitor::Capture() {
     shared_data->action &= ~GET_SETTINGS;
   }
   if ( shared_data->action & SET_SETTINGS ) {
-    camera->Brightness( shared_data->brightness );
-    camera->Hue( shared_data->hue );
-    camera->Colour( shared_data->colour );
-    camera->Contrast( shared_data->contrast );
+    camera->Brightness(shared_data->brightness);
+    camera->Hue(shared_data->hue);
+    camera->Colour(shared_data->colour);
+    camera->Contrast(shared_data->contrast);
     shared_data->action &= ~SET_SETTINGS;
   }
   return captureResult;
@@ -2425,12 +2435,12 @@ void Monitor::TimestampImage( Image *ts_image, const struct timeval *ts_time ) c
           continue;
         }
       }
-      *d_ptr++ = *s_ptr++;
     }
-    *d_ptr = '\0';
-    ts_image->Annotate( label_text, label_coord, label_size );
-  }
-}
+    *d_ptr++ = *s_ptr++;
+  } // end while
+  *d_ptr = '\0';
+  ts_image->Annotate( label_text, label_coord, label_size );
+} // end void Monitor::TimestampImage
 
 bool Monitor::closeEvent() {
   if ( event ) {
@@ -2448,24 +2458,22 @@ bool Monitor::closeEvent() {
       event = NULL;
       delete e;
       e = NULL;
-    }, event);
+      }, event);
 #else
-    delete event;
-    event = NULL;
+  delete event;
+  event = NULL;
 #endif
-    video_store_data->recording = (struct timeval){0};
-    return true;
-  }
-  return false;
-}
+  video_store_data->recording = (struct timeval){0};
+  return true;
+} // end bool Monitor::closeEvent()
 
-unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &zoneSet ) {
+unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zoneSet) {
   bool alarm = false;
   unsigned int score = 0;
 
   if ( n_zones <= 0 ) return alarm;
 
-  Storage *storage = this->getStorage();
+  ref_image.Delta(comp_image, &delta_image);
 
   if ( config.record_diag_images ) {
     static char diag_path[PATH_MAX] = "";
@@ -2489,14 +2497,14 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
   for ( int n_zone = 0; n_zone < n_zones; n_zone++ ) {
     Zone *zone = zones[n_zone];
     // need previous alarmed state for preclusive zone, so don't clear just yet
-    if (!zone->IsPreclusive())
+    if ( !zone->IsPreclusive() )
       zone->ClearAlarm();
     if ( !zone->IsInactive() ) {
       continue;
     }
     Debug(3, "Blanking inactive zone %s", zone->Label());
     delta_image.Fill(RGB_BLACK, zone->GetPolygon());
-  }
+  } // end foreach zone
 
   // Check preclusive zones first
   for ( int n_zone = 0; n_zone < n_zones; n_zone++ ) {
@@ -2506,30 +2514,32 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
     }
     int old_zone_score = zone->Score();
     bool old_zone_alarmed = zone->Alarmed();
-    Debug( 3, "Checking preclusive zone %s - old score: %d, state: %s", zone->Label(),old_zone_score, zone->Alarmed()?"alarmed":"quiet" );
-    if ( zone->CheckAlarms( &delta_image ) ) {
+    Debug(3, "Checking preclusive zone %s - old score: %d, state: %s",
+        zone->Label(),old_zone_score, zone->Alarmed()?"alarmed":"quiet");
+    if ( zone->CheckAlarms(&delta_image) ) {
       alarm = true;
       score += zone->Score();
       zone->SetAlarm();
-      Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-      zoneSet.insert( zone->Label() );
+      Debug(3, "Zone is alarmed, zone score = %d", zone->Score());
+      zoneSet.insert(zone->Label());
       //zone->ResetStats();
     } else {
       // check if end of alarm
-      if (old_zone_alarmed) {
-        Debug(3, "Preclusive Zone %s alarm Ends. Previous score: %d", zone->Label(), old_zone_score);
-        if (old_zone_score > 0) {
+      if ( old_zone_alarmed ) {
+        Debug(3, "Preclusive Zone %s alarm Ends. Previous score: %d",
+            zone->Label(), old_zone_score);
+        if ( old_zone_score > 0 ) {
           zone->SetExtendAlarmCount(zone->GetExtendAlarmFrames());
         }
-        if (zone->CheckExtendAlarmCount()) {
-          alarm=true;
+        if ( zone->CheckExtendAlarmCount() ) {
+          alarm = true;
           zone->SetAlarm();
         } else {
           zone->ClearAlarm();
         }
       }
-    }
-  }
+    } // end if CheckAlarms
+  } // end foreach zone
 
   Coord alarm_centre;
   int top_score = -1;
@@ -2544,13 +2554,13 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
       if ( !zone->IsActive() || zone->IsPreclusive()) {
         continue;
       }
-      Debug( 3, "Checking active zone %s", zone->Label() );
-      if ( zone->CheckAlarms( &delta_image ) ) {
+      Debug(3, "Checking active zone %s", zone->Label());
+      if ( zone->CheckAlarms(&delta_image) ) {
         alarm = true;
         score += zone->Score();
         zone->SetAlarm();
-        Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-        zoneSet.insert( zone->Label() );
+        Debug(3, "Zone is alarmed, zone score = %d", zone->Score());
+        zoneSet.insert(zone->Label());
         if ( config.opt_control && track_motion ) {
           if ( (int)zone->Score() > top_score ) {
             top_score = zone->Score();
@@ -2558,7 +2568,7 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
           }
         }
       }
-    }
+    } // end foreach zone
 
     if ( alarm ) {
       for ( int n_zone = 0; n_zone < n_zones; n_zone++ ) {
@@ -2567,12 +2577,12 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         if ( !zone->IsInclusive() ) {
           continue;
         }
-        Debug( 3, "Checking inclusive zone %s", zone->Label() );
-        if ( zone->CheckAlarms( &delta_image ) ) {
+        Debug(3, "Checking inclusive zone %s", zone->Label());
+        if ( zone->CheckAlarms(&delta_image) ) {
           alarm = true;
           score += zone->Score();
           zone->SetAlarm();
-          Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
+          Debug(3, "Zone is alarmed, zone score = %d", zone->Score());
           zoneSet.insert( zone->Label() );
           if ( config.opt_control && track_motion ) {
             if ( zone->Score() > (unsigned int)top_score ) {
@@ -2580,8 +2590,8 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
               alarm_centre = zone->GetAlarmCentre();
             }
           }
-        }
-      }
+        } // end if CheckAlarm
+      } // end foreach zone
     } else {
       // Find all alarm pixels in exclusive zones
       for ( int n_zone = 0; n_zone < n_zones; n_zone++ ) {
@@ -2589,32 +2599,33 @@ unsigned int Monitor::DetectMotion( const Image &comp_image, Event::StringSet &z
         if ( !zone->IsExclusive() ) {
           continue;
         }
-        Debug( 3, "Checking exclusive zone %s", zone->Label() );
-        if ( zone->CheckAlarms( &delta_image ) ) {
+        Debug(3, "Checking exclusive zone %s", zone->Label());
+        if ( zone->CheckAlarms(&delta_image) ) {
           alarm = true;
           score += zone->Score();
           zone->SetAlarm();
-          Debug( 3, "Zone is alarmed, zone score = %d", zone->Score() );
-          zoneSet.insert( zone->Label() );
+          Debug(3, "Zone is alarmed, zone score = %d", zone->Score());
+          zoneSet.insert(zone->Label());
         }
-      }
+      } // end foreach zone
     } // end if alarm or not
-  }
+  } // end if alarm
 
   if ( top_score > 0 ) {
     shared_data->alarm_x = alarm_centre.X();
     shared_data->alarm_y = alarm_centre.Y();
 
-    Info( "Got alarm centre at %d,%d, at count %d", shared_data->alarm_x, shared_data->alarm_y, analysis_image_count );
+    Info("Got alarm centre at %d,%d, at count %d",
+        shared_data->alarm_x, shared_data->alarm_y, analysis_image_count);
   } else {
     shared_data->alarm_x = shared_data->alarm_y = -1;
   }
 
   // This is a small and innocent hack to prevent scores of 0 being returned in alarm state
-  return score?score:alarm;
-}
+  return score ? score : alarm;
+} // end MotionDetect
 
-bool Monitor::DumpSettings( char *output, bool verbose ) {
+bool Monitor::DumpSettings(char *output, bool verbose) {
   output[0] = 0;
 
   sprintf( output+strlen(output), "Id : %d\n", id );
@@ -2720,9 +2731,9 @@ void Monitor::get_ref_image() {
   snap->unlock();
 }
 
-std::vector<Group *>  Monitor::Groups() {
+std::vector<Group *> Monitor::Groups() {
   // At the moment, only load groups once.
-  if ( ! groups.size() ) {
+  if ( !groups.size() ) {
     std::string sql = stringtf(
         "SELECT Id,ParentId,Name FROM Groups WHERE Groups.Id IN "
         "(SELECT GroupId FROM Groups_Monitors WHERE MonitorId=%d)",id);
@@ -2742,14 +2753,13 @@ std::vector<Group *>  Monitor::Groups() {
     mysql_free_result(result);
   }
   return groups;
-}
+} // end Monitor::Groups()
 
 StringVector Monitor::GroupNames() {
   StringVector groupnames;
-  for(Group * g: Groups()) {
+  for ( Group * g: Groups() ) {
     groupnames.push_back(std::string(g->Name()));
-Debug(1,"Groups: %s", g->Name());
+    Debug(1,"Groups: %s", g->Name());
   }
   return groupnames;
-} 
-  
+} // end Monitor::GroupNames()

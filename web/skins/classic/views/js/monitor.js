@@ -66,7 +66,7 @@ function initPage() {
   });
 
   // Disable form submit on enter
-  $j('#contentForm').on('keyup keypress', function(e) {
+  $j('#contentForm input').on('keyup keypress', function(e) {
     var keyCode = e.keyCode || e.which;
     if (keyCode === 13) {
       e.preventDefault();

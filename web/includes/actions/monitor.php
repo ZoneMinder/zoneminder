@@ -68,6 +68,9 @@ if ( $action == 'monitor' ) {
 
   $columns = getTableColumns('Monitors');
   $changes = getFormChanges($monitor, $_REQUEST['newMonitor'], $types, $columns);
+ZM\Logger::Debug("Columns:". print_r($columns,true));
+ZM\Logger::Debug("Changes:". print_r($changes,true));
+ZM\Logger::Debug("newMonitor:". print_r($_REQUEST['newMonitor'],true));
 
   if ( count($changes) ) {
     if ( $mid ) {
@@ -88,12 +91,12 @@ if ( $action == 'monitor' ) {
         $NewStorage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
         if ( !file_exists($NewStorage->Path().'/'.$mid) ) {
           if ( !mkdir($NewStorage->Path().'/'.$mid, 0755) ) {
-            Error('Unable to mkdir ' . $NewStorage->Path().'/'.$mid);
+            ZM\Error('Unable to mkdir ' . $NewStorage->Path().'/'.$mid);
           }
         }
         $saferNewName = basename($_REQUEST['newMonitor']['Name']);
         if ( !symlink($NewStorage->Path().'/'.$mid, $NewStorage->Path().'/'.$saferNewName) ) {
-          Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
+          ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
         }
       }
       if ( isset($changes['Width']) || isset($changes['Height']) ) {

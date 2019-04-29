@@ -252,8 +252,6 @@ void Logger::initialise(const std::string &id, const Options &options) {
 }
 
 void Logger::terminate() {
-  Debug(1, "Terminating Logger");
-
   if ( mFileLevel > NOLOG )
     closeFile();
 
@@ -574,6 +572,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
 
   free(filecopy);
   if ( level <= FATAL ) {
+    log_mutex.unlock();
     logTerm();
     zmDbClose();
     if ( level <= PANIC )

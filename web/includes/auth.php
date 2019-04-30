@@ -106,9 +106,8 @@ function userLogin($username='', $password='', $passwordHashed=false) {
       // We assume we don't need to support mysql < 4.1
       // Starting MY SQL 4.1, mysql concats a '*' in front of its password hash
       // https://blog.pythian.com/hashing-algorithm-in-mysql-password-2/
-      ZM\Info ("Saved password is using MYSQL password function");
+      ZM\Logger::Debug ('Saved password is using MYSQL password function');
       $input_password_hash ='*'.strtoupper(sha1(sha1($password, true)));
-      ZM\Info ("MYSQL: Comparing $input_password_hash to $saved_password");
       $password_correct = ($saved_password == $input_password_hash);
       $password_type = 'mysql';
       

@@ -245,3 +245,39 @@ FOR EACH ROW
 //
 
 DELIMITER ;
+
+REPLACE INTO Events_Hour SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 hour);
+REPLACE INTO Events_Day SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 day);
+REPLACE INTO Events_Week SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 week);
+REPLACE INTO Events_Month SELECT Id,MonitorId,StartTime,DiskSpace FROM Events WHERE StartTime > DATE_SUB(NOW(),  INTERVAL 1 month);
+REPLACE INTO Events_Archived SELECT Id,MonitorId,DiskSpace FROM Events WHERE Archived=1;
+
+UPDATE Monitors INNER JOIN (
+  SELECT  MonitorId,
+    COUNT(Id) AS TotalEvents,
+    SUM(DiskSpace) AS TotalEventDiskSpace,
+    SUM(IF(Archived,1,0)) AS ArchivedEvents,
+    SUM(IF(Archived,DiskSpace,0)) AS ArchivedEventDiskSpace,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 hour),1,0)) AS HourEvents,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 hour),DiskSpace,0)) AS HourEventDiskSpace,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 day),1,0)) AS DayEvents,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 day),DiskSpace,0)) AS DayEventDiskSpace,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 week),1,0)) AS WeekEvents,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 week),DiskSpace,0)) AS WeekEventDiskSpace,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 month),1,0)) AS MonthEvents,
+    SUM(IF(StartTime > DATE_SUB(NOW(), INTERVAL 1 month),DiskSpace,0)) AS MonthEventDiskSpace
+    FROM Events GROUP BY MonitorId
+    ) AS E ON E.MonitorId=Monitors.Id SET
+    Monitors.TotalEvents = E.TotalEvents,
+    Monitors.TotalEventDiskSpace = E.TotalEventDiskSpace,
+    Monitors.ArchivedEvents = E.ArchivedEvents,
+    Monitors.ArchivedEventDiskSpace = E.ArchivedEventDiskSpace,
+    Monitors.HourEvents = E.HourEvents,
+    Monitors.HourEventDiskSpace = E.HourEventDiskSpace,
+    Monitors.DayEvents = E.DayEvents,
+    Monitors.DayEventDiskSpace = E.DayEventDiskSpace,
+    Monitors.WeekEvents = E.WeekEvents,
+    Monitors.WeekEventDiskSpace = E.WeekEventDiskSpace,
+    Monitors.MonthEvents = E.MonthEvents,
+    Monitors.MonthEventDiskSpace = E.MonthEventDiskSpace;
+

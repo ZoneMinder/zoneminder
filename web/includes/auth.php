@@ -20,6 +20,7 @@
 //
 require_once('session.php');
 
+// this function migrates mysql hashing to bcrypt, if you are using PHP >= 5.5
 // will be called after successful login, only if mysql hashing is detected
 function migrateHash($user, $pass) {
   if (function_exists('password_hash')) {
@@ -42,6 +43,7 @@ function migrateHash($user, $pass) {
  
 }
 
+// core function used to login a user to PHP. Is also used for cake sessions for the API
 function userLogin($username='', $password='', $passwordHashed=false) {
   global $user;
   if ( !$username and isset($_REQUEST['username']) )
@@ -112,15 +114,16 @@ function userLogin($username='', $password='', $passwordHashed=false) {
       
     }
     else {
-      
+      // bcrypt can have multiple signatures
       if (preg_match('/^\$2[ayb]\$.+$/', $saved_password)) {
 
-        ZM\Info ("bcrypt signature found, assumed bcrypt password");
+        ZM\Logger::Debug ('bcrypt signature found, assumed bcrypt password');
         $password_type='bcrypt';
         $password_correct = password_verify($password, $saved_password);
       }
       else {
-        ZM\Info ('assuming plain text password as signature is not known');
+        // we really should nag the user not to use plain
+        ZM\Warning ('assuming plain text password as signature is not known. Please do not use plain, it is very insecure');
         $password_type = 'plain';
         $password_correct = ($saved_password == $password);
       }

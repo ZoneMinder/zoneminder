@@ -22,14 +22,13 @@ require_once('session.php');
 
 function userLogin($username='', $password='', $passwordHashed=false) {
   global $user;
-
   if ( !$username and isset($_REQUEST['username']) )
     $username = $_REQUEST['username'];
   if ( !$password and isset($_REQUEST['password']) )
     $password = $_REQUEST['password'];
 
   // if true, a popup will display after login
-  // PP - lets validate reCaptcha if it exists
+  // lets validate reCaptcha if it exists
   if ( defined('ZM_OPT_USE_GOOG_RECAPTCHA')
       && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
       && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
@@ -64,28 +63,60 @@ function userLogin($username='', $password='', $passwordHashed=false) {
     } // end if success==false
   } // end if using reCaptcha
 
-  $sql = 'SELECT * FROM Users WHERE Enabled=1';
-  $sql_values = NULL;
-  if ( ZM_AUTH_TYPE == 'builtin' ) {
-    if ( $passwordHashed ) {
-      $sql .= ' AND Username=? AND Password=?';
-    } else {
-      $sql .= ' AND Username=? AND Password=password(?)';
+  // coming here means we need to authenticate the user
+  // if captcha existed, it was passed
+
+  $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username = ?';
+  $sql_values = array($username);
+
+  // First retrieve the stored password
+  // and move password hashing to application space
+    
+  $saved_user_details = dbFetchOne ($sql, NULL, $sql_values);
+  $password_correct = false;
+    
+  if ($saved_user_details) {
+    $saved_password = $saved_user_details['Password'];
+    if ($saved_password[0] == '*') {
+      // We assume we don't need to support mysql < 4.1
+      // Starting MY SQL 4.1, mysql concats a '*' in front of its password hash
+      // https://blog.pythian.com/hashing-algorithm-in-mysql-password-2/
+      ZM\Info ("Saved password is using MYSQL password function");
+      $input_password_hash ='*'.strtoupper(sha1(sha1($password, true)));
+      ZM\Info ("MYSQL: Comparing $input_password_hash to $saved_password");
+      $password_correct = ($saved_password == $input_password_hash);
+      
     }
-    $sql_values = array($username, $password);
+    else {
+      $signature = $substr($saved_password,0,2);
+      if ($signature == '$2') {
+        // bcrypt will be $2$, $2a, $2b, $2y or $2<something>
+        ZM\Info ("[$signature] found, assumed bcrypt password");
+        $password_type='bcrypt';
+      }
+      else {
+        ZM\Info ('assuming plain text password as signature is not known');
+        $password_type = 'plain';
+      }
+      
+    }
   } else {
-    $sql .= ' AND Username=?';
-    $sql_values = array($username);
+    ZM\Error ("Could not retrieve user $username details");
+    $_SESSION['loginFailed'] = true;
+    unset($user);
+    return;
   }
+
   $close_session = 0;
   if ( !is_session_started() ) {
     session_start();
     $close_session = 1;
   }
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-  if ( $dbUser = dbFetchOne($sql, NULL, $sql_values) ) {
+
+  if ($password_correct) {
     ZM\Info("Login successful for user \"$username\"");
-    $user = $dbUser;
+    $user = $saved_user_details;
     unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == 'builtin' ) {
       $_SESSION['passwordHash'] = $user['Password'];

@@ -20,6 +20,28 @@
 //
 require_once('session.php');
 
+// will be called after successful login, only if mysql hashing is detected
+function migrateHash($user, $pass) {
+  if (function_exists('password_hash')) {
+    ZM\Info ("Migrating $user to bcrypt scheme");
+    // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
+    // we can modify this later to support argon2 etc as switch to its own password signature detection 
+    $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
+    //ZM\Info ("hased bcrypt $pass is $bcrypt_hash");
+    $update_password_sql = 'UPDATE Users SET Password=\''.$bcrypt_hash.'\' WHERE Username=\''.$user.'\'';
+    ZM\Info ($update_password_sql);
+    dbQuery($update_password_sql);
+  }
+  else {
+    // Not really an error, so an info
+    // there is also a compat library https://github.com/ircmaxell/password_compat
+    // not sure if its worth it. Do a lot of people really use PHP < 5.5?
+    ZM\Info ('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
+    return;
+  }
+ 
+}
+
 function userLogin($username='', $password='', $passwordHashed=false) {
   global $user;
   if ( !$username and isset($_REQUEST['username']) )
@@ -74,6 +96,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
     
   $saved_user_details = dbFetchOne ($sql, NULL, $sql_values);
   $password_correct = false;
+  $password_type = NULL;
     
   if ($saved_user_details) {
     $saved_password = $saved_user_details['Password'];
@@ -85,18 +108,21 @@ function userLogin($username='', $password='', $passwordHashed=false) {
       $input_password_hash ='*'.strtoupper(sha1(sha1($password, true)));
       ZM\Info ("MYSQL: Comparing $input_password_hash to $saved_password");
       $password_correct = ($saved_password == $input_password_hash);
+      $password_type = 'mysql';
       
     }
     else {
-      $signature = $substr($saved_password,0,2);
-      if ($signature == '$2') {
-        // bcrypt will be $2$, $2a, $2b, $2y or $2<something>
-        ZM\Info ("[$signature] found, assumed bcrypt password");
+      
+      if (preg_match('/^\$2[ayb]\$.+$/', $saved_password)) {
+
+        ZM\Info ("bcrypt signature found, assumed bcrypt password");
         $password_type='bcrypt';
+        $password_correct = password_verify($password, $saved_password);
       }
       else {
         ZM\Info ('assuming plain text password as signature is not known');
         $password_type = 'plain';
+        $password_correct = ($saved_password == $password);
       }
       
     }
@@ -117,6 +143,10 @@ function userLogin($username='', $password='', $passwordHashed=false) {
   if ($password_correct) {
     ZM\Info("Login successful for user \"$username\"");
     $user = $saved_user_details;
+    if ($password_type == 'mysql') {
+      ZM\Info ('Migrating password, if possible for future logins');
+      migrateHash($username, $password);
+    }
     unset($_SESSION['loginFailed']);
     if ( ZM_AUTH_TYPE == 'builtin' ) {
       $_SESSION['passwordHash'] = $user['Password'];

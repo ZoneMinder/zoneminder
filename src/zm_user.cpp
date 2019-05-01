@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "BCrypt.hpp"
+#include "sha1.hpp"
 
 #include "zm_utils.h"
 
@@ -94,6 +96,16 @@ User *zmLoadUser( const char *username, const char *password ) {
 
   // According to docs, size of safer_whatever must be 2*length+1 due to unicode conversions + null terminator.
   mysql_real_escape_string(&dbconn, safer_username, username, username_length );
+
+  BCrypt bcrypt;
+  std::string ptest = "test";
+  std::string hash = bcrypt.generateHash(ptest);
+  Info ("ZM_USER TEST: BCRYPT WORKED AND PRODUCED %s", hash.c_str());
+
+  SHA1 sha1_checksum;
+  sha1_checksum.update (ptest);
+  hash = sha1_checksum.final();
+  Info ("ZM_USER TEST: SHA1 WORKED AND PRODUCED %s", hash.c_str());
 
   if ( password ) {
     int password_length = strlen(password);

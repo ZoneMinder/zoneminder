@@ -15,7 +15,7 @@ set_target_properties( bcrypt PROPERTIES IMPORTED_LOCATION ../third_party/bcrypt
 
 # A fix for cmake recompiling the source files for every target.
 add_library(zm STATIC ${ZM_BIN_SRC_FILES} ${ZM_BIN_THIRDPARTY_SRC_FILES})
-#link_directories(../third_party/bcrypt)
+link_directories(/home/pp/source/pp_ZoneMinder.git/third_party/bcrypt)
 
 add_executable(zmc zmc.cpp)
 add_executable(zma zma.cpp)

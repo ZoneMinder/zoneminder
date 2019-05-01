@@ -34,8 +34,7 @@
 // accessed over a network connection using rtsp protocol
 // (Real Time Streaming Protocol)
 //
-class RemoteCameraRtsp : public RemoteCamera
-{
+class RemoteCameraRtsp : public RemoteCamera {
 protected:
   struct sockaddr_in rtsp_sa;
   struct sockaddr_in rtcp_sa;

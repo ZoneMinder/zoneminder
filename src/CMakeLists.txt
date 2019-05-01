@@ -9,8 +9,6 @@ set(ZM_BIN_SRC_FILES zm_box.cpp zm_buffer.cpp zm_camera.cpp zm_comms.cpp zm_conf
 
 # includes and linkages to 3rd party libraries/src
 set (ZM_BIN_THIRDPARTY_SRC_FILES ../third_party/sha1/sha1.cpp)
-add_library(bcrypt GLOBAL SHARED IMPORTED)
-set_target_properties( bcrypt PROPERTIES IMPORTED_LOCATION ../third_party/bcrypt/libbcrypt.so )
 
 
 # A fix for cmake recompiling the source files for every target.

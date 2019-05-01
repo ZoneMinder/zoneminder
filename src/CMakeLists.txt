@@ -18,7 +18,7 @@ add_executable(zma zma.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zms zms.cpp)
 
-#include_directories(../third_party/sha1 ../third_party/bcrypt/include/bcrypt)
+include_directories(../third_party/sha1 ../third_party/bcrypt/include/bcrypt)
 link_directories(../third_party/bcrypt)
 
 target_link_libraries(zmc zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})

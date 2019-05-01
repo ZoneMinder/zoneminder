@@ -11,7 +11,7 @@ set(ZM_BIN_SRC_FILES zm_box.cpp zm_buffer.cpp zm_camera.cpp zm_comms.cpp zm_conf
 set (ZM_BIN_THIRDPARTY_SRC_FILES ../third_party/sha1/sha1.cpp)
 
 # A fix for cmake recompiling the source files for every target.
-add_library(zm STATIC ${ZM_BIN_SRC_FILES})
+add_library(zm STATIC ${ZM_BIN_SRC_FILES} ${ZM_BIN_THIRDPARTY_SRC_FILES})
 
 add_executable(zmc zmc.cpp)
 add_executable(zma zma.cpp)

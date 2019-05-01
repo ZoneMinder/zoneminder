@@ -870,7 +870,7 @@ include(Pod2Man)
 ADD_MANPAGE_TARGET()
 
 # Process subdirectories
-add_subdirectory(third_party/bcrypt)
+#add_subdirectory(third_party/bcrypt)
 add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)

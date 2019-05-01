@@ -21,8 +21,8 @@ add_executable(zms zms.cpp)
 include_directories(../third_party/sha1 ../third_party/bcrypt/include/bcrypt)
 link_directories(../third_party/bcrypt)
 
-target_link_libraries(zmc zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(zma zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
+target_link_libraries(zmc zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} bcrypt)
+target_link_libraries(zma zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} brycpt)
 target_link_libraries(zmu zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} bcrypt)
 target_link_libraries(zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} bcrypt)
 

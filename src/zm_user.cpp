@@ -28,6 +28,7 @@
 #include <time.h>
 
 #include "zm_utils.h"
+#include "../third_party/bcrypt/include/bcrypt/BCrypt.hpp"
 
 User::User() {
   id = 0;
@@ -94,6 +95,11 @@ User *zmLoadUser( const char *username, const char *password ) {
 
   // According to docs, size of safer_whatever must be 2*length+1 due to unicode conversions + null terminator.
   mysql_real_escape_string(&dbconn, safer_username, username, username_length );
+
+  BCrypt bcrypt;
+  std::string ptest = "test";
+  std::string hash = bcrypt.generateHash(ptest);
+  Info ("ZM_USER TEST: BCRYPT WORKED AND PRODUCED %s", hash.c_str());
 
   if ( password ) {
     int password_length = strlen(password);

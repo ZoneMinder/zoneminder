@@ -298,6 +298,7 @@ if (UNIX)
     endif(NOT HAVE_CLOCK_GETTIME)
 endif(UNIX)
 
+
 # zlib
 find_package(ZLIB)
 if(ZLIB_FOUND)
@@ -599,6 +600,7 @@ else(SWSCALE_LIBRARIES)
 	set(optlibsnotfound "${optlibsnotfound} SWScale")
 endif(SWSCALE_LIBRARIES)
 
+
 # SWresample (using find_library and find_path)
 find_library(SWRESAMPLE_LIBRARIES swresample)
 if(SWRESAMPLE_LIBRARIES)
@@ -870,11 +872,13 @@ include(Pod2Man)
 ADD_MANPAGE_TARGET()
 
 # Process subdirectories
+add_subdirectory(third_party/bcrypt)
 add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)
 add_subdirectory(web)
 add_subdirectory(misc)
+
 
 # Enable ONVIF support
 if(ZM_ONVIF)

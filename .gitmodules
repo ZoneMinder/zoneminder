@@ -5,6 +5,6 @@
 [submodule "web/api/app/Plugin/CakePHP-Enum-Behavior"]
 	path = web/api/app/Plugin/CakePHP-Enum-Behavior
 	url = https://github.com/ZoneMinder/CakePHP-Enum-Behavior.git
-[submodule "externals/bcrypt"]
-	path = externals/bcrypt
+[submodule "third_party/bcrypt"]
+	path = third_party/bcrypt
 	url = https://github.com/trusch/libbcrypt

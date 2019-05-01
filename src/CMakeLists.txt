@@ -9,6 +9,9 @@ set(ZM_BIN_SRC_FILES zm_box.cpp zm_buffer.cpp zm_camera.cpp zm_comms.cpp zm_conf
 # A fix for cmake recompiling the source files for every target.
 add_library(zm STATIC ${ZM_BIN_SRC_FILES})
 
+
+link_directories(../external/bcrypt)
+
 add_executable(zmc zmc.cpp)
 add_executable(zma zma.cpp)
 add_executable(zmu zmu.cpp)
@@ -16,8 +19,8 @@ add_executable(zms zms.cpp)
 
 target_link_libraries(zmc zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
 target_link_libraries(zma zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(zmu zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
+target_link_libraries(zmu zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} bcrypt)
+target_link_libraries(zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} bcrypt)
 
 # Generate man files for the binaries destined for the bin folder
 FOREACH(CBINARY zma zmc zmu)

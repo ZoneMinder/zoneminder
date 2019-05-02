@@ -3944,7 +3944,15 @@ our @options = (
   help          => q`This will affect how long a session will be valid for since the last request.  Keeping this short helps prevent session hijacking.  Keeping it long allows you to stay logged in longer without refreshing the view.`,
     type        =>  $types{integer},
     category    =>  'system',
-  }
+  },
+  {
+    name        => 'ZM_RECORD_DIAG_IMAGES_FIFO',
+    default     => 'no',
+    description => ' Recording intermediate alarm diagnostic use fifo instead of files (faster)',
+    help        => 'This tries to lessen the load of recording diag images by sending them to a memory FIFO pipe instead of creating each file.',
+    type        => $types{boolean},
+    category    => 'logging',
+  },
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;

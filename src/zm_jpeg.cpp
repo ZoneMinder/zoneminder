@@ -30,6 +30,13 @@ extern "C"
 
 static int jpeg_err_count = 0;
 
+void zm_jpeg_error_silent( j_common_ptr cinfo ){
+  zm_error_ptr zmerr = (zm_error_ptr)cinfo->err;
+  longjmp( zmerr->setjmp_buffer, 1 );
+}
+void zm_jpeg_emit_silence( j_common_ptr cinfo, int msg_level ){
+}
+
 void zm_jpeg_error_exit( j_common_ptr cinfo )
 {
   static char buffer[JMSG_LENGTH_MAX];

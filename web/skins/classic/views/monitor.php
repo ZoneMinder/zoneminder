@@ -138,13 +138,13 @@ if ( ZM_OPT_X10 && empty($x10Monitor) ) {
       );
 }
 
-function fourcc( $a, $b, $c, $d ) {
-  return( ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24) );
+function fourcc($a, $b, $c, $d) {
+  return ord($a) | (ord($b) << 8) | (ord($c) << 16) | (ord($d) << 24);
 }
 
-if ( isset( $_REQUEST['newMonitor'] ) ) {
+if ( isset($_REQUEST['newMonitor']) ) {
   # Update the monitor object with whatever has been set so far.
-  $monitor->set( $_REQUEST['newMonitor'] );
+  $monitor->set($_REQUEST['newMonitor']);
 
   if ( ZM_OPT_X10 )
     $newX10Monitor = $_REQUEST['newX10Monitor'];
@@ -157,11 +157,11 @@ if ( isset( $_REQUEST['newMonitor'] ) ) {
 
 # What if it has less zeros?  This is not robust code.
 if ( $monitor->AnalysisFPSLimit() == '0.00' )
-  $monitor->AnalysisFPSLimit( '' );
+  $monitor->AnalysisFPSLimit('');
 if ( $monitor->MaxFPS() == '0.00' )
-  $monitor->MaxFPS( '' );
+  $monitor->MaxFPS('');
 if ( $monitor->AlarmMaxFPS() == '0.00' )
-  $monitor->AlarmMaxFPS( '' );
+  $monitor->AlarmMaxFPS('');
 
 if ( !empty($_REQUEST['preset']) ) {
   $preset = dbFetchOne( 'SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']) );
@@ -171,7 +171,8 @@ if ( !empty($_REQUEST['preset']) ) {
       $monitor->$name = $value;
     }
   }
-}
+} # end if preset
+
 if ( !empty($_REQUEST['probe']) ) {
   $probe = json_decode(base64_decode($_REQUEST['probe']));
   foreach ( $probe as $name=>$value ) {
@@ -187,7 +188,7 @@ if ( !empty($_REQUEST['probe']) ) {
     elseif ( $monitor->Format() == 'NTSC' )
       $monitor->Format( 0x0000b000 );
   }
-}
+} # end if apply probe settings
 
 $sourceTypes = array(
     'Local'  => translate('Local'),
@@ -458,14 +459,14 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
 
-xhtmlHeaders(__FILE__, translate('Monitor')." - ".validHtmlStr($monitor->Name()) );
+xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name()));
 getBodyTopHTML();
 ?>
   <div id="page">
     <div id="header">
 <?php
-if ( canEdit( 'Monitors' ) ) {
-  if ( isset ($_REQUEST['dupId'])) {
+if ( canEdit('Monitors') ) {
+  if ( isset($_REQUEST['dupId']) ) {
 ?>
     <div class="alert alert-info">
       Configuration cloned from Monitor: <?php echo validHtmlStr($clonedName) ?>
@@ -474,10 +475,10 @@ if ( canEdit( 'Monitors' ) ) {
   }
 ?>
     <div id="headerButtons">
-      <?php echo makePopupLink('?view=monitorprobe&mid=' . $monitor->Id(), 'zmMonitorProbe' . $monitor->Id(), 'monitorprobe', translate('Probe')); ?>
+      <?php echo makePopupLink('?view=monitorprobe&mid='.$monitor->Id(), 'zmMonitorProbe'.$monitor->Id(), 'monitorprobe', translate('Probe')); ?>
 <?php
-   if ( ZM_HAS_ONVIF ) {
-       echo makePopupLink('?view=onvifprobe&mid=' . $monitor->Id(), 'zmOnvifProbe' . $monitor->Id(), 'onvifprobe', translate('OnvifProbe'));
+  if ( ZM_HAS_ONVIF ) {
+       echo makePopupLink('?view=onvifprobe&mid='.$monitor->Id(), 'zmOnvifProbe'.$monitor->Id(), 'onvifprobe', translate('OnvifProbe'));
   }
 ?>
       <?php echo makePopupLink('?view=monitorpreset&mid=' . $monitor->Id(), 'zmMonitorPreset' . $monitor->Id(), 'monitorpreset', translate('Presets')); ?>
@@ -497,7 +498,7 @@ if ( $monitor->Type() != 'WebSite' ) {
   $tabs['storage'] = translate('Storage');
   $tabs['timestamp'] = translate('Timestamp');
   $tabs['buffers'] = translate('Buffers');
-  if ( ZM_OPT_CONTROL && canView( 'Control' ) )
+  if ( ZM_OPT_CONTROL && canView('Control') )
     $tabs['control'] = translate('Control');
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');

@@ -947,9 +947,15 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           if ( ret < 0 ) {
             av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
             Warning("Unable to receive frame %d: %s, continuing", frameCount, errbuf);
+						error_count += 1;
+						if ( error_count > 100 ) {
+							Error("Error count over 100, going to close and re-open stream");
+							return -1;
+						}
             zm_av_packet_unref(&packet);
             continue;
           }
+					if ( error_count > 0 ) error_count --;
         
 #if HAVE_AVUTIL_HWCONTEXT_H
         }

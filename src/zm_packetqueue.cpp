@@ -35,19 +35,75 @@ zm_packetqueue::~zm_packetqueue() {
 }
 
 bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
-	pktQueue.push_back(zm_packet);
+
+  if (
+      ( zm_packet->packet.dts == AV_NOPTS_VALUE )
+      ||
+      ( packet_counts[zm_packet->packet.stream_index] <= 0 ) 
+    ) {
+    Debug(2,"Inserting packet with dts %" PRId64 " because queue is empty or invalid dts", zm_packet->packet.dts);
+    // No dts value, can't so much with it
+    pktQueue.push_back(zm_packet);
+    packet_counts[zm_packet->packet.stream_index] += 1;
+    return true;
+  }
+
+  std::list<ZMPacket *>::reverse_iterator it = pktQueue.rbegin();
+
+  // Scan through the queue looking for a packet for our stream with a dts <= ours.
+  while ( it != pktQueue.rend() ) {
+    AVPacket *av_packet = &((*it)->packet);
+
+    Debug(2, "Looking at packet with stream index (%d) with dts %" PRId64,
+        av_packet->stream_index, av_packet->dts);
+    if (
+        ( av_packet->stream_index == zm_packet->packet.stream_index )
+        &&
+        ( av_packet->dts != AV_NOPTS_VALUE )
+        &&
+        ( av_packet->dts <= zm_packet->packet.dts) 
+       ) {
+    Debug(2, "break  packet with stream index (%d) with dts %" PRId64,
+        (*it)->packet.stream_index, (*it)->packet.dts);
+      break;
+    }
+    it++;
+  } // end while not the end of the queue
+
+  if ( it != pktQueue.rend() ) {
+    Debug(2, "Found packet with stream index (%d) with dts %" PRId64,
+        (*it)->packet.stream_index, (*it)->packet.dts);
+    //it --;
+    //Debug(2, "Found packet with stream index (%d) with dts %" PRId64,
+        //(*it)->packet.stream_index, (*it)->packet.dts);
+    if ( it == pktQueue.rbegin() ) {
+       Debug(2,"Inserting packet with dts %" PRId64 " at end", zm_packet->packet.dts);
+      // No dts value, can't so much with it
+      pktQueue.push_back(zm_packet);
+      packet_counts[zm_packet->packet.stream_index] += 1;
+      return true;
+    }
+    // Convert to a forward iterator so that we can insert at end
+    std::list<ZMPacket *>::iterator f_it = it.base();
+
+    Debug(2, "Insert packet with stream index (%d) with dts %" PRId64 " for dts %" PRId64,
+        (*f_it)->packet.stream_index, (*f_it)->packet.dts, zm_packet->packet.dts);
+
+    pktQueue.insert(f_it, zm_packet);
+
+    packet_counts[zm_packet->packet.stream_index] += 1;
+    return true;
+  }
+  Debug(1,"Unable to insert packet for stream %d with dts %" PRId64 " into queue.",
+      zm_packet->packet.stream_index, zm_packet->packet.dts);
+  pktQueue.push_back(zm_packet);
   packet_counts[zm_packet->packet.stream_index] += 1;
-	return true;
-}
+  return true;
+} // end bool zm_packetqueue::queuePacket(ZMPacket* zm_packet)
 
 bool zm_packetqueue::queuePacket(AVPacket* av_packet) {
-    
   ZMPacket *zm_packet = new ZMPacket(av_packet);
- 
-	pktQueue.push_back(zm_packet);
-  packet_counts[zm_packet->packet.stream_index] += 1;
-
-	return true;
+  return queuePacket(zm_packet);
 }
 
 ZMPacket* zm_packetqueue::popPacket( ) {

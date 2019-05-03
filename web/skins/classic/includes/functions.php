@@ -173,12 +173,12 @@ echo output_link_if_exists( array(
   <script src="<?php echo cache_bust('skins/classic/js/base.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script src="js/logger.js"></script>
+  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php 
   if ($basename == 'watch' or $basename == 'log' ) {
   // This is used in the log popup for the export function. Not sure if it's used anywhere else
 ?>
-<script src="js/overlay.js"></script>
+    <script src="<?php echo cache_bust('js/overlay.js') ?>"></script>
 <?php } ?>
 <?php
   if ( $viewJsFile ) {

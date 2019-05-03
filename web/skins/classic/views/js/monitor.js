@@ -64,6 +64,15 @@ function initPage() {
       return false;
     };
   });
-}
 
-window.addEventListener( 'DOMContentLoaded', initPage );
+  // Disable form submit on enter
+  $j('#contentForm input').on('keyup keypress', function(e) {
+    var keyCode = e.keyCode || e.which;
+    if (keyCode === 13) {
+      e.preventDefault();
+      return false;
+    }
+  });
+} // end function initPage()
+
+window.addEventListener('DOMContentLoaded', initPage);

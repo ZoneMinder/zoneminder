@@ -34,13 +34,11 @@
 class RtspThread;
 class RtpSource;
 
-class RtpCtrlThread : public Thread
-{
+class RtpCtrlThread : public Thread {
 friend class RtspThread;
 
 private:
-  typedef enum
-  {
+  typedef enum {
     RTCP_SR   = 200,
     RTCP_RR   = 201,
     RTCP_SDES = 202,
@@ -48,8 +46,7 @@ private:
     RTCP_APP  = 204
   } RtcpType;
 
-  typedef enum
-  {
+  typedef enum {
     RTCP_SDES_END   = 0,
     RTCP_SDES_CNAME = 1,
     RTCP_SDES_NAME  = 2,
@@ -61,8 +58,7 @@ private:
     RTCP_SDES_PRIV  = 8
   } RtcpSdesType;
 
-  struct RtcpCommonHeader
-  {
+  struct RtcpCommonHeader {
     uint8_t count:5;    // varies by packet type
     uint8_t p:1;      // padding flag
     uint8_t version:2;  // protocol version
@@ -71,8 +67,7 @@ private:
   };
 
   // Reception report block
-  struct RtcpRr
-  {
+  struct RtcpRr {
     uint32_t ssrcN;     // data source being reported
     int32_t lost:24;   // cumul. no. pkts lost (signed!)
     uint32_t fraction:8;  // fraction lost since last SR/RR
@@ -83,22 +78,18 @@ private:
   };
 
   // SDES item
-  struct RtcpSdesItem
-  {
+  struct RtcpSdesItem {
     uint8_t type;     // type of item (rtcp_sdes_type_t)
     uint8_t len;      // length of item (in octets)
     char data[];   // text, not null-terminated
   };
 
   // RTCP packet
-  struct RtcpPacket
-  {
+  struct RtcpPacket {
     RtcpCommonHeader header; // common header
-    union
-    {
+    union {
       // Sender Report (SR)
-      struct Sr
-      {
+      struct Sr {
         uint32_t  ssrcN;  // sender generating this report, network order
         uint32_t  ntpSecN;  // NTP timestamp, network order
         uint32_t  ntpFracN;
@@ -109,22 +100,19 @@ private:
       } sr;
 
       // Reception Report (RR)
-      struct Rr
-      {
+      struct Rr {
         uint32_t ssrcN;    // receiver generating this report
         RtcpRr rr[];   // variable-length list
       } rr;
 
       // source description (SDES)
-      struct Sdes
-      {
+      struct Sdes {
         uint32_t srcN;    // first SSRC/CSRC
         RtcpSdesItem item[]; // list of SDES items
       } sdes;
 
       // BYE
-      struct
-      {
+      struct {
         uint32_t srcN[];   // list of sources
         // can't express trailing text for reason (what does this mean? it's not even english!)
       } bye;
@@ -148,8 +136,7 @@ private:
 public:
   RtpCtrlThread( RtspThread &rtspThread, RtpSource &rtpSource );
 
-  void stop() 
-  {
+  void stop() {
     mStop = true;
   }
 };

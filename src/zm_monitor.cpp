@@ -1548,9 +1548,19 @@ bool Monitor::Analyse() {
         if ( score ) {
           if ( state == IDLE || state == TAPE || state == PREALARM ) {
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
-              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u",
-                  name, image_count, Event::PreAlarmCount(), alarm_frame_count);
               shared_data->state = state = ALARM;
+              // lets construct alarm cause. It will contain cause + names of zones alarmed
+              std::string alarm_cause="";
+              for ( int i=0; i < n_zones; i++) {
+                if (zones[i]->Alarmed()) {
+                    alarm_cause = alarm_cause+ ","+ std::string(zones[i]->Label());
+                }
+            }
+            if (!alarm_cause.empty()) alarm_cause[0]=' ';
+            alarm_cause = cause+alarm_cause;
+            strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+            Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
+                  name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;
                 int pre_event_images = pre_event_count;
@@ -1596,18 +1606,6 @@ bool Monitor::Analyse() {
                 } // end if analysis_fps && pre_event_count
 
                 shared_data->last_event = event->Id();
-                // lets construct alarm cause. It will contain cause + names of zones alarmed
-                std::string alarm_cause = "";
-                for ( int i=0; i < n_zones; i++ ) {
-                  if ( zones[i]->Alarmed() ) {
-                    alarm_cause += std::string(zones[i]->Label());
-                    if ( i < n_zones-1 ) {
-                      alarm_cause += ",";
-                    }
-                  }
-                }
-                alarm_cause = cause+" "+alarm_cause;
-                strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
@@ -1729,6 +1727,8 @@ bool Monitor::Analyse() {
                     timestamp->tv_sec - video_store_data->recording.tv_sec,
                     section_length
                     );
+                closeEvent();
+                event = new Event(this, *timestamp, cause, noteSetMap);
               }
             } // end if event
 

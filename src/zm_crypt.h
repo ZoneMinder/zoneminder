@@ -24,6 +24,6 @@
 #include "BCrypt.hpp"
 #include "sha1.hpp"
 
-bool verifyPassword( const char *input_password, const char *db_password_hash);
+bool verifyPassword( const char *username, const char *input_password, const char *db_password_hash);
 
 #endif // ZM_CRYPT_H

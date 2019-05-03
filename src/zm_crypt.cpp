@@ -33,7 +33,7 @@ std::string hex2str(std::string &hex) {
 }
 
 
-bool verifyPassword(const char *input_password, const char *db_password_hash) {
+bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash) {
   bool password_correct = false;
   if (strlen(db_password_hash ) < 4) {
     // actually, shoud be more, but this is min. for next code
@@ -42,7 +42,7 @@ bool verifyPassword(const char *input_password, const char *db_password_hash) {
   }
   if (db_password_hash[0] == '*') {
     // MYSQL PASSWORD
-    Info ("%s is an MD5 encoded password", db_password_hash);
+    Info ("%s is using an MD5 encoded password", username);
     SHA1 checksum;
 
     // next few lines do '*'+SHA1(raw(SHA1(password)))
@@ -55,19 +55,20 @@ bool verifyPassword(const char *input_password, const char *db_password_hash) {
     std::string final_hash = "*" + interim_hash;
     std::transform(final_hash.begin(), final_hash.end(), final_hash.begin(), ::toupper);
 
-    Info ("Computed password_hash:%s, stored password_hash:%s", final_hash.c_str(),  db_password_hash);
+    Debug (5, "Computed password_hash:%s, stored password_hash:%s", final_hash.c_str(),  db_password_hash);
     password_correct = (std::string(db_password_hash) == final_hash);
   }
   else if ((db_password_hash[0] == '$') && (db_password_hash[1]== '2')
            &&(db_password_hash[3] == '$')) {
     // BCRYPT 
-    Info ("%s is a Bcrypt password", db_password_hash);
+    Info ("%s is using a bcrypt encoded password", username);
     BCrypt bcrypt;
     std::string input_hash = bcrypt.generateHash(std::string(input_password));
     password_correct = bcrypt.validatePassword(std::string(input_password), std::string(db_password_hash));
   }
   else {
     // plain
+    Warning ("%s is using a plain text password, please do not use plain text", username);
     password_correct = (strcmp(input_password, db_password_hash) == 0);
   }
   return password_correct;

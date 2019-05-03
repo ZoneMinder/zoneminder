@@ -124,9 +124,8 @@ User *zmLoadUser( const char *username, const char *password ) {
   MYSQL_ROW dbrow = mysql_fetch_row(result);
 
   User *user = new User(dbrow);
-  Info ("Retrieved password for user:%s as %s", user->getUsername(), user->getPassword());
-
-  if (verifyPassword(password, user->getPassword())) {
+ 
+  if (verifyPassword(username, password, user->getPassword())) {
     Info("Authenticated user '%s'", user->getUsername());
     mysql_free_result(result);
     delete safer_username;

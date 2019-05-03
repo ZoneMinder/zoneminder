@@ -394,10 +394,15 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
         img_buffer_size = send_image->Size();
         break;
       case STREAM_ZIP :
+#if HAVE_ZLIB_H
         fputs("Content-Type: image/x-rgbz\r\n",stdout);
         unsigned long zip_buffer_size;
         send_image->Zip(img_buffer, &zip_buffer_size);
         img_buffer_size = zip_buffer_size;
+#else
+          Error("zlib is required for zipped images. Falling back to raw image");
+          type = STREAM_RAW;
+#endif // HAVE_ZLIB_H
         break;
       default :
         Error("Unexpected frame type %d", type);
@@ -794,6 +799,8 @@ void MonitorStream::SingleImageRaw( int scale ) {
   fwrite( snap_image->Buffer(), snap_image->Size(), 1, stdout );
 }
 
+
+#ifdef HAVE_ZLIB_H
 void MonitorStream::SingleImageZip( int scale ) {
   unsigned long img_buffer_size = 0;
   static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
@@ -816,3 +823,4 @@ void MonitorStream::SingleImageZip( int scale ) {
   fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
   fwrite( img_buffer, img_buffer_size, 1, stdout );
 }
+#endif // HAVE_ZLIB_H

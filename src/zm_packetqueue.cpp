@@ -94,9 +94,11 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
     packet_counts[zm_packet->packet.stream_index] += 1;
     return true;
   }
-  Warning("Unable to insert packet for stream %d with dts %" PRId64 " into queue.",
+  Debug(1,"Unable to insert packet for stream %d with dts %" PRId64 " into queue.",
       zm_packet->packet.stream_index, zm_packet->packet.dts);
-  return false;
+  pktQueue.push_back(zm_packet);
+  packet_counts[zm_packet->packet.stream_index] += 1;
+  return true;
 } // end bool zm_packetqueue::queuePacket(ZMPacket* zm_packet)
 
 bool zm_packetqueue::queuePacket(AVPacket* av_packet) {

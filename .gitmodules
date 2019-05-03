@@ -8,3 +8,6 @@
 [submodule "third_party/sha1"]
 	path = third_party/sha1
 	url = https://github.com/vog/sha1
+[submodule "third_party/bcrypt"]
+	path = third_party/bcrypt
+	url = https://github.com/pliablepixels/libbcrypt

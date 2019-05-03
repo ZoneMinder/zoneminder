@@ -911,7 +911,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     video_last_pts = ipkt->pts;
   } else {
     Debug(3, "opkt.pts = undef");
-    opkt.pts = 0;
+    opkt.pts = AV_NOPTS_VALUE;
+// can't set 0, it will get rejected
     //AV_NOPTS_VALUE;
   }
   // Just because the in stream wraps, doesn't mean the out needs to.
@@ -943,7 +944,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     }
   } else {
     Debug(3, "opkt.dts = undef");
-    opkt.dts = 0;
+    opkt.dts = video_out_stream->cur_dts;
+    //opkt.dts = 0;
   }
 
 # if 0

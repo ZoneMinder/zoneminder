@@ -1727,6 +1727,8 @@ bool Monitor::Analyse() {
                     timestamp->tv_sec - video_store_data->recording.tv_sec,
                     section_length
                     );
+                closeEvent();
+                event = new Event(this, *timestamp, cause, noteSetMap);
               }
             } // end if event
 

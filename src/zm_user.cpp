@@ -26,10 +26,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "BCrypt.hpp"
-#include "sha1.hpp"
+
 
 #include "zm_utils.h"
+#include "zm_crypt.h"
 
 User::User() {
   id = 0;
@@ -97,34 +97,15 @@ User *zmLoadUser( const char *username, const char *password ) {
   // According to docs, size of safer_whatever must be 2*length+1 due to unicode conversions + null terminator.
   mysql_real_escape_string(&dbconn, safer_username, username, username_length );
 
-  BCrypt bcrypt;
-  std::string ptest = "test";
-  std::string hash = bcrypt.generateHash(ptest);
-  Info ("ZM_USER TEST: BCRYPT WORKED AND PRODUCED %s", hash.c_str());
 
-  SHA1 sha1_checksum;
-  sha1_checksum.update (ptest);
-  hash = sha1_checksum.final();
-  Info ("ZM_USER TEST: SHA1 WORKED AND PRODUCED %s", hash.c_str());
+  snprintf(sql, sizeof(sql),
+      "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
+      " FROM Users where Username = '%s' and Enabled = 1", safer_username );
 
-  if ( password ) {
-    int password_length = strlen(password);
-    char *safer_password = new char[(password_length * 2) + 1];
-    mysql_real_escape_string(&dbconn, safer_password, password, password_length);
-    snprintf(sql, sizeof(sql),
-        "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
-        " FROM Users WHERE Username = '%s' AND Password = password('%s') AND Enabled = 1",
-        safer_username, safer_password );
-    delete safer_password;
-  } else {
-    snprintf(sql, sizeof(sql),
-        "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
-        " FROM Users where Username = '%s' and Enabled = 1", safer_username );
-  }
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
+    exit(mysql_errno(&dbconn)); 
   }
 
   MYSQL_RES *result = mysql_store_result(&dbconn);
@@ -143,12 +124,20 @@ User *zmLoadUser( const char *username, const char *password ) {
   MYSQL_ROW dbrow = mysql_fetch_row(result);
 
   User *user = new User(dbrow);
-  Info("Authenticated user '%s'", user->getUsername());
+  Info ("Retrieved password for user:%s as %s", user->getUsername(), user->getPassword());
 
-  mysql_free_result(result);
-  delete safer_username;
-
-  return user;
+  if (verifyPassword(password, user->getPassword())) {
+    Info("Authenticated user '%s'", user->getUsername());
+    mysql_free_result(result);
+    delete safer_username;
+    return user;
+  }
+  else {
+    Warning("Unable to authenticate user %s", username);
+    mysql_free_result(result);
+    return NULL;
+  }
+  
 }
 
 // Function to validate an authentication string

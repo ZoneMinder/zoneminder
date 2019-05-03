@@ -73,6 +73,7 @@ BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
 BuildRequires: gzip
+BuildRequires: zlib-devel
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg

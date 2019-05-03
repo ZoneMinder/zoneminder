@@ -333,4 +333,5 @@ bool is_audio_context(AVCodec *);
 
 int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet );
 void dumpPacket(AVStream *, AVPacket *,const char *text="");
+void dumpPacket(AVPacket *,const char *text="");
 #endif // ZM_FFMPEG_H

@@ -28,13 +28,27 @@ bool verifyPassword(const char *username, const char *input_password, const char
   if (db_password_hash[0] == '*') {
     // MYSQL PASSWORD
     Info ("%s is using an MD5 encoded password", username);
+    
+    SHA_CTX ctx1, ctx2;
     unsigned char digest_interim[SHA_DIGEST_LENGTH];
     unsigned char digest_final[SHA_DIGEST_LENGTH];
-    SHA1((unsigned char*)&input_password, strlen((const char *) input_password), (unsigned char*)&digest_interim);
-    SHA1((unsigned char*)&digest_interim, strlen((const char *)digest_interim), (unsigned char*)&digest_final);
+
+    //get first iteration
+    SHA1_Init(&ctx1);
+    SHA1_Update(&ctx1, input_password, strlen(input_password));
+    SHA1_Final(digest_interim, &ctx1);
+
+    //2nd iteration
+    SHA1_Init(&ctx2);
+    SHA1_Update(&ctx2, digest_interim,SHA_DIGEST_LENGTH);
+    SHA1_Final (digest_final, &ctx2)
+
     char final_hash[SHA_DIGEST_LENGTH * 2 +2];
+    final_hash[0]='*';
+    //convert to hex
     for(int i = 0; i < SHA_DIGEST_LENGTH; i++)
-         sprintf(&final_hash[i*2], "%02X", (unsigned int)digest_final[i]);
+         sprintf(&final_hash[i*2]+1, "%02X", (unsigned int)digest_final[i]);
+    final_hash[SHA_DIGEST_LENGTH *2 + 1]=0;
 
     Info ("Computed password_hash:%s, stored password_hash:%s", final_hash,  db_password_hash);
     Debug (5, "Computed password_hash:%s, stored password_hash:%s", final_hash,  db_password_hash);

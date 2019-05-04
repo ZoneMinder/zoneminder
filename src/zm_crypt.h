@@ -20,10 +20,13 @@
 #ifndef ZM_CRYPT_H
 #define ZM_CRYPT_H
 
+
 #include <string.h>
+#include <openssl/sha.h>
 #include "BCrypt.hpp"
-#include "sha1.hpp"
+#include "jwt.h"
 
 bool verifyPassword( const char *username, const char *input_password, const char *db_password_hash);
+std::string createToken();
 
 #endif // ZM_CRYPT_H

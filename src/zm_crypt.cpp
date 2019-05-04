@@ -41,7 +41,7 @@ bool verifyPassword(const char *username, const char *input_password, const char
     //2nd iteration
     SHA1_Init(&ctx2);
     SHA1_Update(&ctx2, digest_interim,SHA_DIGEST_LENGTH);
-    SHA1_Final (digest_final, &ctx2)
+    SHA1_Final (digest_final, &ctx2);
 
     char final_hash[SHA_DIGEST_LENGTH * 2 +2];
     final_hash[0]='*';

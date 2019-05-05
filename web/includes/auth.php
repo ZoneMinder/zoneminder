@@ -19,6 +19,9 @@
 //
 //
 require_once('session.php');
+require_once ('../vendor/autoload.php');
+
+use \Firebase\JWT\JWT;
 
 // this function migrates mysql hashing to bcrypt, if you are using PHP >= 5.5
 // will be called after successful login, only if mysql hashing is detected
@@ -45,7 +48,21 @@ function migrateHash($user, $pass) {
 
 // core function used to login a user to PHP. Is also used for cake sessions for the API
 function userLogin($username='', $password='', $passwordHashed=false) {
+  
   global $user;
+
+  $key = "example_key";
+  $token = array(
+      "iss" => "http://example.org",
+      "aud" => "http://example.com",
+      "iat" => 1356999524,
+      "nbf" => 1357000000
+  );
+  $jwt = JWT::encode($token, $key);
+
+  ZM\Info ("JWT token is $jwt");
+
+
   if ( !$username and isset($_REQUEST['username']) )
     $username = $_REQUEST['username'];
   if ( !$password and isset($_REQUEST['password']) )

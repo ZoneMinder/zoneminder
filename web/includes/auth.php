@@ -51,16 +51,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
   
   global $user;
 
-  $key = "example_key";
-  $token = array(
-      "iss" => "http://example.org",
-      "aud" => "http://example.com",
-      "iat" => 1356999524,
-      "nbf" => 1357000000
-  );
-  $jwt = JWT::encode($token, $key);
-
-  ZM\Info ("JWT token is $jwt");
+  
 
 
   if ( !$username and isset($_REQUEST['username']) )
@@ -233,8 +224,28 @@ function getAuthUser($auth) {
 
 function generateAuthHash($useRemoteAddr, $force=false) {
   if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
-    # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
     $time = time();
+    $key = ZM_AUTH_HASH_SECRET;
+    $issuedAt   = time();
+    $expireAt     = $issuedAt + ZM_AUTH_HASH_TTL * 3600;
+
+
+    $token = array(
+        "iss" => "ZoneMinder",
+        "iat" => $issuedAt,
+        "exp" => $expireAt
+        
+    );
+
+    if ($useRemoteAddr) {
+      $token['remote_addr'] = $_SESSION['remoteAddr'];
+    }
+
+
+    $jwt = JWT::encode($token, $key);
+
+    ZM\Info ("JWT token is $jwt");
+
     $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
 
     if ( $force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {

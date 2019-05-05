@@ -233,7 +233,8 @@ function generateAuthHash($useRemoteAddr, $force=false) {
     $token = array(
         "iss" => "ZoneMinder",
         "iat" => $issuedAt,
-        "exp" => $expireAt
+        "exp" => $expireAt,
+        "user" => $_SESSION['username']
         
     );
 

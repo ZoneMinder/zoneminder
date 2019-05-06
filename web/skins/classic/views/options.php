@@ -353,18 +353,18 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <input type="checkbox" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } elseif ( is_array( $value['Hint'] ) ) {
-          echo htmlSelect( "newConfig[$name]", $value['Hint'], $value['Value'] );
-        } elseif ( preg_match( '/\|/', $value['Hint'] ) ) {
+          echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value']);
+        } elseif ( preg_match('/\|/', $value['Hint']) ) {
 ?>
 
 <?php
-            $options = explode( '|', $value['Hint'] );
-            if ( count( $options ) > 3 ) {
+            $options = explode('|', $value['Hint']);
+            if ( count($options) > 3 ) {
 ?>
                 <select class="form-control" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option ) {
-                  if ( preg_match( '/^([^=]+)=(.+)$/', $option, $matches ) ) {
+                  if ( preg_match('/^([^=]+)=(.+)$/', $option, $matches) ) {
                     $optionLabel = $matches[1];
                     $optionValue = $matches[2];
                   } else {
@@ -379,7 +379,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 <?php
             } else {
                 foreach ( $options as $option ) {
-                  if ( preg_match( '/^([^=]+)=(.+)$/', $option ) ) {
+                  if ( preg_match('/^([^=]+)=(.+)$/', $option) ) {
                     $optionLabel = $matches[1];
                     $optionValue = $matches[2];
                   } else {
@@ -387,7 +387,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
                   }
 ?>
                 <label>
-                  <input type="radio" id="<?php echo $name.'_'.preg_replace( '/[^a-zA-Z0-9]/', '', $optionValue ) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
+                  <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
                   <?php echo htmlspecialchars($optionLabel) ?>
                 </label>
 <?php

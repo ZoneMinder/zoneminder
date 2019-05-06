@@ -780,17 +780,17 @@ int Monitor::GetImage( int index, int scale ) {
       Snapshot *snap = &image_buffer[index];
       Image *snap_image = snap->image;
 
-      alarm_image.Assign( *snap_image );
+      alarm_image.Assign(*snap_image);
 
 
       //write_image.Assign( *snap_image );
 
       if ( scale != ZM_SCALE_BASE ) {
-        alarm_image.Scale( scale );
+        alarm_image.Scale(scale);
       }
 
       if ( !config.timestamp_on_capture ) {
-        TimestampImage( &alarm_image, snap->timestamp );
+        TimestampImage(&alarm_image, snap->timestamp);
       }
       image = &alarm_image;
     } else {
@@ -798,12 +798,12 @@ int Monitor::GetImage( int index, int scale ) {
     }
 
     static char filename[PATH_MAX];
-    snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
-    image->WriteJpeg( filename );
+    snprintf(filename, sizeof(filename), "Monitor%d.jpg", id);
+    image->WriteJpeg(filename);
   } else {
-    Error( "Unable to generate image, no images in buffer" );
+    Error("Unable to generate image, no images in buffer");
   }
-  return( 0 );
+  return 0;
 }
 
 struct timeval Monitor::GetTimestamp( int index ) const {
@@ -814,11 +814,11 @@ struct timeval Monitor::GetTimestamp( int index ) const {
   if ( index != image_buffer_count ) {
     Snapshot *snap = &image_buffer[index];
 
-    return( *(snap->timestamp) );
+    return *(snap->timestamp);
   } else {
     static struct timeval null_tv = { 0, 0 };
 
-    return( null_tv );
+    return null_tv;
   }
 }
 

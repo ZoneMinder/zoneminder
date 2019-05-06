@@ -1727,6 +1727,11 @@ bool Monitor::Analyse() {
                     );
                 closeEvent();
                 event = new Event(this, *timestamp, cause, noteSetMap);
+                shared_data->last_event = event->Id();
+                //set up video store data
+                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                video_store_data->recording = event->StartTime();
+
               }
             } // end if event
 

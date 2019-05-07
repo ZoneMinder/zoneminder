@@ -31,17 +31,22 @@ class HostController extends AppController {
   }
   
   function login() {
-
     $cred = $this->_getCredentials();
+    $cred_depr = $this->_getCredentialsDeprecated();
     $ver = $this->_getVersion();
     $this->set(array(
-      'credentials' => $cred[0],
-      'append_password'=>$cred[1],
+      'token'=>$cred[0],
+      'token_expires'=>$cred[1] * 3600, // takes AUTH_HASH_TTL || 2 hrs as the default
+      'credentials'=>$cred_depr[0],
+      'append_password'=>$cred_depr[1],
       'version' => $ver[0],
       'apiversion' => $ver[1],
-      '_serialize' => array('credentials',
-                            'append_password',
+      '_serialize' => array(
+                            'token',
+                            'token_expires',
                             'version',
+                            'credentials',
+                            'append_password',
                             'apiversion'
       )));
   } // end function login()
@@ -56,41 +61,65 @@ class HostController extends AppController {
     ));
 
   } // end function logout()
-  
-  private function _getCredentials() {
+
+  private function _getCredentialsDeprecated() {
     $credentials = '';
     $appendPassword = 0;
-    $this->loadModel('Config');
-    $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
-
-    if ( $isZmAuth ) {
-    // In future, we may want to completely move to AUTH_HASH_LOGINS and return &auth= for all cases
-      require_once __DIR__ .'/../../../includes/auth.php'; # in the event we directly call getCredentials.json
-
-      $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
-      if ( $zmAuthRelay == 'hashed' ) {
-        $zmAuthHashIps = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
-        // make sure auth is regenerated each time we call this API
-        $credentials = 'auth='.generateAuthHash($zmAuthHashIps,true);
-      } else {
-        // user will need to append the store password here
+    if (ZM_OPT_USE_AUTH) {
+      require_once __DIR__ .'/../../../includes/auth.php'; 
+      if (ZM_AUTH_RELAY=='hashed') {
+        $credentials = 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS,true);
+      }
+      else {
         $credentials = 'user='.$this->Session->read('Username').'&pass=';
         $appendPassword = 1;
       }
+      return array($credentials, $appendPassword);
     }
-    return array($credentials, $appendPassword);
-  } // end function _getCredentials
-
-  function getCredentials() {
-    // ignore debug warnings from other functions
-    $this->view='Json';
-    $val = $this->_getCredentials();
-    $this->set(array(
-      'credentials'=> $val[0],
-      'append_password'=>$val[1],
-      '_serialize'  =>  array('credentials', 'append_password')
-    ) );
   }
+  
+  private function _getCredentials() {
+    $credentials = '';
+    $this->loadModel('Config');
+
+    $isZmAuth = ZM_OPT_USE_AUTH;
+    $jwt = '';
+    $ttl = '';
+  
+    if ( $isZmAuth ) {
+      require_once __DIR__ .'/../../../includes/auth.php'; 
+      require_once __DIR__.'/../../../vendor/autoload.php';
+      $zmAuthRelay = ZM_AUTH_RELAY;
+      $zmAuthHashIps = NULL;
+      if ( $zmAuthRelay == 'hashed' ) {
+        $zmAuthHashIps = ZM_AUTH_HASH_IPS;
+      } 
+
+      $key = ZM_AUTH_HASH_SECRET;
+      if ($zmAuthHashIps) {
+        $key = $key . $_SERVER['REMOTE_ADDR'];
+      }
+      $issuedAt   = time();
+      $ttl = ZM_AUTH_HASH_TTL || 2;
+
+     // print ("relay=".$zmAuthRelay." haship=".$zmAuthHashIps." remote ip=".$_SERVER['REMOTE_ADDR']);
+
+      $expireAt     = $issuedAt + $ttl * 3600;
+      $expireAt = $issuedAt + 30; // TEST REMOVE
+  
+      $token = array(
+          "iss" => "ZoneMinder",
+          "iat" => $issuedAt,
+          "exp" => $expireAt,
+          "user" => $_SESSION['username']    
+      );
+    
+      //use \Firebase\JWT\JWT;
+      $jwt = \Firebase\JWT\JWT::encode($token, $key, 'HS256');
+
+    } 
+    return array($jwt, $ttl);
+  } // end function _getCredentials
 
   // If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor
@@ -169,7 +198,7 @@ class HostController extends AppController {
 
   private function _getVersion() {
     $version = Configure::read('ZM_VERSION');
-    $apiversion = '1.0';
+    $apiversion = '2.0';
     return array($version, $apiversion);
   }
 

@@ -46,13 +46,11 @@ function migrateHash($user, $pass) {
  
 }
 
+
 // core function used to login a user to PHP. Is also used for cake sessions for the API
-function userLogin($username='', $password='', $passwordHashed=false) {
+function userLogin($username='', $password='', $passwordHashed=false, $apiLogin = false) {
   
   global $user;
-
-  
-
 
   if ( !$username and isset($_REQUEST['username']) )
     $username = $_REQUEST['username'];
@@ -61,7 +59,9 @@ function userLogin($username='', $password='', $passwordHashed=false) {
 
   // if true, a popup will display after login
   // lets validate reCaptcha if it exists
-  if ( defined('ZM_OPT_USE_GOOG_RECAPTCHA')
+  // this only applies if it userLogin was not called from API layer
+  if (!$apiLogin 
+      && defined('ZM_OPT_USE_GOOG_RECAPTCHA')
       && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
       && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
       && ZM_OPT_USE_GOOG_RECAPTCHA
@@ -76,7 +76,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
         );
     $res = do_post_request($url, http_build_query($fields));
     $responseData = json_decode($res,true);
-    // PP - credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
+    // credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
     // if recaptcha resulted in error, we might have to deny login
     if ( isset($responseData['success']) && $responseData['success'] == false ) {
       // PP - before we deny auth, let's make sure the error was not 'invalid secret'
@@ -140,7 +140,7 @@ function userLogin($username='', $password='', $passwordHashed=false) {
     ZM\Error ("Could not retrieve user $username details");
     $_SESSION['loginFailed'] = true;
     unset($user);
-    return;
+    return false;
   }
 
   $close_session = 0;
@@ -184,6 +184,53 @@ function userLogout() {
   zm_session_clear();
 }
 
+
+function validateToken ($token) {
+  global $user;
+  $key = ZM_AUTH_HASH_SECRET;
+  if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
+  try {
+    $decoded_token =  JWT::decode($token, $key, array('HS256'));
+  } catch (Exception $e) {
+    ZM\Error("Unable to authenticate user. error decoding JWT token:".$e->getMessage());
+
+    return array(false, $e->getMessage());
+  }
+
+  // convert from stdclass to array
+  $jwt_payload = json_decode(json_encode($decoded_token), true);
+  $username = $jwt_payload['user'];
+  $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username = ?';
+  $sql_values = array($username);
+
+  $saved_user_details = dbFetchOne ($sql, NULL, $sql_values);
+
+  if ($saved_user_details) {
+    $user = $saved_user_details;
+    return array($user, "OK");
+  } else {
+    ZM\Error ("Could not retrieve user $username details");
+    $_SESSION['loginFailed'] = true;
+    unset($user);
+    return array(false, "No such user/credentials");
+  }
+
+  
+  // We are NOT checking against session username for now...
+  /*
+  // at this stage, token is valid, but lets validate user with session user
+  ZM\Info ("JWT user is ".$jwt['user']);
+  if ($jwt['user'] != $_SESSION['username']) {
+    ZM\Error ("Unable to authenticate user. Token doesn't belong to current user");
+    return false;
+  } else {
+    ZM\Info ("Token validated for user:".$_SESSION['username']);
+    return $user;
+  }
+  */
+
+}
+
 function getAuthUser($auth) {
   if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' && !empty($auth) ) {
     $remoteAddr = '';
@@ -222,30 +269,12 @@ function getAuthUser($auth) {
   return false;
 } // end getAuthUser($auth)
 
+
+
 function generateAuthHash($useRemoteAddr, $force=false) {
   if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     $time = time();
-    $key = ZM_AUTH_HASH_SECRET;
-    $issuedAt   = time();
-    $expireAt     = $issuedAt + ZM_AUTH_HASH_TTL * 3600;
 
-
-    $token = array(
-        "iss" => "ZoneMinder",
-        "iat" => $issuedAt,
-        "exp" => $expireAt,
-        "user" => $_SESSION['username']
-        
-    );
-
-    if ($useRemoteAddr) {
-      $token['remote_addr'] = $_SESSION['remoteAddr'];
-    }
-
-
-    $jwt = JWT::encode($token, $key);
-
-    ZM\Info ("JWT token is $jwt");
 
     $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
 

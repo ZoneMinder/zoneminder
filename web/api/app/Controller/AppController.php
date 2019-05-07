@@ -73,19 +73,27 @@ class AppController extends Controller {
 
       $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
       $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
-      $mAuth = $this->request->query('auth') ? $this->request->query('auth') : $this->request->data('auth');
+      $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
 
       if ( $mUser and $mPassword ) {
-        $user = userLogin($mUser, $mPassword);
+        $user = userLogin($mUser, $mPassword, true);
         if ( !$user ) {
           throw new UnauthorizedException(__('User not found or incorrect password'));
           return;
         }
-      } else if ( $mAuth ) {
-        $user = getAuthUser($mAuth);
+      } else if ( $mToken ) {
+        $ret = validateToken($mToken);
+        $user = $ret[0];
+        $retstatus = $ret[1];
         if ( !$user ) {
-          throw new UnauthorizedException(__('Invalid Auth Key'));
+          throw new UnauthorizedException(__($retstatus));
           return;
+        } else if ( $mAuth ) {
+          $user = getAuthUser($mAuth);
+          if ( !$user ) {
+            throw new UnauthorizedException(__('Invalid Auth Key'));
+            return;
+          }
         }
       }
       // We need to reject methods that are not authenticated

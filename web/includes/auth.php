@@ -189,7 +189,7 @@ function validateToken ($token, $allowed_token_type='access') {
 
   global $user;
   $key = ZM_AUTH_HASH_SECRET;
-  if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
+  //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
   try {
     $decoded_token =  JWT::decode($token, $key, array('HS256'));
   } catch (Exception $e) {

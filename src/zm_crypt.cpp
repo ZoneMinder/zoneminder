@@ -1,25 +1,59 @@
 #include "zm.h"
 # include "zm_crypt.h"
+#include "BCrypt.hpp"
+#include "jwt.h"
 #include <algorithm>
 
 
+// returns username if valid, "" if not
+std::string verifyToken(std::string jwt_token_str, std::string key) {
+  std::string username = "";
+  try {
+    // is it decodable?
+    auto decoded = jwt::decode(jwt_token_str);
+    auto verifier = jwt::verify()
+                        .allow_algorithm(jwt::algorithm::hs256{ key })
+                        .with_issuer("ZoneMinder");
+  
+    // signature verified?
+    verifier.verify(decoded);
 
+    // make sure it has fields we need
+    if (decoded.has_payload_claim("type")) {
+      std::string type = decoded.get_payload_claim("type").as_string();
+      if (type != "access") {
+        Error ("Only access tokens are allowed. Please do not use refresh tokens");
+        return "";
+      }
+    }
+    else {
+      // something is wrong. All ZM tokens have type
+      Error ("Missing token type. This should not happen");
+      return "";
+    }
+    if (decoded.has_payload_claim("user")) {
+      username  = decoded.get_payload_claim("user").as_string();
+      Info ("Got %s as user claim from token", username.c_str());
+    } 
+    else {
+      Error ("User not found in claim");
+      return "";
+    }
+  } // try
+  catch (const std::exception &e) {
+      Error("Unable to verify token: %s", e.what());
+      return "";
+  }
+  catch (...) {
+     Error ("unknown exception");
+     return "";
 
-
-std::string createToken() {
-  std::string token = jwt::create()
-                        .set_issuer("auth0")
-                        //.set_expires_at(jwt::date(expiresAt))
-                        //.set_issued_at(jwt::date(tp))
-                        //.set_issued_at(jwt::date(std::chrono::system_clock::now()))
-                        //.set_expires_at(jwt::date(std::chrono::system_clock::now()+std::chrono::seconds{EXPIRY}))
-                        .sign(jwt::algorithm::hs256{"secret"});
-  return token;
+  }
+  return username;
 }
 
 bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash) {
   bool password_correct = false;
-  Info ("JWT created as %s",createToken().c_str());
   if (strlen(db_password_hash ) < 4) {
     // actually, shoud be more, but this is min. for next code
     Error ("DB Password is too short or invalid to check");

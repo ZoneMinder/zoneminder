@@ -23,10 +23,9 @@
 
 #include <string.h>
 #include <openssl/sha.h>
-#include "BCrypt.hpp"
-#include "jwt.h"
+
 
 bool verifyPassword( const char *username, const char *input_password, const char *db_password_hash);
-std::string createToken();
 
+std::string verifyToken(std::string token, std::string key);
 #endif // ZM_CRYPT_H

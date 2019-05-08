@@ -142,6 +142,7 @@ User *zmLoadUser( const char *username, const char *password ) {
 User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
   std::string key = config.auth_hash_secret;
   std::string remote_addr = "";
+  
   if (use_remote_addr) {
     remote_addr = std::string(getenv( "REMOTE_ADDR" ));
     if ( remote_addr == "" ) {
@@ -153,82 +154,44 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
 
   Info ("Inside zmLoadTokenUser, formed key=%s", key.c_str());
 
-  try {
+  std::string username = verifyToken(jwt_token_str, key);
+  if (username != "") {
+    char sql[ZM_SQL_MED_BUFSIZ] = "";
+    snprintf(sql, sizeof(sql),
+      "SELECT Id, Username, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
+      " FROM Users WHERE Username = '%s' and Enabled = 1", username.c_str() );
 
-    auto decoded = jwt::decode(jwt_token_str);
-    auto verifier = jwt::verify()
-                        .allow_algorithm(jwt::algorithm::hs256{ key })
-                        .with_issuer("ZoneMinder");
-  
-    verifier.verify(decoded);
-    
-    // token is valid and not expired
-
-    if (decoded.has_payload_claim("type")) {
-       std::string type = decoded.get_payload_claim("type").as_string();
-       if (type != "access") {
-         Error ("Only access tokens are allowed. Please do not use refresh tokens");
-         return 0;
-       }
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't run query: %s", mysql_error(&dbconn));
+      exit(mysql_errno(&dbconn)); 
     }
-    else {
-      // something is wrong. All ZM tokens have type
-      Error ("Missing token type. This should not happen");
-      return 0;
+
+    MYSQL_RES *result = mysql_store_result(&dbconn);
+    if ( !result ) {
+      Error("Can't use query result: %s", mysql_error(&dbconn));
+      exit(mysql_errno(&dbconn));
     }
-    if (decoded.has_payload_claim("user")) {
+    int n_users = mysql_num_rows(result);
 
-      // We only need to check if user is enabled in DB and pass on
-      // correct access permissions
-      std::string username = decoded.get_payload_claim("user").as_string();
-      Info ("Got %s as user claim from token", username.c_str());
-      char sql[ZM_SQL_MED_BUFSIZ] = "";
-      snprintf(sql, sizeof(sql),
-        "SELECT Id, Username, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
-        " FROM Users WHERE Username = '%s' and Enabled = 1", username.c_str() );
-
-      if ( mysql_query(&dbconn, sql) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-        exit(mysql_errno(&dbconn)); 
-      }
-
-      MYSQL_RES *result = mysql_store_result(&dbconn);
-      if ( !result ) {
-        Error("Can't use query result: %s", mysql_error(&dbconn));
-        exit(mysql_errno(&dbconn));
-      }
-      int n_users = mysql_num_rows(result);
-
-      if ( n_users != 1 ) {
-        mysql_free_result(result);
-        Warning("Unable to authenticate user %s", username.c_str());
-        return NULL;
-      }
-
-      MYSQL_ROW dbrow = mysql_fetch_row(result);
-      User *user = new User(dbrow);
-      Info ("Authenticated user '%s' via token", username.c_str());
+    if ( n_users != 1 ) {
       mysql_free_result(result);
-      return user;
-
-    }
-    else {
-      Error ("User not found in claim");
-      return 0;
+      Warning("Unable to authenticate user %s", username.c_str());
+      return NULL;
     }
 
-  }
-  catch (const std::exception &e) {
-      Error("Unable to verify token: %s", e.what());
-      return 0;
-  }
-  catch (...) {
-     Error ("unknown exception");
+    MYSQL_ROW dbrow = mysql_fetch_row(result);
+    User *user = new User(dbrow);
+    Info ("Authenticated user '%s' via token", username.c_str());
+    mysql_free_result(result);
+    return user;
 
   }
-  return 0;
+  else {
+    return NULL;
+  }
+
 }
-
+ 
 // Function to validate an authentication string
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 #if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT

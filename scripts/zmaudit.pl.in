@@ -488,21 +488,21 @@ MAIN: while( $loop ) {
 
     my $monitor_links;
     foreach my $link ( glob('*') ) {
-      next if ( !-l $link );
-      next if ( -e $link );
+      next if !-l $link;
+      next if -e $link;
 
-      aud_print( "Filesystem monitor link '$link' does not point to valid monitor directory" );
+      aud_print("Filesystem monitor link '$link' does not point to valid monitor directory");
       if ( confirm() ) {
         ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
         my $command = qq`rm "$link"`;
-        executeShellCommand( $command );
+        executeShellCommand($command);
         $cleaned = 1;
       }
-    }
+    } # end foreach monitor link
   } # end foreach Storage Area
 
   if ( $cleaned ) {
-    Debug("Events were deleted, starting again.");
+    Debug('Events were deleted, starting again.');
     redo MAIN;
   }
 
@@ -559,8 +559,8 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
           Warning("Event $$Event{Id} is Archived. Taking no further action on it.");
           next;
         }
-        if ( ! $Event->StartTime() ) {
-          Info("Event $$Event{Id} has no start time.");
+        if ( !$Event->StartTime() ) {
+          aud_print("Event $$Event{Id} has no start time.");
           if ( confirm() ) {
             $Event->delete();
             $cleaned = 1;
@@ -569,7 +569,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         } 
         if ( ! $Event->EndTime() ) {
           if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
-            Info("Event $$Event{Id} has no end time and is $age seconds old.  deleting it.");
+            aud_print("Event $$Event{Id} has no end time and is $age seconds old. Deleting it.");
             if ( confirm() ) {
               $Event->delete();
               $cleaned = 1;
@@ -578,7 +578,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
           }
         }
         if ( $Event->check_for_in_filesystem() ) {
-          Debug("Database event $$Event{Id} apparently exists at " . $Event->Path() );
+          Debug("Database event $$Event{Id} apparently exists at " . $Event->Path());
         } else {
           if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
             aud_print("Database event '$db_monitor/$db_event' does not exist at " . $Event->Path().' in filesystem, deleting');
@@ -587,14 +587,14 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
               $cleaned = 1;
             }
           } else {
-            aud_print( "Database event '".$Event->Path()." monitor:$db_monitor event:$db_event' does not exist in filesystem but too young to delete age: $age > MIN $Config{ZM_AUDIT_MIN_AGE}.\n" );
+            aud_print("Database event '".$Event->Path()." monitor:$db_monitor event:$db_event' does not exist in filesystem but too young to delete age: $age > MIN $Config{ZM_AUDIT_MIN_AGE}.");
           }
         } # end if exists in filesystem
       } else {
         Debug("Found fs event for id $db_event, $age seconds old at " . $$fs_events{$db_event}->Path());
         my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
         if ( $Event and ! $Event->check_for_in_filesystem() ) {
-          Warning("Not found at " . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path() );
+          Warning('Not found at ' . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path());
           Warning($Event->to_string());
           Warning($$fs_events{$db_event}->to_string());
           $$Event{Scheme} = '' if ! defined $$Event{Scheme};
@@ -622,7 +622,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
     } # foreach db_event
   } # end foreach db_monitor
   if ( $cleaned ) {
-    Debug("Have done some cleaning, restarting.");
+    Debug('Have done some cleaning, restarting.');
     redo MAIN;
   }
 
@@ -904,25 +904,25 @@ FROM Frames WHERE EventId=?';
   Monitors.MonthEvents = E.MonthEvents,
   Monitors.MonthEventDiskSpace = E.MonthEventDiskSpace
   `;
-  my $eventcounts_hour_sth = $dbh->prepare_cached( $eventcounts_hour_sql );
-  my $eventcounts_day_sth = $dbh->prepare_cached( $eventcounts_day_sql );
-  my $eventcounts_week_sth = $dbh->prepare_cached( $eventcounts_week_sql );
-  my $eventcounts_month_sth = $dbh->prepare_cached( $eventcounts_month_sql );
-  $eventcounts_hour_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
-  $eventcounts_day_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
-  $eventcounts_week_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
-  $eventcounts_month_sth->execute( ) or Error( "Can't execute: ".$eventcounts_sth->errstr() );
-  sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} ) if $continuous;
+  my $eventcounts_hour_sth = $dbh->prepare_cached($eventcounts_hour_sql);
+  my $eventcounts_day_sth = $dbh->prepare_cached($eventcounts_day_sql);
+  my $eventcounts_week_sth = $dbh->prepare_cached($eventcounts_week_sql);
+  my $eventcounts_month_sth = $dbh->prepare_cached($eventcounts_month_sql);
+  $eventcounts_hour_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
+  $eventcounts_day_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
+  $eventcounts_week_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
+  $eventcounts_month_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
+  sleep($Config{ZM_AUDIT_CHECK_INTERVAL}) if $continuous;
 };
 
 Term();
 
 sub aud_print {
   my $string = shift;
-  if ( ! $continuous ) {
-    print( $string );
+  if ( !$continuous ) {
+    print($string);
   } else {
-    Info( $string );
+    Info($string);
   }
 }
 
@@ -932,13 +932,13 @@ sub confirm {
 
   my $yesno = 0;
   if ( $report ) {
-    print( "\n" );
+    print("\n");
   } elsif ( $interactive ) {
-    print( ", $prompt Y/n/q: " );
+    print(", $prompt Y/n/q: ");
     my $char = <>;
-    chomp( $char );
+    chomp($char);
     if ( $char eq 'q' ) {
-      exit( 0 );
+      exit(0);
     }
     if ( !$char ) {
       $char = 'y';
@@ -946,13 +946,13 @@ sub confirm {
     $yesno = ( $char =~ /[yY]/ );
   } else {
     if ( !$continuous ) {
-      print( ", $action\n" );
+      print(", $action\n");
     } else {
-      Info( $action );
+      Info($action);
     }
     $yesno = 1;
   }
-  return( $yesno );
+  return $yesno;
 }
 
 sub deleteSwapImage {

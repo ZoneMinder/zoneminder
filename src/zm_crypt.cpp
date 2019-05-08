@@ -3,6 +3,7 @@
 #include "BCrypt.hpp"
 #include "jwt.h"
 #include <algorithm>
+#include <openssl/sha.h>
 
 
 // returns username if valid, "" if not

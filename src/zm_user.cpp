@@ -201,7 +201,7 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
 
       if ( n_users != 1 ) {
         mysql_free_result(result);
-        Warning("Unable to authenticate user %s", username);
+        Warning("Unable to authenticate user %s", username.c_str());
         return NULL;
       }
 

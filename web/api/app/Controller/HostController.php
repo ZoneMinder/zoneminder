@@ -82,23 +82,26 @@ class HostController extends AppController {
     $credentials = '';
     $this->loadModel('Config');
 
-    $isZmAuth = ZM_OPT_USE_AUTH;
     $jwt = '';
     $ttl = '';
   
-    if ( $isZmAuth ) {
+    if ( ZM_OPT_USE_AUTH ) {
       require_once __DIR__ .'/../../../includes/auth.php'; 
       require_once __DIR__.'/../../../vendor/autoload.php';
-      $zmAuthRelay = ZM_AUTH_RELAY;
-      $zmAuthHashIps = NULL;
-      if ( $zmAuthRelay == 'hashed' ) {
-        $zmAuthHashIps = ZM_AUTH_HASH_IPS;
-      } 
+    
 
       $key = ZM_AUTH_HASH_SECRET;
-      if ($zmAuthHashIps) {
+
+      /* we won't support AUTH_HASH_IPS in token mode
+        reasons: 
+        a) counter-intuitive for mobile consumers 
+        b) zmu will never be able to to validate via a token if we sign
+           it after appending REMOTE_ADDR
+     
+      if (ZM_AUTH_HASH_IPS) {
         $key = $key . $_SERVER['REMOTE_ADDR'];
-      }
+      }*/
+
       $issuedAt   = time();
       $ttl = ZM_AUTH_HASH_TTL || 2;
 

@@ -187,7 +187,8 @@ int main( int argc, const char *argv[] ) {
     User *user = 0;
 
     if (jwt_token_str != "") {
-      user = zmLoadTokenUser(jwt_token_str, config.auth_hash_ips);
+      //user = zmLoadTokenUser(jwt_token_str, config.auth_hash_ips);
+      user = zmLoadTokenUser(jwt_token_str, false);
 
     }
     else if ( strcmp(config.auth_relay, "none") == 0 ) {

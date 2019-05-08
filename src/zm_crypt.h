@@ -22,7 +22,7 @@
 
 
 #include <string.h>
-#include <openssl/sha.h>
+
 
 
 bool verifyPassword( const char *username, const char *input_password, const char *db_password_hash);

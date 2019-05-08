@@ -90,8 +90,10 @@ class HostController extends AppController {
       require_once __DIR__ .'/../../../includes/auth.php'; 
       require_once __DIR__.'/../../../vendor/autoload.php';
     
-
       $key = ZM_AUTH_HASH_SECRET;
+      if (!$key) {
+        throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));
+      }
 
       /* we won't support AUTH_HASH_IPS in token mode
         reasons: 

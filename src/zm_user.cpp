@@ -199,10 +199,15 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
     }
 
   }
-  catch (const Exception &e) {
-      Error( "Unable to verify token: %s", e.getMessage().c_str() );
+  catch (const std::exception &e) {
+      Error("Unable to verify token: %s", e.what());
       return 0;
   }
+  catch (...) {
+     Error ("unknown exception");
+
+  }
+  return 0;
 }
 
 // Function to validate an authentication string

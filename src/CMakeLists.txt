@@ -10,7 +10,7 @@ set(ZM_BIN_SRC_FILES zm_box.cpp zm_buffer.cpp zm_camera.cpp zm_comms.cpp zm_conf
 
 # A fix for cmake recompiling the source files for every target.
 add_library(zm STATIC ${ZM_BIN_SRC_FILES})
-link_directories(/home/pp/source/pp_ZoneMinder.git/third_party/bcrypt)
+link_directories(../third_party/bcrypt)
 
 add_executable(zmc zmc.cpp)
 add_executable(zma zma.cpp)

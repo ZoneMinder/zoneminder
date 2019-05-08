@@ -215,20 +215,6 @@ function validateToken ($token) {
     return array(false, "No such user/credentials");
   }
 
-  
-  // We are NOT checking against session username for now...
-  /*
-  // at this stage, token is valid, but lets validate user with session user
-  ZM\Info ("JWT user is ".$jwt['user']);
-  if ($jwt['user'] != $_SESSION['username']) {
-    ZM\Error ("Unable to authenticate user. Token doesn't belong to current user");
-    return false;
-  } else {
-    ZM\Info ("Token validated for user:".$_SESSION['username']);
-    return $user;
-  }
-  */
-
 }
 
 function getAuthUser($auth) {

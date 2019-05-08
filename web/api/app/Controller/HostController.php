@@ -105,7 +105,7 @@ class HostController extends AppController {
      // print ("relay=".$zmAuthRelay." haship=".$zmAuthHashIps." remote ip=".$_SERVER['REMOTE_ADDR']);
 
       $expireAt     = $issuedAt + $ttl * 3600;
-      $expireAt = $issuedAt + 30; // TEST REMOVE
+      $expireAt = $issuedAt + 60; // TEST REMOVE
   
       $token = array(
           "iss" => "ZoneMinder",

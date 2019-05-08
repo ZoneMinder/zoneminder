@@ -138,6 +138,7 @@ void Usage(int status=-1) {
 			"  -U, --username <username>    : When running in authenticated mode the username and\n" 
 			"  -P, --password <password>    : password combination of the given user\n" 
 			"  -A, --auth <authentication>  : Pass authentication hash string instead of user details\n"
+      "  -T, --token <token>  : Pass JWT token string instead of user details\n"
 	 "", stderr );
 
   exit(status);
@@ -263,6 +264,7 @@ int main(int argc, char *argv[]) {
   char *username = 0;
   char *password = 0;
   char *auth = 0;
+  std::string jwt_token_str = "";
 #if ZM_HAS_V4L
 #if ZM_HAS_V4L2
     int v4lVersion = 2;
@@ -378,6 +380,9 @@ int main(int argc, char *argv[]) {
       case 'A':
         auth = optarg;
         break;
+      case 'T':
+        jwt_token_str = std::string(optarg);
+        break;
 #if ZM_HAS_V4L
 			case 'V':
 				v4lVersion = (atoi(optarg)==1)?1:2;
@@ -438,9 +443,12 @@ int main(int argc, char *argv[]) {
       user = zmLoadUser(username);
     } else {
        
-      if ( !(username && password) && !auth ) {
-        Error("Username and password or auth string must be supplied");
+      if ( !(username && password) && !auth  && (jwt_token_str=="")) {
+        Error("Username and password or auth/token string must be supplied");
         exit_zmu(-1);
+      }
+      if (jwt_token_str != "") {
+        user = zmLoadTokenUser(jwt_token_str, false);
       }
       if ( auth ) {
         user = zmLoadAuthUser(auth, false);

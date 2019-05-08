@@ -70,6 +70,7 @@ int main( int argc, const char *argv[] ) {
   std::string username;
   std::string password;
   char auth[64] = "";
+  std::string jwt_token_str = ""; 
   unsigned int connkey = 0;
   unsigned int playback_buffer = 0;
 
@@ -158,6 +159,10 @@ int main( int argc, const char *argv[] ) {
         playback_buffer = atoi(value);
       } else if ( !strcmp( name, "auth" ) ) {
         strncpy( auth, value, sizeof(auth)-1 );
+      } else if ( !strcmp( name, "token" ) ) {
+        jwt_token_str = value;
+        Info("ZMS: JWT token found: %s", jwt_token_str.c_str());
+
       } else if ( !strcmp( name, "user" ) ) {
         username = UriDecode( value );
       } else if ( !strcmp( name, "pass" ) ) {
@@ -181,11 +186,15 @@ int main( int argc, const char *argv[] ) {
   if ( config.opt_use_auth ) {
     User *user = 0;
 
-    if ( strcmp(config.auth_relay, "none") == 0 ) {
+    if (jwt_token_str != "") {
+      user = zmLoadTokenUser(jwt_token_str, config.auth_hash_ips);
+
+    }
+    else if ( strcmp(config.auth_relay, "none") == 0 ) {
       if ( checkUser(username.c_str()) ) {
         user = zmLoadUser(username.c_str());
       } else {
-        Error("")
+        Error("Bad username");
       }
 
     } else {

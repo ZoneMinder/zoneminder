@@ -35,15 +35,19 @@ class HostController extends AppController {
     $cred_depr = $this->_getCredentialsDeprecated();
     $ver = $this->_getVersion();
     $this->set(array(
-      'token'=>$cred[0],
-      'token_expires'=>$cred[1] * 3600, // takes AUTH_HASH_TTL || 2 hrs as the default
+      'access_token'=>$cred[0],
+      'access_token_expires'=>$cred[1],
+      'refresh_token'=>$cred[2],
+      'refresh_token_expires'=>$cred[3],
       'credentials'=>$cred_depr[0],
       'append_password'=>$cred_depr[1],
       'version' => $ver[0],
       'apiversion' => $ver[1],
       '_serialize' => array(
-                            'token',
-                            'token_expires',
+                            'access_token',
+                            'access_token_expires',
+                            'refresh_token',
+                            'refresh_token_expires',
                             'version',
                             'credentials',
                             'append_password',
@@ -82,9 +86,6 @@ class HostController extends AppController {
     $credentials = '';
     $this->loadModel('Config');
 
-    $jwt = '';
-    $ttl = '';
-  
     if ( ZM_OPT_USE_AUTH ) {
       require_once __DIR__ .'/../../../includes/auth.php'; 
       require_once __DIR__.'/../../../vendor/autoload.php';
@@ -102,27 +103,40 @@ class HostController extends AppController {
         $key = $key . $_SERVER['REMOTE_ADDR'];
       }*/
 
-      $issuedAt   = time();
-      $ttl = ZM_AUTH_HASH_TTL || 2;
+      $access_issued_at   = time();
+      $access_ttl = (ZM_AUTH_HASH_TTL || 2) * 3600; 
 
-     // print ("relay=".$zmAuthRelay." haship=".$zmAuthHashIps." remote ip=".$_SERVER['REMOTE_ADDR']);
-
-      $expireAt     = $issuedAt + $ttl * 3600;
-      $expireAt = $issuedAt + 60; // TEST REMOVE
+      // by default access token will expire in 2 hrs
+      // you can change it by changing the value of ZM_AUTH_HASH_TLL
+      $access_expire_at     = $access_issued_at + $access_ttl;
+      $access_expire_at = $access_issued_at + 60; // TEST, REMOVE
   
-      $token = array(
+      $access_token = array(
           "iss" => "ZoneMinder",
-          "iat" => $issuedAt,
-          "exp" => $expireAt,
-          "user" => $_SESSION['username']    
+          "iat" => $access_issued_at,
+          "exp" => $access_expire_at,
+          "user" => $_SESSION['username'],
+          "type" => "access"
       );
     
-      //use \Firebase\JWT\JWT;
-      $jwt = \Firebase\JWT\JWT::encode($token, $key, 'HS256');
+      $jwt_access_token = \Firebase\JWT\JWT::encode($access_token, $key, 'HS256');
+
+      $refresh_issued_at   = time();
+      $refresh_ttl = 24 * 3600; // 1 day
+
+      $refresh_expire_at     = $refresh_issued_at + $refresh_ttl;
+      $refresh_token = array(
+          "iss" => "ZoneMinder",
+          "iat" => $refresh_issued_at,
+          "exp" => $refresh_expire_at,
+          "user" => $_SESSION['username'],
+          "type" => "refresh"  
+      );
+      $jwt_refresh_token = \Firebase\JWT\JWT::encode($refresh_token, $key, 'HS256');
 
     } 
-    return array($jwt, $ttl);
-  } // end function _getCredentials
+    return array($jwt_access_token, $access_ttl, $jwt_refresh_token, $refresh_ttl);
+  }
 
   // If $mid is set, only return disk usage for that monitor
   // Else, return an array of total disk usage, and per-monitor

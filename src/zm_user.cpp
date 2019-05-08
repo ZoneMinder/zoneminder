@@ -163,6 +163,19 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
     verifier.verify(decoded);
     
     // token is valid and not expired
+
+    if (decoded.has_payload_claim("type")) {
+       std::string type = decoded.get_payload_claim("type").as_string();
+       if (type != "access") {
+         Error ("Only access tokens are allowed. Please do not use refresh tokens");
+         return 0;
+       }
+    }
+    else {
+      // something is wrong. All ZM tokens have type
+      Error ("Missing token type. This should not happen");
+      return 0;
+    }
     if (decoded.has_payload_claim("user")) {
 
       // We only need to check if user is enabled in DB and pass on
@@ -195,6 +208,7 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
       MYSQL_ROW dbrow = mysql_fetch_row(result);
       User *user = new User(dbrow);
       Info ("Authenticated user '%s' via token", username.c_str());
+      mysql_free_result(result);
       return user;
 
     }

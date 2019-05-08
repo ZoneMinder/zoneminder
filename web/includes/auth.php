@@ -185,7 +185,8 @@ function userLogout() {
 }
 
 
-function validateToken ($token) {
+function validateToken ($token, $allowed_token_type='access') {
+
   global $user;
   $key = ZM_AUTH_HASH_SECRET;
   if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
@@ -199,6 +200,16 @@ function validateToken ($token) {
 
   // convert from stdclass to array
   $jwt_payload = json_decode(json_encode($decoded_token), true);
+
+  $type = $jwt_payload['type'];
+  if ($type != $allowed_token_type) {
+    if ($allowed_token_type == 'access') {
+      // give a hint that the user is not doing it right
+      ZM\Error ('Please do not use refresh tokens for this operation');
+    }
+    return array (false, "Incorrect token type");
+  }
+
   $username = $jwt_payload['user'];
   $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username = ?';
   $sql_values = array($username);

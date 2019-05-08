@@ -82,19 +82,30 @@ class AppController extends Controller {
           return;
         }
       } else if ( $mToken ) {
-        $ret = validateToken($mToken);
+        // if you pass a token to login, we should only allow
+        // refresh tokens to regenerate new access and refresh tokens
+        if ( !strcasecmp($this->params->action, 'login') ) {
+          $only_allow_token_type='refresh';
+        } else {
+          // for any other methods, don't allow refresh tokens
+          // they are supposed to be infrequently used for security
+          // purposes
+          $only_allow_token_type='access';
+
+        }
+        $ret = validateToken($mToken, $only_allow_token_type);
         $user = $ret[0];
         $retstatus = $ret[1];
         if ( !$user ) {
           throw new UnauthorizedException(__($retstatus));
           return;
-        } else if ( $mAuth ) {
+        } 
+      } else if ( $mAuth ) {
           $user = getAuthUser($mAuth);
           if ( !$user ) {
             throw new UnauthorizedException(__('Invalid Auth Key'));
             return;
           }
-        }
       }
       // We need to reject methods that are not authenticated
       // besides login and logout

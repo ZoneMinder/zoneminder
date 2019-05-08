@@ -31,28 +31,57 @@ class HostController extends AppController {
   }
   
   function login() {
-    $cred = $this->_getCredentials();
     $cred_depr = $this->_getCredentialsDeprecated();
     $ver = $this->_getVersion();
-    $this->set(array(
-      'access_token'=>$cred[0],
-      'access_token_expires'=>$cred[1],
-      'refresh_token'=>$cred[2],
-      'refresh_token_expires'=>$cred[3],
-      'credentials'=>$cred_depr[0],
-      'append_password'=>$cred_depr[1],
-      'version' => $ver[0],
-      'apiversion' => $ver[1],
-      '_serialize' => array(
-                            'access_token',
-                            'access_token_expires',
-                            'refresh_token',
-                            'refresh_token_expires',
-                            'version',
-                            'credentials',
-                            'append_password',
-                            'apiversion'
-      )));
+
+    $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+    $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+    $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
+
+    if ($mUser && $mPassword) {
+      $cred = $this->_getCredentials(true);
+      // if you authenticated via user/pass then generate new refresh
+      $this->set(array(
+        'access_token'=>$cred[0],
+        'access_token_expires'=>$cred[1],
+        'refresh_token'=>$cred[2],
+        'refresh_token_expires'=>$cred[3],
+        'credentials'=>$cred_depr[0],
+        'append_password'=>$cred_depr[1],
+        'version' => $ver[0],
+        'apiversion' => $ver[1],
+        '_serialize' => array(
+                              'access_token',
+                              'access_token_expires',
+                              'refresh_token',
+                              'refresh_token_expires',
+                              'version',
+                              'credentials',
+                              'append_password',
+                              'apiversion'
+        )));
+    }
+    else {
+      $cred = $this->_getCredentials(false);
+      $this->set(array(
+        'access_token'=>$cred[0],
+        'access_token_expires'=>$cred[1],
+        'credentials'=>$cred_depr[0],
+        'append_password'=>$cred_depr[1],
+        'version' => $ver[0],
+        'apiversion' => $ver[1],
+        '_serialize' => array(
+                              'access_token',
+                              'access_token_expires',
+                              'version',
+                              'credentials',
+                              'append_password',
+                              'apiversion'
+        )));
+
+    }
+
+   
   } // end function login()
 
   // clears out session
@@ -82,7 +111,7 @@ class HostController extends AppController {
     }
   }
   
-  private function _getCredentials() {
+  private function _getCredentials($generate_refresh_token=false) {
     $credentials = '';
     $this->loadModel('Config');
 
@@ -123,19 +152,24 @@ class HostController extends AppController {
     
       $jwt_access_token = \Firebase\JWT\JWT::encode($access_token, $key, 'HS256');
 
-      $refresh_issued_at   = time();
-      $refresh_ttl = 24 * 3600; // 1 day
+      $jwt_refresh_token = "";
+      $refresh_ttl = 0;
 
-      $refresh_expire_at     = $refresh_issued_at + $refresh_ttl;
-      $refresh_token = array(
-          "iss" => "ZoneMinder",
-          "iat" => $refresh_issued_at,
-          "exp" => $refresh_expire_at,
-          "user" => $_SESSION['username'],
-          "type" => "refresh"  
-      );
-      $jwt_refresh_token = \Firebase\JWT\JWT::encode($refresh_token, $key, 'HS256');
-
+      if ($generate_refresh_token) {
+        $refresh_issued_at   = time();
+        $refresh_ttl = 24 * 3600; // 1 day
+  
+        $refresh_expire_at     = $refresh_issued_at + $refresh_ttl;
+        $refresh_token = array(
+            "iss" => "ZoneMinder",
+            "iat" => $refresh_issued_at,
+            "exp" => $refresh_expire_at,
+            "user" => $_SESSION['username'],
+            "type" => "refresh"  
+        );
+        $jwt_refresh_token = \Firebase\JWT\JWT::encode($refresh_token, $key, 'HS256');
+      }
+     
     } 
     return array($jwt_access_token, $access_ttl, $jwt_refresh_token, $refresh_ttl);
   }

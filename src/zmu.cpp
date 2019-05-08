@@ -243,6 +243,7 @@ int main(int argc, char *argv[]) {
     {"username", 1, 0, 'U'},
     {"password", 1, 0, 'P'},
     {"auth", 1, 0, 'A'},
+    {"token", 1, 0, 'T'},
     {"version", 1, 0, 'V'},
     {"help", 0, 0, 'h'},
     {"list", 0, 0, 'l'},
@@ -275,7 +276,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:T:", long_options, &option_index);
     if ( c == -1 ) {
       break;
     }

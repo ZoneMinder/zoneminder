@@ -29,6 +29,7 @@ $tabs = array();
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
+$tabs['config'] = translate('API');
 $tabs['servers'] = translate('Servers');
 $tabs['storage'] = translate('Storage');
 $tabs['web'] = translate('Web');

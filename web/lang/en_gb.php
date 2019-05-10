@@ -104,6 +104,7 @@ $SLANG = array(
     'All'                   => 'All',
     'AnalysisFPS'           => 'Analysis FPS',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
+     'API'                  =>  'API',
     'Apply'                 => 'Apply',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',

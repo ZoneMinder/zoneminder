@@ -394,7 +394,7 @@ our @options = (
       if you are exposing your ZM instance on the Internet.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'API',
   },
   {
     name        => 'ZM_OPT_USE_EVENTNOTIFICATION',

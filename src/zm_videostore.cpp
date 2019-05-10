@@ -1182,7 +1182,7 @@ int VideoStore::resample_audio() {
   zm_dump_frame(out_frame, "Out frame after convert");
 
   // resampling doesn't change the duration, or set it.
-  out_frame->duration = in_frame->duration;
+  out_frame->pkt_duration = in_frame->pkt_duration;
 
   if ( ret < 0 ) {
     Error("Could not resample frame (error '%s')",

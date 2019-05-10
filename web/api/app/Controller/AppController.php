@@ -76,7 +76,8 @@ class AppController extends Controller {
       $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
 
       if ( $mUser and $mPassword ) {
-        $user = userLogin($mUser, $mPassword, true);
+        // log (user, pass, nothashed, api based login so skip recaptcha)
+        $user = userLogin($mUser, $mPassword, false, true);
         if ( !$user ) {
           throw new UnauthorizedException(__('User not found or incorrect password'));
           return;

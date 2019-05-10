@@ -126,7 +126,7 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
 
         ZM\Logger::Debug ('bcrypt signature found, assumed bcrypt password');
         $password_type='bcrypt';
-        $password_correct = password_verify($password, $saved_password);
+        $password_correct = $passwordHashed? ($password == $saved_password) : password_verify($password, $saved_password);
       }
       else {
         // we really should nag the user not to use plain
@@ -346,6 +346,7 @@ if ( ZM_OPT_USE_AUTH ) {
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
 
   if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
+
     if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
       userLogin($authUser['Username'], $authUser['Password'], true);
     }

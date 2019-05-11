@@ -245,7 +245,7 @@ DROP TABLE IF EXISTS `Events_Week`;
 CREATE TABLE `Events_Week` (
   `EventId` BIGINT unsigned NOT NULL,
   `MonitorId` int(10) unsigned NOT NULL,
-  `StartTime` datetime default NULL,M
+  `StartTime` datetime default NULL,
   `DiskSpace`   bigint default NULL,
   PRIMARY KEY (`EventId`),
   KEY `Events_Week_MonitorId_idx` (`MonitorId`),

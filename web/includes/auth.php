@@ -109,6 +109,19 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
   $password_type = NULL;
     
   if ($saved_user_details) {
+
+    // if the API layer asked us to login, make sure the user 
+    // has API enabled (admin may have banned API for this user)
+
+    if ($apiLogin) {
+      if ($saved_user_details['APIEnabled'] != 1) {
+        ZM\Error ("API disabled for: $username");
+        $_SESSION['loginFailed'] = true;
+        unset($user);
+        return false;
+      }
+    }
+
     $saved_password = $saved_user_details['Password'];
     if ($saved_password[0] == '*') {
       // We assume we don't need to support mysql < 4.1
@@ -217,6 +230,17 @@ function validateToken ($token, $allowed_token_type='access') {
   $saved_user_details = dbFetchOne ($sql, NULL, $sql_values);
 
   if ($saved_user_details) {
+
+    $issuedAt =  $jwt_payload['iat'];
+    $minIssuedAt = $saved_user_details['TokenMinExpiry'];
+
+    if ($issuedAt < $minIssuedAt) {
+      ZM\Error ("Token revoked for $username. Please generate a new token");
+      $_SESSION['loginFailed'] = true;
+      unset($user);
+      return array(false, "Token revoked. Please re-generate");
+    }
+
     $user = $saved_user_details;
     return array($user, "OK");
   } else {

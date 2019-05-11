@@ -29,7 +29,7 @@ $tabs = array();
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
-$tabs['config'] = translate('API');
+$tabs['API'] = translate('API');
 $tabs['servers'] = translate('Servers');
 $tabs['storage'] = translate('Storage');
 $tabs['web'] = translate('Web');
@@ -134,7 +134,8 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
             </div>
          </form>
 	
-      <?php
+
+<?php
 } else if ( $tab == 'users' ) {
 ?>
       <form name="userForm" method="post" action="?">
@@ -424,6 +425,32 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 <?php
     }
 ?>
+
+<?php
+  if ($tab == 'API') {
+?>
+
+  HELLO BABY!
+  <form method="post">
+    <input type="submit" name="test" id="test" 
+    value=<?php echo translate("Image") ?> ><br/>
+</form>
+
+<?php
+  function testfun()
+  {
+    echo "Your test function on button click is working";
+  }
+
+  if(array_key_exists('test',$_POST)){
+    testfun();
+  }
+}
+?>
+
+
+
+
         <div id="contentButtons">
           <button type="submit" value="Save"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
         </div>
@@ -431,6 +458,8 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 <?php
 }
 ?>
+
+
 
     </div><!-- end #options -->
 	</div>

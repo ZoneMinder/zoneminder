@@ -7,8 +7,9 @@
 
 
 // returns username if valid, "" if not
-std::string verifyToken(std::string jwt_token_str, std::string key) {
+std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
   std::string username = "";
+  int token_issued_at = 0;
   try {
     // is it decodable?
     auto decoded = jwt::decode(jwt_token_str);
@@ -24,13 +25,13 @@ std::string verifyToken(std::string jwt_token_str, std::string key) {
       std::string type = decoded.get_payload_claim("type").as_string();
       if (type != "access") {
         Error ("Only access tokens are allowed. Please do not use refresh tokens");
-        return "";
+        return std::make_pair("",0);
       }
     }
     else {
       // something is wrong. All ZM tokens have type
       Error ("Missing token type. This should not happen");
-      return "";
+      return std::make_pair("",0);
     }
     if (decoded.has_payload_claim("user")) {
       username  = decoded.get_payload_claim("user").as_string();
@@ -38,19 +39,27 @@ std::string verifyToken(std::string jwt_token_str, std::string key) {
     } 
     else {
       Error ("User not found in claim");
-      return "";
+      return std::make_pair("",0);
+    }
+
+     if (decoded.has_payload_claim("iat")) {
+      token_issued_at  = (unsigned int) (decoded.get_payload_claim("iat").as_int());
+    } 
+    else {
+      Error ("IAT not found in claim. This should not happen");
+      return std::make_pair("",0);
     }
   } // try
   catch (const std::exception &e) {
       Error("Unable to verify token: %s", e.what());
-      return "";
+      return std::make_pair("",0);
   }
   catch (...) {
      Error ("unknown exception");
-     return "";
+     return std::make_pair("",0);
 
   }
-  return username;
+  return std::make_pair(username,token_issued_at);
 }
 
 bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash) {

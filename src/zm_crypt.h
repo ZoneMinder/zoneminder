@@ -27,5 +27,5 @@
 
 bool verifyPassword( const char *username, const char *input_password, const char *db_password_hash);
 
-std::string verifyToken(std::string token, std::string key);
+std::pair <std::string, unsigned int>  verifyToken(std::string token, std::string key);
 #endif // ZM_CRYPT_H

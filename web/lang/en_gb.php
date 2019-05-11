@@ -421,6 +421,7 @@ $SLANG = array(
     'Images'                => 'Images',
     'Include'               => 'Include',
     'In'                    => 'In',
+    'InvalidateTokens'      => 'Invalidate all generated tokens',
     'Inverted'              => 'Inverted',
     'Iris'                  => 'Iris',
     'KeyString'             => 'Key String',

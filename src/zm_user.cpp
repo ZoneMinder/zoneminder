@@ -154,7 +154,10 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
 
   Info ("Inside zmLoadTokenUser, formed key=%s", key.c_str());
 
-  std::string username = verifyToken(jwt_token_str, key);
+  std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
+  std::string username = ans.first;
+  unsigned int iat = ans.second;
+
   if (username != "") {
     char sql[ZM_SQL_MED_BUFSIZ] = "";
     snprintf(sql, sizeof(sql),
@@ -175,12 +178,21 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
 
     if ( n_users != 1 ) {
       mysql_free_result(result);
-      Warning("Unable to authenticate user %s", username.c_str());
+      Error("Unable to authenticate user %s", username.c_str());
       return NULL;
     }
 
     MYSQL_ROW dbrow = mysql_fetch_row(result);
     User *user = new User(dbrow);
+    unsigned int stored_iat =  strtoul(dbrow[14], NULL,0 );
+
+    if (stored_iat > iat ) { // admin revoked tokens
+      mysql_free_result(result);
+      Error("Token was revoked for %s", username.c_str());
+      return NULL;
+    }
+
+    Info ("Got stored expiry time of %u",stored_iat);
     Info ("Authenticated user '%s' via token", username.c_str());
     mysql_free_result(result);
     return user;

@@ -430,25 +430,57 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
   if ($tab == 'API') {
 ?>
 
-  HELLO BABY!
+  
   <form method="post">
-    <input type="submit" name="test" id="test" 
-    value=<?php echo translate("Image") ?> ><br/>
+    <input type="submit" name="revokeAllTokens" id="revokeAllTokens" 
+    value=<?php echo translate("RevokeAllTokens") ?> ><br/><br/>
 </form>
 
 <?php
-  function testfun()
+  function revokeAllTokens()
   {
-    echo "Your test function on button click is working";
+    echo "All Tokens Revoked";
   }
 
-  if(array_key_exists('test',$_POST)){
-    testfun();
+  if(array_key_exists('revokeAllTokens',$_POST)){
+    revokeAllTokens();
   }
-}
+} // end of if tabs
 ?>
 
 
+<form name="userForm" method="post" action="?">
+        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+        <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+        <input type="hidden" name="action" value="delete"/>
+        <table id="contentTable" class="table table-striped">
+          <thead class="thead-highlight">
+            <tr>
+              <th class="colUsername"><?php echo translate('Username') ?></th>
+              <th class="colLanguage"><?php echo translate('API Enabled') ?></th>
+
+              <th class="colMark"><?php echo translate('Revoke Token') ?></th>
+              <th class="colMark"><?php echo translate('Disable API') ?></th>
+            </tr>
+          </thead>
+          <tbody>
+<?php
+   
+    $sql = 'SELECT * FROM Users ORDER BY Username';
+    foreach( dbFetchAll($sql) as $row ) {
+?>
+            <tr>
+              <td class="colUsername"><?php echo validHtmlStr($row['Username']) ?></td>
+              <td class="colUsername"><?php echo validHtmlStr($row['APIEnabled']) ?></td>
+              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" data-on-click-this="configureDeleteButton"/></td>
+              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" data-on-click-this="configureDeleteButton"/></td>
+            </tr>
+<?php
+    }
+?>
+          </tbody>
+        </table>
+      </form>
 
 
         <div id="contentButtons">

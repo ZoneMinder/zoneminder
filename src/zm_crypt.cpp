@@ -47,7 +47,7 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
       
       std::string iat_str = decoded.get_payload_claim("iat").as_string();
       Info ("Got IAT token=%s", iat_str);
-      token_issued_at  = strtoul(iat_str, NULL,0 );
+      token_issued_at  = strtoul(iat_str.c_str(), NULL,0 );
     } 
     else {
       Error ("IAT not found in claim. This should not happen");

@@ -439,6 +439,8 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 <?php
   function revokeAllTokens()
   {
+    $minTokenTime = time();
+    dbQuery ('UPDATE Users SET TokenMinExpiry=?', array ($minTokenTime));
     echo "All Tokens Revoked";
   }
 

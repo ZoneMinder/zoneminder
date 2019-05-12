@@ -31,55 +31,51 @@ class HostController extends AppController {
   }
   
   function login() {
-    $cred_depr = $this->_getCredentialsDeprecated();
-    $ver = $this->_getVersion();
-
+  
     $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
     $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
     $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
 
+    $ver = $this->_getVersion();
+    $cred = [];
+    $cred_depr = [];
+
     if ($mUser && $mPassword) {
-      $cred = $this->_getCredentials(true);
-      // if you authenticated via user/pass then generate new refresh
-      $this->set(array(
-        'access_token'=>$cred[0],
-        'access_token_expires'=>$cred[1],
-        'refresh_token'=>$cred[2],
-        'refresh_token_expires'=>$cred[3],
-        'credentials'=>$cred_depr[0],
-        'append_password'=>$cred_depr[1],
-        'version' => $ver[0],
-        'apiversion' => $ver[1],
-        '_serialize' => array(
-                              'access_token',
-                              'access_token_expires',
-                              'refresh_token',
-                              'refresh_token_expires',
-                              'version',
-                              'credentials',
-                              'append_password',
-                              'apiversion'
-        )));
+      $cred = $this->_getCredentials(true); // generate refresh
     }
     else {
-      $cred = $this->_getCredentials(false);
-      $this->set(array(
-        'access_token'=>$cred[0],
-        'access_token_expires'=>$cred[1],
-        'credentials'=>$cred_depr[0],
-        'append_password'=>$cred_depr[1],
-        'version' => $ver[0],
-        'apiversion' => $ver[1],
-        '_serialize' => array(
-                              'access_token',
-                              'access_token_expires',
-                              'version',
-                              'credentials',
-                              'append_password',
-                              'apiversion'
-        )));
-
+      $cred = $this->_getCredentials(false); // don't generate refresh
     }
+
+    $login_array = array (
+      'access_token'=>$cred[0],
+      'access_token_expires'=>$cred[1],
+      'version' => $ver[0],
+      'apiversion' => $ver[1]
+    );
+
+    $login_serialize_list = array (
+      'access_token',
+      'access_token_expires',
+      'version',
+      'apiversion'
+    );
+
+    if ($mUser && mPassword) {
+      $login_array['refresh_token'] = $cred[2];
+      $login_array['refresh_token_expires'] = $cred[3];
+      array_push ($login_serialize_list, 'refresh_token', 'refresh_token_expires');
+    }
+
+    if (ZM_OPT_USE_LEGACY_API_AUTH) {
+      $cred_depr = $this->_getCredentialsDeprecated();
+      $login_array ['credentials']=$cred_depr[0];
+      $login_array ['append_password']=$cred_depr[1];
+      array_push ($login_serialize_list, 'credentials', 'append_password');
+    }
+
+    $this->set($login_array,
+                '_serialize' => $login_serialize_list);
 
    
   } // end function login()

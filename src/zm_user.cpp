@@ -152,7 +152,7 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
     key += remote_addr;
   }
 
-  Info ("Inside zmLoadTokenUser, formed key=%s", key.c_str());
+  Debug (1,"Inside zmLoadTokenUser, formed key=%s", key.c_str());
 
   std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
   std::string username = ans.first;
@@ -192,7 +192,7 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
       return NULL;
     }
 
-    Info ("Got stored expiry time of %u",stored_iat);
+    Debug (1,"Got stored expiry time of %u",stored_iat);
     Info ("Authenticated user '%s' via token", username.c_str());
     mysql_free_result(result);
     return user;

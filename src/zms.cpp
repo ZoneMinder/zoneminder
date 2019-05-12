@@ -161,7 +161,7 @@ int main( int argc, const char *argv[] ) {
         strncpy( auth, value, sizeof(auth)-1 );
       } else if ( !strcmp( name, "token" ) ) {
         jwt_token_str = value;
-        Info("ZMS: JWT token found: %s", jwt_token_str.c_str());
+        Debug(1,"ZMS: JWT token found: %s", jwt_token_str.c_str());
 
       } else if ( !strcmp( name, "user" ) ) {
         username = UriDecode( value );

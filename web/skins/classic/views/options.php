@@ -345,7 +345,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           dbQuery('UPDATE Users SET APIEnabled=1 WHERE Id=?', array($markUid));
         //  echo "UPDATE Users SET APIEnabled=1"." WHERE Id=".$markUid."<br/>";
         }
-        echo "Updated.";
+        echo "Updated";
       }
 
       if(array_key_exists('revokeAllTokens',$_POST)){

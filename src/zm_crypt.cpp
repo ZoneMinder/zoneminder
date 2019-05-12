@@ -35,7 +35,7 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
     }
     if (decoded.has_payload_claim("user")) {
       username  = decoded.get_payload_claim("user").as_string();
-      Info ("Got %s as user claim from token", username.c_str());
+      Debug (1, "Got %s as user claim from token", username.c_str());
     } 
     else {
       Error ("User not found in claim");
@@ -44,7 +44,7 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
 
      if (decoded.has_payload_claim("iat")) {
       token_issued_at = (unsigned int) (decoded.get_payload_claim("iat").as_int());
-      Info ("Got IAT token=%u", token_issued_at);
+      Debug (1,"Got IAT token=%u", token_issued_at);
      
     } 
     else {
@@ -73,7 +73,7 @@ bool verifyPassword(const char *username, const char *input_password, const char
   }
   if (db_password_hash[0] == '*') {
     // MYSQL PASSWORD
-    Info ("%s is using an MD5 encoded password", username);
+    Debug (1,"%s is using an MD5 encoded password", username);
     
     SHA_CTX ctx1, ctx2;
     unsigned char digest_interim[SHA_DIGEST_LENGTH];
@@ -96,14 +96,14 @@ bool verifyPassword(const char *username, const char *input_password, const char
          sprintf(&final_hash[i*2]+1, "%02X", (unsigned int)digest_final[i]);
     final_hash[SHA_DIGEST_LENGTH *2 + 1]=0;
 
-    Info ("Computed password_hash:%s, stored password_hash:%s", final_hash,  db_password_hash);
+    Debug (1,"Computed password_hash:%s, stored password_hash:%s", final_hash,  db_password_hash);
     Debug (5, "Computed password_hash:%s, stored password_hash:%s", final_hash,  db_password_hash);
     password_correct = (strcmp(db_password_hash, final_hash)==0);
   }
   else if ((db_password_hash[0] == '$') && (db_password_hash[1]== '2')
            &&(db_password_hash[3] == '$')) {
     // BCRYPT 
-    Info ("%s is using a bcrypt encoded password", username);
+    Debug (1,"%s is using a bcrypt encoded password", username);
     BCrypt bcrypt;
     std::string input_hash = bcrypt.generateHash(std::string(input_password));
     password_correct = bcrypt.validatePassword(std::string(input_password), std::string(db_password_hash));

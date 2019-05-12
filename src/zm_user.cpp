@@ -161,7 +161,7 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
   if (username != "") {
     char sql[ZM_SQL_MED_BUFSIZ] = "";
     snprintf(sql, sizeof(sql),
-      "SELECT Id, Username, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds, TokenMinExpiry"
+      "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds, TokenMinExpiry"
       " FROM Users WHERE Username = '%s' and Enabled = 1", username.c_str() );
 
     if ( mysql_query(&dbconn, sql) ) {

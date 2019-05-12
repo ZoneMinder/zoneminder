@@ -1011,9 +1011,9 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       //av_frame_unref(in_frame);
       return 0;
     }
-    zm_dump_frame(out_frame, "Out frame after resample");
 
     out_frame->pts = in_frame->pts;
+    zm_dump_frame(out_frame, "Out frame after resample");
     // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
     if ( out_frame->pts != AV_NOPTS_VALUE ) {
       if ( !audio_first_pts ) {
@@ -1022,6 +1022,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
         out_frame->pts = 0;
       } else {
         out_frame->pts = out_frame->pts - audio_first_pts;
+        zm_dump_frame(out_frame, "Out frame after pts adjustment");
       }
       //
     } else {
@@ -1042,14 +1043,12 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     if ( (ret = avcodec_receive_packet(audio_out_ctx, &opkt)) < 0 ) {
       if ( AVERROR(EAGAIN) == ret ) {
         // The codec may need more samples than it has, perfectly valid
-        Debug(3, "Could not recieve packet (error '%s')",
-              av_make_error_string(ret).c_str());
+        Debug(2, "Codec not ready to give us a packet");
       } else {
         Error("Could not recieve packet (error %d = '%s')", ret,
               av_make_error_string(ret).c_str());
       }
       zm_av_packet_unref(&opkt);
-      // av_frame_unref( out_frame );
       return 0;
     }
   #else
@@ -1067,6 +1066,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
   #endif
+    dumpPacket(audio_out_stream, &opkt, "raw opkt");
     opkt.duration = av_rescale_q(opkt.duration, 
           audio_in_stream->time_base,
           audio_out_stream->time_base);

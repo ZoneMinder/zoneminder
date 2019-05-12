@@ -67,7 +67,7 @@ if ( $action == 'user' ) {
       $pass_hash = '"'.password_hash($pass, PASSWORD_BCRYPT).'"';
     } else {
       $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
-      ZM\Info ('Cannot use bcrypt as you are using PHP < 5.5');
+      ZM\Info ('Cannot use bcrypt as you are using PHP < 5.3');
     }
    
 

@@ -314,7 +314,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 
   <?php
   } else if ($tab == 'API') {
-
+  
     $apiEnabled = dbFetchOne("SELECT Value FROM Config WHERE Name='ZM_OPT_USE_API'");
     if ($apiEnabled['Value']!='1') {
       echo "<div class='errorText'>APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>";
@@ -377,7 +377,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
             foreach( dbFetchAll($sql) as $row ) {
         ?>
                 <tr>
-                  <td class="colUsername"><?php echo $row['Id']." ".validHtmlStr($row['Username']) ?></td>
+                  <td class="colUsername"><?php echo validHtmlStr($row['Username']) ?></td>
                   <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $row['Id'] ?>" /></td>
                   <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $row['Id']?>"  <?php echo $row['APIEnabled']?'checked':''?> /></td>
                 </tr>

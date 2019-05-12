@@ -37,10 +37,8 @@ function migrateHash($user, $pass) {
     dbQuery($update_password_sql);
   }
   else {
-    // Not really an error, so an info
-    // there is also a compat library https://github.com/ircmaxell/password_compat
-    // not sure if its worth it. Do a lot of people really use PHP < 5.5?
-    ZM\Info ('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
+   
+    ZM\Info ('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.3');
     return;
   }
  

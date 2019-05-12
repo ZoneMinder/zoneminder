@@ -1183,6 +1183,9 @@ int VideoStore::resample_audio() {
   ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
   zm_dump_frame(out_frame, "Out frame after convert");
 
+  // resampling doesn't change the duration, or set it.
+  out_frame->pkt_duration = in_frame->pkt_duration;
+
   if ( ret < 0 ) {
     Error("Could not resample frame (error '%s')",
         av_make_error_string(ret).c_str());
@@ -1195,7 +1198,8 @@ int VideoStore::resample_audio() {
   /** Store the new samples in the FIFO buffer. */
   ret = av_audio_fifo_write(fifo, (void **)out_frame->data, out_frame->nb_samples);
   if ( ret < out_frame->nb_samples ) {
-    Error("Could not write data to FIFO on %d written, expecting %d", ret, out_frame->nb_samples);
+    Error("Could not write data to FIFO. %d written, expecting %d. Reason %s",
+        ret, out_frame->nb_samples, av_make_error_string(ret).c_str());
     return 0;
   }
 

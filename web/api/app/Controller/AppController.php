@@ -79,7 +79,7 @@ class AppController extends Controller {
         // log (user, pass, nothashed, api based login so skip recaptcha)
         $user = userLogin($mUser, $mPassword, false, true);
         if ( !$user ) {
-          throw new UnauthorizedException(__('User not found or incorrect password'));
+          throw new UnauthorizedException(__('Incorrect credentials or API disabled'));
           return;
         }
       } else if ( $mToken ) {

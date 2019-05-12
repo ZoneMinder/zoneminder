@@ -161,7 +161,7 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
   if (username != "") {
     char sql[ZM_SQL_MED_BUFSIZ] = "";
     snprintf(sql, sizeof(sql),
-      "SELECT Id, Username, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
+      "SELECT Id, Username, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds, MinTokenExpiry"
       " FROM Users WHERE Username = '%s' and Enabled = 1", username.c_str() );
 
     if ( mysql_query(&dbconn, sql) ) {
@@ -184,7 +184,8 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
 
     MYSQL_ROW dbrow = mysql_fetch_row(result);
     User *user = new User(dbrow);
-    unsigned int stored_iat =  strtoul(dbrow[14], NULL,0 );
+    Info ("DB 9=%s", dbrow[9]);
+    unsigned int stored_iat =  strtoul(dbrow[9], NULL,0 );
 
     if (stored_iat > iat ) { // admin revoked tokens
       mysql_free_result(result);

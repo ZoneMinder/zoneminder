@@ -184,8 +184,7 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
 
     MYSQL_ROW dbrow = mysql_fetch_row(result);
     User *user = new User(dbrow);
-    Info ("DB 9=%s", dbrow[9]);
-    unsigned int stored_iat =  strtoul(dbrow[9], NULL,0 );
+    unsigned int stored_iat =  strtoul(dbrow[10], NULL,0 );
 
     if (stored_iat > iat ) { // admin revoked tokens
       mysql_free_result(result);

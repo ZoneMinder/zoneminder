@@ -9,7 +9,7 @@
 // returns username if valid, "" if not
 std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
   std::string username = "";
-  int token_issued_at = 0;
+  unsigned int token_issued_at = 0;
   try {
     // is it decodable?
     auto decoded = jwt::decode(jwt_token_str);
@@ -43,11 +43,9 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
     }
 
      if (decoded.has_payload_claim("iat")) {
-
-      
-      std::string iat_str = decoded.get_payload_claim("iat").as_string();
-      Info ("Got IAT token=%s", iat_str.c_str());
-      token_issued_at  = strtoul(iat_str.c_str(), NULL,0 );
+      token_issued_at = (unsigned int) (decoded.get_payload_claim("iat").as_int());
+      Info ("Got IAT token=%u", iat);
+     
     } 
     else {
       Error ("IAT not found in claim. This should not happen");

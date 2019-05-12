@@ -36,6 +36,11 @@ class HostController extends AppController {
     $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
     $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
 
+
+    if ( !($mUser && $mPassword) && !$mToken ) {
+      throw new UnauthorizedException(__('No identity provided'));
+    }
+
     $ver = $this->_getVersion();
     $cred = [];
     $cred_depr = [];
@@ -47,21 +52,28 @@ class HostController extends AppController {
       $cred = $this->_getCredentials(false); // don't generate refresh
     }
 
+    $this->set(array(
+      'credentials' => $cred[0],
+      'append_password'=>$cred[1],
+      'version' => $ver[0],
+      'apiversion' => $ver[1],
+      '_serialize' => array('credentials',
+                            'append_password',
+                            'version',
+                            'apiversion'
+      )));
+
     $login_array = array (
       'access_token'=>$cred[0],
-      'access_token_expires'=>$cred[1],
-      'version' => $ver[0],
-      'apiversion' => $ver[1]
+      'access_token_expires'=>$cred[1]
     );
 
     $login_serialize_list = array (
       'access_token',
-      'access_token_expires',
-      'version',
-      'apiversion'
+      'access_token_expires'
     );
 
-    if ($mUser && mPassword) {
+    if ($mUser && $mPassword) {
       $login_array['refresh_token'] = $cred[2];
       $login_array['refresh_token_expires'] = $cred[3];
       array_push ($login_serialize_list, 'refresh_token', 'refresh_token_expires');
@@ -74,8 +86,14 @@ class HostController extends AppController {
       array_push ($login_serialize_list, 'credentials', 'append_password');
     }
 
-    $this->set($login_array,
-                '_serialize' => $login_serialize_list);
+
+    $login_array['version'] = $ver[0];
+    $login_array['apiversion'] = $ver[1];
+    array_push ($login_serialize_list, 'version', 'apiversion');
+
+    $login_array["_serialize"] = $login_serialize_list;
+
+    $this->set($login_array);
 
    
   } // end function login()

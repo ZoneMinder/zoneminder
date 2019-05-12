@@ -660,6 +660,7 @@ $SLANG = array(
     'RestrictedMonitors'    => 'Restricted Monitors',
     'ReturnDelay'           => 'Return Delay',
     'ReturnLocation'        => 'Return Location',
+    'RevokeAllTokens'       =>  'Revoke All Tokens'
     'Rewind'                => 'Rewind',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',

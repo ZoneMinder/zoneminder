@@ -430,60 +430,77 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
   if ($tab == 'API') {
 ?>
 
-  
-  <form method="post">
-    <input type="submit" name="revokeAllTokens" id="revokeAllTokens" 
-    value=<?php echo translate("RevokeAllTokens") ?> ><br/><br/>
-</form>
-
-<?php
-  function revokeAllTokens()
-  {
-    $minTokenTime = time();
-    dbQuery ('UPDATE Users SET TokenMinExpiry=?', array ($minTokenTime));
-    echo "All Tokens Revoked";
-  }
-
-  if(array_key_exists('revokeAllTokens',$_POST)){
-    revokeAllTokens();
-  }
-} // end of if tabs
-?>
-
-
-<form name="userForm" method="post" action="?">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-        <input type="hidden" name="action" value="delete"/>
-        <table id="contentTable" class="table table-striped">
-          <thead class="thead-highlight">
-            <tr>
-              <th class="colUsername"><?php echo translate('Username') ?></th>
-              <th class="colLanguage"><?php echo translate('API Enabled') ?></th>
-
-              <th class="colMark"><?php echo translate('Revoke Token') ?></th>
-              <th class="colMark"><?php echo translate('Disable API') ?></th>
-            </tr>
-          </thead>
-          <tbody>
-<?php
    
-    $sql = 'SELECT * FROM Users ORDER BY Username';
-    foreach( dbFetchAll($sql) as $row ) {
-?>
-            <tr>
-              <td class="colUsername"><?php echo validHtmlStr($row['Username']) ?></td>
-              <td class="colUsername"><?php echo validHtmlStr($row['APIEnabled']) ?></td>
-              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" data-on-click-this="configureDeleteButton"/></td>
-              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" data-on-click-this="configureDeleteButton"/></td>
-            </tr>
-<?php
-    }
-?>
+
+    <form name="userForm" method="post" action="?">
+      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate("Update")?> </button><button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"> <?php echo translate("RevokeAllTokens")?></button><br/>
+      
+      <?php
+      function revokeAllTokens()
+      {
+        $minTokenTime = time();
+        dbQuery ('UPDATE Users SET TokenMinExpiry=?', array ($minTokenTime));
+        echo "All Tokens Revoked";
+      }
+
+      function updateSelected()
+      {
+        dbQuery("UPDATE Users SET APIEnabled=0");
+        foreach( $_REQUEST["tokenUids"] as $markUid ) {
+          $minTime = time();
+        // echo "UPDATE Users SET TokenMinExpiry=".$minTime." WHERE Id=".$markUid."<br/>";
+          dbQuery('UPDATE Users SET TokenMinExpiry=? WHERE Id=?', array($minTime, $markUid));
+        }
+        foreach( $_REQUEST["apiUids"] as $markUid ) {
+          dbQuery('UPDATE Users SET APIEnabled=1 WHERE Id=?', array($markUid));
+        //  echo "UPDATE Users SET APIEnabled=1"." WHERE Id=".$markUid."<br/>";
+        }
+        echo "Updated.";
+      }
+
+      if(array_key_exists('revokeAllTokens',$_POST)){
+        revokeAllTokens();
+      }
+
+      if(array_key_exists('updateSelected',$_POST)){
+        updateSelected();
+      }
+    ?>
+      
+      
+      <br/><br/>
+      <input type="hidden" name="view" value="<?php echo $view ?>"/>
+      <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+      <input type="hidden" name="action" value="delete"/>
+      <table id="contentTable" class="table table-striped">
+        <thead class="thead-highlight">
+          <tr>
+            <th class="colUsername"><?php echo translate('Username') ?></th>
+            <th class="colMark"><?php echo translate('Revoke Token') ?></th>
+            <th class="colMark"><?php echo translate('API Enabled') ?></th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php
+          
+            $sql = 'SELECT * FROM Users ORDER BY Username';
+            foreach( dbFetchAll($sql) as $row ) {
+        ?>
+                <tr>
+                  <td class="colUsername"><?php echo $row['Id']." ".validHtmlStr($row['Username']) ?></td>
+                  <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $row['Id'] ?>" /></td>
+                  <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $row['Id']?>"  <?php echo $row['APIEnabled']?'checked':''?> /></td>
+                </tr>
+    <?php
+        }
+    ?>
           </tbody>
         </table>
       </form>
 
+<?php
+  } // if tab == option
+?>
 
         <div id="contentButtons">
           <button type="submit" value="Save"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>

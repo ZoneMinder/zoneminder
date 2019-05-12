@@ -311,8 +311,88 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
           <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
-<?php
-} else {
+
+  <?php
+  } else if ($tab == 'API') {
+
+    $apiEnabled = dbFetchOne("SELECT Value FROM Config WHERE Name='ZM_OPT_USE_API'");
+    if (!$apiEnabled) {
+      echo "<div class='errorText'>APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>";
+    }
+    else {
+  ?>
+
+    <form name="userForm" method="post" action="?">
+      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate("Update")?> </button><button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"> <?php echo translate("RevokeAllTokens")?></button><br/>
+      
+      <?php
+      function revokeAllTokens()
+      {
+        $minTokenTime = time();
+        dbQuery ('UPDATE Users SET TokenMinExpiry=?', array ($minTokenTime));
+        echo "All Tokens Revoked";
+      }
+
+      function updateSelected()
+      {
+        dbQuery("UPDATE Users SET APIEnabled=0");
+        foreach( $_REQUEST["tokenUids"] as $markUid ) {
+          $minTime = time();
+        // echo "UPDATE Users SET TokenMinExpiry=".$minTime." WHERE Id=".$markUid."<br/>";
+          dbQuery('UPDATE Users SET TokenMinExpiry=? WHERE Id=?', array($minTime, $markUid));
+        }
+        foreach( $_REQUEST["apiUids"] as $markUid ) {
+          dbQuery('UPDATE Users SET APIEnabled=1 WHERE Id=?', array($markUid));
+        //  echo "UPDATE Users SET APIEnabled=1"." WHERE Id=".$markUid."<br/>";
+        }
+        echo "Updated.";
+      }
+
+      if(array_key_exists('revokeAllTokens',$_POST)){
+        revokeAllTokens();
+      }
+
+      if(array_key_exists('updateSelected',$_POST)){
+        updateSelected();
+      }
+    ?>
+      
+      
+      <br/><br/>
+      <input type="hidden" name="view" value="<?php echo $view ?>"/>
+      <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+      <input type="hidden" name="action" value="delete"/>
+      <table id="contentTable" class="table table-striped">
+        <thead class="thead-highlight">
+          <tr>
+            <th class="colUsername"><?php echo translate('Username') ?></th>
+            <th class="colMark"><?php echo translate('Revoke Token') ?></th>
+            <th class="colMark"><?php echo translate('API Enabled') ?></th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php
+          
+            $sql = 'SELECT * FROM Users ORDER BY Username';
+            foreach( dbFetchAll($sql) as $row ) {
+        ?>
+                <tr>
+                  <td class="colUsername"><?php echo $row['Id']." ".validHtmlStr($row['Username']) ?></td>
+                  <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $row['Id'] ?>" /></td>
+                  <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $row['Id']?>"  <?php echo $row['APIEnabled']?'checked':''?> /></td>
+                </tr>
+    <?php
+        }
+    ?>
+          </tbody>
+        </table>
+      </form>
+
+
+<?php 
+    } // API enabled
+  }  // $tab == API
+  else { 
     $config = array();
     $configCat = array();
     $configCats = array();
@@ -424,82 +504,6 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
             </div><!-- End .form-group -->
 <?php
     }
-?>
-
-<?php
-  if ($tab == 'API') {
-?>
-
-   
-
-    <form name="userForm" method="post" action="?">
-      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate("Update")?> </button><button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"> <?php echo translate("RevokeAllTokens")?></button><br/>
-      
-      <?php
-      function revokeAllTokens()
-      {
-        $minTokenTime = time();
-        dbQuery ('UPDATE Users SET TokenMinExpiry=?', array ($minTokenTime));
-        echo "All Tokens Revoked";
-      }
-
-      function updateSelected()
-      {
-        dbQuery("UPDATE Users SET APIEnabled=0");
-        foreach( $_REQUEST["tokenUids"] as $markUid ) {
-          $minTime = time();
-        // echo "UPDATE Users SET TokenMinExpiry=".$minTime." WHERE Id=".$markUid."<br/>";
-          dbQuery('UPDATE Users SET TokenMinExpiry=? WHERE Id=?', array($minTime, $markUid));
-        }
-        foreach( $_REQUEST["apiUids"] as $markUid ) {
-          dbQuery('UPDATE Users SET APIEnabled=1 WHERE Id=?', array($markUid));
-        //  echo "UPDATE Users SET APIEnabled=1"." WHERE Id=".$markUid."<br/>";
-        }
-        echo "Updated.";
-      }
-
-      if(array_key_exists('revokeAllTokens',$_POST)){
-        revokeAllTokens();
-      }
-
-      if(array_key_exists('updateSelected',$_POST)){
-        updateSelected();
-      }
-    ?>
-      
-      
-      <br/><br/>
-      <input type="hidden" name="view" value="<?php echo $view ?>"/>
-      <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-      <input type="hidden" name="action" value="delete"/>
-      <table id="contentTable" class="table table-striped">
-        <thead class="thead-highlight">
-          <tr>
-            <th class="colUsername"><?php echo translate('Username') ?></th>
-            <th class="colMark"><?php echo translate('Revoke Token') ?></th>
-            <th class="colMark"><?php echo translate('API Enabled') ?></th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php
-          
-            $sql = 'SELECT * FROM Users ORDER BY Username';
-            foreach( dbFetchAll($sql) as $row ) {
-        ?>
-                <tr>
-                  <td class="colUsername"><?php echo $row['Id']." ".validHtmlStr($row['Username']) ?></td>
-                  <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $row['Id'] ?>" /></td>
-                  <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $row['Id']?>"  <?php echo $row['APIEnabled']?'checked':''?> /></td>
-                </tr>
-    <?php
-        }
-    ?>
-          </tbody>
-        </table>
-      </form>
-
-<?php
-  } // if tab == option
 ?>
 
         <div id="contentButtons">

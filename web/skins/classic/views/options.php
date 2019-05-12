@@ -316,7 +316,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
   } else if ($tab == 'API') {
 
     $apiEnabled = dbFetchOne("SELECT Value FROM Config WHERE Name='ZM_OPT_USE_API'");
-    if (!$apiEnabled) {
+    if ($apiEnabled['Value']!='1') {
       echo "<div class='errorText'>APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>";
     }
     else {

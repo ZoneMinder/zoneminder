@@ -52,17 +52,6 @@ class HostController extends AppController {
       $cred = $this->_getCredentials(false); // don't generate refresh
     }
 
-    $this->set(array(
-      'credentials' => $cred[0],
-      'append_password'=>$cred[1],
-      'version' => $ver[0],
-      'apiversion' => $ver[1],
-      '_serialize' => array('credentials',
-                            'append_password',
-                            'version',
-                            'apiversion'
-      )));
-
     $login_array = array (
       'access_token'=>$cred[0],
       'access_token_expires'=>$cred[1]

@@ -2811,7 +2811,7 @@ our @options = (
     default     => 'javascript',
     description => 'What method windows should use to refresh themselves',
     help        => q`
-      Many windows in Javascript need to refresh themselves to keep
+      Many windows in ZoneMinder need to refresh themselves to keep
       their information current. This option determines what method
       they should use to do this. Choosing 'javascript' means that
       each window will have a short JavaScript statement in with a

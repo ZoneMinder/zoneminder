@@ -312,6 +312,7 @@ if ( $migrateEvents ) {
 if ( $freshen ) {
   print( "\nFreshening configuration in database\n" );
   migratePaths();
+  migratePasswords();
   ZoneMinder::Config::loadConfigFromDB();
   ZoneMinder::Config::saveConfigToDB();
 }
@@ -997,6 +998,20 @@ sub patchDB {
   }
   print( "\nDatabase successfully upgraded to version $version.\n" );
 
+}
+
+sub migratePasswords {
+  
+    print ("****** MIGRATION");
+    my $sql = "select * from Users";
+    my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
+    my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
+    while( my $user = $sth->fetchrow_hashref() ) {
+      my $scheme = substr $user->{Password}, 0, 1;
+     if ($scheme eq "*") {
+       print ("*********** HOLY GODZILLA ".$user->{Username}. " uses PASSWORD");
+     }
+    }
 }
 
 sub migratePaths {

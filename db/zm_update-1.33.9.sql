@@ -1,0 +1,3 @@
+ALTER TABLE `Users`
+ADD  COLUMN `TokenMinExpiry`  BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER `MonitorIds`,
+ADD COLUMN `APIEnabled`  tinyint(3) UNSIGNED NOT NULL default 1 AFTER `TokenMinExpiry`;

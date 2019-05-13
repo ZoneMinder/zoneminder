@@ -131,20 +131,31 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
       $password_type = 'mysql';
       
     }
-    else {
-      // bcrypt can have multiple signatures
-      if (preg_match('/^\$2[ayb]\$.+$/', $saved_password)) {
+    elseif (preg_match('/^\$2[ayb]\$.+$/', $saved_password)) {
+      ZM\Logger::Debug('bcrypt signature found, assumed bcrypt password');
+      $password_type='bcrypt';
+      $password_correct = $passwordHashed? ($password == $saved_password) : password_verify($password, $saved_password);
+    }
+    // zmupdate.pl adds a '-ZM-' prefix to overlay encrypted passwords
+    // this is done so that we don't spend cycles doing two bcrypt password_verify calls
+    // for every wrong password entered. This will only be invoked for passwords zmupdate.pl has
+    // overlay hashed
+    elseif (substr($saved_password, 0,4) == '-ZM-') {
+      ZM\Logger::Debug("Detected bcrypt overlay hashing for $username");
+      ZM\Info("Detected bcrypt overlay hashing for $username");
+      $bcrypt_hash = substr ($saved_password, 4);
+      $mysql_encoded_password ='*'.strtoupper(sha1(sha1($password, true)));
+      ZM\Logger::Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
+      ZM\Info("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
+      $password_correct = password_verify($mysql_encoded_password, $bcrypt_hash);
+      $password_type = "mysql"; // so we can migrate later down
 
-        ZM\Logger::Debug ('bcrypt signature found, assumed bcrypt password');
-        $password_type='bcrypt';
-        $password_correct = $passwordHashed? ($password == $saved_password) : password_verify($password, $saved_password);
-      }
-      else {
+    }
+    else {
         // we really should nag the user not to use plain
         ZM\Warning ('assuming plain text password as signature is not known. Please do not use plain, it is very insecure');
         $password_type = 'plain';
         $password_correct = ($saved_password == $password);
-      }
       
     }
   } else {
@@ -165,7 +176,7 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
     ZM\Info("Login successful for user \"$username\"");
     $user = $saved_user_details;
     if ($password_type == 'mysql') {
-      ZM\Info ('Migrating password, if possible for future logins');
+      ZM\Info('Migrating password, if possible for future logins');
       migrateHash($username, $password);
     }
     unset($_SESSION['loginFailed']);

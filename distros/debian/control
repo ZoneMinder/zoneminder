@@ -26,7 +26,7 @@ Build-Depends: debhelper (>= 9), cmake
     , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
     , libsys-cpu-perl, libsys-meminfo-perl
     , libdata-uuid-perl
-    , libssl-dev,libdigest-bcrypt-perl 
+    , libdigest-bcrypt-perl, libdata-entropy-perl
 Standards-Version: 3.9.4
 
 Package: zoneminder
@@ -52,7 +52,9 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , zip
     , libvlccore5 | libvlccore7 | libvlccore8, libvlc5
     , libpolkit-gobject-1-0, php5-gd
-    , libssl,libdigest-bcrypt-perl 
+    , libssl
+    ,libdigest-bcrypt-perl, libdata-entropy-perl
+
 Recommends: mysql-server | mariadb-server
 Description: Video camera security and surveillance solution
  ZoneMinder is intended for use in single or multi-camera video security 

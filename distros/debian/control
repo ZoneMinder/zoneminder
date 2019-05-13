@@ -26,6 +26,7 @@ Build-Depends: debhelper (>= 9), cmake
     , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
     , libsys-cpu-perl, libsys-meminfo-perl
     , libdata-uuid-perl
+    , libssl-dev
     , libdigest-bcrypt-perl, libdata-entropy-perl
 Standards-Version: 3.9.4
 

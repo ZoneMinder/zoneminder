@@ -911,7 +911,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     video_last_pts = ipkt->pts;
   } else {
     Debug(3, "opkt.pts = undef");
-    opkt.pts = 0;
+    opkt.pts = AV_NOPTS_VALUE;
+// can't set 0, it will get rejected
     //AV_NOPTS_VALUE;
   }
   // Just because the in stream wraps, doesn't mean the out needs to.
@@ -943,7 +944,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     }
   } else {
     Debug(3, "opkt.dts = undef");
-    opkt.dts = 0;
+    opkt.dts = video_out_stream->cur_dts;
+    //opkt.dts = 0;
   }
 
 # if 0
@@ -1009,8 +1011,9 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       //av_frame_unref(in_frame);
       return 0;
     }
-    zm_dump_frame(out_frame, "Out frame after resample");
 
+    out_frame->pts = in_frame->pts;
+    zm_dump_frame(out_frame, "Out frame after resample");
     // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
     if ( out_frame->pts != AV_NOPTS_VALUE ) {
       if ( !audio_first_pts ) {
@@ -1019,6 +1022,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
         out_frame->pts = 0;
       } else {
         out_frame->pts = out_frame->pts - audio_first_pts;
+        zm_dump_frame(out_frame, "Out frame after pts adjustment");
       }
       //
     } else {
@@ -1039,14 +1043,12 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     if ( (ret = avcodec_receive_packet(audio_out_ctx, &opkt)) < 0 ) {
       if ( AVERROR(EAGAIN) == ret ) {
         // The codec may need more samples than it has, perfectly valid
-        Debug(3, "Could not recieve packet (error '%s')",
-              av_make_error_string(ret).c_str());
+        Debug(2, "Codec not ready to give us a packet");
       } else {
         Error("Could not recieve packet (error %d = '%s')", ret,
               av_make_error_string(ret).c_str());
       }
       zm_av_packet_unref(&opkt);
-      // av_frame_unref( out_frame );
       return 0;
     }
   #else

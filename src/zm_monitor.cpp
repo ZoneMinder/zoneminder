@@ -1432,118 +1432,120 @@ bool Monitor::Analyse() {
           shared_data->active = signal;
         } // end if signal change
 
-        if ( (!signal_change && signal) && n_linked_monitors > 0 ) {
-          bool first_link = true;
-          Event::StringSet noteSet;
-          for ( int i = 0; i < n_linked_monitors; i++ ) {
-            // TODO: Shouldn't we try to connect?
-            if ( linked_monitors[i]->isConnected() ) {
-              if ( linked_monitors[i]->hasAlarmed() ) {
-                if ( !event ) {
-                  if ( first_link ) {
-                    if ( cause.length() )
-                      cause += ", ";
-                    cause += LINKED_CAUSE;
-                    first_link = false;
+        if ( (!signal_change) && signal) {
+          if ( n_linked_monitors > 0 ) {
+            bool first_link = true;
+            Event::StringSet noteSet;
+            for ( int i = 0; i < n_linked_monitors; i++ ) {
+              // TODO: Shouldn't we try to connect?
+              if ( linked_monitors[i]->isConnected() ) {
+                if ( linked_monitors[i]->hasAlarmed() ) {
+                  if ( !event ) {
+                    if ( first_link ) {
+                      if ( cause.length() )
+                        cause += ", ";
+                      cause += LINKED_CAUSE;
+                      first_link = false;
+                    }
                   }
-                }
-                noteSet.insert(linked_monitors[i]->Name());
-                score += 50;
-              }
-            } else {
-              linked_monitors[i]->connect();
-            }
-          }
-          if ( noteSet.size() > 0 )
-            noteSetMap[LINKED_CAUSE] = noteSet;
-        }
-
-        //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
-        if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
-          if ( event ) {
-            Debug(3, "Have signal and recording with open event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
-
-            if ( section_length
-                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                && ( ! ( timestamp->tv_sec % section_length ) ) 
-                ) {
-              Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
-                  name, image_count, event->Id(),
-                  timestamp->tv_sec, video_store_data->recording.tv_sec, 
-                  timestamp->tv_sec - video_store_data->recording.tv_sec,
-                  section_length
-                  );
-              closeEvent();
-            } // end if section_length
-          } // end if event
-
-          if ( ! event ) {
-
-            // Create event
-            event = new Event(this, *timestamp, "Continuous", noteSetMap, videoRecording);
-            shared_data->last_event = event->Id();
-            //set up video store data
-            snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-            video_store_data->recording = event->StartTime();
-
-            Info("%s: %03d - Opening new event %" PRIu64 ", section start", name, image_count, event->Id());
-
-            /* To prevent cancelling out an existing alert\prealarm\alarm state */
-            if ( state == IDLE ) {
-              shared_data->state = state = TAPE;
-            }
-
-            //if ( config.overlap_timed_events )
-            if ( false ) {
-              int pre_index;
-              int pre_event_images = pre_event_count;
-
-              if ( analysis_fps ) {
-                // If analysis fps is set,
-                // compute the index for pre event images in the dedicated buffer
-                pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
-
-                // Seek forward the next filled slot in to the buffer (oldest data)
-                // from the current position
-                while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
-                  pre_index = (pre_index + 1)%pre_event_buffer_count;
-                  // Slot is empty, removing image from counter
-                  pre_event_images--;
+                  noteSet.insert(linked_monitors[i]->Name());
+                  score += 50;
                 }
               } else {
-                // If analysis fps is not set (analysis performed at capturing framerate),
-                // compute the index for pre event images in the capturing buffer
-                pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
+                linked_monitors[i]->connect();
+              }
+            } // end foreach linked_monit
+            if ( noteSet.size() > 0 )
+              noteSetMap[LINKED_CAUSE] = noteSet;
+          } // end if linked_monitors 
 
-                // Seek forward the next filled slot in to the buffer (oldest data)
-                // from the current position
-                while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec ) {
-                  pre_index = (pre_index + 1)%image_buffer_count;
-                  // Slot is empty, removing image from counter
-                  pre_event_images--;
-                }
+          //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
+          if ( function == RECORD || function == MOCORD ) {
+            if ( event ) {
+              Debug(3, "Have signal and recording with open event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
+
+              if ( section_length
+                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                  && ( ! ( timestamp->tv_sec % section_length ) ) 
+                 ) {
+                Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
+                    name, image_count, event->Id(),
+                    timestamp->tv_sec, video_store_data->recording.tv_sec, 
+                    timestamp->tv_sec - video_store_data->recording.tv_sec,
+                    section_length
+                    );
+                closeEvent();
+              } // end if section_length
+            } // end if event
+
+            if ( ! event ) {
+
+              // Create event
+              event = new Event(this, *timestamp, "Continuous", noteSetMap, videoRecording);
+              shared_data->last_event = event->Id();
+              //set up video store data
+              snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+              video_store_data->recording = event->StartTime();
+
+              Info("%s: %03d - Opening new event %" PRIu64 ", section start", name, image_count, event->Id());
+
+              /* To prevent cancelling out an existing alert\prealarm\alarm state */
+              if ( state == IDLE ) {
+                shared_data->state = state = TAPE;
               }
 
-              if ( pre_event_images ) {
+              //if ( config.overlap_timed_events )
+              if ( false ) {
+                int pre_index;
+                int pre_event_images = pre_event_count;
+
                 if ( analysis_fps ) {
-                  for ( int i = 0; i < pre_event_images; i++ ) {
-                    timestamps[i] = pre_event_buffer[pre_index].timestamp;
-                    images[i] = pre_event_buffer[pre_index].image;
+                  // If analysis fps is set,
+                  // compute the index for pre event images in the dedicated buffer
+                  pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
+
+                  // Seek forward the next filled slot in to the buffer (oldest data)
+                  // from the current position
+                  while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
                     pre_index = (pre_index + 1)%pre_event_buffer_count;
+                    // Slot is empty, removing image from counter
+                    pre_event_images--;
                   }
                 } else {
-                  for ( int i = 0; i < pre_event_images; i++ ) {
-                    timestamps[i] = image_buffer[pre_index].timestamp;
-                    images[i] = image_buffer[pre_index].image;
+                  // If analysis fps is not set (analysis performed at capturing framerate),
+                  // compute the index for pre event images in the capturing buffer
+                  pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
+
+                  // Seek forward the next filled slot in to the buffer (oldest data)
+                  // from the current position
+                  while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec ) {
                     pre_index = (pre_index + 1)%image_buffer_count;
+                    // Slot is empty, removing image from counter
+                    pre_event_images--;
                   }
                 }
 
-                event->AddFrames( pre_event_images, images, timestamps );
-              }
-            } // end if false or config.overlap_timed_events
-          } // end if ! event
-        } // end if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
+                if ( pre_event_images ) {
+                  if ( analysis_fps ) {
+                    for ( int i = 0; i < pre_event_images; i++ ) {
+                      timestamps[i] = pre_event_buffer[pre_index].timestamp;
+                      images[i] = pre_event_buffer[pre_index].image;
+                      pre_index = (pre_index + 1)%pre_event_buffer_count;
+                    }
+                  } else {
+                    for ( int i = 0; i < pre_event_images; i++ ) {
+                      timestamps[i] = image_buffer[pre_index].timestamp;
+                      images[i] = image_buffer[pre_index].image;
+                      pre_index = (pre_index + 1)%image_buffer_count;
+                    }
+                  }
+
+                  event->AddFrames( pre_event_images, images, timestamps );
+                }
+              } // end if false or config.overlap_timed_events
+            } // end if ! event
+          } // end if function == RECORD || function == MOCORD)
+        } // end if !signal_change && signal
 
         if ( score ) {
           if ( state == IDLE || state == TAPE || state == PREALARM ) {

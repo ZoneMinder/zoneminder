@@ -197,8 +197,8 @@ our @options = (
     name        => 'ZM_BANDWIDTH_DEFAULT',
     default     => 'high',
     description => 'Default setting for bandwidth profile used by web interface',
-    help        => q`The classic skin for ZoneMinder has different 
-      profiles to use for low medium or high bandwidth connections.
+    help        => q`The classic skin for ZoneMinder has different
+      profiles to use for low, medium, or high bandwidth connections.
       `,
     type        => $types{string},
     category    => 'system',
@@ -547,7 +547,7 @@ our @options = (
       higher quality setting than the ordinary file setting. If set
       to a lower value then it is ignored. Thus leaving it at the
       default of 0 effectively means to use the regular file quality
-      setting for all saved images. This is to prevent acccidentally
+      setting for all saved images. This is to prevent accidentally
       saving important images at a worse quality setting.
       `,
     type        => $types{integer},
@@ -671,7 +671,7 @@ our @options = (
       Internet Explorer that don't natively support this format. If
       you use this browser it is highly recommended to install this
       from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
-      However, if it is not installed still images at a lower refresh rate can 
+      However, if it is not installed still images at a lower refresh rate can
       still be viewed.
       `,
     type        => $types{boolean},
@@ -926,10 +926,10 @@ our @options = (
     help        =>  q`
     Due to browsers only wanting to open 6 connections, if you have more
     than 6 monitors, you can have trouble viewing more than 6.  This setting
-    specified the beginning of a port range that will be used to contact ZM 
+    specified the beginning of a port range that will be used to contact ZM
     on.  Each monitor will use this value plus the Monitor Id to stream
-    content.  So a value of 2000 here will cause a stream for Monitor 1 to 
-    hit port 2001.  Please ensure that you configure apache appropriately 
+    content.  So a value of 2000 here will cause a stream for Monitor 1 to
+    hit port 2001.  Please ensure that you configure apache appropriately
     to respond on these ports.`,
     type  =>  $types{integer},
     category  => 'network',
@@ -1065,12 +1065,12 @@ our @options = (
     default     => '0',
     description => 'Save logging output to the system log',
     help        => q`
-      ZoneMinder logging is now more more integrated between
+      ZoneMinder logging is now more integrated between
       components and allows you to specify the destination for
       logging output and the individual levels for each. This option
       lets you control the level of logging output that goes to the
       system log. ZoneMinder binaries have always logged to the
-      system log but now scripts and web logging is also included. To
+      system log but script and web logging is now included. To
       preserve the previous behaviour you should ensure this value is
       set to Info or Warning. This option controls the maximum level
       of logging that will be written, so Info includes Warnings and
@@ -1092,7 +1092,7 @@ our @options = (
     default     => '-5',
     description => 'Save logging output to component files',
     help        => q`
-      ZoneMinder logging is now more more integrated between
+      ZoneMinder logging is now more integrated between
       components and allows you to specify the destination for
       logging output and the individual levels for each. This option
       lets you control the level of logging output that goes to
@@ -1122,7 +1122,7 @@ our @options = (
     default     => '-5',
     description => 'Save logging output to the weblog',
     help        => q`
-      ZoneMinder logging is now more more integrated between
+      ZoneMinder logging is now more integrated between
       components and allows you to specify the destination for
       logging output and the individual levels for each. This option
       lets you control the level of logging output from the web
@@ -1149,7 +1149,7 @@ our @options = (
     default     => '0',
     description => 'Save logging output to the database',
     help        => q`
-      ZoneMinder logging is now more more integrated between
+      ZoneMinder logging is now more integrated between
       components and allows you to specify the destination for
       logging output and the individual levels for each. This option
       lets you control the level of logging output that is written to
@@ -1204,7 +1204,7 @@ our @options = (
     help        => q`
        When enabled (default is on), this option will log FFMPEG messages.
        FFMPEG messages can be useful when debugging streaming issues. However,
-       depending on your distro and FFMPEG version, this may also result in 
+       depending on your distro and FFMPEG version, this may also result in
        more logs than you'd typically like to see. If all your streams are working
        well, you may choose to turn this off.
       `,
@@ -1219,7 +1219,7 @@ our @options = (
       ZoneMinder components usually support debug logging available
       to help with diagnosing problems. Binary components have
       several levels of debug whereas more other components have only
-      one. Normally this is disabled to minimise performance
+      one. Normally this is disabled to minimize performance
       penalties and avoid filling logs too quickly. This option lets
       you switch on other options that allow you to configure
       additional debug information to be output. Components will pick

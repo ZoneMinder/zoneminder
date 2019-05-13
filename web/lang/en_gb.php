@@ -768,7 +768,7 @@ $SLANG = array(
     'Update'                => 'Update',
     'Upload'                => 'Upload',
     'Updated'               => 'Updated',
-    'UsedPlugins'	   => 'Used Plugins',
+    'UsedPlugins'	        => 'Used Plugins',
     'UseFilterExprsPost'    => '&nbsp;filter&nbsp;expressions', // This is used at the end of the phrase 'use N filter expressions'
     'UseFilterExprsPre'     => 'Use&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'
     'UseFilter'             => 'Use Filter',
@@ -969,10 +969,10 @@ $OLANG = array(
 	),
     'OPTIONS_RTSPTrans' => array(
 		'Help' => "This sets the RTSP Transport Protocol for FFmpeg.~~ ".
-                    "TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~".
-                    "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
-                    "UDP Multicast - Use UDP Multicast as transport protocol~~".
-                    "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
+                  "TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~".
+                  "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
+                  "UDP Multicast - Use UDP Multicast as transport protocol~~".
+                  "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
 	),
 	'OPTIONS_LIBVLC' => array(
 		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
@@ -994,7 +994,7 @@ $OLANG = array(
 		          "Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping, ".
 		          "and missed events~~".
 		          "For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the".
-                          " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
+                  " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
 		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~".
 		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
 		          "for new images. In this case, it is safe to use the field."

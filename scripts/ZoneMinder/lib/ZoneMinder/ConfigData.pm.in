@@ -1480,8 +1480,8 @@ our @options = (
     default     => 'ZoneMinder',
     description => 'The title displayed wherever the site references itself.',
     help        => q`
-    If you want the site to identify as something other than ZoneMinder, change this here.
-    It can be used to more accurately identify this installation from others.
+      If you want the site to identify as something other than ZoneMinder, change this here.
+      It can be used to more accurately identify this installation from others.
       `,
     type        => $types{string},
     category    => 'web',
@@ -1504,8 +1504,8 @@ our @options = (
     default     => 'http://zoneminder.com',
     description => 'The url used in the home/logo area of the navigation bar.',
     help        => q`
-    By default this takes you to the zoneminder.com website,
-    but perhaps you would prefer it to take you somewhere else.
+      By default this takes you to the zoneminder.com website,
+      but perhaps you would prefer it to take you somewhere else.
       `,
     type        => $types{string},
     category    => 'web',
@@ -1515,7 +1515,7 @@ our @options = (
     default     => 'ZoneMinder',
     description => 'The content of the home button.',
     help        => q`
-    You may wish to set this to empty if you are using css to put a background image on it.
+      You may wish to set this to empty if you are using css to put a background image on it.
       `,
     type        => $types{string},
     category    => 'web',
@@ -1538,7 +1538,8 @@ our @options = (
     name        => 'ZM_WEB_EVENT_DISK_SPACE',
     default     => 'no',
     description => 'Whether to show disk space used by each event.',
-    help        => q`Adds another column to the listing of events
+    help        => q`
+      Adds another column to the listing of events
       showing the disk space used by the event.  This will impart a small
       overhead as it will call du on the event directory.  In practice
       this overhead is fairly small but may be noticeable on IO-constrained
@@ -1555,7 +1556,7 @@ our @options = (
       Traditionally the main ZoneMinder web console window has
       resized itself to shrink to a size small enough to list only
       the monitors that are actually present. This is intended to
-      make the window more unobtrusize but may not be to everyones
+      make the window more unobtrusize but may not be to everyone's
       tastes, especially if opened in a tab in browsers which support
       this kind if layout. Switch this option off to have the console
       window size left to the users preference
@@ -2105,7 +2106,7 @@ our @options = (
       a remote ftp server. This option indicates that ftp transfers
       should be done in passive mode. This uses a single connection
       for all ftp activity and, whilst slower than active transfers,
-      is more robust and likely to work from behind filewalls. This
+      is more robust and likely to work from behind firewalls. This
       option is ignored for SFTP transfers.
       `,
     requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
@@ -2631,7 +2632,7 @@ our @options = (
     help        => q`
       As event images are captured they are stored to the filesystem
       with a numerical index. By default this index has three digits
-      so the numbers start 001, 002 etc. This works works for most
+      so the numbers start 001, 002 etc. This works for most
       scenarios as events with more than 999 frames are rarely
       captured. However if you have extremely long events and use
       external applications then you may wish to increase this to
@@ -2728,7 +2729,7 @@ our @options = (
       it to the ZoneMinder development team. This data will be used to
       determine things like who and where our customers are, how big their
       systems are, the underlying hardware and operating system, etc.
-      This is being done for the sole purpoase of creating a better
+      This is being done for the sole purpose of creating a better
       product for our target audience. This script is intended to be
       completely transparent to the end user, and can be disabled from
       the web console under Options. For more details on what information

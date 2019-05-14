@@ -386,6 +386,14 @@ if ( ZM_OPT_USE_AUTH ) {
   } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
     userLogin($_REQUEST['username'], $_REQUEST['password'], false);
   }
+
+  if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['token']) ) {
+
+    $ret = validateToken($_REQUEST['token'], 'access');
+    $user = $ret[0];
+  }
+
+
   if ( !empty($user) ) {
     // generate it once here, while session is open.  Value will be cached in session and return when called later on
     generateAuthHash(ZM_AUTH_HASH_IPS);

@@ -389,7 +389,7 @@ $orientations = array(
     '90' => translate('RotateRight'),
     '180' => translate('Inverted'),
     '270' => translate('RotateLeft'),
-    'horz' => translate('FlippedHori'),
+    'hori' => translate('FlippedHori'),
     'vert' => translate('FlippedVert')
     );
 

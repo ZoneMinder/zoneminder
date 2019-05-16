@@ -56,6 +56,7 @@ behind.
 #include "zm_db.h"
 #include "zm_signal.h"
 #include "zm_monitor.h"
+#include "zm_fifo.h"
 
 void Usage() {
   fprintf(stderr, "zma -m <monitor_id>\n");
@@ -129,6 +130,7 @@ int main( int argc, char *argv[] ) {
   hwcaps_detect();
 
   Monitor *monitor = Monitor::Load(id, true, Monitor::ANALYSIS);
+  zmFifoDbgInit( monitor );  
 
   if ( monitor ) {
     Info("In mode %d/%d, warming up", monitor->GetFunction(), monitor->Enabled());

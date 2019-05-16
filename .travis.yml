@@ -33,7 +33,6 @@ install:
 
 env:
   - SMPFLAGS=-j4 OS=el DIST=7
-  - SMPFLAGS=-j4 OS=fedora DIST=27 DOCKER_REPO=knnniggett/packpack
   - SMPFLAGS=-j4 OS=fedora DIST=28 DOCKER_REPO=knnniggett/packpack
   - SMPFLAGS=-j4 OS=fedora DIST=29 DOCKER_REPO=knnniggett/packpack
   - SMPFLAGS=-j4 OS=ubuntu DIST=trusty

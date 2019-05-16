@@ -24,6 +24,7 @@
 #include "zm_zone.h"
 #include "zm_image.h"
 #include "zm_monitor.h"
+#include "zm_fifo.h"
 
 
 void Zone::Setup( 
@@ -112,8 +113,10 @@ void Zone::Setup(
   }
 
   if ( config.record_diag_images ) {
-    snprintf(diag_path, sizeof(diag_path), "%s/diag-%d-poly.jpg", monitor->getStorage()->Path(), id);
-    pg_image->WriteJpeg(diag_path);
+    snprintf(diag_path, sizeof(diag_path), config.record_diag_images_fifo ? "%s/diagpipe-%d-poly.jpg" : "%s/diag-%d-poly.jpg", monitor->getStorage()->Path(), id);
+    if (config.record_diag_images_fifo)
+    	FifoStream::fifo_create_if_missing(diag_path);
+    pg_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
   } else {
 		diag_path[0] = 0;
 	}
@@ -232,13 +235,17 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
 
   if ( config.record_diag_images )
-    diff_image->WriteJpeg(diag_path);
+    diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
 
   if ( pixel_diff_count && alarm_pixels )
     pixel_diff = pixel_diff_count/alarm_pixels;
 
   Debug(5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d",
       alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff);
+
+  if (config.record_diag_images_fifo)
+  	FifoDebug( 5, "{\"zone\":%d,\"type\":\"ALRM\",\"pixels\":%d,\"avg_diff\":%d}", id,alarm_pixels, pixel_diff );
+
 
   if ( alarm_pixels ) {
     if ( min_alarm_pixels && (alarm_pixels < (unsigned int)min_alarm_pixels) ) {
@@ -316,10 +323,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     }
 
     if ( config.record_diag_images )
-      diff_image->WriteJpeg(diag_path);
+      diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
 
     Debug(5, "Got %d filtered pixels, need %d -> %d",
         alarm_filter_pixels, min_filter_pixels, max_filter_pixels);
+
+    if (config.record_diag_images_fifo)
+      FifoDebug( 5, "{\"zone\":%d,\"type\":\"FILT\",\"pixels\":%d}", id, alarm_filter_pixels );
 
     if ( alarm_filter_pixels ) {
       if ( min_filter_pixels && (alarm_filter_pixels < min_filter_pixels) ) {
@@ -542,7 +552,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         }
       }
       if ( config.record_diag_images )
-        diff_image->WriteJpeg(diag_path);
+        diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
 
       if ( !alarm_blobs ) {
         return false;
@@ -550,6 +560,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
       Debug(5, "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d",
 					alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
+
+      if (config.record_diag_images_fifo)
+        FifoDebug( 5, "{\"zone\":%d,\"type\":\"RBLB\",\"pixels\":%d,\"blobs\":%d}", id, alarm_blob_pixels, alarm_blobs );
 
       // Now eliminate blobs under the threshold
       for ( int i = 1; i < WHITE; i++ ) {
@@ -587,10 +600,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         } // end if bs_count
       } // end for i < WHITE
       if ( config.record_diag_images )
-        diff_image->WriteJpeg(diag_path);
+        diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
 
       Debug(5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d",
 					alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
+      if (config.record_diag_images_fifo)
+        FifoDebug( 5, "{\"zone\":%d,\"type\":\"FBLB\",\"pixels\":%d,\"blobs\":%d}", id, alarm_blob_pixels, alarm_blobs );
 
       if ( alarm_blobs ) {
         if ( min_blobs && (alarm_blobs < min_blobs) ) {

@@ -27,7 +27,7 @@ Build-Depends: debhelper (>= 9), cmake
     , libsys-cpu-perl, libsys-meminfo-perl
     , libdata-uuid-perl
     , libssl-dev
-    , libdigest-bcrypt-perl, libdata-entropy-perl
+    , libcrypt-eksblowfish-perl, libdata-entropy-perl
 Standards-Version: 3.9.4
 
 Package: zoneminder
@@ -54,7 +54,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libvlccore5 | libvlccore7 | libvlccore8, libvlc5
     , libpolkit-gobject-1-0, php5-gd
     , libssl
-    ,libdigest-bcrypt-perl, libdata-entropy-perl
+    ,libcrypt-eksblowfish-perl, libdata-entropy-perl
 
 Recommends: mysql-server | mariadb-server
 Description: Video camera security and surveillance solution

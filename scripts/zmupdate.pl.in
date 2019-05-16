@@ -51,7 +51,7 @@ configuring upgrades etc, including on the fly upgrades.
 use strict;
 use bytes;
 use version;
-use Digest;
+use Crypt::Eksblowfish::Bcrypt;
 use Data::Entropy::Algorithms qw(rand_bits);
 
 # ==========================================================================
@@ -1011,11 +1011,10 @@ sub migratePasswords {
       my $scheme = substr($user->{Password}, 0, 1);
      if ($scheme eq "*") {
        print ("-->".$user->{Username}. " password will be migrated\n");
-       my $bcrypt = Digest->new('Bcrypt', cost=>10, salt=>rand_bits(16*8));
-       my $settings = $bcrypt->settings(); 
-       my $pass_hash = $bcrypt->add($user->{Password})->bcrypt_b64digest;
-       #print ("--- New pass overlay ----".$pass_hash);
-       my $new_pass_hash =  "-ZM-".$settings.$pass_hash;
+       my $salt = Crypt::Eksblowfish::Bcrypt::en_base64(rand_bits(16*8));
+       my $settings = '$2a$10$'.$salt;
+       my $pass_hash = Crypt::Eksblowfish::Bcrypt::bcrypt($user->{Password},$settings);
+       my $new_pass_hash =  "-ZM-".$pass_hash;
        $sql = "UPDATE Users SET PASSWORD=? WHERE Username=?";
        my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
        my $res = $sth->execute($new_pass_hash, $user->{Username}) or die( "Can't execute: ".$sth->errstr() );

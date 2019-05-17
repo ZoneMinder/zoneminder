@@ -31,7 +31,8 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libwww-perl
               ,libdata-uuid-perl
               ,libssl-dev
-              ,libcrypt-eksblowfish-perl, libdata-entropy-perl
+              ,libcrypt-eksblowfish-perl
+              ,libdata-entropy-perl
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -79,7 +80,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,zip
         ,libpcre3
         ,libssl
-        ,libcrypt-eksblowfish-perl, libdata-entropy-perl
+        ,libcrypt-eksblowfish-perl
+        ,libdata-entropy-perl
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
            ,mysql-server | mariadb-server | virtual-mysql-server

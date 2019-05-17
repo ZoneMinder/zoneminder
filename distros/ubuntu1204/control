@@ -65,11 +65,11 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
-        ,libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+        ,libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl
+        ,libio-socket-multicast-perl, libdigest-sha-perl
         ,libsys-cpu-perl, libsys-meminfo-perl
         ,libssl
         ,libcrypt-eksblowfish-perl, libdata-entropy-perl
-
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | php5-fpm
            ,mysql-server | virtual-mysql-server

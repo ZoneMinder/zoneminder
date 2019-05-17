@@ -102,6 +102,7 @@ $SLANG = array(
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
     'Alert'                 => 'Alert',
     'All'                   => 'All',
+    'AllTokensRevoked'       =>  'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
      'API'                  =>  'API',

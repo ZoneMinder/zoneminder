@@ -330,7 +330,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
       {
         $minTokenTime = time();
         dbQuery ('UPDATE Users SET TokenMinExpiry=?', array ($minTokenTime));
-        echo "All Tokens Revoked";
+        echo "<span class='timedSuccessBox'>translate('AllTokensRevoked')</span>";
       }
 
       function updateSelected()
@@ -338,14 +338,13 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         dbQuery("UPDATE Users SET APIEnabled=0");
         foreach( $_REQUEST["tokenUids"] as $markUid ) {
           $minTime = time();
-        // echo "UPDATE Users SET TokenMinExpiry=".$minTime." WHERE Id=".$markUid."<br/>";
           dbQuery('UPDATE Users SET TokenMinExpiry=? WHERE Id=?', array($minTime, $markUid));
         }
         foreach( $_REQUEST["apiUids"] as $markUid ) {
           dbQuery('UPDATE Users SET APIEnabled=1 WHERE Id=?', array($markUid));
-        //  echo "UPDATE Users SET APIEnabled=1"." WHERE Id=".$markUid."<br/>";
+      
         }
-        echo "Updated";
+        echo "<span class='timedSuccessBox'>translate('Updated')</span>;
       }
 
       if(array_key_exists('revokeAllTokens',$_POST)){

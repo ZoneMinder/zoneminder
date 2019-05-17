@@ -75,6 +75,7 @@ if ( $action == 'delete' ) {
     case 'config' :
       $restartWarning = true;
       break;
+    case 'API':
     case 'web' :
     case 'tools' :
       break;

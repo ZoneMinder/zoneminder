@@ -85,7 +85,7 @@ Or for API 2.0:
 Using these keys with subsequent requests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once you have the keys (a.k.a credentials (v1.0, v2.0) or token (v2.0)) you should now supply that credential to subsequent API calls like this:
+Once you have the keys (a.k.a credentials (v1.0, v2.0) or token (v2.0)) you should now supply that key to subsequent API calls like this:
 
 ::
 
@@ -108,7 +108,7 @@ Once you have the keys (a.k.a credentials (v1.0, v2.0) or token (v2.0)) you shou
 Key lifetime (v1.0)
 ^^^^^^^^^^^^^^^^^^^^^
 
-If you are using the old ``auth_hash`` mechanism present in v1.0, then the credentials will time out based on PHP session timeout. This is often confusing and sometime causes additional issues due to the fact that the old method also includes timestamps in its hash.
+If you are using the old credentials mechanism present in v1.0, then the credentials will time out based on PHP session timeout (if you are using cookies), or the value of ``AUTH_HASH_TTL`` which defaults to 2 hours.  Note that there is no way to look at the hash and decipher how much time is remaining. So it is your responsibility to record the time you got the hash and assume it was generated at the time you got it and re-login before that time expires.
 
 Key lifetime (v2.0)
 ^^^^^^^^^^^^^^^^^^^^^^

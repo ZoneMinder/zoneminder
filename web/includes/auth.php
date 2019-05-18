@@ -244,7 +244,7 @@ function validateToken ($token, $allowed_token_type='access') {
     $minIssuedAt = $saved_user_details['TokenMinExpiry'];
 
     if ($issuedAt < $minIssuedAt) {
-      ZM\Error ("Token revoked for $username. Please generate a new token");
+      ZM\Error ("Token revoked for \"$username\". Please generate a new token");
       $_SESSION['loginFailed'] = true;
       unset($user);
       return array(false, "Token revoked. Please re-generate");
@@ -253,7 +253,7 @@ function validateToken ($token, $allowed_token_type='access') {
     $user = $saved_user_details;
     return array($user, "OK");
   } else {
-    ZM\Error ("Could not retrieve user $username details");
+    ZM\Error ("Could not retrieve user \"$username\" details");
     $_SESSION['loginFailed'] = true;
     unset($user);
     return array(false, "No such user/credentials");

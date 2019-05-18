@@ -69,7 +69,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl
         ,libio-socket-multicast-perl, libdigest-sha-perl
         ,libsys-cpu-perl, libsys-meminfo-perl
-        ,libssl
+        ,libssl | libssl1.0.0
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
 Recommends: ${misc:Recommends}

@@ -49,7 +49,7 @@ class HostController extends AppController {
       $cred = $this->_getCredentials(true); // generate refresh
     }
     else {
-      $cred = $this->_getCredentials(false); // don't generate refresh
+      $cred = $this->_getCredentials(false, $mToken); // don't generate refresh
     }
 
     $login_array = array (
@@ -114,7 +114,7 @@ class HostController extends AppController {
     }
   }
   
-  private function _getCredentials($generate_refresh_token=false) {
+  private function _getCredentials($generate_refresh_token=false, $mToken='') {
     $credentials = '';
     $this->loadModel('Config');
 
@@ -126,6 +126,17 @@ class HostController extends AppController {
       if (!$key) {
         throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));
       }
+
+      if ($mToken) {
+        // If we have a token, we need to derive username from there
+        $ret = validateToken($mToken, 'refresh');
+        $mUser = $ret[0]['Username'];
+
+      } else {
+        $mUser = $_SESSION['username'];
+      }
+
+      ZM\Info("Creating token for \"$mUser\"");
 
       /* we won't support AUTH_HASH_IPS in token mode
         reasons: 
@@ -149,7 +160,7 @@ class HostController extends AppController {
           "iss" => "ZoneMinder",
           "iat" => $access_issued_at,
           "exp" => $access_expire_at,
-          "user" => $_SESSION['username'],
+          "user" => $mUser,
           "type" => "access"
       );
     
@@ -167,7 +178,7 @@ class HostController extends AppController {
             "iss" => "ZoneMinder",
             "iat" => $refresh_issued_at,
             "exp" => $refresh_expire_at,
-            "user" => $_SESSION['username'],
+            "user" => $mUser,
             "type" => "refresh"  
         );
         $jwt_refresh_token = \Firebase\JWT\JWT::encode($refresh_token, $key, 'HS256');

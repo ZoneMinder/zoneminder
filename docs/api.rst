@@ -40,14 +40,14 @@ For v2.0 APIs, you have an additional option right below it - ``OPT_USE_LEGACY_A
 Enabling secret key
 ^^^^^^^^^^^^^^^^^^^
 
-* It is important that you create a "Secret Key". This needs to be a set of hard to guess characters, that only you know. ZoneMinder does not create a key for you. It is your responsibility to create it. If you haven't created one already, please do so by going to ``Options->Systems`` and populating ``AUTH_HASH_SECRET``. Don't forget to save.
+* It is **important** that you create a "Secret Key". This needs to be a set of hard to guess characters, that only you know. ZoneMinder does not create a key for you. It is your responsibility to create it. If you haven't created one already, please do so by going to ``Options->Systems`` and populating ``AUTH_HASH_SECRET``. Don't forget to save.
 * If you plan on using V2.0 token based security, **it is mandatory to populate this secret key**, as it is used to sign the token. If you don't, token authentication will fail. V1.0 did not mandate this requirement.
 
 
-Getting API key
+Getting an API key
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-To get API key:
+To get an API key:
 
 ::
 
@@ -91,29 +91,34 @@ Once you have the keys (a.k.a credentials (v1.0, v2.0) or token (v2.0)) you shou
 
   # RECOMMENDED: v2.0 token based 
     curl -XPOST   https://yourserver/zm/api/monitors.json&token=<access_token>
-    # or
+
+  # or
 
   # v1.0 or 2.0 based API access (will only work if AUTH_HASH_LOGINS is enabled)
   curl -XPOST -d "auth=<hex digits from 'credentials'>"   https://yourserver/zm/api/monitors.json
+
   # or 
+
   curl -XGET   https://yourserver/zm/api/monitors.json&auth=<hex digits from 'credentials'>
+
   # or, if you specified -c cookies.txt in the original login request
+
   curl -b cookies.txt -XGET   https://yourserver/zm/api/monitors.json
 
 
 .. NOTE::
-	ZoneMinder's API layer allows API keys to be encoded either as a querty parameter or as a data payload. If you don't pass keys, you could use cookies (not recommended as a general approach)
+	ZoneMinder's API layer allows API keys to be encoded either as a query parameter or as a data payload. If you don't pass keys, you could use cookies (not recommended as a general approach)
 
 
 Key lifetime (v1.0)
 ^^^^^^^^^^^^^^^^^^^^^
 
-If you are using the old credentials mechanism present in v1.0, then the credentials will time out based on PHP session timeout (if you are using cookies), or the value of ``AUTH_HASH_TTL`` which defaults to 2 hours.  Note that there is no way to look at the hash and decipher how much time is remaining. So it is your responsibility to record the time you got the hash and assume it was generated at the time you got it and re-login before that time expires.
+If you are using the old credentials mechanism present in v1.0, then the credentials will time out based on PHP session timeout (if you are using cookies), or the value of ``AUTH_HASH_TTL`` (if you are using ``auth=`` and have enabled ``AUTH_HASH_LOGINS``) which defaults to 2 hours.  Note that there is no way to look at the hash and decipher how much time is remaining. So it is your responsibility to record the time you got the hash and assume it was generated at the time you got it and re-login before that time expires.
 
 Key lifetime (v2.0)
 ^^^^^^^^^^^^^^^^^^^^^^
 
-In version 2.0, it is very easy to know when a key will expire. You can find that out from the ``access_token_expires`` and ``refresh_token_exipres`` values (in seconds). You should refresh the keys before the timeout occurs, or you will not be able to use the APIs. 
+In version 2.0, it is easy to know when a key will expire before you use it. You can find that out from the ``access_token_expires`` and ``refresh_token_exipres`` values (in seconds) after you decode the JWT key (there are JWT decode libraries for every language you want). You should refresh the keys before the timeout occurs, or you will not be able to use the APIs. 
 
 Understanding access/refresh tokens (v2.0)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -128,7 +133,7 @@ If you are using V2.0, then you need to know how to use these tokens effectively
 **To Summarize:**
 
 * Pass your ``username`` and ``password`` to ``login.json`` only once in 24 hours to renew your tokens
-* Pass your "refresh token" to ``login.json`` once an hour to renew your ``access token``
+* Pass your "refresh token" to ``login.json`` once in two hours (or whatever you have set the value of ``AUTH_HASH_TTL`` to) to renew your ``access token``
 * Use your ``access token`` for all API invocations.
 
 In fact, V2.0 will reject your request (if it is not to ``login.json``) if it comes with a refresh token instead of an access token to discourage usage of this token when it should not be used.
@@ -138,7 +143,7 @@ This minimizes the amount of sensitive data that is sent over the wire and the l
 Understanding key security
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Version 1.0 uses an MD5 hash to generate the credentials. The hash is computed over your secret key (if avaiable), username, password and some time parameters (along with remote IP if enabled). This is not a secure/recommended hashing mechanism. If your auth hash is compromised, an attacker will be able to use your hash till it expires. To avoid this, you could disable the user in ZoneMinder.
+* Version 1.0 uses an MD5 hash to generate the credentials. The hash is computed over your secret key (if available), username, password and some time parameters (along with remote IP if enabled). This is not a secure/recommended hashing mechanism. If your auth hash is compromised, an attacker will be able to use your hash till it expires. To avoid this, you could disable the user in ZoneMinder. Furthermore, enabling remote IP (``AUTH_HASH_REMOTE_IP``) requires that you issue future requests from the same IP that generated the tokens. While this may be considered an additional layer for security, this can cause issues with mobile devices.
 
 * Version 2.0 uses a different approach. The hash is a simple base64 encoded form of "claims", but signed with your secret key. Consider for example, the following access key:
 
@@ -160,10 +165,10 @@ If you were to use any `JWT token verifier <https://jwt.io>`__ it can easily dec
   Invalid Signature
 
 
-Don't be surprised. JWT tokens are not meant to be encrypted. It is just an assertion of a claim. It states that the issuer of this token was ZoneMinder,
+Don't be surprised. JWT tokens, by default, are `not meant to be encrypted <https://softwareengineering.stackexchange.com/questions/280257/json-web-token-why-is-the-payload-public>`__. It is just an assertion of a claim. It states that the issuer of this token was ZoneMinder,
 It was issued at (iat) Wednesday, 2019-05-15 17:19:12 UTC and will expire on (exp) Wednesday, 2019-05-15 18:19:12 UTC. This token claims to be owned by an admin and is an access token. If your token were to be stolen, this information is available to the person who stole it. Note that there are no sensitive details like passwords in this claim.
 
-However, that person will **not** have your secret key as part of this token and therefore, will NOT be able to create a new JWT token to get, say, a refresh token. They will however, be able to use your access token to access resources just like the auth hash above, till the access token expires (1hr). To revoke this token, you don't need to disable the user. Go to ``Options->API`` and tap on "Revoke All Access Tokens". This will invalidate the token immediately (this option will invalidate all tokens for all users, and new ones will need to be generated).
+However, that person will **not** have your secret key as part of this token and therefore, will NOT be able to create a new JWT token to get, say, a refresh token. They will however, be able to use your access token to access resources just like the auth hash above, till the access token expires (2 hrs). To revoke this token, you don't need to disable the user. Go to ``Options->API`` and tap on "Revoke All Access Tokens". This will invalidate the token immediately (this option will invalidate all tokens for all users, and new ones will need to be generated).
 
 Over time, we will provide you with more fine grained access to these options.
 
@@ -175,105 +180,12 @@ Over time, we will provide you with more fine grained access to these options.
 * If you believe your tokens are compromised, revoke them, but also check if your attacker has compromised more than you think (example, they may also have your username/password or access to your system via other exploits, in which case they can regenerate as many tokens/credentials as they want).
 
 
-
 .. NOTE::
 	Subsequent sections don't explicitly callout the key addition to APIs. We assume that you will append the correct keys as per our explanation above.
 
 
-
-Logout APIs
-^^^^^^^^^^^^^^
-The APIs tie into ZoneMinder's existing security model. This means if you have
-OPT_AUTH enabled, you need to log into ZoneMinder using the same browser you plan to 
-use the APIs from. If you are developing an app that relies on the API, you need 
-to do a POST login from the app into ZoneMinder before you can access the API.
-
-Then, you need to re-use the authentication information of the login (returned as cookie states)
-with subsequent APIs for the authentication information to flow through to the APIs.
-
-This means if you plan to use cuRL to experiment with these APIs, you first need to login:
-
-**Login process for ZoneMinder v1.32.0 and above**
-
-::
-
-    curl -XPOST -d "user=XXXX&pass=YYYY" -c cookies.txt  http://yourzmip/zm/api/host/login.json
-
-Staring ZM 1.32.0, you also have a `logout` API that basically clears your session. It looks like this:
-
-::
-
-    curl -b cookies.txt  http://yourzmip/zm/api/host/logout.json
-
-
-**Login process for older versions of ZoneMinder**
-
-::
-
-    curl -d "username=XXXX&password=YYYY&action=login&view=console" -c cookies.txt  http://yourzmip/zm/index.php
-
-The equivalent logout process for older versions of ZoneMinder is:
-
-::
-
-    curl -XPOST -d "username=XXXX&password=YYYY&action=logout&view=console" -b cookies.txt  http://yourzmip/zm/index.php
-
-replacing *XXXX* and *YYYY* with your username and password, respectively.
-
-Please make sure you do this in a directory where you have write permissions, otherwise cookies.txt will not be created
-and the command will silently  fail.
-
-
-What the "-c cookies.txt" does is store a cookie state reflecting that you have logged into ZM. You now need
-to apply that cookie state to all subsequent APIs. You do that by using a '-b cookies.txt' to subsequent APIs if you are
-using CuRL like so:
-
-::
-
-    curl -b cookies.txt http://yourzmip/zm/api/monitors.json
-
-This would return a list of monitors and pass on the authentication information to the ZM API layer.
-
-A deeper dive into the login process
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-As you might have seen above, there are two ways to login, one that uses the `login.json` API and the other that logs in using the ZM portal. If you are running ZoneMinder 1.32.0 and above, it is *strongly* recommended you use the `login.json` approach. The "old" approach will still work but is not as powerful as the API based login. Here are the reasons why:
-
- * The "old" approach basically uses the same login webpage (`index.php`) that a user would log into when viewing the ZM console. This is not really using an API and more importantly, if you have additional components like reCAPTCHA enabled, this will not work. Using the API approach is much cleaner and will work irrespective of reCAPTCHA
-
- * The new login API returns important information that you can use to stream videos as well, right after login. Consider for example, a typical response to the login API (`/login.json`):
-
-::
-
-    {
-        "credentials": "auth=f5b9cf48693fe8552503c8ABCD5",
-        "append_password": 0,
-        "version": "1.31.44",
-        "apiversion": "1.0"
-    } 
-
-In this example I have `OPT_AUTH` enabled in ZoneMinder and it returns my credential key. You can then use this key to stream images like so:
-
-::
-
-    <img src="https://server/zm/cgi-bin/nph-zms?monitor=1&auth=<authval>" />
-
-Where `authval` is the credentials returned to start streaming videos.
-
-The `append_password` field will contain 1 when it is necessary for you to append your ZM password. This is the case when you set `AUTH_RELAY` in ZM options to "plain", for example. In that case, the `credentials` field may contain something like `&user=admin&pass=` and you have to add your password to that string.
-
-
-.. NOTE:: It is recommended you invoke the `login` API once every 60 minutes to make sure the session stays alive. The same is true if you use the old login method too.
-
-
-
-Examples (please read security notice above)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Please remember, if you are using authentication, please add a ``-b cookies.txt``  to each of the commands below if you are using
-CuRL. If you are not using CuRL and writing your own app, you need to make sure you pass on cookies to subsequent requests
-in your app.
-
+Examples 
+^^^^^^^^^
 
 (In all examples, replace 'server' with IP or hostname & port where ZoneMinder is running)
 
@@ -500,6 +412,15 @@ This returns number of events per monitor that were recorded in the last day whe
 
 
 
+Return sorted events
+^^^^^^^^^^^^^^^^^^^^^^
+
+This returns a list of events within a time range and also sorts it by descending order
+
+::
+
+  curl -XGET "http://server/zm/api/events/index/StartTime%20>=:2015-05-15%2018:43:56/EndTime%20<=:208:43:56.json?sort=StartTime&direction=desc"
+
 
 Configuration Apis
 ^^^^^^^^^^^^^^^^^^^
@@ -674,6 +595,9 @@ Returns:
 
 This only works if you have a multiserver setup in place. If you don't it will return an empty array.
 
+Other APIs
+^^^^^^^^^^
+This is not a complete list. ZM supports more parameters/APIs. A good way to dive in is to look at the `API code <https://github.com/ZoneMinder/zoneminder/tree/master/web/api/app/Controller>`__ directly. 
 
 Streaming Interface
 ^^^^^^^^^^^^^^^^^^^
@@ -690,9 +614,13 @@ For example:
 
 ::
 
+    <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&width=640p&height=480px&mode=jpeg&maxfps=5&buffer=1000&&monitor=1&token=eW<deleted>03&connkey=36139" />
+
+    # or 
+
     <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&width=640p&height=480px&mode=jpeg&maxfps=5&buffer=1000&&monitor=1&auth=b5<deleted>03&connkey=36139" />
-    #or 
-     <img src="https://yourserver/zm/cgi-bin/nph-zms?scale=50&width=640p&height=480px&mode=jpeg&maxfps=5&buffer=1000&&monitor=1&token=eW<deleted>03&connkey=36139" />
+    
+
 
 
 will display a live feed from monitor id 1, scaled down by 50% in quality and resized to 640x480px. 
@@ -728,9 +656,12 @@ Similar to live playback, if you have chosen to store events in JPEG mode, you c
 
 ::
 
-    <img src="https://yourserver/zm/cgi-bin/nph-zms?mode=jpeg&frame=1&replay=none&source=event&event=293820&connkey=77493&auth=b5<deleted>" />
-    #or
     <img src="https://yourserver/zm/cgi-bin/nph-zms?mode=jpeg&frame=1&replay=none&source=event&event=293820&connkey=77493&token=ew<deleted>" />
+
+    # or 
+
+    <img src="https://yourserver/zm/cgi-bin/nph-zms?mode=jpeg&frame=1&replay=none&source=event&event=293820&connkey=77493&auth=b5<deleted>" />
+
 
 
 * This assumes ``/zm/cgi-bin`` is your CGI_BIN path. Change it to what is correct in your system
@@ -741,12 +672,16 @@ Similar to live playback, if you have chosen to store events in JPEG mode, you c
 If instead, you have chosen to use the MP4 (Video) storage mode for events, you can directly play back the saved video file:
 
 ::
+
    
-    <video src="https://yourserver/zm/index.php?view=view_video&eid=294690&auth=33<deleted>" type="video/mp4"></video>
-    #or
     <video src="https://yourserver/zm/index.php?view=view_video&eid=294690&token=eW<deleted>" type="video/mp4"></video>
 
-* This will play back the video recording for event 294690
+    # or 
+
+    <video src="https://yourserver/zm/index.php?view=view_video&eid=294690&auth=33<deleted>" type="video/mp4"></video>
+   
+
+This above will play back the video recording for event 294690
 
 What other parameters are supported?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -757,6 +692,7 @@ are generated. Change and observe.
 
 Further Reading
 ^^^^^^^^^^^^^^^^
+
 As described earlier, treat this document as an "introduction" to the important parts of the API and streaming interfaces.
 There are several details that haven't yet been documented. Till they are, here are some resources:
 

@@ -376,7 +376,7 @@ if ( ZM_OPT_USE_AUTH ) {
     userLogin($_REQUEST['username'], $_REQUEST['password'], false);
   }
 
-  if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['token']) ) {
+  if (empty($user) && !empty($_REQUEST['token']) ) {
 
     $ret = validateToken($_REQUEST['token'], 'access');
     $user = $ret[0];

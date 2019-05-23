@@ -685,6 +685,8 @@ sub substituteTags {
         my $path = generateImage($Event, $first_alarm_frame);
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+        } else {
+          Warning("Path to first image does not exist at $path");
         }
       }
 
@@ -697,18 +699,20 @@ sub substituteTags {
           if ( -e $path ) {
             push @$attachments_ref, { type=>'image/jpeg', path=>$path };
           } else {
-            Warning("No image for EIM");
+            Warning("No image for EIM at $path");
           }
         }
       }
+
       if ( $text =~ s/%EI1A%//g ) {
         my $path = generateImage($Event, $first_alarm_frame, 'analyse');
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         } else {
-          Warning("No image for EI1A");
+          Warning("No image for EI1A at $path");
         }
       }
+
       if ( $text =~ s/%EIMA%//g ) {
         # Don't attach the same image twice
         if ( !@$attachments_ref
@@ -718,10 +722,11 @@ sub substituteTags {
           if ( -e $path ) {
             push @$attachments_ref, { type=>'image/jpeg', path=>$path };
           } else {
-            Warning('No image for EIMA');
+            Warning("No image for EIMA at $path");
           }
         }
       }
+
       if ( $text =~ s/%EIMOD%//g ) {
         my $path = $Event->Path().'/objdetect.jpg';
         if ( -e $path ) {

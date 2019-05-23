@@ -31,19 +31,60 @@ class HostController extends AppController {
   }
   
   function login() {
+  
+    $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+    $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+    $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
 
-    $cred = $this->_getCredentials();
+
+    if ( !($mUser && $mPassword) && !$mToken ) {
+      throw new UnauthorizedException(__('No identity provided'));
+    }
+
     $ver = $this->_getVersion();
-    $this->set(array(
-      'credentials' => $cred[0],
-      'append_password'=>$cred[1],
-      'version' => $ver[0],
-      'apiversion' => $ver[1],
-      '_serialize' => array('credentials',
-                            'append_password',
-                            'version',
-                            'apiversion'
-      )));
+    $cred = [];
+    $cred_depr = [];
+
+    if ($mUser && $mPassword) {
+      $cred = $this->_getCredentials(true); // generate refresh
+    }
+    else {
+      $cred = $this->_getCredentials(false, $mToken); // don't generate refresh
+    }
+
+    $login_array = array (
+      'access_token'=>$cred[0],
+      'access_token_expires'=>$cred[1]
+    );
+
+    $login_serialize_list = array (
+      'access_token',
+      'access_token_expires'
+    );
+
+    if ($mUser && $mPassword) {
+      $login_array['refresh_token'] = $cred[2];
+      $login_array['refresh_token_expires'] = $cred[3];
+      array_push ($login_serialize_list, 'refresh_token', 'refresh_token_expires');
+    }
+
+    if (ZM_OPT_USE_LEGACY_API_AUTH) {
+      $cred_depr = $this->_getCredentialsDeprecated();
+      $login_array ['credentials']=$cred_depr[0];
+      $login_array ['append_password']=$cred_depr[1];
+      array_push ($login_serialize_list, 'credentials', 'append_password');
+    }
+
+
+    $login_array['version'] = $ver[0];
+    $login_array['apiversion'] = $ver[1];
+    array_push ($login_serialize_list, 'version', 'apiversion');
+
+    $login_array["_serialize"] = $login_serialize_list;
+
+    $this->set($login_array);
+
+   
   } // end function login()
 
   // clears out session
@@ -56,40 +97,95 @@ class HostController extends AppController {
     ));
 
   } // end function logout()
-  
-  private function _getCredentials() {
+
+  private function _getCredentialsDeprecated() {
     $credentials = '';
     $appendPassword = 0;
-    $this->loadModel('Config');
-    $isZmAuth = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_OPT_USE_AUTH')))['Config']['Value'];
-
-    if ( $isZmAuth ) {
-    // In future, we may want to completely move to AUTH_HASH_LOGINS and return &auth= for all cases
-      require_once __DIR__ .'/../../../includes/auth.php'; # in the event we directly call getCredentials.json
-
-      $zmAuthRelay = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_RELAY')))['Config']['Value'];
-      if ( $zmAuthRelay == 'hashed' ) {
-        $zmAuthHashIps = $this->Config->find('first',array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_IPS')))['Config']['Value'];
-        // make sure auth is regenerated each time we call this API
-        $credentials = 'auth='.generateAuthHash($zmAuthHashIps,true);
-      } else {
-        // user will need to append the store password here
+    if (ZM_OPT_USE_AUTH) {
+      require_once __DIR__ .'/../../../includes/auth.php'; 
+      if (ZM_AUTH_RELAY=='hashed') {
+        $credentials = 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS,true);
+      }
+      else {
         $credentials = 'user='.$this->Session->read('Username').'&pass=';
         $appendPassword = 1;
       }
+      return array($credentials, $appendPassword);
     }
-    return array($credentials, $appendPassword);
-  } // end function _getCredentials
+  }
+  
+  private function _getCredentials($generate_refresh_token=false, $mToken='') {
+    $credentials = '';
+    $this->loadModel('Config');
 
-  function getCredentials() {
-    // ignore debug warnings from other functions
-    $this->view='Json';
-    $val = $this->_getCredentials();
-    $this->set(array(
-      'credentials'=> $val[0],
-      'append_password'=>$val[1],
-      '_serialize'  =>  array('credentials', 'append_password')
-    ) );
+    if ( ZM_OPT_USE_AUTH ) {
+      require_once __DIR__ .'/../../../includes/auth.php'; 
+      require_once __DIR__.'/../../../vendor/autoload.php';
+    
+      $key = ZM_AUTH_HASH_SECRET;
+      if (!$key) {
+        throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));
+      }
+
+      if ($mToken) {
+        // If we have a token, we need to derive username from there
+        $ret = validateToken($mToken, 'refresh');
+        $mUser = $ret[0]['Username'];
+
+      } else {
+        $mUser = $_SESSION['username'];
+      }
+
+      ZM\Info("Creating token for \"$mUser\"");
+
+      /* we won't support AUTH_HASH_IPS in token mode
+        reasons: 
+        a) counter-intuitive for mobile consumers 
+        b) zmu will never be able to to validate via a token if we sign
+           it after appending REMOTE_ADDR
+     
+      if (ZM_AUTH_HASH_IPS) {
+        $key = $key . $_SERVER['REMOTE_ADDR'];
+      }*/
+
+      $access_issued_at   = time();
+      $access_ttl = (ZM_AUTH_HASH_TTL || 2) * 3600; 
+
+      // by default access token will expire in 2 hrs
+      // you can change it by changing the value of ZM_AUTH_HASH_TLL
+      $access_expire_at     = $access_issued_at + $access_ttl;
+      //$access_expire_at = $access_issued_at + 60; // TEST, REMOVE
+  
+      $access_token = array(
+          "iss" => "ZoneMinder",
+          "iat" => $access_issued_at,
+          "exp" => $access_expire_at,
+          "user" => $mUser,
+          "type" => "access"
+      );
+    
+      $jwt_access_token = \Firebase\JWT\JWT::encode($access_token, $key, 'HS256');
+
+      $jwt_refresh_token = "";
+      $refresh_ttl = 0;
+
+      if ($generate_refresh_token) {
+        $refresh_issued_at   = time();
+        $refresh_ttl = 24 * 3600; // 1 day
+  
+        $refresh_expire_at     = $refresh_issued_at + $refresh_ttl;
+        $refresh_token = array(
+            "iss" => "ZoneMinder",
+            "iat" => $refresh_issued_at,
+            "exp" => $refresh_expire_at,
+            "user" => $mUser,
+            "type" => "refresh"  
+        );
+        $jwt_refresh_token = \Firebase\JWT\JWT::encode($refresh_token, $key, 'HS256');
+      }
+     
+    } 
+    return array($jwt_access_token, $access_ttl, $jwt_refresh_token, $refresh_ttl);
   }
 
   // If $mid is set, only return disk usage for that monitor
@@ -169,7 +265,7 @@ class HostController extends AppController {
 
   private function _getVersion() {
     $version = Configure::read('ZM_VERSION');
-    $apiversion = '1.0';
+    $apiversion = '2.0';
     return array($version, $apiversion);
   }
 

@@ -26,24 +26,20 @@ use \Firebase\JWT\JWT;
 // this function migrates mysql hashing to bcrypt, if you are using PHP >= 5.5
 // will be called after successful login, only if mysql hashing is detected
 function migrateHash($user, $pass) {
-  if (function_exists('password_hash')) {
-    ZM\Info ("Migrating $user to bcrypt scheme");
+  if ( function_exists('password_hash') ) {
+    ZM\Info("Migrating $user to bcrypt scheme");
     // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
     // we can modify this later to support argon2 etc as switch to its own password signature detection 
     $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
     //ZM\Info ("hased bcrypt $pass is $bcrypt_hash");
     $update_password_sql = 'UPDATE Users SET Password=\''.$bcrypt_hash.'\' WHERE Username=\''.$user.'\'';
-    ZM\Info ($update_password_sql);
+    ZM\Info($update_password_sql);
     dbQuery($update_password_sql);
-  }
-  else {
-   
-    ZM\Info ('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.3');
+  } else {
+    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.3');
     return;
   }
- 
 }
-
 
 // core function used to login a user to PHP. Is also used for cake sessions for the API
 function userLogin($username='', $password='', $passwordHashed=false, $apiLogin = false) {
@@ -58,7 +54,7 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
   // if true, a popup will display after login
   // lets validate reCaptcha if it exists
   // this only applies if it userLogin was not called from API layer
-  if (!$apiLogin 
+  if ( !$apiLogin
       && defined('ZM_OPT_USE_GOOG_RECAPTCHA')
       && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
       && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
@@ -73,17 +69,17 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
         'remoteip'  => $_SERVER['REMOTE_ADDR']
         );
     $res = do_post_request($url, http_build_query($fields));
-    $responseData = json_decode($res,true);
+    $responseData = json_decode($res, true);
     // credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
     // if recaptcha resulted in error, we might have to deny login
-    if ( isset($responseData['success']) && $responseData['success'] == false ) {
+    if ( isset($responseData['success']) && ($responseData['success'] == false) ) {
       // PP - before we deny auth, let's make sure the error was not 'invalid secret'
       // because that means the user did not configure the secret key correctly
       // in this case, we prefer to let him login in and display a message to correct
       // the key. Unfortunately, there is no way to check for invalid site key in code
       // as it produces the same error as when you don't answer a recaptcha
       if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
-        if ( !in_array('invalid-input-secret',$responseData['error-codes']) ) {
+        if ( !in_array('invalid-input-secret', $responseData['error-codes']) ) {
           Error('reCaptcha authentication failed');
           return null;
         } else {
@@ -102,18 +98,18 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
   // First retrieve the stored password
   // and move password hashing to application space
     
-  $saved_user_details = dbFetchOne ($sql, NULL, $sql_values);
+  $saved_user_details = dbFetchOne($sql, NULL, $sql_values);
   $password_correct = false;
   $password_type = NULL;
     
-  if ($saved_user_details) {
+  if ( $saved_user_details ) {
 
     // if the API layer asked us to login, make sure the user 
     // has API enabled (admin may have banned API for this user)
 
-    if ($apiLogin) {
-      if ($saved_user_details['APIEnabled'] != 1) {
-        ZM\Error ("API disabled for: $username");
+    if ( $apiLogin ) {
+      if ( $saved_user_details['APIEnabled'] != 1 ) {
+        ZM\Error("API disabled for: $username");
         $_SESSION['loginFailed'] = true;
         unset($user);
         return false;
@@ -121,45 +117,39 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
     }
 
     $saved_password = $saved_user_details['Password'];
-    if ($saved_password[0] == '*') {
+    if ( $saved_password[0] == '*' ) {
       // We assume we don't need to support mysql < 4.1
       // Starting MY SQL 4.1, mysql concats a '*' in front of its password hash
       // https://blog.pythian.com/hashing-algorithm-in-mysql-password-2/
-      ZM\Logger::Debug ('Saved password is using MYSQL password function');
-      $input_password_hash ='*'.strtoupper(sha1(sha1($password, true)));
+      ZM\Logger::Debug('Saved password is using MYSQL password function');
+      $input_password_hash = '*'.strtoupper(sha1(sha1($password, true)));
       $password_correct = ($saved_password == $input_password_hash);
       $password_type = 'mysql';
       
-    }
-    elseif (preg_match('/^\$2[ayb]\$.+$/', $saved_password)) {
+    } else if ( preg_match('/^\$2[ayb]\$.+$/', $saved_password) ) {
       ZM\Logger::Debug('bcrypt signature found, assumed bcrypt password');
-      $password_type='bcrypt';
-      $password_correct = $passwordHashed? ($password == $saved_password) : password_verify($password, $saved_password);
+      $password_type = 'bcrypt';
+      $password_correct = $passwordHashed ? ($password == $saved_password) : password_verify($password, $saved_password);
     }
     // zmupdate.pl adds a '-ZM-' prefix to overlay encrypted passwords
     // this is done so that we don't spend cycles doing two bcrypt password_verify calls
     // for every wrong password entered. This will only be invoked for passwords zmupdate.pl has
     // overlay hashed
-    elseif (substr($saved_password, 0,4) == '-ZM-') {
+    else if ( substr($saved_password, 0,4) == '-ZM-' ) {
       ZM\Logger::Debug("Detected bcrypt overlay hashing for $username");
-      ZM\Info("Detected bcrypt overlay hashing for $username");
-      $bcrypt_hash = substr ($saved_password, 4);
-      $mysql_encoded_password ='*'.strtoupper(sha1(sha1($password, true)));
+      $bcrypt_hash = substr($saved_password, 4);
+      $mysql_encoded_password = '*'.strtoupper(sha1(sha1($password, true)));
       ZM\Logger::Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
-      ZM\Info("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
       $password_correct = password_verify($mysql_encoded_password, $bcrypt_hash);
-      $password_type = "mysql"; // so we can migrate later down
-
-    }
-    else {
-        // we really should nag the user not to use plain
-        ZM\Warning ('assuming plain text password as signature is not known. Please do not use plain, it is very insecure');
-        $password_type = 'plain';
-        $password_correct = ($saved_password == $password);
-      
+      $password_type = 'mysql'; // so we can migrate later down
+    } else {
+      // we really should nag the user not to use plain
+      ZM\Warning ('assuming plain text password as signature is not known. Please do not use plain, it is very insecure');
+      $password_type = 'plain';
+      $password_correct = ($saved_password == $password);
     }
   } else {
-    ZM\Error ("Could not retrieve user $username details");
+    ZM\Error("Could not retrieve user $username details");
     $_SESSION['loginFailed'] = true;
     unset($user);
     return false;
@@ -172,10 +162,10 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
   }
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
 
-  if ($password_correct) {
+  if ( $password_correct ) {
     ZM\Info("Login successful for user \"$username\"");
     $user = $saved_user_details;
-    if ($password_type == 'mysql') {
+    if ( $password_type == 'mysql' ) {
       ZM\Info('Migrating password, if possible for future logins');
       migrateHash($username, $password);
     }
@@ -224,42 +214,41 @@ function validateToken ($token, $allowed_token_type='access') {
   $jwt_payload = json_decode(json_encode($decoded_token), true);
 
   $type = $jwt_payload['type'];
-  if ($type != $allowed_token_type) {
-    if ($allowed_token_type == 'access') {
+  if ( $type != $allowed_token_type ) {
+    if ( $allowed_token_type == 'access' ) {
       // give a hint that the user is not doing it right
-      ZM\Error ('Please do not use refresh tokens for this operation');
+      ZM\Error('Please do not use refresh tokens for this operation');
     }
-    return array (false, "Incorrect token type");
+    return array (false, 'Incorrect token type');
   }
 
   $username = $jwt_payload['user'];
   $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username = ?';
   $sql_values = array($username);
 
-  $saved_user_details = dbFetchOne ($sql, NULL, $sql_values);
+  $saved_user_details = dbFetchOne($sql, NULL, $sql_values);
 
-  if ($saved_user_details) {
+  if ( $saved_user_details ) {
 
     $issuedAt =  $jwt_payload['iat'];
     $minIssuedAt = $saved_user_details['TokenMinExpiry'];
 
-    if ($issuedAt < $minIssuedAt) {
-      ZM\Error ("Token revoked for \"$username\". Please generate a new token");
+    if ( $issuedAt < $minIssuedAt ) {
+      ZM\Error("Token revoked for $username. Please generate a new token");
       $_SESSION['loginFailed'] = true;
       unset($user);
-      return array(false, "Token revoked. Please re-generate");
+      return array(false, 'Token revoked. Please re-generate');
     }
 
     $user = $saved_user_details;
-    return array($user, "OK");
+    return array($user, 'OK');
   } else {
-    ZM\Error ("Could not retrieve user \"$username\" details");
+    ZM\Error("Could not retrieve user $username details");
     $_SESSION['loginFailed'] = true;
     unset($user);
-    return array(false, "No such user/credentials");
+    return array(false, 'No such user/credentials');
   }
-
-}
+} // end function validateToken($token, $allowed_token_type='access')
 
 function getAuthUser($auth) {
   if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' && !empty($auth) ) {
@@ -298,8 +287,6 @@ function getAuthUser($auth) {
   ZM\Error("Unable to authenticate user from auth hash '$auth'");
   return false;
 } // end getAuthUser($auth)
-
-
 
 function generateAuthHash($useRemoteAddr, $force=false) {
   if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {

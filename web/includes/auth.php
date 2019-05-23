@@ -35,6 +35,8 @@ function migrateHash($user, $pass) {
     $update_password_sql = 'UPDATE Users SET Password=\''.$bcrypt_hash.'\' WHERE Username=\''.$user.'\'';
     ZM\Info($update_password_sql);
     dbQuery($update_password_sql);
+    # Since password field has changed, existing auth_hash is no longer valid
+    generateAuthHash(ZM_AUTH_HASH_IPS, true);
   } else {
     ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.3');
     return;

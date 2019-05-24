@@ -693,6 +693,7 @@ $SLANG = array(
     'Settings'              => 'Settings',
     'ShowFilterWindow'      => 'Show Filter Window',
     'ShowTimeline'          => 'Show Timeline',
+    'Shutdown'              => 'Shutdown',
     'SignalCheckColour'     => 'Signal Check Colour',
     'SignalCheckPoints'     => 'Signal Check Points',
     'Size'                  => 'Size',

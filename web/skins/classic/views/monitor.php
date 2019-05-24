@@ -552,14 +552,14 @@ echo '<input type="hidden" name="newMonitor[GroupIds][]" value="'.$group_id.'"/>
       <input type="hidden" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>"/>
 <?php
   if ( null !== $monitor->Triggers() ) {
-    foreach( explode( ',', $monitor->Triggers() ) as $newTrigger ) {
+    foreach( explode(',', $monitor->Triggers()) as $newTrigger ) {
 ?>
       <input type="hidden" name="newMonitor[Triggers][]" value="<?php echo validHtmlStr($newTrigger) ?>"/>
 <?php
     }
   }
 }
-if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type()!= 'Local') ) {
+if ( ZM_HAS_V4L && ($tab != 'source' || $monitor->Type() != 'Local') ) {
 ?>
       <input type="hidden" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"/>
       <input type="hidden" name="newMonitor[Channel]" value="<?php echo validHtmlStr($monitor->Channel()) ?>"/>
@@ -701,10 +701,10 @@ switch ( $tab ) {
       echo htmlSelect( 'newMonitor[StorageId]', $storage_areas, $monitor->StorageId() );
 ?>
           </td></tr>
-          <tr><td><?php echo translate('SourceType') ?></td><td><?php echo htmlSelect( "newMonitor[Type]", $sourceTypes, $monitor->Type() ); ?></td></tr>
+          <tr><td><?php echo translate('SourceType') ?></td><td><?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?></td></tr>
           <tr><td><?php echo translate('Function') ?></td><td><select name="newMonitor[Function]">
 <?php
-      foreach ( getEnumValues( 'Monitors', 'Function' ) as $optFunction ) {
+      foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
 ?>
             <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $monitor->Function()) { ?> selected="selected"<?php } ?>><?php echo translate('Fn'.$optFunction) ?></option>
 <?php
@@ -745,11 +745,11 @@ echo htmlOptions(ZM\Group::get_dropdown_options( ), $monitor->GroupIds() );
 ?>
             <tr>
               <td><?php echo translate('MaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
-              <td><input type="text" onclick="document.getElementById('newMonitor[MaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" size="5"/><span id="newMonitor[MaxFPS]" style="color:red"></span></td>
+              <td><input type="text" onclick="$j('#newMonitor[MaxFPS]').innerHTML=' CAUTION: See the help text'" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" size="5"/><span id="newMonitor[MaxFPS]" style="color:red"></span></td>
             </tr>
             <tr>
               <td><?php echo translate('AlarmMaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
-              <td><input type="text" onclick="document.getElementById('newMonitor[AlarmMaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" size="5"/><span id="newMonitor[AlarmMaxFPS]" style="color:red"></span></td>
+              <td><input type="text" onclick="$j('#newMonitor[AlarmMaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" size="5"/><span id="newMonitor[AlarmMaxFPS]" style="color:red"></span></td>
             </tr>
 <?php
       } else {
@@ -1078,7 +1078,7 @@ if ( $monitor->Type() == 'Local' ) {
           </td>
         </tr>
         <tr>
-          <td><?php echo translate('Exif') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_EXIF', 'zmOptionHelp', 'optionhelp', '?' ) ?>) </td>
+          <td><?php echo translate('Exif') ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option=OPTIONS_EXIF', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
           <td><input type="checkbox" name="newMonitor[Exif]" value="1"<?php if ( $monitor->Exif() ) { ?> checked="checked"<?php } ?>/></td>
         </tr>
 <?php
@@ -1095,8 +1095,5 @@ if ( $monitor->Type() == 'Local' ) {
       </form>
     </div>
     </div>
-    <script nonce="<?php echo $cspNonce;?>">
-      $j('.chosen').chosen();
-    </script>
   </body>
 </html>

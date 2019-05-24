@@ -870,6 +870,13 @@ include(Pod2Man)
 ADD_MANPAGE_TARGET()
 
 # Process subdirectories
+
+# build a bcrypt static library
+set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(third_party/bcrypt)
+set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
+
 add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)

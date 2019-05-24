@@ -44,7 +44,7 @@ function migrateHash($user, $pass) {
 }
 
 // core function used to login a user to PHP. Is also used for cake sessions for the API
-function userLogin($username='', $password='', $passwordHashed=false, $apiLogin = false) {
+function userLogin($username='', $password='', $passwordHashed=false, $from_api_layer = false) {
   
   global $user;
 
@@ -56,7 +56,7 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
   // if true, a popup will display after login
   // lets validate reCaptcha if it exists
   // this only applies if it userLogin was not called from API layer
-  if ( !$apiLogin
+  if ( !$from_api_layer
       && defined('ZM_OPT_USE_GOOG_RECAPTCHA')
       && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
       && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
@@ -109,7 +109,7 @@ function userLogin($username='', $password='', $passwordHashed=false, $apiLogin 
     // if the API layer asked us to login, make sure the user 
     // has API enabled (admin may have banned API for this user)
 
-    if ( $apiLogin ) {
+    if ( $from_api_layer ) {
       if ( $saved_user_details['APIEnabled'] != 1 ) {
         ZM\Error("API disabled for: $username");
         $_SESSION['loginFailed'] = true;
@@ -199,7 +199,8 @@ function userLogout() {
 }
 
 
-function validateToken ($token, $allowed_token_type='access') {
+function validateToken ($token, $allowed_token_type='access', $from_api_layer=false) {
+
 
   global $user;
   $key = ZM_AUTH_HASH_SECRET;
@@ -232,6 +233,16 @@ function validateToken ($token, $allowed_token_type='access') {
 
   if ( $saved_user_details ) {
 
+    if ($from_api_layer && $saved_user_details['APIEnabled'] == 0) {
+    // if from_api_layer is true, an additional check will be done
+    // to make sure APIs are enabled for this user. This is a good place
+    // to do it, since we are doing a DB dip here.
+      ZM\Error ("API is disabled for \"$username\"");
+      unset($user);
+      return array(false, 'API is disabled for user');
+
+    }
+
     $issuedAt =  $jwt_payload['iat'];
     $minIssuedAt = $saved_user_details['TokenMinExpiry'];
 
@@ -252,7 +263,7 @@ function validateToken ($token, $allowed_token_type='access') {
   }
 } // end function validateToken($token, $allowed_token_type='access')
 
-function getAuthUser($auth) {
+function getAuthUser($auth, $from_api_layer = false) {
   if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' && !empty($auth) ) {
     $remoteAddr = '';
     if ( ZM_AUTH_HASH_IPS ) {
@@ -273,7 +284,8 @@ function getAuthUser($auth) {
       $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     }
 
-    foreach ( dbFetchAll($sql, NULL, $values) as $user ) {
+    foreach ( dbFetchAll($sql, NULL, $values) as $user ) 
+    {
       $now = time();
       for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= ZM_AUTH_HASH_TTL * 1800 ) { // Try for last two hours
         $time = localtime($now);
@@ -281,7 +293,18 @@ function getAuthUser($auth) {
         $authHash = md5($authKey);
 
         if ( $auth == $authHash ) {
-          return $user;
+          if ($from_api_layer && $user['APIEnabled'] == 0) {
+            // if from_api_layer is true, an additional check will be done
+            // to make sure APIs are enabled for this user. This is a good place
+            // to do it, since we are doing a DB dip here.
+              ZM\Error ("API is disabled for \"".$user['Username']."\"");
+              unset($user);
+              return array(false, 'API is disabled for user');
+        
+            }
+            else {
+              return $user;
+            }
         }
       } // end foreach hour
     } // end foreach user

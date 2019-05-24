@@ -589,6 +589,7 @@ input[type=submit]:hover,
 button:disabled,
 input[type=button]:disabled,
 input[type=submit]:disabled,
+  a.disabled,
 .btn-primary:disabled {
     background-color: #aaaaaa;    
     border-color: #bbbbbb;

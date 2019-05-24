@@ -1483,7 +1483,7 @@ bool Monitor::Analyse() {
               } // end if section_length
             } // end if event
 
-            if ( ! event ) {
+            if ( !event ) {
 
               // Create event
               event = new Event(this, *timestamp, "Continuous", noteSetMap, videoRecording);
@@ -1557,16 +1557,16 @@ bool Monitor::Analyse() {
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
               shared_data->state = state = ALARM;
               // lets construct alarm cause. It will contain cause + names of zones alarmed
-              std::string alarm_cause="";
-              for ( int i=0; i < n_zones; i++) {
-                if (zones[i]->Alarmed()) {
-                    alarm_cause = alarm_cause+ ","+ std::string(zones[i]->Label());
+              std::string alarm_cause = "";
+              for ( int i=0; i < n_zones; i++ ) {
+                if ( zones[i]->Alarmed() ) {
+                    alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
                 }
-            }
-            if (!alarm_cause.empty()) alarm_cause[0]=' ';
-            alarm_cause = cause+alarm_cause;
-            strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-            Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
+              }
+              if ( !alarm_cause.empty() ) alarm_cause[0] = ' ';
+              alarm_cause = cause + alarm_cause;
+              strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;
@@ -1633,7 +1633,7 @@ bool Monitor::Analyse() {
                       pre_index = (pre_index + 1)%image_buffer_count;
                     }
                   }
-                  event->AddFrames( pre_event_images, images, timestamps );
+                  event->AddFrames(pre_event_images, images, timestamps);
                 }
                 if ( alarm_frame_count ) {
                   event->SavePreAlarmFrames();
@@ -1683,17 +1683,16 @@ bool Monitor::Analyse() {
           if ( state == PREALARM || state == ALARM ) {
             if ( config.create_analysis_images ) {
               bool got_anal_image = false;
-              alarm_image.Assign( *snap_image );
-              for( int i = 0; i < n_zones; i++ ) {
+              alarm_image.Assign(*snap_image);
+              for ( int i = 0; i < n_zones; i++ ) {
                 if ( zones[i]->Alarmed() ) {
                   if ( zones[i]->AlarmImage() ) {
                     alarm_image.Overlay(*(zones[i]->AlarmImage()));
                     got_anal_image = true;
                   }
-                  if ( config.record_event_stats && state == ALARM ) {
+                  if ( config.record_event_stats && (state == ALARM) )
                     zones[i]->RecordStats(event);
-                  }
-                }
+                } // end if zone is alarmed
               } // end foreach zone
 
               if ( got_anal_image ) {
@@ -1708,18 +1707,20 @@ bool Monitor::Analyse() {
                   event->AddFrame(snap_image, *timestamp, score);
               }
             } else {
-              for ( int i = 0; i < n_zones; i++ ) {
-                if ( zones[i]->Alarmed() ) {
-                  if ( config.record_event_stats && state == ALARM ) {
-                    zones[i]->RecordStats(event);
-                  }
-                }
-              }
-              if ( state == PREALARM )
+              // Not doing alarm frame storage
+              if ( state == PREALARM ) {
                 Event::AddPreAlarmFrame(snap_image, *timestamp, score);
-              else
+              } else {
                 event->AddFrame(snap_image, *timestamp, score);
-            }
+                if ( config.record_event_stats ) {
+                  for ( int i = 0; i < n_zones; i++ ) {
+                    if ( zones[i]->Alarmed() )
+                      zones[i]->RecordStats(event);
+                  }
+                } // end if  config.record_event_stats
+              }
+            } // end if config.create_analysis_images 
+
             if ( event ) {
               if ( noteSetMap.size() > 0 )
                 event->updateNotes(noteSetMap);

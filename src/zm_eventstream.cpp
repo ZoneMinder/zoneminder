@@ -800,7 +800,7 @@ void EventStream::runStream() {
       // commands may set send_frame to true
       while ( checkCommandQueue() && !zm_terminate ) {
         // The idea is to loop here processing all commands before proceeding.
-      Debug(1, "Have command queue");
+        Debug(1, "Have command queue");
       }
       Debug(1, "Done command queue");
 
@@ -903,16 +903,18 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
     if ( !paused ) {
       // +/- 1? What if we are skipping frames?
       curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;
+      // sending the frame may have taken some time, so reload now
+      gettimeofday(&now, NULL);
+      uint64_t now_usec = (now.tv_sec * 1000000 + now.tv_usec);
 
       if ( (mode == MODE_SINGLE) && ((unsigned int)curr_frame_id == event_data->frame_count) ) {
         Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
         curr_frame_id = 1;
+        // Have to reset start_usec to now when replaying
+        start_usec = now_usec;
       }
       frame_data = &event_data->frames[curr_frame_id-1];
 
-      // sending the frame may have taken some time, so reload now
-      gettimeofday(&now, NULL);
-      uint64_t now_usec = (now.tv_sec * 1000000 + now.tv_usec);
       // frame_data->delta is the time since last frame as a float in seconds
       // but what if we are skipping frames? We need the distance from the last frame sent
       // Also, what about reverse? needs to be absolute value

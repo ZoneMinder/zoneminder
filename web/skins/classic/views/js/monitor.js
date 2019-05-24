@@ -73,6 +73,7 @@ function initPage() {
       return false;
     }
   });
+  $j('.chosen').chosen();
 } // end function initPage()
 
 window.addEventListener('DOMContentLoaded', initPage);

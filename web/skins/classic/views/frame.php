@@ -35,7 +35,7 @@ $Monitor = $Event->Monitor();
 if ( !empty($fid) ) {
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
   if ( !($frame = dbFetchOne( $sql, NULL, array($eid, $fid) )) )
-    $frame = array( 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
+    $frame = array( 'EventId'=>$eid, 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0 );
 } else {
   $frame = dbFetchOne('SELECT * FROM Frames WHERE EventId = ? AND Score = ?', NULL, array($eid, $Event->MaxScore()));
 }
@@ -44,8 +44,8 @@ $Frame = new ZM\Frame($frame);
 $maxFid = $Event->Frames();
 
 $firstFid = 1;
-$prevFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId = ? AND FrameId < ?', 'FrameId', array($eid, $fid) );
-$nextFid = dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId = ? AND FrameId > ?', 'FrameId', array($eid, $fid) );
+$prevFid = $fid-1;
+$nextFid = $fid+1;
 $lastFid = $maxFid;
 
 $alarmFrame = $Frame->Type() == 'Alarm';

@@ -44,8 +44,8 @@ $Frame = new ZM\Frame($frame);
 $maxFid = $Event->Frames();
 
 $firstFid = 1;
-$prevFid = $Frame->FrameId()-1;
-$nextFid = $Frame->FrameId()+1;
+$prevFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId = ? AND FrameId < ?', 'FrameId', array($eid, $fid) );
+$nextFid = dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId = ? AND FrameId > ?', 'FrameId', array($eid, $fid) );
 $lastFid = $maxFid;
 
 $alarmFrame = $Frame->Type() == 'Alarm';
@@ -108,16 +108,14 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
 <?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
 
       </p>
-      <p id="controls">
-<?php if ( $Frame->FrameId() > 1 ) { ?>
-        <a class="btn-primary" id="firstLink" href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $firstFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('First') ?></a>
-        <a class="btn-primary" id="prevLink" href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $prevFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('Prev') ?></a>
 <?php
-      }
-      if ( $Frame->FrameId() < $maxFid ) { ?>
-        <a class="btn-primary" id="nextLink" href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $nextFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('Next') ?></a>
-        <a class="btn-primary" id="lastLink" href="?view=frame&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $lastFid ?>&amp;scale=<?php echo $scale ?>&amp;show=<?php echo $show ?>"><?php echo translate('Last') ?></a>
-<?php } ?>
+  $frame_url_base = '?view=frame&amp;eid='.$Event->Id().'&amp;scale='.$scale.'&amp;show='.$show.'&fid=';
+?>
+      <p id="controls">
+        <a id="firstLink" <?php echo (( $Frame->FrameId() > 1 ) ? 'href="'.$frame_url_base.$firstFid.'" class="btn-primary"' : 'class="btn-primary disabled"') ?>><?php echo translate('First') ?></a>
+        <a id="prevLink" <?php echo ( $Frame->FrameId() > 1 ) ? 'href="'.$frame_url_base.$prevFid.'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Prev') ?></a>
+        <a id="nextLink" <?php echo ( $Frame->FrameId() < $maxFid ) ? 'href="'.$frame_url_base.$nextFid.'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Next') ?></a>
+        <a id="lastLink" <?php echo ( $Frame->FrameId() < $maxFid ) ? 'href="'.$frame_url_base.$lastFid .'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Last') ?></a>
       </p>
 <?php if (file_exists ($dImagePath)) { ?>
       <p id="diagImagePath"><?php echo $dImagePath ?></p>

@@ -79,11 +79,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,rsyslog | system-log-daemon
         ,zip
         ,libpcre3
-<<<<<<< HEAD
         ,libssl | libssl1.0.0 | libssl1.1
-=======
-        ,libssl | libssl1.0.0
->>>>>>> 34400419e8384ab7c130b47d46fe90d2337ee5c2
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
 Recommends: ${misc:Recommends}

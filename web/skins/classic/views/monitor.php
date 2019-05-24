@@ -745,11 +745,17 @@ echo htmlOptions(ZM\Group::get_dropdown_options( ), $monitor->GroupIds() );
 ?>
             <tr>
               <td><?php echo translate('MaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
-              <td><input type="text" onclick="$j('#newMonitor[MaxFPS]').innerHTML=' CAUTION: See the help text'" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" size="5"/><span id="newMonitor[MaxFPS]" style="color:red"></span></td>
+              <td>
+                <input type="text" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" size="5"/>
+                <span id="newMonitor[MaxFPS]" style="color:red;<?php echo $monitor->MaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
+              </td>
             </tr>
             <tr>
               <td><?php echo translate('AlarmMaximumFPS') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_MAXFPS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
-              <td><input type="text" onclick="$j('#newMonitor[AlarmMaxFPS]').innerHTML= ' CAUTION: See the help text'" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" size="5"/><span id="newMonitor[AlarmMaxFPS]" style="color:red"></span></td>
+              <td>
+                <input type="text" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" size="5"/>
+                <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
+              </td>
             </tr>
 <?php
       } else {

@@ -1050,7 +1050,13 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
     case 'StartTime' :
       $sortColumn = 'E.StartTime';
       break;
+    case 'StartDateTime' :
+      $sortColumn = 'E.StartTime';
+      break;
     case 'EndTime' :
+      $sortColumn = 'E.EndTime';
+      break;
+    case 'EndDateTime' :
       $sortColumn = 'E.EndTime';
       break;
     case 'Length' :

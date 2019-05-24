@@ -6,6 +6,7 @@ class Filter {
 public $defaults = array(
     'Id'              =>  null,
     'Name'            =>  '',
+    'Enabled'         =>  1,
     'AutoExecute'     =>  0,
     'AutoExecuteCmd'  =>  0,
     'AutoEmail'       =>  0,

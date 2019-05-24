@@ -350,6 +350,7 @@ $SLANG = array(
     'File'                  => 'Fail',
     'Filter'               => 'Filter',                 // Added - 2015-04-18
     'FilterArchiveEvents'   => 'Archive all matches',
+    'FilterEnabled'         => 'Filter Enabled',
     'FilterDeleteEvents'    => 'Delete all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
     'FilterExecuteEvents'   => 'Execute command on all matches',

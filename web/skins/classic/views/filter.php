@@ -342,6 +342,10 @@ echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
         <hr/>
         <div id="actionsTable" class="filterTable">
             <p>
+              <label><?php echo translate('FilterEnabled') ?></label>
+              <input type="checkbox" name="filter[Enabled]" value="1"<?php if ( $filter->Enabled() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+            </p>
+            <p>
               <label><?php echo translate('FilterArchiveEvents') ?></label>
               <input type="checkbox" name="filter[AutoArchive]" value="1"<?php if ( $filter->AutoArchive() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>

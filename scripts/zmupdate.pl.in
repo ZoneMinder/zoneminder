@@ -882,7 +882,7 @@ if ( $version ) {
 
     my @files;
     $updateDir = $Config{ZM_PATH_DATA}.'/db' if ! $updateDir;
-    opendir( my $dh, $updateDir ) || die "Can't open updateDir $!";
+    opendir( my $dh, $updateDir ) || die "Can't open updateDir: $updateDir ($!)";
 #@files = sort grep { (!/^\./) && /^zm_update\-[\d\.]+\.sql$/ && -f "$updateDir/$_" } readdir($dh);
 #PP - use perl version sort
     @files = sort { 

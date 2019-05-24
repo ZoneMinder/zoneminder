@@ -199,7 +199,10 @@ while( !$zm_terminate ) {
 
   foreach my $filter ( @filters ) {
     last if $zm_terminate;
-    if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
+    if ( ! $$filter{Enabled} ) {
+      Info("Skipping disabled filter '$$filter{Name}(Id:$$filter{Id})'");
+
+    } elsif ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
       my ( $proc ) = $0 =~ /(\S+)/;
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
       Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");

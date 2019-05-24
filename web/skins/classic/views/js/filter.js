@@ -35,7 +35,9 @@ function updateButtons(element) {
     form.elements['executeButton'].disabled = false;
   } else {
     var canExecute = false;
-    if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
+    if (form.elements['filter[Enabled]'] && !form.elements['filter[Enabled]'].checked) {
+      canExecute = false;
+    } else if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
       canExecute = true;
     } else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked ) {
       canExecute = true;

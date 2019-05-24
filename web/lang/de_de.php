@@ -345,6 +345,7 @@ $SLANG = array(
     'File'                 => 'Datei',
     'Filter'               => 'Filter',                 // Added - 2015-04-18
     'FilterArchiveEvents'  => 'Archivierung aller Treffer',
+    'FilterEnabled'        => 'Filter aktiviert',
     'FilterDeleteEvents'   => 'Löschen aller Treffer',
     'FilterEmailEvents'    => 'Detaillierte E-Mail zu allen Treffern',
     'FilterExecuteEvents'  => 'Ausführen bei allen Treffern',

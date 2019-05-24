@@ -57,6 +57,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
         $sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
       }
       $sql .= ', Query = '.dbEscape(jsonEncode($_REQUEST['filter']['Query']));
+      $sql .= ', Enabled = '.(!empty($_REQUEST['filter']['Enabled']) ? 1 : 0);
       $sql .= ', AutoArchive = '.(!empty($_REQUEST['filter']['AutoArchive']) ? 1 : 0);
       $sql .= ', AutoVideo = '. ( !empty($_REQUEST['filter']['AutoVideo']) ? 1 : 0);
       $sql .= ', AutoUpload = '. ( !empty($_REQUEST['filter']['AutoUpload']) ? 1 : 0);

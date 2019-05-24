@@ -24,7 +24,17 @@ if ( !canView('Events') ) {
 }
 require_once('includes/Frame.php');
 $Event = new ZM\Event($_REQUEST['eid']);
+$Monitor = $Event->Monitor();
 
+if ( isset( $_REQUEST['scale'] ) ) {
+  $scale = validNum($_REQUEST['scale']);
+} else if ( isset( $_COOKIE['zmWatchScale'.$Monitor->Id()] ) ) {
+  $scale = validNum($_COOKIE['zmWatchScale'.$Monitor->Id()]);
+} else if ( isset( $_COOKIE['zmWatchScale'] ) ) {
+  $scale = validNum($_COOKIE['zmWatchScale']);
+} else {
+  $scale = max( reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+}
 $sql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId';
 $frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid'] ) );
 
@@ -62,12 +72,20 @@ xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id() );
 <?php
 if ( count($frames) ) {
   foreach ( $frames as $frame ) {
-    $Frame = new ZM\Frame( $frame );
+    $Frame = new ZM\Frame($frame);
 
     $class = strtolower($frame['Type']);
 ?>
             <tr class="<?php echo $class ?>">
-              <td class="colId"><?php echo makePopupLink( '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'frame', $Event->Width(), $Event->Height() ), $frame['FrameId'] ) ?></td>
+              <td class="colId"><?php echo makePopupLink(
+                '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage',
+                array(
+                  'frame',
+                  ($scale ? $Event->Width()*$scale/100 : $Event->Width()),
+                  ($scale ? $Event->Height()*$scale/100 : $Event->Height())
+                ),
+                $frame['FrameId'])
+              ?></td>
               <td class="colType"><?php echo $frame['Type'] ?></td>
               <td class="colTimeStamp"><?php echo strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
               <td class="colTimeDelta"><?php echo number_format( $frame['Delta'], 2 ) ?></td>

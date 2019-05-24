@@ -966,43 +966,54 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
-		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+    'Help' => '
+      Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~
+      Examples (do not enter quotes)~~~~
+      "allowed_media_types=video" Set datatype to request fromcam (audio, video, data)~~~~
+      "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets~~~~
+      "loglevel=debug" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)
+    '
 	),
     'OPTIONS_RTSPTrans' => array(
-		'Help' => "This sets the RTSP Transport Protocol for FFmpeg.~~ ".
-                  "TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~".
-                  "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
-                  "UDP Multicast - Use UDP Multicast as transport protocol~~".
-                  "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
+      'Help' => '
+        This sets the RTSP Transport Protocol for FFmpeg.~~
+        TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~
+        UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some \'smearing\' while using UDP, if so try TCP~~
+        UDP Multicast - Use UDP Multicast as transport protocol~~
+        HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~
+      '
 	),
 	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~".
-		          "\"--verbose=2\" Set verbosity of libVLC"
+    'Help' => '
+      Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~
+      Examples (do not enter quotes)~~~~
+      "--rtp-client-port=nnn" Set local port to use for rtp data~~~~
+      "--verbose=2" Set verbosity of libVLC
+      '
 	),
 	'OPTIONS_EXIF' => array(
-		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
+		'Help' => 'Enable this option to embed EXIF data into each jpeg frame.'
 	),
 	'OPTIONS_RTSPDESCRIBE' => array(
-		'Help' => "Sometimes, during the initial RTSP handshake, the camera will send an updated media URL. ".
-		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
-		          "value from the camera and use the value as entered in the monitor configuration~~~~".
-		          "Generally this should be enabled. However, there are cases where the camera can get its".
-		          "own URL incorrect, such as when the camera is streaming through a firewall"),
+    'Help' => '
+      Sometimes, during the initial RTSP handshake, the camera will send an updated media URL.
+      Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the
+      value from the camera and use the value as entered in the monitor configuration~~~~
+      Generally this should be enabled. However, there are cases where the camera can get its
+      own URL incorrect, such as when the camera is streaming through a firewall
+    '
+  ),
 	'OPTIONS_MAXFPS' => array(
-		'Help' => "This field has certain limitations when used for non-local devices.~~ ".
-		          "Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping, ".
-		          "and missed events~~".
-		          "For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the".
-                  " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
-		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~".
-		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
-		          "for new images. In this case, it is safe to use the field."
+    'Help' => '
+      This field has certain limitations when used for non-local devices.~~
+      Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping,
+      and missed events~~
+      For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the
+      camera, instead. In the past it was advised to set a value higher than the frame rate of the camera
+      but this is no longer needed or a good idea.
+      Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera
+      for new images. In this case, it is safe to use the field.
+      '
 	),
 
 //    'LANG_DEFAULT' => array(

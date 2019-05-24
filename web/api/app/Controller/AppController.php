@@ -68,6 +68,7 @@ class AppController extends Controller {
     # For use throughout the app. If not logged in, this will be null.
     global $user;
     
+   
     if ( ZM_OPT_USE_AUTH ) {
       require_once __DIR__ .'/../../../includes/auth.php';
 
@@ -94,7 +95,7 @@ class AppController extends Controller {
           $only_allow_token_type='access';
 
         }
-        $ret = validateToken($mToken, $only_allow_token_type);
+        $ret = validateToken($mToken, $only_allow_token_type, true);
         $user = $ret[0];
         $retstatus = $ret[1];
         if ( !$user ) {
@@ -102,7 +103,7 @@ class AppController extends Controller {
           return;
         } 
       } else if ( $mAuth ) {
-          $user = getAuthUser($mAuth);
+          $user = getAuthUser($mAuth, true);
           if ( !$user ) {
             throw new UnauthorizedException(__('Invalid Auth Key'));
             return;
@@ -120,6 +121,10 @@ class AppController extends Controller {
         }
       } # end if ! login or logout
     } # end if ZM_OPT_AUTH
-   
+    // make sure populated user object has APIs enabled
+    if ($user['APIEnabled'] == 0 ) {
+      throw new UnauthorizedException(__('API Disabled'));
+      return;
+    }
   } # end function beforeFilter()
 }

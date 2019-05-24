@@ -129,7 +129,7 @@ class HostController extends AppController {
 
       if ($mToken) {
         // If we have a token, we need to derive username from there
-        $ret = validateToken($mToken, 'refresh');
+        $ret = validateToken($mToken, 'refresh', true);
         $mUser = $ret[0]['Username'];
 
       } else {

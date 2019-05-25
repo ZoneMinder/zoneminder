@@ -73,7 +73,7 @@ if ( isset( $_REQUEST['scale'] ) ) {
   $scale = max( reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 }
 
-$page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 1;
+$page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
 $limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;
 
 $nEvents = dbFetchOne($countSql, 'FrameCount' );
@@ -160,11 +160,6 @@ if ( $pages > 1 ) {
             <th class="colTimeStamp"><a href="<?php echo sortHeader('FramesTimeStamp') ?>"><?php echo translate('TimeStamp') ?><?php echo sortTag('FramesTimeStamp') ?></a></th>
             <th class="colTimeDelta"><a href="<?php echo sortHeader('FramesDelta') ?>"><?php echo translate('TimeDelta') ?><?php echo sortTag('FramesDelta') ?></a></th>
             <th class="colScore"><a href="<?php echo sortHeader('FramesScore') ?>"><?php echo translate('Score') ?><?php echo sortTag('FramesScore') ?></a></th>
-              <!-- <th class="colId"><?php echo translate('FrameId') ?></th>
-              <th class="colType"><?php echo translate('Type') ?></th>
-              <th class="colTimeStamp"><?php echo translate('TimeStamp') ?></th>
-              <th class="colTimeDelta"><?php echo translate('TimeDelta') ?></th>
-              <th class="colScore"><?php echo translate('Score') ?></th> -->
 <?php
         if ( ZM_WEB_LIST_THUMBS ) {
 ?>

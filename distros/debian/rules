@@ -25,7 +25,7 @@ override_dh_auto_configure:
 		-DZM_CONFIG_DIR="/etc/zm" \
     -DZM_DIR_EVENTS="/var/cache/zoneminder/events"    \
     -DZM_PATH_SHUTDOWN="/sbin/shutdown"               \
-    -DZM_PATH_ZMS="/zm/cgi-bin/nph-zms"               
+    -DZM_PATH_ZMS="/zm/cgi-bin/nph-zms"
 
 override_dh_auto_install:
 	dh_auto_install --buildsystem=cmake

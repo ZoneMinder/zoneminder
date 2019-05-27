@@ -945,7 +945,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   } else {
     Debug(3, "opkt.dts = undef");
     opkt.dts = video_out_stream->cur_dts;
-    //opkt.dts = 0;
   }
 
 # if 0
@@ -1012,7 +1011,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       return 0;
     }
 
-    out_frame->pts = in_frame->pts;
     zm_dump_frame(out_frame, "Out frame after resample");
     // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
     if ( out_frame->pts != AV_NOPTS_VALUE ) {

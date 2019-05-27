@@ -81,12 +81,15 @@ bool EventStream::loadInitialEventData( int monitor_id, time_t event_time ) {
           Debug(3, "Set curr_stream_time:%.2f, curr_frame_id:%d", curr_stream_time, curr_frame_id);
           break;
         }
-      }
+      } // end foreach frame
       Debug(3, "Skipping %ld frames", event_data->frame_count);
+    } else {
+      Warning("Requested an event time less than the start of the event. event_time %.2f < start_time %.2f",
+          event_time, event_data->start_time);
     }
-  }
+  } // end if have a start time
   return true;
-}
+} // bool EventStream::loadInitialEventData( int monitor_id, time_t event_time )
 
 bool EventStream::loadInitialEventData( uint64_t init_event_id, unsigned int init_frame_id ) {
   loadEventData(init_event_id);
@@ -237,13 +240,13 @@ bool EventStream::loadEventData(uint64_t event_id) {
         event_data->frames[i-1].timestamp = last_timestamp + ((i-last_id)*frame_delta);
         event_data->frames[i-1].offset = event_data->frames[i-1].timestamp - event_data->start_time;
         event_data->frames[i-1].in_db = false;
-    Debug(3,"Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
-        i,
-        event_data->frames[i-1].timestamp,
-        event_data->frames[i-1].offset,
-        event_data->frames[i-1].delta,
-        event_data->frames[i-1].in_db
-        );
+        Debug(3,"Frame %d timestamp:(%f), offset(%f) delta(%f), in_db(%d)",
+            i,
+            event_data->frames[i-1].timestamp,
+            event_data->frames[i-1].offset,
+            event_data->frames[i-1].delta,
+            event_data->frames[i-1].in_db
+            );
       }
     }
     event_data->frames[id-1].timestamp = event_data->start_time + delta;
@@ -277,7 +280,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     snprintf(filepath, sizeof(filepath), "%s/%s", event_data->path, event_data->video_file);
     Debug(1, "Loading video file from %s", filepath);
     ffmpeg_input = new FFmpeg_Input();
-    if ( 0 > ffmpeg_input->Open( filepath ) ) {
+    if ( 0 > ffmpeg_input->Open(filepath) ) {
       Warning("Unable to open ffmpeg_input %s/%s", event_data->path, event_data->video_file);
       delete ffmpeg_input;
       ffmpeg_input = NULL;
@@ -290,7 +293,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
     else
       curr_stream_time = event_data->frames[event_data->frame_count-1].timestamp;
   }
-  Debug(2, "Event:%" PRIu64 ", Frames:%ld, Duration: %.2f", event_data->event_id, event_data->frame_count, event_data->duration);
+  Debug(2, "Event:%" PRIu64 ", Frames:%ld, Duration: %.2f",
+      event_data->event_id, event_data->frame_count, event_data->duration);
 
   return true;
 } // bool EventStream::loadEventData( int event_id )
@@ -470,6 +474,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
         break;
     case CMD_SEEK :
       {
+        // offset is in seconds
         int offset = ((unsigned char)msg->msg_data[1]<<24)|((unsigned char)msg->msg_data[2]<<16)|((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
         curr_frame_id = (int)(event_data->frame_count*offset/event_data->duration);
         Debug(1, "Got SEEK command, to %d (new cfid: %d)", offset, curr_frame_id);
@@ -590,14 +595,13 @@ void EventStream::checkEventLoaded() {
 Image * EventStream::getImage( ) {
   static char filepath[PATH_MAX];
 
-  Debug(2, "EventStream::getImage path(%s) frame(%d)", event_data->path, curr_frame_id);
   snprintf(filepath, sizeof(filepath), staticConfig.capture_file_format, event_data->path, curr_frame_id);
-  Debug(2, "EventStream::getImage path(%s) ", filepath, curr_frame_id);
+  Debug(2, "EventStream::getImage path(%s) from %s frame(%d) ", filepath, event_data->path, curr_frame_id);
   Image *image = new Image(filepath);
   return image;
 }
 
-bool EventStream::sendFrame( int delta_us ) {
+bool EventStream::sendFrame(int delta_us) {
   Debug(2, "Sending frame %d", curr_frame_id);
 
   static char filepath[PATH_MAX];
@@ -626,7 +630,6 @@ bool EventStream::sendFrame( int delta_us ) {
 
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG ) {
-Debug(2,"Streaming MPEG");
     Image image(filepath);
 
     Image *send_image = prepareImage(&image);
@@ -788,7 +791,6 @@ void EventStream::runStream() {
   updateFrameRate((double)event_data->frame_count/event_data->duration);
   gettimeofday(&start, NULL);
   uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
-  uint64_t last_frame_offset = 0;
 
   while ( !zm_terminate ) {
     gettimeofday(&now, NULL);
@@ -923,21 +925,9 @@ Debug(3,"cur_frame_id (%d-1) mod frame_mod(%d)",curr_frame_id, frame_mod);
       // you can calculate the relationship between now and the start
       // or calc the relationship from the last frame.  I think from the start is better as it self-corrects
 
-      if ( last_frame_offset ) {
-        // We assume that we are going forward and the next frame is in the future.
-        delta_us = frame_data->offset * 1000000 - (now_usec-start_usec);
-       // - (now_usec - start_usec);
-        Debug(2, "New delta_us now %" PRIu64 " - start %" PRIu64 " = %d offset %" PRId64 " - elapsed = %dusec",
-            now_usec, start_usec, now_usec-start_usec, frame_data->offset * 1000000, delta_us);
-      } else {
-        Debug(2, "No last frame_offset, no sleep");
-        delta_us = 0;
-      }
-      last_frame_offset = frame_data->offset * 1000000;
-
       if ( send_frame && type != STREAM_MPEG ) {
         if ( delta_us > 0 ) {
-          Debug( 3, "dUs: %d", delta_us );
+          Debug(3, "dUs: %d", delta_us);
           usleep(delta_us);
           Debug(3, "Done sleeping: %d usec", delta_us);
         }

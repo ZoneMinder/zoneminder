@@ -27,18 +27,18 @@ if ( $action ) {
   if ( $action == 'shutdown' ) {
     $output = array();
     $rc = 0;
-    exec("sudo -n /sbin/shutdown -P $when 2>&1", $output, $rc);
+    exec('sudo -n '.ZM_PATH_SHUTDOWN." -P $when 2>&1", $output, $rc);
     #exec('sudo -n /bin/systemctl poweroff -i 2>&1', $output, $rc);
     ZM\Logger::Debug("Shutdown output $rc " . implode("\n",$output));
     #ZM\Logger::Debug("Shutdown output " . shell_exec('/bin/systemctl poweroff -i 2>&1'));
   } else if ( $action == 'restart' ) {
     $output = array();
-    exec("sudo -n /sbin/shutdown -r $when 2>&1", $output);
+    exec('sudo -n '.ZM_PATH_SHUTDOWN." -r $when 2>&1", $output);
     #exec('sudo -n /bin/systemctl reboot -i 2>&1', $output);
     ZM\Logger::Debug("Shutdown output " . implode("\n",$output));
   } else if ( $action == 'cancel' ) {
     $output = array();
-    exec('sudo /sbin/shutdown -c 2>&1', $output);
+    exec('sudo '.ZM_PATH_SHUTDOWN.' -c 2>&1', $output);
   }
 } # end if action
 ?>

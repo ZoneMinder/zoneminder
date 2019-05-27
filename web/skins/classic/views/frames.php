@@ -51,7 +51,6 @@ parseSort();
 parseFilter($_REQUEST['filter']);
 $filterQuery = $_REQUEST['filter']['query'];
 
-error_log("here filter = ".print_r($_REQUEST['filter'],true));
 
 if ( $_REQUEST['filter']['sql'] ) {
   $countSql .= $_REQUEST['filter']['sql'];
@@ -104,8 +103,6 @@ if ( !empty($page) ) {
 
 $maxShortcuts = 5;
 $pagination = getPagination($pages, $page, $maxShortcuts, $sortQuery.'&eid='.$eid.$limitQuery.$filterQuery);
-
-error_log("frameSql = ".print_r($frameSql, true));
 
 $frames = dbFetchAll( $frameSql );
 

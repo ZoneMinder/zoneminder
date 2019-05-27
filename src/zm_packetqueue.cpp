@@ -97,7 +97,7 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
   Debug(1,"Unable to insert packet for stream %d with dts %" PRId64 " into queue.",
       zm_packet->packet.stream_index, zm_packet->packet.dts);
   // Must be before any packets in the queue.  Stick it at the beginning
-  pktQueue.push(zm_packet);
+  pktQueue.push_front(zm_packet);
   packet_counts[zm_packet->packet.stream_index] += 1;
   return true;
 } // end bool zm_packetqueue::queuePacket(ZMPacket* zm_packet)

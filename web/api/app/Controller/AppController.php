@@ -120,11 +120,11 @@ class AppController extends Controller {
           return;
         }
       } # end if ! login or logout
+      if ($user['APIEnabled'] == 0 ) {
+        throw new UnauthorizedException(__('API Disabled'));
+        return;
+      }
     } # end if ZM_OPT_AUTH
     // make sure populated user object has APIs enabled
-    if ($user['APIEnabled'] == 0 ) {
-      throw new UnauthorizedException(__('API Disabled'));
-      return;
-    }
   } # end function beforeFilter()
 }

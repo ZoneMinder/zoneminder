@@ -326,6 +326,8 @@ EOF
       if [[ "$REPLY" == [yY] ]]; then
         dput $PPA $SC
       fi;
+    else
+        dput $PPA $SC
     fi;
   fi;
 done; # foreach distro

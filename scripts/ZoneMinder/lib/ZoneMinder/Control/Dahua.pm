@@ -381,6 +381,22 @@ sub focusRelFar
     Debug("focusRelFar response: " . $response);
 }
 
+sub irisRelOpen
+{
+    my $self = shift;
+
+    my $response = $self->_sendPtzCommand("start", "IrisLarge", 0, 1, 0, 0);
+    Debug("irisRelOpen response: " . $response);
+}
+
+sub irisRelClose
+{
+    my $self = shift;
+
+    my $response = $self->_sendPtzCommand("start", "IrisSmall", 0, 1, 0, 0);
+    Debug("irisRelClose response: " . $response);
+}
+
 sub moveStop
 {
     my $self = shift;
@@ -591,6 +607,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
     This only just does work. The Dahua API specifies "multiples" as the input.
     We pass in a 1 for that as it does not seem to matter what number (0-8) is
     provided, the camera focus behaves the same.
+
+=head2 irisRel<Large/Small>
+
+    This set of methods invoke realtive iris size in the direction indicated by
+    the <Large/Small> portion of their name. They accept no arguments.
+
+    NOTE:
+
+    This only just does work. The Dahua API specifies "multiples" as the input.
+    We pass in a 1 for that as it does not seem to matter what number (0-8) is
+    provided, the camera iris behaves the same.
 
 =head2 moveStop
 

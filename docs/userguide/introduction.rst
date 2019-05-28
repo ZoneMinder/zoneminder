@@ -11,4 +11,4 @@ A fast video interface core, a user-friendly and comprehensive PHP based web int
 
 The core of ZoneMinder is the capture and analysis of images and a highly configurable set of parameters that eliminate false positives whilst ensuring minimum loss of footage. For example, you can define a set of 'zones' for each camera of varying sensitivity and functionality. This eliminates zones that you don't wish to track or define areas that will alarm if various thresholds are exceeded in conjunction with other zones. 
 
-ZoneMinder is free under GPL License, but if you do find it useful, then please feel free to visit http://www.zoneminder.com/donate.html and help us fund our future improvements.
+ZoneMinder is free under GPL License, but if you do find it useful, then please feel free to visit https://zoneminder.com/donate/ and help us fund our future improvements.

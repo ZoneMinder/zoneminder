@@ -44,7 +44,7 @@ class Storage {
   }
 
   public function Path() {
-    if ( isset( $this->{'Path'} ) and ( $this->{'Path'} != '' ) ) {
+    if ( isset($this->{'Path'}) and ( $this->{'Path'} != '' ) ) {
       return $this->{'Path'};
     } else if ( ! isset($this->{'Id'}) ) {
       $path = ZM_DIR_EVENTS;
@@ -58,7 +58,7 @@ class Storage {
     return $this->{'Name'};
   }
   public function Name() {
-    if ( isset( $this->{'Name'} ) and ( $this->{'Name'} != '' ) ) {
+    if ( isset($this->{'Name'}) and ( $this->{'Name'} != '' ) ) {
       return $this->{'Name'};
     } else if ( ! isset($this->{'Id'}) ) {
       return 'Default';
@@ -73,7 +73,7 @@ class Storage {
     if ( array_key_exists($fn, $this) )
       return $this->{$fn};
         
-    if ( array_key_exists( $fn, $this->defaults ) )
+    if ( array_key_exists($fn, $this->defaults) )
       return $this->defaults{$fn};
 
     $backTrace = debug_backtrace();
@@ -96,7 +96,7 @@ class Storage {
 
     $results = Storage::find($parameters, $options);
     if ( count($results) > 1 ) {
-      Error("Storage Returned more than 1");
+      Error('Storage Returned more than 1');
       return $results[0];
     } else if ( count($results) ) {
       return $results[0];
@@ -116,7 +116,7 @@ class Storage {
           $fields[] = $field.' IS NULL';
         } else if ( is_array($value) ) {
           $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
+          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)).')';
           $values += $value;
 
         } else {
@@ -165,11 +165,11 @@ class Storage {
       
     $total = $this->disk_total_space();
     if ( ! $total ) {
-      Error('disk_total_space returned false for ' . $path );
+      Error('disk_total_space returned false for ' . $path);
       return 0;
     }
     $used = $this->disk_used_space();
-    $usage = round( ($used / $total) * 100);
+    $usage = round(($used / $total) * 100);
     //Logger::Debug("Used $usage = round( ( $used / $total ) * 100 )");
     return $usage;
   }
@@ -208,7 +208,7 @@ class Storage {
   public function event_disk_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
     if ( (! array_key_exists('DiskSpace', $this)) or (!$this->{'DiskSpace'}) ) {
-      $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()) );
+      $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
 
       foreach ( Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null)) as $Event ) {
         $Event->Storage($this); // Prevent further db hit
@@ -221,7 +221,7 @@ class Storage {
 
   public function Server() {
     if ( ! array_key_exists('Server',$this) ) {
-      $this->{'Server'}= new Server( $this->{'ServerId'} );
+      $this->{'Server'}= new Server($this->{'ServerId'});
     }
     return $this->{'Server'};
   }
@@ -239,5 +239,5 @@ class Storage {
     }
     return json_encode($json);
   }
-}
+} // end class Storage
 ?>

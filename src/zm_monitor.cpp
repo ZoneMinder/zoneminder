@@ -44,6 +44,7 @@
 #if HAVE_LIBAVFORMAT
 #include "zm_ffmpeg_camera.h"
 #endif // HAVE_LIBAVFORMAT
+#include "zm_fifo.h"
 #if HAVE_LIBVLC
 #include "zm_libvlc_camera.h"
 #endif // HAVE_LIBVLC
@@ -517,8 +518,12 @@ Monitor::Monitor(
     ReloadLinkedMonitors(p_linked_monitors);
 
     if ( config.record_diag_images ) {
-      diag_path_r = stringtf("%s/%d/diag-r.jpg", storage->Path(), id);
-      diag_path_d = stringtf("%s/%d/diag-d.jpg", storage->Path(), id);
+      diag_path_r = stringtf(config.record_diag_images_fifo ? "%s/%d/diagpipe-r.jpg" : "%s/%d/diag-r.jpg", storage->Path(), id);
+      diag_path_d = stringtf(config.record_diag_images_fifo ? "%s/%d/diagpipe-d.jpg" : "%s/%d/diag-d.jpg", storage->Path(), id);
+      if (config.record_diag_images_fifo){
+        FifoStream::fifo_create_if_missing(diag_path_r.c_str());
+        FifoStream::fifo_create_if_missing(diag_path_d.c_str());
+      }
     }
 
   } // end if purpose == ANALYSIS
@@ -780,17 +785,17 @@ int Monitor::GetImage( int index, int scale ) {
       Snapshot *snap = &image_buffer[index];
       Image *snap_image = snap->image;
 
-      alarm_image.Assign( *snap_image );
+      alarm_image.Assign(*snap_image);
 
 
       //write_image.Assign( *snap_image );
 
       if ( scale != ZM_SCALE_BASE ) {
-        alarm_image.Scale( scale );
+        alarm_image.Scale(scale);
       }
 
       if ( !config.timestamp_on_capture ) {
-        TimestampImage( &alarm_image, snap->timestamp );
+        TimestampImage(&alarm_image, snap->timestamp);
       }
       image = &alarm_image;
     } else {
@@ -798,12 +803,12 @@ int Monitor::GetImage( int index, int scale ) {
     }
 
     static char filename[PATH_MAX];
-    snprintf( filename, sizeof(filename), "Monitor%d.jpg", id );
-    image->WriteJpeg( filename );
+    snprintf(filename, sizeof(filename), "Monitor%d.jpg", id);
+    image->WriteJpeg(filename);
   } else {
-    Error( "Unable to generate image, no images in buffer" );
+    Error("Unable to generate image, no images in buffer");
   }
-  return( 0 );
+  return 0;
 }
 
 struct timeval Monitor::GetTimestamp( int index ) const {
@@ -814,11 +819,11 @@ struct timeval Monitor::GetTimestamp( int index ) const {
   if ( index != image_buffer_count ) {
     Snapshot *snap = &image_buffer[index];
 
-    return( *(snap->timestamp) );
+    return *(snap->timestamp);
   } else {
     static struct timeval null_tv = { 0, 0 };
 
-    return( null_tv );
+    return null_tv;
   }
 }
 
@@ -1432,124 +1437,137 @@ bool Monitor::Analyse() {
           shared_data->active = signal;
         } // end if signal change
 
-        if ( (!signal_change && signal) && n_linked_monitors > 0 ) {
-          bool first_link = true;
-          Event::StringSet noteSet;
-          for ( int i = 0; i < n_linked_monitors; i++ ) {
-            // TODO: Shouldn't we try to connect?
-            if ( linked_monitors[i]->isConnected() ) {
-              if ( linked_monitors[i]->hasAlarmed() ) {
-                if ( !event ) {
-                  if ( first_link ) {
-                    if ( cause.length() )
-                      cause += ", ";
-                    cause += LINKED_CAUSE;
-                    first_link = false;
+        if ( (!signal_change) && signal) {
+          if ( n_linked_monitors > 0 ) {
+            bool first_link = true;
+            Event::StringSet noteSet;
+            for ( int i = 0; i < n_linked_monitors; i++ ) {
+              // TODO: Shouldn't we try to connect?
+              if ( linked_monitors[i]->isConnected() ) {
+                if ( linked_monitors[i]->hasAlarmed() ) {
+                  if ( !event ) {
+                    if ( first_link ) {
+                      if ( cause.length() )
+                        cause += ", ";
+                      cause += LINKED_CAUSE;
+                      first_link = false;
+                    }
                   }
-                }
-                noteSet.insert(linked_monitors[i]->Name());
-                score += 50;
-              }
-            } else {
-              linked_monitors[i]->connect();
-            }
-          }
-          if ( noteSet.size() > 0 )
-            noteSetMap[LINKED_CAUSE] = noteSet;
-        }
-
-        //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
-        if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
-          if ( event ) {
-            Debug(3, "Have signal and recording with open event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
-
-            if ( section_length
-                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                && ( ! ( timestamp->tv_sec % section_length ) ) 
-                ) {
-              Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
-                  name, image_count, event->Id(),
-                  timestamp->tv_sec, video_store_data->recording.tv_sec, 
-                  timestamp->tv_sec - video_store_data->recording.tv_sec,
-                  section_length
-                  );
-              closeEvent();
-            } // end if section_length
-          } // end if event
-
-          if ( ! event ) {
-
-            // Create event
-            event = new Event(this, *timestamp, "Continuous", noteSetMap, videoRecording);
-            shared_data->last_event = event->Id();
-            //set up video store data
-            snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-            video_store_data->recording = event->StartTime();
-
-            Info("%s: %03d - Opening new event %" PRIu64 ", section start", name, image_count, event->Id());
-
-            /* To prevent cancelling out an existing alert\prealarm\alarm state */
-            if ( state == IDLE ) {
-              shared_data->state = state = TAPE;
-            }
-
-            //if ( config.overlap_timed_events )
-            if ( false ) {
-              int pre_index;
-              int pre_event_images = pre_event_count;
-
-              if ( analysis_fps ) {
-                // If analysis fps is set,
-                // compute the index for pre event images in the dedicated buffer
-                pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
-
-                // Seek forward the next filled slot in to the buffer (oldest data)
-                // from the current position
-                while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
-                  pre_index = (pre_index + 1)%pre_event_buffer_count;
-                  // Slot is empty, removing image from counter
-                  pre_event_images--;
+                  noteSet.insert(linked_monitors[i]->Name());
+                  score += 50;
                 }
               } else {
-                // If analysis fps is not set (analysis performed at capturing framerate),
-                // compute the index for pre event images in the capturing buffer
-                pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
+                linked_monitors[i]->connect();
+              }
+            } // end foreach linked_monit
+            if ( noteSet.size() > 0 )
+              noteSetMap[LINKED_CAUSE] = noteSet;
+          } // end if linked_monitors 
 
-                // Seek forward the next filled slot in to the buffer (oldest data)
-                // from the current position
-                while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec ) {
-                  pre_index = (pre_index + 1)%image_buffer_count;
-                  // Slot is empty, removing image from counter
-                  pre_event_images--;
-                }
+          //TODO: What happens is the event closes and sets recording to false then recording to true again so quickly that our capture daemon never picks it up. Maybe need a refresh flag?
+          if ( function == RECORD || function == MOCORD ) {
+            if ( event ) {
+              Debug(3, "Have signal and recording with open event at (%d.%d)", timestamp->tv_sec, timestamp->tv_usec);
+
+              if ( section_length
+                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                  && ( ! ( timestamp->tv_sec % section_length ) ) 
+                 ) {
+                Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
+                    name, image_count, event->Id(),
+                    timestamp->tv_sec, video_store_data->recording.tv_sec, 
+                    timestamp->tv_sec - video_store_data->recording.tv_sec,
+                    section_length
+                    );
+                closeEvent();
+              } // end if section_length
+            } // end if event
+
+            if ( !event ) {
+
+              // Create event
+              event = new Event(this, *timestamp, "Continuous", noteSetMap, videoRecording);
+              shared_data->last_event = event->Id();
+              //set up video store data
+              snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+              video_store_data->recording = event->StartTime();
+
+              Info("%s: %03d - Opening new event %" PRIu64 ", section start", name, image_count, event->Id());
+
+              /* To prevent cancelling out an existing alert\prealarm\alarm state */
+              if ( state == IDLE ) {
+                shared_data->state = state = TAPE;
               }
 
-              if ( pre_event_images ) {
+              //if ( config.overlap_timed_events )
+              if ( false ) {
+                int pre_index;
+                int pre_event_images = pre_event_count;
+
                 if ( analysis_fps ) {
-                  for ( int i = 0; i < pre_event_images; i++ ) {
-                    timestamps[i] = pre_event_buffer[pre_index].timestamp;
-                    images[i] = pre_event_buffer[pre_index].image;
+                  // If analysis fps is set,
+                  // compute the index for pre event images in the dedicated buffer
+                  pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
+
+                  // Seek forward the next filled slot in to the buffer (oldest data)
+                  // from the current position
+                  while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
                     pre_index = (pre_index + 1)%pre_event_buffer_count;
+                    // Slot is empty, removing image from counter
+                    pre_event_images--;
                   }
                 } else {
-                  for ( int i = 0; i < pre_event_images; i++ ) {
-                    timestamps[i] = image_buffer[pre_index].timestamp;
-                    images[i] = image_buffer[pre_index].image;
+                  // If analysis fps is not set (analysis performed at capturing framerate),
+                  // compute the index for pre event images in the capturing buffer
+                  pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
+
+                  // Seek forward the next filled slot in to the buffer (oldest data)
+                  // from the current position
+                  while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec ) {
                     pre_index = (pre_index + 1)%image_buffer_count;
+                    // Slot is empty, removing image from counter
+                    pre_event_images--;
                   }
                 }
 
-                event->AddFrames( pre_event_images, images, timestamps );
-              }
-            } // end if false or config.overlap_timed_events
-          } // end if ! event
-        } // end if ( (!signal_change && signal) && (function == RECORD || function == MOCORD) ) {
+                if ( pre_event_images ) {
+                  if ( analysis_fps ) {
+                    for ( int i = 0; i < pre_event_images; i++ ) {
+                      timestamps[i] = pre_event_buffer[pre_index].timestamp;
+                      images[i] = pre_event_buffer[pre_index].image;
+                      pre_index = (pre_index + 1)%pre_event_buffer_count;
+                    }
+                  } else {
+                    for ( int i = 0; i < pre_event_images; i++ ) {
+                      timestamps[i] = image_buffer[pre_index].timestamp;
+                      images[i] = image_buffer[pre_index].image;
+                      pre_index = (pre_index + 1)%image_buffer_count;
+                    }
+                  }
+
+                  event->AddFrames( pre_event_images, images, timestamps );
+                }
+              } // end if false or config.overlap_timed_events
+            } // end if ! event
+          } // end if function == RECORD || function == MOCORD)
+        } // end if !signal_change && signal
+
         if ( score ) {
           if ( state == IDLE || state == TAPE || state == PREALARM ) {
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
-              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u",
-                  name, image_count, Event::PreAlarmCount(), alarm_frame_count);
               shared_data->state = state = ALARM;
+              // lets construct alarm cause. It will contain cause + names of zones alarmed
+              std::string alarm_cause = "";
+              for ( int i=0; i < n_zones; i++ ) {
+                if ( zones[i]->Alarmed() ) {
+                    alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
+                }
+              }
+              if ( !alarm_cause.empty() ) alarm_cause[0] = ' ';
+              alarm_cause = cause + alarm_cause;
+              strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
+                  name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
               if ( signal_change || (function != MOCORD && state != ALERT) ) {
                 int pre_index;
                 int pre_event_images = pre_event_count;
@@ -1592,20 +1610,9 @@ bool Monitor::Analyse() {
                   }
 
                   event = new Event(this, *(image_buffer[pre_index].timestamp), cause, noteSetMap);
-                }
+                } // end if analysis_fps && pre_event_count
+
                 shared_data->last_event = event->Id();
-                // lets construct alarm cause. It will contain cause + names of zones alarmed
-                std::string alarm_cause="";
-                for ( int i=0; i < n_zones; i++) {
-                  if (zones[i]->Alarmed()) {
-                    alarm_cause += std::string(zones[i]->Label());
-                    if (i < n_zones-1) {
-                      alarm_cause +=",";
-                    }
-                  }
-                }
-                alarm_cause = cause+" "+alarm_cause;
-                strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
                 //set up video store data
                 snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                 video_store_data->recording = event->StartTime();
@@ -1626,7 +1633,7 @@ bool Monitor::Analyse() {
                       pre_index = (pre_index + 1)%image_buffer_count;
                     }
                   }
-                  event->AddFrames( pre_event_images, images, timestamps );
+                  event->AddFrames(pre_event_images, images, timestamps);
                 }
                 if ( alarm_frame_count ) {
                   event->SavePreAlarmFrames();
@@ -1641,7 +1648,7 @@ bool Monitor::Analyse() {
             shared_data->state = state = ALARM;
           }
           last_alarm_count = image_count;
-        } else {
+        } else { // not score
           if ( state == ALARM ) {
             Info("%s: %03d - Gone into alert state", name, image_count);
             shared_data->state = state = ALERT;
@@ -1670,22 +1677,22 @@ bool Monitor::Analyse() {
           }
           if ( Event::PreAlarmCount() )
             Event::EmptyPreAlarmFrames();
-        }
+        } // end if score or not
+
         if ( state != IDLE ) {
           if ( state == PREALARM || state == ALARM ) {
             if ( config.create_analysis_images ) {
               bool got_anal_image = false;
-              alarm_image.Assign( *snap_image );
-              for( int i = 0; i < n_zones; i++ ) {
+              alarm_image.Assign(*snap_image);
+              for ( int i = 0; i < n_zones; i++ ) {
                 if ( zones[i]->Alarmed() ) {
                   if ( zones[i]->AlarmImage() ) {
                     alarm_image.Overlay(*(zones[i]->AlarmImage()));
                     got_anal_image = true;
                   }
-                  if ( config.record_event_stats && state == ALARM ) {
+                  if ( config.record_event_stats && (state == ALARM) )
                     zones[i]->RecordStats(event);
-                  }
-                }
+                } // end if zone is alarmed
               } // end foreach zone
 
               if ( got_anal_image ) {
@@ -1700,32 +1707,43 @@ bool Monitor::Analyse() {
                   event->AddFrame(snap_image, *timestamp, score);
               }
             } else {
-              for ( int i = 0; i < n_zones; i++ ) {
-                if ( zones[i]->Alarmed() ) {
-                  if ( config.record_event_stats && state == ALARM ) {
-                    zones[i]->RecordStats(event);
-                  }
-                }
-              }
-              if ( state == PREALARM )
+              // Not doing alarm frame storage
+              if ( state == PREALARM ) {
                 Event::AddPreAlarmFrame(snap_image, *timestamp, score);
-              else
+              } else {
                 event->AddFrame(snap_image, *timestamp, score);
-            }
-            if ( event && noteSetMap.size() > 0 )
-              event->updateNotes(noteSetMap);
+                if ( config.record_event_stats ) {
+                  for ( int i = 0; i < n_zones; i++ ) {
+                    if ( zones[i]->Alarmed() )
+                      zones[i]->RecordStats(event);
+                  }
+                } // end if  config.record_event_stats
+              }
+            } // end if config.create_analysis_images 
 
-            if ( section_length
-                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                && ! (image_count % fps_report_interval)
-                ) {
-              Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
-                  name, image_count, event->Id(),
-                  timestamp->tv_sec, video_store_data->recording.tv_sec,
-                  timestamp->tv_sec - video_store_data->recording.tv_sec,
-                  section_length
-                  );
-            }
+            if ( event ) {
+              if ( noteSetMap.size() > 0 )
+                event->updateNotes(noteSetMap);
+
+              if ( section_length
+                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                  && ! (image_count % fps_report_interval)
+                 ) {
+                Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
+                    name, image_count, event->Id(),
+                    timestamp->tv_sec, video_store_data->recording.tv_sec,
+                    timestamp->tv_sec - video_store_data->recording.tv_sec,
+                    section_length
+                    );
+                closeEvent();
+                event = new Event(this, *timestamp, cause, noteSetMap);
+                shared_data->last_event = event->Id();
+                //set up video store data
+                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                video_store_data->recording = event->StartTime();
+
+              }
+            } // end if event
 
           } else if ( state == ALERT ) {
             event->AddFrame(snap_image, *timestamp);
@@ -2613,8 +2631,8 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
   ref_image.Delta(comp_image, &delta_image);
 
   if ( config.record_diag_images ) {
-    ref_image.WriteJpeg(diag_path_r.c_str());
-    delta_image.WriteJpeg(diag_path_d.c_str());
+    ref_image.WriteJpeg(diag_path_r.c_str(), config.record_diag_images_fifo);
+    delta_image.WriteJpeg(diag_path_d.c_str(), config.record_diag_images_fifo);
   }
 
   // Blank out all exclusion zones

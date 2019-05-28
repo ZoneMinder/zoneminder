@@ -189,7 +189,7 @@ sub moveAbs ## Up, Down, Left, Right, etc. ??? Doesn't make sense here...
     my $tilt_degrees = shift || 0;
     my $speed = shift || 1;
     Debug( "Move ABS" );
-    $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1='.$pan_degress.'&arg2='.$tilt_degrees.'&arg3=0&arg4='.$speed );
+    $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1='.$pan_degrees.'&arg2='.$tilt_degrees.'&arg3=0&arg4='.$speed );
 }
 
 sub moveConUp

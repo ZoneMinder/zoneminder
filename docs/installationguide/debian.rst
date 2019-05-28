@@ -65,7 +65,7 @@ Because ZoneMinder's package repository provides a secure connection through HTT
 Finally, download the GPG key for ZoneMinder's repository:
 ::
 
-    sudo wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo apt-key add -
+    wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo apt-key add -
 
 
 **Step 5:** Install ZoneMinder

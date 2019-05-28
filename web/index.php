@@ -93,7 +93,7 @@ if ( isset($_GET['skin']) ) {
 $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
 
 if ( ! in_array($skin, $skins) ) {
-  Error("Invalid skin '$skin' setting to " . $skins[0]);
+  ZM\Error("Invalid skin '$skin' setting to " . $skins[0]);
   $skin = $skins[0];
 }
 
@@ -109,7 +109,7 @@ if ( isset($_GET['css']) ) {
 
 $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR));
 if ( !in_array($css, $css_skins) ) {
-  Error("Invalid skin css '$css' setting to " . $css_skins[0]);
+  ZM\Error("Invalid skin css '$css' setting to " . $css_skins[0]);
   $css = $css_skins[0];
 }
 

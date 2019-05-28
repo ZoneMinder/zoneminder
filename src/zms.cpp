@@ -28,6 +28,7 @@
 #include "zm_monitor.h"
 #include "zm_monitorstream.h"
 #include "zm_eventstream.h"
+#include "zm_fifo.h"
 
 bool ValidateAccess( User *user, int mon_id ) {
   bool allowed = true;
@@ -54,7 +55,7 @@ int main( int argc, const char *argv[] ) {
 
   srand( getpid() * time( 0 ) );
 
-  enum { ZMS_UNKNOWN, ZMS_MONITOR, ZMS_EVENT } source = ZMS_UNKNOWN;
+  enum { ZMS_UNKNOWN, ZMS_MONITOR, ZMS_EVENT, ZMS_FIFO } source = ZMS_UNKNOWN;
   enum { ZMS_JPEG, ZMS_MPEG, ZMS_RAW, ZMS_ZIP, ZMS_SINGLE } mode = ZMS_JPEG;
   char format[32] = "";
   int monitor_id = 0;
@@ -70,6 +71,7 @@ int main( int argc, const char *argv[] ) {
   std::string username;
   std::string password;
   char auth[64] = "";
+  std::string jwt_token_str = ""; 
   unsigned int connkey = 0;
   unsigned int playback_buffer = 0;
 
@@ -110,6 +112,8 @@ int main( int argc, const char *argv[] ) {
         value = (char *)"";
       if ( !strcmp(name, "source") ) {
         source = !strcmp(value, "event")?ZMS_EVENT:ZMS_MONITOR;
+        if (! strcmp( value,"fifo") )
+          source = ZMS_FIFO;
       } else if ( !strcmp(name, "mode") ) {
         mode = !strcmp(value, "jpeg")?ZMS_JPEG:ZMS_MPEG;
         mode = !strcmp(value, "raw")?ZMS_RAW:mode;
@@ -158,6 +162,10 @@ int main( int argc, const char *argv[] ) {
         playback_buffer = atoi(value);
       } else if ( !strcmp( name, "auth" ) ) {
         strncpy( auth, value, sizeof(auth)-1 );
+      } else if ( !strcmp( name, "token" ) ) {
+        jwt_token_str = value;
+        Debug(1,"ZMS: JWT token found: %s", jwt_token_str.c_str());
+
       } else if ( !strcmp( name, "user" ) ) {
         username = UriDecode( value );
       } else if ( !strcmp( name, "pass" ) ) {
@@ -181,11 +189,16 @@ int main( int argc, const char *argv[] ) {
   if ( config.opt_use_auth ) {
     User *user = 0;
 
-    if ( strcmp(config.auth_relay, "none") == 0 ) {
+    if (jwt_token_str != "") {
+      //user = zmLoadTokenUser(jwt_token_str, config.auth_hash_ips);
+      user = zmLoadTokenUser(jwt_token_str, false);
+
+    }
+    else if ( strcmp(config.auth_relay, "none") == 0 ) {
       if ( checkUser(username.c_str()) ) {
         user = zmLoadUser(username.c_str());
       } else {
-        Error("")
+        Error("Bad username");
       }
 
     } else {
@@ -273,6 +286,11 @@ int main( int argc, const char *argv[] ) {
       return( -1 );
 #endif // HAVE_LIBAVCODEC
     }
+    stream.runStream();
+  } else if (source == ZMS_FIFO ) {
+    FifoStream stream;
+    stream.setStreamMaxFPS( maxfps );
+    stream.setStreamStart( monitor_id, format );
     stream.runStream();
   } else if ( source == ZMS_EVENT ) {
     if ( ! event_id ) {

@@ -18,19 +18,19 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$optionHelpIndex = preg_replace( '/^ZM_/', '', $_REQUEST['option'] );
+$optionHelpIndex = preg_replace('/^ZM_/', '', $_REQUEST['option']);
 if ( !empty($OLANG[$optionHelpIndex]) ) {
   $optionHelpText = $OLANG[$optionHelpIndex]['Help'];
 } else {
-  $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($_REQUEST['option']) );
+  $optionHelpText = dbFetchOne('SELECT Help FROM Config WHERE Name=?', 'Help', array($_REQUEST['option']));
 }
 $optionHelpText = validHtmlStr($optionHelpText);
-$optionHelpText = preg_replace( "/~~/", "<br/>", $optionHelpText );
-$optionHelpText = preg_replace( "/\[(.+)\]\((.+)\)/", "<a href=\"$2\" target=\"_blank\">$1</a>", $optionHelpText );
+$optionHelpText = preg_replace('/~~/', '<br/>', $optionHelpText );
+$optionHelpText = preg_replace('/\[(.+)\]\((.+)\)/', '<a href="$2" target="_blank">$1</a>', $optionHelpText);
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('OptionHelp') );
+xhtmlHeaders(__FILE__, translate('OptionHelp'));
 ?>
 <body>
   <div id="page">

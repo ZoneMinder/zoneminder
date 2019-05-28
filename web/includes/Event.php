@@ -664,6 +664,35 @@ class Event {
     return 0;
   } # end public function file_size()
 
+  public function can_delete() {
+    if ( $this->Archived() ) {
+      Logger::Debug("Am archived, can't delete");
+      return false;
+    }
+    if ( !$this->EndTime() ) {
+      Logger::Debug("No EndTime can't delete");
+      return false;
+    }
+    if ( !canEdit('Events') ) {
+      Logger::Debug("No permission to edit events, can't delete");
+      return false;
+    }
+    Logger::Debug("Can delete: archived: " . $this->Archived() . " endtime: " . $this->EndTime() );
+
+    return true;
+  }
+
+  public function cant_delete_reason() {
+    if ( $this->Archived() ) {
+      return 'You cannot delete an archived event. Unarchive it first.';
+    } else if ( ! $this->EndTime() ) {
+      return 'You cannot delete an event while it is being recorded. Wait for it to finish.';
+    } else if ( ! canEdit('Events') ) {
+      return 'You do not have rights to edit Events.';
+    }
+    return 'Unknown reason';
+  }
+
 } # end class
 
 ?>

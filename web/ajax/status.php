@@ -193,7 +193,7 @@ function collectData() {
   $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
 #print_r( $entitySpec );
   if ( !canView( $entitySpec['permission'] ) )
-    ajaxError( 'Unrecognised action or insufficient permissions' );
+    ajaxError('Unrecognised action or insufficient permissions');
 
   if ( !empty($entitySpec['func']) ) {
     $data = eval( 'return( '.$entitySpec['func']." );" );
@@ -398,9 +398,9 @@ function getNearEvents() {
   global $user, $sortColumn, $sortOrder;
 
   $eventId = $_REQUEST['id'];
-  $event = dbFetchOne( 'SELECT * FROM Events WHERE Id=?', NULL, array( $eventId ) );
+  $event = dbFetchOne('SELECT * FROM Events WHERE Id=?', NULL, array($eventId));
 
-  parseFilter( $_REQUEST['filter'] );
+  parseFilter($_REQUEST['filter']);
   parseSort();
 
   if ( $user['MonitorIds'] )
@@ -419,8 +419,8 @@ function getNearEvents() {
     $sql .= ', E.Id DESC';
   }
   $sql .= ' LIMIT 1';
-  $result = dbQuery( $sql );
-  $prevEvent = dbFetchNext( $result );
+  $result = dbQuery($sql);
+  $prevEvent = dbFetchNext($result);
 
   $sql = "SELECT E.Id AS Id, E.StartTime AS StartTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE $sortColumn ".($sortOrder=='asc'?'>=':'<=')." '".$event[$_REQUEST['sort_field']]."'".$_REQUEST['filter']['sql'].$midSql.' AND E.Id>'.$event['Id'] . " ORDER BY $sortColumn $sortOrder";
   if ( $sortColumn != 'E.Id' ) {

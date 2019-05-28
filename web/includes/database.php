@@ -172,10 +172,11 @@ function dbFetchOne( $sql, $col=false, $params=NULL ) {
     return false;
   }
 
-  if ( $result && $dbRow = $result->fetch(PDO::FETCH_ASSOC) ) {
+  if ( $result && ($dbRow = $result->fetch(PDO::FETCH_ASSOC)) ) {
     if ( $col ) {
       if ( ! array_key_exists($col, $dbRow) ) {
         ZM\Warning("$col does not exist in the returned row " . print_r($dbRow, true));
+        return false;
       }
       return $dbRow[$col];
     } 

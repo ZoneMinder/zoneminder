@@ -261,6 +261,11 @@ function addTerm( element ) {
     this[0].selected = 'selected';
   }).chosen({width: '101%'});
   newRow.find('input[type="text"]').val('');
+  newRow[0].querySelectorAll("button[data-on-click-this]").forEach(function attachOnClick(el) {
+    var fnName = el.getAttribute("data-on-click-this");
+    el.onclick = window[fnName].bind(el, el);
+  });
+
   var rows = $j(row).parent().children();
   parseRows(rows);
 }

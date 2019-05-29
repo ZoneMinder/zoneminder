@@ -19,34 +19,35 @@
 // 
 
 
-function xhtmlHeaders( $file, $title ) {
+function xhtmlHeaders($file, $title) {
   global $css;
   global $skin;
   global $view;
 
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
-  $baseCssPhpFile = getSkinFile( 'css/base/skin.css.php' );
+  $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
 
-  $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
+  $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-  $skinJsFile = getSkinFile( 'js/skin.js' );
-  $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
-  $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
+  $skinJsFile = getSkinFile('js/skin.js');
+  $skinJsPhpFile = getSkinFile('js/skin.js.php');
+  $cssJsFile = getSkinFile('js/'.$css.'.js');
 
-  $basename = basename( $file, '.php' );
+  $basename = basename($file, '.php');
 
-  $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
-  $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
-  $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
+  $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
+  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
+  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 
-  extract( $GLOBALS, EXTR_OVERWRITE );
-  function output_link_if_exists( $files ) {
+  extract($GLOBALS, EXTR_OVERWRITE);
+
+  function output_link_if_exists($files) {
     global $skin;
     $html = array();
     foreach ( $files as $file ) {
-      if ( getSkinFile( $file ) ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust( 'skins/'.$skin.'/'.$file ).'" type="text/css"/>';
+      if ( getSkinFile($file) ) {
+        $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
       }
     }
     return implode("\n", $html);
@@ -83,11 +84,12 @@ echo output_link_if_exists( array(
   'css/'.$css.'/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-  'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
+  #'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
   'css/'.$css.'/jquery-ui-theme.css',
 )
 );
 ?>
+<link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
   <!--Chosen can't be cache-busted because it loads sprites by relative path-->
 <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php

@@ -156,6 +156,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <th class="colSystem"><?php echo translate('System') ?></th>
               <th class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
               <th class="colMonitor"><?php echo translate('Monitor') ?></th>
+              <?php if ( ZM_OPT_USE_API ) { ?><th class="colAPIEnabled"><?php echo translate('APIEnabled') ?></th><?php } ?>
               <th class="colMark"><?php echo translate('Mark') ?></th>
             </tr>
           </thead>
@@ -191,6 +192,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
               <td class="colSystem"><?php echo validHtmlStr($row['System']) ?></td>
               <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bandwidth_options[$row['MaxBandwidth']]:'&nbsp;' ?></td>
               <td class="colMonitor"><?php echo $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
+              <?php if ( ZM_OPT_USE_API ) { ?><td class="colAPIEnabled"><?php echo $row['APIEnabled']?translate('Yes'):translate('No') ?></td><?php } ?>
               <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php

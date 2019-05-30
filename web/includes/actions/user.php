@@ -70,7 +70,6 @@ if ( $action == 'user' ) {
     }
 
     if ( !empty($_REQUEST['newUser']['Password']) ) {
-      ZM\Info('PASS CMD='.$changes['Password']);
       $changes['Password'] = 'Password = '.$pass_hash;
     }
       

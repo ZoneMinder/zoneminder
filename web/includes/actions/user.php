@@ -28,8 +28,8 @@ if ( $action == 'user' ) {
     $types = array();
     $changes = getFormChanges($dbUser, $_REQUEST['newUser'], $types);
 
-    if (function_exists ('password_hash')) {
-      $pass_hash = '"'.password_hash($pass, PASSWORD_BCRYPT).'"';
+    if ( function_exists('password_hash') ) {
+      $pass_hash = '"'.password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT).'"';
     } else {
       $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
       ZM\Info('Cannot use bcrypt as you are using PHP < 5.5');

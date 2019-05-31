@@ -20,7 +20,7 @@
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
 if ( ! canEdit('Monitors') ) {
-  ZM\Warning("Monitor actions require Monitors Permissions");
+  ZM\Warning('Monitor actions require Monitors Permissions');
   return;
 }
 
@@ -59,8 +59,8 @@ if ( $action == 'monitor' ) {
   if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
     $_REQUEST['newMonitor']['ServerId'] = dbFetchOne(
       'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
-    ZM\Logger::Debug('Auto selecting server: Got ' . $_REQUEST['newMonitor']['ServerId'] );
-    if ( ( ! $_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
+    ZM\Logger::Debug('Auto selecting server: Got ' . $_REQUEST['newMonitor']['ServerId']);
+    if ( ( !$_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
       $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
       ZM\Logger::Debug('Auto selecting server to ' . ZM_SERVER_ID);
     }
@@ -68,17 +68,17 @@ if ( $action == 'monitor' ) {
 
   $columns = getTableColumns('Monitors');
   $changes = getFormChanges($monitor, $_REQUEST['newMonitor'], $types, $columns);
-ZM\Logger::Debug("Columns:". print_r($columns,true));
-ZM\Logger::Debug("Changes:". print_r($changes,true));
-ZM\Logger::Debug("newMonitor:". print_r($_REQUEST['newMonitor'],true));
+#ZM\Logger::Debug("Columns:". print_r($columns,true));
+#ZM\Logger::Debug("Changes:". print_r($changes,true));
+#ZM\Logger::Debug("newMonitor:". print_r($_REQUEST['newMonitor'],true));
 
   if ( count($changes) ) {
     if ( $mid ) {
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
       if ( $monitor['Type'] != 'WebSite' ) {
-        zmaControl($monitor, 'stop');
-        zmcControl($monitor, 'stop');
+        $Monitor->zmaControl('stop');
+        $Monitor->zmcControl('stop');
       }
       dbQuery('UPDATE Monitors SET '.implode(', ', $changes).' WHERE Id=?', array($mid));
       // Groups will be added below
@@ -202,16 +202,16 @@ ZM\Logger::Debug("newMonitor:". print_r($_REQUEST['newMonitor'],true));
   if ( $restart ) {
     
     $new_monitor = new ZM\Monitor($mid);
-    //fixDevices();
 
-    if ( $new_monitor->Type() != 'WebSite' ) {
+    if ( $new_monitor->Function() != 'None' and $new_monitor->Type() != 'WebSite' ) {
       $new_monitor->zmcControl('start');
-      $new_monitor->zmaControl('start');
-    }
+      if ( ($new_monitor->Function() == 'Modect' or $new_monitor->Function == 'Mocord') and $new_monitor->Enabled() )
+        $new_monitor->zmaControl('start');
 
-    if ( $new_monitor->Controllable() ) {
-      require_once('includes/control_functions.php');
-      sendControlCommand($mid, 'quit');
+      if ( $new_monitor->Controllable() ) {
+        require_once('includes/control_functions.php');
+        sendControlCommand($mid, 'quit');
+      }
     }
     // really should thump zmwatch and maybe zmtrigger too.
     //daemonControl( 'restart', 'zmwatch.pl' );

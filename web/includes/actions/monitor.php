@@ -202,16 +202,16 @@ ZM\Logger::Debug("newMonitor:". print_r($_REQUEST['newMonitor'],true));
   if ( $restart ) {
     
     $new_monitor = new ZM\Monitor($mid);
-    //fixDevices();
 
-    if ( $new_monitor->Type() != 'WebSite' ) {
+    if ( $new_monitor->Function() != 'None' and $new_monitor->Type() != 'WebSite' ) {
       $new_monitor->zmcControl('start');
-      $new_monitor->zmaControl('start');
-    }
+      if ( ($new_monitor->Function() == 'Modect' or $new_monitor->Function == 'Moocord') and $new_monitor->Enabled() )
+        $new_monitor->zmaControl('start');
 
-    if ( $new_monitor->Controllable() ) {
-      require_once('includes/control_functions.php');
-      sendControlCommand($mid, 'quit');
+      if ( $new_monitor->Controllable() ) {
+        require_once('includes/control_functions.php');
+        sendControlCommand($mid, 'quit');
+      }
     }
     // really should thump zmwatch and maybe zmtrigger too.
     //daemonControl( 'restart', 'zmwatch.pl' );

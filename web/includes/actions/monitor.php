@@ -68,9 +68,9 @@ if ( $action == 'monitor' ) {
 
   $columns = getTableColumns('Monitors');
   $changes = getFormChanges($monitor, $_REQUEST['newMonitor'], $types, $columns);
-ZM\Logger::Debug("Columns:". print_r($columns,true));
-ZM\Logger::Debug("Changes:". print_r($changes,true));
-ZM\Logger::Debug("newMonitor:". print_r($_REQUEST['newMonitor'],true));
+#ZM\Logger::Debug("Columns:". print_r($columns,true));
+#ZM\Logger::Debug("Changes:". print_r($changes,true));
+#ZM\Logger::Debug("newMonitor:". print_r($_REQUEST['newMonitor'],true));
 
   if ( count($changes) ) {
     if ( $mid ) {

@@ -271,7 +271,7 @@ sub checkFilter {
   my $filter = shift;
 
   my @Events = $filter->Execute();
-  Info(
+  Debug(
       join(' ',
         'Checking filter', $filter->{Name},
         join(', ', 

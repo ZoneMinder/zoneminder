@@ -21,7 +21,7 @@ Build-Depends: debhelper (>= 9), cmake
     , libphp-serialization-perl
     , libdate-manip-perl, libmime-lite-perl, libmime-tools-perl, libdbd-mysql-perl
     , libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl
-    , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl
+    , libmodule-load-perl, libsys-mmap-perl, libjson-maybexs-perl
     , libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl
     , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
     , libsys-cpu-perl, libsys-meminfo-perl
@@ -39,7 +39,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libphp-serialization-perl
     , libdate-manip-perl, libmime-lite-perl, libmime-tools-perl, libdbd-mysql-perl
     , libwww-perl, libarchive-tar-perl, libarchive-zip-perl, libdevice-serialport-perl
-    , libmodule-load-perl, libsys-mmap-perl, libjson-any-perl, libjson-maybexs-perl
+    , libmodule-load-perl, libsys-mmap-perl, libjson-maybexs-perl
     , libnet-sftp-foreign-perl, libio-pty-perl, libexpect-perl
     , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
     , libsys-cpu-perl, libsys-meminfo-perl

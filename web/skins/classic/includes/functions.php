@@ -302,7 +302,7 @@ if ( ZM_OPT_X10 && canView('Devices') ) { ?>
    // if canview_reports
 ?>
 <?php
-if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
+if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
   $terms = $_REQUEST['filter']['Query']['terms'];
   $count = 0;
   foreach ($terms as $term) {
@@ -327,10 +327,17 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 		</ul>
 
 <div class="navbar-right">
-<?php if ( ZM_OPT_USE_AUTH and $user ) { ?>
-	<p class="navbar-text"><i class="material-icons">account_circle</i> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
-<?php } ?>
-<?php if ( canEdit('System') ) { ?>
+<?php
+if ( ZM_OPT_USE_AUTH and $user ) {
+?>
+  <p class="navbar-text">
+    <i class="material-icons">account_circle</i>
+    <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>
+  </p>
+<?php
+}
+if ( canEdit('System') ) {
+?>
 		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
   <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
   <p class="navbar-text">
@@ -349,7 +356,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 } //end reload null.  Runs on full page load
 
 if ( (!ZM_OPT_USE_AUTH) or $user ) {
-if ($reload == 'reload') ob_start();
+  if ($reload == 'reload') ob_start();
 ?>
 	<div id="reload" class="container-fluid reduced-text">
     <div id="Bandwidth" class="pull-left">
@@ -360,7 +367,7 @@ if ($reload == 'reload') ob_start();
     </div>
     <ul class="list-inline">
       <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-<i class="material-icons md-18">storage</i>
+      <i class="material-icons md-18">storage</i>
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
@@ -389,9 +396,9 @@ if ($reload == 'reload') ob_start();
 
     return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
-  if ( count($storage_areas) >= 4 ) 
+  if ( count($storage_areas) > 4 ) 
     $storage_areas = ZM\Storage::find( array('ServerId'=>null) );
-  if ( count($storage_areas) < 4 )
+  if ( count($storage_areas) <= 4 )
     echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
@@ -401,7 +408,7 @@ if ($reload == 'reload') ob_start();
     <?php } ?>	
 <!-- End .footer/reload --></div>
 <?php
-if ($reload == 'reload') return ob_get_clean();
+  if ($reload == 'reload') return ob_get_clean();
 } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
   </div>

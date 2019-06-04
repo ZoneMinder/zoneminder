@@ -70,7 +70,7 @@ if ( $action == 'delete' ) {
     }
   }
   if ( $changed ) {
-    switch( $_REQUEST['tab'] ) {
+    switch ( $_REQUEST['tab'] ) {
     case 'system' :
     case 'config' :
       $restartWarning = true;
@@ -93,7 +93,8 @@ if ( $action == 'delete' ) {
     $redirect = '?view=options&tab='.$_REQUEST['tab'];
     loadConfig(false);
     # Might need to update auth hash
-    generateAuthHash(ZM_AUTH_HASH_IPS, true);
+    # This doesn't work because the config are constants and won't really be loaded until the next refresh.
+    #generateAuthHash(ZM_AUTH_HASH_IPS, true);
   }
   return;
 } // end if object vs action

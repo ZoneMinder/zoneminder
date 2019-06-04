@@ -91,8 +91,10 @@ if ( $action == 'delete' ) {
       break;
     }
     $redirect = '?view=options&tab='.$_REQUEST['tab'];
+    loadConfig(false);
+    # Might need to update auth hash
+    generateAuthHash(ZM_AUTH_HASH_IPS, true);
   }
-  loadConfig(false);
   return;
 } // end if object vs action
 

@@ -283,8 +283,7 @@ function getAuthUser($auth, $from_api_layer = false) {
       $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     }
 
-    foreach ( dbFetchAll($sql, NULL, $values) as $user ) 
-    {
+    foreach ( dbFetchAll($sql, NULL, $values) as $user ) {
       $now = time();
       for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= ZM_AUTH_HASH_TTL * 1800 ) { // Try for last two hours
         $time = localtime($now);
@@ -309,13 +308,12 @@ function getAuthUser($auth, $from_api_layer = false) {
     } // end foreach user
   } // end if using auth hash
   ZM\Error("Unable to authenticate user from auth hash '$auth'");
-  return false;
+  return null;
 } // end getAuthUser($auth)
 
 function generateAuthHash($useRemoteAddr, $force=false) {
-  if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
+  if ( ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     $time = time();
-
 
     $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
 
@@ -330,18 +328,14 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       }
       #ZM\Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5($authKey);
-      if ( !$force ) {
-        $close_session = 0;
-        if ( !is_session_started() ) {
-          session_start();
-          $close_session = 1;
-        }
-        $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
-        $_SESSION['AuthHashGeneratedAt'] = $time;
-        session_write_close();
-      } else {
-        return $auth;
+      $close_session = 0;
+      if ( !is_session_started() ) {
+        session_start();
+        $close_session = 1;
       }
+      $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
+      $_SESSION['AuthHashGeneratedAt'] = $time;
+      session_write_close();
       #ZM\Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
       #} else {
       #ZM\Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
@@ -401,14 +395,13 @@ if ( ZM_OPT_USE_AUTH ) {
     }
   } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
     userLogin($_REQUEST['username'], $_REQUEST['password'], false);
+    generateAuthHash(ZM_AUTH_HASH_IPS, true);
   }
 
-  if (empty($user) && !empty($_REQUEST['token']) ) {
-
+  if ( empty($user) && !empty($_REQUEST['token']) ) {
     $ret = validateToken($_REQUEST['token'], 'access');
     $user = $ret[0];
   }
-
 
   if ( !empty($user) ) {
     // generate it once here, while session is open.  Value will be cached in session and return when called later on

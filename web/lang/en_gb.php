@@ -1016,6 +1016,17 @@ $OLANG = array(
       for new images. In this case, it is safe to use the field.
       '
 	),
+	'OPTIONS_LINKED_MONITORS' => array(
+    'Help' => '
+      This field allows you to select other monitors on your system that act as 
+      triggers for this monitor. So if you have a camera covering one aspect of 
+      your property you can force all cameras to record while that camera 
+      detects motion or other events. Click on ‘Select’ to choose linked monitors. 
+      Be very careful not to create circular dependencies with this feature 
+      because you will have infinitely persisting alarms which is almost 
+      certainly not what you want! To unlink monitors you can ctrl-click.
+      '
+	),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

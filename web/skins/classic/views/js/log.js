@@ -25,6 +25,15 @@ var sortReversed = false;
 var filterFields = ['Component', 'ServerId', 'Pid', 'Level', 'File', 'Line'];
 var options = {};
 
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+}
+
 function buildFetchParms( parms ) {
   var fetchParms = logParms+'&limit='+maxLogFetch;
   if ( parms ) {
@@ -65,15 +74,13 @@ function logResponse( respObj ) {
                 minLogTime = log.TimeKey;
               }
 
-              // Manually create table cells by setting the text since `push` will set HTML which
-              // can lead to XSS.
-              var messageCell = new Element('td');
-              messageCell.set('text', log.Message);
-
-              var fileCell = new Element('td');
-              fileCell.set('text', log.File);
-
-              var row = logTable.push( [{content: log.DateTime, properties: {style: 'white-space: nowrap'}}, log.Component, log.Server, log.Pid, log.Code, messageCell, fileCell, log.Line] );
+              var row = logTable.push([
+                {content: log.DateTime, properties: {style: 'white-space: nowrap'}},
+                log.Component, log.Server, log.Pid, log.Code,
+                escapeHtml(log.Message),
+                escapeHtml(log.File),
+                log.Line
+              ]);
 
               delete log.Message;
               row.tr.store( 'log', log );

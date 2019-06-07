@@ -87,7 +87,7 @@ Event::Event(
 
   char sql[ZM_SQL_MED_BUFSIZ];
   struct tm *stime = localtime(&start_time.tv_sec);
-  snprintf( sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
+  snprintf(sql, sizeof(sql), "INSERT INTO Events ( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) values ( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
       monitor->Id(), 
       storage->Id(),
       start_time.tv_sec,
@@ -247,6 +247,7 @@ Event::~Event() {
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
 
   if ( frames > last_db_frame ) {
+    frames ++;
     Debug(1, "Adding closing frame %d to DB", frames);
     frame_data.push(new Frame(id, frames, NORMAL, end_time, delta_time, 0));
   }
@@ -484,7 +485,8 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     }
 
     int sql_len = strlen(sql);
-    snprintf(sql+sql_len, sizeof(sql)-sql_len, "( %" PRIu64 ", %d, from_unixtime(%ld), %s%ld.%02ld ), ", id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
+    snprintf(sql+sql_len, sizeof(sql)-sql_len, "( %" PRIu64 ", %d, from_unixtime(%ld), %s%ld.%02ld ), ",
+        id, frames, timestamps[i]->tv_sec, delta_time.positive?"":"-", delta_time.sec, delta_time.fsec);
 
     frameCount++;
   } // end foreach frame
@@ -493,7 +495,7 @@ void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, st
     Debug(1, "Adding %d/%d frames to DB", frameCount, n_frames);
     *(sql+strlen(sql)-2) = '\0';
     db_mutex.lock();
-    if ( mysql_query( &dbconn, sql ) ) {
+    if ( mysql_query(&dbconn, sql) ) {
       Error("Can't insert frames: %s, sql was (%s)", mysql_error(&dbconn), sql);
     }
     db_mutex.unlock();

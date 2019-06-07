@@ -214,7 +214,7 @@ ob_start();
             <th class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
       foreach ( array_keys($eventCounts) as $j ) {
-        echo '<th class="colEvents">'. $j .'</th>';
+        echo '<th class="colEvents">'. $eventCounts[$j]['title'] .'</th>';
       }
 ?>
             <th class="colZones"><?php echo translate('Zones') ?></th>

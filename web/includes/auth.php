@@ -372,7 +372,7 @@ if ( ZM_OPT_USE_AUTH ) {
   }
 
   if ( isset($_SESSION['username']) ) {
-    if ( ZM_AUTH_HASH_LOGINS ) {
+    if ( ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed') ) {
       # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
       # This prevent session modification to switch users
       $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
@@ -385,7 +385,7 @@ if ( ZM_OPT_USE_AUTH ) {
 
   if ( ZM_AUTH_RELAY == 'plain' ) {
     // Need to save this in session
-    $_SESSION['password'] = $password;
+    $_SESSION['password'] = $user['Password'];
   }
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
 

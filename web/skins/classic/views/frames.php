@@ -33,14 +33,14 @@ if ( isset( $_REQUEST['scale'] ) ) {
 } else if ( isset( $_COOKIE['zmWatchScale'] ) ) {
   $scale = validNum($_COOKIE['zmWatchScale']);
 } else {
-  $scale = max( reScale( SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
+  $scale = max(reScale(SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
 }
-$sql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId';
-$frames = dbFetchAll( $sql, NULL, array( $_REQUEST['eid'] ) );
+$sql = 'SELECT *, unix_timestamp(TimeStamp) AS UnixTimeStamp FROM Frames WHERE EventID = ? ORDER BY FrameId';
+$frames = dbFetchAll($sql, NULL, array($_REQUEST['eid']));
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id() );
+xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
 ?>
 <body>
   <div id="page">
@@ -87,12 +87,12 @@ if ( count($frames) ) {
                 $frame['FrameId'])
               ?></td>
               <td class="colType"><?php echo $frame['Type'] ?></td>
-              <td class="colTimeStamp"><?php echo strftime( STRF_FMT_TIME, $frame['UnixTimeStamp'] ) ?></td>
+              <td class="colTimeStamp"><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
               <td class="colTimeDelta"><?php echo number_format( $frame['Delta'], 2 ) ?></td>
 <?php
     if ( ZM_RECORD_EVENT_STATS && ($frame['Type'] == 'Alarm') ) {
 ?>
-              <td class="colScore"><?php echo makePopupLink( '?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score'] ) ?></td>
+              <td class="colScore"><?php echo makePopupLink('?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmStats', 'stats', $frame['Score']) ?></td>
 <?php
     } else {
 ?> 
@@ -101,7 +101,7 @@ if ( count($frames) ) {
     }
     if ( ZM_WEB_LIST_THUMBS ) {
 ?>
-              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage', array( 'image', $Event->Width(), $Event->Height() ), '<img src="?view=image&amp;fid='.$Frame->Id().'&amp;'.
+              <td class="colThumbnail"><?php echo makePopupLink( '?view=frame&amp;eid='.$Event->Id().'&amp;fid='.$frame['FrameId'], 'zmImage', array('image', $Event->Width(), $Event->Height()), '<img src="?view=image&amp;fid='.$Frame->Id().'&amp;'.
 (ZM_WEB_LIST_THUMB_WIDTH?'width='.ZM_WEB_LIST_THUMB_WIDTH.'&amp;':'').
 (ZM_WEB_LIST_THUMB_HEIGHT?'height='.ZM_WEB_LIST_THUMB_HEIGHT.'&amp;':'').'filename='.$Event->MonitorId().'_'.$frame['EventId'].'_'.$frame['FrameId'].'.jpg" '.
 (ZM_WEB_LIST_THUMB_WIDTH?'width="'.ZM_WEB_LIST_THUMB_WIDTH.'" ':'').

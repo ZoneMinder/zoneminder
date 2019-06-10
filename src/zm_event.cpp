@@ -583,14 +583,14 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
     if ( write_to_db || ( frame_data.size() > 20 ) ) {
       WriteDbFrames();
-      Debug(1, "Adding 20 frames to DB");
+      Debug(1, "Adding %d frames to DB", frame_data.size());
       last_db_frame = frames;
     }
 
     // We are writing a Bulk frame
     if ( frame_type == BULK ) {
       snprintf(sql, sizeof(sql), 
-          "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %" PRIu64, 
+          "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64, 
           ( delta_time.positive?"":"-" ),
           delta_time.sec, delta_time.fsec,
           frames, 

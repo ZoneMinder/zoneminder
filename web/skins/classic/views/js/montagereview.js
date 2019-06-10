@@ -45,51 +45,81 @@ function evaluateLoadTimes() {
   $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 } // end evaluateLoadTimes()
 
-function getFrame( monId, time ) {
+function getFrame(monId, time, last_Frame=null) {
+  if ( last_Frame ) {
+    if (
+      (last_Frame.TimeStampSecs <= time)
+      &&
+      (last_Frame.EndTimeStampSecs >= time)
+    ) {
+      return last_Frame;
+    }
+  }
+
+  var events_for_monitor = events_by_monitor_id[monId];
+  if ( ! events_for_monitor ) {
+    console.log("No events for monitor " + monId);
+    return;
+  }
+
   var Frame = null;
-  for ( var event_id in events ) {
+  for ( var i = 0; i < events_for_monitor.length; i++ ) {
+  //for ( var event_id_idx in events_for_monitor ) {
+    var event_id = events_for_monitor[i];
     // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
-    Event = events[event_id];
-    if ( Event.MonitorId != monId || Event.StartTimeSecs > time || Event.EndTimeSecs < time ) {
+    e = events[event_id];
+    if ( !e ) {
+      console.log("No event found for " + event_id);
+      break;
+    }
+    if ( e.MonitorId != monId || e.StartTimeSecs > time || e.EndTimeSecs < time ) {
+      //console.log("Event not for " + time);
       continue;
     }
 
-    var duration = Event.EndTimeSecs - Event.StartTimeSecs;
-    if ( ! Event.FramesById ) {
+    if ( !e.FramesById ) {
       console.log("No FramesById for event " + event_id);
       return;
     }
-    var frame = parseInt((time - Event.StartTimeSecs)/(duration)*Object.keys(Event.FramesById).length)+1;
-    // Need to get frame by time, not some fun calc that assumes frames have the same mlength.
-    // Frames are not sorted.
-    for ( var frame_id in Event.FramesById ) {
+    var duration = e.EndTimeSecs - e.StartTimeSecs;
+
+    // I think this is an estimate to jump near the desired frame.
+    var frame = parseInt((time - e.StartTimeSecs)/(duration)*Object.keys(e.FramesById).length)+1;
+    //console.log("frame_id for " + time + " is " + frame);
+
+    // Need to get frame by time, not some fun calc that assumes frames have the same length.
+    // Frames are sorted in descreasing order (or not sorted).
+    // This is likely not efficient.  Would be better to start at the last frame viewed, see if it is still relevant
+    // Then move forward or backwards as appropriate
+
+    for ( var frame_id in e.FramesById ) {
       if ( 0 ) {
         if ( frame == 0 ) {
-          console.log("Found frame for time " + time );
+          console.log("Found frame for time " + time);
           console.log(Frame);
-          Frame = Event.FramesById[frame_id];
+          Frame = e.FramesById[frame_id];
           break;
         }
         frame --;
         continue;
       }
       if (
-        Event.FramesById[frame_id].TimeStampSecs == time
+        e.FramesById[frame_id].TimeStampSecs == time
           || (
-            Event.FramesById[frame_id].TimeStampSecs < time
+            e.FramesById[frame_id].TimeStampSecs < time
             && (
-              (!Event.FramesById[frame_id].NextTimeStampSecs)
+              (!e.FramesById[frame_id].NextTimeStampSecs) // only if event.EndTime is null
              ||
-             (Event.FramesById[frame_id].NextTimeStampSecs > time)
+             (e.FramesById[frame_id].NextTimeStampSecs > time)
             )
           )
       ) {
-        Frame = Event.FramesById[frame_id];
+        Frame = e.FramesById[frame_id];
         break;
       }
     } // end foreach frame in the event.
-    if ( ! Frame ) {
-      console.log("Didn't find frame for " + time );
+    if ( !Frame ) {
+      console.log("Didn't find frame for " + time);
       return null;
     }
   } // end foreach event
@@ -97,11 +127,11 @@ function getFrame( monId, time ) {
 }
 
 // time is seconds since epoch
-function getImageSource( monId, time ) {
+function getImageSource(monId, time) {
   if ( liveMode == 1 ) {
     var new_url = monitorImageObject[monId].src.replace(
         /rand=\d+/i,
-        'rand='+Math.floor((Math.random() * 1000000) )
+        'rand='+Math.floor(Math.random() * 1000000)
     );
     if ( auth_hash ) {
       // update auth hash
@@ -109,20 +139,31 @@ function getImageSource( monId, time ) {
     }
     return new_url;
   }
+  var frame_id;
+
   var Frame = getFrame(monId, time);
   if ( Frame ) {
     // Adjust for bulk frames
     if ( Frame.NextFrameId ) {
-      var duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
-      frame_id = Frame.FrameId + parseInt( (Frame.NextFrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
-      //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + Frame.NextFrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
-    //} else {
-      //console.log("No NextFrame");
+      var e = events[Frame.EventId];
+      var NextFrame = e.FramesById[Frame.NextFrameId];
+      if ( !NextFrame ) {
+        console.log("No next frame for " + Frame.NextFrameId);
+      } else if ( NextFrame.Type == 'Bulk' ) {
+        // There is time between this frame and a bulk frame
+        var duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
+        frame_id = Frame.FrameId + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
+        //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + NextFrame.FrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
+      }
+
+    } else {
+      frame_id = Frame['Id'];
+      console.log("No NextFrame");
     }
     Event = events[Frame.EventId];
 
     var storage = Storage[Event.StorageId];
-    if ( ! storage ) {
+    if ( !storage ) {
       // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
       console.log("No storage area for id " + Event.StorageId);
       storage = Storage[0];
@@ -130,7 +171,7 @@ function getImageSource( monId, time ) {
     // monitorServerId may be 0, which gives us the default Server entry
     var server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
     return server.PathToIndex +
-      '?view=image&eid=' + Frame.EventId + '&fid='+Frame.FrameId +
+      '?view=image&eid=' + Frame.EventId + '&fid='+frame_id +
       "&width=" + monitorCanvasObj[monId].width +
       "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame
@@ -818,16 +859,16 @@ function showOneMonitor(monId) {
   // We know the monitor, need to determine the event based on current time
   var url;
   if ( liveMode != 0 ) {
-    url="?view=watch&mid=" + monId.toString();
-    createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
+    url = '?view=watch&mid=' + monId.toString();
+    createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId]);
   } else {
     var Frame = getFrame( monId, currentTimeSecs );
     if ( Frame ) {
-      url="?view=event&eid=" + Frame.EventId + '&fid=' +Frame.FrameId;
+      url = '?view=event&eid=' + Frame.EventId + '&fid=' + Frame.FrameId;
       createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
     } else {
-      url="?view=watch&mid=" + monId.toString();
-      createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId] );
+      url = '?view=watch&mid=' + monId.toString();
+      createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId]);
     }
   } // end if live/events
 }
@@ -960,11 +1001,19 @@ function initPage() {
     maxDate: +0,
     constrainInput: false,
     onClose: function(newDate, oldData) {
-      if (newDate !== oldData.lastVal) {
+      if ( newDate !== oldData.lastVal ) {
         changeDateTime();
       }
     }
   });
+  $j('#scaleslider').bind('change', function() { setScale(this.value); });
+  $j('#scaleslider').bind('input', function() { showScale(this.value); });
+  $j('#speedslider').bind('change', function() { setSpeed(this.value); });
+  $j('#speedslider').bind('input', function() { showSpeed(this.value); });
+
+  $j('#liveButton').bind('click', function() { setLive(1-liveMode); });
+  $j('#fit').bind('click', function() { setFit(1-fitMode); });
+  $j('#archive_status').bind('change', function() { console.log('submitting'); this.form.submit(); });
 }
 window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off

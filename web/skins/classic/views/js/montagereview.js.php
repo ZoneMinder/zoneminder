@@ -55,22 +55,25 @@ if ( !$liveMode ) {
 
   if ( $result = dbQuery($framesSql) ) {
     $next_frame = null;
-    while( $frame = $result->fetch(PDO::FETCH_ASSOC) ) {
+    while ( $frame = $result->fetch(PDO::FETCH_ASSOC) ) {
       $event_id = $frame['EventId'];
       $event = &$EventsById[$event_id];
 
       $frame['TimeStampSecs'] = $event['StartTimeSecs'] + $frame['Delta'];
       if ( !isset($event['FramesById']) ) {
+        // Please note that this is the last frame as we sort DESC
         $event['FramesById'] = array();
-        $frame['NextTimeStampSecs'] = 0;
+        $frame['NextTimeStampSecs'] = $event['EndTime'];
       } else {
         $frame['NextTimeStampSecs'] = $next_frames[$frame['EventId']]['TimeStampSecs'];
-        $frame['NextFrameId'] = $next_frames[$frame['EventId']]['FrameId'];
+        $frame['NextFrameId'] = $next_frames[$frame['EventId']]['Id'];
       }
-      $event['FramesById'] += array( $frame['Id']=>$frame );
+      $event['FramesById'] += array($frame['Id']=>$frame);
       $next_frames[$frame['EventId']] = $frame;
     }
   }
+
+  $events_by_monitor_id = array();
 
   echo "var events = {\n";
   foreach ( $EventsById as $event_id=>$event ) {
@@ -82,7 +85,7 @@ if ( !$liveMode ) {
     if ( !$minTimeSecs or $minTimeSecs > $StartTimeSecs ) $minTimeSecs = $StartTimeSecs;
     if ( !$maxTimeSecs or $maxTimeSecs < $EndTimeSecs ) $maxTimeSecs = $EndTimeSecs;
 
-    $event_json = json_encode($event, JSON_PRETTY_PRINT);
+    $event_json = json_encode($event, JSON_PRETTY_PRINT|JSON_NUMERIC_CHECK);
     echo " $event_id : $event_json,\n";
 
     $index = $index + 1;
@@ -91,8 +94,19 @@ if ( !$liveMode ) {
         $maxScore = $event['MaxScore'];
       $anyAlarms = true;
     }
+    if ( !isset($events_by_monitor_id[$event['MonitorId']]) )
+        $events_by_monitor_id[$event['MonitorId']] = array();
+    array_push($events_by_monitor_id[$event['MonitorId']], $event_id);
+
+  } # end foreach Event
+  echo " };
+  var events_by_monitor_id = {
+  \n";
+
+  foreach ( $events_by_monitor_id as $monitor_id=>$event_ids ) {
+    echo "$monitor_id : ".json_encode($event_ids, JSON_NUMERIC_CHECK) . "\n";
   }
-echo " };\n";
+  echo " };\n";
 
   // if there is no data set the min/max to the passed in values
   if ( $index == 0 ) {

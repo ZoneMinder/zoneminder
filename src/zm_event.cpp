@@ -543,6 +543,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   bool write_to_db = false;
 
   if ( monitor->GetOptSaveJPEGs() & 1 ) {
+    if ( frames == 1 )
+      write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
     static char event_file[PATH_MAX];
     snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
     Debug(1, "Writing capture frame %d to %s", frames, event_file);
@@ -574,7 +576,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   if ( score < 0 )
     score = 0;
 
-  bool db_frame = ( frame_type != BULK ) || (!frames) || ((frames%config.bulk_frame_interval)==0) ;
+  bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
     static char sql[ZM_SQL_MED_BUFSIZ];
 

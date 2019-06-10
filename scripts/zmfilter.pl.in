@@ -448,10 +448,10 @@ sub generateImage {
   } elsif ( -r $capture_image_path ) {
     $image_path = $capture_image_path;
   } elsif ( -r $video_path ) {
-    my $command ="ffmpeg -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
+    my $command ="ffmpeg -nostdin -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
     #$command = "ffmpeg -y -v 0 -i $video_path -vf 'select=gte(n\\,$$frame{FrameId}),setpts=PTS-STARTPTS' -vframes 1 -f image2 $capture_image_path";
     my $output = qx($command);
-    chomp( $output );
+    chomp($output);
     my $status = $? >> 8;
     if ( $status || logDebugging() ) {
       Debug("Output: $output");

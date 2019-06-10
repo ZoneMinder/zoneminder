@@ -582,8 +582,8 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
 
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
     if ( write_to_db || ( frame_data.size() > 20 ) ) {
-      WriteDbFrames();
       Debug(1, "Adding %d frames to DB", frame_data.size());
+      WriteDbFrames();
       last_db_frame = frames;
     }
 

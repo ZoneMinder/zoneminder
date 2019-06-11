@@ -21,6 +21,9 @@
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
 #include "zm_rgb.h"
+extern "C" {
+#include "libavutil/pixdesc.h"
+}
 
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 

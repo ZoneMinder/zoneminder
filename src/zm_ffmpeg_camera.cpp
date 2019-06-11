@@ -29,6 +29,7 @@ extern "C" {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   #include "libavutil/hwcontext.h"
 #endif
+#include "libavutil/pixdesc.h"
 }
 #ifndef AV_ERROR_MAX_STRING_SIZE
 #define AV_ERROR_MAX_STRING_SIZE 64

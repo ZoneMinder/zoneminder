@@ -873,6 +873,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       }
     } // end if recording or not
 
+
     // Buffer video packets, since we are not recording.
     // All audio packets are keyframes, so only if it's a video keyframe
     if ( packet.stream_index == mVideoStreamId ) {
@@ -885,17 +886,18 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
         }
 
         packetqueue->clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
-        packetqueue->queuePacket(&packet);
+
+        packetqueue->queuePacket(&packet, mFormatContext->streams[packet.stream_index]);
       } else if ( packetqueue->size() ) {
         // it's a keyframe or we already have something in the queue
-        packetqueue->queuePacket(&packet);
+        packetqueue->queuePacket(&packet, mFormatContext->streams[packet.stream_index]);
       } 
     } else if ( packet.stream_index == mAudioStreamId ) {
     // The following lines should ensure that the queue always begins with a video keyframe
 //Debug(2, "Have audio packet, reocrd_audio is (%d) and packetqueue.size is (%d)", record_audio, packetqueue.size() );
       if ( record_audio && packetqueue->size() ) { 
         // if it's audio, and we are doing audio, and there is already something in the queue
-        packetqueue->queuePacket(&packet);
+        packetqueue->queuePacket(&packet, mFormatContext->streams[packet.stream_index]);
       }
     } // end if packet type
 
@@ -904,9 +906,19 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       if ( have_video_keyframe || keyframe ) {
 
         if ( videoStore ) {
+          AVPacket out_packet;
+          av_init_packet(&out_packet);
+          if ( zm_av_packet_ref( &out_packet, &packet ) < 0 ) {
+            Error("error refing packet");
+          }
+          out_packet.pts = av_rescale_q(out_packet.pts, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
+          out_packet.dts = av_rescale_q(out_packet.dts, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
+          out_packet.duration = av_rescale_q(out_packet.duration, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
+
               
           //Write the packet to our video store
-          int ret = videoStore->writeVideoFramePacket(&packet);
+          int ret = videoStore->writeVideoFramePacket(&out_packet);
+          zm_av_packet_unref(&out_packet);
           if ( ret < 0 ) { //Less than zero and we skipped a frame
             zm_av_packet_unref(&packet);
             return 0;
@@ -1005,15 +1017,26 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       if ( videoStore ) {
         if ( record_audio ) {
           if ( have_video_keyframe ) {
-          Debug(3, "Recording audio packet streamindex(%d) packetstreamindex(%d)", mAudioStreamId, packet.stream_index );
-          //Write the packet to our video store
-          //FIXME no relevance of last key frame
-          int ret = videoStore->writeAudioFramePacket( &packet );
-          if ( ret < 0 ) {//Less than zero and we skipped a frame
-            Warning("Failure to write audio packet.");
-            zm_av_packet_unref( &packet );
-            return 0;
-          }
+
+            AVPacket out_packet;
+            av_init_packet(&out_packet);
+            if ( zm_av_packet_ref( &out_packet, &packet ) < 0 ) {
+              Error("error refing packet");
+            }
+            out_packet.pts = av_rescale_q(out_packet.pts, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
+            out_packet.dts = av_rescale_q(out_packet.dts, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
+            out_packet.duration = av_rescale_q(out_packet.duration, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
+
+            Debug(3, "Recording audio packet streamindex(%d) packetstreamindex(%d)", mAudioStreamId, packet.stream_index);
+            //Write the packet to our video store
+            //FIXME no relevance of last key frame
+            int ret = videoStore->writeAudioFramePacket(&out_packet);
+            zm_av_packet_unref(&out_packet);
+            if ( ret < 0 ) {//Less than zero and we skipped a frame
+              Warning("Failure to write audio packet.");
+              zm_av_packet_unref( &packet );
+              return 0;
+            }
           } else {
             Debug(3, "Not recording audio yet because we don't have a video keyframe yet");
           }

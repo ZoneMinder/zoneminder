@@ -45,7 +45,7 @@ function evaluateLoadTimes() {
   $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
 } // end evaluateLoadTimes()
 
-function getFrame(monId, time, last_Frame=null) {
+function getFrame(monId, time, last_Frame) {
   if ( last_Frame ) {
     if (
       (last_Frame.TimeStampSecs <= time)
@@ -57,7 +57,7 @@ function getFrame(monId, time, last_Frame=null) {
   }
 
   var events_for_monitor = events_by_monitor_id[monId];
-  if ( ! events_for_monitor ) {
+  if ( !events_for_monitor ) {
     console.log("No events for monitor " + monId);
     return;
   }
@@ -155,7 +155,6 @@ function getImageSource(monId, time) {
         frame_id = Frame.FrameId + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
         //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + NextFrame.FrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
       }
-
     } else {
       frame_id = Frame['Id'];
       console.log("No NextFrame");
@@ -234,6 +233,7 @@ function loadNoData( monId ) {
     console.log("No monId in loadNoData");
   }
 }
+
 function writeText( monId, text ) {
   if ( monId ) {
     var canvasCtx = monitorCanvasCtx[monId];
@@ -273,20 +273,26 @@ function timerFire() {
   if ( ( currentDisplayInterval != timerInterval ) || ( currentSpeed == 0 ) ) {
     // zero just turn off interrupts
     clearInterval(timerObj);
-    timerInterval=currentDisplayInterval;
-    if ( currentSpeed>0 || liveMode!=0 ) timerObj=setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
+    timerObj = null;
+    timerInterval = currentDisplayInterval;
+    console.log("Turn off nterrupts timerInterfave" + timerInterval);
+  }
+
+  if ( (currentSpeed > 0 || liveMode != 0) && ! timerObj ) {
+    timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
   }
 
   if ( liveMode ) {
+    console.log("liveMode");
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if ( currentTimeSecs + playSecsperInterval >= maxTimeSecs ) {
+  } else if ( currentTimeSecs + playSecsPerInterval >= maxTimeSecs ) {
     // beyond the end just stop
-    console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval + " >= " + maxTimeSecs + " so stopping");
+    console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else {
-    //console.log("Current time " + currentTimeSecs + " + " + playSecsperInterval );
-    outputUpdate(playSecsperInterval + currentTimeSecs);
+    //console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval);
+    outputUpdate(playSecsPerInterval + currentTimeSecs);
   }
   return;
 }
@@ -308,10 +314,10 @@ function drawSliderOnGraph(val) {
 
   if ( numMonitors > 0 ) {
     // if we have no data to display don't do the slider itself
-    var sliderX = parseInt( (val - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2); // position left side of slider
+    var sliderX = parseInt((val - minTimeSecs) / rangeTimeSecs * cWidth - sliderWidth/2); // position left side of slider
     if ( sliderX < 0 ) sliderX = 0;
-    if ( sliderX+sliderWidth > cWidth ) {
-      sliderX=cWidth-sliderWidth-1;
+    if ( sliderX + sliderWidth > cWidth ) {
+      sliderX = cWidth-sliderWidth-1;
     }
 
     // If we have data already saved first restore it from LAST time
@@ -337,20 +343,20 @@ function drawSliderOnGraph(val) {
       o.style.color = "red";
     } else {
       o.innerHTML = secs2dbstr(val);
-      o.style.color="blue";
+      o.style.color = "blue";
     }
-    o.style.position="absolute";
+    o.style.position = "absolute";
     o.style.bottom = labbottom;
     o.style.font = labfont;
     // try to get length and then when we get too close to the right switch to the left
     var len = o.offsetWidth;
     var x;
-    if (sliderX > cWidth/2) {
-      x=sliderX - len - 10;
+    if ( sliderX > cWidth/2 ) {
+      x = sliderX - len - 10;
     } else {
-      x=sliderX + 10;
+      x = sliderX + 10;
     }
-    o.style.left=x.toString() + "px";
+    o.style.left = x.toString() + "px";
   }
 
   // This displays (or not) the left/right limits depending on how close the slider is.
@@ -391,7 +397,7 @@ function drawSliderOnGraph(val) {
 }
 
 function drawGraph() {
-  var divWidth=$('timelinediv').clientWidth;
+  var divWidth = $('timelinediv').clientWidth;
   canvas.width = cWidth = divWidth; // Let it float and determine width (it should be sized a bit smaller percentage of window)
   cHeight = parseInt(window.innerHeight * 0.10);
   if ( cHeight < numMonitors * 20 ) {
@@ -400,14 +406,14 @@ function drawGraph() {
 
   canvas.height = cHeight;
 
-  if ( Object.keys(events).length == 0 ) {
-    ctx.globalAlpha=1;
-    ctx.font= "40px Georgia";
-    ctx.fillStyle="white";
-    var t="No data found in range - choose differently";
-    var l=ctx.measureText(t).width;
+  if ( events && ( Object.keys(events).length == 0 ) ) {
+    ctx.globalAlpha = 1;
+    ctx.font = "40px Georgia";
+    ctx.fillStyle = "white";
+    var t = "No data found in range - choose differently";
+    var l = ctx.measureText(t).width;
     ctx.fillText(t, (cWidth - l)/2, cHeight-10);
-    underSlider=undefined;
+    underSlider = undefined;
     return;
   }
   var rowHeight = parseInt(cHeight / (numMonitors + 1) ); // Leave room for a scale of some sort
@@ -441,14 +447,15 @@ function drawGraph() {
     } // end foreach frame
   } // end foreach Event
 
-  for (var i=0; i<numMonitors; i++) {
+  for ( var i=0; i < numMonitors; i++ ) {
     // Note that this may be a sparse array
-    ctx.font= parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
-    ctx.fillStyle="white";
-    ctx.globalAlpha=1;
-    ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight ); // This should roughly center font in row
+    ctx.font = parseInt(rowHeight * timeLabelsFractOfRow).toString() + "px Georgia";
+    ctx.fillStyle = "white";
+    ctx.globalAlpha = 1;
+    // This should roughly center font in row
+    ctx.fillText(monitorName[monitorPtr[i]], 0, (i + 1 - (1 - timeLabelsFractOfRow)/2 ) * rowHeight);
   }
-  underSlider=undefined; // flag we don't have a slider cached
+  underSlider = undefined; // flag we don't have a slider cached
   drawSliderOnGraph(currentTimeSecs);
   return;
 } // end function drawGraph
@@ -581,6 +588,7 @@ function secs2inputstr(s) {
   }
   return m.format("YYYY-MM-DDTHH:mm:ss");
 }
+
 function secs2dbstr(s) {
   if ( ! parseInt(s) ) {
     console.log("Invalid value for " + s + " seconds");
@@ -608,11 +616,11 @@ function showScale(newscale) {
 function setScale(newscale) {
   // makes actual change
   showScale(newscale);
-  for (var i=0; i<numMonitors; i++) {
-    monitorCanvasObj[monitorPtr[i]].width=monitorWidth[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
-    monitorCanvasObj[monitorPtr[i]].height=monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
+  for ( var i=0; i < numMonitors; i++ ) {
+    monitorCanvasObj[monitorPtr[i]].width = monitorWidth[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
+    monitorCanvasObj[monitorPtr[i]].height = monitorHeight[monitorPtr[i]]*monitorNormalizeScale[monitorPtr[i]]*monitorZoomScale[monitorPtr[i]]*newscale;
   }
-  currentScale=newscale;
+  currentScale = newscale;
 }
 
 function showSpeed(val) {
@@ -620,14 +628,16 @@ function showSpeed(val) {
   $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
 }
 
-function setSpeed( speed_index ) {
-  if ( liveMode == 1 ) return; // we shouldn't actually get here but just in case
+function setSpeed(speed_index) {
+  if ( liveMode == 1 ) {
+    console.log("setSpeed in liveMode?");
+    return; // we shouldn't actually get here but just in case
+  }
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
-  playSecsperInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
+  playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
   showSpeed(speed_index);
-  if ( timerInterval != currentDisplayInterval ) timerFire(); // if the timer isn't firing we need to trigger it to update
-  //if ( (timerInterval != currentDisplayInterval || currentSpeed == 0 ) timerFire(); // if the timer isn't firing we need to trigger it to update
+  timerFire();
 }
 
 function setLive(value) {
@@ -655,31 +665,31 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
     if ( maxSecs > now ) {
       maxSecs = parseInt(now);
     }
-    maxStr="&maxTime=" + secs2inputstr(maxSecs);
+    maxStr = "&maxTime=" + secs2inputstr(maxSecs);
     $('maxTime').value = secs2inputstr(maxSecs);
   }
   if ( minSecs > 0 ) {
     $('minTime').value = secs2inputstr(minSecs);
-    minStr="&minTime=" + secs2inputstr(minSecs);
+    minStr = "&minTime=" + secs2inputstr(minSecs);
   }
   if ( maxSecs == 0 && minSecs == 0 ) {
-    minStr="&minTime=01/01/1950T12:00:00";
-    maxStr="&maxTime=12/31/2035T12:00:00";
+    minStr = "&minTime=01/01/1950T12:00:00";
+    maxStr = "&maxTime=12/31/2035T12:00:00";
   }
   var intervalStr="&displayinterval=" + currentDisplayInterval.toString();
   if ( minSecs && maxSecs ) {
     if ( currentTimeSecs > minSecs && currentTimeSecs < maxSecs ) { // make sure time is in the new range
-      currentStr="&current=" + secs2dbstr(currentTimeSecs);
+      currentStr = "&current=" + secs2dbstr(currentTimeSecs);
     }
   }
 
-  var liveStr="&live=0";
+  var liveStr = "&live=0";
   if ( live == 1 ) {
-    liveStr="&live=1";
+    liveStr = "&live=1";
   }
 
-  var zoomStr="";
-  for ( var i=0; i < numMonitors; i++ ) {
+  var zoomStr = "";
+  for ( var i = 0; i < numMonitors; i++ ) {
     if ( monitorZoomScale[monitorPtr[i]] < 0.99 || monitorZoomScale[monitorPtr[i]] > 1.01 ) { // allow for some up/down changes and just treat as 1 of almost 1
       zoomStr += "&z" + monitorPtr[i].toString() + "=" + monitorZoomScale[monitorPtr[i]].toFixed(2);
     }
@@ -726,7 +736,7 @@ function click_panright() {
   clicknav(minTimeSecs, maxTimeSecs, 0);
 }
 function click_download() {
-  createPopup( '?view=download', 'zmDownload', 'download' );
+  createPopup('?view=download', 'zmDownload', 'download');
 }
 function click_all_events() {
   clicknav(0, 0, 0);
@@ -744,7 +754,6 @@ function compSize(a, b) { // sort array by some size parameter  - height seems t
   else if ( a_value == b_value ) return 0;
   else return 1;
 }
-
 
 function maxfit2(divW, divH) {
   var bestFitX=[]; // how we arranged the so-far best match
@@ -777,7 +786,7 @@ function maxfit2(divW, divH) {
       function doesItFit(x, y, w, h, d) { // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
         if (x+w>=divW) return 0;
         if (y+h>=divH) return 0;
-        for (var i=0; i<=d; i++) {
+        for ( var i=0; i <= d; i++ ) {
           if ( !( thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y ) ) return 0;
         }
         return 1; // it's OK
@@ -862,7 +871,7 @@ function showOneMonitor(monId) {
     url = '?view=watch&mid=' + monId.toString();
     createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId]);
   } else {
-    var Frame = getFrame( monId, currentTimeSecs );
+    var Frame = getFrame(monId, currentTimeSecs);
     if ( Frame ) {
       url = '?view=event&eid=' + Frame.EventId + '&fid=' + Frame.FrameId;
       createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
@@ -941,23 +950,24 @@ function initPage() {
 
   for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
-    if ( ! monId ) continue;
-    monitorCanvasObj[monId] = $('Monitor'+monId );
-    if ( ! monitorCanvasObj[monId] ) {
-      alert("Couldn't find DOM element for Monitor"+monId + "monitorPtr.length="+len);
+    if ( !monId ) continue;
+    monitorCanvasObj[monId] = $('Monitor'+monId);
+    if ( !monitorCanvasObj[monId] ) {
+      alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
     } else {
       monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
       var imageObject = monitorImageObject[monId] = new Image();
       imageObject.monId = monId;
       imageObject.onload = function() {
-        imagedone(this, this.monId, true );
+        imagedone(this, this.monId, true);
       };
       imageObject.onerror = function() {
-        imagedone(this, this.monId, false );
+        imagedone(this, this.monId, false);
       };
-      loadImage2Monitor( monId, monitorImageURL[monId] );
+      loadImage2Monitor(monId, monitorImageURL[monId]);
     }
-  }
+  } // end foreach monitor
+
   if ( !liveMode ) {
     canvas = $("timeline");
 
@@ -1006,15 +1016,29 @@ function initPage() {
       }
     }
   });
-  $j('#scaleslider').bind('change', function() { setScale(this.value); });
-  $j('#scaleslider').bind('input', function() { showScale(this.value); });
-  $j('#speedslider').bind('change', function() { setSpeed(this.value); });
-  $j('#speedslider').bind('input', function() { showSpeed(this.value); });
+  $j('#scaleslider').bind('change', function() {
+    setScale(this.value);
+  });
+  $j('#scaleslider').bind('input', function() {
+    showScale(this.value);
+  });
+  $j('#speedslider').bind('change', function() {
+    setSpeed(this.value);
+  });
+  $j('#speedslider').bind('input', function() {
+    showSpeed(this.value);
+  });
 
-  $j('#liveButton').bind('click', function() { setLive(1-liveMode); });
-  $j('#fit').bind('click', function() { setFit(1-fitMode); });
-  $j('#archive_status').bind('change', function() { console.log('submitting'); this.form.submit(); });
+  $j('#liveButton').bind('click', function() {
+    setLive(1-liveMode);
+  });
+  $j('#fit').bind('click', function() {
+    setFit(1-fitMode);
+  });
+  $j('#archive_status').bind('change', function() {
+    this.form.submit();
+  });
 }
 window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
-window.addEventListener( 'DOMContentLoaded', initPage );
+window.addEventListener('DOMContentLoaded', initPage);

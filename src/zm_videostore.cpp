@@ -896,13 +896,15 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
       Debug(2, "Starting video first_pts will become %" PRId64, ipkt->pts);
       video_first_pts = ipkt->pts;
 #if 1
-      // Since audio starts after the start of the video, need to set this here.
-      audio_first_pts = av_rescale_q(
-          ipkt->pts,
-          video_in_stream->time_base,
-          audio_in_stream->time_base
-          );
-      Debug(2, "Starting audio first_pts will become %" PRId64, audio_first_pts);
+      if ( audio_in_stream ) {
+        // Since audio starts after the start of the video, need to set this here.
+        audio_first_pts = av_rescale_q(
+            ipkt->pts,
+            video_in_stream->time_base,
+            audio_in_stream->time_base
+            );
+        Debug(2, "Starting audio first_pts will become %" PRId64, audio_first_pts);
+      }
 #endif
     } else {
       opkt.pts = av_rescale_q(
@@ -932,13 +934,15 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
       Debug(1, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
       video_first_dts = ipkt->dts;
 #if 1
-      // Since audio starts after the start of the video, need to set this here.
-      audio_first_dts = av_rescale_q(
-          ipkt->dts,
-          video_in_stream->time_base,
-          audio_in_stream->time_base
-          );
-      Debug(2, "Starting audio first dts will become %" PRId64, audio_first_dts);
+      if ( audio_in_stream ) {
+        // Since audio starts after the start of the video, need to set this here.
+        audio_first_dts = av_rescale_q(
+            ipkt->dts,
+            video_in_stream->time_base,
+            audio_in_stream->time_base
+            );
+        Debug(2, "Starting audio first dts will become %" PRId64, audio_first_dts);
+      }
 #endif
     } else {
       opkt.dts = av_rescale_q(

@@ -46,7 +46,7 @@ if ( !$liveMode ) {
 
   $EventsById = array();
 
-  while( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
+  while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
     $event_id = $event['Id'];
     $EventsById[$event_id] = $event;
   }
@@ -99,14 +99,9 @@ if ( !$liveMode ) {
     array_push($events_by_monitor_id[$event['MonitorId']], $event_id);
 
   } # end foreach Event
-  echo " };
-  var events_by_monitor_id = {
-  \n";
+  echo ' };
 
-  foreach ( $events_by_monitor_id as $monitor_id=>$event_ids ) {
-    echo "$monitor_id : ".json_encode($event_ids, JSON_NUMERIC_CHECK) . "\n";
-  }
-  echo " };\n";
+  var events_by_monitor_id = '.json_encode($events_by_monitor_id, JSON_NUMERIC_CHECK)."\n";
 
   // if there is no data set the min/max to the passed in values
   if ( $index == 0 ) {

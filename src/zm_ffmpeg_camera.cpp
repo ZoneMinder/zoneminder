@@ -776,10 +776,19 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           // Also don't know how much it matters for audio.
           if ( packet.stream_index == mVideoStreamId ) {
             //Write the packet to our video store
-            int ret = videoStore->writeVideoFramePacket(&packet);
+            AVPacket out_packet;
+            av_init_packet(&out_packet);
+            if ( zm_av_packet_ref(&out_packet, &packet) < 0 ) {
+              Error("error refing packet");
+            }
+            out_packet.pts = av_rescale_q(out_packet.pts, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
+            out_packet.dts = av_rescale_q(out_packet.dts, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
+            out_packet.duration = av_rescale_q(out_packet.duration, mFormatContext->streams[packet.stream_index]->time_base, AV_TIME_BASE_Q);
+            int ret = videoStore->writeVideoFramePacket(&out_packet);
             if ( ret < 0 ) { //Less than zero and we skipped a frame
               Warning("Error writing last packet to videostore.");
             }
+            zm_av_packet_unref(&out_packet);
           } // end if video
 
           delete videoStore;

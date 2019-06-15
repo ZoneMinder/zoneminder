@@ -834,11 +834,11 @@ function daemonControl( $command, $daemon=false, $args=false ) {
   $string = escapeshellcmd( $string );
   #$string .= ' 2>/dev/null >&- <&- >/dev/null';
 ZM\Logger::Debug("daemonControl $string");
-  exec( $string );
+  exec($string);
 }
 
 function zmcControl($monitor, $mode=false) {
-  $Monitor = new ZM\Monitor( $monitor );
+  $Monitor = new ZM\Monitor($monitor);
   return $Monitor->zmcControl($mode);
 }
 
@@ -852,8 +852,8 @@ function initDaemonStatus() {
 
   if ( !isset($daemon_status) ) {
     if ( daemonCheck() ) {
-      $string = ZM_PATH_BIN."/zmdc.pl status";
-      $daemon_status = shell_exec( $string );
+      $string = ZM_PATH_BIN.'/zmdc.pl status';
+      $daemon_status = shell_exec($string);
     } else {
       $daemon_status = '';
     }

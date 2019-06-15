@@ -234,6 +234,8 @@ int main(int argc, char *argv[]) {
 
   int result = 0;
 
+  int prime_capture_log_count = 0;
+
   while ( !zm_terminate ) {
     result = 0;
     static char sql[ZM_SQL_SML_BUFSIZ];
@@ -247,20 +249,18 @@ int main(int argc, char *argv[]) {
       if ( mysql_query(&dbconn, sql) ) {
         Error("Can't run query: %s", mysql_error(&dbconn));
       }
-    }
+    } // end foreach monitor
+
     // Outer primary loop, handles connection to camera
     if ( monitors[0]->PrimeCapture() < 0 ) {
-      Error("Failed to prime capture of initial monitor");
+      if ( prime_capture_log_count % 60 ) {
+        Error("Failed to prime capture of initial monitor");
+      } else {
+        Debug(1, "Failed to prime capture of initial monitor");
+      }
+      prime_capture_log_count ++;
       sleep(10);
       continue;
-    }
-    for ( int i = 0; i < n_monitors; i++ ) {
-      snprintf(sql, sizeof(sql),
-          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')",
-          monitors[i]->Id());
-      if ( mysql_query(&dbconn, sql) ) {
-        Error("Can't run query: %s", mysql_error(&dbconn));
-      }
     }
 
     int *capture_delays = new int[n_monitors];
@@ -271,7 +271,13 @@ int main(int argc, char *argv[]) {
       last_capture_times[i].tv_sec = last_capture_times[i].tv_usec = 0;
       capture_delays[i] = monitors[i]->GetCaptureDelay();
       alarm_capture_delays[i] = monitors[i]->GetAlarmCaptureDelay();
-    }
+      snprintf(sql, sizeof(sql),
+          "REPLACE INTO Monitor_Status (MonitorId, Status) VALUES ('%d','Connected')",
+          monitors[i]->Id());
+      if ( mysql_query(&dbconn, sql) ) {
+        Error("Can't run query: %s", mysql_error(&dbconn));
+      }
+    } // end foreach monitor
 
     struct timeval now;
     struct DeltaTimeval delta_time;

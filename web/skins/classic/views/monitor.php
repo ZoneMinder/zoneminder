@@ -716,7 +716,7 @@ switch ( $tab ) {
       if ( $monitor->Type != 'WebSite' ) {
 ?>
         <tr>
-          <td><?php echo translate('LinkedMonitors') ?></td>
+          <td><?php echo translate('LinkedMonitors') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_LINKED_MONITORS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
           <td>
             <select name="monitorIds" class="chosen" multiple="multiple" onchange="updateLinkedMonitors( this )">
 <?php

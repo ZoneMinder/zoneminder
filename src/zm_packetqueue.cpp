@@ -57,8 +57,8 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
     Debug(2, "Looking at packet with stream index (%d) with dts %" PRId64,
         av_packet->stream_index, av_packet->dts);
     if (
-        ( av_packet->stream_index == zm_packet->packet.stream_index )
-        &&
+        //( av_packet->stream_index == zm_packet->packet.stream_index )
+        //&&
         ( av_packet->dts != AV_NOPTS_VALUE )
         &&
         ( av_packet->dts <= zm_packet->packet.dts) 
@@ -77,7 +77,7 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
     //Debug(2, "Found packet with stream index (%d) with dts %" PRId64,
         //(*it)->packet.stream_index, (*it)->packet.dts);
     if ( it == pktQueue.rbegin() ) {
-       Debug(2,"Inserting packet with dts %" PRId64 " at end", zm_packet->packet.dts);
+       Debug(2, "Inserting packet with dts %" PRId64 " at end", zm_packet->packet.dts);
       // No dts value, can't so much with it
       pktQueue.push_back(zm_packet);
       packet_counts[zm_packet->packet.stream_index] += 1;
@@ -85,24 +85,31 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
     }
     // Convert to a forward iterator so that we can insert at end
     std::list<ZMPacket *>::iterator f_it = it.base();
-
     Debug(2, "Insert packet with stream index (%d) with dts %" PRId64 " for dts %" PRId64,
         (*f_it)->packet.stream_index, (*f_it)->packet.dts, zm_packet->packet.dts);
+    if ( f_it == pktQueue.end() ) {
+      Debug(2, "Pushing to end");
+      pktQueue.push_back(zm_packet);
+    } else {
+      Debug(2, "Insert packet with stream index (%d) with dts %" PRId64 " for dts %" PRId64,
+          (*f_it)->packet.stream_index, (*f_it)->packet.dts, zm_packet->packet.dts);
 
-    pktQueue.insert(f_it, zm_packet);
+      pktQueue.insert(f_it, zm_packet);
+    }
 
     packet_counts[zm_packet->packet.stream_index] += 1;
     return true;
   }
-  Debug(1,"Unable to insert packet for stream %d with dts %" PRId64 " into queue.",
+  Debug(1,"Unable to find a spot for stream %d with dts %" PRId64 ". Sticking on front",
       zm_packet->packet.stream_index, zm_packet->packet.dts);
-  pktQueue.push_back(zm_packet);
+  // Must be before any packets in the queue.  Stick it at the beginning
+  pktQueue.push_front(zm_packet);
   packet_counts[zm_packet->packet.stream_index] += 1;
   return true;
 } // end bool zm_packetqueue::queuePacket(ZMPacket* zm_packet)
 
-bool zm_packetqueue::queuePacket(AVPacket* av_packet) {
-  ZMPacket *zm_packet = new ZMPacket(av_packet);
+bool zm_packetqueue::queuePacket(AVPacket* av_packet, AVStream *stream) {
+  ZMPacket *zm_packet = new ZMPacket(av_packet, stream);
   return queuePacket(zm_packet);
 }
 

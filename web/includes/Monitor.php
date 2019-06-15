@@ -361,6 +361,8 @@ private $control_fields = array(
           $this->{$k} = $v;
         } else if ( is_bool( $v ) ) {
           $this->{$k} = $v;
+        } else if ( is_null( $v ) ) {
+          $this->{$k} = $v;
         } else {
           Error( "Unknown type $k => $v of var " . gettype( $v ) );
           $this->{$k} = $v;

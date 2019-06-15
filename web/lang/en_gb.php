@@ -102,10 +102,11 @@ $SLANG = array(
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
     'Alert'                 => 'Alert',
     'All'                   => 'All',
-    'AllTokensRevoked'       =>  'All Tokens Revoked',
+    'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
-     'API'                  =>  'API',
+    'API'                   => 'API',
+    'APIEnabled'            => 'API Enabled',
     'Apply'                 => 'Apply',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
@@ -1013,6 +1014,17 @@ $OLANG = array(
       but this is no longer needed or a good idea.
       Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera
       for new images. In this case, it is safe to use the field.
+      '
+	),
+	'OPTIONS_LINKED_MONITORS' => array(
+    'Help' => '
+      This field allows you to select other monitors on your system that act as 
+      triggers for this monitor. So if you have a camera covering one aspect of 
+      your property you can force all cameras to record while that camera 
+      detects motion or other events. Click on ‘Select’ to choose linked monitors. 
+      Be very careful not to create circular dependencies with this feature 
+      because you will have infinitely persisting alarms which is almost 
+      certainly not what you want! To unlink monitors you can ctrl-click.
       '
 	),
 

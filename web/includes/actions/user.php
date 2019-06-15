@@ -28,20 +28,19 @@ if ( $action == 'user' ) {
     $types = array();
     $changes = getFormChanges($dbUser, $_REQUEST['newUser'], $types);
 
-    if (function_exists ('password_hash')) {
-      $pass_hash = '"'.password_hash($pass, PASSWORD_BCRYPT).'"';
+    if ( function_exists('password_hash') ) {
+      $pass_hash = '"'.password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT).'"';
     } else {
       $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
-      ZM\Info ('Cannot use bcrypt as you are using PHP < 5.5');
+      ZM\Info('Cannot use bcrypt as you are using PHP < 5.5');
     }
    
     if ( $_REQUEST['newUser']['Password'] ) {
       $changes['Password'] = 'Password = '.$pass_hash;
-      ZM\Info ("PASS CMD=".$changes['Password']);
-    }
-      
-    else
+      ZM\Info('PASS CMD='.$changes['Password']);
+    } else {
       unset($changes['Password']);
+    }
 
     if ( count($changes) ) {
       if ( !empty($_REQUEST['uid']) ) {
@@ -69,10 +68,9 @@ if ( $action == 'user' ) {
       $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
       ZM\Info ('Cannot use bcrypt as you are using PHP < 5.3');
     }
-   
 
     if ( !empty($_REQUEST['newUser']['Password']) ) {
-      ZM\Info ("PASS CMD=".$changes['Password']);
+      ZM\Info('PASS CMD='.$changes['Password']);
       $changes['Password'] = 'Password = '.$pass_hash;
     }
       

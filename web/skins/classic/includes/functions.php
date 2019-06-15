@@ -19,34 +19,35 @@
 // 
 
 
-function xhtmlHeaders( $file, $title ) {
+function xhtmlHeaders($file, $title) {
   global $css;
   global $skin;
   global $view;
 
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
-  $baseCssPhpFile = getSkinFile( 'css/base/skin.css.php' );
+  $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
 
-  $skinCssPhpFile = getSkinFile( 'css/'.$css.'/skin.css.php' );
+  $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-  $skinJsFile = getSkinFile( 'js/skin.js' );
-  $skinJsPhpFile = getSkinFile( 'js/skin.js.php' );
-  $cssJsFile = getSkinFile( 'js/'.$css.'.js' );
+  $skinJsFile = getSkinFile('js/skin.js');
+  $skinJsPhpFile = getSkinFile('js/skin.js.php');
+  $cssJsFile = getSkinFile('js/'.$css.'.js');
 
-  $basename = basename( $file, '.php' );
+  $basename = basename($file, '.php');
 
-  $viewCssPhpFile = getSkinFile( '/css/'.$css.'/views/'.$basename.'.css.php' );
-  $viewJsFile = getSkinFile( 'views/js/'.$basename.'.js' );
-  $viewJsPhpFile = getSkinFile( 'views/js/'.$basename.'.js.php' );
+  $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
+  $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
+  $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 
-  extract( $GLOBALS, EXTR_OVERWRITE );
-  function output_link_if_exists( $files ) {
+  extract($GLOBALS, EXTR_OVERWRITE);
+
+  function output_link_if_exists($files) {
     global $skin;
     $html = array();
     foreach ( $files as $file ) {
-      if ( getSkinFile( $file ) ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust( 'skins/'.$skin.'/'.$file ).'" type="text/css"/>';
+      if ( getSkinFile($file) ) {
+        $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
       }
     }
     return implode("\n", $html);
@@ -83,11 +84,12 @@ echo output_link_if_exists( array(
   'css/'.$css.'/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-  'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
+  #'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
   'css/'.$css.'/jquery-ui-theme.css',
 )
 );
 ?>
+<link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
   <!--Chosen can't be cache-busted because it loads sprites by relative path-->
 <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
@@ -300,7 +302,7 @@ if ( ZM_OPT_X10 && canView('Devices') ) { ?>
    // if canview_reports
 ?>
 <?php
-if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
+if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
   $terms = $_REQUEST['filter']['Query']['terms'];
   $count = 0;
   foreach ($terms as $term) {
@@ -325,14 +327,21 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 		</ul>
 
 <div class="navbar-right">
-<?php if ( ZM_OPT_USE_AUTH and $user ) { ?>
-	<p class="navbar-text"><i class="material-icons">account_circle</i> <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?> </p>
-<?php } ?>
-<?php if ( canEdit('System') ) { ?>
+<?php
+if ( ZM_OPT_USE_AUTH and $user ) {
+?>
+  <p class="navbar-text">
+    <i class="material-icons">account_circle</i>
+    <?php echo makePopupLink( '?view=logout', 'zmLogout', 'logout', $user['Username'], (ZM_AUTH_TYPE == "builtin") ) ?>
+  </p>
+<?php
+}
+if ( canEdit('System') ) {
+?>
 		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
   <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
   <p class="navbar-text">
-  <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i></button>' ) ?>
+  <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ) ?>
   </p>
   <?php } ?>
 <?php } else if ( canView('System') ) { ?>
@@ -347,7 +356,7 @@ if (isset($_REQUEST['filter']['Query']['terms']['attr'])) {
 } //end reload null.  Runs on full page load
 
 if ( (!ZM_OPT_USE_AUTH) or $user ) {
-if ($reload == 'reload') ob_start();
+  if ($reload == 'reload') ob_start();
 ?>
 	<div id="reload" class="container-fluid reduced-text">
     <div id="Bandwidth" class="pull-left">
@@ -358,7 +367,7 @@ if ($reload == 'reload') ob_start();
     </div>
     <ul class="list-inline">
       <li class="Load"><i class="material-icons md-18">trending_up</i>&nbsp;<?php echo translate('Load') ?>: <?php echo getLoad() ?></li>
-<i class="material-icons md-18">storage</i>
+      <i class="material-icons md-18">storage</i>
 <?php 
   $connections = dbFetchOne( "SHOW status WHERE variable_name='threads_connected'", 'Value' );
   $max_connections = dbFetchOne( "SHOW variables WHERE variable_name='max_connections'", 'Value' );
@@ -385,11 +394,12 @@ if ($reload == 'reload') ob_start();
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
 
-    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
+    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>
+'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
-  if ( count($storage_areas) >= 4 ) 
+  if ( count($storage_areas) > 4 ) 
     $storage_areas = ZM\Storage::find( array('ServerId'=>null) );
-  if ( count($storage_areas) < 4 )
+  if ( count($storage_areas) <= 4 )
     echo implode( ', ', array_map ( $func, $storage_areas ) );
   echo ' ' . ZM_PATH_MAP .': '. getDiskPercent(ZM_PATH_MAP).'%';
 ?></li>
@@ -399,7 +409,7 @@ if ($reload == 'reload') ob_start();
     <?php } ?>	
 <!-- End .footer/reload --></div>
 <?php
-if ($reload == 'reload') return ob_get_clean();
+  if ($reload == 'reload') return ob_get_clean();
 } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
   </div>

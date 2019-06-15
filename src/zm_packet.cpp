@@ -24,23 +24,29 @@
 
 using namespace std;
 
-ZMPacket::ZMPacket( AVPacket *p ) {
+ZMPacket::ZMPacket( AVPacket *p, AVStream *stream ) {
   frame = NULL;
   image = NULL;
   av_init_packet( &packet );
   if ( zm_av_packet_ref( &packet, p ) < 0 ) {
     Error("error refing packet");
 	}
+  packet.pts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
+  packet.dts = av_rescale_q(packet.dts, stream->time_base, AV_TIME_BASE_Q);
+  packet.duration = av_rescale_q(packet.duration, stream->time_base, AV_TIME_BASE_Q);
   gettimeofday( &timestamp, NULL );
 }
 
-ZMPacket::ZMPacket( AVPacket *p, struct timeval *t ) {
+ZMPacket::ZMPacket( AVPacket *p, AVStream *stream, struct timeval *t ) {
   frame = NULL;
   image = NULL;
   av_init_packet( &packet );
   if ( zm_av_packet_ref( &packet, p ) < 0 ) {
     Error("error refing packet");
 	}
+  packet.pts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
+  packet.dts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
+  packet.duration = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
   timestamp = *t;
 }
 

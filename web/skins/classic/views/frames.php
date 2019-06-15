@@ -72,7 +72,7 @@ if ( isset( $_REQUEST['scale'] ) ) {
   $scale = max(reScale(SCALE_BASE, $Monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
 }
 
-$page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 0;
+$page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 1;
 $limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;
 
 $nEvents = dbFetchOne($countSql, 'FrameCount' );

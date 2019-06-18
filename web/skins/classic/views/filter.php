@@ -137,19 +137,19 @@ for ( $i = 0; $i < 7; $i++ ) {
   $weekdays[$i] = strftime('%A', mktime(12, 0, 0, 1, $i+1, 2001));
 }
 $states = array();
-foreach ( dbFetchAll('SELECT Id,Name FROM States ORDER BY lower(Name) ASC') as $state_row ) {
-  $states[$state_row['Id']] = $state_row['Name'];
+foreach ( dbFetchAll('SELECT Id, Name FROM States ORDER BY lower(Name) ASC') as $state_row ) {
+  $states[$state_row['Id']] = validHtmlStr($state_row['Name']);
 }
 $servers = array();
 $servers['ZM_SERVER_ID'] = 'Current Server';
 $servers['NULL'] = 'No Server';
-foreach ( dbFetchAll('SELECT Id,Name FROM Servers ORDER BY lower(Name) ASC') as $server ) {
-  $servers[$server['Id']] = $server['Name'];
+foreach ( dbFetchAll('SELECT Id, Name FROM Servers ORDER BY lower(Name) ASC') as $server ) {
+  $servers[$server['Id']] = validHtmlStr($server['Name']);
 }
 $monitors = array();
-foreach ( dbFetchAll('SELECT Id,Name FROM Monitors ORDER BY Name ASC') as $monitor ) {
+foreach ( dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name ASC') as $monitor ) {
   if ( visibleMonitor($monitor['Id']) ) {
-    $monitors[$monitor['Name']] = $monitor['Name'];
+    $monitors[$monitor['Name']] = validHtmlStr($monitor['Name']);
   }
 }
 
@@ -188,7 +188,7 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
-          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" oninput="updateButtons(this);"/>
+          <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" data-on-input-this="updateButtons"/>
         </p>
         <table id="fieldsTable" class="filterTable">
           <tbody>
@@ -247,7 +247,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
 <?php
     } elseif ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
 ?>
-              <td><?php echo htmlSelect( "filter[Query][terms][$i][op]", $opTypes, $term['op'] ); ?></td>
+              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td>
                 <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
                 <script nonce="<?php echo $cspNonce;?>">$j("[name$='\\[<?php echo $i ?>\\]\\[val\\]']").timepicker({timeFormat: "HH:mm:ss", constrainInput: false}); </script>

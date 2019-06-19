@@ -571,14 +571,18 @@ int main(int argc, char *argv[]) {
         monitor->DumpZoneImage(zoneString);
       }
       if ( function & ZMU_ALARM ) {
-        if ( verbose )
-          printf("Forcing alarm on\n");
-        monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
-        while ( monitor->GetState() != Monitor::ALARM ) {
-          // Wait for monitor to notice.
-          usleep(1000);
-        }
-        printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        if ( monitor->GetFunction() == Monitor::Function::MONITOR ) {
+         printf("A Monitor in monitor mode cannot handle alarms.  Please use NoDect\n");
+        } else {
+          if ( verbose )
+            printf("Forcing alarm on\n");
+          monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
+          while ( (monitor->GetState() != Monitor::ALARM) && !zm_terminate ) {
+            // Wait for monitor to notice.
+            usleep(1000);
+          }
+          printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        } // end if ! MONITOR
       }
       if ( function & ZMU_NOALARM ) {
         if ( verbose )

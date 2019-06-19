@@ -458,9 +458,9 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   } // end foreach stream
   if ( mVideoStreamId == -1 )
-    Fatal( "Unable to locate video stream in %s", mPath.c_str() );
+    Fatal("Unable to locate video stream in %s", mPath.c_str());
   if ( mAudioStreamId == -1 )
-    Debug( 3, "Unable to locate audio stream in %s", mPath.c_str() );
+    Debug(3, "Unable to locate audio stream in %s", mPath.c_str());
 
   Debug(3, "Found video stream at index %d", mVideoStreamId);
   Debug(3, "Found audio stream at index %d", mAudioStreamId);

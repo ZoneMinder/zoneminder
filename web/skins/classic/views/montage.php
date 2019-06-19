@@ -269,7 +269,7 @@ foreach ( $monitors as $monitor ) {
     } // end foreach Zone
 ?>
 
-<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: <?php echo $width ?>px; height: <?php echo $height ?>px;">
+<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: <?php echo $width ?>; height: <?php echo $height ?>;">
 <?php
 foreach( array_reverse($zones) as $zone ) {
   echo '<polygon points="'. $zone['AreaCoords'] .'" class="'. $zone['Type'].'" />';

@@ -807,6 +807,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       if ( last_event_id and !videoStore ) {
         //Instantiate the video storage module
 
+        packetqueue->dumpQueue();
         if ( record_audio ) {
           if ( mAudioStreamId == -1 ) {
             Debug(3, "Record Audio on but no audio stream found");

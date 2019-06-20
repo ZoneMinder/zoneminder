@@ -254,13 +254,9 @@ foreach ( $monitors as $monitor ) {
     $zones = array();
     foreach( dbFetchAll('SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($monitor->Id()) ) as $row ) {
       $row['Points'] = coordsToPoints($row['Coords']);
-      $row['Points_orig'] = $row['Points'];
-      $row['Coords_orig'] = $row['Coords'];
-      // $monitor.orig_points = $row['Points'];
 
       if ( $scale ) {
         limitPoints($row['Points'], 0, 0, $monitor->Width(), $monitor->Height());
-        scalePoints($row['Points'], $scale);
       } else {
         limitPoints($row['Points'], 0, 0, 
             ( $width ? $width-1 : $monitor->Width()-1 ),
@@ -273,11 +269,10 @@ foreach ( $monitors as $monitor ) {
     } // end foreach Zone
 ?>
 
-<!-- track original values from when page is loaded with data-x-orig -->
-<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: <?php echo $width ?>; height: <?php echo $height ?>;" data-width-orig="<?php echo $width ?>" data-height-orig="<?php echo $height ?>" data-scale-orig="<?php echo $scale ? $scale : 100 ?>">
+<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: 100%; height: 100%;" viewBox="0 0 <?php echo  $monitor->Width() ?> <?php echo  $monitor->Height() ?>" preserveAspectRatio="none">
 <?php
 foreach( array_reverse($zones) as $zone ) {
-  echo '<polygon points="'. $zone['AreaCoords'] .'" data-areacoords-orig="'. $zone['AreaCoords'] .'" data-coords-orig="'. $zone['Coords_orig'] .'" class="'. $zone['Type'].'" />';
+  echo '<polygon points="'. $zone['AreaCoords'] .'" class="'. $zone['Type'].'" />';
 } // end foreach zone
 ?>
   Sorry, your browser does not support inline SVG

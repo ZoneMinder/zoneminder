@@ -206,7 +206,7 @@ function Monitor(monitorData) {
 
 /**
  * called when the layoutControl select element is changed, or the page
- * is rendered??
+ * is rendered
  * @return null
  */
 function selectLayout(element) {
@@ -270,10 +270,7 @@ function selectLayout(element) {
           // APPLET's and OBJECTS need to be re-initialized
         }
         streamImg.style.width = '100%';
-
-        updateZoneSvg(monitor, streamImg.getSize().x, streamImg.getSize().y);
       }
-
     } // end foreach monitor
   }
 } // end function selectLayout(element)
@@ -316,12 +313,7 @@ function changeSize() {
       streamImg.style.width = width ? width : null;
       streamImg.style.height = height ? height : null;
       //streamImg.style.height = '';
-
-      // not sure how the above block works... so rescale zone if img changed??
-      updateZoneSvg(monitor, streamImg.getSize().x, streamImg.getSize().y);
     }
-
-
   }
   $('scale').set('value', '');
   Cookie.write('zmMontageScale', '', {duration: 10*365});
@@ -337,7 +329,6 @@ function changeSize() {
 function changeScale() {
   var scale = $('scale').get('value');
   $('width').set('value', 'auto');
-  // console.dir($('width'));
   $('height').set('value', 'auto');
   Cookie.write('zmMontageScale', scale, {duration: 10*365});
   Cookie.write('zmMontageWidth', '', {duration: 10*365});
@@ -348,10 +339,6 @@ function changeScale() {
   }
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-
-    // console.log("scale = "+scale);
-    // console.log("SCALE_BASE = " + SCALE_BASE);
-
     var newWidth = ( monitorData[i].width * scale ) / SCALE_BASE;
     var newHeight = ( monitorData[i].height * scale ) / SCALE_BASE;
 
@@ -384,124 +371,7 @@ function changeScale() {
       streamImg.style.width = newWidth + "px";
       streamImg.style.height = newHeight + "px";
     }
-
-    // console.log("monitor_frame.height = " + monitor_frame.height());
-    // console.log("newHeight = " + newHeight);
-
-    updateZoneSvg(monitor, newWidth, newHeight);
   }
-}
-
-
-// 
-// function updateZoneSvg(monitor, monitor_frame) {
-
-/**
- * cause the zone overlay Svg to track dims of associated monitor frame
- * @arg monitor_frame is a jQuery element object
- */
-function updateZoneSvg(monitor, newWidth, newHeight) {
-  console.log("calling updateZoneSvg");
-  // console.dir(monitor_frame);
-
-  // newWidth = monitor_frame.width();
-  // newHeight = monitor_frame.height();
-
-  if (!newWidth)
-    debugger;
-  if (!newHeight || newHeight < 10)
-    debugger;
-  if (!monitor)
-    monitor;
-
-  // zonesSVG is a mootools object
-  var zonesSVG = $('zones' + monitor.id);
-  if (zonesSVG) {
-
-    console.log("newWidth = " + newWidth);
-    console.log("newHeight = " + newHeight);
-    orig_scale = zonesSVG.getProperty('data-scale-orig');
-
-    //debugger;
-    //console.log("zonesSVG.style.width =" + zonesSVG.style.width);
-    zonesSVG.style.width = newWidth + "px";
-    //console.log("newWidth = " + newWidth + "px");
-    //console.log("zonesSVG.style.width = " + zonesSVG.style.width);
-    zonesSVG.style.height = newHeight + "px";
-
-    polygons = zonesSVG.getElements("polygon");
-
-    for (let index = 0; index < polygons.length; index++) {
-      const polygon = polygons[index];
-      //console.dir(polygon);
-
-      points = coordsToPoints(polygon.getProperty("data-coords-orig"));
-      //console.dir(points);
-
-      newPoints = scaleZonePoints(points,
-        newWidth / monitorData[index].width,
-        newHeight / monitorData[index].height);
-
-      //console.dir(newPoints);
-
-      //console.dir(newPoints);
-      //console.dir();
-      //console.dir(pointsToCoords(newPoints));
-
-      polygon.setProperty("points", pointsToCoords(newPoints));
-      
-    }
-  }
-}
-
-/**
- * 
- * @param {*} points 
- * @param {*} scale 
- */
-function scaleZonePoints(points, scalex, scaley) {
-  if (!points)
-    debugger;
-  if (!scalex)
-    debugger;
-  if (!scaley)
-    debugger;
-  // console.dir(points);
-  //debugger;
-  var newPoints = [];
-  for (let index = 0; index < points.length; index++) {
-    const point = points[index];
-    newPoints.push([point[0] * scalex, point[1] * scaley ]);
-  }
-  // console.dir(newPoints);
-  return newPoints;
-}
-
-/**
- * convery coords string - "37,411 1246,542 1263,694 ..." to js array
- * @param {*} coords
- */
-function coordsToPoints(coords) {
-  var points = [];
-  points = coords.split(" ").map(function (item) {
-    return item.split(",").map(Math.round);
-  });
-  // console.dir(points);
-  return points;
-}
-
-/**
- * convery points array to string - "37,411 1246,542 1263,694 ..."
- * @param {*} coords
- */
-function pointsToCoords(points) {
-  // console.dir(points);
-  var coords = [];
-  coords = points.map(function (item) {
-    return item.map(Math.round).join(",");
-  }).join(",");
-  // console.dir(coords);
-  return coords;
 }
 
 function toGrid(value) {

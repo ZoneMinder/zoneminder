@@ -732,7 +732,7 @@ function buildControlCommand( $monitor ) {
     }
   }
   $ctrlCommand .= ' --command='.$_REQUEST['control'];
-  return( $ctrlCommand );
+  return $ctrlCommand;
 }
 
 function sendControlCommand($mid, $command) {

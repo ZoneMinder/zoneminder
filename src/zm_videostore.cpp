@@ -371,7 +371,7 @@ VideoStore::VideoStore(
       audio_out_ctx->codec_tag = 0;
 #endif
 
-      audio_out_ctx->frame_size = audio_in_ctx->frame_size;
+      //audio_out_ctx->frame_size = audio_in_ctx->frame_size;
 
       if ( audio_out_ctx->channels > 1 ) {
         Warning("Audio isn't mono, changing it.");

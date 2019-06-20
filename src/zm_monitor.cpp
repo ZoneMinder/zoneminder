@@ -1379,12 +1379,12 @@ bool Monitor::Analyse() {
           score += trigger_data->trigger_score;
           if ( !event ) {
             // How could it have a length already?
-            if ( cause.length() )
-              cause += ", ";
+            //if ( cause.length() )
+              //cause += ", ";
             cause += trigger_data->trigger_cause;
           }
           Event::StringSet noteSet;
-          noteSet.insert( trigger_data->trigger_text );
+          noteSet.insert(trigger_data->trigger_text);
           noteSetMap[trigger_data->trigger_cause] = noteSet;
         }
         if ( signal_change ) {
@@ -1510,7 +1510,7 @@ bool Monitor::Analyse() {
             // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
               // If we should end then previous continuous event and start a new non-continuous event
-              if ( event && event->Frames() && !event->AlarmFrames() ) {
+              if ( event && event->Frames() && (!event->AlarmFrames()) && (event_close_mode == CLOSE_ALARM) ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
                     name, image_count, event->Id());
                 closeEvent();

@@ -204,6 +204,11 @@ function Monitor(monitorData) {
   }
 } // end function Monitor
 
+/**
+ * called when the layoutControl select element is changed, or the page
+ * is rendered
+ * @return null
+ */
 function selectLayout(element) {
   layout = $j(element).val();
 
@@ -266,14 +271,14 @@ function selectLayout(element) {
         }
         streamImg.style.width = '100%';
       }
-      var zonesSVG = $('zones'+monitor.id);
-      if ( zonesSVG ) {
-        zonesSVG.style.width = '';
-      }
     } // end foreach monitor
   }
 } // end function selectLayout(element)
 
+/**
+ * called when the widthControl|heightControl select elements are changed
+ * @return null
+ */
 function changeSize() {
   var width = $('width').get('value');
   var height = $('height').get('value');
@@ -309,11 +314,6 @@ function changeSize() {
       streamImg.style.height = height ? height : null;
       //streamImg.style.height = '';
     }
-    var zonesSVG = $('zones'+monitor.id);
-    if ( zonesSVG ) {
-      zonesSVG.style.width = width ? width : '100%';
-      zonesSVG.style.height = height;
-    }
   }
   $('scale').set('value', '');
   Cookie.write('zmMontageScale', '', {duration: 10*365});
@@ -322,6 +322,10 @@ function changeSize() {
   selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
+/**
+ * called when the scaleControl select element is changed
+ * @return null
+ */
 function changeScale() {
   var scale = $('scale').get('value');
   $('width').set('value', 'auto');
@@ -366,11 +370,6 @@ function changeScale() {
       }
       streamImg.style.width = newWidth + "px";
       streamImg.style.height = newHeight + "px";
-    }
-    var zonesSVG = $('zones'+monitor.id);
-    if ( zonesSVG ) {
-      zonesSVG.style.width = newWidth + "px";
-      zonesSVG.style.height = newHeight + "px";
     }
   }
 }

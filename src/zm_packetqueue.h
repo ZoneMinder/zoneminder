@@ -41,6 +41,7 @@ public:
     bool popAudioPacket(ZMPacket* packet);
     unsigned int clearQueue(unsigned int video_frames_to_keep, int stream_id);
     void clearQueue();
+    void dumpQueue();
     unsigned int size();
     void clear_unwanted_packets(timeval *recording, int mVideoStreamId);
     int packet_count(int stream_id);

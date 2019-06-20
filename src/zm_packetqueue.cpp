@@ -63,7 +63,7 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
         &&
         ( av_packet->dts <= zm_packet->packet.dts) 
        ) {
-    Debug(2, "break  packet with stream index (%d) with dts %" PRId64,
+    Debug(2, "break packet with stream index (%d) with dts %" PRId64,
         (*it)->packet.stream_index, (*it)->packet.dts);
       break;
     }
@@ -273,3 +273,12 @@ void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVi
         deleted_frames, pktQueue.size(), av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), distance( it, pktQueue.rend() ), pktQueue.size() );
   }
 } // end void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVideoStreamId )
+
+void zm_packetqueue::dumpQueue() {
+  std::list<ZMPacket *>::reverse_iterator it;
+  for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
+    ZMPacket *zm_packet = *it;
+    AVPacket *av_packet = &(zm_packet->packet);
+    dumpPacket(av_packet);
+  }
+}

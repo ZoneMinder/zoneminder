@@ -66,14 +66,14 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
 
 bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash) {
   bool password_correct = false;
-  if (strlen(db_password_hash ) < 4) {
+  if ( strlen(db_password_hash) < 4 ) {
     // actually, shoud be more, but this is min. for next code
-    Error ("DB Password is too short or invalid to check");
+    Error("DB Password is too short or invalid to check");
     return false;
   }
-  if (db_password_hash[0] == '*') {
+  if ( db_password_hash[0] == '*' ) {
     // MYSQL PASSWORD
-    Debug (1,"%s is using an MD5 encoded password", username);
+    Debug(1, "%s is using an MD5 encoded password", username);
     
     SHA_CTX ctx1, ctx2;
     unsigned char digest_interim[SHA_DIGEST_LENGTH];
@@ -90,27 +90,29 @@ bool verifyPassword(const char *username, const char *input_password, const char
     SHA1_Final (digest_final, &ctx2);
 
     char final_hash[SHA_DIGEST_LENGTH * 2 +2];
-    final_hash[0]='*';
+    final_hash[0] = '*';
     //convert to hex
-    for(int i = 0; i < SHA_DIGEST_LENGTH; i++)
-         sprintf(&final_hash[i*2]+1, "%02X", (unsigned int)digest_final[i]);
-    final_hash[SHA_DIGEST_LENGTH *2 + 1]=0;
+    for ( int i = 0; i < SHA_DIGEST_LENGTH; i++ )
+      sprintf(&final_hash[i*2]+1, "%02X", (unsigned int)digest_final[i]);
+    final_hash[SHA_DIGEST_LENGTH *2 + 1] = 0;
 
-    Debug (1,"Computed password_hash:%s, stored password_hash:%s", final_hash,  db_password_hash);
-    Debug (5, "Computed password_hash:%s, stored password_hash:%s", final_hash,  db_password_hash);
+    Debug(1, "Computed password_hash:%s, stored password_hash:%s", final_hash, db_password_hash);
     password_correct = (strcmp(db_password_hash, final_hash)==0);
-  }
-  else if ((db_password_hash[0] == '$') && (db_password_hash[1]== '2')
-           &&(db_password_hash[3] == '$')) {
+  } else if (
+      (db_password_hash[0] == '$')
+      &&
+      (db_password_hash[1]== '2')
+      &&
+      (db_password_hash[3] == '$')
+      ) {
     // BCRYPT 
-    Debug (1,"%s is using a bcrypt encoded password", username);
+    Debug(1, "%s is using a bcrypt encoded password", username);
     BCrypt bcrypt;
     std::string input_hash = bcrypt.generateHash(std::string(input_password));
     password_correct = bcrypt.validatePassword(std::string(input_password), std::string(db_password_hash));
-  }
-  else {
+  } else {
     // plain
-    Warning ("%s is using a plain text password, please do not use plain text", username);
+    Warning("%s is using a plain text password, please do not use plain text", username);
     password_correct = (strcmp(input_password, db_password_hash) == 0);
   }
   return password_correct;

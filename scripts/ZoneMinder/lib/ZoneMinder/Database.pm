@@ -214,6 +214,7 @@ sub zmDbGetMonitor {
     return undef;
   }
   my $monitor = $sth->fetchrow_hashref();
+  $sth->finish();
   return $monitor;
 }
 
@@ -240,6 +241,7 @@ sub zmDbGetMonitorAndControl {
     return undef;
   }
   my $monitor = $sth->fetchrow_hashref();
+  $sth->finish();
   return $monitor;
 }
 

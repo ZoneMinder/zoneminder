@@ -371,6 +371,8 @@ VideoStore::VideoStore(
       audio_out_ctx->codec_tag = 0;
 #endif
 
+      audio_out_ctx->frame_size = audio_in_ctx->frame_size;
+
       if ( audio_out_ctx->channels > 1 ) {
         Warning("Audio isn't mono, changing it.");
         audio_out_ctx->channels = 1;
@@ -938,7 +940,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
       Debug(3, "opkt.dts = %" PRId64 " from ipkt->dts(%" PRId64 ") - first_pts(%" PRId64 ")",
           opkt.dts, ipkt->dts, video_first_dts);
     }
-    if ( opkt.dts > opkt.pts ) {
+    if ( (opkt.pts != AV_NOPTS_VALUE) && (opkt.dts > opkt.pts) ) {
       Debug(1,
           "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 "). Decompression must happen "
           "before presentation.",

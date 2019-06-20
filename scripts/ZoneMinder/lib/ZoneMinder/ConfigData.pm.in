@@ -2571,17 +2571,23 @@ our @options = (
       period of time (the section length). However in Mocord mode it
       is possible that motion detection may occur near the end of a
       section. This option controls what happens when an alarm occurs
-      in Mocord mode. The 'time' setting means that the event will be
-      closed at the end of the section regardless of alarm activity.
+      in Mocord mode.~~
+      ~~
+      The 'time' setting means that the event will be
+      closed at the end of the section regardless of alarm activity.~~
+      ~~
       The 'idle' setting means that the event will be closed at the
       end of the section if there is no alarm activity occurring at
       the time otherwise it will be closed once the alarm is over
       meaning the event may end up being longer than the normal
-      section length. The 'alarm' setting means that if an alarm
-      occurs during the event, the event will be closed once the
-      alarm is over regardless of when this occurs. This has the
+      section length.~~
+      ~~
+      The 'alarm' setting means that if an alarm
+      occurs during the event, the event will be closed and a new one
+     will be opened.  So events will only be alarmed or continuous.
+     This has the
       effect of limiting the number of alarms to one per event and
-      the events will be shorter than the section length if an alarm
+      the events may be shorter than the section length if an alarm
       has occurred.
       `,
     type        => $types{boolean},

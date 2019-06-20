@@ -760,8 +760,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     dumpPacket(mFormatContext->streams[packet.stream_index], &packet, "Captured Packet");
     if ( packet.dts == AV_NOPTS_VALUE ) {
       packet.dts = packet.pts;
-    } else if ( packet.pts == AV_NOPTS_VALUE ) {
-      packet.pts = packet.dts;
+    //} else if ( packet.pts == AV_NOPTS_VALUE ) {
+      //packet.pts = packet.dts;
     }
 
     // Video recording

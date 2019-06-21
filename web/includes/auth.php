@@ -263,7 +263,7 @@ function validateToken ($token, $allowed_token_type='access', $from_api_layer=fa
 } // end function validateToken($token, $allowed_token_type='access')
 
 function getAuthUser($auth, $from_api_layer = false) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' && !empty($auth) ) {
+  if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth) ) {
     $remoteAddr = '';
     if ( ZM_AUTH_HASH_IPS ) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
@@ -336,7 +336,8 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       }
       $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
-      session_write_close();
+      if ( $close_session )
+        session_write_close();
       #ZM\Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
       #} else {
       #ZM\Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
@@ -376,7 +377,8 @@ if ( ZM_OPT_USE_AUTH ) {
     if ( ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed') ) {
       # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
       # This prevent session modification to switch users
-      $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
+      if ( $_SESSION['AuthHash'.$_SESSION['remoteAddr']] )
+        $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
     } else {
       # Need to refresh permissions and validate that the user still exists
       $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
@@ -396,6 +398,7 @@ if ( ZM_OPT_USE_AUTH ) {
     }
   } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
     userLogin($_REQUEST['username'], $_REQUEST['password'], false);
+    # Because it might have migrated the password we need to update the hash
     generateAuthHash(ZM_AUTH_HASH_IPS, true);
   }
 

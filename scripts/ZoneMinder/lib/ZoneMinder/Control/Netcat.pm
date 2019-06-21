@@ -96,8 +96,7 @@ sub open {
   $self->{state} = 'open';
 }
 
-sub parseControlAddress
-{
+sub parseControlAddress {
   my $controlAddress = shift;
   my ($usernamepassword, $addressport) = split /@/, $controlAddress;
   if ( !defined $addressport ) {
@@ -105,7 +104,7 @@ sub parseControlAddress
     $addressport = $usernamepassword;
   } else {
     my ($username , $password) = split /:/, $usernamepassword;
-    %identity = (username => "$username", password => "$password");
+    %identity = (username => $username, password => $password);
   }
   ($address, $port) = split /:/, $addressport;
 }
@@ -118,12 +117,11 @@ sub digestBase64
   return encode_base64($shaGenerator->digest, "");
 }
 
-sub authentificationHeader
-{
+sub authentificationHeader {
   my ($username, $password) = @_;
   my $nonce;
   $nonce .= chr(int(rand(254))) for (0 .. 20);
-  my $nonceBase64 = encode_base64($nonce, "");
+  my $nonceBase64 = encode_base64($nonce, '');
   my $currentDate = DateTime->now()->iso8601().'Z';
 
   return '<s:Header><Security s:mustUnderstand="1" xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><UsernameToken xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><Username>' . $username . '</Username><Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">' . digestBase64($nonce, $currentDate, $password) . '</Password><Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">' . $nonceBase64 . '</Nonce><Created xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">' . $currentDate . '</Created></UsernameToken></Security></s:Header>';
@@ -160,7 +158,7 @@ sub sendCmd {
   if ( $res->is_success ) {
     $result = !undef;
   } else {
-    Error("After sending PTZ command, camera returned the following error:'".$res->status_line()."'");
+    Error("After sending PTZ command, camera returned the following error:'".$res->status_line()."'\nMSG:$msg\nResponse:".$res->content);
   }
   return $result;
 }
@@ -236,7 +234,7 @@ sub moveConDown {
   Debug('Move Down');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="0" y="-0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">'.((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '').'<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="0" y="-0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
@@ -316,7 +314,7 @@ sub moveConUpLeft {
   Debug('Move Diagonally Up Left');
   my $self = shift;
   my $cmd = 'onvif/PTZ';
-  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="-0.5" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+  my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">'.((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '').'<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="-0.5" y="0.5" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
   my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
   $self->sendCmd($cmd, $msg, $content_type);
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});

@@ -285,7 +285,7 @@ function getAuthUser($auth, $from_api_layer = false) {
 
     foreach ( dbFetchAll($sql, NULL, $values) as $user ) {
       $now = time();
-      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= ZM_AUTH_HASH_TTL * 1800 ) { // Try for last two hours
+      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600 ) { // Try for last TTL hours
         $time = localtime($now);
         $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
         $authHash = md5($authKey);
@@ -315,6 +315,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
   if ( ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
     $time = time();
 
+    # We use 1800 so that we regenerate the hash at half the TTL
     $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
 
     if ( $force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {

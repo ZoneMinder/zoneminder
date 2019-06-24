@@ -8,6 +8,13 @@ exit;
 
 fi
 
+DEBUILD=`which debuild`;
+
+if [ "$DEBUILD" == "" ]; then
+  echo "You must install the devscripts package.  Try sudo apt-get install devscripts";
+  exit;
+fi
+
 for i in "$@"
 do
 case $i in
@@ -16,7 +23,7 @@ case $i in
     shift # past argument=value
     ;;
     -d=*|--distro=*)
-    DISTRO="${i#*=}"
+    DISTROS="${i#*=}"
     shift # past argument=value
     ;;
     -i=*|--interactive=*)
@@ -71,11 +78,15 @@ else
   echo "Doing $TYPE build"
 fi;
 
-if [ "$DISTRO" == "" ]; then
-  DISTRO=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
-  echo "Defaulting to $DISTRO for distribution";
+if [ "$DISTROS" == "" ]; then
+  if [ "$RELEASE" != "" ]; then
+    DISTROS="xenial,bionic,cosmic,disco,trusty"
+  else
+    DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
+  fi;
+  echo "Defaulting to $DISTROS for distribution";
 else
-  echo "Building for $DISTRO";
+  echo "Building for $DISTROS";
 fi;
 
 # Release is a special mode...  it uploads to the release ppa and cannot have a snapshot
@@ -90,7 +101,8 @@ if [ "$RELEASE" != "" ]; then
   else
     GITHUB_FORK="ZoneMinder";
   fi
-  BRANCH="release-$RELEASE"
+  # We use a tag instead of a branch atm.
+  BRANCH=$RELEASE
 else
   if [ "$GITHUB_FORK" == "" ]; then
     echo "Defaulting to ZoneMinder upstream git"
@@ -167,6 +179,11 @@ if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
 fi;
 
 DIRECTORY="zoneminder_$VERSION";
+if [ -d "$DIRECTORY.orig" ]; then 
+  echo "$DIRECTORY.orig already exists. Please delete it."
+  exit 0;
+fi;
+
 echo "Doing $TYPE release $DIRECTORY";
 mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY.orig";
 if [ $? -ne 0 ]; then
@@ -174,102 +191,153 @@ if [ $? -ne 0 ]; then
   echo "Setting up build dir failed.";
   exit $?;
 fi;
+
 cd "$DIRECTORY.orig";
 
+# Init submodules
 git submodule init
 git submodule update --init --recursive
-if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-  mv distros/ubuntu1204 debian
-else 
-  if [ "$DISTRO" == "wheezy" ]; then 
-    mv distros/debian debian
-  else 
-    mv distros/ubuntu1604 debian
-  fi;
-fi;
 
-if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then
-    AUTHOR="$DEBFULLNAME <$DEBEMAIL>"
-else
-  if [ -z `hostname -d` ] ; then
-      AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`.local>"
-  else
-      AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`>"
-  fi
-fi
-
-if [ "$URGENCY" = "" ]; then
-  URGENCY="medium"
-fi;
-
-if [ "$SNAPSHOT" == "stable" ]; then
-cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
-
-  * Release $VERSION
-
- -- $AUTHOR  $DATE
-
-EOF
-cat <<EOF > debian/NEWS
-zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
-
-  * Release $VERSION
-
- -- $AUTHOR  $DATE
-EOF
-else
-cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
-
-  * 
-
- -- $AUTHOR  $DATE
-EOF
-cat <<EOF > debian/changelog
-zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
-
-  * 
-
- -- $AUTHOR  $DATE
-EOF
-fi;
-
+# Cleanup
 rm -rf .git
 rm .gitignore
 cd ../
-tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
-cd $DIRECTORY.orig
 
-if [ $TYPE == "binary" ]; then
-  # Auto-install all ZoneMinder's depedencies using the Debian control file
-  sudo apt-get install devscripts equivs
-  sudo mk-build-deps -ir ./debian/control
-  echo "Status: $?"
-  DEBUILD=debuild
-else
-  if [ $TYPE == "local" ]; then
+if [ ! -e "$DIRECTORY.orig.tar.gz" ]; then
+  tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+fi;
+
+IFS=',' ;for DISTRO in `echo "$DISTROS"`; do 
+  echo "Generating package for $DISTRO";
+  cd $DIRECTORY.orig
+
+  if [ -e "debian" ]; then
+    rm -rf debian
+  fi;
+
+  # Generate Changlog
+  if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
+    cp -Rpd distros/ubuntu1204 debian
+  else 
+    if [ "$DISTRO" == "wheezy" ]; then 
+      cp -Rpd distros/debian debian
+    else 
+      cp -Rpd distros/ubuntu1604 debian
+    fi;
+  fi;
+
+  if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then
+      AUTHOR="$DEBFULLNAME <$DEBEMAIL>"
+  else
+    if [ -z `hostname -d` ] ; then
+        AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`.local>"
+    else
+        AUTHOR="`getent passwd $USER | cut -d ':' -f 5 | cut -d ',' -f 1` <`whoami`@`hostname`>"
+    fi
+  fi
+
+  if [ "$URGENCY" = "" ]; then
+    URGENCY="medium"
+  fi;
+
+  if [ "$SNAPSHOT" == "stable" ]; then
+  cat <<EOF > debian/changelog
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+
+  * Release $VERSION
+
+ -- $AUTHOR  $DATE
+
+EOF
+  cat <<EOF > debian/NEWS
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+
+  * Release $VERSION
+
+ -- $AUTHOR  $DATE
+EOF
+  else
+  cat <<EOF > debian/changelog
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+
+  * 
+
+ -- $AUTHOR  $DATE
+EOF
+  cat <<EOF > debian/changelog
+zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
+
+  * 
+
+ -- $AUTHOR  $DATE
+EOF
+  fi;
+
+  if [ $TYPE == "binary" ]; then
     # Auto-install all ZoneMinder's depedencies using the Debian control file
     sudo apt-get install devscripts equivs
     sudo mk-build-deps -ir ./debian/control
     echo "Status: $?"
-    DEBUILD="debuild -i -us -uc -b"
-  else 
-    # Source build, don't need build depends.
-    DEBUILD="debuild -S -sa"
+    DEBUILD=debuild
+  else
+    if [ $TYPE == "local" ]; then
+      # Auto-install all ZoneMinder's depedencies using the Debian control file
+      sudo apt-get install devscripts equivs
+      sudo mk-build-deps -ir ./debian/control
+      echo "Status: $?"
+      DEBUILD="debuild -i -us -uc -b"
+    else 
+      # Source build, don't need build depends.
+      DEBUILD="debuild -S -sa"
+    fi;
   fi;
-fi;
-if [ "$DEBSIGN_KEYID" != "" ]; then
-  DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
-fi
-$DEBUILD
-if [ $? -ne 0 ]; then
-echo "Error status code is: $?"
-  echo "Build failed.";
-  exit $?;
-fi;
+  if [ "$DEBSIGN_KEYID" != "" ]; then
+    DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
+  fi
+  eval $DEBUILD
+  if [ $? -ne 0 ]; then
+  echo "Error status code is: $?"
+    echo "Build failed.";
+    exit $?;
+  fi;
 
-cd ../
+  cd ../
+
+  if [ $TYPE == "binary" ]; then
+    if [ "$INTERACTIVE" != "no" ]; then
+      read -p "Not doing dput since it's a binary release. Do you want to install it? (y/N)"
+      if [[ $REPLY == [yY] ]]; then
+          sudo dpkg -i $DIRECTORY*.deb
+      fi;
+      read -p "Do you want to upload this binary to zmrepo? (y/N)"
+      if [[ $REPLY == [yY] ]]; then
+        if [ "$RELEASE" != "" ]; then
+          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
+        else
+          if [ "$BRANCH" == "" ]; then
+            scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
+          else
+            scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+          fi;
+        fi;
+      fi;
+    fi;
+  else
+    SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
+
+    dput="Y";
+    if [ "$INTERACTIVE" != "no" ]; then
+      read -p "Ready to dput $SC to $PPA ? Y/N...";
+      if [[ "$REPLY" == [yY] ]]; then
+        dput $PPA $SC
+      fi;
+    else
+      echo "dputting to $PPA";
+        dput $PPA $SC
+    fi;
+  fi;
+done; # foreach distro
+
 if [ "$INTERACTIVE" != "no" ]; then
   read -p "Do you want to keep the checked out version of Zoneminder (incase you want to modify it later) [y/N]"
   [[ $REPLY == [yY] ]] && { mv "$DIRECTORY.orig" zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted"; }
@@ -278,39 +346,4 @@ else
   rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted";
 fi
 
-if [ $TYPE == "binary" ]; then
-  if [ "$INTERACTIVE" != "no" ]; then
-    read -p "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
-    if [[ $REPLY == [yY] ]]; then
-      sudo dpkg -i $DIRECTORY*.deb
-    else 
-	    echo $REPLY;
-    fi;
-    if [ "$DISTRO" == "jessie" ]; then
-      read -p "Do you want to upload this binary to zmrepo? (y/N)"
-      if [[ $REPLY == [yY] ]]; then
-        if [ "$RELEASE" != "" ]; then
-          scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/stable/mini-dinstall/incoming/"
-        else
-          if [ "$BRANCH" == "" ]; then
-            scp "zoneminder_${VERSION}-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
-          else
-            scp "$DIRECTORY-${DISTRO}*" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
-          fi;
-        fi;
-      fi;
-    fi;
-  fi;
-else
-  SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
 
-  if [ "$INTERACTIVE" != "no" ]; then
-    read -p "Ready to dput $SC to $PPA ? Y/N...";
-    if [[ "$REPLY" == [yY] ]]; then
-      dput $PPA $SC
-    fi;
-  else
-    echo "dputting to $PPA";
-    dput $PPA $SC
-  fi;
-fi;

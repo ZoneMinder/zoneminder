@@ -55,12 +55,14 @@ class FfmpegCamera : public Camera {
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
     _AVPIXELFORMAT      imagePixFormat;
+    AVFrame             *input_frame;         // Use to point to mRawFrame or hwFrame;
 
     bool hwaccel;
-#if HAVE_AVUTIL_HWCONTEXT_H
     AVFrame             *hwFrame;
+#if HAVE_AVUTIL_HWCONTEXT_H
     DecodeContext       decode;
 #endif
+  AVBufferRef *hw_device_ctx = NULL;
 
     // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
     int64_t audio_last_pts;

@@ -284,6 +284,17 @@ static void zm_log_fps(double d, const char *postfix) {
   }
 }
 
+void zm_dump_video_frame(const AVFrame *frame, const char *text) {
+  Debug(1, "%s: format %d %s %dx%d linesize:%d pts: %" PRId64,
+      text,
+      frame->format,
+      av_get_pix_fmt_name((AVPixelFormat)frame->format),
+      frame->width,
+      frame->height,
+      frame->linesize,
+      frame->pts
+      );
+}
 void zm_dump_frame(const AVFrame *frame,const char *text) {
   Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d"
       " duration %" PRId64

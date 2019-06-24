@@ -33,9 +33,9 @@ class zm_packetqueue {
 public:
     zm_packetqueue(int max_stream_id);
     virtual ~zm_packetqueue();
-    bool queuePacket(AVPacket* packet, AVStream *stream, struct timeval *timestamp);
+    bool queuePacket(AVPacket* packet, struct timeval *timestamp);
     bool queuePacket(ZMPacket* packet);
-    bool queuePacket(AVPacket* packet, AVStream *stream);
+    bool queuePacket(AVPacket* packet);
     ZMPacket * popPacket();
     bool popVideoPacket(ZMPacket* packet);
     bool popAudioPacket(ZMPacket* packet);

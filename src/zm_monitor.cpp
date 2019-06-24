@@ -1380,12 +1380,13 @@ bool Monitor::Analyse() {
         if ( trigger_data->trigger_state == TRIGGER_ON ) {
           score += trigger_data->trigger_score;
           if ( !event ) {
-            if ( cause.length() )
-              cause += ", ";
+            // How could it have a length already?
+            //if ( cause.length() )
+              //cause += ", ";
             cause += trigger_data->trigger_cause;
           }
           Event::StringSet noteSet;
-          noteSet.insert( trigger_data->trigger_text );
+          noteSet.insert(trigger_data->trigger_text);
           noteSetMap[trigger_data->trigger_cause] = noteSet;
         }
         if ( signal_change ) {
@@ -1407,7 +1408,7 @@ bool Monitor::Analyse() {
             cause += SIGNAL_CAUSE;
           }
           Event::StringSet noteSet;
-          noteSet.insert( signalText );
+          noteSet.insert(signalText);
           noteSetMap[SIGNAL_CAUSE] = noteSet;
           shared_data->state = state = IDLE;
           shared_data->active = signal;
@@ -1429,19 +1430,19 @@ bool Monitor::Analyse() {
             }
             if ( last_motion_score ) {
               score += last_motion_score;
-              if ( cause.length() )
-                cause += ", ";
-              cause += MOTION_CAUSE;
-            } else {
-              score += last_motion_score;
-            }
-            noteSetMap[MOTION_CAUSE] = zoneSet;
-          } // end if motion_score
-          shared_data->active = signal;
-        } // end if signal change
+              if ( !event ) {
+                if ( cause.length() )
+                  cause += ", ";
+                cause += MOTION_CAUSE;
+              }
+              noteSetMap[MOTION_CAUSE] = zoneSet;
+            } // end if motion_score
+            //shared_data->active = signal; // unneccessary active gets set on signal change
+          } // end if active and doing motion detection
 
-        if ( (!signal_change) && signal) {
+          // Check to see if linked monitors are triggering.
           if ( n_linked_monitors > 0 ) {
+            // FIXME improve logic here
             bool first_link = true;
             Event::StringSet noteSet;
             for ( int i = 0; i < n_linked_monitors; i++ ) {
@@ -1502,64 +1503,18 @@ bool Monitor::Analyse() {
                 shared_data->state = state = TAPE;
               }
 
-              //if ( config.overlap_timed_events )
-              if ( false ) {
-                int pre_index;
-                int pre_event_images = pre_event_count;
-
-                if ( analysis_fps ) {
-                  // If analysis fps is set,
-                  // compute the index for pre event images in the dedicated buffer
-                  pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
-
-                  // Seek forward the next filled slot in to the buffer (oldest data)
-                  // from the current position
-                  while ( pre_event_images && !pre_event_buffer[pre_index].timestamp->tv_sec ) {
-                    pre_index = (pre_index + 1)%pre_event_buffer_count;
-                    // Slot is empty, removing image from counter
-                    pre_event_images--;
-                  }
-                } else {
-                  // If analysis fps is not set (analysis performed at capturing framerate),
-                  // compute the index for pre event images in the capturing buffer
-                  pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
-
-                  // Seek forward the next filled slot in to the buffer (oldest data)
-                  // from the current position
-                  while ( pre_event_images && !image_buffer[pre_index].timestamp->tv_sec ) {
-                    pre_index = (pre_index + 1)%image_buffer_count;
-                    // Slot is empty, removing image from counter
-                    pre_event_images--;
-                  }
-                }
-
-                if ( pre_event_images ) {
-                  if ( analysis_fps ) {
-                    for ( int i = 0; i < pre_event_images; i++ ) {
-                      timestamps[i] = pre_event_buffer[pre_index].timestamp;
-                      images[i] = pre_event_buffer[pre_index].image;
-                      pre_index = (pre_index + 1)%pre_event_buffer_count;
-                    }
-                  } else {
-                    for ( int i = 0; i < pre_event_images; i++ ) {
-                      timestamps[i] = image_buffer[pre_index].timestamp;
-                      images[i] = image_buffer[pre_index].image;
-                      pre_index = (pre_index + 1)%image_buffer_count;
-                    }
-                  }
-
-                  event->AddFrames( pre_event_images, images, timestamps );
-                }
-              } // end if false or config.overlap_timed_events
             } // end if ! event
           } // end if function == RECORD || function == MOCORD)
         } // end if !signal_change && signal
 
         if ( score ) {
           if ( state == IDLE || state == TAPE || state == PREALARM ) {
+            // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
               // If we should end then previous continuous event and start a new non-continuous event
-              if ( event && event->Frames() && !event->AlarmFrames()
+              if ( event && event->Frames()
+                  && (!event->AlarmFrames())
+                  && (event_close_mode == CLOSE_ALARM)
                   && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
@@ -1579,14 +1534,11 @@ bool Monitor::Analyse() {
               strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
-              if ( signal_change || (function != MOCORD && state != ALERT) ) {
+
+              if ( !event ) {
                 int pre_index;
                 int pre_event_images = pre_event_count;
 
-                if ( event ) {
-                  // Shouldn't be able to happen because 
-                  Error("Creating new event when one exists");
-                }
                 if ( analysis_fps && pre_event_count ) {
                   // If analysis fps is set,
                   // compute the index for pre event images in the dedicated buffer

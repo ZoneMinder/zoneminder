@@ -210,7 +210,6 @@ function Monitor(monitorData) {
  * @param {*} element - the event data passed by onchange callback
  */
 function selectLayout(element) {
-
   console.dir(element);
   layout = $j(element).val();
 

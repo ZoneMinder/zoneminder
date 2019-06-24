@@ -8,7 +8,6 @@ App::uses('AppController', 'Controller');
  */
 class ServersController extends AppController {
 
-
 /**
  * Components
  *
@@ -16,17 +15,15 @@ class ServersController extends AppController {
  */
   public $components = array('Paginator', 'RequestHandler');
 
-
-public function beforeFilter() {
-  parent::beforeFilter();
-  $canView = $this->Session->Read('streamPermission');
-  if ($canView =='None') {
-    throw new UnauthorizedException(__('Insufficient Privileges'));
-    return;
+  public function beforeFilter() {
+    parent::beforeFilter();
+    global $user;
+    $canView = (!$user) || ($user['System'] != 'None');
+    if ( !$canView ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
   }
-
-}
-
 
 /**
  * index method
@@ -36,7 +33,7 @@ public function beforeFilter() {
   public function index() {
     $this->Server->recursive = 0;
     
-    $options='';
+    $options = '';
     $servers = $this->Server->find('all',$options);
 		$this->set(array(
 					'servers' => $servers,
@@ -76,16 +73,17 @@ public function beforeFilter() {
  * @return void
  */
   public function add() {
-    if ($this->request->is('post')) {
+    if ( $this->request->is('post') ) {
 
-      if ($this->Session->Read('systemPermission') != 'Edit')
-      {
-         throw new UnauthorizedException(__('Insufficient privileges'));
+      global $user;
+      $canEdit = (!$user) || ($user['System'] == 'Edit');
+      if ( !$canEdit ) {
+        throw new UnauthorizedException(__('Insufficient privileges'));
         return;
       }
 
       $this->Server->create();
-      if ($this->Server->save($this->request->data)) {
+      if ( $this->Server->save($this->request->data) ) {
 				# Might be nice to send it a start request
         #$this->daemonControl($this->Server->id, 'start', $this->request->data);
         return $this->flash(__('The server has been saved.'), array('action' => 'index'));
@@ -103,15 +101,17 @@ public function beforeFilter() {
   public function edit($id = null) {
     $this->Server->id = $id;
 
-    if (!$this->Server->exists($id)) {
-      throw new NotFoundException(__('Invalid server'));
-    }
-    if ($this->Session->Read('systemPermission') != 'Edit')
-    {
-       throw new UnauthorizedException(__('Insufficient privileges'));
+    global $user;
+    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
-    if ($this->Server->save($this->request->data)) {
+
+    if ( !$this->Server->exists($id) ) {
+      throw new NotFoundException(__('Invalid server'));
+    }
+    if ( $this->Server->save($this->request->data) ) {
       $message = 'Saved';
     } else {
       $message = 'Error';
@@ -133,20 +133,22 @@ public function beforeFilter() {
  * @return void
  */
   public function delete($id = null) {
-    $this->Server->id = $id;
-    if (!$this->Server->exists()) {
-      throw new NotFoundException(__('Invalid server'));
-    }
-    if ($this->Session->Read('systemPermission') != 'Edit')
-    {
-       throw new UnauthorizedException(__('Insufficient privileges'));
+    global $user;
+    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
       return;
+    }
+
+    $this->Server->id = $id;
+    if ( !$this->Server->exists() ) {
+      throw new NotFoundException(__('Invalid server'));
     }
     $this->request->allowMethod('post', 'delete');
 
     #$this->daemonControl($this->Server->id, 'stop');
 
-    if ($this->Server->delete()) {
+    if ( $this->Server->delete() ) {
       return $this->flash(__('The server has been deleted.'), array('action' => 'index'));
     } else {
       return $this->flash(__('The server could not be deleted. Please, try again.'), array('action' => 'index'));

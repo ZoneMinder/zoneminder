@@ -18,9 +18,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView( 'Monitors' ) ) {
-    $view = 'error';
-    return;
+if ( !canView('Monitors') ) {
+  $view = 'error';
+  return;
 }
 
 $mid = validInt($_REQUEST['mid']);
@@ -54,7 +54,7 @@ foreach ( getEnumValues( 'Zones', 'CheckMethod' ) as $optCheckMethod ) {
   $optCheckMethods[$optCheckMethod] = $optCheckMethod;
 }
 
-$monitor = new Monitor( $mid );
+$monitor = new ZM\Monitor( $mid );
 
 $minX = 0;
 $maxX = $monitor->Width()-1;
@@ -62,39 +62,39 @@ $minY = 0;
 $maxY = $monitor->Height()-1;
 
 if ( !isset($newZone) ) {
-    if ( $zid > 0 ) {
-        $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
-    } else {
-        $zone = array(
-            'Id' => 0,
-            'Name' => translate('New'),
-            'Type'  =>  'Active',
-            'MonitorId' => $monitor->Id(),
-            'NumCoords' => 4,
-            'Coords' => sprintf( "%d,%d %d,%d, %d,%d %d,%d", $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY ),
-            'Area' => $monitor->Width() * $monitor->Height(),
-            'AlarmRGB' => 0xff0000,
-            'CheckMethod' => 'Blobs',
-            'MinPixelThreshold' => '',
-            'MaxPixelThreshold' => '',
-            'MinAlarmPixels' => '',
-            'MaxAlarmPixels' => '',
-            'FilterX' => '',
-            'FilterY' => '',
-            'MinFilterPixels' => '',
-            'MaxFilterPixels' => '',
-            'MinBlobPixels' => '',
-            'MaxBlobPixels' => '',
-            'MinBlobs' => '',
-            'MaxBlobs' => '',
-            'OverloadFrames' => '',
-            'ExtendAlarmFrames' => '',
-        );
-    }
-    $zone['Points'] = coordsToPoints( $zone['Coords'] );
-    $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
+  if ( $zid > 0 ) {
+    $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
+  } else {
+    $zone = array(
+      'Id' => 0,
+      'Name' => translate('New'),
+      'Type'  =>  'Active',
+      'MonitorId' => $monitor->Id(),
+      'NumCoords' => 4,
+      'Coords' => sprintf('%d,%d %d,%d, %d,%d %d,%d', $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY),
+      'Area' => $monitor->Width() * $monitor->Height(),
+      'AlarmRGB' => 0xff0000,
+      'CheckMethod' => 'Blobs',
+      'MinPixelThreshold' => '',
+      'MaxPixelThreshold' => '',
+      'MinAlarmPixels' => '',
+      'MaxAlarmPixels' => '',
+      'FilterX' => '',
+      'FilterY' => '',
+      'MinFilterPixels' => '',
+      'MaxFilterPixels' => '',
+      'MinBlobPixels' => '',
+      'MaxBlobPixels' => '',
+      'MinBlobs' => '',
+      'MaxBlobs' => '',
+      'OverloadFrames' => '',
+      'ExtendAlarmFrames' => '',
+    );
+  }
+  $zone['Points'] = coordsToPoints( $zone['Coords'] );
+  $zone['AreaCoords'] = preg_replace( '/\s+/', ',', $zone['Coords'] );
 
-    $newZone = $zone;
+  $newZone = $zone;
 } # end if new Zone
 
 # Ensure Zone fits within the limits of the Monitor
@@ -122,7 +122,7 @@ xhtmlHeaders(__FILE__, translate('Zone') );
       <h2><?php echo translate('Monitor') ?> <?php echo $monitor->Name() ?> - <?php echo translate('Zone') ?> <?php echo $newZone['Name'] ?></h2>
     </div>
     <div id="content">
-      <form name="zoneForm" id="zoneForm" method="post" action="<?php echo $_SERVER['PHP_SELF'] ?>" onkeypress="return event.keyCode != 13;">
+      <form name="zoneForm" id="zoneForm" method="post" action="?" onkeypress="return event.keyCode != 13;">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="zone"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
@@ -235,16 +235,15 @@ if ( count( $other_zones ) ) {
             </div>
           </div>
           <div id="monitorState"><?php echo translate('State') ?>:&nbsp;<span id="stateValue"></span>&nbsp;-&nbsp;<span id="fpsValue"></span>&nbsp;fps</div>
-          <table id="zonePoints" cellspacing="0">
+          <table id="zonePoints">
             <tbody>
               <tr>
 <?php
 $pointCols = 2;
-for ( $i = 0; $i < $pointCols; $i++ )
-{
+for ( $i = 0; $i < $pointCols; $i++ ) {
 ?>
                 <td>
-                  <table cellspacing="0">
+                  <table>
                     <thead>
                       <tr>
                         <th><?php echo translate('Point') ?></th>
@@ -254,26 +253,11 @@ for ( $i = 0; $i < $pointCols; $i++ )
                       </tr>
                     </thead>
                     <tbody>
-<?php
-    if ( false )
-    for ( $j = $i; $j < count($newZone['Points']); $j += 2 )
-    {
-?>
-                      <tr id="row<?php echo $j ?>" onmouseover="highlightOn( <?php echo $j ?> )" onmouseout="highlightOff( <?php echo $j ?> )" onclick="setActivePoint( <?php echo $j ?> )">
-                        <td><?php echo $j+1 ?></td>
-                        <td><input name="newZone[Points][<?php echo $j ?>][x]" id="newZone[Points][<?php echo $j ?>][x]" size="5" value="<?php echo $newZone['Points'][$j]['x'] ?>" oninput="updateX( this, <?php echo $j ?> );"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
-                        <td><input name="newZone[Points][<?php echo $j ?>][y]" id="newZone[Points][<?php echo $j ?>][y]" size="5" value="<?php echo $newZone['Points'][$j]['y'] ?>" oninput="updateY( this, <?php echo $j ?> );"<?php if ( canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/></td>
-                        <td><a href="#" onclick="addPoint( this, <?php echo $j ?> ); return( false );">+</a><?php if ( count($newZone['Points']) > 3 ) { ?>&nbsp;<a id="delete<?php echo $j ?>" href="#" onclick="delPoint( this, <?php echo $j ?> ); return(false);">&ndash;</a><?php } ?>&nbsp;<a id="cancel<?php echo $j ?>" href="#" onclick="unsetActivePoint( <?php echo $j ?> ); return( false );">X</a></td>
-                      </tr>
-<?php
-    }
-?>
                     </tbody>
                   </table>
                 </td>
 <?php
-    if ( $i < ($pointCols-1) )
-    {
+    if ( $i < ($pointCols-1) ) {
 ?>
                 <td>&nbsp;</td>
 <?php
@@ -283,7 +267,9 @@ for ( $i = 0; $i < $pointCols; $i++ )
               </tr>
             </tbody>
           </table>
-          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" onclick="streamCmdPauseToggle()"/><input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/><input type="button" value="<?php echo translate('Cancel') ?>" onclick="refreshParentWindow(); closeWindow();"/>
+          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" data-on-click="streamCmdPauseToggle"/>
+          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="refreshParentWindow(); closeWindow();"/>
         </div>
       </form>
     </div>

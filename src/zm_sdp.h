@@ -31,13 +31,11 @@
 #include <string>
 #include <vector>
 
-class SessionDescriptor
-{
+class SessionDescriptor {
 protected:
   enum { PAYLOAD_TYPE_DYNAMIC=96 };
 
-  struct StaticPayloadDesc
-  {
+  struct StaticPayloadDesc {
     int payloadType;
     const char payloadName[6];
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
@@ -50,8 +48,7 @@ protected:
     int autoChannels;
   };
 
-  struct DynamicPayloadDesc
-  {
+  struct DynamicPayloadDesc {
     const char payloadName[32];
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
     AVMediaType codecType;
@@ -65,8 +62,7 @@ protected:
   };
 
 public:
-  class ConnInfo
-  {
+  class ConnInfo {
   protected:
     std::string mNetworkType;
     std::string mAddressType;
@@ -75,21 +71,19 @@ public:
     int mNoAddresses;
 
   public:
-    ConnInfo( const std::string &connInfo );
+    explicit ConnInfo( const std::string &connInfo );
   };
 
-  class BandInfo
-  {
+  class BandInfo {
   protected:
     std::string mType;
     int mValue;
 
   public:
-    BandInfo( const std::string &bandInfo );
+    explicit BandInfo( const std::string &bandInfo );
   };
 
-  class MediaDescriptor
-  {
+  class MediaDescriptor {
   protected:
     std::string mType;
     int mPort;
@@ -144,48 +138,38 @@ public:
     {
       return( mControlUrl );
     }
-    void setControlUrl( const std::string &controlUrl )
-    {
+    void setControlUrl( const std::string &controlUrl ) {
       mControlUrl = controlUrl;
     }
 
-    const int getClock() const
-    {
+    const int getClock() const {
       return( mClock );
     }
-    void setClock( int clock )
-    {
+    void setClock( int clock ) {
       mClock = clock;
     }
 
-    void setFrameSize( int width, int height )
-    {
+    void setFrameSize( int width, int height ) {
       mWidth = width;
       mHeight = height;
     }
-    int getWidth() const
-    {
+    int getWidth() const {
       return( mWidth );
     }
-    int getHeight() const
-    {
+    int getHeight() const {
       return( mHeight );
     }
 
-    void setSprops(const std::string props)
-    {
+    void setSprops(const std::string &props) {
       mSprops = props;
     }
-    const std::string getSprops() const
-    {
+    const std::string getSprops() const {
       return ( mSprops );
     }
-    const double getFrameRate() const
-    {
+    const double getFrameRate() const {
       return( mFrameRate );
     }
-    void setFrameRate( double frameRate )
-    {
+    void setFrameRate( double frameRate ) {
       mFrameRate = frameRate;
     }
   };

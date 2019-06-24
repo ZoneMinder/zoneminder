@@ -6,12 +6,20 @@
     width: 99%;
 }
 
+#monitors .monitor {
+  min-width: 180px;
+}
+
 #monitors .alarm {
     color: #ff0000;
 }
 
 #monitors .alert {
     color: #ffa500;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    border: none;
 }
 
 #monitors .imageFeed {
@@ -19,8 +27,10 @@
     vertical-align: middle;
 }
 
-#monitors .imageFeed img {
+#monitors .imageFeed img ,
+#monitors .imageFeed svg {
     border: 2px solid #999999;
+    display: block;
 }
 
 #monitors .imageFeed img.idle {
@@ -38,4 +48,29 @@
 #monitors .monitorState {
     margin: 2px auto;
     text-align: center;
+    border: 0;
 }
+#monitors .alert .monitorState {
+    border: 0;
+}
+
+.zones polygon {
+  fill-opacity: 0.25;
+}
+.Active {
+  stroke: #ff0000;
+  fill: #ff0000;
+}
+.Inclusive {
+  stroke: #FFA500;
+  fill: #FFA500;
+}
+.Exclusive {
+  stroke: #800080;
+  fill: #800080;
+}
+.Preclusive {
+  stroke: #0000FF;
+  fill: #0000FF;
+}
+

@@ -1,11 +1,11 @@
 # $Id$
 #
-# Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+# Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
 #
 # Licensed under The MIT License
 # For full copyright and license information, please see the LICENSE.txt
 # Redistributions of files must retain the above copyright notice.
-# MIT License (http://www.opensource.org/licenses/mit-license.php)
+# MIT License (https://opensource.org/licenses/mit-license.php)
 
 CREATE TABLE acos (
   id INTEGER(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -39,3 +39,14 @@ CREATE TABLE aros (
   rght INTEGER(10) DEFAULT NULL,
   PRIMARY KEY  (id)
 );
+
+/* this indexes will improve acl perfomance */
+CREATE INDEX idx_acos_lft_rght ON `acos` (`lft`, `rght`);
+
+CREATE INDEX idx_acos_alias ON `acos` (`alias`);
+
+CREATE INDEX idx_aros_lft_rght ON `aros` (`lft`, `rght`);
+
+CREATE INDEX idx_aros_alias ON `aros` (`alias`);
+
+CREATE INDEX idx_aco_id ON `aros_acos` (`aco_id`);

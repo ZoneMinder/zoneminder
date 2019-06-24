@@ -2,18 +2,18 @@
 /**
  * SessionTest file
  *
- * CakePHP(tm) Tests <http://book.cakephp.org/2.0/en/development/testing.html>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) Tests <https://book.cakephp.org/2.0/en/development/testing.html>
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/2.0/en/development/testing.html CakePHP(tm) Tests
  * @package       Cake.Test.Case.Model.Datasource
  * @since         CakePHP(tm) v 1.2.0.4206
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('CakeSession', 'Model/Datasource');
@@ -21,7 +21,7 @@ App::uses('DatabaseSession', 'Model/Datasource/Session');
 App::uses('CacheSession', 'Model/Datasource/Session');
 
 /**
- * Class TestCakeSession
+ * TestCakeSession
  *
  * @package       Cake.Test.Case.Model.Datasource
  */
@@ -38,7 +38,7 @@ class TestCakeSession extends CakeSession {
 }
 
 /**
- * Class TestCacheSession
+ * TestCacheSession
  *
  * @package       Cake.Test.Case.Model.Datasource
  */
@@ -51,7 +51,7 @@ class TestCacheSession extends CacheSession {
 }
 
 /**
- * Class TestDatabaseSession
+ * TestDatabaseSession
  *
  * @package       Cake.Test.Case.Model.Datasource
  */
@@ -307,9 +307,9 @@ class CakeSessionTest extends CakeTestCase {
  * @return void
  */
 	public function testWriteEmptyKey() {
-		$this->assertFalse(TestCakeSession::write('', 'graham'));
-		$this->assertFalse(TestCakeSession::write('', ''));
-		$this->assertFalse(TestCakeSession::write(''));
+		$this->assertTrue(TestCakeSession::write('', 'graham'));
+		$this->assertTrue(TestCakeSession::write('', ''));
+		$this->assertTrue(TestCakeSession::write(''));
 	}
 
 /**
@@ -401,6 +401,17 @@ class CakeSessionTest extends CakeTestCase {
 		$this->assertTrue(TestCakeSession::delete('Clearing'));
 		$this->assertFalse(TestCakeSession::check('Clearing.sale'));
 		$this->assertFalse(TestCakeSession::check('Clearing'));
+	}
+
+/**
+ * test delete
+ *
+ * @return void
+ */
+	public function testDeleteEmptyString() {
+		TestCakeSession::write('', 'empty string');
+		$this->assertTrue(TestCakeSession::delete(''));
+		$this->assertFalse(TestCakeSession::check(''));
 	}
 
 /**
@@ -500,6 +511,10 @@ class CakeSessionTest extends CakeTestCase {
  * @return void
  */
 	public function testReadingSavedEmpty() {
+		TestCakeSession::write('', 'empty string');
+		$this->assertTrue(TestCakeSession::check(''));
+		$this->assertEquals('empty string', TestCakeSession::read(''));
+
 		TestCakeSession::write('SessionTestCase', 0);
 		$this->assertEquals(0, TestCakeSession::read('SessionTestCase'));
 
@@ -511,7 +526,7 @@ class CakeSessionTest extends CakeTestCase {
 		$this->assertFalse(TestCakeSession::read('SessionTestCase'));
 
 		TestCakeSession::write('SessionTestCase', null);
-		$this->assertEquals(null, TestCakeSession::read('SessionTestCase'));
+		$this->assertNull(TestCakeSession::read('SessionTestCase'));
 	}
 
 /**

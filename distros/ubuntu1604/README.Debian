@@ -23,8 +23,7 @@ configuration file:
 Upgrading database
 ------------------
 
-Prior to 1.28.1 database upgrade was performed automatically.
-"zoneminder" service will refuse to start with outdated database.
+The database is updated automatically on installation. You should not need to take this step.
 
 Assuming that database is on "localhost" then the following command can be
 used to upgrade "zm" database:
@@ -45,16 +44,10 @@ The following command prints the current version of zoneminder database:
 Enabling service
 ----------------
 
-By default Zoneminder service is not starting automatically and need to be
-manually activated once database is configured:
-
-On systemd:
+By default Zoneminder service is not automatically started and needs to be
+manually enabled once database is configured:
 
     sudo systemctl enable zoneminder.service
-
-On SysV:
-
-    sudo update-rc.d zoneminder enable
 
 
 Web server set-up
@@ -82,10 +75,10 @@ Common configuration steps for Apache2:
 
 ## nginx / fcgiwrap
 
-Nginx needs "php5-fpm" package to support PHP and "fcgiwrap" package
+Nginx needs "php-fpm" package to support PHP and "fcgiwrap" package
 for binary "cgi-bin" applications:
 
-    sudo apt-get install php5-fpm fcgiwrap
+    sudo apt-get install php-fpm fcgiwrap
 
 To enable a URL alias that makes Zoneminder available from
 
@@ -119,32 +112,9 @@ site configuration.
 Changing the location for images and events
 -------------------------------------------
 
-Zoneminder, in its upstream form, stores data in /usr/share/zoneminder/.  This
-package modifies that by changing /usr/share/zoneminder/images and
-/usr/share/zoneminder/events to symlinks to directories under
-/var/cache/zoneminder.
-
-There are numerous places these could be put and ways to do it.  But, at the
-moment, if you change this, an upgrade will fail with a warning about these
-locations having changed (the reason for this was that previously, an  upgrade
-would silently revert the changes and cause event loss - refer
-bug #608793).
-
-If you do want to change the location, here are a couple of suggestions.
-(thanks to vagrant@freegeek.org):
-
-These lines in fstab could allow you to bind-mount an alternate location
-
-         /dev/sdX1 /otherdrive ext3 defaults 0 2
-         /otherdrive/zoneminder/images /var/cache/zoneminder/images bind defaults 0 2
-         /otherdrive/zoneminder/events /var/cache/zoneminder/events bind defaults 0 2
-
-        or if you have a separate partition for each:
-
-         /dev/sdX1 /var/cache/zoneminder/images ext3 defaults 0 2
-         /dev/sdX2 /var/cache/zoneminder/events ext3 defaults 0 2
-
- -- Peter Howard <pjh@northern-ridge.com.au>, Sun, 16 Jan 2010 01:35:51 +1100
+ZoneMinder is now able to be configured to use an alternative location for storing
+events and images at compile time. This package makes use of that, so symlinks in
+/usr/share/zoneminder/www are no longer necessary.
 
 Access to /dev/video*
 ---------------------

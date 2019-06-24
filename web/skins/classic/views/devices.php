@@ -40,7 +40,7 @@ xhtmlHeaders(__FILE__, translate('Devices') );
       <h2><?php echo translate('Devices') ?></h2>
     </div>
     <div id="content">
-      <form name="contentForm" method="get" action="<?php echo $_SERVER['PHP_SELF'] ?>">
+      <form name="contentForm" method="get" action="?">
         <input type="hidden" name="view" value="none"/>
         <input type="hidden" name="action" value="device"/>
         <input type="hidden" name="key" value=""/>
@@ -75,9 +75,9 @@ foreach( $devices as $device )
           </tbody>
         </table>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('New') ?>" onclick="createPopup( '?view=device&amp;did=0', 'zmDevice', 'device' )"<?php echo canEdit('Devices')?'':' disabled="disabled"' ?>/>
-          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" onclick="deleteDevice( this )" disabled="disabled"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="closeWindow();"/>
+          <?php echo makePopupButton('?view=device&did=0', 'zmDevice', 'device', translate('New'), canEdit( 'Devices' )); ?>
+          <input type="button" name="deleteBtn" value="<?php echo translate('Delete') ?>" data-on-click-this="deleteDevice" disabled="disabled"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
         </div>
       </form>
     </div>

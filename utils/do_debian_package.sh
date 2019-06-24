@@ -124,6 +124,7 @@ else
   fi;
 fi
 
+<<<<<<< HEAD
 if [ "$PPA" == "" ]; then
   if [ "$RELEASE" != "" ]; then
     # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
@@ -139,6 +140,22 @@ if [ "$PPA" == "" ]; then
     else
       PPA="ppa:iconnor/zoneminder-$BRANCH";
     fi;
+=======
+PPA="";
+if [ "$RELEASE" != "" ]; then
+  # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
+  IFS='.' read -r -a VERSION <<< "$RELEASE"
+  if [ "${VERSION[0]}.${VERSION[1]}" == "1.30" ]; then
+    PPA="ppa:iconnor/zoneminder-stable"
+  else
+    PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
+  fi;
+else
+  if [ "$BRANCH" == "" ]; then
+    PPA="ppa:iconnor/zoneminder-master";
+  else 
+    PPA="ppa:iconnor/zoneminder-$BRANCH";
+>>>>>>> acb95709e6cd8fdb9e76b3d58bc6f546fc6b1447
   fi;
 fi;
 
@@ -332,7 +349,10 @@ EOF
         dput $PPA $SC
       fi;
     else
+<<<<<<< HEAD
       echo "dputting to $PPA";
+=======
+>>>>>>> acb95709e6cd8fdb9e76b3d58bc6f546fc6b1447
         dput $PPA $SC
     fi;
   fi;

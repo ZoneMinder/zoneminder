@@ -73,6 +73,7 @@ public:
 
   void Initialise();
   void Terminate();
+  int Close() { return 0; };
 
   int PrimeCapture();
   int PreCapture();
@@ -87,10 +88,6 @@ public:
   void* thread_func();
   int lock();
   int unlock();
-
-private:
-  int nRet;
-  CURLcode cRet;
 
 };
 

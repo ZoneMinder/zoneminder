@@ -1,9 +1,10 @@
 var controlParms = "view=request&request=control";
-var controlReq = new Request.JSON( { url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: getControlResponse } );
+var controlReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: getControlResponse} );
 
 function getControlResponse( respObj, respText ) {
-  if ( !respObj )
+  if ( !respObj ) {
     return;
+  }
   //console.log( respText );
   if ( respObj.result != 'Ok' ) {
     alert( "Control response was status = "+respObj.status+"\nmessage = "+respObj.message );
@@ -13,29 +14,28 @@ function getControlResponse( respObj, respText ) {
 function controlCmd( control, event, xtell, ytell ) {
   var locParms = "&id="+$('mid').get('value');
   if ( event && (xtell || ytell) ) {
-    var xEvent = new Event( event );
-    var target = xEvent.target;
+    var target = event.target;
     var coords = $(target).getCoordinates();
 
-    var l = coords.left;
-    var t = coords.top;
-    var x = xEvent.page.x - l;
-    var y = xEvent.page.y - t;
+    var x = event.pageX - coords.left;
+    var y = event.pageY - coords.top;
 
     if ( xtell ) {
       var xge = parseInt( (x*100)/coords.width );
-      if ( xtell == -1 )
+      if ( xtell == -1 ) {
         xge = 100 - xge;
-      else if ( xtell == 2 )
+      } else if ( xtell == 2 ) {
         xge = 2*(50 - xge);
+      }
       locParms += "&xge="+xge;
     }
     if ( ytell ) {
       var yge = parseInt( (y*100)/coords.height );
-      if ( ytell == -1 )
+      if ( ytell == -1 ) {
         yge = 100 - yge;
-      else if ( ytell == 2 )
+      } else if ( ytell == 2 ) {
         yge = 2*(50 - yge);
+      }
       locParms += "&yge="+yge;
     }
   }

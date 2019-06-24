@@ -1,31 +1,5 @@
-#controls {
-    height: 16px;
-    width: 100%;
-    text-align: center;
-    margin: 0 auto;
-    position: relative;
-}
-
-#controls a {
-    width: 32%;
-}
-
-#controls #refreshLink {
-    position: absolute;
-    left: 0%;
-    text-align: left;
-}
-
-#controls #filterLink {
-    position: absolute;
-    left: 34%;
-    text-align: center;
-}
-
-#controls #timelineLink {
-    position: absolute;
-    left: 68%;
-    text-align: right;
+.archived {
+    background-color: #2e2e2e;
 }
 
 #contentTable.major .colTime {
@@ -39,4 +13,27 @@
 #contentTable.major td.colDuration {
     text-align: right;
     padding-right: 8px;
+}
+
+#header {
+    display: flex;
+    justify-content: space-between;
+}
+
+#header h2, #header a {
+    line-height: 1.1;
+    margin:5px 0 0 0;
+}
+
+#header #info, #header #pagination, #header #controls {
+    display: flex;
+    flex-direction: column;
+}
+
+#header #controls {
+    align-items: flex-end;
+}
+
+#header #pagination {
+    align-items: center;
 }

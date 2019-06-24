@@ -1,4 +1,1 @@
-/var/cache/zoneminder/events	/usr/share/zoneminder/www/events
-/var/cache/zoneminder/images	/usr/share/zoneminder/www/images
-/var/cache/zoneminder/temp	/usr/share/zoneminder/www/temp
 /tmp/zm						/usr/share/zoneminder/www/api/app/tmp

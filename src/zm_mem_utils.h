@@ -26,7 +26,7 @@
 inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
   uint8_t* retptr;
 #if HAVE_POSIX_MEMALIGN
-  if(posix_memalign((void**)&retptr,reqalignment,reqsize) != 0)
+  if ( posix_memalign((void**)&retptr,reqalignment,reqsize) != 0 )
     return NULL;
   
   return retptr;
@@ -34,7 +34,7 @@ inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
   uint8_t* alloc;
   retptr = (uint8_t*)malloc(reqsize+reqalignment+sizeof(void*));
   
-  if(retptr == NULL)
+  if ( retptr == NULL )
     return NULL;
   
   alloc = retptr + sizeof(void*);
@@ -58,20 +58,16 @@ inline void zm_freealigned(void* ptr) {
 #endif
 }
 
-inline char *mempbrk( register const char *s, const char *accept, size_t limit )
-{
-  if ( limit <= 0 || !s || !accept || !*accept )
-    return( 0 );
+inline char *mempbrk( register const char *s, const char *accept, size_t limit ) {
+  if ( limit == 0 || !s || !accept || !*accept )
+    return 0;
 
   register unsigned int i,j;
   size_t acc_len = strlen( accept );
 
-  for ( i = 0; i < limit; s++, i++ )
-  {
-    for ( j = 0; j < acc_len; j++ )
-    {
-      if ( *s == accept[j] )
-      {
+  for ( i = 0; i < limit; s++, i++ ) {
+    for ( j = 0; j < acc_len; j++ ) {
+      if ( *s == accept[j] ) {
         return( (char *)s );
       }
     }
@@ -79,9 +75,8 @@ inline char *mempbrk( register const char *s, const char *accept, size_t limit )
   return( 0 );
 }
 
-inline char *memstr( register const char *s, const char *n, size_t limit )
-{
-  if ( limit <= 0 || !s || !n )
+inline char *memstr( register const char *s, const char *n, size_t limit ) {
+  if ( limit == 0 || !s || !n )
     return( 0 );
 
   if ( !*n )
@@ -90,14 +85,12 @@ inline char *memstr( register const char *s, const char *n, size_t limit )
   register unsigned int i,j,k;
   size_t n_len = strlen( n );
 
-  for ( i = 0; i < limit; i++, s++ )
-  {
+  for ( i = 0; i < limit; i++, s++ ) {
     if ( *s != *n )
       continue;
     j = 1;
     k = 1;
-    while ( true )
-    {
+    while ( true ) {
       if ( k >= n_len )
         return( (char *)s );
       if ( s[j++] != n[k++] )
@@ -107,36 +100,30 @@ inline char *memstr( register const char *s, const char *n, size_t limit )
   return( 0 );
 }
 
-inline size_t memspn( register const char *s, const char *accept, size_t limit )
-{
-  if ( limit <= 0 || !s || !accept || !*accept )
+inline size_t memspn( register const char *s, const char *accept, size_t limit ) {
+  if ( limit == 0 || !s || !accept || !*accept )
     return( 0 );
 
   register unsigned int i,j;
   size_t acc_len = strlen( accept );
 
-  for ( i = 0; i < limit; s++, i++ )
-  {
+  for ( i = 0; i < limit; s++, i++ ) {
     register bool found = false;
-    for ( j = 0; j < acc_len; j++ )
-    {
-      if ( *s == accept[j] )
-      {
+    for ( j = 0; j < acc_len; j++ ) {
+      if ( *s == accept[j] ) {
         found = true;
         break;
       }
     }
-    if ( !found )
-    {
+    if ( !found ) {
       return( i );
     }
   }
   return( limit );
 }
 
-inline size_t memcspn( register const char *s, const char *reject, size_t limit )
-{
-  if ( limit <= 0 || !s || !reject )
+inline size_t memcspn( register const char *s, const char *reject, size_t limit ) {
+  if ( limit == 0 || !s || !reject )
     return( 0 );
 
   if ( !*reject )
@@ -145,12 +132,9 @@ inline size_t memcspn( register const char *s, const char *reject, size_t limit 
   register unsigned int i,j;
   size_t rej_len = strlen( reject );
 
-  for ( i = 0; i < limit; s++, i++ )
-  {
-    for ( j = 0; j < rej_len; j++ )
-    {
-      if ( *s == reject[j] )
-      {
+  for ( i = 0; i < limit; s++, i++ ) {
+    for ( j = 0; j < rej_len; j++ ) {
+      if ( *s == reject[j] ) {
         return( i );
       }
     }

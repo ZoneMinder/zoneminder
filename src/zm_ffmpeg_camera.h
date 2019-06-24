@@ -23,11 +23,15 @@
 #include "zm_camera.h"
 
 #include "zm_buffer.h"
-//#include "zm_utils.h"
 #include "zm_ffmpeg.h"
 #include "zm_videostore.h"
 #include "zm_packetqueue.h"
 
+#if HAVE_AVUTIL_HWCONTEXT_H
+typedef struct DecodeContext {
+      AVBufferRef *hw_device_ref;
+} DecodeContext;
+#endif
 //
 // Class representing 'ffmpeg' cameras, i.e. those which are
 // accessed using ffmpeg multimedia framework
@@ -52,6 +56,12 @@ class FfmpegCamera : public Camera {
     AVFrame             *mFrame;
     _AVPIXELFORMAT      imagePixFormat;
 
+    bool hwaccel;
+#if HAVE_AVUTIL_HWCONTEXT_H
+    AVFrame             *hwFrame;
+    DecodeContext       decode;
+#endif
+
     // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
     int64_t audio_last_pts;
     int64_t audio_last_dts;
@@ -64,26 +74,20 @@ class FfmpegCamera : public Camera {
     AVPacket packet;       
 
     int OpenFfmpeg();
-    int ReopenFfmpeg();
-    int CloseFfmpeg();
-    static int FfmpegInterruptCallback(void *ctx);
-    static void* ReopenFfmpegThreadCallback(void *ctx);
-    bool mIsOpening;
+    int Close();
     bool mCanCapture;
-    int mOpenStart;
-    pthread_t mReopenThread;
 #endif // HAVE_LIBAVFORMAT
 
     VideoStore          *videoStore;
-    char                oldDirectory[4096];
-    unsigned int        old_event_id;
-    zm_packetqueue      packetqueue;
+    zm_packetqueue      *packetqueue;
+    bool                have_video_keyframe;
 
 #if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
 #endif
 
     int64_t             startTime;
+    int                 error_count;
 
   public:
     FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
@@ -96,11 +100,13 @@ class FfmpegCamera : public Camera {
     void Initialise();
     void Terminate();
 
+
     int PrimeCapture();
     int PreCapture();
     int Capture( Image &image );
     int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
     int PostCapture();
+  private:
+    static int FfmpegInterruptCallback(void*ctx);
 };
-
 #endif // ZM_FFMPEG_CAMERA_H

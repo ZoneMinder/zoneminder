@@ -94,7 +94,7 @@ int RtpDataThread::run()
        mStop = true;
        break;
      }
-     for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); iter++ )
+     for ( Select::CommsList::iterator iter = readable.begin(); iter != readable.end(); ++iter )
      {
        if ( UdpInetServer *socket = dynamic_cast<UdpInetServer *>(*iter) )
        {

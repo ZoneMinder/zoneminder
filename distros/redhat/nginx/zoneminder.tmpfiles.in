@@ -1,5 +1,0 @@
-D @ZM_TMPDIR@ 0755 @WEB_USER@ @WEB_GROUP@
-D @ZM_SOCKDIR@ 0755 @WEB_USER@ @WEB_GROUP@
-D /var/lib/php/session 770 root @WEB_GROUP@
-D /var/lib/php/wsdlcache 770 root @WEB_GROUP@
-

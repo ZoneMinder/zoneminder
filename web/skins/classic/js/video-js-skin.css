@@ -1,0 +1,65 @@
+.vjs-tech {
+  pointer-events: none;
+  transition: transform .25s;
+}
+
+.vjs-captions-button {
+  display: none;
+}
+
+.vjs-tt-cue {
+  margin-bottom: .75em;
+}
+
+.vjs-menu {
+  z-index: 5;
+}
+
+.vjs-default-skin .vjs-playback-rate.vjs-menu-button .vjs-menu .vjs-menu-content {
+  width: 5em;
+}
+
+.vjs-default-skin.vjs-user-inactive:hover .vjs-progress-control {
+  font-size: .3em;
+}
+
+.vjs-default-skin.vjs-has-started.vjs-user-inactive.vjs-playing .vjs-control-bar {
+  visibility: visible;
+  opacity: 1;
+  bottom: -2em;
+  -webkit-transition: all .2s;
+  -moz-transition: all .2s;
+  -o-transition: all .2s;
+  transition: all .2s
+}
+
+.vjs-default-skin.vjs-has-started.vjs-user-inactive.vjs-playing .vjs-control,
+.vjs-default-skin.vjs-has-started.vjs-user-inactive.vjs-playing .vjs-time-divider {
+  display: none;
+}
+
+.vjs-default-skin .vjs-progress-holder .vjs-play-progress, .vjs-default-skin .vjs-progress-holder .vjs-load-progress {
+  height: 1em;
+}
+
+.vjs-progress-holder.vjs-slider {
+  background-color: transparent;
+  z-index: 1;
+}
+
+.vjs-progress-control.vjs-control {
+  background-color: rgba(7, 20, 30, 0.8);
+  height: 1.3em;
+  top: -1.3em;
+  display: block !important;
+}
+
+.vjs-control div.alarmCue {
+  position: relative;
+  top: -1.3em;
+  background: none;
+}
+
+.vjs-control .alarmCue {
+  height: 1.3em;
+}

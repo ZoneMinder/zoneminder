@@ -15,7 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
 if ( !canView( 'Events' ) )
@@ -54,7 +54,7 @@ else
     $scale = max( reScale( SCALE_BASE, $event['DefaultScale'], ZM_WEB_DEFAULT_SCALE ), SCALE_BASE );
 
 $Transpose = '';
-if ( $event['VideoWriter'] == "2" ) {
+if ( $event['VideoWriter'] == "2" ) { // PASSTHROUGH
 	$Rotation = $event['Orientation'];
 // rotate right
 	if ( in_array($event['Orientation'],array("90")))

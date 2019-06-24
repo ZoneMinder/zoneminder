@@ -1,0 +1,64 @@
+#filterSelector {
+}
+
+table.filterTable {
+    margin: 0 auto;
+}
+
+#fieldsTable td:first-child {
+    width: 5em;
+}
+
+#fieldsTable td:nth-child(3) {
+    width: 11.5em;
+}
+#fieldsTable td:nth-child(4) {
+    width: 15em;
+}
+
+#fieldsTable td {
+    padding: 0 5px;
+}
+
+select {
+    vertical-align: middle;
+    padding: 2px;
+    border: 1px solid #aaa;
+    border-radius: 5px;
+    background-color: #fff;
+    background: -webkit-gradient(linear,left top,left bottom,color-stop(20%,#fff),color-stop(50%,#f6f6f6),color-stop(52%,#eee),to(#f4f4f4));
+    background: linear-gradient(#fff 20%,#f6f6f6 50%,#eee 52%,#f4f4f4 100%);
+    background-clip: padding-box;
+    -webkit-box-shadow: 0 0 3px #fff inset, 0 1px 1px rgba(0,0,0,.1);
+    box-shadow: 0 0 3px #fff inset, 0 1px 1px rgba(0,0,0,.1);
+    color: #444;
+}
+
+#fieldsTable input[type=button] {
+    width: 1.8em;
+    margin-left: 2px;
+    padding: 5px;
+    text-align: center;
+}
+
+#sortTable input[type=text] {
+    margin-right: 4px;
+}
+
+#actionsTable input[type=text] {
+    margin-left: 4px;
+}
+
+#actionsTable p {
+  text-align: left;
+}
+#actionsTable label {
+  width: 300px;
+  text-align: right;
+}
+select#Id {
+min-width: 400px;
+}
+.Name input {
+min-width: 400px;
+}

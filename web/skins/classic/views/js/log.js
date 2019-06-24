@@ -1,17 +1,17 @@
 var logParms = "view=request&request=log&task=query";
-var logReq = new Request.JSON( { url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse } );
+var logReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: logResponse} );
 var logTimer = undefined;
 var logTable = undefined;
 
-var logCodes = new Object({
-    '0': 'INF',
-    '-1': 'WAR',
-    '-2': 'ERR',
-    '-3': 'FAT',
-    '-4': 'PNC',
-});
+var logCodes = {
+  '0': 'INF',
+  '-1': 'WAR',
+  '-2': 'ERR',
+  '-3': 'FAT',
+  '-4': 'PNC',
+};
 
-var minSampleTime = 1000;
+var minSampleTime = 2000;
 var maxSampleTime = 16000;
 var minLogTime = 0;
 var maxLogTime = 0;
@@ -25,16 +25,26 @@ var sortReversed = false;
 var filterFields = ['Component', 'ServerId', 'Pid', 'Level', 'File', 'Line'];
 var options = {};
 
+function escapeHtml(unsafe) {
+  return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+}
+
 function buildFetchParms( parms ) {
   var fetchParms = logParms+'&limit='+maxLogFetch;
-  if ( parms )
+  if ( parms ) {
     fetchParms += '&'+parms;
+  }
   Object.each(filter,
       function( value, key ) {
         fetchParms += '&filter['+key+']='+value;
       }
-      );
-  return( fetchParms );
+  );
+  return fetchParms;
 }
 
 function fetchNextLogs() {
@@ -46,8 +56,9 @@ function fetchPrevLogs() {
 }
 
 function logResponse( respObj ) {
-  if ( logTimer )
+  if ( logTimer ) {
     logTimer = clearTimeout( logTimer );
+  }
 
   if ( respObj.result == 'Ok' ) {
     if ( respObj.logs.length > 0 ) {
@@ -56,21 +67,32 @@ function logResponse( respObj ) {
       try {
         respObj.logs.each(
             function( log ) {
-              if ( !maxLogTime || log.TimeKey > maxLogTime )
+              if ( ( !maxLogTime ) || ( log.TimeKey > maxLogTime ) ) {
                 maxLogTime = log.TimeKey;
-              if ( !minLogTime || log.TimeKey < minLogTime )
+              }
+              if ( ( !minLogTime ) || ( log.TimeKey < minLogTime ) ) {
                 minLogTime = log.TimeKey;
-              var row = logTable.push( [{ content: log.DateTime, properties: { style: 'white-space: nowrap' }}, log.Component, log.Server, log.Pid, log.Code, log.Message, log.File, log.Line] );
+              }
+
+              var row = logTable.push([
+                {content: log.DateTime, properties: {style: 'white-space: nowrap'}},
+                log.Component, log.Server, log.Pid, log.Code,
+                escapeHtml(log.Message),
+                escapeHtml(log.File),
+                log.Line
+              ]);
+
               delete log.Message;
               row.tr.store( 'log', log );
-              if ( log.Level <= -3 )
-              row.tr.addClass( 'log-fat' );
-              else if ( log.Level <= -2 )
-              row.tr.addClass( 'log-err' );
-              else if ( log.Level <= -1 )
-              row.tr.addClass( 'log-war' );
-              else if ( log.Level > 0 )
-              row.tr.addClass( 'log-dbg' );
+              if ( log.Level <= -3 ) {
+                row.tr.addClass( 'log-fat' );
+              } else if ( log.Level <= -2 ) {
+                row.tr.addClass( 'log-err' );
+              } else if ( log.Level <= -1 ) {
+                row.tr.addClass( 'log-war' );
+              } else if ( log.Level > 0 ) {
+                row.tr.addClass( 'log-dbg' );
+              }
               if ( !firstLoad ) {
                 var color = document.defaultView.getComputedStyle(row.tr, null).getPropertyValue('color');
                 var colorParts = color.match(/^rgb.*\((\d+),\s*(\d+),\s*(\d+)/);
@@ -79,7 +101,17 @@ function logResponse( respObj ) {
               }
             }
         );
-        options = respObj.options;
+        if ( typeof(respObj.options) == 'object' ) {
+          $j.each( respObj.options,
+              function( field ) {
+                if ( options[field] ) {
+                  options[field] = Object.assign(options[field], respObj.options[field]);
+                } else {
+                  options[field] = respObj.options[field];
+                }
+              }
+          );
+        }
         updateFilterSelectors();
         $('lastUpdate').set('text', respObj.updated);
         $('logState').set('text', respObj.state);
@@ -91,23 +123,26 @@ function logResponse( respObj ) {
         $('availLogs').set('text', respObj.available);
         $('displayLogs').set('text', logCount);
         if ( firstLoad ) {
-          if ( logCount < displayLimit )
+          if ( logCount < displayLimit ) {
             fetchPrevLogs();
+          }
         }
         logTable.reSort();
-      } catch( e ) {
+      } catch ( e ) {
         console.error( e );
       }
       logTimeout /= 2;
-      if ( logTimeout < minSampleTime )
+      if ( logTimeout < minSampleTime ) {
         logTimeout = minSampleTime;
+      }
     } else {
       firstLoad = false;
       logTimeout *= 2;
-      if ( logTimeout > maxSampleTime )
+      if ( logTimeout > maxSampleTime ) {
         logTimeout = maxSampleTime;
-    }
-  }
+      }
+    } // end logs.length > 0
+  } // end if result == Ok
   logTimer = fetchNextLogs.delay( logTimeout );
 }
 
@@ -151,10 +186,11 @@ function filterLog() {
           return;
         }
         var value = selector.get('value');
-        if ( value )
+        if ( value ) {
           filter[field] = value;
+        }
       }
-      );
+  );
   refreshLog();
 }
 
@@ -190,14 +226,14 @@ function exportRequest() {
   $('exportError').hide();
   if ( form.validate() ) {
     var exportParms = "view=request&request=log&task=export";
-    var exportReq = new Request.JSON( { url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail } );
+    var exportReq = new Request.JSON( {url: thisUrl, method: 'post', link: 'cancel', onSuccess: exportResponse, onFailure: exportFail} );
     var selection = form.getElement('input[name=selector]:checked').get('value');
     if ( selection == 'filter' || selection == 'current' ) {
       $$('#filters select').each(
           function( select ) {
             exportParms += "&"+select.get('id')+"="+select.get('value');
           }
-          );
+      );
     }
     if ( selection == 'current' ) {
       var tbody = $(logTable).getElement( 'tbody' );
@@ -219,76 +255,79 @@ function updateFilterSelectors() {
       function( values, key ) {
         var selector = $('filter['+key+']');
         if ( ! selector ) {
-            if ( window.console && window.console.log ) {
-              window.console.log("No selector found for " + key );
-            }
-            return;
+          if ( window.console && window.console.log ) {
+            window.console.log("No selector found for " + key );
           }
-          selector.options.length = 1;
-          if ( key == 'Level' ) {
-            Object.each(values,
-                function( value, label ) {
-                selector.options[selector.options.length] = new Option( value, label );
-                }
-            );
-          } else if ( key == 'ServerId' ) {
-            Object.each(values,
-                function( value, label ) {
-                  selector.options[selector.options.length] = new Option( value, label );
-                }
-                );
-          } else {
-            values.each(
-                function( value ) {
-                  selector.options[selector.options.length] = new Option( value );
-                }
-                );
-          }
-          if ( filter[key] )
-            selector.set('value', filter[key]);
-          }
+          return;
+        }
+        selector.options.length = 1;
+        if ( key == 'Level' ) {
+          Object.each(values,
+              function( value, label ) {
+                selector.options[selector.options.length] = new Option(value, label);
+              }
+          );
+        } else if ( key == 'ServerId' ) {
+          Object.each(values,
+              function( value, label ) {
+                selector.options[selector.options.length] = new Option(value, label);
+              }
+          );
+        } else {
+          Object.each(values,
+              function( value, label ) {
+                selector.options[selector.options.length] = new Option(value, label);
+              }
+          );
+        }
+        if ( filter[key] ) {
+          selector.set('value', filter[key]);
+        }
+      }
   );
 }
 
 function initPage() {
   displayLimit = initialDisplayLimit;
-  for ( var i = 1; i <= 9; i++ )
+  for ( var i = 1; i <= 9; i++ ) {
     logCodes[''+i] = 'DB'+i;
+  }
   logTable = new HtmlTable( $('logTable'),
       {
-zebra: true,
-sortable: true,
-sortReverse: true
-}
-);
+        zebra: true,
+        sortable: true,
+        sortReverse: true
+      }
+  );
   logTable.addEvent( 'sort', function( tbody, index ) {
-      var header = tbody.getParent( 'table' ).getElement( 'thead' );
-      var columns = header.getElement( 'tr' ).getElements( 'th' );
-      var column = columns[index];
-      sortReversed = column.hasClass( 'table-th-sort-rev' );
-      if ( logCount > displayLimit ) {
-        var rows = tbody.getElements( 'tr' );
-        var startIndex;
-        if ( sortReversed )
-          startIndex = displayLimit;
-        else
-          startIndex = 0;
-        for ( var i = startIndex; logCount > displayLimit; i++ ) {
-          rows[i].destroy();
-          logCount--;
-        }
-        $('displayLogs').set('text', logCount);
-      } // end if loCount > displayLimit
-    }
+    var header = tbody.getParent( 'table' ).getElement( 'thead' );
+    var columns = header.getElement( 'tr' ).getElements( 'th' );
+    var column = columns[index];
+    sortReversed = column.hasClass( 'table-th-sort-rev' );
+    if ( logCount > displayLimit ) {
+      var rows = tbody.getElements( 'tr' );
+      var startIndex;
+      if ( sortReversed ) {
+        startIndex = displayLimit;
+      } else {
+        startIndex = 0;
+      }
+      for ( var i = startIndex; logCount > displayLimit; i++ ) {
+        rows[i].destroy();
+        logCount--;
+      }
+      $('displayLogs').set('text', logCount);
+    } // end if loCount > displayLimit
+  }
   );
   exportFormValidator = new Form.Validator.Inline($('exportForm'), {
     useTitles: true,
     warningPrefix: "",
     errorPrefix: ""
   });
-  new Asset.css( "/css/spinner.css" );
+  new Asset.css( "css/spinner.css" );
   fetchNextLogs();
 }
 
 // Kick everything off
-window.addEvent( 'domready', initPage );
+window.addEventListener( 'DOMContentLoaded', initPage );

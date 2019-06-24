@@ -31,13 +31,15 @@ bool zm_terminate = false;
 
 RETSIGTYPE zm_hup_handler(int signal)
 {
-	Info("Got signal %d (%s), reloading", signal, strsignal(signal));
+  // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
+	//Info("Got signal %d (%s), reloading", signal, strsignal(signal));
 	zm_reload = true;
 }
 
 RETSIGTYPE zm_term_handler(int signal)
 {
-	Info("Got signal %d (%s), exiting", signal, strsignal(signal));
+  // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
+	//Info("Got signal %d (%s), exiting", signal, strsignal(signal));
 	zm_terminate = true;
 }
 

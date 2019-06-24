@@ -4,18 +4,18 @@
  *
  * Test Case for ControllerTestCase class
  *
- * CakePHP : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP Project
  * @package       Cake.Test.Case.TestSuite
  * @since         CakePHP v 2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Controller', 'Controller');
@@ -65,7 +65,7 @@ if (!class_exists('AppController', false)) {
 if (!class_exists('PostsController')) {
 
 /**
- * Class PostsController
+ * PostsController
  *
  * @package       Cake.Test.Case.TestSuite
  */
@@ -79,6 +79,12 @@ if (!class_exists('PostsController')) {
 		public $components = array(
 			'RequestHandler',
 			'Email',
+			'AliasedEmail' => array(
+				'className' => 'Email',
+			),
+			'AliasedPluginEmail' => array(
+				'className' => 'TestPlugin.TestPluginEmail',
+			),
 			'Auth'
 		);
 	}
@@ -271,6 +277,44 @@ class ControllerTestCaseTest extends CakeTestCase {
 	}
 
 /**
+ * Tests ControllerTestCase::generate() using aliased component
+ *
+ * @return void
+ */
+	public function testGenerateWithMockedAliasedComponent() {
+		$Posts = $this->Case->generate('Posts', array(
+			'components' => array(
+				'AliasedEmail' => array('send')
+			)
+		));
+		$Posts->AliasedEmail->expects($this->once())
+			->method('send')
+			->will($this->returnValue(true));
+
+		$this->assertInstanceOf('EmailComponent', $Posts->AliasedEmail);
+		$this->assertTrue($Posts->AliasedEmail->send());
+	}
+
+/**
+ * Tests ControllerTestCase::generate() using aliased plugin component
+ *
+ * @return void
+ */
+	public function testGenerateWithMockedAliasedPluginComponent() {
+		$Posts = $this->Case->generate('Posts', array(
+			'components' => array(
+				'AliasedPluginEmail' => array('send')
+			)
+		));
+		$Posts->AliasedPluginEmail->expects($this->once())
+			->method('send')
+			->will($this->returnValue(true));
+
+		$this->assertInstanceOf('TestPluginEmailComponent', $Posts->AliasedPluginEmail);
+		$this->assertTrue($Posts->AliasedPluginEmail->send());
+	}
+
+/**
  * Tests testAction
  *
  * @return void
@@ -294,7 +338,7 @@ class ControllerTestCaseTest extends CakeTestCase {
 		$this->Case->testAction('/tests_apps/redirect_to');
 		$results = $this->Case->headers;
 		$expected = array(
-			'Location' => 'http://cakephp.org'
+			'Location' => 'https://cakephp.org'
 		);
 		$this->assertEquals($expected, $results);
 		$this->assertSame(302, $Controller->response->statusCode());
@@ -596,7 +640,6 @@ class ControllerTestCaseTest extends CakeTestCase {
  * will always have a fresh reference to those object available
  *
  * @return void
- * @see https://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2705-requesthandler-weird-behavior
  */
 	public function testComponentsSameRequestAndResponse() {
 		$this->Case->generate('TestsApps');
@@ -625,4 +668,107 @@ class ControllerTestCaseTest extends CakeTestCase {
 		$this->assertEquals($restored, $_POST);
 	}
 
+/**
+ * Tests that the `App.base` path is properly stripped from the URL generated from the
+ * given URL array, and that consequently the correct controller/action is being matched.
+ *
+ * @return void
+ */
+	public function testAppBaseConfigCompatibilityWithArrayUrls() {
+		Configure::write('App.base', '/cakephp');
+
+		$this->Case->generate('TestsApps');
+		$this->Case->testAction(array('controller' => 'tests_apps', 'action' => 'index'));
+
+		$this->assertEquals('/cakephp', $this->Case->controller->request->base);
+		$this->assertEquals('/cakephp/', $this->Case->controller->request->webroot);
+		$this->assertEquals('/cakephp/tests_apps', $this->Case->controller->request->here);
+		$this->assertEquals('tests_apps', $this->Case->controller->request->url);
+
+		$expected = array(
+			'plugin' => null,
+			'controller' => 'tests_apps',
+			'action' => 'index',
+			'named' => array(),
+			'pass' => array(),
+		);
+		$this->assertEquals($expected, array_intersect_key($this->Case->controller->request->params, $expected));
+	}
+
+/**
+ * Tests that query string data from URL arrays properly makes it into the request object
+ * on GET requests.
+ *
+ * @return void
+ */
+	public function testTestActionWithArrayUrlQueryStringDataViaGetRequest() {
+		$query = array('foo' => 'bar');
+
+		$this->Case->generate('TestsApps');
+		$this->Case->testAction(
+			array(
+				'controller' => 'tests_apps',
+				'action' => 'index',
+				'?' => $query
+			),
+			array(
+				'method' => 'get'
+			)
+		);
+
+		$this->assertEquals('tests_apps', $this->Case->controller->request->url);
+		$this->assertEquals($query, $this->Case->controller->request->query);
+	}
+
+/**
+ * Tests that query string data from URL arrays properly makes it into the request object
+ * on POST requests.
+ *
+ * @return void
+ */
+	public function testTestActionWithArrayUrlQueryStringDataViaPostRequest() {
+		$query = array('foo' => 'bar');
+
+		$this->Case->generate('TestsApps');
+		$this->Case->testAction(
+			array(
+				'controller' => 'tests_apps',
+				'action' => 'index',
+				'?' => $query
+			),
+			array(
+				'method' => 'post'
+			)
+		);
+
+		$this->assertEquals('tests_apps', $this->Case->controller->request->url);
+		$this->assertEquals($query, $this->Case->controller->request->query);
+	}
+
+/**
+ * Tests that query string data from both, URL arrays as well as the `data` option,
+ * properly makes it into the request object.
+ *
+ * @return void
+ */
+	public function testTestActionWithArrayUrlQueryStringDataAndDataOptionViaGetRequest() {
+		$query = array('foo' => 'bar');
+		$data = array('bar' => 'foo');
+
+		$this->Case->generate('TestsApps');
+		$this->Case->testAction(
+			array(
+				'controller' => 'tests_apps',
+				'action' => 'index',
+				'?' => $query
+			),
+			array(
+				'method' => 'get',
+				'data' => $data
+			)
+		);
+
+		$this->assertEquals('tests_apps', $this->Case->controller->request->url);
+		$this->assertEquals($data + $query, $this->Case->controller->request->query);
+	}
 }

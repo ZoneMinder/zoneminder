@@ -4,7 +4,8 @@
 [Unit]
 Description=ZoneMinder CCTV recording and surveillance system
 After=network.target mysql.service
-Requires=mysql.service
+# Remarked out so that it will start ZM on machines that don't have mysql installed
+#Requires=mysql.service
 
 [Service]
 #User=www-data
@@ -13,7 +14,10 @@ ExecStart=/usr/bin/zmpkg.pl start
 ExecReload=/usr/bin/zmpkg.pl restart
 ExecStop=/usr/bin/zmpkg.pl stop
 PIDFile=/var/run/zm/zm.pid
-Restart=on-abnormal
+Restart=always
+RestartSec=10
+Environment=TZ=:/etc/localtime
+TimeoutSec=600
 
 [Install]
 WantedBy=multi-user.target

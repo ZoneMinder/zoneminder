@@ -1,0 +1,29 @@
+# Configuration for support-requests - https://github.com/dessant/support-requests
+
+# Label used to mark issues as support requests
+supportLabel: support
+
+# Comment to post on issues marked as support requests, `{issue-author}` is an
+# optional placeholder. Set to `false` to disable
+supportComment: >
+  :wave: @{issue-author}, we use the issue tracker exclusively for bug reports.
+  However, this issue appears to be a support request, a feature request, or
+  attempts to ask a question.
+  
+  Please use our support channels to get help with or discuss this project:
+  
+  - The [ZoneMinder-Chat Slack channel](https://zoneminder-chat.herokuapp.com/)
+  
+  - The [ZoneMinder USer Forum](https://forums.zoneminder.com/)
+
+# Close issues marked as support requests
+close: true
+
+# Lock issues marked as support requests
+lock: true
+
+# Assign `off-topic` as the reason for locking. Set to `false` to disable
+setLockReason: true
+
+# Repository to extend settings from
+# _extends: repo

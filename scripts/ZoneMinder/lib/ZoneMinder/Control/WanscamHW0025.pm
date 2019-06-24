@@ -52,31 +52,6 @@ use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );
  
-sub new
-{ 
-	my $class = shift;
-	my $id = shift;
-	my $self = ZoneMinder::Control->new( $id );
-	bless( $self, $class );
-	srand( time() );
-	return $self;
-}
- 
-our $AUTOLOAD;
- 
-sub AUTOLOAD
-{
-    my $self = shift;
-    my $class = ref($self) || croak( "$self not object" );
-    my $name = $AUTOLOAD;
-    $name =~ s/.*://;
-    if ( exists($self->{$name}) )
-    {
-        return( $self->{$name} );
-    }
-    Fatal( "Can't access $name member of object of class $class" );
-}
- 
 sub open
 {
     my $self = shift;
@@ -88,12 +63,6 @@ sub open
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
-}
- 
-sub close
-{ 
-	my $self = shift;
-	$self->{state} = 'closed';
 }
  
 sub printMsg

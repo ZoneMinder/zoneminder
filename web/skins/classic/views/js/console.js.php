@@ -18,5 +18,3 @@ if ( ZM_CHECK_FOR_UPDATES && canEdit('System') && ZM_DYN_LAST_VERSION && ( verNu
 ?>
 var showVersionPopup = <?php echo isset($showVersionPopup )?'true':'false' ?>;
 var showDonatePopup = <?php echo isset($showDonatePopup )?'true':'false' ?>;
-var translatedAddText = "<?php echo translate('AddNewMonitor') ?>";
-var translatedCloneText = "<?php echo translate('CloneMonitor') ?>";

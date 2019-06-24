@@ -2,17 +2,17 @@
 /**
  * DboPostgresTest file
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Test.Case.Model.Datasource.Database
  * @since         CakePHP(tm) v 1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Model', 'Model');
@@ -132,7 +132,8 @@ class PostgresTestModel extends Model {
 			'comments' => array('type' => 'text', 'null' => '1', 'default' => '', 'length' => ''),
 			'last_login' => array('type' => 'datetime', 'null' => '1', 'default' => '', 'length' => ''),
 			'created' => array('type' => 'date', 'null' => '1', 'default' => '', 'length' => ''),
-			'updated' => array('type' => 'datetime', 'null' => '1', 'default' => '', 'length' => null)
+			'updated' => array('type' => 'datetime', 'null' => '1', 'default' => '', 'length' => null),
+			'some_uuid' => array('type' => 'uuid', 'null' => '1', 'default' => null),
 		);
 	}
 
@@ -257,7 +258,8 @@ class PostgresTest extends CakeTestCase {
 			'"PostgresTestModel"."comments" AS "PostgresTestModel__comments"',
 			'"PostgresTestModel"."last_login" AS "PostgresTestModel__last_login"',
 			'"PostgresTestModel"."created" AS "PostgresTestModel__created"',
-			'"PostgresTestModel"."updated" AS "PostgresTestModel__updated"'
+			'"PostgresTestModel"."updated" AS "PostgresTestModel__updated"',
+			'"PostgresTestModel"."some_uuid" AS "PostgresTestModel__some_uuid"'
 		);
 
 		$result = $this->Dbo->fields($this->model);
@@ -300,10 +302,11 @@ class PostgresTest extends CakeTestCase {
 		$this->assertEquals('decimal', $this->Dbo2->column('numeric'));
 		$this->assertEquals('float', $this->Dbo2->column('float'));
 		$this->assertEquals('float', $this->Dbo2->column('double precision'));
+		$this->assertEquals('uuid', $this->Dbo2->column('uuid'));
 
-		$result = $this->Dbo2->column('bigint');
-		$expected = 'biginteger';
-		$this->assertEquals($expected, $result);
+		$this->assertEquals('biginteger', $this->Dbo2->column('bigint'));
+		$this->assertEquals('integer', $this->Dbo2->column('integer'));
+		$this->assertEquals('smallinteger', $this->Dbo2->column('smallint'));
 	}
 
 /**
@@ -336,6 +339,8 @@ class PostgresTest extends CakeTestCase {
 		$this->assertEquals("'TRUE'", $this->Dbo->value('1', 'boolean'));
 		$this->assertEquals("NULL", $this->Dbo->value(null, 'boolean'));
 		$this->assertEquals("NULL", $this->Dbo->value(array()));
+		$this->assertEquals("'550e8400-e29b-41d4-a716-446655440000'", $this->Dbo->value('550e8400-e29b-41d4-a716-446655440000', 'uuid'));
+		$this->assertEquals("NULL", $this->Dbo->value(null, 'uuid'));
 	}
 
 /**
@@ -1150,7 +1155,7 @@ class PostgresTest extends CakeTestCase {
 		$data = $db->describe('test_uuid_describe');
 
 		$expected = array(
-			'type' => 'string',
+			'type' => 'uuid',
 			'null' => false,
 			'default' => null,
 			'length' => 36,
@@ -1204,4 +1209,13 @@ class PostgresTest extends CakeTestCase {
 		$this->assertEquals($expected, $result);
 	}
 
+/**
+ * Test build column working for new uuid types
+ */
+	public function testBuildColumnUuid() {
+		$column = array('name' => 'col1', 'type' => 'uuid');
+		$result = $this->Dbo2->buildColumn($column);
+
+		$this->assertEquals('"col1" uuid', $result);
+	}
 }

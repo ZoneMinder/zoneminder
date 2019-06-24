@@ -44,31 +44,6 @@ use ZoneMinder::Config qw(:all);
 
 use Time::HiRes qw( usleep );
 
-sub new
-{ 
-	my $class = shift;
-	my $id = shift;
-	my $self = ZoneMinder::Control->new( $id );
-	bless( $self, $class );
-	srand( time() );
-	return $self;
-}
-
-our $AUTOLOAD;
-
-sub AUTOLOAD
-{
-    my $self = shift;
-    my $class = ref($self) || croak( "$self not object" );
-    my $name = $AUTOLOAD;
-    $name =~ s/.*://;
-    if ( exists($self->{$name}) )
-    {
-        return( $self->{$name} );
-    }
-    Fatal( "Can't access $name member of object of class $class" );
-}
-
 sub open
 {
     my $self = shift;
@@ -139,7 +114,7 @@ sub moveConUp
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Up" );
-	my $cmd = "decoder_control.cgi?command=0&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=2&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -155,7 +130,7 @@ sub moveConDown
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Down" );
-	my $cmd = "decoder_control.cgi?command=2&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=0&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -203,7 +178,7 @@ sub moveConUpRight
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Diagonally Up Right" );
-	my $cmd = "decoder_control.cgi?command=91&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=93&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -219,7 +194,7 @@ sub moveConDownRight
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Diagonally Down Right" );
-	my $cmd = "decoder_control.cgi?command=93&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=91&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -235,7 +210,7 @@ sub moveConUpLeft
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Diagonally Up Left" );
-	my $cmd = "decoder_control.cgi?command=90&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=92&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -251,7 +226,7 @@ sub moveConDownLeft
 	my $self = shift;
 	my $params = shift;
 	Debug( "Move Diagonally Down Left" );
-	my $cmd = "decoder_control.cgi?command=92&onestep=1&";
+	my $cmd = "decoder_control.cgi?command=90&onestep=1&";
 	$self->sendCmd( $cmd );
 	my $autostop = $self->getParam( $params, 'autostop', 0 );
     if ( $autostop && $self->{Monitor}->{AutoStopTimeout} )
@@ -275,7 +250,7 @@ sub presetHome
 {
 	my $self = shift;
 	Debug( "Home Preset" );
-	my $cmd = "decoder_control.cgi?command=25&onestep=0&";
+	my $cmd = "decoder_control.cgi?command=4&onestep=0&";
 	$self->sendCmd( $cmd );
 }
 

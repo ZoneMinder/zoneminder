@@ -6,22 +6,24 @@ function updateMonitorDimensions( element ) {
   if ( form.elements['preserveAspectRatio'].checked ) {
     var monitorWidth = parseInt(form.elements['newMonitor[Width]'].value);
     var monitorHeight = parseInt(form.elements['newMonitor[Height]'].value);
-    switch( element.name ) {
+    switch ( element.name ) {
       case 'newMonitor[Width]':
-        if ( monitorWidth >= 0 )
+        if ( monitorWidth >= 0 ) {
           form.elements['newMonitor[Height]'].value = Math.round((monitorWidth * heightFactor) / widthFactor);
-        else
+        } else {
           form.elements['newMonitor[Height]'].value = '';
+        }
         break;
       case 'newMonitor[Height]':
-        if ( monitorHeight >= 0 )
+        if ( monitorHeight >= 0 ) {
           form.elements['newMonitor[Width]'].value = Math.round((monitorHeight * widthFactor) / heightFactor);
-        else
+        } else {
           form.elements['newMonitor[Width]'].value = '';
+        }
         break;
     }
   }
-  return( false );
+  return ( false );
 }
 
 function loadLocations( element ) {
@@ -44,6 +46,56 @@ function initPage() {
   //var protocolSelector = $('contentForm').elements['newMonitor[Protocol]'];
   //if ( $(protocolSelector).getTag() == 'select' )
   //updateMethods( $(protocolSelector) );
-}
+  document.querySelectorAll('input[name="newMonitor[SignalCheckColour]"]').forEach(function(el) {
+    el.oninput = function(event) {
+      $j('#SignalCheckSwatch').css('background-color', event.target.value);
+    };
+  });
+  document.querySelectorAll('input[name="newMonitor[WebColour]"]').forEach(function(el) {
+    el.oninput = function(event) {
+      $j('#WebSwatch').css('background-color', event.target.value);
+    };
+  });
+  $j('#contentForm').submit(function(event) {
+    if ( validateForm(this) ) {
+      $j('#contentButtons').hide();
+      return true;
+    } else {
+      return false;
+    };
+  });
 
-window.addEvent( 'domready', initPage );
+  // Disable form submit on enter
+  $j('#contentForm input').on('keyup keypress', function(e) {
+    var keyCode = e.keyCode || e.which;
+    if ( keyCode == 13 ) {
+      e.preventDefault();
+      return false;
+    }
+  });
+
+  document.querySelectorAll('input[name="newMonitor[MaxFPS]"]').forEach(function(el) {
+    el.oninput = el.onclick = function(e) {
+      if ( e.target.value ) {
+        console.log('showing');
+        $j('#newMonitor\\[MaxFPS\\]').show();
+      } else {
+        $j('#newMonitor\\[MaxFPS\\]').hide();
+      }
+    };
+  });
+  document.querySelectorAll('input[name="newMonitor[AlarmMaxFPS]"]').forEach(function(el) {
+    el.oninput = el.onclick = function(e) {
+      if ( e.target.value ) {
+        console.log('showing');
+        $j('#newMonitor\\[AlarmMaxFPS\\]').show();
+      } else {
+        $j('#newMonitor\\[AlarmMaxFPS\\]').hide();
+      }
+    };
+  });
+
+  $j('.chosen').chosen();
+} // end function initPage()
+
+window.addEventListener('DOMContentLoaded', initPage);

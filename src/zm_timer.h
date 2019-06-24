@@ -53,8 +53,7 @@ private:
   pthread_t pid() { return( pthread_self() ); }
 #endif
   public:
-    TimerException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) )
-    {
+    explicit TimerException( const std::string &message ) : Exception( stringtf("(%d) ", (long int)pid())+message ) {
     }
   };
 

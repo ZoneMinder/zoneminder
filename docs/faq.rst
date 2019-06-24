@@ -61,7 +61,7 @@ In *general* a good estimate of memory required would be:
 
 ::
 
-	Min Memory = 1.2 * ((image-width*image-height*image buffer size*target color space*number of cameras/8/1024/1024 ) 
+	Min Bits of Memory = 20% overhead * (image-width*image-height*image buffer size*target color space*number of cameras) 
 
 Where:
 * image-width and image-height are the width and height of images that your camera is configured for (in my case, 1280x960). This value is in the Source tab for each monitor
@@ -69,17 +69,25 @@ Where:
 * target color space is the color depth - 8bit, 24bit or 32bit. It's again in the source tab of each monitor
 The 1.2 at the start is basically adding 20% on top of the calculation to account for image/stream overheads (this is an estimate)
 
-So let's do the math. If we have 4 cameras running at 1280x960 with 32bit color space and one camera running at 640x480 with 8bit greyscale color space, the system would require:
+The math breakdown for 4 cameras running at 1280x960 capture, 50 frame buffer, 24 bit color space:
+::
 
-``1.2 * ((1280*960*50*32*4/8/1024/1024 )  + (640 *480  *50*8/8 /1024/1024))``
+	1280*960 = 1,228,800 (bytes)
+	1,228,800 * (3 bytes for 24 bit) = 3,686,400 (bytes) 
+	3,686,400 * 50 = 184,320,000 (bytes)
+	184,320,000 * 4 = 737,280,000 (bytes)
+	737,280,000 / 1024 = 720,000 (Kilobytes)
+	720,000 / 1024 = 703.125 (Megabytes)
+	703.125 / 1024 = 0.686 (Gigabytes)
 
-Or, around 900MB of memory.
+Around 700MB of memory.
 
 So if you have 2GB of memory, you should be all set. Right? **Not, really**:
 
 	* This is just the base memory required to capture the streams. Remember ZM is always capturing streams irrespective of whether you are actually recording or not - to make sure its image ring buffer is there with pre images when an alarm kicks in.
 	* You also need to account for other processes not related to ZM running in your box
 	* You also need to account for other ZM processes - for example, I noticed the audit daemon takes up a good amount of memory when it runs, DB updates also take up memory
+	* If you are using H264 encoding, that buffers a lot of frames in memory as well.
 
 So a good rule of thumb is to make sure you have twice the memory as the calculation above (and if you are using the ZM server for other purposes, please factor in those memory requirements as well)
 
@@ -121,15 +129,14 @@ So, for example:
 ::
 
 	384x288 capture resolution, that makes: 110 592 pixels
-	in 24 bit color that's x24 = 2 654 208 bits per frame 
-	by 80 frames ring buffer x80 = 212 336 640 bits per camera 
-	by 4 cameras x4 = 849 346 560 bits. 
-	Plus 10% overhead = 934 281 216 bits 
-	That's 116 785 152 bytes, and 
-	= 114 048 kB, respectively 111.38 MB. 
-	If my shared memory is set to 134 217 728, which is exactly 128MB, 
+	in 24 bit color that's x 3 = 331,776 bytes per frame 
+	by 80 frames ring buffer x80 = 26,542,080 bytes per camera 
+	by 4 cameras x4 = 106,168,320 bytes. 
+	Plus 10% overhead = 116,785,152 bytes 
+	Thats 114,048 kB, respectively 111.38 MB. 
+	If my shared memory is set to 134,217,728, which is exactly 128MB, 
 	that means I shouldn't have any problem.
-	(Note that 1 byte = 8 bits and 1kbyte = 1024bytes, 1MB = 1024 kB)
+	(Note that 1kbyte = 1024bytes, 1MB = 1024 kB)
 
 If for instance you were using 24bit 640x480 then this would come to about 92Mb if you are using the default buffer size of 100. If this is too large then you can either reduce the image or buffer sizes or increase the maximum amount of shared memory available. If you are using RedHat then you can get details on how to change these settings `here <http://www.redhat.com/docs/manuals/database/RHDB-2.1-Manual/admin_user/kernel-resources.html>`__
 
@@ -304,7 +311,7 @@ There are a number of specific reasons why processor loads can be high either by
 
 The main causes are.
 
-	* Using a video palette other than greyscale or RGB24. This can cause a relatively minor performace hit, though still significant. Although some cameras and cards require using planar palettes ZM currently doesn't support this format internally and each frame is converted to an RGB representation prior to processing. Unless you have compelling reasons for using YUV or reduced RGB type palettes such as hitting USB transfer limits I would experiment to see if RGB24 or greyscale is quicker. Put your monitors into 'Monitor' mode so that only the capture daemons are running and monitor the process load of these (the 'zmc' processes) using top. Try it with various palettes to see if it makes a difference.
+	* Using a video palette other than greyscale or RGB24. This can cause a relatively minor performance hit, though still significant. Although some cameras and cards require using planar palettes ZM currently doesn't support this format internally and each frame is converted to an RGB representation prior to processing. Unless you have compelling reasons for using YUV or reduced RGB type palettes such as hitting USB transfer limits I would experiment to see if RGB24 or greyscale is quicker. Put your monitors into 'Monitor' mode so that only the capture daemons are running and monitor the process load of these (the 'zmc' processes) using top. Try it with various palettes to see if it makes a difference.
 	* Big image sizes. A image of 640x480 requires at least four times the processing of a 320x240 image. Experiment with different sizes to see what effect it may have. Sometimes a large image is just two interlaced smaller frames so has no real benefit anyway. This is especially true for analog cameras/cards as image height over 320 (NTSC) or 352 PAL) are invariably interlaced.
 	* Capture frame rates. Unless there's a compelling reason in your case there is often little benefit in running cameras at 25fps when 5-10fps would often get you results just as good. Try changing your monitor settings to limit your cameras to lower frame rates. You can still configure ZM to ignore these limits and capture as fast as possible when motion is detected.
 	* Run function. Obviously running in Record or Mocord modes or in Modect with lots of events generates a lot of DB and file activity and so CPU and load will increase.

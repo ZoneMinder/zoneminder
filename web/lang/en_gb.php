@@ -32,7 +32,7 @@
 //     a formatting string. If the dynamic element is a number you will usually need to use a variable
 //     replacement also as described below.
 //   c) Variable replacements are used in conjunction with complex replacements and involve the generation
-//     of a singular or plural noun depending on the number passed into the zmVlang function. See the 
+//     of a singular or plural noun depending on the number passed into the zmVlang function. See the
 //     the zmVlang section below for a further description of this.
 //   d) Optional strings which can be used to replace the prompts and/or help text for the Options section
 //     of the web interface. These are not listed below as they are quite large and held in the database
@@ -40,7 +40,7 @@
 //     quite easily from the Config table in the database if necessary.
 // 3. The tokens listed below are not used to build up phrases or sentences from single words. Therefore
 //   you can safely assume that a single word token will only be used in that context.
-// 4. In new language files, or if you are changing only a few words or phrases it makes sense from a 
+// 4. In new language files, or if you are changing only a few words or phrases it makes sense from a
 //   maintenance point of view to include the original language file and override the old definitions rather
 //   than copy all the language tokens across. To do this change the line below to whatever your base language
 //   is and uncomment it.
@@ -57,10 +57,10 @@
 // If you do need to change your locale, be aware that the format of this function
 // is subtlely different in versions of PHP before and after 4.3.0, see
 // http://uk2.php.net/manual/en/function.setlocale.php for details.
-// Also be aware that changing the whole locale may affect some floating point or decimal 
+// Also be aware that changing the whole locale may affect some floating point or decimal
 // arithmetic in the database, if this is the case change only the individual locale areas
 // that don't affect this rather than all at once. See the examples below.
-// Finally, depending on your setup, PHP may not enjoy have multiple locales in a shared 
+// Finally, depending on your setup, PHP may not enjoy have multiple locales in a shared
 // threaded environment, if you get funny errors it may be this.
 //
 // Examples
@@ -86,8 +86,9 @@ $SLANG = array(
     'Action'                => 'Action',
     'Actual'                => 'Actual',
     'AddNewControl'         => 'Add New Control',
-    'AddNewMonitor'         => 'Add New Monitor',
+    'AddNewMonitor'         => 'Add',
     'AddNewServer'          => 'Add New Server',
+    'AddNewStorage'         => 'Add New Storage',
     'AddNewUser'            => 'Add New User',
     'AddNewZone'            => 'Add New Zone',
     'Alarm'                 => 'Alarm',
@@ -101,8 +102,11 @@ $SLANG = array(
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
     'Alert'                 => 'Alert',
     'All'                   => 'All',
+    'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
+    'API'                   => 'API',
+    'APIEnabled'            => 'API Enabled',
     'Apply'                 => 'Apply',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
@@ -115,8 +119,11 @@ $SLANG = array(
     'AttrArchiveStatus'     => 'Archive Status',
     'AttrAvgScore'          => 'Avg. Score',
     'AttrCause'             => 'Cause',
-    'AttrDate'              => 'Date',
-    'AttrDateTime'          => 'Date/Time',
+    'AttrStartDate'         => 'Start Date',
+    'AttrEndDate'           => 'End Date',
+    'AttrStartDateTime'     => 'Start Date/Time',
+    'AttrEndDateTime'       => 'End Date/Time',
+    'AttrDiskSpace'         => 'Disk Space',
     'AttrDiskBlocks'        => 'Disk Blocks',
     'AttrDiskPercent'       => 'Disk Percent',
     'AttrDuration'          => 'Duration',
@@ -125,14 +132,19 @@ $SLANG = array(
     'AttrMaxScore'          => 'Max. Score',
     'AttrMonitorId'         => 'Monitor Id',
     'AttrMonitorName'       => 'Monitor Name',
+    'AttrStorageArea'       => 'Storage Area',
+    'AttrFilterServer'      => 'Server Filter is Running On',
+    'AttrMonitorServer'     => 'Server Monitor is Running On',
+    'AttrStorageServer'     => 'Server Hosting Storage',
     'AttrStateId'           => 'Run State',
-    'AttrServer'            => 'Server',
     'AttrName'              => 'Name',
     'AttrNotes'             => 'Notes',
     'AttrSystemLoad'        => 'System Load',
-    'AttrTime'              => 'Time',
+    'AttrStartTime'         => 'Start Time',
+    'AttrEndTime'           => 'End Time',
     'AttrTotalScore'        => 'Total Score',
-    'AttrWeekday'           => 'Weekday',
+    'AttrStartWeekday'      => 'Start Weekday',
+    'AttrEndWeekday'        => 'End Weekday',
     'Auto'                  => 'Auto',
     'AutoStopTimeout'       => 'Auto Stop Timeout',
     'Available'             => 'Available',
@@ -167,8 +179,10 @@ $SLANG = array(
     'BadSectionLength'      => 'Section length must be an integer of 30 or more',
     'BadSignalCheckColour'  => 'Signal check colour must be a valid RGB colour string',
     'BadStreamReplayBuffer' => 'Stream replay buffer must be an integer of zero or more',
+    'BadSourceType'         => 'Source Type \"Web Site\" requires the Function to be set to \"Monitor\"',
     'BadWarmupCount'        => 'Warmup frames must be an integer of zero or more',
     'BadWebColour'          => 'Web colour must be a valid web colour string',
+    'BadWebSitePath'        => 'Please enter a complete website url, including the http:// or https:// prefix.',
     'BadWidth'              => 'Width must be set to a valid value',
     'Bandwidth'             => 'Bandwidth',
     'BandwidthHead'         => 'Bandwidth',	// This is the end of the bandwidth status on the top of the console, different in many language due to phrasing
@@ -205,6 +219,7 @@ $SLANG = array(
     'CanMoveRel'            => 'Can Move Relative',
     'CanPan'                => 'Can Pan' ,
     'CanReset'              => 'Can Reset',
+	'CanReboot'             => 'Can Reboot',
     'CanSetPresets'         => 'Can Set Presets',
     'CanSleep'              => 'Can Sleep',
     'CanTilt'               => 'Can Tilt',
@@ -226,14 +241,16 @@ $SLANG = array(
     'Cause'                 => 'Cause',
     'CheckMethod'           => 'Alarm Check Method',
     'ChooseDetectedCamera'  => 'Choose Detected Camera',
+    'ChooseDetectedProfile' => 'Choose Detected Profile',
     'ChooseFilter'          => 'Choose Filter',
     'ChooseLogFormat'       => 'Choose a log format',
     'ChooseLogSelection'    => 'Choose a log selection',
     'ChoosePreset'          => 'Choose Preset',
-    'CloneMonitor'          => 'Clone Monitor',
+    'CloneMonitor'          => 'Clone',
     'Close'                 => 'Close',
     'Colour'                => 'Colour',
     'Command'               => 'Command',
+    'ConcurrentFilter'      => 'Run filter concurrently',
     'Config'                => 'Config',
     'ConfiguredFor'         => 'Configured for',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
@@ -258,6 +275,7 @@ $SLANG = array(
     'Debug'                 => 'Debug',
     'DefaultRate'           => 'Default Rate',
     'DefaultScale'          => 'Default Scale',
+    'DefaultCodec'          => 'Default Method For Live View',
     'DefaultView'           => 'Default View',
     'Deinterlacing'         => 'Deinterlacing',
     'RTSPDescribe'         => 'Use RTSP Response Media URL',
@@ -281,7 +299,7 @@ $SLANG = array(
     'Display'               => 'Display',
     'Displaying'            => 'Displaying',
     'DonateAlready'         => 'No, I\'ve already donated',
-    'DonateEnticement'      => 'You\'ve been running ZoneMinder for a while now and hopefully are finding it a useful addition to your home or workplace security. Although ZoneMinder is, and will remain, free and open source, it costs money to develop and support. If you would like to help support future development and new features then please consider donating. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br/><br/>If you would like to donate please select the option below or go to http://www.zoneminder.com/donate.html in your browser.<br/><br/>Thank you for using ZoneMinder and don\'t forget to visit the forums on ZoneMinder.com for support or suggestions about how to make your ZoneMinder experience even better.',
+    'DonateEnticement'      => 'You\'ve been running ZoneMinder for a while now and hopefully are finding it a useful addition to your home or workplace security. Although ZoneMinder is, and will remain, free and open source, it costs money to develop and support. If you would like to help support future development and new features then please consider donating. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br/><br/>If you would like to donate please select the option below or go to https://zoneminder.com/donate/ in your browser.<br/><br/>Thank you for using ZoneMinder and don\'t forget to visit the forums on ZoneMinder.com for support or suggestions about how to make your ZoneMinder experience even better.',
     'Donate'                => 'Please Donate',
     'DonateRemindDay'       => 'Not yet, remind again in 1 day',
     'DonateRemindHour'      => 'Not yet, remind again in 1 hour',
@@ -294,6 +312,7 @@ $SLANG = array(
     'DuplicateMonitorName'  => 'Duplicate Monitor Name',
     'Duration'              => 'Duration',
     'Edit'                  => 'Edit',
+    'EditLayout'            => 'Edit Layout',
     'Email'                 => 'Email',
     'EnableAlarms'          => 'Enable Alarms',
     'Enabled'               => 'Enabled',
@@ -310,9 +329,13 @@ $SLANG = array(
     'Events'                => 'Events',
     'Exclude'               => 'Exclude',
     'Execute'               => 'Execute',
+    'ExportCompress'        => 'Use Compression',
     'ExportDetails'         => 'Export Event Details',
+    'ExportMatches'         => 'Export Matches',
     'Exif'                  => 'Embed EXIF data into image',
     'Export'                => 'Export',
+    'DownloadVideo'         => 'Download Video',
+    'GenerateDownload'      => 'Generate Download',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
     'ExportFormatTar'       => 'Tar',
@@ -331,7 +354,9 @@ $SLANG = array(
     'Ffmpeg'                => 'Ffmpeg',
     'File'                  => 'File',
     'FilterArchiveEvents'   => 'Archive all matches',
+    'FilterUpdateDiskSpace' => 'Update used disk space',
     'FilterDeleteEvents'    => 'Delete all matches',
+    'FilterMoveEvents'      => 'Move all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
     'FilterExecuteEvents'   => 'Execute command on all matches',
     'FilterLog'             => 'Filter log',
@@ -398,6 +423,7 @@ $SLANG = array(
     'Images'                => 'Images',
     'Include'               => 'Include',
     'In'                    => 'In',
+    'InvalidateTokens'      => 'Invalidate all generated tokens',
     'Inverted'              => 'Inverted',
     'Iris'                  => 'Iris',
     'KeyString'             => 'Key String',
@@ -410,6 +436,7 @@ $SLANG = array(
     'LimitResultsPre'       => 'Limit to first', // This is used at the beginning of the phrase 'Limit to first N results only'
     'LinkedMonitors'        => 'Linked Monitors',
     'List'                  => 'List',
+    'ListMatches'           => 'List Matches',
     'Load'                  => 'Load',
     'Local'                 => 'Local',
     'Log'                   => 'Log',
@@ -518,6 +545,7 @@ $SLANG = array(
     'NewState'              => 'New State',
     'NewUser'               => 'New User',
     'Next'                  => 'Next',
+    'NextMonitor'           => 'Next Monitor',
     'NoDetectedCameras'     => 'No Detected Cameras',
     'NoDetectedProfiles'    => 'No Detected Profiles',
     'NoFramesRecorded'      => 'There are no frames recorded for this event',
@@ -546,6 +574,8 @@ $SLANG = array(
     'OpNe'                  => 'not equal to',
     'OpNotIn'               => 'not in set',
     'OpNotMatches'          => 'does not match',
+    'OpIs'                  => 'is',
+    'OpIsNot'               => 'is not',
     'OptionalEncoderParam'  => 'Optional Encoder Parameters',
     'OptionHelp'            => 'Option Help',
     'OptionRestartWarning'  => 'These changes may not come into effect fully\nwhile the system is running. When you have\nfinished making your changes please ensure that\nyou restart ZoneMinder.',
@@ -563,14 +593,19 @@ $SLANG = array(
     'Parameter'             => 'Parameter',
     'Password'              => 'Password',
     'PasswordsDifferent'    => 'The new and confirm passwords are different',
+    'PathToIndex'           => 'Path To Index',
+    'PathToZMS'             => 'Path To ZMS',
+    'PathToApi'             => 'Path To Api',
     'Paths'                 => 'Paths',
     'Pause'                 => 'Pause',
+    'PauseCycle'            => 'Pause Cycle',
     'PhoneBW'               => 'Phone&nbsp;B/W',
     'Phone'                 => 'Phone',
     'PixelDiff'             => 'Pixel Diff',
     'Pixels'                => 'pixels',
     'PlayAll'               => 'Play All',
     'Play'                  => 'Play',
+    'PlayCycle'             => 'Play Cycle',
     'Plugins'               => 'Plugins',
     'PleaseWait'            => 'Please Wait',
     'Point'                 => 'Point',
@@ -580,6 +615,19 @@ $SLANG = array(
     'Preset'                => 'Preset',
     'Presets'               => 'Presets',
     'Prev'                  => 'Prev',
+    'PreviousMonitor'       => 'Previous Monitor',
+    'Privacy'               => 'Privacy',
+    'PrivacyAbout'          => 'About',
+    'PrivacyAboutText'      => 'Since 2002, ZoneMinder has been the premier free and open-source Video Management System (VMS) solution for Linux platforms. ZoneMinder is supported by the community and is managed by those who choose to volunteer their spare time to the project. The best way to improve ZoneMinder is to get involved.',
+    'PrivacyContact'        => 'Contact',
+    'PrivacyContactText'    => 'Please contact us <a href="https://zoneminder.com/contact/">here</a> for any questions regarding our privacy policy or to have your information removed.<br><br>For support, there are three primary ways to engage with the community:<ul><li>The ZoneMinder <a href="https://forums.zoneminder.com/">user forum</a></li><li>The ZoneMinder <a href="https://zoneminder-chat.herokuapp.com/">Slack channel</a></li><li>The ZoneMinder <a href="https://github.com/ZoneMinder/zoneminder/issues">Github forum</a></li></ul><p>Our Github forum is only for bug reporting. Please use our user forum or slack channel for all other questions or comments.</p>',
+    'PrivacyCookies'        => 'Cookies',
+    'PrivacyCookiesText'    => 'Whether you use a web browser or a mobile app to communicate with the ZoneMinder server, a ZMSESSID cookie is created on the client to uniquely identify a session with the ZoneMinder server. ZmCSS and zmSkin cookies are created to remember your style and skin choices.',
+    'PrivacyTelemetry'      => 'Telemetry',
+    'PrivacyTelemetryText'  => 'Because ZoneMinder is open-source, anyone can install it without registering. This makes it difficult to  answer questions such as: how many systems are out there, what is the largest system out there, what kind of systems are out there, or where are these systems located? Knowing the answers to these questions, helps users who ask us these questions, and it helps us set priorities based on the majority user base.',
+    'PrivacyTelemetryList'  => 'The ZoneMinder Telemetry daemon collects the following data about your system:<ul><li>A unique identifier (UUID) <li>City based location is gathered by querying <a href="https://ipinfo.io/geo">ipinfo.io</a>. City, region, country, latitude, and longitude parameters are saved. The latitude and longitude coordinates are accurate down to the city or town level only!<li>Current time<li>Total number of monitors<li>Total number of events<li>System architecture<li>Operating system kernel, distro, and distro version<li>Version of ZoneMinder<li>Total amount of memory<li>Number of cpu cores</ul>',
+    'PrivacyMonitorList'    => 'The following configuration parameters from each monitor are collected:<ul><li>Id<li>Name<li>Type<li>Function<li>Width<li>Height<li>Colours<li>MaxFPS<li>AlarmMaxFPS</ul>',
+    'PrivacyConclusionText' => 'We are <u>NOT</u> collecting any image specific data from your cameras. We don’t know what your cameras are watching. This data will not be sold or used for any purpose not stated herein. By clicking accept, you agree to send us this data to help make ZoneMinder a better product. By clicking decline, you can still freely use ZoneMinder and all its features.',
     'Probe'                 => 'Probe',
     'ProfileProbe'          => 'Stream Probe',
     'ProfileProbeIntro'     => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
@@ -592,19 +640,20 @@ $SLANG = array(
     'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
     'Refresh'               => 'Refresh',
-    'RemoteHostName'        => 'Remote Host Name',
-    'RemoteHostPath'        => 'Remote Host Path',
-    'RemoteHostSubPath'     => 'Remote Host SubPath',
-    'RemoteHostPort'        => 'Remote Host Port',
-    'RemoteImageColours'    => 'Remote Image Colours',
-    'RemoteMethod'          => 'Remote Method',
-    'RemoteProtocol'        => 'Remote Protocol',
+    'RemoteHostName'        => 'Host Name',
+    'RemoteHostPath'        => 'Path',
+    'RemoteHostSubPath'     => 'SubPath',
+    'RemoteHostPort'        => 'Port',
+    'RemoteImageColours'    => 'Image Colours',
+    'RemoteMethod'          => 'Method',
+    'RemoteProtocol'        => 'Protocol',
     'Remote'                => 'Remote',
     'Rename'                => 'Rename',
     'ReplayAll'             => 'All Events',
     'ReplayGapless'         => 'Gapless Events',
     'Replay'                => 'Replay',
     'ReplaySingle'          => 'Single Event',
+    'ReportEventAudit'      => 'Audit Events Report',
     'ResetEventCounts'      => 'Reset Event Counts',
     'Reset'                 => 'Reset',
     'Restarting'            => 'Restarting',
@@ -613,14 +662,19 @@ $SLANG = array(
     'RestrictedMonitors'    => 'Restricted Monitors',
     'ReturnDelay'           => 'Return Delay',
     'ReturnLocation'        => 'Return Location',
+    'RevokeAllTokens'       =>  'Revoke All Tokens',
     'Rewind'                => 'Rewind',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
     'RTSPTransport'         => 'RTSP Transport Protocol',
+    'RunAudit'              => 'Run Audit Process',
     'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
     'RunMode'               => 'Run Mode',
     'Running'               => 'Running',
     'RunState'              => 'Run State',
+    'RunStats'              => 'Run Stats Process',
+    'RunTrigger'            => 'Run Trigger Process',
+    'RunEventNotification'  => 'Run Event Notification Process',
     'SaveAs'                => 'Save as',
     'SaveFilter'            => 'Save Filter',
     'SaveJPEGs'             => 'Save JPEGs',
@@ -640,10 +694,12 @@ $SLANG = array(
     'Settings'              => 'Settings',
     'ShowFilterWindow'      => 'Show Filter Window',
     'ShowTimeline'          => 'Show Timeline',
+    'Shutdown'              => 'Shutdown',
     'SignalCheckColour'     => 'Signal Check Colour',
+    'SignalCheckPoints'     => 'Signal Check Points',
     'Size'                  => 'Size',
-    'SkinDescription'       => 'Change the default skin for this computer',
-    'CSSDescription'        => 'Change the default css for this computer',
+    'SkinDescription'       => 'Change the skin for this session',
+    'CSSDescription'        => 'Change the css for this session',
     'Sleep'                 => 'Sleep',
     'SortAsc'               => 'Asc',
     'SortBy'                => 'Sort by',
@@ -661,6 +717,10 @@ $SLANG = array(
     'State'                 => 'State',
     'Stats'                 => 'Stats',
     'Status'                => 'Status',
+    'StatusUnknown'         => 'Unknown',
+    'StatusConnected'       => 'Capturing',
+    'StatusNotRunning'      => 'Not Running',
+    'StatusRunning'         => 'Not Capturing',
     'StepBack'              => 'Step Back',
     'StepForward'           => 'Step Forward',
     'StepLarge'             => 'Large Step',
@@ -671,6 +731,9 @@ $SLANG = array(
     'Stills'                => 'Stills',
     'Stopped'               => 'Stopped',
     'Stop'                  => 'Stop',
+    'StorageArea'           => 'Storage Area',
+    'StorageDoDelete'       => 'Do Deletes',
+    'StorageScheme'         => 'Scheme',
     'StreamReplayBuffer'    => 'Stream Replay Image Buffer',
     'Stream'                => 'Stream',
     'Submit'                => 'Submit',
@@ -711,7 +774,7 @@ $SLANG = array(
     'Update'                => 'Update',
     'Upload'                => 'Upload',
     'Updated'               => 'Updated',
-    'UsedPlugins'	   => 'Used Plugins',
+    'UsedPlugins'	        => 'Used Plugins',
     'UseFilterExprsPost'    => '&nbsp;filter&nbsp;expressions', // This is used at the end of the phrase 'use N filter expressions'
     'UseFilterExprsPre'     => 'Use&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'
     'UseFilter'             => 'Use Filter',
@@ -725,6 +788,7 @@ $SLANG = array(
     'VersionRemindNever'    => 'Don\'t remind about new versions',
     'VersionRemindWeek'     => 'Remind again in 1 week',
     'Version'               => 'Version',
+    'ViewMatches'           => 'View Matches',
     'VideoFormat'           => 'Video Format',
     'VideoGenFailed'        => 'Video Generation Failed!',
     'VideoGenFiles'         => 'Existing Video Files',
@@ -746,6 +810,7 @@ $SLANG = array(
     'Watch'                 => 'Watch',
     'WebColour'             => 'Web Colour',
     'Web'                   => 'Web',
+    'WebSiteUrl'            => 'Website URL',
     'Week'                  => 'Week',
     'WhiteBalance'          => 'White Balance',
     'White'                 => 'White',
@@ -788,7 +853,7 @@ $CLANG = array(
     'VersionMismatch'       => 'Version mismatch, system is version %1$s, database is %2$s.',
 );
 
-// The next section allows you to describe a series of word ending and counts used to 
+// The next section allows you to describe a series of word ending and counts used to
 // generate the correctly conjugated forms of words depending on a count that is associated
 // with that word.
 // This intended to allow phrases such a '0 potatoes', '1 potato', '2 potatoes' etc to
@@ -829,7 +894,7 @@ $VLANG = array(
 // with variable counts. This is used to conjugate the Vlang arrays above with a number passed
 // in to generate the correct noun form.
 //
-// In languages such as English this is fairly simple 
+// In languages such as English this is fairly simple
 // Note this still has to be used with printf etc to get the right formatting
 function zmVlang( $langVarArray, $count )
 {
@@ -847,9 +912,9 @@ function zmVlang( $langVarArray, $count )
 // This is an version that could be used in the Russian example above
 // The rules are that the first word form is used if the count ends in
 // 0, 5-9 or 11-19. The second form is used then the count ends in 1
-// (not including 11 as above) and the third form is used when the 
+// (not including 11 as above) and the third form is used when the
 // count ends in 2-4, again excluding any values ending in 12-14.
-// 
+//
 // function zmVlang( $langVarArray, $count )
 // {
 //  $secondlastdigit = substr( $count, -2, 1 );
@@ -857,7 +922,7 @@ function zmVlang( $langVarArray, $count )
 //  // or
 //  // $secondlastdigit = ($count/10)%10;
 //  // $lastdigit = $count%10;
-// 
+//
 //  // Get rid of the special cases first, the teens
 //  if ( $secondlastdigit == 1 && $lastdigit != 0 )
 //  {
@@ -891,7 +956,7 @@ function zmVlang( $langVarArray, $count )
 //  die( 'Error, unable to correlate variable language string' );
 // }
 
-// This is an example of how the function is used in the code which you can uncomment and 
+// This is an example of how the function is used in the code which you can uncomment and
 // use to test your custom function.
 //$monitors = array();
 //$monitors[] = 1; // Choose any number
@@ -902,45 +967,67 @@ function zmVlang( $langVarArray, $count )
 // So for example, to override the help text for ZM_LANG_DEFAULT do
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
-		'Help' => "Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
-		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
-		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
+    'Help' => '
+      Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~
+      Examples (do not enter quotes)~~~~
+      "allowed_media_types=video" Set datatype to request fromcam (audio, video, data)~~~~
+      "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets~~~~
+      "loglevel=debug" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)
+    '
 	),
-        'OPTIONS_RTSPTrans' => array(
-		'Help' => "This sets the RTSP Transport Protocol for FFmpeg.~~ ".
-                          "TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~".
-                          "UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some 'smearing' while using UDP, if so try TCP~~".
-                          "UDP Multicast - Use UDP Multicast as transport protocol~~".
-                          "HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~"
+    'OPTIONS_RTSPTrans' => array(
+      'Help' => '
+        This sets the RTSP Transport Protocol for FFmpeg.~~
+        TCP - Use TCP (interleaving within the RTSP control channel) as transport protocol.~~
+        UDP - Use UDP as transport protocol. Higher resolution cameras have experienced some \'smearing\' while using UDP, if so try TCP~~
+        UDP Multicast - Use UDP Multicast as transport protocol~~
+        HTTP - Use HTTP tunneling as transport protocol, which is useful for passing proxies.~~
+      '
 	),
 	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
-		          "\"--verbose=2\" Set verbosity of libVLC"
+    'Help' => '
+      Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~
+      Examples (do not enter quotes)~~~~
+      "--rtp-client-port=nnn" Set local port to use for rtp data~~~~
+      "--verbose=2" Set verbosity of libVLC
+      '
 	),
 	'OPTIONS_EXIF' => array(
-		'Help' => "Enable this option to embed EXIF data into each jpeg frame."
+		'Help' => 'Enable this option to embed EXIF data into each jpeg frame.'
 	),
 	'OPTIONS_RTSPDESCRIBE' => array(
-		'Help' => "Sometimes, during the initial RTSP handshake, the camera will send an updated media URL. ".
-		          "Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the ".
-		          "value from the camera and use the value as entered in the monitor configuration~~~~". 
-		          "Generally this should be enabled. However, there are cases where the camera can get its".
-		          "own URL incorrect, such as when the camera is streaming through a firewall"),
+    'Help' => '
+      Sometimes, during the initial RTSP handshake, the camera will send an updated media URL.
+      Enable this option to tell ZoneMinder to use this URL. Disable this option to ignore the
+      value from the camera and use the value as entered in the monitor configuration~~~~
+      Generally this should be enabled. However, there are cases where the camera can get its
+      own URL incorrect, such as when the camera is streaming through a firewall
+    '
+  ),
 	'OPTIONS_MAXFPS' => array(
-		'Help' => "This field has certain limitations when used for non-local devices.~~ ".
-		          "Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping, ".
-		          "and missed events~~".
-		          "For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the".
-                          " camera, instead. You can, however, use a value that is slightly higher than the frame rate in the camera. ".
-		          "In this case, this helps keep the cpu from being overtaxed in the event of a network problem.~~". 
-		          "Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera ".
-		          "for new images. In this case, it is safe to use the field."
+    'Help' => '
+      This field has certain limitations when used for non-local devices.~~
+      Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping,
+      and missed events~~
+      For streaming IP cameras, do not use this field to reduce the frame rate. Set the frame rate in the
+      camera, instead. In the past it was advised to set a value higher than the frame rate of the camera
+      but this is no longer needed or a good idea.
+      Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera
+      for new images. In this case, it is safe to use the field.
+      '
 	),
-	
+	'OPTIONS_LINKED_MONITORS' => array(
+    'Help' => '
+      This field allows you to select other monitors on your system that act as 
+      triggers for this monitor. So if you have a camera covering one aspect of 
+      your property you can force all cameras to record while that camera 
+      detects motion or other events. Click on ‘Select’ to choose linked monitors. 
+      Be very careful not to create circular dependencies with this feature 
+      because you will have infinitely persisting alarms which is almost 
+      certainly not what you want! To unlink monitors you can ctrl-click.
+      '
+	),
+
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
 //        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"

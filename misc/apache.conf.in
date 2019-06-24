@@ -8,7 +8,24 @@
     ServerAdmin webmaster@localhost
 
     DocumentRoot "@WEB_PREFIX@"
-    Alias /zm/ "@WEB_PREFIX@/"
+
+    # Order matters. This alias must come first.
+    Alias /zm/cache "@ZM_CACHEDIR@"
+    <Directory "@ZM_CACHEDIR@">
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
+        <IfModule mod_authz_core.c>
+           # Apache 2.4
+           Require all granted
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+            # Apache 2.2
+            Order deny,allow
+            Allow from all
+        </IfModule>
+    </Directory>
+
+    Alias /zm "@WEB_PREFIX@"
     <Directory "@WEB_PREFIX@">
         Options -Indexes +FollowSymLinks
         AllowOverride All
@@ -36,6 +53,31 @@
             Order deny,allow
             Allow from all
         </IfModule>
+    </Directory>
+
+    # For better visibility, the following directives have been migrated from the
+    # default .htaccess files included with the CakePHP project.
+    # Parameters not set here are inherited from the parent directive above.
+    <Directory "@ZM_WEBDIR@/api">
+       RewriteEngine on
+       RewriteRule ^$ app/webroot/ [L]
+       RewriteRule (.*) app/webroot/$1 [L]
+       RewriteBase /zm/api
+    </Directory>
+
+    <Directory "@ZM_WEBDIR@/api/app">
+       RewriteEngine on
+       RewriteRule ^$ webroot/ [L]
+       RewriteRule (.*) webroot/$1 [L]
+       RewriteBase /zm/api
+    </Directory>
+
+    <Directory "@ZM_WEBDIR@/api/app/webroot">
+        RewriteEngine On
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteRule ^ index.php [L]
+        RewriteBase /zm/api
     </Directory>
 
     # Use the first option to have Apache logs written to the general log

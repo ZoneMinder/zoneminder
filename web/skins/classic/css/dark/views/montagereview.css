@@ -1,0 +1,42 @@
+#ScaleDiv,
+#SpeedDiv{
+  vertical-align: top;
+  display: inline-flex;
+  border: 1px solid black;
+  width: 25%;
+  padding: 9px;
+}
+#ScaleDiv label,
+#SpeedDiv label {
+  margin: 0;
+}
+
+#scaleslideroutput,
+#speedslideroutput {
+  min-width: 75px;
+  display: block;
+}
+
+#timelinediv {
+  margin: 2px auto;
+  position:relative; 
+  width:93%;
+}
+
+#timeline {
+  border:1px solid;
+}
+
+#monitors {
+  position:relative;
+  background-color:black;
+  width:100%;
+  height:100%;
+}
+input[type=range]::-ms-tooltip {
+    display: none;
+}
+
+#downloadVideo {
+  margin-left: 5px;
+}

@@ -1,0 +1,155 @@
+#!/usr/bin/perl -w
+use strict;
+#
+# ==========================================================================
+#
+# ZoneMinder ONVIF Control Protocol Module
+# Copyright (C) 2014  Jan M. Hochstein
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# ==========================================================================
+#
+# This module contains the implementation of the ONVIF capability prober
+#
+
+use Getopt::Std;
+
+require ONVIF::Client;
+
+
+# ========================================================================
+# options processing
+
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+
+our ($opt_v);
+
+my $OPTIONS = "v";
+
+sub HELP_MESSAGE
+{
+  my ($fh, $pkg, $ver, $opts) = @_;
+  print $fh "Usage: " . __FILE__ . " [-v] probe <soap version>\n";
+  print $fh "       " . __FILE__ . " [-v] <command> <device URI> <soap version> <user> <password>\n";
+  print $fh  <<EOF
+  Commands are:
+    probe     - scan for devices on the local network and list them
+    profiles  - print the device's supported stream configurations
+    metadata  - print some of the device's configuration settings
+    move      - move the device (only ptz cameras)
+  Common parameters:
+    -v        - increase verbosity
+  Device access parameters (for all commands but 'probe'):
+    device URL    - the ONVIF Device service URL
+    soap version  - SOAP version (1.1 or 1.2)
+    user          - username of a user with access to the device
+    password      - password for the user
+EOF
+}
+
+# ========================================================================
+# MAIN
+
+if ( !getopts($OPTIONS) ) {
+  HELP_MESSAGE(\*STDOUT);
+  exit(1);
+}
+
+my $action = shift;
+
+if(!defined $action) {
+  HELP_MESSAGE(\*STDOUT);
+  exit(1);
+}
+
+@EXTRA_PERL_LIB@
+require ZoneMinder::ONVIF;
+if ( defined $opt_v ) {
+  $ZoneMinder::ONVIF::verbose = 1;
+}
+
+if ( $action eq "probe" ) {
+  my $soap_version = shift;
+  ZoneMinder::ONVIF::discover($soap_version);
+} else {
+# all other actions need URI and credentials
+  my $url_svc_device = shift @ARGV;
+  my $soap_version = shift @ARGV;
+  my $username = @ARGV ? shift @ARGV : '';
+  my $password = @ARGV ? shift @ARGV: '';
+
+  my $client = ONVIF::Client->new( { 
+      'url_svc_device' => $url_svc_device, 
+      'soap_version' => $soap_version } );
+
+  $client->set_credentials($username, $password, 1);
+  
+  $client->create_services();
+
+  
+  if ( $action eq "profiles" ) {
+    ZoneMinder::ONVIF::profiles($client);
+  } elsif( $action eq "move" ) {
+    my $dir = shift;
+    ZoneMinder::ONVIF::move($client, $dir);
+  } elsif ( $action eq "metadata" ) {
+    ZoneMinder::ONVIF::metadata($client);
+  } else {
+    print("Error: Unknown command\"$action\"");
+    exit(1);
+  }
+}
+
+1;
+__END__
+
+=head1 NAME
+
+zmonvif-probe.pl - ZoneMinder ONVIF probing tool
+
+=head1 SYNOPSIS
+
+ zmonfig-probe.pl [-v] probe <soap version>
+                  [-v] <command> <device URI> <soap version> <user> <password>\n";
+
+  Commands are:
+    probe     - scan for devices on the local network and list them
+    profiles  - print the device's supported stream configurations
+    metadata  - print some of the device's configuration settings
+    move      - move the device (only ptz cameras)
+  Common parameters:
+    -v        - increase verbosity
+  Device access parameters (for all commands but 'probe'):
+    device URL    - the ONVIF Device service URL
+    soap version  - SOAP version (1.1 or 1.2)
+    user          - username of a user with access to the device
+    password      - password for the user
+
+=head1 DESCRIPTION
+
+
+=head1 OPTIONS
+
+ -c, --continuous           - Run continuously
+ -f, --force                - Run even if pid file exists
+ -i, --interactive          - Ask before applying any changes
+ -m, --monitor_id           - Only consider the given monitor
+ -r, --report               - Just report don't actually do anything
+ -s, --storage_id           - Specify a storage area to audit instead of all
+ -v, --version              - Print the installed version of ZoneMinder
+
+=cut
+

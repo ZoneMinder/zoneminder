@@ -4,8 +4,8 @@
 /app/tmp
 /lib/Cake/Console/Templates/skel/tmp/
 /plugins
-/vendors
 /build
+/vendors
 /dist
 /tags
 /app/webroot/events

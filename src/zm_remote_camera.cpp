@@ -42,7 +42,9 @@ RemoteCamera::RemoteCamera(
     host( p_host ),
     port( p_port ),
     path( p_path ),
-    hp( 0 )
+    hp( 0 ),
+    mNeedAuth(false),
+    mAuthenticator(NULL)
 {
     if ( path[0] != '/' )
         path = '/'+path;
@@ -50,9 +52,13 @@ RemoteCamera::RemoteCamera(
 
 RemoteCamera::~RemoteCamera() {
   if ( hp != NULL ) {
-      freeaddrinfo(hp);
+    freeaddrinfo(hp);
     hp = NULL;
   }
+	if ( mAuthenticator ) {
+		delete mAuthenticator;
+		mAuthenticator = NULL;
+	}
 }
 
 void RemoteCamera::Initialise() {
@@ -62,8 +68,8 @@ void RemoteCamera::Initialise() {
 	if( host.empty() )
 		Fatal( "No host specified for remote camera" );
 
-	if( port.empty() )
-		Fatal( "No port specified for remote camera" );
+	if ( port.empty() )
+		Fatal("No port specified for remote camera");
 
 	//if( path.empty() )
 		//Fatal( "No path specified for remote camera" );
@@ -81,7 +87,7 @@ void RemoteCamera::Initialise() {
     password = auth.substr( authIndex+1, auth.length() );
   }
 
-    mNeedAuth = false;
+  mNeedAuth = false;
 	mAuthenticator = new zm::Authenticator(username,password);
 
 	struct addrinfo hints;
@@ -93,4 +99,28 @@ void RemoteCamera::Initialise() {
   if ( ret != 0 ) {
     Fatal( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
   }
+  struct addrinfo *p = NULL;
+  int addr_count = 0;
+  for ( p = hp; p != NULL; p = p->ai_next ) {
+    addr_count++;
+  }
+  Debug(1, "%d addresses returned", addr_count);
+}
+
+int RemoteCamera::Read( int fd, char *buf, int size ) {
+  int ReceivedBytes = 0;
+  while ( ReceivedBytes < size ) {
+    // recv blocks until we get data, but it may be of ARBITRARY LENGTH and INCOMPLETE
+    int bytes_to_recv = size - ReceivedBytes;
+    if ( SOCKET_BUF_SIZE < bytes_to_recv ) 
+      bytes_to_recv = SOCKET_BUF_SIZE;
+//Debug(3, "Aiming to receive %d of %d bytes", bytes_to_recv, size );
+    int bytes = recv(fd, &buf[ReceivedBytes], bytes_to_recv, 0); //socket, buffer, len, flags
+    if ( bytes <= 0 ) {
+      Error("RemoteCamera::Read Recv error. Closing Socket\n");
+      return -1;
+    }
+    ReceivedBytes += bytes;
+  }
+  return ReceivedBytes;
 }

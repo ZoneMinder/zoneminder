@@ -2,18 +2,18 @@
 /**
  * FixtureTask Test case
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Test.Case.Console.Command.Task
  * @since         CakePHP(tm) v 1.3
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('ShellDispatcher', 'Console');
@@ -98,6 +98,7 @@ class FixtureTaskTest extends CakeTestCase {
  * @return void
  */
 	public function testImportOptionsSchemaRecords() {
+		$this->Task->interactive = true;
 		$this->Task->expects($this->at(0))->method('in')->will($this->returnValue('y'));
 		$this->Task->expects($this->at(1))->method('in')->will($this->returnValue('y'));
 
@@ -112,6 +113,7 @@ class FixtureTaskTest extends CakeTestCase {
  * @return void
  */
 	public function testImportOptionsNothing() {
+		$this->Task->interactive = true;
 		$this->Task->expects($this->at(0))->method('in')->will($this->returnValue('n'));
 		$this->Task->expects($this->at(1))->method('in')->will($this->returnValue('n'));
 		$this->Task->expects($this->at(2))->method('in')->will($this->returnValue('n'));
@@ -130,7 +132,20 @@ class FixtureTaskTest extends CakeTestCase {
 		$this->Task->params = array('schema' => true, 'records' => true);
 
 		$result = $this->Task->importOptions('Article');
-		$expected = array('schema' => 'Article', 'records' => true);
+		$expected = array('schema' => 'Article', 'fromTable' => true);
+		$this->assertEquals($expected, $result);
+	}
+
+/**
+ * test importOptions with overwriting CLI options
+ *
+ * @return void
+ */
+	public function testImportOptionsWithCommandLineOptionsPlugin() {
+		$this->Task->params = array('schema' => true, 'records' => true, 'plugin' => 'TestPlugin');
+
+		$result = $this->Task->importOptions('Article');
+		$expected = array('schema' => 'TestPlugin.Article', 'fromTable' => true);
 		$this->assertEquals($expected, $result);
 	}
 
@@ -140,6 +155,7 @@ class FixtureTaskTest extends CakeTestCase {
  * @return void
  */
 	public function testImportOptionsWithSchema() {
+		$this->Task->interactive = true;
 		$this->Task->params = array('schema' => true);
 		$this->Task->expects($this->at(0))->method('in')->will($this->returnValue('n'));
 		$this->Task->expects($this->at(1))->method('in')->will($this->returnValue('n'));
@@ -155,11 +171,12 @@ class FixtureTaskTest extends CakeTestCase {
  * @return void
  */
 	public function testImportOptionsWithRecords() {
+		$this->Task->interactive = true;
 		$this->Task->params = array('records' => true);
 		$this->Task->expects($this->at(0))->method('in')->will($this->returnValue('n'));
 
 		$result = $this->Task->importOptions('Article');
-		$expected = array('records' => true);
+		$expected = array('fromTable' => true);
 		$this->assertEquals($expected, $result);
 	}
 
@@ -169,6 +186,7 @@ class FixtureTaskTest extends CakeTestCase {
  * @return void
  */
 	public function testImportOptionsTable() {
+		$this->Task->interactive = true;
 		$this->Task->expects($this->at(0))->method('in')->will($this->returnValue('n'));
 		$this->Task->expects($this->at(1))->method('in')->will($this->returnValue('n'));
 		$this->Task->expects($this->at(2))->method('in')->will($this->returnValue('y'));
@@ -242,6 +260,62 @@ class FixtureTaskTest extends CakeTestCase {
 			'records' => false
 		));
 		$this->assertContains("'body' => 'Body \"value\"'", $result, 'Data has bad escaping');
+	}
+
+/**
+ * test that execute includes import options
+ *
+ * @return void
+ */
+	public function testExecuteWithImportSchema() {
+		$this->Task->connection = 'test';
+		$this->Task->path = '/my/path/';
+		$this->Task->args = array('article');
+		$this->Task->params = array(
+			'schema' => true,
+			'records' => false,
+		);
+		$filename = '/my/path/ArticleFixture.php';
+
+		$this->Task->expects($this->never())
+			->method('in');
+
+		$this->Task->expects($this->at(0))
+			->method('createFile')
+			->with($filename, $this->logicalAnd(
+				$this->stringContains('class ArticleFixture'),
+				$this->stringContains("\$import = array('model' => 'Article'")
+			));
+
+		$this->Task->execute();
+	}
+
+/**
+ * test that execute includes import options
+ *
+ * @return void
+ */
+	public function testExecuteWithImportRecords() {
+		$this->Task->connection = 'test';
+		$this->Task->path = '/my/path/';
+		$this->Task->args = array('article');
+		$this->Task->params = array(
+			'schema' => true,
+			'records' => true,
+		);
+		$filename = '/my/path/ArticleFixture.php';
+
+		$this->Task->expects($this->never())
+			->method('in');
+
+		$this->Task->expects($this->at(0))
+			->method('createFile')
+			->with($filename, $this->logicalAnd(
+				$this->stringContains('class ArticleFixture'),
+				$this->stringContains("\$import = array('model' => 'Article', 'connection' => 'test')")
+			));
+
+		$this->Task->execute();
 	}
 
 /**
@@ -396,17 +470,20 @@ class FixtureTaskTest extends CakeTestCase {
 	}
 
 /**
- * test record generation with float and binary types
+ * test record generation with various integer, float and binary types
  *
  * @return void
  */
-	public function testRecordGenerationForBinaryAndFloat() {
+	public function testRecordGenerationForBinaryFloatAndIntegerTypes() {
 		$this->Task->connection = 'test';
 		$this->Task->path = '/my/path/';
 
 		$result = $this->Task->bake('Article', 'datatypes');
 		$this->assertContains("'float_field' => 1", $result);
 		$this->assertContains("'bool' => 1", $result);
+		$this->assertContains("'tiny_int' => 1", $result);
+		$this->assertContains("'small_int' => 1", $result);
+		$this->assertContains("'huge_int' => 1", $result);
 
 		$result = $this->Task->bake('Article', 'binary_tests');
 		$this->assertContains("'data' => 'Lorem ipsum dolor sit amet'", $result);

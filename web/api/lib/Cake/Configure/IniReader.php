@@ -2,18 +2,18 @@
 /**
  * IniReader
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       Cake.Configure
  * @since         CakePHP(tm) v 2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 
 App::uses('Hash', 'Utility');
@@ -73,13 +73,13 @@ class IniReader implements ConfigReaderInterface {
  * Build and construct a new ini file parser. The parser can be used to read
  * ini files that are on the filesystem.
  *
- * @param string $path Path to load ini config files from. Defaults to APP . 'Config' . DS
+ * @param string $path Path to load ini config files from. Defaults to CONFIG
  * @param string $section Only get one section, leave null to parse and fetch
  *     all sections in the ini file.
  */
 	public function __construct($path = null, $section = null) {
 		if (!$path) {
-			$path = APP . 'Config' . DS;
+			$path = CONFIG;
 		}
 		$this->_path = $path;
 		$this->_section = $section;

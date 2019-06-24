@@ -20,9 +20,12 @@
 #ifndef ZM_THREAD_H
 #define ZM_THREAD_H
 
+class RecursiveMutex;
+
+
+#include "zm_config.h"
 #include <unistd.h>
 #include <pthread.h>
-#include <unistd.h>
 #ifdef HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
 #endif // HAVE_SYS_SYSCALL_H
@@ -32,8 +35,7 @@
 #include <sys/thr.h>
 #endif
 
-class ThreadException : public Exception
-{
+class ThreadException : public Exception {
 private:
 #ifndef SOLARIS
   pid_t pid() {
@@ -55,47 +57,50 @@ private:
   pthread_t pid() { return( pthread_self() ); }
 #endif
 public:
-  ThreadException( const std::string &message ) : Exception( stringtf( "(%d) "+message, (long int)pid() ) ) {
+  explicit ThreadException( const std::string &message ) : Exception( stringtf("(%d) ", (long int)pid())+message ) {
   }
 };
 
-class Mutex
-{
-friend class Condition;
+class Mutex {
+  friend class Condition;
 
-private:
-  pthread_mutex_t mMutex;
+  private:
+    pthread_mutex_t mMutex;
 
-public:
-  Mutex();
-  ~Mutex();
+  public:
+    Mutex();
+    ~Mutex();
 
-private:
-  pthread_mutex_t *getMutex()
-  {
-    return( &mMutex );
-  }
+  private:
+    pthread_mutex_t *getMutex() {
+      return &mMutex;
+    }
 
-public:
-  void lock();
-  void lock( int secs );
-  void lock( double secs );
-  void unlock();
-  bool locked();
+  public:
+    int trylock();
+    void lock();
+    void lock( int secs );
+    void lock( double secs );
+    void unlock();
+    bool locked();
 };
 
-class ScopedMutex
-{
+class RecursiveMutex : public Mutex {
+  private:
+    pthread_mutex_t mMutex;
+  public:
+    RecursiveMutex();
+};
+
+class ScopedMutex {
 private:
   Mutex &mMutex;
 
 public:
-  ScopedMutex( Mutex &mutex ) : mMutex( mutex )
-  {
+  explicit ScopedMutex( Mutex &mutex ) : mMutex( mutex ) {
     mMutex.lock();
   }
-  ~ScopedMutex()
-  {
+  ~ScopedMutex() {
     mMutex.unlock();
   }
 
@@ -103,69 +108,60 @@ private:
   ScopedMutex( const ScopedMutex & );
 };
 
-class Condition
-{
+class Condition {
 private:
   Mutex &mMutex;
   pthread_cond_t mCondition;
 
 public:
-  Condition( Mutex &mutex );
+  explicit Condition(Mutex &mutex);
   ~Condition();
 
   void wait();
-  bool wait( int secs );
-  bool wait( double secs );
+  bool wait(int secs);
+  bool wait(double secs);
   void signal();
   void broadcast();
 };
 
-class Semaphore : public Condition
-{
+class Semaphore : public Condition {
 private:
   Mutex mMutex;
 
 public:
-  Semaphore() : Condition( mMutex )
-  {
+  Semaphore() : Condition(mMutex) {
   }
 
-  void wait()
-  {
+  void wait() {
     mMutex.lock();
     Condition::wait();
     mMutex.unlock();
   }
-  bool wait( int secs )
-  {
+  bool wait(int secs) {
     mMutex.lock();
-    bool result = Condition::wait( secs );
+    bool result = Condition::wait(secs);
     mMutex.unlock();
-    return( result );
+    return result;
   }
-  bool wait( double secs )
-  {
+  bool wait(double secs) {
     mMutex.lock();
-    bool result = Condition::wait( secs );
+    bool result = Condition::wait(secs);
     mMutex.unlock();
-    return( result );
+    return result;
   }
-  void signal()
-  {
+  void signal() {
     mMutex.lock();
     Condition::signal();
     mMutex.unlock();
   }
-  void broadcast()
-  {
+  void broadcast() {
     mMutex.lock();
     Condition::broadcast();
     mMutex.unlock();
   }
 };
 
-template <class T> class ThreadData
-{
+template <class T> class ThreadData {
 private:
   T mValue;
   mutable bool mChanged;
@@ -173,11 +169,11 @@ private:
   mutable Condition mCondition;
 
 public:
-  __attribute__((used)) ThreadData() : mCondition( mMutex )
-  {
+  __attribute__((used)) ThreadData() : mValue(0), mCondition( mMutex ) {
+    mChanged = false;
   }
-  __attribute__((used)) ThreadData( T value ) : mValue( value ), mCondition( mMutex )
-  {
+  explicit __attribute__((used)) ThreadData( T value ) : mValue( value ), mCondition( mMutex ) {
+    mChanged = false;
   }
   //~ThreadData() {}
 
@@ -207,8 +203,7 @@ public:
   __attribute__((used)) void updateValueBroadcast( const T value );
 };
 
-class Thread
-{
+class Thread {
 public:
   typedef void *(*ThreadFunc)( void * );
 
@@ -231,8 +226,7 @@ protected:
   virtual ~Thread();
 
 #ifndef SOLARIS
-  pid_t id() const
-  {
+  pid_t id() const {
     pid_t tid; 
 #ifdef __FreeBSD__ 
     long lwpid; 
@@ -246,16 +240,14 @@ protected:
     tid=syscall(SYS_gettid); 
   #endif
 #endif
-return tid;
+    return tid;
   }
 #else
-  pthread_t id() const
-  {
-    return( pthread_self() );
+  pthread_t id() const {
+    return pthread_self();
   }
 #endif
-  void exit( int p_status = 0 )
-  {
+  void exit( int p_status = 0 ) {
     //INFO( "Exiting" );
     pthread_exit( (void *)&p_status );
   }
@@ -267,12 +259,11 @@ public:
   void start();
   void join();
   void kill( int signal );
-  bool isThread()
-  {
+  bool isThread() {
     return( mPid > -1 && pthread_equal( pthread_self(), mThread ) );
   }
-  bool isStarted() const { return( mStarted ); }
-  bool isRunning() const { return( mRunning ); }
+  bool isStarted() const { return mStarted; }
+  bool isRunning() const { return mRunning; }
 };
 
 #endif // ZM_THREAD_H

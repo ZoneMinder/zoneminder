@@ -78,7 +78,7 @@ std::string load_monitor_sql =
 "Brightness, Contrast, Hue, Colour, "
 "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
 "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
-"SectionLength, FrameSkip, MotionFrameSkip, "
+"SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
 "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckPoints, SignalCheckColour FROM Monitors";
 
 std::string CameraType_Strings[] = {
@@ -296,6 +296,7 @@ Monitor::Monitor(
   int p_stream_replay_buffer,
   int p_alarm_frame_count,
   int p_section_length,
+  int p_min_section_length,
   int p_frame_skip,
   int p_motion_frame_skip,
   double p_analysis_fps,
@@ -333,6 +334,7 @@ Monitor::Monitor(
   post_event_count( p_post_event_count ),
   stream_replay_buffer( p_stream_replay_buffer ),
   section_length( p_section_length ),
+  min_section_length( p_min_section_length ),
   frame_skip( p_frame_skip ),
   motion_frame_skip( p_motion_frame_skip ),
   analysis_fps( p_analysis_fps ),
@@ -1416,7 +1418,7 @@ bool Monitor::Analyse() {
           if ( Active() && (function == MODECT || function == MOCORD) ) {
             // All is good, so add motion detection score.
             Event::StringSet zoneSet;
-            if ( (!motion_frame_skip) || !(image_count % (motion_frame_skip+1) ) ) {
+            if ( (!motion_frame_skip) || !(image_count % (motion_frame_skip+1)) ) {
               // Get new score.
               int new_motion_score = DetectMotion(*snap_image, zoneSet);
 
@@ -1477,7 +1479,7 @@ bool Monitor::Analyse() {
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
                     name, image_count, event->Id(),
-                    timestamp->tv_sec, video_store_data->recording.tv_sec, 
+                    timestamp->tv_sec, video_store_data->recording.tv_sec,
                     timestamp->tv_sec - video_store_data->recording.tv_sec,
                     section_length
                     );
@@ -1510,7 +1512,11 @@ bool Monitor::Analyse() {
             // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
               // If we should end then previous continuous event and start a new non-continuous event
-              if ( event && event->Frames() && (!event->AlarmFrames()) && (event_close_mode == CLOSE_ALARM) ) {
+              if ( event && event->Frames()
+                  && (!event->AlarmFrames())
+                  && (event_close_mode == CLOSE_ALARM)
+                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+                 ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
                     name, image_count, event->Id());
                 closeEvent();
@@ -1768,7 +1774,13 @@ void Monitor::Reload() {
 
   static char sql[ZM_SQL_MED_BUFSIZ];
   // This seems to have fallen out of date.
-  snprintf(sql, sizeof(sql), "select Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, LabelX, LabelY, LabelSize, WarmupCount, PreEventCount, PostEventCount, AlarmFrameCount, SectionLength, FrameSkip, MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, SignalCheckColour from Monitors where Id = '%d'", id);
+  snprintf(sql, sizeof(sql), 
+      "SELECT Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, "
+      "LabelX, LabelY, LabelSize, WarmupCount, PreEventCount, PostEventCount, "
+      "AlarmFrameCount, SectionLength, MinSectionLength, FrameSkip, "
+      "MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, "
+      "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, "
+      "SignalCheckColour FROM Monitors WHERE Id = '%d'", id);
 
   zmDbRow *row = zmDbFetchOne(sql);
   if ( !row ) {
@@ -1799,6 +1811,7 @@ void Monitor::Reload() {
     post_event_count = atoi(dbrow[index++]);
     alarm_frame_count = atoi(dbrow[index++]);
     section_length = atoi(dbrow[index++]);
+    min_section_length = atoi(dbrow[index++]);
     frame_skip = atoi(dbrow[index++]);
     motion_frame_skip = atoi(dbrow[index++]);
     analysis_fps = dbrow[index] ? strtod(dbrow[index], NULL) : 0; index++;
@@ -2014,7 +2027,7 @@ int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose p
  "Brightness, Contrast, Hue, Colour, "
  "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
  "ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
- "SectionLength, FrameSkip, MotionFrameSkip, "
+ "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
  "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckColour FROM Monitors";
 */
 
@@ -2095,6 +2108,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   int stream_replay_buffer = atoi(dbrow[col]); col++;
   int alarm_frame_count = atoi(dbrow[col]); col++;
   int section_length = atoi(dbrow[col]); col++;
+  int min_section_length = atoi(dbrow[col]); col++;
   int frame_skip = atoi(dbrow[col]); col++;
   int motion_frame_skip = atoi(dbrow[col]); col++;
   int fps_report_interval = atoi(dbrow[col]); col++;
@@ -2295,6 +2309,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       stream_replay_buffer,
       alarm_frame_count,
       section_length,
+      min_section_length,
       frame_skip,
       motion_frame_skip,
       analysis_fps,
@@ -2770,6 +2785,7 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf(output+strlen(output), "Stream Replay Buffer : %d\n", stream_replay_buffer );
   sprintf(output+strlen(output), "Alarm Frame Count : %d\n", alarm_frame_count );
   sprintf(output+strlen(output), "Section Length : %d\n", section_length);
+  sprintf(output+strlen(output), "Min Section Length : %d\n", min_section_length);
   sprintf(output+strlen(output), "Maximum FPS : %.2f\n", capture_delay?(double)DT_PREC_3/capture_delay:0.0);
   sprintf(output+strlen(output), "Alarm Maximum FPS : %.2f\n", alarm_capture_delay?(double)DT_PREC_3/alarm_capture_delay:0.0);
   sprintf(output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc);

@@ -58,6 +58,7 @@ function xhtmlHeaders($file, $title) {
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX); ?> - <?php echo validHtmlStr($title) ?></title>
 <?php
 if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
@@ -79,14 +80,18 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 <?php 
 echo output_link_if_exists( array(
   'css/base/skin.css',
-  'css/'.$css.'/skin.css',
   'css/base/views/'.$basename.'.css',
-  'css/'.$css.'/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
   #'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
-  'css/'.$css.'/jquery-ui-theme.css',
 )
+);
+if ( $css != 'base' )
+  echo output_link_if_exists( array(
+    'css/'.$css.'/skin.css',
+    'css/'.$css.'/views/'.$basename.'.css',
+    'css/'.$css.'/jquery-ui-theme.css',
+  )
 );
 ?>
 <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>

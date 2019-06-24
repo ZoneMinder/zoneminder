@@ -38,8 +38,8 @@ class ZMPacket {
     struct timeval timestamp;
   public:
     AVPacket *av_packet() { return &packet; }
-    ZMPacket( AVPacket *packet, AVStream *stream, struct timeval *timestamp );
-    explicit ZMPacket( AVPacket *packet, AVStream * );
+    ZMPacket( AVPacket *packet, struct timeval *timestamp );
+    explicit ZMPacket( AVPacket *packet );
     ~ZMPacket();
 };
 

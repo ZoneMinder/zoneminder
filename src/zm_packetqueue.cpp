@@ -20,6 +20,7 @@
 #include "zm_packetqueue.h"
 #include "zm_ffmpeg.h"
 #include <sys/time.h>
+#include "zm_time.h"
 
 zm_packetqueue::zm_packetqueue( int p_max_stream_id ) {
   max_stream_id = p_max_stream_id;
@@ -48,6 +49,7 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
     return true;
   }
 
+#if 0
   std::list<ZMPacket *>::reverse_iterator it = pktQueue.rbegin();
 
   // Scan through the queue looking for a packet for our stream with a dts <= ours.
@@ -56,28 +58,31 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
 
     Debug(2, "Looking at packet with stream index (%d) with dts %" PRId64,
         av_packet->stream_index, av_packet->dts);
-    if (
-        //( av_packet->stream_index == zm_packet->packet.stream_index )
-        //&&
-        ( av_packet->dts != AV_NOPTS_VALUE )
-        &&
-        ( av_packet->dts <= zm_packet->packet.dts) 
-       ) {
-    Debug(2, "break packet with stream index (%d) with dts %" PRId64,
-        (*it)->packet.stream_index, (*it)->packet.dts);
-      break;
+    if ( av_packet->stream_index == zm_packet->packet.stream_index ) {
+      if (
+          ( av_packet->dts != AV_NOPTS_VALUE )
+          &&
+          ( av_packet->dts <= zm_packet->packet.dts) 
+         ) {
+        Debug(2, "break packet with stream index (%d) with dts %" PRId64,
+            (*it)->packet.stream_index, (*it)->packet.dts);
+        break;
+      }
+    } else { // Not same stream, compare timestamps
+      if ( tvDiffUsec(((*it)->timestamp, zm_packet->timestamp) ) <= 0 ) {
+        Debug(2, "break packet with stream index (%d) with dts %" PRId64,
+            (*it)->packet.stream_index, (*it)->packet.dts);
+        break;
+      }
     }
     it++;
   } // end while not the end of the queue
 
   if ( it != pktQueue.rend() ) {
-    Debug(2, "Found packet with stream index (%d) with dts %" PRId64,
-        (*it)->packet.stream_index, (*it)->packet.dts);
-    //it --;
-    //Debug(2, "Found packet with stream index (%d) with dts %" PRId64,
-        //(*it)->packet.stream_index, (*it)->packet.dts);
+    Debug(2, "Found packet with stream index (%d) with dts %" PRId64 " <= %" PRId64,
+        (*it)->packet.stream_index, (*it)->packet.dts, zm_packet->packet.dts);
     if ( it == pktQueue.rbegin() ) {
-       Debug(2, "Inserting packet with dts %" PRId64 " at end", zm_packet->packet.dts);
+       Debug(2,"Inserting packet with dts %" PRId64 " at end", zm_packet->packet.dts);
       // No dts value, can't so much with it
       pktQueue.push_back(zm_packet);
       packet_counts[zm_packet->packet.stream_index] += 1;
@@ -85,31 +90,25 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
     }
     // Convert to a forward iterator so that we can insert at end
     std::list<ZMPacket *>::iterator f_it = it.base();
-    Debug(2, "Insert packet with stream index (%d) with dts %" PRId64 " for dts %" PRId64,
-        (*f_it)->packet.stream_index, (*f_it)->packet.dts, zm_packet->packet.dts);
-    if ( f_it == pktQueue.end() ) {
-      Debug(2, "Pushing to end");
-      pktQueue.push_back(zm_packet);
-    } else {
-      Debug(2, "Insert packet with stream index (%d) with dts %" PRId64 " for dts %" PRId64,
-          (*f_it)->packet.stream_index, (*f_it)->packet.dts, zm_packet->packet.dts);
 
-      pktQueue.insert(f_it, zm_packet);
-    }
+    Debug(2, "Insert packet before packet with stream index (%d) with dts %" PRId64 " for dts %" PRId64,
+        (*f_it)->packet.stream_index, (*f_it)->packet.dts, zm_packet->packet.dts);
+
+    pktQueue.insert(f_it, zm_packet);
 
     packet_counts[zm_packet->packet.stream_index] += 1;
     return true;
   }
-  Debug(1,"Unable to find a spot for stream %d with dts %" PRId64 ". Sticking on front",
+  Debug(1,"Unable to insert packet for stream %d with dts %" PRId64 " into queue.",
       zm_packet->packet.stream_index, zm_packet->packet.dts);
-  // Must be before any packets in the queue.  Stick it at the beginning
-  pktQueue.push_front(zm_packet);
+#endif
+  pktQueue.push_back(zm_packet);
   packet_counts[zm_packet->packet.stream_index] += 1;
   return true;
 } // end bool zm_packetqueue::queuePacket(ZMPacket* zm_packet)
 
-bool zm_packetqueue::queuePacket(AVPacket* av_packet, AVStream *stream) {
-  ZMPacket *zm_packet = new ZMPacket(av_packet, stream);
+bool zm_packetqueue::queuePacket(AVPacket* av_packet) {
+  ZMPacket *zm_packet = new ZMPacket(av_packet);
   return queuePacket(zm_packet);
 }
 

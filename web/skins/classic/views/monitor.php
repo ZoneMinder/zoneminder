@@ -103,6 +103,7 @@ if ( ! $monitor ) {
           'ReturnLocation' => -1,
           'ReturnDelay' => '',
           'SectionLength' => 600,
+          'MinSectionLength' => 10,
           'FrameSkip' => 0,
           'MotionFrameSkip' => 0,
           'EventPrefix' => 'Event-',
@@ -657,6 +658,7 @@ if ( $tab != 'misc' ) {
 ?>
       <input type="hidden" name="newMonitor[EventPrefix]" value="<?php echo validHtmlStr($monitor->EventPrefix()) ?>"/>
       <input type="hidden" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($monitor->SectionLength()) ?>"/>
+      <input type="hidden" name="newMonitor[MinSectionLength]" value="<?php echo validHtmlStr($monitor->MinSectionLength()) ?>"/>
       <input type="hidden" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($monitor->FrameSkip()) ?>"/>
       <input type="hidden" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($monitor->MotionFrameSkip()) ?>"/>
       <input type="hidden" name="newMonitor[AnalysisUpdateDelay]" value="<?php echo validHtmlStr($monitor->AnalysisUpdateDelay()) ?>"/>
@@ -1021,6 +1023,13 @@ if ( $monitor->Type() == 'Local' ) {
           <td><?php echo translate('Sectionlength') ?></td>
           <td>
             <input type="number" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($monitor->SectionLength()) ?>"/>
+            <?php echo translate('seconds')?>
+          </td>
+        </tr>
+        <tr>
+          <td><?php echo translate('MinSectionlength') ?></td>
+          <td>
+            <input type="number" name="newMonitor[MinSectionLength]" value="<?php echo validHtmlStr($monitor->MinSectionLength()) ?>"/>
             <?php echo translate('seconds')?>
           </td>
         </tr>

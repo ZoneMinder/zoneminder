@@ -273,6 +273,7 @@ protected:
   int           post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int           stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   int           section_length;      // How long events should last in continuous modes
+  int           min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool          adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int           frame_skip;        // How many frames to skip in continuous modes
   int           motion_frame_skip;      // How many frames to skip in motion detection
@@ -382,6 +383,7 @@ public:
     int p_stream_replay_buffer,
     int p_alarm_frame_count,
     int p_section_length,
+    int p_min_section_length,
     int p_frame_skip,
     int p_motion_frame_skip,
     double p_analysis_fps,

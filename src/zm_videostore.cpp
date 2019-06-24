@@ -285,8 +285,8 @@ VideoStore::VideoStore(
   video_last_pts = 0;
   video_last_dts = 0;
 
-  video_first_pts = 0;
-  video_first_dts = 0;
+  audio_first_pts = 0;
+  audio_first_dts = 0;
   audio_next_pts = 0;
   audio_next_dts = 0;
 
@@ -862,23 +862,20 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   if ( ipkt->duration != AV_NOPTS_VALUE ) {
     duration = av_rescale_q(
         ipkt->duration,
-        AV_TIME_BASE_Q,
+        video_in_stream->time_base,
         video_out_stream->time_base);
-    Debug(1, "duration from ipkt: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
-        ipkt->pts,
-        video_last_pts,
+    Debug(1, "duration from ipkt: %" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
         ipkt->duration,
         duration,
-        1,
-        AV_TIME_BASE,
+        video_in_stream->time_base.num,
+        video_in_stream->time_base.den,
         video_out_stream->time_base.num,
         video_out_stream->time_base.den
         );
   } else {
     duration = av_rescale_q(
           ipkt->pts - video_last_pts,
-          AV_TIME_BASE_Q,
-          //video_in_stream->time_base,
+          video_in_stream->time_base,
           video_out_stream->time_base);
     Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
         ipkt->pts,
@@ -888,7 +885,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
         );
     if ( duration <= 0 ) {
       // Why are we setting the duration to 1? 
-      duration = ipkt->duration ? ipkt->duration : av_rescale_q(1, AV_TIME_BASE_Q, video_out_stream->time_base);
+      duration = ipkt->duration ? ipkt->duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
     }
   }
   opkt.duration = duration;
@@ -905,8 +902,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     } else {
       opkt.pts = av_rescale_q(
           ipkt->pts - video_first_pts,
-          AV_TIME_BASE_Q,
-          //video_in_stream->time_base,
+          video_in_stream->time_base,
           video_out_stream->time_base
           );
     }
@@ -933,8 +929,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     } else {
       opkt.dts = av_rescale_q(
           ipkt->dts - video_first_dts,
-          AV_TIME_BASE_Q,
-          //video_in_stream->time_base,
+          video_in_stream->time_base,
           video_out_stream->time_base
           );
       Debug(3, "opkt.dts = %" PRId64 " from ipkt->dts(%" PRId64 ") - first_pts(%" PRId64 ")",
@@ -952,11 +947,11 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     opkt.dts = video_out_stream->cur_dts;
   }
 
-# if 0
-	if ( opkt.dts <= video_out_stream->cur_dts ) {
+# if 1
+	if ( opkt.dts < video_out_stream->cur_dts ) {
 		Warning("Fixing non-monotonic dts/pts dts %" PRId64 " pts %" PRId64 " stream %" PRId64,
 				opkt.dts, opkt.pts, video_out_stream->cur_dts);
-		opkt.dts = video_out_stream->cur_dts + 1;
+		opkt.dts = video_out_stream->cur_dts;
 		if ( opkt.dts > opkt.pts ) {
 			opkt.pts = opkt.dts;
 		}
@@ -1019,12 +1014,12 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     zm_dump_frame(out_frame, "Out frame after resample");
     // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
     if ( out_frame->pts != AV_NOPTS_VALUE ) {
-      if ( !video_first_pts ) {
-        video_first_pts = out_frame->pts;
-        Debug(1, "No video_first_pts setting to %" PRId64, video_first_pts);
+      if ( !audio_first_pts ) {
+        audio_first_pts = out_frame->pts;
+        Debug(1, "No video_first_pts setting to %" PRId64, audio_first_pts);
         out_frame->pts = 0;
       } else {
-        out_frame->pts = out_frame->pts - video_first_pts;
+        out_frame->pts = out_frame->pts - audio_first_pts;
         zm_dump_frame(out_frame, "Out frame after pts adjustment");
       }
       //
@@ -1032,7 +1027,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       // sending AV_NOPTS_VALUE doesn't really work but we seem to get it in ffmpeg 2.8
       out_frame->pts = audio_next_pts;
     }
-    // We need to keep track of this due to resampling
     audio_next_pts = out_frame->pts + out_frame->nb_samples;
 
     av_init_packet(&opkt);
@@ -1093,24 +1087,22 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     if ( ipkt->duration && (ipkt->duration != AV_NOPTS_VALUE) ) {
       opkt.duration = av_rescale_q(
           ipkt->duration,
-          AV_TIME_BASE_Q,
-          //audio_in_stream->time_base,
+          audio_in_stream->time_base,
           audio_out_stream->time_base);
     }
     // Scale the PTS of the outgoing packet to be the correct time base
     if ( ipkt->pts != AV_NOPTS_VALUE ) {
-      if ( !video_first_pts ) {
+      if ( !audio_first_pts ) {
         opkt.pts = 0;
-        video_first_pts = ipkt->pts;
+        audio_first_pts = ipkt->pts;
         Debug(1, "No video_first_pts");
       } else {
         opkt.pts = av_rescale_q(
-            ipkt->pts - video_first_pts,
-            AV_TIME_BASE_Q,
-            //audio_in_stream->time_base,
+            ipkt->pts - audio_first_pts,
+            audio_in_stream->time_base,
             audio_out_stream->time_base);
         Debug(2, "audio opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")",
-            opkt.pts, ipkt->pts, video_first_pts);
+            opkt.pts, ipkt->pts, audio_first_pts);
       }
     } else {
       Debug(2, "opkt.pts = undef");
@@ -1128,17 +1120,16 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
         opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts - audio_last_dts, AV_TIME_BASE_Q, audio_out_stream->time_base);
       }
 #endif
-      if ( !video_first_dts ) {
+      if ( !audio_first_dts ) {
         opkt.dts = 0;
-        video_first_dts = ipkt->dts;
+        audio_first_dts = ipkt->dts;
       } else {
         opkt.dts = av_rescale_q(
-            ipkt->dts - video_first_dts,
-            AV_TIME_BASE_Q,
-            //audio_in_stream->time_base,
+            ipkt->dts - audio_first_dts,
+            audio_in_stream->time_base,
             audio_out_stream->time_base);
         Debug(2, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_dts(%" PRId64 ")",
-            opkt.dts, ipkt->dts, video_first_dts);
+            opkt.dts, ipkt->dts, audio_first_dts);
       }
       audio_last_dts = ipkt->dts;
     } else {
@@ -1185,7 +1176,6 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 int VideoStore::resample_audio() {
   // Resample the in_frame into the audioSampleBuffer until we process the whole
   // decoded data. Note: pts does not survive resampling or converting
-  // if we ask for less samples than we input, convert_frame will buffer the remainder apparently
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
 #if defined(HAVE_LIBSWRESAMPLE)
   Debug(2, "Converting %d to %d samples using swresample",
@@ -1217,7 +1207,7 @@ int VideoStore::resample_audio() {
   audio_next_pts = out_frame->pts + out_frame->nb_samples;
 #endif
 
-  if ( (ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples)) < 0 ) {
+  if ((ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples)) < 0) {
     Error("Could not reallocate FIFO");
     return 0;
   }
@@ -1234,7 +1224,6 @@ int VideoStore::resample_audio() {
 
   // AAC requires 1024 samples per encode.  Our input tends to be 160, so need to buffer them.
   if ( frame_size > av_audio_fifo_size(fifo) ) {
-    Debug(1, "Not enough samples in the fifo");
     return 0;
   }
 
@@ -1244,18 +1233,15 @@ int VideoStore::resample_audio() {
   }
   out_frame->nb_samples = frame_size;
   // resampling changes the duration because the timebase is 1/samples
-  out_frame->pkt_duration = out_frame->nb_samples;
-  // out_frame->sample_rate;
   if ( in_frame->pts != AV_NOPTS_VALUE ) {
-    //out_frame->pkt_duration = av_rescale_q(
-        //in_frame->pkt_duration,
-        //audio_in_stream->time_base,
-        //audio_out_stream->time_base);
+    out_frame->pkt_duration = av_rescale_q(
+        in_frame->pkt_duration,
+        audio_in_stream->time_base,
+        audio_out_stream->time_base);
     out_frame->pts = av_rescale_q(
         in_frame->pts,
-        AV_TIME_BASE_Q,
-        //audio_in_ctx->time_base,
-        audio_out_ctx->time_base);
+        audio_in_stream->time_base,
+        audio_out_stream->time_base);
   }
 #else
 #if defined(HAVE_LIBAVRESAMPLE)

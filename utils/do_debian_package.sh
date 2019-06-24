@@ -23,6 +23,10 @@ case $i in
     INTERACTIVE="${i#*=}"
     shift # past argument=value
     ;;
+    -p=*|--ppa=*)
+    PPA="${i#*=}"
+    shift # past argument=value
+    ;;
     -r=*|--release=*)
     RELEASE="${i#*=}"
     shift
@@ -108,6 +112,23 @@ else
   fi;
 fi
 
+if [ "$PPA" == "" ]; then
+  if [ "$RELEASE" != "" ]; then
+    # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
+    IFS='.' read -r -a VERSION <<< "$RELEASE"
+    if [ "${VERSION[0]}.${VERSION[1]}" == "1.30" ]; then
+      PPA="ppa:iconnor/zoneminder-stable"
+    else
+      PPA="ppa:iconnor/zoneminder-${VERSION[0]}.${VERSION[1]}"
+    fi;
+  else
+    if [ "$BRANCH" == "" ]; then
+      PPA="ppa:iconnor/zoneminder-master";
+    else
+      PPA="ppa:iconnor/zoneminder-$BRANCH";
+    fi;
+  fi;
+fi;
 
 # Instead of cloning from github each time, if we have a fork lying around, update it and pull from there instead.
 if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then 
@@ -261,9 +282,9 @@ if [ $TYPE == "binary" ]; then
   if [ "$INTERACTIVE" != "no" ]; then
     read -p "Not doing dput since it's a binary release. Do you want to install it? (Y/N)"
     if [[ $REPLY == [yY] ]]; then
-        sudo dpkg -i $DIRECTORY*.deb
+      sudo dpkg -i $DIRECTORY*.deb
     else 
-	echo $REPLY;
+	    echo $REPLY;
     fi;
     if [ "$DISTRO" == "jessie" ]; then
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
@@ -282,25 +303,14 @@ if [ $TYPE == "binary" ]; then
   fi;
 else
   SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
-  PPA="";
-  if [ "$RELEASE" != "" ]; then
-      PPA="ppa:iconnor/zoneminder";
-  else
-    if [ "$BRANCH" == "" ]; then
-      PPA="ppa:iconnor/zoneminder-master";
-    else 
-      PPA="ppa:iconnor/zoneminder-$BRANCH";
-    fi;
-  fi;
 
-  dput="Y";
   if [ "$INTERACTIVE" != "no" ]; then
-    echo "Ready to dput $SC to $PPA ? Y/N...";
-    read dput
-  fi
-  if [ "$dput" == [Yy] ]; then
+    read -p "Ready to dput $SC to $PPA ? Y/N...";
+    if [[ "$REPLY" == [yY] ]]; then
+      dput $PPA $SC
+    fi;
+  else
+    echo "dputting to $PPA";
     dput $PPA $SC
   fi;
 fi;
-
-

@@ -207,9 +207,11 @@ function Monitor(monitorData) {
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered
- * @return null
+ * @param {*} element - the event data passed by onchange callback
  */
 function selectLayout(element) {
+
+  console.dir(element);
   layout = $j(element).val();
 
   if ( layout_id = parseInt(layout) ) {
@@ -277,7 +279,6 @@ function selectLayout(element) {
 
 /**
  * called when the widthControl|heightControl select elements are changed
- * @return null
  */
 function changeSize() {
   var width = $('width').get('value');
@@ -324,7 +325,6 @@ function changeSize() {
 
 /**
  * called when the scaleControl select element is changed
- * @return null
  */
 function changeScale() {
   var scale = $('scale').get('value');

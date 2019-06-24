@@ -285,8 +285,8 @@ VideoStore::VideoStore(
   video_last_pts = 0;
   video_last_dts = 0;
 
-  video_first_pts = 0;
-  video_first_dts = 0;
+  audio_first_pts = 0;
+  audio_first_dts = 0;
   audio_next_pts = 0;
   audio_next_dts = 0;
 
@@ -370,8 +370,6 @@ VideoStore::VideoStore(
       } // end if
       audio_out_ctx->codec_tag = 0;
 #endif
-
-      audio_out_ctx->frame_size = audio_in_ctx->frame_size;
 
       if ( audio_out_ctx->channels > 1 ) {
         Warning("Audio isn't mono, changing it.");
@@ -1019,7 +1017,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
         Debug(1, "No video_first_pts setting to %" PRId64, audio_first_pts);
         out_frame->pts = 0;
       } else {
-        out_frame->pts = out_frame->pts - video_first_pts;
+        out_frame->pts = out_frame->pts - audio_first_pts;
         zm_dump_frame(out_frame, "Out frame after pts adjustment");
       }
       //
@@ -1102,7 +1100,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             audio_in_stream->time_base,
             audio_out_stream->time_base);
         Debug(2, "audio opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")",
-            opkt.pts, ipkt->pts, video_first_pts);
+            opkt.pts, ipkt->pts, audio_first_pts);
       }
     } else {
       Debug(2, "opkt.pts = undef");
@@ -1120,16 +1118,16 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
         opkt.dts = audio_next_dts + av_rescale_q( audio_in_stream->cur_dts - audio_last_dts, AV_TIME_BASE_Q, audio_out_stream->time_base);
       }
 #endif
-      if ( !video_first_dts ) {
+      if ( !audio_first_dts ) {
         opkt.dts = 0;
-        video_first_dts = ipkt->dts;
+        audio_first_dts = ipkt->dts;
       } else {
         opkt.dts = av_rescale_q(
             ipkt->dts - audio_first_dts,
             audio_in_stream->time_base,
             audio_out_stream->time_base);
         Debug(2, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_dts(%" PRId64 ")",
-            opkt.dts, ipkt->dts, video_first_dts);
+            opkt.dts, ipkt->dts, audio_first_dts);
       }
       audio_last_dts = ipkt->dts;
     } else {

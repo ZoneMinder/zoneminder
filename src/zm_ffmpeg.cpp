@@ -511,12 +511,13 @@ int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet) 
   if ( (ret = avcodec_send_packet(context, &packet)) < 0  ) {
     Error( "Unable to send packet %s, continuing",
        av_make_error_string(ret).c_str() );
-    return 0;
+    return ret;
   }
 
   if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
-    Error( "Unable to send packet %s, continuing", av_make_error_string(ret).c_str() );
-    return 0;
+    Error("Unable to send packet %s, continuing",
+        av_make_error_string(ret).c_str());
+    return ret;
   }
 # else
   int frameComplete = 0;
@@ -528,11 +529,11 @@ int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet) 
     }
     if ( ret < 0 ) {
       Error("Unable to decode frame: %s", av_make_error_string(ret).c_str());
-      return 0;
+      return ret;
     }
   } // end while !frameComplete
 #endif
-  return 1;
+  return 0;
 } // end int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
 void dumpPacket(AVStream *stream, AVPacket *pkt, const char *text) {

@@ -41,6 +41,8 @@ class FfmpegCamera : public Camera {
     std::string         mPath;
     std::string         mMethod;
     std::string         mOptions;
+    std::string         hwaccel_name;
+    std::string         hwaccel_device;
 
     int frameCount;    
 
@@ -86,16 +88,31 @@ class FfmpegCamera : public Camera {
     int                 error_count;
 
   public:
-    FfmpegCamera( int p_id, const std::string &path, const std::string &p_method, const std::string &p_options, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+    FfmpegCamera(
+        int p_id,
+        const std::string &path,
+        const std::string &p_method,
+        const std::string &p_options,
+        int p_width,
+        int p_height,
+        int p_colours,
+        int p_brightness,
+        int p_contrast,
+        int p_hue,
+        int p_colour,
+        bool p_capture,
+        bool p_record_audio,
+        const std::string &p_hwaccel_name,
+        const std::string &p_hwaccel_device
+        );
     ~FfmpegCamera();
 
-    const std::string &Path() const { return( mPath ); }
-    const std::string &Options() const { return( mOptions ); } 
-    const std::string &Method() const { return( mMethod ); }
+    const std::string &Path() const { return mPath; }
+    const std::string &Options() const { return mOptions; } 
+    const std::string &Method() const { return mMethod; }
 
     void Initialise();
     void Terminate();
-
 
     int PrimeCapture();
     int PreCapture();

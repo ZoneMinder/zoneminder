@@ -505,7 +505,7 @@ bool is_audio_context( AVCodecContext *codec_context ) {
   #endif
 }
 
-int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet ) {
+int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet) {
   int ret;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   if ( (ret = avcodec_send_packet(context, &packet)) < 0  ) {
@@ -514,28 +514,10 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
     return 0;
   }
 
-#if HAVE_AVUTIL_HWCONTEXT_H
-  if ( hwaccel ) {
-    if ( (ret = avcodec_receive_frame(context, hwFrame)) < 0 ) {
-      Error( "Unable to receive frame %d: %s, continuing", streams[packet.stream_index].frame_count,
-         av_make_error_string(ret).c_str() );
-      return 0;
-    }
-    if ( (ret = av_hwframe_transfer_data(frame, hwFrame, 0)) < 0 ) {
-      Error( "Unable to transfer frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count,
-          av_make_error_string(ret).c_str() );
-      return 0;
-    }
-  } else {
-#endif
-    if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
-      Error( "Unable to send packet %s, continuing", av_make_error_string(ret).c_str() );
-      return 0;
-    }
-#if HAVE_AVUTIL_HWCONTEXT_H
+  if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
+    Error( "Unable to send packet %s, continuing", av_make_error_string(ret).c_str() );
+    return 0;
   }
-#endif
-
 # else
   int frameComplete = 0;
   while ( !frameComplete ) {
@@ -551,7 +533,7 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
   } // end while !frameComplete
 #endif
   return 1;
-} // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
+} // end int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
 void dumpPacket(AVStream *stream, AVPacket *pkt, const char *text) {
   char b[10240];

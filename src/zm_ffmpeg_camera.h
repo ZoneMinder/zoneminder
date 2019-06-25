@@ -27,7 +27,7 @@
 #include "zm_videostore.h"
 #include "zm_packetqueue.h"
 
-#if HAVE_AVUTIL_HWCONTEXT_H
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
       AVBufferRef *hw_device_ref;
 } DecodeContext;
@@ -59,16 +59,10 @@ class FfmpegCamera : public Camera {
 
     bool hwaccel;
     AVFrame             *hwFrame;
-#if HAVE_AVUTIL_HWCONTEXT_H
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
     DecodeContext       decode;
 #endif
   AVBufferRef *hw_device_ctx = NULL;
-
-    // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
-    int64_t audio_last_pts;
-    int64_t audio_last_dts;
-    int64_t video_last_pts;
-    int64_t video_last_dts;
 
     // Used to store the incoming packet, it will get copied when queued. 
     // We only ever need one at a time, so instead of constantly allocating
@@ -110,5 +104,6 @@ class FfmpegCamera : public Camera {
     int PostCapture();
   private:
     static int FfmpegInterruptCallback(void*ctx);
+    int transfer_to_image(Image &i, AVFrame *output_frame, AVFrame *input_frame);
 };
 #endif // ZM_FFMPEG_CAMERA_H

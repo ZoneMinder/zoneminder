@@ -108,23 +108,21 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
   int frameComplete = false;
   AVPacket packet;
   av_init_packet(&packet);
-  char errbuf[AV_ERROR_MAX_STRING_SIZE];
 
   while ( !frameComplete ) {
     int ret = av_read_frame(input_format_context, &packet);
     if ( ret < 0 ) {
-      av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
       if (
           // Check if EOF.
           (ret == AVERROR_EOF || (input_format_context->pb && input_format_context->pb->eof_reached)) ||
           // Check for Connection failure.
           (ret == -110)
          ) {
-        Info("av_read_frame returned %s.", errbuf);
+        Info("av_read_frame returned %s.", av_make_error_string(ret).c_str());
         return NULL;
       }
       Error("Unable to read packet from stream %d: error %d \"%s\".",
-          packet.stream_index, ret, errbuf);
+          packet.stream_index, ret, av_make_error_string(ret).c_str());
       return NULL;
     }
     dumpPacket(input_format_context->streams[packet.stream_index], &packet, "Received packet");
@@ -142,10 +140,9 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       }
       ret = zm_receive_frame(context, frame, packet);
       if ( ret < 0 ) {
-        av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
         Error("Unable to decode frame at frame %d: %s, continuing",
-            streams[packet.stream_index].frame_count, errbuf);
-        zm_av_packet_unref( &packet );
+            streams[packet.stream_index].frame_count, av_make_error_string(ret).c_str());
+        zm_av_packet_unref(&packet);
         av_frame_free(&frame);
         continue;
       }

@@ -426,6 +426,7 @@ int FfmpegCamera::OpenFfmpeg() {
   zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
 
   if ( hwaccel_name != "" ) {
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
     enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
     while ( (type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE )
       Debug(1, "%s", av_hwdevice_get_type_name(type));
@@ -465,6 +466,9 @@ int FfmpegCamera::OpenFfmpeg() {
     mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
     hwaccel = true;
     hwFrame = zm_av_frame_alloc();
+#else 
+    Warning("HWAccel support not compiled in.");
+#endif
   } // end if hwacel_name
 
   // Open the codec

@@ -28,7 +28,6 @@ extern "C" {
 #include "libavutil/time.h"
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 	#include "libavutil/hwcontext.h"
-	#include "libavutil/hwcontext_qsv.h"
 #endif
 }
 #ifndef AV_ERROR_MAX_STRING_SIZE

@@ -998,7 +998,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 
   if ( audio_out_codec ) {
     Debug(2, "Have output codec");
-    if ( ! zm_receive_frame(audio_in_ctx, in_frame, *ipkt) ) {
+    if ( ( ret = zm_receive_frame(audio_in_ctx, in_frame, *ipkt) ) < 0 ) {
       return 0;
     }
 

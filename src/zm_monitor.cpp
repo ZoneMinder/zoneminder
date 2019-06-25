@@ -71,7 +71,8 @@ std::string load_monitor_sql =
 "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, "
 "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
 "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
-"Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
+"Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, "
+"DecoderHWAccelName, DecoderHWAccelDevice, RTSPDescribe, "
 "SaveJPEGs, VideoWriter, EncoderParameters, "
 //" OutputCodec, Encoder, OutputContainer, "
 "RecordAudio, "
@@ -281,6 +282,8 @@ Monitor::Monitor(
   Camera *p_camera,
   int p_orientation,
   unsigned int p_deinterlacing,
+  const std::string &p_decoder_hwaccel_name,
+  const std::string &p_decoder_hwaccel_device,
   int p_savejpegs,
   VideoWriter p_videowriter,
   std::string p_encoderparams,
@@ -322,6 +325,8 @@ Monitor::Monitor(
     height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
   orientation( (Orientation)p_orientation ),
   deinterlacing( p_deinterlacing ),
+  decoder_hwaccel_name(p_decoder_hwaccel_name),
+  decoder_hwaccel_device(p_decoder_hwaccel_device),
   savejpegs( p_savejpegs ),
   videowriter( p_videowriter ),
   encoderparams( p_encoderparams ),
@@ -361,7 +366,7 @@ Monitor::Monitor(
   privacy_bitmask( NULL ),
   event_delete_thread(NULL)
 {
-  strncpy( name, p_name, sizeof(name)-1 );
+  strncpy(name, p_name, sizeof(name)-1);
 
   strncpy(event_prefix, p_event_prefix, sizeof(event_prefix)-1);
   strncpy(label_format, p_label_format, sizeof(label_format)-1);
@@ -1379,6 +1384,7 @@ bool Monitor::Analyse() {
 
         if ( trigger_data->trigger_state == TRIGGER_ON ) {
           score += trigger_data->trigger_score;
+          Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
           if ( !event ) {
             // How could it have a length already?
             //if ( cause.length() )
@@ -1389,6 +1395,7 @@ bool Monitor::Analyse() {
           noteSet.insert(trigger_data->trigger_text);
           noteSetMap[trigger_data->trigger_cause] = noteSet;
         }
+
         if ( signal_change ) {
           const char *signalText;
           if ( !signal ) {
@@ -1475,7 +1482,7 @@ bool Monitor::Analyse() {
 
               if ( section_length
                   && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                  && ( ! ( timestamp->tv_sec % section_length ) ) 
+                  && ( (event_close_mode != CLOSE_TIME) || ! ( timestamp->tv_sec % section_length ) ) 
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
                     name, image_count, event->Id(),
@@ -1508,19 +1515,20 @@ bool Monitor::Analyse() {
         } // end if !signal_change && signal
 
         if ( score ) {
-          if ( state == IDLE || state == TAPE || state == PREALARM ) {
+          if ( (state == IDLE) || (state == TAPE) || (state == PREALARM) ) {
+            // If we should end then previous continuous event and start a new non-continuous event
+            if ( event && event->Frames()
+                && (!event->AlarmFrames())
+                && (event_close_mode == CLOSE_ALARM)
+                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+               ) {
+              Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
+                  name, image_count, event->Id());
+              closeEvent();
+            }
+            Debug(3, "pre-alarm-count %d", Event::PreAlarmCount());
             // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
-              // If we should end then previous continuous event and start a new non-continuous event
-              if ( event && event->Frames()
-                  && (!event->AlarmFrames())
-                  && (event_close_mode == CLOSE_ALARM)
-                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
-                 ) {
-                Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
-                    name, image_count, event->Id());
-                closeEvent();
-              }
               shared_data->state = state = ALARM;
               // lets construct alarm cause. It will contain cause + names of zones alarmed
               std::string alarm_cause = "";
@@ -2084,6 +2092,9 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   int palette = atoi(dbrow[col]); col++;
   Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
   int deinterlacing = atoi(dbrow[col]); col++;
+  std::string decoder_hwaccel_name = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string decoder_hwaccel_device = dbrow[col] ? dbrow[col] : ""; col++;
+
   bool rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
 
   int savejpegs = atoi(dbrow[col]); col++;
@@ -2220,8 +2231,10 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       hue,
       colour,
       purpose==CAPTURE,
-      record_audio
-    );
+      record_audio,
+      decoder_hwaccel_name,
+      decoder_hwaccel_device
+      );
 #endif // HAVE_LIBAVFORMAT
   } else if ( type == "NVSocket" ) {
       camera = new RemoteCameraNVSocket(
@@ -2294,6 +2307,8 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       camera,
       orientation,
       deinterlacing,
+      decoder_hwaccel_name,
+      decoder_hwaccel_device,
       savejpegs,
       videowriter,
       encoderparams,

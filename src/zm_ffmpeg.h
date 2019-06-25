@@ -300,6 +300,7 @@ void zm_dump_codec(const AVCodecContext *codec);
 void zm_dump_codecpar(const AVCodecParameters *par);
 #endif
 void zm_dump_frame(const AVFrame *frame, const char *text="Frame");
+void zm_dump_video_frame(const AVFrame *frame, const char *text="Frame");
 
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
     #define zm_av_packet_unref( packet ) av_packet_unref( packet )

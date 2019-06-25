@@ -1379,6 +1379,7 @@ bool Monitor::Analyse() {
 
         if ( trigger_data->trigger_state == TRIGGER_ON ) {
           score += trigger_data->trigger_score;
+          Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
           if ( !event ) {
             // How could it have a length already?
             //if ( cause.length() )
@@ -1389,6 +1390,7 @@ bool Monitor::Analyse() {
           noteSet.insert(trigger_data->trigger_text);
           noteSetMap[trigger_data->trigger_cause] = noteSet;
         }
+
         if ( signal_change ) {
           const char *signalText;
           if ( !signal ) {
@@ -1475,7 +1477,7 @@ bool Monitor::Analyse() {
 
               if ( section_length
                   && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                  && ( ! ( timestamp->tv_sec % section_length ) ) 
+                  && ( (event_close_mode != CLOSE_TIME) || ! ( timestamp->tv_sec % section_length ) ) 
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %d - %d = %d >= %d",
                     name, image_count, event->Id(),
@@ -1508,19 +1510,20 @@ bool Monitor::Analyse() {
         } // end if !signal_change && signal
 
         if ( score ) {
-          if ( state == IDLE || state == TAPE || state == PREALARM ) {
+          if ( (state == IDLE) || (state == TAPE) || (state == PREALARM) ) {
+            // If we should end then previous continuous event and start a new non-continuous event
+            if ( event && event->Frames()
+                && (!event->AlarmFrames())
+                && (event_close_mode == CLOSE_ALARM)
+                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+               ) {
+              Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
+                  name, image_count, event->Id());
+              closeEvent();
+            }
+            Debug(3, "pre-alarm-count %d", Event::PreAlarmCount());
             // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
             if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
-              // If we should end then previous continuous event and start a new non-continuous event
-              if ( event && event->Frames()
-                  && (!event->AlarmFrames())
-                  && (event_close_mode == CLOSE_ALARM)
-                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
-                 ) {
-                Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
-                    name, image_count, event->Id());
-                closeEvent();
-              }
               shared_data->state = state = ALARM;
               // lets construct alarm cause. It will contain cause + names of zones alarmed
               std::string alarm_cause = "";

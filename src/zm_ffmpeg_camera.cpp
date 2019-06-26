@@ -47,16 +47,48 @@ static enum AVPixelFormat get_hw_format(
     AVCodecContext *ctx,
     const enum AVPixelFormat *pix_fmts
 ) {
-    const enum AVPixelFormat *p;
+  const enum AVPixelFormat *p;
 
-    for ( p = pix_fmts; *p != -1; p++ ) {
-      if ( *p == hw_pix_fmt )
-        return *p;
-    }
+  for ( p = pix_fmts; *p != -1; p++ ) {
+    if ( *p == hw_pix_fmt )
+      return *p;
+  }
 
-    Error("Failed to get HW surface format.");
-    return AV_PIX_FMT_NONE;
+  Error("Failed to get HW surface format for %s.", av_get_pix_fmt_name(hw_pix_fmt));
+  for ( p = pix_fmts; *p != -1; p++ )
+    Error("Available HW surface format was %s.", av_get_pix_fmt_name(*p));
+
+  return AV_PIX_FMT_NONE;
 }
+#if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
+static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
+    enum AVPixelFormat fmt;
+    switch (type) {
+    case AV_HWDEVICE_TYPE_VAAPI:
+        fmt = AV_PIX_FMT_VAAPI;
+        break;
+    case AV_HWDEVICE_TYPE_DXVA2:
+        fmt = AV_PIX_FMT_DXVA2_VLD;
+        break;
+    case AV_HWDEVICE_TYPE_D3D11VA:
+        fmt = AV_PIX_FMT_D3D11;
+        break;
+    case AV_HWDEVICE_TYPE_VDPAU:
+        fmt = AV_PIX_FMT_VDPAU;
+        break;
+    case AV_HWDEVICE_TYPE_CUDA:
+        fmt = AV_PIX_FMT_CUDA;
+        break;
+    case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
+        fmt = AV_PIX_FMT_VIDEOTOOLBOX;
+        break;
+    default:
+        fmt = AV_PIX_FMT_NONE;
+        break;
+    }
+    return fmt;
+}
+#endif
 #endif
 
 FfmpegCamera::FfmpegCamera(
@@ -392,22 +424,6 @@ int FfmpegCamera::OpenFfmpeg() {
 	mVideoCodecContext->flags2 |= CODEC_FLAG2_FAST | CODEC_FLAG_LOW_DELAY;
 #endif
 
-  AVHWAccel *first_hwaccel   = av_hwaccel_next(NULL);
-  AVHWAccel *temp_hwaccel = first_hwaccel;
-  AVHWAccel *h264 = NULL;
-  const char * h264_name = "h264_vaapi";
-  while ( temp_hwaccel != NULL ) {
-      Debug(1,"%s ", temp_hwaccel->name);
-      if ( strcmp(temp_hwaccel->name, h264_name) == 0 ) {
-        h264=temp_hwaccel;
-      }
-    temp_hwaccel = av_hwaccel_next(temp_hwaccel);
-
-    if ( temp_hwaccel == first_hwaccel ) {
-      break;
-    }
-  }
-
   if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
     if ( (mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == NULL ) {
       Debug(1, "Failed to find decoder (h264_mmal)" );
@@ -426,6 +442,7 @@ int FfmpegCamera::OpenFfmpeg() {
   zm_dump_stream_format(mFormatContext, mVideoStreamId, 0, 0);
 
   if ( hwaccel_name != "" ) {
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
     enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
     while ( (type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE )
       Debug(1, "%s", av_hwdevice_get_type_name(type));
@@ -438,6 +455,7 @@ int FfmpegCamera::OpenFfmpeg() {
       Debug(1, "Found hwdevice %s", av_hwdevice_get_type_name(type));
     }
 
+#if LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
     // Get h_pix_fmt
     for ( int i = 0;; i++ ) {
       const AVCodecHWConfig *config = avcodec_get_hw_config(mVideoCodec, i);
@@ -453,11 +471,15 @@ int FfmpegCamera::OpenFfmpeg() {
         break;
       }
     } // end foreach hwconfig
+#else 
+    hw_pix_fmt = find_fmt_by_hw_type(type);
+#endif
 
     mVideoCodecContext->get_format = get_hw_format;
 
-    Debug(1, "Creating hwdevice");
-    if ((ret = av_hwdevice_ctx_create(&hw_device_ctx, type, NULL, NULL, 0)) < 0) {
+    Debug(1, "Creating hwdevice for %s", (hwaccel_device != "" ? hwaccel_device.c_str() : ""));
+    if ((ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
+            (hwaccel_device != "" ? hwaccel_device.c_str(): NULL), NULL, 0)) < 0) {
       Error("Failed to create specified HW device.");
       return -1;
     }
@@ -465,6 +487,9 @@ int FfmpegCamera::OpenFfmpeg() {
     mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
     hwaccel = true;
     hwFrame = zm_av_frame_alloc();
+#else 
+    Warning("HWAccel support not compiled in.");
+#endif
   } // end if hwacel_name
 
   // Open the codec

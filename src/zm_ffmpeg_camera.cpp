@@ -47,15 +47,18 @@ static enum AVPixelFormat get_hw_format(
     AVCodecContext *ctx,
     const enum AVPixelFormat *pix_fmts
 ) {
-    const enum AVPixelFormat *p;
+  const enum AVPixelFormat *p;
 
-    for ( p = pix_fmts; *p != -1; p++ ) {
-      if ( *p == hw_pix_fmt )
-        return *p;
-    }
+  for ( p = pix_fmts; *p != -1; p++ ) {
+    if ( *p == hw_pix_fmt )
+      return *p;
+  }
 
-    Error("Failed to get HW surface format.");
-    return AV_PIX_FMT_NONE;
+  Error("Failed to get HW surface format for %s.", av_get_pix_fmt_name(hw_pix_fmt));
+  for ( p = pix_fmts; *p != -1; p++ )
+    Error("Available HW surface format was %s.", av_get_pix_fmt_name(*p));
+
+  return AV_PIX_FMT_NONE;
 }
 #if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
 static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
@@ -72,6 +75,9 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
         break;
     case AV_HWDEVICE_TYPE_VDPAU:
         fmt = AV_PIX_FMT_VDPAU;
+        break;
+    case AV_HWDEVICE_TYPE_CUDA:
+        fmt = AV_PIX_FMT_CUDA;
         break;
     case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
         fmt = AV_PIX_FMT_VIDEOTOOLBOX;
@@ -471,8 +477,9 @@ int FfmpegCamera::OpenFfmpeg() {
 
     mVideoCodecContext->get_format = get_hw_format;
 
-    Debug(1, "Creating hwdevice");
-    if ((ret = av_hwdevice_ctx_create(&hw_device_ctx, type, NULL, NULL, 0)) < 0) {
+    Debug(1, "Creating hwdevice for %s", (hwaccel_device != "" ? hwaccel_device.c_str() : ""));
+    if ((ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
+            (hwaccel_device != "" ? hwaccel_device.c_str(): NULL), NULL, 0)) < 0) {
       Error("Failed to create specified HW device.");
       return -1;
     }

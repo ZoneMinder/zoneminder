@@ -63,8 +63,8 @@ class FfmpegCamera : public Camera {
     AVFrame             *hwFrame;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
     DecodeContext       decode;
-#endif
   AVBufferRef *hw_device_ctx = NULL;
+#endif
 
     // Used to store the incoming packet, it will get copied when queued. 
     // We only ever need one at a time, so instead of constantly allocating

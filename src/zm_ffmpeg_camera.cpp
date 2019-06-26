@@ -151,6 +151,9 @@ FfmpegCamera::FfmpegCamera(
   have_video_keyframe = false;
   packetqueue = NULL;
   error_count = 0;
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+  hw_pix_fmt = AV_PIX_FMT_NONE;
+#endif
 
 #if HAVE_LIBSWSCALE  
   mConvertContext = NULL;
@@ -915,7 +918,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       if ( error_count > 0 ) error_count --;
       zm_dump_video_frame(mRawFrame);
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-      if ( mRawFrame->format == hw_pix_fmt ) {
+      if ( hw_pix_fmt != mRawFrame->format == hw_pix_fmt ) {
         /* retrieve data from GPU to CPU */
         ret = av_hwframe_transfer_data(hwFrame, mRawFrame, 0);
         if ( ret < 0 ) {

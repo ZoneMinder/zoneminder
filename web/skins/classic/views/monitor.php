@@ -103,6 +103,7 @@ if ( ! $monitor ) {
           'ReturnLocation' => -1,
           'ReturnDelay' => '',
           'SectionLength' => 600,
+          'MinSectionLength' => 10,
           'FrameSkip' => 0,
           'MotionFrameSkip' => 0,
           'EventPrefix' => 'Event-',
@@ -657,6 +658,7 @@ if ( $tab != 'misc' ) {
 ?>
       <input type="hidden" name="newMonitor[EventPrefix]" value="<?php echo validHtmlStr($monitor->EventPrefix()) ?>"/>
       <input type="hidden" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($monitor->SectionLength()) ?>"/>
+      <input type="hidden" name="newMonitor[MinSectionLength]" value="<?php echo validHtmlStr($monitor->MinSectionLength()) ?>"/>
       <input type="hidden" name="newMonitor[FrameSkip]" value="<?php echo validHtmlStr($monitor->FrameSkip()) ?>"/>
       <input type="hidden" name="newMonitor[MotionFrameSkip]" value="<?php echo validHtmlStr($monitor->MotionFrameSkip()) ?>"/>
       <input type="hidden" name="newMonitor[AnalysisUpdateDelay]" value="<?php echo validHtmlStr($monitor->AnalysisUpdateDelay()) ?>"/>
@@ -895,6 +897,22 @@ include('_monitor_source_nvsocket.php');
           </tr>
 <?php
       }
+      if ( $monitor->Type() == 'Ffmpeg' ) {
+?>
+          <tr class="DecoderHWAccelName">
+            <td><?php echo translate('DecoderHWAccelName') ?>
+                (<?php echo makePopupLink('?view=optionhelp&amp;option=DECODERHWACCELNAME', 'zmOptionHelp', 'optionhelp', '?') ?>)
+            </td>
+            <td><input type="text" name="newMonitor[DecoderHWAccelName]" value="<?php echo validHtmlStr($monitor->DecoderHWAccelName()) ?>"/></td>
+          </tr>
+          <tr class="DecoderHWAccelDevice">
+            <td><?php echo translate('DecoderHWAccelDevice') ?>
+                (<?php echo makePopupLink('?view=optionhelp&amp;option=DECODERHWACCELDEVIC', 'zmOptionHelp', 'optionhelp', '?') ?>)
+            </td>
+            <td><input type="text" name="newMonitor[DecoderHWAccelDevice]" value="<?php echo validHtmlStr($monitor->DecoderHWAccelDevice()) ?>"/></td>
+          </tr>
+<?php
+      }
 if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
 ?>
         <tr><td><?php echo translate('TargetColorspace') ?></td><td><?php echo htmlSelect('newMonitor[Colours]', $Colours, $monitor->Colours() ); ?>
@@ -1021,6 +1039,13 @@ if ( $monitor->Type() == 'Local' ) {
           <td><?php echo translate('Sectionlength') ?></td>
           <td>
             <input type="number" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($monitor->SectionLength()) ?>"/>
+            <?php echo translate('seconds')?>
+          </td>
+        </tr>
+        <tr>
+          <td><?php echo translate('MinSectionlength') ?></td>
+          <td>
+            <input type="number" name="newMonitor[MinSectionLength]" value="<?php echo validHtmlStr($monitor->MinSectionLength()) ?>"/>
             <?php echo translate('seconds')?>
           </td>
         </tr>

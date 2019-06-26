@@ -250,6 +250,8 @@ protected:
   Orientation     orientation;        // Whether the image has to be rotated at all
   unsigned int    deinterlacing;
   bool            videoRecording;
+  std::string     decoder_hwaccel_name;
+  std::string     decoder_hwaccel_device;
 
   int savejpegs;
   VideoWriter videowriter;
@@ -273,6 +275,7 @@ protected:
   int           post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int           stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   int           section_length;      // How long events should last in continuous modes
+  int           min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool          adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int           frame_skip;        // How many frames to skip in continuous modes
   int           motion_frame_skip;      // How many frames to skip in motion detection
@@ -367,6 +370,8 @@ public:
     Camera *p_camera,
     int p_orientation,
     unsigned int p_deinterlacing,
+    const std::string &p_decoder_hwaccel_name,
+    const std::string &p_decoder_hwaccel_device,
     int p_savejpegs,
     VideoWriter p_videowriter,
     std::string p_encoderparams,
@@ -382,6 +387,7 @@ public:
     int p_stream_replay_buffer,
     int p_alarm_frame_count,
     int p_section_length,
+    int p_min_section_length,
     int p_frame_skip,
     int p_motion_frame_skip,
     double p_analysis_fps,

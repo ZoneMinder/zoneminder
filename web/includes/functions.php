@@ -1077,13 +1077,28 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
     case 'MaxScore' :
       $sortColumn = 'E.MaxScore';
       break;
+    case 'FramesFrameId' :
+      $sortColumn = 'F.FrameId';
+      break;
+    case 'FramesType' :
+      $sortColumn = 'F.Type';
+      break;
+    case 'FramesTimeStamp' :
+      $sortColumn = 'F.TimeStamp';
+      break;
+    case 'FramesDelta' :
+      $sortColumn = 'F.Delta';
+      break;
+    case 'FramesScore' :
+      $sortColumn = 'F.Score';
+      break;
     default:
       $sortColumn = 'E.StartTime';
       break;
   }
-  $sortOrder = $_REQUEST['sort_asc']?'asc':'desc';
   if ( !$_REQUEST['sort_asc'] )
     $_REQUEST['sort_asc'] = 0;
+  $sortOrder = $_REQUEST['sort_asc']?'asc':'desc';
   $sortQuery = $querySep.'sort_field='.validHtmlStr($_REQUEST['sort_field']).$querySep.'sort_asc='.validHtmlStr($_REQUEST['sort_asc']);
   if ( !isset($_REQUEST['limit']) )
     $_REQUEST['limit'] = '';
@@ -1167,6 +1182,9 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 # Starting Time
           case 'StartDateTime':
             $filter['sql'] .= 'E.StartTime';
+            break;
+          case 'FramesEventId':
+            $filter['sql'] .= 'F.EventId';
             break;
           case 'StartDate':
             $filter['sql'] .= 'to_days( E.StartTime )';

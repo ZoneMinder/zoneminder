@@ -58,6 +58,7 @@ function xhtmlHeaders($file, $title) {
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX); ?> - <?php echo validHtmlStr($title) ?></title>
 <?php
 if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
@@ -79,14 +80,18 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 <?php 
 echo output_link_if_exists( array(
   'css/base/skin.css',
-  'css/'.$css.'/skin.css',
   'css/base/views/'.$basename.'.css',
-  'css/'.$css.'/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
   #'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
-  'css/'.$css.'/jquery-ui-theme.css',
 )
+);
+if ( $css != 'base' )
+  echo output_link_if_exists( array(
+    'css/'.$css.'/skin.css',
+    'css/'.$css.'/views/'.$basename.'.css',
+    'css/'.$css.'/jquery-ui-theme.css',
+  )
 );
 ?>
 <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
@@ -341,7 +346,7 @@ if ( canEdit('System') ) {
 		<button type="button" class="btn btn-default navbar-btn" data-toggle="modal" data-target="#modalState"><?php echo $status ?></button>
   <?php if ( ZM_SYSTEM_SHUTDOWN ) { ?>
   <p class="navbar-text">
-  <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i></button>' ) ?>
+  <?php echo makePopupLink('?view=shutdown', 'zmShutdown', 'shutdown', '<i class="material-icons md-18">power_settings_new</i>' ) ?>
   </p>
   <?php } ?>
 <?php } else if ( canView('System') ) { ?>
@@ -394,7 +399,8 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
 
-    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
+    return '<span class="'.$class.'" title="'.$title.'">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>
+'; };
   #$func =  function($S){ return '<span title="">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</span>'; };
   if ( count($storage_areas) > 4 ) 
     $storage_areas = ZM\Storage::find( array('ServerId'=>null) );

@@ -686,6 +686,9 @@ function handleClick( event ) {
   if ( showMode == "events" || !imageControlMode ) {
     if ( event.shift ) {
       streamCmdPan( x, y );
+    } else if ( event.event.ctrlKey ) {
+      console.log("Zooming out");
+      streamCmdZoomOut();
     } else {
       streamCmdZoomIn( x, y );
     }

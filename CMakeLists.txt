@@ -876,7 +876,7 @@ ADD_MANPAGE_TARGET()
 # build a bcrypt static library
 set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
 set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(third_party/bcrypt)
+add_subdirectory(src/libbcrypt EXCLUDE_FROM_ALL)
 set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
 
 add_subdirectory(src)

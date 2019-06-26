@@ -371,6 +371,8 @@ VideoStore::VideoStore(
       audio_out_ctx->codec_tag = 0;
 #endif
 
+      //audio_out_ctx->frame_size = audio_in_ctx->frame_size;
+
       if ( audio_out_ctx->channels > 1 ) {
         Warning("Audio isn't mono, changing it.");
         audio_out_ctx->channels = 1;
@@ -862,9 +864,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
         ipkt->duration,
         video_in_stream->time_base,
         video_out_stream->time_base);
-    Debug(1, "duration from ipkt: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
-        ipkt->pts,
-        video_last_pts,
+    Debug(1, "duration from ipkt: %" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
         ipkt->duration,
         duration,
         video_in_stream->time_base.num,
@@ -935,7 +935,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
       Debug(3, "opkt.dts = %" PRId64 " from ipkt->dts(%" PRId64 ") - first_pts(%" PRId64 ")",
           opkt.dts, ipkt->dts, video_first_dts);
     }
-    if ( opkt.dts > opkt.pts ) {
+    if ( (opkt.pts != AV_NOPTS_VALUE) && (opkt.dts > opkt.pts) ) {
       Debug(1,
           "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 "). Decompression must happen "
           "before presentation.",
@@ -947,11 +947,11 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     opkt.dts = video_out_stream->cur_dts;
   }
 
-# if 0
-	if ( opkt.dts <= video_out_stream->cur_dts ) {
+# if 1
+	if ( opkt.dts < video_out_stream->cur_dts ) {
 		Warning("Fixing non-monotonic dts/pts dts %" PRId64 " pts %" PRId64 " stream %" PRId64,
 				opkt.dts, opkt.pts, video_out_stream->cur_dts);
-		opkt.dts = video_out_stream->cur_dts + 1;
+		opkt.dts = video_out_stream->cur_dts;
 		if ( opkt.dts > opkt.pts ) {
 			opkt.pts = opkt.dts;
 		}
@@ -1016,7 +1016,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     if ( out_frame->pts != AV_NOPTS_VALUE ) {
       if ( !audio_first_pts ) {
         audio_first_pts = out_frame->pts;
-        Debug(1, "No audio_first_pts setting to %" PRId64, audio_first_pts);
+        Debug(1, "No video_first_pts setting to %" PRId64, audio_first_pts);
         out_frame->pts = 0;
       } else {
         out_frame->pts = out_frame->pts - audio_first_pts;
@@ -1095,7 +1095,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       if ( !audio_first_pts ) {
         opkt.pts = 0;
         audio_first_pts = ipkt->pts;
-        Debug(1, "No audio_first_pts");
+        Debug(1, "No video_first_pts");
       } else {
         opkt.pts = av_rescale_q(
             ipkt->pts - audio_first_pts,
@@ -1192,12 +1192,12 @@ int VideoStore::resample_audio() {
 #if 0
   // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
   if ( out_frame->pts != AV_NOPTS_VALUE ) {
-    if ( !audio_first_pts ) {
-      audio_first_pts = out_frame->pts;
-      Debug(1, "No audio_first_pts setting to %" PRId64, audio_first_pts);
+    if ( !video_first_pts ) {
+      video_first_pts = out_frame->pts;
+      Debug(1, "No video_first_pts setting to %" PRId64, video_first_pts);
       out_frame->pts = 0;
     } else {
-      out_frame->pts = out_frame->pts - audio_first_pts;
+      out_frame->pts = out_frame->pts - video_first_pts;
     }
     //
   } else {

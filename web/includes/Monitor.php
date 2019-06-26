@@ -61,6 +61,7 @@ private $defaults = array(
   'StreamReplayBuffer'  => 0,
   'AlarmFrameCount'     =>  1,
   'SectionLength'       =>  600,
+  'MinSectionLength'    =>  10,
   'FrameSkip'           =>  0,
   'AnalysisFPSLimit'  =>  null,
   'AnalysisUpdateDelay'  =>  0,
@@ -360,6 +361,8 @@ private $control_fields = array(
         } else if ( is_integer( $v ) ) {
           $this->{$k} = $v;
         } else if ( is_bool( $v ) ) {
+          $this->{$k} = $v;
+        } else if ( is_null( $v ) ) {
           $this->{$k} = $v;
         } else {
           Error( "Unknown type $k => $v of var " . gettype( $v ) );

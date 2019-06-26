@@ -458,9 +458,9 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   } // end foreach stream
   if ( mVideoStreamId == -1 )
-    Fatal( "Unable to locate video stream in %s", mPath.c_str() );
+    Fatal("Unable to locate video stream in %s", mPath.c_str());
   if ( mAudioStreamId == -1 )
-    Debug( 3, "Unable to locate audio stream in %s", mPath.c_str() );
+    Debug(3, "Unable to locate audio stream in %s", mPath.c_str());
 
   Debug(3, "Found video stream at index %d", mVideoStreamId);
   Debug(3, "Found audio stream at index %d", mAudioStreamId);
@@ -758,6 +758,9 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
     int keyframe = packet.flags & AV_PKT_FLAG_KEY;
     bytes += packet.size;
     dumpPacket(mFormatContext->streams[packet.stream_index], &packet, "Captured Packet");
+    if ( packet.dts == AV_NOPTS_VALUE ) {
+      packet.dts = packet.pts;
+    }
 
     // Video recording
     if ( recording.tv_sec ) {
@@ -793,6 +796,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       if ( last_event_id and !videoStore ) {
         //Instantiate the video storage module
 
+        packetqueue->dumpQueue();
         if ( record_audio ) {
           if ( mAudioStreamId == -1 ) {
             Debug(3, "Record Audio on but no audio stream found");
@@ -946,7 +950,8 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           ret = avcodec_receive_frame(mVideoCodecContext, mRawFrame);
           if ( ret < 0 ) {
             av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
-            Warning("Unable to receive frame %d: %s, continuing", frameCount, errbuf);
+            Warning("Unable to receive frame %d: %s, continuing. error count is %s",
+                frameCount, errbuf, error_count);
 						error_count += 1;
 						if ( error_count > 100 ) {
 							Error("Error count over 100, going to close and re-open stream");

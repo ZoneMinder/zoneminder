@@ -43,6 +43,7 @@ $widths = array(
 $heights = array( 
   'auto'  => 'auto',
   '240px' => '240px',
+  '320px' => '320px',
   '480px' => '480px',
   '720px' => '720px',
   '1080px' => '1080px',
@@ -256,7 +257,6 @@ foreach ( $monitors as $monitor ) {
 
       if ( $scale ) {
         limitPoints($row['Points'], 0, 0, $monitor->Width(), $monitor->Height());
-        scalePoints($row['Points'], $scale);
       } else {
         limitPoints($row['Points'], 0, 0, 
             ( $width ? $width-1 : $monitor->Width()-1 ),
@@ -269,7 +269,7 @@ foreach ( $monitors as $monitor ) {
     } // end foreach Zone
 ?>
 
-<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: <?php echo $width ?>px; height: <?php echo $height ?>px;">
+<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: 100%; height: 100%;" viewBox="0 0 <?php echo  $monitor->Width() ?> <?php echo  $monitor->Height() ?>" preserveAspectRatio="none">
 <?php
 foreach( array_reverse($zones) as $zone ) {
   echo '<polygon points="'. $zone['AreaCoords'] .'" class="'. $zone['Type'].'" />';

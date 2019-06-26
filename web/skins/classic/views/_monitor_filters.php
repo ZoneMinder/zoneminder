@@ -63,7 +63,8 @@ if ( count($GroupsById) ) {
   $group_id = isset($_SESSION['Group']) ? $_SESSION['Group'] : null;
   $html .= ZM\Group::get_group_dropdown();
   $groupSql = ZM\Group::get_group_sql($group_id);
-  $html .= '</span>';
+  $html .= '</span>
+';
 }
 
 $selected_monitor_ids = isset($_SESSION['MonitorId']) ? $_SESSION['MonitorId'] : array();
@@ -95,7 +96,8 @@ if ( ! empty($user['MonitorIds']) ) {
 
 $html .= '<span class="MonitorNameFilter"><label>'.translate('Name').'</label>';
 $html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="text or regular expression"/>';
-$html .= '</span>';
+$html .= '</span>
+';
 
 $Functions = array();
 foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
@@ -112,7 +114,8 @@ $html .= htmlSelect('Function[]', $Functions,
       'data-placeholder'=>'All',
     )
  );
-$html .= '</span>';
+$html .= '</span>
+';
 
 if ( count($ServersById) > 1 ) {
   $html .= '<span class="ServerFilter"><label>'. translate('Server').'</label>';
@@ -125,7 +128,8 @@ if ( count($ServersById) > 1 ) {
       'data-placeholder'=>'All',
     )
   );
-  $html .= '</span>';
+  $html .= '</span>
+';
 } # end if have Servers
 
 if ( count($StorageById) > 1 ) {
@@ -138,7 +142,8 @@ if ( count($StorageById) > 1 ) {
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
     ) );
-  $html .= '</span>';
+  $html .= '</span>
+';
 } # end if have Storage Areas
 
 $html .= '<span class="StatusFilter"><label>'. translate('Status') . '</label>';
@@ -156,11 +161,13 @@ $html .= htmlSelect( 'Status[]', $status_options,
     'multiple'=>'multiple',
     'data-placeholder'=>'All'
   ) );
-  $html .= '</span>';
+$html .= '</span>
+';
 
   $html .= '<span class="SourceFilter"><label>'.translate('Source').'</label>';
   $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?validHtmlStr($_SESSION['Source']):'').'" placeholder="text or regular expression"/>';
-  $html .= '</span>';
+  $html .= '</span>
+';
 
   $sql = 'SELECT *,S.Status AS Status, S.CaptureFPS AS CaptureFPS, S.AnalysisFPS AS AnalysisFPS, S.CaptureBandwidth AS CaptureBandwidth
   FROM Monitors AS M LEFT JOIN Monitor_Status AS S ON MonitorId=Id ' .
@@ -243,7 +250,8 @@ $html .= htmlSelect( 'Status[]', $status_options,
     ) );
 # Repurpose this variable to be the list of MonitorIds as a result of all the filtering
 $selected_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
-  $html .= '</span>';
+$html .= '</span>
+';
   echo $html;
 ?>
 </div>

@@ -245,14 +245,21 @@ void zm_packetqueue::clear_unwanted_packets(
   }
 
   if ( it == pktQueue.rend() ) {
-    Debug(1, "Didn't find a frame before event starttime. keeping all" );
+    Debug(1, "Didn't find a frame before event starttime. keeping all");
     return;
   }
 
-  for ( ; pre_event_count && it != pktQueue.rend(); -- pre_event_count, ++ it ) {
+  Debug(1, "Seeking back %d frames", pre_event_count);
+  for ( ; pre_event_count && (it != pktQueue.rend()); ++ it ) {
+    ZMPacket *zm_packet = *it;
+    AVPacket *av_packet = &(zm_packet->packet);
+    if ( av_packet->stream_index == mVideoStreamId ) {
+      --pre_event_count;
+    }
   }
+
   if ( it == pktQueue.rend() ) {
-    Debug(1, "ran out of pre_event frames before event starttime. keeping all" );
+    Debug(1, "ran out of pre_event frames before event starttime. keeping all");
     return;
   }
 

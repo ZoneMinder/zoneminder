@@ -1525,21 +1525,25 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
                   name, image_count, event->Id());
               closeEvent();
-            }
-            Debug(3, "pre-alarm-count %d", Event::PreAlarmCount());
+            } else {
             // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-            if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
+            Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d",
+                Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
+                ( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
+                );
+            }
+            if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) ) {
               shared_data->state = state = ALARM;
               // lets construct alarm cause. It will contain cause + names of zones alarmed
               std::string alarm_cause = "";
               for ( int i=0; i < n_zones; i++ ) {
                 if ( zones[i]->Alarmed() ) {
-                    alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
+                  alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
                 }
               }
               if ( !alarm_cause.empty() ) alarm_cause[0] = ' ';
               alarm_cause = cause + alarm_cause;
-              strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+              strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
@@ -1550,7 +1554,9 @@ bool Monitor::Analyse() {
                 if ( analysis_fps && pre_event_count ) {
                   // If analysis fps is set,
                   // compute the index for pre event images in the dedicated buffer
-                  pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
+                  pre_index = pre_event_buffer_count ? image_count % pre_event_buffer_count : 0;
+                  Debug(3, "pre-index %d = image_count(%d) %% pre_event_buffer_count(%d)",
+                     pre_index, image_count, pre_event_buffer_count); 
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position
@@ -1559,6 +1565,8 @@ bool Monitor::Analyse() {
                     // Slot is empty, removing image from counter
                     pre_event_images--;
                   }
+                  Debug(3, "pre-index %d, pre-event_images %d",
+                     pre_index, pre_event_images); 
 
                   event = new Event(this, *(pre_event_buffer[pre_index].timestamp), cause, noteSetMap);
                 } else {
@@ -1569,7 +1577,7 @@ bool Monitor::Analyse() {
                   else
                     pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
 
-                  Debug(4,"Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d)",
+                  Debug(3, "Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d)",
                       pre_index, index, image_buffer_count, pre_event_count);
 
                   // Seek forward the next filled slot in to the buffer (oldest data)

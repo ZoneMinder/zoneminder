@@ -91,7 +91,7 @@ void zmFifoDbgOutput(
     dbg_ptr += vsnprintf(dbg_ptr, str_size-(dbg_ptr-dbg_string), fstring, arg_ptr);
   }
   va_end(arg_ptr);
-  strncpy(dbg_ptr++, "\n", 1);
+  strncpy(dbg_ptr++, "\n", 2);
   int res = fwrite(dbg_string, dbg_ptr-dbg_string, 1, zm_fifodbg_log_fd);
   if ( res != 1 ) {
     fclose(zm_fifodbg_log_fd);

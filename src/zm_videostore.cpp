@@ -36,7 +36,6 @@ VideoStore::VideoStore(
     const char *format_in,
     AVStream *p_video_in_stream,
     AVStream *p_audio_in_stream,
-    int64_t nStartTime,
     Monitor *monitor
     ) {
 

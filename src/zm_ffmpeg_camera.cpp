@@ -145,7 +145,6 @@ FfmpegCamera::FfmpegCamera(
   mRawFrame = NULL;
   mFrame = NULL;
   frameCount = 0;
-  startTime = 0;
   mCanCapture = false;
   videoStore = NULL;
   have_video_keyframe = false;
@@ -360,7 +359,6 @@ int FfmpegCamera::OpenFfmpeg() {
     return -1;
   }
 
-  startTime = av_gettime();//FIXME here or after find_Stream_info
   Debug(4, "Got stream info");
 
   // Find first video stream present
@@ -784,7 +782,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
             videoStore = new VideoStore((const char *) event_file, "mp4",
                 mFormatContext->streams[mVideoStreamId],
                 NULL,
-                startTime,
                 this->getMonitor());
 
           } else {
@@ -792,7 +789,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
             videoStore = new VideoStore((const char *) event_file, "mp4",
                 mFormatContext->streams[mVideoStreamId],
                 mFormatContext->streams[mAudioStreamId],
-                startTime,
                 this->getMonitor());
           }
         } else {
@@ -802,7 +798,6 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           videoStore = new VideoStore((const char *) event_file, "mp4",
               mFormatContext->streams[mVideoStreamId],
               NULL,
-              startTime,
               this->getMonitor());
         } // end if record_audio
 
@@ -811,7 +806,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           videoStore = NULL;
 
         } else {
-          monitor->SetVideoWriterEventId( last_event_id );
+          monitor->SetVideoWriterEventId(last_event_id);
 
           // Need to write out all the frames from the last keyframe?
           // No... need to write out all frames from when the event began. Due to PreEventFrames, this could be more than since the last keyframe.
@@ -819,7 +814,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
           ZMPacket *queued_packet;
 
           // Clear all packets that predate the moment when the recording began
-          packetqueue->clear_unwanted_packets(&recording, mVideoStreamId);
+          packetqueue->clear_unwanted_packets(&recording, monitor->GetPreEventCount(), mVideoStreamId);
 
           while ( ( queued_packet = packetqueue->popPacket() ) ) {
             AVPacket *avp = queued_packet->av_packet();

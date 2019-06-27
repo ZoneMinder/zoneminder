@@ -904,7 +904,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
 
       ret = zm_receive_frame(mVideoCodecContext, mRawFrame, packet);
       if ( ret < 0 ) {
-        Warning("Unable to receive frame %d: %s, continuing. error count is %s",
+        Warning("Unable to receive frame %d: %s, continuing. error count is %d",
             frameCount, av_make_error_string(ret).c_str(), error_count);
         error_count += 1;
         if ( error_count > 100 ) {

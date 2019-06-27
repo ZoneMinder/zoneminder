@@ -169,7 +169,7 @@ FfmpegCamera::FfmpegCamera(
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
     imagePixFormat = AV_PIX_FMT_GRAY8;
   } else {
-    Panic("Unexpected colours: %d",colours);
+    Panic("Unexpected colours: %d", colours);
   }
 } // FfmpegCamera::FfmpegCamera
 
@@ -342,20 +342,18 @@ int FfmpegCamera::OpenFfmpeg() {
   }
   AVDictionaryEntry *e=NULL;
   while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != NULL ) {
-    Warning( "Option %s not recognized by ffmpeg", e->key);
+    Warning("Option %s not recognized by ffmpeg", e->key);
   }
   av_dict_free(&opts);
 
-  Debug(1, "Opened input");
-
-  Info( "Stream open %s, parsing streams...", mPath.c_str() );
+  Info("Stream open %s, parsing streams...", mPath.c_str());
 
 #if !LIBAVFORMAT_VERSION_CHECK(53, 6, 0, 6, 0)
   Debug(4, "Calling av_find_stream_info");
-  if ( av_find_stream_info( mFormatContext ) < 0 )
+  if ( av_find_stream_info(mFormatContext) < 0 )
 #else
   Debug(4, "Calling avformat_find_stream_info");
-  if ( avformat_find_stream_info( mFormatContext, 0 ) < 0 )
+  if ( avformat_find_stream_info(mFormatContext, 0) < 0 )
 #endif
   {
     Error("Unable to find stream info from %s due to: %s", mPath.c_str(), strerror(errno));
@@ -446,6 +444,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if ( hwaccel_name != "" ) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+// Print out available types
     enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
     while ( (type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE )
       Debug(1, "%s", av_hwdevice_get_type_name(type));
@@ -477,6 +476,7 @@ int FfmpegCamera::OpenFfmpeg() {
 #else 
     hw_pix_fmt = find_fmt_by_hw_type(type);
 #endif
+Debug(1, "Selected gw_pix_fmt %d %s", hw_pix_fmt, av_get_pix_fmt_name(hw_pix_fmt));
 
     mVideoCodecContext->get_format = get_hw_format;
 
@@ -517,7 +517,6 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     Debug(1, "HWACCEL not in use");
   }
-
 
   if ( mAudioStreamId >= 0 ) {
     if ( (mAudioCodec = avcodec_find_decoder(
@@ -617,7 +616,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 #endif
 #else // HAVE_LIBSWSCALE
-  Fatal( "You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras" );
+  Fatal("You must compile ffmpeg with the --enable-swscale option to use ffmpeg cameras");
 #endif // HAVE_LIBSWSCALE
 
   if (
@@ -918,7 +917,7 @@ int FfmpegCamera::CaptureAndRecord( Image &image, timeval recording, char* event
       if ( error_count > 0 ) error_count --;
       zm_dump_video_frame(mRawFrame);
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-      if ( hw_pix_fmt != mRawFrame->format == hw_pix_fmt ) {
+      if ( (hw_pix_fmt != AV_PIX_FMT_NONE) && (mRawFrame->format == hw_pix_fmt) ) {
         /* retrieve data from GPU to CPU */
         ret = av_hwframe_transfer_data(hwFrame, mRawFrame, 0);
         if ( ret < 0 ) {
@@ -1006,7 +1005,7 @@ int FfmpegCamera::transfer_to_image(Image &image, AVFrame *output_frame, AVFrame
       imagePixFormat, width, height);
 #endif
 #if HAVE_LIBSWSCALE
-  if ( ! mConvertContext ) {
+  if ( !mConvertContext ) {
     mConvertContext = sws_getContext(
         input_frame->width,
         input_frame->height,
@@ -1015,8 +1014,12 @@ int FfmpegCamera::transfer_to_image(Image &image, AVFrame *output_frame, AVFrame
         imagePixFormat, SWS_BICUBIC, NULL,
         NULL, NULL);
     if ( mConvertContext == NULL ) {
-      Error("Unable to create conversion context for %s", mPath.c_str());
-      return -1;
+      Error("Unable to create conversion context for %s from %s to %s",
+					mPath.c_str(),
+					av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+					av_get_pix_fmt_name(imagePixFormat)
+					);
+			return -1;
     }
   }
 

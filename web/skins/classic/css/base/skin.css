@@ -637,6 +637,7 @@ color:#ffa801;
 
 .container-fluid {
   position: relative;
+  padding-bottom: 10px;
 }
 
 .sidebar {

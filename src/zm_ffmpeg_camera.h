@@ -84,7 +84,6 @@ class FfmpegCamera : public Camera {
     struct SwsContext   *mConvertContext;
 #endif
 
-    int64_t             startTime;
     int                 error_count;
 
   public:

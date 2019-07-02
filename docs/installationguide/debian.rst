@@ -82,8 +82,7 @@ a read.
 
 ::
 
-    gunzip /usr/share/doc/zoneminder/README.Debian.gz
-    cat /usr/share/doc/zoneminder/README.Debian
+    zcat /usr/share/doc/zoneminder/README.Debian.gz
 
 
 **Step 7:** Enable ZoneMinder service
@@ -209,8 +208,7 @@ a read.
 
 ::
 
-    gunzip /usr/share/doc/zoneminder/README.Debian.gz
-    cat /usr/share/doc/zoneminder/README.Debian
+    zcat /usr/share/doc/zoneminder/README.Debian.gz
 
 **Step 7:** Setup Database
 

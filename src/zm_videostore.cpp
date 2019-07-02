@@ -890,12 +890,20 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   // Scale the PTS of the outgoing packet to be the correct time base
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
 
-    // ffmpeg has a bug where it screws up the pts to massively negative.
     if ( (!video_first_pts) && (ipkt->pts >= 0) ) {
       // This is the first packet.
       opkt.pts = 0;
       Debug(2, "Starting video first_pts will become %" PRId64, ipkt->pts);
       video_first_pts = ipkt->pts;
+#if 1
+      // Since audio starts after the start of the video, need to set this here.
+      audio_first_pts = av_rescale_q(
+          ipkt->pts,
+          video_in_stream->time_base,
+          audio_in_stream->time_base
+          );
+      Debug(2, "Starting audio first_pts will become %" PRId64, audio_first_pts);
+#endif
     } else {
       opkt.pts = av_rescale_q(
           ipkt->pts - video_first_pts,
@@ -923,6 +931,15 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
       opkt.dts = 0;
       Debug(1, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
       video_first_dts = ipkt->dts;
+#if 1
+      // Since audio starts after the start of the video, need to set this here.
+      audio_first_dts = av_rescale_q(
+          ipkt->dts,
+          video_in_stream->time_base,
+          audio_in_stream->time_base
+          );
+      Debug(2, "Starting audio first dts will become %" PRId64, audio_first_dts);
+#endif
     } else {
       opkt.dts = av_rescale_q(
           ipkt->dts - video_first_dts,
@@ -1092,7 +1109,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       if ( !audio_first_pts ) {
         opkt.pts = 0;
         audio_first_pts = ipkt->pts;
-        Debug(1, "No video_first_pts");
+        Debug(1, "No audio_first_pts");
       } else {
         opkt.pts = av_rescale_q(
             ipkt->pts - audio_first_pts,

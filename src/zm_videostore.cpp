@@ -36,7 +36,6 @@ VideoStore::VideoStore(
     const char *format_in,
     AVStream *p_video_in_stream,
     AVStream *p_audio_in_stream,
-    int64_t nStartTime,
     Monitor *monitor
     ) {
 
@@ -370,8 +369,6 @@ VideoStore::VideoStore(
       } // end if
       audio_out_ctx->codec_tag = 0;
 #endif
-
-      //audio_out_ctx->frame_size = audio_in_ctx->frame_size;
 
       if ( audio_out_ctx->channels > 1 ) {
         Warning("Audio isn't mono, changing it.");
@@ -1000,7 +997,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 
   if ( audio_out_codec ) {
     Debug(2, "Have output codec");
-    if ( ! zm_receive_frame(audio_in_ctx, in_frame, *ipkt) ) {
+    if ( ( ret = zm_receive_frame(audio_in_ctx, in_frame, *ipkt) ) < 0 ) {
       return 0;
     }
 

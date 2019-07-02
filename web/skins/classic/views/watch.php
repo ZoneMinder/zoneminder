@@ -83,7 +83,15 @@ if ( $monitor->Status() != 'Capturing' ) {
 }
 ?>
     <div id="content">
-      <div id="imageFeed"><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
+      <div id="imageFeed"
+<?php
+if ( $streamMode == 'jpeg' ) {
+  echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
+}
+?>
+><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
+
+
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
 <?php if ( canEdit('Monitors') ) { ?>

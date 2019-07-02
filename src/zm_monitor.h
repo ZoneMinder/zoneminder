@@ -250,6 +250,8 @@ protected:
   Orientation     orientation;        // Whether the image has to be rotated at all
   unsigned int    deinterlacing;
   bool            videoRecording;
+  std::string     decoder_hwaccel_name;
+  std::string     decoder_hwaccel_device;
 
   int savejpegs;
   VideoWriter videowriter;
@@ -368,6 +370,8 @@ public:
     Camera *p_camera,
     int p_orientation,
     unsigned int p_deinterlacing,
+    const std::string &p_decoder_hwaccel_name,
+    const std::string &p_decoder_hwaccel_device,
     int p_savejpegs,
     VideoWriter p_videowriter,
     std::string p_encoderparams,

@@ -455,36 +455,46 @@ int FfmpegCamera::OpenFfmpeg() {
       if ( !config ) {
         Debug(1, "Decoder %s does not support device type %s.",
             mVideoCodec->name, av_hwdevice_get_type_name(type));
-        return -1;
+        break;
       }
       if ( (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
           && (config->device_type == type)
           ) {
         hw_pix_fmt = config->pix_fmt;
         break;
+      } else {
+        Debug(1, "decoder %s hwConfig doesn't match our type: %s, pix_fmt %s.",
+            mVideoCodec->name,
+            av_hwdevice_get_type_name(config-device_type),
+            av_get_pix_fmt_name(config->pix_fmt);
+            );
       }
     }  // end foreach hwconfig
 #else
     hw_pix_fmt = find_fmt_by_hw_type(type);
 #endif
-Debug(1, "Selected gw_pix_fmt %d %s",
-    hw_pix_fmt,
-    av_get_pix_fmt_name(hw_pix_fmt));
+    if ( hw_pix_fmt != AV_PIX_FMT_NONE ) {
+      Debug(1, "Selected gw_pix_fmt %d %s",
+          hw_pix_fmt,
+          av_get_pix_fmt_name(hw_pix_fmt));
 
-    mVideoCodecContext->get_format = get_hw_format;
+      mVideoCodecContext->get_format = get_hw_format;
 
-    Debug(1, "Creating hwdevice for %s",
-        (hwaccel_device != "" ? hwaccel_device.c_str() : ""));
-    ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
-        (hwaccel_device != "" ? hwaccel_device.c_str(): NULL), NULL, 0);
-    if ( ret < 0 ) {
-      Error("Failed to create specified HW device.");
-      return -1;
+      Debug(1, "Creating hwdevice for %s",
+          (hwaccel_device != "" ? hwaccel_device.c_str() : ""));
+      ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
+          (hwaccel_device != "" ? hwaccel_device.c_str(): NULL), NULL, 0);
+      if ( ret < 0 ) {
+        Error("Failed to create specified HW device.");
+        return -1;
+      }
+      Debug(1, "Created hwdevice");
+      mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+      hwaccel = true;
+      hwFrame = zm_av_frame_alloc();
+    } else {
+      Debug(1, "Failed to setup hwaccel.");
     }
-    Debug(1, "Created hwdevice");
-    mVideoCodecContext->hw_device_ctx = av_buffer_ref(hw_device_ctx);
-    hwaccel = true;
-    hwFrame = zm_av_frame_alloc();
 #else
     Warning("HWAccel support not compiled in.");
 #endif

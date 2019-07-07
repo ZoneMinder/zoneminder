@@ -24,6 +24,9 @@ if ( !canView('Events') ) {
 }
 
 require_once('includes/Frame.php');
+$eid = validInt($_REQUEST['eid']);
+$Event = new ZM\Event($eid);
+$Monitor = $Event->Monitor();
 
 $countSql = 'SELECT COUNT(*) AS FrameCount FROM Frames AS F WHERE 1 ';
 $frameSql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames AS F WHERE 1 ';
@@ -58,9 +61,6 @@ if ( $_REQUEST['filter']['sql'] ) {
 
 $frameSql .= " ORDER BY $sortColumn $sortOrder,Id $sortOrder";
 
-$eid = validInt($_REQUEST['eid']);
-$Event = new ZM\Event($eid);
-$Monitor = $Event->Monitor();
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validNum($_REQUEST['scale']);

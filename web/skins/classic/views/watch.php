@@ -78,7 +78,7 @@ if ( canView('Control') && $monitor->Type() == 'Local' ) {
         <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'history.go(-1);return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
 <?php
-if ( $monitor->Status() != 'Capturing' ) {
+if ( $monitor->Status() != 'Connected' ) {
   echo '<div class="warning">Monitor is not capturing. We will be unable to provide an image</div>';
 }
 ?>

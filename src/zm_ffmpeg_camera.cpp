@@ -466,8 +466,8 @@ int FfmpegCamera::OpenFfmpeg() {
       } else {
         Debug(1, "decoder %s hwConfig doesn't match our type: %s, pix_fmt %s.",
             mVideoCodec->name,
-            av_hwdevice_get_type_name(config-device_type),
-            av_get_pix_fmt_name(config->pix_fmt);
+            av_hwdevice_get_type_name(config->device_type),
+            av_get_pix_fmt_name(config->pix_fmt)
             );
       }
     }  // end foreach hwconfig

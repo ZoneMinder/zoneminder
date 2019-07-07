@@ -351,6 +351,7 @@ CREATE INDEX `Groups_Monitors_MonitorId_idx` ON `Groups_Monitors` (`MonitorId`);
 
 DROP TABLE IF EXISTS `Logs`;
 CREATE TABLE `Logs` (
+  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `TimeKey` decimal(16,6) NOT NULL,
   `Component` varchar(32) NOT NULL,
   `ServerId` int(10) unsigned,
@@ -360,6 +361,7 @@ CREATE TABLE `Logs` (
   `Message` text NOT NULL,
   `File` varchar(255) DEFAULT NULL,
   `Line` smallint(5) unsigned DEFAULT NULL,
+  PRIMARY KEY (`Id`),
   KEY `TimeKey` (`TimeKey`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -589,6 +591,7 @@ CREATE INDEX `Servers_Name_idx` ON `Servers` (`Name`);
 
 DROP TABLE IF EXISTS `Stats`;
 CREATE TABLE `Stats` (
+  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `ZoneId` int(10) unsigned NOT NULL default '0',
   `EventId` BIGINT UNSIGNED NOT NULL,
@@ -605,6 +608,7 @@ CREATE TABLE `Stats` (
   `MinY` smallint(5) unsigned NOT NULL default '0',
   `MaxY` smallint(5) unsigned NOT NULL default '0',
   `Score` smallint(5) unsigned NOT NULL default '0',
+  PRIMARY KEY (`Id`),
   KEY `EventId` (`EventId`),
   KEY `MonitorId` (`MonitorId`),
   KEY `ZoneId` (`ZoneId`)

@@ -749,7 +749,7 @@ insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, N
 --
 -- Create a default admin user.
 --
-insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','Edit','Edit','','',0,1);
+insert into Users VALUES (NULL,'admin','$2b$12$NHZsm6AM2f2LQVROriz79ul3D6DnmFiZC.ZK5eqbF.ZWfwH9bqUJ6','',1,'View','Edit','Edit','Edit','Edit','Edit','Edit','','',0,1);
 
 --
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full

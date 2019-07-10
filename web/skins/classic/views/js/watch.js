@@ -523,7 +523,7 @@ function getEventCmdResponse( respObj, respText ) {
     } );
 
     for ( var i = 0; i < dbEvents.length; i++ ) {
-      let event = dbEvents[i];
+      const event = dbEvents[i];
       var row = $('event'+event.Id);
       var newEvent = (row == null ? true : false);
       if ( newEvent ) {

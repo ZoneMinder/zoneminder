@@ -462,12 +462,6 @@ function cmdCancelForcedAlarm() {
 }
 
 function getActResponse( respObj, respText ) {
-  if ( respObj.result == 'Ok' ) {
-    if ( respObj.refreshParent ) {
-      console.log('refreshing');
-      window.opener.location.reload();
-    }
-  }
   eventCmdQuery();
 }
 

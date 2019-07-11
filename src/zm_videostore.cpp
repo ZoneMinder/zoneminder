@@ -476,7 +476,51 @@ VideoStore::~VideoStore() {
           break;
         }
 #endif
+
+        // Need to adjust pts and dts and duration
+
         pkt.stream_index = audio_out_stream->index;
+
+        pkt.duration = av_rescale_q(
+            pkt.duration,
+            audio_out_ctx->time_base,
+            audio_out_stream->time_base);
+        // Scale the PTS of the outgoing packet to be the correct time base
+        if ( pkt.pts != AV_NOPTS_VALUE ) {
+            pkt.pts = av_rescale_q(
+                pkt.pts,
+                audio_out_ctx->time_base,
+                audio_in_stream->time_base);
+            // audio_first_pts is in audio_in_stream time base
+            pkt.pts -= audio_first_pts;
+            pkt.pts = av_rescale_q(
+                pkt.pts,
+                audio_in_stream->time_base,
+                audio_out_stream->time_base);
+
+            Debug(2, "audio pkt.pts = %" PRId64 " from first_pts(%" PRId64 ")",
+                pkt.pts, audio_first_pts);
+        } else {
+          Debug(2, "pkt.pts = undef");
+          pkt.pts = AV_NOPTS_VALUE;
+        }
+
+        if ( pkt.dts != AV_NOPTS_VALUE ) {
+          pkt.dts = av_rescale_q(
+              pkt.dts,
+              audio_out_ctx->time_base,
+              audio_in_stream->time_base);
+          pkt.dts -= audio_first_dts;
+          pkt.dts = av_rescale_q(
+              pkt.dts,
+              audio_in_ctx->time_base,
+              audio_out_stream->time_base);
+          Debug(2, "pkt.dts = %" PRId64 " - first_dts(%" PRId64 ")",
+                pkt.dts, audio_first_dts);
+        } else {
+          pkt.dts = AV_NOPTS_VALUE;
+        }
+
         dumpPacket(audio_out_stream, &pkt, "writing flushed packet");
         av_interleaved_write_frame(oc, &pkt);
         zm_av_packet_unref(&pkt);
@@ -1196,28 +1240,9 @@ int VideoStore::resample_audio() {
         av_make_error_string(ret).c_str());
     return 0;
   }
-  zm_dump_frame(out_frame, "Out frame after convert");
 
-
-#if 0
-  // out_frame pts is in the input pkt pts... needs to be adjusted before sending to the encoder
-  if ( out_frame->pts != AV_NOPTS_VALUE ) {
-    if ( !video_first_pts ) {
-      video_first_pts = out_frame->pts;
-      Debug(1, "No video_first_pts setting to %" PRId64, video_first_pts);
-      out_frame->pts = 0;
-    } else {
-      out_frame->pts = out_frame->pts - video_first_pts;
-    }
-    //
-  } else {
-    // sending AV_NOPTS_VALUE doesn't really work but we seem to get it in ffmpeg 2.8
-    out_frame->pts = audio_next_pts;
-  }
-  audio_next_pts = out_frame->pts + out_frame->nb_samples;
-#endif
-
-  if ((ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples)) < 0) {
+  ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples);
+  if ( ret < 0 ) {
     Error("Could not reallocate FIFO");
     return 0;
   }
@@ -1232,7 +1257,7 @@ int VideoStore::resample_audio() {
   // Reset frame_size to output_frame_size
   int frame_size = audio_out_ctx->frame_size;
 
-  // AAC requires 1024 samples per encode.  Our input tends to be 160, so need to buffer them.
+  // AAC requires 1024 samples per encode.  Our input tends to be something else, so need to buffer them.
   if ( frame_size > av_audio_fifo_size(fifo) ) {
     return 0;
   }
@@ -1245,10 +1270,11 @@ int VideoStore::resample_audio() {
   // resampling changes the duration because the timebase is 1/samples
   // I think we should be dealing in codec timebases not stream
   if ( in_frame->pts != AV_NOPTS_VALUE ) {
+    // pkt_duration is in avstream timebase units
     out_frame->pkt_duration = av_rescale_q(
         in_frame->pkt_duration,
-        audio_in_ctx->time_base,
-        audio_out_ctx->time_base);
+        audio_in_stream->time_base,
+        audio_out_stream->time_base);
     out_frame->pts = av_rescale_q(
         in_frame->pts,
         audio_in_ctx->time_base,

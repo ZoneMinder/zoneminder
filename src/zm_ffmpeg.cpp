@@ -298,25 +298,6 @@ void zm_dump_video_frame(const AVFrame *frame, const char *text) {
       frame->pts
       );
 }
-void zm_dump_frame(const AVFrame *frame,const char *text) {
-  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d"
-      " duration %" PRId64
-      " layout %d pts %" PRId64,
-      text,
-      frame->format,
-      av_get_sample_fmt_name((AVSampleFormat)frame->format),
-      frame->sample_rate,
-      frame->nb_samples,
-#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
-      frame->channels,
-      frame->pkt_duration,
-#else
-0, 0,
-#endif
-      frame->channel_layout,
-      frame->pts
-      );
-}
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {

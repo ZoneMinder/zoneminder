@@ -157,7 +157,7 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
   std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
   std::string username = ans.first;
   unsigned int iat = ans.second;
-  Debug (1,"retrieved user '%s'from token", username.c_str());
+  Debug (1,"retrieved user '%s' from token", username.c_str());
 
   if (username != "") {
     char sql[ZM_SQL_MED_BUFSIZ] = "";

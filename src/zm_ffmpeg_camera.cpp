@@ -137,6 +137,7 @@ FfmpegCamera::FfmpegCamera(
 
   hwaccel = false;
   hwFrame = NULL;
+  hw_device_ctx = NULL;
 
   mFormatContext = NULL;
   mVideoStreamId = -1;
@@ -648,6 +649,10 @@ int FfmpegCamera::Close() {
     av_frame_free(&mRawFrame);
     mRawFrame = NULL;
   }
+  if ( hwFrame ) {
+    av_frame_free(&hwFrame);
+    hwFrame = NULL;
+  }
 
 #if HAVE_LIBSWSCALE
   if ( mConvertContext ) {
@@ -675,6 +680,12 @@ int FfmpegCamera::Close() {
 #endif
     mAudioCodecContext = NULL;  // Freed by av_close_input_file
   }
+#if 0
+  if ( hw_device_ctx ) {
+    hwdevice_ctx_free
+  }
+#endif
+
 
   if ( mFormatContext ) {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)

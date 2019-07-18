@@ -73,14 +73,14 @@ static bool bInit = false;
 void FFMPEGInit() {
 
   if ( !bInit ) {
-    if ( logDebugging() )
+    if ( logDebugging()  && config.log_ffmpeg ) {
       av_log_set_level( AV_LOG_DEBUG ); 
-    else
+      av_log_set_callback(log_libav_callback); 
+      Info("Enabling ffmpeg logs, as LOG_DEBUG+LOG_FFMPEG are enabled in options");
+    } else {
+      Info("Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor not part of your debug targets");
       av_log_set_level( AV_LOG_QUIET ); 
-    if ( config.log_ffmpeg ) 
-        av_log_set_callback(log_libav_callback); 
-    else
-        Info("Not enabling ffmpeg logs, as LOG_FFMPEG is disabled in options");
+    }
 #if LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
 #else
     av_register_all();

@@ -649,10 +649,12 @@ int FfmpegCamera::Close() {
     av_frame_free(&mRawFrame);
     mRawFrame = NULL;
   }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
   if ( hwFrame ) {
     av_frame_free(&hwFrame);
     hwFrame = NULL;
   }
+#endif
 
 #if HAVE_LIBSWSCALE
   if ( mConvertContext ) {

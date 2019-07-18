@@ -136,8 +136,6 @@ FfmpegCamera::FfmpegCamera(
   }
 
   hwaccel = false;
-  hwFrame = NULL;
-  hw_device_ctx = NULL;
 
   mFormatContext = NULL;
   mVideoStreamId = -1;
@@ -155,6 +153,8 @@ FfmpegCamera::FfmpegCamera(
   packetqueue = NULL;
   error_count = 0;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+  hwFrame = NULL;
+  hw_device_ctx = NULL;
   hw_pix_fmt = AV_PIX_FMT_NONE;
 #endif
 

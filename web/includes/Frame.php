@@ -97,5 +97,11 @@ class Frame {
 	  }
 	  return $results[0];
 	}
+  public function Path($show='capture') {
+    return sprintf(
+      '%s/%0'.ZM_EVENT_IMAGE_DIGITS.'d-%s.jpg',
+      $this->Event()->Path(), $this->FrameId(), $show
+    );
+  }
 } # end class
 ?>

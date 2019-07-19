@@ -308,7 +308,6 @@ VideoStore::VideoStore(
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       audio_out_stream = avformat_new_stream(oc, NULL);
-      audio_out_stream->time_base = audio_in_stream->time_base;
       audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
       if ( !audio_out_ctx ) {
         Error("could not allocate codec ctx for AAC");
@@ -1061,8 +1060,8 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   dumpPacket(audio_in_stream, ipkt, "input packet");
 
   if ( audio_out_codec ) {
-    Debug(2, "Have output codec");
     if ( ( ret = zm_receive_frame(audio_in_ctx, in_frame, *ipkt) ) < 0 ) {
+      Debug(3, "Not ready to receive frame");
       return 0;
     }
 
@@ -1100,10 +1099,11 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     }
 
     dumpPacket(audio_out_stream, &opkt, "raw opkt");
-      opkt.duration = av_rescale_q(
-          opkt.duration,
-          audio_out_ctx->time_base,
-          audio_out_stream->time_base);
+
+    opkt.duration = av_rescale_q(
+        opkt.duration,
+        audio_out_ctx->time_base,
+        audio_out_stream->time_base);
     // Scale the PTS of the outgoing packet to be the correct time base
     if ( ipkt->pts != AV_NOPTS_VALUE ) {
       if ( !audio_first_pts ) {
@@ -1116,8 +1116,8 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             audio_out_ctx->time_base,
             audio_out_stream->time_base);
             opkt.pts -= audio_first_pts;
-        Debug(2, "audio opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")",
-            opkt.pts, ipkt->pts, audio_first_pts);
+        Debug(2, "audio opkt.pts = %" PRId64 " from first_pts %" PRId64,
+            opkt.pts, audio_first_pts);
       }
     } else {
       Debug(2, "opkt.pts = undef");
@@ -1134,8 +1134,8 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             audio_out_ctx->time_base,
             audio_out_stream->time_base);
         opkt.dts -= audio_first_dts;
-        Debug(2, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_dts(%" PRId64 ")",
-            opkt.dts, ipkt->dts, audio_first_dts);
+        Debug(2, "opkt.dts = %" PRId64 " from first_dts %" PRId64,
+            opkt.dts, audio_first_dts);
       }
       audio_last_dts = opkt.dts;
     } else {
@@ -1270,17 +1270,12 @@ int VideoStore::resample_audio() {
   // resampling changes the duration because the timebase is 1/samples
   // I think we should be dealing in codec timebases not stream
   if ( in_frame->pts != AV_NOPTS_VALUE ) {
-    // pkt_duration is in avstream timebase units
-    out_frame->pkt_duration = av_rescale_q(
-        in_frame->pkt_duration,
-        audio_in_stream->time_base,
-        audio_out_stream->time_base);
     out_frame->pts = av_rescale_q(
         in_frame->pts,
         audio_in_ctx->time_base,
         audio_out_ctx->time_base);
-  zm_dump_frame(out_frame, "Out frame after timestamp conversion");
   }
+  zm_dump_frame(out_frame, "Out frame after timestamp conversion");
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
   ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,

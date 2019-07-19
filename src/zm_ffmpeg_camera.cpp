@@ -682,12 +682,12 @@ int FfmpegCamera::Close() {
 #endif
     mAudioCodecContext = NULL;  // Freed by av_close_input_file
   }
-#if 0
+
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
   if ( hw_device_ctx ) {
-    hwdevice_ctx_free
+    av_buffer_unref(&hw_device_ctx);
   }
 #endif
-
 
   if ( mFormatContext ) {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)

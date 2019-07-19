@@ -104,7 +104,7 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
 <?php if ( $imageData['hasAnalImage'] ) {
  echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s">', $Event->Id(), $Frame->FrameId(), $scale, ( $show=='anal'?'capt':'anal' ) );
 } ?>
-<img id="frameImg" src="<?php echo validHtmlStr($Frame->getImageSrc($show=='anal'?'analyse':'capture')) ?>" width="<?php echo reScale( $Event->Width(), $Event->DefaultScale(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $Event->DefaultScale(), $scale ) ?>" alt="<?php echo $Frame->EventId()."-".$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
+<img id="frameImg" src="<?php echo validHtmlStr($Frame->getImageSrc($show=='anal'?'analyse':'capture')) ?>" width="<?php echo reScale($Event->Width(), $Event->DefaultScale(), $scale) ?>" height="<?php echo reScale($Event->Height(), $Event->DefaultScale(), $scale) ?>" alt="<?php echo $Frame->EventId().'-'.$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
 <?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
 
       </p>
@@ -114,6 +114,13 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
       <p id="controls">
         <a id="firstLink" <?php echo (( $Frame->FrameId() > 1 ) ? 'href="'.$frame_url_base.$firstFid.'" class="btn-primary"' : 'class="btn-primary disabled"') ?>><?php echo translate('First') ?></a>
         <a id="prevLink" <?php echo ( $Frame->FrameId() > 1 ) ? 'href="'.$frame_url_base.$prevFid.'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Prev') ?></a>
+<?php
+if ( ZM_PLATERECOGNIZER_ENABLE ) {
+?>
+  <a id="PlateRecognizer" href="<?php echo $frame_url_base.$fid.'&action=do_alpr'?>" class="btn-primary">Do Plate Detection</a>
+<?php
+} # end if ZM_PLATERECOGNIZER_ENABLE
+?>
         <a id="nextLink" <?php echo ( $Frame->FrameId() < $maxFid ) ? 'href="'.$frame_url_base.$nextFid.'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Next') ?></a>
         <a id="lastLink" <?php echo ( $Frame->FrameId() < $maxFid ) ? 'href="'.$frame_url_base.$lastFid .'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Last') ?></a>
       </p>

@@ -37,6 +37,7 @@ $tabs['images'] = translate('Images');
 $tabs['logging'] = translate('Logging');
 $tabs['network'] = translate('Network');
 $tabs['mail'] = translate('Email');
+$tabs['plugins'] = translate('Plugins');
 $tabs['upload'] = translate('Upload');
 $tabs['x10'] = translate('X10');
 $tabs['highband'] = translate('HighBW');
@@ -315,50 +316,45 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
       </form>
 
   <?php
-  } else if ($tab == 'API') {
-  
-    $apiEnabled = dbFetchOne("SELECT Value FROM Config WHERE Name='ZM_OPT_USE_API'");
-    if ($apiEnabled['Value']!='1') {
+  } else if ( $tab == 'API' ) {
+    if ( ZM_OPT_USE_API != '1' ) {
       echo "<div class='errorText'>APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>";
-    }
-    else {
+    } else {
   ?>
 
     <form name="userForm" method="post" action="?">
-      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate("Update")?> </button><button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"> <?php echo translate("RevokeAllTokens")?></button><br/>
+      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
+      <button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
+      <br/>
       
       <?php
-      function revokeAllTokens()
-      {
+      function revokeAllTokens() {
         $minTokenTime = time();
-        dbQuery ('UPDATE Users SET TokenMinExpiry=?', array ($minTokenTime));
-        echo "<span class='timedSuccessBox'>".translate('AllTokensRevoked')."</span>";
+        dbQuery('UPDATE Users SET TokenMinExpiry=?', array ($minTokenTime));
+        echo '<span class="timedSuccessBox">'.translate('AllTokensRevoked').'</span>';
       }
 
-      function updateSelected()
-      {
-        dbQuery("UPDATE Users SET APIEnabled=0");
-        foreach( $_REQUEST["tokenUids"] as $markUid ) {
+      function updateSelected() {
+        dbQuery('UPDATE Users SET APIEnabled=0');
+        foreach( $_REQUEST['tokenUids'] as $markUid ) {
           $minTime = time();
           dbQuery('UPDATE Users SET TokenMinExpiry=? WHERE Id=?', array($minTime, $markUid));
         }
-        foreach( $_REQUEST["apiUids"] as $markUid ) {
+        foreach( $_REQUEST['apiUids'] as $markUid ) {
           dbQuery('UPDATE Users SET APIEnabled=1 WHERE Id=?', array($markUid));
       
         }
-        echo "<span class='timedSuccessBox'>".translate('Updated')."</span>";
+        echo '<span class="timedSuccessBox">'.translate('Updated').'</span>';
       }
 
-      if(array_key_exists('revokeAllTokens',$_POST)){
+      if ( array_key_exists('revokeAllTokens', $_POST) ) {
         revokeAllTokens();
       }
 
-      if(array_key_exists('updateSelected',$_POST)){
+      if ( array_key_exists('updateSelected', $_POST) ) {
         updateSelected();
       }
     ?>
-      
-      
       <br/><br/>
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
       <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -373,23 +369,20 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
         </thead>
         <tbody>
         <?php
-          
             $sql = 'SELECT * FROM Users ORDER BY Username';
-            foreach( dbFetchAll($sql) as $row ) {
+            foreach ( dbFetchAll($sql) as $row ) {
         ?>
                 <tr>
                   <td class="colUsername"><?php echo validHtmlStr($row['Username']) ?></td>
                   <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $row['Id'] ?>" /></td>
                   <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $row['Id']?>"  <?php echo $row['APIEnabled']?'checked':''?> /></td>
                 </tr>
-    <?php
-        }
-    ?>
+        <?php
+            }
+        ?>
           </tbody>
         </table>
       </form>
-
-
 <?php 
     } // API enabled
   }  // $tab == API

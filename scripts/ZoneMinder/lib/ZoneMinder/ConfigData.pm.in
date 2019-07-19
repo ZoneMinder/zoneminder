@@ -3983,6 +3983,40 @@ our @options = (
     type        => $types{boolean},
     category    => 'logging',
   },
+  {
+    name        => 'ZM_PLATERECOGNIZER_ENABLE',
+    default     => 'no',
+    type        => $types{boolean},
+    description => 'Whether to enable support for platerecognizer.com\'s APLR service.',
+    help        => 'This will cause options to appear in filters and frame
+                    views to submit images to platereconizer.com\'s service
+                    which will return detected license plate information which
+                    will be stored in ZM and presented when viewing events.',
+    category    =>  'plugins',
+  },
+  {
+    name        =>  'ZM_PLATERECOGNIZER_API_TOKEN',
+    default     =>  '',
+    type        =>  $types{string},
+    description =>  'Your Api Key token. You must register at platerecognizer.com and cutnpaste your API Token here.',
+    category    =>  'plugins',
+  },
+  {
+    name        => 'ZM_PLATERECOGNIZER_URL',
+    default     =>  'https://api.platerecognizer.com/v1/plate-reader/',
+    type        =>  $types{url},
+    description =>  'Endpoint URL to submit images to',
+    help        =>  'Do not change this unless you are using a local SDK install.  Please consult docs.platerecognizer.com.',
+    category    =>  'plugins',
+  },
+  {
+    name        =>  'ZM_PLATERECOGNIZER_REGION',
+    default     =>  '',
+    type        =>  $types{string},
+    description =>  'Specify local region to improve plate detection',
+    help        =>  'See http://docs.platerecognizer.com/#regions-supported for values.',
+    category    =>  'plugins',
+  }
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;

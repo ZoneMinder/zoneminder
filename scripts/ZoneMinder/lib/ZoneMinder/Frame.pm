@@ -33,7 +33,8 @@ require ZoneMinder::Object;
 
 use parent qw(ZoneMinder::Object);
 
-use vars qw/ $table $primary_key %fields /;
+use vars qw/ $table $primary_key %fields $debug /;
+$debug = 1;
 $table = 'Frames';
 $primary_key = 'Id';
 
@@ -50,6 +51,17 @@ $primary_key = 'Id';
 sub Event {
 	return new ZoneMinder::Event( $_[0]{EventId} );
 } # end sub Event
+
+sub Path {
+  my $self = shift;
+  my $show = @_ ? shift : 'capture';
+
+  return sprintf(
+    '%s/%0'.$ZoneMinder::Config{ZM_EVENT_IMAGE_DIGITS}.'d-%s.jpg',
+    $self->Event()->Path(), $$self{FrameId}, $show
+  );
+}
+
 
 1;
 __END__

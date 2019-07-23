@@ -41,6 +41,7 @@ require Number::Bytes::Human;
 require Date::Parse;
 require POSIX;
 use Date::Format qw(time2str);
+use Time::HiRes qw(gettimeofday tv_interval);
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -595,7 +596,7 @@ Debug("Files to move @files");
       for my $file (@files) {
         next if $file =~ /^\./;
         ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
-         my $starttime = time;
+        my $starttime = [gettimeofday];
         Debug("Moving file $file to $NewPath");
         my $size = -s $file;
         if ( ! $size ) {
@@ -607,10 +608,10 @@ Debug("Files to move @files");
         }
 
         my $filename = $event_path.'/'.File::Basename::basename($file);
-        if ( ! $bucket->add_key( $filename, $file_contents ) ) {
+        if ( ! $bucket->add_key($filename, $file_contents) ) {
           die "Unable to add key for $filename";
         }
-        my $duration = time - $starttime;
+        my $duration = tv_interval($starttime);
         Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
       } # end foreach file.
 
@@ -621,13 +622,13 @@ Debug("Files to move @files");
   } # end if s3
 
   my $error = '';
-  if ( ! $moved ) {
-    File::Path::make_path( $NewPath, {error => \my $err} );
+  if ( !$moved ) {
+    File::Path::make_path($NewPath, {error => \my $err});
     if ( @$err ) {
       for my $diag (@$err) {
         my ($file, $message) = %$diag;
         next if $message eq 'File exists';
-        if ($file eq '') {
+        if ( $file eq '' ) {
           $error .= "general error: $message\n";
         } else {
           $error .= "problem making $file: $message\n";
@@ -641,20 +642,20 @@ Debug("Files to move @files");
     my @files = glob("$OldPath/*");
     if ( ! @files ) {
       $ZoneMinder::Database::dbh->commit();
-      return "No files to move.";
+      return 'No files to move.';
     }
 
     for my $file (@files) {
       next if $file =~ /^\./;
       ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
-      my $starttime = time;
+      my $starttime = [gettimeofday];
       Debug("Moving file $file to $NewPath");
       my $size = -s $file;
       if ( ! File::Copy::copy( $file, $NewPath ) ) {
         $error .= "Copy failed: for $file to $NewPath: $!";
         last;
       }
-      my $duration = time - $starttime;
+      my $duration = tv_interval($starttime);
       Debug('Copied ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . ($duration?Number::Bytes::Human::format_bytes($size/$duration):'inf') . '/sec');
     } # end foreach file.
   } # end if ! moved

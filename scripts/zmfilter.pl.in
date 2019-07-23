@@ -240,6 +240,7 @@ sub getFilters {
     or AutoDelete = 1
     or UpdateDiskSpace = 1
     or AutoMove = 1
+    or AutoCopy = 1
     ) ORDER BY Name';
   my $sth = $dbh->prepare_cached($sql)
     or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
@@ -283,6 +284,7 @@ sub checkFilter {
           ($filter->{AutoMessage}?'message':()),
           ($filter->{AutoExecute}?'execute':()),
           ($filter->{AutoMove}?'move':()),
+          ($filter->{AutoCopy}?'copy':()),
           ($filter->{UpdateDiskSpace}?'update disk space':()),
           ),
         'returned' , scalar @Events , 'events',
@@ -300,9 +302,9 @@ sub checkFilter {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
       my $sql = 'UPDATE Events SET Archived = 1 WHERE Id = ?';
-      my $sth = $dbh->prepare_cached( $sql )
+      my $sth = $dbh->prepare_cached($sql)
         or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute( $Event->{Id} )
+      my $res = $sth->execute($Event->{Id})
         or Error("Unable to execute '$sql': ".$dbh->errstr());
     }
     if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
@@ -341,6 +343,11 @@ sub checkFilter {
     if ( $filter->{AutoMove} ) {
       my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
       $_ = $Event->MoveTo($NewStorage);
+      Error($_) if $_;
+    }
+    if ( $filter->{AutoCopy} ) {
+      my $NewStorage = new ZoneMinder::Storage($filter->{AutoCopyTo});
+      $_ = $Event->CopyTo($NewStorage);
       Error($_) if $_;
     }
 

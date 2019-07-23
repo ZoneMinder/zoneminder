@@ -132,6 +132,10 @@ sub Sql {
   my $self = shift;
   $$self{Sql} = shift if @_;
   if ( ! $$self{Sql} ) {
+    if ( !$self->{Query} ) {
+      Warning('No Query in filter.');
+      return;
+    }
     my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query});
     my $sql = 'SELECT E.*,
        unix_timestamp(E.StartTime) as Time,

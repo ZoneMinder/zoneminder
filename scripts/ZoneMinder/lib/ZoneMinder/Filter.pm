@@ -133,12 +133,12 @@ sub Sql {
   $$self{Sql} = shift if @_;
   if ( ! $$self{Sql} ) {
     $self->{Sql} = '';
-    if ( ! $self->{Query} ) {
+    if ( ! $self->{Query_json} ) {
       Warning("No query in Filter!");
       return;
     }
 
-    my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query});
+    my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query_json});
     my $sql = 'SELECT E.*,
        unix_timestamp(E.StartTime) as Time,
        M.Name as MonitorName,

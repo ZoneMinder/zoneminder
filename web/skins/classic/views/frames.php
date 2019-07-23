@@ -24,11 +24,13 @@ if ( !canView('Events') ) {
 }
 
 require_once('includes/Frame.php');
+$eid = validInt($_REQUEST['eid']);
+$Event = new ZM\Event($eid);
+$Monitor = $Event->Monitor();
 
 $countSql = 'SELECT COUNT(*) AS FrameCount FROM Frames AS F WHERE 1 ';
 $frameSql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames AS F WHERE 1 ';
 
-$eid = $_REQUEST['eid'];
 
 // override the sort_field handling in parseSort for frames
 if ( empty($_REQUEST['sort_field']) )
@@ -59,8 +61,6 @@ if ( $_REQUEST['filter']['sql'] ) {
 
 $frameSql .= " ORDER BY $sortColumn $sortOrder,Id $sortOrder";
 
-$Event = new ZM\Event($eid);
-$Monitor = $Event->Monitor();
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validNum($_REQUEST['scale']);
@@ -75,22 +75,22 @@ if ( isset( $_REQUEST['scale'] ) ) {
 $page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 1;
 $limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;
 
-$nEvents = dbFetchOne($countSql, 'FrameCount' );
+$nFrames = dbFetchOne($countSql, 'FrameCount' );
 
-if ( !empty($limit) && $nEvents > $limit ) {
-  $nEvents = $limit;
+if ( !empty($limit) && ($nFrames > $limit) ) {
+  $nFrames = $limit;
 }
 
-$pages = (int)ceil($nEvents/ZM_WEB_EVENTS_PER_PAGE);
+$pages = (int)ceil($nFrames/ZM_WEB_EVENTS_PER_PAGE);
 
 if ( !empty($page) ) {
-  if ( $page < 0 )
+  if ( $page <= 0 )
     $page = 1;
   else if ( $pages and ( $page > $pages ) )
     $page = $pages;
 
   $limitStart = (($page-1)*ZM_WEB_EVENTS_PER_PAGE);
-  if ( empty( $limit ) ) {
+  if ( empty($limit) ) {
     $limitAmount = ZM_WEB_EVENTS_PER_PAGE;
   } else {
     $limitLeft = $limit - $limitStart;
@@ -104,7 +104,7 @@ if ( !empty($page) ) {
 $maxShortcuts = 5;
 $pagination = getPagination($pages, $page, $maxShortcuts, $sortQuery.'&eid='.$eid.$limitQuery.$filterQuery);
 
-$frames = dbFetchAll( $frameSql );
+$frames = dbFetchAll($frameSql);
 
 $focusWindow = true;
 

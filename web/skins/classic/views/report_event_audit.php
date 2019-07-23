@@ -192,9 +192,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             )
           )
         );
+    parseFilter($ZeroSize_filter);
   }
-
-
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
             <td class="colId"><a href="<?php echo $montagereview_link ?>"><?php echo $monitor['Id'] ?></a></td>
@@ -219,7 +218,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <?php echo count($FileMissing) ?  '<a href="?view='.ZM_WEB_EVENTS_VIEW .'&amp;page=1'.$FileMissing_filter['query'].'">'.count($FileMissing).'</a>' : '0' ?>
             </td>
             <td class="colZeroSize<?php echo count($ZeroSize) ? ' errorText' : ''?>">
-            <?php echo count($ZeroSize) ? '<a href="?view='.ZM_WEB_EVENTS_VIEW .'&amp;page=1'.$ZeroSize_filter['query'].'">'.count($FileMissing).'</a>' : '0' ?>
+            <?php echo count($ZeroSize) ? '<a href="?view='.ZM_WEB_EVENTS_VIEW .'&amp;page=1'.$ZeroSize_filter['query'].'">'.count($ZeroSize).'</a>' : '0' ?>
             </td>
           </tr>
 <?php

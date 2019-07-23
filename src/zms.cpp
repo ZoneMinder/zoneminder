@@ -43,9 +43,8 @@ bool ValidateAccess( User *user, int mon_id ) {
       allowed = false;
   }
   if ( !allowed ) {
-    Error( "Error, insufficient privileges for requested action user %d %s for monitor %d",
-      user->Id(), user->getUsername(), mon_id );
-    exit( -1 );
+    Error("Error, insufficient privileges for requested action user %d %s for monitor %d",
+      user->Id(), user->getUsername(), mon_id);
   }
   return allowed;
 }
@@ -164,8 +163,7 @@ int main( int argc, const char *argv[] ) {
         strncpy( auth, value, sizeof(auth)-1 );
       } else if ( !strcmp( name, "token" ) ) {
         jwt_token_str = value;
-        Debug(1,"ZMS: JWT token found: %s", jwt_token_str.c_str());
-
+        Debug(1, "ZMS: JWT token found: %s", jwt_token_str.c_str());
       } else if ( !strcmp( name, "user" ) ) {
         username = UriDecode( value );
       } else if ( !strcmp( name, "pass" ) ) {
@@ -184,17 +182,15 @@ int main( int argc, const char *argv[] ) {
   } else {
     snprintf(log_id_string, sizeof(log_id_string), "zms_e%" PRIu64, event_id);
   }
-  logInit( log_id_string );
+  logInit(log_id_string);
 
   if ( config.opt_use_auth ) {
     User *user = 0;
 
-    if (jwt_token_str != "") {
+    if ( jwt_token_str != "" ) {
       //user = zmLoadTokenUser(jwt_token_str, config.auth_hash_ips);
       user = zmLoadTokenUser(jwt_token_str, false);
-
-    }
-    else if ( strcmp(config.auth_relay, "none") == 0 ) {
+    } else if ( strcmp(config.auth_relay, "none") == 0 ) {
       if ( checkUser(username.c_str()) ) {
         user = zmLoadUser(username.c_str());
       } else {
@@ -216,21 +212,27 @@ int main( int argc, const char *argv[] ) {
       }
     }
     if ( !user ) {
+      fprintf(stdout, "HTTP/1.0 401 Unauthorized\r\n");
       Error("Unable to authenticate user");
       logTerm();
       zmDbClose();
       return -1;
     }
-    ValidateAccess(user, monitor_id);
+    if ( !ValidateAccess(user, monitor_id) ) {
+      fprintf(stdout, "HTTP/1.0 403 Forbidden\r\n");
+      logTerm();
+      zmDbClose();
+      return -1;
+    }
   } // end if config.opt_use_auth
 
   hwcaps_detect();
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
-  setbuf( stdout, 0 );
+  setbuf(stdout, 0);
   if ( nph ) {
-    fprintf( stdout, "HTTP/1.0 200 OK\r\n" );
+    fprintf(stdout, "HTTP/1.0 200 OK\r\n");
   }
   fprintf( stdout, "Server: ZoneMinder Video Server/%s\r\n", ZM_VERSION );
         

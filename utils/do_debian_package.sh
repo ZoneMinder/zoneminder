@@ -333,7 +333,7 @@ EOF
       fi;
     else
       echo "dputting to $PPA";
-        dput $PPA $SC
+      dput $PPA $SC
     fi;
   fi;
 done; # foreach distro
@@ -345,5 +345,3 @@ if [ "$INTERACTIVE" != "no" ]; then
 else 
   rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted";
 fi
-
-

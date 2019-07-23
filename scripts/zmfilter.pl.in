@@ -728,6 +728,7 @@ sub substituteTags {
       }
 
       if ( $text =~ s/%EIMOD%//g ) {
+        $text =~ s/%EIMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
         my $path = $Event->Path().'/objdetect.jpg';
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };

@@ -580,6 +580,9 @@ class Event {
     if ( file_exists( $this->Path().'/'.$this->DefaultVideo() ) ) {
       return true;
     }
+    if ( !defined('ZM_SERVER_ID') ) {
+      return false;
+    }
     $Storage= $this->Storage();
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
@@ -623,6 +626,9 @@ class Event {
   public function file_size() {
     if ( file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
       return filesize($this->Path().'/'.$this->DefaultVideo());
+    }
+    if ( !defined('ZM_SERVER_ID') ) {
+      return false;
     }
     $Storage= $this->Storage();
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();

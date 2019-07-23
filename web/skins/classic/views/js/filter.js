@@ -72,6 +72,15 @@ function click_automove(element) {
   }
 }
 
+function click_autocopy(element) {
+  updateButtons(this);
+  if ( this.checked ) {
+    $j(this.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
+  } else {
+    this.form.elements['filter[AutoCopyTo]'].hide();
+  }
+}
+
 function checkValue( element ) {
   var rows = $j(element).closest('tbody').children();
   parseRows(rows);

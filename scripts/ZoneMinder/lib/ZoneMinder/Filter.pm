@@ -132,6 +132,12 @@ sub Sql {
   my $self = shift;
   $$self{Sql} = shift if @_;
   if ( ! $$self{Sql} ) {
+    $self->{Sql} = '';
+    if ( ! $self->{Query} ) {
+      Warning("No query in Filter!");
+      return;
+    }
+
     my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query});
     my $sql = 'SELECT E.*,
        unix_timestamp(E.StartTime) as Time,
@@ -142,7 +148,6 @@ sub Sql {
          INNER JOIN Monitors as M on M.Id = E.MonitorId
          LEFT JOIN Storage as S on S.Id = E.StorageId
          ';
-    $self->{Sql} = '';
 
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {

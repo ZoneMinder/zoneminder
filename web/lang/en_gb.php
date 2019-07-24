@@ -132,6 +132,7 @@ $SLANG = array(
     'AttrMaxScore'          => 'Max. Score',
     'AttrMonitorId'         => 'Monitor Id',
     'AttrMonitorName'       => 'Monitor Name',
+    'AttrSecondaryStorageArea' => 'Secondary Storage Area',
     'AttrStorageArea'       => 'Storage Area',
     'AttrFilterServer'      => 'Server Filter is Running On',
     'AttrMonitorServer'     => 'Server Monitor is Running On',

@@ -171,19 +171,43 @@ class ZM_Object {
 
   public function changes( $new_values ) {
     $changes = array();
-    foreach ( $this->defaults as $field=>$default_value ) {
-      if ( array_key_exists($field, $new_values) ) {
-      Logger::Debug("Checking default $field => $default_value exists in new values :".$this->{$field} . " " .$new_values[$field]);
-        if ( (!array_key_exists($field, $this)) or ( $this->{$field} != $new_values[$field] ) ) {
-      Logger::Debug("Checking default $field => $default_value changes becaause" . $new_values[$field].' != '.$new_values[$field]);
-          $changes[$field] = $new_values[$field];
-        #} else if  {
-      Logger::Debug("Checking default $field => $default_value changes becaause " . $new_values[$field].' != '.$new_values[$field]);
-          #array_push( $changes, [$field=>$defaults[$field]] );
+    foreach ( $new_values as $field => $value ) {
+
+      if ( method_exists($this, $field) ) {
+        $old_value = $this->$field();
+        Logger::Debug("Checking method $field () ".print_r($old_value,true)." => " . print_r($value,true));
+        if ( is_array($old_value) ) {
+          $diff = array_recursive_diff($old_value, $value);
+          Logger::Debug("Checking method $field () diff is".print_r($diff,true));
+          if ( count($diff) ) {
+            $changes[$field] = $value;
+          }
+        } else if ( $this->$field() != $value ) {
+          $changes[$field] = $value;
         }
-      } else {
-        Logger::Debug("Checking default $field => $default_value not in new_values");
+      } else if ( array_key_exists($field, $this) ) {
+        Logger::Debug("Checking field $field => ".$this->{$field} . " ?= " .$value);
+        if ( $this->{$field} != $value ) {
+          $changes[$field] = $value;
+        }
+      } else if ( array_key_exists($field, $this->defaults) ) {
+
+        Logger::Debug("Checking default $field => ".$this->defaults[$field] . " " .$value);
+        if ( $this->defaults[$field] != $value ) {
+          $changes[$field] = $value;
+        }
       }
+
+        #if ( (!array_key_exists($field, $this)) or ( $this->{$field} != $new_values[$field] ) ) {
+      #Logger::Debug("Checking default $field => $default_value changes becaause" . $new_values[$field].' != '.$new_values[$field]);
+          #$changes[$field] = $new_values[$field];
+        ##} else if  {
+      #Logger::Debug("Checking default $field => $default_value changes becaause " . $new_values[$field].' != '.$new_values[$field]);
+          ##array_push( $changes, [$field=>$defaults[$field]] );
+        #}
+      #} else {
+        #Logger::Debug("Checking default $field => $default_value not in new_values");
+      #}
     } # end foreach default 
     return $changes;
   } # end public function changes

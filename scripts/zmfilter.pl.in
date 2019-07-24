@@ -346,10 +346,20 @@ sub checkFilter {
       Error($_) if $_;
     }
     if ( $filter->{AutoCopy} ) {
-      my $NewStorage = new ZoneMinder::Storage($filter->{AutoCopyTo});
-      $_ = $Event->CopyTo($NewStorage);
-      Error($_) if $_;
-    }
+      # Copy To is different from MoveTo in that it JUST copies the files
+      # So we still need to update the Event object with the new SecondaryStorageId
+      my $NewStorage = ZoneMinder::Storage->find_one($filter->{AutoCopyTo});
+      if ( $NewStorage ) {
+        $_ = $Event->CopyTo($NewStorage);
+        if ( $_ ) {
+          Error($_);
+        } else {
+          $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
+        }
+      } else {
+        Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
+      }
+    } # end if AutoCopy
 
     if ( $filter->{UpdateDiskSpace} ) {
       $ZoneMinder::Database::dbh->begin_work();
@@ -368,7 +378,7 @@ sub checkFilter {
       $ZoneMinder::Database::dbh->commit();
     } # end if UpdateDiskSpace
   } # end foreach event
-}
+} # end sub checkFilter
 
 sub generateVideo {
   my $filter = shift;

@@ -23,29 +23,33 @@ class Filter extends ZM_Object {
     'UpdateDiskSpace' =>  0,
     'Background'      =>  0,
     'Concurrent'      =>  0,
-    #'limit'           =>  100,
     'Query_json'      =>  '',
-    #'sort_field'      =>  ZM_WEB_EVENT_SORT_FIELD,
-    #'sort_asc'        =>  ZM_WEB_EVENT_SORT_ORDER,
   );
 
-  public function Query($new = -1) {
-    if ( $new and ( $new != -1 ) ) {
-      $this->{'Query'} = $new;
-      $this->{'Query_json'} = jsonEncode($new);
-      Logger::Debug("Setting Query to " . $this->{'Query_json'});
+  public function Query_json() {
+    if ( func_num_args( ) ) {
+      $this->{'Query_json'} = func_get_arg(0);;
+      $this->{'Query'} = jsonDecode($this->{'Query_json'});
+    }
+    return $this->{'Query_json'};
+  }
+
+  public function Query() {
+    if ( func_num_args( ) ) {
+      $this->{'Query'} = func_get_arg(0);;
+      $this->{'Query_json'} = jsonEncode($this->{'Query'});
     }
     if ( !array_key_exists('Query', $this) ) {
       if ( array_key_exists('Query_json', $this) and $this->{'Query_json'} ) {
         $this->{'Query'} = jsonDecode($this->{'Query_json'});
-      Logger::Debug("Decoded Query already" . print_r($this->{'Query'}, true ));
-
       } else {
-        Logger::Debug("No Have Query_json already");
         $this->{'Query'} = array();
       }
     } else {
-      Logger::Debug("Have Query already" . print_r($this->{'Query'}, true ));
+      if ( !is_array($this->{'Query'}) ) {
+        # Handle existence of both Query_json and Query in the row
+        $this->{'Query'} = jsonDecode($this->{'Query_json'});
+      }
     }
     return $this->{'Query'};
   }
@@ -59,8 +63,10 @@ class Filter extends ZM_Object {
   }
 
   public function terms( ) {
-    if ( func_num_args( ) ) {
-      $this->Query()['terms'] = func_get_arg(0);
+    if ( func_num_args() ) {
+      $Query = $this->Query();
+      $Query['terms'] = func_get_arg(0);
+      $this->Query($Query);
     }
     if ( isset( $this->Query()['terms'] ) ) {
       return $this->Query()['terms'];
@@ -71,7 +77,9 @@ class Filter extends ZM_Object {
   // The following three fields are actually stored in the Query
   public function sort_field( ) {
     if ( func_num_args( ) ) {
-      $this->Query()['sort_field'] = func_get_arg(0);
+      $Query = $this->Query();
+      $Query['sort_field'] = func_get_arg(0);
+      $this->Query($Query);
     }
     if ( isset( $this->Query()['sort_field'] ) ) {
       return $this->{'Query'}['sort_field'];
@@ -82,7 +90,9 @@ class Filter extends ZM_Object {
 
   public function sort_asc( ) {
     if ( func_num_args( ) ) {
-      $this->Query()['sort_asc'] = func_get_arg(0);
+      $Query = $this->Query();
+      $Query['sort_asc'] = func_get_arg(0);
+      $this->Query($Query);
     }
     if ( isset( $this->Query()['sort_asc'] ) ) {
       return $this->{'Query'}['sort_asc'];
@@ -93,7 +103,9 @@ class Filter extends ZM_Object {
 
   public function limit( ) {
     if ( func_num_args( ) ) {
-      $this->{'Query'}['limit'] = func_get_arg(0);
+      $Query = $this->Query();
+      $Query['limit'] = func_get_arg(0);
+      $this->Query($Query);
     }
     if ( isset( $this->Query()['limit'] ) )
       return $this->{'Query'}['limit'];

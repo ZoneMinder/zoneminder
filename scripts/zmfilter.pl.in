@@ -348,13 +348,15 @@ sub checkFilter {
     if ( $filter->{AutoCopy} ) {
       # Copy To is different from MoveTo in that it JUST copies the files
       # So we still need to update the Event object with the new SecondaryStorageId
-      my $NewStorage = ZoneMinder::Storage->find_one($filter->{AutoCopyTo});
+      my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
       if ( $NewStorage ) {
         $_ = $Event->CopyTo($NewStorage);
         if ( $_ ) {
+          $ZoneMinder::Database::dbh->commit();
           Error($_);
         } else {
           $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
+          $ZoneMinder::Database::dbh->commit();
         }
       } else {
         Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");

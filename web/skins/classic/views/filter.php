@@ -270,7 +270,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'StorageId' ) {
+    } elseif ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']); ?></td>

@@ -209,10 +209,10 @@ function parseRows(rows) {
       }
       var serverVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(serverSelect).children().val(serverVal).chosen({width: "101%"});
-    } else if ( attr == 'StorageId' ) { //Choose by storagearea
+    } else if ( (attr == 'StorageId') || (attr == 'SecondaryStorageId') ) { //Choose by storagearea
       var storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for ( key in storageareas ) {
-        storageSelect.append('<option value="' + key + '">' + storageareas[key] + '</option>');
+        storageSelect.append('<option value="' + key + '">' + storageareas[key].Name + '</option>');
       }
       var storageVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});

@@ -463,8 +463,8 @@ function cmdCancelForcedAlarm() {
 
 function getActResponse( respObj, respText ) {
   if ( respObj.result == 'Ok' ) {
-    if ( respObj.refreshParent ) {
-      console.log('refreshing');
+    if ( respObj.refreshParent && window.opener ) {
+      console.log('refreshing parent');
       window.opener.location.reload();
     }
   }
@@ -555,9 +555,24 @@ function getEventCmdResponse( respObj, respText ) {
         link.set( 'text', event.AvgScore+'/'+event.MaxScore );
         link.inject( row.getElement( 'td.colScore' ) );
 
-        link = new Element( 'a', {'href': '#', 'title': deleteString, 'events': {'click': function( e ) {
-          deleteEvent( e, event.Id );
-        }, 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row )}});
+        link = new Element( 'button', {
+          'type': 'button',
+          'title': deleteString,
+          'data-event-id': event.Id,
+          'events': {
+            'click': function(e) {
+              var event_id = e.target.getAttribute('data-event-id');
+              if ( !event_id ) {
+                console.log('No event id in deleteEvent');
+                console.log(e);
+              } else {
+                deleteEvent(e, event_id);
+              }
+            },
+            'mouseover': highlightRow.pass(row),
+            'mouseout': highlightRow.pass(row)
+          }
+        });
         link.set( 'text', 'X' );
         link.inject( row.getElement( 'td.colDelete' ) );
 

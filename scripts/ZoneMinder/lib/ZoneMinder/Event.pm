@@ -64,6 +64,7 @@ $serial = $primary_key = 'Id';
   Id
   MonitorId
   StorageId
+  SecondaryStorageId
   Name
   Cause
   StartTime
@@ -117,7 +118,7 @@ sub Time {
 }
 
 sub getPath {
-  return Path( @_ );
+  return Path(@_);
 }
 
 sub Path {
@@ -132,7 +133,7 @@ sub Path {
 
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
-    $$event{Path} = join('/', $Storage->Path(), $event->RelativePath() );
+    $$event{Path} = join('/', $Storage->Path(), $event->RelativePath());
   }
   return $$event{Path};
 }
@@ -164,7 +165,8 @@ sub RelativePath {
       if ( $event->Time() ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
-            POSIX::strftime( '%y/%m/%d/%H/%M/%S',
+            POSIX::strftime(
+              '%y/%m/%d/%H/%M/%S',
               localtime($event->Time())
               ),
             );
@@ -204,7 +206,8 @@ sub LinkPath {
       if ( $event->Time() ) {
         $$event{LinkPath} = join('/',
             $event->{MonitorId},
-            POSIX::strftime( '%y/%m/%d',
+            POSIX::strftime(
+              '%y/%m/%d',
               localtime($event->Time())
               ),
             '.'.$$event{Id}
@@ -256,8 +259,8 @@ sub createIdFile {
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
 
-  my $event_path = $self->Path( );
-  chdir( $event_path );
+  my $event_path = $self->Path();
+  chdir($event_path);
   ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
 
   my @file_parts;
@@ -283,10 +286,10 @@ sub GenerateVideo {
     $file_scale =~ s/_00//;
     $file_scale =~ s/(_\d+)0+$/$1/;
     $file_scale = 's'.$file_scale;
-    push( @file_parts, $file_scale );
+    push @file_parts, $file_scale;
   } elsif ( $size ) {
     my $file_size = 'S'.$size;
-    push( @file_parts, $file_size );
+    push @file_parts, $file_size;
   }
   my $video_file = join('-', $video_name, $file_parts[0], $file_parts[1] ).'.'.$format;
   if ( $overwrite || !-s $video_file ) {
@@ -537,9 +540,9 @@ sub CopyTo {
   # We do this before bothering to lock the event
   my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
-    return "New storage does not have an id.  Moving will not happen.";
+    return 'New storage does not have an id.  Moving will not happen.';
   } elsif ( $$NewStorage{Id} == $$self{StorageId} ) {
-    return "Event is already located at " . $NewPath;
+    return 'Event is already located at ' . $NewPath;
   } elsif ( !$NewPath ) {
     return "New path ($NewPath) is empty.";
   } elsif ( ! -e $NewPath ) {
@@ -551,7 +554,7 @@ sub CopyTo {
   # data is reloaded, so need to check that the move hasn't already happened.
   if ( $$self{StorageId} == $$NewStorage{Id} ) {
     $ZoneMinder::Database::dbh->commit();
-    return "Event has already been moved by someone else.";
+    return 'Event has already been moved by someone else.';
   }
 
   if ( $$OldStorage{Id} != $$self{StorageId} ) {
@@ -586,13 +589,13 @@ sub CopyTo {
       }
 
       my $event_path = 'events/'.$self->RelativePath();
-Info("Making dir ectory $event_path/");
+      Debug("Making directory $event_path/");
       if ( ! $bucket->add_key( $event_path.'/','' ) ) {
         die "Unable to add key for $event_path/";
       }
 
       my @files = glob("$OldPath/*");
-Debug("Files to move @files");
+      Debug("Files to move @files");
       for my $file (@files) {
         next if $file =~ /^\./;
         ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint

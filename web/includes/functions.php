@@ -2518,4 +2518,45 @@ function format_duration($time, $separator=':') {
   return sprintf('%02d%s%02d%s%02d', floor($time/3600), $separator, ($time/60)%60, $separator, $time%60);
 }
 
+function array_recursive_diff($aArray1, $aArray2) {
+  $aReturn = array();
+
+  foreach ($aArray1 as $mKey => $mValue) {
+    if ( array_key_exists($mKey, $aArray2) ) {
+      if ( is_array($mValue) ) {
+        $aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
+        if ( count($aRecursiveDiff) ) {
+          $aReturn[$mKey] = $aRecursiveDiff;
+        }
+      } else {
+        if ( $mValue != $aArray2[$mKey] ) {
+          $aReturn[$mKey] = $mValue;
+        }
+      }
+    } else {
+      $aReturn[$mKey] = $mValue;
+    }
+  }
+  # Now check for keys in array2 that are not in array1
+  foreach ($aArray2 as $mKey => $mValue) {
+    if ( array_key_exists($mKey, $aArray1) ) {
+      # Already checked it... I think.
+      #if ( is_array($mValue) ) {
+        #$aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
+        #if ( count($aRecursiveDiff) ) {
+          #$aReturn[$mKey] = $aRecursiveDiff;
+        #}
+      #} else {
+        #if ( $mValue != $aArray2[$mKey] ) {
+          #$aReturn[$mKey] = $mValue;
+        #}
+      #}
+    } else {
+      $aReturn[$mKey] = $mValue;
+    }
+  }
+
+  return $aReturn;
+}
+
 ?>

@@ -593,6 +593,7 @@ void EventStream::checkEventLoaded() {
       else
         curr_frame_id = event_data->frame_count;
       paused = true;
+      sendTextFrame("No more event data found");
     } // end if found a new event or not
     mysql_free_result(result);
     forceEventChange = false;
@@ -843,6 +844,9 @@ void EventStream::runStream() {
     //Info( "fdt:%d", frame_data->timestamp );
     if ( !paused ) {
       Debug(3, "Not paused at frame %d", curr_frame_id);
+
+      // This next bit is to determine if we are in the current event time wise
+      // and whether to show an image saying how long until the next event.
       bool in_event = true;
       double time_to_event = 0;
       if ( replay_rate > 0 ) {
@@ -854,22 +858,36 @@ void EventStream::runStream() {
         if ( time_to_event > 0 )
           in_event = false;
       }
+      Debug(1, "replay rate(%d) in_event(%d) time_to_event(%f)=curr_stream_time(%f)-frame timestamp:%f",
+          replay_rate, in_event, time_to_event, curr_stream_time, event_data->frames[event_data->frame_count-1].timestamp);
       if ( !in_event ) {
         double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
+        Debug(1, "Ctual delta time = %f = %f - %f", actual_delta_time , TV_2_FLOAT(now) , last_frame_sent);
         // > 1 second
         if ( actual_delta_time > 1 ) {
+          Debug(1, "Sending time to next event frame");
           static char frame_text[64];
           snprintf(frame_text, sizeof(frame_text), "Time to next event = %d seconds", (int)time_to_event);
           if ( !sendTextFrame(frame_text) )
             zm_terminate = true;
+        } else {
+          Debug(1, "Not Sending time to next event frame because actual delta time is %f", actual_delta_time);
         }
         //else
         //{
         // FIXME ICON But we are not paused.  We are somehow still in the event?
-        Debug(2, "Sleeping because paused");
+          double sleep_time = (replay_rate>0?1:-1) * ((1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000));
+          //double sleep_time = (replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
+          //// ZM_RATE_BASE == 100, and 1x replay_rate is 100
+          //double sleep_time = ((replay_rate/ZM_RATE_BASE) * STREAM_PAUSE_WAIT)/1000000;
+          if ( ! sleep_time ) {
+            sleep_time += STREAM_PAUSE_WAIT/1000000;
+          }
+          curr_stream_time += sleep_time;
+          Debug(2, "Sleeping (%dus) because we are not at the next event yet, adding %f", STREAM_PAUSE_WAIT, sleep_time);
           usleep(STREAM_PAUSE_WAIT);
-          //curr_stream_time += (replay_rate>0?1:-1) * ((1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000));
-          curr_stream_time += (1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
+          
+          //curr_stream_time += (1.0L * replay_rate * STREAM_PAUSE_WAIT)/(ZM_RATE_BASE * 1000000);
         //}
         continue;
       } // end if !in_event

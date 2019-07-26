@@ -211,17 +211,17 @@ int main(int argc, const char *argv[]) {
       }
     }
     if ( !user ) {
-      fputs("HTTP/1.0 401 Unauthorized\r\n", stdout);
+      fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
       Error("Unable to authenticate user");
       logTerm();
       zmDbClose();
-      return -1;
+      return 0;
     }
     if ( !ValidateAccess(user, monitor_id) ) {
-      fputs("HTTP/1.0 403 Forbidden\r\n", stdout);
+      fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
       logTerm();
       zmDbClose();
-      return -1;
+      return 0;
     }
   }  // end if config.opt_use_auth
 

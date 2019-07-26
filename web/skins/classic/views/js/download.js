@@ -26,14 +26,14 @@ function exportProgress() {
   }
 }
 
-function exportResponse( respObj, respText ) {
+function exportResponse(respObj, respText) {
   console.log(respObj);
   window.location.replace(
-    thisUrl+'?view='+currentView+'&'+eidParm
-    +'&exportFormat='+respObj.exportFormat
-    +'&exportFile='+respObj.exportFile
-    +'&generated='+((respObj.result=='Ok')?1:0)
-    +'&connkey='+connkey
+      thisUrl+'?view='+currentView+'&'+eidParm
+      +'&exportFormat='+respObj.exportFormat
+      +'&exportFile='+respObj.exportFile
+      +'&generated='+((respObj.result=='Ok')?1:0)
+      +'&connkey='+connkey
   );
 }
 

@@ -973,12 +973,12 @@ void EventStream::runStream() {
           (base_fps?base_fps:1),
           (replay_rate?abs(replay_rate*2):200)
           );
-      if ( delta_us > 0 and delta_us < 100000 ) {
+      if ( delta_us > 0 and delta_us < 500000 ) {
         usleep(delta_us);
       } else {
         // Never want to sleep for too long, limit to .1s
-        Warning("sleeping .1s because delta_us (%d) not good!", delta_us);
-        usleep(100000);
+        Warning("sleeping .5s because delta_us (%d) not good!", delta_us);
+        usleep(500000);
       }
     } // end if !paused
   } // end while ! zm_terminate

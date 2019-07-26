@@ -236,8 +236,9 @@ Image *StreamBase::prepareImage( Image *image ) {
   return image;
 }
 
-bool StreamBase::sendTextFrame( const char *frame_text ) {
-  Debug(2, "Sending text frame '%s'", frame_text);
+bool StreamBase::sendTextFrame(const char *frame_text) {
+  Debug(2, "Sending %dx%d * %d text frame '%s'",
+      monitor->Width(), monitor->Height(), scale, frame_text);
 
   Image image(monitor->Width(), monitor->Height(), monitor->Colours(), monitor->SubpixelOrder());
   image.Annotate(frame_text, image.centreCoord(frame_text));
@@ -261,8 +262,8 @@ bool StreamBase::sendTextFrame( const char *frame_text ) {
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n\r\n", stdout);
-    fprintf(stdout, "Content-Length: %d\r\n", n_bytes);
+    fputs("--ZoneMinderFrame\r\nContent-Type: image/jpeg\r\n", stdout);
+    fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
     if ( fwrite(buffer, n_bytes, 1, stdout) != 1 ) {
       Error("Unable to send stream text frame: %s", strerror(errno));
       return false;

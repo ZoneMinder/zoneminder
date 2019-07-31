@@ -728,7 +728,7 @@ void MonitorStream::runStream() {
 
     if ( sleep_time > MAX_SLEEP_USEC ) {
       // Shouldn't sleep for long because we need to check command queue, etc.
-      sleep_time = MAX_SLEEP_USEC
+      sleep_time = MAX_SLEEP_USEC;
     }
     Debug(3, "Sleeping for %dus", sleep_time);
     usleep(sleep_time);

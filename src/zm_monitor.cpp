@@ -302,6 +302,7 @@ Monitor::Monitor(
   int p_min_section_length,
   int p_frame_skip,
   int p_motion_frame_skip,
+  double p_capture_max_fps,
   double p_analysis_fps,
   unsigned int p_analysis_update_delay,
   int p_capture_delay,
@@ -342,6 +343,7 @@ Monitor::Monitor(
   min_section_length( p_min_section_length ),
   frame_skip( p_frame_skip ),
   motion_frame_skip( p_motion_frame_skip ),
+  capture_max_fps( p_capture_max_fps ),
   analysis_fps( p_analysis_fps ),
   analysis_update_delay( p_analysis_update_delay ),
   capture_delay( p_capture_delay ),
@@ -891,16 +893,19 @@ double Monitor::GetFPS() const {
 
   double time_diff = tvDiffSec( time2, time1 );
   if ( ! time_diff ) {
-    Error( "No diff between time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
+    Error("No diff between time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
+        time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count);
     return 0.0;
   }
   double curr_fps = image_count/time_diff;
 
   if ( curr_fps < 0.0 ) {
-    Error( "Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
+    Error("Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
+        curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count);
     return 0.0;
   } else {
-    Debug( 2, "GetFPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
+    Debug(2, "GetFPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
+        curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count);
   }
   return curr_fps;
 }
@@ -1835,7 +1840,10 @@ void Monitor::Reload() {
     motion_frame_skip = atoi(dbrow[index++]);
     analysis_fps = dbrow[index] ? strtod(dbrow[index], NULL) : 0; index++;
     analysis_update_delay = strtoul(dbrow[index++], NULL, 0);
-    capture_delay = (dbrow[index]&&atof(dbrow[index])>0.0)?int(DT_PREC_3/atof(dbrow[index])):0; index++;
+
+    capture_max_fps = dbrow[index] ? atof(dbrow[index]) : 0.0; index++;
+    capture_delay = ( capture_max_fps > 0.0 ) ? int(DT_PREC_3/capture_max_fps) : 0;
+
     alarm_capture_delay = (dbrow[index]&&atof(dbrow[index])>0.0)?int(DT_PREC_3/atof(dbrow[index])):0; index++;
     fps_report_interval = atoi(dbrow[index++]);
     ref_blend_perc = atoi(dbrow[index++]);
@@ -2064,7 +2072,11 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
 
   double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
   unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
-  double capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+
+  double capture_max_fps = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
+  double capture_delay = ( capture_max_fps > 0.0 ) ? int(DT_PREC_3/capture_max_fps) : 0;
+
+  Debug(1,"Capture Delay!? %.3f", capture_delay);
   unsigned int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 
   const char *device = dbrow[col]; col++;
@@ -2338,6 +2350,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       min_section_length,
       frame_skip,
       motion_frame_skip,
+      capture_max_fps,
       analysis_fps,
       analysis_update_delay,
       capture_delay,

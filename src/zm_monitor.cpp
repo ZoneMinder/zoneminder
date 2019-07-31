@@ -1530,7 +1530,7 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
                   name, image_count, event->Id());
               closeEvent();
-            } else {
+            } else if ( event ) {
             // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
             Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d",
                 Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 

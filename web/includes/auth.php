@@ -236,10 +236,9 @@ function validateToken ($token, $allowed_token_type='access', $from_api_layer=fa
     // if from_api_layer is true, an additional check will be done
     // to make sure APIs are enabled for this user. This is a good place
     // to do it, since we are doing a DB dip here.
-      ZM\Error ("API is disabled for \"$username\"");
+      ZM\Error("API is disabled for \"$username\"");
       unset($user);
       return array(false, 'API is disabled for user');
-
     }
 
     $issuedAt =  $jwt_payload['iat'];
@@ -247,7 +246,6 @@ function validateToken ($token, $allowed_token_type='access', $from_api_layer=fa
 
     if ( $issuedAt < $minIssuedAt ) {
       ZM\Error("Token revoked for $username. Please generate a new token");
-      $_SESSION['loginFailed'] = true;
       unset($user);
       return array(false, 'Token revoked. Please re-generate');
     }
@@ -256,7 +254,6 @@ function validateToken ($token, $allowed_token_type='access', $from_api_layer=fa
     return array($user, 'OK');
   } else {
     ZM\Error("Could not retrieve user $username details");
-    $_SESSION['loginFailed'] = true;
     unset($user);
     return array(false, 'No such user/credentials');
   }
@@ -291,19 +288,17 @@ function getAuthUser($auth, $from_api_layer = false) {
         $authHash = md5($authKey);
 
         if ( $auth == $authHash ) {
-          if ($from_api_layer && $user['APIEnabled'] == 0) {
+          if ( $from_api_layer && $user['APIEnabled'] == 0 ) {
             // if from_api_layer is true, an additional check will be done
             // to make sure APIs are enabled for this user. This is a good place
             // to do it, since we are doing a DB dip here.
-              ZM\Error ("API is disabled for \"".$user['Username']."\"");
-              unset($user);
-              return array(false, 'API is disabled for user');
-        
-            }
-            else {
-              return $user;
-            }
-        }
+            ZM\Error('API is disabled for "'.$user['Username'].'"');
+            unset($user);
+            return array(false, 'API is disabled for user');
+          } else {
+            return $user;
+          }
+        } // en dif $auth == $authHash
       } // end foreach hour
     } // end foreach user
   } // end if using auth hash
@@ -367,53 +362,56 @@ function canEdit($area, $mid=false) {
 
 global $user;
 if ( ZM_OPT_USE_AUTH ) {
-  $close_session = 0;
-  if ( !is_session_started() ) {
-    zm_session_start();
-    $close_session = 1;
-  }
-
-  if ( isset($_SESSION['username']) ) {
-    if ( ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed') ) {
-      # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
-      # This prevent session modification to switch users
-      if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
-        $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
-    } else {
-      # Need to refresh permissions and validate that the user still exists
-      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
-      $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
-    }
-  }
-
-  if ( ZM_AUTH_RELAY == 'plain' ) {
-    // Need to save this in session
-    $_SESSION['password'] = $user['Password'];
-  }
-  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-
-  if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
-    if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
-      userLogin($authUser['Username'], $authUser['Password'], true);
-    }
-  } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
-    userLogin($_REQUEST['username'], $_REQUEST['password'], false);
-    # Because it might have migrated the password we need to update the hash
-    generateAuthHash(ZM_AUTH_HASH_IPS, true);
-  }
-
-  if ( empty($user) && !empty($_REQUEST['token']) ) {
+  if ( !empty($_REQUEST['token']) ) {
     $ret = validateToken($_REQUEST['token'], 'access');
     $user = $ret[0];
-  }
+  } else {
+    // Non token based auth
+    
+    $close_session = 0;
+    if ( !is_session_started() ) {
+      zm_session_start();
+      $close_session = 1;
+    }
 
-  if ( !empty($user) ) {
-    // generate it once here, while session is open.  Value will be cached in session and return when called later on
-    generateAuthHash(ZM_AUTH_HASH_IPS);
-  }
-  if ( $close_session )
-    session_write_close();
-} else {
+    if ( isset($_SESSION['username']) ) {
+      if ( ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed') ) {
+        # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
+        # This prevent session modification to switch users
+        if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
+          $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
+      } else {
+        # Need to refresh permissions and validate that the user still exists
+        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+        $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
+      }
+    }
+
+    if ( ZM_AUTH_RELAY == 'plain' ) {
+      // Need to save this in session
+      $_SESSION['password'] = $user['Password'];
+    }
+    $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+
+    if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
+      if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
+        userLogin($authUser['Username'], $authUser['Password'], true);
+      }
+    } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
+      userLogin($_REQUEST['username'], $_REQUEST['password'], false);
+      # Because it might have migrated the password we need to update the hash
+      generateAuthHash(ZM_AUTH_HASH_IPS, true);
+    }
+
+    if ( !empty($user) ) {
+      // generate it once here, while session is open.  Value will be cached in session and return when called later on
+      generateAuthHash(ZM_AUTH_HASH_IPS);
+    }
+    if ( $close_session )
+      session_write_close();
+  } # end if token based auth
+} # end if ZM_OPT_USE_AUTH
+
+if ( !$user )
   $user = $defaultUser;
-}
 ?>

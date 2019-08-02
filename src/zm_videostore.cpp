@@ -1010,7 +1010,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
 
 # if 1
 	if ( opkt.dts < video_out_stream->cur_dts ) {
-		Warning("Fixing non-monotonic dts/pts dts %" PRId64 " pts %" PRId64 " stream %" PRId64,
+		Debug(1, "Fixing non-monotonic dts/pts dts %" PRId64 " pts %" PRId64 " stream %" PRId64,
 				opkt.dts, opkt.pts, video_out_stream->cur_dts);
 		opkt.dts = video_out_stream->cur_dts;
 		if ( opkt.dts > opkt.pts ) {

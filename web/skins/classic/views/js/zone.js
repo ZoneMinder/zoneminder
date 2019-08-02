@@ -371,8 +371,8 @@ function updateY( index ) {
 
 function saveChanges( element ) {
   var form = element.form;
-  if ( validateForm( form ) ) {
-    submitForm( form );
+  if ( validateForm(form) ) {
+    submitForm(form);
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
       alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
     }

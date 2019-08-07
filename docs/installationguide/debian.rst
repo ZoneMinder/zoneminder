@@ -189,10 +189,16 @@ Add the following to the bottom of the file
 ::
 
     # Backports repository
-    deb http://httpredir.debian.org/debian jessie-backports main contrib non-free
+    deb http://archive.debian.org/debian/ jessie-backports main contrib non-free
 
 CTRL+o and <Enter> to save
 CTRL+x to exit
+
+Run the following
+
+::
+
+    echo 'Acquire::Check-Valid-Until no;' > /etc/apt/apt.conf.d/99no-check-valid-until
 
 **Step 5:** Install ZoneMinder
 

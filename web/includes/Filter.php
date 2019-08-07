@@ -124,7 +124,7 @@ class Filter extends ZM_Object {
       if ( !defined('ZM_SERVER_ID') or !$Server->Id() or ZM_SERVER_ID==$Server->Id() ) {
         # Local
         Logger::Debug("Controlling filter locally $command for server ".$Server->Id());
-        daemonControl($command, 'zmfilter.pl', '--filter_id='.$this->{'Id'});
+        daemonControl($command, 'zmfilter.pl', '--filter_id='.$this->{'Id'}.' --daemon');
       } else {
         # Remote case
 

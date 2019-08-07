@@ -414,7 +414,7 @@ CREATE TABLE `MonitorPresets` (
   `Width` smallint(5) unsigned default NULL,
   `Height` smallint(5) unsigned default NULL,
   `Palette` int(10) unsigned default NULL,
-  `MaxFPS` decimal(5,2) default NULL,
+  `MaxFPS` decimal(5,3) default NULL,
   `Controllable` tinyint(3) unsigned NOT NULL default '0',
   `ControlId` varchar(16) default NULL,
   `ControlDevice` varchar(255) default NULL,

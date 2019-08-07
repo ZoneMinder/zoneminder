@@ -12,6 +12,7 @@ class Event {
 'Name',
 'MonitorId',
 'StorageId',
+'SecondaryStorageId',
 'Name',
 'Cause',
 'StartTime',
@@ -83,6 +84,19 @@ class Event {
         $this->{'Storage'} = new Storage(NULL);
     }
     return $this->{'Storage'};
+  }
+
+  public function SecondaryStorage( $new = null ) {
+    if ( $new ) {
+      $this->{'SecondaryStorage'} = $new;
+    }
+    if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) ) {
+      if ( isset($this->{'SecondaryStorageId'}) and $this->{'SecondaryStorageId'} )
+        $this->{'SecondaryStorage'} = Storage::find_one(array('Id'=>$this->{'SecondaryStorageId'}));
+      if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) )
+        $this->{'SecondaryStorage'} = new Storage(NULL);
+    }
+    return $this->{'SecondaryStorage'};
   }
 
   public function Monitor() {

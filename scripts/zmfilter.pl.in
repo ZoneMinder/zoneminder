@@ -240,6 +240,7 @@ sub getFilters {
     or AutoDelete = 1
     or UpdateDiskSpace = 1
     or AutoMove = 1
+    or AutoCopy = 1
     ) ORDER BY Name';
   my $sth = $dbh->prepare_cached($sql)
     or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
@@ -283,6 +284,7 @@ sub checkFilter {
           ($filter->{AutoMessage}?'message':()),
           ($filter->{AutoExecute}?'execute':()),
           ($filter->{AutoMove}?'move':()),
+          ($filter->{AutoCopy}?'copy':()),
           ($filter->{UpdateDiskSpace}?'update disk space':()),
           ),
         'returned' , scalar @Events , 'events',
@@ -300,9 +302,9 @@ sub checkFilter {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
       my $sql = 'UPDATE Events SET Archived = 1 WHERE Id = ?';
-      my $sth = $dbh->prepare_cached( $sql )
+      my $sth = $dbh->prepare_cached($sql)
         or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute( $Event->{Id} )
+      my $res = $sth->execute($Event->{Id})
         or Error("Unable to execute '$sql': ".$dbh->errstr());
     }
     if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
@@ -343,6 +345,23 @@ sub checkFilter {
       $_ = $Event->MoveTo($NewStorage);
       Error($_) if $_;
     }
+    if ( $filter->{AutoCopy} ) {
+      # Copy To is different from MoveTo in that it JUST copies the files
+      # So we still need to update the Event object with the new SecondaryStorageId
+      my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
+      if ( $NewStorage ) {
+        $_ = $Event->CopyTo($NewStorage);
+        if ( $_ ) {
+          $ZoneMinder::Database::dbh->commit();
+          Error($_);
+        } else {
+          $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
+          $ZoneMinder::Database::dbh->commit();
+        }
+      } else {
+        Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
+      }
+    } # end if AutoCopy
 
     if ( $filter->{UpdateDiskSpace} ) {
       $ZoneMinder::Database::dbh->begin_work();
@@ -361,7 +380,7 @@ sub checkFilter {
       $ZoneMinder::Database::dbh->commit();
     } # end if UpdateDiskSpace
   } # end foreach event
-}
+} # end sub checkFilter
 
 sub generateVideo {
   my $filter = shift;
@@ -623,7 +642,7 @@ sub substituteTags {
   my $Monitor = $Event->Monitor() if $need_monitor;
 
 # Do we need the image information too?
-  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA)%/;
+  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD)%/;
   my $first_alarm_frame;
   my $max_alarm_frame;
   my $max_alarm_score = 0;

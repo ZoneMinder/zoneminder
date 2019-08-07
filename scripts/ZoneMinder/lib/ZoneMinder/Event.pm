@@ -573,55 +573,61 @@ sub CopyTo {
   my $moved = 0;
 
   if ( $$NewStorage{Type} eq 's3fs' ) {
-    my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
-    eval {
-      require Net::Amazon::S3;
-      require File::Slurp;
-      my $s3 = Net::Amazon::S3->new( {
-          aws_access_key_id     => $aws_id,
-          aws_secret_access_key => $aws_secret,
-          ( $aws_host ? ( host => $aws_host ) : () ),
-          });
-      my $bucket = $s3->bucket($aws_bucket);
-      if ( ! $bucket ) {
-        Error("S3 bucket $bucket not found.");
-        die;
+    if ( $$NewStorage{Url} ) {
+      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+      if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
+        eval {
+          require Net::Amazon::S3;
+          require File::Slurp;
+          my $s3 = Net::Amazon::S3->new( {
+              aws_access_key_id     => $aws_id,
+              aws_secret_access_key => $aws_secret,
+              ( $aws_host ? ( host => $aws_host ) : () ),
+            });
+          my $bucket = $s3->bucket($aws_bucket);
+          if ( !$bucket ) {
+            Error("S3 bucket $bucket not found.");
+            die;
+          }
+
+          my $event_path = $self->RelativePath();
+          Debug("Making directory $event_path/");
+          if ( ! $bucket->add_key($event_path.'/', '') ) {
+            die "Unable to add key for $event_path/";
+          }
+
+          my @files = glob("$OldPath/*");
+          Debug("Files to move @files");
+          foreach my $file ( @files ) {
+            next if $file =~ /^\./;
+            ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+            my $starttime = [gettimeofday];
+            Debug("Moving file $file to $NewPath");
+            my $size = -s $file;
+            if ( ! $size ) {
+              Info('Not moving file with 0 size');
+            }
+            my $file_contents = File::Slurp::read_file($file);
+            if ( ! $file_contents ) {
+              die 'Loaded empty file, but it had a size. Giving up';
+            }
+
+            my $filename = $event_path.'/'.File::Basename::basename($file);
+            if ( ! $bucket->add_key($filename, $file_contents) ) {
+              die "Unable to add key for $filename";
+            }
+            my $duration = tv_interval($starttime);
+            Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
+          } # end foreach file.
+
+          $moved = 1;
+        };
+        Error($@) if $@;
+      } else {
+        Error("Unable to parse S3 Url into it's component parts.");
       }
-
-      my $event_path = 'events/'.$self->RelativePath();
-      Debug("Making directory $event_path/");
-      if ( ! $bucket->add_key( $event_path.'/','' ) ) {
-        die "Unable to add key for $event_path/";
-      }
-
-      my @files = glob("$OldPath/*");
-      Debug("Files to move @files");
-      for my $file (@files) {
-        next if $file =~ /^\./;
-        ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
-        my $starttime = [gettimeofday];
-        Debug("Moving file $file to $NewPath");
-        my $size = -s $file;
-        if ( ! $size ) {
-          Info('Not moving file with 0 size');
-        }
-        my $file_contents = File::Slurp::read_file($file);
-        if ( ! $file_contents ) {
-          die 'Loaded empty file, but it had a size. Giving up';
-        }
-
-        my $filename = $event_path.'/'.File::Basename::basename($file);
-        if ( ! $bucket->add_key($filename, $file_contents) ) {
-          die "Unable to add key for $filename";
-        }
-        my $duration = tv_interval($starttime);
-        Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
-      } # end foreach file.
-
-      $moved = 1;
-    };
-    Error($@) if $@;
-    die $@ if $@;
+      #die $@ if $@;
+    } # end if Url
   } # end if s3
 
   my $error = '';

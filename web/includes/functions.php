@@ -1341,7 +1341,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             $filter['sql'] .= " IS NOT $value";
             break;
           default:
-            ZM\Warning("Invalid operator in filter: " . $term['op'] );
+            ZM\Warning('Invalid operator in filter: ' . print_r($term['op'], true));
         } // end switch op
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($term['op']);

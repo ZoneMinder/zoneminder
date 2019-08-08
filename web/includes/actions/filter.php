@@ -42,7 +42,7 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
           $filter->delete();
 
       } else {
-        ZM\Error("No filter id passed when deleting");
+        ZM\Error('No filter id passed when deleting');
       }
     } else if ( ( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' ) ) {
 

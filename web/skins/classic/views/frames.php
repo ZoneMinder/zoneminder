@@ -39,7 +39,7 @@ if ( empty($_REQUEST['sort_field']) )
 if ( !isset($_REQUEST['sort_asc']) )
   $_REQUEST['sort_asc'] = true;
 
-if( ! isset($_REQUEST['filter'])){
+if ( ! isset($_REQUEST['filter'])){
   // generate a dummy filter from the eid for pagination
   $_REQUEST['filter'] = array('Query' => array( 'terms' => array( ) ) );
   $_REQUEST['filter'] = addFilterTerm(
@@ -53,14 +53,12 @@ parseSort();
 parseFilter($_REQUEST['filter']);
 $filterQuery = $_REQUEST['filter']['query'];
 
-
 if ( $_REQUEST['filter']['sql'] ) {
   $countSql .= $_REQUEST['filter']['sql'];
   $frameSql .= $_REQUEST['filter']['sql'];
 }
 
 $frameSql .= " ORDER BY $sortColumn $sortOrder,Id $sortOrder";
-
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validNum($_REQUEST['scale']);
@@ -75,7 +73,7 @@ if ( isset( $_REQUEST['scale'] ) ) {
 $page = isset($_REQUEST['page']) ? validInt($_REQUEST['page']) : 1;
 $limit = isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : 0;
 
-$nFrames = dbFetchOne($countSql, 'FrameCount' );
+$nFrames = dbFetchOne($countSql, 'FrameCount');
 
 if ( !empty($limit) && ($nFrames > $limit) ) {
   $nFrames = $limit;

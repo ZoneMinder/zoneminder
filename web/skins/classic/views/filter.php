@@ -45,9 +45,6 @@ if ( !$filter ) {
   $filter = new ZM\Filter();
 }
 
-ZM\Logger::Debug("Query: " . $filter->Query_json());
-ZM\Logger::Debug("Query: " . print_r($filter->Query(), true));
-
 if ( isset($_REQUEST['filter']) ) {
   # Update our filter object with whatever changes we have made before saving
   #$filter->set($_REQUEST['filter']);

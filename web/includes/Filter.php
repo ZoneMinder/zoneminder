@@ -114,7 +114,7 @@ class Filter extends ZM_Object {
   }
 
   public function control($command, $server_id=null) {
-    $Servers = $server_id ? Server::find(array('Id'=>$server_id)) : Server::find();
+    $Servers = $server_id ? Server::find(array('Id'=>$server_id)) : Server::find(array('Status'=>'Running'));
     if ( !count($Servers) and !$server_id ) {
       # This will be the non-multi-server case
       $Servers = array(new Server());
@@ -124,7 +124,7 @@ class Filter extends ZM_Object {
       if ( !defined('ZM_SERVER_ID') or !$Server->Id() or ZM_SERVER_ID==$Server->Id() ) {
         # Local
         Logger::Debug("Controlling filter locally $command for server ".$Server->Id());
-        daemonControl($command, 'zmfilter.pl', '--filter_id='.$this->{'Id'});
+        daemonControl($command, 'zmfilter.pl', '--filter_id='.$this->{'Id'}.' --daemon');
       } else {
         # Remote case
 

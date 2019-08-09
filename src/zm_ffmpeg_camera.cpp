@@ -44,6 +44,7 @@ extern "C" {
 
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 static enum AVPixelFormat hw_pix_fmt;
 static enum AVPixelFormat get_hw_format(
     AVCodecContext *ctx,
@@ -94,6 +95,7 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 }
 #endif
 #endif
+#endif
 
 FfmpegCamera::FfmpegCamera(
     int p_id,
@@ -136,7 +138,6 @@ FfmpegCamera::FfmpegCamera(
   }
 
   hwaccel = false;
-  hwFrame = NULL;
 
   mFormatContext = NULL;
   mVideoStreamId = -1;
@@ -154,7 +155,11 @@ FfmpegCamera::FfmpegCamera(
   packetqueue = NULL;
   error_count = 0;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+  hwFrame = NULL;
+  hw_device_ctx = NULL;
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
   hw_pix_fmt = AV_PIX_FMT_NONE;
+#endif
 #endif
 
 #if HAVE_LIBSWSCALE
@@ -436,6 +441,8 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if ( hwaccel_name != "" ) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+    // 3.2 doesn't seem to have all the bits in place, so let's require 3.3 and up
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 // Print out available types
     enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
     while ( (type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE )
@@ -496,6 +503,9 @@ int FfmpegCamera::OpenFfmpeg() {
     } else {
       Debug(1, "Failed to setup hwaccel.");
     }
+#else
+    Debug(1, "AVCodec not new enough for hwaccel");
+#endif
 #else
     Warning("HWAccel support not compiled in.");
 #endif
@@ -648,6 +658,12 @@ int FfmpegCamera::Close() {
     av_frame_free(&mRawFrame);
     mRawFrame = NULL;
   }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+  if ( hwFrame ) {
+    av_frame_free(&hwFrame);
+    hwFrame = NULL;
+  }
+#endif
 
 #if HAVE_LIBSWSCALE
   if ( mConvertContext ) {
@@ -675,6 +691,12 @@ int FfmpegCamera::Close() {
 #endif
     mAudioCodecContext = NULL;  // Freed by av_close_input_file
   }
+
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+  if ( hw_device_ctx ) {
+    av_buffer_unref(&hw_device_ctx);
+  }
+#endif
 
   if ( mFormatContext ) {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
@@ -933,6 +955,7 @@ int FfmpegCamera::CaptureAndRecord(
       if ( error_count > 0 ) error_count--;
       zm_dump_video_frame(mRawFrame);
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
       if (
           (hw_pix_fmt != AV_PIX_FMT_NONE)
           &&
@@ -952,9 +975,12 @@ int FfmpegCamera::CaptureAndRecord(
         input_frame = hwFrame;
       } else {
 #endif
+#endif
         input_frame = mRawFrame;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
       }
+#endif
 #endif
 
       Debug(4, "Got frame %d", frameCount);

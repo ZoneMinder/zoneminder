@@ -26,7 +26,7 @@ if ( !canView('Events') ) {
 $total_size = 0;
 if ( isset($_SESSION['montageReviewFilter']) and !isset($_REQUEST['eids']) ) {
   # Handles montageReview filter
-  $eventsSql = 'SELECT E.Id,E.DiskSpace FROM Events as E WHERE 1';
+  $eventsSql = 'SELECT E.Id, E.DiskSpace FROM Events AS E WHERE 1';
   $eventsSql .= $_SESSION['montageReviewFilter']['sql'];
   $results = dbQuery($eventsSql);
   $eids = [];
@@ -48,17 +48,16 @@ if ( isset($_SESSION['montageReviewFilter']) and !isset($_REQUEST['eids']) ) {
 $exportFormat = '';
 if ( isset($_REQUEST['exportFormat']) ) {
   if ( !in_array($_REQUEST['exportFormat'], array('zip', 'tar')) ) {
-    ZM\Error('Invalid exportFormat');
-    return;
+    ZM\Error('Invalid exportFormat: '.$_REQUEST['exportFormat']);
+  } else {
+    $exportFormat = $_REQUEST['exportFormat'];
   }
-  $exportFormat = $_REQUEST['exportFormat'];
 }
 
 if ( !empty($_REQUEST['eid']) ) {
   $Event = new ZM\Event($_REQUEST['eid']);
   if ( !$Event->Id ) {
     Error('Invalid event id');
-    return;
   }
 }
 
@@ -120,7 +119,8 @@ if ( !empty($_REQUEST['eid']) ) {
             </tr>
           </tbody>
         </table>
-        <button type="button" id="exportButton" name="exportButton" value="GenerateDownload" onclick="exportEvent(this.form);">
+        <button type="button" id="exportButton" name="exportButton" value="GenerateDownload">
+ <!--data-on-click-this="exportEvent">-->
         <?php echo translate('GenerateDownload') ?>
         </button>
       </form>

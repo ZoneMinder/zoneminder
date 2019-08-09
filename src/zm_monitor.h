@@ -279,6 +279,7 @@ protected:
   bool          adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int           frame_skip;        // How many frames to skip in continuous modes
   int           motion_frame_skip;      // How many frames to skip in motion detection
+  double        capture_max_fps;       // Target Capture FPS
   double        analysis_fps;  // Target framerate for video analysis
   unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
   int           capture_delay;      // How long we wait between capture frames
@@ -390,6 +391,7 @@ public:
     int p_min_section_length,
     int p_frame_skip,
     int p_motion_frame_skip,
+    double p_capture_max_fps,
     double p_analysis_fps,
     unsigned int p_analysis_update_delay,
     int p_capture_delay,
@@ -473,6 +475,7 @@ public:
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  unsigned int GetCaptureMaxFPS() const { return capture_max_fps; }
   int GetCaptureDelay() const { return capture_delay; }
   int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;

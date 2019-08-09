@@ -134,7 +134,11 @@ if ( ! $Event->Id() ) {
         <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
         <span id="dataFrames" title="<?php echo translate('AttrFrames').'/'.translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
         <span id="dataScore" title="<?php echo translate('AttrTotalScore').'/'.translate('AttrAvgScore').'/'.translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
-        <span id="Storage"> <?php echo human_filesize($Event->DiskSpace(null)) . ' on ' . $Event->Storage()->Name() ?></span>
+        <span id="Storage">
+<?php echo 
+  human_filesize($Event->DiskSpace(null)) . ' on ' . $Event->Storage()->Name().
+  ( $Event->SecondaryStorageId() ? ', ' . $Event->SecondaryStorage()->Name() :'' )
+?></span>
         <div id="closeWindow"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back();return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
       </div>
       <div id="menuBar1">

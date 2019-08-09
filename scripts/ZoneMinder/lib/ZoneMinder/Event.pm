@@ -41,6 +41,7 @@ require Number::Bytes::Human;
 require Date::Parse;
 require POSIX;
 use Date::Format qw(time2str);
+use Time::HiRes qw(gettimeofday tv_interval);
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -63,6 +64,7 @@ $serial = $primary_key = 'Id';
   Id
   MonitorId
   StorageId
+  SecondaryStorageId
   Name
   Cause
   StartTime
@@ -116,7 +118,7 @@ sub Time {
 }
 
 sub getPath {
-  return Path( @_ );
+  return Path(@_);
 }
 
 sub Path {
@@ -131,7 +133,7 @@ sub Path {
 
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
-    $$event{Path} = join('/', $Storage->Path(), $event->RelativePath() );
+    $$event{Path} = join('/', $Storage->Path(), $event->RelativePath());
   }
   return $$event{Path};
 }
@@ -163,7 +165,8 @@ sub RelativePath {
       if ( $event->Time() ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
-            POSIX::strftime( '%y/%m/%d/%H/%M/%S',
+            POSIX::strftime(
+              '%y/%m/%d/%H/%M/%S',
               localtime($event->Time())
               ),
             );
@@ -203,7 +206,8 @@ sub LinkPath {
       if ( $event->Time() ) {
         $$event{LinkPath} = join('/',
             $event->{MonitorId},
-            POSIX::strftime( '%y/%m/%d',
+            POSIX::strftime(
+              '%y/%m/%d',
               localtime($event->Time())
               ),
             '.'.$$event{Id}
@@ -255,8 +259,8 @@ sub createIdFile {
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
 
-  my $event_path = $self->Path( );
-  chdir( $event_path );
+  my $event_path = $self->Path();
+  chdir($event_path);
   ( my $video_name = $self->{Name} ) =~ s/\s/_/g;
 
   my @file_parts;
@@ -282,10 +286,10 @@ sub GenerateVideo {
     $file_scale =~ s/_00//;
     $file_scale =~ s/(_\d+)0+$/$1/;
     $file_scale = 's'.$file_scale;
-    push( @file_parts, $file_scale );
+    push @file_parts, $file_scale;
   } elsif ( $size ) {
     my $file_size = 'S'.$size;
-    push( @file_parts, $file_size );
+    push @file_parts, $file_size;
   }
   my $video_file = join('-', $video_name, $file_parts[0], $file_parts[1] ).'.'.$format;
   if ( $overwrite || !-s $video_file ) {
@@ -393,61 +397,66 @@ sub delete {
 sub delete_files {
   my $event = shift;
 
-  my $Storage = @_ ? $_[0] : new ZoneMinder::Storage($$event{StorageId});
-  my $storage_path = $Storage->Path();
+  foreach my $Storage (
+    @_ ? ($_[0]) : (
+      new ZoneMinder::Storage($$event{StorageId}),
+      ( $$event{SecondaryStorageId} ? new ZoneMinder::Storage($$event{SecondaryStorageId}) : () ),
+    ) ) {
+    my $storage_path = $Storage->Path();
 
-  if ( ! $storage_path ) {
-    Error("Empty storage path when deleting files for event $$event{Id} with storage id $$event{StorageId}");
-    return;
-  }
-
-  if ( ! $$event{MonitorId} ) {
-    Error("No monitor id assigned to event $$event{Id}");
-    return;
-  }
-  my $event_path = $event->RelativePath();
-  Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path, scheme is $$event{Scheme}.");
-  if ( $event_path ) {
-    ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
-    ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
-
-    my $deleted = 0;
-    if ( $$Storage{Type} and ( $$Storage{Type} eq 's3fs' ) ) {
-      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
-      eval {
-        require Net::Amazon::S3;
-        my $s3 = Net::Amazon::S3->new( {
-             aws_access_key_id     => $aws_id,
-             aws_secret_access_key => $aws_secret,
-             ( $aws_host ? ( host => $aws_host ) : () ),
-             });
-        my $bucket = $s3->bucket($aws_bucket);
-        if ( ! $bucket ) {
-          Error("S3 bucket $bucket not found.");
-          die;
-        }
-        if ( $bucket->delete_key($event_path) ) {
-          $deleted = 1;
-        } else {
-          Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
-        }
-      };
-      Error($@) if $@;
+    if ( ! $storage_path ) {
+      Error("Empty storage path when deleting files for event $$event{Id} with storage id $$event{StorageId}");
+      return;
     }
-    if ( !$deleted ) {
-      my $command = "/bin/rm -rf $storage_path/$event_path";
-      ZoneMinder::General::executeShellCommand($command);
-    }
-  }
 
-  if ( $event->Scheme() eq 'Deep' ) {
-    my $link_path = $event->LinkPath();
-    Debug("Deleting link for Event $$event{Id} from $storage_path/$link_path.");
-    if ( $link_path ) {
-      ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
+    if ( ! $$event{MonitorId} ) {
+      Error("No monitor id assigned to event $$event{Id}");
+      return;
+    }
+    my $event_path = $event->RelativePath();
+    Debug("Deleting files for Event $$event{Id} from $storage_path/$event_path, scheme is $$event{Scheme}.");
+    if ( $event_path ) {
+      ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
+      ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+
+      my $deleted = 0;
+      if ( $$Storage{Type} and ( $$Storage{Type} eq 's3fs' ) ) {
+        my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+        eval {
+          require Net::Amazon::S3;
+          my $s3 = Net::Amazon::S3->new( {
+              aws_access_key_id     => $aws_id,
+              aws_secret_access_key => $aws_secret,
+              ( $aws_host ? ( host => $aws_host ) : () ),
+            });
+          my $bucket = $s3->bucket($aws_bucket);
+          if ( ! $bucket ) {
+            Error("S3 bucket $bucket not found.");
+            die;
+          }
+          if ( $bucket->delete_key($event_path) ) {
+            $deleted = 1;
+          } else {
+            Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
+          }
+        };
+        Error($@) if $@;
+      }
+      if ( !$deleted ) {
+        my $command = "/bin/rm -rf $storage_path/$event_path";
+        ZoneMinder::General::executeShellCommand($command);
+      }
+    } # end if event_path
+
+    if ( $event->Scheme() eq 'Deep' ) {
+      my $link_path = $event->LinkPath();
+      Debug("Deleting link for Event $$event{Id} from $storage_path/$link_path.");
+      if ( $link_path ) {
+        ( $link_path ) = ( $link_path =~ /^(.*)$/ ); # De-taint
         unlink($storage_path.'/'.$link_path) or Error("Unable to unlink '$storage_path/$link_path': $!");
-    }
-  }
+      }
+    } # end if Scheme eq Deep
+  } # end foreach Storage
 } # end sub delete_files
 
 sub StorageId {
@@ -519,7 +528,7 @@ sub DiskSpace {
   return $_[0]{DiskSpace};
 }
 
-sub MoveTo {
+sub CopyTo {
   my ( $self, $NewStorage ) = @_;
 
   my $OldStorage = $self->Storage(undef);
@@ -531,9 +540,9 @@ sub MoveTo {
   # We do this before bothering to lock the event
   my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! $$NewStorage{Id} ) {
-    return "New storage does not have an id.  Moving will not happen.";
+    return 'New storage does not have an id.  Moving will not happen.';
   } elsif ( $$NewStorage{Id} == $$self{StorageId} ) {
-    return "Event is already located at " . $NewPath;
+    return 'Event is already located at ' . $NewPath;
   } elsif ( !$NewPath ) {
     return "New path ($NewPath) is empty.";
   } elsif ( ! -e $NewPath ) {
@@ -545,7 +554,7 @@ sub MoveTo {
   # data is reloaded, so need to check that the move hasn't already happened.
   if ( $$self{StorageId} == $$NewStorage{Id} ) {
     $ZoneMinder::Database::dbh->commit();
-    return "Event has already been moved by someone else.";
+    return 'Event has already been moved by someone else.';
   }
 
   if ( $$OldStorage{Id} != $$self{StorageId} ) {
@@ -559,70 +568,76 @@ sub MoveTo {
     $ZoneMinder::Database::dbh->commit();
     return "New path and old path are the same! $NewPath";
   }
-  Debug("Moving event $$self{Id} from $OldPath to $NewPath");
+  Debug("Copying event $$self{Id} from $OldPath to $NewPath");
 
   my $moved = 0;
 
   if ( $$NewStorage{Type} eq 's3fs' ) {
-    my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
-    eval {
-      require Net::Amazon::S3;
-      require File::Slurp;
-      my $s3 = Net::Amazon::S3->new( {
-          aws_access_key_id     => $aws_id,
-          aws_secret_access_key => $aws_secret,
-          ( $aws_host ? ( host => $aws_host ) : () ),
-          });
-      my $bucket = $s3->bucket($aws_bucket);
-      if ( ! $bucket ) {
-        Error("S3 bucket $bucket not found.");
-        die;
+    if ( $$NewStorage{Url} ) {
+      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+      if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
+        eval {
+          require Net::Amazon::S3;
+          require File::Slurp;
+          my $s3 = Net::Amazon::S3->new( {
+              aws_access_key_id     => $aws_id,
+              aws_secret_access_key => $aws_secret,
+              ( $aws_host ? ( host => $aws_host ) : () ),
+            });
+          my $bucket = $s3->bucket($aws_bucket);
+          if ( !$bucket ) {
+            Error("S3 bucket $bucket not found.");
+            die;
+          }
+
+          my $event_path = $self->RelativePath();
+          Debug("Making directory $event_path/");
+          if ( ! $bucket->add_key($event_path.'/', '') ) {
+            die "Unable to add key for $event_path/";
+          }
+
+          my @files = glob("$OldPath/*");
+          Debug("Files to move @files");
+          foreach my $file ( @files ) {
+            next if $file =~ /^\./;
+            ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
+            my $starttime = [gettimeofday];
+            Debug("Moving file $file to $NewPath");
+            my $size = -s $file;
+            if ( ! $size ) {
+              Info('Not moving file with 0 size');
+            }
+            my $file_contents = File::Slurp::read_file($file);
+            if ( ! $file_contents ) {
+              die 'Loaded empty file, but it had a size. Giving up';
+            }
+
+            my $filename = $event_path.'/'.File::Basename::basename($file);
+            if ( ! $bucket->add_key($filename, $file_contents) ) {
+              die "Unable to add key for $filename";
+            }
+            my $duration = tv_interval($starttime);
+            Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
+          } # end foreach file.
+
+          $moved = 1;
+        };
+        Error($@) if $@;
+      } else {
+        Error("Unable to parse S3 Url into it's component parts.");
       }
-
-      my $event_path = 'events/'.$self->RelativePath();
-Info("Making dir ectory $event_path/");
-      if ( ! $bucket->add_key( $event_path.'/','' ) ) {
-        die "Unable to add key for $event_path/";
-      }
-
-      my @files = glob("$OldPath/*");
-Debug("Files to move @files");
-      for my $file (@files) {
-        next if $file =~ /^\./;
-        ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
-         my $starttime = time;
-        Debug("Moving file $file to $NewPath");
-        my $size = -s $file;
-        if ( ! $size ) {
-          Info('Not moving file with 0 size');
-        }
-        my $file_contents = File::Slurp::read_file($file);
-        if ( ! $file_contents ) {
-          die 'Loaded empty file, but it had a size. Giving up';
-        }
-
-        my $filename = $event_path.'/'.File::Basename::basename($file);
-        if ( ! $bucket->add_key( $filename, $file_contents ) ) {
-          die "Unable to add key for $filename";
-        }
-        my $duration = time - $starttime;
-        Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
-      } # end foreach file.
-
-      $moved = 1;
-    };
-    Error($@) if $@;
-    die $@ if $@;
+      #die $@ if $@;
+    } # end if Url
   } # end if s3
 
   my $error = '';
-  if ( ! $moved ) {
-    File::Path::make_path( $NewPath, {error => \my $err} );
+  if ( !$moved ) {
+    File::Path::make_path($NewPath, {error => \my $err});
     if ( @$err ) {
       for my $diag (@$err) {
         my ($file, $message) = %$diag;
         next if $message eq 'File exists';
-        if ($file eq '') {
+        if ( $file eq '' ) {
           $error .= "general error: $message\n";
         } else {
           $error .= "problem making $file: $message\n";
@@ -636,21 +651,21 @@ Debug("Files to move @files");
     my @files = glob("$OldPath/*");
     if ( ! @files ) {
       $ZoneMinder::Database::dbh->commit();
-      return "No files to move.";
+      return 'No files to move.';
     }
 
     for my $file (@files) {
       next if $file =~ /^\./;
       ( $file ) = ( $file =~ /^(.*)$/ ); # De-taint
-      my $starttime = time;
+      my $starttime = [gettimeofday];
       Debug("Moving file $file to $NewPath");
       my $size = -s $file;
       if ( ! File::Copy::copy( $file, $NewPath ) ) {
         $error .= "Copy failed: for $file to $NewPath: $!";
         last;
       }
-      my $duration = time - $starttime;
-      Debug("Copied " . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . ($duration?Number::Bytes::Human::format_bytes($size/$duration):'inf') . "/sec");
+      my $duration = tv_interval($starttime);
+      Debug('Copied ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . ($duration?Number::Bytes::Human::format_bytes($size/$duration):'inf') . '/sec');
     } # end foreach file.
   } # end if ! moved
 
@@ -658,6 +673,15 @@ Debug("Files to move @files");
     $ZoneMinder::Database::dbh->commit();
     return $error;
   }
+} # end sub CopyTo
+
+sub MoveTo {
+
+  my ( $self, $NewStorage ) = @_;
+  my $OldStorage = $self->Storage(undef);
+
+  my $error = $self->CopyTo($NewStorage);
+  return $error if $error;
 
   # Succeeded in copying all files, so we may now update the Event.
   $$self{StorageId} = $$NewStorage{Id};
@@ -667,10 +691,8 @@ Debug("Files to move @files");
     $ZoneMinder::Database::dbh->commit();
     return $error;
   }
-Debug("Committing");
   $ZoneMinder::Database::dbh->commit();
-  $self->delete_files( $OldStorage );
-Debug("Done deleting files, returning");
+  $self->delete_files($OldStorage);
   return $error;
 } # end sub MoveTo
 

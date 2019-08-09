@@ -2,10 +2,11 @@
 namespace ZM;
 require_once('database.php');
 require_once('Event.php');
+require_once('Object.php');
 
-$storage_cache = array();
-class Storage {
-  private $defaults = array(
+class Storage extends ZM_Object {
+  protected static $table = 'Storage';
+  protected $defaults = array(
     'Id'        => null,
     'Path'      => '',
     'Name'      => '',
@@ -16,31 +17,12 @@ class Storage {
     'ServerId'  => 0,
     'DoDelete'  => 1,
   );
+  public static function find($parameters = array(), $options = array() ) {
+    return ZM_Object::_find(get_class(), $parameters, $options);
+  }
 
-  public function __construct( $IdOrRow = NULL ) {
-    global $storage_cache;
-    
-    $row = NULL;
-    if ( $IdOrRow ) {
-      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
-        $row = dbFetchOne('SELECT * FROM Storage WHERE Id=?', NULL, array($IdOrRow));
-        if ( ! $row ) {
-          Error('Unable to load Storage record for Id=' . $IdOrRow);
-        }
-      } else if ( is_array($IdOrRow) ) {
-        $row = $IdOrRow;
-      }
-    }
-    if ( $row ) {
-      foreach ($row as $k => $v) {
-        $this->{$k} = $v;
-      }
-      $storage_cache[$row['Id']] = $this;
-    } else {
-      $this->{'Name'} = '';
-      $this->{'Path'} = '';
-      $this->{'Type'} = 'local';
-    }
+  public static function find_one( $parameters = array(), $options = array() ) {
+    return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
   public function Path() {
@@ -65,93 +47,6 @@ class Storage {
     }
     return $this->{'Name'};
   }
-
-  public function __call( $fn, array $args= NULL ) {
-    if ( count($args) ) {
-      $this->{$fn} = $args[0];
-    }
-    if ( array_key_exists($fn, $this) )
-      return $this->{$fn};
-        
-    if ( array_key_exists($fn, $this->defaults) )
-      return $this->defaults{$fn};
-
-    $backTrace = debug_backtrace();
-    $file = $backTrace[0]['file'];
-    $line = $backTrace[0]['line'];
-    Warning("Unknown function call Storage->$fn from $file:$line");
-    $file = $backTrace[1]['file'];
-    $line = $backTrace[1]['line'];
-    Warning("Unknown function call Storage->$fn from $file:$line");
-  }
-
-  public static function find_one( $parameters = null, $options = null ) {
-    global $storage_cache;
-    if ( 
-        ( count($parameters) == 1 ) and
-        isset($parameters['Id']) and
-        isset($storage_cache[$parameters['Id']]) ) {
-      return $storage_cache[$parameters['Id']];
-    }
-
-    $results = Storage::find($parameters, $options);
-    if ( count($results) > 1 ) {
-      Error('Storage Returned more than 1');
-      return $results[0];
-    } else if ( count($results) ) {
-      return $results[0];
-    } else {
-      return null;
-    }
-  }
-  public static function find( $parameters = null, $options = null ) {
-    $sql = 'SELECT * FROM Storage ';
-    $values = array();
-
-    if ( $parameters ) {
-      $fields = array();
-      $sql .= 'WHERE ';
-      foreach ( $parameters as $field => $value ) {
-        if ( $value == null ) {
-          $fields[] = $field.' IS NULL';
-        } else if ( is_array($value) ) {
-          $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)).')';
-          $values += $value;
-
-        } else {
-          $fields[] = $field.'=?';
-          $values[] = $value;
-        }
-      }
-      $sql .= implode(' AND ', $fields);
-    } # end if parameters
-    if ( $options ) {
-      if ( isset($options['order']) ) {
-        $sql .= ' ORDER BY ' . $options['order'];
-      } # end if options
-      if ( isset($options['limit']) ) {
-        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $option['limit'];
-        } else {
-          $backTrace = debug_backtrace();
-          $file = $backTrace[1]['file'];
-          $line = $backTrace[1]['line'];
-          Error("Invalid value for limit(".$options['limit'].") passed to Control::find from $file:$line");
-          return array();
-        }
-      } # end if limit
-    } # end if options
-    $storage_areas = array();
-    $result = dbQuery($sql, $values);
-    if ( $result ) {
-      $results = $result->fetchALL();
-      foreach ( $results as $row ) {
-        $storage_areas[] = new Storage($row);
-      }
-    }
-    return $storage_areas;
-  } # end find()
 
   public function disk_usage_percent() {
     $path = $this->Path();
@@ -226,18 +121,5 @@ class Storage {
     return $this->{'Server'};
   }
 
-  public function to_json() {
-    $json = array();
-    foreach ($this->defaults as $key => $value) {
-      if ( is_callable(array($this, $key)) ) {
-        $json[$key] = $this->$key();
-      } else if ( array_key_exists($key, $this) ) {
-        $json[$key] = $this->{$key};
-      } else {
-        $json[$key] = $this->defaults{$key};
-      }
-    }
-    return json_encode($json);
-  }
 } // end class Storage
 ?>

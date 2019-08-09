@@ -7,8 +7,7 @@ FFmpeg_Input::FFmpeg_Input() {
   input_format_context = NULL;
   video_stream_id = -1;
   audio_stream_id = -1;
-  av_register_all();
-  avcodec_register_all();
+  FFMPEGInit();
   streams = NULL;
   frame = NULL;
 }

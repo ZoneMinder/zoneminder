@@ -313,6 +313,7 @@ CREATE TABLE `Frames` (
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `Delta` decimal(8,2) NOT NULL default '0.00',
   `Score` smallint(5) unsigned NOT NULL default '0',
+  `Data_json`  TEXT,
   PRIMARY KEY (`Id`),
   INDEX `EventId_idx` (`EventId`),
   KEY `Type` (`Type`),

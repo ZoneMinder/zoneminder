@@ -953,7 +953,8 @@ int FfmpegCamera::CaptureAndRecord(
         continue;
       }
       if ( error_count > 0 ) error_count--;
-      zm_dump_video_frame(mRawFrame);
+      Debug(3, "Decoded video packet at frame %d", frameCount);
+      zm_dump_video_frame(mRawFrame, "raw frame from decoder");
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
       if (

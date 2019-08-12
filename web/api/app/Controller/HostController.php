@@ -3,7 +3,7 @@ App::uses('AppController', 'Controller');
 
 class HostController extends AppController {
 
-  public $components = array('RequestHandler', 'Session');
+  public $components = array('RequestHandler');
 
   public function daemonCheck($daemon=false, $args=false) {
     $string = ZM_PATH_BIN.'/zmdc.pl check';
@@ -94,7 +94,7 @@ class HostController extends AppController {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $credentials = 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS, true);
       } else {
-        $credentials = 'user='.$this->Session->read('Username').'&pass=';
+        $credentials = 'user='.$_SESSION['Username'].'&pass=';
         $appendPassword = 1;
       }
       return array($credentials, $appendPassword);

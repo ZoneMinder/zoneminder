@@ -87,13 +87,12 @@ class AppController extends Controller {
         // if you pass a token to login, we should only allow
         // refresh tokens to regenerate new access and refresh tokens
         if ( !strcasecmp($this->params->action, 'login') ) {
-          $only_allow_token_type='refresh';
+          $only_allow_token_type = 'refresh';
         } else {
           // for any other methods, don't allow refresh tokens
           // they are supposed to be infrequently used for security
           // purposes
-          $only_allow_token_type='access';
-
+          $only_allow_token_type = 'access';
         }
         $ret = validateToken($mToken, $only_allow_token_type, true);
         $user = $ret[0];

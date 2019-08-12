@@ -986,6 +986,7 @@ int FfmpegCamera::CaptureAndRecord(
 
       Debug(4, "Got frame %d", frameCount);
       if ( transfer_to_image(image, mFrame, input_frame) < 0 ) {
+        Error("Failed to transfer from frame to image");
         zm_av_packet_unref(&packet);
         return -1;
       }
@@ -1052,8 +1053,13 @@ int FfmpegCamera::transfer_to_image(
     return -1;
   }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  av_image_fill_arrays(output_frame->data, output_frame->linesize,
-      directbuffer, imagePixFormat, width, height, 1);
+  int size = av_image_fill_arrays(
+      output_frame->data, output_frame->linesize,
+      directbuffer, imagePixFormat, width, height, 32);
+  if ( size < 0 ) {
+    Error("Problem setting up data pointers into image %s",
+        av_make_error_string(size).c_str());
+  }
 #else
   avpicture_fill((AVPicture *)output_frame, directbuffer,
       imagePixFormat, width, height);
@@ -1075,6 +1081,12 @@ int FfmpegCamera::transfer_to_image(
           );
       return -1;
     }
+    Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
+          input_frame->width, input_frame->height,
+          av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+          width, height,
+          av_get_pix_fmt_name(imagePixFormat)
+        );
   }
 
   if ( sws_scale(

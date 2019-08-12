@@ -286,7 +286,7 @@ function getNavBarHTML($reload = null) {
         ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
       }
     }
-    echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
+    echo makePopupLink('?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>');
   }
 ?></li>
 <?php
@@ -385,9 +385,6 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
   $storage_paths = null;
   foreach ( $storage_areas as $area ) {
     $storage_paths[$area->Path()] = $area;
-  }
-  if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
-    array_push( $storage_areas, new ZM\Storage() );
   }
   $func = function($S){
     $class = '';

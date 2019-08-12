@@ -44,6 +44,7 @@ extern "C" {
 
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 static enum AVPixelFormat hw_pix_fmt;
 static enum AVPixelFormat get_hw_format(
     AVCodecContext *ctx,
@@ -92,6 +93,7 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
     }
     return fmt;
 }
+#endif
 #endif
 #endif
 
@@ -155,7 +157,9 @@ FfmpegCamera::FfmpegCamera(
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   hwFrame = NULL;
   hw_device_ctx = NULL;
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
   hw_pix_fmt = AV_PIX_FMT_NONE;
+#endif
 #endif
 
 #if HAVE_LIBSWSCALE
@@ -437,6 +441,8 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if ( hwaccel_name != "" ) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+    // 3.2 doesn't seem to have all the bits in place, so let's require 3.3 and up
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 // Print out available types
     enum AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
     while ( (type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE )
@@ -497,6 +503,9 @@ int FfmpegCamera::OpenFfmpeg() {
     } else {
       Debug(1, "Failed to setup hwaccel.");
     }
+#else
+    Debug(1, "AVCodec not new enough for hwaccel");
+#endif
 #else
     Warning("HWAccel support not compiled in.");
 #endif
@@ -944,8 +953,10 @@ int FfmpegCamera::CaptureAndRecord(
         continue;
       }
       if ( error_count > 0 ) error_count--;
-      zm_dump_video_frame(mRawFrame);
+      Debug(3, "Decoded video packet at frame %d", frameCount);
+      zm_dump_video_frame(mRawFrame, "raw frame from decoder");
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
       if (
           (hw_pix_fmt != AV_PIX_FMT_NONE)
           &&
@@ -965,13 +976,17 @@ int FfmpegCamera::CaptureAndRecord(
         input_frame = hwFrame;
       } else {
 #endif
+#endif
         input_frame = mRawFrame;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
       }
+#endif
 #endif
 
       Debug(4, "Got frame %d", frameCount);
       if ( transfer_to_image(image, mFrame, input_frame) < 0 ) {
+        Error("Failed to transfer from frame to image");
         zm_av_packet_unref(&packet);
         return -1;
       }
@@ -1038,8 +1053,13 @@ int FfmpegCamera::transfer_to_image(
     return -1;
   }
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
-  av_image_fill_arrays(output_frame->data, output_frame->linesize,
-      directbuffer, imagePixFormat, width, height, 1);
+  int size = av_image_fill_arrays(
+      output_frame->data, output_frame->linesize,
+      directbuffer, imagePixFormat, width, height, 32);
+  if ( size < 0 ) {
+    Error("Problem setting up data pointers into image %s",
+        av_make_error_string(size).c_str());
+  }
 #else
   avpicture_fill((AVPicture *)output_frame, directbuffer,
       imagePixFormat, width, height);
@@ -1061,6 +1081,12 @@ int FfmpegCamera::transfer_to_image(
           );
       return -1;
     }
+    Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
+          input_frame->width, input_frame->height,
+          av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+          width, height,
+          av_get_pix_fmt_name(imagePixFormat)
+        );
   }
 
   if ( sws_scale(

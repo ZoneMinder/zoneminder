@@ -45,7 +45,7 @@ protected:
   unsigned int  colours;
   unsigned int  subpixelorder;
   unsigned int  pixels;
-  unsigned int  imagesize;
+  unsigned long long imagesize;
   int           brightness;
   int           hue;
   int           colour;
@@ -73,7 +73,7 @@ public:
   unsigned int Colours() const { return colours; }
   unsigned int SubpixelOrder() const { return subpixelorder; }
   unsigned int Pixels() const { return pixels; }
-  unsigned int ImageSize() const { return imagesize; }
+  unsigned long long ImageSize() const { return imagesize; }
   unsigned int Bytes() const { return bytes; };
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return -1; }

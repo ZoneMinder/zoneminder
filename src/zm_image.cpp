@@ -497,8 +497,8 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
     return NULL;
   }
 
-  if ( !p_height || !p_width ) {
-    Error("WriteBuffer called with invalid width or height: %d %d",p_width,p_height);
+  if ( ! ( p_height > 0 && p_width > 0 ) ) {
+    Error("WriteBuffer called with invalid width or height: %d %d", p_width, p_height);
     return NULL;
   }
 
@@ -525,11 +525,10 @@ uint8_t* Image::WriteBuffer(const unsigned int p_width, const unsigned int p_hei
     colours = p_colours;
     subpixelorder = p_subpixelorder;
     pixels = height*width;
-    size = newsize; 
-  }
+    size = newsize;
+  } // end if need to re-alloc buffer
 
   return buffer; 
-
 }
 
 /* Assign an existing buffer to the image instead of copying from a source buffer. The goal is to reduce the amount of memory copying and increase efficiency and buffer reusing. */

@@ -329,7 +329,15 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 
 #endif
 
-void zm_dump_video_frame(const AVFrame *frame, const char *text="Frame");
+#define zm_dump_video_frame(frame,text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%d pts: %" PRId64, \
+      text, \
+      frame->format, \
+      av_get_pix_fmt_name((AVPixelFormat)frame->format), \
+      frame->width, \
+      frame->height, \
+      frame->linesize[0], frame->linesize[1], \
+      frame->pts \
+      );
 
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
     #define zm_av_packet_unref( packet ) av_packet_unref( packet )

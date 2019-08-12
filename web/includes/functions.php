@@ -1341,7 +1341,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             $filter['sql'] .= " IS NOT $value";
             break;
           default:
-            ZM\Warning("Invalid operator in filter: " . $term['op'] );
+            ZM\Warning('Invalid operator in filter: ' . print_r($term['op'], true));
         } // end switch op
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($term['op']);
@@ -1472,7 +1472,14 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
 
 function sortHeader( $field, $querySep='&amp;' ) {
   global $view;
-  return '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.validInt($_REQUEST['limit']);
+  return implode($querySep, array(
+    '?view='.$view,
+    'page=1'.$_REQUEST['filter']['query'],
+    'sort_field='.$field,
+    'sort_asc='.($_REQUEST['sort_field'] == $field ? !$_REQUEST['sort_asc'] : 0),
+    'limit='.validInt($_REQUEST['limit']),
+    ($_REQUEST['eid'] ? 'eid='.$_REQUEST['eid'] : '' ),
+  ));
 }
 
 function sortTag( $field ) {
@@ -2516,6 +2523,47 @@ function getAffectedIds( $name ) {
 
 function format_duration($time, $separator=':') {
   return sprintf('%02d%s%02d%s%02d', floor($time/3600), $separator, ($time/60)%60, $separator, $time%60);
+}
+
+function array_recursive_diff($aArray1, $aArray2) {
+  $aReturn = array();
+
+  foreach ($aArray1 as $mKey => $mValue) {
+    if ( array_key_exists($mKey, $aArray2) ) {
+      if ( is_array($mValue) ) {
+        $aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
+        if ( count($aRecursiveDiff) ) {
+          $aReturn[$mKey] = $aRecursiveDiff;
+        }
+      } else {
+        if ( $mValue != $aArray2[$mKey] ) {
+          $aReturn[$mKey] = $mValue;
+        }
+      }
+    } else {
+      $aReturn[$mKey] = $mValue;
+    }
+  }
+  # Now check for keys in array2 that are not in array1
+  foreach ($aArray2 as $mKey => $mValue) {
+    if ( array_key_exists($mKey, $aArray1) ) {
+      # Already checked it... I think.
+      #if ( is_array($mValue) ) {
+        #$aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
+        #if ( count($aRecursiveDiff) ) {
+          #$aReturn[$mKey] = $aRecursiveDiff;
+        #}
+      #} else {
+        #if ( $mValue != $aArray2[$mKey] ) {
+          #$aReturn[$mKey] = $mValue;
+        #}
+      #}
+    } else {
+      $aReturn[$mKey] = $mValue;
+    }
+  }
+
+  return $aReturn;
 }
 
 ?>

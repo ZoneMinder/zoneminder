@@ -186,6 +186,7 @@ CREATE TABLE `Events` (
   `Id` bigint unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `StorageId`	smallint(5) unsigned default 0,
+  `SecondaryStorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
   `Cause` varchar(32) NOT NULL default '',
   `StartTime` datetime default NULL,

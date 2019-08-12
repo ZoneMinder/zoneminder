@@ -34,7 +34,6 @@ class AppController extends Controller {
   use CrudControllerTrait;
 
   public $components = [
-    'Session', //  We are going to use SessionHelper to check PHP session vars
     'RequestHandler',
     'Crud.Crud' => [
       'actions' => [

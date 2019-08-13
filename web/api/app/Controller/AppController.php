@@ -66,23 +66,28 @@ class AppController extends Controller {
 
     # For use throughout the app. If not logged in, this will be null.
     global $user;
-    
    
     if ( ZM_OPT_USE_AUTH ) {
-      require_once __DIR__ .'/../../../includes/auth.php';
+      if ( ZM_OPT_USE_LEGACY_API_AUTH ) {
+        # This will auto-login if username=&password= are set, or auth=
+        require_once __DIR__ .'/../../../includes/auth.php';
+      }
 
-      $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
-      $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
-      $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
+        $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+        $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
 
-      if ( $mUser and $mPassword ) {
-        // log (user, pass, nothashed, api based login so skip recaptcha)
-        $user = userLogin($mUser, $mPassword, false, true);
-        if ( !$user ) {
-          throw new UnauthorizedException(__('Incorrect credentials or API disabled'));
-          return;
-        }
-      } else if ( $mToken ) {
+        if ( $user and $password ) {
+          // log (user, pass, nothashed, api based login so skip recaptcha)
+          $user = userLogin($user, $password, false, true);
+          if ( !$user ) {
+            throw new UnauthorizedException(__('Incorrect credentials or API disabled'));
+            return;
+          }
+        } 
+
+      # NON LEGACY
+      $token = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
+      if ( $token ) {
         // if you pass a token to login, we should only allow
         // refresh tokens to regenerate new access and refresh tokens
         if ( !strcasecmp($this->params->action, 'login') ) {
@@ -93,20 +98,20 @@ class AppController extends Controller {
           // purposes
           $only_allow_token_type = 'access';
         }
-        $ret = validateToken($mToken, $only_allow_token_type, true);
+        $ret = validateToken($token, $only_allow_token_type, true);
         $user = $ret[0];
         $retstatus = $ret[1];
         if ( !$user ) {
           throw new UnauthorizedException(__($retstatus));
           return;
         } 
-      } else if ( $mAuth ) {
-          $user = getAuthUser($mAuth, true);
-          if ( !$user ) {
-            throw new UnauthorizedException(__('Invalid Auth Key'));
-            return;
-          }
+      } # end if token
+
+      if ( $user['APIEnabled'] != 1 ) {
+        ZM\Error('API disabled for: '.$user['Username']);
+        unset($user);
       }
+
       // We need to reject methods that are not authenticated
       // besides login and logout
       if ( strcasecmp($this->params->action, 'logout') ) {

@@ -377,7 +377,7 @@ if ( ZM_OPT_USE_AUTH ) {
     if ( ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed') ) {
       # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
       # This prevent session modification to switch users
-      if ( $_SESSION['AuthHash'.$_SESSION['remoteAddr']] )
+      if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
         $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
     } else {
       # Need to refresh permissions and validate that the user still exists

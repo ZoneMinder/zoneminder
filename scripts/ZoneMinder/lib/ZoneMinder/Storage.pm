@@ -46,56 +46,13 @@ use ZoneMinder::Database qw(:all);
 
 use POSIX;
 
-use vars qw/ $table $primary_key /;
+use vars qw/ $table $primary_key %fields/;
 $table = 'Storage';
 $primary_key = 'Id';
 #__PACKAGE__->table('Storage');
 #__PACKAGE__->primary_key('Id');
+%fields = map { $_ => $_ } qw( Id Name Path DoDelete ServerId Type Url DiskSpace Scheme );
 
-sub find {
-  shift if $_[0] eq 'ZoneMinder::Storage';
-  my %sql_filters = @_;
-
-  my $sql = 'SELECT * FROM Storage';
-  my @sql_filters;
-  my @sql_values;
-
-  if ( exists $sql_filters{Id} ) {
-    push @sql_filters , ' Id=? ';
-    push @sql_values, $sql_filters{Id};
-  }
-  if ( exists $sql_filters{Name} ) {
-    push @sql_filters , ' Name = ? ';
-    push @sql_values, $sql_filters{Name};
-  }
-  if ( exists $sql_filters{ServerId} ) {
-    push @sql_filters, ' ServerId = ?';
-    push @sql_values, $sql_filters{ServerId};
-  }
-
-
-  $sql .= ' WHERE ' . join(' AND ', @sql_filters) if @sql_filters;
-  $sql .= ' LIMIT ' . $sql_filters{limit} if $sql_filters{limit};
-
-  my $sth = $ZoneMinder::Database::dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$ZoneMinder::Database::dbh->errstr() );
-  my $res = $sth->execute( @sql_values )
-    or Fatal( "Can't execute '$sql': ".$sth->errstr() );
-
-  my @results;
-
-  while( my $db_filter = $sth->fetchrow_hashref() ) {
-    my $filter = new ZoneMinder::Storage( $$db_filter{Id}, $db_filter );
-    push @results, $filter;
-  } # end while
-  Debug("SQL: $sql returned " . @results . ' results');
-  return @results;
-}
-
-sub find_one {
-  my @results = find(@_);
-  return $results[0] if @results;
-}
 
 sub Path {
   if ( @_ > 1 ) {

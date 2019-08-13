@@ -63,7 +63,7 @@ $maxY = $monitor->Height()-1;
 
 if ( !isset($newZone) ) {
   if ( $zid > 0 ) {
-    $zone = dbFetchOne( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array( $monitor->Id(), $zid ) );
+    $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId = ? AND Id=?', NULL, array($monitor->Id(), $zid));
   } else {
     $zone = array(
       'Id' => 0,
@@ -98,23 +98,23 @@ if ( !isset($newZone) ) {
 } # end if new Zone
 
 # Ensure Zone fits within the limits of the Monitor
-limitPoints( $newZone['Points'], $minX, $minY, $maxX, $maxY );
+limitPoints($newZone['Points'], $minX, $minY, $maxX, $maxY);
 
-ksort( $newZone['Points'], SORT_NUMERIC );
+ksort($newZone['Points'], SORT_NUMERIC);
 
-$newZone['Coords'] = pointsToCoords( $newZone['Points'] );
-$newZone['Area'] = getPolyArea( $newZone['Points'] );
-$newZone['AreaCoords'] = preg_replace( '/\s+/', ',', $newZone['Coords'] );
-$selfIntersecting = isSelfIntersecting( $newZone['Points'] );
+$newZone['Coords'] = pointsToCoords($newZone['Points']);
+$newZone['Area'] = getPolyArea($newZone['Points']);
+$newZone['AreaCoords'] = preg_replace('/\s+/', ',', $newZone['Coords']);
+$selfIntersecting = isSelfIntersecting($newZone['Points']);
 
 $focusWindow = true;
 $connkey = generateConnKey();
 $streamSrc = '';
 $streamMode = '';
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
-$StreamHTML = getStreamHTML( $monitor, array('scale'=>$scale) );
+$StreamHTML = getStreamHTML($monitor, array('scale'=>$scale));
 
-xhtmlHeaders(__FILE__, translate('Zone') );
+xhtmlHeaders(__FILE__, translate('Zone'));
 ?>
 <body>
   <div id="page">
@@ -132,7 +132,7 @@ xhtmlHeaders(__FILE__, translate('Zone') );
         <input type="hidden" name="newZone[Area]" value="<?php echo $newZone['Area'] ?>"/>
         <input type="hidden" name="newZone[AlarmRGB]" value=""/>
         <div id="settingsPanel">
-          <table id="zoneSettings" cellspacing="0">
+          <table id="zoneSettings">
             <tbody>
               <tr>
                 <th scope="row"><?php echo translate('Name') ?></th>
@@ -162,7 +162,7 @@ xhtmlHeaders(__FILE__, translate('Zone') );
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('CheckMethod') ?></th>
-                <td colspan="2"><?php echo buildSelect( "newZone[CheckMethod]", $optCheckMethods, 'applyCheckMethod()' ) ?></td>
+                <td colspan="2"><?php echo buildSelect('newZone[CheckMethod]', $optCheckMethods, 'applyCheckMethod()' ) ?></td>
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('ZoneMinMaxPixelThres') ?></th>
@@ -216,14 +216,14 @@ xhtmlHeaders(__FILE__, translate('Zone') );
                 <svg id="zoneSVG" class="zones" style="position: absolute; top: 0; left: 0; width: <?php echo reScale( $monitor->Width(), $scale ) ?>px; height: <?php echo reScale( $monitor->Height(), $scale ) ?>px; background: none;">
 <?php
 if ( $zone['Id'] ) {
-  $other_zones = dbFetchAll( 'SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array( $monitor->Id(), $zone['Id'] ) );
+  $other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ? AND Id != ?', NULL, array($monitor->Id(), $zone['Id']));
 } else {
-  $other_zones = dbFetchAll( 'SELECT * FROM Zones WHERE MonitorId = ?', NULL, array( $monitor->Id() ) );
+  $other_zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId = ?', NULL, array($monitor->Id()));
 }
-if ( count( $other_zones ) ) {
+if ( count($other_zones) ) {
   $html = '';
-  foreach( $other_zones as $other_zone ) {
-    $other_zone['AreaCoords'] = preg_replace( '/\s+/', ',', $other_zone['Coords'] );
+  foreach ( $other_zones as $other_zone ) {
+    $other_zone['AreaCoords'] = preg_replace('/\s+/', ',', $other_zone['Coords']);
     $html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
   }
   echo $html;
@@ -267,9 +267,11 @@ for ( $i = 0; $i < $pointCols; $i++ ) {
               </tr>
             </tbody>
           </table>
-          <input id="pauseBtn" type="button" value="<?php echo translate('Pause') ?>" data-on-click="streamCmdPauseToggle"/>
-          <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" onclick="return saveChanges( this )"<?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" onclick="refreshParentWindow(); closeWindow();"/>
+          <button id="pauseBtn" type="button" data-on-click="streamCmdPauseToggle"><?php echo translate('Pause') ?></button>
+          <button type="button" id="submitBtn" name="submitBtn" value="Save" data-on-click-this="saveChanges"<?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
+          <?php echo translate('Save') ?>
+          </button>
+          <button type="button" value="Cancel" onclick="refreshParentWindow(); closeWindow();"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

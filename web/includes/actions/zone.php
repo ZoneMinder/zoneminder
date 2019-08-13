@@ -44,7 +44,7 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
         $_REQUEST['newZone']['MaxBlobPixels'] = intval(($_REQUEST['newZone']['MaxBlobPixels']*$_REQUEST['newZone']['Area'])/100);
     }
 
-    unset( $_REQUEST['newZone']['Points'] );
+    unset($_REQUEST['newZone']['Points']);
 
     # convert these fields to integer e.g. NULL -> 0
     $types = array(

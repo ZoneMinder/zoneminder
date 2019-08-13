@@ -22,36 +22,32 @@ if ( !canView('Events') ) {
   $view = 'error';
   return;
 }
-require_once 'includes/Filter.php';
+require_once('includes/Object.php');
+require_once('includes/Storage.php');
+require_once('includes/Filter.php');
 parseSort();
 
-$filterNames = array( ''=>translate('ChooseFilter') );
+$filterNames = array(''=>translate('ChooseFilter'));
 $filter = NULL;
 
-foreach ( dbFetchAll('SELECT * FROM Filters ORDER BY Name') as $row ) {
-  $filterNames[$row['Id']] = $row['Id'] . ' ' . $row['Name'];
-  if ( $row['Background'] )
-    $filterNames[$row['Id']] .= '*';
-  if ( $row['Concurrent'] )
-    $filterNames[$row['Id']] .= '&';
+foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
+  $filterNames[$Filter->Id()] = $Filter->Id() . ' ' . $Filter->Name();
+  if ( $Filter->Background() )
+    $filterNames[$Filter->Id()] .= '*';
+  if ( $Filter->Concurrent() )
+    $filterNames[$Filter->Id()] .= '&';
 
-  if ( isset($_REQUEST['Id']) && $_REQUEST['Id'] == $row['Id'] ) {
-    $filter = new ZM\Filter($row);
+  if ( isset($_REQUEST['Id']) && ($_REQUEST['Id'] == $Filter->Id()) ) {
+    $filter = $Filter;
   }
 }
-if ( ! $filter ) {
+if ( !$filter ) {
   $filter = new ZM\Filter();
 }
 
-if ( isset($_REQUEST['sort_field']) && isset($_REQUEST['filter']) ) {
-  $_REQUEST['filter']['Query']['sort_field'] = $_REQUEST['sort_field'];
-  $_REQUEST['filter']['Query']['sort_asc'] = $_REQUEST['sort_asc'];
-  $_REQUEST['filter']['Query']['limit'] = $_REQUEST['limit'];
-}
-
 if ( isset($_REQUEST['filter']) ) {
-  $filter->set($_REQUEST['filter']);
   # Update our filter object with whatever changes we have made before saving
+  #$filter->set($_REQUEST['filter']);
 }
 
 $conjunctionTypes = getFilterQueryConjunctionTypes();
@@ -97,12 +93,13 @@ $attrTypes = array(
     'DiskPercent' => translate('AttrDiskPercent'),
     'DiskSpace'   => translate('AttrDiskSpace'),
     'SystemLoad'  => translate('AttrSystemLoad'),
-    'StorageId'   => translate('AttrStorageArea'),
-    'ServerId'    => translate('AttrMonitorServer'),
+    'StorageId'           => translate('AttrStorageArea'),
+    'SecondaryStorageId'   => translate('AttrSecondaryStorageArea'),
+    'ServerId'           => translate('AttrMonitorServer'),
     'FilterServerId'     => translate('AttrFilterServer'),
     'MonitorServerId'    => translate('AttrMonitorServer'),
     'StorageServerId'    => translate('AttrStorageServer'),
-    'StateId'     => translate('AttrStateId'),
+    'StateId'            => translate('AttrStateId'),
     );
 
 $opTypes = array(
@@ -127,27 +124,24 @@ $archiveTypes = array(
 
 $focusWindow = true;
 
-$storageareas = array('' => 'All');
-//$storageareas[0] = 'Default ' . ZM_DIR_EVENTS;
-foreach ( dbFetchAll('SELECT Id,Name FROM Storage ORDER BY lower(Name) ASC') as $storage ) {
-  $storageareas[$storage['Id']] = $storage['Name'];
-}
+$storageareas = array('' => 'All') + ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ ) {
   $weekdays[$i] = strftime('%A', mktime(12, 0, 0, 1, $i+1, 2001));
 }
 $states = array();
-foreach ( dbFetchAll('SELECT Id, Name FROM States ORDER BY lower(Name) ASC') as $state_row ) {
+foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `States` ORDER BY lower(`Name`) ASC') as $state_row ) {
   $states[$state_row['Id']] = validHtmlStr($state_row['Name']);
 }
 $servers = array();
 $servers['ZM_SERVER_ID'] = 'Current Server';
 $servers['NULL'] = 'No Server';
-foreach ( dbFetchAll('SELECT Id, Name FROM Servers ORDER BY lower(Name) ASC') as $server ) {
+foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Servers` ORDER BY lower(`Name`) ASC') as $server ) {
   $servers[$server['Id']] = validHtmlStr($server['Name']);
 }
 $monitors = array();
-foreach ( dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name ASC') as $monitor ) {
+foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`) ASC') as $monitor ) {
   if ( visibleMonitor($monitor['Id']) ) {
     $monitors[$monitor['Name']] = validHtmlStr($monitor['Name']);
   }
@@ -273,7 +267,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']); ?></td>
 <?php
-    } elseif ( $term['attr'] == 'StorageId' ) {
+    } elseif ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
 ?>
               <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
               <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']); ?></td>
@@ -391,7 +385,13 @@ if ( ZM_OPT_MESSAGE ) {
               <label><?php echo translate('FilterDeleteEvents') ?></label>
               <input type="checkbox" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
             </p>
-            <p><label><?php echo translate('FilterMoveEvents') ?></label>
+            <p>
+              <label><?php echo translate('FilterCopyEvents') ?></label>
+              <input type="checkbox" name="filter[AutoCopy]" value="1"<?php if ( $filter->AutoCopy() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autocopy"/>
+              <?php echo htmlSelect('filter[AutoCopyTo]', $storageareas, $filter->AutoCopyTo(), $filter->AutoCopy() ? null : array('style'=>'display:none;')); ?>
+            </p>
+            <p>
+              <label><?php echo translate('FilterMoveEvents') ?></label>
               <input type="checkbox" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_automove"/>
               <?php echo htmlSelect('filter[AutoMoveTo]', $storageareas, $filter->AutoMoveTo(), $filter->AutoMove() ? null : array('style'=>'display:none;')); ?>
             </p>

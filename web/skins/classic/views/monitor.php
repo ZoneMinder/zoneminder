@@ -676,7 +676,10 @@ switch ( $name ) {
     {
       if ( ZM_HAS_V4L && $monitor->Type() == 'Local' ) {
 ?>
-          <tr><td class="text-right pr-3"><?php echo translate('DevicePath') ?></td><td><input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('DevicePath') ?></td>
+            <td><input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"/></td>
+          </tr>
           <tr>
             <td><?php echo translate('CaptureMethod') ?></td>
             <td><?php echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), array('onchange'=>'submitTab', 'data-tab-name'=>$tab) ); ?></td>
@@ -819,6 +822,10 @@ include('_monitor_source_nvsocket.php');
       }
       if ( $monitor->Type() == 'Ffmpeg' ) {
 ?>
+          <tr class="SourceSecondPath">
+            <td><?php echo translate('SourceSecondPath') ?></td>
+            <td><input type="text" name="newMonitor[SecondPath]" value="<?php echo validHtmlStr($monitor->SecondPath()) ?>" /></td>
+          </tr>
           <tr class="DecoderHWAccelName">
             <td class="text-right pr-3">
               <?php echo translate('DecoderHWAccelName'); echo makeHelpLink('OPTIONS_DECODERHWACCELNAME') ?>

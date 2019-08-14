@@ -93,6 +93,7 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 FfmpegCamera::FfmpegCamera(
     const Monitor *monitor,
     const std::string &p_path,
+    const std::string &p_second_path,
     const std::string &p_method,
     const std::string &p_options,
     int p_width,
@@ -121,6 +122,7 @@ FfmpegCamera::FfmpegCamera(
       p_record_audio
       ),
   mPath(p_path),
+  mSecondPath(p_second_path),
   mMethod(p_method),
   mOptions(p_options),
   hwaccel_name(p_hwaccel_name),

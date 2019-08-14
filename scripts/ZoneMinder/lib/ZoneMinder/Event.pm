@@ -562,8 +562,8 @@ sub CopyTo {
     return 'Old Storage path changed, Event has moved somewhere else.';
   }
 
-  $$self{Storage} = $NewStorage;
-  ( $NewPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
+	$NewPath .= $self->Relative_Path();
+	$NewPath = ( $NewPath =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
     $ZoneMinder::Database::dbh->commit();
     return "New path and old path are the same! $NewPath";
@@ -685,7 +685,7 @@ sub MoveTo {
 
   # Succeeded in copying all files, so we may now update the Event.
   $$self{StorageId} = $$NewStorage{Id};
-  $$self{Storage} = $NewStorage;
+  $self->Storage($NewStorage);
   $error .= $self->save();
   if ( $error ) {
     $ZoneMinder::Database::dbh->commit();

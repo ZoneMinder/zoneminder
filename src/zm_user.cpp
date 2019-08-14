@@ -99,8 +99,8 @@ User *zmLoadUser( const char *username, const char *password ) {
 
 
   snprintf(sql, sizeof(sql),
-      "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
-      " FROM Users where Username = '%s' and Enabled = 1", safer_username );
+      "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`"
+      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", safer_username );
 
 
   if ( mysql_query(&dbconn, sql) ) {
@@ -162,8 +162,8 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
   if (username != "") {
     char sql[ZM_SQL_MED_BUFSIZ] = "";
     snprintf(sql, sizeof(sql),
-      "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds, TokenMinExpiry"
-      " FROM Users WHERE Username = '%s' and Enabled = 1", username.c_str() );
+      "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, `TokenMinExpiry`"
+      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str() );
 
     if ( mysql_query(&dbconn, sql) ) {
       Error("Can't run query: %s", mysql_error(&dbconn));
@@ -228,7 +228,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 
   Debug( 1, "Attempting to authenticate user from auth string '%s'", auth );
   char sql[ZM_SQL_SML_BUFSIZ] = "";
-  snprintf( sql, sizeof(sql), "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds FROM Users WHERE Enabled = 1" );
+  snprintf( sql, sizeof(sql), "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds` FROM `Users` WHERE `Enabled` = 1" );
 
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );

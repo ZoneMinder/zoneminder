@@ -32,11 +32,11 @@ class HostController extends AppController {
 
   function login() {
 
-    $mUser = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
-    $mPassword = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+    $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+    $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
     $token = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
 
-    if ( !($mUser && $mPassword) && !$token ) {
+    if ( !($username && $password) && !$token ) {
       throw new UnauthorizedException(__('No identity provided'));
     }
 
@@ -44,8 +44,8 @@ class HostController extends AppController {
     $cred = [];
     $cred_depr = [];
 
-    if ( $mUser && $mPassword ) {
-      $cred = $this->_getCredentials(true, '', $mUser); // generate refresh
+    if ( $username && $password ) {
+      $cred = $this->_getCredentials(true, '', $user); // generate refresh
     } else {
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
     }

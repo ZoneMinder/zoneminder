@@ -8,7 +8,6 @@ function zm_session_start() {
   $currentCookieParams = session_get_cookie_params(); 
   $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
 
-  ZM\Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1)');
   session_set_cookie_params( 
     $currentCookieParams['lifetime'],
     $currentCookieParams['path'],
@@ -18,6 +17,7 @@ function zm_session_start() {
   );
 
   ini_set('session.name', 'ZMSESSID');
+  ZM\Logger::Debug('Setting cookie parameters to lifetime('.$currentCookieParams['lifetime'].') path('.$currentCookieParams['path'].') domain ('.$currentCookieParams['domain'].') secure('.$currentCookieParams['secure'].') httpOnly(1) name:'.session_name());
 
   session_start();
   // Do not allow to use expired session ID
@@ -66,6 +66,8 @@ function zm_session_clear() {
     setcookie(session_name(), '', time() - 31536000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
   }
   session_unset();
+  session_write_close();
   session_destroy();
+  session_start();
 } // function zm_session_clear()
 ?>

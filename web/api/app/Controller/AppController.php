@@ -68,24 +68,26 @@ class AppController extends Controller {
     global $user;
    
     if ( ZM_OPT_USE_AUTH ) {
-      if ( ZM_OPT_USE_LEGACY_API_AUTH ) {
-        # This will auto-login if username=&password= are set, or auth=
-        require_once __DIR__ .'/../../../includes/auth.php';
-      }
+      # This will auto-login if username=&password= are set, or auth=
+      require_once __DIR__ .'/../../../includes/auth.php';
 
+      if ( ZM_OPT_USE_LEGACY_API_AUTH or !strcasecmp($this->params->action, 'login') ) {
+        # This is here because historically we allowed user=&pass= in the api. web-ui auth uses username=&password=
         $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
         $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
 
-        if ( $user and $password ) {
-          // log (user, pass, nothashed, api based login so skip recaptcha)
-          $user = userLogin($user, $password, false, true);
+        if ( $username and $password ) {
+          $ret = validateuser($username, $password);
+          $user = $ret[0];
+          $retstatus = $ret[1];
           if ( !$user ) {
-            throw new UnauthorizedException(__('Incorrect credentials or API disabled'));
+            throw new UnauthorizedException(__($retstatus));
             return;
-          }
-        } 
+          } 
+        }
+      }
 
-      # NON LEGACY
+      # NON LEGACY, token based access
       $token = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
       if ( $token ) {
         // if you pass a token to login, we should only allow
@@ -107,9 +109,10 @@ class AppController extends Controller {
         } 
       } # end if token
 
-      if ( $user['APIEnabled'] != 1 ) {
+      if ( $user and ( $user['APIEnabled'] != 1 ) ) {
         ZM\Error('API disabled for: '.$user['Username']);
-        unset($user);
+        throw new UnauthorizedException(__('API disabled for: '.$user['Username']));
+        $user = null;
       }
 
       // We need to reject methods that are not authenticated

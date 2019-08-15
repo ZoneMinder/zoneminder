@@ -177,12 +177,9 @@ $request = null;
 if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
-ZM\Logger::Debug("User " . print_r($user,true));
 require_once('includes/auth.php');
-ZM\Logger::Debug("User " . print_r($user,true));
 
 foreach ( getSkinIncludes('skin.php') as $includeFile ) {
-  #ZM\Logger::Debug("including $includeFile");
   require_once $includeFile;
 }
 

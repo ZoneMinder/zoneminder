@@ -44,9 +44,9 @@
 bool EventStream::loadInitialEventData(int monitor_id, time_t event_time) {
   static char sql[ZM_SQL_SML_BUFSIZ];
 
-  snprintf(sql, sizeof(sql), "SELECT Id FROM Events WHERE "
-      "MonitorId = %d AND unix_timestamp(EndTime) > %ld "
-      "ORDER BY Id ASC LIMIT 1", monitor_id, event_time);
+  snprintf(sql, sizeof(sql), "SELECT `Id` FROM `Events` WHERE "
+      "`MonitorId` = %d AND unix_timestamp(`EndTime`) > %ld "
+      "ORDER BY `Id` ASC LIMIT 1", monitor_id, event_time);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -115,9 +115,9 @@ bool EventStream::loadEventData(uint64_t event_id) {
   static char sql[ZM_SQL_MED_BUFSIZ];
 
   snprintf(sql, sizeof(sql),
-      "SELECT MonitorId, StorageId, Frames, unix_timestamp( StartTime ) AS StartTimestamp, "
-      "(SELECT max(Delta)-min(Delta) FROM Frames WHERE EventId=Events.Id) AS Duration, "
-      "DefaultVideo, Scheme, SaveJPEGs FROM Events WHERE Id = %" PRIu64, event_id);
+      "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartTime` ) AS StartTimestamp, "
+      "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events.Id`) AS Duration, "
+      "`DefaultVideo`, `Scheme`, `SaveJPEGs` FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -210,8 +210,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   Debug(3, "fps set by frame_count(%d)/duration(%f)",
       event_data->frame_count, event_data->duration);
 
-  snprintf(sql, sizeof(sql), "SELECT FrameId, unix_timestamp(`TimeStamp`), Delta "
-      "FROM Frames WHERE EventId = %" PRIu64 " ORDER BY FrameId ASC", event_id);
+  snprintf(sql, sizeof(sql), "SELECT `FrameId`, unix_timestamp(`TimeStamp`), `Delta` "
+      "FROM `Frames` WHERE `EventId` = %" PRIu64 " ORDER BY `FrameId` ASC", event_id);
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     exit(mysql_errno(&dbconn));
@@ -542,11 +542,11 @@ void EventStream::checkEventLoaded() {
 
   if ( curr_frame_id <= 0 ) {
     snprintf(sql, sizeof(sql),
-        "SELECT Id FROM Events WHERE MonitorId = %ld AND Id < %" PRIu64 " ORDER BY Id DESC LIMIT 1",
+        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %ld AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
         event_data->monitor_id, event_data->event_id);
   } else if ( (unsigned int)curr_frame_id > event_data->frame_count ) {
     snprintf(sql, sizeof(sql),
-        "SELECT Id FROM Events WHERE MonitorId = %ld AND Id > %" PRIu64 " ORDER BY Id ASC LIMIT 1",
+        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %ld AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
         event_data->monitor_id, event_data->event_id);
   } else {
     // No event change required

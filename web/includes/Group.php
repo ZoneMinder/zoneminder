@@ -118,13 +118,13 @@ class Group extends ZM_Object {
       if ( is_array($group_id) ) {
         $group_id_sql_part = ' IN ('.implode(',', array_map(function(){return '?';}, $group_id ) ).')';
 
-        $MonitorIds = dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId'.$group_id_sql_part, 'MonitorId', $group_id);
+        $MonitorIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`'.$group_id_sql_part, 'MonitorId', $group_id);
 
-        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId'.$group_id_sql_part.')', 'MonitorId', $group_id));
+        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId` IN (SELECT `Id` FROM `Groups` WHERE `ParentId`'.$group_id_sql_part.')', 'MonitorId', $group_id));
       } else { 
-        $MonitorIds = dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId=?', 'MonitorId', array($group_id));
+        $MonitorIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($group_id));
 
-        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT MonitorId FROM Groups_Monitors WHERE GroupId IN (SELECT Id FROM Groups WHERE ParentId = ?)', 'MonitorId', array($group_id)));
+        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId` IN (SELECT `Id` FROM `Groups` WHERE `ParentId` = ?)', 'MonitorId', array($group_id)));
       }
       $groupSql = " find_in_set( M.Id, '".implode(',', $MonitorIds)."' )";
     }
@@ -132,17 +132,17 @@ class Group extends ZM_Object {
   } # end public static function get_group_sql( $group_id )
 
   public static function get_monitors_dropdown($options = null) {
-  $monitor_id = 0;
-  if ( isset($_REQUEST['monitor_id']) ) {
-    $monitor_id = $_REQUEST['monitor_id'];
-  } else if ( isset($_COOKIE['zmMonitorId']) ) {
-    $monitor_id = $_COOKIE['zmMonitorId'];
-  }
-	  $sql = 'SELECT * FROM Monitors';
+    $monitor_id = 0;
+    if ( isset($_REQUEST['monitor_id']) ) {
+      $monitor_id = $_REQUEST['monitor_id'];
+    } else if ( isset($_COOKIE['zmMonitorId']) ) {
+      $monitor_id = $_COOKIE['zmMonitorId'];
+    }
+	  $sql = 'SELECT `Id`,`Name` FROM `Monitors`';
 	  if ( $options ) {
 		  $sql .= ' WHERE '. implode(' AND ', array(
 					  ( isset($options['groupSql']) ? $options['groupSql']:'')
-					  ) ).' ORDER BY Sequence ASC';
+					  ) ).' ORDER BY `Sequence` ASC';
 	  }
 	  $monitors_dropdown = array(''=>'All');
 
@@ -153,7 +153,7 @@ class Group extends ZM_Object {
     $monitors_dropdown[$monitor['Id']] = $monitor['Name'];
   }
 
-  echo htmlSelect('monitor_id', $monitors_dropdown, $monitor_id, array('onchange'=>'changeMonitor(this);'));
+  echo htmlSelect('monitor_id', $monitors_dropdown, $monitor_id, array('data-on-change-this'=>'changeMonitor'));
   return $monitor_id;
 }
 

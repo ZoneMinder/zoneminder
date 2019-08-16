@@ -204,6 +204,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
     # We use 1800 so that we regenerate the hash at half the TTL
     $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
 
+    # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
     if ( $force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
       $local_time = localtime();
@@ -215,18 +216,9 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       }
       #ZM\Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5($authKey);
-      $close_session = 0;
-      if ( !is_session_started() ) {
-        zm_session_start();
-        $close_session = 1;
-      }
       $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
-      if ( $close_session )
-        session_write_close();
-      #ZM\Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
-      #} else {
-      #ZM\Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
+      # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'.$_SESSION['remoteAddr']];
   } # end if using AUTH and AUTH_RELAY

@@ -92,14 +92,13 @@ class AppController extends Controller {
         $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
         if ( $stateful ) {
 
-          session_start();
+          zm_session_start();
           $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
           $_SESSION['username'] = $user['Username'];
           if ( ZM_AUTH_RELAY == 'plain' ) {
             // Need to save this in session, can't use the value in User because it is hashed
             $_SESSION['password'] = $_REQUEST['password'];
           }
-          zm_session_regenerate_id();
           session_write_close();
         }
       }

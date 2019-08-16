@@ -45,7 +45,7 @@ class HostController extends AppController {
     $cred_depr = [];
 
     if ( $username && $password ) {
-      $cred = $this->_getCredentials(true, '', $user); // generate refresh
+      $cred = $this->_getCredentials(true, '', $username); // generate refresh
     } else {
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
     }
@@ -55,7 +55,7 @@ class HostController extends AppController {
       'access_token_expires'  => $cred[1]
     );
 
-    if ( $mUser && $mPassword ) {
+    if ( $username && $password ) {
       $login_array['refresh_token'] = $cred[2];
       $login_array['refresh_token_expires'] = $cred[3];
     }
@@ -115,12 +115,10 @@ class HostController extends AppController {
     if ( $token ) {
       // If we have a token, we need to derive username from there
       $ret = validateToken($token, 'refresh', true);
-      $mUser = $ret[0]['Username'];
-    } else {
-      $mUser = $username;
+      $username = $ret[0]['Username'];
     }
 
-    ZM\Info("Creating token for \"$mUser\"");
+    ZM\Info("Creating token for \"$username\"");
 
     /* we won't support AUTH_HASH_IPS in token mode
       reasons:
@@ -144,7 +142,7 @@ class HostController extends AppController {
         'iss' => 'ZoneMinder',
         'iat' => $access_issued_at,
         'exp' => $access_expire_at,
-        'user' => $mUser,
+        'user' => $username,
         'type' => 'access'
     );
 
@@ -154,15 +152,15 @@ class HostController extends AppController {
     $refresh_ttl = 0;
 
     if ( $generate_refresh_token ) {
-      $refresh_issued_at   = time();
+      $refresh_issued_at = time();
       $refresh_ttl = 24 * 3600; // 1 day
 
-      $refresh_expire_at     = $refresh_issued_at + $refresh_ttl;
+      $refresh_expire_at = $refresh_issued_at + $refresh_ttl;
       $refresh_token = array(
           'iss' => 'ZoneMinder',
           'iat' => $refresh_issued_at,
           'exp' => $refresh_expire_at,
-          'user' => $mUser,
+          'user' => $username,
           'type' => 'refresh'
       );
       $jwt_refresh_token = \Firebase\JWT\JWT::encode($refresh_token, ZM_AUTH_HASH_SECRET, 'HS256');

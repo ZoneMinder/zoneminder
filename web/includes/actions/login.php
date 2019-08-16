@@ -71,6 +71,8 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     unset($user); // unset should be ok here because we aren't in a function
     return;
   }
+  $user = $ret[0];
+
   $close_session = 0;
   if ( !is_session_started() ) {
     session_start();
@@ -79,7 +81,6 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
 
   ZM\Info("Login successful for user \"$username\"");
-  $user = $ret[0];
   $password_type = password_type($password);
 
   if ( $password_type == 'mysql' or $password_type == 'mysql+bcrypt' ) {

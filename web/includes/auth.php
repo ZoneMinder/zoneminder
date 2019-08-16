@@ -217,7 +217,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       $auth = md5($authKey);
       $close_session = 0;
       if ( !is_session_started() ) {
-        session_start();
+        zm_session_start();
         $close_session = 1;
       }
       $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;

@@ -75,7 +75,7 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
 
   $close_session = 0;
   if ( !is_session_started() ) {
-    session_start();
+    zm_session_start();
     $close_session = 1;
   }
   $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking

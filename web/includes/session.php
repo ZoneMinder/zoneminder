@@ -28,7 +28,8 @@ function zm_session_start() {
   }
 } // function zm_session_start()
 
-// My session regenerate id function
+// session regenerate id function
+// Assumes that zm_session_start has been called previously
 function zm_session_regenerate_id() {
   if ( session_status() != PHP_SESSION_ACTIVE ) {
     session_start();

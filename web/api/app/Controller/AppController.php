@@ -75,15 +75,32 @@ class AppController extends Controller {
         # This is here because historically we allowed user=&pass= in the api. web-ui auth uses username=&password=
         $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
         $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
-
         if ( $username and $password ) {
-          $ret = validateuser($username, $password);
+          $ret = validateUser($username, $password);
           $user = $ret[0];
           $retstatus = $ret[1];
           if ( !$user ) {
             throw new UnauthorizedException(__($retstatus));
             return;
           } 
+          ZM\Info("Login successful for user \"$username\"");
+        }
+      }
+
+      if ( ZM_OPT_USE_LEGACY_API_AUTH ) {
+        require_once __DIR__ .'/../../../includes/session.php';
+        $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
+        if ( $stateful ) {
+
+          session_start();
+          $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+          $_SESSION['username'] = $user['Username'];
+          if ( ZM_AUTH_RELAY == 'plain' ) {
+            // Need to save this in session, can't use the value in User because it is hashed
+            $_SESSION['password'] = $_REQUEST['password'];
+          }
+          zm_session_regenerate_id();
+          session_write_close();
         }
       }
 

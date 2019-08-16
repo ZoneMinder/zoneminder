@@ -152,11 +152,10 @@ function validateToken($token, $allowed_token_type='access') {
 
     $user = $saved_user_details;
     return array($user, 'OK');
-  } else {
-    ZM\Error("Could not retrieve user $username details");
-    $user = null;// unset only clears the local variable
-    return array(false, 'No such user/credentials');
   }
+  ZM\Error("Could not retrieve user $username details");
+  $user = null;// unset only clears the local variable
+  return array(false, 'No such user/credentials');
 } // end function validateToken($token, $allowed_token_type='access')
 
 function getAuthUser($auth) {
@@ -198,7 +197,8 @@ function getAuthUser($auth) {
 } // end getAuthUser($auth)
 
 function generateAuthHash($useRemoteAddr, $force=false) {
-  if ( ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
+  global $user;
+  if ( ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password']) ) {
     $time = time();
 
     # We use 1800 so that we regenerate the hash at half the TTL
@@ -209,9 +209,9 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       $local_time = localtime();
       $authKey = '';
       if ( $useRemoteAddr ) {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
+        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       } else {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
+        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
       #ZM\Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5($authKey);

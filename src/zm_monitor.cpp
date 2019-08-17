@@ -965,7 +965,7 @@ void Monitor::actionEnable() {
 
   db_mutex.lock();
   static char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "UPDATE Monitors SET Enabled = 1 WHERE Id = %d", id);
+  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %d", id);
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
   }
@@ -976,7 +976,7 @@ void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
 
   static char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "update Monitors set Enabled = 0 where Id = %d", id);
+  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET i`Enabled` = 0 WHERE `Id` = %d", id);
   db_mutex.lock();
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -1946,7 +1946,13 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
 
         db_mutex.lock();
         static char sql[ZM_SQL_SML_BUFSIZ];
-        snprintf(sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
+        snprintf(sql, sizeof(sql),
+            "SELECT `Id`, `Name` FROM `Monitors`"
+            "  WHERE `Id` = %d"
+            "   AND `Function` != 'None'"
+            "   AND `Function` != 'Monitor'"
+            "   AND `Enabled`=1",
+            link_ids[i] );
         if ( mysql_query(&dbconn, sql) ) {
 					db_mutex.unlock();
           Error("Can't run query: %s", mysql_error(&dbconn));
@@ -2003,44 +2009,44 @@ int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose)
 #if ZM_HAS_V4L
 int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose) {
 
-  std::string sql = load_monitor_sql + " WHERE Function != 'None' AND Type = 'Local'";
+  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Local'";
 
   if ( device[0] )
-    sql += " AND Device='" + std::string(device) + "'";
+    sql += " AND `Device`='" + std::string(device) + "'";
   if ( staticConfig.SERVER_ID )
-    sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
+    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   return LoadMonitors(sql, monitors, purpose);
 } // end int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose)
 #endif // ZM_HAS_V4L
 
 int Monitor::LoadRemoteMonitors(const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose) {
-  std::string sql = load_monitor_sql + " WHERE Function != 'None' AND Type = 'Remote'";
+  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Remote'";
   if ( staticConfig.SERVER_ID )
-    sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
+    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
 
   if ( protocol )
-    sql += stringtf(" AND Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path);
+    sql += stringtf(" AND `Protocol` = '%s' AND `Host` = '%s' AND `Port` = '%s' AND `Path` = '%s'", protocol, host, port, path);
   return LoadMonitors(sql, monitors, purpose);
 } // end int Monitor::LoadRemoteMonitors
 
 int Monitor::LoadFileMonitors(const char *file, Monitor **&monitors, Purpose purpose) {
-  std::string sql = load_monitor_sql + " WHERE Function != 'None' AND Type = 'File'";
+  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'File'";
   if ( file[0] )
-    sql += " AND Path='" + std::string(file) + "'";
+    sql += " AND `Path`='" + std::string(file) + "'";
   if ( staticConfig.SERVER_ID ) {
-    sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
+    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   }
   return LoadMonitors(sql, monitors, purpose);
 } // end int Monitor::LoadFileMonitors
 
 #if HAVE_LIBAVFORMAT
 int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose purpose) {
-  std::string sql = load_monitor_sql + " WHERE Function != 'None' AND Type = 'Ffmpeg'";
+  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Ffmpeg'";
   if ( file[0] )
-    sql += " AND Path = '" + std::string(file) + "'";
+    sql += " AND `Path` = '" + std::string(file) + "'";
 
   if ( staticConfig.SERVER_ID ) {
-    sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
+    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   }
   return LoadMonitors(sql, monitors, purpose);
 } // end int Monitor::LoadFfmpegMonitors
@@ -2380,7 +2386,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
 } // end Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose)
 
 Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
-  std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", p_id);
+  std::string sql = load_monitor_sql + stringtf(" WHERE `Id`=%d", p_id);
 
   zmDbRow dbrow;
   if ( ! dbrow.fetch(sql.c_str()) ) {

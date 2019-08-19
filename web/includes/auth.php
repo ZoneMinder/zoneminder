@@ -256,15 +256,31 @@ if ( ZM_OPT_USE_AUTH ) {
         # This prevent session modification to switch users
         if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
           $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
+        else
+          ZM\Logger::Debug("No auth hash in session, there should have been");
+
       } else {
         # Need to refresh permissions and validate that the user still exists
         $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
         $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
       }
+    } else {
+      ZM\Logger::Debug("No username in session");
     }
 
     if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
       $user = getAuthUser($_REQUEST['auth']);
+    } else if (
+      ! ( empty($_REQUEST['username']) or empty($_REQUEST['password']) or 
+      (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA )
+    ) ) {
+      $ret = validateUser($_REQUEST['username'], $_REQUEST['password');
+      if ( !$ret[0] ) {
+        ZM\Error($ret[1]);
+        unset($user); // unset should be ok here because we aren't in a function
+        return;
+      }
+      $user = $ret[0];
     }
 
     if ( !empty($user) ) {

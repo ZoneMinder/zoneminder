@@ -77,7 +77,6 @@ if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
   return;
 }
 
-
 if ( isset($_GET['skin']) ) {
   $skin = $_GET['skin'];
 } else if ( isset($_COOKIE['zmSkin']) ) {

@@ -50,6 +50,7 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
       if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
         if ( !in_array('invalid-input-secret', $responseData['error-codes']) ) {
           Error('reCaptcha authentication failed');
+          unset($user); // unset should be ok here because we aren't in a function
           return;
         } else {
           Error('Invalid recaptcha secret detected');
@@ -58,20 +59,12 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     } // end if success==false
   } // end if using reCaptcha
 
-  // coming here means we need to authenticate the user
   // if captcha existed, it was passed
 
-  $username = $_REQUEST['username'];
-  $password = $_REQUEST['password'];
-
-  $ret = validateUser($username, $password);
-  if ( !$ret[0] ) {
-    ZM\Error($ret[1]);
+  if ( ! $user ) {
     $_SESSION['loginFailed'] = true;
-    unset($user); // unset should be ok here because we aren't in a function
     return;
   }
-  $user = $ret[0];
 
   $close_session = 0;
   if ( !is_session_started() ) {

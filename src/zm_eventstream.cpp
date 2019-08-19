@@ -116,7 +116,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   snprintf(sql, sizeof(sql),
       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartTime` ) AS StartTimestamp, "
-      "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events.Id`) AS Duration, "
+      "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS Duration, "
       "`DefaultVideo`, `Scheme`, `SaveJPEGs` FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
   if ( mysql_query(&dbconn, sql) ) {
@@ -674,7 +674,7 @@ bool EventStream::sendFrame(int delta_us) {
       fdj = fopen(filepath, "rb");
       if ( !fdj ) {
         Error("Can't open %s: %s", filepath, strerror(errno));
-        return false;
+        return true; // returning false will cause us to terminate.
       }
 #if HAVE_SENDFILE
       if ( fstat(fileno(fdj),&filestat) < 0 ) {
@@ -829,12 +829,6 @@ void EventStream::runStream() {
       Debug(2, "Not checking command queue");
     }
 
-    //if ( step != 0 )// Adding 0 is cheaper than an if 0
-    // curr_frame_id starts at 1 though, so we might skip the first frame?
-      curr_frame_id += step;
-
-    // Detects when we hit end of event and will load the next event or previous event
-    checkEventLoaded();
 
     // Get current frame data
     FrameData *frame_data = &event_data->frames[curr_frame_id-1];
@@ -926,7 +920,6 @@ void EventStream::runStream() {
     } // end if streaming stepping or doing nothing
 
     if ( send_frame ) {
-      //Debug(3,"sending frame");
       if ( !sendFrame(delta_us) )
         zm_terminate = true;
     }
@@ -958,8 +951,11 @@ void EventStream::runStream() {
       // or calc the relationship from the last frame.  I think from the start is better as it self-corrects
 
       if ( send_frame && type != STREAM_MPEG ) {
-        if ( delta_us > 0 ) {
-          Debug(3, "dUs: %d", delta_us);
+        if ( delta_us > 0) {
+          if ( delta_us > MAX_SLEEP_USEC ) {
+            Debug(1, "Limiting sleep to %d because calculated sleep is too long %d", MAX_SLEEP_USEC, delta_us);
+            delta_us = MAX_SLEEP_USEC;
+          }
           usleep(delta_us);
           Debug(3, "Done sleeping: %d usec", delta_us);
         }
@@ -971,16 +967,23 @@ void EventStream::runStream() {
           (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2))),
           ZM_RATE_BASE,
           (base_fps?base_fps:1),
-          (replay_rate?abs(replay_rate*2):200)
+          (replay_rate?abs(replay_rate*2):0)
           );
-      if ( delta_us > 0 and delta_us < 500000 ) {
+      if ( delta_us > 0 ) {
+        if ( delta_us > MAX_SLEEP_USEC ) {
+          Debug(1, "Limiting sleep to %d because calculated sleep is too long %d", MAX_SLEEP_USEC, delta_us);
+          delta_us = MAX_SLEEP_USEC;
+        }
         usleep(delta_us);
-      } else {
-        // Never want to sleep for too long, limit to .1s
-        Warning("sleeping .5s because delta_us (%d) not good!", delta_us);
-        usleep(500000);
       }
     } // end if !paused
+
+    //if ( step != 0 )// Adding 0 is cheaper than an if 0
+    // curr_frame_id starts at 1 though, so we might skip the first frame?
+      curr_frame_id += step;
+
+    // Detects when we hit end of event and will load the next event or previous event
+    checkEventLoaded();
   } // end while ! zm_terminate
 #if HAVE_LIBAVCODEC
   if ( type == STREAM_MPEG )

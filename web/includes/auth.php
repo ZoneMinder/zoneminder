@@ -271,10 +271,12 @@ if ( ZM_OPT_USE_AUTH ) {
     if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
       $user = getAuthUser($_REQUEST['auth']);
     } else if (
-      ! ( empty($_REQUEST['username']) or empty($_REQUEST['password']) or 
-      (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA )
+      ! (
+        empty($_REQUEST['username']) or
+        empty($_REQUEST['password']) or
+      (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA)
     ) ) {
-      $ret = validateUser($_REQUEST['username'], $_REQUEST['password');
+      $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
       if ( !$ret[0] ) {
         ZM\Error($ret[1]);
         unset($user); // unset should be ok here because we aren't in a function

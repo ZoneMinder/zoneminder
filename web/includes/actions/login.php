@@ -61,7 +61,7 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
 
   // if captcha existed, it was passed
 
-  if ( ! $user ) {
+  if ( ! isset($user) ) {
     $_SESSION['loginFailed'] = true;
     return;
   }
@@ -71,7 +71,9 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     zm_session_start();
     $close_session = 1;
   }
-  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
+
+  $username = $_REQUEST['username'];
+  $password = $_REQUEST['password'];
 
   ZM\Info("Login successful for user \"$username\"");
   $password_type = password_type($password);

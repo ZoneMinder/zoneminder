@@ -88,12 +88,13 @@ if ( isset($_REQUEST['filter']) ) {
       }
     }
   } # end if REQUEST[Filter]
+}
+if ( count($filter) ) {
   parseFilter($filter);
   # This is to enable the download button
-  session_start();
+  zm_session_start();
   $_SESSION['montageReviewFilter'] = $filter;
   session_write_close();
-  $filterQuery = $filter['query'];
 }
 
 // Note that this finds incomplete events as well, and any frame records written, but still cannot "see" to the end frame

@@ -77,7 +77,6 @@ if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
   return;
 }
 
-
 if ( isset($_GET['skin']) ) {
   $skin = $_GET['skin'];
 } else if ( isset($_COOKIE['zmSkin']) ) {
@@ -164,6 +163,7 @@ $action = null;
 $error_message = null;
 $redirect = null;
 $view = null;
+$user = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
@@ -175,17 +175,14 @@ $request = null;
 if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
-# User Login will be performed in auth.php
 require_once('includes/auth.php');
 
 foreach ( getSkinIncludes('skin.php') as $includeFile ) {
-  #ZM\Logger::Debug("including $includeFile");
   require_once $includeFile;
 }
 
 if ( isset($_REQUEST['action']) )
   $action = detaintPath($_REQUEST['action']);
-
 
 # The only variable we really need to set is action. The others are informal.
 isset($view) || $view = NULL;
@@ -207,7 +204,7 @@ if (
   ( $view != 'frames' ) && 
   ( $view != 'archive' )
 ) {
-  require_once( 'includes/csrf/csrf-magic.php' );
+  require_once('includes/csrf/csrf-magic.php');
   #ZM\Logger::Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();
 }
@@ -223,7 +220,7 @@ if ( $action ) {
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and !isset($user) and ($view != 'login') ) {
+if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'none') ) {
   /* AJAX check  */
   if ( !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
     && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' ) {

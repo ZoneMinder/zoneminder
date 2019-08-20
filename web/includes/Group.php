@@ -54,16 +54,16 @@ class Group extends ZM_Object {
 
   public static function get_group_dropdown( ) {
 
-    session_start();
     $selected_group_id = 0;
     if ( isset($_REQUEST['groups']) ) {
       $selected_group_id = $group_id = $_SESSION['groups'] = $_REQUEST['groups'];
     } else if ( isset( $_SESSION['groups'] ) ) {
       $selected_group_id = $group_id = $_SESSION['groups'];
     } else if ( isset($_REQUEST['filtering']) ) {
+      zm_session_start();
       unset($_SESSION['groups']);
+      session_write_close();
     }
-    session_write_close();
 
     return htmlSelect( 'Group[]', Group::get_dropdown_options(), isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
           'data-on-change' => 'submitThisForm',

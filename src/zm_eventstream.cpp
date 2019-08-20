@@ -920,8 +920,10 @@ void EventStream::runStream() {
     } // end if streaming stepping or doing nothing
 
     if ( send_frame ) {
-      if ( !sendFrame(delta_us) )
+      if ( !sendFrame(delta_us) ) {
         zm_terminate = true;
+        break;
+      }
     }
 
     curr_stream_time = frame_data->timestamp;

@@ -1478,7 +1478,7 @@ function sortHeader( $field, $querySep='&amp;' ) {
     'sort_field='.$field,
     'sort_asc='.($_REQUEST['sort_field'] == $field ? !$_REQUEST['sort_asc'] : 0),
     'limit='.validInt($_REQUEST['limit']),
-    ($_REQUEST['eid'] ? 'eid='.$_REQUEST['eid'] : '' ),
+    (isset($_REQUEST['eid']) ? 'eid='.$_REQUEST['eid'] : '' ),
   ));
 }
 

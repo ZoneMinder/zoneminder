@@ -482,7 +482,7 @@ int FfmpegCamera::OpenFfmpeg() {
     hw_pix_fmt = find_fmt_by_hw_type(type);
 #endif
     if ( hw_pix_fmt != AV_PIX_FMT_NONE ) {
-      Debug(1, "Selected gw_pix_fmt %d %s",
+      Debug(1, "Selected hw_pix_fmt %d %s",
           hw_pix_fmt,
           av_get_pix_fmt_name(hw_pix_fmt));
 

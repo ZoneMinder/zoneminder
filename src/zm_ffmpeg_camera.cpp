@@ -269,9 +269,38 @@ int FfmpegCamera::Capture(Image &image) {
       }
 
       frameComplete = 1;
-      Debug(4, "Decoded video packet at frame %d", frameCount);
+      zm_dump_video_frame(mRawFrame, "raw frame from decoder");
 
-      if ( transfer_to_image(image, mFrame, mRawFrame) < 0 ) {
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+      if (
+          (hw_pix_fmt != AV_PIX_FMT_NONE)
+          &&
+          (mRawFrame->format == hw_pix_fmt)
+         ) {
+        /* retrieve data from GPU to CPU */
+        ret = av_hwframe_transfer_data(hwFrame, mRawFrame, 0);
+        if ( ret < 0 ) {
+          Error("Unable to transfer frame at frame %d: %s, continuing",
+              frameCount, av_make_error_string(ret).c_str());
+          zm_av_packet_unref(&packet);
+          continue;
+        }
+        zm_dump_video_frame(hwFrame, "After hwtransfer");
+
+        hwFrame->pts = mRawFrame->pts;
+        input_frame = hwFrame;
+      } else {
+#endif
+#endif
+        input_frame = mRawFrame;
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+#if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
+      }
+#endif
+#endif
+
+      if ( transfer_to_image(image, mFrame, input_frame) < 0 ) {
         zm_av_packet_unref(&packet);
         return -1;
       }

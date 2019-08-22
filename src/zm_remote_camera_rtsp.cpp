@@ -28,7 +28,22 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-RemoteCameraRtsp::RemoteCameraRtsp( unsigned int p_monitor_id, const std::string &p_method, const std::string &p_host, const std::string &p_port, const std::string &p_path, int p_width, int p_height, bool p_rtsp_describe, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
+RemoteCameraRtsp::RemoteCameraRtsp(
+    unsigned int p_monitor_id,
+    const std::string &p_method,
+    const std::string &p_host,
+    const std::string &p_port,
+    const std::string &p_path,
+    int p_width,
+    int p_height,
+    bool p_rtsp_describe,
+    int p_colours,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio ) :
   RemoteCamera( p_monitor_id, "rtsp", p_host, p_port, p_path, p_width, p_height, p_colours, p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
   rtsp_describe( p_rtsp_describe ),
   rtspThread( 0 )
@@ -175,7 +190,7 @@ int RemoteCameraRtsp::PrimeCapture() {
       } else {
         Debug(2, "Have another video stream." );
       }
-    }
+    } else
 #if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
     if ( codec_context->codec_type == AVMEDIA_TYPE_AUDIO )
 #else
@@ -187,6 +202,8 @@ int RemoteCameraRtsp::PrimeCapture() {
       } else {
         Debug(2, "Have another audio stream." );
       }
+    } else {
+      Debug(1, "Have unknown codec type in stream %d : %d", i, mFormatContext->streams[i]->codec->codec_type);
     }
   } // end foreach stream
 

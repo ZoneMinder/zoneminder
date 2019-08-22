@@ -62,7 +62,7 @@ Storage::Storage( unsigned int p_id ) {
 
 	if ( p_id ) {
 		char sql[ZM_SQL_SML_BUFSIZ];
-		snprintf(sql, sizeof(sql), "SELECT Id, Name, Path, Type, Scheme FROM Storage WHERE Id=%d", p_id);
+		snprintf(sql, sizeof(sql), "SELECT `Id`, `Name`, `Path`, `Type`, `Scheme` FROM `Storage` WHERE `Id`=%d", p_id);
 		Debug(2,"Loading Storage for %d using %s", p_id, sql );
 		zmDbRow dbrow;
 		if ( !dbrow.fetch(sql) ) {

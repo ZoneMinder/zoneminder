@@ -54,7 +54,9 @@ if ( $running ) {
 $states = dbFetchAll('SELECT * FROM States');
 foreach ( $states as $state ) {
 ?>
-                <option value="<?php echo validHtmlStr($state['Name']) ?>"><?php echo validHtmlStr($state['Name']); ?></option>
+                <option value="<?php echo validHtmlStr($state['Name']) ?>" <?php echo $state['IsActive'] ? 'selected="selected"' : '' ?>>
+                <?php echo validHtmlStr($state['Name']); ?>
+                </option>
 <?php
 }
 ?>

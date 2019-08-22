@@ -21,6 +21,7 @@
 #include "zm_ffmpeg.h"
 #include "zm_signal.h"
 #include <sys/time.h>
+#include "zm_time.h"
 
 zm_packetqueue::zm_packetqueue( int video_image_count, int p_video_stream_id, int p_audio_stream_id ) {
   video_stream_id = p_video_stream_id;
@@ -189,9 +190,9 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
         av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), zm_packet->image_index, frames_to_keep );
     
     // Want frames_to_keep video keyframes.  Otherwise, we may not have enough
-    if ( ( av_packet->stream_index == stream_id) && ( av_packet->flags & AV_PKT_FLAG_KEY ) ) {
+    if ( (av_packet->stream_index == stream_id) && (av_packet->flags & AV_PKT_FLAG_KEY) ) {
       Debug(4, "Found keyframe at packet with stream index (%d) with keyframe (%d), frames_to_keep is (%d)",
-          av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
+          av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep);
       break;
     }
     packets_to_delete--;
@@ -314,3 +315,12 @@ bool zm_packetqueue::increment_analysis_it( ) {
   analysis_it = next_it;
   return true;
 } // end bool zm_packetqueue::increment_analysis_it( )
+
+void zm_packetqueue::dumpQueue() {
+  std::list<ZMPacket *>::reverse_iterator it;
+  for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
+    ZMPacket *zm_packet = *it;
+    AVPacket *av_packet = &(zm_packet->packet);
+    dumpPacket(av_packet);
+  }
+}

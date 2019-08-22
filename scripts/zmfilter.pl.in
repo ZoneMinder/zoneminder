@@ -240,6 +240,7 @@ sub getFilters {
     or AutoDelete = 1
     or UpdateDiskSpace = 1
     or AutoMove = 1
+    or AutoCopy = 1
     ) ORDER BY Name';
   my $sth = $dbh->prepare_cached($sql)
     or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
@@ -271,7 +272,7 @@ sub checkFilter {
   my $filter = shift;
 
   my @Events = $filter->Execute();
-  Info(
+  Debug(
       join(' ',
         'Checking filter', $filter->{Name},
         join(', ', 
@@ -283,6 +284,7 @@ sub checkFilter {
           ($filter->{AutoMessage}?'message':()),
           ($filter->{AutoExecute}?'execute':()),
           ($filter->{AutoMove}?'move':()),
+          ($filter->{AutoCopy}?'copy':()),
           ($filter->{UpdateDiskSpace}?'update disk space':()),
           ),
         'returned' , scalar @Events , 'events',
@@ -300,9 +302,9 @@ sub checkFilter {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
       my $sql = 'UPDATE Events SET Archived = 1 WHERE Id = ?';
-      my $sth = $dbh->prepare_cached( $sql )
+      my $sth = $dbh->prepare_cached($sql)
         or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute( $Event->{Id} )
+      my $res = $sth->execute($Event->{Id})
         or Error("Unable to execute '$sql': ".$dbh->errstr());
     }
     if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
@@ -343,6 +345,23 @@ sub checkFilter {
       $_ = $Event->MoveTo($NewStorage);
       Error($_) if $_;
     }
+    if ( $filter->{AutoCopy} ) {
+      # Copy To is different from MoveTo in that it JUST copies the files
+      # So we still need to update the Event object with the new SecondaryStorageId
+      my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
+      if ( $NewStorage ) {
+        $_ = $Event->CopyTo($NewStorage);
+        if ( $_ ) {
+          $ZoneMinder::Database::dbh->commit();
+          Error($_);
+        } else {
+          $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
+          $ZoneMinder::Database::dbh->commit();
+        }
+      } else {
+        Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
+      }
+    } # end if AutoCopy
 
     if ( $filter->{UpdateDiskSpace} ) {
       $ZoneMinder::Database::dbh->begin_work();
@@ -361,7 +380,7 @@ sub checkFilter {
       $ZoneMinder::Database::dbh->commit();
     } # end if UpdateDiskSpace
   } # end foreach event
-}
+} # end sub checkFilter
 
 sub generateVideo {
   my $filter = shift;
@@ -448,10 +467,10 @@ sub generateImage {
   } elsif ( -r $capture_image_path ) {
     $image_path = $capture_image_path;
   } elsif ( -r $video_path ) {
-    my $command ="ffmpeg -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
+    my $command ="ffmpeg -nostdin -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
     #$command = "ffmpeg -y -v 0 -i $video_path -vf 'select=gte(n\\,$$frame{FrameId}),setpts=PTS-STARTPTS' -vframes 1 -f image2 $capture_image_path";
     my $output = qx($command);
-    chomp( $output );
+    chomp($output);
     my $status = $? >> 8;
     if ( $status || logDebugging() ) {
       Debug("Output: $output");
@@ -546,7 +565,7 @@ sub uploadArchFile {
   }
 
   if ( $archError ) {
-    return( 0 );
+    return 0;
   } else {
     if ( $Config{ZM_UPLOAD_PROTOCOL} eq 'ftp' ) {
       Info('Uploading to '.$Config{ZM_UPLOAD_HOST}.' using FTP');
@@ -623,7 +642,7 @@ sub substituteTags {
   my $Monitor = $Event->Monitor() if $need_monitor;
 
 # Do we need the image information too?
-  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA)%/;
+  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD)%/;
   my $first_alarm_frame;
   my $max_alarm_frame;
   my $max_alarm_score = 0;
@@ -680,47 +699,64 @@ sub substituteTags {
   if ( $first_alarm_frame ) {
     $text =~ s/%EPI1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
     $text =~ s/%EPIM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
-    if ( $attachments_ref && $text =~ s/%EI1%//g ) {
-      my $path = generateImage($Event, $first_alarm_frame);
-      if ( -e $path ) {
-        push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+    if ( $attachments_ref ) {
+      if ( $text =~ s/%EI1%//g ) {
+        my $path = generateImage($Event, $first_alarm_frame);
+        if ( -e $path ) {
+          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+        } else {
+          Warning("Path to first image does not exist at $path");
+        }
       }
-    }
 
-    if ( $attachments_ref && ( $text =~ s/%EIM%//g ) ) {
-  # Don't attach the same image twice
-      if ( !@$attachments_ref
+      if ( $text =~ s/%EIM%//g ) {
+        # Don't attach the same image twice
+        if ( !@$attachments_ref
           || ( $first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
-         ) {
-        my $path = generateImage($Event, $max_alarm_frame);
+        ) {
+          my $path = generateImage($Event, $max_alarm_frame);
+          if ( -e $path ) {
+            push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+          } else {
+            Warning("No image for EIM at $path");
+          }
+        }
+      }
+
+      if ( $text =~ s/%EI1A%//g ) {
+        my $path = generateImage($Event, $first_alarm_frame, 'analyse');
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         } else {
-          Warning("No image for EIM");
+          Warning("No image for EI1A at $path");
         }
       }
-    }
-    if ( $attachments_ref && $text =~ s/%EI1A%//g ) {
-      my $path = generateImage($Event, $first_alarm_frame, 'analyse');
-      if ( -e $path ) {
-        push @$attachments_ref, { type=>'image/jpeg', path=>$path };
-      } else {
-        Warning("No image for EI1A");
-      }
-    }
-    if ( $attachments_ref && $text =~ s/%EIMA%//g ) {
-  # Don't attach the same image twice
-      if ( !@$attachments_ref
+
+      if ( $text =~ s/%EIMA%//g ) {
+        # Don't attach the same image twice
+        if ( !@$attachments_ref
           || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId})
-         ) {
-        my $path = generateImage($Event, $max_alarm_frame, 'analyse');
+        ) {
+          my $path = generateImage($Event, $max_alarm_frame, 'analyse');
+          if ( -e $path ) {
+            push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+          } else {
+            Warning("No image for EIMA at $path");
+          }
+        }
+      }
+
+      if ( $text =~ s/%EIMOD%//g ) {
+        $text =~ s/%EIMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+        my $path = $Event->Path().'/objdetect.jpg';
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         } else {
-          Warning('No image for EIMA');
+          Warning('No image for EIMOD at ' . $path);
         }
       }
-    }
+
+    } # end if attachments_ref
   } # end if $first_alarm_frame
 
   if ( $attachments_ref ) {
@@ -732,7 +768,7 @@ sub substituteTags {
         if ( !$format ) {
           return undef;
         }
-        push( @$attachments_ref, { type=>"video/$format", path=>$path } );
+        push @$attachments_ref, { type=>"video/$format", path=>$path };
       }
     }
     if ( $text =~ s/%EVM%//g ) {
@@ -806,7 +842,7 @@ sub sendEmail {
           $ssmtp_location = qx('which ssmtp');
         }
         if ( !$ssmtp_location ) {
-          Debug('Unable to find ssmtp, trying MIME::Lite->send');
+          Warning('Unable to find ssmtp, trying MIME::Lite->send');
           MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
           $mail->send();
         } else {

@@ -197,8 +197,8 @@ our @options = (
     name        => 'ZM_BANDWIDTH_DEFAULT',
     default     => 'high',
     description => 'Default setting for bandwidth profile used by web interface',
-    help        => q`The classic skin for ZoneMinder has different 
-      profiles to use for low medium or high bandwidth connections.
+    help        => q`The classic skin for ZoneMinder has different
+      profiles to use for low, medium, or high bandwidth connections.
       `,
     type        => $types{string},
     category    => 'system',
@@ -397,6 +397,17 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_OPT_USE_LEGACY_API_AUTH',
+    default     => 'yes',
+    description => 'Enable legacy API authentication',
+    help        => q`
+      Starting version 1.34.0, ZoneMinder uses a more secure 
+      Authentication mechanism using JWT tokens. Older versions used a less secure MD5 based auth hash. It is recommended you turn this off after you are sure you don't need it. If you are using a 3rd party app that relies on the older API auth mechanisms, you will have to update that app if you turn this off. Note that zmNinja 1.3.057 onwards supports the new token system
+      `,
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_OPT_USE_EVENTNOTIFICATION',
     default     => 'no',
     description => 'Enable 3rd party Event Notification Server',
@@ -559,7 +570,7 @@ our @options = (
       higher quality setting than the ordinary file setting. If set
       to a lower value then it is ignored. Thus leaving it at the
       default of 0 effectively means to use the regular file quality
-      setting for all saved images. This is to prevent acccidentally
+      setting for all saved images. This is to prevent accidentally
       saving important images at a worse quality setting.
       `,
     type        => $types{integer},
@@ -683,7 +694,7 @@ our @options = (
       Internet Explorer that don't natively support this format. If
       you use this browser it is highly recommended to install this
       from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
-      However, if it is not installed still images at a lower refresh rate can 
+      However, if it is not installed still images at a lower refresh rate can
       still be viewed.
       `,
     type        => $types{boolean},
@@ -938,10 +949,10 @@ our @options = (
     help        =>  q`
     Due to browsers only wanting to open 6 connections, if you have more
     than 6 monitors, you can have trouble viewing more than 6.  This setting
-    specified the beginning of a port range that will be used to contact ZM 
+    specified the beginning of a port range that will be used to contact ZM
     on.  Each monitor will use this value plus the Monitor Id to stream
-    content.  So a value of 2000 here will cause a stream for Monitor 1 to 
-    hit port 2001.  Please ensure that you configure apache appropriately 
+    content.  So a value of 2000 here will cause a stream for Monitor 1 to
+    hit port 2001.  Please ensure that you configure apache appropriately
     to respond on these ports.`,
     type  =>  $types{integer},
     category  => 'network',
@@ -1077,12 +1088,12 @@ our @options = (
     default     => '0',
     description => 'Save logging output to the system log',
     help        => q`
-      ZoneMinder logging is now more more integrated between
+      ZoneMinder logging is now more integrated between
       components and allows you to specify the destination for
       logging output and the individual levels for each. This option
       lets you control the level of logging output that goes to the
       system log. ZoneMinder binaries have always logged to the
-      system log but now scripts and web logging is also included. To
+      system log but script and web logging is now included. To
       preserve the previous behaviour you should ensure this value is
       set to Info or Warning. This option controls the maximum level
       of logging that will be written, so Info includes Warnings and
@@ -1104,7 +1115,7 @@ our @options = (
     default     => '-5',
     description => 'Save logging output to component files',
     help        => q`
-      ZoneMinder logging is now more more integrated between
+      ZoneMinder logging is now more integrated between
       components and allows you to specify the destination for
       logging output and the individual levels for each. This option
       lets you control the level of logging output that goes to
@@ -1134,7 +1145,7 @@ our @options = (
     default     => '-5',
     description => 'Save logging output to the weblog',
     help        => q`
-      ZoneMinder logging is now more more integrated between
+      ZoneMinder logging is now more integrated between
       components and allows you to specify the destination for
       logging output and the individual levels for each. This option
       lets you control the level of logging output from the web
@@ -1161,7 +1172,7 @@ our @options = (
     default     => '0',
     description => 'Save logging output to the database',
     help        => q`
-      ZoneMinder logging is now more more integrated between
+      ZoneMinder logging is now more integrated between
       components and allows you to specify the destination for
       logging output and the individual levels for each. This option
       lets you control the level of logging output that is written to
@@ -1216,7 +1227,7 @@ our @options = (
     help        => q`
        When enabled (default is on), this option will log FFMPEG messages.
        FFMPEG messages can be useful when debugging streaming issues. However,
-       depending on your distro and FFMPEG version, this may also result in 
+       depending on your distro and FFMPEG version, this may also result in
        more logs than you'd typically like to see. If all your streams are working
        well, you may choose to turn this off.
       `,
@@ -1231,7 +1242,7 @@ our @options = (
       ZoneMinder components usually support debug logging available
       to help with diagnosing problems. Binary components have
       several levels of debug whereas more other components have only
-      one. Normally this is disabled to minimise performance
+      one. Normally this is disabled to minimize performance
       penalties and avoid filling logs too quickly. This option lets
       you switch on other options that allow you to configure
       additional debug information to be output. Components will pick
@@ -1492,8 +1503,8 @@ our @options = (
     default     => 'ZoneMinder',
     description => 'The title displayed wherever the site references itself.',
     help        => q`
-    If you want the site to identify as something other than ZoneMinder, change this here.
-    It can be used to more accurately identify this installation from others.
+      If you want the site to identify as something other than ZoneMinder, change this here.
+      It can be used to more accurately identify this installation from others.
       `,
     type        => $types{string},
     category    => 'web',
@@ -1516,8 +1527,8 @@ our @options = (
     default     => 'http://zoneminder.com',
     description => 'The url used in the home/logo area of the navigation bar.',
     help        => q`
-    By default this takes you to the zoneminder.com website,
-    but perhaps you would prefer it to take you somewhere else.
+      By default this takes you to the zoneminder.com website,
+      but perhaps you would prefer it to take you somewhere else.
       `,
     type        => $types{string},
     category    => 'web',
@@ -1527,7 +1538,7 @@ our @options = (
     default     => 'ZoneMinder',
     description => 'The content of the home button.',
     help        => q`
-    You may wish to set this to empty if you are using css to put a background image on it.
+      You may wish to set this to empty if you are using css to put a background image on it.
       `,
     type        => $types{string},
     category    => 'web',
@@ -1550,7 +1561,8 @@ our @options = (
     name        => 'ZM_WEB_EVENT_DISK_SPACE',
     default     => 'no',
     description => 'Whether to show disk space used by each event.',
-    help        => q`Adds another column to the listing of events
+    help        => q`
+      Adds another column to the listing of events
       showing the disk space used by the event.  This will impart a small
       overhead as it will call du on the event directory.  In practice
       this overhead is fairly small but may be noticeable on IO-constrained
@@ -1567,7 +1579,7 @@ our @options = (
       Traditionally the main ZoneMinder web console window has
       resized itself to shrink to a size small enough to list only
       the monitors that are actually present. This is intended to
-      make the window more unobtrusize but may not be to everyones
+      make the window more unobtrusize but may not be to everyone's
       tastes, especially if opened in a tab in browsers which support
       this kind if layout. Switch this option off to have the console
       window size left to the users preference
@@ -2117,7 +2129,7 @@ our @options = (
       a remote ftp server. This option indicates that ftp transfers
       should be done in passive mode. This uses a single connection
       for all ftp activity and, whilst slower than active transfers,
-      is more robust and likely to work from behind filewalls. This
+      is more robust and likely to work from behind firewalls. This
       option is ignored for SFTP transfers.
       `,
     requires    => [ { name => 'ZM_OPT_UPLOAD', value => 'yes' } ],
@@ -2559,17 +2571,23 @@ our @options = (
       period of time (the section length). However in Mocord mode it
       is possible that motion detection may occur near the end of a
       section. This option controls what happens when an alarm occurs
-      in Mocord mode. The 'time' setting means that the event will be
-      closed at the end of the section regardless of alarm activity.
+      in Mocord mode.~~
+      ~~
+      The 'time' setting means that the event will be
+      closed at the end of the section regardless of alarm activity.~~
+      ~~
       The 'idle' setting means that the event will be closed at the
       end of the section if there is no alarm activity occurring at
       the time otherwise it will be closed once the alarm is over
       meaning the event may end up being longer than the normal
-      section length. The 'alarm' setting means that if an alarm
-      occurs during the event, the event will be closed once the
-      alarm is over regardless of when this occurs. This has the
+      section length.~~
+      ~~
+      The 'alarm' setting means that if an alarm
+      occurs during the event, the event will be closed and a new one
+     will be opened.  So events will only be alarmed or continuous.
+     This has the
       effect of limiting the number of alarms to one per event and
-      the events will be shorter than the section length if an alarm
+      the events may be shorter than the section length if an alarm
       has occurred.
       `,
     type        => $types{boolean},
@@ -2643,7 +2661,7 @@ our @options = (
     help        => q`
       As event images are captured they are stored to the filesystem
       with a numerical index. By default this index has three digits
-      so the numbers start 001, 002 etc. This works works for most
+      so the numbers start 001, 002 etc. This works for most
       scenarios as events with more than 999 frames are rarely
       captured. However if you have extremely long events and use
       external applications then you may wish to increase this to
@@ -2740,7 +2758,7 @@ our @options = (
       it to the ZoneMinder development team. This data will be used to
       determine things like who and where our customers are, how big their
       systems are, the underlying hardware and operating system, etc.
-      This is being done for the sole purpoase of creating a better
+      This is being done for the sole purpose of creating a better
       product for our target audience. This script is intended to be
       completely transparent to the end user, and can be disabled from
       the web console under Options. For more details on what information
@@ -2764,7 +2782,7 @@ our @options = (
   {
     name        => 'ZM_TELEMETRY_LAST_UPLOAD',
     default     => '',
-    description => 'When the last ZoneMinder telemetry upload ocurred',
+    description => 'When the last ZoneMinder telemetry upload occurred',
     help        => '',
     type        => $types{integer},
     readonly    => 1,
@@ -2822,7 +2840,7 @@ our @options = (
     default     => 'javascript',
     description => 'What method windows should use to refresh themselves',
     help        => q`
-      Many windows in Javascript need to refresh themselves to keep
+      Many windows in ZoneMinder need to refresh themselves to keep
       their information current. This option determines what method
       they should use to do this. Choosing 'javascript' means that
       each window will have a short JavaScript statement in with a
@@ -2956,7 +2974,7 @@ our @options = (
       some indication of the type of content. However this is not a
       standard part of HTML. The official method is to use OBJECT
       tags which are able to give more information allowing the
-      correct media viewers etc to be loaded. However these are less
+      correct media viewers etc. to be loaded. However these are less
       widely supported and content may be specifically tailored to a
       particular platform or player. This option controls whether
       media content is enclosed in EMBED tags only or whether, where
@@ -2980,7 +2998,7 @@ our @options = (
       browsers. When this condition occurs, ZoneMinder will write a
       warning to the log file. To get around this, one can install a browser
       plugin or extension to ignore X-Frame headers, and then the page will
-      display properly. Once the plugin or extenstion has ben installed,
+      display properly. Once the plugin or extension has ben installed,
       the end user may choose to turn this warning off.
       `,
     type        => $types{boolean},
@@ -3094,7 +3112,7 @@ our @options = (
     description => 'How often (in seconds) the event listing is refreshed in the watch window',
     help        => q`
       The monitor window is actually made from several frames. The
-      lower framme contains a listing of the last few events for easy
+      lower frame contains a listing of the last few events for easy
       access. This option determines how often this is refreshed.
       `,
     type        => $types{integer},
@@ -3224,12 +3242,12 @@ our @options = (
   {
     name        => 'ZM_WEB_H_SCALE_THUMBS',
     default     => 'no',
-    description => 'Scale thumbnails in events, bandwidth versus cpu in rescaling',
+    description => 'Scale thumbnails in events, bandwidth versus CPU in rescaling',
     help        => q`
       If unset, this option sends the whole image to the browser
       which resizes it in the window. If set the image is scaled down
       on the server before sending a reduced size image to the
-      browser to conserve bandwidth at the cost of cpu on the server.
+      browser to conserve bandwidth at the cost of CPU on the server.
       Note that ZM can only perform the resizing if the appropriate
       PHP graphics functionality is installed. This is usually
       available in the php-gd package.
@@ -3263,7 +3281,7 @@ our @options = (
     help        => q`
       When viewing events an event navigation panel and progress bar
       is shown below the event itself. This allows you to jump to
-      specific points in the event, but can can also dynamically
+      specific points in the event, but can also dynamically
       update to display the current progress of the event replay
       itself. This progress is calculated from the actual event
       duration and is not directly linked to the replay itself, so on
@@ -3367,7 +3385,7 @@ our @options = (
     description => 'How often (in seconds) the event listing is refreshed in the watch window',
     help        => q`
       The monitor window is actually made from several frames. The
-      lower framme contains a listing of the last few events for easy
+      lower frame contains a listing of the last few events for easy
       access. This option determines how often this is refreshed.
       `,
     type        => $types{integer},
@@ -3497,12 +3515,12 @@ our @options = (
   {
     name        => 'ZM_WEB_M_SCALE_THUMBS',
     default     => 'yes',
-    description => 'Scale thumbnails in events, bandwidth versus cpu in rescaling',
+    description => 'Scale thumbnails in events, bandwidth versus CPU in rescaling',
     help        => q`
       If unset, this option sends the whole image to the browser
       which resizes it in the window. If set the image is scaled down
       on the server before sending a reduced size image to the
-      browser to conserve bandwidth at the cost of cpu on the server.
+      browser to conserve bandwidth at the cost of CPU on the server.
       Note that ZM can only perform the resizing if the appropriate
       PHP graphics functionality is installed. This is usually
       available in the php-gd package.
@@ -3536,7 +3554,7 @@ our @options = (
     help        => q`
       When viewing events an event navigation panel and progress bar
       is shown below the event itself. This allows you to jump to
-      specific points in the event, but can can also dynamically
+      specific points in the event, but can also dynamically
       update to display the current progress of the event replay
       itself. This progress is calculated from the actual event
       duration and is not directly linked to the replay itself, so on
@@ -3640,7 +3658,7 @@ our @options = (
     description => 'How often (in seconds) the event listing is refreshed in the watch window',
     help        => q`
       The monitor window is actually made from several frames. The
-      lower framme contains a listing of the last few events for easy
+      lower frame contains a listing of the last few events for easy
       access. This option determines how often this is refreshed.
       `,
     type        => $types{integer},
@@ -3769,12 +3787,12 @@ our @options = (
   {
     name        => 'ZM_WEB_L_SCALE_THUMBS',
     default     => 'yes',
-    description => 'Scale thumbnails in events, bandwidth versus cpu in rescaling',
+    description => 'Scale thumbnails in events, bandwidth versus CPU in rescaling',
     help        => q`
       If unset, this option sends the whole image to the browser
       which resizes it in the window. If set the image is scaled down
       on the server before sending a reduced size image to the
-      browser to conserve bandwidth at the cost of cpu on the server.
+      browser to conserve bandwidth at the cost of CPU on the server.
       Note that ZM can only perform the resizing if the appropriate
       PHP graphics functionality is installed. This is usually
       available in the php-gd package.
@@ -3808,7 +3826,7 @@ our @options = (
     help        => q`
       When viewing events an event navigation panel and progress bar
       is shown below the event itself. This allows you to jump to
-      specific points in the event, but can can also dynamically
+      specific points in the event, but can also dynamically
       update to display the current progress of the event replay
       itself. This progress is calculated from the actual event
       duration and is not directly linked to the replay itself, so on
@@ -3956,7 +3974,15 @@ our @options = (
   help          => q`This will affect how long a session will be valid for since the last request.  Keeping this short helps prevent session hijacking.  Keeping it long allows you to stay logged in longer without refreshing the view.`,
     type        =>  $types{integer},
     category    =>  'system',
-  }
+  },
+  {
+    name        => 'ZM_RECORD_DIAG_IMAGES_FIFO',
+    default     => 'no',
+    description => ' Recording intermediate alarm diagnostic use fifo instead of files (faster)',
+    help        => 'This tries to lessen the load of recording diag images by sending them to a memory FIFO pipe instead of creating each file.',
+    type        => $types{boolean},
+    category    => 'logging',
+  },
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;
@@ -4000,7 +4026,7 @@ saveConfigToDB();
 
 The ZoneMinder:ConfigData module contains the master definition of the
 ZoneMinder configuration options as well as helper methods. This module is
-intended for specialist confguration management and would not normally be
+intended for specialist configuration management and would not normally be
 used by end users.
 
 The configuration held in this module, which was previously in zmconfig.pl,

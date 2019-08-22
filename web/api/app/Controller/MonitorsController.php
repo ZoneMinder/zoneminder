@@ -254,6 +254,7 @@ class MonitorsController extends AppController {
       throw new BadRequestException(__('Invalid command'));
     }
     $zm_path_bin = Configure::read('ZM_PATH_BIN');
+    $mToken = $this->request->query('token') ? $this->request->query('token') : null;
 
     switch ($cmd) {
       case 'on':
@@ -281,8 +282,12 @@ class MonitorsController extends AppController {
     $zmAuthRelay = $config['Config']['Value'];
   
     $auth = '';
+    
     if ( $zmOptAuth ) {
-      if ( $zmAuthRelay == 'hashed' ) {
+      if ($mToken) {
+        $auth = ' -T '.$mToken;
+      }  
+      elseif ( $zmAuthRelay == 'hashed' ) {
         $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_SECRET'));
         $config = $this->Config->find('first', $options);
         $zmAuthHashSecret = $config['Config']['Value'];

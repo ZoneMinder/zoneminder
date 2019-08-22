@@ -4,7 +4,7 @@ DROP TRIGGER IF EXISTS Events_Hour_delete_trigger//
 CREATE TRIGGER Events_Hour_delete_trigger BEFORE DELETE ON Events_Hour
 FOR EACH ROW BEGIN
   UPDATE Monitors SET
-  HourEvents = COALESCE(HourEvents,1)-1,
+  HourEvents = GREATEST(COALESCE(HourEvents,1)-1,0),
   HourEventDiskSpace=GREATEST(COALESCE(HourEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0)
   WHERE Id=OLD.MonitorId;
 END; 
@@ -62,7 +62,7 @@ DROP TRIGGER IF EXISTS Events_Week_delete_trigger//
 CREATE TRIGGER Events_Week_delete_trigger BEFORE DELETE ON Events_Week
 FOR EACH ROW BEGIN
   UPDATE Monitors SET
-  WeekEvents = COALESCE(WeekEvents,1)-1,
+  WeekEvents = GREATEST(COALESCE(WeekEvents,1)-1,0),
   WeekEventDiskSpace=GREATEST(COALESCE(WeekEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0)
   WHERE Id=OLD.MonitorId;
 END;
@@ -90,7 +90,7 @@ DROP TRIGGER IF EXISTS Events_Month_delete_trigger//
 CREATE TRIGGER Events_Month_delete_trigger BEFORE DELETE ON Events_Month
 FOR EACH ROW BEGIN
   UPDATE Monitors SET
-  MonthEvents = COALESCE(MonthEvents,1)-1,
+  MonthEvents = GREATEST(COALESCE(MonthEvents,1)-1,0),
   MonthEventDiskSpace=GREATEST(COALESCE(MonthEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0)
   WHERE Id=OLD.MonitorId;
 END;

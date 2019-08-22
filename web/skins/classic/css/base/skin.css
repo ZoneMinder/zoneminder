@@ -350,9 +350,52 @@ fieldset > legend {
 .alert, .warnText, .warning, .disabledText {
     color: #ffa801;
 }
+
+
 .alarm, .errorText, .error {
     color: #ff3f34;
 }
+
+.timedErrorBox {
+  color:white;
+  background:#e74c3c;
+  border-radius:5px;
+  padding:5px;
+  -moz-animation: inAndOut 5s ease-in forwards;
+  -webkit-animation: inAndOut 5s ease-in forwards;
+  animation: inAndOut 5s ease-in forwards;
+}
+
+/*
+  the timed classed auto disappear after 5s
+*/
+.timedWarningBox {
+  color:white;
+  background:#e67e22;
+  border-radius:5px;
+  padding:5px;
+  -moz-animation: inAndOut 5s ease-in forwards;
+  -webkit-animation: inAndOut 5s ease-in forwards;
+  animation: inAndOut 5s ease-in forwards;
+}
+
+.timedSuccessBox {
+  color:white;
+  background:#27ae60;
+  border-radius:5px;
+  padding:5px;
+  -moz-animation: inAndOut 5s ease-in forwards; 
+  -webkit-animation: inAndOut 5s ease-in forwards;
+  animation: inAndOut 5s ease-in forwards;
+}
+
+@keyframes inAndOut {
+  0% {opacity:0;}
+  10% {opacity:1;}
+  90% {opacity:1;}
+  100% {opacity:0;}
+}
+
 
 .fakelink {
     color: #7f7fb2;
@@ -546,6 +589,7 @@ input[type=submit]:hover,
 button:disabled,
 input[type=button]:disabled,
 input[type=submit]:disabled,
+  a.disabled,
 .btn-primary:disabled {
     background-color: #aaaaaa;    
     border-color: #bbbbbb;
@@ -593,6 +637,7 @@ color:#ffa801;
 
 .container-fluid {
   position: relative;
+  padding-bottom: 10px;
 }
 
 .sidebar {

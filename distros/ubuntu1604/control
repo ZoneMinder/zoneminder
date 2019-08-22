@@ -30,6 +30,9 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libsys-mmap-perl [!hurd-any]
               ,libwww-perl
               ,libdata-uuid-perl
+              ,libssl-dev
+              ,libcrypt-eksblowfish-perl
+              ,libdata-entropy-perl
 # Unbundled (dh_linktree):
         ,libjs-jquery
         ,libjs-mootools
@@ -42,7 +45,7 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libmp4v2-2, libx264-142|libx264-148|libx264-152
+        ,libmp4v2-2, libx264-142|libx264-148|libx264-152|libx264-155
         ,libswscale-ffmpeg3|libswscale4|libswscale3|libswscale5
         ,libswresample2|libswresample3|libswresample24|libswresample-ffmpeg1
         ,ffmpeg | libav-tools
@@ -55,7 +58,6 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdbd-mysql-perl
         ,libdevice-serialport-perl
         ,libimage-info-perl
-        ,libjson-any-perl
         ,libjson-maybexs-perl
         ,libsys-mmap-perl [!hurd-any]
         ,liburi-encode-perl
@@ -76,6 +78,9 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,rsyslog | system-log-daemon
         ,zip
         ,libpcre3
+        ,libssl | libssl1.0.0 | libssl1.1
+        ,libcrypt-eksblowfish-perl
+        ,libdata-entropy-perl
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php5 | libapache2-mod-php | php5-fpm | php-fpm
            ,mysql-server | mariadb-server | virtual-mysql-server
@@ -103,7 +108,7 @@ Description: video camera security and surveillance solution
 #        ,libdbd-mysql-perl
 #        ,libdevice-serialport-perl
 #        ,libimage-info-perl
-#        ,libjson-any-perl
+#        ,libjson-maybexs-perl
 #        ,libsys-mmap-perl [!hurd-any]
 #        ,liburi-encode-perl
 #        ,libwww-perl

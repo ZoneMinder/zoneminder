@@ -646,6 +646,23 @@ Why am I getting broken images when trying to view events?
 Zoneminder and the Apache web server need to have the right permissions. Check this forum topic and similar ones:
 http://www.zoneminder.com/forums/viewtopic.php?p=48754#48754
 
+
+I can review events for the current day, but ones from yesterday and beyond error out
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you've checked that the `www-data` user has permissions to the storage folders, perhaps your php.ini's timezone setting is incorrect. They _must_ match for certain playback functions. 
+
+If you're using Linux, this can be found using the following command: ::
+
+  timedatectl | grep "Time zone"
+
+If using FreeBSD, you can use this one-liner: ::
+
+  cd /usr/share/zoneinfo/ && find * -type f -exec cmp -s {} /etc/localtime \; -print;
+  
+Once you know what timezone your system is set to, open `/etc/php.ini` and adjust ``date.timezone`` to the appropriate value. the PHP daemon may need to be restarted for changes to take effect.
+
+
 Why is the image from my color camera appearing in black and white?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you recently upgraded to zoneminder 1.26, there is a per camera option that defaults to black and white and can be mis-set if your upgrade didn't happen right. See this thread: http://www.zoneminder.com/forums/viewtopic.php?f=30&t=21344
@@ -727,6 +744,8 @@ What causes "Invalid JPEG file structure: two SOI markers" from zmc (1.24.x)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Some settings that used to be global only are now per camera.  On the Monitor Source tab, if you are using Remote Protocol  "HTTP" and Remote Method "Simple", try changing Remote Method to "Regexp".
+
+
 
 Miscellaneous
 -------------------

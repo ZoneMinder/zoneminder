@@ -201,6 +201,8 @@ function changeReplayMode() {
 }
 
 var streamParms = "view=request&request=stream&connkey="+connKey;
+if ( auth_hash )
+	streamCmdParms += '&auth='+auth_hash;
 var streamCmdTimer = null;
 
 var streamStatus = null;
@@ -268,7 +270,7 @@ function getCmdResponse( respObj, respText ) {
 }
 
 var streamReq = new Request.JSON( {
-  url: thisUrl,
+  url: monitorUrl,
   method: 'get',
   timeout: AJAX_TIMEOUT,
   link: 'chain',
@@ -310,7 +312,8 @@ function playClicked( ) {
       vjsPlay(); //handles fast forward and rewind
     }
   } else {
-    streamReq.send( streamParms+"&command="+CMD_PLAY );
+console.log("sending"+streamParms+"&command="+CMD_PLAY);
+    streamReq.send(streamParms+"&command="+CMD_PLAY);
     streamPlay();
   }
 }
@@ -406,7 +409,7 @@ function streamFastRev( action ) {
       }
     }, 500); //500ms is a compromise between smooth reverse and realistic performance
   } else {
-    streamReq.send( streamParms+"&command="+CMD_FASTREV );
+    streamReq.send(streamParms+"&command="+CMD_FASTREV);
   }
 }
 
@@ -597,6 +600,8 @@ var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIM
 
 function eventQuery( eventId ) {
   var eventParms = "view=request&request=status&entity=event&id="+eventId;
+	if ( auth_hash )
+		eventParms += '&auth='+auth_hash;
   eventReq.send( eventParms );
 }
 
@@ -897,6 +902,8 @@ var actReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEO
 
 function actQuery( action, parms ) {
   var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
+	if ( auth_hash )
+		actParms += '&auth='+auth_hash;
   if ( parms != null ) {
     actParms += "&"+Object.toQueryString( parms );
   }

@@ -512,7 +512,7 @@ VideoStore::~VideoStore() {
           pkt.dts -= audio_first_dts;
           pkt.dts = av_rescale_q(
               pkt.dts,
-              audio_in_ctx->time_base,
+              audio_in_stream->time_base,
               audio_out_stream->time_base);
           Debug(2, "pkt.dts = %" PRId64 " - first_dts(%" PRId64 ")",
                 pkt.dts, audio_first_dts);
@@ -1240,6 +1240,8 @@ int VideoStore::resample_audio() {
         av_make_error_string(ret).c_str());
     return 0;
   }
+  zm_dump_frame(out_frame, "Out frame after resample");
+  out_frame->pkt_duration = in_frame->pkt_duration; // resampling doesn't alter duration
 
   ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples);
   if ( ret < 0 ) {
@@ -1267,6 +1269,7 @@ int VideoStore::resample_audio() {
     return 0;
   }
   out_frame->nb_samples = frame_size;
+  zm_dump_frame(out_frame, "Out frame after fifo read");
   // resampling changes the duration because the timebase is 1/samples
   // I think we should be dealing in codec timebases not stream
   if ( in_frame->pts != AV_NOPTS_VALUE ) {

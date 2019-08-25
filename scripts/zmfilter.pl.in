@@ -221,27 +221,27 @@ sub getFilters {
   my @sql_values;
 
   my @filters;
-  my $sql = 'SELECT * FROM Filters WHERE';
+  my $sql = 'SELECT * FROM `Filters` WHERE';
   if ( $$sql_filters{Name} ) {
-    $sql .= ' Name = ? AND';
+    $sql .= ' `Name` = ? AND';
     push @sql_values, $$sql_filters{Name};
   } elsif ( $$sql_filters{Id} ) {
-    $sql .= ' Id = ? AND';
+    $sql .= ' `Id` = ? AND';
     push @sql_values, $$sql_filters{Id};
   } else {
-    $sql .= ' Background = 1 AND';
+    $sql .= ' `Background` = 1 AND';
   }
-  $sql .= '( AutoArchive = 1
-    or AutoVideo = 1
-    or AutoUpload = 1
-    or AutoEmail = 1
-    or AutoMessage = 1
-    or AutoExecute = 1
-    or AutoDelete = 1
-    or UpdateDiskSpace = 1
-    or AutoMove = 1
-    or AutoCopy = 1
-    ) ORDER BY Name';
+  $sql .= '( `AutoArchive` = 1
+    or `AutoVideo` = 1
+    or `AutoUpload` = 1
+    or `AutoEmail` = 1
+    or `AutoMessage` = 1
+    or `AutoExecute` = 1
+    or `AutoDelete` = 1
+    or `UpdateDiskSpace` = 1
+    or `AutoMove` = 1
+    or `AutoCopy` = 1
+    ) ORDER BY `Name`';
   my $sth = $dbh->prepare_cached($sql)
     or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute(@sql_values)
@@ -301,7 +301,7 @@ sub checkFilter {
     if ( $filter->{AutoArchive} ) {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
-      my $sql = 'UPDATE Events SET Archived = 1 WHERE Id = ?';
+      my $sql = 'UPDATE `Events` SET `Archived` = 1 WHERE `Id` = ?';
       my $sth = $dbh->prepare_cached($sql)
         or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
       my $res = $sth->execute($Event->{Id})
@@ -434,7 +434,7 @@ sub generateVideo {
     }
     return 0;
   } else {
-    my $sql = 'UPDATE Events SET Videoed = 1 WHERE Id = ?';
+    my $sql = 'UPDATE `Events` SET `Videoed` = 1 WHERE `Id` = ?';
     my $sth = $dbh->prepare_cached($sql)
       or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute($Event->{Id})
@@ -619,7 +619,7 @@ sub uploadArchFile {
         or Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
     }
     unlink($archLocPath);
-    my $sql = 'UPDATE Events SET Uploaded = 1 WHERE Id = ?';
+    my $sql = 'UPDATE `Events` SET `Uploaded` = 1 WHERE `Id` = ?';
     my $sth = $dbh->prepare_cached($sql)
       or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute($Event->{Id})
@@ -647,12 +647,10 @@ sub substituteTags {
   my $max_alarm_frame;
   my $max_alarm_score = 0;
   if ( $need_images ) {
-    my $sql = q`SELECT * FROM Frames
-      WHERE EventId = ? AND Type = 'Alarm'
-      ORDER BY FrameId`;
+    my $sql = 'SELECT * FROM `Frames` WHERE `EventId`=? AND `Type`=? ORDER BY `FrameId`';
     my $sth = $dbh->prepare_cached($sql)
       or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($Event->{Id})
+    my $res = $sth->execute($Event->{Id},'Alarm')
       or Fatal("Unable to execute '$sql': ".$dbh->errstr());
     my $rows = 0;
     while( my $frame = $sth->fetchrow_hashref() ) {
@@ -879,7 +877,7 @@ sub sendEmail {
   } else {
     Info('Notification email sent');
   }
-  my $sql = 'UPDATE Events SET Emailed = 1 WHERE Id = ?';
+  my $sql = 'UPDATE `Events` SET `Emailed` = 1 WHERE `Id` = ?';
   my $sth = $dbh->prepare_cached($sql)
     or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($Event->{Id})
@@ -984,7 +982,7 @@ sub sendMessage {
   } else {
     Info('Notification message sent');
   }
-  my $sql = 'UPDATE Events SET Messaged = 1 WHERE Id = ?';
+  my $sql = 'UPDATE `Events` SET `Messaged` = 1 WHERE `Id` = ?';
   my $sth = $dbh->prepare_cached($sql)
     or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($Event->{Id})
@@ -1014,7 +1012,7 @@ sub executeCommand {
     Error("Command '$command' exited with status: $status");
     return 0;
   } else {
-    my $sql = 'UPDATE Events SET Executed = 1 WHERE Id = ?';
+    my $sql = 'UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?';
     my $sth = $dbh->prepare_cached($sql)
       or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute( $Event->{Id} )

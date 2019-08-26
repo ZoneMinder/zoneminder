@@ -102,6 +102,9 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
         if ( $filter->Background() )
           $filter->control('stop');
       } else {
+				if ( $action == 'SaveAs' ) {
+					$filter->Id(null);
+				}
         # COuld be execute
         if ( 0 ) {
         dbQuery('INSERT INTO Filters SET'.$sql);
@@ -109,6 +112,9 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
         $filter = new ZM\Filter($_REQUEST['Id']);
         }
         $filter->save($changes);
+
+				// We update the request id so that the newly saved filter is auto-selected
+				$_REQUEST['Id'] = $filter->Id();
       }
       if ( $filter->Background() )
         $filter->control('start');

@@ -202,7 +202,7 @@ function changeReplayMode() {
 
 var streamParms = "view=request&request=stream&connkey="+connKey;
 if ( auth_hash )
-	streamCmdParms += '&auth='+auth_hash;
+	streamParms += '&auth='+auth_hash;
 var streamCmdTimer = null;
 
 var streamStatus = null;

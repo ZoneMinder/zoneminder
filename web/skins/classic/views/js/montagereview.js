@@ -1010,7 +1010,8 @@ function initPage() {
   $j('#maxTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
-    minDate: $j('#minTime').val(),
+    //minDate: $j('#minTime').val(),
+minDate: -7,
     maxDate: +0,
     constrainInput: false,
     onClose: function(newDate, oldData) {

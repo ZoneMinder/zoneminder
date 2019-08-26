@@ -100,8 +100,13 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
             $filter->Name('_TempFilter'.time());
             $filter->Id(null);
           }
-        }
+        } else if ( $action == 'SaveAs' ) {
+					$filter->Id(null);
+				}
         $filter->save($changes);
+
+				// We update the request id so that the newly saved filter is auto-selected
+				$_REQUEST['Id'] = $filter->Id();
       }
       if ( $filter->Background() )
         $filter->control('start');

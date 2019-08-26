@@ -175,8 +175,12 @@ my $dbh = zmDbConnect();
 
 if ( $filter_name ) {
   Info("Scanning for events using filter '$filter_name'");
-} elsif ( $filter_id ) {
-  Info("Scanning for events using filter id '$filter_id'");
+} elsif ( defined($filter_id) ) {
+  if ( $filter_id ) {
+    Info("Scanning for events using filter id '$filter_id'");
+  } else {
+    Fatal("No filter_id specified");
+  }
 } else {
   Info("Scanning for events using all filters");
 }

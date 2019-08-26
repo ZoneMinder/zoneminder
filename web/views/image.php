@@ -100,7 +100,7 @@ if ( empty($_REQUEST['path']) ) {
         }
       }
       $Monitor = $Event->Monitor();
-      if ( $Monitor->SaveJPEGs() & 1 ) {
+      if ( $Event->SaveJPEGs() & 1 ) {
         # If we store Frames as jpgs, then we don't store an alarmed snapshot
         $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
       } else {
@@ -114,14 +114,14 @@ if ( empty($_REQUEST['path']) ) {
         ZM\Warning('No frame found for event ' . $_REQUEST['eid']);
         $Frame = new ZM\Frame();
         $Frame->Delta(1);
-        if ( $Monitor->SaveJPEGs() & 1 ) {
+        if ( $Event->SaveJPEGs() & 1 ) {
           $Frame->FrameId(0);
         } else {
           $Frame->FrameId('snapshot');
         }
       }
       $Monitor = $Event->Monitor();
-      if ( $Monitor->SaveJPEGs() & 1 ) {
+      if ( $Event->SaveJPEGs() & 1 ) {
         # If we store Frames as jpgs, then we don't store a snapshot
         $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
       } else {

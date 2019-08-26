@@ -607,15 +607,23 @@ sub CopyTo {
             if ( ! $size ) {
               Info('Not moving file with 0 size');
             }
-            my $file_contents = File::Slurp::read_file($file);
-            if ( ! $file_contents ) {
-              die 'Loaded empty file, but it had a size. Giving up';
+            if ( 0 ) {
+              my $file_contents = File::Slurp::read_file($file);
+              if ( ! $file_contents ) {
+                die 'Loaded empty file, but it had a size. Giving up';
+              }
+
+              my $filename = $event_path.'/'.File::Basename::basename($file);
+              if ( ! $bucket->add_key($filename, $file_contents) ) {
+                die "Unable to add key for $filename";
+              }
+            } else {
+              if ( ! $bucket->add_key_filename($filename, $file) ) {
+                die "Unable to add key for $filename";
+              }
             }
 
-            my $filename = $event_path.'/'.File::Basename::basename($file);
-            if ( ! $bucket->add_key($filename, $file_contents) ) {
-              die "Unable to add key for $filename";
-            }
+
             my $duration = tv_interval($starttime);
             Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
           } # end foreach file.

@@ -973,13 +973,6 @@ Logger::Debug("generating Video $command: result($result outptu:(".implode("\n",
   return( $status?"":rtrim($result) );
 }
 
-function executeFilter( $filter_id ) {
-  $command = ZM_PATH_BIN.'/zmfilter.pl --filter_id '.escapeshellarg($filter_id);
-  $result = exec($command, $output, $status);
-  dbQuery('DELETE FROM Filters WHERE Id=?', array($filter_id));
-  return $status;
-}
-
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
 function reScale( $dimension, $dummy ) {

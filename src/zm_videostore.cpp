@@ -193,19 +193,6 @@ VideoStore::VideoStore(
     video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
   }
 #if LIBAVCODEC_VERSION_CHECK(56, 35, 0, 64, 0)
-#if 0
-  if ( video_out_ctx->codec_id == AV_CODEC_ID_H264 ) {
-    //video_out_ctx->level = 32;I//
-    video_out_ctx->bit_rate = 400*1024;
-    video_out_ctx->max_b_frames = 1;
-    if ( video_out_ctx->priv_data ) {
-      av_opt_set(video_out_ctx->priv_data, "crf", "1", AV_OPT_SEARCH_CHILDREN);
-      av_opt_set(video_out_ctx->priv_data, "preset", "ultrafast", 0);
-    } else {
-      Debug(2, "Not setting priv_data");
-    }
-  }
-#endif
   ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
   if ( ret < 0 ) {
     Error("Could not initialize video_out_ctx parameters");
@@ -790,9 +777,9 @@ bool VideoStore::setup_resampler() {
   }
 
 #if defined(HAVE_LIBSWRESAMPLE)
-  if (!(fifo = av_audio_fifo_alloc(
+  if ( !(fifo = av_audio_fifo_alloc(
           audio_out_ctx->sample_fmt,
-          audio_out_ctx->channels, 1))) {
+          audio_out_ctx->channels, 1)) ) {
     Error("Could not allocate FIFO");
     return false;
   }
@@ -1008,7 +995,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     opkt.dts = video_out_stream->cur_dts;
   }
 
-# if 1
 	if ( opkt.dts < video_out_stream->cur_dts ) {
 		Debug(1, "Fixing non-monotonic dts/pts dts %" PRId64 " pts %" PRId64 " stream %" PRId64,
 				opkt.dts, opkt.pts, video_out_stream->cur_dts);
@@ -1017,7 +1003,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
 			opkt.pts = opkt.dts;
 		}
 	}
-#endif
 
   opkt.flags = ipkt->flags;
   opkt.pos = -1;
@@ -1066,6 +1051,20 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     }
 
     zm_dump_frame(in_frame, "In frame from decode");
+    if ( in_frame->pts != AV_NOPTS_VALUE ) {
+      if ( !audio_first_pts ) {
+        audio_first_pts = in_frame->pts;
+        Debug(1, "No audio_first_pts setting to %" PRId64, audio_first_pts);
+        in_frame->pts = 0;
+      } else {
+        // out_frame_pts is in codec->timebase, audio_first_pts is in packet timebase.
+        in_frame->pts = in_frame->pts - audio_first_pts;
+        zm_dump_frame(in_frame, "in frame after pts adjustment");
+      }
+    } else {
+      // sending AV_NOPTS_VALUE doesn't really work but we seem to get it in ffmpeg 2.8
+      in_frame->pts = audio_next_pts;
+    }
 
     if ( !resample_audio() ) {
       //av_frame_unref(in_frame);
@@ -1099,12 +1098,19 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     }
 
     dumpPacket(audio_out_stream, &opkt, "raw opkt");
+    Debug(1, "Duration before %d in %d/%d", opkt.duration,
+        audio_out_ctx->time_base.num,
+        audio_out_ctx->time_base.den);
 
     opkt.duration = av_rescale_q(
         opkt.duration,
         audio_out_ctx->time_base,
         audio_out_stream->time_base);
+    Debug(1, "Duration after %d in %d/%d", opkt.duration,
+        audio_out_stream->time_base.num,
+        audio_out_stream->time_base.den);
     // Scale the PTS of the outgoing packet to be the correct time base
+#if 0
     if ( ipkt->pts != AV_NOPTS_VALUE ) {
       if ( !audio_first_pts ) {
         opkt.pts = 0;
@@ -1134,13 +1140,14 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             audio_out_ctx->time_base,
             audio_out_stream->time_base);
         opkt.dts -= audio_first_dts;
-        Debug(2, "opkt.dts = %" PRId64 " from first_dts %" PRId64,
+        Debug(2, "audio opkt.dts = %" PRId64 " from first_dts %" PRId64,
             opkt.dts, audio_first_dts);
       }
       audio_last_dts = opkt.dts;
     } else {
       opkt.dts = AV_NOPTS_VALUE;
     }
+#endif
 
   } else {
     Debug(2,"copying");
@@ -1261,6 +1268,8 @@ int VideoStore::resample_audio() {
 
   // AAC requires 1024 samples per encode.  Our input tends to be something else, so need to buffer them.
   if ( frame_size > av_audio_fifo_size(fifo) ) {
+    Debug(1, "Not enough samples in fifo for AAC codec frame_size %d > fifo size %d", 
+         frame_size, av_audio_fifo_size(fifo));
     return 0;
   }
 

@@ -596,8 +596,8 @@ sub CopyTo {
           my $event_path = $self->RelativePath();
           if ( 0 ) { # Not neccessary
             Debug("Making directory $event_path/");
-            if ( ! $bucket->add_key($event_path.'/', '') ) {
-              Warning( "Unable to add key for $event_path/");
+            if ( !$bucket->add_key($event_path.'/', '') ) {
+              Warning("Unable to add key for $event_path/");
             }
           }
 
@@ -625,10 +625,9 @@ sub CopyTo {
             } else {
               my $filename = $event_path.'/'.File::Basename::basename($file);
               if ( ! $bucket->add_key_filename($filename, $file) ) {
-                die "Unable to add key for $filename";
+                die "Unable to add key for $filename " . $s3->err . ': '. $s3->errstr;
               }
             }
-
 
             my $duration = tv_interval($starttime);
             Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');

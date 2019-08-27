@@ -120,6 +120,7 @@ sub load {
         } else {
           Debug("No Results Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
         } # end if
+				delete $$self{$primary_key};
       } # end if
     } # end if
   } # end if ! $data

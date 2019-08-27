@@ -593,8 +593,8 @@ sub CopyTo {
             die;
           }
 
+          my $event_path = $self->RelativePath();
           if ( 0 ) { # Not neccessary
-            my $event_path = $self->RelativePath();
             Debug("Making directory $event_path/");
             if ( ! $bucket->add_key($event_path.'/', '') ) {
               Warning( "Unable to add key for $event_path/");

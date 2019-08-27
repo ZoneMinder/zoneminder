@@ -222,7 +222,7 @@ MAIN: while( $loop ) {
     while ( my $event = $eventSelectSth->fetchrow_hashref() ) {
       $db_events->{$event->{Id}} = $event->{Age};
     }
-    Debug( 'Got '.int(keys(%$db_events))." events for monitor $monitor->{Id}" );
+    Debug('Got '.int(keys(%$db_events))." events for monitor $monitor->{Id} using $eventSelectSql");
   } # end while monitors
 
   my $fs_monitors;
@@ -245,7 +245,7 @@ MAIN: while( $loop ) {
         next;
       }
 
-      Debug( "Found filesystem monitor '$monitor'" );
+      Debug("Found filesystem monitor '$monitor'");
       $fs_monitors->{$monitor} = {} if ! $fs_monitors->{$monitor};
       my $fs_events = $fs_monitors->{$monitor};
 
@@ -256,19 +256,19 @@ MAIN: while( $loop ) {
         my @day_dirs = glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]");
         Debug(qq`Checking for Deep Events under $$Storage{Path} using glob("$monitor_dir/[0-9][0-9]/[0-9][0-9]/[0-9][0-9]") returned `. scalar @day_dirs . ' events');
         foreach my $day_dir ( @day_dirs ) {
-          Debug( "Checking day dir $day_dir" );
+          Debug("Checking day dir $day_dir");
           ( $day_dir ) = ( $day_dir =~ /^(.*)$/ ); # De-taint
           if ( !chdir($day_dir) ) {
             Error("Can't chdir to '$$Storage{Path}/$day_dir': $!");
             next;
           }
-          if ( ! opendir(DIR, '.') ) {
+          if ( !opendir(DIR, '.') ) {
             Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
             next;
           }
           my %event_ids_by_path;
 
-          my @event_links = sort { $b <=> $a } grep { -l $_ } readdir( DIR );
+          my @event_links = sort { $b <=> $a } grep { -l $_ } readdir(DIR);
           Debug("Have " . @event_links . ' event links');
           closedir(DIR);
 
@@ -280,9 +280,9 @@ MAIN: while( $loop ) {
               Warning("Non-event link found $event_link in $day_dir, skipping");
               next;
             }
-            Debug("Checking link $event_link");
             #Event path is hour/minute/sec
             my $event_path = readlink($event_link);
+            Debug("Checking link $event_link points to: $event_path");
 
             if ( !($event_path and -e $event_path) ) {
               aud_print("Event link $day_dir/$event_link does not point to valid target at $event_path");
@@ -294,15 +294,50 @@ MAIN: while( $loop ) {
             } else {
               $event_ids_by_path{$event_path} = $event_id;
 
-              Debug("Checking link $event_link points to $event_path ");
-              my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
-              $$Event{Id} = $event_id;
-              $$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_path);
-              $$Event{RelativePath} = join('/', $day_dir, $event_path);
-              $$Event{Scheme} = 'Deep';
-              $Event->MonitorId( $monitor_dir );
-              $Event->StorageId( $Storage->Id() );
-              $Event->DiskSpace( undef );
+              my $Event = $fs_events->{$event_id} = ZoneMinder::Event->find_one(Id=>$event_id);
+							if ( ! $Event ) {
+								$Event = $fs_events->{$event_id} = new ZoneMinder::Event();
+								$$Event{Id} = $event_id;
+								$$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_path);
+								$$Event{RelativePath} = join('/', $day_dir, $event_path);
+								$$Event{Scheme} = 'Deep';
+								$Event->MonitorId( $monitor_dir );
+								$Event->StorageId( $Storage->Id() );
+								$Event->DiskSpace( undef );
+							} else {
+								my $full_path = join('/', $Storage->Path(), $day_dir, $event_path);
+# Check storage id
+								if ( !$Event->Storage()->Id() ) {
+									Info("Correcting StorageId for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
+									$Event->save({ StorageId=>$Storage->Id() });
+									$Event->Path(undef);
+								} else {
+
+									if ( $Event->Path() ne $full_path ) {
+										if ( ! (-e $Event->Path()) ) {
+											if ( $Event->StorageId() != $Storage->Id() ) {
+												Info("Correcting Storge Id for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
+												$Event->save({ StorageId=>$Storage->Id() });
+												$Event->Path(undef);
+											}
+										} else {
+											Info("Not updating path to event due to it existing at both $$Event{Path} and $event_path");
+										}
+									} # end if change of storage id
+								} # end if valid storage id
+							} # end if event found
+
+							if ( ! $Event->SaveJPEGs() ) {
+								my $saveJPegs = ( $Event->has_capture_jpegs() ? 1 : 0 ) | ( $Event->has_analyse_jpegs() ? 2 : 0 );
+
+								if ( $Event->SaveJPEGs(
+										( $Event->has_capture_jpegs() ? 1 : 0 ) | ( $Event->has_analyse_jpegs() ? 2 : 0 )
+										) ) {
+									Info("Updated Event $$Event{Id} SaveJPEGs to " . $Event->SaveJPEGs());
+									$Event->save();
+								}
+							}
+
             } # event path exists
           } # end foreach event_link
             
@@ -314,14 +349,11 @@ MAIN: while( $loop ) {
             ( $event_dir ) = ( $event_dir =~ /^(.*)$/ ); # De-taint
 
             my $event_id = undef;
+						my $Event = new ZoneMinder::Event();
+						$$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_dir);
 
-            if ( ! opendir(DIR, $event_dir) ) {
-              Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
-              next;
-            }
-            my @contents = readdir( DIR );
+            my @contents = $Event->files();
             Debug("Have " . @contents . " files in $day_dir/$event_dir");
-            closedir(DIR);
 
             my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
@@ -332,25 +364,27 @@ MAIN: while( $loop ) {
                 last;
               }
             }
-            
+
             if ( ! $event_id ) {
               # Look for .id file
               my @hidden_files = grep( /^\.\d+$/, @contents);
-              Debug("Have " . @hidden_files . ' hidden files');
+              Debug('Have ' . @hidden_files . ' hidden files');
               if ( @hidden_files ) {
                 ( $event_id ) = $hidden_files[0] =~ /^.(\d+)$/;
               }
             }
 
             if ( $event_id and ! $fs_events->{$event_id} ) {
-              my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
+              $fs_events->{$event_id} = $Event;
               $$Event{Id} = $event_id;
-              $$Event{Path} = join('/', $Storage->Path(), $day_dir, $event_dir);
               $$Event{RelativePath} = join('/', $day_dir, $event_dir);
               $$Event{Scheme} = 'Deep';
               $Event->MonitorId( $monitor_dir );
               $Event->StorageId( $Storage->Id() );
               $Event->DiskSpace( undef );
+							$Event->SaveJPEGs(
+								( $Event->has_capture_jpegs() ? 1 : 0 ) | ( $Event->has_analyse_jpegs() ? 2 : 0 )
+									);
               if ( ! $event_ids_by_path{$event_dir} ) {
                 Warning("No event link found at ".$Event->LinkPath() ." for " . $Event->to_string());
               }

@@ -36,7 +36,7 @@ var eventData = {
     Frames: '<?php echo $Event->Frames() ?>',
     MonitorName: '<?php echo $Monitor->Name() ?>'
 };
-var monitorUrl = '<?php echo $Monitor->UrlToIndex(); ?>';
+var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';

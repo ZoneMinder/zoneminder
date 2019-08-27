@@ -1147,6 +1147,15 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     } else {
       opkt.dts = AV_NOPTS_VALUE;
     }
+#else 
+	opkt.pts = av_rescale_q(
+            opkt.pts,
+            audio_out_ctx->time_base,
+            audio_out_stream->time_base);
+	opkt.dts = av_rescale_q(
+            opkt.dts,
+            audio_out_ctx->time_base,
+            audio_out_stream->time_base);
 #endif
 
   } else {

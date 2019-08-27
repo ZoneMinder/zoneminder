@@ -552,6 +552,8 @@ sub CopyTo {
     return "New path ($NewPath) is empty.";
   } elsif ( ! -e $NewPath ) {
     return "New path $NewPath does not exist.";
+  } else {
+    Debug("$NewPath is good");
   }
 
   $ZoneMinder::Database::dbh->begin_work();
@@ -567,8 +569,9 @@ sub CopyTo {
     return 'Old Storage path changed, Event has moved somewhere else.';
   }
 
-	$NewPath .= $self->Relative_Path();
-	$NewPath = ( $NewPath =~ /^(.*)$/ ); # De-taint
+  Debug("Relative Path: " . $self->RelativePath());
+	$NewPath .= '/'.$self->RelativePath();
+	($NewPath) = ( $NewPath =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
     $ZoneMinder::Database::dbh->commit();
     return "New path and old path are the same! $NewPath";
@@ -596,9 +599,11 @@ sub CopyTo {
           }
 
           my $event_path = $self->RelativePath();
-          Debug("Making directory $event_path/");
-          if ( ! $bucket->add_key($event_path.'/', '') ) {
-            die "Unable to add key for $event_path/";
+          if ( 0 ) { # Not neccessary
+            Debug("Making directory $event_path/");
+            if ( !$bucket->add_key($event_path.'/', '') ) {
+              Warning("Unable to add key for $event_path/");
+            }
           }
 
           my @files = glob("$OldPath/*");
@@ -612,15 +617,23 @@ sub CopyTo {
             if ( ! $size ) {
               Info('Not moving file with 0 size');
             }
-            my $file_contents = File::Slurp::read_file($file);
-            if ( ! $file_contents ) {
-              die 'Loaded empty file, but it had a size. Giving up';
+            if ( 0 ) {
+              my $file_contents = File::Slurp::read_file($file);
+              if ( ! $file_contents ) {
+                die 'Loaded empty file, but it had a size. Giving up';
+              }
+
+              my $filename = $event_path.'/'.File::Basename::basename($file);
+              if ( ! $bucket->add_key($filename, $file_contents) ) {
+                die "Unable to add key for $filename";
+              }
+            } else {
+              my $filename = $event_path.'/'.File::Basename::basename($file);
+              if ( ! $bucket->add_key_filename($filename, $file) ) {
+                die "Unable to add key for $filename " . $s3->err . ': '. $s3->errstr;
+              }
             }
 
-            my $filename = $event_path.'/'.File::Basename::basename($file);
-            if ( ! $bucket->add_key($filename, $file_contents) ) {
-              die "Unable to add key for $filename";
-            }
             my $duration = tv_interval($starttime);
             Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
           } # end foreach file.

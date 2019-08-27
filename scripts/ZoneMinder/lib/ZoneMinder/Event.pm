@@ -56,7 +56,8 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use vars qw/ $table $primary_key %fields $serial @identified_by %defaults/;
+use vars qw/ $table $primary_key %fields $serial @identified_by %defaults $debug/;
+$debug = 1;
 $table = 'Events';
 @identified_by = ('Id');
 $serial = $primary_key = 'Id';

@@ -370,7 +370,7 @@ sub delete {
 
   if ( $$event{Id} ) {
     # Need to have an event Id if we are to delete from the db.  
-    Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}");
+    Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from ".$event->Path());
     $ZoneMinder::Database::dbh->ping();
 
     $ZoneMinder::Database::dbh->begin_work();
@@ -798,6 +798,33 @@ sub recover_timestamps {
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
   }
+}
+
+sub files {
+	my $self = shift;
+
+	if ( ! $$self{files} ) {
+		if ( ! opendir(DIR, $self->Path() ) ) {
+			Error("Can't open directory '$$self{Path}': $!");
+			return;
+		}
+		@{$$self{files}} = readdir(DIR);
+		Debug('Have ' . @{$$self{files}} . " files in $$self{Path}");
+		closedir(DIR);
+	}
+	return @{$$self{files}};
+}
+
+sub has_capture_jpegs {
+	@{$_[0]{capture_jpegs}} = grep(/^\d+\-capture\.jpg$/, $_[0]->files());
+	Debug("have " . @{$_[0]{capture_jpegs}} . " capture jpegs");
+	return @{$_[0]{capture_jpegs}} ? 1 : 0;
+}
+
+sub has_analyse_jpegs {
+	@{$_[0]{analyse_jpegs}} = grep(/^\d+\-analyse\.jpg$/, $_[0]->files());
+	Debug("have " . @{$_[0]{analyse_jpegs}} . " analyse jpegs");
+	return @{$_[0]{analyse_jpegs}} ? 1 : 0;
 }
 
 1;

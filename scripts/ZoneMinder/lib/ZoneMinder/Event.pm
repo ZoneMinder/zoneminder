@@ -433,6 +433,7 @@ sub delete_files {
               aws_access_key_id     => $aws_id,
               aws_secret_access_key => $aws_secret,
               ( $aws_host ? ( host => $aws_host ) : () ),
+              authorization_method => 'Net::Amazon::S3::Signature::V4',
             });
           my $bucket = $s3->bucket($aws_bucket);
           if ( ! $bucket ) {
@@ -591,6 +592,7 @@ sub CopyTo {
               aws_access_key_id     => $aws_id,
               aws_secret_access_key => $aws_secret,
               ( $aws_host ? ( host => $aws_host ) : () ),
+              authorization_method => 'Net::Amazon::S3::Signature::V4',
             });
           my $bucket = $s3->bucket($aws_bucket);
           if ( !$bucket ) {
@@ -599,10 +601,10 @@ sub CopyTo {
           }
 
           my $event_path = $self->RelativePath();
-          if ( 0 ) { # Not neccessary
+          if ( 1 ) { # Not neccessary
             Debug("Making directory $event_path/");
             if ( !$bucket->add_key($event_path.'/', '') ) {
-              Warning("Unable to add key for $event_path/");
+              Warning("Unable to add key for $event_path/ :". $s3->err . ': '. $s3->errstr());
             }
           }
 
@@ -625,7 +627,7 @@ sub CopyTo {
 
               my $filename = $event_path.'/'.File::Basename::basename($file);
               if ( ! $bucket->add_key($filename, $file_contents) ) {
-                die "Unable to add key for $filename";
+                die "Unable to add key for $filename : ".$s3->err . ': ' . $s3->errstr;
               }
             } else {
               my $filename = $event_path.'/'.File::Basename::basename($file);

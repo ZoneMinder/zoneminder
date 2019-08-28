@@ -411,14 +411,6 @@ bool VideoStore::open() {
     //avformat_free_context(oc);
     return false;
   }
-  Debug(3,
-        "Time bases: VIDEO in stream (%d/%d) in codec: (%d/%d) out "
-        "stream: (%d/%d) out codec (%d/%d)",
-        video_in_stream->time_base.num, video_in_stream->time_base.den,
-        video_in_ctx->time_base.num, video_in_ctx->time_base.den,
-        video_out_stream->time_base.num, video_out_stream->time_base.den,
-        video_out_ctx->time_base.num,
-        video_out_ctx->time_base.den);
   return true;
 } // end VideoStore::open()
 
@@ -463,6 +455,7 @@ VideoStore::~VideoStore() {
         }
 #endif
 
+        dumpPacket(&pkt, "raw from encoder");
         // Need to adjust pts and dts and duration
 
         pkt.stream_index = audio_out_stream->index;
@@ -473,6 +466,7 @@ VideoStore::~VideoStore() {
             audio_out_stream->time_base);
         // Scale the PTS of the outgoing packet to be the correct time base
         if ( pkt.pts != AV_NOPTS_VALUE ) {
+#if 0
             pkt.pts = av_rescale_q(
                 pkt.pts,
                 audio_out_ctx->time_base,
@@ -483,6 +477,12 @@ VideoStore::~VideoStore() {
                 pkt.pts,
                 audio_in_stream->time_base,
                 audio_out_stream->time_base);
+#else
+            pkt.pts = av_rescale_q(
+                pkt.pts,
+                audio_out_ctx->time_base,
+                audio_out_stream->time_base);
+#endif
 
             Debug(2, "audio pkt.pts = %" PRId64 " from first_pts(%" PRId64 ")",
                 pkt.pts, audio_first_pts);
@@ -492,6 +492,7 @@ VideoStore::~VideoStore() {
         }
 
         if ( pkt.dts != AV_NOPTS_VALUE ) {
+#if 0
           pkt.dts = av_rescale_q(
               pkt.dts,
               audio_out_ctx->time_base,
@@ -501,6 +502,12 @@ VideoStore::~VideoStore() {
               pkt.dts,
               audio_in_stream->time_base,
               audio_out_stream->time_base);
+#else
+          pkt.dts = av_rescale_q(
+              pkt.dts,
+              audio_out_ctx->time_base,
+              audio_out_stream->time_base);
+#endif
           Debug(2, "pkt.dts = %" PRId64 " - first_dts(%" PRId64 ")",
                 pkt.dts, audio_first_dts);
         } else {
@@ -1008,28 +1015,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   opkt.pos = -1;
   opkt.data = ipkt->data;
   opkt.size = ipkt->size;
-  opkt.stream_index = video_out_stream->index;
-
-  dumpPacket(video_out_stream, &opkt, "writing video packet");
-  if ( (opkt.data == NULL) || (opkt.size < 1) ) {
-    Warning("%s:%d: Mangled AVPacket: discarding frame", __FILE__, __LINE__);
-    dumpPacket(video_in_stream, ipkt,"In Packet");
-    dumpPacket(video_out_stream, &opkt);
-  } else {
-    ret = av_interleaved_write_frame(oc, &opkt);
-    if ( ret < 0 ) {
-      // There's nothing we can really do if the frame is rejected, just drop it
-      // and get on with the next
-      Warning(
-          "%s:%d: Writing frame [av_interleaved_write_frame()] failed: %s(%d)",
-          __FILE__, __LINE__, av_make_error_string(ret).c_str(), ret);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-      zm_dump_codecpar(video_in_stream->codecpar);
-      zm_dump_codecpar(video_out_stream->codecpar);
-#endif
-    }
-  }
-
+  write_packet(&opkt, video_out_stream);
   zm_av_packet_unref(&opkt);
 
   return 0;
@@ -1158,11 +1144,44 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
             audio_out_stream->time_base);
 #endif
 
+        write_packet(&opkt, audio_out_stream);
+    zm_av_packet_unref(&opkt);
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    // While the encoder still has packets for us
+    while ( !avcodec_receive_packet(audio_out_ctx, &opkt) ) {
+      opkt.pts = av_rescale_q(
+          opkt.pts,
+          audio_out_ctx->time_base,
+          audio_out_stream->time_base);
+      opkt.dts = av_rescale_q(
+          opkt.dts,
+          audio_out_ctx->time_base,
+          audio_out_stream->time_base);
+
+      dumpPacket(audio_out_stream, &opkt, "raw opkt");
+      Debug(1, "Duration before %d in %d/%d", opkt.duration,
+          audio_out_ctx->time_base.num,
+          audio_out_ctx->time_base.den);
+
+      opkt.duration = av_rescale_q(
+          opkt.duration,
+          audio_out_ctx->time_base,
+          audio_out_stream->time_base);
+      Debug(1, "Duration after %d in %d/%d", opkt.duration,
+          audio_out_stream->time_base.num,
+          audio_out_stream->time_base.den);
+      write_packet(&opkt, audio_out_stream);
+    }
+#endif
+    zm_av_packet_unref(&opkt);
+
   } else {
     Debug(2,"copying");
     av_init_packet(&opkt);
     opkt.data = ipkt->data;
     opkt.size = ipkt->size;
+    opkt.flags = ipkt->flags;
 
     if ( ipkt->duration && (ipkt->duration != AV_NOPTS_VALUE) ) {
       opkt.duration = av_rescale_q(
@@ -1205,43 +1224,46 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     } else {
       opkt.dts = AV_NOPTS_VALUE;
     }
+    write_packet(&opkt, audio_out_stream);
+
+    zm_av_packet_unref(&opkt);
   } // end if encoding or copying
 
-
-  opkt.pos = -1;
-  opkt.stream_index = audio_out_stream->index;
-  opkt.flags = ipkt->flags;
-
-  if ( opkt.dts < audio_out_stream->cur_dts ) {
-    Warning("non increasing dts, fixing");
-    opkt.dts = audio_out_stream->cur_dts;
-    if ( opkt.dts > opkt.pts ) {
-      Debug(1,
-          "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 ")."
-          "Decompression must happen before presentation.",
-          opkt.dts, opkt.pts);
-      opkt.pts = opkt.dts;
-    }
-  } else if ( opkt.dts > opkt.pts ) {
-    Debug(1,
-          "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 ")."
-          "Decompression must happen before presentation.",
-          opkt.dts, opkt.pts);
-    opkt.dts = opkt.pts;
-  }
-
-  dumpPacket(audio_out_stream, &opkt, "finished opkt");
-
-  ret = av_interleaved_write_frame(oc, &opkt);
-  if ( ret != 0 ) {
-    Error("Error writing audio frame packet: %s",
-          av_make_error_string(ret).c_str());
-  } else {
-    Debug(2, "Success writing audio frame");
-  }
-  zm_av_packet_unref(&opkt);
   return 0;
 } // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)
+
+int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
+  pkt->pos = -1;
+  pkt->stream_index = stream->index;
+
+  if ( pkt->dts < stream->cur_dts ) {
+    Warning("non increasing dts, fixing");
+    pkt->dts = stream->cur_dts;
+    if ( pkt->dts > pkt->pts ) {
+      Debug(1,
+          "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+          "Decompression must happen before presentation.",
+          pkt->dts, pkt->pts);
+      pkt->pts = pkt->dts;
+    }
+  } else if ( pkt->dts > pkt->pts ) {
+    Debug(1,
+          "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+          "Decompression must happen before presentation.",
+          pkt->dts, pkt->pts);
+    pkt->dts = pkt->pts;
+  }
+
+  dumpPacket(stream, pkt, "finished pkt");
+
+  ret = av_interleaved_write_frame(oc, pkt);
+  if ( ret != 0 ) {
+    Error("Error writing packet: %s",
+          av_make_error_string(ret).c_str());
+  } else {
+    Debug(2, "Success writing packet");
+  }
+} // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
 
 int VideoStore::resample_audio() {
   // Resample the in_frame into the audioSampleBuffer until we process the whole

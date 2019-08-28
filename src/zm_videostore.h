@@ -79,6 +79,8 @@ private:
   bool setup_resampler();
   int resample_audio();
 
+  int write_packet(AVPacket *pkt, AVStream *stream);
+
 public:
 	VideoStore(
       const char *filename_in,

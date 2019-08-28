@@ -19,7 +19,7 @@ xhtmlHeaders(__FILE__, translate('Login') );
         <h1><i class="material-icons md-36">account_circle</i> <?php echo validHtmlStr(ZM_WEB_TITLE) . ' ' . translate('Login') ?></h1>
 	
 				<label for="inputUsername" class="sr-only"><?php echo translate('Username') ?></label>
-				<input type="text" id="inputUsername" name="username" class="form-control" placeholder="Username" required autofocus autocomplete="username"/>
+				<input type="text" id="inputUsername" name="username" class="form-control" autocapitalize="none" placeholder="Username" required autofocus autocomplete="username"/>
 	
 				<label for="inputPassword" class="sr-only"><?php echo translate('Password') ?></label>
 				<input type="password" id="inputPassword" name="password" class="form-control" placeholder="Password" required autocomplete="current-password"/>

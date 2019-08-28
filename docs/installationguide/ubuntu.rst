@@ -15,6 +15,7 @@ achieve the same result by running:
 
 ::
 
+    sudo apt-get install tasksel
     sudo tasksel install lamp-server
 
 During installation it will ask you to set up a master/root password for the MySQL.
@@ -41,16 +42,7 @@ guide you with a quick search.
 
     ::
 
-        add-apt-repository ppa:iconnor/zoneminder
-
-    Please note that as of 1.32.0 We are creating a new PPA for each major version, as a means to prevent automatic upgrades from one major version to another.  So instead of the above ppa line use the following:
-
-    ::
-
         add-apt-repository ppa:iconnor/zoneminder-1.32
-
-    If you are on Trusty or Xenial, you may want to add both, as there are some packages for dependencies included in the old ppa.
-  
 
 Update repo and upgrade.
 
@@ -241,15 +233,7 @@ guide you with a quick search.
     ::
 
         add-apt-repository ppa:iconnor/zoneminder
-
-    Please note that as of 1.32.0 We are creating a new PPA for each major version, as a means to prevent automatic upgrades from one major version to another.  So instead of the above ppa line use the following:
-
-    ::
-
         add-apt-repository ppa:iconnor/zoneminder-1.32
-
-    If you are on Trusty or Xenial, you may want to add both, as there are some packages for dependencies included in the old ppa.
-  
 
 Update repo and upgrade.
 

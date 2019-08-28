@@ -889,7 +889,7 @@ FROM `Frames` WHERE `EventId`=?';
 
   my $eventcounts_sql = '
   UPDATE `Monitors` SET
-  `TotalEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitors.Id`),
+  `TotalEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id`),
   `TotalEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id` AND `DiskSpace` IS NOT NULL),
   `ArchivedEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id` AND `Archived`=1),
   `ArchivedEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id` AND `Archived`=1 AND `DiskSpace` IS NOT NULL)

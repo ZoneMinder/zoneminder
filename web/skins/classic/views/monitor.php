@@ -950,10 +950,7 @@ if ( $monitor->Type() == 'Local' ) {
 			0 => 'Disabled',
 			);
 
-  if (stripos(php_uname('m'), 'arm') === false )
-    $videowriteropts[1] = 'X264 Encode';
-  else
-    $videowriteropts[1] = array('text'=>'X264 Encode - Not compatible on Arm','disabled'=>1);
+  $videowriteropts[1] = 'X264 Encode';
 
   if ($monitor->Type() == 'Ffmpeg' )
     $videowriteropts[2] = 'H264 Camera Passthrough';

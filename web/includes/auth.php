@@ -188,7 +188,7 @@ function getAuthUser($auth) {
 
         if ( $auth == $authHash ) {
           return $user;
-        } // en dif $auth == $authHash
+        } // end if $auth == $authHash
       } // end foreach hour
     } // end foreach user
   } // end if using auth hash
@@ -265,7 +265,7 @@ if ( ZM_OPT_USE_AUTH ) {
         $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
       }
     } else {
-      ZM\Logger::Debug("No username in session");
+      ZM\Logger::Debug('No username in session');
     }
 
     if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {

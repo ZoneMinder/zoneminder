@@ -3,8 +3,8 @@ Ubuntu
 
 .. contents::
 
-Easy Way: Ubuntu 18.04
-----------------------
+Easy Way: Ubuntu 18.04 (Bionic)
+-------------------------------
 These instructions are for a brand new ubuntu 18.04 system which does not have ZM
 installed.
 
@@ -194,8 +194,8 @@ CTRL+x to exit
 
 PPA install may need some tweaking of ZMS_PATH in ZoneMinder options. `Socket_sendto or no live streaming`_
 
-Easy Way: Ubuntu 16.04
-----------------------
+Easy Way: Ubuntu 16.04 (Xenial)
+-------------------------------
 These instructions are for a brand new ubuntu 16.04 system which does not have ZM
 installed.
 
@@ -385,8 +385,8 @@ CTRL+x to exit
 
 PPA install may need some tweaking of ZMS_PATH in ZoneMinder options. `Socket_sendto or no live streaming`_
 
-Easy Way: Ubuntu 14.x
----------------------
+Easy Way: Ubuntu 14.x (Trusty)
+------------------------------
 **These instructions are for a brand new ubuntu 14.x system which does not have ZM installed.**
 
 **Step 1:** Either run commands in this install using sudo or use the below to become root

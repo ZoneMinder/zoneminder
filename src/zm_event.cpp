@@ -246,11 +246,13 @@ Event::~Event() {
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
 
+#if 0  // This closing frame has no image. There is no point in adding a db record for it, I think. ICON
   if ( frames > last_db_frame ) {
     frames ++;
     Debug(1, "Adding closing frame %d to DB", frames);
     frame_data.push(new Frame(id, frames, NORMAL, end_time, delta_time, 0));
   }
+#endif
   if ( frame_data.size() )
     WriteDbFrames();
 

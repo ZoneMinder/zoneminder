@@ -428,8 +428,8 @@ sub delete_files {
       if ( $$Storage{Type} and ( $$Storage{Type} eq 's3fs' ) ) {
         my $url = $$Storage{Url};
         $url =~ s/^(s3|s3fs):\/\///ig;
-        my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
-        Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket");
+        my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
+        Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
         eval {
           require Net::Amazon::S3;
           my $s3 = Net::Amazon::S3->new( {
@@ -443,7 +443,7 @@ sub delete_files {
             Error("S3 bucket $bucket not found.");
             die;
           }
-          if ( $bucket->delete_key($event_path) ) {
+          if ( $bucket->delete_key($subpath.$event_path) ) {
             $deleted = 1;
           } else {
             Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
@@ -554,8 +554,10 @@ sub CopyTo {
     return 'Event is already located at ' . $NewPath;
   } elsif ( !$NewPath ) {
     return "New path ($NewPath) is empty.";
-  } elsif ( ! -e $NewPath ) {
-    return "New path $NewPath does not exist.";
+  } elsif ( ($$NewStorage{Type} ne 's3fs' ) and ! -e $NewPath ) {
+    if ( ! mkdir($NewPath) ) {
+      return "New path $NewPath does not exist.";
+    }
   } else {
     Debug("$NewPath is good");
   }
@@ -588,8 +590,8 @@ sub CopyTo {
     if ( $$NewStorage{Url} ) {
       my $url = $$NewStorage{Url};
       $url =~ s/^(s3|s3fs):\/\///ig;
-      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
-      Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket");
+      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
+      Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
       if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
         eval {
           require Net::Amazon::S3;
@@ -606,7 +608,7 @@ sub CopyTo {
             die;
           }
 
-          my $event_path = $self->RelativePath();
+          my $event_path = $subpath.$self->RelativePath();
           if ( 0 ) { # Not neccessary
             Debug("Making directory $event_path/");
             if ( !$bucket->add_key($event_path.'/', '') ) {

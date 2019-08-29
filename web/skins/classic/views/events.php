@@ -229,7 +229,18 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>
-              <td class="colStorage"><?php echo isset($StorageById[$event->StorageId()]) ? $StorageById[$event->StorageId()]->Name() : '' ?></td>
+              <td class="colStorage">
+<?php
+    if ( $event->StorageId() ) {
+      echo isset($StorageById[$event->StorageId()]) ? $StorageById[$event->StorageId()]->Name() : 'Unknown Storage Id: '.$event->StorageId();
+    } else {
+      echo 'Default';
+    }
+    if ( $event->SecondaryStorageId() ) {
+      echo '<br/>'.(isset($StorageById[$event->SecondaryStorageId()]) ? $StorageById[$event->SecondaryStorageId()]->Name() : 'Unknown Storage Id '.$event->SecondaryStorageId());
+    }
+ ?>
+</td>
           
 <?php
   }

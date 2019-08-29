@@ -427,6 +427,7 @@ sub delete_files {
       my $deleted = 0;
       if ( $$Storage{Type} and ( $$Storage{Type} eq 's3fs' ) ) {
         my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+        Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket");
         eval {
           require Net::Amazon::S3;
           my $s3 = Net::Amazon::S3->new( {
@@ -584,6 +585,7 @@ sub CopyTo {
   if ( $$NewStorage{Type} eq 's3fs' ) {
     if ( $$NewStorage{Url} ) {
       my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+      Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket");
       if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
         eval {
           require Net::Amazon::S3;

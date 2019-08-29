@@ -414,6 +414,7 @@ function getEventDefaultVideoPath( $event ) {
 }
 
 function deletePath( $path ) {
+  ZM\Logger::Debug("Deleting $path");
   if ( is_dir( $path ) ) {
     system( escapeshellcmd( 'rm -rf '.$path ) );
   } else if ( file_exists($path) ) {
@@ -1206,6 +1207,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           case 'DiskSpace':
           case 'MonitorId':
           case 'StorageId':
+          case 'SecondaryStorageId':
           case 'Length':
           case 'Frames':
           case 'AlarmFrames':

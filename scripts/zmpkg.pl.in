@@ -57,7 +57,7 @@ my $dbh = zmDbConnect();
 Debug("Command: $command");
 if ( $command and ( $command !~ /^(?:start|stop|restart|status|logrot|version)$/ ) ) {
   # Check to see if it's a valid run state
-  my $sql = 'SELECT * FROM States WHERE Name=?';
+  my $sql = 'SELECT * FROM `States` WHERE `Name`=?';
   my $sth = $dbh->prepare_cached($sql)
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($command)
@@ -98,7 +98,7 @@ my $retval = 0;
 
 if ( $command eq 'state' ) {
   Info("Updating DB: $state->{Name}");
-  my $sql = 'SELECT * FROM Monitors' . ($Config{ZM_SERVER_ID} ? ' WHERE ServerId=?' : '' ) .' ORDER BY Id ASC';
+  my $sql = 'SELECT * FROM `Monitors`' . ($Config{ZM_SERVER_ID} ? ' WHERE `ServerId`=?' : '' ) .' ORDER BY `Id` ASC';
   my $sth = $dbh->prepare_cached($sql)
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID}: ())
@@ -118,7 +118,7 @@ if ( $command eq 'state' ) {
     if ( $monitor->{Function} ne $monitor->{NewFunction}
       || $monitor->{Enabled} ne $monitor->{NewEnabled}
     ) {
-      my $sql = 'UPDATE Monitors SET Function=?, Enabled=? WHERE Id=?';
+      my $sql = 'UPDATE `Monitors` SET `Function`=?, `Enabled`=? WHERE `Id`=?';
       my $sth = $dbh->prepare_cached($sql)
         or Fatal("Can't prepare '$sql': ".$dbh->errstr());
       my $res = $sth->execute($monitor->{NewFunction}, $monitor->{NewEnabled}, $monitor->{Id})
@@ -130,7 +130,7 @@ if ( $command eq 'state' ) {
   # PP - Now mark a specific state as active
   resetStates();
   Info("Marking $store_state as Enabled");
-  $sql = 'UPDATE States SET IsActive = 1 WHERE Name = ?';
+  $sql = 'UPDATE `States` SET `IsActive` = 1 WHERE `Name` = ?';
   $sth = $dbh->prepare_cached($sql)
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
   $res = $sth->execute($store_state)
@@ -197,11 +197,11 @@ if ( $command =~ /^(?:start|restart)$/ ) {
       require ZoneMinder::Server;
       Info("Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}");
       $Server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
-      $sql = 'SELECT * FROM Monitors WHERE ServerId=?';
+      $sql = 'SELECT * FROM `Monitors` WHERE `ServerId`=?';
       @values = ( $Config{ZM_SERVER_ID} );
     } else {
       Info('Single server configuration detected. Starting up services.');
-      $sql = 'SELECT * FROM Monitors';
+      $sql = 'SELECT * FROM `Monitors`';
     }
 
     {
@@ -237,7 +237,7 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     }
 
     {
-      my $sql = 'SELECT Id FROM Filters WHERE Background=1';
+      my $sql = 'SELECT `Id` FROM `Filters` WHERE `Background`=1';
       my $sth = $dbh->prepare_cached($sql)
         or Fatal("Can't prepare '$sql': ".$dbh->errstr());
       my $res = $sth->execute()
@@ -311,25 +311,25 @@ sub isActiveSanityCheck {
   $dbh = zmDbConnect() if ! $dbh;
 
 # PP - First, make sure default exists and there is only one
-  my $sql = q`SELECT Name FROM States WHERE Name='default'`;
+  my $sql = 'SELECT `Name` FROM `States` WHERE `Name`=?';
   my $sth = $dbh->prepare_cached($sql)
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
-  my $res = $sth->execute()
+  my $res = $sth->execute('default')
     or Fatal("Can't execute: ".$sth->errstr());
 
   if ( $sth->rows != 1 ) {
 # PP - no row, or too many rows. Either case is an error
     Info('Fixing States table - either no default state or duplicate default states');
     if ( $sth->rows ) {
-      $dbh->do(q`DELETE FROM States WHERE Name='default'`) or Fatal("Can't execute: ".$dbh->errstr());
+      $dbh->do('DELETE FROM `States` WHERE `Name`=\'default\'') or Fatal("Can't execute: ".$dbh->errstr());
     }
-    $dbh->do(q`INSERT INTO States (Name,Definition,IsActive) VALUES ('default','','1');`) 
+    $dbh->do('INSERT INTO `States` (`Name`,`Definition`,`IsActive`) VALUES (\'default\',\'\',\'1\');') 
       or Fatal("Can't execute: ".$dbh->errstr());
   }
   $sth->finish();
 
 # PP - Now make sure no two states have IsActive=1
-  $sql = 'SELECT Name FROM States WHERE IsActive = 1';
+  $sql = 'SELECT `Name` FROM `States` WHERE `IsActive`=1';
   $sth = $dbh->prepare_cached($sql)
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
   $res = $sth->execute()
@@ -338,7 +338,7 @@ sub isActiveSanityCheck {
   if ( $sth->rows != 1 ) {
     Info('Fixing States table so only one run state is active');
     resetStates();
-    $dbh->do(q`UPDATE States SET IsActive=1 WHERE Name='default'`)
+    $dbh->do('UPDATE `States` SET `IsActive`=1 WHERE `Name`=\'default\'')
       or Fatal("Can't execute: ".$dbh->errstr());
   }
   $sth->finish();
@@ -347,7 +347,7 @@ sub isActiveSanityCheck {
 # PP - zeroes out isActive for all states
 sub resetStates {
   $dbh = zmDbConnect() if ! $dbh;
-  $dbh->do('UPDATE States SET IsActive=0')
+  $dbh->do('UPDATE `States` SET `IsActive`=0')
     or Fatal("Can't execute: ".$dbh->errstr());
 }
 

@@ -93,7 +93,6 @@ class AppController extends Controller {
         if ( $stateful ) {
 
           zm_session_start();
-
           $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
           $_SESSION['username'] = $user['Username'];
           if ( ZM_AUTH_RELAY == 'plain' ) {
@@ -101,7 +100,7 @@ class AppController extends Controller {
             $_SESSION['password'] = $_REQUEST['password'];
           }
           session_write_close();
-        } else if ( $_COOKIE['ZMSESSID'] ) {
+        } else if ( $_COOKIE['ZMSESSID'] and !$user ) {
           # Have a cookie set, try to load user by session
           if ( ! is_session_started() )
             zm_session_start();

@@ -188,7 +188,7 @@ function getAuthUser($auth) {
 
         if ( $auth == $authHash ) {
           return $user;
-        } // en dif $auth == $authHash
+        } // end if $auth == $authHash
       } // end foreach hour
     } // end foreach user
   } // end if using auth hash
@@ -254,11 +254,6 @@ function userFromSession() {
       else
         ZM\Logger::Debug("No auth hash in session, there should have been");
 
-    } else {
-      # Need to refresh permissions and validate that the user still exists
-      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
-      $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
-    }
   } else {
     ZM\Logger::Debug('No username in session');
   }

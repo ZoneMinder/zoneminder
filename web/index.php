@@ -210,7 +210,7 @@ if (
 }
 
 # Need to include actions because it does auth
-if ( $action ) {
+if ( $action and !$request ) {
   if ( file_exists('includes/actions/'.$view.'.php') ) {
     ZM\Logger::Debug("Including includes/actions/$view.php");
     require_once('includes/actions/'.$view.'.php');

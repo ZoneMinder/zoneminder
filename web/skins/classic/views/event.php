@@ -152,8 +152,8 @@ if ( canEdit('Events') ) {
 ?>
         <div id="deleteEvent"><button type="button" data-on-click="deleteEvent" <?php echo $Event->can_delete() ? '' : ' disabled="disabled" title="'.$Event->cant_delete_reason().'"' ?>><?php echo translate('Delete') ?></button></div>
         <div id="editEvent"><button type="button" data-on-click="editEvent"><?php echo translate('Edit') ?></button></div>
-        <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><button type="button" data-on-click="archiveEvent"><?php echo translate('Archive') ?></button></div>
-        <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><button type="button" data-on-click="unarchiveEvent"><?php echo translate('Unarchive') ?></button></div>
+        <div id="archiveEvent"<?php echo $Event->Archived() == 1 ? ' class="hidden"' : ''  ?>><button type="button" data-on-click="archiveEvent"><?php echo translate('Archive') ?></button></div>
+        <div id="unarchiveEvent"<?php echo $Event->Archived() == 0 ? ' class="hidden"' : '' ?>><button type="button" data-on-click="unarchiveEvent"><?php echo translate('Unarchive') ?></button></div>
 <?php
 } // end if can edit Events
 ?>

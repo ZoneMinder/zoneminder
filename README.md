@@ -31,7 +31,7 @@ Better methods exist today that do much of this for you. The current development
 
 This is the recommended method to install ZoneMinder onto your system. ZoneMinder packages are maintained for the following distros:
 
-- Ubuntu via [Iconnor's PPA](https://launchpad.net/~iconnor/+archive/ubuntu/zoneminder)
+- Ubuntu via [Iconnor's PPA](https://launchpad.net/~iconnor)
 - Debian from their [default repository](https://packages.debian.org/search?searchon=names&keywords=zoneminder) 
 - RHEL/CentOS and clones via [RPM Fusion](http://rpmfusion.org)
 - Fedora via [RPM Fusion](http://rpmfusion.org)

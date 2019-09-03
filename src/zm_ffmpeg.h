@@ -302,7 +302,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
 #define zm_dump_frame(frame, text) Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d" \
       " duration %" PRId64 \
-      " layout %d pts %" PRId64,\
+      " layout %d pts %" PRId64 " pkt_pts %" PRId64 " pkt_dts %" PRId64, \
       text, \
       frame->format, \
       av_get_sample_fmt_name((AVSampleFormat)frame->format), \
@@ -311,7 +311,9 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       frame->channels, \
       frame->pkt_duration, \
       frame->channel_layout, \
-      frame->pts \
+      frame->pts, \
+      frame->pkt_pts, \
+      frame->pkt_dts \
       );
 #else
 #define zm_dump_frame(frame, text) Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d" \

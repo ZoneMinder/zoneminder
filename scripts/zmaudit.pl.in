@@ -432,12 +432,12 @@ MAIN: while( $loop ) {
           }
           my $Event = $fs_events->{$event_id} = new ZoneMinder::Event();
           $$Event{Id} = $event_id;
-          $$Event{Path} = join('/', $Storage->Path(), $event_dir );
-          Debug("Have event $$Event{Id} at $$Event{Path}");
           $$Event{Scheme} = 'Medium';
           $$Event{RelativePath} = $event_dir;
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
+          $Event->Path();
+          Debug("Have event $$Event{Id} at $$Event{Path}");
           $Event->StartTime( POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path())) ) );
         } # end foreach event
       }

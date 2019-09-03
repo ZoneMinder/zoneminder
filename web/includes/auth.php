@@ -253,7 +253,11 @@ function userFromSession() {
         $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
       else
         ZM\Logger::Debug("No auth hash in session, there should have been");
-
+    } else {
+      # Need to refresh permissions and validate that the user still exists
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+      $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
+    }
   } else {
     ZM\Logger::Debug('No username in session');
   }

@@ -91,7 +91,6 @@ class AppController extends Controller {
         require_once __DIR__ .'/../../../includes/session.php';
         $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
         if ( $stateful ) {
-
           zm_session_start();
           $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
           $_SESSION['username'] = $user['Username'];
@@ -99,13 +98,14 @@ class AppController extends Controller {
             // Need to save this in session, can't use the value in User because it is hashed
             $_SESSION['password'] = $_REQUEST['password'];
           }
+          generateAuthHash(ZM_AUTH_HASH_IPS);
           session_write_close();
         } else if ( $_COOKIE['ZMSESSID'] and !$user ) {
           # Have a cookie set, try to load user by session
           if ( ! is_session_started() )
             zm_session_start();
-          else
-            ZM\Logger::Debug(print_r($_SESSION,true));
+
+          ZM\Logger::Debug(print_r($_SESSION, true));
           $user = userFromSession();
           session_write_close();
         }

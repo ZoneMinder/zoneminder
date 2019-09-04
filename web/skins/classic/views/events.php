@@ -257,7 +257,7 @@ while ( $event_row = dbFetchNext($results) ) {
       $streamSrc = $event->getStreamSrc(array(
         'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single'));
 
-      $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($event->ThumbnailWidth()) .'px;height:'. validInt($event->ThumbnailHeight()).'px;" stream_src="'.$streamSrc.'" still_src="'.$imgSrc.'"/>';
+      $imgHtml = '<img id="thumbnail'.$event->Id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($event->ThumbnailWidth()) .'px;height:'. validInt($event->ThumbnailHeight()).'px;" stream_src="'.$streamSrc.'" still_src="'.$imgSrc.'"/>';
       echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';
       echo '</td>';
   } // end if ZM_WEB_LIST_THUMBS

@@ -134,7 +134,7 @@ sub Path {
 
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
-		if ( $Storage->Id() ) {
+		if ( defined $Storage->Id() ) {
 			$$event{Path} = join('/', $Storage->Path(), $event->RelativePath());
 		} else {
 			Error("Storage area for $$event{StorageId} no longer exists in db.");
@@ -473,7 +473,7 @@ sub StorageId {
   if ( @_ ) {
     $$event{StorageId} = shift;
     delete $$event{Storage};
-    delete $$event{Path};
+    $event->Path(undef);
   }
   return $$event{StorageId};
 }
@@ -483,7 +483,7 @@ sub Storage {
     $_[0]{Storage} = $_[1];
     if ( $_[0]{Storage} ) {
       $_[0]{StorageId} = $_[0]{Storage}->Id();
-      delete $_[0]{Path};
+      $_[0]->Path(undef);
     }
   }
   if ( ! $_[0]{Storage} ) {
@@ -543,7 +543,7 @@ sub CopyTo {
   my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! -e $OldPath ) {
-    return "Old path $OldPath does not exist.";
+    return "Src path $OldPath does not exist.";
   }
   # First determine if we can move it to the dest.
   # We do this before bothering to lock the event

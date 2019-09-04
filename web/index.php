@@ -143,7 +143,6 @@ if (
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
-session_write_close();
 
 require_once('includes/lang.php');
 
@@ -176,6 +175,7 @@ if ( isset($_REQUEST['request']) )
   $request = detaintPath($_REQUEST['request']);
 
 require_once('includes/auth.php');
+session_write_close();
 
 foreach ( getSkinIncludes('skin.php') as $includeFile ) {
   require_once $includeFile;

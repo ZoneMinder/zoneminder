@@ -126,12 +126,20 @@ class Event extends ZM_Object {
       Error('Event delete on event with empty Id');
       return;
     }
-    if ( !ZM_OPT_FAST_DELETE ) {
+    if ( ZM_OPT_FAST_DELETE ) {
+      dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
+      return;
+    }
+
+    global $dbConn;
+    $dbConn->beginTransaction();
+    try {
+      $this->lock();
       dbQuery('DELETE FROM Stats WHERE EventId = ?', array($this->{'Id'}));
       dbQuery('DELETE FROM Frames WHERE EventId = ?', array($this->{'Id'}));
       if ( $this->{'Scheme'} == 'Deep' ) {
 
-# Assumption: All events have a start time
+        # Assumption: All events have a start time
         $start_date = date_parse($this->{'StartTime'});
         if ( ! $start_date ) {
           Error('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.');
@@ -139,13 +147,13 @@ class Event extends ZM_Object {
         }
         $start_date['year'] = $start_date['year'] % 100;
 
-# So this is because ZM creates a link under the day pointing to the time that the event happened. 
+        # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
         if ( ! $link_path ) {
           Error('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
           return;
         }
-        
+
         $Storage = $this->Storage();
         $eventlink_path = $Storage->Path().'/'.$link_path;
 
@@ -154,7 +162,7 @@ class Event extends ZM_Object {
             Error("Unable to read link at $id_files[0]");
             return;
           }
-# I know we are using arrays here, but really there can only ever be 1 in the array
+          # I know we are using arrays here, but really there can only ever be 1 in the array
           $eventPath = preg_replace('/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0]);
           deletePath($eventPath);
           deletePath($id_files[0]);
@@ -187,8 +195,11 @@ class Event extends ZM_Object {
           } # end if Storage
         } # end if has Secondary Storage
       } # USE_DEEP_STORAGE OR NOT
-    } # ! ZM_OPT_FAST_DELETE
-    dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
+      dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
+      $dbConn->commit();
+    } catch (PDOException $e) {
+      $dbConn->rollback();
+    }
   } # end Event->delete
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {

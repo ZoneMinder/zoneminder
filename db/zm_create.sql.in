@@ -293,6 +293,8 @@ CREATE TABLE `Filters` (
   `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
   `AutoMove` tinyint(3) unsigned NOT NULL default '0',
   `AutoMoveTo`	smallint(5) unsigned NOT NULL default 0,
+  `AutoCopy` tinyint(3) unsigned NOT NULL default '0',
+  `AutoCopyTo`	smallint(5) unsigned NOT NULL default 0,
   `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',

@@ -177,9 +177,13 @@ installtrusty () {
 
     if [ -e $pkgname ]; then
         sudo gdebi --quiet --non-interactive $pkgname
+        echo "Return code from installing $?"
         mysql -uzmuser -pzmpass zm < db/test.monitor.sql
+        echo "Return code from adding test monitor $?"
         sudo /usr/bin/zmpkg.pl start
-        sudo /usr/bin/zmfilter.pl -f purgewhenfull
+        echo "Return code from starting $?"
+        sudo /usr/bin/zmfilter.pl --filter=purgewhenfull
+        echo "Return code from running purgewhenfull $?"
     else
       echo
       echo "ERROR: The script cannot find the package $pkgname"
@@ -241,7 +245,7 @@ setrpmchangelog () {
 setdebchangelog () {
 DATE=`date -R`
 cat <<EOF > debian/changelog
-zoneminder ($VERSION-${DIST}-1) ${DIST}; urgency=low
+zoneminder ($VERSION-${DIST}) ${DIST}; urgency=low
   * 
  -- Isaac Connor <isaac@zoneminder.com>  $DATE
 EOF

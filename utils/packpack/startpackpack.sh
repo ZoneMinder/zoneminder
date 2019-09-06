@@ -86,7 +86,7 @@ commonprep () {
         git -C packpack pull origin master
     else
         echo "Cloning packpack github repo..."
-        git clone https://github.com/packpack/packpack.git packpack
+        git clone https://github.com/zoneminder/packpack.git packpack
     fi
 
     # Rpm builds are broken in latest packpack master. Temporarily roll back.
@@ -241,9 +241,9 @@ setrpmchangelog () {
 setdebchangelog () {
 DATE=`date -R`
 cat <<EOF > debian/changelog
-zoneminder ($VERSION-${DIST}-1) unstable; urgency=low
+zoneminder ($VERSION-${DIST}-1) ${DIST}; urgency=low
   * 
- -- Isaac Connor <iconnor@connortechnology.com>  $DATE
+ -- Isaac Connor <isaac@zoneminder.com>  $DATE
 EOF
 }
 

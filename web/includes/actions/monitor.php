@@ -28,20 +28,18 @@ if ( $action == 'monitor' ) {
   $mid = 0;
   if ( !empty($_REQUEST['mid']) ) {
     $mid = validInt($_REQUEST['mid']);
-    $monitor = dbFetchOne('SELECT * FROM Monitors WHERE Id=?', NULL, array($mid));
-
-    if ( ZM_OPT_X10 ) {
-      $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId=?', NULL, array($mid));
-      if ( !$x10Monitor )
-        $x10Monitor = array();
-    }
-  } else {
-    $monitor = array();
-    if ( ZM_OPT_X10 ) {
-      $x10Monitor = array();
-    }
+    #if ( ZM_OPT_X10 ) {
+      #$x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId=?', NULL, array($mid));
+      #if ( !$x10Monitor )
+        #$x10Monitor = array();
+    #}
+  #} else {
+    #$monitor = array();
+    #if ( ZM_OPT_X10 ) {
+      #$x10Monitor = array();
+    #}
   }
-  $Monitor = new ZM\Monitor($monitor);
+  $monitor = new ZM\Monitor($mid);
 
   // Define a field type for anything that's not simple text equivalent
   $types = array(
@@ -66,28 +64,27 @@ if ( $action == 'monitor' ) {
     }
   }
 
-  $columns = getTableColumns('Monitors');
-  $changes = getFormChanges($monitor, $_REQUEST['newMonitor'], $types, $columns);
-#ZM\Logger::Debug("Columns:". print_r($columns,true));
-#ZM\Logger::Debug("Changes:". print_r($changes,true));
+  $changes = $monitor->changes($_REQUEST['newMonitor']);
+ZM\Logger::Debug("Changes:". print_r($changes,true));
 #ZM\Logger::Debug("newMonitor:". print_r($_REQUEST['newMonitor'],true));
 
   if ( count($changes) ) {
     if ( $mid ) {
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
-      if ( $monitor['Type'] != 'WebSite' ) {
-        $Monitor->zmaControl('stop');
-        $Monitor->zmcControl('stop');
+      if ( $monitor->Type() != 'WebSite' ) {
+        $monitor->zmaControl('stop');
+        $monitor->zmcControl('stop');
       }
-      dbQuery('UPDATE Monitors SET '.implode(', ', $changes).' WHERE Id=?', array($mid));
+      $monitor->save($changes);
+
       // Groups will be added below
       if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
 				// creating symlinks when symlink already exists reports errors, but is perfectly ok
 				error_reporting(0);
 
-        $OldStorage = new ZM\Storage($monitor['StorageId']);
-        $saferOldName = basename($monitor['Name']);
+        $OldStorage = $monitor->StorageId();
+        $saferOldName = basename($monitor->Name());
         if ( file_exists($OldStorage->Path().'/'.$saferOldName) )
           unlink($OldStorage->Path().'/'.$saferOldName);
 
@@ -143,15 +140,14 @@ if ( $action == 'monitor' ) {
       // Can only create new monitors if we are not restricted to specific monitors
 # FIXME This is actually a race condition. Should lock the table.
       $maxSeq = dbFetchOne('SELECT MAX(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence');
-      $changes[] = 'Sequence = '.($maxSeq+1);
+      $changes['Sequence'] = $maxSeq+1;
 
-      $sql = 'INSERT INTO Monitors SET '.implode(', ', $changes);
-      if ( dbQuery($sql) ) {
-        $mid = dbInsertId();
+      if ( !$monitor->save($changes) ) {
+        $mid = $monitor->Id();
         $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
         dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
         //$view = 'none';
-        $Storage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
+        $Storage = $monitor->Storage();
         mkdir($Storage->Path().'/'.$mid, 0755);
         $saferName = basename($_REQUEST['newMonitor']['Name']);
         symlink($mid, $Storage->Path().'/'.$saferName);
@@ -174,11 +170,11 @@ if ( $action == 'monitor' ) {
   if (
     ( !isset($_POST['newMonitor']['GroupIds']) )
     or
-    ( count($_POST['newMonitor']['GroupIds']) != count($Monitor->GroupIds()) )
+    ( count($_POST['newMonitor']['GroupIds']) != count($monitor->GroupIds()) )
     or 
-    array_diff($_POST['newMonitor']['GroupIds'], $Monitor->GroupIds())
+    array_diff($_POST['newMonitor']['GroupIds'], $monitor->GroupIds())
   ) {
-    if ( $Monitor->Id() )
+    if ( $monitor->Id() )
       dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
 
     if ( isset($_POST['newMonitor']['GroupIds']) ) {
@@ -207,14 +203,12 @@ if ( $action == 'monitor' ) {
 
   if ( $restart ) {
     
-    $new_monitor = new ZM\Monitor($mid);
+    if ( $monitor->Function() != 'None' and $monitor->Type() != 'WebSite' ) {
+      $monitor->zmcControl('start');
+      if ( ($monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord') and $monitor->Enabled() )
+        $monitor->zmaControl('start');
 
-    if ( $new_monitor->Function() != 'None' and $new_monitor->Type() != 'WebSite' ) {
-      $new_monitor->zmcControl('start');
-      if ( ($new_monitor->Function() == 'Modect' or $new_monitor->Function == 'Mocord') and $new_monitor->Enabled() )
-        $new_monitor->zmaControl('start');
-
-      if ( $new_monitor->Controllable() ) {
+      if ( $monitor->Controllable() ) {
         require_once('includes/control_functions.php');
         sendControlCommand($mid, 'quit');
       }

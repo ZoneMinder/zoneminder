@@ -60,7 +60,7 @@ VideoStore::VideoStore(
 
   Info("Opening video storage stream %s format: %s", filename, format);
 
-  ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
+  int ret = avformat_alloc_output_context2(&oc, NULL, NULL, filename);
   if ( ret < 0 ) {
     Warning(
         "Could not create video storage stream %s as no out ctx"
@@ -91,7 +91,7 @@ VideoStore::VideoStore(
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
-	out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+  out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
 
   video_out_codec = avcodec_find_encoder(video_in_ctx->codec_id);
   if ( !video_out_codec ) {
@@ -136,7 +136,7 @@ VideoStore::VideoStore(
   video_out_ctx->time_base = video_in_ctx->time_base;
   if ( ! (video_out_ctx->time_base.num && video_out_ctx->time_base.den) ) {
     Debug(2,"No timebase found in video in context, defaulting to Q");
-	  video_out_ctx->time_base = AV_TIME_BASE_Q;
+    video_out_ctx->time_base = AV_TIME_BASE_Q;
   }
 
   zm_dump_codec(video_out_ctx);
@@ -375,6 +375,7 @@ VideoStore::VideoStore(
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {
+  int ret;
   /* open the out file, if needed */
   if ( !(out_format->flags & AVFMT_NOFILE) ) {
     ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, NULL, NULL);
@@ -417,6 +418,7 @@ bool VideoStore::open() {
 VideoStore::~VideoStore() {
 
   if ( oc->pb ) {
+    int ret;
 
     if ( audio_out_codec ) {
       // The codec queues data.  We need to send a flush command and out
@@ -632,6 +634,7 @@ bool VideoStore::setup_resampler() {
      "Cannot do audio conversion to AAC");
   return false;
 #else
+  int ret;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // Newer ffmpeg wants to keep everything separate... so have to lookup our own
@@ -960,8 +963,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     //AV_NOPTS_VALUE;
   }
   // Just because the in stream wraps, doesn't mean the out needs to.
-	// Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.
-	// So need to handle in wrap, without causing out wrap.
+  // Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.
+  // So need to handle in wrap, without causing out wrap.
 
   if ( ipkt->dts != AV_NOPTS_VALUE ) {
     if ( !video_first_dts ) {
@@ -1002,14 +1005,14 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     opkt.dts = video_out_stream->cur_dts;
   }
 
-	if ( opkt.dts < video_out_stream->cur_dts ) {
-		Debug(1, "Fixing non-monotonic dts/pts dts %" PRId64 " pts %" PRId64 " stream %" PRId64,
-				opkt.dts, opkt.pts, video_out_stream->cur_dts);
-		opkt.dts = video_out_stream->cur_dts;
-		if ( opkt.dts > opkt.pts ) {
-			opkt.pts = opkt.dts;
-		}
-	}
+  if ( opkt.dts < video_out_stream->cur_dts ) {
+    Debug(1, "Fixing non-monotonic dts/pts dts %" PRId64 " pts %" PRId64 " stream %" PRId64,
+        opkt.dts, opkt.pts, video_out_stream->cur_dts);
+    opkt.dts = video_out_stream->cur_dts;
+    if ( opkt.dts > opkt.pts ) {
+      opkt.pts = opkt.dts;
+    }
+  }
 
   opkt.flags = ipkt->flags;
   opkt.pos = -1;
@@ -1022,6 +1025,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )
 
 int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
+  int ret;
 
   if ( !audio_out_stream ) {
     Debug(1, "Called writeAudioFramePacket when no audio_out_stream");
@@ -1134,11 +1138,11 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       opkt.dts = AV_NOPTS_VALUE;
     }
 #else 
-	opkt.pts = av_rescale_q(
+  opkt.pts = av_rescale_q(
             opkt.pts,
             audio_out_ctx->time_base,
             audio_out_stream->time_base);
-	opkt.dts = av_rescale_q(
+  opkt.dts = av_rescale_q(
             opkt.dts,
             audio_out_ctx->time_base,
             audio_out_stream->time_base);
@@ -1239,14 +1243,14 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   if ( pkt->dts < stream->cur_dts ) {
     Warning("non increasing dts, fixing");
     pkt->dts = stream->cur_dts;
-    if ( pkt->dts > pkt->pts ) {
+    if ( (pkt->pts != AV_NOPTS_VALUE) && (pkt->dts > pkt->pts) ) {
       Debug(1,
           "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
           "Decompression must happen before presentation.",
           pkt->dts, pkt->pts);
       pkt->pts = pkt->dts;
     }
-  } else if ( pkt->dts > pkt->pts ) {
+  } else if ( (pkt->pts != AV_NOPTS_VALUE) && (pkt->dts > pkt->pts) ) {
     Debug(1,
           "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
           "Decompression must happen before presentation.",
@@ -1256,7 +1260,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
 
   dumpPacket(stream, pkt, "finished pkt");
 
-  ret = av_interleaved_write_frame(oc, pkt);
+  int ret = av_interleaved_write_frame(oc, pkt);
   if ( ret != 0 ) {
     Error("Error writing packet: %s",
           av_make_error_string(ret).c_str());
@@ -1272,7 +1276,7 @@ int VideoStore::resample_audio() {
 #if defined(HAVE_LIBSWRESAMPLE)
   Debug(2, "Converting %d to %d samples using swresample",
       in_frame->nb_samples, out_frame->nb_samples);
-  ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
+  int ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
   if ( ret < 0 ) {
     Error("Could not resample frame (error '%s')",
         av_make_error_string(ret).c_str());

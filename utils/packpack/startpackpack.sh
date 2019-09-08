@@ -89,28 +89,6 @@ commonprep () {
         git clone https://github.com/zoneminder/packpack.git packpack
     fi
 
-    # Rpm builds are broken in latest packpack master. Temporarily roll back.
-    #git -C packpack checkout 7cf23ee
-
-    # Patch packpack
-    patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/packpack-rpm.patch
-    fi
-
-    # Skip deb lintian checks to speed up the build
-    patch --dry-run --silent -f -p1 < utils/packpack/nolintian.patch
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/nolintian.patch
-    fi
-
-    # fix 32bit rpm builds
-    # FIXME: breaks arm rpm builds
-    #patch --dry-run --silent -f -p1 < utils/packpack/setarch.patch
-    #if [ $? -eq 0 ]; then
-    #    patch -p1 < utils/packpack/setarch.patch
-    #fi
-
     # The rpm specfile requires we download each submodule as a tarball then manually move it into place
     # Might as well do this for Debian as well, rather than git submodule init
     CRUDVER="3.1.0-zm"
@@ -316,7 +294,7 @@ checksanity
 # We don't want to build packages for all supported distros after every commit
 # Only build all packages when executed via cron
 # See https://docs.travis-ci.com/user/cron-jobs/
-if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
+if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true" ]; then
     commonprep
 
     # Steps common to Redhat distros

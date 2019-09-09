@@ -654,7 +654,7 @@ bool VideoStore::setup_resampler() {
 #else
 // codec is already open in ffmpeg_camera
   audio_in_ctx = audio_in_stream->codec;
-  audio_in_codec = reinterpret_cast<AVCodec *>audio_in_ctx->codec;
+  audio_in_codec = reinterpret_cast<AVCodec *>(audio_in_ctx->codec);
   //audio_in_codec = avcodec_find_decoder(audio_in_stream->codec->codec_id);
 #endif
 
@@ -1268,6 +1268,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   } else {
     Debug(2, "Success writing packet");
   }
+  return ret;
 }  // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
 
 int VideoStore::resample_audio() {

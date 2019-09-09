@@ -37,8 +37,16 @@ env:
   - SMPFLAGS=-j4 OS=fedora DIST=29 DOCKER_REPO=knnniggett/packpack
   - SMPFLAGS=-j4 OS=ubuntu DIST=trusty
   - SMPFLAGS=-j4 OS=ubuntu DIST=xenial
+  - SMPFLAGS=-j4 OS=ubuntu DIST=bionic
+  - SMPFLAGS=-j4 OS=ubuntu DIST=disco
+  - SMPFLAGS=-j4 OS=ubuntu DIST=buster
+  - SMPFLAGS=-j4 OS=ubuntu DIST=stretch
   - SMPFLAGS=-j4 OS=ubuntu DIST=trusty ARCH=i386
   - SMPFLAGS=-j4 OS=ubuntu DIST=xenial ARCH=i386
+  - SMPFLAGS=-j4 OS=ubuntu DIST=bionic ARCH=i386
+  - SMPFLAGS=-j4 OS=ubuntu DIST=disco ARCH=i386
+  - SMPFLAGS=-j4 OS=ubuntu DIST=buster ARCH=i386
+  - SMPFLAGS=-j4 OS=ubuntu DIST=stretch ARCH=i386
   - SMPFLAGS=-j4 OS=raspbian DIST=stretch ARCH=armhf DOCKER_REPO=knnniggett/packpack
 
 compiler:

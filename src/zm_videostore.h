@@ -38,7 +38,7 @@ private:
   AVFrame *out_frame;
 
   AVCodecContext *video_in_ctx;
-  AVCodec *audio_in_codec;
+  const AVCodec *audio_in_codec;
   AVCodecContext *audio_in_ctx;
 
   // The following are used when encoding the audio stream to AAC

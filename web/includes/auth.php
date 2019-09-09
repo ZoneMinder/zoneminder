@@ -188,7 +188,7 @@ function getAuthUser($auth) {
 
         if ( $auth == $authHash ) {
           return $user;
-        } // en dif $auth == $authHash
+        } // end if $auth == $authHash
       } // end foreach hour
     } // end foreach user
   } // end if using auth hash
@@ -243,6 +243,27 @@ function canEdit($area, $mid=false) {
   return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
 }
 
+function userFromSession() {
+  $user = null; // Not global
+  if ( isset($_SESSION['username']) ) {
+    if ( ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed') ) {
+      # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
+      # This prevent session modification to switch users
+      if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
+        $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
+      else
+        ZM\Logger::Debug("No auth hash in session, there should have been");
+    } else {
+      # Need to refresh permissions and validate that the user still exists
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+      $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
+    }
+  } else {
+    ZM\Logger::Debug('No username in session');
+  }
+  return $user;
+}
+
 if ( ZM_OPT_USE_AUTH ) {
   if ( !empty($_REQUEST['token']) ) {
     $ret = validateToken($_REQUEST['token'], 'access');
@@ -250,23 +271,7 @@ if ( ZM_OPT_USE_AUTH ) {
   } else {
     // Non token based auth
 
-    if ( isset($_SESSION['username']) ) {
-      if ( ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed') ) {
-        # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
-        # This prevent session modification to switch users
-        if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
-          $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
-        else
-          ZM\Logger::Debug("No auth hash in session, there should have been");
-
-      } else {
-        # Need to refresh permissions and validate that the user still exists
-        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
-        $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
-      }
-    } else {
-      ZM\Logger::Debug("No username in session");
-    }
+    $user = userFromSession();
 
     if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
       $user = getAuthUser($_REQUEST['auth']);

@@ -1,11 +1,10 @@
 #include "zm.h"
-# include "zm_crypt.h"
+#include "zm_crypt.h"
 #include "BCrypt.hpp"
 #include "jwt.h"
 #include <algorithm>
 #include <openssl/sha.h>
 #include <string.h>
-
 
 // returns username if valid, "" if not
 std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
@@ -22,47 +21,42 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
     verifier.verify(decoded);
 
     // make sure it has fields we need
-    if (decoded.has_payload_claim("type")) {
+    if ( decoded.has_payload_claim("type") ) {
       std::string type = decoded.get_payload_claim("type").as_string();
-      if (type != "access") {
-        Error ("Only access tokens are allowed. Please do not use refresh tokens");
-        return std::make_pair("",0);
+      if ( type != "access" ) {
+        Error("Only access tokens are allowed. Please do not use refresh tokens");
+        return std::make_pair("", 0);
       }
-    }
-    else {
+    } else {
       // something is wrong. All ZM tokens have type
-      Error ("Missing token type. This should not happen");
+      Error("Missing token type. This should not happen");
       return std::make_pair("",0);
     }
-    if (decoded.has_payload_claim("user")) {
+    if ( decoded.has_payload_claim("user") ) {
       username  = decoded.get_payload_claim("user").as_string();
-      Debug (1, "Got %s as user claim from token", username.c_str());
-    } 
-    else {
-      Error ("User not found in claim");
-      return std::make_pair("",0);
+      Debug(1, "Got %s as user claim from token", username.c_str());
+    } else {
+      Error("User not found in claim");
+      return std::make_pair("", 0);
     }
 
-     if (decoded.has_payload_claim("iat")) {
+    if ( decoded.has_payload_claim("iat") ) {
       token_issued_at = (unsigned int) (decoded.get_payload_claim("iat").as_int());
-      Debug (1,"Got IAT token=%u", token_issued_at);
-     
-    } 
-    else {
-      Error ("IAT not found in claim. This should not happen");
-      return std::make_pair("",0);
+      Debug(1, "Got IAT token=%u", token_issued_at);
+    } else {
+      Error("IAT not found in claim. This should not happen");
+      return std::make_pair("", 0);
     }
   } // try
-  catch (const std::exception &e) {
+  catch ( const std::exception &e ) {
       Error("Unable to verify token: %s", e.what());
-      return std::make_pair("",0);
+      return std::make_pair("", 0);
   }
   catch (...) {
-     Error ("unknown exception");
-     return std::make_pair("",0);
-
+     Error("unknown exception");
+     return std::make_pair("", 0);
   }
-  return std::make_pair(username,token_issued_at);
+  return std::make_pair(username, token_issued_at);
 }
 
 bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash) {
@@ -102,7 +96,7 @@ bool verifyPassword(const char *username, const char *input_password, const char
   } else if (
       (db_password_hash[0] == '$')
       &&
-      (db_password_hash[1]== '2')
+      (db_password_hash[1] == '2')
       &&
       (db_password_hash[3] == '$')
       ) {

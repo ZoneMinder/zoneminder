@@ -40,7 +40,6 @@ private:
   AVCodecContext *video_in_ctx;
   AVCodec *audio_in_codec;
   AVCodecContext *audio_in_ctx;
-  int ret;
 
   // The following are used when encoding the audio stream to AAC
   AVStream *audio_out_stream;
@@ -78,6 +77,8 @@ private:
 
   bool setup_resampler();
   int resample_audio();
+
+  int write_packet(AVPacket *pkt, AVStream *stream);
 
 public:
 	VideoStore(

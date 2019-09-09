@@ -293,6 +293,8 @@ CREATE TABLE `Filters` (
   `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
   `AutoMove` tinyint(3) unsigned NOT NULL default '0',
   `AutoMoveTo`	smallint(5) unsigned NOT NULL default 0,
+  `AutoCopy` tinyint(3) unsigned NOT NULL default '0',
+  `AutoCopyTo`	smallint(5) unsigned NOT NULL default 0,
   `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',
@@ -756,8 +758,18 @@ insert into Users VALUES (NULL,'admin','$2b$12$NHZsm6AM2f2LQVROriz79ul3D6DnmFiZC
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full
 --
 
-insert into Filters values (NULL,'PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',0/*AutoArchive*/,0/*AutoVideo*/,0/*AutoUpload*/,0/*AutoEmail*/,0/*AutoMessage*/,0/*AutoExecute*/,'',1/*AutoDelete*/,0/*AutoMove*/,0/*MoveTo*/,0/*UpdateDiskSpace*/,1/*Background*/,0/*Concurrent*/);
-insert into Filters values (NULL,'Update DiskSpace','{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',0,0,0,0,0,0,'',0,0,0,1,1,0);
+insert into Filters values (NULL,'PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',
+  0/*AutoArchive*/,
+  0/*AutoVideo*/,
+  0/*AutoUpload*/,
+  0/*AutoEmail*/,
+  0/*AutoMessage*/,
+  0/*AutoExecute*/,'',
+  1/*AutoDelete*/,
+  0/*AutoMove*/,0/*MoveTo*/,
+  0/*AutoCopy*/,0/*CopyTo*/,
+  0/*UpdateDiskSpace*/,1/*Background*/,0/*Concurrent*/);
+insert into Filters values (NULL,'Update DiskSpace','{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',0,0,0,0,0,0,'',0,0,0,0,0,1,1,0);
 
 --
 -- Add in some sample control protocol definitions

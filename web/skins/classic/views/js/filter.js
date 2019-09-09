@@ -30,12 +30,16 @@ function validateForm( form ) {
 
 function updateButtons(element) {
   var form = element.form;
-
+  console.log(element);
   if ( element.type == 'checkbox' && element.checked ) {
     form.elements['executeButton'].disabled = false;
   } else {
     var canExecute = false;
     if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
+      canExecute = true;
+    } else if ( form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked ) {
+      canExecute = true;
+    } else if ( form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked ) {
       canExecute = true;
     } else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked ) {
       canExecute = true;

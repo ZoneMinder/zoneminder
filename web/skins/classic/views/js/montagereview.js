@@ -155,9 +155,8 @@ function getImageSource(monId, time) {
         frame_id = Frame.FrameId + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
         //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + NextFrame.FrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
       } else {
-				frame_id = Frame.FrameId;
-			}
-			
+        frame_id = Frame.FrameId;
+      }
     } else {
       frame_id = Frame.FrameId;
       console.log("No NextFrame");
@@ -1010,7 +1009,8 @@ function initPage() {
   $j('#maxTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
-    minDate: $j('#minTime').val(),
+    //minDate: $j('#minTime').val(),
+    minDate: -7,
     maxDate: +0,
     constrainInput: false,
     onClose: function(newDate, oldData) {

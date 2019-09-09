@@ -167,6 +167,12 @@ class Filter extends ZM_Object {
       } # end if local or remote
     } # end foreach erver
   } # end function control
+  public function execute() {
+    $command = ZM_PATH_BIN.'/zmfilter.pl --filter_id='.escapeshellarg($this->Id());
+    $result = exec($command, $output, $status);
+    Logger::Debug("$command status:$status output:".implode("\n", $output));
+    return $status;
+  }
 
 } # end class Filter
 

@@ -1102,10 +1102,11 @@ int FfmpegCamera::transfer_to_image(
         mConvertContext, input_frame->data, input_frame->linesize,
         0, mVideoCodecContext->height,
         output_frame->data, output_frame->linesize) <= 0 ) {
-    Error("Unable to convert format %u to format %u at frame %d codec %u",
-        input_frame->format,
-        imagePixFormat, frameCount,
-        mVideoCodecContext->pix_fmt
+    Error("Unable to convert format %u %s to format %u %s at frame %d codec %u %s",
+        input_frame->format, av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+        av_get_pix_fmt_name(imagePixFormat),
+        frameCount,
+        mVideoCodecContext->pix_fmt, av_get_pix_fmt_name(mVideoCodecContext->pix_fmt)
         );
     return -1;
   }

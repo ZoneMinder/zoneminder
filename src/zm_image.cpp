@@ -3237,7 +3237,7 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
   __asm__ __volatile__ (
   "mov r12, %4\n\t"
   "vdup.8 q12, r12\n\t"
-  "neon32_armv7_fastblend_iter:\n\t"
+  "neon32_armv7_fastblend_iter%=:\n\t"
   "vldm %0!, {q0,q1,q2,q3}\n\t"
   "vldm %1!, {q4,q5,q6,q7}\n\t"
   "pld [%0, #256]\n\t"
@@ -3260,7 +3260,7 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
   "vadd.i8 q7, q7, q3\n\t"
   "vstm %2!, {q4,q5,q6,q7}\n\t"
   "subs %3, %3, #64\n\t"
-  "bne neon32_armv7_fastblend_iter\n\t"
+  "bne neon32_armv7_fastblend_iter%=\n\t"
   :
   : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (divider)
   : "%r12", "%q0", "%q1", "%q2", "%q3", "%q4", "%q5", "%q6", "%q7", "%q8", "%q9", "%q10", "%q11", "%q12", "cc", "memory"
@@ -3318,7 +3318,7 @@ __attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const
   __asm__ __volatile__ (
   "mov x12, %4\n\t"
   "dup v28.16b, w12\n\t"
-  "neon64_armv8_fastblend_iter:\n\t"
+  "neon64_armv8_fastblend_iter%=:\n\t"
   "ldp q16, q17, [%0], #32\n\t"
   "ldp q18, q19, [%0], #32\n\t"
   "ldp q20, q21, [%1], #32\n\t"
@@ -3344,7 +3344,7 @@ __attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const
   "stp q20, q21, [%2], #32\n\t"
   "stp q22, q23, [%2], #32\n\t"
   "subs %3, %3, #64\n\t"
-  "bne neon64_armv8_fastblend_iter\n\t"
+  "bne neon64_armv8_fastblend_iter%=\n\t"
   :
   : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (divider)
   : "%x12", "%v16", "%v17", "%v18", "%v19", "%v20", "%v21", "%v22", "%v23", "%v24", "%v25", "%v26", "%v27", "%v28", "cc", "memory"
@@ -3702,7 +3702,7 @@ void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t
   /* Q7(D14,D15) = col2+48 */
 
   __asm__ __volatile__ (
-  "neon32_armv7_delta8_gray8_iter:\n\t"
+  "neon32_armv7_delta8_gray8_iter%=:\n\t"
   "vldm %0!, {q0,q1,q2,q3}\n\t"
   "vldm %1!, {q4,q5,q6,q7}\n\t"
   "pld [%0, #512]\n\t"
@@ -3713,7 +3713,7 @@ void neon32_armv7_delta8_gray8(const uint8_t* col1, const uint8_t* col2, uint8_t
   "vabd.u8 q3, q3, q7\n\t"
   "vstm %2!, {q0,q1,q2,q3}\n\t"
   "subs %3, %3, #64\n\t"
-  "bne neon32_armv7_delta8_gray8_iter\n\t"
+  "bne neon32_armv7_delta8_gray8_iter%=\n\t"
   :
   : "r" (col1), "r" (col2), "r" (result), "r" (count)
   : "%q0", "%q1", "%q2", "%q3", "%q4", "%q5", "%q6", "%q7", "cc", "memory"
@@ -3737,7 +3737,7 @@ __attribute__((noinline)) void neon64_armv8_delta8_gray8(const uint8_t* col1, co
   /* V23 = col2+48 */
 
   __asm__ __volatile__ (
-  "neon64_armv8_delta8_gray8_iter:\n\t"
+  "neon64_armv8_delta8_gray8_iter%=:\n\t"
   "ldp q16, q17, [%0], #32\n\t"
   "ldp q18, q19, [%0], #32\n\t"
   "ldp q20, q21, [%1], #32\n\t"
@@ -3751,7 +3751,7 @@ __attribute__((noinline)) void neon64_armv8_delta8_gray8(const uint8_t* col1, co
   "stp q16, q17, [%2], #32\n\t"
   "stp q18, q19, [%2], #32\n\t"
   "subs %3, %3, #64\n\t"
-  "bne neon64_armv8_delta8_gray8_iter\n\t"
+  "bne neon64_armv8_delta8_gray8_iter%=\n\t"
   :
   : "r" (col1), "r" (col2), "r" (result), "r" (count)
   : "%v16", "%v17", "%v18", "%v19", "%v20", "%v21", "%v22", "%v23", "cc", "memory"
@@ -3781,7 +3781,7 @@ void neon32_armv7_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t
   __asm__ __volatile__ (
   "mov r12, %4\n\t"
   "vdup.32 q8, r12\n\t"
-  "neon32_armv7_delta8_rgb32_iter:\n\t"
+  "neon32_armv7_delta8_rgb32_iter%=:\n\t"
   "vldm %0!, {q0,q1,q2,q3}\n\t"
   "vldm %1!, {q4,q5,q6,q7}\n\t"
   "pld [%0, #256]\n\t"
@@ -3808,7 +3808,7 @@ void neon32_armv7_delta8_rgb32(const uint8_t* col1, const uint8_t* col2, uint8_t
   "vpadd.i8 d3, d6, d6\n\t"
   "vst4.32 {d0[0],d1[0],d2[0],d3[0]}, [%2]!\n\t"
   "subs %3, %3, #16\n\t"
-  "bne neon32_armv7_delta8_rgb32_iter\n\t"
+  "bne neon32_armv7_delta8_rgb32_iter%=\n\t"
   :
   : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (multiplier)
   : "%r12", "%q0", "%q1", "%q2", "%q3", "%q4", "%q5", "%q6", "%q7", "%q8", "cc", "memory"
@@ -3835,7 +3835,7 @@ __attribute__((noinline)) void neon64_armv8_delta8_rgb32(const uint8_t* col1, co
   __asm__ __volatile__ (
   "mov x12, %4\n\t"
   "dup v24.4s, w12\n\t"
-  "neon64_armv8_delta8_rgb32_iter:\n\t"
+  "neon64_armv8_delta8_rgb32_iter%=:\n\t"
   "ldp q16, q17, [%0], #32\n\t"
   "ldp q18, q19, [%0], #32\n\t"
   "ldp q20, q21, [%1], #32\n\t"
@@ -3864,7 +3864,7 @@ __attribute__((noinline)) void neon64_armv8_delta8_rgb32(const uint8_t* col1, co
   "addp v19.16b, v19.16b, v19.16b\n\t"
   "st4 {v16.s, v17.s, v18.s, v19.s}[0], [%2], #16\n\t"
   "subs %3, %3, #16\n\t"
-  "bne neon64_armv8_delta8_rgb32_iter\n\t"
+  "bne neon64_armv8_delta8_rgb32_iter%=\n\t"
   :
   : "r" (col1), "r" (col2), "r" (result), "r" (count), "r" (multiplier)
   : "%x12", "%v16", "%v17", "%v18", "%v19", "%v20", "%v21", "%v22", "%v23", "%v24", "cc", "memory"

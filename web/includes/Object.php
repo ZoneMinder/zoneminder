@@ -252,5 +252,13 @@ class ZM_Object {
       unset($object_cache[$class][$this->{'Id'}]);
   }
 
-} # end class Sensor Action
+  public function lock() {
+    $class = get_class($this);
+    $table = $class::$table;
+    $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($this->Id()));
+    if ( !$row ) {
+      Error("Unable to lock $class record for Id=".$this->Id());
+    }
+  }
+} # end class Object
 ?>

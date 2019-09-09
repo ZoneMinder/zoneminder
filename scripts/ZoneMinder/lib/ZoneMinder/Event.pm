@@ -56,7 +56,8 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use vars qw/ $table $primary_key %fields $serial @identified_by %defaults/;
+use vars qw/ $table $primary_key %fields $serial @identified_by %defaults $debug/;
+$debug = 0;
 $table = 'Events';
 @identified_by = ('Id');
 $serial = $primary_key = 'Id';
@@ -133,7 +134,11 @@ sub Path {
 
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
-    $$event{Path} = join('/', $Storage->Path(), $event->RelativePath());
+		if ( defined $Storage->Id() ) {
+			$$event{Path} = join('/', $Storage->Path(), $event->RelativePath());
+		} else {
+			Error("Storage area for $$event{StorageId} no longer exists in db.");
+		}
   }
   return $$event{Path};
 }
@@ -365,7 +370,7 @@ sub delete {
 
   if ( $$event{Id} ) {
     # Need to have an event Id if we are to delete from the db.  
-    Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime}");
+    Info("Deleting event $event->{Id} from Monitor $event->{MonitorId} StartTime:$event->{StartTime} from ".$event->Path());
     $ZoneMinder::Database::dbh->ping();
 
     $ZoneMinder::Database::dbh->begin_work();
@@ -421,20 +426,24 @@ sub delete_files {
 
       my $deleted = 0;
       if ( $$Storage{Type} and ( $$Storage{Type} eq 's3fs' ) ) {
-        my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$Storage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+        my $url = $$Storage{Url};
+        $url =~ s/^(s3|s3fs):\/\///ig;
+        my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
+        Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
         eval {
           require Net::Amazon::S3;
           my $s3 = Net::Amazon::S3->new( {
               aws_access_key_id     => $aws_id,
               aws_secret_access_key => $aws_secret,
               ( $aws_host ? ( host => $aws_host ) : () ),
+              authorization_method => 'Net::Amazon::S3::Signature::V4',
             });
           my $bucket = $s3->bucket($aws_bucket);
           if ( ! $bucket ) {
             Error("S3 bucket $bucket not found.");
             die;
           }
-          if ( $bucket->delete_key($event_path) ) {
+          if ( $bucket->delete_key($subpath.$event_path) ) {
             $deleted = 1;
           } else {
             Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
@@ -464,7 +473,7 @@ sub StorageId {
   if ( @_ ) {
     $$event{StorageId} = shift;
     delete $$event{Storage};
-    delete $$event{Path};
+    $event->Path(undef);
   }
   return $$event{StorageId};
 }
@@ -474,7 +483,7 @@ sub Storage {
     $_[0]{Storage} = $_[1];
     if ( $_[0]{Storage} ) {
       $_[0]{StorageId} = $_[0]{Storage}->Id();
-      delete $_[0]{Path};
+      $_[0]->Path(undef);
     }
   }
   if ( ! $_[0]{Storage} ) {
@@ -534,7 +543,7 @@ sub CopyTo {
   my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! -e $OldPath ) {
-    return "Old path $OldPath does not exist.";
+    return "Src path $OldPath does not exist.";
   }
   # First determine if we can move it to the dest.
   # We do this before bothering to lock the event
@@ -545,8 +554,12 @@ sub CopyTo {
     return 'Event is already located at ' . $NewPath;
   } elsif ( !$NewPath ) {
     return "New path ($NewPath) is empty.";
-  } elsif ( ! -e $NewPath ) {
-    return "New path $NewPath does not exist.";
+  } elsif ( ($$NewStorage{Type} ne 's3fs' ) and ! -e $NewPath ) {
+    if ( ! mkdir($NewPath) ) {
+      return "New path $NewPath does not exist.";
+    }
+  } else {
+    Debug("$NewPath is good");
   }
 
   $ZoneMinder::Database::dbh->begin_work();
@@ -562,8 +575,9 @@ sub CopyTo {
     return 'Old Storage path changed, Event has moved somewhere else.';
   }
 
-	$NewPath .= $self->Relative_Path();
-	$NewPath = ( $NewPath =~ /^(.*)$/ ); # De-taint
+  Debug("Relative Path: " . $self->RelativePath());
+	$NewPath .= '/'.$self->RelativePath();
+	($NewPath) = ( $NewPath =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
     $ZoneMinder::Database::dbh->commit();
     return "New path and old path are the same! $NewPath";
@@ -574,7 +588,10 @@ sub CopyTo {
 
   if ( $$NewStorage{Type} eq 's3fs' ) {
     if ( $$NewStorage{Url} ) {
-      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket ) = ( $$NewStorage{Url} =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/(.+)\s*$/ );
+      my $url = $$NewStorage{Url};
+      $url =~ s/^(s3|s3fs):\/\///ig;
+      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
+      Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
       if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
         eval {
           require Net::Amazon::S3;
@@ -583,6 +600,7 @@ sub CopyTo {
               aws_access_key_id     => $aws_id,
               aws_secret_access_key => $aws_secret,
               ( $aws_host ? ( host => $aws_host ) : () ),
+              authorization_method => 'Net::Amazon::S3::Signature::V4',
             });
           my $bucket = $s3->bucket($aws_bucket);
           if ( !$bucket ) {
@@ -590,10 +608,12 @@ sub CopyTo {
             die;
           }
 
-          my $event_path = $self->RelativePath();
-          Debug("Making directory $event_path/");
-          if ( ! $bucket->add_key($event_path.'/', '') ) {
-            die "Unable to add key for $event_path/";
+          my $event_path = $subpath.$self->RelativePath();
+          if ( 0 ) { # Not neccessary
+            Debug("Making directory $event_path/");
+            if ( !$bucket->add_key($event_path.'/', '') ) {
+              Warning("Unable to add key for $event_path/ :". $s3->err . ': '. $s3->errstr());
+            }
           }
 
           my @files = glob("$OldPath/*");
@@ -607,15 +627,23 @@ sub CopyTo {
             if ( ! $size ) {
               Info('Not moving file with 0 size');
             }
-            my $file_contents = File::Slurp::read_file($file);
-            if ( ! $file_contents ) {
-              die 'Loaded empty file, but it had a size. Giving up';
+            if ( 0 ) {
+              my $file_contents = File::Slurp::read_file($file);
+              if ( ! $file_contents ) {
+                die 'Loaded empty file, but it had a size. Giving up';
+              }
+
+              my $filename = $event_path.'/'.File::Basename::basename($file);
+              if ( ! $bucket->add_key($filename, $file_contents) ) {
+                die "Unable to add key for $filename : ".$s3->err . ': ' . $s3->errstr;
+              }
+            } else {
+              my $filename = $event_path.'/'.File::Basename::basename($file);
+              if ( ! $bucket->add_key_filename($filename, $file) ) {
+                die "Unable to add key for $filename " . $s3->err . ': '. $s3->errstr;
+              }
             }
 
-            my $filename = $event_path.'/'.File::Basename::basename($file);
-            if ( ! $bucket->add_key($filename, $file_contents) ) {
-              die "Unable to add key for $filename";
-            }
             my $duration = tv_interval($starttime);
             Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
           } # end foreach file.
@@ -780,6 +808,33 @@ sub recover_timestamps {
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
   }
+}
+
+sub files {
+	my $self = shift;
+
+	if ( ! $$self{files} ) {
+		if ( ! opendir(DIR, $self->Path() ) ) {
+			Error("Can't open directory '$$self{Path}': $!");
+			return;
+		}
+		@{$$self{files}} = readdir(DIR);
+		Debug('Have ' . @{$$self{files}} . " files in $$self{Path}");
+		closedir(DIR);
+	}
+	return @{$$self{files}};
+}
+
+sub has_capture_jpegs {
+	@{$_[0]{capture_jpegs}} = grep(/^\d+\-capture\.jpg$/, $_[0]->files());
+	Debug("have " . @{$_[0]{capture_jpegs}} . " capture jpegs");
+	return @{$_[0]{capture_jpegs}} ? 1 : 0;
+}
+
+sub has_analyse_jpegs {
+	@{$_[0]{analyse_jpegs}} = grep(/^\d+\-analyse\.jpg$/, $_[0]->files());
+	Debug("have " . @{$_[0]{analyse_jpegs}} . " analyse jpegs");
+	return @{$_[0]{analyse_jpegs}} ? 1 : 0;
 }
 
 1;

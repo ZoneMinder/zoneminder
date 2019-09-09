@@ -201,8 +201,9 @@ function changeReplayMode() {
 }
 
 var streamParms = "view=request&request=stream&connkey="+connKey;
-if ( auth_hash )
-	streamCmdParms += '&auth='+auth_hash;
+if ( auth_hash ) {
+  streamParms += '&auth='+auth_hash;
+}
 var streamCmdTimer = null;
 
 var streamStatus = null;
@@ -312,7 +313,6 @@ function playClicked( ) {
       vjsPlay(); //handles fast forward and rewind
     }
   } else {
-console.log("sending"+streamParms+"&command="+CMD_PLAY);
     streamReq.send(streamParms+"&command="+CMD_PLAY);
     streamPlay();
   }
@@ -600,8 +600,9 @@ var eventReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIM
 
 function eventQuery( eventId ) {
   var eventParms = "view=request&request=status&entity=event&id="+eventId;
-	if ( auth_hash )
-		eventParms += '&auth='+auth_hash;
+  if ( auth_hash ) {
+    eventParms += '&auth='+auth_hash;
+  }
   eventReq.send( eventParms );
 }
 
@@ -900,14 +901,15 @@ function getActResponse( respObj, respText ) {
 
 var actReq = new Request.JSON( {url: thisUrl, method: 'get', timeout: AJAX_TIMEOUT, link: 'cancel', onSuccess: getActResponse} );
 
-function actQuery( action, parms ) {
+function actQuery(action, parms) {
   var actParms = "view=request&request=event&id="+eventData.Id+"&action="+action;
-	if ( auth_hash )
-		actParms += '&auth='+auth_hash;
-  if ( parms != null ) {
-    actParms += "&"+Object.toQueryString( parms );
+  if ( auth_hash ) {
+    actParms += '&auth='+auth_hash;
   }
-  actReq.send( actParms );
+  if ( parms != null ) {
+    actParms += "&"+Object.toQueryString(parms);
+  }
+  actReq.send(actParms);
 }
 
 function deleteEvent() {

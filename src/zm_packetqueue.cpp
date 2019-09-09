@@ -157,12 +157,12 @@ unsigned int zm_packetqueue::clearQueue(unsigned int frames_to_keep, int stream_
     AVPacket *av_packet = &(zm_packet->packet);
        
     Debug(5, "Looking for keyframe at packet with stream index (%d) with keyframe (%d), frames_to_keep is (%d)",
-        av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
+        av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep);
     
     // Want frames_to_keep video keyframes.  Otherwise, we may not have enough
-    if ( ( av_packet->stream_index == stream_id) && ( av_packet->flags & AV_PKT_FLAG_KEY ) ) {
+    if ( (av_packet->stream_index == stream_id) && (av_packet->flags & AV_PKT_FLAG_KEY) ) {
       Debug(4, "Found keyframe at packet with stream index (%d) with keyframe (%d), frames_to_keep is (%d)",
-          av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep );
+          av_packet->stream_index, ( av_packet->flags & AV_PKT_FLAG_KEY ), frames_to_keep);
       break;
     }
   }
@@ -210,25 +210,72 @@ int zm_packetqueue::packet_count( int stream_id ) {
   return packet_counts[stream_id];
 } // end int zm_packetqueue::packet_count( int stream_id )
 
-void zm_packetqueue::clear_unwanted_packets( timeval *recording_started, int mVideoStreamId ) {
+// Clear packets before the given timestamp.
+// Must also take into account pre_event_count frames
+void zm_packetqueue::clear_unwanted_packets(
+    timeval *recording_started,
+    int pre_event_count,
+    int mVideoStreamId) {
   // Need to find the keyframe <= recording_started.  Can get rid of audio packets.
 	if ( pktQueue.empty() )
 		return;
 
-  // Step 1 - find keyframe < recording_started.
-  // Step 2 - pop packets until we get to the packet in step 2
+  // Step 1 - find frame <= recording_started.
+  // Step 2 - go back pre_event_count
+  // Step 3 - find a keyframe
+  // Step 4 - pop packets until we get to the packet in step 3
   std::list<ZMPacket *>::reverse_iterator it;
 
-  Debug(3, "Looking for keyframe after start recording stream id (%d)", mVideoStreamId);
+  // Step 1 - find frame <= recording_started.
+  Debug(3, "Looking for frame before start recording stream id (%d), queue has %d packets",
+      mVideoStreamId, pktQueue.size());
   for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
+    ZMPacket *zm_packet = *it;
+    AVPacket *av_packet = &(zm_packet->packet);
+    if (
+        ( av_packet->stream_index == mVideoStreamId )
+        &&
+        timercmp( &(zm_packet->timestamp), recording_started, <= )
+       ) {
+    Debug(3, "Found frame before start with stream index %d at %d.%d",
+        av_packet->stream_index,
+        zm_packet->timestamp.tv_sec,
+        zm_packet->timestamp.tv_usec);
+      break;
+    }
+    Debug(3, "Not Found frame before start with stream index %d at %d.%d",
+        av_packet->stream_index,
+        zm_packet->timestamp.tv_sec,
+        zm_packet->timestamp.tv_usec);
+  }
+
+  if ( it == pktQueue.rend() ) {
+    Debug(1, "Didn't find a frame before event starttime. keeping all");
+    return;
+  }
+
+  Debug(1, "Seeking back %d frames", pre_event_count);
+  for ( ; pre_event_count && (it != pktQueue.rend()); ++ it ) {
+    ZMPacket *zm_packet = *it;
+    AVPacket *av_packet = &(zm_packet->packet);
+    if ( av_packet->stream_index == mVideoStreamId ) {
+      --pre_event_count;
+    }
+  }
+
+  if ( it == pktQueue.rend() ) {
+    Debug(1, "ran out of pre_event frames before event starttime. keeping all");
+    return;
+  }
+
+  Debug(3, "Looking for keyframe");
+  for ( ; it != pktQueue.rend(); ++ it ) {
     ZMPacket *zm_packet = *it;
     AVPacket *av_packet = &(zm_packet->packet);
     if ( 
         ( av_packet->flags & AV_PKT_FLAG_KEY ) 
         && 
         ( av_packet->stream_index == mVideoStreamId )
-        && 
-        timercmp( &(zm_packet->timestamp), recording_started, <= )
        ) {
     Debug(3, "Found keyframe before start with stream index %d at %d.%d",
         av_packet->stream_index,

@@ -99,8 +99,8 @@ User *zmLoadUser( const char *username, const char *password ) {
 
 
   snprintf(sql, sizeof(sql),
-      "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
-      " FROM Users where Username = '%s' and Enabled = 1", safer_username );
+      "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`"
+      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", safer_username );
 
 
   if ( mysql_query(&dbconn, sql) ) {
@@ -157,12 +157,13 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
   std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
   std::string username = ans.first;
   unsigned int iat = ans.second;
+  Debug (1,"retrieved user '%s' from token", username.c_str());
 
   if (username != "") {
     char sql[ZM_SQL_MED_BUFSIZ] = "";
     snprintf(sql, sizeof(sql),
-      "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds, TokenMinExpiry"
-      " FROM Users WHERE Username = '%s' and Enabled = 1", username.c_str() );
+      "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, `TokenMinExpiry`"
+      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str() );
 
     if ( mysql_query(&dbconn, sql) ) {
       Error("Can't run query: %s", mysql_error(&dbconn));
@@ -178,7 +179,7 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
 
     if ( n_users != 1 ) {
       mysql_free_result(result);
-      Error("Unable to authenticate user %s", username.c_str());
+      Error("Unable to authenticate user '%s'", username.c_str());
       return NULL;
     }
 
@@ -188,12 +189,12 @@ User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
 
     if (stored_iat > iat ) { // admin revoked tokens
       mysql_free_result(result);
-      Error("Token was revoked for %s", username.c_str());
+      Error("Token was revoked for '%s'", username.c_str());
       return NULL;
     }
 
     Debug (1,"Got stored expiry time of %u",stored_iat);
-    Info ("Authenticated user '%s' via token", username.c_str());
+    Debug (1,"Authenticated user '%s' via token", username.c_str());
     mysql_free_result(result);
     return user;
 
@@ -227,7 +228,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 
   Debug( 1, "Attempting to authenticate user from auth string '%s'", auth );
   char sql[ZM_SQL_SML_BUFSIZ] = "";
-  snprintf( sql, sizeof(sql), "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds FROM Users WHERE Enabled = 1" );
+  snprintf( sql, sizeof(sql), "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds` FROM `Users` WHERE `Enabled` = 1" );
 
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );

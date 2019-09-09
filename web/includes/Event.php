@@ -12,6 +12,7 @@ class Event {
 'Name',
 'MonitorId',
 'StorageId',
+'SecondaryStorageId',
 'Name',
 'Cause',
 'StartTime',
@@ -83,6 +84,19 @@ class Event {
         $this->{'Storage'} = new Storage(NULL);
     }
     return $this->{'Storage'};
+  }
+
+  public function SecondaryStorage( $new = null ) {
+    if ( $new ) {
+      $this->{'SecondaryStorage'} = $new;
+    }
+    if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) ) {
+      if ( isset($this->{'SecondaryStorageId'}) and $this->{'SecondaryStorageId'} )
+        $this->{'SecondaryStorage'} = Storage::find_one(array('Id'=>$this->{'SecondaryStorageId'}));
+      if ( ! ( array_key_exists('SecondaryStorage', $this) and $this->{'SecondaryStorage'} ) )
+        $this->{'SecondaryStorage'} = new Storage(NULL);
+    }
+    return $this->{'SecondaryStorage'};
   }
 
   public function Monitor() {
@@ -580,6 +594,9 @@ class Event {
     if ( file_exists( $this->Path().'/'.$this->DefaultVideo() ) ) {
       return true;
     }
+    if ( !defined('ZM_SERVER_ID') ) {
+      return false;
+    }
     $Storage= $this->Storage();
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
@@ -623,6 +640,9 @@ class Event {
   public function file_size() {
     if ( file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
       return filesize($this->Path().'/'.$this->DefaultVideo());
+    }
+    if ( !defined('ZM_SERVER_ID') ) {
+      return false;
     }
     $Storage= $this->Storage();
     $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();

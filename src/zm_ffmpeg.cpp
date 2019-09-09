@@ -21,6 +21,9 @@
 #include "zm_ffmpeg.h"
 #include "zm_image.h"
 #include "zm_rgb.h"
+extern "C" {
+#include "libavutil/pixdesc.h"
+}
 
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
@@ -70,14 +73,14 @@ static bool bInit = false;
 void FFMPEGInit() {
 
   if ( !bInit ) {
-    if ( logDebugging() )
+    if ( logDebugging()  && config.log_ffmpeg ) {
       av_log_set_level( AV_LOG_DEBUG ); 
-    else
+      av_log_set_callback(log_libav_callback); 
+      Info("Enabling ffmpeg logs, as LOG_DEBUG+LOG_FFMPEG are enabled in options");
+    } else {
+      Info("Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor not part of your debug targets");
       av_log_set_level( AV_LOG_QUIET ); 
-    if ( config.log_ffmpeg ) 
-        av_log_set_callback(log_libav_callback); 
-    else
-        Info("Not enabling ffmpeg logs, as LOG_FFMPEG is disabled in options");
+    }
 #if LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
 #else
     av_register_all();
@@ -284,26 +287,6 @@ static void zm_log_fps(double d, const char *postfix) {
   }
 }
 
-void zm_dump_frame(const AVFrame *frame,const char *text) {
-  Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d channels %d"
-      " duration %" PRId64
-      " layout %d pts %" PRId64,
-      text,
-      frame->format,
-      av_get_sample_fmt_name((AVSampleFormat)frame->format),
-      frame->sample_rate,
-      frame->nb_samples,
-#if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
-      frame->channels,
-      frame->pkt_duration,
-#else
-0, 0,
-#endif
-      frame->channel_layout,
-      frame->pts
-      );
-}
-
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {
   Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d) bit_rate(%d) format(%d = %s)", 
@@ -494,37 +477,20 @@ bool is_audio_context( AVCodecContext *codec_context ) {
   #endif
 }
 
-int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet ) {
+int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet) {
   int ret;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  if ( (ret = avcodec_send_packet(context, &packet)) < 0  ) {
-    Error( "Unable to send packet %s, continuing",
-       av_make_error_string(ret).c_str() );
-    return 0;
+  if ( (ret = avcodec_send_packet(context, &packet)) < 0 ) {
+    Error("Unable to send packet %s, continuing",
+       av_make_error_string(ret).c_str());
+    return ret;
   }
 
-#if HAVE_AVUTIL_HWCONTEXT_H
-  if ( hwaccel ) {
-    if ( (ret = avcodec_receive_frame(context, hwFrame)) < 0 ) {
-      Error( "Unable to receive frame %d: %s, continuing", streams[packet.stream_index].frame_count,
-         av_make_error_string(ret).c_str() );
-      return 0;
-    }
-    if ( (ret = av_hwframe_transfer_data(frame, hwFrame, 0)) < 0 ) {
-      Error( "Unable to transfer frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count,
-          av_make_error_string(ret).c_str() );
-      return 0;
-    }
-  } else {
-#endif
-    if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
-      Error( "Unable to send packet %s, continuing", av_make_error_string(ret).c_str() );
-      return 0;
-    }
-#if HAVE_AVUTIL_HWCONTEXT_H
+  if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
+    Error("Unable to send packet %s, continuing",
+        av_make_error_string(ret).c_str());
+    return ret;
   }
-#endif
-
 # else
   int frameComplete = 0;
   while ( !frameComplete ) {
@@ -535,12 +501,51 @@ int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet 
     }
     if ( ret < 0 ) {
       Error("Unable to decode frame: %s", av_make_error_string(ret).c_str());
-      return 0;
+      return ret;
     }
   } // end while !frameComplete
 #endif
+  return 0;
+} // end int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
+
+int zm_send_frame(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
+  int ret;
+   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    if ( (ret = avcodec_send_frame(ctx, frame)) < 0 ) {
+      Error("Could not send frame (error '%s')",
+            av_make_error_string(ret).c_str());
+      zm_av_packet_unref(&packet);
+      return 0;
+    }
+
+    if ( (ret = avcodec_receive_packet(ctx, &packet)) < 0 ) {
+      if ( AVERROR(EAGAIN) == ret ) {
+        // The codec may need more samples than it has, perfectly valid
+        Debug(2, "Codec not ready to give us a packet");
+      } else {
+        Error("Could not recieve packet (error %d = '%s')", ret,
+              av_make_error_string(ret).c_str());
+      }
+      zm_av_packet_unref(&packet);
+      return 0;
+    }
+  #else
+    int data_present;
+    if ( (ret = avcodec_encode_audio2(
+            ctx, &packet, frame, &data_present)) < 0 ) {
+      Error("Could not encode frame (error '%s')",
+            av_make_error_string(ret).c_str());
+      zm_av_packet_unref(&packet);
+      return 0;
+    }
+    if ( !data_present ) {
+      Debug(2, "Not ready to out a frame yet.");
+      zm_av_packet_unref(&packet);
+      return 0;
+    }
+  #endif
   return 1;
-} // end int zm_receive_frame( AVCodecContext *context, AVFrame *frame, AVPacket &packet )
+}  // wend zm_send_frame
 
 void dumpPacket(AVStream *stream, AVPacket *pkt, const char *text) {
   char b[10240];

@@ -154,9 +154,12 @@ function getImageSource(monId, time) {
         var duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
         frame_id = Frame.FrameId + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
         //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + NextFrame.FrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
-      }
+      } else {
+				frame_id = Frame.FrameId;
+			}
+			
     } else {
-      frame_id = Frame['Id'];
+      frame_id = Frame.FrameId;
       console.log("No NextFrame");
     }
     Event = events[Frame.EventId];

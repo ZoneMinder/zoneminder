@@ -68,18 +68,19 @@
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, LinkedMonitors, "
-"AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
-"Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
-"Protocol, Method, Options, User, Pass, Host, Port, Path, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
-"SaveJPEGs, VideoWriter, EncoderParameters, "
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `LinkedMonitors`, "
+"`AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
+"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
+"`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
+"`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
 //" OutputCodec, Encoder, OutputContainer, "
-"RecordAudio, "
-"Brightness, Contrast, Hue, Colour, "
-"EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
-"ImageBufferCount, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
-"SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
-"FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif, SignalCheckPoints, SignalCheckColour FROM Monitors";
+"`RecordAudio`, "
+"`Brightness`, `Contrast`, `Hue`, `Colour`, "
+"`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
+"`ImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
+"`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, `SignalCheckPoints`, `SignalCheckColour` FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
   "Local",
@@ -281,6 +282,8 @@ Monitor::Monitor(
   Camera *p_camera,
   int p_orientation,
   unsigned int p_deinterlacing,
+  const std::string &p_decoder_hwaccel_name,
+  const std::string &p_decoder_hwaccel_device,
   int p_savejpegs,
   VideoWriter p_videowriter,
   std::string p_encoderparams,
@@ -299,6 +302,7 @@ Monitor::Monitor(
   int p_min_section_length,
   int p_frame_skip,
   int p_motion_frame_skip,
+  double p_capture_max_fps,
   double p_analysis_fps,
   unsigned int p_analysis_update_delay,
   int p_capture_delay,
@@ -322,6 +326,8 @@ Monitor::Monitor(
     height( (p_orientation==ROTATE_90||p_orientation==ROTATE_270)?p_camera->Width():p_camera->Height() ),
   orientation( (Orientation)p_orientation ),
   deinterlacing( p_deinterlacing ),
+  decoder_hwaccel_name(p_decoder_hwaccel_name),
+  decoder_hwaccel_device(p_decoder_hwaccel_device),
   savejpegs( p_savejpegs ),
   videowriter( p_videowriter ),
   encoderparams( p_encoderparams ),
@@ -337,6 +343,7 @@ Monitor::Monitor(
   min_section_length( p_min_section_length ),
   frame_skip( p_frame_skip ),
   motion_frame_skip( p_motion_frame_skip ),
+  capture_max_fps( p_capture_max_fps ),
   analysis_fps( p_analysis_fps ),
   analysis_update_delay( p_analysis_update_delay ),
   capture_delay( p_capture_delay ),
@@ -361,7 +368,7 @@ Monitor::Monitor(
   privacy_bitmask( NULL ),
   event_delete_thread(NULL)
 {
-  strncpy( name, p_name, sizeof(name)-1 );
+  strncpy(name, p_name, sizeof(name)-1);
 
   strncpy(event_prefix, p_event_prefix, sizeof(event_prefix)-1);
   strncpy(label_format, p_label_format, sizeof(label_format)-1);
@@ -415,8 +422,12 @@ Monitor::Monitor(
        + (image_buffer_count*camera->ImageSize())
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
-  Debug(1, "mem.size SharedData=%d TriggerData=%d VideoStoreData=%d total=%" PRId64,
-     sizeof(SharedData), sizeof(TriggerData), sizeof(VideoStoreData), mem_size);
+  Debug(1, "mem.size(%d) SharedData=%d TriggerData=%d VideoStoreData=%d timestamps=%d images=%dx%d = %" PRId64 " total=%" PRId64,
+      sizeof(mem_size),
+      sizeof(SharedData), sizeof(TriggerData), sizeof(VideoStoreData),
+      (image_buffer_count*sizeof(struct timeval)),
+      image_buffer_count, camera->ImageSize(), (image_buffer_count*camera->ImageSize()),
+     mem_size);
   mem_ptr = NULL;
 
   storage = new Storage(storage_id);
@@ -592,7 +603,7 @@ bool Monitor::connect() {
   if ( shm_id < 0 ) {
     Fatal("Can't shmget, probably not enough shared memory space free: %s", strerror(errno));
   }
-  mem_ptr = (unsigned char *)shmat( shm_id, 0, 0 );
+  mem_ptr = (unsigned char *)shmat(shm_id, 0, 0);
   if ( mem_ptr < (void *)0 ) {
     Fatal("Can't shmat: %s", strerror(errno));
   }
@@ -886,16 +897,19 @@ double Monitor::GetFPS() const {
 
   double time_diff = tvDiffSec( time2, time1 );
   if ( ! time_diff ) {
-    Error( "No diff between time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
+    Error("No diff between time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
+        time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count);
     return 0.0;
   }
   double curr_fps = image_count/time_diff;
 
   if ( curr_fps < 0.0 ) {
-    Error( "Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
+    Error("Negative FPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
+        curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count);
     return 0.0;
   } else {
-    Debug( 2, "GetFPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d", curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count );
+    Debug(2, "GetFPS %f, time_diff = %lf (%d:%ld.%ld - %d:%ld.%ld), ibc: %d",
+        curr_fps, time_diff, index2, time2.tv_sec, time2.tv_usec, index1, time1.tv_sec, time1.tv_usec, image_buffer_count);
   }
   return curr_fps;
 }
@@ -951,7 +965,7 @@ void Monitor::actionEnable() {
 
   db_mutex.lock();
   static char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "UPDATE Monitors SET Enabled = 1 WHERE Id = %d", id);
+  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %d", id);
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
   }
@@ -962,7 +976,7 @@ void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
 
   static char sql[ZM_SQL_SML_BUFSIZ];
-  snprintf(sql, sizeof(sql), "update Monitors set Enabled = 0 where Id = %d", id);
+  snprintf(sql, sizeof(sql), "UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %d", id);
   db_mutex.lock();
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
@@ -1122,7 +1136,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
   } else {
     Debug(3, "Trying to load from event");
     // Grab the most revent event image
-    std::string sql = stringtf("SELECT MAX(Id) FROM Events WHERE MonitorId=%d AND Frames > 0", id);
+    std::string sql = stringtf("SELECT MAX(`Id`) FROM `Events` WHERE `MonitorId`=%d AND `Frames` > 0", id);
     zmDbRow eventid_row;
     if ( eventid_row.fetch(sql.c_str()) ) {
       uint64_t event_id = atoll(eventid_row[0]);
@@ -1520,21 +1534,25 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Closing event %" PRIu64 ", continuous end,  alarm begins",
                   name, image_count, event->Id());
               closeEvent();
-            }
-            Debug(3, "pre-alarm-count %d", Event::PreAlarmCount());
+            } else if ( event ) {
             // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-            if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count) ) {
+            Debug(3, "pre-alarm-count in event %d, event frames %d, alarm frames %d event length %d >=? %d",
+                Event::PreAlarmCount(), event->Frames(), event->AlarmFrames(), 
+                ( timestamp->tv_sec - video_store_data->recording.tv_sec ), min_section_length
+                );
+            }
+            if ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) ) {
               shared_data->state = state = ALARM;
               // lets construct alarm cause. It will contain cause + names of zones alarmed
               std::string alarm_cause = "";
               for ( int i=0; i < n_zones; i++ ) {
                 if ( zones[i]->Alarmed() ) {
-                    alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
+                  alarm_cause = alarm_cause + "," + std::string(zones[i]->Label());
                 }
               }
               if ( !alarm_cause.empty() ) alarm_cause[0] = ' ';
               alarm_cause = cause + alarm_cause;
-              strncpy(shared_data->alarm_cause,alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+              strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                   name, image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
@@ -1545,7 +1563,9 @@ bool Monitor::Analyse() {
                 if ( analysis_fps && pre_event_count ) {
                   // If analysis fps is set,
                   // compute the index for pre event images in the dedicated buffer
-                  pre_index = pre_event_buffer_count ? image_count%pre_event_buffer_count : 0;
+                  pre_index = pre_event_buffer_count ? image_count % pre_event_buffer_count : 0;
+                  Debug(3, "pre-index %d = image_count(%d) %% pre_event_buffer_count(%d)",
+                     pre_index, image_count, pre_event_buffer_count); 
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
                   // from the current position
@@ -1554,6 +1574,8 @@ bool Monitor::Analyse() {
                     // Slot is empty, removing image from counter
                     pre_event_images--;
                   }
+                  Debug(3, "pre-index %d, pre-event_images %d",
+                     pre_index, pre_event_images); 
 
                   event = new Event(this, *(pre_event_buffer[pre_index].timestamp), cause, noteSetMap);
                 } else {
@@ -1564,7 +1586,7 @@ bool Monitor::Analyse() {
                   else
                     pre_index = ((index + image_buffer_count) - pre_event_count)%image_buffer_count;
 
-                  Debug(4,"Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d)",
+                  Debug(3, "Resulting pre_index(%d) from index(%d) + image_buffer_count(%d) - pre_event_count(%d)",
                       pre_index, index, image_buffer_count, pre_event_count);
 
                   // Seek forward the next filled slot in to the buffer (oldest data)
@@ -1619,7 +1641,10 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Gone into alert state", name, image_count);
             shared_data->state = state = ALERT;
           } else if ( state == ALERT ) {
-            if ( image_count-last_alarm_count > post_event_count ) {
+            if ( 
+                ( image_count-last_alarm_count > post_event_count )
+                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+                ) {
               Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                   name, image_count, event->Id(), event->Frames(), event->AlarmFrames());
               //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
@@ -1778,12 +1803,12 @@ void Monitor::Reload() {
   static char sql[ZM_SQL_MED_BUFSIZ];
   // This seems to have fallen out of date.
   snprintf(sql, sizeof(sql), 
-      "SELECT Function+0, Enabled, LinkedMonitors, EventPrefix, LabelFormat, "
-      "LabelX, LabelY, LabelSize, WarmupCount, PreEventCount, PostEventCount, "
-      "AlarmFrameCount, SectionLength, MinSectionLength, FrameSkip, "
-      "MotionFrameSkip, AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS, "
-      "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, "
-      "SignalCheckColour FROM Monitors WHERE Id = '%d'", id);
+      "SELECT `Function`+0, `Enabled`, `LinkedMonitors`, `EventPrefix`, `LabelFormat`, "
+      "`LabelX`, `LabelY`, `LabelSize`, `WarmupCount`, `PreEventCount`, `PostEventCount`, "
+      "`AlarmFrameCount`, `SectionLength`, `MinSectionLength`, `FrameSkip`, "
+      "`MotionFrameSkip`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`, "
+      "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, "
+      "`SignalCheckColour` FROM `Monitors` WHERE `Id` = '%d'", id);
 
   zmDbRow *row = zmDbFetchOne(sql);
   if ( !row ) {
@@ -1819,7 +1844,10 @@ void Monitor::Reload() {
     motion_frame_skip = atoi(dbrow[index++]);
     analysis_fps = dbrow[index] ? strtod(dbrow[index], NULL) : 0; index++;
     analysis_update_delay = strtoul(dbrow[index++], NULL, 0);
-    capture_delay = (dbrow[index]&&atof(dbrow[index])>0.0)?int(DT_PREC_3/atof(dbrow[index])):0; index++;
+
+    capture_max_fps = dbrow[index] ? atof(dbrow[index]) : 0.0; index++;
+    capture_delay = ( capture_max_fps > 0.0 ) ? int(DT_PREC_3/capture_max_fps) : 0;
+
     alarm_capture_delay = (dbrow[index]&&atof(dbrow[index])>0.0)?int(DT_PREC_3/atof(dbrow[index])):0; index++;
     fps_report_interval = atoi(dbrow[index++]);
     ref_blend_perc = atoi(dbrow[index++]);
@@ -1918,7 +1946,13 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
 
         db_mutex.lock();
         static char sql[ZM_SQL_SML_BUFSIZ];
-        snprintf(sql, sizeof(sql), "select Id, Name from Monitors where Id = %d and Function != 'None' and Function != 'Monitor' and Enabled = 1", link_ids[i] );
+        snprintf(sql, sizeof(sql),
+            "SELECT `Id`, `Name` FROM `Monitors`"
+            "  WHERE `Id` = %d"
+            "   AND `Function` != 'None'"
+            "   AND `Function` != 'Monitor'"
+            "   AND `Enabled`=1",
+            link_ids[i] );
         if ( mysql_query(&dbconn, sql) ) {
 					db_mutex.unlock();
           Error("Can't run query: %s", mysql_error(&dbconn));
@@ -1975,44 +2009,44 @@ int Monitor::LoadMonitors(std::string sql, Monitor **&monitors, Purpose purpose)
 #if ZM_HAS_V4L
 int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose) {
 
-  std::string sql = load_monitor_sql + " WHERE Function != 'None' AND Type = 'Local'";
+  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Local'";
 
   if ( device[0] )
-    sql += " AND Device='" + std::string(device) + "'";
+    sql += " AND `Device`='" + std::string(device) + "'";
   if ( staticConfig.SERVER_ID )
-    sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
+    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   return LoadMonitors(sql, monitors, purpose);
 } // end int Monitor::LoadLocalMonitors(const char *device, Monitor **&monitors, Purpose purpose)
 #endif // ZM_HAS_V4L
 
 int Monitor::LoadRemoteMonitors(const char *protocol, const char *host, const char *port, const char *path, Monitor **&monitors, Purpose purpose) {
-  std::string sql = load_monitor_sql + " WHERE Function != 'None' AND Type = 'Remote'";
+  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Remote'";
   if ( staticConfig.SERVER_ID )
-    sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
+    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
 
   if ( protocol )
-    sql += stringtf(" AND Protocol = '%s' and Host = '%s' and Port = '%s' and Path = '%s'", protocol, host, port, path);
+    sql += stringtf(" AND `Protocol` = '%s' AND `Host` = '%s' AND `Port` = '%s' AND `Path` = '%s'", protocol, host, port, path);
   return LoadMonitors(sql, monitors, purpose);
 } // end int Monitor::LoadRemoteMonitors
 
 int Monitor::LoadFileMonitors(const char *file, Monitor **&monitors, Purpose purpose) {
-  std::string sql = load_monitor_sql + " WHERE Function != 'None' AND Type = 'File'";
+  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'File'";
   if ( file[0] )
-    sql += " AND Path='" + std::string(file) + "'";
+    sql += " AND `Path`='" + std::string(file) + "'";
   if ( staticConfig.SERVER_ID ) {
-    sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
+    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   }
   return LoadMonitors(sql, monitors, purpose);
 } // end int Monitor::LoadFileMonitors
 
 #if HAVE_LIBAVFORMAT
 int Monitor::LoadFfmpegMonitors(const char *file, Monitor **&monitors, Purpose purpose) {
-  std::string sql = load_monitor_sql + " WHERE Function != 'None' AND Type = 'Ffmpeg'";
+  std::string sql = load_monitor_sql + " WHERE `Function` != 'None' AND `Type` = 'Ffmpeg'";
   if ( file[0] )
-    sql += " AND Path = '" + std::string(file) + "'";
+    sql += " AND `Path` = '" + std::string(file) + "'";
 
   if ( staticConfig.SERVER_ID ) {
-    sql += stringtf(" AND ServerId=%d", staticConfig.SERVER_ID);
+    sql += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   }
   return LoadMonitors(sql, monitors, purpose);
 } // end int Monitor::LoadFfmpegMonitors
@@ -2048,7 +2082,11 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
 
   double analysis_fps = dbrow[col] ? strtod(dbrow[col], NULL) : 0; col++;
   unsigned int analysis_update_delay = strtoul(dbrow[col++], NULL, 0);
-  double capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
+
+  double capture_max_fps = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
+  double capture_delay = ( capture_max_fps > 0.0 ) ? int(DT_PREC_3/capture_max_fps) : 0;
+
+  Debug(1,"Capture Delay!? %.3f", capture_delay);
   unsigned int alarm_capture_delay = (dbrow[col]&&atof(dbrow[col])>0.0)?int(DT_PREC_3/atof(dbrow[col])):0; col++;
 
   const char *device = dbrow[col]; col++;
@@ -2087,6 +2125,9 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
   int palette = atoi(dbrow[col]); col++;
   Orientation orientation = (Orientation)atoi(dbrow[col]); col++;
   int deinterlacing = atoi(dbrow[col]); col++;
+  std::string decoder_hwaccel_name = dbrow[col] ? dbrow[col] : ""; col++;
+  std::string decoder_hwaccel_device = dbrow[col] ? dbrow[col] : ""; col++;
+
   bool rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
 
   int savejpegs = atoi(dbrow[col]); col++;
@@ -2223,8 +2264,10 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       hue,
       colour,
       purpose==CAPTURE,
-      record_audio
-    );
+      record_audio,
+      decoder_hwaccel_name,
+      decoder_hwaccel_device
+      );
 #endif // HAVE_LIBAVFORMAT
   } else if ( type == "NVSocket" ) {
       camera = new RemoteCameraNVSocket(
@@ -2297,6 +2340,8 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       camera,
       orientation,
       deinterlacing,
+      decoder_hwaccel_name,
+      decoder_hwaccel_device,
       savejpegs,
       videowriter,
       encoderparams,
@@ -2315,6 +2360,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
       min_section_length,
       frame_skip,
       motion_frame_skip,
+      capture_max_fps,
       analysis_fps,
       analysis_update_delay,
       capture_delay,
@@ -2340,7 +2386,7 @@ Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose) {
 } // end Monitor *Monitor::Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose)
 
 Monitor *Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
-  std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", p_id);
+  std::string sql = load_monitor_sql + stringtf(" WHERE `Id`=%d", p_id);
 
   zmDbRow dbrow;
   if ( ! dbrow.fetch(sql.c_str()) ) {
@@ -2825,8 +2871,8 @@ std::vector<Group *> Monitor::Groups() {
   // At the moment, only load groups once.
   if ( !groups.size() ) {
     std::string sql = stringtf(
-        "SELECT Id,ParentId,Name FROM Groups WHERE Groups.Id IN "
-        "(SELECT GroupId FROM Groups_Monitors WHERE MonitorId=%d)",id);
+        "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups.Id` IN "
+        "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)",id);
     MYSQL_RES *result = zmDbFetch(sql.c_str());
     if ( !result ) {
       Error("Can't load groups: %s", mysql_error(&dbconn));

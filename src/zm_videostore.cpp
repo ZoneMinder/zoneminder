@@ -20,12 +20,13 @@
 
 #define __STDC_FORMAT_MACROS 1
 
-#include <cinttypes>
-#include <stdlib.h>
-#include <string.h>
 
 #include "zm.h"
 #include "zm_videostore.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <cinttypes>
 
 extern "C" {
 #include "libavutil/time.h"
@@ -162,7 +163,7 @@ VideoStore::VideoStore(
 
   if ( !video_out_ctx->codec_tag ) {
     Debug(2, "No codec_tag");
-    if ( 
+    if (
         !oc->oformat->codec_tag
         ||
         av_codec_get_id(oc->oformat->codec_tag, video_in_ctx->codec_tag) == video_out_ctx->codec_id
@@ -178,17 +179,17 @@ VideoStore::VideoStore(
   video_out_stream->time_base = video_in_stream->time_base;
   if ( video_in_stream->avg_frame_rate.num ) {
     Debug(3,"Copying avg_frame_rate (%d/%d)",
-        video_in_stream->avg_frame_rate.num, 
-        video_in_stream->avg_frame_rate.den 
+        video_in_stream->avg_frame_rate.num,
+        video_in_stream->avg_frame_rate.den
         );
     video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
   }
   if ( video_in_stream->r_frame_rate.num ) {
     Debug(3,"Copying r_frame_rate (%d/%d) to out (%d/%d)",
-        video_in_stream->r_frame_rate.num, 
+        video_in_stream->r_frame_rate.num,
         video_in_stream->r_frame_rate.den ,
-        video_out_stream->r_frame_rate.num, 
-        video_out_stream->r_frame_rate.den 
+        video_out_stream->r_frame_rate.num,
+        video_out_stream->r_frame_rate.den
         );
     video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
   }
@@ -301,7 +302,7 @@ VideoStore::VideoStore(
         audio_out_stream = NULL;
         return;
       }
-#else 
+#else
       audio_out_stream = avformat_new_stream(oc, audio_out_codec);
       audio_out_ctx = audio_out_stream->codec;
 #endif
@@ -653,7 +654,7 @@ bool VideoStore::setup_resampler() {
 #else
 // codec is already open in ffmpeg_camera
   audio_in_ctx = audio_in_stream->codec;
-  audio_in_codec = (AVCodec *)audio_in_ctx->codec;
+  audio_in_codec = reinterpret_cast<AVCodec *>audio_in_ctx->codec;
   //audio_in_codec = avcodec_find_decoder(audio_in_stream->codec->codec_id);
 #endif
 
@@ -867,7 +868,7 @@ bool VideoStore::setup_resampler() {
       NULL, audio_out_ctx->channels,
       audio_out_ctx->frame_size,
       audio_out_ctx->sample_fmt, 0);
-  converted_in_samples = (uint8_t *)av_malloc(audioSampleBuffer_size);
+  converted_in_samples = reinterpret_cast<uint8_t *>(av_malloc(audioSampleBuffer_size));
 
   if ( !converted_in_samples ) {
     Error("Could not allocate converted in sample pointers");
@@ -921,7 +922,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
         duration
         );
     if ( duration <= 0 ) {
-      // Why are we setting the duration to 1? 
+      // Why are we setting the duration to 1?
       duration = ipkt->duration ? ipkt->duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
     }
   }
@@ -971,7 +972,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
      // && ( ipkt->dts >= 0 ) ) {
       // This is the first packet.
       opkt.dts = 0;
-      Debug(1, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
+      Debug(2, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
       video_first_dts = ipkt->dts;
 #if 1
       if ( audio_in_stream ) {
@@ -1137,7 +1138,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     } else {
       opkt.dts = AV_NOPTS_VALUE;
     }
-#else 
+#else
   opkt.pts = av_rescale_q(
             opkt.pts,
             audio_out_ctx->time_base,
@@ -1231,10 +1232,10 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     write_packet(&opkt, audio_out_stream);
 
     zm_av_packet_unref(&opkt);
-  } // end if encoding or copying
+  }  // end if encoding or copying
 
   return 0;
-} // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)
+}  // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)
 
 int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   pkt->pos = -1;
@@ -1267,7 +1268,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   } else {
     Debug(2, "Success writing packet");
   }
-} // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
+}  // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
 
 int VideoStore::resample_audio() {
   // Resample the in_frame into the audioSampleBuffer until we process the whole
@@ -1303,7 +1304,7 @@ int VideoStore::resample_audio() {
 
   // AAC requires 1024 samples per encode.  Our input tends to be something else, so need to buffer them.
   if ( frame_size > av_audio_fifo_size(fifo) ) {
-    Debug(1, "Not enough samples in fifo for AAC codec frame_size %d > fifo size %d", 
+    Debug(1, "Not enough samples in fifo for AAC codec frame_size %d > fifo size %d",
          frame_size, av_audio_fifo_size(fifo));
     return 0;
   }
@@ -1354,4 +1355,4 @@ int VideoStore::resample_audio() {
     return 0;
 #endif
   return 1;
-} // end int VideoStore::resample_audio
+}  // end int VideoStore::resample_audio

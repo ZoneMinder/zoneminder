@@ -142,16 +142,14 @@ class Event extends ZM_Object {
         # Assumption: All events have a start time
         $start_date = date_parse($this->{'StartTime'});
         if ( ! $start_date ) {
-          Error('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.');
-          return;
+          throw new Exception('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.');
         }
         $start_date['year'] = $start_date['year'] % 100;
 
         # So this is because ZM creates a link under the day pointing to the time that the event happened. 
         $link_path = $this->Link_Path();
         if ( ! $link_path ) {
-          Error('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
-          return;
+          throw new Exception('Unable to determine link path for event '.$this->{'Id'}.' not deleting files.');
         }
 
         $Storage = $this->Storage();
@@ -159,8 +157,7 @@ class Event extends ZM_Object {
 
         if ( $id_files = glob($eventlink_path) ) {
           if ( ! $eventPath = readlink($id_files[0]) ) {
-            Error("Unable to read link at $id_files[0]");
-            return;
+            throw new Exception("Unable to read link at $id_files[0]");
           }
           # I know we are using arrays here, but really there can only ever be 1 in the array
           $eventPath = preg_replace('/\.'.$this->{'Id'}.'$/', $eventPath, $id_files[0]);
@@ -179,8 +176,7 @@ class Event extends ZM_Object {
       } else {
         $eventPath = $this->Path();
         if ( ! $eventPath ) {
-          Error('No event Path in Event delete. Not deleting');
-          return;
+          throw new Exception('No event Path in Event delete. Not deleting');
         }
         deletePath($eventPath);
         if ( $this->SecondaryStorageId() ) {
@@ -198,6 +194,9 @@ class Event extends ZM_Object {
       dbQuery('DELETE FROM Events WHERE Id = ?', array($this->{'Id'}));
       $dbConn->commit();
     } catch (PDOException $e) {
+      $dbConn->rollback();
+    } catch (Exception $e) {
+      Error($e->getMessage());
       $dbConn->rollback();
     }
   } # end Event->delete

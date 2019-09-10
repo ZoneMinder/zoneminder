@@ -24,6 +24,7 @@ if ( !canView('Events') ) {
 }
 
 require_once('includes/Frame.php');
+require_once('includes/Frame_Data.php');
 
 $eid = validInt($_REQUEST['eid']);
 if ( !empty($_REQUEST['fid']) )
@@ -47,8 +48,6 @@ $firstFid = 1;
 $prevFid = $fid-1;
 $nextFid = $fid+1;
 $lastFid = $maxFid;
-
-$alarmFrame = $Frame->Type() == 'Alarm';
 
 if ( isset( $_REQUEST['scale'] ) ) {
   $scale = validNum($_REQUEST['scale']);
@@ -88,9 +87,12 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
     <div id="header">
     <form>
       <div id="headerButtons">
-        <?php if ( ZM_RECORD_EVENT_STATS && $alarmFrame ) { echo makePopupLink( '?view=stats&amp;eid='.$Event->Id().'&amp;fid='.$Frame->FrameId(), 'zmStats', 'stats', translate('Stats') ); } ?>
-        <?php if ( canEdit( 'Events' ) ) { ?><a href="?view=none&amp;action=delete&amp;markEid=<?php echo $Event->Id() ?>"><?php echo translate('Delete') ?></a><?php } ?>
-        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
+<?php
+  if ( canEdit('Events') ) {
+    echo '<button type="button" id="delete_button">'.translate('Delete').'</button>';
+  }
+?>
+        <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
       </div>
       <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect('scale', $scales); ?></div>
       <h2><?php echo translate('Frame') ?> <?php echo $Event->Id().'-'.$Frame->FrameId().' ('.$Frame->Score().')' ?></h2>
@@ -104,7 +106,7 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
 <?php if ( $imageData['hasAnalImage'] ) {
  echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s">', $Event->Id(), $Frame->FrameId(), $scale, ( $show=='anal'?'capt':'anal' ) );
 } ?>
-<img id="frameImg" src="<?php echo validHtmlStr($Frame->getImageSrc($show=='anal'?'analyse':'capture')) ?>" width="<?php echo reScale($Event->Width(), $Event->DefaultScale(), $scale) ?>" height="<?php echo reScale($Event->Height(), $Event->DefaultScale(), $scale) ?>" alt="<?php echo $Frame->EventId().'-'.$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
+<img id="frameImg" src="<?php echo validHtmlStr($Frame->getImageSrc($show=='anal'?'analyse':'capture')) ?>" width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>" height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>" alt="<?php echo $Frame->EventId().'-'.$Frame->FrameId() ?>" class="<?php echo $imageData['imageClass'] ?>"/>
 <?php if ( $imageData['hasAnalImage'] ) { ?></a><?php } ?>
 
       </p>
@@ -131,6 +133,80 @@ if ( ZM_PLATERECOGNIZER_ENABLE ) {
       <p id="refImagePath"><?php echo $rImagePath ?></p>
       <p id="refImage"><img src="<?php echo viewImagePath( $rImagePath ) ?>" width="<?php echo reScale( $Event->Width(), $Monitor->DefaultScale(), $scale ) ?>" height="<?php echo reScale( $Event->Height(), $Monitor->DefaultScale(), $scale ) ?>" class="<?php echo $imageData['imageClass'] ?>"/></p>
 <?php } ?>
+<div id="AnalysisData">
+  <fieldset><legend><?php echo translate('AnalysisData') ?></legend>
+      <?php
+$all_data = $Frame->Data();
+foreach ( $all_data as $data ) {
+  $Data = new ZM\Frame_Data($data);
+  echo $Data->to_string().'<br/>';
+}
+      ?>
+  </fieldset>
+</div>
+<div id="Statistics">
+  <fieldset><legend><?php echo translate('Statistics') ?></legend>
+<?php
+$eid = validInt($_REQUEST['eid']);
+$fid = validInt($_REQUEST['fid']);
+
+$sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,M.Name AS MonitorName FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
+$stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
+?>
+       <table>
+          <thead>
+            <tr>
+              <th class="colZone"><?php echo translate('Zone') ?></th>
+              <th class="colPixelDiff"><?php echo translate('PixelDiff') ?></th>
+              <th class="colAlarmPx"><?php echo translate('AlarmPx') ?></th>
+              <th class="colFilterPx"><?php echo translate('FilterPx') ?></th>
+              <th class="colBlobPx"><?php echo translate('BlobPx') ?></th>
+              <th class="colBlobs"><?php echo translate('Blobs') ?></th>
+              <th class="colBlobSizes"><?php echo translate('BlobSizes') ?></th>
+              <th class="colAlarmLimits"><?php echo translate('AlarmLimits') ?></th>
+              <th class="colScore"><?php echo translate('Score') ?></th>
+            </tr>
+          </thead>
+          <tbody>
+<?php
+if ( count($stats) ) {
+    foreach ( $stats as $stat ) {
+?>
+            <tr>
+              <td class="colZone"><?php echo validHtmlStr($stat['ZoneName']) ?></td>
+              <td class="colPixelDiff"><?php echo validHtmlStr($stat['PixelDiff']) ?></td>
+              <td class="colAlarmPx"><?php echo sprintf('%d (%d%%)', $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']) ) ?></td>
+              <td class="colFilterPx"><?php echo sprintf('%d (%d%%)', $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']) ) ?></td>
+              <td class="colBlobPx"><?php echo sprintf('%d (%d%%)', $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']) ) ?></td>
+              <td class="colBlobs"><?php echo validHtmlStr($stat['Blobs']) ?></td>
+<?php
+if ( $stat['Blobs'] > 1 ) {
+?>
+              <td class="colBlobSizes"><?php echo sprintf('%d-%d (%d%%-%d%%)', $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']) ) ?></td>
+<?php
+} else {
+?>
+              <td class="colBlobSizes"><?php echo sprintf('%d (%d%%)', $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area'] ) ?></td>
+<?php
+}
+?>
+              <td class="colAlarmLimits"><?php echo validHtmlStr($stat['MinX'].','.$stat['MinY'].'-'.$stat['MaxX'].','.$stat['MaxY']) ?></td>
+              <td class="colScore"><?php echo $stat['Score'] ?></td>
+            </tr>
+<?php
+    } // end foreach stat
+} else {
+?>
+            <tr>
+              <td class="rowNoStats" colspan="9"><?php echo translate('NoStatisticsRecorded') ?></td>
+            </tr>
+<?php
+}
+?>
+            </tbody>
+          </table>
+        </fieldset>
+      </div><!--Statistics-->
     </div>
   </div>
 </body>

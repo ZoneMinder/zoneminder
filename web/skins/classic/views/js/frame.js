@@ -24,16 +24,21 @@ function changeScale() {
     img.css('width', newWidth + 'px');
     img.css('height', newHeight + 'px');
   }
-  Cookie.write( 'zmWatchScale', scale, {duration: 10*365} );
+  Cookie.write('zmWatchScale', scale, {duration: 10*365});
   $j.each(controlsLinks, function(k, anchor) { //Make frames respect scale choices
     anchor.prop('href', anchor.prop('href').replace(/scale=.*&/, 'scale=' + scale + '&'));
   });
 }
 
-if (scale == 'auto') {
+if ( scale == 'auto' ) {
   $j(document).ready(changeScale);
+}
+
+function deleteClicked() {
+  window.location.href = '?view=frame&action=delete&eid='+eid+'&fid='+fid;
 }
 
 document.addEventListener('DOMContentLoaded', function onDCL() {
   document.getElementById('scale').addEventListener('change', changeScale);
+  document.getElementById('delete_button').addEventListener('click', deleteClicked);
 });

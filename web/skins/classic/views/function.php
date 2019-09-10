@@ -23,34 +23,34 @@ if ( !canEdit('Monitors') ) {
   return;
 }
 
-$monitor = dbFetchMonitor($_REQUEST['mid']);
+$monitor = ZM\Monitor::find_one(array('Id'=>$_REQUEST['mid']));
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Function').' - '.validHtmlStr($monitor['Name']));
+xhtmlHeaders(__FILE__, translate('Function').' - '.validHtmlStr($monitor->Name()));
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Function').' - '.validHtmlStr($monitor['Name']) ?></h2>
+      <h2><?php echo translate('Function').' - '.validHtmlStr($monitor->Name()) ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="function"/>
         <input type="hidden" name="action" value="function"/>
-        <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
+        <input type="hidden" name="mid" value="<?php echo $monitor->Id() ?>"/>
         <p>
           <select name="newFunction">
 <?php
 foreach ( getEnumValues('Monitors', 'Function') as $optFunction ) {
 ?>
-            <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $monitor['Function'] ) { ?> selected="selected"<?php } ?>><?php echo translate('Fn'.$optFunction) ?></option>
+            <option value="<?php echo $optFunction ?>"<?php if ( $optFunction == $monitor->Function() ) { ?> selected="selected"<?php } ?>><?php echo translate('Fn'.$optFunction) ?></option>
 <?php
 }
 ?>
           </select>
           <label for="newEnabled"><?php echo translate('Enabled') ?></label>
-          <input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor['Enabled']) ) { ?> checked="checked"<?php } ?>/>
+          <input type="checkbox" name="newEnabled" id="newEnabled" value="1"<?php if ( !empty($monitor->Enabled()) ) { ?> checked="checked"<?php } ?>/>
         </p>
         <div id="contentButtons">
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>

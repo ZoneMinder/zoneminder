@@ -414,6 +414,7 @@ function getEventDefaultVideoPath( $event ) {
 }
 
 function deletePath( $path ) {
+  ZM\Logger::Debug("Deleting $path");
   if ( is_dir( $path ) ) {
     system( escapeshellcmd( 'rm -rf '.$path ) );
   } else if ( file_exists($path) ) {
@@ -973,13 +974,6 @@ Logger::Debug("generating Video $command: result($result outptu:(".implode("\n",
   return( $status?"":rtrim($result) );
 }
 
-function executeFilter( $filter_id ) {
-  $command = ZM_PATH_BIN.'/zmfilter.pl --filter_id '.escapeshellarg($filter_id);
-  $result = exec($command, $output, $status);
-  dbQuery('DELETE FROM Filters WHERE Id=?', array($filter_id));
-  return $status;
-}
-
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
 function reScale( $dimension, $dummy ) {
@@ -1213,6 +1207,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           case 'DiskSpace':
           case 'MonitorId':
           case 'StorageId':
+          case 'SecondaryStorageId':
           case 'Length':
           case 'Frames':
           case 'AlarmFrames':
@@ -1478,7 +1473,7 @@ function sortHeader( $field, $querySep='&amp;' ) {
     'sort_field='.$field,
     'sort_asc='.($_REQUEST['sort_field'] == $field ? !$_REQUEST['sort_asc'] : 0),
     'limit='.validInt($_REQUEST['limit']),
-    ($_REQUEST['eid'] ? 'eid='.$_REQUEST['eid'] : '' ),
+    (isset($_REQUEST['eid']) ? 'eid='.$_REQUEST['eid'] : '' ),
   ));
 }
 
@@ -2400,13 +2395,13 @@ function check_timezone() {
                #");
 
   if ( $sys_tzoffset != $php_tzoffset )
-    ZM\Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
+    ZM\Error("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
 
   if ( $sys_tzoffset != $mysql_tzoffset )
     ZM\Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");
 
   if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone')))
-    ZM\Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+    ZM\Error("ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone");
 
 }
 

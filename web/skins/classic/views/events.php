@@ -28,9 +28,9 @@ require_once('includes/Event.php');
 $countSql = 'SELECT count(E.Id) AS EventCount FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId) WHERE';
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if ( $user['MonitorIds'] ) {
-	$user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
-	$countSql .= $user_monitor_ids;
-	$eventsSql .= $user_monitor_ids;
+  $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
+  $countSql .= $user_monitor_ids;
+  $eventsSql .= $user_monitor_ids;
 } else {
   $countSql .= ' 1';
   $eventsSql .= ' 1';
@@ -192,24 +192,23 @@ while ( $event_row = dbFetchNext($results) ) {
             <tr<?php if ($event->Archived()) echo ' class="archived"' ?>>
               <td class="colId"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$event->Id().($event->Archived()?'*':'') ?></a></td>
               <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
-              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->Monitorid(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
+              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
               <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?>
-                    <?php
-                        # display notes as small text
-                        if ($event->Notes()) {
-                            # if notes include detection objects, then link it to objdetect.jpg
-                            if (strpos($event->Notes(),"detected:")!== false){
-                             # make a link
-                                echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
-                                     array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
-                                     "<div class=\"small text-nowrap text-muted\"><u>".$event->Notes()."</u></div>");
-                            }
-                            elseif ($event->Notes() != 'Forced Web: ') {
-                                echo "<br/><div class=\"small text-nowrap text-muted\">".$event->Notes()."</div>";
-                            }
-                        }
-                ?>
-
+							<?php
+# display notes as small text
+							if ($event->Notes()) {
+# if notes include detection objects, then link it to objdetect.jpg
+								if (strpos($event->Notes(),'detected:')!== false){
+# make a link
+									echo makePopupLink( '?view=image&amp;eid='.$event->Id().'&amp;fid=objdetect', 'zmImage',
+											array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)),
+											"<div class=\"small text-nowrap text-muted\"><u>".$event->Notes()."</u></div>");
+								}
+								elseif ($event->Notes() != 'Forced Web: ') {
+									echo "<br/><div class=\"small text-nowrap text-muted\">".$event->Notes()."</div>";
+								}
+							}
+?>
               </td>
               <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) . 
 ( $event->EndTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) : '' ) ?>
@@ -230,7 +229,18 @@ while ( $event_row = dbFetchNext($results) ) {
 <?php
   if ( count($storage_areas) > 1 ) { 
 ?>
-              <td class="colStorage"><?php echo isset($StorageById[$event->StorageId()]) ? $StorageById[$event->StorageId()]->Name() : '' ?></td>
+              <td class="colStorage">
+<?php
+    if ( $event->StorageId() ) {
+      echo isset($StorageById[$event->StorageId()]) ? $StorageById[$event->StorageId()]->Name() : 'Unknown Storage Id: '.$event->StorageId();
+    } else {
+      echo 'Default';
+    }
+    if ( $event->SecondaryStorageId() ) {
+      echo '<br/>'.(isset($StorageById[$event->SecondaryStorageId()]) ? $StorageById[$event->SecondaryStorageId()]->Name() : 'Unknown Storage Id '.$event->SecondaryStorageId());
+    }
+ ?>
+</td>
           
 <?php
   }
@@ -247,7 +257,7 @@ while ( $event_row = dbFetchNext($results) ) {
       $streamSrc = $event->getStreamSrc(array(
         'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single'));
 
-      $imgHtml = '<img id="thumbnail'.$event->id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($event->ThumbnailWidth()) .'px;height:'. validInt($event->ThumbnailHeight()).'px;" stream_src="'.$streamSrc.'" still_src="'.$imgSrc.'"/>';
+      $imgHtml = '<img id="thumbnail'.$event->Id().'" src="'.$imgSrc.'" alt="'. validHtmlStr('Event '.$event->Id()) .'" style="width:'. validInt($event->ThumbnailWidth()) .'px;height:'. validInt($event->ThumbnailHeight()).'px;" stream_src="'.$streamSrc.'" still_src="'.$imgSrc.'"/>';
       echo '<a href="?view=event&amp;eid='. $event->Id().$filterQuery.$sortQuery.'&amp;page=1">'.$imgHtml.'</a>';
       echo '</td>';
   } // end if ZM_WEB_LIST_THUMBS

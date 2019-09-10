@@ -83,6 +83,9 @@ if ( $action == 'monitor' ) {
       dbQuery('UPDATE Monitors SET '.implode(', ', $changes).' WHERE Id=?', array($mid));
       // Groups will be added below
       if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
+				// creating symlinks when symlink already exists reports errors, but is perfectly ok
+				error_reporting(0);
+
         $OldStorage = new ZM\Storage($monitor['StorageId']);
         $saferOldName = basename($monitor['Name']);
         if ( file_exists($OldStorage->Path().'/'.$saferOldName) )
@@ -95,8 +98,11 @@ if ( $action == 'monitor' ) {
           }
         }
         $saferNewName = basename($_REQUEST['newMonitor']['Name']);
-        if ( !symlink($NewStorage->Path().'/'.$mid, $NewStorage->Path().'/'.$saferNewName) ) {
-          ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
+				$link_path = $NewStorage->Path().'/'.$saferNewName;
+        if ( !symlink($NewStorage->Path().'/'.$mid, $link_path) ) {
+					if ( ! ( file_exists($link_path) and is_link($link_path) ) ) {
+            ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
+					}
         }
       }
       if ( isset($changes['Width']) || isset($changes['Height']) ) {

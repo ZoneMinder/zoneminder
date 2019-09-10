@@ -8,16 +8,11 @@ class ZM_Object {
 
   public function __construct($IdOrRow = NULL) {
     $class = get_class($this);
-    global $object_cache;
-    if ( ! isset($object_cache[$class]) )
-      $object_cache[$class] = array();
-    $cache = $object_cache[$class];
-
-    $table = $class::$table;
 
     $row = NULL;
     if ( $IdOrRow ) {
       if ( is_integer($IdOrRow) or ctype_digit($IdOrRow) ) {
+        $table = $class::$table;
         $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($IdOrRow));
         if ( !$row ) {
           Error("Unable to load $class record for Id=$IdOrRow");
@@ -25,17 +20,24 @@ class ZM_Object {
       } elseif ( is_array($IdOrRow) ) {
         $row = $IdOrRow;
       }
-    } # end if isset($IdOrRow)
-    if ( $row ) {
-      foreach ($row as $k => $v) {
-        $this->{$k} = $v;
+
+      if ( $row ) {
+        global $object_cache;
+        if ( ! isset($object_cache[$class]) ) {
+          $object_cache[$class] = array();
+        }
+        $cache = &$object_cache[$class];
+
+        foreach ($row as $k => $v) {
+          $this->{$k} = $v;
+        }
+        $cache[$row['Id']] = $this;
       }
-      $cache[$row['Id']] = $this;
     } else {
       # Set defaults
       foreach ( $this->defaults as $k => $v ) $this->{$k} = $v;
-    }
-  }
+    } # end if isset($IdOrRow)
+  } # end function __construct
 
   public function __call($fn, array $args){
     if ( count($args) ) {
@@ -48,7 +50,7 @@ class ZM_Object {
         return $this->defaults{$fn};
       } else {
         $backTrace = debug_backtrace();
-        Warning("Unknown function call Sensor->$fn from ".print_r($backTrace,true));
+        Warning("Unknown function call Object->$fn from ".print_r($backTrace,true));
       }
     }
   }
@@ -98,13 +100,13 @@ class ZM_Object {
       }
     }
     return $results;
-  } # end public function find()
+  } # end public function _find()
 
   public static function _find_one($class, $parameters = array(), $options = array() ) {
     global $object_cache;
     if ( ! isset($object_cache[$class]) )
       $object_cache[$class] = array();
-    $cache = $object_cache[$class];
+    $cache = &$object_cache[$class];
     if ( 
         ( count($parameters) == 1 ) and
         isset($parameters['Id']) and
@@ -162,7 +164,7 @@ class ZM_Object {
         } else if ( is_null($v) ) {
           $this->{$k} = $v;
         } else {
-          Error( "Unknown type $k => $v of var " . gettype( $v ) );
+          Error("Unknown type $k => $v of var " . gettype($v));
           $this->{$k} = $v;
         }
       } # end if method_exists
@@ -175,7 +177,7 @@ class ZM_Object {
 
       if ( method_exists($this, $field) ) {
         $old_value = $this->$field();
-        Logger::Debug("Checking method $field () ".print_r($old_value,true)." => " . print_r($value,true));
+        Logger::Debug("Checking method $field () ".print_r($old_value,true).' => ' . print_r($value,true));
         if ( is_array($old_value) ) {
           $diff = array_recursive_diff($old_value, $value);
           Logger::Debug("Checking method $field () diff is".print_r($diff,true));
@@ -186,13 +188,13 @@ class ZM_Object {
           $changes[$field] = $value;
         }
       } else if ( array_key_exists($field, $this) ) {
-        Logger::Debug("Checking field $field => ".$this->{$field} . " ?= " .$value);
+        Logger::Debug("Checking field $field => ".$this->{$field} . ' ?= ' .$value);
         if ( $this->{$field} != $value ) {
           $changes[$field] = $value;
         }
       } else if ( array_key_exists($field, $this->defaults) ) {
 
-        Logger::Debug("Checking default $field => ".$this->defaults[$field] . " " .$value);
+        Logger::Debug("Checking default $field => ".$this->defaults[$field] . ' ' .$value);
         if ( $this->defaults[$field] != $value ) {
           $changes[$field] = $value;
         }
@@ -250,5 +252,13 @@ class ZM_Object {
       unset($object_cache[$class][$this->{'Id'}]);
   }
 
-} # end class Sensor Action
+  public function lock() {
+    $class = get_class($this);
+    $table = $class::$table;
+    $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($this->Id()));
+    if ( !$row ) {
+      Error("Unable to lock $class record for Id=".$this->Id());
+    }
+  }
+} # end class Object
 ?>

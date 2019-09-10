@@ -50,14 +50,6 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
       $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
       $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
       $_REQUEST['filter']['Query']['limit'] = validInt($_REQUEST['filter']['Query']['limit']);
-      if ( $action == 'execute' ) {
-        $_REQUEST['filter']['Name'] = '_TempFilter'.time();
-        unset($_REQUEST['Id']);
-        #$tempFilterName = '_TempFilter'.time();
-        #$sql .= ' Name = \''.$tempFilterName.'\'';
-      #} else {
-        #$sql .= ' Name = '.dbEscape($_REQUEST['filter']['Name']);
-      }
       
       $_REQUEST['filter']['AutoCopy'] = empty($_REQUEST['filter']['AutoCopy']) ? 0 : 1;
       $_REQUEST['filter']['AutoMove'] = empty($_REQUEST['filter']['AutoMove']) ? 0 : 1;
@@ -102,19 +94,28 @@ if ( isset($_REQUEST['object']) and ( $_REQUEST['object'] == 'filter' ) ) {
         if ( $filter->Background() )
           $filter->control('stop');
       } else {
-        # COuld be execute
-        if ( 0 ) {
-        dbQuery('INSERT INTO Filters SET'.$sql);
-        $_REQUEST['Id'] = dbInsertId();
-        $filter = new ZM\Filter($_REQUEST['Id']);
-        }
+
+        if ( $action == 'execute' ) {
+          if ( count($changes) ) {
+            $filter->Name('_TempFilter'.time());
+            $filter->Id(null);
+          }
+        } else if ( $action == 'SaveAs' ) {
+					$filter->Id(null);
+				}
         $filter->save($changes);
+
+				// We update the request id so that the newly saved filter is auto-selected
+				$_REQUEST['Id'] = $filter->Id();
       }
       if ( $filter->Background() )
         $filter->control('start');
 
       if ( $action == 'execute' ) {
-        executeFilter($_REQUEST['Id']);
+        $filter->execute();
+        if ( count($changes) )
+          $filter->delete();
+
         $view = 'events';
       }
 

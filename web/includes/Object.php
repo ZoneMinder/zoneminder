@@ -219,7 +219,7 @@ class ZM_Object {
     $table = $class::$table;
 
     if ( $new_values ) {
-      Logger::Debug("New values" . print_r($new_values,true));
+      Logger::Debug('New values' . print_r($new_values,true));
       $this->set($new_values);
     }
 

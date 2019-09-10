@@ -29,7 +29,7 @@ class Frame extends ZM_Object {
   }
 
   public function Event() {
-    return Event->find_one(array('Id'=>$this->{'EventId'}));
+    return Event::find_one(array('Id'=>$this->{'EventId'}));
   }
 
   public function getImageSrc( $show='capture' ) {
@@ -43,5 +43,34 @@ class Frame extends ZM_Object {
       $this->Event()->Path(), $this->FrameId(), $show
     );
   }
+
+  public function Data_json() {
+    if ( func_num_args( ) ) {
+      $this->{'Data_json'} = func_get_arg(0);;
+      $this->{'Data'} = jsonDecode($this->{'Data_json'});
+    }
+    return $this->{'Data_json'};
+  }
+
+  public function Data() {
+    if ( func_num_args( ) ) {
+      $this->{'Data'} = func_get_arg(0);;
+      $this->{'Data_json'} = jsonEncode($this->{'Data'});
+    }
+    if ( !array_key_exists('Data', $this) ) {
+      if ( array_key_exists('Data_json', $this) and $this->{'Data_json'} ) {
+        $this->{'Data'} = jsonDecode($this->{'Data_json'});
+      } else {
+        $this->{'Data'} = array();
+      }
+    } else {
+      if ( !is_array($this->{'Data'}) ) {
+        # Handle existence of both Data_json and Data in the row
+        $this->{'Data'} = jsonDecode($this->{'Data_json'});
+      }
+    }
+    return $this->{'Data'};
+  }
+
 } # end class
 ?>

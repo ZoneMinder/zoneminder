@@ -41,18 +41,18 @@ function execONVIF( $cmd ) {
         Please the following command from a command line for more information:<br/><br/>$shell_command"
         );
   } else {
-    ZM\Logger::Debug( "Results from probe: " . implode( '<br/>', $output ) );
+    ZM\Logger::Debug('Results from probe: '.implode('<br/>', $output));
   }
 
   return $output;
 }
 
-function probeCameras( $localIp ) {
+function probeCameras($localIp) {
   $cameras = array();
-  if ( $lines = @execONVIF( 'probe' ) ) {
+  if ( $lines = @execONVIF('probe') ) {
     foreach ( $lines as $line ) {
-      $line = rtrim( $line );
-      if ( preg_match( '|^(.+),(.+),\s\((.*)\)$|', $line, $matches ) ) {
+      $line = rtrim($line);
+      if ( preg_match('|^(.+),(.+),\s\((.*)\)$|', $line, $matches) ) {
         $device_ep = $matches[1];
         $soapversion = $matches[2];
         $camera = array(
@@ -65,7 +65,7 @@ function probeCameras( $localIp ) {
               ),
             );
         foreach ( preg_split('|,\s*|', $matches[3]) as $attr_val ) {
-          if ( preg_match( '|(.+)=\'(.*)\'|', $attr_val, $tokens ) ) {
+          if ( preg_match('|(.+)=\'(.*)\'|', $attr_val, $tokens) ) {
             if ( $tokens[1] == 'hardware' ) {
               $camera['model'] = $tokens[2];
             } elseif ( $tokens[1] == 'name' ) {
@@ -84,7 +84,7 @@ function probeCameras( $localIp ) {
   return $cameras;
 } // end function probeCameras
 
-function probeProfiles( $device_ep, $soapversion, $username, $password ) {
+function probeProfiles($device_ep, $soapversion, $username, $password) {
   $profiles = array();
   if ( $lines = @execONVIF("profiles $device_ep $soapversion $username $password") ) {
     foreach ( $lines as $line ) {
@@ -94,7 +94,7 @@ function probeProfiles( $device_ep, $soapversion, $username, $password ) {
         // add user@pass to URI
         if ( preg_match('|^(\S+://)(.+)$|', $stream_uri, $tokens) ) {
           $stream_uri = $tokens[1].$username.':'.$password.'@'.$tokens[2];
-      }
+        }
 
         $profile = array(  # 'monitor' part of camera
             'Type'        => 'Ffmpeg',
@@ -125,8 +125,8 @@ xhtmlHeaders(__FILE__, translate('MonitorProbe') );
 if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
 
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Host FROM Monitors WHERE Type = 'Remote' ORDER BY Host") as $monitor ) {
-    if ( preg_match( '/^(.+)@(.+)$/', $monitor['Host'], $matches ) ) {
+  foreach ( dbFetchAll("SELECT Id, Name, Host FROM Monitors WHERE Type='Remote' ORDER BY Host") as $monitor ) {
+    if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;
     } else {
@@ -137,26 +137,12 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
 
   $detcameras = probeCameras('');
   foreach ( $detcameras as $camera ) {
-    if ( preg_match( '|([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)|', $camera['monitor']['Host'], $matches ) ) {
+    if ( preg_match('|([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)|', $camera['monitor']['Host'], $matches) ) {
       $ip = $matches[1];
     }
     $host = $ip;
-/*
-        if ( isset($monitors[$ip]) )
-        {
-            $monitor = $monitors[$ip];
-            $sourceString .= " (".$monitor['Name'].")";
-        }
-        else
-        {
-            $sourceString .= " - ".translate('Available');
-        }
-        $cameras[$sourceDesc] = $sourceString;
-    }
-*/
-//       $sourceDesc = htmlspecialchars(serialize($camera['monitor']));
     $sourceDesc = base64_encode(json_encode($camera['monitor']));
-    $sourceString = $camera['model'].' @ '.$host . ' using version ' . $camera['monitor']['SOAP'] ;
+    $sourceString = $camera['model'].' @ '.$host.' using version '.$camera['monitor']['SOAP'];
     $cameras[$sourceDesc] = $sourceString;
   }
 
@@ -179,39 +165,38 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
         </p>
         <p>
           <label for="probe"><?php echo translate('DetectedCameras') ?></label>
-          <?php echo htmlSelect('probe', $cameras, null, array('onchange'=>'configureButtons(this)')); ?>
+          <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons')); ?>
         </p>
         <p>
           <?php echo translate('OnvifCredentialsIntro') ?>
         </p>
         <p>
-          <label for="username"><?php echo translate('Username') ?></label>
-          <input type="text" name="username" value="" onChange="configureButtons(this)"/>
+          <label for="Username"><?php echo translate('Username') ?></label>
+          <input type="text" name="Username" data-on-change-this="configureButtons"/>
         </p>
         <p>
-          <label for="password"><?php echo translate('Password') ?></label>
-          <input type="password" name="password" value="" onChange="configureButtons(this)"/>
+          <label for="Password"><?php echo translate('Password') ?></label>
+          <input type="password" name="Password" data-on-change-this="configureButtons"/>
         </p>
         <div id="contentButtons">
-          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
-          <input type="submit" name="nextBtn" value="<?php echo translate('Next') ?>" data-on-click-this="gotoStep2" disabled="disabled"/>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
+          <button type="button" name="nextBtn" data-on-click-this="gotoStep2" disabled="disabled"><?php echo translate('Next') ?></button>
         </div>
       </form>
     </div>
   </div>
 </body>
-</html>
 <?php
 
 //==== STEP 2 ============================================================
-} else if($_REQUEST['step'] == '2') {
+} else if ( $_REQUEST['step'] == '2' ) {
   if ( empty($_REQUEST['probe']) ) 
     ZM\Fatal('No probe passed in request. Please go back and try again.');
 #|| empty($_REQUEST['username']) || 
        #empty($_REQUEST['password']) )
     
   $probe = json_decode(base64_decode($_REQUEST['probe']));
-  ZM\Logger::Debug(print_r($probe,true));
+  ZM\Logger::Debug(print_r($probe, true));
   foreach ( $probe as $name=>$value ) {
     if ( isset($value) ) {
       $monitor[$name] = $value;
@@ -221,7 +206,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
 
   //print $monitor['Host'].", ".$_REQUEST['username'].", ".$_REQUEST['password']."<br/>";
 
-  $detprofiles = probeProfiles($monitor['Host'], $monitor['SOAP'], $_REQUEST['username'], $_REQUEST['password']);
+  $detprofiles = probeProfiles($monitor['Host'], $monitor['SOAP'], $_REQUEST['Username'], $_REQUEST['Password']);
   foreach ( $detprofiles as $profile ) {
     $monitor = $camera['monitor'];
 
@@ -258,18 +243,18 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
         </p>
         <p>
           <label for="probe"><?php echo translate('DetectedProfiles') ?></label>
-          <?php echo htmlSelect('probe', $profiles, null, array('onchange'=>'configureButtons(this)')); ?>
+          <?php echo htmlSelect('probe', $profiles, null, array('data-on-change-this'=>'configureButtons')); ?>
         </p>
         <div id="contentButtons">
-          <input type="button" name="prevBtn" value="<?php echo translate('Prev') ?>" data-on-click-this="gotoStep1"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
-          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" data-on-click-this="submitCamera" disabled="disabled"/>
+          <button type="button" name="prevBtn" data-on-click-this="gotoStep1"><?php echo translate('Prev') ?></button>
+          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
+          <button type="button" name="saveBtn" data-on-click-this="submitCamera" disabled="disabled"><?php echo translate('Save') ?></button>
         </div>
       </form>
     </div>
   </div>
 </body>
-</html>
 <?php
 } // end if step 1 or 2
 ?>
+</html>

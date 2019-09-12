@@ -445,6 +445,7 @@ VideoStore::~VideoStore() {
        * At the end of the file, we pass the remaining samples to
        * the encoder. */
       int frame_size = audio_out_ctx->frame_size;
+      Debug(2, "av_audio_fifo_size = %s", av_audio_fifo_size(fifo));
       while ( av_audio_fifo_size(fifo) > 0 ) {
         /* Take one frame worth of audio samples from the FIFO buffer,
          * encode it and write it to the output file. */
@@ -454,11 +455,8 @@ VideoStore::~VideoStore() {
 
         // SHould probably set the frame size to what is reported FIXME
         if ( av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size) ) {
-
-          av_init_packet(&opkt);
-          if ( zm_send_frame(audio_out_ctx, out_frame, opkt) ) {
-            if ( zm_receive_packet(audio_out_ctx, pkt) )
-              pkt.stream_index = audio_out_stream->index;
+          if ( zm_send_frame(audio_out_ctx, out_frame, pkt) ) {
+            pkt.stream_index = audio_out_stream->index;
 
             pkt.duration = av_rescale_q(
                 pkt.duration,
@@ -466,7 +464,6 @@ VideoStore::~VideoStore() {
                 audio_out_stream->time_base);
           }
         }  // end if data returned from fifo
-
       }  // end while still data in the fifo
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -489,10 +486,10 @@ VideoStore::~VideoStore() {
     }  // end if audio_out_codec
 
     // Flush Queues
-    Debug(1,"Flushing interleaved queues");
+    Debug(1, "Flushing interleaved queues");
     av_interleaved_write_frame(oc, NULL);
 
-    Debug(1,"Writing trailer");
+    Debug(1, "Writing trailer");
     /* Write the trailer before close */
     if ( int rc = av_write_trailer(oc) ) {
       Error("Error writing trailer %s", av_err2str(rc));
@@ -980,6 +977,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   dumpPacket(audio_in_stream, ipkt, "input packet");
 
   if ( !audio_first_pts ) {
+#if 0
     // Since audio starts after the start of the video, need to set this here.
     audio_first_pts = av_rescale_q(
         video_first_pts,
@@ -992,8 +990,13 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       audio_first_pts -= audio_next_pts;
       audio_next_pts = 0;
     }
+#else
+    audio_first_pts = ipkt->pts;
+    audio_next_pts = audio_out_ctx->frame_size;
+#endif
   }
   if ( !audio_first_dts ) {
+#if 0
     // Since audio starts after the start of the video, need to set this here.
     audio_first_dts = av_rescale_q(
         video_first_dts,
@@ -1001,11 +1004,14 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
         audio_in_stream->time_base
         );
     audio_next_dts = ipkt->dts - audio_first_dts;
-    if ( ipkt->dts < 0 ) {
-      audio_first_dts -= ipkt->dts;
-      ipkt->dts = 0;
+    if ( audio_next_dts < 0 ) {
+      audio_first_dts -= audio_next_dts;
+      audio_next_dts = 0;
     }
     Debug(2, "Starting audio first_dts will become %" PRId64, audio_first_dts);
+#else
+    audio_first_dts = ipkt->dts;
+#endif
   }
 
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it

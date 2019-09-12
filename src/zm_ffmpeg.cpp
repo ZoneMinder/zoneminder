@@ -289,9 +289,10 @@ static void zm_log_fps(double d, const char *postfix) {
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar ( const AVCodecParameters *par ) {
-  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d) codec_tag(%d) width(%d) height(%d) bit_rate(%d) format(%d = %s)", 
+  Debug(1, "Dumping codecpar codec_type(%d) codec_id(%d %s) codec_tag(%d) width(%d) height(%d) bit_rate(%d) format(%d = %s)",
     par->codec_type,
     par->codec_id,
+    avcodec_get_name(par->codec_id),
     par->codec_tag,
     par->width,
     par->height,
@@ -303,10 +304,11 @@ void zm_dump_codecpar ( const AVCodecParameters *par ) {
 #endif
 
 void zm_dump_codec(const AVCodecContext *codec) {
-  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d) width(%d) height(%d)  timebase(%d/%d) format(%s)\n"
+  Debug(1, "Dumping codec_context codec_type(%d) codec_id(%d %s) width(%d) height(%d)  timebase(%d/%d) format(%s) "
       "gop_size %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d",
     codec->codec_type,
     codec->codec_id,
+    avcodec_get_name(codec->codec_id),
     codec->width,
     codec->height,
     codec->time_base.num,
@@ -327,7 +329,6 @@ void zm_dump_codec(const AVCodecContext *codec) {
 
 /* "user interface" functions */
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output) {
-  char buf[256];
   Debug(1, "Dumping stream index i(%d) index(%d)", i, index );
   int flags = (is_output ? ic->oformat->flags : ic->iformat->flags);
   AVStream *st = ic->streams[i];
@@ -350,8 +351,14 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
       st->codec_info_nb_frames, codec->frame_size,
       st->time_base.num, st->time_base.den
       );
+
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  Debug(1, "codec: %s", avcodec_get_name(st->codecpar->codec_id));
+#else
+  char buf[256];
   avcodec_string(buf, sizeof(buf), st->codec, is_output);
   Debug(1, "codec: %s", buf);
+#endif
 
   if ( st->sample_aspect_ratio.num && // default
       av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)
@@ -477,6 +484,27 @@ bool is_audio_context( AVCodecContext *codec_context ) {
   #endif
 }
 
+int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+  int ret = avcodec_receive_packet(context, &packet);
+  if ( ret < 0 ) {
+    if ( AVERROR_EOF != ret ) {
+      Error("Error encoding (%d) (%s)", ret,
+          av_err2str(ret));
+    }
+    return 0;
+  }
+  return 1;
+#else
+  int got_packet = 0;
+  int ret = avcodec_encode_audio2(context, &packet, NULL, &got_packet);
+  if ( ret < 0 ) {
+    Error("Error encoding (%d) (%s)", ret, av_err2str(ret));
+  }
+  return got_packet;
+#endif
+}  // end int zm_receive_packet(AVCodecContext *context, AVPacket &packet)
+
 int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet) {
   int ret;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -599,4 +627,11 @@ void dumpPacket(AVPacket *pkt, const char *text) {
            pkt->pos,
            pkt->duration);
   Debug(2, "%s:%d:%s: %s", __FILE__, __LINE__, text, b);
+}
+
+void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRational src_tb, const AVRational dst_tb) {
+  opkt->pts = ipkt->pts;
+  opkt->dts = ipkt->dts;
+  opkt->duration = ipkt->duration;
+  av_packet_rescale_ts(opkt, src_tb, dst_tb);
 }

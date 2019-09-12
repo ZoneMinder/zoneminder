@@ -717,8 +717,8 @@ bool VideoStore::setup_resampler() {
     Error("Could not initialize stream parameteres");
     return false;
   }
+  zm_dump_codecpar(audio_out_stream->codecpar);
 #endif
-    zm_dump_codecpar(audio_out_stream->codecpar);
 
   Debug(3,
         "Time bases: AUDIO in stream (%d/%d) in codec: (%d/%d) out "

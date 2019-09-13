@@ -337,6 +337,9 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 #else
     unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src );
     #define zm_av_packet_unref( packet ) av_free_packet( packet )
+    const char *avcodec_get_name(AVCodecID id);
+
+    void av_packet_rescale_ts(AVPacket *pkt, AVRational src_tb, AVRational dst_tb);
 #endif
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
       #define zm_avcodec_decode_video( context, rawFrame, frameComplete, packet ) avcodec_decode_video2( context, rawFrame, frameComplete, packet )
@@ -375,15 +378,28 @@ int zm_resample_audio(
 #if defined(HAVE_LIBSWRESAMPLE)
     SwrContext *resample_ctx,
 #else
-#if defined(HAVE_LIBSWRESAMPLE)
+#if defined(HAVE_LIBAVRESAMPLE)
     AVAudioResampleContext *resample_ctx,
 #endif
 #endif
     AVFrame *in_frame,
     AVFrame *out_frame
     );
+int zm_resample_get_delay(
+#if defined(HAVE_LIBSWRESAMPLE)
+    SwrContext *resample_ctx,
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+    AVAudioResampleContext *resample_ctx,
 #endif
+#endif
+    int time_base
+    );
+
+#endif
+
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);
 int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame);
+
 
 #endif // ZM_FFMPEG_H

@@ -445,21 +445,12 @@ VideoStore::~VideoStore() {
       /*
        * At the end of the file, we pass the remaining samples to
        * the encoder. */
-      while ( swr_get_delay(resample_ctx, audio_out_ctx->sample_rate) ) {
-        swr_convert_frame(resample_ctx, out_frame, NULL);
-        int ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples);
-        if ( ret < 0 ) {
-          Error("Could not reallocate FIFO to %d samples",
-              av_audio_fifo_size(fifo) + out_frame->nb_samples);
-        } else {
-          /** Store the new samples in the FIFO buffer. */
-          ret = av_audio_fifo_write(fifo, (void **)out_frame->data, out_frame->nb_samples);
-          if ( ret < out_frame->nb_samples ) {
-            Error("Could not write data to FIFO. %d written, expecting %d. Reason %s",
-                ret, out_frame->nb_samples, av_make_error_string(ret).c_str());
-          }
+      while ( zm_resample_get_delay(resample_ctx, audio_out_ctx->sample_rate) ) {
+        zm_resample_audio(resample_ctx, out_frame, NULL);
+
+        if ( zm_add_samples_to_fifo(fifo, out_frame) ) {
           // Should probably set the frame size to what is reported FIXME
-          if ( av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size) ) {
+          if ( zm_get_samples_from_fifo(fifo, out_frame) ) {
             if ( zm_send_frame_receive_packet(audio_out_ctx, out_frame, pkt) ) {
               pkt.stream_index = audio_out_stream->index;
 
@@ -980,7 +971,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       write_packet(&opkt, audio_out_stream);
       zm_av_packet_unref(&opkt);
 
-      if ( swr_get_delay(resample_ctx, out_frame->sample_rate) < out_frame->nb_samples)
+      if ( zm_resample_get_delay(resample_ctx, out_frame->sample_rate) < out_frame->nb_samples)
         break;
       // This will send a null frame, emptying out the resample buffer
       input_frame = NULL;

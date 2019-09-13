@@ -434,6 +434,35 @@ unsigned int zm_av_packet_ref( AVPacket *dst, AVPacket *src ) {
   dst->stream_index = src->stream_index;
   return 0;
 }
+const char *avcodec_get_name(enum AVCodecID id) {
+  const AVCodecDescriptor *cd;
+  if ( id == AV_CODEC_ID_NONE)
+    return "none";
+  cd = avcodec_descriptor_get(id);
+  if (cd)
+    return cd->name;
+  AVCodec *codec;
+  codec = avcodec_find_decoder(id);
+  if (codec) 
+    return codec->name;
+  codec = avcodec_find_encoder(id);
+  if (codec)
+    return codec->name;
+  return "unknown codec";
+}
+
+void av_packet_rescale_ts(
+    AVPacket *pkt,
+    AVRational src_tb,
+    AVRational dst_tb
+    ) {
+  if ( pkt->pts != AV_NOPTS_VALUE)
+    pkt->pts = av_rescale_q(pkt->pts, src_tb, dst_tb);
+  if ( pkt->dts != AV_NOPTS_VALUE)
+    pkt->dts = av_rescale_q(pkt->dts, src_tb, dst_tb);
+  if ( pkt->duration != AV_NOPTS_VALUE)
+    pkt->duration = av_rescale_q(pkt->duration, src_tb, dst_tb);
+}
 #endif
 
 bool is_video_stream( AVStream * stream ) {
@@ -646,7 +675,7 @@ int zm_resample_audio(
 #if defined(HAVE_LIBSWRESAMPLE)
     SwrContext *resample_ctx,
 #else
-#if defined(HAVE_LIBSWRESAMPLE)
+#if defined(HAVE_LIBAVRESAMPLE)
     AVAudioResampleContext *resample_ctx,
 #endif
 #endif
@@ -692,6 +721,24 @@ int zm_resample_audio(
   zm_dump_frame(out_frame, "Out frame after resample delay");
   return 1;
 }
+int zm_resample_get_delay(
+#if defined(HAVE_LIBSWRESAMPLE)
+        SwrContext *resample_ctx,
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+            AVAudioResampleContext *resample_ctx,
+#endif
+#endif
+            int time_base
+    ) { 
+#if defined(HAVE_LIBSWRESAMPLE)
+  return sws_get_delay(resample_ctx, time_base);
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+  return avresample_available(resample_ctx);
+#endif
+#endif
+}
 #endif
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame) {
@@ -727,3 +774,4 @@ int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame) {
   zm_dump_frame(frame, "Out frame after fifo read");
   return 1;
 }
+

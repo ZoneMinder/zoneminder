@@ -138,7 +138,7 @@ movecrud () {
 
 # previsouly part of installzm.sh
 # install the trusty deb and test zoneminder
-installtrusty () {
+install_deb () {
 
     # Check we've got gdebi installed
     type gdebi 2>&1 > /dev/null
@@ -347,8 +347,8 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true" ]; then
         echo "Starting packpack..."
         execpackpack
         
-        if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
-            installtrusty
+        if [ "${TRAVIS}" == "true" ]; then
+            install_deb
         fi
     fi
 
@@ -369,7 +369,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
 
     # If we are running inside Travis then attempt to install the deb we just built
     if [ "${TRAVIS}" == "true" ]; then
-        installtrusty
+        install_deb
     fi
 fi
 

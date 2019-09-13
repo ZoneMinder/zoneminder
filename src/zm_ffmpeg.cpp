@@ -718,18 +718,19 @@ int zm_resample_audio(
   }
 #endif
 #endif
-  zm_dump_frame(out_frame, "Out frame after resample delay");
+  zm_dump_frame(out_frame, "Out frame after resample");
   return 1;
 }
+
 int zm_resample_get_delay(
 #if defined(HAVE_LIBSWRESAMPLE)
         SwrContext *resample_ctx,
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
-            AVAudioResampleContext *resample_ctx,
+        AVAudioResampleContext *resample_ctx,
 #endif
 #endif
-            int time_base
+        int time_base
     ) { 
 #if defined(HAVE_LIBSWRESAMPLE)
   return sws_get_delay(resample_ctx, time_base);

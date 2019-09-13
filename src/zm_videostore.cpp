@@ -273,9 +273,7 @@ VideoStore::VideoStore(
   out_frame = NULL;
 #if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
   resample_ctx = NULL;
-#if defined(HAVE_LIBSWRESAMPLE)
   fifo = NULL;
-#endif
 #endif
   video_first_pts = 0;
   video_first_dts = 0;
@@ -577,11 +575,11 @@ VideoStore::~VideoStore() {
 
 #if defined(HAVE_LIBAVRESAMPLE) || defined(HAVE_LIBSWRESAMPLE)
     if ( resample_ctx ) {
-  #if defined(HAVE_LIBSWRESAMPLE)
       if ( fifo ) {
         av_audio_fifo_free(fifo);
         fifo = NULL;
       }
+  #if defined(HAVE_LIBSWRESAMPLE)
       swr_free(&resample_ctx);
   #else
     #if defined(HAVE_LIBAVRESAMPLE)
@@ -636,7 +634,12 @@ bool VideoStore::setup_resampler() {
 // codec is already open in ffmpeg_camera
   audio_in_ctx = audio_in_stream->codec;
   audio_in_codec = reinterpret_cast<const AVCodec *>(audio_in_ctx->codec);
-  //audio_in_codec = avcodec_find_decoder(audio_in_stream->codec->codec_id);
+  if ( !audio_in_codec ) {
+    audio_in_codec = avcodec_find_decoder(audio_in_stream->codec->codec_id);
+  }
+  if ( !audio_in_codec ) {
+    return false;
+  }
 #endif
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -770,13 +773,13 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 
-#if defined(HAVE_LIBSWRESAMPLE)
   if ( !(fifo = av_audio_fifo_alloc(
           audio_out_ctx->sample_fmt,
           audio_out_ctx->channels, 1)) ) {
     Error("Could not allocate FIFO");
     return false;
   }
+#if defined(HAVE_LIBSWRESAMPLE)
   resample_ctx = swr_alloc_set_opts(NULL,
       audio_out_ctx->channel_layout,
       audio_out_ctx->sample_fmt,

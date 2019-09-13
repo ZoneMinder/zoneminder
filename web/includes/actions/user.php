@@ -37,7 +37,6 @@ if ( $action == 'user' ) {
    
     if ( $_REQUEST['newUser']['Password'] ) {
       $changes['Password'] = 'Password = '.$pass_hash;
-      ZM\Info('PASS CMD='.$changes['Password']);
     } else {
       unset($changes['Password']);
     }
@@ -47,7 +46,7 @@ if ( $action == 'user' ) {
         dbQuery('UPDATE Users SET '.implode(', ', $changes).' WHERE Id = ?', array($_REQUEST['uid']));
         # If we are updating the logged in user, then update our session user data.
         if ( $user and ( $dbUser['Username'] == $user['Username'] ) )
-          userLogin($dbUser['Username'], $dbUser['Password']);
+          generateAuthHash(ZM_AUTH_HASH_IPS);
       } else {
         dbQuery('INSERT INTO Users SET '.implode(', ', $changes));
       }
@@ -71,13 +70,13 @@ if ( $action == 'user' ) {
 
     if ( !empty($_REQUEST['newUser']['Password']) ) {
       $changes['Password'] = 'Password = '.$pass_hash;
-    }
-      
-    else
+    } else {
       unset($changes['Password']);
+    }
     if ( count($changes) ) {
       dbQuery('UPDATE Users SET '.implode(', ', $changes).' WHERE Id=?', array($uid));
       $refreshParent = true;
+      generateAuthHash(ZM_AUTH_HASH_IPS);
     }
     $view = 'none';
   }

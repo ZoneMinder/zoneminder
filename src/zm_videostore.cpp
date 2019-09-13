@@ -441,10 +441,39 @@ VideoStore::~VideoStore() {
       pkt.size = 0;
       av_init_packet(&pkt);
 
+      int frame_size = audio_out_ctx->frame_size;
       /*
        * At the end of the file, we pass the remaining samples to
        * the encoder. */
-      int frame_size = audio_out_ctx->frame_size;
+      while ( swr_get_delay(resample_ctx, audio_out_ctx->sample_rate) ) {
+        swr_convert_frame(resample_ctx, out_frame, NULL);
+        int ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples);
+        if ( ret < 0 ) {
+          Error("Could not reallocate FIFO to %d samples",
+              av_audio_fifo_size(fifo) + out_frame->nb_samples);
+        } else {
+          /** Store the new samples in the FIFO buffer. */
+          ret = av_audio_fifo_write(fifo, (void **)out_frame->data, out_frame->nb_samples);
+          if ( ret < out_frame->nb_samples ) {
+            Error("Could not write data to FIFO. %d written, expecting %d. Reason %s",
+                ret, out_frame->nb_samples, av_make_error_string(ret).c_str());
+          }
+          // Should probably set the frame size to what is reported FIXME
+          if ( av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size) ) {
+            if ( zm_send_frame_receive_packet(audio_out_ctx, out_frame, pkt) ) {
+              pkt.stream_index = audio_out_stream->index;
+
+              av_packet_rescale_ts(&pkt,
+                  audio_out_ctx->time_base,
+                  audio_out_stream->time_base);
+              write_packet(&pkt, audio_out_stream);
+            }
+          }  // end if data returned from fifo
+        }
+
+      } // end if have buffered samples in the resampler
+
+      Debug(2, "av_audio_fifo_size = %d", av_audio_fifo_size(fifo));
       while ( av_audio_fifo_size(fifo) > 0 ) {
         /* Take one frame worth of audio samples from the FIFO buffer,
          * encode it and write it to the output file. */
@@ -454,19 +483,15 @@ VideoStore::~VideoStore() {
 
         // SHould probably set the frame size to what is reported FIXME
         if ( av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size) ) {
+          if ( zm_send_frame_receive_packet(audio_out_ctx, out_frame, pkt) ) {
+            pkt.stream_index = audio_out_stream->index;
 
-          av_init_packet(&opkt);
-          if ( zm_send_frame(audio_out_ctx, out_frame, opkt) ) {
-            if ( zm_receive_packet(audio_out_ctx, pkt) )
-              pkt.stream_index = audio_out_stream->index;
-
-            pkt.duration = av_rescale_q(
-                pkt.duration,
+            av_packet_rescale_ts(&pkt,
                 audio_out_ctx->time_base,
                 audio_out_stream->time_base);
+            write_packet(&pkt, audio_out_stream);
           }
         }  // end if data returned from fifo
-
       }  // end while still data in the fifo
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -475,24 +500,24 @@ VideoStore::~VideoStore() {
 #endif
 
       while (1) {
-        if ( ! zm_receive_packet(audio_out_ctx, pkt) )
+        if ( ! zm_receive_packet(audio_out_ctx, pkt) ) {
+          Debug(1, "No more packets");
           break;
+        }
 
         dumpPacket(&pkt, "raw from encoder");
-        pkt.stream_index = audio_out_stream->index;
-
         av_packet_rescale_ts(&pkt, audio_out_ctx->time_base, audio_out_stream->time_base);
         dumpPacket(audio_out_stream, &pkt, "writing flushed packet");
-        av_interleaved_write_frame(oc, &pkt);
+        write_packet(&pkt, audio_out_stream);
         zm_av_packet_unref(&pkt);
       }  // while have buffered frames
     }  // end if audio_out_codec
 
     // Flush Queues
-    Debug(1,"Flushing interleaved queues");
+    Debug(1, "Flushing interleaved queues");
     av_interleaved_write_frame(oc, NULL);
 
-    Debug(1,"Writing trailer");
+    Debug(1, "Writing trailer");
     /* Write the trailer before close */
     if ( int rc = av_write_trailer(oc) ) {
       Error("Error writing trailer %s", av_err2str(rc));
@@ -717,8 +742,8 @@ bool VideoStore::setup_resampler() {
     Error("Could not initialize stream parameteres");
     return false;
   }
+  zm_dump_codecpar(audio_out_stream->codecpar);
 #endif
-    zm_dump_codecpar(audio_out_stream->codecpar);
 
   Debug(3,
         "Time bases: AUDIO in stream (%d/%d) in codec: (%d/%d) out "
@@ -861,108 +886,36 @@ bool VideoStore::setup_resampler() {
 int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   av_init_packet(&opkt);
 
-  dumpPacket(video_in_stream, ipkt, "input packet");
+  dumpPacket(video_in_stream, ipkt, "video input packet");
 
-  int64_t duration;
-  if ( ipkt->duration != AV_NOPTS_VALUE ) {
-    duration = av_rescale_q(
-        ipkt->duration,
-        video_in_stream->time_base,
-        video_out_stream->time_base);
-    Debug(1, "duration from ipkt: %" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
-        ipkt->duration,
-        duration,
-        video_in_stream->time_base.num,
-        video_in_stream->time_base.den,
-        video_out_stream->time_base.num,
-        video_out_stream->time_base.den
-        );
-  } else {
-    duration = av_rescale_q(
-          ipkt->pts - video_last_pts,
-          video_in_stream->time_base,
-          video_out_stream->time_base);
-    Debug(1, "duration calc: pts(%" PRId64 ") - last_pts(%" PRId64 ") = (%" PRId64 ") => (%" PRId64 ")",
-        ipkt->pts,
-        video_last_pts,
-        ipkt->pts - video_last_pts,
-        duration
-        );
-    if ( duration <= 0 ) {
-      // Why are we setting the duration to 1?
-      Warning("Duration is 0, setting to 1");
-      duration = ipkt->duration ? ipkt->duration : av_rescale_q(1,video_in_stream->time_base, video_out_stream->time_base);
-    }
-  }
-  opkt.duration = duration;
+  opkt.flags = ipkt->flags;
+  opkt.data = ipkt->data;
+  opkt.size = ipkt->size;
+  opkt.duration = ipkt->duration;
 
-  // Scale the PTS of the outgoing packet to be the correct time base
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
-
     if ( (!video_first_pts) && (ipkt->pts >= 0) ) {
       // This is the first packet.
-      opkt.pts = 0;
       Debug(2, "Starting video first_pts will become %" PRId64, ipkt->pts);
       video_first_pts = ipkt->pts;
-    } else {
-      opkt.pts = av_rescale_q(
-          ipkt->pts - video_first_pts,
-          video_in_stream->time_base,
-          video_out_stream->time_base
-          );
     }
-    Debug(3, "opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")",
-        opkt.pts, ipkt->pts, video_first_pts);
-    video_last_pts = ipkt->pts;
-  } else {
-    Debug(3, "opkt.pts = undef");
-    opkt.pts = AV_NOPTS_VALUE;
+    opkt.pts = ipkt->pts - video_first_pts;
   }
   // Just because the in stream wraps, doesn't mean the out needs to.
   // Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.
   // So need to handle in wrap, without causing out wrap.
+  // The cameras that Icon has seem to do EOF instead of wrapping
 
   if ( ipkt->dts != AV_NOPTS_VALUE ) {
     if ( !video_first_dts ) {
-     // && ( ipkt->dts >= 0 ) ) {
-      // This is the first packet.
-      opkt.dts = 0;
-      Debug(2, "Starting video first_dts will become (%" PRId64 ")", ipkt->dts);
+      Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
       video_first_dts = ipkt->dts;
-    } else {
-      opkt.dts = av_rescale_q(
-          ipkt->dts - video_first_dts,
-          video_in_stream->time_base,
-          video_out_stream->time_base
-          );
-      Debug(3, "opkt.dts = %" PRId64 " from ipkt->dts(%" PRId64 ") - first_pts(%" PRId64 ")",
-          opkt.dts, ipkt->dts, video_first_dts);
     }
-    if ( (opkt.pts != AV_NOPTS_VALUE) && (opkt.dts > opkt.pts) ) {
-      Debug(1,
-          "opkt.dts(%" PRId64 ") must be <= opkt.pts(%" PRId64 "). Decompression must happen "
-          "before presentation.",
-          opkt.dts, opkt.pts);
-      opkt.dts = opkt.pts;
-    }
-  } else {
-    Debug(3, "opkt.dts = undef");
-    opkt.dts = video_out_stream->cur_dts;
+    opkt.dts = ipkt->dts - video_first_dts;
   }
+  av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);
 
-  if ( opkt.dts < video_out_stream->cur_dts ) {
-    Debug(1, "Fixing non-monotonic dts/pts dts %" PRId64 " pts %" PRId64 " stream %" PRId64,
-        opkt.dts, opkt.pts, video_out_stream->cur_dts);
-    opkt.dts = video_out_stream->cur_dts;
-    if ( opkt.dts > opkt.pts ) {
-      opkt.pts = opkt.dts;
-    }
-  }
-
-  opkt.flags = ipkt->flags;
-  opkt.pos = -1;
-  opkt.data = ipkt->data;
-  opkt.size = ipkt->size;
+  dumpPacket(video_out_stream, &opkt, "after pts adjustment");
   write_packet(&opkt, video_out_stream);
   zm_av_packet_unref(&opkt);
 
@@ -980,32 +933,11 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   dumpPacket(audio_in_stream, ipkt, "input packet");
 
   if ( !audio_first_pts ) {
-    // Since audio starts after the start of the video, need to set this here.
-    audio_first_pts = av_rescale_q(
-        video_first_pts,
-        video_in_stream->time_base,
-        audio_in_stream->time_base
-        );
-    Debug(2, "Starting audio first_pts will become %" PRId64, audio_first_pts);
-    audio_next_pts = ipkt->pts - audio_first_pts;
-    if ( audio_next_pts < 0 ) {
-      audio_first_pts -= audio_next_pts;
-      audio_next_pts = 0;
-    }
+    audio_first_pts = ipkt->pts;
+    audio_next_pts = audio_out_ctx->frame_size;
   }
   if ( !audio_first_dts ) {
-    // Since audio starts after the start of the video, need to set this here.
-    audio_first_dts = av_rescale_q(
-        video_first_dts,
-        video_in_stream->time_base,
-        audio_in_stream->time_base
-        );
-    audio_next_dts = ipkt->dts - audio_first_dts;
-    if ( ipkt->dts < 0 ) {
-      audio_first_dts -= ipkt->dts;
-      ipkt->dts = 0;
-    }
-    Debug(2, "Starting audio first_dts will become %" PRId64, audio_first_dts);
+    audio_first_dts = ipkt->dts;
   }
 
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
@@ -1014,41 +946,45 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   dumpPacket(audio_in_stream, ipkt, "after pts adjustment");
 
   if ( audio_out_codec ) {
-    if ( ( ret = zm_receive_frame(audio_in_ctx, in_frame, *ipkt) ) < 0 ) {
+    // I wonder if we can get multiple frames per packet? Probably
+    if ( ( ret = zm_send_packet_receive_frame(audio_in_ctx, in_frame, *ipkt) ) <= 0 ) {
       Debug(3, "Not ready to receive frame");
       return 0;
     }
-
     zm_dump_frame(in_frame, "In frame from decode");
-    if ( !resample_audio() ) {
-      //av_frame_unref(in_frame);
-      return 0;
-    }
 
-    zm_dump_frame(out_frame, "Out frame after resample");
+    AVFrame *input_frame = in_frame;
 
-    av_init_packet(&opkt);
-    if ( !zm_send_frame(audio_out_ctx, out_frame, opkt) ) {
-      return 0;
-    }
+    while ( zm_resample_audio(resample_ctx, input_frame, out_frame) ) {
+      //out_frame->pkt_duration = in_frame->pkt_duration; // resampling doesn't alter duration
+      if ( zm_add_samples_to_fifo(fifo, out_frame) <= 0 )
+        break;
 
-    // Scale the PTS of the outgoing packet to be the correct time base
-    av_packet_rescale_ts(&opkt,
-            audio_out_ctx->time_base,
-            audio_out_stream->time_base);
+      if ( zm_get_samples_from_fifo(fifo, out_frame) <= 0 )
+        break;
 
-    write_packet(&opkt, audio_out_stream);
-    zm_av_packet_unref(&opkt);
+      out_frame->pts = audio_next_pts;
+      audio_next_pts += out_frame->nb_samples;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    // While the encoder still has packets for us
-    while ( !avcodec_receive_packet(audio_out_ctx, &opkt) ) {
-      av_packet_rescale_ts(&opkt, audio_out_ctx->time_base, audio_out_stream->time_base);
-      dumpPacket(audio_out_stream, &opkt, "raw opkt");
+      zm_dump_frame(out_frame, "Out frame after resample");
+
+      av_init_packet(&opkt);
+      if ( zm_send_frame_receive_packet(audio_out_ctx, out_frame, opkt) <= 0 )
+        break;
+
+      // Scale the PTS of the outgoing packet to be the correct time base
+      av_packet_rescale_ts(&opkt,
+          audio_out_ctx->time_base,
+          audio_out_stream->time_base);
+
       write_packet(&opkt, audio_out_stream);
-    }
-#endif
-    zm_av_packet_unref(&opkt);
+      zm_av_packet_unref(&opkt);
+
+      if ( swr_get_delay(resample_ctx, out_frame->sample_rate) < out_frame->nb_samples)
+        break;
+      // This will send a null frame, emptying out the resample buffer
+      input_frame = NULL;
+    } // end while there is data in the resampler
 
   } else {
     Debug(2,"copying");
@@ -1146,95 +1082,3 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   }
   return ret;
 }  // end int VideoStore::write_packet(AVPacket *pkt, AVStream *stream)
-
-int VideoStore::resample_audio() {
-  // Resample the in_frame into the audioSampleBuffer until we process the whole
-  // decoded data. Note: pts does not survive resampling or converting
-#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
-#if defined(HAVE_LIBSWRESAMPLE)
-  Debug(2, "Converting %d to %d samples using swresample",
-      in_frame->nb_samples, out_frame->nb_samples);
-  int ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
-  if ( ret < 0 ) {
-    Error("Could not resample frame (error '%s')",
-        av_make_error_string(ret).c_str());
-    return 0;
-  }
-  zm_dump_frame(out_frame, "Out frame after resample");
-  out_frame->pkt_duration = in_frame->pkt_duration; // resampling doesn't alter duration
-
-  ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + out_frame->nb_samples);
-  if ( ret < 0 ) {
-    Error("Could not reallocate FIFO");
-    return 0;
-  }
-  /** Store the new samples in the FIFO buffer. */
-  ret = av_audio_fifo_write(fifo, (void **)out_frame->data, out_frame->nb_samples);
-  if ( ret < out_frame->nb_samples ) {
-    Error("Could not write data to FIFO. %d written, expecting %d. Reason %s",
-        ret, out_frame->nb_samples, av_make_error_string(ret).c_str());
-    return 0;
-  }
-
-  // Reset frame_size to output_frame_size
-  int frame_size = audio_out_ctx->frame_size;
-
-  // AAC requires 1024 samples per encode.  Our input tends to be something else, so need to buffer them.
-  if ( frame_size > av_audio_fifo_size(fifo) ) {
-    Debug(1, "Not enough samples in fifo for AAC codec frame_size %d > fifo size %d",
-         frame_size, av_audio_fifo_size(fifo));
-    return 0;
-  }
-
-  if ( av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size) < frame_size ) {
-    Error("Could not read data from FIFO");
-    return 0;
-  }
-  out_frame->nb_samples = frame_size;
-  zm_dump_frame(out_frame, "Out frame after fifo read");
-  // resampling changes the duration because the timebase is 1/samples
-  // I think we should be dealing in codec timebases not stream
-#if 0
-  if ( in_frame->pts != AV_NOPTS_VALUE ) {
-    out_frame->pts = av_rescale_q(
-        in_frame->pts,
-        audio_in_ctx->time_base,
-        audio_out_ctx->time_base);
-  }
-#else
-    out_frame->pts = audio_next_pts;
-    audio_next_pts += out_frame->nb_samples;
-#endif
-  zm_dump_frame(out_frame, "Out frame after timestamp conversion");
-#else
-#if defined(HAVE_LIBAVRESAMPLE)
-  ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
-                            0, in_frame->nb_samples);
-  if ( ret < 0 ) {
-    Error("Could not resample frame (error '%s')",
-        av_make_error_string(ret).c_str());
-    return 0;
-  }
-
-  int frame_size = audio_out_ctx->frame_size;
-
-  int samples_available = avresample_available(resample_ctx);
-  if ( samples_available < frame_size ) {
-    Debug(1, "Not enough samples yet (%d)", samples_available);
-    return 0;
-  }
-
-  // Read a frame audio data from the resample fifo
-  if ( avresample_read(resample_ctx, out_frame->data, frame_size) !=
-      frame_size) {
-    Warning("Error reading resampled audio.");
-    return 0;
-  }
-#endif
-#endif
-#else
-    Error("Have audio codec but no resampler?!");
-    return 0;
-#endif
-  return 1;
-}  // end int VideoStore::resample_audio

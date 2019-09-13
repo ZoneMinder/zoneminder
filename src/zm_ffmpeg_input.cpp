@@ -137,8 +137,8 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       } else {
         frame = zm_av_frame_alloc();
       }
-      ret = zm_receive_frame(context, frame, packet);
-      if ( ret < 0 ) {
+      ret = zm_send_packet_receive_frame(context, frame, packet);
+      if ( ret <= 0 ) {
         Error("Unable to decode frame at frame %d: %s, continuing",
             streams[packet.stream_index].frame_count, av_make_error_string(ret).c_str());
         zm_av_packet_unref(&packet);

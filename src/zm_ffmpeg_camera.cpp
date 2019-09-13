@@ -260,8 +260,8 @@ int FfmpegCamera::Capture(Image &image) {
         &&
         (keyframe || have_video_keyframe)
         ) {
-      ret = zm_receive_frame(mVideoCodecContext, mRawFrame, packet);
-      if ( ret < 0 ) {
+      ret = zm_send_packet_receive_frame(mVideoCodecContext, mRawFrame, packet);
+      if ( ret <= 0 ) {
         Error("Unable to get frame at frame %d: %s, continuing",
             frameCount, av_make_error_string(ret).c_str());
         zm_av_packet_unref(&packet);
@@ -952,8 +952,8 @@ int FfmpegCamera::CaptureAndRecord(
         }
       }  // end if keyframe or have_video_keyframe
 
-      ret = zm_receive_frame(mVideoCodecContext, mRawFrame, packet);
-      if ( ret < 0 ) {
+      ret = zm_send_packet_receive_frame(mVideoCodecContext, mRawFrame, packet);
+      if ( ret <= 0 ) {
         Warning("Unable to receive frame %d: %s. error count is %d",
             frameCount, av_make_error_string(ret).c_str(), error_count);
         error_count += 1;

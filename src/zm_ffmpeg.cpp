@@ -505,7 +505,10 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
 #endif
 }  // end int zm_receive_packet(AVCodecContext *context, AVPacket &packet)
 
-int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet) {
+int zm_send_packet_receive_frame(
+    AVCodecContext *context,
+    AVFrame *frame,
+    AVPacket &packet) {
   int ret;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   if ( (ret = avcodec_send_packet(context, &packet)) < 0 ) {
@@ -533,29 +536,31 @@ int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet) 
     }
   } // end while !frameComplete
 #endif
-  return 0;
-} // end int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
+  return 1;
+} // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
-int zm_send_frame(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
+/* Returns < 0 on error, 0 if codec not ready, 1 on success
+ */
+int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
   int ret;
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     if ( (ret = avcodec_send_frame(ctx, frame)) < 0 ) {
       Error("Could not send frame (error '%s')",
             av_make_error_string(ret).c_str());
-      zm_av_packet_unref(&packet);
-      return 0;
+      return ret;
     }
 
     if ( (ret = avcodec_receive_packet(ctx, &packet)) < 0 ) {
       if ( AVERROR(EAGAIN) == ret ) {
         // The codec may need more samples than it has, perfectly valid
         Debug(2, "Codec not ready to give us a packet");
+        return 0;
       } else {
         Error("Could not recieve packet (error %d = '%s')", ret,
               av_make_error_string(ret).c_str());
       }
       zm_av_packet_unref(&packet);
-      return 0;
+      return ret;
     }
   #else
     int data_present;
@@ -564,7 +569,7 @@ int zm_send_frame(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
       Error("Could not encode frame (error '%s')",
             av_make_error_string(ret).c_str());
       zm_av_packet_unref(&packet);
-      return 0;
+      return ret;
     }
     if ( !data_present ) {
       Debug(2, "Not ready to out a frame yet.");
@@ -573,7 +578,7 @@ int zm_send_frame(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
     }
   #endif
   return 1;
-}  // wend zm_send_frame
+}  // end int zm_send_frame_receive_packet
 
 void dumpPacket(AVStream *stream, AVPacket *pkt, const char *text) {
   char b[10240];

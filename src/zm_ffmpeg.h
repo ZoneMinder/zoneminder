@@ -354,8 +354,8 @@ bool is_audio_context(AVCodec *);
 
 int zm_receive_packet(AVCodecContext *context, AVPacket &packet);
 
-int zm_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
-int zm_send_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
+int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
+int zm_send_frame_receive_packet(AVCodecContext *context, AVFrame *frame, AVPacket &packet);
 
 void dumpPacket(AVStream *, AVPacket *,const char *text="");
 void dumpPacket(AVPacket *,const char *text="");

@@ -47,12 +47,12 @@ private:
   AVCodecContext *audio_out_ctx;
 #ifdef HAVE_LIBSWRESAMPLE
   SwrContext *resample_ctx;
-  AVAudioFifo *fifo;
 #else
 #ifdef HAVE_LIBAVRESAMPLE
   AVAudioResampleContext* resample_ctx;
 #endif
 #endif
+  AVAudioFifo *fifo;
   uint8_t *converted_in_samples;
     
 	const char *filename;

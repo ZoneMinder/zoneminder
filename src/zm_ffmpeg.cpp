@@ -640,3 +640,90 @@ void zm_packet_copy_rescale_ts(const AVPacket *ipkt, AVPacket *opkt, const AVRat
   opkt->duration = ipkt->duration;
   av_packet_rescale_ts(opkt, src_tb, dst_tb);
 }
+
+#if defined(HAVE_LIBSWRESAMPLE) || defined(HAVE_LIBAVRESAMPLE)
+int zm_resample_audio(
+#if defined(HAVE_LIBSWRESAMPLE)
+    SwrContext *resample_ctx,
+#else
+#if defined(HAVE_LIBSWRESAMPLE)
+    AVAudioResampleContext *resample_ctx,
+#endif
+#endif
+    AVFrame *in_frame,
+    AVFrame *out_frame
+    ) {
+#if defined(HAVE_LIBSWRESAMPLE)
+  // Resample the in_frame into the audioSampleBuffer until we process the whole
+  // decoded data. Note: pts does not survive resampling or converting
+  Debug(2, "Converting %d to %d samples using swresample",
+      in_frame->nb_samples, out_frame->nb_samples);
+  int ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
+  if ( ret < 0 ) {
+    Error("Could not resample frame (error '%s')",
+        av_make_error_string(ret).c_str());
+    return 0;
+  }
+  Debug(3,"sws_get_delay %d",
+      swr_get_delay(resample_ctx, out_frame->sample_rate));
+#else
+#if defined(HAVE_LIBAVRESAMPLE)
+  int ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
+                            0, in_frame->nb_samples);
+  if ( ret < 0 ) {
+    Error("Could not resample frame (error '%s')",
+        av_make_error_string(ret).c_str());
+    return 0;
+  }
+  int samples_available = avresample_available(resample_ctx);
+  if ( samples_available < out_frame->nb_samples ) {
+    Debug(1, "Not enough samples yet (%d)", samples_available);
+    return 0;
+  }
+
+  // Read a frame audio data from the resample fifo
+  if ( avresample_read(resample_ctx, out_frame->data, out_frame->nb_samples) !=
+      out_frame->nb_samples) {
+    Warning("Error reading resampled audio.");
+    return 0;
+  }
+#endif
+#endif
+  zm_dump_frame(out_frame, "Out frame after resample delay");
+  return 1;
+}
+#endif
+
+int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame) {
+  int ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + frame->nb_samples);
+  if ( ret < 0 ) {
+    Error("Could not reallocate FIFO to %d samples",
+        av_audio_fifo_size(fifo) + frame->nb_samples);
+    return 0;
+  }
+  /** Store the new samples in the FIFO buffer. */
+  ret = av_audio_fifo_write(fifo, (void **)frame->data, frame->nb_samples);
+  if ( ret < frame->nb_samples ) {
+    Error("Could not write data to FIFO. %d written, expecting %d. Reason %s",
+        ret, frame->nb_samples, av_make_error_string(ret).c_str());
+    return 0;
+  }
+  return 1;
+}
+
+int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame) {
+  // AAC requires 1024 samples per encode.  Our input tends to be something else, so need to buffer them.
+  if ( frame->nb_samples > av_audio_fifo_size(fifo) ) {
+    Debug(1, "Not enough samples in fifo for AAC codec frame_size %d > fifo size %d",
+         frame->nb_samples, av_audio_fifo_size(fifo));
+    return 0;
+  }
+
+  if ( av_audio_fifo_read(fifo, (void **)frame->data, frame->nb_samples) < frame->nb_samples ) {
+    Error("Could not read data from FIFO");
+    return 0;
+  }
+//out_frame->nb_samples = frame_size;
+  zm_dump_frame(frame, "Out frame after fifo read");
+  return 1;
+}

@@ -5,12 +5,12 @@
 extern "C"  {
 #ifdef HAVE_LIBSWRESAMPLE
   #include "libswresample/swresample.h"
-  #include "libavutil/audio_fifo.h"
 #else
   #ifdef HAVE_LIBAVRESAMPLE
     #include "libavresample/avresample.h"
   #endif
 #endif
+#include "libavutil/audio_fifo.h"
 }
 
 #if HAVE_LIBAVCODEC
@@ -76,8 +76,6 @@ private:
   int64_t audio_next_dts;
 
   bool setup_resampler();
-  int resample_audio();
-
   int write_packet(AVPacket *pkt, AVStream *stream);
 
 public:

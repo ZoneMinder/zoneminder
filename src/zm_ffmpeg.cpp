@@ -693,7 +693,7 @@ int zm_resample_audio(
         av_make_error_string(ret).c_str());
     return 0;
   }
-  Debug(3,"sws_get_delay %d",
+  Debug(3,"swr_get_delay %d",
       swr_get_delay(resample_ctx, out_frame->sample_rate));
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
@@ -733,7 +733,7 @@ int zm_resample_get_delay(
         int time_base
     ) { 
 #if defined(HAVE_LIBSWRESAMPLE)
-  return sws_get_delay(resample_ctx, time_base);
+  return swr_get_delay(resample_ctx, time_base);
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
   return avresample_available(resample_ctx);

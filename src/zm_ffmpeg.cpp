@@ -547,8 +547,14 @@ int zm_send_packet_receive_frame(
   }
 
   if ( (ret = avcodec_receive_frame(context, frame)) < 0 ) {
-    Error("Unable to send packet %s, continuing",
-        av_make_error_string(ret).c_str());
+    if ( AVERROR(EAGAIN) == ret ) {
+      // The codec may need more samples than it has, perfectly valid
+      Debug(2, "Codec not ready to give us a frame");
+      return 0;
+    } else {
+      Error("Could not recieve frame (error %d = '%s')", ret,
+          av_make_error_string(ret).c_str());
+    }
     return ret;
   }
 # else

@@ -901,11 +901,13 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   // The cameras that Icon has seem to do EOF instead of wrapping
 
   if ( ipkt->dts != AV_NOPTS_VALUE ) {
+#if 0
     if ( !video_first_dts ) {
       Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
       video_first_dts = ipkt->dts;
     }
-    opkt.dts = ipkt->dts - video_first_dts;
+#endif
+    opkt.dts = ipkt->dts - video_first_pts;
   }
   av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);
 
@@ -936,7 +938,7 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
 
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
   ipkt->pts -= audio_first_pts;
-  ipkt->dts -= audio_first_dts;
+  ipkt->dts -= audio_first_pts;
   dumpPacket(audio_in_stream, ipkt, "after pts adjustment");
 
   if ( audio_out_codec ) {

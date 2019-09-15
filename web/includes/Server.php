@@ -103,6 +103,11 @@ class Server {
   }
 
 	public function Url( $port = null ) {
+    if ( !$this->Id() ) {
+      # Trying to guess and make up values tends to break proxies.  So just return nothing 
+      # so that the resulting url will be something like "?view="
+      return '';
+    }
     $url = $this->Protocol().'://';
 		$url .= $this->Hostname();
     if ( $port ) {

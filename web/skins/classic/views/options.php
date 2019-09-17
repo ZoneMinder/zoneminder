@@ -302,40 +302,37 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
   ?>
 
     <form name="userForm" method="post" action="?">
-      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate("Update")?> </button><button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"> <?php echo translate("RevokeAllTokens")?></button><br/>
-      
+      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
+      <button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
+      <br/>
       <?php
-      function revokeAllTokens()
-      {
+      function revokeAllTokens() {
         $minTokenTime = time();
-        dbQuery ('UPDATE Users SET TokenMinExpiry=?', array ($minTokenTime));
-        echo "<span class='timedSuccessBox'>".translate('AllTokensRevoked')."</span>";
+        dbQuery('UPDATE `Users` SET `TokenMinExpiry`=?', array($minTokenTime));
+        echo '<span class="timedSuccessBox">'.translate('AllTokensRevoked').'</span>';
       }
 
-      function updateSelected()
-      {
-        dbQuery("UPDATE Users SET APIEnabled=0");
-        foreach( $_REQUEST["tokenUids"] as $markUid ) {
+      function updateSelected() {
+        dbQuery('UPDATE `Users` SET `APIEnabled`=0');
+        foreach ( $_REQUEST["tokenUids"] as $markUid ) {
           $minTime = time();
-          dbQuery('UPDATE Users SET TokenMinExpiry=? WHERE Id=?', array($minTime, $markUid));
+          dbQuery('UPDATE `Users` SET `TokenMinExpiry`=? WHERE `Id`=?', array($minTime, $markUid));
         }
-        foreach( $_REQUEST["apiUids"] as $markUid ) {
-          dbQuery('UPDATE Users SET APIEnabled=1 WHERE Id=?', array($markUid));
+        foreach ( $_REQUEST["apiUids"] as $markUid ) {
+          dbQuery('UPDATE `Users` SET `APIEnabled`=1 WHERE `Id`=?', array($markUid));
       
         }
-        echo "<span class='timedSuccessBox'>".translate('Updated')."</span>";
+        echo '<span class="timedSuccessBox">'.translate('Updated').'</span>';
       }
 
-      if(array_key_exists('revokeAllTokens',$_POST)){
+      if ( array_key_exists('revokeAllTokens',$_POST) ) {
         revokeAllTokens();
       }
 
-      if(array_key_exists('updateSelected',$_POST)){
+      if ( array_key_exists('updateSelected',$_POST) ) {
         updateSelected();
       }
     ?>
-      
-      
       <br/><br/>
       <input type="hidden" name="view" value="<?php echo $view ?>"/>
       <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -352,7 +349,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
         <?php
           
             $sql = 'SELECT * FROM Users ORDER BY Username';
-            foreach( dbFetchAll($sql) as $row ) {
+            foreach ( dbFetchAll($sql) as $row ) {
         ?>
                 <tr>
                   <td class="colUsername"><?php echo validHtmlStr($row['Username']) ?></td>
@@ -375,7 +372,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
     $configCat = array();
     $configCats = array();
 
-    $result = $dbConn->query('SELECT * FROM Config ORDER BY Id ASC');
+    $result = $dbConn->query('SELECT * FROM `Config` ORDER BY `Id` ASC');
     if ( !$result )
       echo mysql_error();
     while( $row = dbFetchNext($result) ) {
@@ -388,9 +385,9 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
     }
 
     if ( $tab == 'system' ) {
-        $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join( '|', getLanguages() );
-        $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join( '|', $skin_options );
-        $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join( '|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ) );
+        $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join('|', getLanguages());
+        $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
+        $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));
         $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
     }
 ?>
@@ -485,7 +482,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
 ?>
 
         <div id="contentButtons">
-          <button type="submit" name="action" value="Save"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
         </div>
       </form>
 <?php

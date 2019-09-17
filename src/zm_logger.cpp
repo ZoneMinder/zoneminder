@@ -243,7 +243,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   mInitialised = true;
 
-  Info("LogOpts: level=%s effective=%s, screen=%s, database=%s, logfile=%s->%s, syslog=%s",
+  Debug(1, "LogOpts: level=%s effective=%s, screen=%s, database=%s, logfile=%s->%s, syslog=%s",
       smCodes[mLevel].c_str(),
       smCodes[mEffectiveLevel].c_str(),
       smCodes[mTerminalLevel].c_str(),
@@ -378,9 +378,7 @@ Logger::Level Logger::fileLevel(Logger::Level fileLevel) {
     if ( mFileLevel > NOLOG )
 	    closeFile();
     mFileLevel = fileLevel;
-    if ( mFileLevel > NOLOG ) {
-	    openFile();
-    }
+    // Don't try to open it here because it will create the log file even if we never write to it.
   }
   return mFileLevel;
 }
@@ -537,12 +535,14 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
     fflush(stdout);
   }
   if ( level <= mFileLevel ) {
+    if ( !mLogFileFP )
+      openFile();
     if ( mLogFileFP ) {
       fputs(logString, mLogFileFP);
       if ( mFlush )
         fflush(mLogFileFP);
     } else {
-      puts("Logging to file, but file not open\n");
+      puts("Logging to file, but failed to open it\n");
     }
 #if 0
   } else {

@@ -53,31 +53,6 @@ $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Options'));
 
-# Have to do this stuff up here before including header.php because fof the cookie setting
-$skin_options = array_map('basename', glob('skins/*',GLOB_ONLYDIR));
-if ( $tab == 'skins' ) {
-  $current_skin = $_COOKIE['zmSkin'];
-  $reload = false;
-  if ( isset($_GET['skin-choice']) && ( $_GET['skin-choice'] != $current_skin ) ) {
-    setcookie('zmSkin',$_GET['skin-choice'], time()+3600*24*30*12*10 );
-    //header("Location: index.php?view=options&tab=skins&reset_parent=1");
-    $reload = true;
-  }
-  $current_css = $_COOKIE['zmCSS'];
-  if ( isset($_GET['css-choice']) and ( $_GET['css-choice'] != $current_css ) ) {
-    setcookie('zmCSS',$_GET['css-choice'], time()+3600*24*30*12*10 );
-    array_map('unlink', glob(ZM_PATH_WEB.'/cache/*')); //cleanup symlinks from cache_bust
-    //header("Location: index.php?view=options&tab=skins&reset_parent=1");
-    $reload = true;
-  }
-  if ( $reload )
-    echo "<script nonce=\"$cspNonce\">if (window.opener) {
-window.opener.location.reload();
-}
-window.location.href=\"?view={$view}&tab={$tab}\";
-</script>";
-} # end if tab == skins
-
 ?>
 <body>
   <?php echo getNavBarHTML(); ?>
@@ -104,12 +79,14 @@ if ( $tab == 'skins' ) {
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
             <div class="form-group">
-              <label for="skin-choice" class="col-sm-3 control-label">SKIN</label>
+              <label for="skin" class="col-sm-3 control-label">SKIN</label>
               <div class="col-sm-6">
-                <select name="skin-choice" class="form-control chosen">
+                <select name="skin" class="form-control chosen">
 <?php
+  # Have to do this stuff up here before including header.php because fof the cookie setting
+$skin_options = array_map('basename', glob('skins/*',GLOB_ONLYDIR));
 foreach ( $skin_options as $dir ) {
-  echo '<option value="'.$dir.'" '.($current_skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
+  echo '<option value="'.$dir.'" '.($skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
 ?>
                 </select>
@@ -117,12 +94,12 @@ foreach ( $skin_options as $dir ) {
               </div>
             </div>
             <div class="form-group">
-              <label for="css-choice" class="col-sm-3 control-label">CSS</label>
+              <label for="css" class="col-sm-3 control-label">CSS</label>
               <div class="col-sm-6">
-                <select name="css-choice" class="form-control chosen">
+                <select name="css" class="form-control chosen">
 <?php
-foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDIR)) as $dir ) {
-  echo '<option value="'.$dir.'" '.($current_css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
+foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $dir ) {
+  echo '<option value="'.$dir.'" '.($css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
 ?>
                 </select>
@@ -508,7 +485,7 @@ foreach ( array_map('basename', glob('skins/'.$current_skin.'/css/*',GLOB_ONLYDI
 ?>
 
         <div id="contentButtons">
-          <button type="submit" value="Save"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button type="submit" name="action" value="Save"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
         </div>
       </form>
 <?php

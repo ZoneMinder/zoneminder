@@ -19,6 +19,7 @@
 
 #include "zm.h"
 #include "zm_signal.h"
+#include "zm_utils.h"
 
 #if HAVE_LIBAVFORMAT
 
@@ -35,11 +36,6 @@ extern "C" {
 #define AV_ERROR_MAX_STRING_SIZE 64
 #endif
 
-#ifdef SOLARIS
-#include <sys/errno.h>  // for ESRCH
-#include <signal.h>
-#include <pthread.h>
-#endif
 #include <string>
 
 
@@ -338,16 +334,20 @@ int FfmpegCamera::OpenFfmpeg() {
 
   // Set transport method as specified by method field, rtpUni is default
   const std::string method = Method();
-  if ( method == "rtpMulti" ) {
-    ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
-  } else if ( method == "rtpRtsp" ) {
-    ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
-  } else if ( method == "rtpRtspHttp" ) {
-    ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
-  } else if ( method == "rtpUni" ) {
-    ret = av_dict_set(&opts, "rtsp_transport", "udp", 0);
-  } else {
-    Warning("Unknown method (%s)", method.c_str());
+  std::string protocol = method.substr(0,4);
+  string_toupper(protocol);
+  if ( protocol == "RTSP" ) {
+    if ( method == "rtpMulti" ) {
+      ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
+    } else if ( method == "rtpRtsp" ) {
+      ret = av_dict_set(&opts, "rtsp_transport", "tcp", 0);
+    } else if ( method == "rtpRtspHttp" ) {
+      ret = av_dict_set(&opts, "rtsp_transport", "http", 0);
+    } else if ( method == "rtpUni" ) {
+      ret = av_dict_set(&opts, "rtsp_transport", "udp", 0);
+    } else {
+      Warning("Unknown method (%s)", method.c_str());
+    }
   }
   // #av_dict_set(&opts, "timeout", "10000000", 0); // in microseconds.
 
@@ -649,6 +649,9 @@ int FfmpegCamera::OpenFfmpeg() {
       ((unsigned int)mVideoCodecContext->height != height)
       ) {
     Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
+        width, height, mVideoCodecContext->width, mVideoCodecContext->height);
+  } else {
+    Warning("Monitor dimensions are %dx%d and camera is sending %dx%d",
         width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
 

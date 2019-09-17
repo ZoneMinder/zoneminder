@@ -887,27 +887,20 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   opkt.size = ipkt->size;
   opkt.duration = ipkt->duration;
 
-  if ( ipkt->pts != AV_NOPTS_VALUE ) {
-    if ( (!video_first_pts) && (ipkt->pts >= 0) ) {
-      // This is the first packet.
-      Debug(2, "Starting video first_pts will become %" PRId64, ipkt->pts);
-      video_first_pts = ipkt->pts;
-    }
-    opkt.pts = ipkt->pts - video_first_pts;
-  }
   // Just because the in stream wraps, doesn't mean the out needs to.
   // Really, if we are limiting ourselves to 10min segments I can't imagine every wrapping in the out.
   // So need to handle in wrap, without causing out wrap.
   // The cameras that Icon has seem to do EOF instead of wrapping
 
   if ( ipkt->dts != AV_NOPTS_VALUE ) {
-#if 0
     if ( !video_first_dts ) {
       Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
       video_first_dts = ipkt->dts;
     }
-#endif
-    opkt.dts = ipkt->dts - video_first_pts;
+    opkt.dts = ipkt->dts - video_first_dts;
+  }
+  if ( ipkt->pts != AV_NOPTS_VALUE ) {
+    opkt.pts = ipkt->pts - video_first_dts;
   }
   av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);
 
@@ -928,22 +921,20 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
   }
   dumpPacket(audio_in_stream, ipkt, "input packet");
 
-  if ( !audio_first_pts ) {
-    audio_first_pts = ipkt->pts;
-    audio_next_pts = audio_out_ctx->frame_size;
-  }
   if ( !audio_first_dts ) {
     audio_first_dts = ipkt->dts;
+    audio_next_pts = audio_out_ctx->frame_size;
   }
 
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
-  ipkt->pts -= audio_first_pts;
-  ipkt->dts -= audio_first_pts;
+  ipkt->pts -= audio_first_dts;
+  ipkt->dts -= audio_first_dts;
   dumpPacket(audio_in_stream, ipkt, "after pts adjustment");
 
   if ( audio_out_codec ) {
     // I wonder if we can get multiple frames per packet? Probably
-    if ( ( ret = zm_send_packet_receive_frame(audio_in_ctx, in_frame, *ipkt) ) <= 0 ) {
+    ret = zm_send_packet_receive_frame(audio_in_ctx, in_frame, *ipkt);
+    if ( ret <= 0 ) {
       Debug(3, "Not ready to receive frame");
       return 0;
     }
@@ -989,54 +980,10 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
     opkt.size = ipkt->size;
     opkt.flags = ipkt->flags;
 
-#if 0
-    if ( ipkt->duration && (ipkt->duration != AV_NOPTS_VALUE) ) {
-      opkt.duration = av_rescale_q(
-          ipkt->duration,
-          audio_in_stream->time_base,
-          audio_out_stream->time_base);
-    }
-    // Scale the PTS of the outgoing packet to be the correct time base
-    if ( ipkt->pts != AV_NOPTS_VALUE ) {
-      if ( !audio_first_pts ) {
-        opkt.pts = 0;
-        audio_first_pts = ipkt->pts;
-        Debug(1, "No audio_first_pts");
-      } else {
-        opkt.pts = av_rescale_q(
-            ipkt->pts - audio_first_pts,
-            audio_in_stream->time_base,
-            audio_out_stream->time_base);
-        Debug(2, "audio opkt.pts = %" PRId64 " from ipkt->pts(%" PRId64 ") - first_pts(%" PRId64 ")",
-            opkt.pts, ipkt->pts, audio_first_pts);
-      }
-    } else {
-      Debug(2, "opkt.pts = undef");
-      opkt.pts = AV_NOPTS_VALUE;
-    }
-
-    if ( ipkt->dts != AV_NOPTS_VALUE ) {
-      if ( !audio_first_dts ) {
-        opkt.dts = 0;
-        audio_first_dts = ipkt->dts;
-      } else {
-        opkt.dts = av_rescale_q(
-            ipkt->dts - audio_first_dts,
-            audio_in_stream->time_base,
-            audio_out_stream->time_base);
-        Debug(2, "opkt.dts = %" PRId64 " from ipkt.dts(%" PRId64 ") - first_dts(%" PRId64 ")",
-            opkt.dts, ipkt->dts, audio_first_dts);
-      }
-      audio_last_dts = ipkt->dts;
-    } else {
-      opkt.dts = AV_NOPTS_VALUE;
-    }
-#else
     opkt.duration = ipkt->duration;
     opkt.pts = ipkt->pts;
     opkt.dts = ipkt->dts;
     av_packet_rescale_ts(&opkt, audio_in_stream->time_base, audio_out_stream->time_base);
-#endif
     write_packet(&opkt, audio_out_stream);
 
     zm_av_packet_unref(&opkt);
@@ -1050,11 +997,11 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   pkt->stream_index = stream->index;
 
   if ( pkt->dts < stream->cur_dts ) {
-    Warning("non increasing dts, fixing");
+    Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream cur_dts %" PRId64, pkt->dts, stream->cur_dts);
     pkt->dts = stream->cur_dts;
     if ( (pkt->pts != AV_NOPTS_VALUE) && (pkt->dts > pkt->pts) ) {
       Debug(1,
-          "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+          "pkt.dts %" PRId64 " must be <= pkt.pts %" PRId64 "."
           "Decompression must happen before presentation.",
           pkt->dts, pkt->pts);
       pkt->pts = pkt->dts;
@@ -1065,6 +1012,8 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
           "Decompression must happen before presentation.",
           pkt->dts, pkt->pts);
     pkt->dts = pkt->pts;
+  } else {
+    Debug(1, "Acceptable pts and dts. cur_dts = %" PRId64, stream->cur_dts);
   }
 
   dumpPacket(stream, pkt, "finished pkt");

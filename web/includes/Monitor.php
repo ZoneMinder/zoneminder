@@ -456,7 +456,7 @@ private $control_fields = array(
     
     $fields = array_keys($this->defaults);
 
-    $sql = 'UPDATE Monitors SET '.implode(', ', array_map(function($field) {return $field.'=?';}, $fields )) . ' WHERE Id=?';
+    $sql = 'UPDATE Monitors SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields )) . ' WHERE Id=?';
     $values = array_map(function($field){return $this->{$field};}, $fields);
     $values[] = $this->{'Id'};
     dbQuery($sql, $values);

@@ -333,10 +333,10 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 
   // Set transport method as specified by method field, rtpUni is default
-  const std::string method = Method();
-  std::string protocol = method.substr(0,4);
+  std::string protocol = mPath.substr(0, 4);
   string_toupper(protocol);
   if ( protocol == "RTSP" ) {
+    const std::string method = Method();
     if ( method == "rtpMulti" ) {
       ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
     } else if ( method == "rtpRtsp" ) {
@@ -348,12 +348,11 @@ int FfmpegCamera::OpenFfmpeg() {
     } else {
       Warning("Unknown method (%s)", method.c_str());
     }
-  }
+    if ( ret < 0 ) {
+      Warning("Could not set rtsp_transport method '%s'", method.c_str());
+    }
+  }  // end if RTSP
   // #av_dict_set(&opts, "timeout", "10000000", 0); // in microseconds.
-
-  if ( ret < 0 ) {
-    Warning("Could not set rtsp_transport method '%s'", method.c_str());
-  }
 
   Debug(1, "Calling avformat_open_input for %s", mPath.c_str());
 

@@ -187,8 +187,8 @@ int main(int argc, char *argv[]) {
     snprintf(log_id_string, sizeof(log_id_string), "zmc_m%d", monitor_id);
   }
 
+  logInit(log_id_string);
   zmLoadConfig();
-
   logInit(log_id_string);
 
   hwcaps_detect();

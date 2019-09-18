@@ -33,7 +33,12 @@ class HostController extends AppController {
   function login() {
 
     $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
+    if ( !$username )
+      $username = $this->request->query('username') ? $this->request->query('username') : $this->request->data('username');
     $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
+    if ( !$password )
+      $password = $this->request->query('password') ? $this->request->query('password') : $this->request->data('password');
+
     $token = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');
 
     if ( !($username && $password) && !$token ) {

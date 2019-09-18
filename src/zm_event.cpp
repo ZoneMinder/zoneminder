@@ -294,7 +294,6 @@ bool Event::WriteFrameImage(Image *image, struct timeval timestamp, const char *
 
   int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
   bool rc;
-Debug(3, "Writing image to %s", event_file);
 
   if ( !config.timestamp_on_capture ) {
     // stash the image we plan to use in another pointer regardless if timestamped.
@@ -550,7 +549,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     static char event_file[PATH_MAX];
     snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
     Debug(1, "Writing capture frame %d to %s", frames, event_file);
-    if ( ! WriteFrameImage(image, timestamp, event_file) ) {
+    if ( !WriteFrameImage(image, timestamp, event_file) ) {
       Error("Failed to write frame image");
     }
   } else {

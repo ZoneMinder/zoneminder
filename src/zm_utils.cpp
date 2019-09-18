@@ -22,6 +22,7 @@
 #include "zm_utils.h"
 
 #include <string.h>
+#include <algorithm>
 #include <stdio.h>
 #include <stdarg.h>
 #include <fcntl.h> /* Definition of AT_* constants */
@@ -414,6 +415,10 @@ std::string UriDecode( const std::string &encoded ) {
 Warning("ZM Compiled without LIBCURL.  UriDecoding not implemented.");
   return encoded;
 #endif
+}
+
+void string_toupper( std::string& str) {
+  std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 }
 
 void touch(const char *pathname) {

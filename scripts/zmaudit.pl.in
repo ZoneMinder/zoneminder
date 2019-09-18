@@ -282,6 +282,7 @@ MAIN: while( $loop ) {
             }
             #Event path is hour/minute/sec
             my $event_path = readlink($event_link);
+            $event_path = '' if ! defined($event_path);
             Debug("Checking link $event_link points to: $event_path");
 
             if ( !($event_path and -e $event_path) ) {

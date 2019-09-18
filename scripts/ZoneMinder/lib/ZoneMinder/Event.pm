@@ -134,7 +134,7 @@ sub Path {
 
   if ( ! $$event{Path} ) {
     my $Storage = $event->Storage();
-		if ( defined $Storage->Id() ) {
+		if ( (!$$event{StorageId}) or defined $Storage->Id() ) {
 			$$event{Path} = join('/', $Storage->Path(), $event->RelativePath());
 		} else {
 			Error("Storage area for $$event{StorageId} no longer exists in db.");

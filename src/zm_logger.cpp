@@ -55,7 +55,7 @@ static void subtractTime( struct timeval * const tp1, struct timeval * const tp2
 }
 #endif
 
-void Logger::usrHandler( int sig ) {
+void Logger::usrHandler(int sig) {
   Logger *logger = fetch();
   if ( sig == SIGUSR1 )
     logger->level(logger->level()+1);
@@ -71,9 +71,9 @@ Logger::Logger() :
   mFileLevel(NOLOG),
   mSyslogLevel(NOLOG),
   mEffectiveLevel(NOLOG),
-  //mLogPath( staticConfig.PATH_LOGS.c_str() ),
-  //mLogFile( mLogPath+"/"+mId+".log" ),
   mDbConnected(false),
+  mLogPath(staticConfig.PATH_LOGS.c_str()),
+  //mLogFile( mLogPath+"/"+mId+".log" ),
   mLogFileFP(NULL),
   mHasTerminal(false),
   mFlush(false) {
@@ -106,9 +106,11 @@ Logger::Logger() :
     smInitialised = true;
   }
 
-  if ( fileno(stderr) && isatty(fileno(stderr)) )
+  if ( fileno(stderr) && isatty(fileno(stderr)) ) {
     mHasTerminal = true;
-}
+    mTerminalLevel = WARNING;
+  }
+}  // End Logger::Logger
 
 Logger::~Logger() {
   terminate();
@@ -138,7 +140,8 @@ void Logger::initialise(const std::string &id, const Options &options) {
   } else if ( options.mLogFile.size() ) {
     tempLogFile = options.mLogFile;
   } else {
-    if ( options.mLogPath.size() ) {
+    // options.mLogPath defaults to '.' so only use it if we don't already have a path
+    if ( (!mLogPath.size()) || options.mLogPath != "." ) {
       mLogPath = options.mLogPath;
     }
     tempLogFile = mLogPath+"/"+mId+".log";
@@ -240,7 +243,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   mInitialised = true;
 
-  Debug(1, "LogOpts: level=%s/%s, screen=%s, database=%s, logfile=%s->%s, syslog=%s",
+  Debug(1, "LogOpts: level=%s effective=%s, screen=%s, database=%s, logfile=%s->%s, syslog=%s",
       smCodes[mLevel].c_str(),
       smCodes[mEffectiveLevel].c_str(),
       smCodes[mTerminalLevel].c_str(),
@@ -297,7 +300,7 @@ const std::string &Logger::id(const std::string &id) {
 
   size_t pos;
   // Remove whitespace
-  while ( (pos = tempId.find_first_of( " \t" )) != std::string::npos ) {
+  while ( (pos = tempId.find_first_of(" \t")) != std::string::npos ) {
     tempId.replace(pos, 1, "");
   }
   // Replace non-alphanum with underscore
@@ -341,7 +344,7 @@ Logger::Level Logger::level(Logger::Level level) {
   return mLevel;
 }
 
-Logger::Level Logger::terminalLevel( Logger::Level terminalLevel ) {
+Logger::Level Logger::terminalLevel(Logger::Level terminalLevel) {
   if ( terminalLevel > NOOPT ) {
     if ( !mHasTerminal )
       terminalLevel = NOLOG;
@@ -352,34 +355,35 @@ Logger::Level Logger::terminalLevel( Logger::Level terminalLevel ) {
   return mTerminalLevel;
 }
 
-Logger::Level Logger::databaseLevel( Logger::Level databaseLevel ) {
+Logger::Level Logger::databaseLevel(Logger::Level databaseLevel) {
   if ( databaseLevel > NOOPT ) {
     databaseLevel = limit(databaseLevel);
     if ( mDatabaseLevel != databaseLevel ) {
       if ( databaseLevel > NOLOG && mDatabaseLevel <= NOLOG ) {
-        zmDbConnect();
-      } // end if ( databaseLevel > NOLOG && mDatabaseLevel <= NOLOG )
+        if ( !zmDbConnect() ) {
+          databaseLevel = NOLOG;
+        }
+      }  // end if ( databaseLevel > NOLOG && mDatabaseLevel <= NOLOG )
       mDatabaseLevel = databaseLevel;
-    } // end if ( mDatabaseLevel != databaseLevel )
-  } // end if ( databaseLevel > NOOPT )
+    }  // end if ( mDatabaseLevel != databaseLevel )
+  }  // end if ( databaseLevel > NOOPT )
 
   return mDatabaseLevel;
 }
 
-Logger::Level Logger::fileLevel( Logger::Level fileLevel ) {
+Logger::Level Logger::fileLevel(Logger::Level fileLevel) {
   if ( fileLevel > NOOPT ) {
     fileLevel = limit(fileLevel);
     // Always close, because we may have changed file names
     if ( mFileLevel > NOLOG )
 	    closeFile();
     mFileLevel = fileLevel;
-    if ( mFileLevel > NOLOG )
-	    openFile();
+    // Don't try to open it here because it will create the log file even if we never write to it.
   }
   return mFileLevel;
 }
 
-Logger::Level Logger::syslogLevel( Logger::Level syslogLevel ) {
+Logger::Level Logger::syslogLevel(Logger::Level syslogLevel) {
   if ( syslogLevel > NOOPT ) {
     syslogLevel = limit(syslogLevel);
     if ( mSyslogLevel != syslogLevel ) {
@@ -393,7 +397,7 @@ Logger::Level Logger::syslogLevel( Logger::Level syslogLevel ) {
   return mSyslogLevel;
 }
 
-void Logger::logFile( const std::string &logFile ) {
+void Logger::logFile(const std::string &logFile) {
   bool addLogPid = false;
   std::string tempLogFile = logFile;
   if ( tempLogFile[tempLogFile.length()-1] == '+' ) {
@@ -401,16 +405,16 @@ void Logger::logFile( const std::string &logFile ) {
     addLogPid = true;
   }
   if ( addLogPid )
-    mLogFile = stringtf( "%s.%05d", tempLogFile.c_str(), getpid() );
+    mLogFile = stringtf("%s.%05d", tempLogFile.c_str(), getpid());
   else
     mLogFile = tempLogFile;
 }
 
 void Logger::openFile() {
   if ( mLogFile.size() ) {
-   if ( (mLogFileFP = fopen(mLogFile.c_str() ,"a")) == (FILE *)NULL ) {
+   if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == (FILE *)NULL ) {
     mFileLevel = NOLOG;
-    Fatal( "fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno) );
+    Error("fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno));
    }
   } else {
     puts("Called Logger::openFile() without a filename");
@@ -419,29 +423,33 @@ void Logger::openFile() {
 
 void Logger::closeFile() {
   if ( mLogFileFP ) {
-    fflush( mLogFileFP );
-    if ( fclose( mLogFileFP ) < 0 ) {
-      Fatal( "fclose(), error = %s",strerror(errno) );
+    fflush(mLogFileFP);
+    if ( fclose(mLogFileFP) < 0 ) {
+      mLogFileFP = (FILE *)NULL;
+      Error("fclose(), error = %s", strerror(errno));
     }
     mLogFileFP = (FILE *)NULL;
   }
 }
 
 void Logger::closeDatabase() {
-  
+
 }
 
 void Logger::openSyslog() {
-  (void) openlog( mId.c_str(), LOG_PID|LOG_NDELAY, LOG_LOCAL1 );
+  (void) openlog(mId.c_str(), LOG_PID|LOG_NDELAY, LOG_LOCAL1);
 }
 
 void Logger::closeSyslog() {
   (void) closelog();
 }
 
-void Logger::logPrint( bool hex, const char * const filepath, const int line, const int level, const char *fstring, ... ) {
-  if ( level > mEffectiveLevel ) 
+void Logger::logPrint(bool hex, const char * const filepath, const int line, const int level, const char *fstring, ...) {
+  
+  if ( level > mEffectiveLevel ) {
     return;
+  }
+    
   log_mutex.lock();
   char            timeString[64];
   char            logString[8192];
@@ -479,24 +487,24 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   thr_self(&lwpid);
   tid = lwpid;
 
-  if (tid < 0 ) // Thread/Process id
+  if ( tid < 0 )  // Thread/Process id
 #else
-#ifdef HAVE_SYSCALL
-#ifdef __FreeBSD_kernel__
+  #ifdef HAVE_SYSCALL
+    #ifdef __FreeBSD_kernel__
     if ( (syscall(SYS_thr_self, &tid)) < 0 ) // Thread/Process id
 
-# else
+    # else
       // SOLARIS doesn't have SYS_gettid; don't assume
-#ifdef SYS_gettid
-      if ( (tid = syscall(SYS_gettid)) < 0 ) // Thread/Process id
-#endif // SYS_gettid
+      #ifdef SYS_gettid
+    if ( (tid = syscall(SYS_gettid)) < 0 ) // Thread/Process id
+      #endif // SYS_gettid
+    #endif
+  #endif // HAVE_SYSCALL
 #endif
-#endif // HAVE_SYSCALL
-#endif
-        tid = getpid(); // Process id
+    tid = getpid(); // Process id
 
   char *logPtr = logString;
-  logPtr += snprintf( logPtr, sizeof(logString), "%s %s[%d].%s-%s/%d [", 
+  logPtr += snprintf(logPtr, sizeof(logString), "%s %s[%d].%s-%s/%d [",
       timeString,
       mId.c_str(),
       tid,
@@ -520,32 +528,39 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   }
   va_end(argPtr);
   char *syslogEnd = logPtr;
-  strncpy( logPtr, "]\n", sizeof(logString)-(logPtr-logString) );   
+  strncpy(logPtr, "]\n", sizeof(logString)-(logPtr-logString));
 
   if ( level <= mTerminalLevel ) {
-    puts( logString );
-    fflush( stdout );
+    puts(logString);
+    fflush(stdout);
   }
   if ( level <= mFileLevel ) {
+    if ( !mLogFileFP )
+      openFile();
     if ( mLogFileFP ) {
-      fputs( logString, mLogFileFP );
+      fputs(logString, mLogFileFP);
       if ( mFlush )
-        fflush( mLogFileFP );
+        fflush(mLogFileFP);
     } else {
-      puts("Logging to file, but file not open\n");
+      puts("Logging to file, but failed to open it\n");
     }
+#if 0
+  } else {
+    printf("Not writing to log file because level %d %s <= mFileLevel %d %s\nstring: %s\n",
+        level, smCodes[level].c_str(), mFileLevel, smCodes[mFileLevel].c_str(), logString);
+#endif
   }
   *syslogEnd = '\0';
   if ( level <= mDatabaseLevel ) {
     char sql[ZM_SQL_MED_BUFSIZ];
     char escapedString[(strlen(syslogStart)*2)+1];
 
-    if ( ! db_mutex.trylock() ) {
-      mysql_real_escape_string( &dbconn, escapedString, syslogStart, strlen(syslogStart) );
+    if ( !db_mutex.trylock() ) {
+      mysql_real_escape_string(&dbconn, escapedString, syslogStart, strlen(syslogStart));
 
       snprintf(sql, sizeof(sql),
-          "INSERT INTO Logs "
-          "( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line )"
+          "INSERT INTO `Logs` "
+          "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
          " VALUES "
          "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
          timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
@@ -567,7 +582,7 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
   if ( level <= mSyslogLevel ) {
     int priority = smSyslogPriorities[level];
     //priority |= LOG_DAEMON;
-    syslog( priority, "%s [%s] [%s]", classString, mId.c_str(), syslogStart );
+    syslog(priority, "%s [%s] [%s]", classString, mId.c_str(), syslogStart);
   }
 
   free(filecopy);
@@ -580,15 +595,16 @@ void Logger::logPrint( bool hex, const char * const filepath, const int line, co
     exit(-1);
   }
   log_mutex.unlock();
-}
-
+}  // end logPrint
 
 void logInit(const char *name, const Logger::Options &options) {
-  if ( !Logger::smInstance )
-    Logger::smInstance = new Logger();
-  Logger::Options tempOptions = options;
-  tempOptions.mLogPath = staticConfig.PATH_LOGS;
-  Logger::smInstance->initialise(name, tempOptions);
+  if ( Logger::smInstance ) {
+    delete Logger::smInstance;
+    Logger::smInstance = NULL;
+  }
+
+  Logger::smInstance = new Logger();
+  Logger::smInstance->initialise(name, options);
 }
 
 void logTerm() {

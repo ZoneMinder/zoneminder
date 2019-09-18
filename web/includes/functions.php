@@ -120,33 +120,6 @@ function CORSHeaders() {
   }
 }
 
-function getStreamSrc( $args, $querySep='&amp;' ) {
-  $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
-
-  if ( ZM_OPT_USE_AUTH ) {
-    if ( ZM_AUTH_RELAY == 'hashed' ) {
-      $args[] = 'auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
-    } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-      $args[] = 'user='.$_SESSION['username'];
-      $args[] = 'pass='.$_SESSION['password'];
-    } elseif ( ZM_AUTH_RELAY == 'none' ) {
-      $args[] = 'user='.$_SESSION['username'];
-    }
-  }
-  if ( !in_array( 'mode=single', $args ) && !empty($GLOBALS['connkey']) ) {   
-    $args[] = 'connkey='.$GLOBALS['connkey'];
-  }       
-  if ( ZM_RAND_STREAM ) {
-    $args[] = 'rand='.time();
-  }
-
-  if ( count($args) ) {
-    $streamSrc .= '?'.join( $querySep, $args );
-  }
-
-  return( $streamSrc );
-}
-
 function getMimeType( $file ) {
   if ( function_exists('mime_content_type') ) {
     return( mime_content_type( $file ) );
@@ -156,7 +129,7 @@ function getMimeType( $file ) {
     finfo_close($finfo);
     return( $mimeType );
   }
-  return( trim( exec( 'file -bi '.escapeshellarg( $file ).' 2>/dev/null' ) ) );
+  return trim(exec('file -bi '.escapeshellarg($file).' 2>/dev/null'));
 }
 
 function outputVideoStream( $id, $src, $width, $height, $format, $title='' ) {
@@ -169,8 +142,8 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
   $height = validInt($height);
   $title = validHtmlStr($title);
 
-  if ( file_exists( $src ) ) {
-    $mimeType = getMimeType( $src );
+  if ( file_exists($src) ) {
+    $mimeType = getMimeType($src);
   } else {
     switch( $format ) {
       case 'asf' :
@@ -205,7 +178,6 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
       case 'video/x-ms-asf' :
       case 'video/x-msvideo' :
       case 'video/mp4' :
-        {
           if ( isWindows() ) {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'
               classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
@@ -226,9 +198,7 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
               </embed>
               </object>';
           }
-        }
       case 'video/quicktime' :
-        {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
             codebase="'.ZM_BASE_PROTOCOL.'://www.apple.com/qtactivex/qtplugin.cab"
@@ -244,9 +214,7 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
             controller="true">
             </embed>
             </object>';
-        }
       case 'application/x-shockwave-flash' :
-        {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
             codebase="'.ZM_BASE_PROTOCOL.'://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
@@ -264,7 +232,6 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
             bgcolor="#ffffff">
             </embed>
             </object>';
-        }
     } # end switch
   } # end if use object tags
   return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
@@ -295,25 +262,25 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
 function outputControlStream( $src, $width, $height, $monitor, $scale, $target ) {
 ?>
   <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
-    <input type="hidden" name="view" value="blank">
-    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
-    <input type="hidden" name="action" value="control">
+    <input type="hidden" name="view" value="blank"/>
+    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
+    <input type="hidden" name="action" value="control"/>
     <?php
     if ( $monitor['CanMoveMap'] ) {
     ?>
-      <input type="hidden" name="control" value="moveMap">
+      <input type="hidden" name="control" value="moveMap"/>
     <?php
-    } elseif ( $monitor['CanMoveRel'] ) {
+    } else if ( $monitor['CanMoveRel'] ) {
     ?>
-      <input type="hidden" name="control" value="movePseudoMap">
+      <input type="hidden" name="control" value="movePseudoMap"/>
     <?php
-    } elseif ( $monitor['CanMoveCon'] ) {
+    } else if ( $monitor['CanMoveCon'] ) {
     ?>
-      <input type="hidden" name="control" value="moveConMap">
+      <input type="hidden" name="control" value="moveConMap"/>
     <?php
     }
     ?>
-    <input type="hidden" name="scale" value="<?php echo $scale ?>">
+    <input type="hidden" name="scale" value="<?php echo $scale ?>"/>
     <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
   </form>
 <?php
@@ -365,26 +332,26 @@ function getWebSiteUrl( $id, $src, $width, $height, $title='' ) {
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
   ?>
   <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
-    <input type="hidden" name="view" value="blank">
-    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
-    <input type="hidden" name="action" value="control">
+    <input type="hidden" name="view" value="blank"/>
+    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
+    <input type="hidden" name="action" value="control"/>
     <?php
     if ( $monitor['CanMoveMap'] ) {
     ?>
-    <input type="hidden" name="control" value="moveMap">
+    <input type="hidden" name="control" value="moveMap"/>
     <?php
-    } elseif ( $monitor['CanMoveRel'] ) {
+    } else if ( $monitor['CanMoveRel'] ) {
     ?>
-    <input type="hidden" name="control" value="movePseudoMap">
+    <input type="hidden" name="control" value="movePseudoMap"/>
     <?php
-    } elseif ( $monitor['CanMoveCon'] ) {
+    } else if ( $monitor['CanMoveCon'] ) {
     ?>
-    <input type="hidden" name="control" value="moveConMap">
+    <input type="hidden" name="control" value="moveConMap"/>
     <?php
     }
     ?>
-    <input type="hidden" name="scale" value="<?php echo $scale ?>">
-    <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
+    <input type="hidden" name="scale" value="<?php echo $scale ?>"/>
+    <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
   </form>
   <?php
 }
@@ -405,15 +372,16 @@ function getZmuCommand( $args ) {
 
   $zmuCommand .= $args;
 
-  return( $zmuCommand );
+  return $zmuCommand;
 }
 
-function getEventDefaultVideoPath( $event ) {
-  $Event = new ZM\Event( $event );
-  return $Event->getStreamSrc( array( 'mode'=>'mpeg', 'format'=>'h264' ) );
+function getEventDefaultVideoPath($event) {
+  $Event = new ZM\Event($event);
+  return $Event->getStreamSrc(array('mode'=>'mpeg', 'format'=>'h264'));
 }
 
 function deletePath( $path ) {
+  ZM\Logger::Debug("Deleting $path");
   if ( is_dir( $path ) ) {
     system( escapeshellcmd( 'rm -rf '.$path ) );
   } else if ( file_exists($path) ) {
@@ -973,13 +941,6 @@ Logger::Debug("generating Video $command: result($result outptu:(".implode("\n",
   return( $status?"":rtrim($result) );
 }
 
-function executeFilter( $filter_id ) {
-  $command = ZM_PATH_BIN.'/zmfilter.pl --filter_id '.escapeshellarg($filter_id);
-  $result = exec($command, $output, $status);
-  dbQuery('DELETE FROM Filters WHERE Id=?', array($filter_id));
-  return $status;
-}
-
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
 function reScale( $dimension, $dummy ) {
@@ -1213,6 +1174,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           case 'DiskSpace':
           case 'MonitorId':
           case 'StorageId':
+          case 'SecondaryStorageId':
           case 'Length':
           case 'Frames':
           case 'AlarmFrames':
@@ -1341,7 +1303,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             $filter['sql'] .= " IS NOT $value";
             break;
           default:
-            ZM\Warning("Invalid operator in filter: " . $term['op'] );
+            ZM\Warning('Invalid operator in filter: ' . print_r($term['op'], true));
         } // end switch op
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($term['op']);
@@ -1472,7 +1434,14 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
 
 function sortHeader( $field, $querySep='&amp;' ) {
   global $view;
-  return '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.validInt($_REQUEST['limit']);
+  return implode($querySep, array(
+    '?view='.$view,
+    'page=1'.$_REQUEST['filter']['query'],
+    'sort_field='.$field,
+    'sort_asc='.($_REQUEST['sort_field'] == $field ? !$_REQUEST['sort_asc'] : 0),
+    'limit='.validInt($_REQUEST['limit']),
+    (isset($_REQUEST['eid']) ? 'eid='.$_REQUEST['eid'] : '' ),
+  ));
 }
 
 function sortTag( $field ) {
@@ -2393,13 +2362,13 @@ function check_timezone() {
                #");
 
   if ( $sys_tzoffset != $php_tzoffset )
-    ZM\Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
+    ZM\Error("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
 
   if ( $sys_tzoffset != $mysql_tzoffset )
     ZM\Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");
 
   if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone')))
-    ZM\Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+    ZM\Error("ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone");
 
 }
 
@@ -2459,11 +2428,13 @@ function do_post_request($url, $data, $optional_headers = null) {
   $ctx = stream_context_create($params);
   $fp = @fopen($url, 'rb', false, $ctx);
   if ( !$fp ) {
-    throw new Exception("Problem with $url, $php_errormsg");
+    throw new Exception("Problem with $url, "
+      .print_r(error_get_last(),true));
   }
   $response = @stream_get_contents($fp);
   if ( $response === false ) {
-    throw new Exception("Problem reading data from $url, $php_errormsg");
+    throw new Exception("Problem reading data from $url, data: ".print_r($params,true)
+      .print_r(error_get_last(),true));
   }
   return $response;
 }
@@ -2514,6 +2485,47 @@ function getAffectedIds( $name ) {
 
 function format_duration($time, $separator=':') {
   return sprintf('%02d%s%02d%s%02d', floor($time/3600), $separator, ($time/60)%60, $separator, $time%60);
+}
+
+function array_recursive_diff($aArray1, $aArray2) {
+  $aReturn = array();
+
+  foreach ($aArray1 as $mKey => $mValue) {
+    if ( array_key_exists($mKey, $aArray2) ) {
+      if ( is_array($mValue) ) {
+        $aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
+        if ( count($aRecursiveDiff) ) {
+          $aReturn[$mKey] = $aRecursiveDiff;
+        }
+      } else {
+        if ( $mValue != $aArray2[$mKey] ) {
+          $aReturn[$mKey] = $mValue;
+        }
+      }
+    } else {
+      $aReturn[$mKey] = $mValue;
+    }
+  }
+  # Now check for keys in array2 that are not in array1
+  foreach ($aArray2 as $mKey => $mValue) {
+    if ( array_key_exists($mKey, $aArray1) ) {
+      # Already checked it... I think.
+      #if ( is_array($mValue) ) {
+        #$aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
+        #if ( count($aRecursiveDiff) ) {
+          #$aReturn[$mKey] = $aRecursiveDiff;
+        #}
+      #} else {
+        #if ( $mValue != $aArray2[$mKey] ) {
+          #$aReturn[$mKey] = $mValue;
+        #}
+      #}
+    } else {
+      $aReturn[$mKey] = $mValue;
+    }
+  }
+
+  return $aReturn;
 }
 
 ?>

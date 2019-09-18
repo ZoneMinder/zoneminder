@@ -5,9 +5,3 @@
 [submodule "web/api/app/Plugin/CakePHP-Enum-Behavior"]
 	path = web/api/app/Plugin/CakePHP-Enum-Behavior
 	url = https://github.com/ZoneMinder/CakePHP-Enum-Behavior.git
-[submodule "third_party/bcrypt"]
-	path = third_party/bcrypt
-	url = https://github.com/ZoneMinder/libbcrypt
-[submodule "third_party/jwt-cpp"]
-	path = third_party/jwt-cpp
-	url = https://github.com/Thalhammer/jwt-cpp

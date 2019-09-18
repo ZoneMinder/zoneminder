@@ -86,30 +86,8 @@ commonprep () {
         git -C packpack pull origin master
     else
         echo "Cloning packpack github repo..."
-        git clone https://github.com/packpack/packpack.git packpack
+        git clone https://github.com/zoneminder/packpack.git packpack
     fi
-
-    # Rpm builds are broken in latest packpack master. Temporarily roll back.
-    #git -C packpack checkout 7cf23ee
-
-    # Patch packpack
-    patch --dry-run --silent -f -p1 < utils/packpack/packpack-rpm.patch
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/packpack-rpm.patch
-    fi
-
-    # Skip deb lintian checks to speed up the build
-    patch --dry-run --silent -f -p1 < utils/packpack/nolintian.patch
-    if [ $? -eq 0 ]; then
-        patch -p1 < utils/packpack/nolintian.patch
-    fi
-
-    # fix 32bit rpm builds
-    # FIXME: breaks arm rpm builds
-    #patch --dry-run --silent -f -p1 < utils/packpack/setarch.patch
-    #if [ $? -eq 0 ]; then
-    #    patch -p1 < utils/packpack/setarch.patch
-    #fi
 
     # The rpm specfile requires we download each submodule as a tarball then manually move it into place
     # Might as well do this for Debian as well, rather than git submodule init
@@ -160,7 +138,7 @@ movecrud () {
 
 # previsouly part of installzm.sh
 # install the trusty deb and test zoneminder
-installtrusty () {
+install_deb () {
 
     # Check we've got gdebi installed
     type gdebi 2>&1 > /dev/null
@@ -177,9 +155,13 @@ installtrusty () {
 
     if [ -e $pkgname ]; then
         sudo gdebi --quiet --non-interactive $pkgname
+        echo "Return code from installing $?"
         mysql -uzmuser -pzmpass zm < db/test.monitor.sql
+        echo "Return code from adding test monitor $?"
         sudo /usr/bin/zmpkg.pl start
-        sudo /usr/bin/zmfilter.pl -f purgewhenfull
+        echo "Return code from starting $?"
+        sudo /usr/bin/zmfilter.pl --filter=purgewhenfull
+        echo "Return code from running purgewhenfull $?"
     else
       echo
       echo "ERROR: The script cannot find the package $pkgname"
@@ -241,9 +223,9 @@ setrpmchangelog () {
 setdebchangelog () {
 DATE=`date -R`
 cat <<EOF > debian/changelog
-zoneminder ($VERSION-${DIST}-1) unstable; urgency=low
+zoneminder ($VERSION-${DIST}) ${DIST}; urgency=low
   * 
- -- Isaac Connor <iconnor@connortechnology.com>  $DATE
+ -- Isaac Connor <isaac@zoneminder.com>  $DATE
 EOF
 }
 
@@ -312,7 +294,7 @@ checksanity
 # We don't want to build packages for all supported distros after every commit
 # Only build all packages when executed via cron
 # See https://docs.travis-ci.com/user/cron-jobs/
-if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
+if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true" ]; then
     commonprep
 
     # Steps common to Redhat distros
@@ -365,8 +347,8 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true"  ]; then
         echo "Starting packpack..."
         execpackpack
         
-        if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ] && [ "${TRAVIS}" == "true" ]; then
-            installtrusty
+        if [ "${TRAVIS}" == "true" ]; then
+            install_deb
         fi
     fi
 
@@ -387,7 +369,7 @@ elif [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86
 
     # If we are running inside Travis then attempt to install the deb we just built
     if [ "${TRAVIS}" == "true" ]; then
-        installtrusty
+        install_deb
     fi
 fi
 

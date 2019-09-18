@@ -186,6 +186,7 @@ CREATE TABLE `Events` (
   `Id` bigint unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `StorageId`	smallint(5) unsigned default 0,
+  `SecondaryStorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
   `Cause` varchar(32) NOT NULL default '',
   `StartTime` datetime default NULL,
@@ -292,6 +293,8 @@ CREATE TABLE `Filters` (
   `AutoDelete` tinyint(3) unsigned NOT NULL default '0',
   `AutoMove` tinyint(3) unsigned NOT NULL default '0',
   `AutoMoveTo`	smallint(5) unsigned NOT NULL default 0,
+  `AutoCopy` tinyint(3) unsigned NOT NULL default '0',
+  `AutoCopyTo`	smallint(5) unsigned NOT NULL default 0,
   `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',
@@ -351,6 +354,7 @@ CREATE INDEX `Groups_Monitors_MonitorId_idx` ON `Groups_Monitors` (`MonitorId`);
 
 DROP TABLE IF EXISTS `Logs`;
 CREATE TABLE `Logs` (
+  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `TimeKey` decimal(16,6) NOT NULL,
   `Component` varchar(32) NOT NULL,
   `ServerId` int(10) unsigned,
@@ -360,6 +364,7 @@ CREATE TABLE `Logs` (
   `Message` text NOT NULL,
   `File` varchar(255) DEFAULT NULL,
   `Line` smallint(5) unsigned DEFAULT NULL,
+  PRIMARY KEY (`Id`),
   KEY `TimeKey` (`TimeKey`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -411,7 +416,7 @@ CREATE TABLE `MonitorPresets` (
   `Width` smallint(5) unsigned default NULL,
   `Height` smallint(5) unsigned default NULL,
   `Palette` int(10) unsigned default NULL,
-  `MaxFPS` decimal(5,2) default NULL,
+  `MaxFPS` decimal(5,3) default NULL,
   `Controllable` tinyint(3) unsigned NOT NULL default '0',
   `ControlId` varchar(16) default NULL,
   `ControlDevice` varchar(255) default NULL,
@@ -456,6 +461,8 @@ CREATE TABLE `Monitors` (
   `Palette` int(10) unsigned NOT NULL default '0',
   `Orientation` enum('0','90','180','270','hori','vert') NOT NULL default '0',
   `Deinterlacing` int(10) unsigned NOT NULL default '0',
+  `DecoderHWAccelName`  varchar(64),
+  `DecoderHWAccelDevice`  varchar(255),
   `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' ,
   `VideoWriter` TINYINT NOT NULL DEFAULT '0',
   `OutputCodec`     enum('h264','mjpeg','mpeg1','mpeg2'),
@@ -479,6 +486,7 @@ CREATE TABLE `Monitors` (
   `StreamReplayBuffer` int(10) unsigned NOT NULL default '1000',
   `AlarmFrameCount` smallint(5) unsigned NOT NULL default '1',
   `SectionLength` int(10) unsigned NOT NULL default '600',
+  `MinSectionLength` int(10) unsigned NOT NULL default '10',
   `FrameSkip` smallint(5) unsigned NOT NULL default '0',
   `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',
   `AnalysisFPSLimit` decimal(5,2) default NULL,
@@ -586,6 +594,7 @@ CREATE INDEX `Servers_Name_idx` ON `Servers` (`Name`);
 
 DROP TABLE IF EXISTS `Stats`;
 CREATE TABLE `Stats` (
+  `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `MonitorId` int(10) unsigned NOT NULL default '0',
   `ZoneId` int(10) unsigned NOT NULL default '0',
   `EventId` BIGINT UNSIGNED NOT NULL,
@@ -602,6 +611,7 @@ CREATE TABLE `Stats` (
   `MinY` smallint(5) unsigned NOT NULL default '0',
   `MaxY` smallint(5) unsigned NOT NULL default '0',
   `Score` smallint(5) unsigned NOT NULL default '0',
+  PRIMARY KEY (`Id`),
   KEY `EventId` (`EventId`),
   KEY `MonitorId` (`MonitorId`),
   KEY `ZoneId` (`ZoneId`)
@@ -742,14 +752,24 @@ insert into Storage VALUES (NULL, '@ZM_DIR_EVENTS@', 'Default', 'local', NULL, N
 --
 -- Create a default admin user.
 --
-insert into Users VALUES (NULL,'admin',password('admin'),'',1,'View','Edit','Edit','Edit','Edit','Edit','Edit','','',0,1);
+insert into Users VALUES (NULL,'admin','$2b$12$NHZsm6AM2f2LQVROriz79ul3D6DnmFiZC.ZK5eqbF.ZWfwH9bqUJ6','',1,'View','Edit','Edit','Edit','Edit','Edit','Edit','','',0,1);
 
 --
 -- Add a sample filter to purge the oldest 100 events when the disk is 95% full
 --
 
-insert into Filters values (NULL,'PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',0/*AutoArchive*/,0/*AutoVideo*/,0/*AutoUpload*/,0/*AutoEmail*/,0/*AutoMessage*/,0/*AutoExecute*/,'',1/*AutoDelete*/,0/*AutoMove*/,0/*MoveTo*/,0/*UpdateDiskSpace*/,1/*Background*/,0/*Concurrent*/);
-insert into Filters values (NULL,'Update DiskSpace','{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',0,0,0,0,0,0,'',0,0,0,1,1,0);
+insert into Filters values (NULL,'PurgeWhenFull','{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}',
+  0/*AutoArchive*/,
+  0/*AutoVideo*/,
+  0/*AutoUpload*/,
+  0/*AutoEmail*/,
+  0/*AutoMessage*/,
+  0/*AutoExecute*/,'',
+  1/*AutoDelete*/,
+  0/*AutoMove*/,0/*MoveTo*/,
+  0/*AutoCopy*/,0/*CopyTo*/,
+  0/*UpdateDiskSpace*/,1/*Background*/,0/*Concurrent*/);
+insert into Filters values (NULL,'Update DiskSpace','{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"}]}',0,0,0,0,0,0,'',0,0,0,0,0,1,1,0);
 
 --
 -- Add in some sample control protocol definitions

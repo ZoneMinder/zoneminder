@@ -58,32 +58,32 @@ inline void zm_freealigned(void* ptr) {
 #endif
 }
 
-inline char *mempbrk( register const char *s, const char *accept, size_t limit ) {
+inline char *mempbrk(const char *s, const char *accept, size_t limit) {
   if ( limit == 0 || !s || !accept || !*accept )
     return 0;
 
-  register unsigned int i,j;
-  size_t acc_len = strlen( accept );
+  unsigned int i,j;
+  size_t acc_len = strlen(accept);
 
   for ( i = 0; i < limit; s++, i++ ) {
     for ( j = 0; j < acc_len; j++ ) {
       if ( *s == accept[j] ) {
-        return( (char *)s );
+        return (char *)s;
       }
     }
   }
-  return( 0 );
+  return 0;
 }
 
-inline char *memstr( register const char *s, const char *n, size_t limit ) {
+inline char *memstr(const char *s, const char *n, size_t limit) {
   if ( limit == 0 || !s || !n )
-    return( 0 );
+    return 0;
 
   if ( !*n )
-    return( (char *)s );
+    return (char *)s;
 
-  register unsigned int i,j,k;
-  size_t n_len = strlen( n );
+  unsigned int i,j,k;
+  size_t n_len = strlen(n);
 
   for ( i = 0; i < limit; i++, s++ ) {
     if ( *s != *n )
@@ -92,23 +92,23 @@ inline char *memstr( register const char *s, const char *n, size_t limit ) {
     k = 1;
     while ( true ) {
       if ( k >= n_len )
-        return( (char *)s );
+        return (char *)s;
       if ( s[j++] != n[k++] )
         break;
     }
   }
-  return( 0 );
+  return 0;
 }
 
-inline size_t memspn( register const char *s, const char *accept, size_t limit ) {
+inline size_t memspn(const char *s, const char *accept, size_t limit) {
   if ( limit == 0 || !s || !accept || !*accept )
-    return( 0 );
+    return 0;
 
-  register unsigned int i,j;
-  size_t acc_len = strlen( accept );
+  unsigned int i,j;
+  size_t acc_len = strlen(accept);
 
   for ( i = 0; i < limit; s++, i++ ) {
-    register bool found = false;
+    bool found = false;
     for ( j = 0; j < acc_len; j++ ) {
       if ( *s == accept[j] ) {
         found = true;
@@ -116,30 +116,30 @@ inline size_t memspn( register const char *s, const char *accept, size_t limit )
       }
     }
     if ( !found ) {
-      return( i );
+      return i;
     }
   }
-  return( limit );
+  return limit;
 }
 
-inline size_t memcspn( register const char *s, const char *reject, size_t limit ) {
+inline size_t memcspn(const char *s, const char *reject, size_t limit) {
   if ( limit == 0 || !s || !reject )
-    return( 0 );
+    return 0;
 
   if ( !*reject )
-    return( limit );
+    return limit;
 
-  register unsigned int i,j;
+  unsigned int i,j;
   size_t rej_len = strlen( reject );
 
   for ( i = 0; i < limit; s++, i++ ) {
     for ( j = 0; j < rej_len; j++ ) {
       if ( *s == reject[j] ) {
-        return( i );
+        return i;
       }
     }
   }
-  return( limit );
+  return limit;
 }
 
 #endif // ZM_MEM_UTILS_H

@@ -117,18 +117,18 @@ function reloadWindow() {
 }
 
 function initPage() {
-  reloadWindow.periodical( consoleRefreshTimeout );
+  reloadWindow.periodical(consoleRefreshTimeout);
   if ( showVersionPopup ) {
-    createPopup( '?view=version', 'zmVersion', 'version' );
+    createPopup('?view=version', 'zmVersion', 'version');
   }
   if ( showDonatePopup ) {
-    createPopup( '?view=donate', 'zmDonate', 'donate' );
+    createPopup('?view=donate', 'zmDonate', 'donate');
   }
 
   // Makes table sortable
   $j( function() {
     $j( "#consoleTableBody" ).sortable({
-      handle: ".glyphicon-sort",
+      handle: ".sort",
       update: applySort,
       axis: 'Y'} );
     $j( "#consoleTableBody" ).disableSelection();

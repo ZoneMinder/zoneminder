@@ -134,7 +134,11 @@ if ( ! $Event->Id() ) {
         <span id="dataDuration" title="<?php echo translate('Duration') ?>"><?php echo $Event->Length().'s' ?></span>
         <span id="dataFrames" title="<?php echo translate('AttrFrames').'/'.translate('AttrAlarmFrames') ?>"><?php echo $Event->Frames() ?>/<?php echo $Event->AlarmFrames() ?></span>
         <span id="dataScore" title="<?php echo translate('AttrTotalScore').'/'.translate('AttrAvgScore').'/'.translate('AttrMaxScore') ?>"><?php echo $Event->TotScore() ?>/<?php echo $Event->AvgScore() ?>/<?php echo $Event->MaxScore() ?></span>
-        <span id="Storage"> <?php echo human_filesize($Event->DiskSpace(null)) . ' on ' . $Event->Storage()->Name() ?></span>
+        <span id="Storage">
+<?php echo 
+  human_filesize($Event->DiskSpace(null)) . ' on ' . $Event->Storage()->Name().
+  ( $Event->SecondaryStorageId() ? ', ' . $Event->SecondaryStorage()->Name() :'' )
+?></span>
         <div id="closeWindow"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'window.history.back();return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
       </div>
       <div id="menuBar1">
@@ -148,8 +152,8 @@ if ( canEdit('Events') ) {
 ?>
         <div id="deleteEvent"><button type="button" data-on-click="deleteEvent" <?php echo $Event->can_delete() ? '' : ' disabled="disabled" title="'.$Event->cant_delete_reason().'"' ?>><?php echo translate('Delete') ?></button></div>
         <div id="editEvent"><button type="button" data-on-click="editEvent"><?php echo translate('Edit') ?></button></div>
-        <div id="archiveEvent"<?php echo $Event->Archived == 1 ? ' class="hidden"' : ''  ?>><button type="button" data-on-click="archiveEvent"><?php echo translate('Archive') ?></button></div>
-        <div id="unarchiveEvent"<?php echo $Event->Archived == 0 ? ' class="hidden"' : '' ?>><button type="button" data-on-click="unarchiveEvent"><?php echo translate('Unarchive') ?></button></div>
+        <div id="archiveEvent"<?php echo $Event->Archived() == 1 ? ' class="hidden"' : ''  ?>><button type="button" data-on-click="archiveEvent"><?php echo translate('Archive') ?></button></div>
+        <div id="unarchiveEvent"<?php echo $Event->Archived() == 0 ? ' class="hidden"' : '' ?>><button type="button" data-on-click="unarchiveEvent"><?php echo translate('Unarchive') ?></button></div>
 <?php
 } // end if can edit Events
 ?>

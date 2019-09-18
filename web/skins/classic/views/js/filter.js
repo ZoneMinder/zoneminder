@@ -30,12 +30,16 @@ function validateForm( form ) {
 
 function updateButtons(element) {
   var form = element.form;
-
+  console.log(element);
   if ( element.type == 'checkbox' && element.checked ) {
     form.elements['executeButton'].disabled = false;
   } else {
     var canExecute = false;
     if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
+      canExecute = true;
+    } else if ( form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked ) {
+      canExecute = true;
+    } else if ( form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked ) {
       canExecute = true;
     } else if ( form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked ) {
       canExecute = true;
@@ -69,6 +73,15 @@ function click_automove(element) {
     $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
   } else {
     this.form.elements['filter[AutoMoveTo]'].hide();
+  }
+}
+
+function click_autocopy(element) {
+  updateButtons(this);
+  if ( this.checked ) {
+    $j(this.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
+  } else {
+    this.form.elements['filter[AutoCopyTo]'].hide();
   }
 }
 
@@ -200,10 +213,10 @@ function parseRows(rows) {
       }
       var serverVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(serverSelect).children().val(serverVal).chosen({width: "101%"});
-    } else if ( attr == 'StorageId' ) { //Choose by storagearea
+    } else if ( (attr == 'StorageId') || (attr == 'SecondaryStorageId') ) { //Choose by storagearea
       var storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for ( key in storageareas ) {
-        storageSelect.append('<option value="' + key + '">' + storageareas[key] + '</option>');
+        storageSelect.append('<option value="' + key + '">' + storageareas[key].Name + '</option>');
       }
       var storageVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});

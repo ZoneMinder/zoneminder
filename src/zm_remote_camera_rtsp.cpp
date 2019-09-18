@@ -418,7 +418,6 @@ int RemoteCameraRtsp::CaptureAndRecord(Image &image, timeval recording, char* ev
         videoStore = new VideoStore((const char *)event_file, "mp4",
             mFormatContext->streams[mVideoStreamId],
             mAudioStreamId==-1?NULL:mFormatContext->streams[mAudioStreamId],
-            startTime,
             this->getMonitor() );
         strcpy(oldDirectory, event_file);
       } // end if ! videoStore

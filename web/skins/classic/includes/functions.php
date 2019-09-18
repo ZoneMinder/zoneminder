@@ -58,6 +58,7 @@ function xhtmlHeaders($file, $title) {
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX); ?> - <?php echo validHtmlStr($title) ?></title>
 <?php
 if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
@@ -79,14 +80,18 @@ if ( file_exists( "skins/$skin/css/$css/graphics/favicon.ico" ) ) {
 <?php 
 echo output_link_if_exists( array(
   'css/base/skin.css',
-  'css/'.$css.'/skin.css',
   'css/base/views/'.$basename.'.css',
-  'css/'.$css.'/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
   #'js/jquery-ui-1.12.1/jquery-ui.theme.min.css',
-  'css/'.$css.'/jquery-ui-theme.css',
 )
+);
+if ( $css != 'base' )
+  echo output_link_if_exists( array(
+    'css/'.$css.'/skin.css',
+    'css/'.$css.'/views/'.$basename.'.css',
+    'css/'.$css.'/jquery-ui-theme.css',
+  )
 );
 ?>
 <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
@@ -281,7 +286,7 @@ function getNavBarHTML($reload = null) {
         ZM\Error('Potentially invalid value for ZM_LOG_DATABASE_LIMIT: ' . ZM_LOG_DATABASE_LIMIT);
       }
     }
-    echo makePopupLink( '?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>' );
+    echo makePopupLink('?view=log', 'zmLog', 'log', '<span class="'.logState().'">'.translate('Log').'</span>');
   }
 ?></li>
 <?php
@@ -380,9 +385,6 @@ if ( (!ZM_OPT_USE_AUTH) or $user ) {
   $storage_paths = null;
   foreach ( $storage_areas as $area ) {
     $storage_paths[$area->Path()] = $area;
-  }
-  if ( ! isset($storage_paths[ZM_DIR_EVENTS]) ) {
-    array_push( $storage_areas, new ZM\Storage() );
   }
   $func = function($S){
     $class = '';

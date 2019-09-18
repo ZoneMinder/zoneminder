@@ -246,11 +246,13 @@ Event::~Event() {
   DELTA_TIMEVAL(delta_time, end_time, start_time, DT_PREC_2);
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
 
+#if 0  // This closing frame has no image. There is no point in adding a db record for it, I think. ICON
   if ( frames > last_db_frame ) {
     frames ++;
     Debug(1, "Adding closing frame %d to DB", frames);
     frame_data.push(new Frame(id, frames, NORMAL, end_time, delta_time, 0));
   }
+#endif
   if ( frame_data.size() )
     WriteDbFrames();
 
@@ -292,7 +294,6 @@ bool Event::WriteFrameImage(Image *image, struct timeval timestamp, const char *
 
   int thisquality = ( alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality) ) ? config.jpeg_alarm_file_quality : 0 ;   // quality to use, zero is default
   bool rc;
-Debug(3, "Writing image to %s", event_file);
 
   if ( !config.timestamp_on_capture ) {
     // stash the image we plan to use in another pointer regardless if timestamped.
@@ -548,7 +549,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
     static char event_file[PATH_MAX];
     snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
     Debug(1, "Writing capture frame %d to %s", frames, event_file);
-    if ( ! WriteFrameImage(image, timestamp, event_file) ) {
+    if ( !WriteFrameImage(image, timestamp, event_file) ) {
       Error("Failed to write frame image");
     }
   } else {

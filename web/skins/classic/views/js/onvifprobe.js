@@ -22,14 +22,14 @@ function gotoStep2( element ) {
   form.submit();
 }
 
-function configureButtons( element ) {
+function configureButtons(element) {
   var form = element.form;
-  if (form.elements.namedItem("nextBtn")) {
+  if (form.elements.namedItem('nextBtn')) {
     form.nextBtn.disabled = (form.probe.selectedIndex==0) ||
-      (form.username == "") || (form.username == null) ||
-      (form.password == "") || (form.password == null);
+      (form.Username == '') || (form.Username == null) ||
+      (form.Password == '') || (form.Password == null);
   }
-  if (form.elements.namedItem("saveBtn")) {
+  if (form.elements.namedItem('saveBtn')) {
     form.saveBtn.disabled = (form.probe.selectedIndex==0);
   }
 }

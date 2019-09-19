@@ -25,7 +25,7 @@ if ( !canView('Stream') ) {
   return;
 }
 
-if ( ! isset($_REQUEST['mid']) ) {
+if ( !isset($_REQUEST['mid']) ) {
   $view = 'error';
   return;
 }
@@ -58,7 +58,7 @@ noCacheHeaders();
 
 $popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] == 1));
 
-xhtmlHeaders( __FILE__, $monitor->Name().' - '.translate('Feed') );
+xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 ?>
 <body>
   <div id="page">
@@ -69,11 +69,11 @@ xhtmlHeaders( __FILE__, $monitor->Name().' - '.translate('Feed') );
 <?php
 if ( canView('Control') && $monitor->Type() == 'Local' ) {
 ?>
-          <div id="settingsControl"><?php echo makePopupLink( '?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"' ) ?></div>
+          <div id="settingsControl"><?php echo makePopupLink('?view=settings&amp;mid='.$monitor->Id(), 'zmSettings'.$monitor->Id(), 'settings', translate('Settings'), true, 'id="settingsLink"') ?></div>
 <?php
 }
 ?>
-          <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo buildSelect('scale', $scales, 'changeScale(this);'); ?></div>
+          <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo htmlSelect('scale', $scales, $scale); ?></div>
         </div>
         <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'history.go(-1);return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
@@ -89,25 +89,21 @@ if ( $streamMode == 'jpeg' ) {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
-><?php echo getStreamHTML( $monitor, array('scale'=>$scale) ); ?></div>
+><?php echo getStreamHTML($monitor, array('scale'=>$scale)); ?></div>
 
 
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
 <?php if ( canEdit('Monitors') ) { ?>
         <div id="enableDisableAlarms">
-          <a id="enableAlarmsLink" href="#" onclick="cmdEnableAlarms();return false;" class="hidden">
-          <?php echo translate('EnableAlarms') ?></a>
-          <a id="disableAlarmsLink" href="#" onclick="cmdDisableAlarms();return false;" class="hidden">
-          <?php echo translate('DisableAlarms') ?></a>
+          <button type="button" id="enableAlarmsLink" data-on-click="cmdEnableAlarms" class="hidden">
+          <?php echo translate('EnableAlarms') ?></button>
+          <button type="button" id="disableAlarmsLink" data-on-click="cmdDisableAlarms" class="hidden">
+          <?php echo translate('DisableAlarms') ?></button>
         </div>
-<?php
-}
-if ( canEdit('Monitors') ) {
-?>
         <div id="forceCancelAlarm">
-            <a id="forceAlarmLink" href="#" data-on-click="cmdForceAlarm"><?php echo translate('ForceAlarm') ?></a>
-            <a id="cancelAlarmLink" href="#" data-on-click="cmdCancelForcedAlarm" class="hidden"><?php echo translate('CancelForcedAlarm') ?></a>
+            <button type="button" id="forceAlarmLink" data-on-click="cmdForceAlarm"><?php echo translate('ForceAlarm') ?></button>
+            <button type="button" id="cancelAlarmLink" data-on-click="cmdCancelForcedAlarm" class="hidden"><?php echo translate('CancelForcedAlarm') ?></button>
         </div>
 <?php
 }
@@ -150,11 +146,11 @@ if ( $streamMode == 'jpeg' ) {
 <?php } // end if $monitor->Type() != 'WebSite' ?>
 <?php
 if ( $showPtzControls ) {
-    foreach ( getSkinIncludes( 'includes/control_functions.php' ) as $includeFile )
+    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
         require_once $includeFile;
 ?>
       <div id="ptzControls" class="ptzControls">
-<?php echo ptzControls( $monitor ) ?>
+      <?php echo ptzControls($monitor) ?>
       </div>
 <?php
 }

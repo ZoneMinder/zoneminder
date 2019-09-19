@@ -120,33 +120,6 @@ function CORSHeaders() {
   }
 }
 
-function getStreamSrc( $args, $querySep='&amp;' ) {
-  $streamSrc = ZM_BASE_URL.ZM_PATH_ZMS;
-
-  if ( ZM_OPT_USE_AUTH ) {
-    if ( ZM_AUTH_RELAY == 'hashed' ) {
-      $args[] = 'auth='.generateAuthHash( ZM_AUTH_HASH_IPS );
-    } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-      $args[] = 'user='.$_SESSION['username'];
-      $args[] = 'pass='.$_SESSION['password'];
-    } elseif ( ZM_AUTH_RELAY == 'none' ) {
-      $args[] = 'user='.$_SESSION['username'];
-    }
-  }
-  if ( !in_array( 'mode=single', $args ) && !empty($GLOBALS['connkey']) ) {   
-    $args[] = 'connkey='.$GLOBALS['connkey'];
-  }       
-  if ( ZM_RAND_STREAM ) {
-    $args[] = 'rand='.time();
-  }
-
-  if ( count($args) ) {
-    $streamSrc .= '?'.join( $querySep, $args );
-  }
-
-  return( $streamSrc );
-}
-
 function getMimeType( $file ) {
   if ( function_exists('mime_content_type') ) {
     return( mime_content_type( $file ) );
@@ -156,7 +129,7 @@ function getMimeType( $file ) {
     finfo_close($finfo);
     return( $mimeType );
   }
-  return( trim( exec( 'file -bi '.escapeshellarg( $file ).' 2>/dev/null' ) ) );
+  return trim(exec('file -bi '.escapeshellarg($file).' 2>/dev/null'));
 }
 
 function outputVideoStream( $id, $src, $width, $height, $format, $title='' ) {
@@ -169,8 +142,8 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
   $height = validInt($height);
   $title = validHtmlStr($title);
 
-  if ( file_exists( $src ) ) {
-    $mimeType = getMimeType( $src );
+  if ( file_exists($src) ) {
+    $mimeType = getMimeType($src);
   } else {
     switch( $format ) {
       case 'asf' :
@@ -205,7 +178,6 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
       case 'video/x-ms-asf' :
       case 'video/x-msvideo' :
       case 'video/mp4' :
-        {
           if ( isWindows() ) {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'
               classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
@@ -226,9 +198,7 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
               </embed>
               </object>';
           }
-        }
       case 'video/quicktime' :
-        {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B"
             codebase="'.ZM_BASE_PROTOCOL.'://www.apple.com/qtactivex/qtplugin.cab"
@@ -244,9 +214,7 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
             controller="true">
             </embed>
             </object>';
-        }
       case 'application/x-shockwave-flash' :
-        {
             return '<object id="'.$id.'" width="'.$width.'" height="'.$height.'"
             classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
             codebase="'.ZM_BASE_PROTOCOL.'://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0"
@@ -264,7 +232,6 @@ function getVideoStreamHTML( $id, $src, $width, $height, $format, $title='' ) {
             bgcolor="#ffffff">
             </embed>
             </object>';
-        }
     } # end switch
   } # end if use object tags
   return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
@@ -295,25 +262,25 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
 function outputControlStream( $src, $width, $height, $monitor, $scale, $target ) {
 ?>
   <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
-    <input type="hidden" name="view" value="blank">
-    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
-    <input type="hidden" name="action" value="control">
+    <input type="hidden" name="view" value="blank"/>
+    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
+    <input type="hidden" name="action" value="control"/>
     <?php
     if ( $monitor['CanMoveMap'] ) {
     ?>
-      <input type="hidden" name="control" value="moveMap">
+      <input type="hidden" name="control" value="moveMap"/>
     <?php
-    } elseif ( $monitor['CanMoveRel'] ) {
+    } else if ( $monitor['CanMoveRel'] ) {
     ?>
-      <input type="hidden" name="control" value="movePseudoMap">
+      <input type="hidden" name="control" value="movePseudoMap"/>
     <?php
-    } elseif ( $monitor['CanMoveCon'] ) {
+    } else if ( $monitor['CanMoveCon'] ) {
     ?>
-      <input type="hidden" name="control" value="moveConMap">
+      <input type="hidden" name="control" value="moveConMap"/>
     <?php
     }
     ?>
-    <input type="hidden" name="scale" value="<?php echo $scale ?>">
+    <input type="hidden" name="scale" value="<?php echo $scale ?>"/>
     <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
   </form>
 <?php
@@ -365,26 +332,26 @@ function getWebSiteUrl( $id, $src, $width, $height, $title='' ) {
 function outputControlStill( $src, $width, $height, $monitor, $scale, $target ) {
   ?>
   <form name="ctrlForm" method="post" action="?" target="<?php echo $target ?>">
-    <input type="hidden" name="view" value="blank">
-    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>">
-    <input type="hidden" name="action" value="control">
+    <input type="hidden" name="view" value="blank"/>
+    <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
+    <input type="hidden" name="action" value="control"/>
     <?php
     if ( $monitor['CanMoveMap'] ) {
     ?>
-    <input type="hidden" name="control" value="moveMap">
+    <input type="hidden" name="control" value="moveMap"/>
     <?php
-    } elseif ( $monitor['CanMoveRel'] ) {
+    } else if ( $monitor['CanMoveRel'] ) {
     ?>
-    <input type="hidden" name="control" value="movePseudoMap">
+    <input type="hidden" name="control" value="movePseudoMap"/>
     <?php
-    } elseif ( $monitor['CanMoveCon'] ) {
+    } else if ( $monitor['CanMoveCon'] ) {
     ?>
-    <input type="hidden" name="control" value="moveConMap">
+    <input type="hidden" name="control" value="moveConMap"/>
     <?php
     }
     ?>
-    <input type="hidden" name="scale" value="<?php echo $scale ?>">
-    <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>">
+    <input type="hidden" name="scale" value="<?php echo $scale ?>"/>
+    <input type="image" src="<?php echo $src ?>" width="<?php echo $width ?>" height="<?php echo $height ?>"/>
   </form>
   <?php
 }
@@ -405,12 +372,12 @@ function getZmuCommand( $args ) {
 
   $zmuCommand .= $args;
 
-  return( $zmuCommand );
+  return $zmuCommand;
 }
 
-function getEventDefaultVideoPath( $event ) {
-  $Event = new ZM\Event( $event );
-  return $Event->getStreamSrc( array( 'mode'=>'mpeg', 'format'=>'h264' ) );
+function getEventDefaultVideoPath($event) {
+  $Event = new ZM\Event($event);
+  return $Event->getStreamSrc(array('mode'=>'mpeg', 'format'=>'h264'));
 }
 
 function deletePath( $path ) {
@@ -2259,27 +2226,27 @@ function requestVar( $name, $default='' ) {
 }
 
 // For numbers etc in javascript or tags etc
-function validInt( $input ) {
-  return( preg_replace( '/\D/', '', $input ) );
+function validInt($input) {
+  return preg_replace('/\D/', '', $input);
 }
 
 function validNum( $input ) {
-  return( preg_replace( '/[^\d.-]/', '', $input ) );
+  return preg_replace('/[^\d.-]/', '', $input);
 }
 
 // For general strings
-function validStr( $input ) {
-  return( strip_tags( $input ) );
+function validStr($input) {
+  return strip_tags($input);
 }
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
-function validJsStr( $input ) {
-  return( strip_tags( addslashes( $input ) ) );
+function validJsStr($input) {
+  return strip_tags(addslashes($input));
 }
 
 // For general text in pages outside of tags or quotes so quotes converted to entities
-function validHtmlStr( $input ) {
-  return( htmlspecialchars( $input, ENT_QUOTES ) );
+function validHtmlStr($input) {
+  return htmlspecialchars($input, ENT_QUOTES);
 }
 
 function getStreamHTML($monitor, $options = array()) {

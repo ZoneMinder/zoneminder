@@ -70,6 +70,11 @@ function validateForm( form ) {
       errors[errors.length] = "<?php echo translate('BadPort') ?>";
     //if ( !form.elements['newMonitor[Path]'].value )
       //errors[errors.length] = "<?php echo translate('BadPath') ?>";
+  } else if ( form.elements['newMonitor[Type]'].value == 'Ffmpeg' ) {
+    if ( !form.elements['newMonitor[Path]'].value )
+//|| !form.elements['newMonitor[Path]'].value.match( /^\d+$/ ) ) // valid url
+      errors[errors.length] = "<?php echo translate('BadPath') ?>";
+
   } else if ( form.elements['newMonitor[Type]'].value == 'File' ) {
     if ( !form.elements['newMonitor[Path]'].value )
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
@@ -132,22 +137,13 @@ function validateForm( form ) {
   }
 
   if ( errors.length ) {
-    alert( errors.join( "\n" ) );
+    alert(errors.join("\n"));
     return false;
   }
   return true;
 }
 
-function updateLinkedMonitors( element ) {
-  var form = element.form;
-  var monitorIds = new Array();
-  for ( var i = 0; i < element.options.length; i++ )
-    if ( element.options[i].selected )
-      monitorIds[monitorIds.length] = element.options[i].value;
-  form.elements['newMonitor[LinkedMonitors]'].value = monitorIds.join( ',' );
-}
-
-function updateMethods( element ) {
+function updateMethods(element) {
   var form = element.form;
 
   var origMethod = form.elements['origMethod'];
@@ -155,31 +151,27 @@ function updateMethods( element ) {
   methodSelector.options.length = 0;
   switch ( element.value ) {
     case 'http' :
-      {
-        <?php
-          foreach( $httpMethods as $value=>$label ) {
-            ?>
-              methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>" );
-            if ( origMethod.value == "<?php echo $value ?>" )
-              methodSelector.selectedIndex = methodSelector.options.length-1;
-            <?php
-          }
-        ?>
+      <?php
+        foreach( $httpMethods as $value=>$label ) {
+          ?>
+            methodSelector.options[methodSelector.options.length] = new Option("<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>");
+          if ( origMethod.value == "<?php echo $value ?>" )
+            methodSelector.selectedIndex = methodSelector.options.length-1;
+          <?php
+        }
+      ?>
           break;
-      }
     case 'rtsp' :
-      {
-        <?php
-          foreach( $rtspMethods as $value=>$label ) {
-            ?>
-              methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>" );
-            if ( origMethod.value == "<?php echo $value ?>" )
-              methodSelector.selectedIndex = form.elements['newMonitor[Method]'].options.length-1;
-            <?php
-          }
-        ?>
-          break;
-      }
+      <?php
+        foreach( $rtspMethods as $value=>$label ) {
+          ?>
+            methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>" );
+          if ( origMethod.value == "<?php echo $value ?>" )
+            methodSelector.selectedIndex = form.elements['newMonitor[Method]'].options.length-1;
+          <?php
+        }
+      ?>
+    break;
   }
-  return( true );
+  return true;
 }

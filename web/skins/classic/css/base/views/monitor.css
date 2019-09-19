@@ -8,3 +8,8 @@
 .SourcePath input {
   width: 100%;
 }
+
+input[name="newMonitor[Width]"],
+input[name="newMonitor[Height]"] {
+  width: 80px;
+}

@@ -215,7 +215,6 @@ function selectLayout(element) {
 
   if ( layout_id = parseInt(layout) ) {
     layout = layouts[layout];
-    console.log(layout);
 
     for ( var i = 0, length = monitors.length; i < length; i++ ) {
       monitor = monitors[i];
@@ -396,6 +395,16 @@ function edit_layout(button) {
 
 function save_layout(button) {
   var form = button.form;
+  var name = form.elements['Name'].value;
+
+  if ( !name )
+    name = form.elements['zmMontageLayout'].options[form.elements['zmMontageLayout'].selectedIndex].text;
+
+  if ( name=='Freeform' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' ) {
+    alert('You cannot edit the built in layouts.  Please give the layout a new name.');
+    return;
+  }
+
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
   for ( var i = 0, length = monitors.length; i < length; i++ ) {

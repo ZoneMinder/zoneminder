@@ -132,7 +132,7 @@ $chart = array(
 $monitors = array();
 $monitorsSql = 'SELECT * FROM Monitors ORDER BY Sequence ASC';
 //srand( 97981 );
-foreach( dbFetchAll( $monitorsSql ) as $row ) {
+foreach( dbFetchAll($monitorsSql) as $row ) {
   //if ( empty($row['WebColour']) )
   //{
       //$row['WebColour'] = sprintf( "#%02x%02x%02x", rand( 0, 255 ), rand( 0, 255), rand( 0, 255 ) );
@@ -312,9 +312,9 @@ $chart['data']['x']['density'] = $chart['data']['x']['range']/$chart['graph']['w
 $monEventSlots = array();
 $monFrameSlots = array();
 $monitorIds = array();
-$events_result = dbQuery( $eventsSql );
-if ( ! $events_result ) {
-  Fatal( "SQL-ERR");
+$events_result = dbQuery($eventsSql);
+if ( !$events_result ) {
+  Fatal("SQL-ERR");
   return;
 }
 

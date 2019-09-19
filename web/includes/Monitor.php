@@ -2,21 +2,23 @@
 namespace ZM;
 require_once('database.php');
 require_once('Server.php');
+require_once('Object.php');
+require_once('Control.php');
+require_once('Storage.php');
 
-$monitor_cache = array();
+class Monitor extends ZM_Object {
+  protected static $table = 'Monitors';
 
-class Monitor {
-
-private $defaults = array(
+protected $defaults = array(
   'Id' => null,
   'Name' => '',
   'ServerId' => 0,
   'StorageId' => 0,
   'Type'      =>  'Ffmpeg',
-  'Function' => 'None',
-  'Enabled' => 1,
-  'LinkedMonitors' => null,
-  'Triggers'  =>  null,
+  'Function'  => 'None',
+  'Enabled'   => array('type'=>'boolean','default'=>1),
+  'LinkedMonitors' => array('type'=>'set', 'default'=>null),
+  'Triggers'  =>  array('type'=>'set','default'=>''),
   'Device'  =>  '',
   'Channel' =>  0,
   'Format'  =>  '0',
@@ -45,8 +47,8 @@ private $defaults = array(
   'OutputCodec' =>  null,
   'OutputContainer' => null,
   'EncoderParameters' => null,
-  'RecordAudio' =>  0,
-  'RTSPDescribe'  =>  null,
+  'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
+  'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
   'Brightness'  =>  -1,
   'Contrast'    =>  -1,
   'Hue'         =>  -1,
@@ -65,6 +67,7 @@ private $defaults = array(
   'SectionLength'       =>  600,
   'MinSectionLength'    =>  10,
   'FrameSkip'           =>  0,
+  'MotionFrameSkip'     =>  0,
   'AnalysisFPSLimit'  =>  null,
   'AnalysisUpdateDelay'  =>  0,
   'MaxFPS' => null,
@@ -72,12 +75,12 @@ private $defaults = array(
   'FPSReportInterval'  =>  100,
   'RefBlendPerc'        =>  6,
   'AlarmRefBlendPerc'   =>  6,
-  'Controllable'        =>  0,
+  'Controllable'        =>  array('type'=>'boolean','default'=>0),
   'ControlId' =>  null,
   'ControlDevice' =>  null,
   'ControlAddress'  =>  null,
   'AutoStopTimeout' => null,
-  'TrackMotion'     =>  0,
+  'TrackMotion'     =>  array('type'=>'boolean','default'=>0),
   'TrackDelay'      =>  null,
   'ReturnLocation'  =>  -1,
   'ReturnDelay'     =>  null,
@@ -86,23 +89,24 @@ private $defaults = array(
   'SignalCheckPoints' =>  0,
   'SignalCheckColour' =>  '#0000BE',
   'WebColour'   =>  'red',
-  'Exif'    =>  0,
+  'Exif'    =>  array('type'=>'boolean','default'=>0),
   'Sequence'  =>  null,
-  'TotalEvents' =>  null,
-  'TotalEventDiskSpace' =>  null,
-  'HourEvents' =>  null,
-  'HourEventDiskSpace' =>  null,
-  'DayEvents' =>  null,
-  'DayEventDiskSpace' =>  null,
-  'WeekEvents' =>  null,
-  'WeekEventDiskSpace' =>  null,
-  'MonthEvents' =>  null,
-  'MonthEventDiskSpace' =>  null,
-  'ArchivedEvents' =>  null,
-  'ArchivedEventDiskSpace' =>  null,
+  'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'TotalEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'HourEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'HourEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'DayEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'DayEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'WeekEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'WeekEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'MonthEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'MonthEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
+  'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   'ZoneCount' =>  0,
   'Refresh' => null,
   'DefaultCodec'  => 'auto',
+  'GroupIds'    => array('default'=>array(), 'do_not_update'=>1),
 );
 private $status_fields = array(
   'Status'  =>  null,
@@ -110,178 +114,44 @@ private $status_fields = array(
   'CaptureFPS' => null,
   'CaptureBandwidth' => null,
 );
-private $control_fields = array(
-  'Name' => '',
-  'Type' => 'Local',
-  'Protocol' => NULL,
-  'CanWake' => '0',
-  'CanSleep' => '0',
-  'CanReset' => '0',
-  'CanReboot' =>  '0',
-  'CanZoom' => '0',
-  'CanAutoZoom' => '0',
-  'CanZoomAbs' => '0',
-  'CanZoomRel' => '0',
-  'CanZoomCon' => '0',
-  'MinZoomRange' => NULL,
-  'MaxZoomRange' => NULL,
-  'MinZoomStep' => NULL,
-  'MaxZoomStep' => NULL,
-  'HasZoomSpeed' => '0',
-  'MinZoomSpeed' => NULL,
-  'MaxZoomSpeed' => NULL,
-  'CanFocus' => '0',
-  'CanAutoFocus' => '0',
-  'CanFocusAbs' => '0',
-  'CanFocusRel' => '0',
-  'CanFocusCon' => '0',
-  'MinFocusRange' => NULL,
-  'MaxFocusRange' => NULL,
-  'MinFocusStep' => NULL,
-  'MaxFocusStep' => NULL,
-  'HasFocusSpeed' => '0',
-  'MinFocusSpeed' => NULL,
-  'MaxFocusSpeed' => NULL,
-  'CanIris' => '0',
-  'CanAutoIris' => '0',
-  'CanIrisAbs' => '0',
-  'CanIrisRel' => '0',
-  'CanIrisCon' => '0',
-  'MinIrisRange' => NULL,
-  'MaxIrisRange' => NULL,
-  'MinIrisStep' => NULL,
-  'MaxIrisStep' => NULL,
-  'HasIrisSpeed' => '0',
-  'MinIrisSpeed' => NULL,
-  'MaxIrisSpeed' => NULL,
-  'CanGain' => '0',
-  'CanAutoGain' => '0',
-  'CanGainAbs' => '0',
-  'CanGainRel' => '0',
-  'CanGainCon' => '0',
-  'MinGainRange' => NULL,
-  'MaxGainRange' => NULL,
-  'MinGainStep' => NULL,
-  'MaxGainStep' => NULL,
-  'HasGainSpeed' => '0',
-  'MinGainSpeed' => NULL,
-  'MaxGainSpeed' => NULL,
-  'CanWhite' => '0',
-  'CanAutoWhite' => '0',
-  'CanWhiteAbs' => '0',
-  'CanWhiteRel' => '0',
-  'CanWhiteCon' => '0',
-  'MinWhiteRange' => NULL,
-  'MaxWhiteRange' => NULL,
-  'MinWhiteStep' => NULL,
-  'MaxWhiteStep' => NULL,
-  'HasWhiteSpeed' => '0',
-  'MinWhiteSpeed' => NULL,
-  'MaxWhiteSpeed' => NULL,
-  'HasPresets' => '0',
-  'NumPresets' => '0',
-  'HasHomePreset' => '0',
-  'CanSetPresets' => '0',
-  'CanMove' => '0',
-  'CanMoveDiag' => '0',
-  'CanMoveMap' => '0',
-  'CanMoveAbs' => '0',
-  'CanMoveRel' => '0',
-  'CanMoveCon' => '0',
-  'CanPan' => '0',
-  'MinPanRange' => NULL,
-  'MaxPanRange' => NULL,
-  'MinPanStep' => NULL,
-  'MaxPanStep' => NULL,
-  'HasPanSpeed' => '0',
-  'MinPanSpeed' => NULL,
-  'MaxPanSpeed' => NULL,
-  'HasTurboPan' => '0',
-  'TurboPanSpeed' => NULL,
-  'CanTilt' => '0',
-  'MinTiltRange' => NULL,
-  'MaxTiltRange' => NULL,
-  'MinTiltStep'  => NULL,
-  'MaxTiltStep'  => NULL,
-  'HasTiltSpeed' => '0',
-  'MinTiltSpeed' => NULL,
-  'MaxTiltSpeed' => NULL,
-  'HasTurboTilt' => '0',
-  'TurboTiltSpeed' => NULL,
-  'CanAutoScan' => '0',
-  'NumScanPaths' => '0',
-);
 
-  public function __construct( $IdOrRow = NULL ) {
-    if ( $IdOrRow ) {
-      $row = NULL;
-      if ( is_integer($IdOrRow) or is_numeric($IdOrRow) ) {
-        $row = dbFetchOne('SELECT * FROM Monitors WHERE Id=?', NULL, array($IdOrRow));
-        if ( ! $row ) {
-          Error("Unable to load Monitor record for Id=" . $IdOrRow);
-        }
-      } elseif ( is_array($IdOrRow) ) {
-        $row = $IdOrRow;
-      } else {
-        Error("Unknown argument passed to Monitor Constructor ($IdOrRow)");
-        return;
-      }
-
-      if ( $row ) {
-        foreach ($row as $k => $v) {
-          $this->{$k} = $v;
-        }
-        if ( $this->{'Controllable'} ) {
-          $s = dbFetchOne('SELECT * FROM Controls WHERE Id=?', NULL, array($this->{'ControlId'}) );
-          if ( $s ) {
-            foreach ($s as $k => $v) {
-              if ( $k == 'Id' ) {
-                continue;
-  # The reason for these is that the name overlaps Monitor fields.
-              } else if ( $k == 'Protocol' ) {
-                $this->{'ControlProtocol'} = $v;
-              } else if ( $k == 'Name' ) {
-                $this->{'ControlName'} = $v;
-              } else if ( $k == 'Type' ) {
-                $this->{'ControlType'} = $v;
-              } else {
-                $this->{$k} = $v;
-              }
-            }
-          } else {
-            Warning('No Controls found for monitor '.$this->{'Id'} . ' ' . $this->{'Name'}.' althrough it is marked as controllable');
-          }
-        }
-        global $monitor_cache;
-        $monitor_cache[$row['Id']] = $this;
-
-      } else {
-        Error('No row for Monitor ' . $IdOrRow);
-      }
-    } # end if isset($IdOrRow)
-  } // end function __construct
+  public function Control() {
+    if ( !array_key_exists('Control', $this) ) {
+      if ( $this->ControlId() )
+        $this->{'Control'} = Control::find_one(array('Id'=>$this->{'ControlId'}));
+      else
+        Error("No ControlId");
+      if ( !(array_key_exists('Control', $this) and $this->{'Control'} ) )
+        $this->{'Control'} = new Control();
+    }
+    return $this->{'Control'};
+  }
 
   public function Server() {
     return new Server($this->{'ServerId'});
   }
+
   public function __call($fn, array $args){
     if ( count($args) ) {
-      $this->{$fn} = $args[0];
+      if ( is_array($this->defaults[$fn]) and $this->defaults[$fn]['type'] == 'set' ) {
+        $this->{$fn} = is_array($args[0]) ? implode(',',$args[0]) : $args[0];
+      } else {
+        $this->{$fn} = $args[0];
+      }
     }
     if ( array_key_exists($fn, $this) ) {
       return $this->{$fn};
-        #array_unshift($args, $this);
-        #call_user_func_array( $this->{$fn}, $args);
-    } else if ( array_key_exists($fn, $this->control_fields) ) {
-        return $this->control_fields{$fn};
-    } else if ( array_key_exists( $fn, $this->defaults ) ) {
-        return $this->defaults{$fn};
-    } else if ( array_key_exists( $fn, $this->status_fields) ) {
+    } else if ( array_key_exists($fn, $this->defaults) ) {
+      if ( is_array($this->defaults[$fn]) ) {
+        return $this->defaults[$fn]['default'];
+      }
+      return $this->defaults[$fn];
+    } else if ( array_key_exists($fn, $this->status_fields) ) {
       $sql = 'SELECT Status,CaptureFPS,AnalysisFPS,CaptureBandwidth
         FROM Monitor_Status WHERE MonitorId=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
       if ( !$row ) {
-        Error("Unable to load Monitor record for Id=" . $this->{'Id'});
+        Error('Unable to load Monitor record for Id='.$this->{'Id'});
       } else {
         foreach ($row as $k => $v) {
           $this->{$k} = $v;
@@ -292,7 +162,7 @@ private $control_fields = array(
       $backTrace = debug_backtrace();
       $file = $backTrace[1]['file'];
       $line = $backTrace[1]['line'];
-      Warning( "Unknown function call Monitor->$fn from $file:$line" );
+      Warning("Unknown function call Monitor->$fn from $file:$line");
     }
   }
 
@@ -361,110 +231,21 @@ private $control_fields = array(
     return $this->defaults{$field};
   } // end function SignalCheckColour
 
-  public function set($data) {
-    foreach ($data as $k => $v) {
-      if ( method_exists($this, $k) ) {
-        $this->{$k}($v);
-      } else {
-        if ( is_array( $v ) ) {
-# perhaps should turn into a comma-separated string
-          $this->{$k} = implode(',',$v);
-        } else if ( is_string( $v ) ) {
-          $this->{$k} = trim( $v );
-        } else if ( is_integer( $v ) ) {
-          $this->{$k} = $v;
-        } else if ( is_bool( $v ) ) {
-          $this->{$k} = $v;
-        } else if ( is_null( $v ) ) {
-          $this->{$k} = $v;
-        } else {
-          Error( "Unknown type $k => $v of var " . gettype( $v ) );
-          $this->{$k} = $v;
-        }
-      } # end if method_exists
-    } # end foreach $data as $k=>$v
+  public static function find( $parameters = array(), $options = array() ) {
+    return ZM_Object::_find(get_class(), $parameters, $options);
   }
-  public static function find( $parameters = null, $options = null ) {
-    $sql = 'SELECT * FROM Monitors ';
-    $values = array();
 
-    if ( $parameters ) {
-      $fields = array();
-      $sql .= 'WHERE ';
-      foreach ( $parameters as $field => $value ) {
-        if ( $value == null ) {
-          $fields[] = $field.' IS NULL';
-        } else if ( is_array($value) ) {
-          $func = function(){return '?';};
-          $fields[] = $field.' IN ('.implode(',', array_map($func, $value)). ')';
-          $values += $value;
-
-        } else {
-          $fields[] = $field.'=?';
-          $values[] = $value;
-        }
-      }
-      $sql .= implode(' AND ', $fields);
-    }
-    if ( $options ) {
-      if ( isset($options['order']) ) {
-        $sql .= ' ORDER BY ' . $options['order'];
-      }
-      if ( isset($options['limit']) ) {
-        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $options['limit'];
-        } else {
-          $backTrace = debug_backtrace();
-          $file = $backTrace[1]['file'];
-          $line = $backTrace[1]['line'];
-          Error("Invalid value for limit(".$options['limit'].") passed to Control::find from $file:$line");
-          return array();
-        }
-      }
-    }
-    $monitors = array();
-    $result = dbQuery($sql, $values);
-    $results = $result->fetchALL();
-    foreach ( $results as $row ) {
-      $monitors[] = new Monitor($row);
-    }
-    return $monitors;
-  } # end find
-
-  public static function find_one( $parameters = array() ) {
-    global $monitor_cache;
-    if ( 
-        ( count($parameters) == 1 ) and
-        isset($parameters['Id']) and
-        isset($monitor_cache[$parameters['Id']]) ) {
-      return $monitor_cache[$parameters['Id']];
-    }
-    $results = Monitor::find( $parameters, array('limit'=>1) );
-    if ( ! sizeof($results) ) {
-      return;
-    }
-    return $results[0];
-  } # end find_one
-
-  public function save($new_values = null) {
-
-    if ( $new_values ) {
-      foreach ( $new_values as $k=>$v ) {
-        $this->{$k} = $v;
-      }
-    }
-    
-    $fields = array_keys($this->defaults);
-
-    $sql = 'UPDATE Monitors SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields )) . ' WHERE Id=?';
-    $values = array_map(function($field){return $this->{$field};}, $fields);
-    $values[] = $this->{'Id'};
-    dbQuery($sql, $values);
-  } // end function save
+  public static function find_one( $parameters = array(), $options = array() ) {
+    return ZM_Object::_find_one(get_class(), $parameters, $options);
+  }
 
   function zmcControl( $mode=false ) {
+    if ( ! $this->{'Id'} ) {
+      Warning("Attempt to control a monitor with no Id");
+      return;
+    }
     if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
-      if ( $this->{'Type'} == 'Local' ) {
+      if ( $this->Type() == 'Local' ) {
         $zmcArgs = '-d '.$this->{'Device'};
       } else {
         $zmcArgs = '-m '.$this->{'Id'};
@@ -510,7 +291,12 @@ private $control_fields = array(
     }
   } // end function zmcControl
 
-  function zmaControl( $mode=false ) {
+  function zmaControl($mode=false) {
+    if ( ! $this->{'Id'} ) {
+      Warning("Attempt to control a monitor with no Id");
+      return;
+    }
+
     if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
       if ( $this->{'Function'} == 'None' || $this->{'Function'} == 'Monitor' || $mode == 'stop' ) {
         if ( ZM_OPT_CONTROL ) {
@@ -520,16 +306,17 @@ private $control_fields = array(
       } else {
         if ( $mode == 'restart' ) {
           if ( ZM_OPT_CONTROL ) {
-            daemonControl( 'stop', 'zmtrack.pl', '-m '.$this->{'Id'} );
+            daemonControl('stop', 'zmtrack.pl', '-m '.$this->{'Id'});
           }
-          daemonControl( 'stop', 'zma', '-m '.$this->{'Id'} );
+          daemonControl('stop', 'zma', '-m '.$this->{'Id'});
         }
-        daemonControl( 'start', 'zma', '-m '.$this->{'Id'} );
-        if ( ZM_OPT_CONTROL && $this->{'Controllable'} && $this->{'TrackMotion'} && ( $this->{'Function'} == 'Modect' || $this->{'Function'} == 'Mocord' ) ) {
-          daemonControl( 'start', 'zmtrack.pl', '-m '.$this->{'Id'} );
+        daemonControl('start', 'zma', '-m '.$this->{'Id'});
+        if ( ZM_OPT_CONTROL && $this->Controllable() && $this->TrackMotion() && 
+          ( $this->{'Function'} == 'Modect' || $this->{'Function'} == 'Mocord' ) ) {
+          daemonControl('start', 'zmtrack.pl', '-m '.$this->{'Id'});
         }
         if ( $mode == 'reload' ) {
-          daemonControl( 'reload', 'zma', '-m '.$this->{'Id'} );
+          daemonControl('reload', 'zma', '-m '.$this->{'Id'});
         }
       }
     } else if ( $this->ServerId() ) {
@@ -558,13 +345,13 @@ private $control_fields = array(
         Error("Except $e thrown trying to restart zma");
       }
     } else {
-      Error("Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.");
+      Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
     } // end if we are on the recording server
   } // end public function zmaControl
 
-  public function GroupIds( $new='') {
+  public function GroupIds( $new='' ) {
     if ( $new != '' ) {
-      if(!is_array($new)) {
+      if ( !is_array($new) ) {
         $this->{'GroupIds'} = array($new);
       } else {
         $this->{'GroupIds'} = $new;
@@ -582,6 +369,7 @@ private $control_fields = array(
     }
     return $this->{'GroupIds'};
   }
+
   public function delete() {
     $this->zmaControl('stop');
     $this->zmcControl('stop');
@@ -591,7 +379,7 @@ private $control_fields = array(
     // well time out before completing, in which case zmaudit will still tidy up
     if ( !ZM_OPT_FAST_DELETE ) {
       $markEids = dbFetchAll('SELECT Id FROM Events WHERE MonitorId=?', 'Id', array($this->{'Id'}));
-      foreach($markEids as $markEid)
+      foreach ($markEids as $markEid)
         deleteEvent($markEid);
 
       deletePath(ZM_DIR_EVENTS.'/'.basename($this->{'Name'}));
@@ -601,20 +389,16 @@ private $control_fields = array(
         deletePath($Storage->Path().'/'.basename($this->{'Name'}));
         deletePath($Storage->Path().'/'.$this->{'Id'});
       }
-    } // end if ZM_OPT_FAST_DELETE
+    } // end if !ZM_OPT_FAST_DELETE
 
     // This is the important stuff
     dbQuery('DELETE FROM Zones WHERE MonitorId = ?', array($this->{'Id'}));
     if ( ZM_OPT_X10 )
       dbQuery('DELETE FROM TriggersX10 WHERE MonitorId=?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
-
-    // Deleting a Monitor does not affect the order, just creates a gap in the sequence.  Who cares?
-    // fixSequences();
-
   } // end function delete
 
-  public function Storage( $new = null ) {
+  public function Storage($new = null) {
     if ( $new ) {
       $this->{'Storage'} = $new;
     }

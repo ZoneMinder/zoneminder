@@ -917,12 +917,42 @@ if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
 ?>
         <tr><td><?php echo translate('TargetColorspace') ?></td><td><?php echo htmlSelect('newMonitor[Colours]', $Colours, $monitor->Colours() ); ?>
 </td></tr>
-        <tr><td><?php echo translate('CaptureWidth') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
-        <tr><td><?php echo translate('CaptureHeight') ?> (<?php echo translate('Pixels') ?>)</td><td><input type="text" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" size="4" onkeyup="updateMonitorDimensions(this);"/></td></tr>
-        <tr><td><?php echo translate('PreserveAspect') ?></td><td><input type="checkbox" name="preserveAspectRatio" value="1"/></td></tr>
-	<tr><td><?php echo translate('Orientation') ?></td><td><?php echo htmlselect( 'newMonitor[Orientation]', $orientations, $monitor->Orientation() );?></td></tr>
+        <tr>
+          <td><?php echo translate('CaptureDimensions') ?> (<?php echo translate('Pixels') ?>)</td>
+          <td>
+            <input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>"/>
+            <input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>"/>
+<?php echo htmlselect('dimensions_select', array(
+  ''=>translate('Custom'),
+  '176x120'=>'176x120 QCIF',
+  '320x240'=>'320x240',
+  '352x240'=>'352x240 CIF',
+  '640x480'=>'640x480',
+  '704x240'=>'704x240 2CIF',
+  '704x480'=>'704x480 4CIF',
+  '720x480'=>'720x480 D1',
+  '1280x720'=>'1280x720 720p',
+  '1280x960'=>'1280x960 960p',
+  '1280x1024'=>'1280x1024 1MP',
+  '1600x1200'=>'1600x1200 2MP',
+  '1920x1080'=>'1920x1080 1080p',
+  '2048x1536'=>'2048x1536 3MP',
+  '2592x1944'=>'2592x1944 5MP',
+), $monitor->Width().'x'.$monitor->Height()
+);
+?>
+          </td>
+        </tr>
+        <tr>
+          <td><?php echo translate('PreserveAspect') ?></td>
+          <td><input type="checkbox" name="preserveAspectRatio" value="1"/></td>
+        </tr>
+        <tr>
+          <td><?php echo translate('Orientation') ?></td>
+          <td><?php echo htmlselect('newMonitor[Orientation]', $orientations, $monitor->Orientation() );?></td>
+        </tr>
 <?php
-      }
+}
 if ( $monitor->Type() == 'Local' ) {
 ?>
             <tr><td><?php echo translate('Deinterlacing') ?></td><td><select name="newMonitor[Deinterlacing]"><?php foreach ( $deinterlaceopts_v4l2 as $name => $value ) { ?><option value="<?php echo validHtmlStr($value); ?>"<?php if ( $value == $monitor->Deinterlacing()) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($name); ?></option><?php } ?></select></td></tr>

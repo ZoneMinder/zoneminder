@@ -63,11 +63,13 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var canPlayPauseAudio = Browser.ie;
 
-<?php if ( $monitor->CanMoveMap() ) { ?>
+<?php 
+  $control = $monitor->Control();
+  if ( $control->CanMoveMap() ) { ?>
 var imageControlMode = "moveMap";
-<?php } elseif ( $monitor->CanMoveRel() ) { ?>
+<?php } elseif ( $control->CanMoveRel() ) { ?>
 var imageControlMode = "movePseudoMap";
-<?php } elseif ( $monitor->CanMoveCon() ) { ?>
+<?php } elseif ( $control->CanMoveCon() ) { ?>
 var imageControlMode = "moveConMap";
 <?php } else { ?>
 var imageControlMode = null;

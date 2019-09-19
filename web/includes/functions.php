@@ -2226,27 +2226,27 @@ function requestVar( $name, $default='' ) {
 }
 
 // For numbers etc in javascript or tags etc
-function validInt( $input ) {
-  return( preg_replace( '/\D/', '', $input ) );
+function validInt($input) {
+  return preg_replace('/\D/', '', $input);
 }
 
 function validNum( $input ) {
-  return( preg_replace( '/[^\d.-]/', '', $input ) );
+  return preg_replace('/[^\d.-]/', '', $input);
 }
 
 // For general strings
-function validStr( $input ) {
-  return( strip_tags( $input ) );
+function validStr($input) {
+  return strip_tags($input);
 }
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
-function validJsStr( $input ) {
-  return( strip_tags( addslashes( $input ) ) );
+function validJsStr($input) {
+  return strip_tags(addslashes($input));
 }
 
 // For general text in pages outside of tags or quotes so quotes converted to entities
-function validHtmlStr( $input ) {
-  return( htmlspecialchars( $input, ENT_QUOTES ) );
+function validHtmlStr($input) {
+  return htmlspecialchars($input, ENT_QUOTES);
 }
 
 function getStreamHTML($monitor, $options = array()) {

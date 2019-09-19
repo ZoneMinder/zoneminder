@@ -28,17 +28,26 @@ if ( $action == 'monitor' ) {
   $mid = 0;
   if ( !empty($_REQUEST['mid']) ) {
     $mid = validInt($_REQUEST['mid']);
-    #if ( ZM_OPT_X10 ) {
-      #$x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId=?', NULL, array($mid));
-      #if ( !$x10Monitor )
-        #$x10Monitor = array();
-    #}
-  #} else {
+    if ( ZM_OPT_X10 ) {
+      $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId=?', NULL, array($mid));
+      if ( !$x10Monitor )
+        $x10Monitor = array();
+    }
+    if ( !canEdit('Monitors',$mid) ) {
+      ZM\Warning('You do not have permission to edit this monitor');
+      return;
+    }
+  } else {
     #$monitor = array();
-    #if ( ZM_OPT_X10 ) {
-      #$x10Monitor = array();
-    #}
+    if ( ZM_OPT_X10 ) {
+      $x10Monitor = array();
+    }
+    if ( $user['MonitorIds'] ) {
+      ZM\Warning('You are restricted to certain monitors so cannot add a new one.');
+      return;
+    }
   }
+
   $monitor = new ZM\Monitor($mid);
 
   // Define a field type for anything that's not simple text equivalent
@@ -47,11 +56,12 @@ if ( $action == 'monitor' ) {
       'Controllable' => 'toggle',
       'TrackMotion' => 'toggle',
       'Enabled' => 'toggle',
-      'DoNativeMotDet' => 'toggle',
       'Exif' => 'toggle',
       'RTSPDescribe' => 'toggle',
       'RecordAudio' => 'toggle',
       'Method' => 'raw',
+      'GroupIds'  =>  'array',
+      'LinkedMonitors'  => 'set'
       );
 
   if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
@@ -64,9 +74,8 @@ if ( $action == 'monitor' ) {
     }
   }
 
-  $changes = $monitor->changes($_REQUEST['newMonitor']);
-ZM\Logger::Debug("Changes:". print_r($changes,true));
-#ZM\Logger::Debug("newMonitor:". print_r($_REQUEST['newMonitor'],true));
+  $changes = $monitor->changes($_REQUEST['newMonitor'], $types);
+  $restart = false;
 
   if ( count($changes) ) {
     if ( $mid ) {
@@ -76,73 +85,75 @@ ZM\Logger::Debug("Changes:". print_r($changes,true));
         $monitor->zmaControl('stop');
         $monitor->zmcControl('stop');
       }
-      $monitor->save($changes);
+      if ( $monitor->save($changes) ) {
 
-      // Groups will be added below
-      if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
-				// creating symlinks when symlink already exists reports errors, but is perfectly ok
-				error_reporting(0);
+        // Groups will be added below
+        if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
+          // creating symlinks when symlink already exists reports errors, but is perfectly ok
+          error_reporting(0);
 
-        $OldStorage = $monitor->StorageId();
-        $saferOldName = basename($monitor->Name());
-        if ( file_exists($OldStorage->Path().'/'.$saferOldName) )
-          unlink($OldStorage->Path().'/'.$saferOldName);
+          $OldStorage = $monitor->StorageId();
+          $saferOldName = basename($monitor->Name());
+          if ( file_exists($OldStorage->Path().'/'.$saferOldName) )
+            unlink($OldStorage->Path().'/'.$saferOldName);
 
-        $NewStorage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
-        if ( !file_exists($NewStorage->Path().'/'.$mid) ) {
-          if ( !mkdir($NewStorage->Path().'/'.$mid, 0755) ) {
-            ZM\Error('Unable to mkdir ' . $NewStorage->Path().'/'.$mid);
+          $NewStorage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
+          if ( !file_exists($NewStorage->Path().'/'.$mid) ) {
+            if ( !mkdir($NewStorage->Path().'/'.$mid, 0755) ) {
+              ZM\Error('Unable to mkdir ' . $NewStorage->Path().'/'.$mid);
+            }
           }
-        }
-        $saferNewName = basename($_REQUEST['newMonitor']['Name']);
-				$link_path = $NewStorage->Path().'/'.$saferNewName;
-        if ( !symlink($NewStorage->Path().'/'.$mid, $link_path) ) {
-					if ( ! ( file_exists($link_path) and is_link($link_path) ) ) {
-            ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
-					}
-        }
-      }
-      if ( isset($changes['Width']) || isset($changes['Height']) ) {
-        $newW = $_REQUEST['newMonitor']['Width'];
-        $newH = $_REQUEST['newMonitor']['Height'];
-        $newA = $newW * $newH;
-        $oldW = $monitor['Width'];
-        $oldH = $monitor['Height'];
-        $oldA = $oldW * $oldH;
-
-        $zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($mid));
-        foreach ( $zones as $zone ) {
-          $newZone = $zone;
-          $points = coordsToPoints($zone['Coords']);
-          for ( $i = 0; $i < count($points); $i++ ) {
-            $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldW-1));
-            $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldH-1));
+          $saferNewName = basename($_REQUEST['newMonitor']['Name']);
+          $link_path = $NewStorage->Path().'/'.$saferNewName;
+          if ( !symlink($NewStorage->Path().'/'.$mid, $link_path) ) {
+            if ( ! ( file_exists($link_path) and is_link($link_path) ) ) {
+              ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
+            }
           }
-          $newZone['Coords'] = pointsToCoords($points);
-          $newZone['Area'] = intval(round(($zone['Area']*$newA)/$oldA));
-          $newZone['MinAlarmPixels'] = intval(round(($newZone['MinAlarmPixels']*$newA)/$oldA));
-          $newZone['MaxAlarmPixels'] = intval(round(($newZone['MaxAlarmPixels']*$newA)/$oldA));
-          $newZone['MinFilterPixels'] = intval(round(($newZone['MinFilterPixels']*$newA)/$oldA));
-          $newZone['MaxFilterPixels'] = intval(round(($newZone['MaxFilterPixels']*$newA)/$oldA));
-          $newZone['MinBlobPixels'] = intval(round(($newZone['MinBlobPixels']*$newA)/$oldA));
-          $newZone['MaxBlobPixels'] = intval(round(($newZone['MaxBlobPixels']*$newA)/$oldA));
+        } // end if Name or Storage Area Change
 
-          $changes = getFormChanges($zone, $newZone, $types);
+        if ( isset($changes['Width']) || isset($changes['Height']) ) {
+          $newW = $_REQUEST['newMonitor']['Width'];
+          $newH = $_REQUEST['newMonitor']['Height'];
+          $newA = $newW * $newH;
+          $oldW = $monitor['Width'];
+          $oldH = $monitor['Height'];
+          $oldA = $oldW * $oldH;
 
-          if ( count($changes) ) {
-            dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
-              array($mid, $zone['Id']));
-          }
-        } // end foreach zone
-      } // end if width and height
+          $zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($mid));
+          foreach ( $zones as $zone ) {
+            $newZone = $zone;
+            $points = coordsToPoints($zone['Coords']);
+            for ( $i = 0; $i < count($points); $i++ ) {
+              $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldW-1));
+              $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldH-1));
+            }
+            $newZone['Coords'] = pointsToCoords($points);
+            $newZone['Area'] = intval(round(($zone['Area']*$newA)/$oldA));
+            $newZone['MinAlarmPixels'] = intval(round(($newZone['MinAlarmPixels']*$newA)/$oldA));
+            $newZone['MaxAlarmPixels'] = intval(round(($newZone['MaxAlarmPixels']*$newA)/$oldA));
+            $newZone['MinFilterPixels'] = intval(round(($newZone['MinFilterPixels']*$newA)/$oldA));
+            $newZone['MaxFilterPixels'] = intval(round(($newZone['MaxFilterPixels']*$newA)/$oldA));
+            $newZone['MinBlobPixels'] = intval(round(($newZone['MinBlobPixels']*$newA)/$oldA));
+            $newZone['MaxBlobPixels'] = intval(round(($newZone['MaxBlobPixels']*$newA)/$oldA));
+
+            $changes = getFormChanges($zone, $newZone, $types);
+
+            if ( count($changes) ) {
+              dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
+                array($mid, $zone['Id']));
+            }
+          } // end foreach zone
+        } // end if width and height
+      } // end if successful save
       $restart = true;
-    } else if ( ! $user['MonitorIds'] ) {
+    } else { // new monitor
       // Can only create new monitors if we are not restricted to specific monitors
 # FIXME This is actually a race condition. Should lock the table.
       $maxSeq = dbFetchOne('SELECT MAX(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence');
       $changes['Sequence'] = $maxSeq+1;
 
-      if ( !$monitor->save($changes) ) {
+      if ( $monitor->save($changes) ) {
         $mid = $monitor->Id();
         $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
         dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
@@ -157,9 +168,6 @@ ZM\Logger::Debug("Changes:". print_r($changes,true));
         $error_message = dbError($sql);
         return;
       }
-    } else {
-      ZM\Error('Users with Monitors restrictions cannot create new monitors.');
-      return;
     }
 
     $restart = true;
@@ -167,20 +175,15 @@ ZM\Logger::Debug("Changes:". print_r($changes,true));
     ZM\Logger::Debug('No action due to no changes to Monitor');
   } # end if count(changes)
 
-  if (
-    ( !isset($_POST['newMonitor']['GroupIds']) )
-    or
-    ( count($_POST['newMonitor']['GroupIds']) != count($monitor->GroupIds()) )
-    or 
-    array_diff($_POST['newMonitor']['GroupIds'], $monitor->GroupIds())
-  ) {
-    if ( $monitor->Id() )
-      dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
+  if ( !$mid ) {
+    ZM\Error("We should have a mid by now.  Something went wrong.");
+    return;
+  }
 
-    if ( isset($_POST['newMonitor']['GroupIds']) ) {
-      foreach ( $_POST['newMonitor']['GroupIds'] as $group_id ) {
-        dbQuery('INSERT INTO Groups_Monitors (GroupId,MonitorId) VALUES (?,?)', array($group_id, $mid));
-      }
+  if ( isset($changes['GroupIds']) ) {
+    dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
+    foreach ( $changes['GroupIds'] as $group_id ) {
+      dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid));
     }
   } // end if there has been a change of groups
 

@@ -127,6 +127,10 @@ function initPage() {
   document.querySelectorAll('select[name="dimensions_select"]').forEach(function(el) {
     el.onchange = window['updateMonitorDimensions'].bind(el, el);
   });
+  document.querySelectorAll('select[name="newMonitor[ControlId]"]').forEach(function(el) {
+    el.onchange = window['loadLocations'].bind(el, el);
+  });
+
 
   $j('.chosen').chosen();
 } // end function initPage()

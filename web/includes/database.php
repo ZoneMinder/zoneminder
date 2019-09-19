@@ -135,7 +135,7 @@ function dbQuery($sql, $params=NULL) {
       }
 
       if ( ! $result->execute($params) ) {
-        ZM\Error("SQL: Error executing $sql: " . implode(',', $result->errorInfo()));
+        ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
         return NULL;
       }
     } else {

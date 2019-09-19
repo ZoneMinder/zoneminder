@@ -918,7 +918,7 @@ if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
         <tr><td><?php echo translate('TargetColorspace') ?></td><td><?php echo htmlSelect('newMonitor[Colours]', $Colours, $monitor->Colours() ); ?>
 </td></tr>
         <tr>
-          <td><?php echo translate('CaptureDimensions') ?> (<?php echo translate('Pixels') ?>)</td>
+          <td><?php echo translate('CaptureResolution') ?> (<?php echo translate('Pixels') ?>)</td>
           <td>
             <input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>"/>
             <input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>"/>
@@ -949,7 +949,7 @@ if ( $monitor->Type() != 'NVSocket' && $monitor->Type() != 'WebSite' ) {
         </tr>
         <tr>
           <td><?php echo translate('Orientation') ?></td>
-          <td><?php echo htmlselect('newMonitor[Orientation]', $orientations, $monitor->Orientation() );?></td>
+          <td><?php echo htmlselect('newMonitor[Orientation]', $orientations, $monitor->Orientation());?></td>
         </tr>
 <?php
 }

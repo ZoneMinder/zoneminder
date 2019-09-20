@@ -226,9 +226,9 @@ function controlPower($monitor, $cmds) {
 
 function ptzControls($monitor) {
   $control = $monitor->Control();
-  ZM\Error("Control: " . print_r($control,true));
+  //ZM\Error("Control: " . print_r($control,true));
   $cmds = $control->commands();
-  ZM\Error("Cmds: " . print_r($cmds, true));
+  //ZM\Error("Cmds: " . print_r($cmds, true));
   ob_start();
 ?>
 <div class="controlsPanel">

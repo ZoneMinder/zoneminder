@@ -792,7 +792,7 @@ function initPage() {
     if ( window.history.length == 1 ) {
       $j('#closeControl').html('');
     }
-    document.querySelectorAll('select[name="scale"]').forEach(function (el) {
+    document.querySelectorAll('select[name="scale"]').forEach(function(el) {
       el.onchange = window['changeScale'];
     });
   } else if ( monitorRefresh > 0 ) {

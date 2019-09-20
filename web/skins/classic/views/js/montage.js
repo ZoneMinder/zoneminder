@@ -397,8 +397,9 @@ function save_layout(button) {
   var form = button.form;
   var name = form.elements['Name'].value;
 
-  if ( !name )
+  if ( !name ) {
     name = form.elements['zmMontageLayout'].options[form.elements['zmMontageLayout'].selectedIndex].text;
+  }
 
   if ( name=='Freeform' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' ) {
     alert('You cannot edit the built in layouts.  Please give the layout a new name.');

@@ -38,7 +38,6 @@ foreach ( dbFetchAll($sql, false, $params) as $row ) {
   if ( !visibleMonitor($row['Id']) ) {
     continue;
   }
-  ZM\Logger::Debug(print_r($row,true));
   if ( empty($mid) )
     $mid = $row['Id'];
   $mids[$row['Id']] = $row['Name'];

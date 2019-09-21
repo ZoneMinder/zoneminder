@@ -83,7 +83,7 @@ if ( $options{command} ) {
   my $tries = 10;
   my $server_up;
   while ( $tries and ! ( $server_up = connect(CLIENT, $saddr) ) ) {
-    Debug("Failed to connect to $server_up at $sock_file");
+    Debug("Failed to connect to zmcontrol server at $sock_file");
     runCommand("zmdc.pl start zmcontrol.pl --id=$id");
     sleep 1;
     $tries -= 1;

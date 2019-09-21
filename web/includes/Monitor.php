@@ -15,7 +15,7 @@ protected $defaults = array(
   'ServerId' => 0,
   'StorageId' => 0,
   'Type'      =>  'Ffmpeg',
-  'Function'  => 'None',
+  'Function'  => 'Mocord',
   'Enabled'   => array('type'=>'boolean','default'=>1),
   'LinkedMonitors' => array('type'=>'set', 'default'=>null),
   'Triggers'  =>  array('type'=>'set','default'=>''),
@@ -46,7 +46,7 @@ protected $defaults = array(
   'VideoWriter' =>  '0',
   'OutputCodec' =>  null,
   'OutputContainer' => null,
-  'EncoderParameters' => null,
+  'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
   'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
   'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
   'Brightness'  =>  -1,
@@ -54,7 +54,7 @@ protected $defaults = array(
   'Hue'         =>  -1,
   'Colour'      =>  -1,
   'EventPrefix' =>  'Event-',
-  'LabelFormat' =>  null,
+  'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
   'LabelX'      =>  0,
   'LabelY'      =>  0,
   'LabelSize'   =>  1,
@@ -120,7 +120,7 @@ private $status_fields = array(
       if ( $this->ControlId() )
         $this->{'Control'} = Control::find_one(array('Id'=>$this->{'ControlId'}));
       else
-        Error("No ControlId");
+        Error("No ControlId".print_r($this,true));
       if ( !(array_key_exists('Control', $this) and $this->{'Control'} ) )
         $this->{'Control'} = new Control();
     }

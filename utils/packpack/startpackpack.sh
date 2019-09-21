@@ -294,7 +294,7 @@ checksanity
 # We don't want to build packages for all supported distros after every commit
 # Only build all packages when executed via cron
 # See https://docs.travis-ci.com/user/cron-jobs/
-if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true" ]; then
+if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true" ] || [ "${DIST}" == "buster" ] ; then
     commonprep
 
     # Steps common to Redhat distros

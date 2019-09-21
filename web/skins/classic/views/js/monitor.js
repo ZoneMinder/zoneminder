@@ -1,9 +1,10 @@
 function updateMonitorDimensions(element) {
   var form = element.form;
-  if ( element.type == 'number' ) { // either width or height
+  if ( element.type == 'number' ) {
+    // either width or height
 
-    var widthFactor = parseInt( defaultAspectRatio.replace( /:.*$/, '' ) );
-    var heightFactor = parseInt( defaultAspectRatio.replace( /^.*:/, '' ) );
+    var widthFactor = parseInt(defaultAspectRatio.replace(/:.*$/, ''));
+    var heightFactor = parseInt(defaultAspectRatio.replace(/^.*:/, ''));
 
     var monitorWidth = parseInt(form.elements['newMonitor[Width]'].value);
     var monitorHeight = parseInt(form.elements['newMonitor[Height]'].value);

@@ -347,9 +347,6 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${TRAVIS}" != "true" ] || [ "${DIS
         echo "Starting packpack..."
         execpackpack
         
-        if [ "${TRAVIS}" == "true" ]; then
-            install_deb
-        fi
     fi
 
 # We were not triggered via cron so just build and test trusty

@@ -6,6 +6,15 @@ require_once('Object.php');
 
 class Frame extends ZM_Object {
   protected static $table = 'Frames';
+  protected $defaults = array(
+    'Id' => null,
+    'EventId' => 0,
+    'FrameId' => 0,
+    'Type' => 'Normal',
+    'TimeStamp' => 0,
+    'Delta' => 0.00,
+    'Score' => 0,
+  );
 
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(get_class(), $parameters, $options);

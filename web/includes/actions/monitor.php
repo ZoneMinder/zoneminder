@@ -134,13 +134,13 @@ if ( $action == 'monitor' ) {
                 $points[$i]['x'] = $points[$i]['y'];
                 $points[$i]['y'] = $x;
 
-                if ( $points[$i]['x'] > $newW ) {
+                if ( $points[$i]['x'] > ($newW-1) ) {
                   ZM\Warning("Correcting x {$points[$i]['x']} > $newW of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['x'] = $newW;
+                  $points[$i]['x'] = ($newW-1);
                 }
-                if ( $points[$i]['y'] > $newH ) {
-                  ZM\Warning("Correcting y{$points[$i]['y']} $newH of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['y'] = $newH;
+                if ( $points[$i]['y'] > ($newH-1) ) {
+                  ZM\Warning("Correcting y {$points[$i]['y']} $newH of zone {$newZone['Name']} as it extends outside the new dimensions");
+                  $points[$i]['y'] = ($newH-1);
                 }
               }
 
@@ -162,13 +162,13 @@ if ( $action == 'monitor' ) {
               for ( $i = 0; $i < count($points); $i++ ) {
                 $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldW-1));
                 $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldH-1));
-                if ( $points[$i]['x'] > $newW ) {
+                if ( $points[$i]['x'] > ($newW-1) ) {
                   ZM\Warning("Correcting x of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['x'] = $newW;
+                  $points[$i]['x'] = ($newW-1);
                 }
-                if ( $points[$i]['y'] > $newH ) {
+                if ( $points[$i]['y'] > ($newH-1) ) {
                   ZM\Warning("Correcting y of zone {$newZone['Name']} as it extends outside the new dimensions");
-                  $points[$i]['y'] = $newH;
+                  $points[$i]['y'] = ($newH-1);
                 }
               }
               $newZone['Coords'] = pointsToCoords($points);

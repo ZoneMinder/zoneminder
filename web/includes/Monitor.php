@@ -119,9 +119,8 @@ private $status_fields = array(
     if ( !array_key_exists('Control', $this) ) {
       if ( $this->ControlId() )
         $this->{'Control'} = Control::find_one(array('Id'=>$this->{'ControlId'}));
-      else
-        Error("No ControlId".print_r($this,true));
-      if ( !(array_key_exists('Control', $this) and $this->{'Control'} ) )
+
+      if ( !(array_key_exists('Control', $this) and $this->{'Control'}) )
         $this->{'Control'} = new Control();
     }
     return $this->{'Control'};

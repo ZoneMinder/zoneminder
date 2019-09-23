@@ -330,23 +330,23 @@ bool RtpSource::handlePacket( const unsigned char *packet, size_t packetLen ) {
   } else
     prevM = false;
 
-  updateJitter( rtpHeader );
+  updateJitter(rtpHeader);
 
   return true;
 }
 
 bool RtpSource::getFrame( Buffer &buffer ) {
-  Debug( 3, "Getting frame" );
   if ( !mFrameReady.getValueImmediate() ) {
+    Debug(3, "Getting frame but not ready");
     // Allow for a couple of spurious returns
-    for ( int count = 0; !mFrameReady.getUpdatedValue( 1 ); count++ )
+    for ( int count = 0; !mFrameReady.getUpdatedValue(1); count++ )
       if ( count > 1 )
-        return( false );
+        return false;
   }
   buffer = mFrame;
-  mFrameReady.setValueImmediate( false );
-  mFrameProcessed.updateValueSignal( true );
-  Debug( 4, "Copied %d bytes", buffer.size() );
+  mFrameReady.setValueImmediate(false);
+  mFrameProcessed.updateValueSignal(true);
+  Debug(4, "Copied %d bytes", buffer.size());
   return true;
 }
 

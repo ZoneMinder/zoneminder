@@ -51,7 +51,7 @@ $heights = array(
 
 $scale = '100';   # actual
 
-if ( isset( $_REQUEST['scale'] ) ) {
+if ( isset($_REQUEST['scale']) ) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmMontageScale']) ) {
   $scale = $_COOKIE['zmMontageScale'];
@@ -63,7 +63,14 @@ if ( ! $scale )
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
 foreach ( $layouts as $l ) {
-  $layoutsById[$l->Id()] = $l;
+  if ( $l->Name() == 'Freeform' ) {
+    $layoutsById[$l->Id()] = $l;
+    break;
+  }
+}
+foreach ( $layouts as $l ) {
+  if ( $l->Name() != "Freeform" )
+    $layoutsById[$l->Id()] = $l;
 }
 
 session_start();
@@ -164,19 +171,19 @@ if ( $showZones ) {
           <input type="hidden" name="action" value="Save"/>
 
           <span id="widthControl">
-            <label><?php echo translate('Width') ?>:</label>
+            <label><?php echo translate('Width') ?></label>
             <?php echo htmlSelect('width', $widths, $options['width'], 'changeSize(this);'); ?>
           </span>
           <span id="heightControl">
-            <label><?php echo translate('Height') ?>:</label>
+            <label><?php echo translate('Height') ?></label>
             <?php echo htmlSelect('height', $heights, $options['height'], 'changeSize(this);'); ?>
           </span>
           <span id="scaleControl">
-            <label><?php echo translate('Scale') ?>:</label>
+            <label><?php echo translate('Scale') ?></label>
             <?php echo htmlSelect('scale', $scales, $scale, 'changeScale(this);'); ?>
           </span> 
           <span id="layoutControl">
-            <label for="layout"><?php echo translate('Layout') ?>:</label>
+            <label for="layout"><?php echo translate('Layout') ?></label>
             <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('onchange'=>'selectLayout(this);')); ?>
           </span>
           <input type="hidden" name="Positions"/>

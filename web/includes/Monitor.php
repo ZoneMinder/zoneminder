@@ -146,8 +146,8 @@ private $status_fields = array(
       }
       return $this->defaults[$fn];
     } else if ( array_key_exists($fn, $this->status_fields) ) {
-      $sql = 'SELECT Status,CaptureFPS,AnalysisFPS,CaptureBandwidth
-        FROM Monitor_Status WHERE MonitorId=?';
+      $sql = 'SELECT `Status`,`CaptureFPS`,`AnalysisFPS`,`CaptureBandwidth`
+        FROM `Monitor_Status` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
       if ( !$row ) {
         Error('Unable to load Monitor record for Id='.$this->{'Id'});
@@ -240,7 +240,7 @@ private $status_fields = array(
 
   function zmcControl( $mode=false ) {
     if ( ! $this->{'Id'} ) {
-      Warning("Attempt to control a monitor with no Id");
+      Warning('Attempt to control a monitor with no Id');
       return;
     }
     if ( (!defined('ZM_SERVER_ID')) or ( array_key_exists('ServerId', $this) and (ZM_SERVER_ID==$this->{'ServerId'}) ) ) {
@@ -286,13 +286,13 @@ private $status_fields = array(
         Error("Except $e thrown trying to restart zmc");
       }
     } else {
-      Error("Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.");
+      Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
     }
   } // end function zmcControl
 
   function zmaControl($mode=false) {
     if ( ! $this->{'Id'} ) {
-      Warning("Attempt to control a monitor with no Id");
+      Warning('Attempt to control a monitor with no Id');
       return;
     }
 
@@ -359,7 +359,7 @@ private $status_fields = array(
 
     if ( !array_key_exists('GroupIds', $this) ) {
       if ( array_key_exists('Id', $this) and $this->{'Id'} ) {
-        $this->{'GroupIds'} = dbFetchAll('SELECT GroupId FROM Groups_Monitors WHERE MonitorId=?', 'GroupId', array($this->{'Id'}) );
+        $this->{'GroupIds'} = dbFetchAll('SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=?', 'GroupId', array($this->{'Id'}) );
         if ( ! $this->{'GroupIds'} )
           $this->{'GroupIds'} = array();
       } else {
@@ -431,7 +431,7 @@ private $status_fields = array(
         } else {
           $source = $this->{'Path'};
         }
-      } elseif ( ZM_WEB_FILTER_SOURCE == "NoCredentials" ) {
+      } elseif ( ZM_WEB_FILTER_SOURCE == 'NoCredentials' ) {
         # Filter out sensitive and common items
         unset($url_parts['user']);
         unset($url_parts['pass']);

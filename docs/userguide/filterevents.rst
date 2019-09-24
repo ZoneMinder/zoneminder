@@ -4,7 +4,7 @@ Filtering Events
 Filters allow you to define complex conditions with associated actions in ZoneMinder. Examples could include:
 
 * Send an email each time a new event occurs for a specific monitor
-* Delete events  that are more than 10 days old
+* Delete events that are more than 10 days old
 
 And many more.
 
@@ -27,11 +27,16 @@ Here is what the filter window looks like
 	* Archive all matches: sets the archive field to 1 in the Database for the matched events. 
 	  Think of 'archiving' as grouping them under a special category - you can view archived 
 	  events later and also make sure archived events don't get deleted, for example
+        * Update used disk space: calculates how much disk space is taken by the event and updates the db record.
+        * Create video for all matches: ffmpeg will be used to create a video file out of all the stored jpgs if using jpeg storage.
 	* Email details of all matches: Sends an email to the configured address with details about the event. 
 	  The email can be customized as per TBD
-	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguents to the command, the last argument will be the absolute path to the event, preceeded by replacement arguents. eg: /usr/bin/script.sh %MN% will excecute as /usr/bin/script.sh MonitorName /path/to/event.
+        * Message details of all matches: Uses an email to SMS gateway to send an SMS message for each match.
+	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguents to the command, the last argument will be the absolute path to the event, preceeded by replacement arguents. eg: /usr/bin/script.sh %MN% will excecute as /usr/bin/script.sh MonitorName /path/to/event. Please note that urls may contain characters like & that need quoting. So you may need to put quotes around them like /usr/bin/scrupt.sh "%MN%".
 	* Delete all matches: Deletes all the matched events
 * *E*: Use 'Submit' to 'test' your matching conditions. This will just match and show you what filters match. Use 'Execute' to actually execute the action after matching your conditions. Use 'Save' to save the filter for future use and 'Reset' to clear your settings
+        * Copy all matches: copies the event files to another location, specified in the Copy To dropdown.  The other location must be setup in the Storage Tab under options.
+        * Move all matches: copies the event files to another location, specified in the Move To dropdown.  The other location must be setup in the Storage Tab under options. The files will be delete from the original location.
 
 .. NOTE:: More details on filter conditions:
 
@@ -63,8 +68,12 @@ Here is what the filter window looks like
 	*    %EPI1%       Path to the first alarmed event image
 	*    %EPIM%      Path to the (first) event image with the highest score
 	*    %EI1%         Attach first alarmed event image
+	*    %EI1A%         Attach first alarmed event analysis image
 	*    %EIM%        Attach (first) event image with the highest score
+	*    %EIMA%        Attach (first) event analysis image with the highest score
+	*    %EIMOD%       Attach event image with object detection objects
 	*    %EV%          Attach event mpeg video
+	*    %EVM%          Attach event mpeg video in phone format
 	*    %MN%         Name of the monitor
 	*    %MET%       Total number of events for the monitor
 	*    %MEH%       Number of events for the monitor in the last hour
@@ -83,14 +92,7 @@ Here is what the filter window looks like
 
 	Filtering is a powerful mechanism you can use to eliminate events that fit a certain pattern however in many cases modifying the zone settings will better address this. Where it really comes into its own is generally in applying time filters, so for instance events that happen during weekdays or at certain times of the day are highlighted, uploaded or deleted. Additionally using disk related terms in your filters means you can automatically create filters that delete the oldest events when your disk gets full. Be warned however that if you use this strategy then you should limit the returned results to the amount of events you want deleted in each pass until the disk usage is at an acceptable level. If you do not do this then the first pass when the disk usage is high will match, and then delete, all events unless you have used other criteria inside of limits. ZoneMinder ships with a sample filter already installed, though disabled. The PurgeWhenFull filter can be used to delete the oldest events when your disk starts filling up. To use it you should select and load it in the filter interface, modify it to your requirements, and then save it making you sure you check the ‘Delete all matches’ option. This will then run in the background and ensure that your disk does not fill up with events.
 
-
-Saving filters
------------------
-
-.. image:: images/filter-save.png
-    :width: 400px
-
-When saving filters, if you want the filter to run in the background make sure you select the "Run filter in background" option. When checked, ZoneMinder will make sure the filter is checked regularly. For example, if you want to be notified of new events by email, you should make sure this is checked. Filters that are configured to run in the background have a "*" next to it.
+       When saving filters, if you want the filter to run in the background make sure you select the "Run filter in background" option. When checked, ZoneMinder will make sure the filter is checked regularly. For example, if you want to be notified of new events by email, you should make sure this is checked. Filters that are configured to run in the background have a "*" next to it in the dropdown.
 
 For example:
 
@@ -101,12 +103,11 @@ How filters actually work
 --------------------------
 It is useful to know how filters actually work behind the scenes in ZoneMinder, in the event you find your filter not functioning as intended:
 
-* the primary filter processing process in ZoneMinder is a perl file called ``zmfilter.pl`` which retrieves filters from the Filters database table
+* Each filter set to run in the background will be run in it's own process called ``zmfilter.pl`` which retrieves filters from the Filters database table
 * zmfilter.pl runs every FILTER_EXECUTE_INTERVAL seconds (default is 20s, can be changed in Options->System)
-* in each run, it goes through all the filters which are marked as "Run in Background" and if the conditions match performs the specified action
-* zmfilter.pl also reloads all the filters every FILTER_RELOAD_DELAY seconds (default is 300s/5mins, can be changed in Options->System)
-	* So if you have just created a new filter, zmfilter will not see it till the next FILTER_RELOAD_DELAY cycle
-	* This is also important if you are using "relative times" like 'now' - see :ref:`relative_caveat`
+* after each interval the filter will query the database and apply the action to each matching event.
+* zmfilter.pl also reloads the filter every FILTER_RELOAD_DELAY seconds (default is 300s/5mins, can be changed in Options->System)
+* In previous versions of ZoneMinder filter changes would not take immediate effect, but now the web ui will start/stop/restart filters as appropriate upon editing a filter.
 
 
 Relative items in date strings

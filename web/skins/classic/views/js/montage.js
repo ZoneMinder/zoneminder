@@ -25,7 +25,7 @@ function Monitor(monitorData) {
     }
   };
 
-  this.eventHandler = function( event ) {
+  this.eventHandler = function(event) {
     console.log(event);
   };
 
@@ -210,7 +210,7 @@ function Monitor(monitorData) {
  * @param {*} element - the event data passed by onchange callback
  */
 function selectLayout(element) {
-  console.dir(element);
+  console.log(element);
   layout = $j(element).val();
 
   if ( layout_id = parseInt(layout) ) {
@@ -254,7 +254,7 @@ function selectLayout(element) {
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
     Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
     $('scale').set('value', '');
-    $('width').set('value', '');
+    $('width').set('value', 'auto');
     for ( var i = 0, length = monitors.length; i < length; i++ ) {
       var monitor = monitors[i];
       var streamImg = $('liveStream'+monitor.id);
@@ -318,7 +318,7 @@ function changeSize() {
   Cookie.write('zmMontageScale', '', {duration: 10*365});
   Cookie.write('zmMontageWidth', width, {duration: 10*365});
   Cookie.write('zmMontageHeight', height, {duration: 10*365});
-  selectLayout('#zmMontageLayout');
+  //selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
 /**

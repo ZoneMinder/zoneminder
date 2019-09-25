@@ -647,7 +647,6 @@ switch ( $tab ) {
       foreach ( getEnumValues('Monitors', 'Function') as $f ) {
         $function_options[$f] = translate("Fn$f");
       }
-ZM\Error("Type: " . $monitor->Type());
       echo htmlSelect('newMonitor[Function]', $function_options, $monitor->Function());
 ?>
           </td>

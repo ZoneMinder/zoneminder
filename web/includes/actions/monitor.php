@@ -85,6 +85,11 @@ if ( $action == 'monitor' ) {
         $monitor->zmaControl('stop');
         $monitor->zmcControl('stop');
       }
+
+      # These are used in updating zones
+      $oldW = $monitor->Width();
+      $oldH = $monitor->Height();
+
       if ( $monitor->save($changes) ) {
 
         // Groups will be added below
@@ -92,7 +97,7 @@ if ( $action == 'monitor' ) {
           // creating symlinks when symlink already exists reports errors, but is perfectly ok
           error_reporting(0);
 
-          $OldStorage = $monitor->StorageId();
+          $OldStorage = $monitor->Storage();
           $saferOldName = basename($monitor->Name());
           if ( file_exists($OldStorage->Path().'/'.$saferOldName) )
             unlink($OldStorage->Path().'/'.$saferOldName);
@@ -115,36 +120,75 @@ if ( $action == 'monitor' ) {
         if ( isset($changes['Width']) || isset($changes['Height']) ) {
           $newW = $_REQUEST['newMonitor']['Width'];
           $newH = $_REQUEST['newMonitor']['Height'];
-          $newA = $newW * $newH;
-          $oldW = $monitor['Width'];
-          $oldH = $monitor['Height'];
-          $oldA = $oldW * $oldH;
 
           $zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($mid));
-          foreach ( $zones as $zone ) {
-            $newZone = $zone;
-            $points = coordsToPoints($zone['Coords']);
-            for ( $i = 0; $i < count($points); $i++ ) {
-              $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldW-1));
-              $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldH-1));
-            }
-            $newZone['Coords'] = pointsToCoords($points);
-            $newZone['Area'] = intval(round(($zone['Area']*$newA)/$oldA));
-            $newZone['MinAlarmPixels'] = intval(round(($newZone['MinAlarmPixels']*$newA)/$oldA));
-            $newZone['MaxAlarmPixels'] = intval(round(($newZone['MaxAlarmPixels']*$newA)/$oldA));
-            $newZone['MinFilterPixels'] = intval(round(($newZone['MinFilterPixels']*$newA)/$oldA));
-            $newZone['MaxFilterPixels'] = intval(round(($newZone['MaxFilterPixels']*$newA)/$oldA));
-            $newZone['MinBlobPixels'] = intval(round(($newZone['MinBlobPixels']*$newA)/$oldA));
-            $newZone['MaxBlobPixels'] = intval(round(($newZone['MaxBlobPixels']*$newA)/$oldA));
 
-            $changes = getFormChanges($zone, $newZone, $types);
+          if ( ($newW == $oldH) and ($newH == $oldW) ) {
+            foreach ( $zones as $zone ) {
+              $newZone = $zone;
+              # Rotation, no change to area etc just swap the coords
+              $newZone = $zone;
+              $points = coordsToPoints($zone['Coords']);
+              for ( $i = 0; $i < count($points); $i++ ) {
+                $x = $points[$i]['x'];
+                $points[$i]['x'] = $points[$i]['y'];
+                $points[$i]['y'] = $x;
 
-            if ( count($changes) ) {
-              dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
-                array($mid, $zone['Id']));
-            }
-          } // end foreach zone
-        } // end if width and height
+                if ( $points[$i]['x'] > ($newW-1) ) {
+                  ZM\Warning("Correcting x {$points[$i]['x']} > $newW of zone {$newZone['Name']} as it extends outside the new dimensions");
+                  $points[$i]['x'] = ($newW-1);
+                }
+                if ( $points[$i]['y'] > ($newH-1) ) {
+                  ZM\Warning("Correcting y {$points[$i]['y']} $newH of zone {$newZone['Name']} as it extends outside the new dimensions");
+                  $points[$i]['y'] = ($newH-1);
+                }
+              }
+
+              $newZone['Coords'] = pointsToCoords($points);
+              $changes = getFormChanges($zone, $newZone, $types);
+
+              if ( count($changes) ) {
+                dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
+                  array($mid, $zone['Id']));
+              }
+            } # end foreach zone
+          } else {
+            $newA = $newW * $newH;
+            $oldA = $oldW * $oldH;
+
+            foreach ( $zones as $zone ) {
+              $newZone = $zone;
+              $points = coordsToPoints($zone['Coords']);
+              for ( $i = 0; $i < count($points); $i++ ) {
+                $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldW-1));
+                $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldH-1));
+                if ( $points[$i]['x'] > ($newW-1) ) {
+                  ZM\Warning("Correcting x of zone {$newZone['Name']} as it extends outside the new dimensions");
+                  $points[$i]['x'] = ($newW-1);
+                }
+                if ( $points[$i]['y'] > ($newH-1) ) {
+                  ZM\Warning("Correcting y of zone {$newZone['Name']} as it extends outside the new dimensions");
+                  $points[$i]['y'] = ($newH-1);
+                }
+              }
+              $newZone['Coords'] = pointsToCoords($points);
+              $newZone['Area'] = intval(round(($zone['Area']*$newA)/$oldA));
+              $newZone['MinAlarmPixels'] = intval(round(($newZone['MinAlarmPixels']*$newA)/$oldA));
+              $newZone['MaxAlarmPixels'] = intval(round(($newZone['MaxAlarmPixels']*$newA)/$oldA));
+              $newZone['MinFilterPixels'] = intval(round(($newZone['MinFilterPixels']*$newA)/$oldA));
+              $newZone['MaxFilterPixels'] = intval(round(($newZone['MaxFilterPixels']*$newA)/$oldA));
+              $newZone['MinBlobPixels'] = intval(round(($newZone['MinBlobPixels']*$newA)/$oldA));
+              $newZone['MaxBlobPixels'] = intval(round(($newZone['MaxBlobPixels']*$newA)/$oldA));
+
+              $changes = getFormChanges($zone, $newZone, $types);
+
+              if ( count($changes) ) {
+                dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
+                  array($mid, $zone['Id']));
+              }
+            } // end foreach zone
+          } // end if rotation or just size change
+        } // end if changes in width or height
       } // end if successful save
       $restart = true;
     } else { // new monitor
@@ -170,6 +214,13 @@ if ( $action == 'monitor' ) {
       }
     }
 
+    if ( isset($changes['GroupIds']) ) {
+      dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
+      foreach ( $changes['GroupIds'] as $group_id ) {
+        dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid));
+      }
+    } // end if there has been a change of groups
+
     $restart = true;
   } else {
     ZM\Logger::Debug('No action due to no changes to Monitor');
@@ -179,13 +230,6 @@ if ( $action == 'monitor' ) {
     ZM\Error("We should have a mid by now.  Something went wrong.");
     return;
   }
-
-  if ( isset($changes['GroupIds']) ) {
-    dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
-    foreach ( $changes['GroupIds'] as $group_id ) {
-      dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid));
-    }
-  } // end if there has been a change of groups
 
   if ( ZM_OPT_X10 ) {
     $x10Changes = getFormChanges($x10Monitor, $_REQUEST['newX10Monitor']);
@@ -205,7 +249,6 @@ if ( $action == 'monitor' ) {
   } # end if ZM_OPT_X10
 
   if ( $restart ) {
-    
     if ( $monitor->Function() != 'None' and $monitor->Type() != 'WebSite' ) {
       $monitor->zmcControl('start');
       if ( ($monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord') and $monitor->Enabled() )

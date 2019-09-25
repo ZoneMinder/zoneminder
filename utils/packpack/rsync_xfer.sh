@@ -14,7 +14,7 @@ done
 
 # We only want to deploy packages during cron events
 # See https://docs.travis-ci.com/user/cron-jobs/
-if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
+if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
 
     if [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ]; then
         targetfolder="debian/master/mini-dinstall/incoming"

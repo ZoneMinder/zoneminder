@@ -39,7 +39,7 @@ class Server extends ZM_Object {
     } else if ( $this->Id() ) {
       return $this->{'Name'};
     }
-    $result = explode(':',$_SERVER['HTTP_HOST']);
+    $result = explode(':', $_SERVER['HTTP_HOST']);
     return $result[0];
   }
 
@@ -88,11 +88,6 @@ class Server extends ZM_Object {
   }
 
 	public function Url( $port = null ) {
-    if ( !$this->Id() ) {
-      # Trying to guess and make up values tends to break proxies.  So just return nothing 
-      # so that the resulting url will be something like "?view="
-      return '';
-    }
     $url = $this->Protocol().'://';
 		$url .= $this->Hostname();
     if ( $port ) {

@@ -24,7 +24,7 @@ foreach ( $servers as $S ) {
   $ServersById[$S->Id()] = $S;
 }
 session_start();
-foreach ( array('Group','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
+foreach ( array('GroupId','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
   if ( isset($_REQUEST[$var]) ) {
     if ( $_REQUEST[$var] != '' ) {
       $_SESSION[$var] = $_REQUEST[$var];
@@ -60,7 +60,7 @@ $groupSql = '';
 if ( count($GroupsById) ) {
   $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
   # This will end up with the group_id of the deepest selection
-  $group_id = isset($_SESSION['Group']) ? $_SESSION['Group'] : null;
+  $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
   $html .= ZM\Group::get_group_dropdown();
   $groupSql = ZM\Group::get_group_sql($group_id);
   $html .= '</span>

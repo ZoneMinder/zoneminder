@@ -10,39 +10,31 @@ var controlOptions = new Object();
   $controlTypes = array( ''=>translate('None') );
   # Temporary workaround to show all ptz control types regardless of monitor source type
   #    $sql = "select * from Controls where Type = '".$newMonitor['Type']."'";
-  $sql = "select * from Controls";
-  foreach( dbFetchAll( $sql ) as $row ) {
+  $sql = 'SELECT `Id`,`Name`,`HasHomePreset`,`NumPresets` FROM `Controls` ORDER BY lower(`Name`)';
+  foreach( dbFetchAll($sql) as $row ) {
     $controlTypes[$row['Id']] = $row['Name'];
-?>
-controlOptions[<?php echo $row['Id'] ?>] = new Array();
-<?php
-    if ( $row['HasHomePreset'] ) {
-?>
-controlOptions[<?php echo $row['Id'] ?>][0] = '<?php echo translate('Home') ?>';
-<?php
-    } else {
-?>
-controlOptions[<?php echo $row['Id'] ?>][0] = null;
-<?php
-    }
+    echo '
+controlOptions['.$row['Id'].'] = new Array();
+controlOptions['.$row['Id'].'][0] = '.
+    ( $row['HasHomePreset'] ? '\''.translate('Home').'\'' : 'null' ).'
+';
     for ( $i = 1; $i <= $row['NumPresets']; $i++ ) {
-?>
-controlOptions[<?php echo $row['Id'] ?>][<?php echo $i ?>] = '<?php echo translate('Preset').' '.$i ?>';
-<?php
+      echo 'controlOptions['. $row['Id'].']['.$i.'] = \''.translate('Preset').' '.$i .'\';
+';
     }
-  }
-}
+  } # end foreach row
+} # end if ZM_OPT_CONTROL
 ?>
 
 var monitorNames = new Object();
 <?php
 $query = empty($_REQUEST['mid']) ? dbQuery('SELECT Name FROM Monitors') : dbQuery('SELECT Name FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
 if ( $query ) {
-while ( $name = dbFetchNext($query, 'Name') ) {
-?>
-monitorNames['<?php echo validJsStr($name) ?>'] = true;
-<?php
-} // end foreach
+  while ( $name = dbFetchNext($query, 'Name') ) {
+    echo '
+monitorNames[\''.validJsStr($name).'\'] = true;
+';
+  } // end foreach
 } # end if query
 ?>
 
@@ -140,6 +132,23 @@ function validateForm( form ) {
     alert(errors.join("\n"));
     return false;
   }
+
+  var warnings = new Array();
+  if ( (form.elements['newMonitor[Function]'].value != 'Monitor') && (form.elements['newMonitor[Function]'].value != 'None') ) {
+    if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
+      warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";
+    }
+console.log(form.elements['newMonitor[SaveJPEGs]'].value);
+console.log(form.elements['newMonitor[VideoWriter]'].value);
+
+  }
+console.log(warnings);
+  if ( warnings.length ) {
+    if ( !confirm(warnings.join("\n")) ) {
+      return false;
+    }
+  }
+
   return true;
 }
 

@@ -151,6 +151,9 @@ private $status_fields = array(
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
       if ( !$row ) {
         Error('Unable to load Monitor record for Id='.$this->{'Id'});
+        foreach ( $this->status_fields as $k => $v ) {
+          $this->{$k} = $v;
+        }
       } else {
         foreach ($row as $k => $v) {
           $this->{$k} = $v;

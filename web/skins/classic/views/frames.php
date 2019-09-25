@@ -31,7 +31,6 @@ $Monitor = $Event->Monitor();
 $countSql = 'SELECT COUNT(*) AS FrameCount FROM Frames AS F WHERE 1 ';
 $frameSql = 'SELECT *, unix_timestamp( TimeStamp ) AS UnixTimeStamp FROM Frames AS F WHERE 1 ';
 
-
 // override the sort_field handling in parseSort for frames
 if ( empty($_REQUEST['sort_field']) )
   $_REQUEST['sort_field'] = 'FramesTimeStamp';
@@ -100,7 +99,8 @@ if ( !empty($page) ) {
 }
 
 $maxShortcuts = 5;
-$pagination = getPagination($pages, $page, $maxShortcuts, $sortQuery.'&eid='.$eid.$limitQuery.$filterQuery);
+$totalQuery = $sortQuery.'&eid='.$eid.$limitQuery.$filterQuery;
+$pagination = getPagination($pages, $page, $maxShortcuts, $totalQuery);
 
 $frames = dbFetchAll($frameSql);
 
@@ -125,11 +125,11 @@ if ( $pagination ) {
 if ( $pages > 1 ) {
   if ( !empty($page) ) {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $filterQuery ?><?php echo $sortQuery.$limitQuery ?>"><?php echo translate('ViewAll') ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=0<?php echo $totalQuery ?>"><?php echo translate('ViewAll') ?></a>
 <?php
   } else {
 ?>
-        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $filterQuery ?><?php echo $sortQuery.$limitQuery ?>"><?php echo translate('ViewPaged') ?></a>
+        <a href="?view=<?php echo $view ?>&amp;page=1<?php echo $totalQuery ?>"><?php echo translate('ViewPaged') ?></a>
 <?php
   }
 }

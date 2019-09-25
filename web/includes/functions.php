@@ -79,7 +79,7 @@ function CSPHeaders($view, $nonce) {
     }
     default: {
       // Use Report-Only mode on all other pages.
-      header("Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc");
+      header("Content-Security-Policy-Report-Only: script-src 'unsafe-inline' 'self' 'nonce-$nonce' $additionalScriptSrc report-uri https://zmrepo.zoneminder.com");
       break;
     }
   }

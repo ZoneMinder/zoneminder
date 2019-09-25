@@ -1400,8 +1400,8 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
         foreach ( $newPages as $newPage ) {
           $pageText .= '<a href="?view='.$view.$querySep.'page='.$newPage.$query.'">'.$newPage.'</a>&nbsp;';
         }
+      } # end if page > 1
 
-      }
       $pageText .= '-&nbsp;'.$page.'&nbsp;-';
       if ( $page < $pages ) {
         $newPages = array();
@@ -1426,10 +1426,10 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
         if ( false && $page < ($pages-1) ) {
           $pageText .= '<a href="?view='.$view.$querySep.'page='.$pages.$query.'">&gt;&gt;</a>';
         }
-      }
+      } # end if $page < $pages
     }
   }
-  return( $pageText );
+  return $pageText;
 }
 
 function sortHeader( $field, $querySep='&amp;' ) {

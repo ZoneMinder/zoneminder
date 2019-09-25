@@ -214,6 +214,13 @@ if ( $action == 'monitor' ) {
       }
     }
 
+    if ( isset($changes['GroupIds']) ) {
+      dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
+      foreach ( $changes['GroupIds'] as $group_id ) {
+        dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid));
+      }
+    } // end if there has been a change of groups
+
     $restart = true;
   } else {
     ZM\Logger::Debug('No action due to no changes to Monitor');
@@ -223,13 +230,6 @@ if ( $action == 'monitor' ) {
     ZM\Error("We should have a mid by now.  Something went wrong.");
     return;
   }
-
-  if ( isset($changes['GroupIds']) ) {
-    dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
-    foreach ( $changes['GroupIds'] as $group_id ) {
-      dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid));
-    }
-  } // end if there has been a change of groups
 
   if ( ZM_OPT_X10 ) {
     $x10Changes = getFormChanges($x10Monitor, $_REQUEST['newX10Monitor']);

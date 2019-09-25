@@ -18,8 +18,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-require_once('includes/Monitor.php');
-
 if ( !canView('Stream') ) {
   $view = 'error';
   return;
@@ -37,6 +35,7 @@ if ( ! visibleMonitor($mid) ) {
   return;
 }
 
+require_once('includes/Monitor.php');
 $monitor = new ZM\Monitor($mid);
 
 #Whether to show the controls button

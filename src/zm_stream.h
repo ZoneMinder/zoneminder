@@ -66,9 +66,12 @@ protected:
   const char *format;
   int replay_rate;
   int scale;
+  int last_scale;
   int zoom;
+  int last_zoom;
   double maxfps;
   int bitrate;
+  unsigned short last_x, last_y;
   unsigned short x, y;
 
 protected:
@@ -117,15 +120,15 @@ public:
     type = DEFAULT_TYPE;
     format = "";
     replay_rate = DEFAULT_RATE;
-    scale = DEFAULT_SCALE;
-    zoom = DEFAULT_ZOOM;
+    last_scale = scale = DEFAULT_SCALE;
+    last_zoom = zoom = DEFAULT_ZOOM;
     maxfps = DEFAULT_MAXFPS;
     bitrate = DEFAULT_BITRATE;
 
     paused = false;
     step = 0;
-    x = 0;
-    y = 0;
+    last_x = x = 0;
+    last_y = y = 0;
 
     connkey = 0;
     sd = -1;

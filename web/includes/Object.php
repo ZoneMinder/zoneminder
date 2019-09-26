@@ -92,6 +92,7 @@ class ZM_Object {
         if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
           $sql .= ' LIMIT ' . $options['limit'];
         } else {
+          $backTrace = debug_backtrace();
           Error('Invalid value for limit('.$options['limit'].') passed to '.get_class()."::find from ".print_r($backTrace,true));
           return array();
         }

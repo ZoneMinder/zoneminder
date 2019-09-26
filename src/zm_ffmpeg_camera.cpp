@@ -649,9 +649,6 @@ int FfmpegCamera::OpenFfmpeg() {
       ) {
     Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
         width, height, mVideoCodecContext->width, mVideoCodecContext->height);
-  } else {
-    Warning("Monitor dimensions are %dx%d and camera is sending %dx%d",
-        width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
 
   mCanCapture = true;

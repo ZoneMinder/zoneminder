@@ -38,7 +38,7 @@ env:
   - SMPFLAGS=-j4 OS=ubuntu DIST=trusty
   - SMPFLAGS=-j4 OS=ubuntu DIST=xenial
   - SMPFLAGS=-j4 OS=ubuntu DIST=bionic DOCKER_REPO=iconzm/packpack
-  - SMPFLAGS=-j4 OS=ubuntu DIST=disco
+  - SMPFLAGS=-j4 OS=ubuntu DIST=disco DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=debian DIST=buster DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=debian DIST=stretch DOCKER_REPO=iconzm/packpack
   - SMPFLAGS=-j4 OS=ubuntu DIST=trusty ARCH=i386

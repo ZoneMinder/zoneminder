@@ -30,7 +30,7 @@ if ( !isset($_REQUEST['mid']) ) {
 
 // This is for input sanitation
 $mid = intval($_REQUEST['mid']); 
-if ( ! visibleMonitor($mid) ) {
+if ( !visibleMonitor($mid) ) {
   $view = 'error';
   return;
 }
@@ -114,23 +114,40 @@ if ( $streamMode == 'jpeg' ) {
 if ( $streamMode == 'jpeg' ) {
   if ( $monitor->StreamReplayBuffer() != 0 ) {
 ?>
-        <input type="button" value="&lt;&lt;" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastRev"/>
-        <input type="button" value="&lt;" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowRev"/>
+        <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastRev">
+<i class="material-icons md-18">fast_rewind</i>
+        </button>
+        <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowRev">
+        <i class="material-icons md-18">chevron_right</i>
+        </button>
 <?php 
   }
 ?>
-        <input type="button" value="||" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click-true="streamCmdPause"/>
-        <input type="button" value="[]" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdStop"/>
-        <input type="button" value="|&gt;" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click-true="streamCmdPlay"/>
+        <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click-true="streamCmdPause">
+<i class="material-icons md-18">pause</i>
+        </button>
+        <button type="button" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdStop" style="display:none;">
+<i class="material-icons md-18">stop</i>
+        </button>
+        <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click-true="streamCmdPlay">
+<i class="material-icons md-18">play_arrow</i>
+        </button>
 <?php
   if ( $monitor->StreamReplayBuffer() != 0 ) {
 ?>
-        <input type="button" value="&gt;" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowFwd"/>
-        <input type="button" value="&gt;&gt;" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastFwd"/>
+        <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowFwd">
+        <i class="material-icons md-18">chevron_right</i>
+        </button>
+        <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastFwd">
+<i class="material-icons md-18">fast_forward</i>
+        </button>
 <?php
   }
 ?>
-        <input type="button" value="&ndash;" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut"/>
+        <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut">
+<i class="material-icons md-18">zoom_out</i>
+
+        </button>
 <?php
 } // end if streamMode==jpeg
 ?>

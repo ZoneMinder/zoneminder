@@ -92,7 +92,7 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     $_SESSION['password'] = $_REQUEST['password'];
   }
   zm_session_regenerate_id();
-  generateAuthHash(ZM_AUTH_HASH_IPS);
+  generateAuthHash(ZM_AUTH_HASH_IPS, true);
   if ( $close_session )
     session_write_close();
 

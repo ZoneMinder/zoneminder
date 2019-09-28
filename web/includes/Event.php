@@ -379,14 +379,14 @@ class Event extends ZM_Object {
     if ( $frame and ! is_array($frame) ) {
       # Must be an Id
       Logger::Debug("Assuming that $frame is an Id");
-      $frame = array( 'FrameId'=>$frame, 'Type'=>'' );
+      $frame = array( 'FrameId'=>$frame, 'Type'=>'', 'Delta'=>0 );
     }
 
     if ( ( ! $frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
       # No frame specified, so look for a snapshot to use
       $captImage = 'snapshot.jpg';
       Logger::Debug("Frame not specified, using snapshot");
-      $frame = array('FrameId'=>'snapshot', 'Type'=>'');
+      $frame = array('FrameId'=>'snapshot', 'Type'=>'','Delta'=>0);
     } else {
       $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId'] );
       if ( ! file_exists( $eventPath.'/'.$captImage ) ) {

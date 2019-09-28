@@ -115,6 +115,8 @@ $opTypes = array(
     '![]' => translate('OpNotIn'),
     'IS'  => translate('OpIs'),
     'IS NOT'  => translate('OpIsNot'),
+    'LIKE' => translate('OpLike'),
+    'NOT LIKE' => translate('OpNotLike'),
     );
 
 $archiveTypes = array(

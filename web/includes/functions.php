@@ -1275,6 +1275,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
           case '>' :
           case '<' :
           case '<=' :
+          case 'LIKE' :
+          case 'NOT LIKE':
             $filter['sql'] .= ' '.$term['op'].' '. $value;
             break;
           case '=~' :

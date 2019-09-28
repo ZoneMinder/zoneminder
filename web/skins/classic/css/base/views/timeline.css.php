@@ -25,6 +25,10 @@ switch($max_aspect_ratio){
    echo 'padding-top: 56.25%;'; break;
   case 1.33:
     echo 'padding-top: 75%;'; break;
+  case 1.5:
+    echo 'padding-top: 66.66%'; break;
+  case 1.6:
+    echo 'padding-top: 62.5%'; break;
   default:
     ZM\Error("Unknown aspect ratio $max_aspect_ratio");
 }

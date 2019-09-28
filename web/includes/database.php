@@ -150,7 +150,7 @@ function dbQuery($sql, $params=NULL) {
     }
     if ( defined('ZM_DB_DEBUG') ) {
       if ( $params )
-        ZM\Logger::Debug("SQL: $sql" . implode(',',$params) . ' rows: '.$result->rowCount());
+        ZM\Logger::Debug("SQL: $sql " . implode(',',$params) . ' rows: '.$result->rowCount());
       else
         ZM\Logger::Debug("SQL: $sql: rows:" . $result->rowCount());
     }

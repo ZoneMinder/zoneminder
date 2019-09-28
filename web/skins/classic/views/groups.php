@@ -55,7 +55,9 @@ xhtmlHeaders(__FILE__, translate('Groups'));
             <tr>
               <th class="colName" colspan="<?php echo $max_depth+1 ?>"><?php echo translate('Name') ?></th>
               <th class="colIds"><?php echo translate('Monitors') ?></th>
+<?php if ( canEdit('Groups') ) { ?>
               <th class="colSelect"><?php echo translate('Mark') ?></th>
+<?php } ?>
             </tr>
           </thead>
           <tbody>
@@ -71,10 +73,11 @@ function group_line( $Group ) {
   } else {
     $html .= validHtmlStr($Group->Name());
   }
-  $html .= '</td><td class="colIds">'. monitorIdsToNames($Group->MonitorIds(), 30).'</td>
-                <td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" data-on-click-this="configureButtons"/></td>
-              </tr>
-  ';
+  $html .= '</td><td class="colIds">'. monitorIdsToNames($Group->MonitorIds(), 30).'</td>';
+  if ( canEdit('Groups') ) {
+    $html .= '<td class="colSelect"><input type="checkbox" name="gid[]" value="'. $Group->Id() .'" data-on-click-this="configureButtons"/></td>';
+  }
+  $html .= '</tr>';
   if ( isset( $children[$Group->Id()] ) ) {
     foreach ( $children[$Group->Id()] as $G ) {
       $html .= group_line($G);

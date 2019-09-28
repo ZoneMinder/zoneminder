@@ -282,7 +282,7 @@ DROP TABLE IF EXISTS `Filters`;
 CREATE TABLE `Filters` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
-  `Query` text NOT NULL,
+  `Query_json` text NOT NULL,
   `AutoArchive` tinyint(3) unsigned NOT NULL default '0',
   `AutoVideo` tinyint(3) unsigned NOT NULL default '0',
   `AutoUpload` tinyint(3) unsigned NOT NULL default '0',

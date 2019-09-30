@@ -36,7 +36,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${OS}" == "debian" ] || [ "${OS}" 
         echo
 
         # Don't keep packages older than 5 days
-        find -L ./zmrepo/$targetfolder/ -maxdepth 1 -type f -mtime +5 -delete
+        find ./zmrepo/$targetfolder/ -maxdepth 1 -type f,l -mtime +5 -delete
         rsync -vzlh --ignore-errors build/* zmrepo/$targetfolder/
         fusermount -zu zmrepo
     else

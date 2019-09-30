@@ -171,7 +171,7 @@ function loadEventImage( imagePath, eid, fid, width, height, fps, videoName, dur
     imageSrc.setProperty('src', imagePath);
     imageSrc.setAttribute('data-event-id', eid);
     imageSrc.setAttribute('data-frame-id', fid);
-    imageSrc.onclick=window['showEvent'].bind(imageSrc,imageSrc);
+    imageSrc.onclick=window['showEvent'].bind(imageSrc, imageSrc);
   }
 
   var eventData = $('eventData');

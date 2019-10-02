@@ -202,6 +202,7 @@ isset($action) || $action = NULL;
 
 if ( (!$view and !$request) or ($view == 'console') ) {
   // Verify the system, php, and mysql timezones all match
+  date_default_timezone_set(ZM_TIMEZONE);
   check_timezone();
 }
 

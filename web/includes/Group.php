@@ -76,7 +76,7 @@ class Group extends ZM_Object {
 
   public static function get_dropdown_options() {
     $Groups = array();
-    foreach ( Group::find( ) as $Group ) {
+    foreach ( Group::find(array(), array('order'=>'lower(Name)')) as $Group ) {
       $Groups[$Group->Id()] = $Group;
     }
 

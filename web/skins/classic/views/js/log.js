@@ -182,22 +182,7 @@ function clearLog() {
     clearParms += "&maxTime="+encodeURIComponent(maxTime);
   }
   var form = $('logForm');
-  if ( ! form ) {
-    console.log("Nothing found for #logForm?");
-  } else {
   clearReq.send(clearParms+"&"+form.toQueryString());
-  }
-
-
-if ( 0 ) {
-  minLogTime = 0;
-  logCount = 0;
-  logTimeout = maxSampleTime;
-  displayLimit = initialDisplayLimit;
-  $('displayLogs').set('text', logCount);
-  options = {};
-  $j('#logTable tbody').empty();
-}
 }
 
 function filterLog() {

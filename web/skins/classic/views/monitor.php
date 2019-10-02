@@ -662,33 +662,28 @@ switch ( $tab ) {
           <td><?php echo translate('LinkedMonitors') ?>&nbsp;(<?php echo makePopupLink('?view=optionhelp&amp;option=OPTIONS_LINKED_MONITORS', 'zmOptionHelp', 'optionhelp', '?' ) ?>)</td>
           <td>
 <?php
-
       $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Sequence ASC');
       foreach ( $monitors as $linked_monitor ) {
-        $monitor_options[$linked_monitor['Id']] = $linked_monitor['Name'];
+        if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {
+          $monitor_options[$linked_monitor['Id']] = validHtmlStr($linked_monitor['Name']);
+        }
       }
 
       echo htmlSelect(
-        'newMonitor[LinkedMonitors]',
+        'newMonitor[LinkedMonitors][]',
         $monitor_options,
         ( $monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array() ),
         array('class'=>'chosen','multiple'=>'multiple')
       );
-      if ( 0 ) {
-      foreach ( $monitors as $linked_monitor ) {
-        if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor( $linked_monitor['Id'] ) ) {
-?>
-              <option value="<?php echo validHtmlStr($linked_monitor['Id']); ?>"<?php if ( array_key_exists( $linked_monitor['Id'], $monitorIds ) ) { ?> selected="selected"<?php } ?>><?php echo validHtmlStr($linked_monitor['Name']) ?></option>
-<?php
-        }
-      }
-      }
 ?>
           </td>
         </tr>
-<tr><td><?php echo translate('Groups'); ?></td><td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
-echo htmlOptions(ZM\Group::get_dropdown_options( ), $monitor->GroupIds() );
-?></td></tr>
+        <tr>
+          <td><?php echo translate('Groups'); ?></td>
+          <td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
+            echo htmlOptions(ZM\Group::get_dropdown_options(), $monitor->GroupIds());
+            ?></td>
+        </tr>
         <tr><td><?php echo translate('AnalysisFPS') ?></td><td><input type="text" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" size="6"/></td></tr>
 <?php
       if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {

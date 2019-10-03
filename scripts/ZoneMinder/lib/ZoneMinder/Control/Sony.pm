@@ -50,7 +50,7 @@ sub open {
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
-  $self->{ua}->agent( "ZoneMinder Control Agent/".ZM_VERSION );
+  $self->{ua}->agent( "ZoneMinder Control Agent/".$VERSION );
 
   $self->{state} = 'open';
 }

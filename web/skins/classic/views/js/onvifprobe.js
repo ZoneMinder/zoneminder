@@ -1,6 +1,6 @@
 function submitCamera( element ) {
   var form = element.form;
-  form.target = opener.name;
+  form.target = self.name;
   form.view.value = 'monitor';
   form.submit();
   closeWindow.delay( 250 );

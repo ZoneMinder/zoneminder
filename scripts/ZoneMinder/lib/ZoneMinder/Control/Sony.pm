@@ -59,7 +59,7 @@ sub sendCmd {
 
   my $result = undef;
 
-  printMsg($cmd, 'Tx');
+  $self->printMsg($cmd, 'Tx');
 
   #print( "http://$address/$cmd\n" );
   my $req = HTTP::Request->new( GET=>'http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);

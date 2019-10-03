@@ -61,7 +61,12 @@ sub DESTROY {
 
 sub AUTOLOAD {
   my $self = shift;
-  my $class = ref($self) || Fatal("$self not object");
+  my $class = ref($self);
+  if ( !$class ) {
+    my ( $caller, undef, $line ) = caller;
+    Fatal("$self not object from $caller:$line");
+  }
+
   my $name = $AUTOLOAD;
   $name =~ s/.*://;
   if ( exists($self->{$name}) ) {

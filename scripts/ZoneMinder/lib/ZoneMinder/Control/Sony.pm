@@ -32,8 +32,6 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
-our $VERSION = $ZoneMinder::Base::VERSION;
-
 # ==========================================================================
 #
 # Sony Network Camera Control Protocol
@@ -50,7 +48,7 @@ sub open {
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
-  $self->{ua}->agent( 'ZoneMinder Control Agent/'.$VERSION );
+  $self->{ua}->agent('ZoneMinder Control Agent/'.$ZoneMinder::Base::VERSION);
 
   $self->{state} = 'open';
 }
@@ -102,10 +100,9 @@ sub moveConLeft {
 
 sub moveConRight {
   my $self = shift;
-  Debug( "Move Right" );
-
-  my $cmd = "/command/ptzf.cgi?Move=right,8,1";
-  $self->sendCmd( $cmd );
+  Debug('Move Right');
+  my $cmd = '/command/ptzf.cgi?Move=right,8,1';
+  $self->sendCmd($cmd);
 }
 
 sub moveConUpRight {
@@ -206,7 +203,7 @@ sub moveRelUpLeft {
   my $tiltstep = $self->getParam($params, 'tiltstep');
   Debug("Step Up/Left $tiltstep/$panstep");
   my $cmd = '/command/ptzf.cgi?relative=0705';
-  $self->sendCmd( $cmd );
+  $self->sendCmd($cmd);
 }
 
 sub moveRelDownRight {

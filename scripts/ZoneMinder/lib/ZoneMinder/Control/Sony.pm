@@ -50,7 +50,7 @@ sub open {
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
-  $self->{ua}->agent( "ZoneMinder Control Agent/".$VERSION );
+  $self->{ua}->agent( 'ZoneMinder Control Agent/'.$VERSION );
 
   $self->{state} = 'open';
 }
@@ -70,7 +70,7 @@ sub sendCmd {
   if ( $res->is_success ) {
     $result = !undef;
   } else {
-    Error("Error check failed: '".$res->status_line()."'" );
+    Error("Error check failed: '".$res->status_line()."'");
   }
 
   return $result;
@@ -183,8 +183,8 @@ sub moveRelLeft {
 sub moveRelRight {
   my $self = shift;
   my $params = shift;
-  my $step = $self->getParam( $params, 'panstep' );
-  Debug( "Step Right $step" );
+  my $step = $self->getParam($params, 'panstep');
+  Debug((ref $self)."Step Right $step");
   my $cmd = "/command/ptzf.cgi?relative=06$step";
   $self->sendCmd($cmd);
 }

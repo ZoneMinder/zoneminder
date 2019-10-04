@@ -65,7 +65,7 @@ class Group extends ZM_Object {
       session_write_close();
     }
 
-    return htmlSelect( 'Group[]', Group::get_dropdown_options(), isset($_SESSION['Group'])?$_SESSION['Group']:null, array(
+    return htmlSelect( 'GroupId[]', Group::get_dropdown_options(), isset($_SESSION['GroupId'])?$_SESSION['GroupId']:null, array(
           'data-on-change' => 'submitThisForm',
           'class'=>'chosen',
           'multiple'=>'multiple',
@@ -76,7 +76,7 @@ class Group extends ZM_Object {
 
   public static function get_dropdown_options() {
     $Groups = array();
-    foreach ( Group::find( ) as $Group ) {
+    foreach ( Group::find(array(), array('order'=>'lower(Name)')) as $Group ) {
       $Groups[$Group->Id()] = $Group;
     }
 

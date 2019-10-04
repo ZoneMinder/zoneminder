@@ -448,7 +448,7 @@ void Event::AddFrames( int n_frames, Image **images, struct timeval **timestamps
 
 void Event::AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps ) {
   static char sql[ZM_SQL_LGE_BUFSIZ];
-  strncpy(sql, "insert into Frames ( EventId, FrameId, TimeStamp, Delta ) values ", sizeof(sql));
+  strncpy(sql, "INSERT INTO Frames ( EventId, FrameId, TimeStamp, Delta ) VALUES ", sizeof(sql));
   int frameCount = 0;
   for ( int i = start_frame; i < n_frames && i - start_frame < ZM_SQL_BATCH_SIZE; i++ ) {
     if ( timestamps[i]->tv_sec <= 0 ) {

@@ -192,7 +192,7 @@ if ( empty($_REQUEST['path']) ) {
       ZM\Logger::Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
       if ( ! file_exists( $path ) ) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Fatal("Can't create frame images from video for this event (".$Event->DefaultVideo() );
+        ZM\Fatal('Can\'t create frame images from video for this event '.$Event->DefaultVideo() );
       }
       # Generating an image file will use up more disk space, so update the Event record.
       $Event->DiskSpace(null);

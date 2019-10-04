@@ -45,10 +45,10 @@ if ( $action == 'function' ) {
     $monitor['Function'] = $newFunction;
     $monitor['Enabled'] = $newEnabled;
     if ( daemonCheck() && ($monitor['Type'] != 'WebSite') ) {
-      $restart = ($oldFunction == 'None') || ($newFunction == 'None') || ($newEnabled != $oldEnabled);
       zmaControl($monitor, 'stop');
-      zmcControl($monitor, $restart?'restart':'');
-      zmaControl($monitor, 'start');
+      zmcControl($monitor, ($newFunction != 'None') ? 'restart' : 'stop');
+			if ( $newFunction != 'None' && $newFunction != 'NoDect' )
+        zmaControl($monitor, 'start');
     }
     $refreshParent = true;
   } else {

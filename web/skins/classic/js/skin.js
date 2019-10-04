@@ -272,6 +272,9 @@ function closeWindow() {
 function refreshWindow() {
   window.location.reload( true );
 }
+function backWindow() {
+  window.history.back();
+}
 
 function refreshParentWindow() {
   if ( refreshParent ) {

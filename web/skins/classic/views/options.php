@@ -79,7 +79,7 @@ if ( $tab == 'skins' ) {
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
             <div class="form-group">
-              <label for="skin" class="col-sm-3 control-label">SKIN</label>
+            <label for="skin" class="col-sm-3 control-label"><?php echo translate('Skin')?></label>
               <div class="col-sm-6">
                 <select name="skin" class="form-control chosen">
 <?php
@@ -107,7 +107,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
               </div>
             </div>
             <div id="contentButtons">
-              <button value="Save" type="submit"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+              <button value="Save" type="submit"><?php echo translate('Save') ?></button>
             </div>
          </form>
 	

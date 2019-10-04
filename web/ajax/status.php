@@ -16,7 +16,7 @@ $statusData = array(
     'limit' => 1,
     'elements' => array(
       'MonitorCount' => array( 'sql' => 'count(*)' ),
-      'ActiveMonitorCount' => array( 'sql' => "count(if(Function != 'None',1,NULL))" ),
+      'ActiveMonitorCount' => array( 'sql' => 'count(if(Function != \'None\',1,NULL))' ),
       'State' => array( 'func' => 'daemonCheck()?'.translate('Running').':'.translate('Stopped') ),
       'Load' => array( 'func' => 'getLoad()' ),
       'Disk' => array( 'func' => 'getDiskPercent()' ),
@@ -97,7 +97,7 @@ $statusData = array(
       'Cause' => true,
       'Notes' => true,
       'StartTime' => true,
-      'StartTimeShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
+      'StartTimeShort' => array( 'sql' => 'date_format( StartTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndTime' => true,
       'Width' => true,
       'Height' => true,
@@ -121,7 +121,7 @@ $statusData = array(
       'Name' => true,
       'Cause' => true,
       'StartTime' => true,
-      'StartTimeShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
+      'StartTimeShort' => array( 'sql' => 'date_format( StartTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndTime' => true,
       'Width' => true,
       'Height' => true,
@@ -167,7 +167,7 @@ $statusData = array(
       'EventId' => true,
       'Type' => true,
       'TimeStamp' => true,
-      'TimeStampShort' => array( 'sql' => "date_format( StartTime, '".MYSQL_FMT_DATETIME_SHORT."' )" ), 
+      'TimeStampShort' => array( 'sql' => 'date_format( StartTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'Delta' => true,
       'Score' => true,
       //'Image' => array( 'postFunc' => 'getFrameImage' ),
@@ -232,7 +232,7 @@ function collectData() {
       if ( !($elementData = $lc_elements[strtolower($element)]) )
         ajaxError( 'Bad '.validJsStr($_REQUEST['entity']).' element '.$element );
       if ( isset($elementData['func']) )
-        $data[$element] = eval( 'return( '.$elementData['func']." );" );
+        $data[$element] = eval( 'return( '.$elementData['func'].' );' );
       else if ( isset($elementData['postFunc']) )
         $postFuncs[$element] = $elementData['postFunc'];
       else if ( isset($elementData['zmu']) )
@@ -336,8 +336,10 @@ if ( !isset($_REQUEST['layout']) ) {
 switch( $_REQUEST['layout'] ) {
   case 'xml NOT CURRENTLY SUPPORTED' :
       header('Content-type: application/xml');
-      echo('<?xml version="1.0" encoding="iso-8859-1"?>'."\n");
-      echo '<'.strtolower($_REQUEST['entity']).">\n";
+      echo('<?xml version="1.0" encoding="iso-8859-1"?>
+');
+      echo '<'.strtolower($_REQUEST['entity']).'>
+';
       foreach ( $data as $key=>$value ) {
         $key = strtolower($key);
         echo "<$key>".htmlentities($value)."</$key>\n";

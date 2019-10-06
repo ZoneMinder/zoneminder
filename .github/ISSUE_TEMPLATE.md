@@ -21,8 +21,8 @@ In order to submit a bug report, please populate the fields below this line. Thi
 
 **If the issue concerns a camera**
 - Make and Model
-- frame rate
-- resolution
+- Frame rate
+- Resolution
 - ZoneMinder Source Type:
 
 **Describe the bug**

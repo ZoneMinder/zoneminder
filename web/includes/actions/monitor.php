@@ -256,7 +256,7 @@ if ( $action == 'monitor' ) {
 
       if ( $monitor->Controllable() ) {
         require_once('includes/control_functions.php');
-        sendControlCommand($mid, 'quit');
+        $monitor->sendControlCommand('quit');
       }
     }
     // really should thump zmwatch and maybe zmtrigger too.

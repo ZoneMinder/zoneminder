@@ -74,7 +74,7 @@ if ( canView('Control') && $monitor->Type() == 'Local' ) {
 ?>
           <div id="scaleControl"><?php echo translate('Scale') ?>: <?php echo htmlSelect('scale', $scales, $scale); ?></div>
         </div>
-        <div id="closeControl"><a href="#" onclick="<?php echo $popup ? 'window.close()' : 'history.go(-1);return false;' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
+        <div id="closeControl"><a href="#" data-on-click="<?php echo $popup ? 'closeWindow' : 'backWindow' ?>"><?php echo $popup ? translate('Close') : translate('Back') ?></a></div>
     </div>
 <?php
 if ( $monitor->Status() != 'Connected' ) {

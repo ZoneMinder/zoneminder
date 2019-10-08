@@ -16,41 +16,12 @@ if ( canView('Control', $_REQUEST['id']) ) {
     return;
   }
 
-  $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
-  if ( !$socket )
-    ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
-
-  $sock_file = ZM_PATH_SOCKS.'/zmcontrol-'.$monitor->Id().'.sock';
-  if ( @socket_connect($socket, $sock_file) ) {
-    $options = array();
-    foreach ( explode(' ', $ctrlCommand) as $option ) {
-      if ( preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches) ) {
-        $options[$matches[1]] = !empty($matches[2])?$matches[2]:1;
-      }
-    }
-    $option_string = jsonEncode($options);
-    if ( !socket_write($socket, $option_string) )
-      ajaxError("socket_write() failed: ".socket_strerror(socket_last_error()));
-    ajaxResponse('Used socket');
-    //socket_close( $socket );
+  if ( $monitor->sendControlCommand($ctrlCommand) ) {
+    ajaxResponse('Success');
   } else {
-    $ctrlCommand .= ' --id='.$monitor->Id();
-
-    // Can't connect so use script
-    $ctrlStatus = '';
-    $ctrlOutput = array();
-    exec( escapeshellcmd( $ctrlCommand ), $ctrlOutput, $ctrlStatus );
-    if ( $ctrlStatus )
-      ajaxError($ctrlCommand.'=>'.join(' // ', $ctrlOutput));
-    ajaxResponse('Used script');
+    ajaxError('Failed');
   }
 }
 
 ajaxError('Unrecognised action or insufficient permissions');
-
-function ajaxCleanup() {
-  global $socket;
-  if ( !empty( $socket ) )
-    @socket_close($socket);
-}
 ?>

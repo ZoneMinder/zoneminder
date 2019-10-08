@@ -49,11 +49,11 @@ function controlZoom($monitor, $cmds) {
 <div class="arrowControl zoomControls">
   <div class="arrowLabel"><?php echo translate('Tele') ?></div>
   <button type="button" class="longArrowBtn upBtn" onclick="controlCmd('<?php echo $cmds['ZoomTele'] ?>',event,0,-1)"></button>
-  <button type="button" class="arrowCenter"<?php if ( $monitor->CanZoomCon() ) { ?> onclick="controlCmd('<?php echo $cmds['ZoomStop'] ?>')"<?php } ?>><?php echo translate('Zoom') ?></button>
+  <button type="button" class="arrowCenter"<?php if ( $control->CanZoomCon() ) { ?> onclick="controlCmd('<?php echo $cmds['ZoomStop'] ?>')"<?php } ?>><?php echo translate('Zoom') ?></button>
   <button type="button" class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['ZoomWide'] ?>',event,0,1)"></button>
   <div class="arrowLabel"><?php echo translate('Wide') ?></div>
 <?php
-  if ( $monitor->CanAutoZoom() ) {
+  if ( $control->CanAutoZoom() ) {
 ?>
   <button type="button" class="ptzTextBtn" value="Auto" onclick="controlCmd('<?php echo $cmds['ZoomAuto'] ?>')"><?php echo translate('Auto') ?></button>
   <button type="button" class="ptzTextBtn" value="Man" onclick="controlCmd('<?php echo $cmds['ZoomMan'] ?>')"><?php echo translate('Man') ?></button>
@@ -75,7 +75,7 @@ function controlIris($monitor, $cmds) {
   <button type="button" class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['IrisClose'] ?>',event,0,1)"></button>
   <div class="arrowLabel"><?php echo translate('Close') ?></div>
 <?php
-  if ( $console->CanAutoIris() ) {
+  if ( $control->CanAutoIris() ) {
 ?>
   <button type="button" class="ptzTextBtn" value="Auto" onclick="controlCmd('<?php echo $cmds['IrisAuto'] ?>')"><?php echo translate('Auto') ?></button>
   <button type="button" class="ptzTextBtn" value="Man" onclick="controlCmd('<?php echo $cmds['IrisMan'] ?>')"><?php echo translate('Man') ?></button>
@@ -98,7 +98,7 @@ function controlWhite($monitor, $cmds) {
   <button type="button" class="longArrowBtn downBtn" onclick="controlCmd('<?php echo $cmds['WhiteOut'] ?>',event,0,1)"></button>
   <div class="arrowLabel"><?php echo translate('Out') ?></div>
 <?php
-  if ( $monitor->CanAutoWhite() ) {
+  if ( $control->CanAutoWhite() ) {
 ?>
   <button type="button" class="ptzTextBtn" value="Auto" onclick="controlCmd('<?php echo $cmds['WhiteAuto'] ?>')"><?php echo translate('Auto') ?></button>
   <button type="button" class="ptzTextBtn" value="Man" onclick="controlCmd('<?php echo $cmds['WhiteMan'] ?>')"><?php echo translate('Man') ?></button>
@@ -164,9 +164,6 @@ function controlPresets($monitor, $cmds) {
     ?>
       <button type="button" class="ptzNumBtn" title="<?php echo isset($labels[$i])?htmlentities($labels[$i]):'' ?>" value="<?php echo $i ?>" onclick="controlCmd('<?php echo $cmds['PresetGoto'] ?><?php echo $i ?>');"/><?php echo $i ?></button>
 <?php
-    if ( $i && (($i%$presetBreak) == 0) ) {
-?><br/><?php
-    }
   } // end foreach preset
 ?>
   </div>

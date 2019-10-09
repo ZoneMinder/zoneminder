@@ -467,7 +467,7 @@ public function sendControlCommand($command) {
   foreach ( explode(' ', $command) as $option ) {
     if ( preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches) ) {
       $options[$matches[1]] = $matches[2]?$matches[2]:1;
-    } else if ( $option != 'quit' ) {
+    } else if ( $option != '' and $option != 'quit' ) {
       Warning("Ignored command for zmcontrol $option in $command");
     }
   }

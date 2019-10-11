@@ -996,6 +996,11 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   pkt->pos = -1;
   pkt->stream_index = stream->index;
 
+  if ( pkt->dts == AV_NOPTS_VALUE ) {
+    Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
+    pkt->dts = stream->cur_dts;
+  }
+
   if ( pkt->dts < stream->cur_dts ) {
     Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream cur_dts %" PRId64, pkt->dts, stream->cur_dts);
     pkt->dts = stream->cur_dts;

@@ -172,13 +172,22 @@ if ( canEdit('Events') ) {
   } // end if Event->DefaultVideo
 ?>
         <div id="exportEvent"><button type="button" data-on-click="exportEvent"><?php echo translate('Export') ?></button></div>
-        <div id="replayControl"><label for="replayMode"><?php echo translate('Replay') ?></label><?php echo buildSelect('replayMode', $replayModes, 'changeReplayMode();'); ?></div>
-        <div id="scaleControl"><label for="scale"><?php echo translate('Scale') ?></label><?php echo buildSelect('scale', $scales, 'changeScale();'); ?></div>
-        <div id="codecControl"><label for="codec"><?php echo translate('Codec') ?></label><?php echo htmlSelect('codec', $codecs, $codec, array('onchange'=>'changeCodec(this);')); ?></div>
+        <div id="replayControl">
+          <label for="replayMode"><?php echo translate('Replay') ?></label>
+          <?php echo htmlSelect('replayMode', $replayModes, $replayMode, array('data-on-change'=>'changeReplayMode')); ?>
+        </div>
+        <div id="scaleControl">
+          <label for="scale"><?php echo translate('Scale') ?></label>
+          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale')); ?>
+        </div>
+        <div id="codecControl">
+          <label for="codec"><?php echo translate('Codec') ?></label>
+          <?php echo htmlSelect('codec', $codecs, $codec, array('data-on-change-this'=>'changeCodec')); ?>
+        </div>
       </div>
-     </div>
+    </div>
     <div id="content">
-      <div id="eventVideo" class="">
+      <div id="eventVideo">
 <?php
 if ( ($codec == 'MP4' || $codec == 'auto' ) && $Event->DefaultVideo() ) {
 ?>

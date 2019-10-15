@@ -1223,6 +1223,9 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             case 'Name':
             case 'Cause':
             case 'Notes':
+              if($term['op'] == 'LIKE' || $term['op'] == 'NOT LIKE') {
+                $value = '%'.$value.'%';
+              }
               $value = dbEscape($value);
               break;
             case 'MonitorServerId':

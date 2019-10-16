@@ -1,8 +1,8 @@
 Source: zoneminder
 Section: net
 Priority: optional
-Maintainer: Dmitry Smirnov <onlyjob@debian.org>
-Uploaders: Vagrant Cascadian <vagrant@debian.org>
+Maintainer: Isaac Connor <isaac@zoneminder.com>
+Uploaders: Isaac Connor <isaac@zoneminder.com>
 Build-Depends: debhelper (>= 9), python-sphinx | python3-sphinx, apache2-dev, dh-linktree
               ,cmake
               ,libx264-dev, libmp4v2-dev

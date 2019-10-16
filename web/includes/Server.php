@@ -39,6 +39,11 @@ class Server extends ZM_Object {
     } else if ( $this->Id() ) {
       return $this->{'Name'};
     }
+    # This theoretically will match ipv6 addresses as well
+    if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER['HTTP_HOST'], $matches ) ) {
+      return $matches[1];
+    }
+
     $result = explode(':', $_SERVER['HTTP_HOST']);
     return $result[0];
   }

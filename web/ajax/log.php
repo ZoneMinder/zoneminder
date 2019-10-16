@@ -5,6 +5,7 @@
 $filterFields = array( 'Component', 'ServerId', 'Pid', 'Level', 'File', 'Line' );
 
 function buildLogQuery($action) {
+  global $filterFields;
 
   $minTime = isset($_REQUEST['minTime'])?$_REQUEST['minTime']:NULL;
   $maxTime = isset($_REQUEST['maxTime'])?$_REQUEST['maxTime']:NULL;
@@ -41,7 +42,7 @@ function buildLogQuery($action) {
 
   foreach ( $filter as $field=>$value ) {
     if ( ! in_array($field, $filterFields) ) {
-      ZM\Error("$field is not in valid filter fields");
+      ZM\Error("'$field' is not in valid filter fields " . print_r($filterField,true));
       continue;
     }
     if ( $field == 'Level' ){

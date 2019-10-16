@@ -26,10 +26,10 @@ function createEventHtml(zm_event, frame) {
   new Element('p').inject(eventHtml).set('text', zm_event.Name+(frame?('('+frame.FrameId+')'):''));
   new Element('p').inject(eventHtml).set('text', zm_event.StartTime+' - '+zm_event.Length+'s');
   new Element('p').inject(eventHtml).set('text', zm_event.Cause);
-  if ( event.Notes ) {
-    new Element('p').inject(eventHtml).set('text', event.Notes);
+  if ( zm_event.Notes ) {
+    new Element('p').inject(eventHtml).set('text', zm_event.Notes);
   }
-  if ( event.Archived > 0 ) {
+  if ( zm_event.Archived > 0 ) {
     new Element('p').inject(eventHtml).set( 'text', archivedString);
   }
 

@@ -27,7 +27,7 @@ extern "C" {
 
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
-void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) {
+void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
   Logger *log = Logger::fetch();
   int log_level = 0;
   if ( level == AV_LOG_QUIET ) { // -8
@@ -62,8 +62,11 @@ void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) 
   }
 
   if ( log ) {
-    char            logString[8192];
+    char logString[8192];
     vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
+    int length = strlen(logString);
+    // ffmpeg logs have a carriage return, so replace it with terminator
+    logString[length-1] = 0;
     log->logPrint(false, __FILE__, __LINE__, log_level, logString);
   }
 }
@@ -74,12 +77,12 @@ void FFMPEGInit() {
 
   if ( !bInit ) {
     if ( logDebugging()  && config.log_ffmpeg ) {
-      av_log_set_level( AV_LOG_DEBUG ); 
+      av_log_set_level(AV_LOG_DEBUG);
       av_log_set_callback(log_libav_callback); 
       Info("Enabling ffmpeg logs, as LOG_DEBUG+LOG_FFMPEG are enabled in options");
     } else {
       Info("Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor not part of your debug targets");
-      av_log_set_level( AV_LOG_QUIET ); 
+      av_log_set_level(AV_LOG_QUIET);
     }
 #if LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
 #else
@@ -550,7 +553,6 @@ int zm_send_packet_receive_frame(
     if ( AVERROR(EAGAIN) == ret ) {
       // The codec may need more samples than it has, perfectly valid
       Debug(2, "Codec not ready to give us a frame");
-      return 0;
     } else {
       Error("Could not recieve frame (error %d = '%s')", ret,
           av_make_error_string(ret).c_str());
@@ -571,7 +573,7 @@ int zm_send_packet_receive_frame(
     }
   } // end while !frameComplete
 #endif
-  return 1;
+  return 0;
 } // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
 /* Returns < 0 on error, 0 if codec not ready, 1 on success

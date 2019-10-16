@@ -459,28 +459,6 @@ sub delete_files {
       Error('No event path in delete files. ' . $event->to_string());
     } # end if event_path
 
-    # Now check for empty directories and delete them.
-    my @path_parts = split('/', $event_path);
-    pop @path_parts;
-    # Guaranteed the first part is the monitor id
-    while ( @path_parts > 1 ) {
-      my $path = join('/', $storage_path, @path_parts);
-      my $dh;
-      if ( !opendir($dh, $path) ) {
-        Warning("Fail to open $path");
-        last;
-      }
-      if ( scalar(grep { $_ ne '.' and $_ ne '..' } readdir($dh)) == 0 ) {
-        Debug("Removing empty dir at $path");
-        if ( !rmdir $path ) {
-          Warning("Fail to rmdir $path: $!");
-          last;
-        }
-      } else {
-        last;
-      }
-    } # end while path_parts
-
     if ( $event->Scheme() eq 'Deep' ) {
       my $link_path = $event->LinkPath();
       Debug("Deleting link for Event $$event{Id} from $storage_path/$link_path.");
@@ -489,6 +467,34 @@ sub delete_files {
         unlink($storage_path.'/'.$link_path) or Error("Unable to unlink '$storage_path/$link_path': $!");
       }
     } # end if Scheme eq Deep
+
+    # Now check for empty directories and delete them.
+    my @path_parts = split('/', $event_path);
+    pop @path_parts;
+    # Guaranteed the first part is the monitor id
+    Debug("Initial path_parts: @path_parts");
+    while ( @path_parts > 1 ) {
+      my $path = join('/', $storage_path, @path_parts);
+      my $dh;
+      if ( !opendir($dh, $path) ) {
+        Warning("Fail to open $path");
+        last;
+      }
+      my @dir =  readdir($dh);
+      closedir($dh);
+      if ( scalar(grep { $_ ne '.' and $_ ne '..' } @dir) == 0 ) {
+        Debug("Removing empty dir at $path");
+        if ( !rmdir $path ) {
+          Warning("Fail to rmdir $path: $!");
+          last;
+        }
+      } else {
+        Debug("Dir $path is not empty @dir");
+        last;
+      }
+      pop @path_parts;
+    } # end while path_parts
+
   } # end foreach Storage
 } # end sub delete_files
 

@@ -57,6 +57,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libsys-mmap-perl [!hurd-any]
         ,liburi-encode-perl
         ,libwww-perl
+        ,libdatetime-perl
         ,libdata-uuid-perl 
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl

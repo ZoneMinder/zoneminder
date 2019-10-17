@@ -84,8 +84,7 @@ void FFMPEGInit() {
       Info("Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor not part of your debug targets");
       av_log_set_level(AV_LOG_QUIET);
     }
-#if LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
-#else
+#if !LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
     av_register_all();
 #endif
     avformat_network_init();
@@ -691,10 +690,14 @@ int zm_resample_audio(
     AVFrame *out_frame
     ) {
 #if defined(HAVE_LIBSWRESAMPLE)
-  // Resample the in_frame into the audioSampleBuffer until we process the whole
-  // decoded data. Note: pts does not survive resampling or converting
-  Debug(2, "Converting %d to %d samples using swresample",
-      in_frame->nb_samples, out_frame->nb_samples);
+  if ( in_frame ) {
+    // Resample the in_frame into the audioSampleBuffer until we process the whole
+    // decoded data. Note: pts does not survive resampling or converting
+    Debug(2, "Converting %d to %d samples using swresample",
+        in_frame->nb_samples, out_frame->nb_samples);
+  } else {
+    Debug(2, "Sending NULL frame to flush resampler");
+  }
   int ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
   if ( ret < 0 ) {
     Error("Could not resample frame (error '%s')",
@@ -705,6 +708,10 @@ int zm_resample_audio(
       swr_get_delay(resample_ctx, out_frame->sample_rate));
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
+  if ( ! in_frame ) {
+    Error("Flushing resampler not supported by AVRESAMPLE");
+    return 0;
+  }
   int ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
                             0, in_frame->nb_samples);
   if ( ret < 0 ) {

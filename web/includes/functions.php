@@ -2367,7 +2367,7 @@ function check_timezone() {
                #");
 
   if ( $sys_tzoffset != $php_tzoffset )
-    ZM\Error("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
+    ZM\Error("ZoneMinder is not installed properly: php's date.timezone $php_tzoffset does not match the system timezone $sys_tzoffset!");
 
   if ( $sys_tzoffset != $mysql_tzoffset )
     ZM\Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");

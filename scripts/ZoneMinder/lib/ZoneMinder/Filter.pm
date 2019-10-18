@@ -236,6 +236,11 @@ sub Sql {
                 || $term->{attr} eq 'Cause'
                 || $term->{attr} eq 'Notes'
                 ) {
+                if ( $term->{op} eq 'LIKE'
+                || $term->{op} eq 'NOT LIKE'
+                ) {
+                $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
+                }
               $value = "'$temp_value'";
             } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
               if ( $temp_value eq 'NULL' ) {
@@ -295,6 +300,10 @@ sub Sql {
             $self->{Sql} .= ' IN ('.join(',', @value_list).')';
           } elsif ( $term->{op} eq '!~' ) {
             $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
+          } elsif ( $term->{op} eq 'LIKE' ) {
+            $self->{Sql} .= " LIKE $value";
+          } elsif ( $term->{op} eq 'NOT LIKE' ) {
+            $self->{Sql} .= " NOT LIKE $value";
           } else {
             $self->{Sql} .= ' '.$term->{op}.' '.$value;
           }

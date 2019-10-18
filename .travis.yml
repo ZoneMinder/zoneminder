@@ -41,6 +41,7 @@ env:
   - SMPFLAGS=-j4 OS=ubuntu DIST=disco DOCKER_REPO=iconzm/packpack USE_SFTP=yes
   - SMPFLAGS=-j4 OS=debian DIST=buster DOCKER_REPO=iconzm/packpack USE_SFTP=yes
   - SMPFLAGS=-j4 OS=debian DIST=stretch DOCKER_REPO=iconzm/packpack USE_SFTP=yes
+  - SMPFLAGS=-j4 OS=debian DIST=jessie DOCKER_REPO=iconzm/packpack USE_SFTP=yes
   - SMPFLAGS=-j4 OS=ubuntu DIST=trusty ARCH=i386
   - SMPFLAGS=-j4 OS=ubuntu DIST=xenial ARCH=i386
   - SMPFLAGS=-j4 OS=ubuntu DIST=bionic ARCH=i386

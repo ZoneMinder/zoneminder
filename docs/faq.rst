@@ -138,7 +138,7 @@ So, for example:
 	that means I shouldn't have any problem.
 	(Note that 1kbyte = 1024bytes, 1MB = 1024 kB)
 
-If for instance you were using 24bit 640x480 then this would come to about 92Mb if you are using the default buffer size of 100. If this is too large then you can either reduce the image or buffer sizes or increase the maximum amount of shared memory available. If you are using RedHat then you can get details on how to change these settings `here <http://www.redhat.com/docs/manuals/database/RHDB-2.1-Manual/admin_user/kernel-resources.html>`__
+If for instance you were using 24bit 640x480 then this would come to about 92Mb if you are using the default buffer size of 100. If this is too large then you can either reduce the image or buffer sizes or increase the maximum amount of shared memory available. If you are using RedHat then you can get details on how to change these settings `here <https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/tuning_and_optimizing_red_hat_enterprise_linux_for_oracle_9i_and_10g_databases/chap-oracle_9i_and_10g_tuning_guide-setting_shared_memory>`__
 
 You should be able to use a similar procedure  with other distributions to modify the shared memory pool without kernel recompilations though in some cases this may be necessary. Note, this error also sometimes occurs if you have an old shared memory segment lying around from a previous run that is too small. Use the ipcs and ipcrm system commands to check and remove it if necessary.'"
 
@@ -183,9 +183,9 @@ Note that with Megapixel cameras like the Axis 207mw becoming cheaper and more a
 
 These changes will now also be set the next time your machine is restarted.
 
-Versions 1.24.x of ZoneMinder also allows you to use an alternate method of shared memory allocation, `Mmap mapped memory <http://en.wikipedia.org/wiki/Mmap>`__ . This requires less configuration and can be simpler to use. Mapped memory allows you to use a special type of file as the placeholder for your memory and this file is 'mapped' into memory space for easy and fast access.
+Versions 1.24.x of ZoneMinder also allows you to use an alternate method of shared memory allocation, `Mmap mapped memory <https://en.wikipedia.org/wiki/Mmap>`__ . This requires less configuration and can be simpler to use. Mapped memory allows you to use a special type of file as the placeholder for your memory and this file is 'mapped' into memory space for easy and fast access.
 
-To enable mapped memory in ZoneMinder you need add add the --enable--mmap=yes switch to your configure line. By default mapped memory files are created in /dev/shm which on most distributions is a dedicated pseudo-partition containing memory formatted as a filesystem. If your system uses a different path then this can be changed in ZoneMinder in Options->paths->PATH_MAP. It uses a filesystem type called `tmpfs <http://en.wikipedia.org/wiki/Tmpfs>`__. If you type ``df -h`` you should see this area and the size of memory it currently allows. To increase size for tmpfs you need to edit /etc/default/tmpfs. Search for:
+To enable mapped memory in ZoneMinder you need add add the --enable--mmap=yes switch to your configure line. By default mapped memory files are created in /dev/shm which on most distributions is a dedicated pseudo-partition containing memory formatted as a filesystem. If your system uses a different path then this can be changed in ZoneMinder in Options->paths->PATH_MAP. It uses a filesystem type called `tmpfs <https://en.wikipedia.org/wiki/Tmpfs>`__. If you type ``df -h`` you should see this area and the size of memory it currently allows. To increase size for tmpfs you need to edit /etc/default/tmpfs. Search for:
 ``SHM_SIZE=128M``
 and change to something like
 ``SHM_SIZE=1G``
@@ -194,8 +194,6 @@ then reboot the system. You could possibly need to change RUN_SIZE, too.
 It is important that you do not use a disk based filesystem for your memory mapped files as this will cause memory access to be extremely slow. ZoneMinder creates files called .zm.mmap.<monitor id> in the mapped memory filesystem.
 
 Mapped memory is subject to the same limitations in terms of total memory as using more traditional shared memory but does not require any configuration per allocation or chunk. In future versions of ZoneMinder this will be the default shared memory storage method.
-
-Another good article about shared memory settings can be found `here <http://publib.boulder.ibm.com/infocenter/db2luw/v9/index.jsp?topic=/com.ibm.db2.udb.uprun.doc/doc/t0008238.htm>`__ . 
 
 The essential difference was that the kernel.shmall setting is NOT in a direct memory setting in KB but in pages of memory. it is Max Pages of memory
 
@@ -221,9 +219,9 @@ As above, reload your sysctl.conf with ``sysctl -p`` and check that the settings
 I have enabled motion detection but it is not always being triggered when things happen in the camera view
 ---------------------------------------------------------------------------------------------------------------
 
-ZoneMinder uses zones to examine images for motion detection. When you create the initial zones you can choose from a number of preset values for sensitivity etc. Whilst these are usually a good starting point they are not always suitable for all situations and you will probably need to tweak the values for your specific circumstances. The meanings of the various settings are described in the documentation (`here <http://www.zoneminder.com/wiki/index.php/Documentation#Defining_Zones>`__) however if you believe you have sensible settings configured then there are two diagnostic approaches you can use.
+ZoneMinder uses zones to examine images for motion detection. When you create the initial zones you can choose from a number of preset values for sensitivity etc. Whilst these are usually a good starting point they are not always suitable for all situations and you will probably need to tweak the values for your specific circumstances. The meanings of the various settings are described in the documentation (`here <https://zoneminder.readthedocs.io/en/latest/userguide/definezone.html>`__) however if you believe you have sensible settings configured then there are two diagnostic approaches you can use.
 
-Another user contributed illustrated Zone definition guide can be found here: `An illustrated guide to Zones <http://www.zoneminder.com/wiki/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__
+Another user contributed illustrated Zone definition guide can be found here: `An illustrated guide to Zones <https://wiki.zoneminder.com/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__
 
 Event Statistics
 ^^^^^^^^^^^^^^^^^
@@ -332,15 +330,15 @@ This function has from time to time been corrupted in the SVN release or in the 
 
 How much Hard Disk Space / Bandwidth do I need for ZM?
 ---------------------------------------------------------------
-Please see `this excel sheet <http://www.jpwilson.eu/ZM_Utils/ZM%20storage%20calc%20sheet.xls>`__ or  `this online excel sheet <https://docs.google.com/spreadsheets/d/1G2Er8fZ_lWQv9QV8qf9yGCMkiUG03a-UwgLLxzCL0OY/edit#gid=49279749>`__ (both are user contributed excel sheets)
+Please see `this excel sheet <https://www.jpwilson.eu/ZM_Utils/ZM%20storage%20calc%20sheet.xls>`__ or  `this online excel sheet <https://docs.google.com/spreadsheets/d/1G2Er8fZ_lWQv9QV8qf9yGCMkiUG03a-UwgLLxzCL0OY/edit#gid=49279749>`__ (both are user contributed excel sheets)
 
-Or go to `this link <http://www.axis.com/products/video/design_tool/index.html>`__ for the Axis bandwidth calculator. Although this is aimed at Axis cameras it still produces valid results for any kind of IP camera.
+Or go to `this link <http://www.axis.com/products/video/design_tool/v2/>`__ for the Axis bandwidth calculator. Although this is aimed at Axis cameras it still produces valid results for any kind of IP camera.
 
 As a quick guide I have 4 cameras at 320x240 storing 1 fps except during alarm events. After 1 week 60GB of space in the volume where the events are stored (/var/www/html/zm) has been used.
 
 When I try and run ZoneMinder I get lots of audit permission errors in the logs and it won't start
 -------------------------------------------------------------------------------------------------------
-Many Linux distributions nowadays are built with security in mind. One of the latest methods of achieving this is via SELinux (Secure Linux) which controls who is able to run what in a more precise way then traditional accounting and file based permissions (`link <http://en.wikipedia.org/wiki/Selinux>`__).
+Many Linux distributions nowadays are built with security in mind. One of the latest methods of achieving this is via SELinux (Secure Linux) which controls who is able to run what in a more precise way then traditional accounting and file based permissions (`link <https://en.wikipedia.org/wiki/Selinux>`__).
 If you are seeing entries in your system log like:
 
    Jun 11 20:44:02 kernel: audit(1150033442.443:226): avc: denied { read } for pid=5068
@@ -381,8 +379,8 @@ If you have upgraded from a previous version of ZoneMinder and this option is no
 
 Note that you can re-run the migrate-events command if any error messages scroll off the screen.
 
-You can read about the lack of a limit in the number of sub-directories in the ext4 filesystem at: `this link <http://kernelnewbies.org/Ext4>`__
-and see what tools may assist in your use of this filesystem `here <http://ext4.wiki.kernel.org/index.php/Ext4_Howto>`__
+You can read about the lack of a limit in the number of sub-directories in the ext4 filesystem at: `this link <https://kernelnewbies.org/Ext4>`__
+and see what tools may assist in your use of this filesystem `here <https://ext4.wiki.kernel.org/index.php/Ext4_Howto>`__
 If you search for ext3 or reiserfs on the forums you will find various threads on this issue with guidance on
 how to convert.
 
@@ -410,7 +408,7 @@ Zoneminder runs on Linux, Linux measures system load using "load", which is comp
 
 A load of 1.0 means the processor has "just enough to do right now". Also worth noting that a load of 4.0 means exactly the same for a quad processor machine - each number equals a single processor's workload. A very high load can be fine on a computer that has a stacked workload - such as a machine sending out bulk emails, or working its way through a knotty problem; it'll just keep churning away until it's done. However - Zoneminder needs to process information in real time so it can't afford to stack its jobs, it needs to deal with them right away.
 
-For a better and full explanation of Load: `Please read this <http://en.wikipedia.org/wiki/Load_%28computing%29>`__
+For a better and full explanation of Load: `Please read this <https://en.wikipedia.org/wiki/Load_%28computing%29>`__
 
 My load is too high, how can I reduce it?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -427,7 +425,7 @@ Zoneminder is *very* tweakable and it's possible to tune it to compromise. The f
 
 	* Experiment with using jpeg instead of mjpeg. Some users have reported it gives better performance, but YMMV.
 
-	* Tweak the zones. Keep them as small and as few as possible. Stick to one zone unless you really need more. Read `this <http://www.zoneminder.com/wiki/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ for an easy to understand explanation along with the official Zone guide.
+	* Tweak the zones. Keep them as small and as few as possible. Stick to one zone unless you really need more. Read `this <https://wiki.zoneminder.com/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ for an easy to understand explanation along with the official Zone guide.
 
 	* Schedule. If you are running a linux system at near capacity, you'll need to think carefully about things like backups and scheduled tasks. updatedb - the process which maintains a file database so that 'locate' works quickly, is normally scheduled to run once a day and if on a busy system can create a heavy increase on the load. The same is true for scheduled backups, especially those which compress the files. Re-schedule these tasks to a time when the cpu is less likely to be busy, if possible - and also use the "nice" command to reduce their priority. (crontab and /etc/cron.daily/ are good places to start)
 
@@ -440,38 +438,16 @@ More expensive options:
 	* Faster CPU. Simple but effective. Zoneminder also works very well with multiple processor systems out of the box (if SMP is enabled in your kernel). The load of different cameras is spread across the processors.
 
 
-	* Try building Zoneminder with processor specific instructions that are optimised to the system it will be running on, also increasing the optimisation level of GCC beyond -O2 will help.
+	* Try building Zoneminder with processor specific instructions that are optimised to the system it will be running on, also increasing the optimisation level of GCC beyond -O2 will help.  This topic is beyond the scope of this document.
 
-::
-
-	./configure CFLAGS="-g -O3 -march=athlon-xp -mtune=athlon-xp" CXXFLAGS="-g -O3 -march=athlon-xp -mtune=athlon-xp"
-
-The above command is optimised for an Athlon XP cpu so you will need to use the specific processor tag for your cpu, also the compiler optimisation has been increased to -O3.
-
-You also need to put in your normal ./configure commands as if you were compiling with out this optimisation.
-
-A further note is that the compile must be performed on the system that Zoneminder will be running on as this optimisation will make it hardware specific code.
-
-Processor specific commands can be found in the GCC manual along with some more options that may increase performanc. 
-`<http://gcc.gnu.org/onlinedocs/gcc/i386-and-x86_002d64-Options.html#i386-and-x86_002d64-Options>`__
-
-The below command has been used to compile Zoneminder on a Athlon XP system running CentOS 5.5 and along with the libjpeg-turbo modification to reduce the CPU load in half, libjpeg-turbo reduced the load by 1/3 before the processor optimisation.
-::
-
-	./configure --with-webdir=/var/www/html/zm --with-cgidir=/var/www/cgi-bin CFLAGS="-g -O3 -march=athlon-xp -mtune=athlon-xp" CXXFLAGS="-D__STDC_CONSTANT_MACROS -g -O3 -march=athlon-xp -mtune=athlon-xp" --enable-mmap --sysconfdir=/etc/zm
-
-The following command has been used to compile Zoneminder 1.25 on a CentOS 6.0 system, the native command should choose the processor automatically during compile time, this needs to be performed on the actual system!!.
-
-::
-
-	CFLAGS="-g -O3 -march=native -mtune=native" CXXFLAGS="-D__STDC_CONSTANT_MACROS -g -O3 -march=native -mtune=native" ./configure  --with-webdir=/var/www/html/zm --with-cgidir=/var/www/cgi-bin --with-webuser=apache --with-webgroup=apache ZM_DB_HOST=localhost ZM_DB_NAME=zm ZM_DB_USER=your_zm_user ZM_DB_PASS=your_zm_password ZM_SSL_LIB=openssl
-
+Processor specific commands can be found in the GCC manual along with some more options that may increase performance. 
+`<https://gcc.gnu.org/onlinedocs/gcc/>`__
 
 What about disks and bandwidth?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 A typical 100mbit LAN will cope with most setups easily. If you're feeding from cameras over smaller or internet links, obviously fps will be much lower.
 
-Disk and Bandwidth calculators are referenced on the Zoneminder wiki here: http://www.zoneminder.com/wiki/index.php/FAQ#How_much_Hard_Disk_Space_.2F_Bandwidth_do_I_need_for_ZM.3F
+Disk and Bandwidth calculators are referenced on the Zoneminder wiki here: https://zoneminder.readthedocs.io/en/latest/faq.html#how-much-hard-disk-space-bandwidth-do-i-need-for-zm
 
 
 Building ZoneMinder
@@ -530,7 +506,7 @@ To save a run state you should first configure your monitors for Modect, Record,
 
 Now you can switch between these two states by selecting them from the same dialog you saved them, or from the command line from issue the command ''zmpkg.pl <run state>'', for example ''zmpkg.pl Daytime''.
 
-The final step you need to take, is scheduling the time the changes take effect. For this you can use `cron <http://en.wikipedia.org/wiki/Cron>`__. A simple entry to change to the Daylight state at at 8am and to the nighttime state at 8pm would be as follows,
+The final step you need to take, is scheduling the time the changes take effect. For this you can use `cron <https://en.wikipedia.org/wiki/Cron>`__. A simple entry to change to the Daylight state at at 8am and to the nighttime state at 8pm would be as follows,
 
 ::
 
@@ -644,7 +620,7 @@ Why am I getting broken images when trying to view events?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Zoneminder and the Apache web server need to have the right permissions. Check this forum topic and similar ones:
-http://www.zoneminder.com/forums/viewtopic.php?p=48754#48754
+https://forums.zoneminder.com/viewtopic.php?p=48754
 
 
 I can review events for the current day, but ones from yesterday and beyond error out
@@ -665,7 +641,7 @@ Once you know what timezone your system is set to, open `/etc/php.ini` and adjus
 
 Why is the image from my color camera appearing in black and white?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you recently upgraded to zoneminder 1.26, there is a per camera option that defaults to black and white and can be mis-set if your upgrade didn't happen right. See this thread: http://www.zoneminder.com/forums/viewtopic.php?f=30&t=21344
+If you recently upgraded to zoneminder 1.26, there is a per camera option that defaults to black and white and can be mis-set if your upgrade didn't happen right. See this thread: https://forums.zoneminder.com/viewtopic.php?f=30&t=21344
 
 This may occur if you have a NTSC analog camera but have configured the source in ZoneMinder as PAL for the Device Format under the source tab.  You may also be mislead because zmu can report the video port as being PAL when the camera is actually NTSC.  Confirm the format of your analog camera by checking it's technical specifications, possibly found with the packaging it came in, on the manufacturers website, or even on the retail website where you purchased the camera.  Change the Device Format setting to NTSC and set it to the lowest resolution of 320 x 240.  If you have confirmed that the camera itself is NTSC format, but don't get a picture using the NTSC setting, consider increasing the shared memory '''kernel.shmall''' and '''kernel.shmmax''' settings in /etc/sysctl.conf to a larger value such as 268435456.  This is also the reason you should start with the 320x240 resolution, so as to minimize the potential of memory problems which would interfere with your attempts to troubleshoot the device format issue.  Once you have obtained a picture in the monitor using the NTSC format, then you can experiment with raising the resolution.
 
@@ -715,7 +691,7 @@ How do I repair the MySQL Database when the cli fails?
 In Ubuntu, the commands listed above do not seem to work.  However, actually doing it by hand from within MySQL does.  (But that is beyond the scope of this document)  But that got me thinking...  And phpmyadmin does work.  Bring up a terminal.
 ``sudo apt-get install phpmyadmin``
 
-Now go to http://zoneminder_IP/ and stop the ZM service.  Continue to http://zoneminder_IP/phpmyadmin and select the zoneminder database.  Select and tables marked 'in use' and pick the action 'repare' to fix.  Restart the zoneminder service from the web browser.  Remove or disable the phpmyadmin tool, as it is not always the most secure thing around, and opens your database wide to any skilled hacker.
+Now go to ``http://zoneminder_IP/`` and stop the ZM service.  Continue to ``http://zoneminder_IP/phpmyadmin`` and select the zoneminder database.  Select and tables marked 'in use' and pick the action 'repare' to fix.  Restart the zoneminder service from the web browser.  Remove or disable the phpmyadmin tool, as it is not always the most secure thing around, and opens your database wide to any skilled hacker.
 ``sudo apt-get remove phpmyadmin``
 
 I upgraded by distribution and ZM stopped working
@@ -760,10 +736,10 @@ The ZoneMinder license is described at the end of the documentation and consists
  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-This means that ZoneMinder is licensed under the terms described `here <http://www.gnu.org/copyleft/gpl.html>`__. There is a comprehensive FAQ covering the GPL at http://www.gnu.org/licenses/gpl-faq.html but in essence you are allowed to redistribute or modify GPL licensed software provided that you release your distribution or modifications freely under the same terms. You are allowed to sell systems based on GPL software. You are not allowed to restrict or reduce the rights of GPL software in your distribution however. Of course if you are just making modifications for your system locally you are not releasing changes so you have no obligations in this case. I recommend reading the GPL FAQ for more in-depth coverage of this issue.
+This means that ZoneMinder is licensed under the terms described `here <https://www.gnu.org/licenses/old-licenses/gpl-2.0.html>`__. There is a comprehensive FAQ covering the GPL at https://www.gnu.org/licenses/gpl-faq.html but in essence you are allowed to redistribute or modify GPL licensed software provided that you release your distribution or modifications freely under the same terms. You are allowed to sell systems based on GPL software. You are not allowed to restrict or reduce the rights of GPL software in your distribution however. Of course if you are just making modifications for your system locally you are not releasing changes so you have no obligations in this case. I recommend reading the GPL FAQ for more in-depth coverage of this issue.
 
 Can I use ZoneMinder as part of my commercial product?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The GPL license allows you produce systems based on GPL software provided your systems also adhere to that license and any modifications you make are also released under the same terms.  The GPL does not permit you to include ZoneMinder in proprietary systems (see http://www.gnu.org/licenses/gpl-faq.html#GPLInProprietarySystem for details). If you wish to include ZoneMinder in this kind of system then you will need to license ZoneMinder under different terms. This is sometimes possible and you will need to contact me for further details in these circumstances.
+The GPL license allows you produce systems based on GPL software provided your systems also adhere to that license and any modifications you make are also released under the same terms.  The GPL does not permit you to include ZoneMinder in proprietary systems (see https://www.gnu.org/licenses/gpl-faq.html#GPLInProprietarySystem for details). If you wish to include ZoneMinder in this kind of system then you will need to license ZoneMinder under different terms. This is sometimes possible and you will need to contact me for further details in these circumstances.
 

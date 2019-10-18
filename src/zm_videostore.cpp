@@ -444,7 +444,7 @@ VideoStore::~VideoStore() {
        * At the end of the file, we pass the remaining samples to
        * the encoder. */
       while ( zm_resample_get_delay(resample_ctx, audio_out_ctx->sample_rate) ) {
-        zm_resample_audio(resample_ctx, out_frame, NULL);
+        zm_resample_audio(resample_ctx, NULL, out_frame);
 
         if ( zm_add_samples_to_fifo(fifo, out_frame) ) {
           // Should probably set the frame size to what is reported FIXME

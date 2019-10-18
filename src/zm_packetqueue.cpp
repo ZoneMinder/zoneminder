@@ -43,7 +43,8 @@ bool zm_packetqueue::queuePacket(ZMPacket* zm_packet) {
       ( packet_counts[zm_packet->packet.stream_index] <= 0 ) 
     ) {
     Debug(2,"Inserting packet with dts %" PRId64 " because queue %d is empty (queue size: %d) or invalid dts",
-        zm_packet->packet.stream_index, packet_counts[zm_packet->packet.stream_index], zm_packet->packet.dts);
+        zm_packet->packet.dts, zm_packet->packet.stream_index, packet_counts[zm_packet->packet.stream_index]
+        );
     // No dts value, can't so much with it
     pktQueue.push_back(zm_packet);
     packet_counts[zm_packet->packet.stream_index] += 1;

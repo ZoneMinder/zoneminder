@@ -257,9 +257,16 @@ int FfmpegCamera::Capture(Image &image) {
         (keyframe || have_video_keyframe)
         ) {
       ret = zm_send_packet_receive_frame(mVideoCodecContext, mRawFrame, packet);
-      if ( ret <= 0 ) {
-        Error("Unable to get frame at frame %d: %s, continuing",
-            frameCount, av_make_error_string(ret).c_str());
+      if ( ret < 0 ) {
+        if ( AVERROR(EAGAIN) != ret ) {
+          Warning("Unable to receive frame %d: code %d %s. error count is %d",
+              frameCount, ret, av_make_error_string(ret).c_str(), error_count);
+          error_count += 1;
+          if ( error_count > 100 ) {
+            Error("Error count over 100, going to close and re-open stream");
+            return -1;
+          }
+        }
         zm_av_packet_unref(&packet);
         continue;
       }
@@ -944,21 +951,23 @@ int FfmpegCamera::CaptureAndRecord(
         int ret = videoStore->writeVideoFramePacket(&packet);
         if ( ret < 0 ) {
           // Less than zero and we skipped a frame
-          Error("Unable to write video packet %d: %s",
-              frameCount, av_make_error_string(ret).c_str());
+          Error("Unable to write video packet code: %d, framecount %d: %s",
+              ret, frameCount, av_make_error_string(ret).c_str());
         } else {
           have_video_keyframe = true;
         }
       }  // end if keyframe or have_video_keyframe
 
       ret = zm_send_packet_receive_frame(mVideoCodecContext, mRawFrame, packet);
-      if ( ret <= 0 ) {
-        Warning("Unable to receive frame %d: %s. error count is %d",
-            frameCount, av_make_error_string(ret).c_str(), error_count);
-        error_count += 1;
-        if ( error_count > 100 ) {
-          Error("Error count over 100, going to close and re-open stream");
-          return -1;
+      if ( ret < 0 ) {
+        if ( AVERROR(EAGAIN) != ret ) {
+          Warning("Unable to receive frame %d: code %d %s. error count is %d",
+              frameCount, ret, av_make_error_string(ret).c_str(), error_count);
+          error_count += 1;
+          if ( error_count > 100 ) {
+            Error("Error count over 100, going to close and re-open stream");
+            return -1;
+          }
         }
         zm_av_packet_unref(&packet);
         continue;

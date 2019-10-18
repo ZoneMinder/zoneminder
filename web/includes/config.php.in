@@ -191,6 +191,8 @@ if ( ! defined('ZM_SERVER_ID') ) {
   }
 }
 
+ini_set('date.timezone', ZM_TIMEZONE);
+
 function process_configfile($configFile) {
   if ( is_readable( $configFile ) ) {
     $configvals = array();

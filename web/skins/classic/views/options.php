@@ -389,6 +389,40 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
         $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
         $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));
         $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
+        function timezone_list() {
+    static $timezones = null;
+
+    if ($timezones === null) {
+        $timezones = [];
+        $offsets = [];
+        $now = new DateTime('now', new DateTimeZone('UTC'));
+
+        foreach (DateTimeZone::listIdentifiers() as $timezone) {
+            $now->setTimezone(new DateTimeZone($timezone));
+            $offsets[] = $offset = $now->getOffset();
+            $timezones[$timezone] = '(' . format_GMT_offset($offset) . ') ' . format_timezone_name($timezone);
+        }
+
+        array_multisort($offsets, $timezones);
+    }
+
+    return $timezones;
+}
+
+function format_GMT_offset($offset) {
+    $hours = intval($offset / 3600);
+    $minutes = abs(intval($offset % 3600 / 60));
+    return 'GMT' . ($offset ? sprintf('%+03d:%02d', $hours, $minutes) : '');
+}
+
+function format_timezone_name($name) {
+    $name = str_replace('/', ', ', $name);
+    $name = str_replace('_', ' ', $name);
+    $name = str_replace('St ', 'St. ', $name);
+    return $name;
+}
+        $configCats[$tab]['ZM_TIMEZONE']['Hint'] = timezone_list();
+
     }
 ?>
       <form name="optionsForm" class="form-horizontal" method="post" action="?">
@@ -396,10 +430,10 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
 <?php
-    $configCat = $configCats[$tab];
-    foreach ( $configCat as $name=>$value ) {
-        $shortName = preg_replace( '/^ZM_/', '', $name );
-        $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
+        $configCat = $configCats[$tab];
+        foreach ( $configCat as $name=>$value ) {
+          $shortName = preg_replace( '/^ZM_/', '', $name );
+          $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
             <div class="form-group">
               <label for="<?php echo $name ?>" class="col-sm-3 control-label"><?php echo $shortName ?></label>
@@ -409,7 +443,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
 ?>
               <input type="checkbox" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
-        } elseif ( is_array( $value['Hint'] ) ) {
+        } elseif ( is_array($value['Hint']) ) {
           echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value']);
         } elseif ( preg_match('/\|/', $value['Hint']) ) {
 ?>

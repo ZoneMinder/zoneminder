@@ -162,6 +162,12 @@ our %types = (
     pattern     => qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|,
     format      => q( $1\@$2 )
   },
+  timezone => {
+    db_type     => 'string',
+    hint        => 'America/Toronto',
+    pattern      => qr|^(.+)$|,
+    format      => q($1)
+  }
 );
 
 our @options = (
@@ -776,6 +782,15 @@ our @options = (
       `,
     type        => $types{string},
     category    => 'config',
+  },
+  {
+    name        => 'ZM_TIMEZONE',
+    default     =>  'UTC',
+    description => 'The timezone that php should use.',
+    help        => q`
+      This should be set equal to the system timezone of the mysql server`,
+    type  =>  $types{timezone},
+    category => 'system',
   },
   {
     name        => 'ZM_CPU_EXTENSIONS',

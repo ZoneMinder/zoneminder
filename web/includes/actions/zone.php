@@ -23,7 +23,7 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
   $mid = validInt($_REQUEST['mid']);
   if ( $action == 'zone' && isset($_REQUEST['zid']) ) {
     $zid = validInt($_REQUEST['zid']);
-    $monitor = dbFetchOne('SELECT * FROM Monitors WHERE Id=?', NULL, array($mid));
+    $monitor = new ZM\Monitor($mid);
 
     if ( !empty($zid) ) {
       $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId=? AND Id=?', NULL, array($mid, $zid));
@@ -60,21 +60,20 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       } else {
         dbQuery('INSERT INTO Zones SET MonitorId=?, '.implode(', ', $changes), array($mid));
       }
-      if ( daemonCheck() && ($monitor['Type'] != 'WebSite') ) {
+      if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
         if ( $_REQUEST['newZone']['Type'] == 'Privacy' ) {
-          zmaControl($monitor, 'stop');
-          zmcControl($monitor, 'restart');
-          zmaControl($monitor, 'start');
+          $monitor->zmaControl('stop');
+          $monitor->zmcControl('restart');
+          $monitor->zmaControl('start');
         } else {
-          zmaControl($monitor, 'restart');
+          $monitor->zmaControl('restart');
         }
       }
-      if ( ($_REQUEST['newZone']['Type'] == 'Privacy') && $monitor['Controllable'] ) {
-        require_once('control_functions.php');
-        sendControlCommand($mid, 'quit');
+      if ( ($_REQUEST['newZone']['Type'] == 'Privacy') && $monitor->Controllable() ) {
+        $monitor->sendControlCommand('quit');
       }
       $refreshParent = true;
-    }
+    } // end if changes
     $view = 'none';
   } // end if action 
 } // end if $mid and canEdit($mid)

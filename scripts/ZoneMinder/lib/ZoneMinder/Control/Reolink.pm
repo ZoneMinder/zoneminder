@@ -134,7 +134,7 @@ sub sendCmd
     my $server_endpoint = "http://".$host.":".$port."/$cmd";
     my $req = HTTP::Request->new( POST => $server_endpoint );
     $req->header('content-type' => $content_type);
-    $req->header('Host' => $host.":".$port);
+    $req->header('Host' => $host.':'.$port);
     $req->header('content-length' => length($msg));
     $req->header('accept-encoding' => 'gzip, deflate');
     $req->header('connection' => 'close');
@@ -145,9 +145,9 @@ sub sendCmd
     if ( $res->is_success ) {
         $result = !undef;
     } else {
-        Error( "After sending PTZ command, camera returned the following error:'".$res->status_line()."'" );
+        Error("After sending PTZ command to $server_endpoint, camera returned the following error:'".$res->status_line()."'" );
     }
-    return( $result );
+    return $result;
 }
 
 sub getCamParams

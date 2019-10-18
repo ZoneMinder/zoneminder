@@ -27,7 +27,7 @@ extern "C" {
 
 #if HAVE_LIBAVCODEC || HAVE_LIBAVUTIL || HAVE_LIBSWSCALE
 
-void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) {
+void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
   Logger *log = Logger::fetch();
   int log_level = 0;
   if ( level == AV_LOG_QUIET ) { // -8
@@ -62,8 +62,11 @@ void log_libav_callback( void *ptr, int level, const char *fmt, va_list vargs ) 
   }
 
   if ( log ) {
-    char            logString[8192];
+    char logString[8192];
     vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
+    int length = strlen(logString);
+    // ffmpeg logs have a carriage return, so replace it with terminator
+    logString[length-1] = 0;
     log->logPrint(false, __FILE__, __LINE__, log_level, logString);
   }
 }
@@ -74,15 +77,14 @@ void FFMPEGInit() {
 
   if ( !bInit ) {
     if ( logDebugging()  && config.log_ffmpeg ) {
-      av_log_set_level( AV_LOG_DEBUG ); 
+      av_log_set_level(AV_LOG_DEBUG);
       av_log_set_callback(log_libav_callback); 
       Info("Enabling ffmpeg logs, as LOG_DEBUG+LOG_FFMPEG are enabled in options");
     } else {
       Info("Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor not part of your debug targets");
-      av_log_set_level( AV_LOG_QUIET ); 
+      av_log_set_level(AV_LOG_QUIET);
     }
-#if LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
-#else
+#if !LIBAVFORMAT_VERSION_CHECK(58, 9, 0, 64, 0)
     av_register_all();
 #endif
     avformat_network_init();
@@ -550,7 +552,6 @@ int zm_send_packet_receive_frame(
     if ( AVERROR(EAGAIN) == ret ) {
       // The codec may need more samples than it has, perfectly valid
       Debug(2, "Codec not ready to give us a frame");
-      return 0;
     } else {
       Error("Could not recieve frame (error %d = '%s')", ret,
           av_make_error_string(ret).c_str());
@@ -571,7 +572,7 @@ int zm_send_packet_receive_frame(
     }
   } // end while !frameComplete
 #endif
-  return 1;
+  return 0;
 } // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
 /* Returns < 0 on error, 0 if codec not ready, 1 on success
@@ -689,10 +690,14 @@ int zm_resample_audio(
     AVFrame *out_frame
     ) {
 #if defined(HAVE_LIBSWRESAMPLE)
-  // Resample the in_frame into the audioSampleBuffer until we process the whole
-  // decoded data. Note: pts does not survive resampling or converting
-  Debug(2, "Converting %d to %d samples using swresample",
-      in_frame->nb_samples, out_frame->nb_samples);
+  if ( in_frame ) {
+    // Resample the in_frame into the audioSampleBuffer until we process the whole
+    // decoded data. Note: pts does not survive resampling or converting
+    Debug(2, "Converting %d to %d samples using swresample",
+        in_frame->nb_samples, out_frame->nb_samples);
+  } else {
+    Debug(2, "Sending NULL frame to flush resampler");
+  }
   int ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
   if ( ret < 0 ) {
     Error("Could not resample frame (error '%s')",
@@ -703,6 +708,10 @@ int zm_resample_audio(
       swr_get_delay(resample_ctx, out_frame->sample_rate));
 #else
 #if defined(HAVE_LIBAVRESAMPLE)
+  if ( ! in_frame ) {
+    Error("Flushing resampler not supported by AVRESAMPLE");
+    return 0;
+  }
   int ret = avresample_convert(resample_ctx, NULL, 0, 0, in_frame->data,
                             0, in_frame->nb_samples);
   if ( ret < 0 ) {

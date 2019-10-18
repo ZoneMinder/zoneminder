@@ -266,7 +266,7 @@ sub profiles {
     print "No result from GetProfiles\n";
     return;
   }
-  if($verbose) {
+  if ( $verbose ) {
     print "Received message:\n" . $result . "\n";
   }
 
@@ -275,6 +275,11 @@ sub profiles {
   foreach  my $profile ( @{ $profiles } ) {
 
     my $token = $profile->attr()->get_token() ;
+    my $video_encoder_configuration = $profile->get_VideoEncoderConfiguration();
+    if ( ! $video_encoder_configuration ) {
+      print "Unknown profile $token " . $profile->get_Name()."\n";
+      next;
+    }
     print $token . ", " .
       $profile->get_Name() . ", " .
       $profile->get_VideoEncoderConfiguration()->get_Encoding() . ", " .

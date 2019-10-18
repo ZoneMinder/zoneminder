@@ -2037,13 +2037,14 @@ void Image::Annotate( const char *p_text, const Coord &coord, const unsigned int
 
 void Image::Timestamp( const char *label, const time_t when, const Coord &coord, const int size ) {
   char time_text[64];
-  strftime( time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime( &when ) );
+  strftime(time_text, sizeof(time_text), "%y/%m/%d %H:%M:%S", localtime(&when));
   if ( label ) {
-    char text[64];
-    snprintf( text, sizeof(text), "%s - %s", label, time_text );
-    Annotate( text, coord, size );
+    // Assume label is max 64, + ' - ' + 64 chars of time_text
+    char text[132];
+    snprintf(text, sizeof(text), "%s - %s", label, time_text);
+    Annotate(text, coord, size);
   } else {
-    Annotate( time_text, coord, size );
+    Annotate(time_text, coord, size);
   }
 }
 

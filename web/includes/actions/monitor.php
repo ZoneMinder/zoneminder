@@ -78,7 +78,7 @@ if ( $action == 'monitor' ) {
   $restart = false;
 
   if ( count($changes) ) {
-    if ( $mid ) {
+    if ( $monitor->Id() ) {
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
       if ( $monitor->Type() != 'WebSite' ) {
@@ -203,6 +203,8 @@ if ( $action == 'monitor' ) {
         dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
         //$view = 'none';
         $Storage = $monitor->Storage();
+
+				error_reporting(0);
         mkdir($Storage->Path().'/'.$mid, 0755);
         $saferName = basename($_REQUEST['newMonitor']['Name']);
         symlink($mid, $Storage->Path().'/'.$saferName);
@@ -256,7 +258,7 @@ if ( $action == 'monitor' ) {
 
       if ( $monitor->Controllable() ) {
         require_once('includes/control_functions.php');
-        sendControlCommand($mid, 'quit');
+        $monitor->sendControlCommand('quit');
       }
     }
     // really should thump zmwatch and maybe zmtrigger too.

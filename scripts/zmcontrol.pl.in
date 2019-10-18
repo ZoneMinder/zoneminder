@@ -29,7 +29,7 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use POSIX qw/strftime EPIPE/;
 use Socket;
-#use Data::Dumper;
+use Data::Dumper;
 use Module::Load::Conditional qw{can_load};
 
 use constant MAX_CONNECT_DELAY => 15;
@@ -173,14 +173,17 @@ if ( $options{command} ) {
         next if !$message;
 
         my $params = jsonDecode($message);
-        #Debug( Dumper( $params ) );
+        Debug( Dumper( $params ) );
 
         my $command = $params->{command};
-        close( CLIENT );
+        close(CLIENT);
         if ( $command eq 'quit' ) {
           last;
+        } elsif ( $command ) {
+          $control->$command($params);
+        } else {
+          Warning("No command in $message");
         }
-        $control->$command($params);
       } else {
         Fatal('Bogus descriptor');
       }

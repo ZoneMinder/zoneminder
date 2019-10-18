@@ -63,6 +63,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,liburi-encode-perl
         ,libwww-perl
         ,libdata-dump-perl
+        ,libdatetime-perl
         ,libclass-std-fast-perl
         ,libsoap-wsdl-perl
         ,libio-socket-multicast-perl

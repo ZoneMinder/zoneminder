@@ -1,7 +1,7 @@
 <?php
 
 function buildControlCommand($monitor) {
-  $ctrlCommand = ZM_PATH_BIN.'/zmcontrol.pl';
+  $ctrlCommand = '';
   $control = $monitor->Control();
 
   if ( isset($_REQUEST['xge']) || isset($_REQUEST['yge']) ) {
@@ -740,29 +740,3 @@ function buildControlCommand($monitor) {
   return $ctrlCommand;
 }
 
-function sendControlCommand($mid, $command) {
-  // Either connects to running zmcontrol.pl or runs zmcontrol.pl to send the command.
-  $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
-  if ( $socket < 0 ) {
-    Fatal('socket_create() failed: '.socket_strerror($socket));
-  }
-  $sockFile = ZM_PATH_SOCKS.'/zmcontrol-'.$mid.'.sock';
-  if ( @socket_connect($socket, $sockFile) ) {
-    $options = array();
-    foreach ( explode(' ', $command) as $option ) {
-      if ( preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches) ) {
-        $options[$matches[1]] = $matches[2]?$matches[2]:1;
-      }
-    }
-    $optionString = jsonEncode($options);
-    if ( !socket_write($socket, $optionString) ) {
-      Fatal("Can't write to control socket: ".socket_strerror(socket_last_error($socket)));
-    }
-    socket_close($socket);
-  } else if ( $command != 'quit' ) {
-    $command .= ' --id='.$mid;
-
-    // Can't connect so use script
-    $ctrlOutput = exec(escapeshellcmd($command));
-  }
-} // end function sendControlCommand($mid, $command)

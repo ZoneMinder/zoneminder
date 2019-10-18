@@ -31,7 +31,7 @@ function buildControlCommand($monitor) {
         }
         case 'Con' :
         {
-          if ( $control->AutoStopTimeout() ) {
+          if ( $monitor->AutoStopTimeout() ) {
             $slowSpeed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$slow)));
             if ( $speed < $slowSpeed ) {
               $ctrlCommand .= ' --autostop';
@@ -55,7 +55,7 @@ function buildControlCommand($monitor) {
           $ctrlCommand .= ' --step='.$step;
           break;
         case 'Con' :
-          if ( $control->AutoStopTimeout() ) {
+          if ( $monitor->AutoStopTimeout() ) {
             $slowSpeed = intval(round($control->MinZoomSpeed()+(($control->MaxZoomSpeed()-$control->MinZoomSpeed())*$slow)));
             if ( $speed < $slowSpeed ) {
               $ctrlCommand .= ' --autostop';
@@ -207,7 +207,7 @@ function buildControlCommand($monitor) {
           }
           break;
         case 'Con' :
-          if ( $control->AutoStopTimeout() ) {
+          if ( $monitor->AutoStopTimeout() ) {
             $slowPanSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$slow)));
             $slowTiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$slow)));
             if ( (!isset($panSpeed) || ($panSpeed < $slowPanSpeed)) && (!isset($tiltSpeed) || ($tiltSpeed < $slowTiltSpeed)) ) {
@@ -441,7 +441,7 @@ function buildControlCommand($monitor) {
         if ( preg_match( '/^(Up|Down)/', $dirn ) ) {
           $ctrlCommand .= ' --tiltspeed='.$tiltSpeed;
         }
-        if ( $control->AutoStopTimeout() ) {
+        if ( $monitor->AutoStopTimeout() ) {
           $slowPanSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$slow)));
           $slowTiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$slow)));
           if ( (!isset($panSpeed) || ($panSpeed < $slowPanSpeed)) && (!isset($tiltSpeed) || ($tiltSpeed < $slowTiltSpeed)) ) {
@@ -482,7 +482,7 @@ function buildControlCommand($monitor) {
             $ctrlCommand .= ' --step='.$step;
             break;
           case 'Con' :
-            if ( $control->AutoStopTimeout() ) {
+            if ( $monitor->AutoStopTimeout() ) {
               $slowSpeed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$slow)));
               if ( $speed < $slowSpeed ) {
                 $ctrlCommand .= ' --autostop';
@@ -511,7 +511,7 @@ function buildControlCommand($monitor) {
             $ctrlCommand .= ' --step='.$step;
             break;
           case 'Con' :
-            if ( $control->AutoStopTimeout() ) {
+            if ( $monitor->AutoStopTimeout() ) {
               $slowSpeed = intval(round($control->MinZoomSpeed()+(($control->MaxZoomSpeed()-$control->MinZoomSpeed())*$slow)));
               if ( $speed < $slowSpeed ) {
                 $ctrlCommand .= ' --autostop';
@@ -695,7 +695,7 @@ function buildControlCommand($monitor) {
             }
             break;
           case 'Con' :
-            if ( $control->AutoStopTimeout() ) {
+            if ( $monitor->AutoStopTimeout() ) {
               $slowPanSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$slow)));
               $slowTiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$slow)));
               if ( (!isset($panSpeed) || ($panSpeed < $slowPanSpeed)) && (!isset($tiltSpeed) || ($tiltSpeed < $slowTiltSpeed)) ) {

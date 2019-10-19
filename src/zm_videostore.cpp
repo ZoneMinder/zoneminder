@@ -899,10 +899,12 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     }
     opkt.dts = ipkt->dts - video_first_dts;
   } else {
-    opkt.dts = av_rescale_q(video_next_dts, video_out_stream->time_base, video_in_stream->time_base);;
+    opkt.dts = video_next_dts ? av_rescale_q(video_next_dts, video_out_stream->time_base, video_in_stream->time_base) : 0;
   }
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
     opkt.pts = ipkt->pts - video_first_dts;
+  } else {
+    opkt.pts = AV_NOPTS_VALUE;
   }
   av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);
 

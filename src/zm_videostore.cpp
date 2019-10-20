@@ -952,6 +952,9 @@ int VideoStore::writeAudioFramePacket(AVPacket *ipkt) {
       if ( zm_add_samples_to_fifo(fifo, out_frame) <= 0 )
         break;
 
+      // We put the samples into the fifo so we are basically resetting the frame
+      out_frame->nb_samples = audio_out_ctx->frame_size;
+      
       if ( zm_get_samples_from_fifo(fifo, out_frame) <= 0 )
         break;
 

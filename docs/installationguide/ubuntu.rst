@@ -155,7 +155,7 @@ You may also want to enable to following modules to improve caching performance
         nano /etc/php/7.2/apache2/php.ini
 
 Search for [Date] (Ctrl + w then type Date and press Enter) and change
-date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.php).
+date.timezone for your time zone, see [this](https://www.php.net/manual/en/timezones.php).
 **Don't forget to remove the ; from in front of date.timezone**
 
 ::
@@ -346,7 +346,7 @@ You may also want to enable to following modules to improve caching performance
         nano /etc/php/7.0/apache2/php.ini
 
 Search for [Date] (Ctrl + w then type Date and press Enter) and change
-date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.php).
+date.timezone for your time zone, see [this](https://www.php.net/manual/en/timezones.php).
 **Don't forget to remove the ; from in front of date.timezone**
 
 ::
@@ -434,7 +434,7 @@ Easy Way: Ubuntu 14.x (Trusty)
         nano /etc/php5/apache2/php.ini
 
 Search for [Date] (Ctrl + w then type Date and press Enter) and change
-date.timezone for your time zone, see [this](http://php.net/manual/en/timezones.php).
+date.timezone for your time zone, see [this](https://www.php.net/manual/en/timezones.php).
 **Don't forget to remove the ; from in front of date.timezone**
 
 ::

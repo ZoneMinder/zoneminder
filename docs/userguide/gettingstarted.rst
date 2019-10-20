@@ -81,7 +81,7 @@ Adding Monitors
 ^^^^^^^^^^^^^^^
 Now that we have a basic understanding of the web console, lets go about adding a new camera (monitor). For this example, lets assume we have an IP camera that streams RTSP at LAN IP address 192.168.1.33. 
 
-The first thing we will need to know is how to access that camera's video feed. You will need to consult your camera's manual or check their forum. Zoneminder community users also have a frequently updated list right `here <http://www.zoneminder.com/wiki/index.php/Hardware_Compatibility_List>`__ that lists information about many cameras. If you don't find your list there and can't seem to find it elsewhere, feel free to register and ask in the `user foums <http://www.zoneminder.com/forums/>`__.
+The first thing we will need to know is how to access that camera's video feed. You will need to consult your camera's manual or check their forum. Zoneminder community users also have a frequently updated list right `here <https://wiki.zoneminder.com/index.php/Hardware_Compatibility_List>`__ that lists information about many cameras. If you don't find your list there and can't seem to find it elsewhere, feel free to register and ask in the `user forums <https://forums.zoneminder.com/>`__.
 
 The camera we are using as an example here is a Foscam 9831W which is a 1280x960 RTSP camera, and the URL to access it's feed is *username:password@IPADDRESS:PORT/videoMain*
 
@@ -105,7 +105,7 @@ This brings up the new monitor window:
 	start with Remote, then try FFMpeg and libvlc if it doesn't work (:doc:`/userguide/definemonitor` 
 	covers other modes in more details). If you are wondering what 'File' does, well, ZoneMinder was 
 	built with compatibility in mind. Take a look at `this post 
-	<http://www.zoneminder.com/wiki/index.php/How_to_use_ZoneMinder_with_cameras_it_may_not_directly_support>`__  to see how file can be used for leisure reading.
+	<https://wiki.zoneminder.com/index.php/How_to_use_ZoneMinder_with_cameras_it_may_not_directly_support>`__  to see how file can be used for leisure reading.
 
 * Let's leave the Function as 'Monitor' just so we can use this as an example to change it later another way. Practically, feel free to select your mode right now - Modect, Record etc depending on what you want ZoneMinder to do with this camera
 

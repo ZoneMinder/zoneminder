@@ -77,7 +77,7 @@ Source Path
     Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
 
         * Check the documentation that came with your camera
-        * Look for your camera in the hardware compatibilty list in the wiki http://wiki.zoneminder.com/Hardware_Compatibility_List
+        * Look for your camera in the hardware compatibilty list in the wiki https://wiki.zoneminder.com/Hardware_Compatibility_List
         * Try ZoneMinder's new ONVIF probe feature
         * Download and install the ONVIF Device Manager onto a Windows machine https://sourceforge.net/projects/onvifdm/
         * Use Google to find third party sites, such as ispy, which document this information
@@ -121,7 +121,7 @@ Remote Protocol
 Remote Method
     When HTTP is the Remote Protocol, your choices are Simple and Regexp. Most should choose Simple. When RTSP is the Remote Protocol, your choices are RTP/Unicast, RTP/Multicast, RTP/RTSP, RTP,RTSP,HTTP. Try each of these to determine which works with your camera. Most cameras will use either RTP/Unicast (UDP) or RTP/RTSP (TCP). 
 Remote Host/Port/Path 
-    Use these fields to enter the full URL of the camera. Basically if your camera is at http://camserver.home.net:8192/cameras/camera1.jpg then these fields will be camserver.home.net, 8192 and /cameras/camera1.jpg respectively. Leave the port at 80 if there is no special port required. If you require authentication to access your camera then add this onto the host name in the form <username>:<password>@<hostname>.com. This will usually be 32 or 24 bit colour even if the image looks black and white. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. 
+    Use these fields to enter the full URL of the camera. Basically if your camera is at ``http://camserver.home.net:8192/cameras/camera1.jpg`` then these fields will be camserver.home.net, 8192 and /cameras/camera1.jpg respectively. Leave the port at 80 if there is no special port required. If you require authentication to access your camera then add this onto the host name in the form <username>:<password>@<hostname>.com. This will usually be 32 or 24 bit colour even if the image looks black and white. Look in Supported Hardware > Network Cameras section, how to obtain these strings that may apply to your camera. 
 Remote Image Colours 
     Specify the amount of colours in the captured image. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
 Capture Width/Height 

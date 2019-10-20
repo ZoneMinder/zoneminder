@@ -10,7 +10,7 @@ Build-Depends: debhelper (>= 9), dh-systemd, python-sphinx | python3-sphinx, apa
               ,libavcodec-dev (>= 6:10~)
               ,libavformat-dev  (>= 6:10~)
               ,libavutil-dev (>= 6:10~)
-              ,libswresample-dev
+              ,libswresample-dev | libavresample-dev
               ,libswscale-dev (>= 6:10~)
               ,ffmpeg | libav-tools
               ,net-tools

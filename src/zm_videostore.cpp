@@ -900,6 +900,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     opkt.dts = ipkt->dts - video_first_dts;
   } else {
     opkt.dts = video_next_dts ? av_rescale_q(video_next_dts, video_out_stream->time_base, video_in_stream->time_base) : 0;
+    Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, video_next_dts);
   }
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
     opkt.pts = ipkt->pts - video_first_dts;
@@ -911,6 +912,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
   dumpPacket(video_out_stream, &opkt, "after pts adjustment");
   write_packet(&opkt, video_out_stream);
   video_next_dts = opkt.dts + opkt.duration;
+  Debug(3, "video_next_dts has become %" PRId64, video_next_dts);
+
   zm_av_packet_unref(&opkt);
 
   return 0;

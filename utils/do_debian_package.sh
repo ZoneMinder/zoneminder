@@ -120,6 +120,10 @@ else
     fi;
     if [ "$SNAPSHOT" == "NOW" ]; then
       SNAPSHOT=`date +%Y%m%d%H%M%S`;
+    else
+      if [ "$SNAPSHOT" == "CURRENT" ]; then
+        SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+      fi;
     fi;
   fi;
 fi

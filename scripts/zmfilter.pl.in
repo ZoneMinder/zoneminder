@@ -531,7 +531,7 @@ sub uploadArchFile {
       Debug("Adding $imageFile");
       my $member = $zip->addFile($imageFile);
       if ( !$member ) {
-        Error("Unable toto add image file $imageFile to zip archive $archLocPath");
+        Error("Unable to add image file $imageFile to zip archive $archLocPath");
         $archError = 1;
         last;
       }

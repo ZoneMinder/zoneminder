@@ -118,11 +118,11 @@ class Storage extends ZM_Object {
     if ( ! array_key_exists('Server',$this) ) {
       if ( array_key_exists('ServerId', $this) ) {
         $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
-        if ( ! $this->{'Server'} ) {
+
+        if ( (!$this->{'Server'}) and $this->{'ServerId'} ) {
           Error('No Server record found for server id ' . $this->{'ServerId'});
           $this->{'Server'} = new Server();
         }
-        $this->{'Server'} = new Server();
       } else {
         $this->{'Server'} = new Server();
       }

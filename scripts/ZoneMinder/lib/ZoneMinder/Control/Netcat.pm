@@ -132,7 +132,7 @@ sub sendCmd {
   my $content_type = shift;
   my $result = undef;
 
-  printMsg($cmd, 'Tx');
+  $self->printMsg($cmd, 'Tx');
 
   my $server_endpoint = 'http://'.$address.':'.$port.'/'.$cmd;
   my $req = HTTP::Request->new(POST => $server_endpoint);

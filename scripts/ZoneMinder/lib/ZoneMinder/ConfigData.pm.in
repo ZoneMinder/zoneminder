@@ -187,7 +187,7 @@ our @options = (
   },
   {
     name        => 'ZM_CSS_DEFAULT',
-    default     => 'classic',
+    default     => 'base',
     description => 'Default set of css files used by web interface',
     help        => q`
       ZoneMinder allows the use of many different web interfaces, and

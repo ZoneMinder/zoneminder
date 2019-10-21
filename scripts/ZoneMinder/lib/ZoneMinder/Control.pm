@@ -136,11 +136,11 @@ sub executeCommand {
 }
 
 sub printMsg {
-    my $self = shift;
-    my $msg = shift;
-    my $msg_len = length($msg);
+  my $self = shift;
+  my $msg = shift;
+  my $msg_len = length($msg);
 
-    Debug($msg.'['.$msg_len.']');
+  Debug($msg.'['.$msg_len.']');
 }
 
 1;

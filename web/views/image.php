@@ -69,7 +69,6 @@ if ( empty($_REQUEST['path']) ) {
   }
 
   if ( !empty($_REQUEST['eid']) ) {
-    ZM\Logger::Debug("Loading by eid");
     $Event = ZM\Event::find_one(array('Id'=>$_REQUEST['eid']));
     if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
@@ -244,7 +243,6 @@ if ( !empty($_REQUEST['scale']) ) {
 
 $width = 0;
 if ( !empty($_REQUEST['width']) ) {
-ZM\Logger::Debug("Setting width: " . $_REQUEST['width']);
   if ( is_numeric($_REQUEST['width']) ) {
     $x = $_REQUEST['width'];
     if ( $x >= 10 and $x <= 8000 )

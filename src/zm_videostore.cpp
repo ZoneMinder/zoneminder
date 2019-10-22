@@ -911,6 +911,7 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
 
   dumpPacket(video_out_stream, &opkt, "after pts adjustment");
   write_packet(&opkt, video_out_stream);
+  dumpPacket(video_out_stream, &opkt, "after write_packet");
   video_next_dts = opkt.dts + opkt.duration;
   Debug(3, "video_next_dts has become %" PRId64, video_next_dts);
 
@@ -1010,26 +1011,17 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   if ( pkt->dts == AV_NOPTS_VALUE ) {
     Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
     pkt->dts = stream->cur_dts;
-  }
-
-  if ( pkt->dts < stream->cur_dts ) {
+  } else if ( pkt->dts < stream->cur_dts ) {
     Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream cur_dts %" PRId64, pkt->dts, stream->cur_dts);
     pkt->dts = stream->cur_dts;
-    if ( (pkt->pts != AV_NOPTS_VALUE) && (pkt->dts > pkt->pts) ) {
-      Debug(1,
-          "pkt.dts %" PRId64 " must be <= pkt.pts %" PRId64 "."
-          "Decompression must happen before presentation.",
-          pkt->dts, pkt->pts);
-      pkt->pts = pkt->dts;
-    }
-  } else if ( (pkt->pts != AV_NOPTS_VALUE) && (pkt->dts > pkt->pts) ) {
+  } 
+
+  if ( pkt->dts > pkt->pts ) {
     Debug(1,
           "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
           "Decompression must happen before presentation.",
           pkt->dts, pkt->pts);
-    pkt->dts = pkt->pts;
-  } else {
-    Debug(1, "Acceptable pts and dts. cur_dts = %" PRId64, stream->cur_dts);
+    pkt->pts = pkt->dts;
   }
 
   dumpPacket(stream, pkt, "finished pkt");

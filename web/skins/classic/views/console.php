@@ -280,7 +280,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
                       $Groups = $Group->Parents();
                       array_push( $Groups, $Group );
                     }
-                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&amp;GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
+                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&amp;Group[]='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </div></td>

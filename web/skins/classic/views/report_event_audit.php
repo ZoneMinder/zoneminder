@@ -204,7 +204,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
                     $Group = new ZM\Group($group_id);
                     $Groups = $Group->Parents();
                     array_push($Groups, $Group);
-                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&GroupId='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
+                    return implode(' &gt; ', array_map(function($Group){ return '<a href="?view=montagereview&Group[]='.$Group->Id().'">'.$Group->Name().'</a>'; }, $Groups ));
                     }, $Monitor->GroupIds() ) ); 
 ?>
             </div></td>

@@ -17,7 +17,6 @@
 }
 
 .imageHeight {
-min-height: 
 <?php
 switch ( $max_aspect_ratio ) {
   case 1:

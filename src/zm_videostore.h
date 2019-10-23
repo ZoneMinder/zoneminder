@@ -70,10 +70,10 @@ private:
   int64_t audio_first_dts;
 
   // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
-  int64_t video_next_pts;
-  int64_t video_next_dts;
+  int64_t *next_dts;
   int64_t audio_next_pts;
-  int64_t audio_next_dts;
+
+  int max_stream_index;
 
   bool setup_resampler();
   int write_packet(AVPacket *pkt, AVStream *stream);

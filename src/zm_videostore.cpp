@@ -110,6 +110,7 @@ VideoStore::VideoStore(
   } else {
     Debug(2, "Success creating video out stream");
   }
+  max_stream_index = video_out_stream->index;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   // by allocating our own copy, we don't run into the problems when we free the streams
@@ -277,14 +278,9 @@ VideoStore::VideoStore(
 #endif
   video_first_pts = 0;
   video_first_dts = 0;
-  video_next_pts = 0;
-  video_next_dts = 0;
 
   audio_first_pts = 0;
   audio_first_dts = 0;
-  /* When encoding audio, these are used to tell us what the correct pts is, because it gets lost during resampling. */
-  audio_next_pts = 0;
-  audio_next_dts = 0;
 
   if ( audio_in_stream ) {
     Debug(3, "Have audio stream");
@@ -381,7 +377,16 @@ VideoStore::VideoStore(
       audio_out_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
 #endif
     }
+
+    // We will assume that subsequent stream allocations will increase the index
+    max_stream_index = audio_out_stream->index;
   }  // end if audio_in_stream
+
+  //max_stream_index is 0-based, so add 1
+  next_dts = new int64_t[max_stream_index+1];
+  for ( int i = 0; i <= max_stream_index; i++ ) {
+    next_dts[i] = 0;
+  }
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {
@@ -605,6 +610,7 @@ VideoStore::~VideoStore() {
 
   /* free the streams */
   avformat_free_context(oc);
+  delete[] next_dts;
 } // VideoStore::~VideoStore()
 
 bool VideoStore::setup_resampler() {
@@ -899,8 +905,8 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
     }
     opkt.dts = ipkt->dts - video_first_dts;
   } else {
-    opkt.dts = video_next_dts ? av_rescale_q(video_next_dts, video_out_stream->time_base, video_in_stream->time_base) : 0;
-    Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, video_next_dts);
+    opkt.dts = next_dts[video_out_stream->index] ? av_rescale_q(next_dts[video_out_stream->index], video_out_stream->time_base, video_in_stream->time_base) : 0;
+    Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, next_dts[video_out_stream->index]);
   }
   if ( ipkt->pts != AV_NOPTS_VALUE ) {
     opkt.pts = ipkt->pts - video_first_dts;
@@ -911,9 +917,6 @@ int VideoStore::writeVideoFramePacket(AVPacket *ipkt) {
 
   dumpPacket(video_out_stream, &opkt, "after pts adjustment");
   write_packet(&opkt, video_out_stream);
-  dumpPacket(video_out_stream, &opkt, "after write_packet");
-  video_next_dts = opkt.dts + opkt.duration;
-  Debug(3, "video_next_dts has become %" PRId64, video_next_dts);
 
   zm_av_packet_unref(&opkt);
 
@@ -1025,6 +1028,8 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   }
 
   dumpPacket(stream, pkt, "finished pkt");
+  next_dts[stream->index] = opkt.dts + opkt.duration;
+  Debug(3, "video_next_dts has become %" PRId64, next_dts[stream->index]);
 
   int ret = av_interleaved_write_frame(oc, pkt);
   if ( ret != 0 ) {

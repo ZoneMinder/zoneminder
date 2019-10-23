@@ -17,20 +17,24 @@
 }
 
 .imageHeight {
+min-height: 
 <?php
-switch($max_aspect_ratio){
+switch ( $max_aspect_ratio ) {
   case 1:
     echo 'padding-top: 100%;'; break;
-  case 1.78:
-   echo 'padding-top: 56.25%;'; break;
-  case 1.33:
+  case 1.33: // 4:3
     echo 'padding-top: 75%;'; break;
-  case 1.5:
+  case 1.47:
+   echo 'padding-top: 68.18%;'; break;
+  case 1.5: // 3:2
     echo 'padding-top: 66.66%'; break;
-  case 1.6:
+  case 1.6: // 8:5
     echo 'padding-top: 62.5%'; break;
+  case 1.78: // 16:9
+   echo 'padding-top: 56.25%;'; break;
   default:
     ZM\Error("Unknown aspect ratio $max_aspect_ratio");
+    echo 'padding-top: 100%;';
 }
 ?>
 }
@@ -47,7 +51,7 @@ switch($max_aspect_ratio){
     height: <?php echo $chart['graph']['eventBarHeight'] ?>px;
 }
 <?php
-if ( $mode == "overlay" ) {
+if ( $mode == 'overlay' ) {
     foreach ( array_keys($monitors) as $monitorId ) {
 ?>
 #chartPanel .eventsPos<?php echo $monitorId ?> {
@@ -55,7 +59,7 @@ if ( $mode == "overlay" ) {
 }
 <?php
     }
-} else if ( $mode == "split" ) {
+} else if ( $mode == 'split' ) {
     foreach ( array_keys($monitors) as $monitorId ) {
 ?>
 #chartPanel .activityPos<?php echo $monitorId ?> {

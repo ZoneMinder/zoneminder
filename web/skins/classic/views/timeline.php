@@ -248,11 +248,11 @@ $scales = array(
   array( 'name'=>'month',    'factor'=>60*60*24*30,  'align'=>1,  'zoomout'=>12,   'label'=>STRF_TL_AXIS_LABEL_MONTH ),
   array( 'name'=>'week',     'factor'=>60*60*24*7,   'align'=>1,  'zoomout'=>4.25, 'label'=>STRF_TL_AXIS_LABEL_WEEK,     'labelCheck'=>'%W' ),
   array( 'name'=>'day',      'factor'=>60*60*24,     'align'=>1,  'zoomout'=>7,    'label'=>STRF_TL_AXIS_LABEL_DAY ),
-  array( 'name'=>"hour4",    'factor'=>60*60,        'align'=>4,  'zoomout'=>6,    'label'=>STRF_TL_AXIS_LABEL_4HOUR,    'labelCheck'=>'%H' ),
+  array( 'name'=>'hour4',    'factor'=>60*60,        'align'=>4,  'zoomout'=>6,    'label'=>STRF_TL_AXIS_LABEL_4HOUR,    'labelCheck'=>'%H' ),
   array( 'name'=>'hour',     'factor'=>60*60,        'align'=>1,  'zoomout'=>4,    'label'=>STRF_TL_AXIS_LABEL_HOUR,     'labelCheck'=>'%H' ),
-  array( 'name'=>"minute10", 'factor'=>60,           'align'=>10, 'zoomout'=>6,    'label'=>STRF_TL_AXIS_LABEL_10MINUTE, 'labelCheck'=>'%M' ),
+  array( 'name'=>'minute10', 'factor'=>60,           'align'=>10, 'zoomout'=>6,    'label'=>STRF_TL_AXIS_LABEL_10MINUTE, 'labelCheck'=>'%M' ),
   array( 'name'=>'minute',   'factor'=>60,           'align'=>1,  'zoomout'=>10,   'label'=>STRF_TL_AXIS_LABEL_MINUTE,   'labelCheck'=>'%M' ),
-  array( 'name'=>"second10", 'factor'=>1,            'align'=>10, 'zoomout'=>6,    'label'=>STRF_TL_AXIS_LABEL_10SECOND ),
+  array( 'name'=>'second10', 'factor'=>1,            'align'=>10, 'zoomout'=>6,    'label'=>STRF_TL_AXIS_LABEL_10SECOND ),
   array( 'name'=>'second',   'factor'=>1,            'align'=>1,  'zoomout'=>10,   'label'=>STRF_TL_AXIS_LABEL_SECOND ),
 );
 
@@ -632,7 +632,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
 ?>
           </div>
 <?php
-  return( ob_get_clean() );
+  return ob_get_clean();
 } # end function drawXGrid
 
 function drawYGrid( $chart, $scale, $labelClass, $tickClass, $gridClass ) {
@@ -662,7 +662,7 @@ function drawYGrid( $chart, $scale, $labelClass, $tickClass, $gridClass ) {
 ?>
   </div>
 <?php
-  return( ob_get_clean() );
+  return ob_get_clean();
 } # end function drawYGrid
 
 $focusWindow = true;

@@ -17,8 +17,6 @@ Binaries
   This is the ZoneMinder Capture daemon. This binary's job is to sit on a video device and suck frames off it as fast as possible, this should 	run at more or less constant speed.
 **zma**
   This is the ZoneMinder Analysis daemon. This is the component that goes through the captured frames and checks them for motion which might generate an alarm or event. It generally keeps up with the Capture daemon but if very busy may skip some frames to prevent it falling behind.
-**zmf**
-  This is the ZoneMinder Frame daemon. This is an optional daemon that can run in concert with the Analysis daemon and whose function it is to actually write captured frames to disk. This frees up the Analysis daemon to do more analysis (!) and so keep up with the Capture daemon better. If it isn’t running or dies then the Analysis daemon just writes them itself.
 **zms**
   This is the ZoneMinder Streaming server. The web interface connects with this to get real-time or historical streamed images. It runs only when a live monitor stream or event stream is actually being viewed and dies when the event finishes or the associate web page is closed. If you find you have several zms processes running when nothing is being viewed then it is likely you need a patch for apache (see the Troubleshooting section). A non-parsed header version of zms, called nph-zms, is also installed and may be used instead depending on your web server configuration.
 **zmu**
@@ -86,9 +84,15 @@ Finally, there are also a number of ZoneMinder perl modules included. These are 
   This module contains the defined Debug and Error functions etc, that are used by scripts to produce diagnostic information in a standard format.
 **ZoneMinder/Database.pm**
   This module contains database access definitions and functions. Currently not a lot is in this module but it is included as a placeholder for future development.
+**ZoneMinder/Event.pm**
+  This module contains functions to load, manipulate, delete, copy, move events.
+**ZoneMinder/Filter.pm**
+  This module contains functions to load, execute etc filters.
 **ZoneMinder/SharedMem.pm**
   This module contains standard shared memory access functions. These can be used to access the current state of monitors etc as well as issuing commands to the monitors to switch things on and off. This module effectively provides a ZoneMinder API.
 **ZoneMinder/ConfigAdmin.pm**
   This module is a specialised module that contains the definition, and other information, about the various configuration options. It is not intended for use by 3rd parties.
+**ZoneMinder/Control/\*.pm**
+  These modules contain implementations of the various PTZ protocols.
 **ZoneMinder/Trigger/\*.pm**
   These modules contain definitions of trigger channels and connections used by the zmtrigger.pl script. Although they can be used ‘as is’, they are really intended as examples that can be customised or specialised for different interfaces. Contributed modules for new channels or connections will be welcomed and included in future versions of ZoneMinder.

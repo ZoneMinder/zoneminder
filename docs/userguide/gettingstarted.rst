@@ -75,6 +75,10 @@ Adding Monitors
 ^^^^^^^^^^^^^^^
 Now that we have a basic understanding of the web console, lets go about adding a new camera (monitor). For this example, lets assume we have an IP camera that streams RTSP at LAN IP address 192.168.1.33. 
 
+.. sidebar:: Note
+  
+  This is meant to be a simple example. For a more detailed explanation of other options available when creating a monitor, please see :doc:`/userguide/definemonitor`
+
 The first thing we will need to know is how to access that camera's video feed. You will need to consult your camera's manual or check their forum. Zoneminder community users also have a frequently updated list right `here <https://wiki.zoneminder.com/index.php/Hardware_Compatibility_List>`__ that lists information about many cameras. If you don't find your list there and can't seem to find it elsewhere, feel free to register and ask in the `user forums <https://forums.zoneminder.com/>`__.
 
 The camera we are using as an example here is a Foscam 9831W which is a 1280x960 RTSP camera, and the URL to access it's feed is *username:password@IPADDRESS:PORT/videoMain*
@@ -94,7 +98,7 @@ This brings up the new monitor window:
 
 * There are various source types. As a brief introduction you'd want to use 'Local' if your camera is physically attached to your ZM server (like a USB camera, for example), and one of 'Remote', 'FFMpeg', 'Libvlc' or 'cURL' for a remote camera (not necessarily, but usually). For this example, let's go with 'FFMpeg'. 
 
-.. NOTE::
+.. note::
 	As a  thumb rule, if you have a camera accessible via IP and it does HTTP or RTSP, 
 	start with FFMpeg first and libvlc if it doesn't work (:doc:`/userguide/definemonitor` 
 	covers other modes in more details). If you are wondering what 'File' does, well, ZoneMinder was 

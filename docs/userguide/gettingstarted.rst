@@ -39,6 +39,9 @@ We strongly recommend enabling authentication right away. There are some situati
 .. NOTE:: The default login/password is "admin/admin"
 
 
+.. warning::
+  Fix theme text after I clearly understand that System->CSS is doing
+  
 Switching to another theme
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 When you first install ZoneMinder, you see is what is called a "classic" skin. Zoneminder has a host of configuration options that you can customize over time. This guide is meant to get you started the easiest possible way, so we will not go into all the details. However, it is worthwhile to note that Zoneminder also has a 'flat' theme that depending on your preferences may look more modern. So let's use that as an example of introducing you to the Options menu

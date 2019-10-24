@@ -1,8 +1,38 @@
 Options - Logging
 -----------------
 
-.. image:: images/Options_Logging.png
+ZoneMinder has a powerful logging system. Understanding how to configure logging will help you track issues better. The logging options are accessed via ``Options->Logging``. Let's follow along with an example. But before that, here is a basic construct of how logging works:
 
+* Every component of ZoneMinder can generate different types of logs. Typically, ``ERR`` refers to an error condition that you should look at (in some cases, they are transient during startup/shutdown in which case they are usually benign). ``INF`` logs are informational, ``WAR`` are warning logs that might have a potential to cause issues, whilst ``DBG`` are debug logs that are useful when you need to debug a problems
+* You can decide where these logs are written. Typically ZoneMinder writes logs to multiple sources:
+  * Syslog 
+  * Database
+  * individual files belonging to each component inside the logging folder configured
+
+Consider for example, that you are trying to figure out why your "zmc 11" (i.e. Monitor 11) is not working. Obviously, you need to enable debug logs if you are not able to figure out what is going on with standard info logs. But you wouldn't want to write debug logs to the Database. Maybe, you also don't want it polluting your syslog and only want to write debug logs to the debug file of _that_ component (``/var/log/zm/zmc_m11.log`` for example). That is where customizing your logging is useful.
+
+Logging example
+~~~~~~~~~~~~~~~~~
+
+.. image:: images/Options_Logging_A.png
+
+In the example above, I've configured my logging as follows:
+
+* I only want to log INFO level logs to Syslog
+* I want DEBUG logs to only go to the conmponent file
+* When it comes to my WEBLOG (what I see in the ZM Log window) and Database log, I only want FATAL logs (you may want to set this to WAR or INF)
+* I don't want to save FFMPEG logs (this was a new feature added). FFMPEG generates a log of logs on its own that you should only enable if you are trying to figure out video playback related issues
+* I have enabled LOG_DEBUG (unless you enable this, DEBUG logs won't be logged)
+* The ``LOG_DEBUG_TARGET`` is useful if you don't want to enable DEBUG logs for every component. In this case, I'm only interested in debugging the ZM Event Server and Monitor 11. Nothing else will have debug logs enabled.
+* I prefer to keep the ``LOG_DEBUG_FILE`` to empty. This creates nicely separate files in my log folder with component names
+
+The other logging parameters are left to their defaults, like so:
+
+.. image:: images/Options_Logging_B.png
+
+
+A more comprehensive explanation of the various log options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 LOG_LEVEL_SYSLOG - ZoneMinder logging is now more integrated between components and allows you to specify the destination for logging output and the individual levels for each. This option lets you control the level of logging output that goes to the system log. ZoneMinder binaries have always logged to the system log but now scripts and web logging is also included. To preserve the previous behaviour you should ensure this value is set to Info or Warning. This option controls the maximum level of logging that will be written, so Info includes Warnings and Errors etc. To disable entirely, set this option to None. You should use caution when setting this option to Debug as it can severely affect system performance. If you want debug you will also need to set a level and component below
 
 LOG_LEVEL_FILE - ZoneMinder logging is now more integrated between components and allows you to specify the destination for logging output and the individual levels for each. This option lets you control the level of logging output that goes to individual log files written by specific components. This is how logging worked previously and although useful for tracking down issues in specific components it also resulted in many disparate log files. To preserve this behaviour you should ensure this value is set to Info or Warning. This option controls the maximum level of logging that will be written, so Info includes Warnings and Errors etc. To disable entirely, set this option to None. You should use caution when setting this option to Debug as it can severely affect system performance though file output has less impact than the other options. If you want debug you will also need to set a level and component below

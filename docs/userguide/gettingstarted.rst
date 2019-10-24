@@ -124,20 +124,11 @@ That's pretty much it. Click on Save. We are not going to explore the other tabs
 
 You now have a configured monitor:
 
-.. image:: images/getting-started-add-monitor-orange.png
-
-If you want to change its mode from Monitor to say, Modect (Motion Detect), later all you need to do is click on the Function column that says 'Monitor' and change it to 'Modect' like so:
-
-
-.. image:: images/getting-started-add-monitor-modect.png
-
-and we now have:
-
 .. image:: images/getting-started-add-monitor-modect-ready.png
 
-And then, finally, to see if everything works, lets click on the monitor name ('Garage' in this example) and that should bring up a live feed just like this:
 
-.. image:: images/getting-started-add-monitor-live.png
+And then, finally, to see if everything works, if you click on the garage monitor you just added, you should be able to see its live feed. If you don't, inspect your webserver logs and your ZoneMinder logs to see what is going on.
+
 
 Switching to another theme
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

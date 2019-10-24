@@ -39,33 +39,6 @@ We strongly recommend enabling authentication right away. There are some situati
 .. NOTE:: The default login/password is "admin/admin"
 
 
-Switching to another theme
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. todo::
-  Fix theme text after I clearly understand that System->CSS is doing
-
-When you first install ZoneMinder, you see is what is called a "classic" skin. Zoneminder has a host of configuration options that you can customize over time. This guide is meant to get you started the easiest possible way, so we will not go into all the details. However, it is worthwhile to note that Zoneminder also has a 'flat' theme that depending on your preferences may look more modern. So let's use that as an example of introducing you to the Options menu
-
-* Click on the Options link on the top right of the web interface in the image above
-* This will bring you to the options window as shown below. Click on the "System" tab and then select the 
-  "flat" option for CSS_DEFAULT as shown below
-
-.. image:: images/getting-started-flat-css.png  
-
-* Click Save at the bottom
-
-Now, switch to the "Display" tab and also select "Flat" there like so:
-
-.. image:: images/getting-started-flat-css-2.png
-
-Your screen will now look like this:
-
-
-Congratulations! You now have a modern looking interface.
-
-.. image:: images/getting-started-modern-look.png
-
 Understanding the Web Console
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Before we proceed, lets spend a few minutes understanding the key functions of the web console. 
@@ -97,6 +70,36 @@ Here is an example of multiple run states that I've defined. Each one of these r
 * **N**: This is the core of ZoneMinder - recording events. It gives you a count of how many events were recorded over the hour, day, week, month.
 * **O**: These are the "Zones". Zones are areas within the camera that you mark as 'hotspots' for motion detection. Simply put, when you first configure your monitors (cameras), by default Zoneminder uses the entire field of view of the camera to detect motion. You may not want this. You may want to create "zones" specifically for detecting motion and ignore others. For example, lets consider a room with a fan that spins. You surely don't want to consider the fan moving continuously a reason for triggering a record? Probably not - in that case, you'd leave the fan out while making your zones.
 * **P**: This is a "visual filter" which lets you 'filter' the console display based on text you enter. While this may not be particularly useful for small systems, ZoneMinder is also used in mega-installations will well over 200+ cameras and this visual filter helps reduce the monitors you are seeing at one time.
+
+
+
+Switching to another theme
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. todo::
+  Fix theme text after I clearly understand that System->CSS is doing
+
+When you first install ZoneMinder, you see is what is called a "classic" skin. Zoneminder has a host of configuration options that you can customize over time. This guide is meant to get you started the easiest possible way, so we will not go into all the details. However, it is worthwhile to note that Zoneminder also has a 'flat' theme that depending on your preferences may look more modern. So let's use that as an example of introducing you to the Options menu
+
+* Click on the Options link on the top right of the web interface in the image above
+* This will bring you to the options window as shown below. Click on the "System" tab and then select the 
+  "flat" option for CSS_DEFAULT as shown below
+
+.. image:: images/getting-started-flat-css.png  
+
+* Click Save at the bottom
+
+Now, switch to the "Display" tab and also select "Flat" there like so:
+
+.. image:: images/getting-started-flat-css-2.png
+
+Your screen will now look like this:
+
+
+Congratulations! You now have a modern looking interface.
+
+.. image:: images/getting-started-modern-look.png
+
 
 Adding Monitors
 ^^^^^^^^^^^^^^^

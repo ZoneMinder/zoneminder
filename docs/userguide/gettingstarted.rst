@@ -39,11 +39,12 @@ We strongly recommend enabling authentication right away. There are some situati
 .. NOTE:: The default login/password is "admin/admin"
 
 
-.. warning::
-  Fix theme text after I clearly understand that System->CSS is doing
-  
 Switching to another theme
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. todo::
+  Fix theme text after I clearly understand that System->CSS is doing
+  
 When you first install ZoneMinder, you see is what is called a "classic" skin. Zoneminder has a host of configuration options that you can customize over time. This guide is meant to get you started the easiest possible way, so we will not go into all the details. However, it is worthwhile to note that Zoneminder also has a 'flat' theme that depending on your preferences may look more modern. So let's use that as an example of introducing you to the Options menu
 
 * Click on the Options link on the top right of the web interface in the image above
@@ -107,7 +108,7 @@ The camera we are using as an example here is a Foscam 9831W which is a 1280x960
 
 Let's get started:
 
-Click on the "Add new monitor" button below:
+Click on the "Add" button below:
 
 .. image:: images/getting-started-modern-look.png
 
@@ -118,24 +119,22 @@ This brings up the new monitor window:
 
 * We've given it a name of 'Garage', because, well, its better than Monitor-1 and this is my Garage camera.
 
-* There are various source types. As a brief introduction you'd want to use 'Local' if your camera is physically attached to your ZM server (like a USB camera, for example), and one of 'Remote', 'FFMpeg', 'Libvlc' or 'cURL' for a remote camera (not necessarily, but usually). For this example, let's go with 'Remote'. 
+* There are various source types. As a brief introduction you'd want to use 'Local' if your camera is physically attached to your ZM server (like a USB camera, for example), and one of 'Remote', 'FFMpeg', 'Libvlc' or 'cURL' for a remote camera (not necessarily, but usually). For this example, let's go with 'FFMpeg'. 
 
 .. NOTE::
 	As a  thumb rule, if you have a camera accessible via IP and it does HTTP or RTSP, 
-	start with Remote, then try FFMpeg and libvlc if it doesn't work (:doc:`/userguide/definemonitor` 
+	start with FFMpeg first and libvlc if it doesn't work (:doc:`/userguide/definemonitor` 
 	covers other modes in more details). If you are wondering what 'File' does, well, ZoneMinder was 
 	built with compatibility in mind. Take a look at `this post 
 	<https://wiki.zoneminder.com/index.php/How_to_use_ZoneMinder_with_cameras_it_may_not_directly_support>`__  to see how file can be used for leisure reading.
 
-* Let's leave the Function as 'Monitor' just so we can use this as an example to change it later another way. Practically, feel free to select your mode right now - Modect, Record etc depending on what you want ZoneMinder to do with this camera
+* In this example, the Function is 'Modect', which means it will start recording if motion is detected on that camera feed. The parameters for what constitutes motion detected is specific in :doc:`definezone`
 
-* We've put in MaxFPS and AlarmFPS as 20 here. **You can leave this empty too**. Whatever you do here, *it's important to make sure these values are higher than the FPS of the camera*. The reason we've added a value here is that as of Aug 2015, if a camera goes offline, ZoneMinder eats up a lot of CPU  trying to reach it and putting a larger value here than the actual FPS helps in that specific situation. 
+* In Analytis FPS, we've put in 5FPS here. Note that you should not put an FPS that is greater than the camera FPS. In my case, 5FPS is sufficient for my needs
 
-.. NOTE::
-	We strongly recommend not putting in a lower FPS here that the one configured inside your camera.
-	Zoneminder should not be used to manage camera frame rate. That always causes many problems. It's
-	much better you set the value directly in-camera and either leave this blank or specify a higher FPS
-	here. In this case, our actual camera FPS is 3 and we've set this value here to 10.
+.. note::
+  Leave Maximum FPS and Alarm Maximum FPS **empty** if you are configuring an IP camera. In older versions of ZoneMinder, you were encouraged to put a value here, but that is no longer recommended. Infact, if you see your feed going much slower than the feed is supposed to go, or you get a lot of buffering/display issues, make sure this is empty. If you need to control camera FPS, please do it directly on the camera (via its own web interface, for example)
+
 
 * We are done for the General tab. Let's move to the next tab
 
@@ -143,7 +142,10 @@ This brings up the new monitor window:
 	:width: 800px
 
 * Let's select a protocol of RTSP and a remote method of RTP/RTSP (this is an RTSP camera)
-* The other boxes are mostly self-explanatory
+* Note that starting ZM 1.34, GPUs are supported. In my case, I have an NVIDIA GeForce GTX1050i. These ``cuda`` and ``cuvid`` parameters are what my system supports to use the NVIDIA hardware decoder and GPU resources. If you don't have a GPU, or don't know how to configure your ffmpeg to support it, leave it empty for now. In future, we will add a section on how to set up a GPU
+
+.. todo::
+  add GPU docs
 
 That's pretty much it. Click on Save. We are not going to explore the other tabs in this simple guide.
 

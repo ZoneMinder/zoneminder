@@ -280,3 +280,7 @@ Default Scale
     If your monitor has been defined with a particularly large or small image size then you can choose a default scale here with which to view the monitor so it is easier or more visible from the web interface. 
 Web Colour 
     Some elements of ZoneMinder now use colours to identify monitors on certain views. You can select which colour is used for each monitor here. Any specification that is valid for HTML colours is valid here, e.g. ‘red’ or ‘#ff0000’. A small swatch next to the input box displays the colour you have chosen. 
+Embed EXIF data into image:
+    Embeds EXIF data into each jpeg frame
+    
+    .. todo:: what about mp4s?

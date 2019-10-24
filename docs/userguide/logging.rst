@@ -1,6 +1,9 @@
 Logging
 =======
 
+.. note::
+  Understanding how logging works in ZoneMinder is key to being able to isolate/pinpoint issues well. Please refer to :doc:`/userguide/options/options_logging` to read about how to customize logging.
+
 Most components of ZoneMinder can emit informational, warning, error and debug messages in a standard format. These messages can be logged in one or more locations. By default all messages produced by scripts are logged in <script name>.log files which are placed in the directory defined by the ``ZM_PATH_LOGS`` configuration variable. This is initially defined as ``/var/log/zm`` (on debian based systems) though it can be overridden to a custom path (the path is usually defined in ``/etc/zm/conf.d/01-system-paths.conf``, but to override it, you should create your own config file, not overwrite this file). So for example, the ``zmdc.pl`` script will output messages to ``/var/log/zmdc.log``, an example of these messages is::
 
   10/24/2019 08:01:19.291513 zmdc[6414].INF [ZMServer:408] [Starting pending process, zma -m 2]
@@ -18,7 +21,9 @@ where you can see that the date is formatted differently (and only to 1 second p
 
 Customizing logging properly in ZoneMinder
 -------------------------------------------
-Understanding how logging works in ZoneMinder is key to being able to isolate/pinpoint issues well. Please refer to :doc:`/userguide/options/options_logging`
+
+.. todo:
+  Is this all valid anymore ?
 
 
 Other Notes

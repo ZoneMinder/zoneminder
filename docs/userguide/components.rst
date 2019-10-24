@@ -72,6 +72,9 @@ Finally some perl scripts in the scripts directory. These scripts all have some 
 **zm**
   This is the (optional) ZoneMinder init script, see below for details.
 
+**zmeventnotification.pl**
+  This is an optional 3rd party real time event notification server that also provides push notifications for zmNinja as well as machine learning powered object/face-detection. Please see `Event Server Documentation <https://zmeventnotification.readthedocs.io/en/latest/index.html>`__ for more details
+
 Finally, there are also a number of ZoneMinder perl modules included. These are used by the scripts above, but can also be used by your own or 3rd party scripts. Full documentation for most modules is available in ‘pod’ form via ‘perldoc’ but the general purpose of each module is as follows.
 
 **ZoneMinder.pm**

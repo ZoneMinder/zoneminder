@@ -66,27 +66,33 @@ Understanding the Web Console
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Before we proceed, lets spend a few minutes understanding the key functions of the web console. 
 For the sake of illustration, we are going to use a populated zoneminder configuration with several monitors and events.
-Obviously, this does not reflect your current web console - which is essentially void of any useful information till now,
-as we are yet to add things. Let's take a small break and understand what the various functions are before we configure our
-own empty screen.
 
 .. image:: images/getting-started-understand-console.png
 
-* **A**: This is the username that is logged in. You are logged in as 'admin' here
-* **B**: Click here to explore the various options of ZoneMinder and how to configure them. You already used this to enable authentication and change style above. Over time, you will find this to have many other things you will want to customize.
-* **C**: This link, when clicked, opens up a color coded log window of what is going on in Zoneminder and often gives you good insight into what is going wrong or right. Note that the color here is red - that is an indication that some error occurred in ZoneMinder. You should click it and investigate.
-* **D**: This is the core of ZoneMinder - recording events. It gives you a count of how many events were recorded over the hour, day, week, month.
-* **E**: These are the "Zones". Zones are areas within the camera that you mark as 'hotspots' for motion detection. Simply put, when you first configure your monitors (cameras), by default Zoneminder uses the entire field of view of the camera to detect motion. You may not want this. You may want to create "zones" specifically for detecting motion and ignore others. For example, lets consider a room with a fan that spins. You surely don't want to consider the fan moving continuously a reason for triggering a record? Probably not - in that case, you'd leave the fan out while making your zones.
-* **F**: This is the "source" column that tells you the type of the camera - if its an IP camera, a USB camera or more. In this example, they are all IP cameras. Note the color red on item F ? Well that means there is something wrong with that camera. No wonder the log also shows red. Good indication for you to tap on logs and investigate
-* **G**: This defines how Zoneminder will record events. There are various modes. In brief Modect == record if a motion is detected,Record = always record 24x7, Mocord = always record PLUS detect motion,  Monitor = just provide a live view but don't record anytime, Nodect = Don't record till an external entity via zmtrigger tells Zoneminder to (this is advanced usage).
-* **H**: If you click on these links you can view a "Montage" of all your configured monitors or cycle through each one
-* **I**: One of the most often missed features is the ability of ZoneMinder to maintain "run states". If you click on the "Running" text, ZoneMinder brings up a popup that allows you to define additional "states" (referred to as runstates). A runstate is essentially a snapshot that records the state of each monitor and you can switch between states easily. For example, you might have a run state defined that switches all monitors to "monitor" mode in which they are not recording anything while another state that sets some of the monitors to "modect". Why would you want this? A great example is to disable recording when you are at home and enable when you are away, based on time of day or other triggers. You can switch states by selecting an appropriate state manually, or do it automatically via cron jobs, for example. An example of using cron to automatically  switch is provided in the :ref:`FAQ <runstate_cron_example>`.  More esoteric examples of switching run states based on phone location can be found `here <https://forums.zoneminder.com/viewtopic.php?f=9&t=23026>`__.
+This screen is called the "console" screen in ZoneMinder and shows a summary of your monitors, associated events and more information.
+
+* **A**: The options menu lets you configure many aspects of ZoneMinder. Refer to :doc:`options`.
+* **B**: This brings up a color coded log window that shows various system and component level logs. This window is useful if you are trying to diagnose issues. Refer to :doc:`logging`.
+* **C**: ZoneMinder allows you to group monitors gor logical separation. This option lets you create new groups, associate monitors to them and edit/delete existing groups.
+* **D**: Filters are a powerful mechanism to perform actions when certain conditions are met. ZoneMinder comes with some preset filters that keep a tab of disk space and others. Many users create their own filters for more advanced actions like sending emails when certain events occur and more. Refer to :doc:`filterevents`.
+* **E**: The Cycle option allows you to rotate between live views of each cofigured monitor.
+* **F**: The Montage option shows a collage of your monitors. You can customize them including moving them around.
+* **G**: Montage Review allows you to simultaneously view past events for different monitors. Note that this is a very resource intensive page and its performance will vary based on your system capabilities.
+* **H**: Audit Events Report is more of a power user feature. ZoneMinder regularly runs an "audit" of your recorded events  and this option provides more details about the latest audit.
+* **I**: This is the user you are currently logged in as. 
+* **J**: ZoneMinder allows you to maintain "run states". If you click on the "Running" text, ZoneMinder brings up a popup that allows you to define additional "states" (referred to as runstates). A runstate is essentially a snapshot that records the state of each monitor and you can switch between states easily. For example, you might have a run state defined that switches all monitors to "monitor" mode in which they are not recording anything while another state that sets some of the monitors to "modect". Why would you want this? A great example is to disable recording when you are at home and enable when you are away, based on time of day or other triggers. You can switch states by selecting an appropriate state manually, or do it automatically via cron jobs, for example. An example of using cron to automatically  switch is provided in the :ref:`FAQ <runstate_cron_example>`.  More esoteric examples of switching run states based on phone location can be found `here <https://forums.zoneminder.com/viewtopic.php?f=9&t=23026>`__.
+
 
 Here is an example of multiple run states that I've defined. Each one of these runstates changes the mode of specific monitors depending on time of day and other conditions. Use your imagination to decide which conditions require state changes.
 
 .. image:: images/runstates.png
 
-
+* **K**: This line shows you system health information
+* **L**: This defines how Zoneminder will record events. There are various modes. In brief Modect == record if a motion is detected,Record = always record 24x7, Mocord = always record PLUS detect motion,  Monitor = just provide a live view but don't record anytime, Nodect = Don't record till an external entity via zmtrigger tells Zoneminder to (this is advanced usage).
+* **M**: This is the "source" column that tells you the type of the camera - if its an IP camera, a USB camera or more. In this example, they are all IP cameras. Green means the monitor is running. Red  means there is something wrong with that camera. 
+* **N**: This is the core of ZoneMinder - recording events. It gives you a count of how many events were recorded over the hour, day, week, month.
+* **O**: These are the "Zones". Zones are areas within the camera that you mark as 'hotspots' for motion detection. Simply put, when you first configure your monitors (cameras), by default Zoneminder uses the entire field of view of the camera to detect motion. You may not want this. You may want to create "zones" specifically for detecting motion and ignore others. For example, lets consider a room with a fan that spins. You surely don't want to consider the fan moving continuously a reason for triggering a record? Probably not - in that case, you'd leave the fan out while making your zones.
+* **P**: This is a "visual filter" which lets you 'filter' the console display based on text you enter. While this may not be particularly useful for small systems, ZoneMinder is also used in mega-installations will well over 200+ cameras and this visual filter helps reduce the monitors you are seeing at one time.
 
 Adding Monitors
 ^^^^^^^^^^^^^^^

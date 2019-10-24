@@ -10,16 +10,21 @@ Enabling Authentication
 ^^^^^^^^^^^^^^^^^^^^^^^
 We strongly recommend enabling authentication right away. There are some situations where certain users don't enable authentication, such as instances where the server is in a LAN not directly exposed to the Internet, and is only accessible via VPN etc., but in most cases, authentication should be enabled. So let's do that right away.
 
-* Click on the Options link on the top right corner of the web interface
-* You will now be presented with a screen full of options. Click on the "System" tab
+* Click on the Options link on the top bar of the web interface
+* You will now be presented with a sidebar full of options. Click on the "System" link
 	
 .. image:: images/getting-started-enable-auth.png
 
 * The relevant portions to change are marked in red above
 * Enable OPT_USE_AUTH - this automatically switches to authentication mode with a default user (more on that later)
 * Select a random string for AUTH_HASH_SECRET - this is used to make the authentication logic more secure, so 
-  please generate your own string and please don't use the same value in the example.
+  please generate your own string and make sure it is sufficiently randomized and long. Note that if you plan to use APIs with ZoneMinder (needed by zmNinja/other apps), it is mandatory that you have this field populated
 * The other options highlighed above should already be set, but if not, please make sure they are
+* Note that if you are planning to use zmNinja and plan to use ZM authentication, you must also:
+
+  * set ``AUTH_RELAY`` to hashed
+  * Enable ``AUTH_HASH_LOGINS``
+  
 
 * Click on Save at the bottom and that's it! The next time you refresh that page, you will now be presented with a login screen. Job well done!
 

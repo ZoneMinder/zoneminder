@@ -80,15 +80,15 @@ Source Tab
 
 FFmpeg
 ^^^^^^
-    This is the recommended source type for most modern ip cameras.
+    This is the **recommended** source type for most modern ip cameras.
 
 Source Path 
     Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
 
         * Check the documentation that came with your camera
-        * Look for your camera in the hardware compatibilty list in the wiki https://wiki.zoneminder.com/Hardware_Compatibility_List
+        * Look for your camera in the hardware compatibilty list in the `hardware compatibility wiki <https://wiki.zoneminder.com/Hardware_Compatibility_List>`__
         * Try ZoneMinder's new ONVIF probe feature
-        * Download and install the ONVIF Device Manager onto a Windows machine https://sourceforge.net/projects/onvifdm/
+        * Download and install the `ONVIF Device Manager <https://sourceforge.net/projects/onvifdm/>`__ onto a Windows machine 
         * Use Google to find third party sites, such as ispy, which document this information
 Source Colours 
     Specify the amount of colours in the captured image. 32 bit is the preferred choice here. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 

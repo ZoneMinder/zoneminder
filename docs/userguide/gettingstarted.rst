@@ -8,7 +8,7 @@ Having followed the :doc:`/installationguide/index` for your distribution you sh
 
 Setting Timezone
 ^^^^^^^^^^^^^^^^^
-Previous versions of ZoneMinder required the user to set up Timezone correctly in ``php.ini``. This is no longer the case. Starting 1.34, ZoneMinder allows you to specify the TimeZone in the UI. Please make sure it is set up correctly.
+Previous versions of ZoneMinder required the user to set up Timezone correctly in ``php.ini``. This is no longer the case. Starting 1.34, ZoneMinder allows you to specify the TimeZone in the UI. Please make sure it is set up correctly. The Timezone can be changed by selecting ``Options->System->Timezone``
 
 .. image:: images/getting-started-timezone.png
 
@@ -44,7 +44,7 @@ Switching to another theme
 
 .. todo::
   Fix theme text after I clearly understand that System->CSS is doing
-  
+
 When you first install ZoneMinder, you see is what is called a "classic" skin. Zoneminder has a host of configuration options that you can customize over time. This guide is meant to get you started the easiest possible way, so we will not go into all the details. However, it is worthwhile to note that Zoneminder also has a 'flat' theme that depending on your preferences may look more modern. So let's use that as an example of introducing you to the Options menu
 
 * Click on the Options link on the top right of the web interface in the image above

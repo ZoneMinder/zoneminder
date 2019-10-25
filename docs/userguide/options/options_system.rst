@@ -1,5 +1,8 @@
 Options - System
 ----------------
+This screen allows the admin to configure various core operations of the system. 
+
+A partial screenshot is shown below:
 
 .. image:: images/Options_System.png
 

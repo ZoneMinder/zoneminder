@@ -1,6 +1,8 @@
 FAQ
 =====
 
+.. todo:: needs to be reviewed - some entries may be old/invalid
+
 This is the FAQ page. Feel free to contribute any FAQs that you think are missing.
 
 

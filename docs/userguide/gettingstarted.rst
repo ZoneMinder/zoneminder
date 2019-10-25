@@ -3,6 +3,8 @@ Getting Started
 
 Having followed the :doc:`/installationguide/index` for your distribution you should now be able to load the ZoneMinder web frontend. By default this will be with the Classic skin, below is an example of the page you should now see.
 
+.. todo:: replace this image with a fresh 1.34 image
+
 .. image::  ../installationguide/images/zm_first_screen_post_install.png
 
 

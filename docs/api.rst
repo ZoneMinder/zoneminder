@@ -21,12 +21,14 @@ The ZoneMinder API has evolved over time. Broadly speaking the iterations were a
 
 * Prior to version 1.29, there really was no API layer. Users had to use the same URLs that the web console used to 'mimic' operations, or use an XML skin
 * Starting version 1.29, a v1.0 CakePHP based API was released which continues to evolve over time. From a security perspective, it still tied into ZM auth and required client cookies for many operations. Primarily, two authentication modes were offered: 
-  * You use cookies to maintain session state (`ZM_SESS_ID`)
+
+  * You use cookies to maintain session state (``ZM_SESS_ID``)
   * You use an authentication hash to validate yourself, which included encoding personal information and time stamps which at times caused timing validation issues, especially for mobile consumers
+
 * Starting version 1.34, ZoneMinder has introduced a new "token" based system which is based JWT. We have given it a '2.0' version ID. These tokens don't encode any personal data and can be statelessly passed around per request. It introduces concepts like access tokens, refresh tokens and per user level API revocation to manage security better. The internal components of ZoneMinder all support this new scheme now and if you are using the APIs we strongly recommend you migrate to 1.34 and use this new token system (as a side note, 1.34 also moves from MYSQL PASSWORD to Bcrypt for passwords, which is also a good reason why you should migate).
 * Note that as of 1.34, both versions of API access will work (tokens and the older auth hash mechanism), however we no longer use sessions by default.  You will have to add a ``stateful=1`` query parameter during login to tell ZM to set a COOKIE and store the required info in the session. This option is only available if ``OPT_USE_LEGACY_API_AUTH`` is set to ON.
 
-.. NOTE::
+.. note::
 	For the rest of the document, we will specifically highlight v2.0 only features. If you don't see a special mention, assume it applies for both API versions.
 
 
@@ -35,7 +37,9 @@ Enabling API
 ^^^^^^^^^^^^^
 
 ZoneMinder comes with APIs enabled. To check if APIs are enabled, visit ``Options->System``. If ``OPT_USE_API`` is enabled, your APIs are active. 
-For v2.0 APIs, you have an additional option right below it - ``OPT_USE_LEGACY_API_AUTH`` which is enabled by default. When enabled, the `login.json` API (discussed later) will return both the old style (``auth=``) and new style (``token=``) credentials. The reason this is enabled by default is because any existing apps that use the API would break if they were not updated to use v2.0. (Note that zmNinja 1.3.057 and beyond will support tokens)
+For v2.0 APIs, you have an additional option right below it:
+
+ * ``OPT_USE_LEGACY_API_AUTH`` which is enabled by default. When enabled, the `login.json` API (discussed later) will return both the old style (``auth=``) and new style (``token=``) credentials. The reason this is enabled by default is because any existing apps that use the API would break if they were not updated to use v2.0. (Note that zmNinja 1.3.057 and beyond will support tokens)
 
 Enabling secret key
 ^^^^^^^^^^^^^^^^^^^

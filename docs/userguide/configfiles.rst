@@ -33,7 +33,7 @@ The roles of the files are as follows:
   
   * ``01-system-paths.conf`` contains all the paths that were once part of ``Options->Paths`` in the Web UI. You should not edit this file as it may be overwritten on an upgrade
   * ``02-multiserver.conf`` file consists of custom variables if you are deploying ZoneMinder in a multi-server configuration (see :doc:`/installationguide/multiserver`) 
-  * ``03-custom.conf`` is an  custom config file that I created to override specific variables in the path files. **This is the recommended way to customize entries**. Anything that you want to change should be in a new file inside ``conf.d``
+  * ``03-custom.conf`` is an  custom config file that I created to override specific variables in the path files. **This is the recommended way to customize entries**. Anything that you want to change should be in a new file inside ``conf.d``. Note that ZoneMinder will sort all the files alphabetically and run their contents in ascending order. So it doesn't really matter what you name them, as long as you make sure your changes are not overwritten by another file in the sorting sequence. It is therefore good practice to prefix your file names by ``nn-`` where ``nn`` is a monotonically increasing numerical sequence ``01-`` ``02-`` ``03-`` and so forth, so you know the order they will be processed. 
 
 Timezone Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~

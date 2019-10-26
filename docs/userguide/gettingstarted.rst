@@ -5,6 +5,7 @@ Having followed the :doc:`/installationguide/index` for your distribution you sh
 
 .. image::  ../installationguide/images/zm_first_screen_post_install.png
 
+.. _timezone_config:
 
 Setting Timezone
 ^^^^^^^^^^^^^^^^^

@@ -39,7 +39,7 @@ Timezone Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
 Earlier versions of ZoneMinder relied on ``php.ini`` to set Date/Time Zone. This is no longer the case. You can (and must) set the Timezone via the Web UI, starting ZoneMinder version 1.34. See :ref:`here <timezone_config>`.
 
-Database specific configuration
+Database Specific Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. todo:: do we really need to have this section? Not sure if its generic and not specific to ZM

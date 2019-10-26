@@ -37,7 +37,7 @@ We strongly recommend enabling authentication right away. There are some situati
 
 .. image:: images/getting-started-login.png
 
-.. NOTE:: The default login/password is "admin/admin"
+.. note:: The default login/password is "admin/admin"
 
 
 Understanding the Web Console
@@ -89,11 +89,12 @@ Let's get started:
 Click on the "Add" button below:
 
 .. image:: images/getting-started-modern-look.png
+    :width: 600px
 
 This brings up the new monitor window:
 
 .. image:: images/getting-started-add-monitor-general.png
-	:width: 800px
+	:width: 600px
 
 * We've given it a name of 'Garage', because, well, its better than Monitor-1 and this is my Garage camera.
 

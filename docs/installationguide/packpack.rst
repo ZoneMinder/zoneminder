@@ -124,4 +124,4 @@ More testing needs to be done for Redhat distros but it appears Fedora users can
 
 	sudo systemctl start systemd-binfmt
 
-TO-DO: Verify the details behind enabling qemu emulation on redhat distros. Pull requests are welcome.
+.. todo:: Verify the details behind enabling qemu emulation on redhat distros. Pull requests are welcome.

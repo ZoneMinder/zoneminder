@@ -7,5 +7,5 @@ If you are interested in trying out ZoneMinder quickly, user Dan Landon maintain
 
 In both cases, instructions are provided in the repo README files.
 
-If you are looking at making your own docker build of ZoneMinder instead, please refer to :doc:`packpack`.
+If you are looking at building your own native (non docker) binary packages of ZoneMinder for your distro, please refer to the distro specific install guides or  :doc:`packpack`.
 

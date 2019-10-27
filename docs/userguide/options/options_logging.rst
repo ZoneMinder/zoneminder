@@ -69,19 +69,19 @@ RECORD_EVENT_STATS - This version of ZoneMinder records detailed information abo
 
 RECORD_DIAG_IMAGES - In addition to recording event statistics you can also record the intermediate diagnostic images that display the results of the various checks and processing that occur when trying to determine if an alarm event has taken place. There are several of these images generated for each frame and zone for each alarm or alert frame so this can have a massive impact on performance. Only switch this setting on for debug or analysis purposes and remember to switch it off again once no longer required.
 
-RECORD_DIAG_IMAGES_FIFO - Adds fifo options for diagnostic images for much lower impact diagnostics mode. Diagnostic images are only written when there is a client (like a web browser) listening for them. If there is no active client connected, FIFO images are skipped. Note that this feature also needs RECORD_DIAG_IMAGES to be on. 
+RECORD_DIAG_IMAGES_FIFO - Adds fifo options for diagnostic images for much lower impact diagnostics mode. Diagnostic images are only written when there is a client (like a web browser) listening for them. If there is no active client connected, FIFO images are skipped. Note that this feature also needs RECORD_DIAG_IMAGES to be on.  **Note:** Your monitor needs to be in some recording mode (modect/mocord/etc.)
 
 In addition to creating diagnostic images, this feature also adds a json stream for the detection data so you can see in real time the pixels or blobs detected for the motion. This allows for easy real time stream of both delta and reference images (as video streams) along with the detection numbers.
 
 Once you turn on ``RECORD_DIAG_IMAGES`` and the new ``RECORD_DIAG_IMAGES_FIFO`` in the logging options you can then use 3 new remote stream urls:
 
-* The delta images as a MJPEG stream (great to see where it is seeing the motion!): ``https://portal/zm/cgi-bin/nph-zms?mode=jpeg&bitrate=2&buffer=0&source=fifo&format=delta&monitor=1&maxfps=5`` (change monitor, portal to your values)
+* The delta images as an MJPEG stream (great to see where it is seeing the motion!): ``https://portal/zm/cgi-bin/nph-zms?mode=jpeg&bitrate=2&buffer=0&source=fifo&format=delta&monitor=1&maxfps=5&<auth>`` (change monitor, portal to your values. ``<auth>`` could be ``&user=user&pass=pass`` or ``&auth=authval`` or ``&token=access_token``)
 
-* The reference images as a MJPEG stream (great to see where it is seeing the motion!): ``https://portal/zm/cgi-bin/nph-zms?mode=jpeg&bitrate=2&buffer=0&source=fifo&format=reference&monitor=1&maxfps=5`` (change monitor, portal to your values)
+* The reference images as an MJPEG stream: ``https://portal/zm/cgi-bin/nph-zms?mode=jpeg&bitrate=2&buffer=0&source=fifo&format=reference&monitor=1&maxfps=5&<auth>`` (change monitor, portal to your values. ``<auth>`` could be ``&user=user&pass=pass`` or ``&auth=authval`` or ``&token=access_token``)
 
-* text json raw stream: ``https://portal/zm/cgi-bin/nph-zms?&buffer=0&source=fifo&format=raw&monitor=1`` (change monitor, portal to your values)
+* text json raw stream: ``https://portal/zm/cgi-bin/nph-zms?&buffer=0&source=fifo&format=raw&monitor=1&<auth>`` (change monitor, portal to your values, ``<auth>`` could be ``&user=user&pass=pass`` or ``&auth=authval`` or ``&token=access_token``)
 
-This will output a text stream like:
+This will output a text stream on the browser like:
 
 ::
 
@@ -95,12 +95,12 @@ This will output a text stream like:
 
 There are four types of events right now: Alarm (ALRM), Filter (FILT), Raw Blob (RBLB) and Filtered Blobs (FBLB) that correspond to those stages of analysis. It will show the number of pixels detected (along with average pixel difference against the threshold) and number of blobs at each stage.
 
-All of this can allow for some great client improvements like:
+For example, here is a delta image stream from one of my monitors showing in live mode:
 
+``https://myserver/cgi-bin/nph-zms?mode=jpeg&bitrate=2&buffer=0&source=fifo&format=delta&monitor=8&maxfps=5&user=admin&pass=mypass``
 
-.. image:: images/Options_FIFO.png
+.. image:: images/Options_FIFO.gif
 
-That is showing the actual video stream on the left, and the diagnostic streams on the right (delta stream on top reference on the bottom). Below it shows in real time the analysis data.
 
 
 DUMP_CORES - When an unrecoverable error occurs in a ZoneMinder binary process is has traditionally been trapped and the details written to logs to aid in remote analysis. However in some cases it is easier to diagnose the error if a core file, which is a memory dump of the process at the time of the error, is created. This can be interactively analysed in the debugger and may reveal more or better information than that available from the logs. This option is recommended for advanced users only otherwise leave at the default. Note using this option to trigger core files will mean that there will be no indication in the binary logs that a process has died, they will just stop, however the zmdc log will still contain an entry. Also note that you may have to explicitly enable core file creation on your system via the 'ulimit -c' command or other means otherwise no file will be created regardless of the value of this option.

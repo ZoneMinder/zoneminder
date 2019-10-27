@@ -33,6 +33,9 @@ Optional skip archived events:  click on the plus sign next to -7 days to add an
 
 Optional slow delete:  limit the number of results to a number, say ``10`` in the filter.  If you have a large backlog of events that would be deleted, this can hard spike the CPU usage for a long time.  Limiting the number of results to only the first three each time the filter is run spreads out the delete processes over time, dramatically lessening the CPU load.
 
+
+.. warning:: We no longer recommend use enable ``OPT_FAST_DELETE`` or ``RUN_AUDIT`` anymore, unless you are using an old or low powered system to run Zoneminder. Please consider the remaining tips in this answer to be 'generally deprecated, use only if you must'.
+
 There are two methods for ZM to remove files when they are deleted that can be found in Options under the System tab ZM_OPT_FAST_DELETE and ZM_RUN_AUDIT.
 
 

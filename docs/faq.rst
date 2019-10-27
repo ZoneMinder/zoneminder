@@ -264,38 +264,13 @@ Note that SELinux may cause errors other than those listed above. If you are in 
 
 How do I enable ZoneMinder's security?
 -------------------------------------------
-In the console, click on Options. Check the box next to "ZM_OPT_USE_AUTH". You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
+In the console, click on Options. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
 
 To Manage Users:
 In main console, go to Options->Users.
 
 You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features;
 
-Why does ZM stop recording once I have 32000 events for my monitor?
-------------------------------------------------------------------------
-Storing more than 32k files in a single folder is a limitation of some filesystems. To avoid this, enable USE_DEEP_STORAGE under Options.
-
-USE_DEEP_STORAGE is now the default for new ZoneMinder systems so this limitation should only apply to users upgrading from a previous version of ZoneMinder.
-
-Versions of ZM from 1.23.0 onwards allow you to have a deeper filesystem with fewer files per individual directory. As well as not being susceptible to the 32k limit, this is also somewhat faster. 
-
-If you have upgraded from a previous version of ZoneMinder and this option is not already enabled, it is very important to follow the steps below to enable it on an existing system. Failure to properly follow these steps **WILL RESULT IN LOSS OF YOUR DATA!**
-
-::
-
-	# Stop ZoneMinder
-	# Backup your event data and the dB if you have the available storage
-	# Enable USE_DEEP_STORAGE under Options.
-	# From the command line, run "sudo zmupdate.pl --migrate-events"
-	# Monitor the output for any events that fail to convert.
-	# After the conversion completes, you can restart ZoneMinder
-
-Note that you can re-run the migrate-events command if any error messages scroll off the screen.
-
-You can read about the lack of a limit in the number of sub-directories in the ext4 filesystem at: `this link <https://kernelnewbies.org/Ext4>`__
-and see what tools may assist in your use of this filesystem `here <https://ext4.wiki.kernel.org/index.php/Ext4_Howto>`__
-If you search for ext3 or reiserfs on the forums you will find various threads on this issue with guidance on
-how to convert.
 
 Managing system load (with IP Cameras in mind)
 ----------------------------------------------------

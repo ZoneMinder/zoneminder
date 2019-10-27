@@ -264,12 +264,12 @@ Note that SELinux may cause errors other than those listed above. If you are in 
 
 How do I enable ZoneMinder's security?
 -------------------------------------------
-In the console, click on Options. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
+In the console, click on ``Options->System``. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
 
 To Manage Users:
-In main console, go to Options->Users.
+In main console, go to ``Options->Users``.
 
-You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features;
+You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features. Note that if you choose to enable webserver auth, zmNinja may have issues. Please read the `zmNinja FAQ on basic authentication <https://zmninja.readthedocs.io/en/latest/guides/FAQ.html#i-can-t-see-streams-i-use-basic-auth>`__ for more information. Also please note that zmNinja does not support digest authentication.
 
 
 Managing system load (with IP Cameras in mind)

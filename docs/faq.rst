@@ -373,50 +373,10 @@ Although the example above describes changing states at different times of day, 
 
 How can I use ZoneMinder to trigger something else when there is an alarm?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ZoneMinder includes a perl API which means you can create a script to interact with the ZM shared memory data and use it in your own scripts to react to ZM alarms or to trigger ZM to generate new alarms. Full details are in the README or by doing ``perldoc ZoneMinder``, ``perldoc ZoneMinder::SharedMem`` etc.
-Below is an example script that checks all monitors for alarms and when one occurs, prints a message to the screen. You can add in your own code to make this reaction a little more useful.
+ZoneMinder includes a perl API which means you can create a script to interact with the ZM shared memory data and use it in your own scripts to react to ZM alarms or to trigger ZM to generate new alarms. Full details are in the README or by doing ``perldoc ZoneMinder``  etc.
 
-::
+ZoneMinder provides a sample alarm script called `zmalarm.pl <https://github.com/ZoneMinder/zoneminder/blob/master/utils/zm-alarm.pl>`__ that you can refer to as a starting point.
 
-	#!/usr/bin/perl -w
-
-	use strict;
-
-	use ZoneMinder;
-
-	$| = 1;
-
-	zmDbgInit( "myscript", level=>0, to_log=>0, to_syslog=>0, to_term=>1 );
-
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
-
-	my $sql = "select M.*, max(E.Id) as LastEventId from Monitors as M left join Events as E on M.Id = E.MonitorId where M.Function != 'None' group by (M.Id)";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-
-	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
-	my @monitors;
-	while ( my $monitor = $sth->fetchrow_hashref() )
-	{
-	    push( @monitors, $monitor );
-	}
-
-	while( 1 )
-	{
-	    foreach my $monitor ( @monitors )
-	    {
-		next if ( !zmMemVerify( $monitor ) );
-	 
-		if ( my $last_event_id = zmHasAlarmed( $monitor, $monitor->{LastEventId} ) )
-		{
-		    $monitor->{LastEventId} = $last_event_id;
-		    print( "Monitor ".$monitor->{Name}." has alarmed\n" );
-		    #
-		    # Do your stuff here
-		    #
-		}
-	    }
-	    sleep( 1 );
-	}
 
 Trouble Shooting
 -------------------

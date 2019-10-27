@@ -101,8 +101,6 @@ So a good rule of thumb is to make sure you have twice the memory as the calcula
 As it turns out, ZM uses mapped memory and by default, 50% of your physical memory is what this will grow to. When you reach that limit , ZM breaks down with various errors.
 
 
-(**Note**: Mapped memory is applicable when you install ZoneMinder with mapped memory support, which is the default mode. If you have specifically disabled mapped memory then please see the next FAQ enty on how to increase shared memory)
-
 A good way to know how much memory is allocated to ZM for its operation is to do a ``df -h``
 
 A sample output on Ubuntu:

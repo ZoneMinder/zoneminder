@@ -464,29 +464,6 @@ Why do I only see black screens with a timestamp when monitoring my camera?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In the monitor windows where you see the black screen with a timestamp, select settings and enter the Brightness, Contrast, Hue, and Color settings reported for the device by ``zmu -d <device_path> -q -v``.  32768 may be appropriate values to try for these settings.  After saving the settings, select Settings again to confirm they saved successfully.
 
-I am getting messages about a backtrace in my logs, what do I do?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you are seeing entries in your log like the following
-
-::
-
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6 [0x3347230210]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6(memset+0xce) [0x334727684e]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x40ee9a]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x419946]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x4213cf]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma(cos+0x35c) [0x404674]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6(__libc_start_main+0xf4) [0x334721da44]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma(cos+0xd1) [0x4043e9]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: INF [Backtrace complete]</pre>
-
-then you can help diagnose the problem by running a special command to translate the hex addresses into helpful information. This command is called addr2line and you can type 'man addr2line' for more information.
-Basically addr2line takes two sets of parameters, the first is the name of the binary file, and the second is a list of addresses. Both of these pieces of information are displayed in the logs. The filename is the first part after the 'Backtrace:' tag, in this case /usr/local/bin/zma, though it may well be different in your case. Some of the lines refer to libraries rather than the zma executable but those can be ignored for now, the important part is noting which ZM binary is involved. The binary file is passed in following the -e flag. The addresses to pass to addr2line are those contained in the '[]' pairs. Again you can ignore those that are on a line that refers to a library but it will not hurt if you include them.
-So in the example above, the command would be ``addr2line -e /usr/local/bin/zma 0x40ee9a 0x419946 0x4213cf 0x404674 0x4043e9``
-This should then dump out a more symbolic list containing source file names and line numbers, and it is this information which will be helpful if posted to the forums. Sometimes addr2line fails to produce useful output. This is usually because either the problem is so severe that it has corrupted the stack and prevented useful information from being displayed, or that you have either compiled ZM without the -g flag for debug, or you have stripped the binaries of symbol information after installation. This this case you would need to rebuild temporarily with debug enabled for the information to be useful.
-
-
-This error some times happens when a linked camera looses its link or it is corrupted by the user or some other system event, try deleting the affected cameras and recreating them in the Zoneminder console.
 
 How do I repair the MySQL Database?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

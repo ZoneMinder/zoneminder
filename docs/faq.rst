@@ -1,7 +1,7 @@
 FAQ
 =====
 
-.. todo:: needs to be reviewed - some entries may be old/invalid
+.. todo:: needs to be reviewed - some entries may be old/invalid. I've done one round, but icOn needs to review.
 
 This is the FAQ page. Feel free to contribute any FAQs that you think are missing.
 

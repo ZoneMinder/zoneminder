@@ -243,7 +243,7 @@ This function has from time to time been corrupted in the SVN release or in the 
 
 How much Hard Disk Space / Bandwidth do I need for ZM?
 ---------------------------------------------------------------
-Please see `this excel sheet <https://www.jpwilson.eu/ZM_Utils/ZM%20storage%20calc%20sheet.xls>`__ or  `this online excel sheet <https://docs.google.com/spreadsheets/d/1G2Er8fZ_lWQv9QV8qf9yGCMkiUG03a-UwgLLxzCL0OY/edit#gid=49279749>`__ (both are user contributed excel sheets)
+Please see `this online excel sheet <https://docs.google.com/spreadsheets/d/1iPMCGwlXiW8WnQuewgFhUqBs7ZaPKqXDkBtCQVHR6H0/edit?usp=sharing>`__. Note that this is just an estimate
 
 Or go to `this link <http://www.axis.com/products/video/design_tool/v2/>`__ for the Axis bandwidth calculator. Although this is aimed at Axis cameras it still produces valid results for any kind of IP camera.
 

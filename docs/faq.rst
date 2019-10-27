@@ -38,7 +38,7 @@ There are two methods for ZM to remove files when they are deleted that can be f
 
 ZM_OPT_FAST_DELETE:
 
-Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if you are trying to do a lot of events at once. If you are running on an older or under-powered system, you may want to set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later. If you do so, disk space will not be freed immediately so you will need to run zmaudit more frequently.  On modern systems, we recommend that you leave this off.
+Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if you are trying to do a lot of events at once. If you are running on an older or under-powered system, you may want to set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later. If you do so, disk space will not be freed immediately so you will need to run zmaudit more frequently.  On modern systems, we recommend that you leave this **off**.
 
 
 
@@ -233,22 +233,25 @@ Note that if you are investigating why events 'do not' happen then these will no
 
 Using statistics will slow your system down to a small degree and use a little extra disk space in the DB so once you are happy you can switch them off again. However it is perfectly feasible to keep them permanently on if your system is able to cope which will allow you to review your setting periodically.
 
-Diagnostic Images
-^^^^^^^^^^^^^^^^^^^^
-The second approach is to use diagnostic images which are saved copies of the intermediate images that ZM uses when determining motion detection. These are switched on and off using Options->Logging->RECORD_DIAG_IMAGES.
+Diagnostic Images along with FIFO
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The second approach is to use diagnostic images which are saved copies of the intermediate images that ZM uses when determining motion detection. These are switched on and off using ``Options->Logging->RECORD_DIAG_IMAGES``.
+
+.. note:: In addition to the detailed explanation below, a recently added ``RECORD_DIAG_IMAGES_FIFO`` option, also available in ``Options->Logging`` can be an invaluable tool to see how your current motion settings are affecting motion detection. The ``delta`` stream along with the ``raw`` (json output) stream can be invaluable to see the effect in real time. Please refer to the explanation of this feature in :doc:`/userguide/options/options_logging`
 
 There are two kinds of diagnostic images which are and are written (and continuously overwritten) to the top level monitor event directory. If an event occurs then the files are additionally copied to the event directory and renamed with the appropriate frame number as a prefix.
 
-The first set are produced by the monitor on the image as a whole. The diag-r.jpg image is the current reference image against which all individual frames are compared and the diag-d.jpg image is the delta image highlighting the difference between the reference image and the last analysed image. In this images identical pixels will be black and the more different a pixel is the whiter it will be. Viewing this image and determining the colour of the pixels is a good way of getting a feel for the pixel differences you might expect (often more than you think).
+The first set are produced by the monitor on the image as a whole. The ``diag-r.jpg`` image is the current reference image against which all individual frames are compared and the ``diag-d.jpg`` image is the delta image highlighting the difference between the reference image and the last analysed image. In this images identical pixels will be black and the more different a pixel is the whiter it will be. Viewing this image and determining the colour of the pixels is a good way of getting a feel for the pixel differences you might expect (often more than you think).
 
-The second set of diag images are labelled as diag-<zoneid>-<stage>.jpg where zoneid is the id of the zone in question (Smile) and the stage is where in the alarm check process the image is generated from. So if you have several zones you can expect to see multiple files. Also these files are only interested in what is happening in their zone only and will ignore anything else outside of the zone. The stages that each number represents are as follows,
+The second set of diag images are labelled as ``diag-<zoneid>-<stage>.jpg`` where zoneid is the id of the zone in question (Smile) and the stage is where in the alarm check process the image is generated from. So if you have several zones you can expect to see multiple files. Also these files are only interested in what is happening in their zone only and will ignore anything else outside of the zone. The stages that each number represents are as follows,
 
-# Alarmed Pixels - This image shows all pixels in the zone that are considered to be alarmed as white pixels and all other pixels as black.
-# Filtered Pixels - This is as stage one except that all pixels removed by the filters are now black. The white pixels represent the pixels that are candidates to generate an event.
-# Raw Blobs - This image contains all alarmed pixels from stage 2 but aggrageted into blobs. Each blob will have a different greyscale value (between 1 and 254) so they can be difficult to spot with the naked eye but using a colour picker or photoshop will make it easier to see what blob is what.
-# Filtered Blobs - This image is as stage 3 but under (or over) sized blobs have been removed. This is the final step before determining if an event has occurred, just prior to the number of blobs being counted. Thus this image forms the basis for determining whether an event is generated and outlining on alarmed images is done from the blobs in this image.
+* Alarmed Pixels - This image shows all pixels in the zone that are considered to be alarmed as white pixels and all other pixels as black.
+* Filtered Pixels - This is as stage one except that all pixels removed by the filters are now black. The white pixels represent the pixels that are candidates to generate an event.
+* Raw Blobs - This image contains all alarmed pixels from stage 2 but aggrageted into blobs. Each blob will have a different greyscale value (between 1 and 254) so they can be difficult to spot with the naked eye but using a colour picker or photoshop will make it easier to see what blob is what.
+* Filtered Blobs - This image is as stage 3 but under (or over) sized blobs have been removed. This is the final step before determining if an event has occurred, just prior to the number of blobs being counted. Thus this image forms the basis for determining whether an event is generated and outlining on alarmed images is done from the blobs in this image.
 
 Using the above images you should be able to tell at all stages what ZM is doing to determine if an event should happen or not. They are useful diagnostic tools but as is mentioned elsewhere they will massively slow your system down and take up a great deal more space. You should never leave ZM running for any length of time with diagnostic images on.
+
 
 Why can't ZoneMinder capture images (either at all or just particularly fast) when I can see my camera just fine in xawtv or similar?
 ----------------------------------------------------------------------------------------------------------------------------------------------

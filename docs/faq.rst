@@ -43,13 +43,9 @@ ZM_OPT_FAST_DELETE:
 
 Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if you are trying to do a lot of events at once. If you are running on an older or under-powered system, you may want to set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later. If you do so, disk space will not be freed immediately so you will need to run zmaudit more frequently.  On modern systems, we recommend that you leave this **off**.
 
-
-
 ZM_RUN_AUDIT:
 
 The zmaudit daemon exists to check that the saved information in the database and on the file system match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is recommended for most systems however if you have a very large number of events the process of scanning the database and file system may take a long time and impact performance. In this case you may prefer to not have zmaudit running unconditionally and schedule occasional checks at other, more convenient, times.
-
-
 
 ZM_AUDIT_CHECK_INTERVAL:
 
@@ -69,12 +65,15 @@ In *general* a good estimate of memory required would be:
 	Min Bits of Memory = 20% overhead * (image-width*image-height*image buffer size*target color space*number of cameras) 
 
 Where:
+
 * image-width and image-height are the width and height of images that your camera is configured for (in my case, 1280x960). This value is in the Source tab for each monitor
 * image buffer size is the # of images ZM will keep in memory (this is used by ZM to make sure it has pre and post images before detecting an alarm - very useful because by the time an alarm is detected, the reason for the alarm may move out of view and a buffer is really useful for this, including for analyzing stats/scores). This value is in the buffers tab for each monitor
 * target color space is the color depth - 8bit, 24bit or 32bit. It's again in the source tab of each monitor
-The 1.2 at the start is basically adding 20% on top of the calculation to account for image/stream overheads (this is an estimate)
+
+The 20% overhead on top of the calculation to account for image/stream overheads (this is an estimate)
 
 The math breakdown for 4 cameras running at 1280x960 capture, 50 frame buffer, 24 bit color space:
+
 ::
 
 	1280*960 = 1,228,800 (bytes)
@@ -132,7 +131,7 @@ However if you believe you have sensible settings configured then there are diag
 
 Event Statistics
 ^^^^^^^^^^^^^^^^^
-The first technique is to use event statistics. Firstly you should ensure they are switched on in Options->Logging->RECORD_EVENT_STATS. This will then cause the raw motion detection statistics for any subsequently generated events to be written to the DB. These can then be accessed by first clicking on the Frames or Alarm Frames values of the event from any event list view in the web gui. Then click on the score value to see the actual values that caused the event. Alternatively the stats can be accessed by clicking on the 'Stats' link when viewing any individual frame. The values displayed there correspond with the values that are used in the zone configuration and give you an idea of what 'real world' values are being generated. 
+The first technique is to use event statistics. Firstly you should ensure they are switched on in ``Options->Logging->RECORD_EVENT_STATS``. This will then cause the raw motion detection statistics for any subsequently generated events to be written to the DB. These can then be accessed by first clicking on the Frames or Alarm Frames values of the event from any event list view in the web gui. Then click on the score value to see the actual values that caused the event. Alternatively the stats can be accessed by clicking on the 'Stats' link when viewing any individual frame. The values displayed there correspond with the values that are used in the zone configuration and give you an idea of what 'real world' values are being generated. 
 
 Note that if you are investigating why events 'do not' happen then these will not be saved and so won't be accessible. The best thing to do in that circumstance is to make your zone more sensitive so that it captures all events (perhap even ones you don't want) so you can get an idea of what values are being generated and then start to adjust back to less sensitive settings if necessary. You should make sure you test your settings under a variety of lighting conditions (e.g. day and night, sunny or dull) to get the best feel for that works and what doesn't.
 
@@ -172,7 +171,7 @@ Why can't I see streamed images when I can see stills in the zone window etc?
 
 This issue is normally down to one of two causes
 
-1) You are using Internet Explorer and are trying to view multi-part jpeg streams. IE does not support these streams directly, unlike most other browsers. You will need to install Cambozola or another multi-part jpeg aware plugin to view them. To do this you will need to obtain the applet from the Downloads page and install the cambozola.jar file in the same directory as the ZoneMinder php files. Then find the ZoneMinder Options->Images page and enable ZM_OPT_CAMBOZOLA and enter the web path to the .jar file in ZM_PATH_CAMBOZOLA. This will ordinarily just be cambozola.jar. Provided (Options / B/W tabs) WEB_H_CAN_STREAM is set to auto and WEB_H_STREAM_METHOD is set to jpeg then Cambozola should be loaded next time you try and view a stream.
+1) You are using Internet Explorer and are trying to view multi-part jpeg streams. IE does not support these streams directly, unlike most other browsers. You will need to install Cambozola or another multi-part jpeg aware plugin to view them. To do this you will need to obtain the applet from the Downloads page and install the cambozola.jar file in the same directory as the ZoneMinder php files. Then find the ZoneMinder Options->Images page and enable ``OPT_CAMBOZOLA`` and enter the web path to the .jar file in ``PATH_CAMBOZOLA``. This will ordinarily just be cambozola.jar. Provided (Options / B/W tabs) ``WEB_H_CAN_STREAM`` is set to auto and ``WEB_H_STREAM_METHOD`` is set to jpeg then Cambozola should be loaded next time you try and view a stream.
 
 **NOTE**: If you find that the Cambozola applet loads in IE but the applet just displays the version  of Cambozola and the author's name (as opposed to seeing the streaming images), you may need to chmod (``-rwxrwxr-x``) your (``usr/share/zoneminder/``) cambozola.jar:
 
@@ -226,8 +225,8 @@ The main causes are.
 	* Big image sizes. A image of 640x480 requires at least four times the processing of a 320x240 image. Experiment with different sizes to see what effect it may have. Sometimes a large image is just two interlaced smaller frames so has no real benefit anyway. This is especially true for analog cameras/cards as image height over 320 (NTSC) or 352 PAL) are invariably interlaced.
 	* Capture frame rates. Unless there's a compelling reason in your case there is often little benefit in running cameras at 25fps when 5-10fps would often get you results just as good. Try changing your monitor settings to limit your cameras to lower frame rates. You can still configure ZM to ignore these limits and capture as fast as possible when motion is detected.
 	* Run function. Obviously running in Record or Mocord modes or in Modect with lots of events generates a lot of DB and file activity and so CPU and load will increase.
-	*  Basic default detection zones. By default when a camera is added one detection zone is added which covers the whole image with a default set of parameters. If your camera covers a view in which various regions are unlikely to generate a valid alarm (ie the sky) then I would experiment with reducing the zone sizes or adding inactive zones to blank out areas you don't want to monitor. Additionally the actual settings of the zone themselves may not be optimal. When doing motion detection the number of changed pixels above a threshold is examined, then this is filter, then contiguous regions are calculated to see if an alarm is generated. If any maximum or minimum threshold is exceeded according to your zone settings at any time the calculation stops. If your settings always result in the calculations going through to the last stage before being failed then additional CPU time is used unnecessarily. Make sure your maximum and minimumzone thresholds are set to sensible values and experiment by switching RECORD_EVENT_STATS on and seeing what the actual values of alarmed pixels etc are during sample events.
-	* Optimise your settings. After you've got some settings you're happy with then switching off RECORD_EVENT_STATS will prevent the statistics being written to the database which saves some time. Other settings which might make a difference are ZM_FAST_RGB_DIFFS and the JPEG_xxx_QUALITY ones.
+	*  Basic default detection zones. By default when a camera is added one detection zone is added which covers the whole image with a default set of parameters. If your camera covers a view in which various regions are unlikely to generate a valid alarm (ie the sky) then I would experiment with reducing the zone sizes or adding inactive zones to blank out areas you don't want to monitor. Additionally the actual settings of the zone themselves may not be optimal. When doing motion detection the number of changed pixels above a threshold is examined, then this is filter, then contiguous regions are calculated to see if an alarm is generated. If any maximum or minimum threshold is exceeded according to your zone settings at any time the calculation stops. If your settings always result in the calculations going through to the last stage before being failed then additional CPU time is used unnecessarily. Make sure your maximum and minimumzone thresholds are set to sensible values and experiment by switching ``RECORD_EVENT_STATS`` on and seeing what the actual values of alarmed pixels etc are during sample events.
+	* Optimise your settings. After you've got some settings you're happy with then switching off ``RECORD_EVENT_STATS`` will prevent the statistics being written to the database which saves some time. Other settings which might make a difference are ``ZM_FAST_RGB_DIFFS`` and the ``JPEG_xxx_QUALITY`` ones.
 
 I'm sure there are other things which might make a difference such as what else you have running on the box and memory sizes (make sure there's no swapping going on). Also speed of disk etc will make some difference during event capture and also if you are watching the whole time then you may have a bunch of zms processes running also.
 
@@ -240,6 +239,8 @@ The timeline view is a new view allowing you to see a graph of alarm activity ov
 Using the timeline view is only recommended when using FireFox, however even then there may be issues.
 
 This function has from time to time been corrupted in the SVN release or in the stable releases, try and reinstall from a fresh download.
+
+.. _disk_bw_faq:
 
 How much Hard Disk Space / Bandwidth do I need for ZM?
 ---------------------------------------------------------------
@@ -335,42 +336,7 @@ What about disks and bandwidth?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 A typical 100mbit LAN will cope with most setups easily. If you're feeding from cameras over smaller or internet links, obviously fps will be much lower.
 
-Disk and Bandwidth calculators are referenced on the Zoneminder wiki here: https://zoneminder.readthedocs.io/en/latest/faq.html#how-much-hard-disk-space-bandwidth-do-i-need-for-zm
-
-
-Building ZoneMinder
---------------------
-
-When running configure I am getting a lot of messages about not being able to compile the ffmpeg libraries
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you see output from configure that looks like this
-
-::
-
-	checking libavcodec/avcodec.h usability... no
-	checking libavcodec/avcodec.h presence... yes
-	configure: WARNING: libavcodec/avcodec.h: present but cannot be compiled
-	configure: WARNING: libavcodec/avcodec.h:     check for missing
-	prerequisite headers?
-	configure: WARNING: libavcodec/avcodec.h: see the Autoconf documentation
-	configure: WARNING: libavcodec/avcodec.h:     section "Present But
-	Cannot Be Compiled"
-	configure: WARNING: libavcodec/avcodec.h: proceeding with the compiler's
-	result
-	configure: WARNING:     ## ------------------------------------- ##
-	configure: WARNING:     ## Report this to support@zoneminder.com ##
-	configure: WARNING:     ## ------------------------------------- ##</pre>
-
-then it is caused not by the ZoneMinder build system but ffmpeg itself. However there is a workaround you can use which is to add ``CPPFLAGS=-D__STDC_CONSTANT_MACROS``
-
-to the ZoneMinder ``./configure`` command which should solve the issue. However this is not a proper 'fix' as such, which can only come from the ffmpeg project itself.
-
-I cannot build ZoneMinder and am getting lots of undefined C++ template errors
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-This is almost certainly due to the 'ccache' package which attempts to speed up compilation by caching compiled objects. Unfortunately one of the side effects is that it breaks the GNU g++ template resolution method that ZoneMinder uses in building by prevent files getting recompiled. The simplest way around this is to remove the ccache package using your distros package manager.
+Disk and Bandwidth calculators are referenced in :ref:`disk_bw_faq`.
 
 How do I build for X10 support?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

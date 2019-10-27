@@ -27,8 +27,8 @@ Here is an example of the file hierarchy:
 The roles of the files are as follows:
 
 * ``zm.conf`` contains various base configuration entries. You should not edit this file as it may be overwritten on an upgrade.
-* ``zmeventnotification.ini`` is only present if you have installed the ZoneMinder Event Server.
-* ``objectconfig.ini`` is only present if you have installed the machine learning hooks for the Event Server.
+* ``zmeventnotification.ini`` is only present if you have installed the ZoneMinder Event Notification Server.
+* ``objectconfig.ini`` is only present if you have installed the machine learning hooks for the Event Notification Server.
 * ``conf.d`` contains additional configuration items as follows:
   
   * ``01-system-paths.conf`` contains all the paths that were once part of ``Options->Paths`` in the Web UI. You should not edit this file as it may be overwritten on an upgrade

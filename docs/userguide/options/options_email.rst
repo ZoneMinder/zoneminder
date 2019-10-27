@@ -53,8 +53,8 @@ EMAIL_BODY - This option is used to define the content of the email that is sent
 +--------+--------------------------------------------------------+
 | %EIM%  | Attach (first) event image with the highest score      |
 +--------+--------------------------------------------------------+
-| %EIMOD%| Attach image of object detected. Requires event server |
-|        | setup and machine learning hooks                       |
+| %EIMOD%| Attach image of object detected. Requires event notfn. |
+|        | server setup and machine learning hooks                |
 +--------+--------------------------------------------------------+
 | %EV%   | Attach event mpeg video                                |
 +--------+--------------------------------------------------------+

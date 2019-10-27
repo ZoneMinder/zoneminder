@@ -745,6 +745,6 @@ Can I use ZoneMinder as part of my commercial product?
 
 The GPL license allows you produce systems based on GPL software provided your systems also adhere to that license and any modifications you make are also released under the same terms.  The GPL does not permit you to include ZoneMinder in proprietary systems (see https://www.gnu.org/licenses/gpl-faq.html#GPLInProprietarySystem for details). If you wish to include ZoneMinder in this kind of system then you will need to license ZoneMinder under different terms. This is sometimes possible and you will need to contact me for further details in these circumstances.
 
-I am having issues with zmNinja and/or EventServer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-zmNinja and the EventServer are 3rd party solutions. The developer maintains exhaustive `documentation and FAQs <https://zmninja.readthedocs.io/en/latest/>`__. Please direct your questions there.
+I am having issues with zmNinja and/or Event Notification Server
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+zmNinja and the Event Notification Server are 3rd party solutions. The developer maintains exhaustive `documentation and FAQs <https://zmninja.readthedocs.io/en/latest/>`__. Please direct your questions there.

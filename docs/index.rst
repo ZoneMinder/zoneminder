@@ -28,7 +28,7 @@ Welcome to ZoneMinder's documentation, the following resources are available
   How to contribute to ZoneMinder. As a community project we always need help, you don't need to be a coder to test or update documentation.
 
 `Event Notification Server and Machine Learning hooks <https://zmeventnotification.readthedocs.io/en/latest/index.html>`__
-        Documentation for the 3rd party Event Server and Machine Learning for Object/People/Face detection.
+        Documentation for the 3rd party Event Notification Server and Machine Learning for Object/People/Face detection.
 
 
 

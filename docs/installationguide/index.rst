@@ -13,5 +13,6 @@ Contents:
    ubuntu
    debian
    redhat
+   windows_wsl
    multiserver
    dedicateddrive

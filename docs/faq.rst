@@ -385,13 +385,9 @@ This is also how to obtain the info that we need to help you on the forums.
 
 What logs should I check for errors?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ZoneMinder creates its own logs and are usually located in the ``/tmp`` directory.
+ZoneMinder creates its own logs and are usually located in the ``/var/log`` directory. Refer to the logging discussion in :ref:`/userguide/options/options_logging` for more details on where logs are stored and how to enable various log levels.
 
-The ZoneMinder logs for the RPM packages are located in ``/var/log/zm``.
-
-Depending on your problem errors can show up in any of these logs but, usually the logs of interest are ``zmdc.log`` and ``zmpkg.log`` if ZM is not able to start.
-
-Now since ZM is dependent on other components to work, you might not find errors in ZM but in the other components.
+Since ZM is dependent on other components to work, you might not find errors in ZM but in the other components.
 
 :: 
 
@@ -406,8 +402,6 @@ If ZM is not functioning, you should always be able to find an error in at least
 
 This will append any data entered to any of these logs to your console screen (``-f``). To exit, hit [ctrl -c].
 
-
-More verbose logging for the ZoneMinder binaries is available by enabling the debug option from the control panel and will be placed in the path you have configured for the debug logs. Output can be limited to a specific binary as described in the Debug options page under the "?" marks.
 
 How can I trouble shoot the hardware and/or software?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

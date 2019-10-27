@@ -1,6 +1,6 @@
 Configuration Files
 --------------------
-This section describes configuration files that ZoneMinder users beyond the various Web UI options.
+This section describes configuration files that ZoneMinder uses beyond the various Web UI options.
 
 .. _replacement_for_options_path:
 

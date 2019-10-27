@@ -328,8 +328,8 @@ More expensive options:
 
 	* Try building Zoneminder with processor specific instructions that are optimised to the system it will be running on, also increasing the optimisation level of GCC beyond -O2 will help.  This topic is beyond the scope of this document.
 
-Processor specific commands can be found in the GCC manual along with some more options that may increase performance. 
-`<https://gcc.gnu.org/onlinedocs/gcc/>`__
+Processor specific commands can be found in the `GCC manual <https://gcc.gnu.org/onlinedocs/gcc/>`__ along with some more options that may increase performance. 
+
 
 What about disks and bandwidth?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

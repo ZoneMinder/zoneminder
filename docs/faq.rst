@@ -385,7 +385,7 @@ This is also how to obtain the info that we need to help you on the forums.
 
 What logs should I check for errors?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ZoneMinder creates its own logs and are usually located in the ``/var/log`` directory. Refer to the logging discussion in :ref:`/userguide/options/options_logging` for more details on where logs are stored and how to enable various log levels.
+ZoneMinder creates its own logs and are usually located in the ``/var/log/`` directory. Refer to the logging discussion in :doc:`/userguide/options/options_logging` for more details on where logs are stored and how to enable various log levels.
 
 Since ZM is dependent on other components to work, you might not find errors in ZM but in the other components.
 
@@ -426,24 +426,28 @@ The apache web server needs to have the right permissions and configuration to b
 Why am I getting broken images when trying to view events?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Zoneminder and the Apache web server need to have the right permissions. Check this forum topic and similar ones:
-https://forums.zoneminder.com/viewtopic.php?p=48754
+Zoneminder and the Apache web server need to have the right permissions. Check `this forum topic <https://forums.zoneminder.com/viewtopic.php?p=48754>`__ and similar ones:
+
 
 
 I can review events for the current day, but ones from yesterday and beyond error out
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you've checked that the `www-data` user has permissions to the storage folders, perhaps your php.ini's timezone setting is incorrect. They _must_ match for certain playback functions. 
+If you've checked that the ``www-data`` user has permissions to the storage folders, perhaps your php.ini's timezone setting is incorrect. They _must_ match for certain playback functions. 
 
-If you're using Linux, this can be found using the following command: ::
+If you're using Linux, this can be found using the following command: 
+
+::
 
   timedatectl | grep "Time zone"
 
-If using FreeBSD, you can use this one-liner: ::
+If using FreeBSD, you can use this one-liner: 
+
+::
 
   cd /usr/share/zoneinfo/ && find * -type f -exec cmp -s {} /etc/localtime \; -print;
   
-Once you know what timezone your system is set to, open `/etc/php.ini` and adjust ``date.timezone`` to the appropriate value. the PHP daemon may need to be restarted for changes to take effect.
+Once you know what timezone your system is set to make sure you set the right time zone in ZM (Available in ``Options->System->TimeZone``)
 
 
 Why is the image from my color camera appearing in black and white?
@@ -458,7 +462,7 @@ If this camera is attached to a capture card, then you may have selected the wro
 
 Why do I only see black screens with a timestamp when monitoring my camera?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In the monitor windows where you see the black screen with a timestamp, select settings and enter the Brightness, Contrast, Hue, and Color settings reported for the device by '''zmu -d <device_path> -q -v'''.  32768 may be appropriate values to try for these settings.  After saving the settings, select Settings again to confirm they saved successfully.
+In the monitor windows where you see the black screen with a timestamp, select settings and enter the Brightness, Contrast, Hue, and Color settings reported for the device by ``zmu -d <device_path> -q -v``.  32768 may be appropriate values to try for these settings.  After saving the settings, select Settings again to confirm they saved successfully.
 
 I am getting messages about a backtrace in my logs, what do I do?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -487,10 +491,11 @@ This error some times happens when a linked camera looses its link or it is corr
 How do I repair the MySQL Database?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 There is two ways to go about this. In most cases you can run from the command prompt ->
-* mysqlcheck --all-databases --auto-repair -p'''your_database_password''' -u '''your_databse_user'''
+``mysqlcheck --all-databases --auto-repair -p your_database_password -u your_databse_user``
 
-If that does not work then you will have to make sure that ZoneMinder is stopped then run the following (nothing should be using the database while running this and you will have to adjust for your correct path if it is different). ->
-* myisamchk --silent --force --fast --update-state -O key_buffer=64M -O sort_buffer=64M -O read_buffer=1M -O write_buffer=1M /var/lib/mysql/*/*.MYI 
+If that does not work then you will have to make sure that ZoneMinder is stopped then run the following (nothing should be using the database while running this and you will have to adjust for your correct path if it is different):
+
+``myisamchk --silent --force --fast --update-state -O key_buffer=64M -O sort_buffer=64M -O read_buffer=1M -O write_buffer=1M /var/lib/mysql/*/*.MYI``
 
 
 How do I repair the MySQL Database when the cli fails?

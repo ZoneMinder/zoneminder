@@ -31,7 +31,7 @@ To delete events that are older than 7 days, create a new filter with "Date" set
 Save with 'Run Filter In Background' enabled to have it run automatically.
 Optional skip archived events:  click on the plus sign next to -7 days to add another condition.  "and" "archive status" equal to "unarchived only".
 
-Optional slow delete:  limit the number of results to 3.  If you have a large backlog of events that would be deleted, this can hard spike the CPU usage for a long time.  Limiting the number of results to only the first three each time the filter is run spreads out the delete processes over time, dramatically lessening the CPU load.
+Optional slow delete:  limit the number of results to a number, say ``10`` in the filter.  If you have a large backlog of events that would be deleted, this can hard spike the CPU usage for a long time.  Limiting the number of results to only the first three each time the filter is run spreads out the delete processes over time, dramatically lessening the CPU load.
 
 There are two methods for ZM to remove files when they are deleted that can be found in Options under the System tab ZM_OPT_FAST_DELETE and ZM_RUN_AUDIT.
 

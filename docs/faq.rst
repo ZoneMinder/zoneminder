@@ -5,6 +5,7 @@ FAQ
 
 This is the FAQ page. Feel free to contribute any FAQs that you think are missing.
 
+.. note:: It is always a good idea to refer to the `ZoneMinder forums <https://forums.zoneminder.com/viewforum.php?f=26&sid=fc93f65726d3a29fbf6f610b21f52b16>`__ for tips and tricks. While we try and make sure this FAQ is pruned/adjusted to align with the latest stable release, some of the entries may no longer be accurate (or there may be better suggestions in the forums).
 
 How can I stop ZoneMinder filling up my disk?
 ---------------------------------------------

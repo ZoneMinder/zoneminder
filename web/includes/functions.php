@@ -2278,15 +2278,15 @@ function validHtmlStr($input) {
 function getStreamHTML($monitor, $options = array()) {
 
   if ( isset($options['scale']) and $options['scale'] and ($options['scale'] != 100) ) {
-    $options['width'] = reScale($monitor->Width(), $options['scale']).'px';
-    $options['height'] = reScale($monitor->Height(), $options['scale']).'px';
+    $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
+    $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
   } else {
     # scale is empty or 100
     # There may be a fixed width applied though, in which case we need to leave the height empty
     if ( ! ( isset($options['width']) and $options['width'] ) ) {
-      $options['width'] = $monitor->Width().'px';
+      $options['width'] = $monitor->ViewWidth().'px';
       if ( ! ( isset($options['height']) and $options['height'] ) ) {
-        $options['height'] = $monitor->Height().'px';
+        $options['height'] = $monitor->ViewHeight().'px';
       }
     } else if ( ! isset($options['height']) ) {
       $options['height'] = '';
@@ -2326,8 +2326,8 @@ function getStreamHTML($monitor, $options = array()) {
     elseif ( canStreamApplet() )
       // Helper, empty widths and heights really don't work.
       return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc, 
-          $options['width'] ? $options['width'] : $monitor->Width(), 
-          $options['height'] ? $options['height'] : $monitor->Height(),
+          $options['width'] ? $options['width'] : $monitor->ViewWidth(), 
+          $options['height'] ? $options['height'] : $monitor->ViewHeight(),
           $monitor->Name());
   } else {
     if ( $options['mode'] == 'stream' ) {

@@ -85,47 +85,66 @@ if ( empty($_REQUEST['path']) ) {
       $Frame = new ZM\Frame();
       $Frame->Id('objdetect');
     } else if ( $_REQUEST['fid'] == 'alarm' ) {
-      # look for first alarmed frame
-      $Frame = ZM\Frame::find_one(
-        array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
-        array('order'=>'FrameId ASC'));
-      if ( !$Frame ) { # no alarms, get first one I find
-        $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
-        if ( !$Frame ) { 
-          ZM\Warning('No frame found for event '.$_REQUEST['eid']);
-          $Frame = new ZM\Frame();
-          $Frame->Delta(1);
-          $Frame->FrameId(1);
+      $path = $Event->Path().'/alarm.jpg';
+      if ( !file_exists($path) ) {
+        # legacy support
+        # look for first alarmed frame
+        $Frame = ZM\Frame::find_one(
+          array('EventId'=>$_REQUEST['eid'], 'Type'=>'Alarm'),
+          array('order'=>'FrameId ASC'));
+        if ( !$Frame ) { # no alarms, get first one I find
+          $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
+          if ( !$Frame ) { 
+            ZM\Warning('No frame found for event '.$_REQUEST['eid']);
+            $Frame = new ZM\Frame();
+            $Frame->Delta(1);
+            $Frame->FrameId(1);
+          }
         }
-      }
-      $Monitor = $Event->Monitor();
-      if ( $Event->SaveJPEGs() & 1 ) {
-        # If we store Frames as jpgs, then we don't store an alarmed snapshot
-        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
+        $Monitor = $Event->Monitor();
+        if ( $Event->SaveJPEGs() & 1 ) {
+          # If we store Frames as jpgs, then we don't store an alarmed snapshot
+          $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
+        } else {
+          header('HTTP/1.0 404 Not Found');
+          ZM\Fatal('No alarm jpg found for event '.$_REQUEST['eid']);
+          return;
+        }
       } else {
-        $path = $Event->Path().'/alarm.jpg';
-      }
-    } else if ( $_REQUEST['fid'] == 'snapshot' ) {
-      $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Score'=>$Event->MaxScore()));
-      if ( !$Frame )
-        $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
-      if ( !$Frame ) {
-        ZM\Warning('No frame found for event ' . $_REQUEST['eid']);
         $Frame = new ZM\Frame();
         $Frame->Delta(1);
-        if ( $Event->SaveJPEGs() & 1 ) {
-          $Frame->FrameId(0);
-        } else {
-          $Frame->FrameId('snapshot');
+        $Frame->FrameId('alarm');
+      } # alarm.jpg found
+    } else if ( $_REQUEST['fid'] == 'snapshot' ) {
+      $path = $Event->Path().'/snapshot.jpg';
+      if ( !file_exists($path) ) {
+        $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'Score'=>$Event->MaxScore()));
+        if ( !$Frame )
+          $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid']));
+        if ( !$Frame ) {
+          ZM\Warning('No frame found for event ' . $_REQUEST['eid']);
+          $Frame = new ZM\Frame();
+          $Frame->Delta(1);
+          if ( $Event->SaveJPEGs() & 1 ) {
+            $Frame->FrameId(0);
+          } else {
+            $Frame->FrameId('snapshot');
+          }
         }
-      }
-      $Monitor = $Event->Monitor();
-      if ( $Event->SaveJPEGs() & 1 ) {
-        # If we store Frames as jpgs, then we don't store a snapshot
-        $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
+        $Monitor = $Event->Monitor();
+        if ( $Event->SaveJPEGs() & 1 ) {
+          # If we store Frames as jpgs, then we don't store a snapshot
+          $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
+        } else {
+          header('HTTP/1.0 404 Not Found');
+          ZM\Fatal('No alarm jpg found for event '.$_REQUEST['eid']);
+          return;
+        } # end if stored jpgs
       } else {
-        $path = $Event->Path().'/snapshot.jpg';
-      }
+        $Frame = new ZM\Frame();
+        $Frame->Delta(1);
+        $Frame->FrameId('snapshot');
+      } # end if found snapshot.jpg
     } else {
 
       $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));

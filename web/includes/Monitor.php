@@ -199,7 +199,14 @@ private $status_fields = array(
     return $streamSrc;
   } // end function getStreamSrc
 
-  public function Width($new = null) {
+	public function isPortrait() {
+		return $this->ViewWidth() > $this->ViewHeight();
+	}
+	public function isLandscape() {
+		return $this->ViewWidth() < $this->ViewHeight();
+	}
+
+  public function ViewWidth($new = null) {
     if ( $new )
       $this->{'Width'} = $new;
 
@@ -209,7 +216,7 @@ private $status_fields = array(
     return $this->defaults{$field};
   } // end function Width
 
-  public function Height($new=null) {
+  public function ViewHeight($new=null) {
     if ( $new )
       $this->{'Height'} = $new;
 

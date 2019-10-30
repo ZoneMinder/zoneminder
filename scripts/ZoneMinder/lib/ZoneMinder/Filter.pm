@@ -131,10 +131,10 @@ sub Execute {
 sub Sql {
   my $self = shift;
   $$self{Sql} = shift if @_;
-  if ( ! $$self{Sql} ) {
+  if ( !$$self{Sql} ) {
     $self->{Sql} = '';
-    if ( ! $self->{Query_json} ) {
-      Warning("No query in Filter!");
+    if ( !$self->{Query_json} ) {
+      Warning('No query in Filter!');
       return;
     }
 

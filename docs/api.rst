@@ -97,17 +97,14 @@ Once you have the keys (a.k.a credentials (v1.0, v2.0) or token (v2.0)) you shou
 
 ::
 
+  # v1.0 or 2.0 based API access (will only work if AUTH_HASH_LOGINS is enabled
+
   # RECOMMENDED: v2.0 token based 
-    curl -XPOST   https://yourserver/zm/api/monitors.json&token=<access_token>
+    curl -XGET  https://yourserver/zm/api/monitors.json&token=<access_token>
 
-  # or
+  # or, for legacy mode:
 
-  # v1.0 or 2.0 based API access (will only work if AUTH_HASH_LOGINS is enabled)
-  curl -XPOST -d "auth=<hex digits from 'credentials'>"   https://yourserver/zm/api/monitors.json
-
-  # or 
-
-  curl -XGET   https://yourserver/zm/api/monitors.json&auth=<hex digits from 'credentials'>
+  curl -XGET  https://yourserver/zm/api/monitors.json?auth=<hex digits from 'credentials'>
 
   # or, if you specified -c cookies.txt in the original login request
 
@@ -115,8 +112,8 @@ Once you have the keys (a.k.a credentials (v1.0, v2.0) or token (v2.0)) you shou
 
 
 .. NOTE::
-	ZoneMinder's API layer allows API keys to be encoded either as a query parameter or as a data payload. If you don't pass keys, you could use cookies (not recommended as a general approach)
 
+	If you are using an ``HTTP GET`` request, the token/auth needs to be passed as a query parameter in the URL. If you are using an ``HTTP POST`` (like when you use the API to modify a monitor, for example), you can choose to pass the token as a data payload instead. The API layer discards data payloads for ``HTTP GET``. Finally, If you don't pass keys, you could also use cookies (not recommended as a general approach).
 
 Key lifetime (v1.0)
 ^^^^^^^^^^^^^^^^^^^^^

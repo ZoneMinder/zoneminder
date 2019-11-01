@@ -596,6 +596,7 @@ $SLANG = array(
     'PanRight'              => 'Pan Right',
     'PanTilt'               => 'Pan/Tilt',
     'Parameter'             => 'Parameter',
+    'ParentGroup'           => 'Parent Group',
     'Password'              => 'Password',
     'PasswordsDifferent'    => 'The new and confirm passwords are different',
     'PathToIndex'           => 'Path To Index',

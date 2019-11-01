@@ -181,6 +181,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       console.error("Nothing found to bind to " + fnName);
       return;
     }
+    console.log('Setting onlick to ' + fnName + ' for ' + el.name);
     el.onclick = function() {
       window[fnName]();
     };
@@ -193,6 +194,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       console.error("Nothing found to bind to " + fnName);
       return;
     }
+      console.log('Setting onclick-true to ' + fnName + ' for ' + el.name);
     el.onclick = function() {
       window[fnName](true);
     };
@@ -205,6 +207,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       console.error("Nothing found to bind to " + fnName);
       return;
     }
+    console.log('Setting onchange-this to ' + fnName + ' for ' + el.name);
     el.onchange = window[fnName].bind(el, el);
   });
 
@@ -215,7 +218,30 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
       console.error("Nothing found to bind to " + fnName);
       return;
     }
+    console.log('Setting onchange to ' + fnName + ' for ' + el.name);
     el.onchange = window[fnName];
+  });
+
+  // 'data-on-input' adds an event listener for the global function in the attribute value when an input happens.
+  document.querySelectorAll("input[data-on-input]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    console.log('Setting oninput to ' + fnName + ' for ' + el.name);
+    el.oninput = window[fnName];
+  });
+
+  // 'data-on-input-this' calls the global function in the attribute value with the element when an input happens.
+  document.querySelectorAll("input[data-on-input-this]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-input-this");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
+    console.log('Setting oninput-this to ' + fnName + ' for ' + el.name);
+    el.onchange = window[fnName].bind(el, el);
   });
 });
 

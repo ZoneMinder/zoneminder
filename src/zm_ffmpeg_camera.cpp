@@ -872,6 +872,7 @@ int FfmpegCamera::CaptureAndRecord(
           // since the last keyframe.
           unsigned int packet_count = 0;
           ZMPacket *queued_packet;
+          struct timeval video_offset = {0};
 
           // Clear all packets that predate the moment when the recording began
           packetqueue->clear_unwanted_packets(
@@ -879,6 +880,14 @@ int FfmpegCamera::CaptureAndRecord(
 
           while ( (queued_packet = packetqueue->popPacket()) ) {
             AVPacket *avp = queued_packet->av_packet();
+
+            // compute time offset between event start and first frame in video
+            if (packet_count == 0){
+                monitor->SetVideoWriterStartTime(queued_packet->timestamp);
+                timersub(&queued_packet->timestamp, &recording, &video_offset);
+                Info("Event video offset is %.3f sec (<0 means video starts early)",
+                     video_offset.tv_sec + video_offset.tv_usec*1e-6);
+            }
 
             packet_count += 1;
             // Write the packet to our video store

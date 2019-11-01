@@ -132,6 +132,7 @@ class Event {
   private:
     void AddFramesInternal( int n_frames, int start_frame, Image **images, struct timeval **timestamps );
     void WriteDbFrames();
+    void UpdateFramesDelta(double offset);
 
   public:
     static const char *getSubPath( struct tm *time ) {

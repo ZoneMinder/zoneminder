@@ -466,6 +466,8 @@ public:
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
+  struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
+  void SetVideoWriterStartTime(struct timeval &t) { video_store_data->recording = t; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
   struct timeval GetVideoBufferDuration() const { return video_buffer_duration; };

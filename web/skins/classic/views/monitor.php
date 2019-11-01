@@ -663,6 +663,7 @@ switch ( $tab ) {
           <td>
 <?php
       $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Sequence ASC');
+      $monitor_options = array();
       foreach ( $monitors as $linked_monitor ) {
         if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {
           $monitor_options[$linked_monitor['Id']] = validHtmlStr($linked_monitor['Name']);

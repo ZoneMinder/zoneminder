@@ -1106,15 +1106,21 @@ int FfmpegCamera::transfer_to_image(
         );
   }
 
-  if ( sws_scale(
+  int ret =
+      sws_scale(
         mConvertContext, input_frame->data, input_frame->linesize,
         0, mVideoCodecContext->height,
-        output_frame->data, output_frame->linesize) <= 0 ) {
-    Error("Unable to convert format %u %s to format %u %s at frame %d codec %u %s",
+        output_frame->data, output_frame->linesize);
+  if ( ret <= 0 ) {
+    Error("Unable to convert format %u %s linesize %d height %d to format %u %s linesize %d at frame %d codec %u %s : code: %d",
         input_frame->format, av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
+        input_frame->linesize, mVideoCodecContext->height,
+        imagePixFormat,
         av_get_pix_fmt_name(imagePixFormat),
+        output_frame->linesize,
         frameCount,
-        mVideoCodecContext->pix_fmt, av_get_pix_fmt_name(mVideoCodecContext->pix_fmt)
+        mVideoCodecContext->pix_fmt, av_get_pix_fmt_name(mVideoCodecContext->pix_fmt),
+        ret
         );
     return -1;
   }

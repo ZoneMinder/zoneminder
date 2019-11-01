@@ -744,6 +744,8 @@ int FfmpegCamera::CaptureAndRecord(
   }
   int ret;
 
+  struct timeval video_buffer_duration = monitor->GetVideoBufferDuration();
+
   int frameComplete = false;
   while ( !frameComplete ) {
     av_init_packet(&packet);
@@ -920,6 +922,13 @@ int FfmpegCamera::CaptureAndRecord(
     if ( packet.stream_index == mVideoStreamId ) {
       if ( keyframe ) {
         Debug(3, "Clearing queue");
+        if (video_buffer_duration.tv_sec > 0 || video_buffer_duration.tv_usec > 0) {
+            packetqueue->clearQueue(&video_buffer_duration, mVideoStreamId);
+        }
+        else {
+            packetqueue->clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
+        }
+
         if (
             packetqueue->packet_count(mVideoStreamId)
             >=
@@ -933,7 +942,6 @@ int FfmpegCamera::CaptureAndRecord(
               packetqueue->packet_count(mVideoStreamId)+1);
         }
 
-        packetqueue->clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
         packetqueue->queuePacket(&packet);
       } else if ( packetqueue->size() ) {
         // it's a keyframe or we already have something in the queue

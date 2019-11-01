@@ -338,6 +338,7 @@ Monitor::Monitor(
   warmup_count( p_warmup_count ),
   pre_event_count( p_pre_event_count ),
   post_event_count( p_post_event_count ),
+  video_buffer_duration({0}),
   stream_replay_buffer( p_stream_replay_buffer ),
   section_length( p_section_length ),
   min_section_length( p_min_section_length ),
@@ -368,6 +369,12 @@ Monitor::Monitor(
   privacy_bitmask( NULL ),
   event_delete_thread(NULL)
 {
+  if (analysis_fps > 0.0) {
+      uint64_t usec = round(1000000*pre_event_count/analysis_fps);
+      video_buffer_duration.tv_sec = usec/1000000;
+      video_buffer_duration.tv_usec = usec % 1000000;
+  }
+
   strncpy(name, p_name, sizeof(name)-1);
 
   strncpy(event_prefix, p_event_prefix, sizeof(event_prefix)-1);

@@ -124,14 +124,17 @@ class MonitorsController extends AppController {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
       }
-
       $this->Monitor->create();
-      if ( $this->Monitor->save($this->request->data) ) {
+      if ($this->Monitor->save($this->request->data) ) {
         $this->daemonControl($this->Monitor->id, 'start');
         //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
         $message = 'Saved';
       } else {
         $message = 'Error';
+        // if there is a validation message, use it
+        if (!$this->Monitor->validates()) {
+          $message = $this->Monitor->validationErrors;
+       }
       }
       $this->set(array(
         'message' => $message,

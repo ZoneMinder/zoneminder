@@ -47,7 +47,16 @@ class Monitor extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-	);
+    'Name' => array(
+       'required' => array(
+         'on'         => 'create',
+         'rule'       => 'notEmpty',
+         'message'    => 'Monitor Name must be specified for creation',
+         'required'   => true,
+       ),
+     )
+
+  );
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 

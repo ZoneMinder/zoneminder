@@ -380,6 +380,10 @@ private $status_fields = array(
   }
 
   public function delete() {
+    if ( ! $this->{'Id'} ) {
+      Warning("Attempt to delete a monitor without id.");
+      return;
+    }
     $this->zmaControl('stop');
     $this->zmcControl('stop');
 
@@ -391,11 +395,13 @@ private $status_fields = array(
       foreach ($markEids as $markEid)
         deleteEvent($markEid);
 
-      deletePath(ZM_DIR_EVENTS.'/'.basename($this->{'Name'}));
+      if ( $this->{'Name'} )
+        deletePath(ZM_DIR_EVENTS.'/'.basename($this->{'Name'}));
       deletePath(ZM_DIR_EVENTS.'/'.$this->{'Id'});
       $Storage = $this->Storage();
       if ( $Storage->Path() != ZM_DIR_EVENTS ) {
-        deletePath($Storage->Path().'/'.basename($this->{'Name'}));
+        if ( $this->{'Name'} )
+          deletePath($Storage->Path().'/'.basename($this->{'Name'}));
         deletePath($Storage->Path().'/'.$this->{'Id'});
       }
     } // end if !ZM_OPT_FAST_DELETE

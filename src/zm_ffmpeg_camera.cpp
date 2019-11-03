@@ -875,7 +875,7 @@ int FfmpegCamera::CaptureAndRecord(
 
           // Clear all packets that predate the moment when the recording began
           packetqueue->clear_unwanted_packets(
-              &recording, monitor->GetPreEventCount(), mVideoStreamId);
+              &recording, 0, mVideoStreamId);
 
           while ( (queued_packet = packetqueue->popPacket()) ) {
             AVPacket *avp = queued_packet->av_packet();

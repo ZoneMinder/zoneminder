@@ -89,7 +89,10 @@ class Server extends ZM_Object {
   }
 
   public function UrlToZMS( $port = null ) {
-    return $this->Url($port).$this->PathToZMS();
+    if ( $this->Id() ) {
+      return $this->Url($port).$this->PathToZMS();
+    }
+    return $this->PathToZMS();
   }
 
 	public function Url( $port = null ) {

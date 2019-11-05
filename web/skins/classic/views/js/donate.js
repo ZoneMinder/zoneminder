@@ -1,3 +1,3 @@
-if ( action == "donate" && option == "go" ) {
-  zmWindow();
+if ( action == 'donate' && option == 'go' ) {
+  zmWindow('/donate/');
 }

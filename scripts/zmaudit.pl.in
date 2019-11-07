@@ -112,22 +112,22 @@ if ( -e ZM_AUDIT_PID ) {
 
 if ( open( my $PID, '>', ZM_AUDIT_PID ) ) {
   print( $PID $$ );
-  close( $PID );
+  close($PID);
 } else {
-  Error( "Can't open pid file at " . ZM_PID );
+  Error('Can\'t open pid file at '.ZM_PID);
 }
 
 sub HupHandler {
-  Info("Received HUP, reloading");
+  Info('Received HUP, reloading');
   &ZoneMinder::Logger::logHupHandler();
 }
 sub TermHandler {
-  Info("Received TERM, exiting");
+  Info('Received TERM, exiting');
   Term();
 }
 sub Term {
   unlink ZM_AUDIT_PID;
-  exit( 0 );
+  exit(0);
 }
 $SIG{HUP} = \&HupHandler;
 $SIG{TERM} = \&TermHandler;
@@ -154,7 +154,7 @@ MAIN: while( $loop ) {
     # if we are running continuously, then just skip to the next
     # interval, otherwise we are a one off run, so wait a second and
     # retry until someone kills us.
-    sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
+    sleep($Config{ZM_AUDIT_CHECK_INTERVAL});
   } else {
     sleep 1;
   } # end if
@@ -168,7 +168,7 @@ MAIN: while( $loop ) {
         # if we are running continuously, then just skip to the next
         # interval, otherwise we are a one off run, so wait a second and
         # retry until someone kills us.
-        sleep( $Config{ZM_AUDIT_CHECK_INTERVAL} );
+        sleep($Config{ZM_AUDIT_CHECK_INTERVAL});
       } else {
         Term();
       } # end if
@@ -186,9 +186,9 @@ MAIN: while( $loop ) {
     }
     Info("Auditing Storage Area $Storage_Areas[0]{Id} $Storage_Areas[0]{Name} at $Storage_Areas[0]{Path}");
   } elsif ( $server_id ) {
-    @Storage_Areas = ZoneMinder::Storage->find( ServerId => $server_id );
+    @Storage_Areas = ZoneMinder::Storage->find(ServerId => $server_id);
     if ( ! @Storage_Areas ) {
-      Error("No Storage Area found with ServerId =" . $server_id);
+      Error('No Storage Area found with ServerId='.$server_id);
       Term();
     }
     foreach my $Storage ( @Storage_Areas ) {
@@ -196,7 +196,7 @@ MAIN: while( $loop ) {
     }
   } else {
     @Storage_Areas = ZoneMinder::Storage->find();
-    Info("Auditing All Storage Areas");
+    Info('Auditing All Storage Areas');
   }
 
   my %Monitors;
@@ -764,7 +764,7 @@ if ( $level > 1 ) {
 #WHERE isnull(E.Frames) or isnull(E.EndTime)
 #GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}.' second)'
 #;
-    'SELECT *, unix_timestamp(`StartTime`) AS `TimeStamp` FROM `Events` WHERE `EndTime` IS NULL AND `StartTime` < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)';
+    'SELECT *, unix_timestamp(`StartTime`) AS `TimeStamp` FROM `Events` WHERE `EndTime` IS NULL AND `StartTime` < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)'.($monitor_id?' AND MonitorId=?':'');
 
   my $selectFrameDataSql = '
 SELECT
@@ -776,9 +776,9 @@ SELECT
   max(`Score`) AS `MaxScore`
 FROM `Frames` WHERE `EventId`=?';
   my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
-    or Fatal( "Can't prepare '$selectFrameDataSql': ".$dbh->errstr() );
+    or Fatal("Can't prepare '$selectFrameDataSql': ".$dbh->errstr());
 
-  my $selectUnclosedEventsSth = $dbh->prepare_cached( $selectUnclosedEventsSql )
+  my $selectUnclosedEventsSth = $dbh->prepare_cached($selectUnclosedEventsSql)
     or Fatal("Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr());
   my $updateUnclosedEventsSql =
     "UPDATE low_priority `Events`
@@ -795,7 +795,7 @@ FROM `Frames` WHERE `EventId`=?';
           ;
   my $updateUnclosedEventsSth = $dbh->prepare_cached( $updateUnclosedEventsSql )
     or Fatal("Can't prepare '$updateUnclosedEventsSql': ".$dbh->errstr());
-  $res = $selectUnclosedEventsSth->execute()
+  $res = $selectUnclosedEventsSth->execute($monitor_id?$monitor_id:())
     or Fatal("Can't execute: ".$selectUnclosedEventsSth->errstr());
   while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() ) {
     aud_print("Found open event '$event->{Id}' on Monitor $event->{MonitorId} at $$event{StartTime}");
@@ -824,7 +824,7 @@ FROM `Frames` WHERE `EventId`=?';
            $frame->{MaxScore},
            RECOVER_TEXT,
            $event->{Id}
-          ) or Error( 'Can\'t execute: '.$updateUnclosedEventsSth->errstr() );
+          ) or Error('Can\'t execute: '.$updateUnclosedEventsSth->errstr());
       } else {
         Error('SHOULD DELETE');
       } # end if has frame data

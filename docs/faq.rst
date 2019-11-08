@@ -1,8 +1,11 @@
 FAQ
 =====
 
+.. todo:: needs to be reviewed - some entries may be old/invalid. I've done one round, but icOn needs to review.
+
 This is the FAQ page. Feel free to contribute any FAQs that you think are missing.
 
+.. note:: It is always a good idea to refer to the `ZoneMinder forums <https://forums.zoneminder.com/viewforum.php?f=26&sid=fc93f65726d3a29fbf6f610b21f52b16>`__ for tips and tricks. While we try and make sure this FAQ is pruned/adjusted to align with the latest stable release, some of the entries may no longer be accurate (or there may be better suggestions in the forums).
 
 How can I stop ZoneMinder filling up my disk?
 ---------------------------------------------
@@ -29,22 +32,21 @@ To delete events that are older than 7 days, create a new filter with "Date" set
 Save with 'Run Filter In Background' enabled to have it run automatically.
 Optional skip archived events:  click on the plus sign next to -7 days to add another condition.  "and" "archive status" equal to "unarchived only".
 
-Optional slow delete:  limit the number of results to 3.  If you have a large backlog of events that would be deleted, this can hard spike the CPU usage for a long time.  Limiting the number of results to only the first three each time the filter is run spreads out the delete processes over time, dramatically lessening the CPU load.
+Optional slow delete:  limit the number of results to a number, say ``10`` in the filter.  If you have a large backlog of events that would be deleted, this can hard spike the CPU usage for a long time.  Limiting the number of results to only the first three each time the filter is run spreads out the delete processes over time, dramatically lessening the CPU load.
+
+
+.. warning:: We no longer recommend use enable ``OPT_FAST_DELETE`` or ``RUN_AUDIT`` anymore, unless you are using an old or low powered system to run Zoneminder. Please consider the remaining tips in this answer to be 'generally deprecated, use only if you must'.
 
 There are two methods for ZM to remove files when they are deleted that can be found in Options under the System tab ZM_OPT_FAST_DELETE and ZM_RUN_AUDIT.
 
 
 ZM_OPT_FAST_DELETE:
 
-Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if you are trying to do a lot of events at once. If you are running on an older or under-powered system, you may want to set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later. If you do so, disk space will not be freed immediately so you will need to run zmaudit more frequently.  On modern systems, we recommend that you leave this off.
-
-
+Normally an event created as the result of an alarm consists of entries in one or more database tables plus the various files associated with it. When deleting events in the browser it can take a long time to remove all of this if you are trying to do a lot of events at once. If you are running on an older or under-powered system, you may want to set this option which means that the browser client only deletes the key entries in the events table, which means the events will no longer appear in the listing, and leaves the zmaudit daemon to clear up the rest later. If you do so, disk space will not be freed immediately so you will need to run zmaudit more frequently.  On modern systems, we recommend that you leave this **off**.
 
 ZM_RUN_AUDIT:
 
 The zmaudit daemon exists to check that the saved information in the database and on the file system match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is recommended for most systems however if you have a very large number of events the process of scanning the database and file system may take a long time and impact performance. In this case you may prefer to not have zmaudit running unconditionally and schedule occasional checks at other, more convenient, times.
-
-
 
 ZM_AUDIT_CHECK_INTERVAL:
 
@@ -64,12 +66,15 @@ In *general* a good estimate of memory required would be:
 	Min Bits of Memory = 20% overhead * (image-width*image-height*image buffer size*target color space*number of cameras) 
 
 Where:
+
 * image-width and image-height are the width and height of images that your camera is configured for (in my case, 1280x960). This value is in the Source tab for each monitor
 * image buffer size is the # of images ZM will keep in memory (this is used by ZM to make sure it has pre and post images before detecting an alarm - very useful because by the time an alarm is detected, the reason for the alarm may move out of view and a buffer is really useful for this, including for analyzing stats/scores). This value is in the buffers tab for each monitor
 * target color space is the color depth - 8bit, 24bit or 32bit. It's again in the source tab of each monitor
-The 1.2 at the start is basically adding 20% on top of the calculation to account for image/stream overheads (this is an estimate)
+
+The 20% overhead on top of the calculation to account for image/stream overheads (this is an estimate)
 
 The math breakdown for 4 cameras running at 1280x960 capture, 50 frame buffer, 24 bit color space:
+
 ::
 
 	1280*960 = 1,228,800 (bytes)
@@ -96,8 +101,6 @@ So a good rule of thumb is to make sure you have twice the memory as the calcula
 As it turns out, ZM uses mapped memory and by default, 50% of your physical memory is what this will grow to. When you reach that limit , ZM breaks down with various errors.
 
 
-(**Note**: Mapped memory is applicable when you install ZoneMinder with mapped memory support, which is the default mode. If you have specifically disabled mapped memory then please see the next FAQ enty on how to increase shared memory)
-
 A good way to know how much memory is allocated to ZM for its operation is to do a ``df -h``
 
 A sample output on Ubuntu:
@@ -116,137 +119,42 @@ For example, if you want to increase this limit to 70% of your memory, add the f
 where SHMPATH is the ``Mounted on`` path.  Here, that would be ``/run/shm``.  Other systems may be ``/dev/shm``.
 
 
-What does a 'Can't shmget: Invalid argument' error in my logs mean? (and my camera does not display at higher resolutions)
---------------------------------------------------------------------------------------------------------------------------------------
-
-(*Note*: This is applicable for systems that have mapped memory disabled in ZoneMinder. By default, Mapped memory is enabled and unless you have disabled it manually, please refer to the "Math for Memory" question above and how to increase mapped memory limits)
-
-This error is discussed in the README in the following excerpt:-
-''...this is caused by an attempt to allocate an amount of shared memory greater than your system can handle. The size it requests is based on the following formula, ``ring buffer size x image width x image height x 3 (for 24 bit images) + a bit of overhead``.
-
-So, for example:
-
-::
-
-	384x288 capture resolution, that makes: 110 592 pixels
-	in 24 bit color that's x 3 = 331,776 bytes per frame 
-	by 80 frames ring buffer x80 = 26,542,080 bytes per camera 
-	by 4 cameras x4 = 106,168,320 bytes. 
-	Plus 10% overhead = 116,785,152 bytes 
-	Thats 114,048 kB, respectively 111.38 MB. 
-	If my shared memory is set to 134,217,728, which is exactly 128MB, 
-	that means I shouldn't have any problem.
-	(Note that 1kbyte = 1024bytes, 1MB = 1024 kB)
-
-If for instance you were using 24bit 640x480 then this would come to about 92Mb if you are using the default buffer size of 100. If this is too large then you can either reduce the image or buffer sizes or increase the maximum amount of shared memory available. If you are using RedHat then you can get details on how to change these settings `here <https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/tuning_and_optimizing_red_hat_enterprise_linux_for_oracle_9i_and_10g_databases/chap-oracle_9i_and_10g_tuning_guide-setting_shared_memory>`__
-
-You should be able to use a similar procedure  with other distributions to modify the shared memory pool without kernel recompilations though in some cases this may be necessary. Note, this error also sometimes occurs if you have an old shared memory segment lying around from a previous run that is too small. Use the ipcs and ipcrm system commands to check and remove it if necessary.'"
-
-You can often find out how many 4KB shared memory pages are available by typing the following :-
-
-::
-
-	# cat /proc/sys/kernel/shmall
-	2097152
-
-In recent kernels the shmall is set to 2097152 memory pages multiplied by 4096 bytes per page for a total of 8 GB of shared memory available.  You only need to increase the shmall value if you have a computer with more than 8GB of memory and wish to use more of it for shared memory usage, such as large databases.
-
-The most shared memory bytes you can allocate in one go :-
-
-::
-
-	# cat /proc/sys/kernel/shmmax
-	33554432
-
-In recent kernels the shmmax is set to 33554432 bytes for only 32 MB of maximum shared memory allocatable at a time, hardly enough for ZoneMinder to go above 320 x 240 x 24-bit resolution at 40 frames in the buffer if it is using the /dev/shm shared memory device, so this value needs to be increased.  If you are using ZoneMinder with the memory mapped (mmap) compile time option then this doesn't affect you.
-
-To change the value to 128 MB temporarily during this kernel execution type (for example) :-
-``echo 536870912 >/proc/sys/kernel/shmmax``
-
-*Be sure to restart ZoneMinder after this.*
-
-However be aware that sometimes you will only need to change the shmmax value as shmall is often large enough. Also changing these values in this way is only effective until your machine is rebooted. 
-
-To change them permanently you will need to edit ``/etc/sysctl.conf`` and add the following lines (for example) :-
-``kernel.shmmax = 536870912``
-
-Or if your distribution has the ``/etc/sysctl.d/`` folder you can create a file in this folder without modifying the ``/etc/sysctl.d`` so you won't lose the changes during distro upgrades :-
-```echo kernel.shmmax = 536870912 >/etc/sysctl.d/60-kernel-shm.conf```
-
-To load these settings in the sysctl.conf file type:
-``sysctl -p``
-
-To check your shared memory settings type:
-``ipcs -l``
-
-Note that with Megapixel cameras like the Axis 207mw becoming cheaper and more attractive, the above memory settings are not adequate. To get Zoneminder working with a full 1280x1024 resolution camera in full color, increase ``134217728`` (128 MB) to, for example, ``268435456`` (256 MB) and multiple this value by each camera.
-
-These changes will now also be set the next time your machine is restarted.
-
-Versions 1.24.x of ZoneMinder also allows you to use an alternate method of shared memory allocation, `Mmap mapped memory <https://en.wikipedia.org/wiki/Mmap>`__ . This requires less configuration and can be simpler to use. Mapped memory allows you to use a special type of file as the placeholder for your memory and this file is 'mapped' into memory space for easy and fast access.
-
-To enable mapped memory in ZoneMinder you need add add the --enable--mmap=yes switch to your configure line. By default mapped memory files are created in /dev/shm which on most distributions is a dedicated pseudo-partition containing memory formatted as a filesystem. If your system uses a different path then this can be changed in ZoneMinder in Options->paths->PATH_MAP. It uses a filesystem type called `tmpfs <https://en.wikipedia.org/wiki/Tmpfs>`__. If you type ``df -h`` you should see this area and the size of memory it currently allows. To increase size for tmpfs you need to edit /etc/default/tmpfs. Search for:
-``SHM_SIZE=128M``
-and change to something like
-``SHM_SIZE=1G``
-then reboot the system. You could possibly need to change RUN_SIZE, too.
-
-It is important that you do not use a disk based filesystem for your memory mapped files as this will cause memory access to be extremely slow. ZoneMinder creates files called .zm.mmap.<monitor id> in the mapped memory filesystem.
-
-Mapped memory is subject to the same limitations in terms of total memory as using more traditional shared memory but does not require any configuration per allocation or chunk. In future versions of ZoneMinder this will be the default shared memory storage method.
-
-The essential difference was that the kernel.shmall setting is NOT in a direct memory setting in KB but in pages of memory. it is Max Pages of memory
-
-*For example:* If you want to allocate a maximum memory setting to 8GB you have to convert it to the number of pages (or segments).
-with a page size of 4096.
-kernel.shmall = 8000x1024x1024/4096
-``kernel.shmall = 2097152``
-NOT 8388608000 as would be suggested in the RedHat article linked above.
-
-shmmax is the max amount to allocate in one request - 
-this is is an actual memory size (as opposed to pages) set to 4GB
-``kernel.shmmax = 4294967296``
-
-The ``/etc/sysctl.conf`` would have these lines
-
-::
-
-	kernel.shmall = 2097152
-	kernel.shmmax = 4294967296</pre>
-
-As above, reload your sysctl.conf with ``sysctl -p`` and check that the settings are correct with ``ipcs -l``.
 
 I have enabled motion detection but it is not always being triggered when things happen in the camera view
 ---------------------------------------------------------------------------------------------------------------
 
-ZoneMinder uses zones to examine images for motion detection. When you create the initial zones you can choose from a number of preset values for sensitivity etc. Whilst these are usually a good starting point they are not always suitable for all situations and you will probably need to tweak the values for your specific circumstances. The meanings of the various settings are described in the documentation (`here <https://zoneminder.readthedocs.io/en/latest/userguide/definezone.html>`__) however if you believe you have sensible settings configured then there are two diagnostic approaches you can use.
+ZoneMinder uses zones to examine images for motion detection. When you create the initial zones you can choose from a number of preset values for sensitivity etc. Whilst these are usually a good starting point they are not always suitable for all situations and you will probably need to tweak the values for your specific circumstances. The meanings of the various settings are described in the documentation (`here <https://zoneminder.readthedocs.io/en/latest/userguide/definezone.html>`__). Another user contributed illustrated Zone definition guide can be found here: `An illustrated guide to Zones <https://wiki.zoneminder.com/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__
 
-Another user contributed illustrated Zone definition guide can be found here: `An illustrated guide to Zones <https://wiki.zoneminder.com/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__
+However if you believe you have sensible settings configured then there are diagnostic approaches you can use. 
+
 
 Event Statistics
 ^^^^^^^^^^^^^^^^^
-The first technique is to use event statistics. Firstly you should ensure they are switched on in Options->Logging->RECORD_EVENT_STATS. This will then cause the raw motion detection statistics for any subsequently generated events to be written to the DB. These can then be accessed by first clicking on the Frames or Alarm Frames values of the event from any event list view in the web gui. Then click on the score value to see the actual values that caused the event. Alternatively the stats can be accessed by clicking on the 'Stats' link when viewing any individual frame. The values displayed there correspond with the values that are used in the zone configuration and give you an idea of what 'real world' values are being generated. 
+The first technique is to use event statistics. Firstly you should ensure they are switched on in ``Options->Logging->RECORD_EVENT_STATS``. This will then cause the raw motion detection statistics for any subsequently generated events to be written to the DB. These can then be accessed by first clicking on the Frames or Alarm Frames values of the event from any event list view in the web gui. Then click on the score value to see the actual values that caused the event. Alternatively the stats can be accessed by clicking on the 'Stats' link when viewing any individual frame. The values displayed there correspond with the values that are used in the zone configuration and give you an idea of what 'real world' values are being generated. 
 
 Note that if you are investigating why events 'do not' happen then these will not be saved and so won't be accessible. The best thing to do in that circumstance is to make your zone more sensitive so that it captures all events (perhap even ones you don't want) so you can get an idea of what values are being generated and then start to adjust back to less sensitive settings if necessary. You should make sure you test your settings under a variety of lighting conditions (e.g. day and night, sunny or dull) to get the best feel for that works and what doesn't.
 
 Using statistics will slow your system down to a small degree and use a little extra disk space in the DB so once you are happy you can switch them off again. However it is perfectly feasible to keep them permanently on if your system is able to cope which will allow you to review your setting periodically.
 
-Diagnostic Images
-^^^^^^^^^^^^^^^^^^^^
-The second approach is to use diagnostic images which are saved copies of the intermediate images that ZM uses when determining motion detection. These are switched on and off using Options->Logging->RECORD_DIAG_IMAGES.
+Diagnostic Images along with FIFO
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The second approach is to use diagnostic images which are saved copies of the intermediate images that ZM uses when determining motion detection. These are switched on and off using ``Options->Logging->RECORD_DIAG_IMAGES``.
+
+.. note:: In addition to the detailed explanation below, a recently added ``RECORD_DIAG_IMAGES_FIFO`` option, also available in ``Options->Logging`` can be an invaluable tool to see how your current motion settings are affecting motion detection. The ``delta`` stream along with the ``raw`` (json output) stream can be invaluable to see the effect in real time. Please refer to the explanation of this feature in :doc:`/userguide/options/options_logging`
 
 There are two kinds of diagnostic images which are and are written (and continuously overwritten) to the top level monitor event directory. If an event occurs then the files are additionally copied to the event directory and renamed with the appropriate frame number as a prefix.
 
-The first set are produced by the monitor on the image as a whole. The diag-r.jpg image is the current reference image against which all individual frames are compared and the diag-d.jpg image is the delta image highlighting the difference between the reference image and the last analysed image. In this images identical pixels will be black and the more different a pixel is the whiter it will be. Viewing this image and determining the colour of the pixels is a good way of getting a feel for the pixel differences you might expect (often more than you think).
+The first set are produced by the monitor on the image as a whole. The ``diag-r.jpg`` image is the current reference image against which all individual frames are compared and the ``diag-d.jpg`` image is the delta image highlighting the difference between the reference image and the last analysed image. In this images identical pixels will be black and the more different a pixel is the whiter it will be. Viewing this image and determining the colour of the pixels is a good way of getting a feel for the pixel differences you might expect (often more than you think).
 
-The second set of diag images are labelled as diag-<zoneid>-<stage>.jpg where zoneid is the id of the zone in question (Smile) and the stage is where in the alarm check process the image is generated from. So if you have several zones you can expect to see multiple files. Also these files are only interested in what is happening in their zone only and will ignore anything else outside of the zone. The stages that each number represents are as follows,
+The second set of diag images are labelled as ``diag-<zoneid>-<stage>.jpg`` where zoneid is the id of the zone in question (Smile) and the stage is where in the alarm check process the image is generated from. So if you have several zones you can expect to see multiple files. Also these files are only interested in what is happening in their zone only and will ignore anything else outside of the zone. The stages that each number represents are as follows,
 
-# Alarmed Pixels - This image shows all pixels in the zone that are considered to be alarmed as white pixels and all other pixels as black.
-# Filtered Pixels - This is as stage one except that all pixels removed by the filters are now black. The white pixels represent the pixels that are candidates to generate an event.
-# Raw Blobs - This image contains all alarmed pixels from stage 2 but aggrageted into blobs. Each blob will have a different greyscale value (between 1 and 254) so they can be difficult to spot with the naked eye but using a colour picker or photoshop will make it easier to see what blob is what.
-# Filtered Blobs - This image is as stage 3 but under (or over) sized blobs have been removed. This is the final step before determining if an event has occurred, just prior to the number of blobs being counted. Thus this image forms the basis for determining whether an event is generated and outlining on alarmed images is done from the blobs in this image.
+* Alarmed Pixels - This image shows all pixels in the zone that are considered to be alarmed as white pixels and all other pixels as black.
+* Filtered Pixels - This is as stage one except that all pixels removed by the filters are now black. The white pixels represent the pixels that are candidates to generate an event.
+* Raw Blobs - This image contains all alarmed pixels from stage 2 but aggrageted into blobs. Each blob will have a different greyscale value (between 1 and 254) so they can be difficult to spot with the naked eye but using a colour picker or photoshop will make it easier to see what blob is what.
+* Filtered Blobs - This image is as stage 3 but under (or over) sized blobs have been removed. This is the final step before determining if an event has occurred, just prior to the number of blobs being counted. Thus this image forms the basis for determining whether an event is generated and outlining on alarmed images is done from the blobs in this image.
 
 Using the above images you should be able to tell at all stages what ZM is doing to determine if an event should happen or not. They are useful diagnostic tools but as is mentioned elsewhere they will massively slow your system down and take up a great deal more space. You should never leave ZM running for any length of time with diagnostic images on.
+
 
 Why can't ZoneMinder capture images (either at all or just particularly fast) when I can see my camera just fine in xawtv or similar?
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -257,14 +165,14 @@ On average a card that can capture at 25fps per chip PAL for one input will do m
 
 When using xawtv etc to view the stream you are not looking at an image captured using the frame grabber but the card's video memory mapped onto your screen. This requires no capture or processing unless you do an explicit capture via the J or ctrl-J keys for instance. Some cards or drivers do not support the frame grabber interface at all so may not work with ZoneMinder even though you can view the stream in xawtv. If you can grab a still using the grab functionality of xawtv then in general your card will work with ZoneMinder.
 
-Why can't I see streamed images when I can see stills in the Zone window etc?
+Why can't I see streamed images when I can see stills in the zone window etc?
 -------------------------------------------------------------------------------------
 
 This issue is normally down to one of two causes
 
-1) You are using Internet Explorer and are trying to view multi-part jpeg streams. IE does not support these streams directly, unlike most other browsers. You will need to install Cambozola or another multi-part jpeg aware plugin to view them. To do this you will need to obtain the applet from the Downloads page and install the cambozola.jar file in the same directory as the ZoneMinder php files. Then find the ZoneMinder Options->Images page and enable ZM_OPT_CAMBOZOLA and enter the web path to the .jar file in ZM_PATH_CAMBOZOLA. This will ordinarily just be cambozola.jar. Provided (Options / B/W tabs) WEB_H_CAN_STREAM is set to auto and WEB_H_STREAM_METHOD is set to jpeg then Cambozola should be loaded next time you try and view a stream.
+1) You are using Internet Explorer and are trying to view multi-part jpeg streams. IE does not support these streams directly, unlike most other browsers. You will need to install Cambozola or another multi-part jpeg aware plugin to view them. To do this you will need to obtain the applet from the Downloads page and install the cambozola.jar file in the same directory as the ZoneMinder php files. Then find the ZoneMinder Options->Images page and enable ``OPT_CAMBOZOLA`` and enter the web path to the .jar file in ``PATH_CAMBOZOLA``. This will ordinarily just be cambozola.jar. Provided (Options / B/W tabs) ``WEB_H_CAN_STREAM`` is set to auto and ``WEB_H_STREAM_METHOD`` is set to jpeg then Cambozola should be loaded next time you try and view a stream.
 
-'''NOTE''': If you find that the Cambozola applet loads in IE but the applet just displays the version # of Cambozola and the author's name (as opposed to seeing the streaming images), you may need to chmod (''-rwxrwxr-x'') your (''usr/share/zoneminder/'') cambozola.jar:
+**NOTE**: If you find that the Cambozola applet loads in IE but the applet just displays the version  of Cambozola and the author's name (as opposed to seeing the streaming images), you may need to chmod (``-rwxrwxr-x``) your (``usr/share/zoneminder/``) cambozola.jar:
 
 ::
 
@@ -272,9 +180,7 @@ This issue is normally down to one of two causes
 
 Once I did this, images started to stream for me.
 
-2) The other common cause for being unable to view streams is that you have installed the ZoneMinder cgi binaries (zms and nph-zms) in a different directory than your web server is expecting. Make sure that the --with-cgidir option you use to the ZoneMinder configure script is the same as the CGI directory configure for your web server. If you are using Apache, which is the most common one, then in your httpd.conf file there should be a line like ``ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"`` where the last directory in the quotes is the one you have specified. If not then change one or the other to match. Be warned that configuring apache can be complex so changing the one passed to the ZoneMinder configure (and then rebuilding and reinstalling) is recommended in the first instance. If you change the apache config you will need to restart apache for the changes to take effect. If you still cannot see stream reliably then try changing Options->Paths->ZM_PATH_ZMS to just use zms if nph-zms is specified, or vice versa. Also check in your apache error logs.
-
-Also, please check the value of the ZM_PATH_ZMS setting under the Paths Options tab.  It is where you configure the URL to the zms or nph-zms CGI executable.  Under most Debian-based distros this value should be /zm/cgi-bin/nph-zms but in the past may have been /cgi-bin/nph-zms or you may have configured it to be something else.  
+2) The other common cause for being unable to view streams is that you have installed the ZoneMinder cgi binaries (zms and nph-zms) in a different directory than your web server is expecting. Make sure that the --with-cgidir option you use to the ZoneMinder configure script is the same as the CGI directory configure for your web server. If you are using Apache, which is the most common one, then in your httpd.conf file there should be a line like ``ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"`` where the last directory in the quotes is the one you have specified. If not then change one or the other to match. Be warned that configuring apache can be complex so changing the one passed to the ZoneMinder configure (and then rebuilding and reinstalling) is recommended in the first instance. If you change the apache config you will need to restart apache for the changes to take effect. If you still cannot see stream reliably then try changing ``ZM_PATH_ZMS`` in your ``/etc/zm/config`` directory to just use zms if nph-zms is specified, or vice versa. Also check in your apache error logs.
 
 Lastly, please look for errors created by the zmc processes.  If zmc isn't running, then zms will not be able to get an image from it and will exit.
 
@@ -300,6 +206,11 @@ change the 3 to a 1
 	network.http.max-persistent-connections-per-proxy -> 100 again
 	network.http.max-persistent-connections-per-server -> 100 again
 
+
+I can't see more than 6 monitors in montage on my browser
+---------------------------------------------------------
+Browsers such a Chrome and Safari only support upto 6 streams from the same domain. To work around that, take a look at the multi-port configuration discussed in  the ``MIN_STREAMING_PORT`` configuration in :doc:`/userguide/options/options_network`
+
 Why is ZoneMinder using so much CPU?
 ---------------------------------------
 
@@ -313,8 +224,8 @@ The main causes are.
 	* Big image sizes. A image of 640x480 requires at least four times the processing of a 320x240 image. Experiment with different sizes to see what effect it may have. Sometimes a large image is just two interlaced smaller frames so has no real benefit anyway. This is especially true for analog cameras/cards as image height over 320 (NTSC) or 352 PAL) are invariably interlaced.
 	* Capture frame rates. Unless there's a compelling reason in your case there is often little benefit in running cameras at 25fps when 5-10fps would often get you results just as good. Try changing your monitor settings to limit your cameras to lower frame rates. You can still configure ZM to ignore these limits and capture as fast as possible when motion is detected.
 	* Run function. Obviously running in Record or Mocord modes or in Modect with lots of events generates a lot of DB and file activity and so CPU and load will increase.
-	*  Basic default detection zones. By default when a camera is added one detection zone is added which covers the whole image with a default set of parameters. If your camera covers a view in which various regions are unlikely to generate a valid alarm (ie the sky) then I would experiment with reducing the zone sizes or adding inactive zones to blank out areas you don't want to monitor. Additionally the actual settings of the zone themselves may not be optimal. When doing motion detection the number of changed pixels above a threshold is examined, then this is filter, then contiguous regions are calculated to see if an alarm is generated. If any maximum or minimum threshold is exceeded according to your zone settings at any time the calculation stops. If your settings always result in the calculations going through to the last stage before being failed then additional CPU time is used unnecessarily. Make sure your maximum and minimumzone thresholds are set to sensible values and experiment by switching RECORD_EVENT_STATS on and seeing what the actual values of alarmed pixels etc are during sample events.
-	* Optimise your settings. After you've got some settings you're happy with then switching off RECORD_EVENT_STATS will prevent the statistics being written to the database which saves some time. Other settings which might make a difference are ZM_FAST_RGB_DIFFS and the JPEG_xxx_QUALITY ones.
+	*  Basic default detection zones. By default when a camera is added one detection zone is added which covers the whole image with a default set of parameters. If your camera covers a view in which various regions are unlikely to generate a valid alarm (ie the sky) then I would experiment with reducing the zone sizes or adding inactive zones to blank out areas you don't want to monitor. Additionally the actual settings of the zone themselves may not be optimal. When doing motion detection the number of changed pixels above a threshold is examined, then this is filter, then contiguous regions are calculated to see if an alarm is generated. If any maximum or minimum threshold is exceeded according to your zone settings at any time the calculation stops. If your settings always result in the calculations going through to the last stage before being failed then additional CPU time is used unnecessarily. Make sure your maximum and minimumzone thresholds are set to sensible values and experiment by switching ``RECORD_EVENT_STATS`` on and seeing what the actual values of alarmed pixels etc are during sample events.
+	* Optimise your settings. After you've got some settings you're happy with then switching off ``RECORD_EVENT_STATS`` will prevent the statistics being written to the database which saves some time. Other settings which might make a difference are ``ZM_FAST_RGB_DIFFS`` and the ``JPEG_xxx_QUALITY`` ones.
 
 I'm sure there are other things which might make a difference such as what else you have running on the box and memory sizes (make sure there's no swapping going on). Also speed of disk etc will make some difference during event capture and also if you are watching the whole time then you may have a bunch of zms processes running also.
 
@@ -328,9 +239,11 @@ Using the timeline view is only recommended when using FireFox, however even the
 
 This function has from time to time been corrupted in the SVN release or in the stable releases, try and reinstall from a fresh download.
 
+.. _disk_bw_faq:
+
 How much Hard Disk Space / Bandwidth do I need for ZM?
 ---------------------------------------------------------------
-Please see `this excel sheet <https://www.jpwilson.eu/ZM_Utils/ZM%20storage%20calc%20sheet.xls>`__ or  `this online excel sheet <https://docs.google.com/spreadsheets/d/1G2Er8fZ_lWQv9QV8qf9yGCMkiUG03a-UwgLLxzCL0OY/edit#gid=49279749>`__ (both are user contributed excel sheets)
+Please see `this online excel sheet <https://docs.google.com/spreadsheets/d/1iPMCGwlXiW8WnQuewgFhUqBs7ZaPKqXDkBtCQVHR6H0/edit?usp=sharing>`__. Note that this is just an estimate
 
 Or go to `this link <http://www.axis.com/products/video/design_tool/v2/>`__ for the Axis bandwidth calculator. Although this is aimed at Axis cameras it still produces valid results for any kind of IP camera.
 
@@ -351,38 +264,13 @@ Note that SELinux may cause errors other than those listed above. If you are in 
 
 How do I enable ZoneMinder's security?
 -------------------------------------------
-In the console, click on Options. Check the box next to "ZM_OPT_USE_AUTH". You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
+In the console, click on ``Options->System``. Check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The default username is 'admin' and the password is 'admin'.
 
 To Manage Users:
-In main console, go to Options->Users.
+In main console, go to ``Options->Users``.
 
-You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features;
+You may also consider to use the web server security, for example, htaccess files under Apache scope; You may even use this as an additional/redundant security on top of Zoneminders built-in security features. Note that if you choose to enable webserver auth, zmNinja may have issues. Please read the `zmNinja FAQ on basic authentication <https://zmninja.readthedocs.io/en/latest/guides/FAQ.html#i-can-t-see-streams-i-use-basic-auth>`__ for more information. Also please note that zmNinja does not support digest authentication.
 
-Why does ZM stop recording once I have 32000 events for my monitor?
-------------------------------------------------------------------------
-Storing more than 32k files in a single folder is a limitation of some filesystems. To avoid this, enable USE_DEEP_STORAGE under Options.
-
-USE_DEEP_STORAGE is now the default for new ZoneMinder systems so this limitation should only apply to users upgrading from a previous version of ZoneMinder.
-
-Versions of ZM from 1.23.0 onwards allow you to have a deeper filesystem with fewer files per individual directory. As well as not being susceptible to the 32k limit, this is also somewhat faster. 
-
-If you have upgraded from a previous version of ZoneMinder and this option is not already enabled, it is very important to follow the steps below to enable it on an existing system. Failure to properly follow these steps **WILL RESULT IN LOSS OF YOUR DATA!**
-
-::
-
-	# Stop ZoneMinder
-	# Backup your event data and the dB if you have the available storage
-	# Enable USE_DEEP_STORAGE under Options.
-	# From the command line, run "sudo zmupdate.pl --migrate-events"
-	# Monitor the output for any events that fail to convert.
-	# After the conversion completes, you can restart ZoneMinder
-
-Note that you can re-run the migrate-events command if any error messages scroll off the screen.
-
-You can read about the lack of a limit in the number of sub-directories in the ext4 filesystem at: `this link <https://kernelnewbies.org/Ext4>`__
-and see what tools may assist in your use of this filesystem `here <https://ext4.wiki.kernel.org/index.php/Ext4_Howto>`__
-If you search for ext3 or reiserfs on the forums you will find various threads on this issue with guidance on
-how to convert.
 
 Managing system load (with IP Cameras in mind)
 ----------------------------------------------------
@@ -440,49 +328,14 @@ More expensive options:
 
 	* Try building Zoneminder with processor specific instructions that are optimised to the system it will be running on, also increasing the optimisation level of GCC beyond -O2 will help.  This topic is beyond the scope of this document.
 
-Processor specific commands can be found in the GCC manual along with some more options that may increase performance. 
-`<https://gcc.gnu.org/onlinedocs/gcc/>`__
+Processor specific commands can be found in the `GCC manual <https://gcc.gnu.org/onlinedocs/gcc/>`__ along with some more options that may increase performance. 
+
 
 What about disks and bandwidth?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 A typical 100mbit LAN will cope with most setups easily. If you're feeding from cameras over smaller or internet links, obviously fps will be much lower.
 
-Disk and Bandwidth calculators are referenced on the Zoneminder wiki here: https://zoneminder.readthedocs.io/en/latest/faq.html#how-much-hard-disk-space-bandwidth-do-i-need-for-zm
-
-
-Building ZoneMinder
---------------------
-
-When running configure I am getting a lot of messages about not being able to compile the ffmpeg libraries
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you see output from configure that looks like this
-
-::
-
-	checking libavcodec/avcodec.h usability... no
-	checking libavcodec/avcodec.h presence... yes
-	configure: WARNING: libavcodec/avcodec.h: present but cannot be compiled
-	configure: WARNING: libavcodec/avcodec.h:     check for missing
-	prerequisite headers?
-	configure: WARNING: libavcodec/avcodec.h: see the Autoconf documentation
-	configure: WARNING: libavcodec/avcodec.h:     section "Present But
-	Cannot Be Compiled"
-	configure: WARNING: libavcodec/avcodec.h: proceeding with the compiler's
-	result
-	configure: WARNING:     ## ------------------------------------- ##
-	configure: WARNING:     ## Report this to support@zoneminder.com ##
-	configure: WARNING:     ## ------------------------------------- ##</pre>
-
-then it is caused not by the ZoneMinder build system but ffmpeg itself. However there is a workaround you can use which is to add ``CPPFLAGS=-D__STDC_CONSTANT_MACROS``
-
-to the ZoneMinder ``./configure`` command which should solve the issue. However this is not a proper 'fix' as such, which can only come from the ffmpeg project itself.
-
-I cannot build ZoneMinder and am getting lots of undefined C++ template errors
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-This is almost certainly due to the 'ccache' package which attempts to speed up compilation by caching compiled objects. Unfortunately one of the side effects is that it breaks the GNU g++ template resolution method that ZoneMinder uses in building by prevent files getting recompiled. The simplest way around this is to remove the ccache package using your distros package manager.
+Disk and Bandwidth calculators are referenced in :ref:`disk_bw_faq`.
 
 How do I build for X10 support?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -520,50 +373,10 @@ Although the example above describes changing states at different times of day, 
 
 How can I use ZoneMinder to trigger something else when there is an alarm?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ZoneMinder includes a perl API which means you can create a script to interact with the ZM shared memory data and use it in your own scripts to react to ZM alarms or to trigger ZM to generate new alarms. Full details are in the README or by doing ``perldoc ZoneMinder``, ``perldoc ZoneMinder::SharedMem`` etc.
-Below is an example script that checks all monitors for alarms and when one occurs, prints a message to the screen. You can add in your own code to make this reaction a little more useful.
+ZoneMinder includes a perl API which means you can create a script to interact with the ZM shared memory data and use it in your own scripts to react to ZM alarms or to trigger ZM to generate new alarms. Full details are in the README or by doing ``perldoc ZoneMinder``  etc.
 
-::
+ZoneMinder provides a sample alarm script called `zmalarm.pl <https://github.com/ZoneMinder/zoneminder/blob/master/utils/zm-alarm.pl>`__ that you can refer to as a starting point.
 
-	#!/usr/bin/perl -w
-
-	use strict;
-
-	use ZoneMinder;
-
-	$| = 1;
-
-	zmDbgInit( "myscript", level=>0, to_log=>0, to_syslog=>0, to_term=>1 );
-
-	my $dbh = DBI->connect( "DBI:mysql:database=".ZM_DB_NAME.";host=".ZM_DB_HOST, ZM_DB_USER, ZM_DB_PASS );
-
-	my $sql = "select M.*, max(E.Id) as LastEventId from Monitors as M left join Events as E on M.Id = E.MonitorId where M.Function != 'None' group by (M.Id)";
-	my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-
-	my $res = $sth->execute() or die( "Can't execute '$sql': ".$sth->errstr() );
-	my @monitors;
-	while ( my $monitor = $sth->fetchrow_hashref() )
-	{
-	    push( @monitors, $monitor );
-	}
-
-	while( 1 )
-	{
-	    foreach my $monitor ( @monitors )
-	    {
-		next if ( !zmMemVerify( $monitor ) );
-	 
-		if ( my $last_event_id = zmHasAlarmed( $monitor, $monitor->{LastEventId} ) )
-		{
-		    $monitor->{LastEventId} = $last_event_id;
-		    print( "Monitor ".$monitor->{Name}." has alarmed\n" );
-		    #
-		    # Do your stuff here
-		    #
-		}
-	    }
-	    sleep( 1 );
-	}
 
 Trouble Shooting
 -------------------
@@ -572,13 +385,9 @@ This is also how to obtain the info that we need to help you on the forums.
 
 What logs should I check for errors?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ZoneMinder creates its own logs and are usually located in the ``/tmp`` directory.
+ZoneMinder creates its own logs and are usually located in the ``/var/log/`` directory. Refer to the logging discussion in :doc:`/userguide/options/options_logging` for more details on where logs are stored and how to enable various log levels.
 
-The ZoneMinder logs for the RPM packages are located in ``/var/log/zm``.
-
-Depending on your problem errors can show up in any of these logs but, usually the logs of interest are ``zmdc.log`` and ``zmpkg.log`` if ZM is not able to start.
-
-Now since ZM is dependent on other components to work, you might not find errors in ZM but in the other components.
+Since ZM is dependent on other components to work, you might not find errors in ZM but in the other components.
 
 :: 
 
@@ -593,8 +402,6 @@ If ZM is not functioning, you should always be able to find an error in at least
 
 This will append any data entered to any of these logs to your console screen (``-f``). To exit, hit [ctrl -c].
 
-
-More verbose logging for the ZoneMinder binaries is available by enabling the debug option from the control panel and will be placed in the path you have configured for the debug logs. Output can be limited to a specific binary as described in the Debug options page under the "?" marks.
 
 How can I trouble shoot the hardware and/or software?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -619,24 +426,28 @@ The apache web server needs to have the right permissions and configuration to b
 Why am I getting broken images when trying to view events?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Zoneminder and the Apache web server need to have the right permissions. Check this forum topic and similar ones:
-https://forums.zoneminder.com/viewtopic.php?p=48754
+Zoneminder and the Apache web server need to have the right permissions. Check `this forum topic <https://forums.zoneminder.com/viewtopic.php?p=48754>`__ and similar ones:
+
 
 
 I can review events for the current day, but ones from yesterday and beyond error out
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you've checked that the `www-data` user has permissions to the storage folders, perhaps your php.ini's timezone setting is incorrect. They _must_ match for certain playback functions. 
+If you've checked that the ``www-data`` user has permissions to the storage folders, perhaps your php.ini's timezone setting is incorrect. They _must_ match for certain playback functions. 
 
-If you're using Linux, this can be found using the following command: ::
+If you're using Linux, this can be found using the following command: 
+
+::
 
   timedatectl | grep "Time zone"
 
-If using FreeBSD, you can use this one-liner: ::
+If using FreeBSD, you can use this one-liner: 
+
+::
 
   cd /usr/share/zoneinfo/ && find * -type f -exec cmp -s {} /etc/localtime \; -print;
   
-Once you know what timezone your system is set to, open `/etc/php.ini` and adjust ``date.timezone`` to the appropriate value. the PHP daemon may need to be restarted for changes to take effect.
+Once you know what timezone your system is set to make sure you set the right time zone in ZM (Available in ``Options->System->TimeZone``)
 
 
 Why is the image from my color camera appearing in black and white?
@@ -651,39 +462,17 @@ If this camera is attached to a capture card, then you may have selected the wro
 
 Why do I only see black screens with a timestamp when monitoring my camera?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In the monitor windows where you see the black screen with a timestamp, select settings and enter the Brightness, Contrast, Hue, and Color settings reported for the device by '''zmu -d <device_path> -q -v'''.  32768 may be appropriate values to try for these settings.  After saving the settings, select Settings again to confirm they saved successfully.
+In the monitor windows where you see the black screen with a timestamp, select settings and enter the Brightness, Contrast, Hue, and Color settings reported for the device by ``zmu -d <device_path> -q -v``.  32768 may be appropriate values to try for these settings.  After saving the settings, select Settings again to confirm they saved successfully.
 
-I am getting messages about a backtrace in my logs, what do I do?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you are seeing entries in your log like the following
-
-::
-
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6 [0x3347230210]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6(memset+0xce) [0x334727684e]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x40ee9a]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x419946]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma [0x4213cf]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma(cos+0x35c) [0x404674]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /lib64/libc.so.6(__libc_start_main+0xf4) [0x334721da44]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: ERR [Backtrace: /usr/local/bin/zma(cos+0xd1) [0x4043e9]]
-	Jan 11 20:25:22 localhost zma_m2[19051]: INF [Backtrace complete]</pre>
-
-then you can help diagnose the problem by running a special command to translate the hex addresses into helpful information. This command is called addr2line and you can type 'man addr2line' for more information.
-Basically addr2line takes two sets of parameters, the first is the name of the binary file, and the second is a list of addresses. Both of these pieces of information are displayed in the logs. The filename is the first part after the 'Backtrace:' tag, in this case /usr/local/bin/zma, though it may well be different in your case. Some of the lines refer to libraries rather than the zma executable but those can be ignored for now, the important part is noting which ZM binary is involved. The binary file is passed in following the -e flag. The addresses to pass to addr2line are those contained in the '[]' pairs. Again you can ignore those that are on a line that refers to a library but it will not hurt if you include them.
-So in the example above, the command would be ``addr2line -e /usr/local/bin/zma 0x40ee9a 0x419946 0x4213cf 0x404674 0x4043e9``
-This should then dump out a more symbolic list containing source file names and line numbers, and it is this information which will be helpful if posted to the forums. Sometimes addr2line fails to produce useful output. This is usually because either the problem is so severe that it has corrupted the stack and prevented useful information from being displayed, or that you have either compiled ZM without the -g flag for debug, or you have stripped the binaries of symbol information after installation. This this case you would need to rebuild temporarily with debug enabled for the information to be useful.
-
-
-This error some times happens when a linked camera looses its link or it is corrupted by the user or some other system event, try deleting the affected cameras and recreating them in the Zoneminder console.
 
 How do I repair the MySQL Database?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 There is two ways to go about this. In most cases you can run from the command prompt ->
-* mysqlcheck --all-databases --auto-repair -p'''your_database_password''' -u '''your_databse_user'''
+``mysqlcheck --all-databases --auto-repair -p your_database_password -u your_databse_user``
 
-If that does not work then you will have to make sure that ZoneMinder is stopped then run the following (nothing should be using the database while running this and you will have to adjust for your correct path if it is different). ->
-* myisamchk --silent --force --fast --update-state -O key_buffer=64M -O sort_buffer=64M -O read_buffer=1M -O write_buffer=1M /var/lib/mysql/*/*.MYI 
+If that does not work then you will have to make sure that ZoneMinder is stopped then run the following (nothing should be using the database while running this and you will have to adjust for your correct path if it is different):
+
+``myisamchk --silent --force --fast --update-state -O key_buffer=64M -O sort_buffer=64M -O read_buffer=1M -O write_buffer=1M /var/lib/mysql/*/*.MYI``
 
 
 How do I repair the MySQL Database when the cli fails?
@@ -743,3 +532,6 @@ Can I use ZoneMinder as part of my commercial product?
 
 The GPL license allows you produce systems based on GPL software provided your systems also adhere to that license and any modifications you make are also released under the same terms.  The GPL does not permit you to include ZoneMinder in proprietary systems (see https://www.gnu.org/licenses/gpl-faq.html#GPLInProprietarySystem for details). If you wish to include ZoneMinder in this kind of system then you will need to license ZoneMinder under different terms. This is sometimes possible and you will need to contact me for further details in these circumstances.
 
+I am having issues with zmNinja and/or Event Notification Server
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+zmNinja and the Event Notification Server are 3rd party solutions. The developer maintains exhaustive `documentation and FAQs <https://zmninja.readthedocs.io/en/latest/>`__. Please direct your questions there.

@@ -1,9 +1,13 @@
 Options - High, Medium and Low B/W
 ----------------------------------
 
+There are a number of options that are grouped into bandwidth categories, this allows you to configure the ZoneMinder client to work optimally over the various access methods you might to access the client. You may want to use different modes depending on your network to preserve bandwidth.
+
+A partial screenshot is shown below:
+
 .. image:: images/Options_BW.png
 
-There are now a number of options that are grouped into bandwidth categories, this allows you to configure the ZoneMinder client to work optimally over the various access methods you might to access the client. The following options are available in H, M and L options. These 3 groups control what happens when the client is running in 'high', 'medium' and 'low' bandwidth mode respectively. In most cases the default values will be suitable as a starting point.
+The following options are available in H, M and L options. These 3 groups control what happens when the client is running in 'high', 'medium' and 'low' bandwidth mode respectively. In most cases the default values will be suitable as a starting point.
 
 High - You should set these options for when accessing the ZoneMinder client over a local network or high speed link.
 

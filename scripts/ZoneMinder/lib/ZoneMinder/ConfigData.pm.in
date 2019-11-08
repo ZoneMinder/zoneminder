@@ -2765,6 +2765,15 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_CSP_REPORT_URI',
+    default     =>  '',
+    description =>  'URI to report unsafe inline javascript violations to',
+    help        =>  q`
+    See https://en.wikipedia.org/wiki/Content_Security_Policy for more information.  When the browser detects unsafe inline javascript it will report it to this url, which may warn you of malicious attacks on your ZoneMinder install.`,
+    type        =>  $types{url},
+    category    =>  'system',
+  },
+  {
     name        => 'ZM_TELEMETRY_DATA',
     default     => 'no',
     description => 'Send usage information to ZoneMinder',

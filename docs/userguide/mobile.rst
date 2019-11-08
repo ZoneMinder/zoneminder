@@ -6,7 +6,7 @@ Here are some options for using ZoneMinder on Mobile devices:
 Third party mobile clients
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * zmNinja  (`source code <https://github.com/pliablepixels/zmNinja>`__,  needs APIs to be installed to work)
-	* Available in App Store and Play Store - `website <http://pliablepixels.github.io/zmNinja/>`__
+	* Available in App Store, Play Store and for Desktops - `website <http://pliablepixels.github.io/zmNinja/>`__
 
 Using the existing web console
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -17,5 +17,4 @@ Discontinued clients
 The following are a list of clients that do not work and have not been updated:
 
 * eyeZM
-* zmView (limited, free) and zmView Pro  (more features, paid) 
-	* Available in App Store and Play Store, relies on ZM skins
+* zmView 

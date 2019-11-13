@@ -185,6 +185,7 @@ VideoStore::VideoStore(
         );
     video_out_stream->avg_frame_rate = video_in_stream->avg_frame_rate;
   }
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   if ( video_in_stream->r_frame_rate.num ) {
     Debug(3,"Copying r_frame_rate (%d/%d) to out (%d/%d)",
         video_in_stream->r_frame_rate.num,
@@ -194,6 +195,7 @@ VideoStore::VideoStore(
         );
     video_out_stream->r_frame_rate = video_in_stream->r_frame_rate;
   }
+#endif
   Debug(3,
         "Time bases: VIDEO in stream (%d/%d) in codec: (%d/%d) out "
         "stream: (%d/%d) out codec (%d/%d)",

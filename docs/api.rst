@@ -14,6 +14,10 @@ The API is built in CakePHP and lives under the ``/api`` directory.  It
 provides a RESTful service and supports CRUD (create, retrieve, update, delete)
 functions for Monitors, Events, Frames, Zones and Config.
 
+API Wrappers
+^^^^^^^^^^^^^
+- pyzm is a python wrapper for the ZoneMinder APIs. It supports both the legacy and new token based API, as well as ZM logs/ZM shared memory support. See `its project site <https://github.com/pliablepixels/pyzm/>`__ for more details. Documentation is `here <https://pyzm.readthedocs.io/en/latest/>`__.
+
 API evolution
 ^^^^^^^^^^^^^^^
 

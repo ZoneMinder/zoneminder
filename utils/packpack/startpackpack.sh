@@ -137,7 +137,7 @@ movecrud () {
 }
 
 # previsouly part of installzm.sh
-# install the trusty deb and test zoneminder
+# install the xenial deb and test zoneminder
 install_deb () {
 
     # Check we've got gdebi installed
@@ -349,7 +349,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   execpackpack
 
   # We were not triggered via cron so just build and test trusty
-  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "trusty" ] && [ "${ARCH}" == "x86_64" ]; then
+  if [ "${OS}" == "ubuntu" ] && [ "${DIST}" == "xenial" ] && [ "${ARCH}" == "x86_64" ]; then
     # If we are running inside Travis then attempt to install the deb we just built
     if [ "${TRAVIS}" == "true" ]; then
       install_deb

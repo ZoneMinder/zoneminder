@@ -27,7 +27,7 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${OS}" == "debian" ] || [ "${OS}" 
     echo
     if [ "${USE_SFTP}" == "yes" ]; then
       echo "Running \$(rsync -e 'ssh -v' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
-      results="$(rsync -e 'ssh -v -O ControlMaster=no' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
+      results="$(rsync -v -e 'ssh -v -O ControlMaster=no' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
       if [ -z "$results" ]; then
         echo 
         echo "Files copied successfully."

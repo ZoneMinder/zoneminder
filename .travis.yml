@@ -28,7 +28,6 @@ addons:
     - dnsutils
     - traceroute
 install:
-  install:
   - echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDUW9tjP/Qt/00QaXPSMiDgQ9FvaK4EWRQ8FZgs+oW1tc0BupC6cxJYiLBI69l1HA1CvaqVxsbtHIbNSIxsK3MbhXR/q7MUzIp/4tgjhAlYDG1gAQzxWrm8Tt/UBhb2L8BaFAl2Ja3WBfJE00qzUrMb0pVYzif2CnUdxw/G08eOTvUKOBtN9hAZT6Qonz6QrHvOzHMaJnsr/WHtpKV/i23ktx0giN4l9cq2lk0sQTr3rQFOrg2e5kDJBdtLGmW/zGrRzoSE3EGgUkKp1Fzlt4XMjjjofL1h8kTDUYs2P8ndNEKfOetjDWQEMfmzD5qj+REl7TtY+DsBI98sSfRD9qYn isaac@zoneminder.com' >> $HOME/.ssh/known_hosts
   - update-binfmts --enable qemu-arm
 

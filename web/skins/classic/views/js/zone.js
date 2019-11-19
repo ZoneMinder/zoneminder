@@ -213,10 +213,10 @@ function applyZoneUnits() {
 function limitRange(field, minValue, maxValue) {
   if ( field.value != '' ) {
     field.value = constrainValue(
-				parseInt(field.value), 
-				parseInt(minValue),
-				parseInt(maxValue)
-				);
+        parseInt(field.value),
+        parseInt(minValue),
+        parseInt(maxValue)
+    );
   }
 }
 
@@ -393,9 +393,9 @@ function saveChanges(element) {
 
 function drawZonePoints() {
   $('imageFrame').getElements('div.zonePoint').each(
-			function(element) {
-			  element.destroy();
-			});
+      function(element) {
+        element.destroy();
+      });
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var div = new Element('div', {
       'id': 'point'+i,
@@ -423,31 +423,31 @@ function drawZonePoints() {
   } );
 
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-		var row;
-      row = new Element('tr', {'id': 'row'+i});
-			row.addEvents({'mouseover': highlightOn.pass(i), 'mouseout': highlightOff.pass(i)});
+    var row;
+    row = new Element('tr', {'id': 'row'+i});
+    row.addEvents({'mouseover': highlightOn.pass(i), 'mouseout': highlightOff.pass(i)});
     var cell = new Element('td');
     cell.set('text', i+1);
     cell.inject(row);
 
     cell = new Element('td');
     var input = new Element('input', {
-				'id': 'newZone[Points]['+i+'][x]',
-				'name': 'newZone[Points]['+i+'][x]',
-				'value': zone['Points'][i].x,
-				'size': 5
-				});
+      'id': 'newZone[Points]['+i+'][x]',
+      'name': 'newZone[Points]['+i+'][x]',
+      'value': zone['Points'][i].x,
+      'size': 5
+    });
     input.addEvent('input', updateX.pass(i));
     input.inject(cell);
     cell.inject(row);
 
     cell = new Element('td');
     input = new Element('input', {
-				'id': 'newZone[Points]['+i+'][y]',
-				'name': 'newZone[Points]['+i+'][y]',
-				'value': zone['Points'][i].y,
-				'size': 5
-				} );
+      'id': 'newZone[Points]['+i+'][y]',
+      'name': 'newZone[Points]['+i+'][y]',
+      'value': zone['Points'][i].y,
+      'size': 5
+    } );
     input.addEvent('input', updateY.pass(i));
     input.inject(cell);
     cell.inject(row);
@@ -467,7 +467,7 @@ function drawZonePoints() {
     }
     cell.inject(row);
 
-		row.inject(tables[i%tables.length].getElement('tbody'));
+    row.inject(tables[i%tables.length].getElement('tbody'));
   }
   // Sets up the SVG polygon
   updateZoneImage();
@@ -703,58 +703,56 @@ function initPage() {
   //form.elements['newZone[Type]'].disabled = true;
   form.presetSelector.disabled = true;
   //form.elements['newZone[Units]'].disabled = true;
-	if ( CheckMethod = form.elements['newZone[CheckMethod]'] ) {
-  	CheckMethod.disabled = true;
-		CheckMethod.onchange = window['applyCheckMethod'].bind(CheckMethod, CheckMethod);
-	}
+  if ( CheckMethod = form.elements['newZone[CheckMethod]'] ) {
+    CheckMethod.disabled = true;
+    CheckMethod.onchange = window['applyCheckMethod'].bind(CheckMethod, CheckMethod);
+  }
 
-	[
-		'newZone[MinPixelThreshold]',
-		'newZone[MaxPixelThreshold]',
-		'newAlarmRgbR',
-		'newAlarmRgbG',
-		'newAlarmRgbB',
-	].forEach(
-			function(element_name, index) {
-			  var el = form.elements[element_name];
-				if ( el ) {
-				  el.oninput = window['limitRangeToUnsignedByte'].bind(el, el);
-					el.disabled = true;
-				} else {
-				  console.error("Element " + element_name + " not found in zone edit form");
-				}
-			});
-	[
-		'newZone[FilterX]',
-		'newZone[FilterY]'
-	].forEach(
-			function(element_name, index) {
-			  var el = form.elements[element_name];
-				if ( el ) {
-				  el.oninput = window['limitFilter'].bind(el, el);
-					el.disabled = true;
-				} else {
-				  console.error("Element " + element_name + " not found in zone edit form");
-				}
-			}
-			);
-[
-	'newZone[MinAlarmPixels]',
-	'newZone[MaxAlarmPixels]',
-	'newZone[MinFilterPixels]',
-	'newZone[MaxFilterPixels]'
-].forEach(
-			function(element_name, index) {
-			  var el = form.elements[element_name];
-				if ( el ) {
-				  el.oninput = window['limitArea'].bind(el, el);
-					el.disabled = true;
-				} else {
-				  console.error("Element " + element_name + " not found in zone edit form");
-				}
-			}
-);
-
+  [
+    'newZone[MinPixelThreshold]',
+    'newZone[MaxPixelThreshold]',
+    'newAlarmRgbR',
+    'newAlarmRgbG',
+    'newAlarmRgbB',
+  ].forEach(
+      function(element_name, index) {
+        var el = form.elements[element_name];
+        if ( el ) {
+          el.oninput = window['limitRangeToUnsignedByte'].bind(el, el);
+          el.disabled = true;
+        } else {
+          console.error("Element " + element_name + " not found in zone edit form");
+        }
+      });
+  [
+    'newZone[FilterX]',
+    'newZone[FilterY]'
+  ].forEach(
+      function(element_name, index) {
+        var el = form.elements[element_name];
+        if ( el ) {
+          el.oninput = window['limitFilter'].bind(el, el);
+          el.disabled = true;
+        } else {
+          console.error("Element " + element_name + " not found in zone edit form");
+        }
+      }
+  );
+  [
+    'newZone[MinAlarmPixels]',
+    'newZone[MaxAlarmPixels]',
+    'newZone[MinFilterPixels]',
+    'newZone[MaxFilterPixels]'
+  ].forEach(function(element_name, index) {
+    var el = form.elements[element_name];
+    if ( el ) {
+      el.oninput = window['limitArea'].bind(el, el);
+      el.disabled = true;
+    } else {
+      console.error("Element " + element_name + " not found in zone edit form");
+    }
+  }
+  );
 
   form.elements['newZone[MinBlobPixels]'].disabled = true;
   form.elements['newZone[MaxBlobPixels]'].disabled = true;
@@ -771,18 +769,18 @@ function initPage() {
   applyCheckMethod();
   drawZonePoints();
 
-	$('pauseBtn').onclick = function() {
-      streamCmdPauseToggle();
+  $('pauseBtn').onclick = function() {
+    streamCmdPauseToggle();
+  };
+  if ( el = $('saveBtn') ) {
+    el.onclick = window['saveChanges'].bind(el, el);
+  }
+  if ( el = $('cancelBtn') ) {
+    el.onclick = function() {
+      refreshParentWindow();
+      closeWindow();
     };
-	if ( el = $('saveBtn') ) {
-		el.onclick = window['saveChanges'].bind(el, el);
-	}
-	if ( el = $('cancelBtn') ) {
-		el.onclick = function() {
-			refreshParentWindow();
-			closeWindow();
-		}
-	}
+  }
 
   //
   // Imported from watch.js and modified for new zone edit view

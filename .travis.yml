@@ -10,6 +10,7 @@ branches:
   - modern
 cache: ccache
 addons:
+  ssh_known_hosts: zmrepo.zoneminder.com
   apt:
     sources:
     - sourceline: ppa:iconnor/zoneminder
@@ -29,6 +30,7 @@ addons:
     - traceroute
 install:
   - echo 'ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBP18YATYUWNFiwfsVMThgzKRLrTn2+vFDAMvl0hz/O0C1pxfdODqrevGD5bkONNzRa+Olq+ZbEZ0ZYiybFzbgWg= zoneminder.com' >> $HOME/.ssh/known_hosts
+  - cat $HOME/.ssh/known_hosts
   - update-binfmts --enable qemu-arm
 
 env:

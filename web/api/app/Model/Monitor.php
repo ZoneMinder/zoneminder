@@ -50,7 +50,7 @@ class Monitor extends AppModel {
     'Name' => array(
        'required' => array(
          'on'         => 'create',
-         'rule'       => 'notEmpty',
+         'rule'       => 'notBlank',
          'message'    => 'Monitor Name must be specified for creation',
          'required'   => true,
        ),

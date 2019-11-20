@@ -27,18 +27,14 @@ if [ "${TRAVIS_EVENT_TYPE}" == "cron" ] || [ "${OS}" == "debian" ] || [ "${OS}" 
     echo
     if [ "${USE_SFTP}" == "yes" ]; then
       echo "Running \$(rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
-      results="$(rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1)"
-      if [ -z "$results" ]; then
+      rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1
+      if [ $? -eq 0 ]; then
         echo 
         echo "Files copied successfully."
         echo
       else 
         echo
         echo "ERROR: Attempt to rsync to zmrepo.zoneminder.com failed!"
-        echo "rsync gave the following error message:"
-        echo \"$results\"
-        # Doing this again just for the output
-        rsync -v -e 'ssh -vvv' build/* zmrepo@zmrepo.zoneminder.com:${targetfolder}/ 2>&1
         echo
         exit 99
       fi

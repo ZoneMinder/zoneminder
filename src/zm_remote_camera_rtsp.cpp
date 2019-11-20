@@ -322,6 +322,7 @@ int RemoteCameraRtsp::Capture( Image &image ) {
       while ( !frameComplete && (buffer.size() > 0) ) {
         packet.data = buffer.head();
         packet.size = buffer.size();
+        bytes += packet.size;
 
         // So I think this is the magic decode step. Result is a raw image?
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
@@ -356,6 +357,15 @@ int RemoteCameraRtsp::Capture( Image &image ) {
 
           if ( mConvertContext == NULL )
             Fatal("Unable to create conversion context");
+
+          if (
+              ((unsigned int)mRawFrame->width != width)
+              ||
+              ((unsigned int)mRawFrame->height != height)
+             ) {
+            Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
+                width, height, mRawFrame->width, mRawFrame->height);
+          }
         }
       
         if ( sws_scale(mConvertContext, mRawFrame->data, mRawFrame->linesize, 0, mCodecContext->height, mFrame->data, mFrame->linesize) < 0 )

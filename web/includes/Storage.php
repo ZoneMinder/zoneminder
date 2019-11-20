@@ -113,7 +113,7 @@ class Storage extends ZM_Object {
           # DiskSpace will update the event
           $used += $Event->DiskSpace();
         } #end foreach
-      } while ( count($events) );
+      } while ( count($events) == 1000 );
       $this->{'DiskSpace'} = $used;
     }
     return $this->{'DiskSpace'};

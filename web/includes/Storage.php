@@ -105,10 +105,15 @@ class Storage extends ZM_Object {
     if ( (! array_key_exists('DiskSpace', $this)) or (!$this->{'DiskSpace'}) ) {
       $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
 
-      foreach ( Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null)) as $Event ) {
-        $Event->Storage($this); // Prevent further db hit
-        $used += $Event->DiskSpace();
-      }
+      do {
+        # Do in batches of 1000 so as to not useup all ram
+        $events = Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null), array('limit'=>1000));
+        foreach ( $events as $Event ) {
+          $Event->Storage($this); // Prevent further db hit
+          # DiskSpace will update the event
+          $used += $Event->DiskSpace();
+        } #end foreach
+      } while ( count($events) );
       $this->{'DiskSpace'} = $used;
     }
     return $this->{'DiskSpace'};

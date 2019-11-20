@@ -264,6 +264,7 @@ sub run {
     POSIX::close($fd++);
   }
 
+  # Sets a process group, so that signals to go this and it's children I think
   setpgrp();
 
   # dbh got closed with the rest of the fd's above, so need to reconnect.
@@ -513,7 +514,6 @@ sub send_stop {
 
   my $command = $process->{command};
   if ( $process->{pending} ) {
-
     delete $cmd_hash{$command};
     dPrint(ZoneMinder::Logger::INFO, "Command '$command' removed from pending list at "
         .strftime('%y/%m/%d %H:%M:%S', localtime())
@@ -606,8 +606,11 @@ sub restart {
     start($daemon, @args);
     return;
   }
-  # Start will be handled by the reaper
-  send_stop(0, $process);
+  # Start will be handled by the reaper...
+  # unless it was already pending in which case send_stop will return () so we should start it
+  if ( !send_stop(0, $process) ) {
+    start($daemon, @args);
+  }
   return;
 }
 

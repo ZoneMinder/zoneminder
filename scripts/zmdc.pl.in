@@ -166,6 +166,7 @@ if ( !$server_up ) {
 # Server is not up.  Some commands can still be handled
   if ( $command eq 'logrot' ) {
     # If server is not running, then logrotate doesn't need to do anything.
+    Debug("Server is not running, logrotate doesn't need to do anything");
     exit();
   }
   if ( $command eq 'check' ) {
@@ -631,8 +632,11 @@ sub logrot {
   logReinit();
   foreach my $process ( values %pid_hash ) {
     if ( $process->{pid} ) {
+      Debug("Hupping $$process{command} at $$process{pid}");
       # && $process->{command} =~ /^zm.*\.pl/ ) {
       kill('HUP', $process->{pid});
+    } else {
+      Debug("Not Hupping $$process{command}");
     }
   }
 }

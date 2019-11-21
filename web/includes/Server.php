@@ -89,13 +89,15 @@ class Server extends ZM_Object {
   }
 
   public function UrlToZMS( $port = null ) {
-    if ( $this->Id() or $port ) {
-      return $this->Url($port).$this->PathToZMS();
-    }
-    return $this->PathToZMS();
+    return $this->Url($port).$this->PathToZMS();
   }
 
 	public function Url( $port = null ) {
+    if ( ! ( $this->Id() or $port ) ) {
+      # Don't specify a hostname or port, the browser will figure it out
+      return '';
+    }
+
     $url = $this->Protocol().'://';
 		$url .= $this->Hostname();
     if ( $port ) {

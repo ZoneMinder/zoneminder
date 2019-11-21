@@ -297,7 +297,7 @@ sub zmMemVerify {
     Error("Shared data not valid for monitor $$monitor{Id}");
     return undef;
   } else {
-    Debug("Shared data appears vaild for monitor $$monitor{Id}: $valid");
+    Debug("Shared data appears valid for monitor $$monitor{Id}: $valid");
   }
 
   return !undef;

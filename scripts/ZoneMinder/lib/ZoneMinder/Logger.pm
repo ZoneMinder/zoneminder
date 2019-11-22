@@ -128,6 +128,7 @@ our %priorities = (
 
 our $logger;
 our $LOGFILE;
+our $do_log_rotate = 0;
 
 sub new {
   my $class = shift;
@@ -306,7 +307,7 @@ sub reinitialise {
   my $this = shift;
 
   # So if the logger is initialized, we just return.  Since the logger is NORMALLY initialized... the rest of this function never executes.
-  return unless ( $this->{initialised} );
+  return unless $this->{initialised};
 
 # Bit of a nasty hack to reopen connections to log files and the DB
   my $syslogLevel = $this->syslogLevel();
@@ -523,6 +524,15 @@ sub logPrint {
   my $this = shift;
   my $level = shift;
   my $string = shift;
+
+  if ( $do_log_rotate ) {
+    # Too heavy to do this in the signal handler,
+    # so we just set a flag and logs will be rotated on the next call to log something
+    $this->reinitialise();
+    # Don't know why this would be needed
+    #logSetSignal();
+  }
+
   my ($caller, undef, $line) = @_ ? @_ : caller;
 
   if ( $level <= $this->{effectiveLevel} ) {
@@ -609,11 +619,7 @@ sub logTerm {
 }
 
 sub logHupHandler {
-  my $savedErrno = $!;
-  return unless $logger;
-  fetch()->reinitialise();
-  logSetSignal();
-  $! = $savedErrno;
+  $do_log_rotate = 1;
 }
 
 sub logSetSignal {

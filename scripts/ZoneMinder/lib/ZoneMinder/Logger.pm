@@ -526,6 +526,7 @@ sub logPrint {
   my $string = shift;
 
   if ( $do_log_rotate ) {
+    $do_log_rotate = 0;
     # Too heavy to do this in the signal handler,
     # so we just set a flag and logs will be rotated on the next call to log something
     $this->reinitialise();

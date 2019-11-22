@@ -46,8 +46,8 @@ var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 
 
 var monitorId = <?php echo $monitor->Id() ?>;
-var monitorWidth = <?php echo $monitor->Width() ?>;
-var monitorHeight = <?php echo $monitor->Height() ?>;
+var monitorWidth = <?php echo $monitor->ViewWidth() ?>;
+var monitorHeight = <?php echo $monitor->ViewHeight() ?>;
 var monitorUrl = '<?php echo $monitor->UrlToIndex(); ?>';
 var monitorType = '<?php echo ( $monitor->Type() ) ?>';
 var monitorRefresh = '<?php echo ( $monitor->Refresh() ) ?>';

@@ -17,11 +17,11 @@ class Storage extends ZM_Object {
     'ServerId'  => 0,
     'DoDelete'  => 1,
   );
-  public static function find($parameters = array(), $options = array() ) {
+  public static function find($parameters = array(), $options = array()) {
     return ZM_Object::_find(get_class(), $parameters, $options);
   }
 
-  public static function find_one( $parameters = array(), $options = array() ) {
+  public static function find_one($parameters = array(), $options = array()) {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
@@ -46,6 +46,16 @@ class Storage extends ZM_Object {
       return 'Default';
     }
     return $this->{'Name'};
+  }
+
+  public function Events() {
+    if ( $this->{'Id'} and ! isset($this->{'Events'}) ) {
+      $this->{'Events'} = Event::find(array('StorageId'=>$this->{'Id'}));
+    }
+    if ( ! isset($this->{'Events'}) ) {
+      $this->{'Events'} = array();
+    }
+    return $this->{'Events'};
   }
 
   public function disk_usage_percent() {

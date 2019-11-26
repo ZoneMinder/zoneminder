@@ -36,7 +36,7 @@ protected $defaults = array(
   // These are NOT NULL default 0 in the db, but 0 is not a valid value. FIXME
   'Width' => null,
   'Height' => null,
-  'Colours' => 1,
+  'Colours' => 4,
   'Palette' =>  '0',
   'Orientation' => null,
   'Deinterlacing' =>  0,

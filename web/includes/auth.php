@@ -111,8 +111,6 @@ function userLogout() {
 }
 
 function validateToken($token, $allowed_token_type='access') {
-
-
   global $user;
   $key = ZM_AUTH_HASH_SECRET;
   //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
@@ -128,19 +126,14 @@ function validateToken($token, $allowed_token_type='access') {
 
   $type = $jwt_payload['type'];
   if ( $type != $allowed_token_type ) {
-    if ( $allowed_token_type == 'access' ) {
-      // give a hint that the user is not doing it right
-      ZM\Error('Please do not use refresh tokens for this operation');
-    }
+    ZM\Error("Token type mismatch. Expected $allowed_token_type but got $type");
     return array(false, 'Incorrect token type');
   }
-
   $username = $jwt_payload['user'];
   $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
   $saved_user_details = dbFetchOne($sql, NULL, array($username));
 
   if ( $saved_user_details ) {
-
     $issuedAt =  $jwt_payload['iat'];
     $minIssuedAt = $saved_user_details['TokenMinExpiry'];
 
@@ -149,7 +142,6 @@ function validateToken($token, $allowed_token_type='access') {
       $user = null;// unset only clears the local variable
       return array(false, 'Token revoked. Please re-generate');
     }
-
     $user = $saved_user_details;
     return array($user, 'OK');
   }

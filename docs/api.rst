@@ -104,7 +104,7 @@ Once you have the keys (a.k.a credentials (v1.0, v2.0) or token (v2.0)) you shou
   # v1.0 or 2.0 based API access (will only work if AUTH_HASH_LOGINS is enabled
 
   # RECOMMENDED: v2.0 token based 
-    curl -XGET  https://yourserver/zm/api/monitors.json&token=<access_token>
+    curl -XGET  https://yourserver/zm/api/monitors.json?token=<access_token>
 
   # or, for legacy mode:
 

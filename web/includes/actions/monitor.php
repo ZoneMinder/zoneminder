@@ -52,17 +52,25 @@ if ( $action == 'monitor' ) {
 
   // Define a field type for anything that's not simple text equivalent
   $types = array(
-      'Triggers' => 'set',
-      'Controllable' => 'toggle',
-      'TrackMotion' => 'toggle',
-      'Enabled' => 'toggle',
-      'Exif' => 'toggle',
-      'RTSPDescribe' => 'toggle',
-      'RecordAudio' => 'toggle',
+      'Triggers' => array(),
+      'Controllable' => 0,
+      'TrackMotion' => 0,
+      'Enabled' => 0,
+      'Exif' => 0,
+      'RTSPDescribe' => 0,
+      'RecordAudio' => 0,
       'Method' => 'raw',
-      'GroupIds'  =>  'array',
-      'LinkedMonitors'  => 'set'
+      'GroupIds'  =>  array(),
+      'LinkedMonitors'  => array() 
       );
+
+  # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
+  # So force a value for these fields
+  foreach ( $types as $field => $value ) {
+    if ( ! isset($_REQUEST['newMonitor'][$field] ) ) {
+      $_REQUEST['newMonitor'][$field] = $value;
+    }
+  } # end foreach type
 
   if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
     $_REQUEST['newMonitor']['ServerId'] = dbFetchOne(

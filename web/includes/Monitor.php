@@ -210,7 +210,7 @@ private $status_fields = array(
     if ( $new )
       $this->{'Width'} = $new;
 
-    $field = ( $this->Orientation() == '90' or $this->Orientation() == '270' ) ? 'Height' : 'Width';
+    $field = ( $this->Orientation() == 'ROTATE_90' or $this->Orientation() == 'ROTATE_270' ) ? 'Height' : 'Width';
     if ( array_key_exists($field, $this) )
       return $this->{$field};
     return $this->defaults{$field};
@@ -220,7 +220,7 @@ private $status_fields = array(
     if ( $new )
       $this->{'Height'} = $new;
 
-    $field = ( $this->Orientation() == '90' or $this->Orientation() == '270' ) ?  'Width' : 'Height';
+    $field = ( $this->Orientation() == 'ROTATE_90' or $this->Orientation() == 'ROTATE_270' ) ?  'Width' : 'Height';
     if ( array_key_exists($field, $this) )
       return $this->{$field};
     return $this->defaults{$field};

@@ -110,9 +110,9 @@ function buildControlCommand($monitor) {
         $xFactor = empty($_REQUEST['xge'])?0:$_REQUEST['xge']/100;
         $yFactor = empty($_REQUEST['yge'])?0:$_REQUEST['yge']/100;
 
-        if ( $monitor->Orientation() != '0' ) {
+        if ( $monitor->Orientation() != 'ROTATE_0' ) {
           $conversions = array(
-            '90' => array(
+            'ROTATE_90' => array(
               'Up' => 'Left',
               'Down' => 'Right',
               'Left' => 'Down',
@@ -122,7 +122,7 @@ function buildControlCommand($monitor) {
               'DownLeft' => 'DownRight',
               'DownRight' => 'UpRight',
             ),
-            '180' => array(
+            'ROTATE_180' => array(
               'Up' => 'Down',
               'Down' => 'Up',
               'Left' => 'Right',
@@ -132,7 +132,7 @@ function buildControlCommand($monitor) {
               'DownLeft' => 'UpRight',
               'DownRight' => 'UpLeft',
             ),
-            '270' => array(
+            'ROTATE_270' => array(
               'Up' => 'Right',
               'Down' => 'Left',
               'Left' => 'Up',
@@ -142,7 +142,7 @@ function buildControlCommand($monitor) {
               'DownLeft' => 'UpLeft',
               'DownRight' => 'DownLeft',
             ),
-            'hori' => array(
+            'FLIP_HORI' => array(
               'Up' => 'Up',
               'Down' => 'Down',
               'Left' => 'Right',
@@ -152,7 +152,7 @@ function buildControlCommand($monitor) {
               'DownLeft' => 'DownRight',
               'DownRight' => 'DownLeft',
             ),
-            'vert' => array(
+            'FLIP_VERT' => array(
               'Up' => 'Down',
               'Down' => 'Up',
               'Left' => 'Left',
@@ -225,38 +225,38 @@ function buildControlCommand($monitor) {
       $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
       $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
       switch ( $monitor->Orientation() ) {
-      case '0' :
-      case '180' :
-      case 'hori' :
-      case 'vert' :
+      case 'ROTATE_0' :
+      case 'ROTATE_180' :
+      case 'FLIP_HORI' :
+      case 'FLIP_VERT' :
         $width = $monitor->Width();
         $height = $monitor->Height();
         break;
-      case '90' :
-      case '270' :
+      case 'ROTATE_90' :
+      case 'ROTATE_270' :
         $width = $monitor->Height();
         $height = $monitor->Width();
         break;
       }
       switch ( $monitor->Orientation() ) {
-      case '90' :
+      case 'ROTATE_90' :
         $tempY = $y;
         $y = $height - $x;
         $x = $tempY;
         break;
-      case '180' :
+      case 'ROTATE_180' :
         $x = $width - $x;
         $y = $height - $y;
         break;
-      case '270' :
+      case 'ROTATE_270' :
         $tempX = $x;
         $x = $width - $y;
         $y = $tempX;
         break;
-      case 'hori' :
+      case 'FLIP_HORI' :
         $x = $width - $x;
         break;
-      case 'vert' :
+      case 'FLIP_VERT' :
         $y = $height - $y;
         break;
       }
@@ -272,24 +272,24 @@ function buildControlCommand($monitor) {
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
       switch ( $monitor->Orientation() ) {
-      case '90' :
+      case 'ROTATE_90' :
         $tempYFactor = $y;
         $yFactor = -$xFactor;
         $xFactor = $tempYFactor;
         break;
-      case '180' :
+      case 'ROTATE_180' :
         $xFactor = -$xFactor;
         $yFactor = -$yFactor;
         break;
-      case '270' :
+      case 'ROTATE_270' :
         $tempXFactor = $x;
         $xFactor = -$yFactor;
         $yFactor = $tempXFactor;
         break;
-      case 'hori' :
+      case 'FLIP_HORI' :
         $xFactor = -$xFactor;
         break;
-      case 'vert' :
+      case 'FLIP_VERT' :
         $yFactor = -$yFactor;
         break;
       }
@@ -363,24 +363,24 @@ function buildControlCommand($monitor) {
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
       switch ( $monitor->Orientation() ) {
-      case '90' :
+      case 'ROTATE_90' :
         $tempYFactor = $y;
         $yFactor = -$xFactor;
         $xFactor = $tempYFactor;
         break;
-      case '180' :
+      case 'ROTATE_180' :
         $xFactor = -$xFactor;
         $yFactor = -$yFactor;
         break;
-      case '270' :
+      case 'ROTATE_270' :
         $tempXFactor = $x;
         $xFactor = -$yFactor;
         $yFactor = $tempXFactor;
         break;
-      case 'hori' :
+      case 'FLIP_HORI' :
         $xFactor = -$xFactor;
         break;
-      case 'vert' :
+      case 'FLIP_VERT' :
         $yFactor = -$yFactor;
         break;
       }
@@ -598,9 +598,9 @@ function buildControlCommand($monitor) {
             $xFactor = ($x+1)/$short_x;
           }
 
-          if ( $monitor->Orientation() != '0' ) {
+          if ( $monitor->Orientation() != 'ROTATE_0' ) {
             $conversions = array(
-              '90' => array(
+              'ROTATE_90' => array(
                 'Up' => 'Left',
                 'Down' => 'Right',
                 'Left' => 'Down',
@@ -610,7 +610,7 @@ function buildControlCommand($monitor) {
                 'DownLeft' => 'DownRight',
                 'DownRight' => 'UpRight',
               ),
-              '180' => array(
+              'ROTATE_180' => array(
                 'Up' => 'Down',
                 'Down' => 'Up',
                 'Left' => 'Right',
@@ -620,7 +620,7 @@ function buildControlCommand($monitor) {
                 'DownLeft' => 'UpRight',
                 'DownRight' => 'UpLeft',
               ),
-              '270' => array(
+              'ROTATE_270' => array(
                 'Up' => 'Right',
                 'Down' => 'Left',
                 'Left' => 'Up',
@@ -630,7 +630,7 @@ function buildControlCommand($monitor) {
                 'DownLeft' => 'UpLeft',
                 'DownRight' => 'DownLeft',
               ),
-              'hori' => array(
+              'FLIP_HORI' => array(
                 'Up' => 'Up',
                 'Down' => 'Down',
                 'Left' => 'Right',
@@ -640,7 +640,7 @@ function buildControlCommand($monitor) {
                 'DownLeft' => 'DownRight',
                 'DownRight' => 'DownLeft',
               ),
-              'vert' => array(
+              'FLIP_VERT' => array(
                 'Up' => 'Down',
                 'Down' => 'Up',
                 'Left' => 'Left',

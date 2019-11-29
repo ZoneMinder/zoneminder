@@ -119,12 +119,12 @@ class Monitor extends AppModel {
   );
   public $actsAs = array(
     'CakePHP-Enum-Behavior.Enum' => array(
-      'Type'            => array('Local','Remote','File','Ffmpeg','Libvlc','cURL','WebSite'),
-      'Function'        => array('None','Monitor','Modect','Record','Mocord','Nodect'),
-      'Orientation'     => array('0','90','180','270','hori','vert'),
-      'OutputCodec'     => array('h264','mjpeg','mpeg1','mpeg2'),
-      'OutputContainer' => array('auto','mp4','mkv'),
-      'DefaultView'     => array('Events','Control'),
+      'Type'            => array(1=>'Local',2=>'Remote',3=>'File',4=>'Ffmpeg',5=>'Libvlc',6=>'cURL',7=>'WebSite'),
+      'Function'        => array(1=>'None',2=>'Monitor',3=>'Modect',4=>'Record',5=>'Mocord',6=>'Nodect'),
+      'Orientation'     => array('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT'),
+      'OutputCodec'     => array(1=>'h264',2=>'mjpeg',3=>'mpeg1',4=>'mpeg2'),
+      'OutputContainer' => array(1=>'auto',2=>'mp4',3=>'mkv'),
+      'DefaultView'     => array(1=>'Events',2=>'Control'),
       #'Status'          => array('Unknown','NotRunning','Running','NoSignal','Signal'),
     )
   );

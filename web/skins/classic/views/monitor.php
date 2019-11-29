@@ -311,12 +311,12 @@ $Colours = array(
     );
 
 $orientations = array(
-    '0' => translate('Normal'),
-    '90' => translate('RotateRight'),
-    '180' => translate('Inverted'),
-    '270' => translate('RotateLeft'),
-    'hori' => translate('FlippedHori'),
-    'vert' => translate('FlippedVert')
+    'ROTATE_0' => translate('Normal'),
+    'ROTATE_90' => translate('RotateRight'),
+    'ROTATE_180' => translate('Inverted'),
+    'ROTATE_270' => translate('RotateLeft'),
+    'FLIP_HORI' => translate('FlippedHori'),
+    'FLIP_VERT' => translate('FlippedVert')
     );
 
 $deinterlaceopts = array(

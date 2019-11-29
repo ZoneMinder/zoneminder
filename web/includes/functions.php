@@ -2520,13 +2520,23 @@ function format_duration($time, $separator=':') {
 
 function array_recursive_diff($aArray1, $aArray2) {
   $aReturn = array();
+  if ( ! (is_array($aArray1) and is_array($aArray2) ) ) {
+        $backTrace = debug_backtrace();
+        ZM\Warning("Bad arrays passed 1:" . print_r($aArray1,true) . "\n2: " . print_r($aArray2,true)."\n from: ".print_r($backTrace,true));
+        return;
+
+  }
 
   foreach ( $aArray1 as $mKey => $mValue ) {
     if ( array_key_exists($mKey, $aArray2) ) {
       if ( is_array($mValue) ) {
-        $aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
-        if ( count($aRecursiveDiff) ) {
-          $aReturn[$mKey] = $aRecursiveDiff;
+        if ( is_array($aArray2[$mKey]) ) {
+          $aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
+          if ( count($aRecursiveDiff) ) {
+            $aReturn[$mKey] = $aRecursiveDiff;
+          }
+        } else {
+          $aReturn[$mKey] = $mValue;
         }
       } else {
         if ( $mValue != $aArray2[$mKey] ) {

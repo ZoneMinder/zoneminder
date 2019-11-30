@@ -229,8 +229,8 @@ void zm_packetqueue::clear_unwanted_packets(
   std::list<ZMPacket *>::reverse_iterator it;
 
   // Step 1 - find frame <= recording_started.
-  Debug(3, "Looking for frame before start recording stream id (%d), queue has %d packets",
-      mVideoStreamId, pktQueue.size());
+  Debug(3, "Looking for frame before start (%d.%d) recording stream id (%d), queue has %d packets",
+      recording_started->tv_sec, recording_started->tv_usec, mVideoStreamId, pktQueue.size());
   for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
     ZMPacket *zm_packet = *it;
     AVPacket *av_packet = &(zm_packet->packet);
@@ -252,7 +252,7 @@ void zm_packetqueue::clear_unwanted_packets(
   }
 
   if ( it == pktQueue.rend() ) {
-    Debug(1, "Didn't find a frame before event starttime. keeping all");
+    Info("Didn't find a frame before event starttime. keeping all");
     return;
   }
 

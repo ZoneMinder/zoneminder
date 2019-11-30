@@ -503,11 +503,14 @@ sub openFile {
     $LOGFILE->autoflush() if $this->{autoFlush};
 
     my $webUid = (getpwnam($ZoneMinder::Config::Config{ZM_WEB_USER}))[2];
+    Error("Can't get uid for $ZoneMinder::Config::Config{ZM_WEB_USER}") if ! defined $webUid;
     my $webGid = (getgrnam($ZoneMinder::Config::Config{ZM_WEB_GROUP}))[2];
+    Error("Can't get gid for $ZoneMinder::Config::Config{ZM_WEB_USER}") if ! defined $webGid;
     if ( $> == 0 ) {
-      chown( $webUid, $webGid, $this->{logFile} )
-        or Fatal("Can't change permissions on log file $$this{logFile}: $!");
-    }
+      # If we are root, we want to make sure that www-data or whatever owns the file
+      chown($webUid, $webGid, $this->{logFile} ) or
+        Error("Can't change permissions on log file $$this{logFile}: $!");
+    } # end if are root
   } else {
     $this->fileLevel(NOLOG);
     $this->termLevel(INFO);

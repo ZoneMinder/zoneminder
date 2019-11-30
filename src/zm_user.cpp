@@ -27,7 +27,21 @@
 #include <string.h>
 #include <time.h>
 
+#if HAVE_GNUTLS_OPENSSL_H
+#include <gnutls/openssl.h>
+#endif
+#if HAVE_GNUTLS_GNUTLS_H
+#include <gnutls/gnutls.h>
+#endif
+
+#if HAVE_GCRYPT_H
+#include <gcrypt.h>
+#elif HAVE_LIBCRYPTO
+#include <openssl/md5.h>
+#endif // HAVE_L || HAVE_LIBCRYPTO
+
 #include "zm_utils.h"
+#include "zm_crypt.h"
 
 User::User() {
   id = 0;
@@ -36,22 +50,22 @@ User::User() {
   stream = events = control = monitors = system = PERM_NONE;
 }
 
-User::User( MYSQL_ROW &dbrow ) {
+User::User(const MYSQL_ROW &dbrow) {
   int index = 0;
-  id = atoi( dbrow[index++] );
-  strncpy( username, dbrow[index++], sizeof(username)-1 );
-  strncpy( password, dbrow[index++], sizeof(password)-1 );
-  enabled = (bool)atoi( dbrow[index++] );
-  stream = (Permission)atoi( dbrow[index++] );
-  events = (Permission)atoi( dbrow[index++] );
-  control = (Permission)atoi( dbrow[index++] );
-  monitors = (Permission)atoi( dbrow[index++] );
-  system = (Permission)atoi( dbrow[index++] );
+  id = atoi(dbrow[index++]);
+  strncpy(username, dbrow[index++], sizeof(username)-1);
+  strncpy(password, dbrow[index++], sizeof(password)-1);
+  enabled = (bool)atoi(dbrow[index++]);
+  stream = (Permission)atoi(dbrow[index++]);
+  events = (Permission)atoi(dbrow[index++]);
+  control = (Permission)atoi(dbrow[index++]);
+  monitors = (Permission)atoi(dbrow[index++]);
+  system = (Permission)atoi(dbrow[index++]);
   char *monitor_ids_str = dbrow[index++];
   if ( monitor_ids_str && *monitor_ids_str ) {
     StringVector ids = split(monitor_ids_str, ",");
     for( StringVector::iterator i = ids.begin(); i < ids.end(); ++i ) {
-      monitor_ids.push_back( atoi( (*i).c_str()) );
+      monitor_ids.push_back(atoi((*i).c_str()));
     }
   }
 }
@@ -60,10 +74,10 @@ User::~User() {
   monitor_ids.clear();
 }
 
-void User::Copy( const User &u ) {
+void User::Copy(const User &u) {
   id=u.id;
-  strncpy( username, u.username, sizeof(username)-1 );
-  strncpy( password, u.password, sizeof(password)-1 );
+  strncpy(username, u.username, sizeof(username)-1);
+  strncpy(password, u.password, sizeof(password)-1);
   enabled = u.enabled;
   stream = u.stream;
   events = u.events;
@@ -73,7 +87,7 @@ void User::Copy( const User &u ) {
   monitor_ids = u.monitor_ids;
 }
 
-bool User::canAccess( int monitor_id ) {
+bool User::canAccess(int monitor_id) {
   if ( monitor_ids.empty() )
     return true;
   
@@ -87,58 +101,120 @@ bool User::canAccess( int monitor_id ) {
 
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
-User *zmLoadUser( const char *username, const char *password ) {
+User *zmLoadUser(const char *username, const char *password) {
   char sql[ZM_SQL_MED_BUFSIZ] = "";
   int username_length = strlen(username);
   char *safer_username = new char[(username_length * 2) + 1];
 
   // According to docs, size of safer_whatever must be 2*length+1 due to unicode conversions + null terminator.
-  mysql_real_escape_string(&dbconn, safer_username, username, username_length );
+  mysql_real_escape_string(&dbconn, safer_username, username, username_length);
 
-  if ( password ) {
-    int password_length = strlen(password);
-    char *safer_password = new char[(password_length * 2) + 1];
-    mysql_real_escape_string(&dbconn, safer_password, password, password_length);
-    snprintf(sql, sizeof(sql),
-        "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
-        " FROM Users WHERE Username = '%s' AND Password = password('%s') AND Enabled = 1",
-        safer_username, safer_password );
-    delete safer_password;
-  } else {
-    snprintf(sql, sizeof(sql),
-        "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds"
-        " FROM Users where Username = '%s' and Enabled = 1", safer_username );
-  }
+  snprintf(sql, sizeof(sql),
+      "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`"
+      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", safer_username);
 
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
+    exit(mysql_errno(&dbconn)); 
   }
+  delete safer_username;
 
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if ( !result ) {
     Error("Can't use query result: %s", mysql_error(&dbconn));
     exit(mysql_errno(&dbconn));
   }
-  int n_users = mysql_num_rows(result);
 
-  if ( n_users != 1 ) {
+  if ( mysql_num_rows(result) != 1 ) {
     mysql_free_result(result);
     Warning("Unable to authenticate user %s", username);
     return NULL;
   }
 
   MYSQL_ROW dbrow = mysql_fetch_row(result);
-
   User *user = new User(dbrow);
-  Info("Authenticated user '%s'", user->getUsername());
-
   mysql_free_result(result);
-  delete safer_username;
 
-  return user;
+  if ( !password ) {
+    // relay type must be none
+    return user;
+  }
+ 
+  if ( verifyPassword(username, password, user->getPassword()) ) {
+    Info("Authenticated user '%s'", user->getUsername());
+    return user;
+  } 
+
+  Warning("Unable to authenticate user %s", username);
+  return NULL;
 }
 
+User *zmLoadTokenUser (std::string jwt_token_str, bool use_remote_addr ) {
+  std::string key = config.auth_hash_secret;
+  std::string remote_addr = "";
+  
+  if (use_remote_addr) {
+    remote_addr = std::string(getenv( "REMOTE_ADDR" ));
+    if ( remote_addr == "" ) {
+      Warning( "Can't determine remote address, using null" );
+      remote_addr = "";
+    }
+    key += remote_addr;
+  }
+
+  Debug (1,"Inside zmLoadTokenUser, formed key=%s", key.c_str());
+
+  std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
+  std::string username = ans.first;
+  unsigned int iat = ans.second;
+  Debug (1,"retrieved user '%s' from token", username.c_str());
+
+  if (username != "") {
+    char sql[ZM_SQL_MED_BUFSIZ] = "";
+    snprintf(sql, sizeof(sql),
+      "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, `TokenMinExpiry`"
+      " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str() );
+
+    if ( mysql_query(&dbconn, sql) ) {
+      Error("Can't run query: %s", mysql_error(&dbconn));
+      exit(mysql_errno(&dbconn)); 
+    }
+
+    MYSQL_RES *result = mysql_store_result(&dbconn);
+    if ( !result ) {
+      Error("Can't use query result: %s", mysql_error(&dbconn));
+      exit(mysql_errno(&dbconn));
+    }
+    int n_users = mysql_num_rows(result);
+
+    if ( n_users != 1 ) {
+      mysql_free_result(result);
+      Error("Unable to authenticate user '%s'", username.c_str());
+      return NULL;
+    }
+
+    MYSQL_ROW dbrow = mysql_fetch_row(result);
+    User *user = new User(dbrow);
+    unsigned int stored_iat =  strtoul(dbrow[10], NULL,0 );
+
+    if (stored_iat > iat ) { // admin revoked tokens
+      mysql_free_result(result);
+      Error("Token was revoked for '%s'", username.c_str());
+      return NULL;
+    }
+
+    Debug (1,"Got stored expiry time of %u",stored_iat);
+    Debug (1,"Authenticated user '%s' via token", username.c_str());
+    mysql_free_result(result);
+    return user;
+
+  }
+  else {
+    return NULL;
+  }
+
+}
+ 
 // Function to validate an authentication string
 User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 #if HAVE_DECL_MD5 || HAVE_DECL_GNUTLS_FINGERPRINT
@@ -162,7 +238,7 @@ User *zmLoadAuthUser( const char *auth, bool use_remote_addr ) {
 
   Debug( 1, "Attempting to authenticate user from auth string '%s'", auth );
   char sql[ZM_SQL_SML_BUFSIZ] = "";
-  snprintf( sql, sizeof(sql), "SELECT Id, Username, Password, Enabled, Stream+0, Events+0, Control+0, Monitors+0, System+0, MonitorIds FROM Users WHERE Enabled = 1" );
+  snprintf( sql, sizeof(sql), "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds` FROM `Users` WHERE `Enabled` = 1" );
 
   if ( mysql_query( &dbconn, sql ) ) {
     Error( "Can't run query: %s", mysql_error( &dbconn ) );

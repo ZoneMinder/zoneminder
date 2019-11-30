@@ -250,6 +250,8 @@ protected:
   Orientation     orientation;        // Whether the image has to be rotated at all
   unsigned int    deinterlacing;
   bool            videoRecording;
+  std::string     decoder_hwaccel_name;
+  std::string     decoder_hwaccel_device;
 
   int savejpegs;
   VideoWriter videowriter;
@@ -273,9 +275,11 @@ protected:
   int           post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int           stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   int           section_length;      // How long events should last in continuous modes
+  int           min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool          adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int           frame_skip;        // How many frames to skip in continuous modes
   int           motion_frame_skip;      // How many frames to skip in motion detection
+  double        capture_max_fps;       // Target Capture FPS
   double        analysis_fps;  // Target framerate for video analysis
   unsigned int  analysis_update_delay;  //  How long we wait before updating analysis parameters
   int           capture_delay;      // How long we wait between capture frames
@@ -367,6 +371,8 @@ public:
     Camera *p_camera,
     int p_orientation,
     unsigned int p_deinterlacing,
+    const std::string &p_decoder_hwaccel_name,
+    const std::string &p_decoder_hwaccel_device,
     int p_savejpegs,
     VideoWriter p_videowriter,
     std::string p_encoderparams,
@@ -382,8 +388,10 @@ public:
     int p_stream_replay_buffer,
     int p_alarm_frame_count,
     int p_section_length,
+    int p_min_section_length,
     int p_frame_skip,
     int p_motion_frame_skip,
+    double p_capture_max_fps,
     double p_analysis_fps,
     unsigned int p_analysis_update_delay,
     int p_capture_delay,
@@ -467,6 +475,7 @@ public:
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  unsigned int GetCaptureMaxFPS() const { return capture_max_fps; }
   int GetCaptureDelay() const { return capture_delay; }
   int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;

@@ -166,6 +166,8 @@ set(ZM_DIR_SOUNDS "sounds" CACHE PATH
     "Location to look for optional sound files, default: sounds")
 set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
     "Web url to zms streaming server, default: /cgi-bin/nph-zms")
+set(ZM_PATH_SHUTDOWN "/sbin/shutdown" CACHE PATH
+    "Path to shutdown binary, default: /sbin/shutdown")
 
 # Advanced
 set(ZM_PATH_MAP "/dev/shm" CACHE PATH
@@ -870,6 +872,13 @@ include(Pod2Man)
 ADD_MANPAGE_TARGET()
 
 # Process subdirectories
+
+# build a bcrypt static library
+set(BUILD_SHARED_LIBS_SAVED "${BUILD_SHARED_LIBS}")
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(src/libbcrypt EXCLUDE_FROM_ALL)
+set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
+
 add_subdirectory(src)
 add_subdirectory(scripts)
 add_subdirectory(db)

@@ -13,7 +13,7 @@ Type=forking
 ExecStart=/usr/bin/zmpkg.pl start
 ExecReload=/usr/bin/zmpkg.pl restart
 ExecStop=/usr/bin/zmpkg.pl stop
-PIDFile=/var/run/zm/zm.pid
+PIDFile=/run/zm/zm.pid
 Restart=always
 RestartSec=10
 Environment=TZ=:/etc/localtime

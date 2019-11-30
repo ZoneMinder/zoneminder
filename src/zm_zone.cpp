@@ -24,6 +24,7 @@
 #include "zm_zone.h"
 #include "zm_image.h"
 #include "zm_monitor.h"
+#include "zm_fifo.h"
 
 
 void Zone::Setup( 
@@ -74,7 +75,7 @@ void Zone::Setup(
   //Debug( 1, "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d, OF: %d, AF: %d", id, label, type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames, extend_alarm_frames );
 
   alarmed = false;
-	was_alarmed = false;
+  was_alarmed = false;
   pixel_diff = 0;
   alarm_pixels = 0;
   alarm_filter_pixels = 0;
@@ -112,11 +113,13 @@ void Zone::Setup(
   }
 
   if ( config.record_diag_images ) {
-    snprintf(diag_path, sizeof(diag_path), "%s/diag-%d-poly.jpg", monitor->getStorage()->Path(), id);
-    pg_image->WriteJpeg(diag_path);
+    snprintf(diag_path, sizeof(diag_path), config.record_diag_images_fifo ? "%s/diagpipe-%d-poly.jpg" : "%s/diag-%d-poly.jpg", monitor->getStorage()->Path(), id);
+    if (config.record_diag_images_fifo)
+      FifoStream::fifo_create_if_missing(diag_path);
+    pg_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
   } else {
-		diag_path[0] = 0;
-	}
+    diag_path[0] = 0;
+  }
 } // end Zone::Setup
 
 Zone::~Zone() {
@@ -129,13 +132,13 @@ Zone::~Zone() {
 void Zone::RecordStats( const Event *event ) {
   static char sql[ZM_SQL_MED_BUFSIZ];
   db_mutex.lock();
-	snprintf(sql, sizeof(sql),
-			"INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
-			monitor->Id(), id, event->Id(), event->Frames()+1, pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score
-			);
-	if ( mysql_query(&dbconn, sql) ) {
-		Error("Can't insert event stats: %s", mysql_error(&dbconn));
-	}
+  snprintf(sql, sizeof(sql),
+      "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
+      monitor->Id(), id, event->Id(), event->Frames()+1, pixel_diff, alarm_pixels, alarm_filter_pixels, alarm_blob_pixels, alarm_blobs, min_blob_size, max_blob_size, alarm_box.LoX(), alarm_box.LoY(), alarm_box.HiX(), alarm_box.HiY(), score
+      );
+  if ( mysql_query(&dbconn, sql) ) {
+    Error("Can't insert event stats: %s", mysql_error(&dbconn));
+  }
   db_mutex.unlock();
 } // end void Zone::RecordStats( const Event *event )
 
@@ -232,13 +235,18 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   std_alarmedpixels(diff_image, pg_image, &alarm_pixels, &pixel_diff_count);
 
   if ( config.record_diag_images )
-    diff_image->WriteJpeg(diag_path);
+    diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
 
   if ( pixel_diff_count && alarm_pixels )
     pixel_diff = pixel_diff_count/alarm_pixels;
 
   Debug(5, "Got %d alarmed pixels, need %d -> %d, avg pixel diff %d",
       alarm_pixels, min_alarm_pixels, max_alarm_pixels, pixel_diff);
+
+  if ( config.record_diag_images_fifo ) {
+    FifoDebug(5, "{\"zone\":%d,\"type\":\"ALRM\",\"pixels\":%d,\"avg_diff\":%d}",
+        id,alarm_pixels, pixel_diff);
+  }
 
   if ( alarm_pixels ) {
     if ( min_alarm_pixels && (alarm_pixels < (unsigned int)min_alarm_pixels) ) {
@@ -254,7 +262,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
-  if (max_alarm_pixels != 0) 
+  if ( max_alarm_pixels != 0 )
     score = (100*alarm_pixels)/max_alarm_pixels;
   else
     score = (100*alarm_pixels)/polygon.Area();
@@ -269,7 +277,6 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     int bx1 = bx-1;
     int by1 = by-1;
 
-
     Debug(5, "Checking for filtered pixels");
     if ( bx > 1 || by > 1 ) {
       // Now remove any pixels smaller than our filter size
@@ -280,7 +287,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
 
-        pdiff = (uint8_t*)diff_image->Buffer( lo_x, y );
+        pdiff = (uint8_t*)diff_image->Buffer(lo_x, y);
 
         for ( int x = lo_x; x <= hi_x; x++, pdiff++ ) {
           if ( *pdiff == WHITE ) {
@@ -316,10 +323,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     }
 
     if ( config.record_diag_images )
-      diff_image->WriteJpeg(diag_path);
+      diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
 
     Debug(5, "Got %d filtered pixels, need %d -> %d",
         alarm_filter_pixels, min_filter_pixels, max_filter_pixels);
+
+    if ( config.record_diag_images_fifo )
+      FifoDebug(5, "{\"zone\":%d,\"type\":\"FILT\",\"pixels\":%d}", id, alarm_filter_pixels);
 
     if ( alarm_filter_pixels ) {
       if ( min_filter_pixels && (alarm_filter_pixels < min_filter_pixels) ) {
@@ -335,7 +345,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       return false;
     }
 
-    if (max_filter_pixels != 0)
+    if ( max_filter_pixels != 0 )
        score = (100*alarm_filter_pixels)/max_filter_pixels;
      else
        score = (100*alarm_filter_pixels)/polygon.Area();
@@ -398,13 +408,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   bss = bsm==bsx?bsy:bsx;
 
                   Debug(9,
-											"Different neighbours, setting pixels of %d to %d\n"
-											"Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n"
-											"Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n",
-											bss->tag, bsm->tag,
-											bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y,
-											bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y
-											);
+                      "Different neighbours, setting pixels of %d to %d\n"
+                      "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n"
+                      "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n",
+                      bss->tag, bsm->tag,
+                      bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y,
+                      bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y
+                      );
                   // Now change all those pixels to the other setting
                   int changed = 0;
                   for ( int sy = bss->lo_y; sy <= bss->hi_y; sy++ ) {
@@ -412,9 +422,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                     int hi_sx = bss->hi_x<=ranges[sy].hi_x?bss->hi_x:ranges[sy].hi_x;
 
                     Debug(9,
-												"Changing %d, %d->%d Range %d->%d",
-												sy, lo_sx, hi_sx, ranges[sy].lo_x, ranges[sy].hi_x
-												);
+                        "Changing %d, %d->%d Range %d->%d",
+                        sy, lo_sx, hi_sx, ranges[sy].lo_x, ranges[sy].hi_x
+                        );
                     spdiff = diff_buff + ((diff_width * sy) + lo_sx);
                     for ( int sx = lo_sx; sx <= hi_sx; sx++, spdiff++ ) {
                       Debug(9, "Pixel at %d,%d (%p) is %d", sx, sy, spdiff, *spdiff);
@@ -429,11 +439,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   alarm_blob_pixels++;
                   if ( !changed ) {
                     Info(
-												"Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n"
-												"Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d",
-												bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y,
-												bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y
-												);
+                        "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n"
+                        "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d",
+                        bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y,
+                        bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y
+                        );
                     Error("No pixels changed, exiting");
                     exit(-1);
                   }
@@ -507,7 +517,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                       alarm_blob_pixels -= bs->count;
 
                       Debug(6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-													i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs);
+                          i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs);
 
                       bs->tag = 0;
                       bs->count = 0;
@@ -541,15 +551,21 @@ bool Zone::CheckAlarms(const Image *delta_image) {
           }
         }
       }
+
       if ( config.record_diag_images )
-        diff_image->WriteJpeg(diag_path);
+        diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
 
       if ( !alarm_blobs ) {
         return false;
       }
 
       Debug(5, "Got %d raw blob pixels, %d raw blobs, need %d -> %d, %d -> %d",
-					alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
+          alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
+
+      if ( config.record_diag_images_fifo ) {
+        FifoDebug(5, "{\"zone\":%d,\"type\":\"RBLB\",\"pixels\":%d,\"blobs\":%d}",
+            id, alarm_blob_pixels, alarm_blobs);
+      }
 
       // Now eliminate blobs under the threshold
       for ( int i = 1; i < WHITE; i++ ) {
@@ -570,7 +586,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             alarm_blob_pixels -= bs->count;
 
             Debug(6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-								i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs );
+                i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs);
 
             bs->tag = 0;
             bs->count = 0;
@@ -580,17 +596,23 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             bs->hi_y = 0;
           } else {
             Debug(6, "Preserved blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-								i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs );
+                i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, alarm_blobs);
             if ( !min_blob_size || bs->count < min_blob_size ) min_blob_size = bs->count;
             if ( !max_blob_size || bs->count > max_blob_size ) max_blob_size = bs->count;
           }
         } // end if bs_count
       } // end for i < WHITE
+
       if ( config.record_diag_images )
-        diff_image->WriteJpeg(diag_path);
+        diff_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
 
       Debug(5, "Got %d blob pixels, %d blobs, need %d -> %d, %d -> %d",
-					alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
+          alarm_blob_pixels, alarm_blobs, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs);
+
+      if ( config.record_diag_images_fifo ) {
+        FifoDebug(5, "{\"zone\":%d,\"type\":\"FBLB\",\"pixels\":%d,\"blobs\":%d}",
+            id, alarm_blob_pixels, alarm_blobs);
+      }
 
       if ( alarm_blobs ) {
         if ( min_blobs && (alarm_blobs < min_blobs) ) {
@@ -606,7 +628,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         return false;
       }
       
-      if (max_blob_pixels != 0)
+      if ( max_blob_pixels != 0 )
         score = (100*alarm_blob_pixels)/(max_blob_pixels);
       else 
         score = (100*alarm_blob_pixels)/polygon.Area();
@@ -678,7 +700,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
       alarm_centre = alarm_box.Centre();
     }
 
-    if ( (type < PRECLUSIVE) && check_method >= BLOBS && config.create_analysis_images ) {
+    if ( (type < PRECLUSIVE) && (check_method >= BLOBS) && config.create_analysis_images ) {
 
       // First mask out anything we don't want
       for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
@@ -692,12 +714,12 @@ bool Zone::CheckAlarms(const Image *delta_image) {
           if ( lo_gap == 1 ) {
             *pdiff++ = BLACK;
           } else {
-            memset( pdiff, BLACK, lo_gap );
+            memset(pdiff, BLACK, lo_gap);
             pdiff += lo_gap;
           }
         }
 
-        const uint8_t* ppoly = pg_image->Buffer( lo_x2, y );
+        const uint8_t* ppoly = pg_image->Buffer(lo_x2, y);
         for ( int x = lo_x2; x <= hi_x2; x++, pdiff++, ppoly++ ) {
           if ( !*ppoly ) {
             *pdiff = BLACK;
@@ -709,10 +731,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
           if ( hi_gap == 1 ) {
             *pdiff = BLACK;
           } else {
-            memset( pdiff, BLACK, hi_gap );
+            memset(pdiff, BLACK, hi_gap);
           }
         }
-      }
+      } // end for y
 
       if ( monitor->Colours() == ZM_COLOUR_GRAY8 ) {
         image = diff_image->HighlightEdges(alarm_rgb, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, &polygon.Extent());
@@ -768,32 +790,32 @@ bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
 
       Debug(3, "Got coordinate %d,%d from polygon string", x, y);
 #if 0
-			if ( x < 0 )
-				x = 0;
-			else if ( x >= width )
-				x = width-1;
-			if ( y < 0 )
-				y = 0;
-			else if ( y >= height )
-				y = height-1;
+      if ( x < 0 )
+        x = 0;
+      else if ( x >= width )
+        x = width-1;
+      if ( y < 0 )
+        y = 0;
+      else if ( y >= height )
+        y = height-1;
 #endif
-			coords[n_coords++] = Coord( x, y );
-		}
-		if ( ws )
-			str = ws+1;
-		else
-			break;
-	}
-	polygon = Polygon(n_coords, coords);
+      coords[n_coords++] = Coord( x, y );
+    }
+    if ( ws )
+      str = ws+1;
+    else
+      break;
+  }
+  polygon = Polygon(n_coords, coords);
 
-	Debug(3, "Successfully parsed polygon string");
-	//printf( "Area: %d\n", pg.Area() );
-	//printf( "Centre: %d,%d\n", pg.Centre().X(), pg.Centre().Y() );
+  Debug(3, "Successfully parsed polygon string");
+  //printf( "Area: %d\n", pg.Area() );
+  //printf( "Centre: %d,%d\n", pg.Centre().X(), pg.Centre().Y() );
 
-	delete[] coords;
-	delete[] str_ptr;
+  delete[] coords;
+  delete[] str_ptr;
 
-	return true;
+  return true;
 }
 
 bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon) {
@@ -848,7 +870,7 @@ int Zone::Load(Monitor *monitor, Zone **&zones) {
   if ( mysql_query(&dbconn, sql) ) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     db_mutex.unlock();
-		return 0;
+    return 0;
   }
 
   MYSQL_RES *result = mysql_store_result( &dbconn );
@@ -901,7 +923,7 @@ int Zone::Load(Monitor *monitor, Zone **&zones) {
     if ( polygon.LoX() < 0 || polygon.HiX() >= (int)monitor->Width() 
         || polygon.LoY() < 0 || polygon.HiY() >= (int)monitor->Height() ) {
       Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), ignoring",
-					Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY());
+          Id, Name, monitor->Name(), polygon.LoX(), polygon.LoY(), polygon.HiX(), polygon.HiY());
       n_zones -= 1;
       continue;
     }

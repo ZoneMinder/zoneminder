@@ -37,14 +37,14 @@ xhtmlHeaders(__FILE__, translate('Group').' - '.$newGroup->Name());
       <h2><?php echo translate('Group') ?> - <?php echo validHtmlStr($newGroup->Name()); ?></h2>
     </div>
     <div id="content">
-      <form name="groupForm" method="post" action="?">
+      <form id="groupForm" name="groupForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="gid" value="<?php echo $newGroup->Id() ?>"/>
         <table id="contentTable" class="major">
           <tbody>
             <tr>
               <th scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" oninput="configureButtons(this);"/></td>
+              <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" data-on-input="configureButtons"/></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('ParentGroup') ?></th>
@@ -88,19 +88,19 @@ function get_children($Group) {
 $kids = get_children($newGroup);
 if ( $newGroup->Id() )
   $kids[] = $newGroup->Id();
-$sql = 'SELECT Id,Name from Groups'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids)).')' : '').' ORDER BY Name';
+$sql = 'SELECT Id,Name FROM `Groups`'.(count($kids)?' WHERE Id NOT IN ('.implode(',',array_map(function(){return '?';}, $kids)).')' : '').' ORDER BY Name';
 $options = array(''=>'None');
 foreach ( dbFetchAll($sql, null, $kids) as $option ) {
   $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()) . $option['Name'];
 }
-echo htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('onchange'=>'configureButtons(this);'));
+echo htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('data-on-change'=>'configureButtons'));
 ?>
               </td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Monitor') ?></th>
               <td>
-                <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" onchange="configureButtons(this);">
+                <select name="newGroup[MonitorIds][]" class="chosen" multiple="multiple" data-on-change="configureButtons">
 <?php
   $monitors = dbFetchAll('SELECT Id,Name FROM Monitors ORDER BY Sequence ASC');
   $monitorIds = $newGroup->MonitorIds();

@@ -25,7 +25,7 @@ function Monitor(monitorData) {
     }
   };
 
-  this.eventHandler = function( event ) {
+  this.eventHandler = function(event) {
     console.log(event);
   };
 
@@ -204,12 +204,17 @@ function Monitor(monitorData) {
   }
 } // end function Monitor
 
+/**
+ * called when the layoutControl select element is changed, or the page
+ * is rendered
+ * @param {*} element - the event data passed by onchange callback
+ */
 function selectLayout(element) {
+  console.log(element);
   layout = $j(element).val();
 
   if ( layout_id = parseInt(layout) ) {
     layout = layouts[layout];
-    console.log(layout);
 
     for ( var i = 0, length = monitors.length; i < length; i++ ) {
       monitor = monitors[i];
@@ -249,7 +254,7 @@ function selectLayout(element) {
   if ( layouts[layout_id].Name != 'Freeform' ) { // 'montage_freeform.css' ) {
     Cookie.write( 'zmMontageScale', '', {duration: 10*365} );
     $('scale').set('value', '');
-    $('width').set('value', '');
+    $('width').set('value', 'auto');
     for ( var i = 0, length = monitors.length; i < length; i++ ) {
       var monitor = monitors[i];
       var streamImg = $('liveStream'+monitor.id);
@@ -266,14 +271,13 @@ function selectLayout(element) {
         }
         streamImg.style.width = '100%';
       }
-      var zonesSVG = $('zones'+monitor.id);
-      if ( zonesSVG ) {
-        zonesSVG.style.width = '';
-      }
     } // end foreach monitor
   }
 } // end function selectLayout(element)
 
+/**
+ * called when the widthControl|heightControl select elements are changed
+ */
 function changeSize() {
   var width = $('width').get('value');
   var height = $('height').get('value');
@@ -309,19 +313,17 @@ function changeSize() {
       streamImg.style.height = height ? height : null;
       //streamImg.style.height = '';
     }
-    var zonesSVG = $('zones'+monitor.id);
-    if ( zonesSVG ) {
-      zonesSVG.style.width = width ? width : '100%';
-      zonesSVG.style.height = height;
-    }
   }
   $('scale').set('value', '');
   Cookie.write('zmMontageScale', '', {duration: 10*365});
   Cookie.write('zmMontageWidth', width, {duration: 10*365});
   Cookie.write('zmMontageHeight', height, {duration: 10*365});
-  selectLayout('#zmMontageLayout');
+  //selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
+/**
+ * called when the scaleControl select element is changed
+ */
 function changeScale() {
   var scale = $('scale').get('value');
   $('width').set('value', 'auto');
@@ -367,11 +369,6 @@ function changeScale() {
       streamImg.style.width = newWidth + "px";
       streamImg.style.height = newHeight + "px";
     }
-    var zonesSVG = $('zones'+monitor.id);
-    if ( zonesSVG ) {
-      zonesSVG.style.width = newWidth + "px";
-      zonesSVG.style.height = newHeight + "px";
-    }
   }
 }
 
@@ -398,6 +395,17 @@ function edit_layout(button) {
 
 function save_layout(button) {
   var form = button.form;
+  var name = form.elements['Name'].value;
+
+  if ( !name ) {
+    name = form.elements['zmMontageLayout'].options[form.elements['zmMontageLayout'].selectedIndex].text;
+  }
+
+  if ( name=='Freeform' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' ) {
+    alert('You cannot edit the built in layouts.  Please give the layout a new name.');
+    return;
+  }
+
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};
   for ( var i = 0, length = monitors.length; i < length; i++ ) {

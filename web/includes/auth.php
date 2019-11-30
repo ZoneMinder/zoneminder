@@ -19,102 +19,139 @@
 //
 //
 require_once('session.php');
+require_once(__DIR__.'/../vendor/autoload.php');
+use \Firebase\JWT\JWT;
 
-function userLogin($username='', $password='', $passwordHashed=false) {
-  global $user;
+function password_type($password) {
+   if ( $password[0] == '*' ) {
+    return 'mysql';
+  } else if ( preg_match('/^\$2[ayb]\$.+$/', $password) ) {
+    return 'bcrypt';
+  } else if ( substr($password, 0,4) == '-ZM-' ) {
+  // zmupdate.pl adds a '-ZM-' prefix to overlay encrypted passwords
+  // this is done so that we don't spend cycles doing two bcrypt password_verify calls
+  // for every wrong password entered. This will only be invoked for passwords zmupdate.pl has
+  // overlay hashed
+    return 'mysql+bcrypt';
+  }
+  return 'plain';
+}
 
-  if ( !$username and isset($_REQUEST['username']) )
-    $username = $_REQUEST['username'];
-  if ( !$password and isset($_REQUEST['password']) )
-    $password = $_REQUEST['password'];
-
-  // if true, a popup will display after login
-  // PP - lets validate reCaptcha if it exists
-  if ( defined('ZM_OPT_USE_GOOG_RECAPTCHA')
-      && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
-      && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
-      && ZM_OPT_USE_GOOG_RECAPTCHA
-      && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY
-      && ZM_OPT_GOOG_RECAPTCHA_SITEKEY )
-  {
-    $url = 'https://www.google.com/recaptcha/api/siteverify';
-    $fields = array (
-        'secret'    => ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,
-        'response'  => $_REQUEST['g-recaptcha-response'],
-        'remoteip'  => $_SERVER['REMOTE_ADDR']
-        );
-    $res = do_post_request($url, http_build_query($fields));
-    $responseData = json_decode($res,true);
-    // PP - credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
-    // if recaptcha resulted in error, we might have to deny login
-    if ( isset($responseData['success']) && $responseData['success'] == false ) {
-      // PP - before we deny auth, let's make sure the error was not 'invalid secret'
-      // because that means the user did not configure the secret key correctly
-      // in this case, we prefer to let him login in and display a message to correct
-      // the key. Unfortunately, there is no way to check for invalid site key in code
-      // as it produces the same error as when you don't answer a recaptcha
-      if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
-        if ( !in_array('invalid-input-secret',$responseData['error-codes']) ) {
-          Error('reCaptcha authentication failed');
-          return null;
-        } else {
-          Error('Invalid recaptcha secret detected');
-        }
-      }
-    } // end if success==false
-  } // end if using reCaptcha
-
-  $sql = 'SELECT * FROM Users WHERE Enabled=1';
-  $sql_values = NULL;
-  if ( ZM_AUTH_TYPE == 'builtin' ) {
-    if ( $passwordHashed ) {
-      $sql .= ' AND Username=? AND Password=?';
-    } else {
-      $sql .= ' AND Username=? AND Password=password(?)';
-    }
-    $sql_values = array($username, $password);
+// this function migrates mysql hashing to bcrypt, if you are using PHP >= 5.5
+// will be called after successful login, only if mysql hashing is detected
+function migrateHash($user, $pass) {
+  if ( function_exists('password_hash') ) {
+    ZM\Info("Migrating $user to bcrypt scheme");
+    // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
+    // we can modify this later to support argon2 etc as switch to its own password signature detection 
+    $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
+    //ZM\Info ("hased bcrypt $pass is $bcrypt_hash");
+    $update_password_sql = 'UPDATE Users SET Password=\''.$bcrypt_hash.'\' WHERE Username=\''.$user.'\'';
+    dbQuery($update_password_sql);
+    # Since password field has changed, existing auth_hash is no longer valid
+    generateAuthHash(ZM_AUTH_HASH_IPS, true);
   } else {
-    $sql .= ' AND Username=?';
-    $sql_values = array($username);
+    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.3');
+    return;
   }
-  $close_session = 0;
-  if ( !is_session_started() ) {
-    session_start();
-    $close_session = 1;
+}
+
+// core function used to load a User record by username and password
+function validateUser($username='', $password='') {
+
+  $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+  // local user, shouldn't affect the global user
+  $user = dbFetchOne($sql, NULL, array($username));
+
+  if ( ! $user ) {
+    return array(false, "Could not retrieve user $username details");
   }
-  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-  if ( $dbUser = dbFetchOne($sql, NULL, $sql_values) ) {
-    ZM\Info("Login successful for user \"$username\"");
-    $user = $dbUser;
-    unset($_SESSION['loginFailed']);
-    if ( ZM_AUTH_TYPE == 'builtin' ) {
-      $_SESSION['passwordHash'] = $user['Password'];
-    }
-    $_SESSION['username'] = $user['Username'];
-    if ( ZM_AUTH_RELAY == 'plain' ) {
-      // Need to save this in session, can't use the value in User because it is hashed
-      $_SESSION['password'] = $_REQUEST['password'];
-    }
-    zm_session_regenerate_id();
-  } else {
-    ZM\Warning("Login denied for user \"$username\"");
-    $_SESSION['loginFailed'] = true;
-    unset($user);
+
+  switch ( password_type($user['Password']) ) {
+  case 'mysql' : 
+    // We assume we don't need to support mysql < 4.1
+    // Starting MY SQL 4.1, mysql concats a '*' in front of its password hash
+    // https://blog.pythian.com/hashing-algorithm-in-mysql-password-2/
+    ZM\Logger::Debug('Saved password is using MYSQL password function');
+    $input_password_hash = '*'.strtoupper(sha1(sha1($password, true)));
+    $password_correct = ($user['Password'] == $input_password_hash);
+    break;
+  case 'bcrypt' :
+    ZM\Logger::Debug('bcrypt signature found, assumed bcrypt password');
+    $password_correct = password_verify($password, $user['Password']);
+    break;
+  case 'mysql+bcrypt' : 
+    // zmupdate.pl adds a '-ZM-' prefix to overlay encrypted passwords
+    // this is done so that we don't spend cycles doing two bcrypt password_verify calls
+    // for every wrong password entered. This will only be invoked for passwords zmupdate.pl has
+    // overlay hashed
+    ZM\Logger::Debug("Detected bcrypt overlay hashing for $username");
+    $bcrypt_hash = substr($user['Password'], 4);
+    $mysql_encoded_password = '*'.strtoupper(sha1(sha1($password, true)));
+    ZM\Logger::Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
+    $password_correct = password_verify($mysql_encoded_password, $bcrypt_hash);
+    break;
+  default:
+    // we really should nag the user not to use plain
+    ZM\Warning('assuming plain text password as signature is not known. Please do not use plain, it is very insecure');
+    $password_correct = ($user['Password'] == $password);
+  } // switch password_type
+
+  if ( $password_correct ) {
+    return array($user, 'OK');
   }
-  if ( $close_session )
-    session_write_close();
-  return isset($user) ? $user: null;
-} # end function userLogin
+  return array(false, "Login denied for user \"$username\"");
+} # end function validateUser
 
 function userLogout() {
   global $user;
   ZM\Info('User "'.$user['Username'].'" logged out');
-  unset($user);
+  $user = null;// unset only clears the local variable
   zm_session_clear();
 }
 
+function validateToken($token, $allowed_token_type='access') {
+  global $user;
+  $key = ZM_AUTH_HASH_SECRET;
+  //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
+  try {
+    $decoded_token = JWT::decode($token, $key, array('HS256'));
+  } catch (Exception $e) {
+    ZM\Error("Unable to authenticate user. error decoding JWT token:".$e->getMessage());
+    return array(false, $e->getMessage());
+  }
+
+  // convert from stdclass to array
+  $jwt_payload = json_decode(json_encode($decoded_token), true);
+
+  $type = $jwt_payload['type'];
+  if ( $type != $allowed_token_type ) {
+    ZM\Error("Token type mismatch. Expected $allowed_token_type but got $type");
+    return array(false, 'Incorrect token type');
+  }
+  $username = $jwt_payload['user'];
+  $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+  $saved_user_details = dbFetchOne($sql, NULL, array($username));
+
+  if ( $saved_user_details ) {
+    $issuedAt =  $jwt_payload['iat'];
+    $minIssuedAt = $saved_user_details['TokenMinExpiry'];
+
+    if ( $issuedAt < $minIssuedAt ) {
+      ZM\Error("Token revoked for $username. Please generate a new token");
+      $user = null;// unset only clears the local variable
+      return array(false, 'Token revoked. Please re-generate');
+    }
+    $user = $saved_user_details;
+    return array($user, 'OK');
+  }
+  ZM\Error("Could not retrieve user $username details");
+  $user = null;// unset only clears the local variable
+  return array(false, 'No such user/credentials');
+} // end function validateToken($token, $allowed_token_type='access')
+
 function getAuthUser($auth) {
-  if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' && !empty($auth) ) {
+  if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth) ) {
     $remoteAddr = '';
     if ( ZM_AUTH_HASH_IPS ) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
@@ -136,53 +173,44 @@ function getAuthUser($auth) {
 
     foreach ( dbFetchAll($sql, NULL, $values) as $user ) {
       $now = time();
-      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= ZM_AUTH_HASH_TTL * 1800 ) { // Try for last two hours
+      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600 ) { // Try for last TTL hours
         $time = localtime($now);
         $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
         $authHash = md5($authKey);
 
         if ( $auth == $authHash ) {
           return $user;
-        }
+        } // end if $auth == $authHash
       } // end foreach hour
     } // end foreach user
   } // end if using auth hash
   ZM\Error("Unable to authenticate user from auth hash '$auth'");
-  return false;
+  return null;
 } // end getAuthUser($auth)
 
 function generateAuthHash($useRemoteAddr, $force=false) {
-  if ( ZM_OPT_USE_AUTH and ZM_AUTH_RELAY == 'hashed' and isset($_SESSION['username']) and $_SESSION['passwordHash'] ) {
-    # regenerate a hash at half the liftetime of a hash, an hour is 3600 so half is 1800
+  global $user;
+  if ( ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password']) ) {
     $time = time();
+
+    # We use 1800 so that we regenerate the hash at half the TTL
     $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
 
+    # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
     if ( $force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
       $local_time = localtime();
       $authKey = '';
       if ( $useRemoteAddr ) {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
+        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       } else {
-        $authKey = ZM_AUTH_HASH_SECRET.$_SESSION['username'].$_SESSION['passwordHash'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
+        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
       }
       #ZM\Logger::Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
       $auth = md5($authKey);
-      if ( !$force ) {
-        $close_session = 0;
-        if ( !is_session_started() ) {
-          session_start();
-          $close_session = 1;
-        }
-        $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
-        $_SESSION['AuthHashGeneratedAt'] = $time;
-        session_write_close();
-      } else {
-        return $auth;
-      }
-      #ZM\Logger::Debug("Generated new auth $auth at " . $_SESSION['AuthHashGeneratedAt']. " using $authKey" );
-      #} else {
-      #ZM\Logger::Debug("Using cached auth " . $_SESSION['AuthHash'] ." beacuse generatedat:" . $_SESSION['AuthHashGeneratedAt'] . ' < now:'. $time . ' - ' .  ZM_AUTH_HASH_TTL . ' * 1800 = '. $mintime);
+      $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
+      $_SESSION['AuthHashGeneratedAt'] = $time;
+      # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'.$_SESSION['remoteAddr']];
   } # end if using AUTH and AUTH_RELAY
@@ -207,40 +235,59 @@ function canEdit($area, $mid=false) {
   return ( $user[$area] == 'Edit' && ( !$mid || visibleMonitor($mid) ));
 }
 
-global $user;
-if ( ZM_OPT_USE_AUTH ) {
-  $close_session = 0;
-  if ( !is_session_started() ) {
-    zm_session_start();
-    $close_session = 1;
-  }
-
+function userFromSession() {
+  $user = null; // Not global
   if ( isset($_SESSION['username']) ) {
-    # Need to refresh permissions and validate that the user still exists
-    $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
-    $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
-  }
-
-  if ( ZM_AUTH_RELAY == 'plain' ) {
-    // Need to save this in session
-    $_SESSION['password'] = $password;
-  }
-  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-
-  if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
-    if ( $authUser = getAuthUser($_REQUEST['auth']) ) {
-      userLogin($authUser['Username'], $authUser['Password'], true);
+    if ( ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed') ) {
+      # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
+      # This prevent session modification to switch users
+      if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
+        $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
+      else
+        ZM\Logger::Debug("No auth hash in session, there should have been");
+    } else {
+      # Need to refresh permissions and validate that the user still exists
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+      $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
     }
-  } else if ( isset($_REQUEST['username']) and isset($_REQUEST['password']) ) {
-    userLogin($_REQUEST['username'], $_REQUEST['password'], false);
+  } else {
+    ZM\Logger::Debug('No username in session');
   }
-  if ( !empty($user) ) {
-    // generate it once here, while session is open.  Value will be cached in session and return when called later on
-    generateAuthHash(ZM_AUTH_HASH_IPS);
-  }
-  if ( $close_session )
-    session_write_close();
+  return $user;
+}
+
+if ( ZM_OPT_USE_AUTH ) {
+  if ( !empty($_REQUEST['token']) ) {
+    $ret = validateToken($_REQUEST['token'], 'access');
+    $user = $ret[0];
+  } else {
+    // Non token based auth
+
+    $user = userFromSession();
+
+    if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
+      $user = getAuthUser($_REQUEST['auth']);
+    } else if (
+      ! (
+        empty($_REQUEST['username']) or
+        empty($_REQUEST['password']) or
+      (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA)
+    ) ) {
+      $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
+      if ( !$ret[0] ) {
+        ZM\Error($ret[1]);
+        unset($user); // unset should be ok here because we aren't in a function
+        return;
+      }
+      $user = $ret[0];
+    }
+
+    if ( !empty($user) ) {
+      // generate it once here, while session is open.  Value will be cached in session and return when called later on
+      generateAuthHash(ZM_AUTH_HASH_IPS);
+    }
+  } # end if token based auth
 } else {
   $user = $defaultUser;
-}
+} # end if ZM_OPT_USE_AUTH
 ?>

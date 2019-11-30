@@ -65,7 +65,7 @@ Because ZoneMinder's package repository provides a secure connection through HTT
 Finally, download the GPG key for ZoneMinder's repository:
 ::
 
-    sudo wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo apt-key add -
+    wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo apt-key add -
 
 
 **Step 5:** Install ZoneMinder
@@ -82,8 +82,7 @@ a read.
 
 ::
 
-    gunzip /usr/share/doc/zoneminder/README.Debian.gz
-    cat /usr/share/doc/zoneminder/README.Debian
+    zcat /usr/share/doc/zoneminder/README.Debian.gz
 
 
 **Step 7:** Enable ZoneMinder service
@@ -190,10 +189,16 @@ Add the following to the bottom of the file
 ::
 
     # Backports repository
-    deb http://httpredir.debian.org/debian jessie-backports main contrib non-free
+    deb http://archive.debian.org/debian/ jessie-backports main contrib non-free
 
 CTRL+o and <Enter> to save
 CTRL+x to exit
+
+Run the following
+
+::
+
+    echo 'Acquire::Check-Valid-Until no;' > /etc/apt/apt.conf.d/99no-check-valid-until
 
 **Step 5:** Install ZoneMinder
 
@@ -209,8 +214,7 @@ a read.
 
 ::
 
-    gunzip /usr/share/doc/zoneminder/README.Debian.gz
-    cat /usr/share/doc/zoneminder/README.Debian
+    zcat /usr/share/doc/zoneminder/README.Debian.gz
 
 **Step 7:** Setup Database
 

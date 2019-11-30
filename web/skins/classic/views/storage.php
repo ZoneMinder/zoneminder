@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'System' ) ) {
+if ( !canEdit('System') ) {
   $view = 'error';
   return;
 }
@@ -55,12 +55,12 @@ foreach ( $servers as $S ) {
 }
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
+xhtmlHeaders(__FILE__, translate('Storage').' - '.$newStorage['Name']);
 ?>
 <body>
   <div id="page">
     <div id="header">
-      <h2><?php echo translate('Storage')." - ".$newStorage['Name'] ?></h2>
+      <h2><?php echo translate('Storage').' - '.$newStorage['Name'] ?></h2>
     </div>
     <div id="content">
       <form name="contentForm" method="post" action="?" class="validateFormOnSubmit">
@@ -83,15 +83,15 @@ xhtmlHeaders(__FILE__, translate('Storage')." - ".$newStorage['Name'] );
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Server') ?></th>
-              <td><?php echo htmlSelect( 'newStorage[ServerId]', array(''=>'Remote / No Specific Server') + $ServersById, $newStorage['ServerId'] ); ?></td>
+              <td><?php echo htmlSelect('newStorage[ServerId]', array(''=>'Remote / No Specific Server') + $ServersById, $newStorage['ServerId']); ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('Type') ?></th>
-              <td><?php echo htmlSelect( 'newStorage[Type]', $type_options, $newStorage['Type'] ); ?></td>
+              <td><?php echo htmlSelect('newStorage[Type]', $type_options, $newStorage['Type']); ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('StorageScheme') ?></th>
-              <td><?php echo htmlSelect( 'newStorage[Scheme]', $scheme_options, $newStorage['Scheme'] ); ?></td>
+              <td><?php echo htmlSelect('newStorage[Scheme]', $scheme_options, $newStorage['Scheme']); ?></td>
             </tr>
             <tr>
               <th scope="row"><?php echo translate('StorageDoDelete') ?></th>

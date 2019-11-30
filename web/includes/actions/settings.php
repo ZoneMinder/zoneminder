@@ -29,7 +29,6 @@ if ( ! canView('Control', $_REQUEST['mid']) ) {
   return;
 }
 
-require_once('control_functions.php');
 require_once('Monitor.php');
 $mid = validInt($_REQUEST['mid']);
 if ( $action == 'settings' ) {

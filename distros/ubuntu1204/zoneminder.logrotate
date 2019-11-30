@@ -9,4 +9,5 @@
     endscript
     daily
     rotate 7
+    maxage 7
 }

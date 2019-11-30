@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!@PERL_EXECUTABLE@ -wT
 #
 # ==========================================================================
 #
@@ -60,7 +60,7 @@ if ( $version ) {
 if ( $help ) {
   pod2usage(-exitstatus => -1);
 }
-if ( ! defined $interval ) {
+if ( !defined $interval ) {
   $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
 }
 
@@ -69,16 +69,17 @@ if ( !($Config{ZM_TELEMETRY_DATA} or $force) ) {
   exit(0);
 }
   
-print 'ZoneMinder Telemetry Agent starting at '.strftime( '%y/%m/%d %H:%M:%S', localtime() )."\n";
+print 'ZoneMinder Telemetry Agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n";
 
 my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
 
 while( 1 ) {
   my $now = time();
   my $since_last_check = $now-$lastCheck;
-  Debug(" Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
+  Debug("Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
   if ( $since_last_check < 0 ) {
-    Warning( 'Seconds since last check is negative! Which means that lastCheck is in the future!' );
+    Warning('Seconds since last check is negative! Which means that lastCheck is in the future!');
+		sleep($interval);
     next;
   }
   if ( ( ($since_last_check) > $interval ) or $force ) {
@@ -88,8 +89,8 @@ while( 1 ) {
 # We should keep *BSD systems in mind when calling system commands
     my %telemetry;
     $telemetry{uuid} = getUUID($dbh);
-    ($telemetry{city}, $telemetry{region}, $telemetry{country}, $telemetry{latitude}, $telemetry{longitude}) = getGeo();
-    $telemetry{timestamp} = strftime( '%Y-%m-%dT%H:%M:%S%z', localtime() );
+    @telemetry{qw(city region country latitude longitude)} = getGeo();
+    $telemetry{timestamp} = strftime('%Y-%m-%dT%H:%M:%S%z', localtime());
     $telemetry{monitor_count} = countQuery($dbh,'Monitors');
     $telemetry{event_count} = countQuery($dbh,'Events');
     $telemetry{architecture} = runSysCmd('uname -p');
@@ -138,6 +139,7 @@ sub runSysCmd {
     chomp($path);
     $arguments[0] = $path;
     my $cmd = join(' ',@arguments);
+		($cmd) = $cmd =~ /(.*)/; # detaint
     $result = qx( $cmd );
     chomp($result);
   }
@@ -221,7 +223,7 @@ sub getGeo {
   } else {
     Warning("Geoip data retrieval returned HTTP POST error code: $resp_code");
     Debug("Geoip data retrieval failure response message: $resp_msg");
-    return ($unknown, $unknown, $unknown, $unknown);
+    return ($unknown, $unknown, $unknown, $unknown, $unknown);
   }
 }
 

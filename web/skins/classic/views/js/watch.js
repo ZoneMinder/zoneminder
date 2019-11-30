@@ -198,34 +198,34 @@ function getStreamCmdResponse(respObj, respText) {
         $('rate').addClass( 'hidden' );
         $('delay').addClass( 'hidden' );
         $('level').addClass( 'hidden' );
-        streamCmdPlay( false );
+        streamCmdPlay(false);
       } // end if paused or delayed
 
-      $('zoomValue').set( 'text', streamStatus.zoom );
-      if ( streamStatus.zoom == "1.0" ) {
-        setButtonState( $('zoomOutBtn'), 'unavail' );
+      $('zoomValue').set('text', streamStatus.zoom);
+      if ( streamStatus.zoom == '1.0' ) {
+        setButtonState($('zoomOutBtn'), 'unavail');
       } else {
-        setButtonState( $('zoomOutBtn'), 'inactive' );
+        setButtonState($('zoomOutBtn'), 'inactive');
       }
 
       if ( canEditMonitors ) {
         if ( streamStatus.enabled ) {
-          $('enableAlarmsLink').addClass( 'hidden' );
-          $('disableAlarmsLink').removeClass( 'hidden' );
+          $('enableAlarmsLink').addClass('hidden');
+          $('disableAlarmsLink').removeClass('hidden');
           if ( streamStatus.forced ) {
-            $('forceAlarmLink').addClass( 'hidden' );
-            $('cancelAlarmLink').removeClass( 'hidden' );
+            $('forceAlarmLink').addClass('hidden');
+            $('cancelAlarmLink').removeClass('hidden');
           } else {
-            $('forceAlarmLink').removeClass( 'hidden' );
-            $('cancelAlarmLink').addClass( 'hidden' );
+            $('forceAlarmLink').removeClass('hidden');
+            $('cancelAlarmLink').addClass('hidden');
           }
-          $('forceCancelAlarm').removeClass( 'hidden' );
+          $('forceCancelAlarm').removeClass('hidden');
         } else {
-          $('enableAlarmsLink').removeClass( 'hidden' );
-          $('disableAlarmsLink').addClass( 'hidden' );
-          $('forceCancelAlarm').addClass( 'hidden' );
+          $('enableAlarmsLink').removeClass('hidden');
+          $('disableAlarmsLink').addClass('hidden');
+          $('forceCancelAlarm').addClass('hidden');
         }
-        $('enableDisableAlarms').removeClass( 'hidden' );
+        $('enableDisableAlarms').removeClass('hidden');
       } // end if canEditMonitors
 
       if ( streamStatus.auth ) {
@@ -463,8 +463,8 @@ function cmdCancelForcedAlarm() {
 
 function getActResponse( respObj, respText ) {
   if ( respObj.result == 'Ok' ) {
-    if ( respObj.refreshParent ) {
-      console.log('refreshing');
+    if ( respObj.refreshParent && window.opener ) {
+      console.log('refreshing parent');
       window.opener.location.reload();
     }
   }
@@ -555,9 +555,24 @@ function getEventCmdResponse( respObj, respText ) {
         link.set( 'text', event.AvgScore+'/'+event.MaxScore );
         link.inject( row.getElement( 'td.colScore' ) );
 
-        link = new Element( 'a', {'href': '#', 'title': deleteString, 'events': {'click': function( e ) {
-          deleteEvent( e, event.Id );
-        }, 'mouseover': highlightRow.pass( row ), 'mouseout': highlightRow.pass( row )}});
+        link = new Element( 'button', {
+          'type': 'button',
+          'title': deleteString,
+          'data-event-id': event.Id,
+          'events': {
+            'click': function(e) {
+              var event_id = e.target.getAttribute('data-event-id');
+              if ( !event_id ) {
+                console.log('No event id in deleteEvent');
+                console.log(e);
+              } else {
+                deleteEvent(e, event_id);
+              }
+            },
+            'mouseover': highlightRow.pass(row),
+            'mouseout': highlightRow.pass(row)
+          }
+        });
         link.set( 'text', 'X' );
         link.inject( row.getElement( 'td.colDelete' ) );
 
@@ -686,11 +701,13 @@ function handleClick( event ) {
   if ( showMode == "events" || !imageControlMode ) {
     if ( event.shift ) {
       streamCmdPan( x, y );
+    } else if ( event.event.ctrlKey ) {
+      streamCmdZoomOut();
     } else {
-      streamCmdZoomIn( x, y );
+      streamCmdZoomIn(x, y);
     }
   } else {
-    controlCmdImage( x, y );
+    controlCmdImage(x, y);
   }
 }
 
@@ -774,6 +791,9 @@ function initPage() {
     if ( window.history.length == 1 ) {
       $j('#closeControl').html('');
     }
+    document.querySelectorAll('select[name="scale"]').forEach(function(el) {
+      el.onchange = window['changeScale'];
+    });
   } else if ( monitorRefresh > 0 ) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }

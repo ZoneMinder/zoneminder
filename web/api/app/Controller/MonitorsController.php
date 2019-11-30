@@ -124,14 +124,17 @@ class MonitorsController extends AppController {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
       }
-
       $this->Monitor->create();
-      if ( $this->Monitor->save($this->request->data) ) {
+      if ($this->Monitor->save($this->request->data) ) {
         $this->daemonControl($this->Monitor->id, 'start');
         //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
         $message = 'Saved';
       } else {
         $message = 'Error';
+        // if there is a validation message, use it
+        if (!$this->Monitor->validates()) {
+          $message = $this->Monitor->validationErrors;
+       }
       }
       $this->set(array(
         'message' => $message,
@@ -254,6 +257,7 @@ class MonitorsController extends AppController {
       throw new BadRequestException(__('Invalid command'));
     }
     $zm_path_bin = Configure::read('ZM_PATH_BIN');
+    $mToken = $this->request->query('token') ? $this->request->query('token') : null;
 
     switch ($cmd) {
       case 'on':
@@ -281,8 +285,12 @@ class MonitorsController extends AppController {
     $zmAuthRelay = $config['Config']['Value'];
   
     $auth = '';
+    
     if ( $zmOptAuth ) {
-      if ( $zmAuthRelay == 'hashed' ) {
+      if ($mToken) {
+        $auth = ' -T '.$mToken;
+      }  
+      elseif ( $zmAuthRelay == 'hashed' ) {
         $options = array('conditions' => array('Config.' . $this->Config->primaryKey => 'ZM_AUTH_HASH_SECRET'));
         $config = $this->Config->find('first', $options);
         $zmAuthHashSecret = $config['Config']['Value'];

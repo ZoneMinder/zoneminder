@@ -1,7 +1,7 @@
 .ptzControls {
     vertical-align: top;
     margin: 10px auto 0;
-    width: 500px;
+    width: 90%;
 }
 
 .ptzControls::after {
@@ -25,7 +25,7 @@
 }
 
 .ptzControls .controlsPanel .arrowControl {
-    width: 40px;
+    width: 70px;
     margin: 0 4px;
 }
 
@@ -139,7 +139,7 @@
 }
 
 .ptzControls .presetControls {
-    margin: 5px auto;
+    margin: 5px 200px 5px 180px;
 }
 
 .ptzControls .presetControls input {

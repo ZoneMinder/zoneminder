@@ -28,17 +28,25 @@ if ( $action == 'user' ) {
     $types = array();
     $changes = getFormChanges($dbUser, $_REQUEST['newUser'], $types);
 
-    if ( $_REQUEST['newUser']['Password'] )
-      $changes['Password'] = 'Password = password('.dbEscape($_REQUEST['newUser']['Password']).')';
-    else
+    if ( function_exists('password_hash') ) {
+      $pass_hash = '"'.password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT).'"';
+    } else {
+      $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
+      ZM\Info('Cannot use bcrypt as you are using PHP < 5.3');
+    }
+   
+    if ( $_REQUEST['newUser']['Password'] ) {
+      $changes['Password'] = 'Password = '.$pass_hash;
+    } else {
       unset($changes['Password']);
+    }
 
     if ( count($changes) ) {
       if ( !empty($_REQUEST['uid']) ) {
         dbQuery('UPDATE Users SET '.implode(', ', $changes).' WHERE Id = ?', array($_REQUEST['uid']));
         # If we are updating the logged in user, then update our session user data.
         if ( $user and ( $dbUser['Username'] == $user['Username'] ) )
-          userLogin($dbUser['Username'], $dbUser['Password']);
+          generateAuthHash(ZM_AUTH_HASH_IPS);
       } else {
         dbQuery('INSERT INTO Users SET '.implode(', ', $changes));
       }
@@ -53,13 +61,22 @@ if ( $action == 'user' ) {
     $types = array();
     $changes = getFormChanges($dbUser, $_REQUEST['newUser'], $types);
 
-    if ( !empty($_REQUEST['newUser']['Password']) )
-      $changes['Password'] = 'Password = password('.dbEscape($_REQUEST['newUser']['Password']).')';
-    else
+    if (function_exists ('password_hash')) {
+      $pass_hash = '"'.password_hash($pass, PASSWORD_BCRYPT).'"';
+    } else {
+      $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
+      ZM\Info ('Cannot use bcrypt as you are using PHP < 5.3');
+    }
+
+    if ( !empty($_REQUEST['newUser']['Password']) ) {
+      $changes['Password'] = 'Password = '.$pass_hash;
+    } else {
       unset($changes['Password']);
+    }
     if ( count($changes) ) {
       dbQuery('UPDATE Users SET '.implode(', ', $changes).' WHERE Id=?', array($uid));
       $refreshParent = true;
+      generateAuthHash(ZM_AUTH_HASH_IPS);
     }
     $view = 'none';
   }

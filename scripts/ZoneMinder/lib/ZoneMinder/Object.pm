@@ -95,32 +95,32 @@ sub new {
 sub load {
   my ( $self, $data ) = @_;
   my $type = ref $self;
-  if ( ! $data ) {
+  if ( !$data ) {
     no strict 'refs';
     my $table = ${$type.'::table'};
     if ( ! $table ) {
-      Error( 'NO table for type ' . $type );
+      Error('No table for type '.$type);
       return;
     } # end if
     my $primary_key = ${$type.'::primary_key'};
-    if ( ! $primary_key ) {
-      Error( 'NO primary_key for type ' . $type );
+    if ( !$primary_key ) {
+      Error('No primary_key for type '.$type);
       return;
     } # end if
 
     if ( ! $$self{$primary_key} ) { 
       my ( $caller, undef, $line ) = caller;
-      Error( (ref $self) . "::load called without $primary_key from $caller:$line");
+      Error("$type ::load called without $primary_key from $caller:$line");
     } else {
-#$log->debug("Object::load Loading from db $type");
       Debug("Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
-      $data = $ZoneMinder::Database::dbh->selectrow_hashref( "SELECT * FROM $table WHERE $primary_key=?", {}, $$self{$primary_key} );
-      if ( ! $data ) {
+      $data = $ZoneMinder::Database::dbh->selectrow_hashref("SELECT * FROM `$table` WHERE `$primary_key`=?", {}, $$self{$primary_key});
+      if ( !$data ) {
         if ( $ZoneMinder::Database::dbh->errstr ) {
           Error( "Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr );
         } else {
           Debug("No Results Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
         } # end if
+				delete $$self{$primary_key};
       } # end if
     } # end if
   } # end if ! $data
@@ -137,26 +137,26 @@ sub lock_and_load {
   no strict 'refs';
   my $table = ${$type.'::table'};
   if ( ! $table ) {
-    Error('NO table for type ' . $type);
+    Error('NO table for type '.$type);
     return;
   } # end if
   my $primary_key = ${$type.'::primary_key'};
-  if ( ! $primary_key ) {
-    Error('NO primary_key for type ' . $type);
+  if ( !$primary_key ) {
+    Error('No primary_key for type ' . $type);
     return;
   } # end if
 
-  if ( ! $$self{$primary_key} ) {
+  if ( !$$self{$primary_key} ) {
     my ( $caller, undef, $line ) = caller;
     Error("$type ::lock_and_load called without $primary_key from $caller:$line");
     return;
   }
 
   Debug("Lock and Load $type from $table WHERE $primary_key = $$self{$primary_key}");
-  my $data = $ZoneMinder::Database::dbh->selectrow_hashref("SELECT * FROM $table WHERE $primary_key=? FOR UPDATE", {}, $$self{$primary_key});
+  my $data = $ZoneMinder::Database::dbh->selectrow_hashref("SELECT * FROM `$table` WHERE `$primary_key`=? FOR UPDATE", {}, $$self{$primary_key});
   if ( ! $data ) {
     if ( $ZoneMinder::Database::dbh->errstr ) {
-      Error("Failure to load Object record for $$self{$primary_key}: Reason: " . $ZoneMinder::Database::dbh->errstr);
+      Error("Failure to load Object record for $$self{$primary_key}: Reason: ".$ZoneMinder::Database::dbh->errstr);
     } else {
       Debug("No Results Lock and Loading $type from $table WHERE $primary_key = $$self{$primary_key}");
     } # end if
@@ -216,12 +216,12 @@ sub save {
 $log->debug("No serial") if $debug;
 			# No serial columns defined, which means that we will do saving by delete/insert instead of insert/update
 			if ( @identified_by ) {
-				my $where = join(' AND ', map { $$fields{$_}.'=?' } @identified_by );
+				my $where = join(' AND ', map { '`'.$$fields{$_}.'`=?' } @identified_by );
 				if ( $debug ) {
-					$log->debug("DELETE FROM $table WHERE $where");
+					$log->debug("DELETE FROM `$table` WHERE $where");
 				} # end if
 				
-				if ( ! ( ( $_ = $local_dbh->prepare("DELETE FROM $table WHERE $where") ) and $_->execute( @$self{@identified_by} ) ) ) {
+				if ( ! ( ( $_ = $local_dbh->prepare("DELETE FROM `$table` WHERE $where") ) and $_->execute( @$self{@identified_by} ) ) ) {
 					$where =~ s/\?/\%s/g;
 					$log->error("Error deleting: DELETE FROM $table WHERE " .  sprintf($where, map { defined $_ ? $_ : 'undef' } ( @$self{@identified_by}) ).'):' . $local_dbh->errstr);
 					$local_dbh->rollback();
@@ -240,7 +240,7 @@ $log->debug("No serial") if $debug;
 					next;
 				}
 				if ( ! $$self{$id} ) {
-          my $s = qq{SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE table_name = '$table'};
+          my $s = qq{SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE `table_name` = '$table'};
 
 					($$self{$id}) = ($sql{$$fields{$id}}) = $local_dbh->selectrow_array( $s );
 					#($$self{$id}) = ($sql{$$fields{$id}}) = $local_dbh->selectrow_array( q{SELECT nextval('} . $serial{$id} . q{')} );
@@ -252,7 +252,7 @@ $log->debug("No serial") if $debug;
 
 		if ( $insert ) {
 			my @keys = keys %sql;
-			my $command = "INSERT INTO $table (" . join(',', @keys ) . ') VALUES (' . join(',', map { '?' } @sql{@keys} ) . ')';
+			my $command = "INSERT INTO `$table` (" . join(',', @keys ) . ') VALUES (' . join(',', map { '?' } @sql{@keys} ) . ')';
 			if ( ! ( ( $_ = $local_dbh->prepare($command) ) and $_->execute( @sql{@keys} ) ) ) {
 				my $error = $local_dbh->errstr;
 				$command =~ s/\?/\%s/g;
@@ -267,7 +267,7 @@ $log->debug("No serial") if $debug;
 			} # end if
 		} else {
 			my @keys = keys %sql;
-			my $command = "UPDATE $table SET " . join(',', map { $_ . ' = ?' } @keys ) . ' WHERE ' . join(' AND ', map { $_ . ' = ?' } @$fields{@identified_by} );
+			my $command = "UPDATE `$table` SET " . join(',', map { '`'.$_ . '` = ?' } @keys ) . ' WHERE ' . join(' AND ', map { '`'.$_ . '` = ?' } @$fields{@identified_by} );
 			if ( ! ( $_ = $local_dbh->prepare($command) and $_->execute( @sql{@keys,@$fields{@identified_by}} ) ) ) {
 				my $error = $local_dbh->errstr;
 				$command =~ s/\?/\%s/g;
@@ -293,12 +293,12 @@ $log->debug("No serial") if $debug;
 			if ( $need_serial ) {
 				if ( $serial ) {
           $log->debug("Getting auto_increments");
-          my $s = qq{SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE table_name = '$table'};
+          my $s = qq{SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE `table_name` = '$table'};
 					@$self{@identified_by} = @sql{@$fields{@identified_by}} = $local_dbh->selectrow_array( $s );
 #@$self{@identified_by} = @sql{@$fields{@identified_by}} = $local_dbh->selectrow_array( q{SELECT nextval('} . $serial . q{')} );
 					if ( $local_dbh->errstr() )  {
-						$log->error("Error getting next id. " . $local_dbh->errstr() );
-						$log->error("SQL statement execution $s returned ".join(',',@$self{@identified_by}));
+						$log->error("Error getting next id. " . $local_dbh->errstr() ."\n".
+              "SQL statement execution $s returned ".join(',',@$self{@identified_by}));
 					} elsif ( $debug or DEBUG_ALL ) {
 						$log->debug("SQL statement execution $s returned ".join(',',@$self{@identified_by}));
 					} # end if
@@ -306,7 +306,7 @@ $log->debug("No serial") if $debug;
 			} # end if
 
 			my @keys = keys %sql;
-			my $command = "INSERT INTO $table (" . join(',', @keys ) . ') VALUES (' . join(',', map { '?' } @sql{@keys} ) . ')';
+			my $command = "INSERT INTO `$table` (" . join(',', map { '`'.$_.'`' } @keys ) . ') VALUES (' . join(',', map { '?' } @sql{@keys} ) . ')';
 			if ( ! ( $_ = $local_dbh->prepare($command) and $_->execute( @sql{@keys} ) ) ) {
 				$command =~ s/\?/\%s/g;
 				my $error = $local_dbh->errstr;
@@ -325,7 +325,7 @@ $log->debug("No serial") if $debug;
       my %identified_by = map { $_, $_ } @identified_by;
 
 			@keys = map { $identified_by{$_} ? () : $$fields{$_} } @keys;
-			my $command = "UPDATE $table SET " . join(',', map { $_ . ' = ?' } @keys ) . ' WHERE ' . join(' AND ', map { $$fields{$_} .'= ?' } @identified_by );
+			my $command = "UPDATE `$table` SET " . join(',', map { '`'.$_ . '` = ?' } @keys ) . ' WHERE ' . join(' AND ', map { '`'.$$fields{$_} .'`= ?' } @identified_by );
 			if ( ! ( $_ = $local_dbh->prepare($command) and $_->execute( @sql{@keys}, @sql{@$fields{@identified_by}} ) ) ) {
 				my $error = $local_dbh->errstr;
 				$command =~ s/\?/\%s/g;

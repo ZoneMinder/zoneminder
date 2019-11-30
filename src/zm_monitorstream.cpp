@@ -27,6 +27,8 @@
 #include <arpa/inet.h>
 #include <glob.h>
 
+const int MAX_SLEEP_USEC=1000000; // 1 sec
+
 bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
 
   struct stat stat_buf;
@@ -396,10 +398,15 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
         img_buffer_size = send_image->Size();
         break;
       case STREAM_ZIP :
+#if HAVE_ZLIB_H
         fputs("Content-Type: image/x-rgbz\r\n",stdout);
         unsigned long zip_buffer_size;
         send_image->Zip(img_buffer, &zip_buffer_size);
         img_buffer_size = zip_buffer_size;
+#else
+          Error("zlib is required for zipped images. Falling back to raw image");
+          type = STREAM_RAW;
+#endif // HAVE_ZLIB_H
         break;
       default :
         Error("Unexpected frame type %d", type);
@@ -413,7 +420,7 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
       }
       return false;
     }
-    fputs("\r\n\r\n",stdout);
+    fputs("\r\n\r\n", stdout);
     fflush(stdout);
 
     struct timeval frameEndTime;
@@ -422,7 +429,8 @@ bool MonitorStream::sendFrame(Image *image, struct timeval *timestamp) {
     int frameSendTime = tvDiffMsec(frameStartTime, frameEndTime);
     if ( frameSendTime > 1000/maxfps ) {
       maxfps /= 1.5;
-      Error("Frame send time %d msec too slow, throttling maxfps to %.2f", frameSendTime, maxfps);
+      Warning("Frame send time %d msec too slow, throttling maxfps to %.2f",
+          frameSendTime, maxfps);
     }
   }
   last_frame_sent = TV_2_FLOAT(now);
@@ -514,16 +522,33 @@ void MonitorStream::runStream() {
   } // end if connkey  & playback_buffer
 
   float max_secs_since_last_sent_frame = 10.0; //should be > keep alive amount (5 secs)
+  // if MaxFPS < 0 as in 1/60 = 0.017 then we won't get another frame for 60 sec.
+  double capture_fps = monitor->GetFPS();
+  double capture_max_fps = monitor->GetCaptureMaxFPS();
+  if ( capture_max_fps && ( capture_fps > capture_max_fps ) ) {
+    Debug(1, "Using %.3f for fps instead of current fps %.3f", capture_max_fps, capture_fps);
+    capture_fps = capture_max_fps;
+  }
+  
+  if ( capture_fps < 1 ) {
+    max_secs_since_last_sent_frame = 10/capture_fps;
+    Debug(1, "Adjusting max_secs_since_last_sent_frame to %.2f from current fps %.2f",
+        max_secs_since_last_sent_frame, monitor->GetFPS());
+  } else {
+    Debug(1, "Not Adjusting max_secs_since_last_sent_frame to %.2f from current fps %.2f",
+        max_secs_since_last_sent_frame, monitor->GetFPS());
+  }
+
   while ( !zm_terminate ) {
     bool got_command = false;
     if ( feof(stdout) ) {
-      Debug(2,"feof stdout");
+      Debug(2, "feof stdout");
       break;
     } else if ( ferror(stdout) ) {
-      Debug(2,"ferror stdout");
+      Debug(2, "ferror stdout");
       break;
     } else if ( !monitor->ShmValid() ) {
-      Debug(2,"monitor not valid.... maybe we should wait until it comes back.");
+      Debug(2, "monitor not valid.... maybe we should wait until it comes back.");
       break;
     }
 
@@ -546,12 +571,12 @@ void MonitorStream::runStream() {
     if ( paused ) {
       if ( !was_paused ) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
-        Debug(1,"Saving paused image from index %d",index);
-        paused_image = new Image( *monitor->image_buffer[index].image );
+        Debug(1, "Saving paused image from index %d",index);
+        paused_image = new Image(*monitor->image_buffer[index].image);
         paused_timestamp = *(monitor->image_buffer[index].timestamp);
       }
     } else if ( paused_image ) {
-      Debug(1,"Clearing paused_image");
+      Debug(1, "Clearing paused_image");
       delete paused_image;
       paused_image = NULL;
     }
@@ -559,7 +584,7 @@ void MonitorStream::runStream() {
     if ( buffered_playback && delayed ) {
       if ( temp_read_index == temp_write_index ) {
         // Go back to live viewing
-        Debug( 1, "Exceeded temporary streaming buffer" );
+        Debug(1, "Exceeded temporary streaming buffer");
         // Clear paused flag
         paused = false;
         // Clear delayed_play flag
@@ -610,10 +635,10 @@ void MonitorStream::runStream() {
           //paused?
           int temp_index = MOD_ADD(temp_read_index, 0, temp_image_buffer_count);
 
-           double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
-           if ( got_command || actual_delta_time > 5 ) {
+          double actual_delta_time = TV_2_FLOAT( now ) - last_frame_sent;
+          if ( got_command || actual_delta_time > 5 ) {
             // Send keepalive
-            Debug( 2, "Sending keepalive frame %d", temp_index );
+            Debug(2, "Sending keepalive frame %d", temp_index);
             // Send the next frame
             if ( !sendFrame( temp_image_buffer[temp_index].file_name, &temp_image_buffer[temp_index].timestamp ) )
               zm_terminate = true;
@@ -624,7 +649,7 @@ void MonitorStream::runStream() {
 
       if ( temp_read_index == temp_write_index ) {
         // Go back to live viewing
-        Warning( "Rewound over write index, resuming live play" );
+        Warning("Rewound over write index, resuming live play");
         // Clear paused flag
         paused = false;
         // Clear delayed_play flag
@@ -639,7 +664,8 @@ void MonitorStream::runStream() {
     if ( tvCmp(last_frame_time, *(snap->timestamp)) ) {
 
       last_read_index = monitor->shared_data->last_write_index;
-      Debug( 2, "index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)", index, frame_mod, frame_count, paused, delayed );
+      Debug(2, "index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
+          index, frame_mod, frame_count, paused, delayed );
       if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
         if ( !paused && !delayed ) {
           // Send the next frame
@@ -658,18 +684,19 @@ void MonitorStream::runStream() {
 
           temp_read_index = temp_write_index;
         } else {
+          Debug(2, "Paused %d, delayed %d", paused, delayed);
           double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
           if ( actual_delta_time > 5 ) {
             if ( paused_image ) {
               // Send keepalive
-              Debug(2, "Sending keepalive frame ");
+              Debug(2, "Sending keepalive frame because delta time %.2f > 5", actual_delta_time);
               // Send the next frame
               if ( !sendFrame(paused_image, &paused_timestamp) )
                 zm_terminate = true;
             } else {
               Debug(2, "Would have sent keepalive frame, but had no paused_image ");
             }
-           }
+          }
         }
       } // end if should send frame
 
@@ -701,11 +728,17 @@ void MonitorStream::runStream() {
       } // end if buffered playback
       frame_count++;
     } else {
-      Debug(4,"Waiting for capture last_write_index=%u", monitor->shared_data->last_write_index);
+      Debug(3, "Waiting for capture last_write_index=%u", monitor->shared_data->last_write_index);
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index ) 
 
     unsigned long sleep_time = (unsigned long)((1000000 * ZM_RATE_BASE)/((base_fps?base_fps:1)*abs(replay_rate*2)));
-    Debug(4, "Sleeping for (%d)", sleep_time);
+    Debug(3, "Sleeping for (%d)", sleep_time);
+
+    if ( sleep_time > MAX_SLEEP_USEC ) {
+      // Shouldn't sleep for long because we need to check command queue, etc.
+      sleep_time = MAX_SLEEP_USEC;
+    }
+    Debug(3, "Sleeping for %dus", sleep_time);
     usleep(sleep_time);
     if ( ttl ) {
       if ( (now.tv_sec - stream_start_time) > ttl ) {
@@ -716,9 +749,15 @@ void MonitorStream::runStream() {
     if ( ! last_frame_sent ) {
       // If we didn't capture above, because frame_mod was bad? Then last_frame_sent will not have a value.
       last_frame_sent = now.tv_sec;
-      Warning( "no last_frame_sent.  Shouldn't happen. frame_mod was (%d) frame_count (%d) ", frame_mod, frame_count );
-    } else if ( (!paused) && ( (TV_2_FLOAT( now ) - last_frame_sent) > max_secs_since_last_sent_frame ) ) {
-      Error( "Terminating, last frame sent time %f secs more than maximum of %f", TV_2_FLOAT( now ) - last_frame_sent, max_secs_since_last_sent_frame );
+      Warning("no last_frame_sent.  Shouldn't happen. frame_mod was (%d) frame_count (%d) ",
+          frame_mod, frame_count);
+    } else if (
+        (!paused)
+        &&
+        ( (TV_2_FLOAT(now) - last_frame_sent) > max_secs_since_last_sent_frame )
+        ) {
+      Error("Terminating, last frame sent time %f secs more than maximum of %f",
+          TV_2_FLOAT(now) - last_frame_sent, max_secs_since_last_sent_frame);
       break;
     }
   } // end while
@@ -802,6 +841,8 @@ void MonitorStream::SingleImageRaw( int scale ) {
   fwrite( snap_image->Buffer(), snap_image->Size(), 1, stdout );
 }
 
+
+#ifdef HAVE_ZLIB_H
 void MonitorStream::SingleImageZip( int scale ) {
   unsigned long img_buffer_size = 0;
   static Bytef img_buffer[ZM_MAX_IMAGE_SIZE];
@@ -824,3 +865,4 @@ void MonitorStream::SingleImageZip( int scale ) {
   fprintf( stdout, "Content-Type: image/x-rgbz\r\n\r\n" );
   fwrite( img_buffer, img_buffer_size, 1, stdout );
 }
+#endif // HAVE_ZLIB_H

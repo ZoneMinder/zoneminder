@@ -26,7 +26,7 @@
 #include "zm_ffmpeg.h"
 #include "zm_videostore.h"
 
-#if HAVE_AVUTIL_HWCONTEXT_H
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
       AVBufferRef *hw_device_ref;
 } DecodeContext;
@@ -40,7 +40,10 @@ class FfmpegCamera : public Camera {
     std::string         mPath;
     std::string         mMethod;
     std::string         mOptions;
+
     std::string         encoder_options;
+    std::string         hwaccel_name;
+    std::string         hwaccel_device;
 
     int frameCount;    
 
@@ -51,17 +54,14 @@ class FfmpegCamera : public Camera {
     AVFrame             *mRawFrame; 
     AVFrame             *mFrame;
 
-    bool hwaccel;
-#if HAVE_AVUTIL_HWCONTEXT_H
-    AVFrame             *hwFrame;
-    DecodeContext       decode;
-#endif
+    AVFrame             *input_frame;         // Use to point to mRawFrame or hwFrame;
 
-    // Need to keep track of these because apparently the stream can start with values for pts/dts and then subsequent packets start at zero.
-    int64_t audio_last_pts;
-    int64_t audio_last_dts;
-    int64_t video_last_pts;
-    int64_t video_last_dts;
+    bool hwaccel;
+    AVFrame             *hwFrame;
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+    DecodeContext       decode;
+  AVBufferRef *hw_device_ctx = NULL;
+#endif
 
     // Used to store the incoming packet, it will get copied when queued. 
     // We only ever need one at a time, so instead of constantly allocating
@@ -72,6 +72,10 @@ class FfmpegCamera : public Camera {
     int Close();
     bool mCanCapture;
 #endif // HAVE_LIBAVFORMAT
+
+#if HAVE_LIBSWSCALE
+    struct SwsContext   *mConvertContext;
+#endif
 
     int                 error_count;
 
@@ -89,12 +93,15 @@ class FfmpegCamera : public Camera {
         int p_hue,
         int p_colour,
         bool p_capture,
-        bool p_record_audio );
+        bool p_record_audio,
+        const std::string &p_hwaccel_name,
+        const std::string &p_hwaccel_device
+        );
     ~FfmpegCamera();
 
-    const std::string &Path() const { return( mPath ); }
-    const std::string &Options() const { return( mOptions ); } 
-    const std::string &Method() const { return( mMethod ); }
+    const std::string &Path() const { return mPath; }
+    const std::string &Options() const { return mOptions; } 
+    const std::string &Method() const { return mMethod; }
 
     int PrimeCapture();
     int PreCapture();
@@ -110,9 +117,10 @@ class FfmpegCamera : public Camera {
         return mFormatContext->streams[mAudioStreamId];
       return NULL;
     }
-  AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
-  AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };
+    AVCodecContext      *get_VideoCodecContext() { return mVideoCodecContext; };
+    AVCodecContext      *get_AudioCodecContext() { return mAudioCodecContext; };
   private:
     static int FfmpegInterruptCallback(void*ctx);
+    int transfer_to_image(Image &i, AVFrame *output_frame, AVFrame *input_frame);
 };
 #endif // ZM_FFMPEG_CAMERA_H

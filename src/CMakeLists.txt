@@ -13,12 +13,14 @@ set(ZM_BIN_SRC_FILES
  zm_config.cpp
  zm_coord.cpp
  zm_curl_camera.cpp
+ zm_crypt.cpp
  zm.cpp
  zm_db.cpp
  zm_logger.cpp
  zm_event.cpp
  zm_eventstream.cpp
  zm_exception.cpp
+ zm_fifo.cpp
  zm_file_camera.cpp zm_ffmpeg_camera.cpp
  zm_frame.cpp
  zm_group.cpp
@@ -61,14 +63,19 @@ set(ZM_BIN_SRC_FILES
 
 # A fix for cmake recompiling the source files for every target.
 add_library(zm STATIC ${ZM_BIN_SRC_FILES})
+link_directories(libbcrypt)
 
 add_executable(zmc zmc.cpp)
 add_executable(zmu zmu.cpp)
 add_executable(zms zms.cpp)
 
-target_link_libraries(zmc zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(zmu zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
-target_link_libraries(zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS})
+# JWT is a header only library. 
+include_directories(libbcrypt/include/bcrypt)
+include_directories(jwt-cpp/include/jwt-cpp)
+
+target_link_libraries(zmc zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} ${CMAKE_DL_LIBS})
+target_link_libraries(zmu zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} ${CMAKE_DL_LIBS} bcrypt)
+target_link_libraries(zms zm ${ZM_EXTRA_LIBS} ${ZM_BIN_LIBS} ${CMAKE_DL_LIBS} bcrypt)
 
 # Generate man files for the binaries destined for the bin folder
 FOREACH(CBINARY zmc zmu)

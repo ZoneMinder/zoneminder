@@ -834,11 +834,11 @@ function daemonControl( $command, $daemon=false, $args=false ) {
   $string = escapeshellcmd( $string );
   #$string .= ' 2>/dev/null >&- <&- >/dev/null';
 ZM\Logger::Debug("daemonControl $string");
-  exec( $string );
+  exec($string);
 }
 
 function zmcControl($monitor, $mode=false) {
-  $Monitor = new ZM\Monitor( $monitor );
+  $Monitor = new ZM\Monitor($monitor);
   return $Monitor->zmcControl($mode);
 }
 
@@ -852,8 +852,8 @@ function initDaemonStatus() {
 
   if ( !isset($daemon_status) ) {
     if ( daemonCheck() ) {
-      $string = ZM_PATH_BIN."/zmdc.pl status";
-      $daemon_status = shell_exec( $string );
+      $string = ZM_PATH_BIN.'/zmdc.pl status';
+      $daemon_status = shell_exec($string);
     } else {
       $daemon_status = '';
     }
@@ -1050,7 +1050,13 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
     case 'StartTime' :
       $sortColumn = 'E.StartTime';
       break;
+    case 'StartDateTime' :
+      $sortColumn = 'E.StartTime';
+      break;
     case 'EndTime' :
+      $sortColumn = 'E.EndTime';
+      break;
+    case 'EndDateTime' :
       $sortColumn = 'E.EndTime';
       break;
     case 'Length' :
@@ -1071,13 +1077,28 @@ function parseSort( $saveToSession=false, $querySep='&amp;' ) {
     case 'MaxScore' :
       $sortColumn = 'E.MaxScore';
       break;
+    case 'FramesFrameId' :
+      $sortColumn = 'F.FrameId';
+      break;
+    case 'FramesType' :
+      $sortColumn = 'F.Type';
+      break;
+    case 'FramesTimeStamp' :
+      $sortColumn = 'F.TimeStamp';
+      break;
+    case 'FramesDelta' :
+      $sortColumn = 'F.Delta';
+      break;
+    case 'FramesScore' :
+      $sortColumn = 'F.Score';
+      break;
     default:
       $sortColumn = 'E.StartTime';
       break;
   }
-  $sortOrder = $_REQUEST['sort_asc']?'asc':'desc';
   if ( !$_REQUEST['sort_asc'] )
     $_REQUEST['sort_asc'] = 0;
+  $sortOrder = $_REQUEST['sort_asc']?'asc':'desc';
   $sortQuery = $querySep.'sort_field='.validHtmlStr($_REQUEST['sort_field']).$querySep.'sort_asc='.validHtmlStr($_REQUEST['sort_asc']);
   if ( !isset($_REQUEST['limit']) )
     $_REQUEST['limit'] = '';
@@ -1161,6 +1182,9 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 # Starting Time
           case 'StartDateTime':
             $filter['sql'] .= 'E.StartTime';
+            break;
+          case 'FramesEventId':
+            $filter['sql'] .= 'F.EventId';
             break;
           case 'StartDate':
             $filter['sql'] .= 'to_days( E.StartTime )';
@@ -1317,7 +1341,7 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
             $filter['sql'] .= " IS NOT $value";
             break;
           default:
-            ZM\Warning("Invalid operator in filter: " . $term['op'] );
+            ZM\Warning('Invalid operator in filter: ' . print_r($term['op'], true));
         } // end switch op
 
         $filter['query'] .= $querySep.urlencode("filter[Query][terms][$i][op]").'='.urlencode($term['op']);
@@ -1448,7 +1472,14 @@ function getPagination( $pages, $page, $maxShortcuts, $query, $querySep='&amp;' 
 
 function sortHeader( $field, $querySep='&amp;' ) {
   global $view;
-  return '?view='.$view.$querySep.'page=1'.$_REQUEST['filter']['query'].$querySep.'sort_field='.$field.$querySep.'sort_asc='.($_REQUEST['sort_field'] == $field?!$_REQUEST['sort_asc']:0).$querySep.'limit='.validInt($_REQUEST['limit']);
+  return implode($querySep, array(
+    '?view='.$view,
+    'page=1'.$_REQUEST['filter']['query'],
+    'sort_field='.$field,
+    'sort_asc='.($_REQUEST['sort_field'] == $field ? !$_REQUEST['sort_asc'] : 0),
+    'limit='.validInt($_REQUEST['limit']),
+    ($_REQUEST['eid'] ? 'eid='.$_REQUEST['eid'] : '' ),
+  ));
 }
 
 function sortTag( $field ) {
@@ -2369,13 +2400,13 @@ function check_timezone() {
                #");
 
   if ( $sys_tzoffset != $php_tzoffset )
-    ZM\Fatal("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
+    ZM\Error("ZoneMinder is not installed properly: php's date.timezone does not match the system timezone!");
 
   if ( $sys_tzoffset != $mysql_tzoffset )
     ZM\Error("ZoneMinder is not installed properly: mysql's timezone does not match the system timezone! Event lists will display incorrect times.");
 
   if (!ini_get('date.timezone') || !date_default_timezone_set(ini_get('date.timezone')))
-    ZM\Fatal( "ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone" );
+    ZM\Error("ZoneMinder is not installed properly: php's date.timezone is not set to a valid timezone");
 
 }
 
@@ -2435,11 +2466,13 @@ function do_post_request($url, $data, $optional_headers = null) {
   $ctx = stream_context_create($params);
   $fp = @fopen($url, 'rb', false, $ctx);
   if ( !$fp ) {
-    throw new Exception("Problem with $url, $php_errormsg");
+    throw new Exception("Problem with $url, "
+      .print_r(error_get_last(),true));
   }
   $response = @stream_get_contents($fp);
   if ( $response === false ) {
-    throw new Exception("Problem reading data from $url, $php_errormsg");
+    throw new Exception("Problem reading data from $url, data: ".print_r($params,true)
+      .print_r(error_get_last(),true));
   }
   return $response;
 }
@@ -2490,6 +2523,47 @@ function getAffectedIds( $name ) {
 
 function format_duration($time, $separator=':') {
   return sprintf('%02d%s%02d%s%02d', floor($time/3600), $separator, ($time/60)%60, $separator, $time%60);
+}
+
+function array_recursive_diff($aArray1, $aArray2) {
+  $aReturn = array();
+
+  foreach ($aArray1 as $mKey => $mValue) {
+    if ( array_key_exists($mKey, $aArray2) ) {
+      if ( is_array($mValue) ) {
+        $aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
+        if ( count($aRecursiveDiff) ) {
+          $aReturn[$mKey] = $aRecursiveDiff;
+        }
+      } else {
+        if ( $mValue != $aArray2[$mKey] ) {
+          $aReturn[$mKey] = $mValue;
+        }
+      }
+    } else {
+      $aReturn[$mKey] = $mValue;
+    }
+  }
+  # Now check for keys in array2 that are not in array1
+  foreach ($aArray2 as $mKey => $mValue) {
+    if ( array_key_exists($mKey, $aArray1) ) {
+      # Already checked it... I think.
+      #if ( is_array($mValue) ) {
+        #$aRecursiveDiff = array_recursive_diff($mValue, $aArray2[$mKey]);
+        #if ( count($aRecursiveDiff) ) {
+          #$aReturn[$mKey] = $aRecursiveDiff;
+        #}
+      #} else {
+        #if ( $mValue != $aArray2[$mKey] ) {
+          #$aReturn[$mKey] = $mValue;
+        #}
+      #}
+    } else {
+      $aReturn[$mKey] = $mValue;
+    }
+  }
+
+  return $aReturn;
 }
 
 ?>

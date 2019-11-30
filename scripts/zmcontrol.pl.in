@@ -70,7 +70,6 @@ if ( !$id ) {
 
 ( $id ) = $id =~ /^(\w+)$/;
 
-
 my $sock_file = $Config{ZM_PATH_SOCKS}.'/zmcontrol-'.$id.'.sock';
 Debug("zmcontrol: arg string: $arg_string sock file $sock_file");
 

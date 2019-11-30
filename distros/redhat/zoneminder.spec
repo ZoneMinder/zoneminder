@@ -23,7 +23,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.33.6
+Version: 1.33.14
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -73,6 +73,7 @@ BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
 BuildRequires: gzip
+BuildRequires: zlib-devel
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
@@ -410,6 +411,18 @@ EOF
 %dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
+* Sun Aug 11 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.14-1
+- Bump to 1.33.13 Development
+
+* Sun Jul 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.12-1
+- Bump to 1.33.12 Development
+
+* Sun Jun 23 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.9-1
+- Bump to 1.33.9 Development
+
+* Tue Apr 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.8-1
+- Bump to 1.33.8 Development
+
 * Sun Apr 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.6-1
 - Bump to 1.33.6 Development
 

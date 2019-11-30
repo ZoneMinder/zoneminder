@@ -259,6 +259,8 @@ protected:
   unsigned int    deinterlacing_value;
   bool            videoRecording;
   bool rtsp_describe;
+  std::string     decoder_hwaccel_name;
+  std::string     decoder_hwaccel_device;
 
   int savejpegs;
   int colours;
@@ -290,6 +292,7 @@ protected:
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   int        section_length;      // How long events should last in continuous modes
+  int        min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
@@ -301,20 +304,24 @@ protected:
   int        fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
   int        ref_blend_perc;      // Percentage of new image going into reference image.
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
-  bool      track_motion;      // Whether this monitor tries to track detected motion 
+  bool       track_motion;      // Whether this monitor tries to track detected motion 
   int         signal_check_points;  // Number of points in the image to check for signal
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
+
+  int capture_max_fps;
 
   double      capture_fps;       // Current capturing fps
   double      analysis_fps;      // Current analysis fps
 
   unsigned int  last_camera_bytes;
   
-  Image      delta_image;
-  Image      ref_image;
-  Image       alarm_image;  // Used in creating analysis images, will be initialized in Analysis
-  Image       write_image;    // Used when creating snapshot images
+  Image        delta_image;
+  Image        ref_image;
+  Image        alarm_image;  // Used in creating analysis images, will be initialized in Analysis
+  Image        write_image;    // Used when creating snapshot images
+  std::string diag_path_r;
+  std::string diag_path_d;
 
   Purpose      purpose;        // What this monitor has been created to do
   int        event_count;
@@ -337,15 +344,15 @@ protected:
   EventCloseMode  event_close_mode;
 
 #if ZM_MEM_MAPPED
-  int        map_fd;
-  char      mem_file[PATH_MAX];
+  int             map_fd;
+  char            mem_file[PATH_MAX];
 #else // ZM_MEM_MAPPED
-  int       shm_id;
+  int             shm_id;
 #endif // ZM_MEM_MAPPED
-  off_t        mem_size;
-  unsigned char  *mem_ptr;
-  SharedData    *shared_data;
-  TriggerData    *trigger_data;
+  off_t           mem_size;
+  unsigned char   *mem_ptr;
+  SharedData      *shared_data;
+  TriggerData     *trigger_data;
   VideoStoreData  *video_store_data;
 
   struct timeval *shared_timestamps;
@@ -378,8 +385,6 @@ public:
   explicit Monitor();
   explicit Monitor(int p_id);
 
-// OurCheckAlarms seems to be unused. Check it on zm_monitor.cpp for more info.
-//bool OurCheckAlarms( Zone *zone, const Image *pImage );
   ~Monitor();
 
   void AddZones( int p_n_zones, Zone *p_zones[] );
@@ -465,6 +470,7 @@ public:
   void UpdateAdaptiveSkip();
   useconds_t GetAnalysisRate();
   unsigned int GetAnalysisUpdateDelay() const { return analysis_update_delay; }
+  unsigned int GetCaptureMaxFPS() const { return capture_max_fps; }
   int GetCaptureDelay() const { return capture_delay; }
   int GetAlarmCaptureDelay() const { return alarm_capture_delay; }
   unsigned int GetLastReadIndex() const;

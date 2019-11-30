@@ -42,10 +42,8 @@ static struct CodecData codec_data[];
 
   AVCodec *video_out_codec;
   AVCodecContext *video_out_ctx;
-  AVStream *video_out_stream;
 
   AVStream *video_in_stream;
-
   AVStream *audio_in_stream;
 
   // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
@@ -109,8 +107,7 @@ public:
       const char *format_in,
       AVStream *video_in_stream,
       AVStream *audio_in_stream,
-      Monitor * p_monitor
-      );
+      Monitor * p_monitor);
 	~VideoStore();
   bool  open();
 

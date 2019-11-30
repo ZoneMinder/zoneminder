@@ -94,7 +94,11 @@ class Event {
     std::string snapshot_file;
     std::string alarm_file;
     VideoStore *videoStore;
-    char video_name[64];
+    std::string snapshot_file;
+    std::string alarm_file;
+
+    VideoWriter* videowriter;
+    char video_name[PATH_MAX];
     char video_file[PATH_MAX];
     int        last_db_frame;
     bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.

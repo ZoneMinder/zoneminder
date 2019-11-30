@@ -138,6 +138,7 @@ void Usage(int status=-1) {
 			"  -U, --username <username>    : When running in authenticated mode the username and\n" 
 			"  -P, --password <password>    : password combination of the given user\n" 
 			"  -A, --auth <authentication>  : Pass authentication hash string instead of user details\n"
+      "  -T, --token <token>  : Pass JWT token string instead of user details\n"
 	 "", stderr );
 
   exit(status);
@@ -242,6 +243,7 @@ int main(int argc, char *argv[]) {
     {"username", 1, 0, 'U'},
     {"password", 1, 0, 'P'},
     {"auth", 1, 0, 'A'},
+    {"token", 1, 0, 'T'},
     {"version", 1, 0, 'V'},
     {"help", 0, 0, 'h'},
     {"list", 0, 0, 'l'},
@@ -263,6 +265,7 @@ int main(int argc, char *argv[]) {
   char *username = 0;
   char *password = 0;
   char *auth = 0;
+  std::string jwt_token_str = "";
 #if ZM_HAS_V4L
 #if ZM_HAS_V4L2
     int v4lVersion = 2;
@@ -273,7 +276,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::U:P:A:V:T:", long_options, &option_index);
     if ( c == -1 ) {
       break;
     }
@@ -378,6 +381,9 @@ int main(int argc, char *argv[]) {
       case 'A':
         auth = optarg;
         break;
+      case 'T':
+        jwt_token_str = std::string(optarg);
+        break;
 #if ZM_HAS_V4L
 			case 'V':
 				v4lVersion = (atoi(optarg)==1)?1:2;
@@ -438,9 +444,12 @@ int main(int argc, char *argv[]) {
       user = zmLoadUser(username);
     } else {
        
-      if ( !(username && password) && !auth ) {
-        Error("Username and password or auth string must be supplied");
+      if ( !(username && password) && !auth  && (jwt_token_str=="")) {
+        Error("Username and password or auth/token string must be supplied");
         exit_zmu(-1);
+      }
+      if (jwt_token_str != "") {
+        user = zmLoadTokenUser(jwt_token_str, false);
       }
       if ( auth ) {
         user = zmLoadAuthUser(auth, false);
@@ -562,14 +571,18 @@ int main(int argc, char *argv[]) {
         monitor->DumpZoneImage(zoneString);
       }
       if ( function & ZMU_ALARM ) {
-        if ( verbose )
-          printf("Forcing alarm on\n");
-        monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
-        while ( monitor->GetState() != Monitor::ALARM ) {
-          // Wait for monitor to notice.
-          usleep(1000);
-        }
-        printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        if ( monitor->GetFunction() == Monitor::Function::MONITOR ) {
+         printf("A Monitor in monitor mode cannot handle alarms.  Please use NoDect\n");
+        } else {
+          if ( verbose )
+            printf("Forcing alarm on\n");
+          monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
+          while ( (monitor->GetState() != Monitor::ALARM) && !zm_terminate ) {
+            // Wait for monitor to notice.
+            usleep(1000);
+          }
+          printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
+        } // end if ! MONITOR
       }
       if ( function & ZMU_NOALARM ) {
         if ( verbose )

@@ -112,21 +112,23 @@ sub interpret_messages {
   my @results;
   foreach my $response ( @responses ) {
 
-    if($verbose) {
+    if ( $verbose ) {
       print "Received message:\n" . $response . "\n";
     }
 
     my $result = deserialize_message($svc_discover, $response);
-    if(not $result) {
+    if ( not $result ) {
       print "Error deserializing message. No message returned from deserializer.\n" if $verbose;
       next;
     }
 
     my $xaddr;
-    foreach my $l_xaddr (split ' ', $result->get_ProbeMatch()->get_XAddrs()) {
+    my $probe_match = $result->get_ProbeMatch();
+    next if ! $probe_match;
+    foreach my $l_xaddr (split ' ', $probe_match->get_XAddrs()) {
 #   find IPv4 address
       print "l_xaddr = $l_xaddr\n" if $verbose;
-      if($l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[:/]|) {
+      if ( $l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[:/]| ) {
         $xaddr = $l_xaddr;
         last;
       } else {

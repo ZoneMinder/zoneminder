@@ -38,6 +38,8 @@ private $defaults = array(
   'Palette' =>  '0',
   'Orientation' => null,
   'Deinterlacing' =>  0,
+  'DecoderHWAccelName'  =>  null,
+  'DecoderHWAccelDevice'  =>  null,
   'SaveJPEGs' =>  3,
   'VideoWriter' =>  '0',
   'OutputCodec' =>  null,
@@ -61,6 +63,7 @@ private $defaults = array(
   'StreamReplayBuffer'  => 0,
   'AlarmFrameCount'     =>  1,
   'SectionLength'       =>  600,
+  'MinSectionLength'    =>  10,
   'FrameSkip'           =>  0,
   'AnalysisFPSLimit'  =>  null,
   'OutputCodec' => '0',
@@ -106,6 +109,7 @@ private $defaults = array(
   'DefaultCodec'  => 'auto',
 );
 private $status_fields = array(
+  'Status'  =>  null,
   'AnalysisFPS' => null,
   'CaptureFPS' => null,
   'CaptureBandwidth' => null,
@@ -272,17 +276,27 @@ private $control_fields = array(
       return $this->{$fn};
         #array_unshift($args, $this);
         #call_user_func_array( $this->{$fn}, $args);
-    } else {
-      if ( array_key_exists($fn, $this->control_fields) ) {
+    } else if ( array_key_exists($fn, $this->control_fields) ) {
         return $this->control_fields{$fn};
-      } else if ( array_key_exists( $fn, $this->defaults ) ) {
+    } else if ( array_key_exists( $fn, $this->defaults ) ) {
         return $this->defaults{$fn};
+    } else if ( array_key_exists( $fn, $this->status_fields) ) {
+      $sql = 'SELECT Status,CaptureFPS,AnalysisFPS,CaptureBandwidth
+        FROM Monitor_Status WHERE MonitorId=?';
+      $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
+      if ( !$row ) {
+        Error("Unable to load Monitor record for Id=" . $this->{'Id'});
       } else {
-        $backTrace = debug_backtrace();
-        $file = $backTrace[1]['file'];
-        $line = $backTrace[1]['line'];
-        Warning( "Unknown function call Monitor->$fn from $file:$line" );
+        foreach ($row as $k => $v) {
+          $this->{$k} = $v;
+        }
       }
+      return $this->{$fn};
+    } else {
+      $backTrace = debug_backtrace();
+      $file = $backTrace[1]['file'];
+      $line = $backTrace[1]['line'];
+      Warning( "Unknown function call Monitor->$fn from $file:$line" );
     }
   }
 
@@ -364,6 +378,8 @@ private $control_fields = array(
         } else if ( is_integer( $v ) ) {
           $this->{$k} = $v;
         } else if ( is_bool( $v ) ) {
+          $this->{$k} = $v;
+        } else if ( is_null( $v ) ) {
           $this->{$k} = $v;
         } else {
           Error( "Unknown type $k => $v of var " . gettype( $v ) );

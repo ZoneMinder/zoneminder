@@ -51,51 +51,51 @@ function newWindow( url, name, width, height ) {
 
 function getPopupSize( tag, width, height ) {
   if ( typeof popupSizes == 'undefined' ) {
-    Error( "Can't find any window sizes" );
-    return ( {'width': 0, 'height': 0} );
+    Error("Can't find any window sizes");
+    return {'width': 0, 'height': 0};
   }
-  var popupSize = Object.clone( popupSizes[tag] );
+  var popupSize = Object.clone(popupSizes[tag]);
   if ( !popupSize ) {
-    Error( "Can't find window size for tag '"+tag+"'" );
-    return ( {'width': 0, 'height': 0} );
+    Error("Can't find window size for tag '"+tag+"'");
+    return {'width': 0, 'height': 0};
   }
   if ( popupSize.width && popupSize.height ) {
     if ( width || height ) {
-      Warning( "Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'" );
+      Warning("Ignoring passed dimensions "+width+"x"+height+" when getting popup size for tag '"+tag+"'");
     }
-    return ( popupSize );
+    return popupSize;
   }
   if ( popupSize.addWidth ) {
     popupSize.width = popupSize.addWidth;
     if ( !width ) {
-      Error( "Got addWidth but no passed width when getting popup size for tag '"+tag+"'" );
+      Error("Got addWidth but no passed width when getting popup size for tag '"+tag+"'");
     } else {
       popupSize.width += parseInt(width);
     }
   } else if ( width ) {
     popupSize.width = width;
-    Error( "Got passed width but no addWidth when getting popup size for tag '"+tag+"'" );
+    Error("Got passed width but no addWidth when getting popup size for tag '"+tag+"'");
   }
   if ( popupSize.minWidth && popupSize.width < popupSize.minWidth ) {
-    Warning( "Adjusting to minimum width when getting popup size for tag '"+tag+"'" );
+    Warning("Adjusting to minimum width when getting popup size for tag '"+tag+"'");
     popupSize.width = popupSize.minWidth;
   }
   if ( popupSize.addHeight ) {
     popupSize.height = popupSize.addHeight;
     if ( !height ) {
-      Error( "Got addHeight but no passed height when getting popup size for tag '"+tag+"'" );
+      Error("Got addHeight but no passed height when getting popup size for tag '"+tag+"'");
     } else {
       popupSize.height += parseInt(height);
     }
   } else if ( height ) {
     popupSize.height = height;
-    Error( "Got passed height but no addHeight when getting popup size for tag '"+tag+"'" );
+    Error("Got passed height but no addHeight when getting popup size for tag '"+tag+"'");
   }
   if ( popupSize.minHeight && ( popupSize.height < popupSize.minHeight ) ) {
-    Warning( "Adjusting to minimum height ("+popupSize.minHeight+") when getting popup size for tag '"+tag+"' because calculated height is " + popupSize.height );
+    Warning("Adjusting to minimum height ("+popupSize.minHeight+") when getting popup size for tag '"+tag+"' because calculated height is " + popupSize.height);
     popupSize.height = popupSize.minHeight;
   }
-  return ( popupSize );
+  return popupSize;
 }
 
 function zmWindow() {
@@ -144,7 +144,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
     el.addEventListener("click", function onClick(evt) {
       var el = this;
       var url;
-      if (el.hasAttribute("href")) {
+      if ( el.hasAttribute("href") ) {
         // <a>
         url = el.getAttribute("href");
       } else {
@@ -167,12 +167,20 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
     el.onclick = window[fnName].bind(el, el);
   });
 
   // 'data-on-click' calls the global function in the attribute value with no arguments when a click happens.
   document.querySelectorAll("a[data-on-click], button[data-on-click], input[data-on-click]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
     el.onclick = function() {
       window[fnName]();
     };
@@ -181,6 +189,10 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
   document.querySelectorAll("a[data-on-click-true], button[data-on-click-true], input[data-on-click-true]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-true");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
     el.onclick = function() {
       window[fnName](true);
     };
@@ -189,12 +201,20 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
   // 'data-on-change-this' calls the global function in the attribute value with the element when a change happens.
   document.querySelectorAll("select[data-on-change-this], input[data-on-change-this]").forEach(function attachOnChangeThis(el) {
     var fnName = el.getAttribute("data-on-change-this");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
     el.onchange = window[fnName].bind(el, el);
   });
 
   // 'data-on-change' adds an event listener for the global function in the attribute value when a change happens.
   document.querySelectorAll("select[data-on-change], input[data-on-change]").forEach(function attachOnChange(el) {
     var fnName = el.getAttribute("data-on-change");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName);
+      return;
+    }
     el.onchange = window[fnName];
   });
 });

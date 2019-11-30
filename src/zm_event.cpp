@@ -88,8 +88,8 @@ Event::Event(
 
   char sql[ZM_SQL_MED_BUFSIZ];
   snprintf(sql, sizeof(sql),
-      "INSERT INTO Events "
-      "( MonitorId, StorageId, Name, StartTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme )"
+      "INSERT INTO `Events` "
+      "( `MonitorId`, `StorageId`, `Name`, `StartTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
       " VALUES "
       "( %d, %d, 'New Event', from_unixtime( %ld ), %d, %d, '%s', '%s', %d, %d, %d, '', %d, '%s' )",
       monitor->Id(), 
@@ -192,7 +192,7 @@ Event::Event(
       Error("Can't fopen %s: %s", id_file.c_str(), strerror(errno));
   } // deep storage or not
 
-  Debug(2,"Created event %d at %s", id, path.c_str());
+  Debug(2, "Created event %d at %s", id, path.c_str());
 
   last_db_frame = 0;
 
@@ -250,6 +250,7 @@ Event::~Event() {
   Debug(2, "start_time:%d.%d end_time%d.%d", start_time.tv_sec, start_time.tv_usec, end_time.tv_sec, end_time.tv_usec);
 
   if ( frames > last_db_frame ) {
+    frames ++;
     Debug(1, "Adding closing frame %d to DB", frames);
     frame_data.push(new Frame(id, frames, NORMAL, end_time, delta_time, 0));
   }
@@ -542,11 +543,14 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   }
 
   frames++;
+
   bool write_to_db = false;
 
   if ( save_jpegs & 1 ) {
+    if ( frames == 1 )
+      write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
     static char event_file[PATH_MAX];
-    snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path.c_str(), frames);
+    snprintf(event_file, sizeof(event_file), staticConfig.capture_file_format, path, frames);
     Debug(1, "Writing capture frame %d to %s", frames, event_file);
     if ( ! WriteFrameImage(image, timestamp, event_file) ) {
       Error("Failed to write frame image");
@@ -563,7 +567,7 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
       alarm_frame_written = true;
       WriteFrameImage(image, timestamp, alarm_file.c_str());
     }
-  }
+  } // end if save_jpegs
   if ( videowriter != NULL ) {
     WriteFrameVideo(image, timestamp, videowriter);
   }
@@ -576,22 +580,22 @@ void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *a
   if ( score < 0 )
     score = 0;
 
-  bool db_frame = ( frame_type != BULK ) || (!frames) || ((frames%config.bulk_frame_interval)==0) ;
+  bool db_frame = ( frame_type != BULK ) || (frames==1) || ((frames%config.bulk_frame_interval)==0) ;
   if ( db_frame ) {
 
     static char sql[ZM_SQL_MED_BUFSIZ];
 
     frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score));
     if ( write_to_db || ( frame_data.size() > 20 ) ) {
+      Debug(1, "Adding %d frames to DB", frame_data.size());
       WriteDbFrames();
-      Debug(1, "Adding 20 frames to DB");
       last_db_frame = frames;
     }
 
     // We are writing a Bulk frame
     if ( frame_type == BULK ) {
       snprintf(sql, sizeof(sql), 
-          "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d where Id = %" PRIu64, 
+          "UPDATE Events SET Length = %s%ld.%02ld, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64, 
           ( delta_time.positive?"":"-" ),
           delta_time.sec, delta_time.fsec,
           frames, 

@@ -86,7 +86,7 @@ function probeCameras( $localIp ) {
 
 function probeProfiles( $device_ep, $soapversion, $username, $password ) {
   $profiles = array();
-  if ( $lines = @execONVIF( "profiles $device_ep $soapversion $username $password" ) ) {
+  if ( $lines = @execONVIF("profiles $device_ep $soapversion $username $password") ) {
     foreach ( $lines as $line ) {
       $line = rtrim( $line );
       if ( preg_match('|^(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+),\s*(.+)\s*$|', $line, $matches) ) {
@@ -234,6 +234,7 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
     //       $monitor['MaxFPS'] = $profile['MaxFPS'];
     //       $monitor['AlarmMaxFPS'] = $profile['AlarmMaxFPS'];
     $monitor['Path'] = $profile['Path'];
+    $monitor['ControlDevice'] = $profile['Profile']; # Netcat needs this for ProfileToken
     $sourceDesc = base64_encode(json_encode($monitor));
     $profiles[$sourceDesc] = $sourceString;
   }

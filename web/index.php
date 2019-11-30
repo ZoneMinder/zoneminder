@@ -77,8 +77,6 @@ if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
   return;
 }
 
-// Verify the system, php, and mysql timezones all match
-check_timezone();
 
 if ( isset($_GET['skin']) ) {
   $skin = $_GET['skin'];
@@ -93,7 +91,7 @@ if ( isset($_GET['skin']) ) {
 $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
 
 if ( ! in_array($skin, $skins) ) {
-  Error("Invalid skin '$skin' setting to " . $skins[0]);
+  ZM\Error("Invalid skin '$skin' setting to " . $skins[0]);
   $skin = $skins[0];
 }
 
@@ -109,7 +107,7 @@ if ( isset($_GET['css']) ) {
 
 $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR));
 if ( !in_array($css, $css_skins) ) {
-  Error("Invalid skin css '$css' setting to " . $css_skins[0]);
+  ZM\Error("Invalid skin css '$css' setting to " . $css_skins[0]);
   $css = $css_skins[0];
 }
 
@@ -169,6 +167,7 @@ $view = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
+
 # Add CSP Headers
 $cspNonce = bin2hex(openssl_random_pseudo_bytes(16));
 
@@ -192,6 +191,11 @@ if ( isset($_REQUEST['action']) )
 isset($view) || $view = NULL;
 isset($request) || $request = NULL;
 isset($action) || $action = NULL;
+
+if ( (!$view and !$request) or ($view == 'console') ) {
+  // Verify the system, php, and mysql timezones all match
+  check_timezone();
+}
 
 ZM\Logger::Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
 if (

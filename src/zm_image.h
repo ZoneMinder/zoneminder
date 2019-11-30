@@ -56,9 +56,9 @@ extern imgbufcpy_fptr_t fptr_imgbufcpy;
 
 /* Should be called from Image class functions */
 inline static uint8_t* AllocBuffer(size_t p_bufsize) {
-	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64,p_bufsize);
+	uint8_t* buffer = (uint8_t*)zm_mallocaligned(64, p_bufsize);
 	if ( buffer == NULL )
-		Fatal("Memory allocation failed: %s",strerror(errno));
+		Fatal("Memory allocation failed: %s", strerror(errno));
 	
 	return buffer;
 }
@@ -75,7 +75,7 @@ inline static void DumpBuffer(uint8_t* buffer, int buffertype) {
 			av_free(buffer);
 		*/
     } else {
-      Error( "Unknown buffer type in DumpBuffer(%d)", buffertype );
+      Error("Unknown buffer type in DumpBuffer(%d)", buffertype);
     } 
 	}
 }
@@ -240,9 +240,12 @@ public:
 	bool ReadJpeg( const char *filename, unsigned int p_colours, unsigned int p_subpixelorder);
 
 	bool WriteJpeg ( const char *filename) const;
+	bool WriteJpeg ( const char *filename, bool on_blocking_abort) const;	
   bool WriteJpeg ( const char *filename, int quality_override ) const;
   bool WriteJpeg ( const char *filename, struct timeval timestamp ) const;
   bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp ) const;
+  bool WriteJpeg ( const char *filename, int quality_override, struct timeval timestamp, bool on_blocking_abort ) const;
+  
 
 	bool DecodeJpeg( const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
 	bool EncodeJpeg( JOCTET *outbuffer, int *outbuffer_size, int quality_override=0 ) const;

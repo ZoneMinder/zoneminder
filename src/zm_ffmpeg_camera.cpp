@@ -744,6 +744,8 @@ int FfmpegCamera::CaptureAndRecord(
   }
   int ret;
 
+  struct timeval video_buffer_duration = monitor->GetVideoBufferDuration();
+
   int frameComplete = false;
   while ( !frameComplete ) {
     av_init_packet(&packet);
@@ -870,13 +872,22 @@ int FfmpegCamera::CaptureAndRecord(
           // since the last keyframe.
           unsigned int packet_count = 0;
           ZMPacket *queued_packet;
+          struct timeval video_offset = {0};
 
           // Clear all packets that predate the moment when the recording began
           packetqueue->clear_unwanted_packets(
-              &recording, monitor->GetPreEventCount(), mVideoStreamId);
+              &recording, 0, mVideoStreamId);
 
           while ( (queued_packet = packetqueue->popPacket()) ) {
             AVPacket *avp = queued_packet->av_packet();
+
+            // compute time offset between event start and first frame in video
+            if (packet_count == 0){
+                monitor->SetVideoWriterStartTime(queued_packet->timestamp);
+                timersub(&queued_packet->timestamp, &recording, &video_offset);
+                Info("Event video offset is %.3f sec (<0 means video starts early)",
+                     video_offset.tv_sec + video_offset.tv_usec*1e-6);
+            }
 
             packet_count += 1;
             // Write the packet to our video store
@@ -920,6 +931,13 @@ int FfmpegCamera::CaptureAndRecord(
     if ( packet.stream_index == mVideoStreamId ) {
       if ( keyframe ) {
         Debug(3, "Clearing queue");
+        if (video_buffer_duration.tv_sec > 0 || video_buffer_duration.tv_usec > 0) {
+            packetqueue->clearQueue(&video_buffer_duration, mVideoStreamId);
+        }
+        else {
+            packetqueue->clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
+        }
+
         if (
             packetqueue->packet_count(mVideoStreamId)
             >=
@@ -933,7 +951,6 @@ int FfmpegCamera::CaptureAndRecord(
               packetqueue->packet_count(mVideoStreamId)+1);
         }
 
-        packetqueue->clearQueue(monitor->GetPreEventCount(), mVideoStreamId);
         packetqueue->queuePacket(&packet);
       } else if ( packetqueue->size() ) {
         // it's a keyframe or we already have something in the queue

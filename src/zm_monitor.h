@@ -273,6 +273,7 @@ protected:
   int           warmup_count;      // How many images to process before looking for events
   int           pre_event_count;    // How many images to hold and prepend to an alarm event
   int           post_event_count;    // How many unalarmed images must occur before the alarm state is reset
+  struct timeval video_buffer_duration; // How long a video segment to keep in buffer (set only if analysis fps != 0 )
   int           stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   int           section_length;      // How long events should last in continuous modes
   int           min_section_length;   // Minimum event length when using event_close_mode == ALARM
@@ -465,9 +466,12 @@ public:
   const std::vector<EncoderParameter_t>* GetOptEncoderParams() const { return &encoderparamsvec; }
   uint64_t GetVideoWriterEventId() const { return video_store_data->current_event; }
   void SetVideoWriterEventId( unsigned long long p_event_id ) { video_store_data->current_event = p_event_id; }
+  struct timeval GetVideoWriterStartTime() const { return video_store_data->recording; }
+  void SetVideoWriterStartTime(struct timeval &t) { video_store_data->recording = t; }
  
   unsigned int GetPreEventCount() const { return pre_event_count; };
-    int GetImageBufferCount() const { return image_buffer_count; };
+  struct timeval GetVideoBufferDuration() const { return video_buffer_duration; };
+  int GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const;
   int GetImage( int index=-1, int scale=100 );
   Snapshot *getSnapshot() const;
